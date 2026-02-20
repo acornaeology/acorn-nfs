@@ -292,7 +292,6 @@ label(0x0E10, "fs_cmd_ptr")         # CMNDP: pointer to rest of command line
 # Other workspace used by NFS
 # Relocated code — Tube host zero-page code (BRKV = $0016)
 # Reference: NFS11 (NEWBR, TSTART, MAIN)
-label(0x0016, "tube_brk_handler")    # BRKV target: send error to Tube via R2, then enter main loop
 label(0x0029, "tube_brk_send_loop")  # Loop: send error message bytes via R2 until zero terminator
 label(0x0032, "tube_reset_stack")    # Reset SP=$FF, CLI, fall through to main loop
 label(0x003A, "tube_main_loop")      # Poll R1 (WRCH) and R2 (commands), dispatch via table
@@ -306,7 +305,6 @@ entry(0x003A)
 
 # Relocated code — page 4 (Tube address claim, RDCH, data transfer)
 # Reference: NFS12 (BEGIN, ADRR, SENDW, TADDR, SETADR)
-label(0x0400, "tube_code_page4")     # Tube host code page 4 (copied from ROM at $934C)
 label(0x0403, "tube_escape_entry")   # JMP to tube_escape_check ($06E2)
 label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in reference)
 label(0x0414, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
@@ -346,7 +344,6 @@ entry(0x04F7)
 #   $0B      11    $0569  tube_osfind (OSFIND open)
 #   $0C      12    $05D8  tube_osfile (OSFILE)
 #   $0D      13    $0602  tube_osgbpb (OSGBPB)
-label(0x0500, "tube_dispatch_table")  # 14-entry handler address table
 label(0x051C, "tube_wrch_handler")    # WRCHV target — write character via Tube
 label(0x051F, "tube_send_and_poll")   # Send byte via R2, poll R2/R1 for reply
 label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
@@ -374,7 +371,6 @@ for addr in [0x055B, 0x05C5, 0x0626, 0x063B, 0x065D, 0x06A3,
 
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)
-label(0x0600, "tube_code_page6")      # Tube host code page 6 (copied from ROM at $954C)
 label(0x0602, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call $FFD1
 label(0x0626, "tube_osbyte_short")    # OSBYTE 2-param: read X+A, call $FFF4, return X
 label(0x0630, "tube_osbyte_send_x")   # Poll R2, send X result
@@ -413,75 +409,44 @@ label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
 label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
 
 # Dispatcher and dispatch callers
-label(0x809F, "dispatch")               # PHA/PHA/RTS dispatcher entry
-label(0x8069, "dispatch_net_cmd")       # *NET command dispatch (Y=$20)
 # Note: $8099 is already labelled "language_handler" by acorn.is_sideways_rom()
-label(0x8127, "dispatch_service")       # Service call dispatch (Y=$00)
 
 # Filing system OSWORD dispatch ($8DF7-$8E01)
-label(0x8E01, "fs_osword_dispatch")    # PHA/PHA/RTS dispatch for FS OSWORDs
 label(0x8E18, "fs_osword_tbl_lo")      # Low bytes of FS OSWORD handler table
 label(0x8E1D, "fs_osword_tbl_hi")      # High bytes of FS OSWORD handler table
 
 # FS OSWORD handler routines
-label(0x8E22, "copy_param_block")     # Bidirectional copy: C=1 param→ws, C=0 ws→param
 # osword_0f_handler label created by subroutine() call below.
-label(0x8E53, "osword_11_handler")    # OSWORD $11: read FS reply data
 label(0x8E6A, "read_args_size")        # READRB: get args buffer size from RX block offset $7F
-label(0x8E7B, "osword_12_handler")    # OSWORD $12: read/write FS server station and config
 # osword_10_handler label created by subroutine() call below.
 
 # Econet TX/RX handler and OSWORD dispatch
-label(0x8F57, "setup_rx_buffer_ptrs") # Set up RX buffer address pointers in workspace
 label(0x8F68, "store_16bit_at_y")     # Store 16-bit value at (nfs_workspace)+Y
-label(0x8F72, "econet_tx_rx")          # Main TX/RX handler (A=0: send, A>=1: result)
 # osword_dispatch label created by subroutine() call below.
 label(0x9020, "osword_trampoline")     # PHA/PHA/RTS trampoline
 label(0x902B, "osword_tbl_lo")         # Dispatch table low bytes
 label(0x9034, "osword_tbl_hi")         # Dispatch table high bytes
 # net_write_char label created by subroutine() call below.
-label(0x904B, "setup_tx_and_send")    # Set up TX ctrl block at ws+$0C and transmit
 
 # Remote operation function handlers (dispatched via osword_tbl)
 # (net_write_char subroutine defined above)
-label(0x9063, "remote_cmd_dispatch")  # Fn 7: dispatch received remote OSBYTE/OSWORD
 label(0x90B5, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
-label(0x90CD, "remote_cmd_data")      # Fn 7/8: copy received command data to workspace
-label(0x90FC, "remote_boot_handler")  # Remote boot: set up, download, execute at $0100
-label(0x912A, "execute_at_0100")      # Zero $0100-$0102, JMP $0100
-label(0x913A, "remote_validated")     # Remote op with source address validation
-label(0x914A, "insert_remote_key")    # Insert char from RX block into keyboard buffer
 
 # Control block setup
-label(0x9159, "ctrl_block_setup_alt")  # Alternate entry into control block setup
-label(0x9162, "ctrl_block_setup")     # Main entry: X=$1A, Y=$17, V=0 (nfs_workspace)
 label(0x9166, "ctrl_block_setup_clv") # CLV entry: same setup but clears V flag
-label(0x918E, "ctrl_block_template")  # Template table for control block initialisation
 
 # Remote printer and display handlers (fn 1/2/3/5)
-label(0x91B5, "remote_display_setup") # Fn 5: set up remote display/character position
-label(0x91C7, "remote_print_handler") # Fn 1/2/3: handle received chars for remote printing
-label(0x91EC, "store_output_byte")    # Store byte at (net_rx_ptr) + current output offset
-label(0x9217, "flush_output_block")   # Send current output block and reset buffer
 
 # Network transmit
-label(0x9248, "econet_tx_retry")      # Transmit with retry until accepted or timeout
 
 # JSR buffer protection
 label(0x92D6, "clear_jsr_protection") # CLRJSR: reset JSR buffer protection bits (4 refs)
 
 # Palette/VDU state save
-label(0x9291, "save_palette_vdu")     # Save all 16 palette entries + VDU state
-label(0x92DD, "save_vdu_state")       # Save cursor pos ($0355) and 2 VDU OSBYTE values to workspace
 label(0x92EE, "read_vdu_osbyte_x0")  # Read next VDU OSBYTE with X=0 parameter
 label(0x92F0, "read_vdu_osbyte")     # Read next OSBYTE from table, store result in workspace
 
 # ADLC initialisation and state management
-label(0x966F, "adlc_init")           # Full init: reset ADLC, read station ID, install NMI shim
-label(0x9681, "adlc_init_workspace") # Init workspace: copy NMI shim, set station ID
-label(0x969D, "save_econet_state")   # Save status/protection/tube to RX block offsets 8-10
-label(0x96B4, "restore_econet_state")# Restore status/protection/tube from RX block
-label(0x96CD, "install_nmi_shim")    # Copy 32-byte NMI shim from ROM to $0D00
 
 # Tube co-processor I/O subroutines (in relocated page 6)
 # Reference: RDCHA (R2 write), WRIFOR (R4 write), ESCA (R1 write)
@@ -516,11 +481,6 @@ label(0x8145, "return_2")
 label(0x8275, "return_3")
 
 # --- Service call handlers ---
-label(0x826F, "svc_abs_workspace")      # Svc 1: claim absolute workspace up to page $10
-label(0x8278, "svc_private_workspace")  # Svc 2: claim private workspace and init NFS
-label(0x81D1, "svc_autoboot")           # Svc 3: auto-boot (print station info, set up FS)
-label(0x8172, "svc_star_command")       # Svc 4: unrecognised *-command (handles *ROFF, *NET)
-label(0x81BC, "svc_help")               # Svc 9: *HELP (print "NFS 3.34")
 
 # --- Trampoline JMPs near ADLC init ($9660-$966C) ---
 label(0x9660, "trampoline_tx_setup")    # JMP c9be4 (TX control block setup)
@@ -532,9 +492,6 @@ entry(0x9660)
 entry(0x9663)
 
 # --- Init and vector setup ---
-label(0x80C8, "init_vectors_and_copy")  # Svc $FF: set up WRCHV/RDCHV/BRKV/EVNTV, copy code to RAM
-label(0x8184, "select_nfs")             # Svc $12 with Y=5: select NFS as active filing system
-label(0x8217, "setup_fs_vectors")       # Copy FS vector addresses, set up ROM pointer table
 label(0x824D, "fs_vector_addrs")        # 14-byte table: FILEV-FSCV extended vector addresses
 
 # --- FSCV handler and dispatch ---
@@ -575,20 +532,13 @@ entry(0x8485)
 entry(0x83A2)
 
 # --- Helper routines in header/init section ---
-label(0x81CC, "call_fscv_shutdown")     # LDA #6; JMP (FSCV) — notify FS of shutdown
-label(0x819B, "match_rom_string")       # Match command text against ROM string at $8008+X
 label(0x81AC, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
 label(0x81B3, "skip_cmd_spaces")         # SKPSP: skip spaces in command text; Z=1 if CR follows
-label(0x822E, "issue_vectors_claimed")  # OSBYTE $8F: issue service $0F (vectors claimed)
-label(0x82D1, "setup_rom_ptrs_netv")    # Read ROM pointer table, set up NETV
 label(0x82E5, "store_rom_ptr_pair")     # Write 2-byte address + ROM bank to ROM pointer table
-label(0x82FD, "fscv_shutdown")          # FSCV 6: save FS state to workspace, go dormant
 
 # --- TX control block and FS command setup ---
 label(0x830E, "init_tx_ctrl_data")      # Init TX control block for data port ($90)
 label(0x8310, "init_tx_ctrl_port")      # Init TX control block with port in A (2 JSR refs)
-label(0x831C, "init_tx_ctrl_block")     # Init TX control block from template at $8334
-label(0x8334, "tx_ctrl_template")       # 12-byte TX control block template
 label(0x8340, "prepare_cmd_with_flag")  # Prepare FS command with '*' flag and carry set
 label(0x8346, "prepare_cmd_clv")        # Prepare FS command with V cleared
 # prepare_fs_cmd and build_send_fs_cmd labels created by subroutine() calls below.
@@ -598,13 +548,10 @@ label(0x8380, "send_fs_reply_cmd")      # Send FS command with reply processing
 # --- Byte I/O and escape ---
 # handle_bput_bget label created by subroutine() call below.
 label(0x83CB, "store_retry_count")      # RAND1: store retry count to $0FDD, initiate TX
-label(0x8402, "store_fs_error")         # FSERR: save error number to fs_last_error
 label(0x841B, "update_sequence_return") # RAND3: update sequence numbers and pull A/Y/X/return
 label(0x842C, "set_listen_offset")      # NLISN2: use reply code as table offset for listen
 label(0x8448, "send_to_fs_star")        # Send '*' command to fileserver
-label(0x844A, "send_to_fs")             # Send command to fileserver and handle reply loop
 label(0x8470, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
-label(0x847A, "check_escape")           # Check and handle escape condition
 
 # --- Pointer arithmetic helpers ---
 label(0x84A4, "add_5_to_y")             # INY * 5; RTS
@@ -613,13 +560,9 @@ label(0x84AA, "sub_4_from_y")           # DEY * 4; RTS
 label(0x84AB, "sub_3_from_y")           # DEY * 3; RTS
 
 # --- Error messages and data tables ---
-label(0x84AF, "error_msg_table")        # Econet error message strings (8 entries)
-label(0x8146, "resume_after_remote")    # Resume after remote op: re-enable keyboard, send fn $0A
 label(0x815C, "clear_osbyte_ce_cf")     # Reset OSBYTE $CE/$CF intercept masks to $7F (restore MOS vectors)
 
 # --- * command forwarding and BYE ---
-label(0x8079, "forward_star_cmd")       # Forward unrecognised * command to fileserver
-label(0x8349, "bye_handler")            # *BYE: close spool/exec files, fall into prepare_fs_cmd
 
 # --- Page $0F workspace (FS command buffer) ---
 # NFS00 layout: BIGBUF=$0F00, TXBUF/RXBUF=$0F05, RXBUFE=$0FFF
@@ -648,11 +591,7 @@ label(0x0FDD, "fs_getb_buf")            # PUTB2/GETB2: shared GET/PUT byte works
 # file info display, and attribute decoding.
 
 # --- Argument save and file handle conversion ---
-label(0x8508, "save_fscv_args")         # Store A→$BD, X→$BB/$BE, Y→$BC/$BF (6 refs)
-label(0x8513, "decode_attribs_6bit")    # Read attribute byte at offset $0E, mask 6 bits
-label(0x851D, "decode_attribs_5bit")    # Mask A to 5 bits, build access bitmask
 label(0x8530, "access_bit_table")       # Lookup table for attribute bit mapping (11 bytes)
-label(0x8555, "skip_spaces")            # Skip leading spaces in (fs_options),Y; sets C if >= 'A'
 
 # --- Decimal number parser ($8560-$8587) ---
 # parse_decimal label created by subroutine() call below.
@@ -663,9 +602,6 @@ label(0x8589, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always 
 # handle_to_mask and mask_to_handle labels created by subroutine() calls below.
 
 # --- Number and hex printing ---
-label(0x85AF, "print_decimal")          # Print byte in A as 3-digit decimal (100/10/1)
-label(0x85BC, "print_decimal_digit")    # Divide: print digit of Y÷A, remainder in Y
-label(0x85EB, "print_hex")              # Print byte in A as two hex digits
 label(0x85F6, "print_hex_nibble")       # Print low nibble of A as hex digit
 
 # --- Address comparison ---
@@ -675,19 +611,14 @@ label(0x85F6, "print_hex_nibble")       # Print low nibble of A as hex digit
 label(0x85DA, "fscv_read_handles")      # Return X=$20 (base handle), Y=$27 (top handle)
 
 # --- FS flags manipulation ---
-label(0x85DF, "clear_fs_flag")          # Clear bit(s) in $0E07: A inverted, AND'd into flags
-label(0x85E4, "set_fs_flag")            # Set bit(s) in $0E07: A OR'd into flags
 
 # --- File info display ---
-label(0x8600, "print_file_info")        # Print catalogue line: filename + load/exec/length
 label(0x8617, "pad_filename_spaces")    # MONL2: pad filename display to 12 chars with spaces
 label(0x862A, "print_exec_and_len")     # Print exec address (4 bytes) and length (3 bytes)
 label(0x8635, "print_hex_bytes")        # Print X bytes from (fs_options)+Y as hex (high→low)
 label(0x8640, "print_space")            # Print a space character via OSASCI
 
 # --- TX control and transmission ---
-label(0x8644, "setup_tx_ptr_c0")        # Set net_tx_ptr = $00C0 (TX control block address)
-label(0x864C, "tx_poll_ff")             # Transmit with A=$FF, Y=$60 (full retry)
 label(0x864E, "tx_poll_timeout")        # Transmit with Y=$60 (specified timeout)
 # tx_poll_core label created by subroutine() call below.
 label(0x8684, "delay_1ms")              # MSDELY: 1ms delay loop (nested DEX/DEY)
@@ -701,37 +632,24 @@ label(0x8684, "delay_1ms")              # MSDELY: 1ms delay loop (nested DEX/DEY
 # args and returns via restore_args_return ($892C).
 
 # --- FILEV handler ($8694) and helpers ---
-label(0x86D0, "send_fs_examine")       # Send FS command $92 (examine/load file)
-label(0x8716, "send_data_blocks")      # Send file data in multi-block $80-byte chunks
-label(0x8746, "filev_save")            # OSFILE $00 (save): copy addresses, send to FS
-label(0x87AD, "copy_load_addr_from_params")  # Copy 4-byte load address from param block to $B0
-label(0x87BA, "copy_reply_to_params")  # Copy FS reply data into parameter block
-label(0x87C8, "transfer_file_blocks")  # Multi-block file data transfer loop
 
 # --- FSCV 1: EOF handler ($881F) ---
-label(0x881F, "eof_handler")           # FSCV 1: check end-of-file on handle
 
 # --- FILEV attribute dispatch ($8844) ---
-label(0x8844, "filev_attrib_dispatch") # FILEV function dispatch (A=1-6)
 label(0x886E, "get_file_protection")  # CHA1: decode attribute byte for protection status
 label(0x8883, "copy_filename_to_cmd") # CHASK2: copy filename string into FS command buffer
 label(0x88C5, "copy_fs_reply_to_cb")  # COPYFS: copy FS reply buffer data to control block
 
 # --- Common return point ($892C) ---
 label(0x8912, "save_args_handle")      # SETARG: save handle for OSARGS operation
-label(0x892C, "restore_args_return")   # Restore A/X/Y from saved workspace and return
 
 # --- FSCV 0: *OPT handler ($89A1) ---
-label(0x8985, "close_handle")           # CLOSE: detect CLOSE#0, close spool/exec or single handle
 label(0x898F, "close_single_handle")   # CLOSE1: send close command for specific handle to FS
-label(0x89A1, "opt_handler")           # FSCV 0: *OPT X,Y (set boot option or FS config)
 
 # --- Address adjustment helpers ($89CA-$89E9) ---
 label(0x89CA, "adjust_addrs_9")        # Adjust 4-byte addresses at param block offset 9
 label(0x89CF, "adjust_addrs_1")        # Adjust 4-byte addresses at param block offset 1
 label(0x89D1, "adjust_addrs_clc")      # CLC entry: clear carry before address adjustment
-label(0x89D2, "adjust_addrs")          # Bidirectional 4-byte address adjustment
-label(0x8AAD, "osgbpb_info")          # OSINFO: OSGBPB 5-8 handler, check Tube addresses
 label(0x8AFB, "copy_reply_to_caller") # Copy FS reply data to caller buffer (direct or via Tube)
 label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with $C3, retry until acquired
 
@@ -744,40 +662,15 @@ label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with $C3, retry until
 # *NET1-4 sub-commands manage file handles in local workspace.
 
 # --- FSCV unrecognised * and command matching ---
-label(0x8B92, "fscv_star_handler")     # FSCV 2/3/4: match * command against known FS commands
-label(0x8BD6, "fs_cmd_match_table")    # Command match table: "I.", "I AM", "EX", "BYE", catch-all
 
 # --- *EX and *CAT handlers ---
-label(0x8BF2, "ex_handler")            # *EX: set 80-column format, branch into cat_handler
-label(0x8BFD, "cat_handler")           # *CAT: display directory listing (20-column format)
 
 # --- Boot command strings and option tables ---
-label(0x8CEA, "boot_cmd_strings")      # Boot command strings: overlaps with JMP at $8CE7
-label(0x8CF7, "set_lib_handle")        # Store Y into $0E04 (library handle)
-label(0x8CFC, "set_csd_handle")        # Store Y into $0E03 (CSD handle)
-label(0x8D02, "boot_option_offsets")   # Boot option → OSCLI string offset table (4 entries)
-label(0x8D06, "i_am_handler")          # "I AM" command: parse station.network, forward to FS
-label(0x8D1F, "copy_handles_and_boot") # Copy FS reply handles to workspace + execute boot
-label(0x8D20, "copy_handles")          # Copy FS reply handles to workspace only (C=0 entry)
-label(0x8D3A, "option_name_strings")   # Option name table: "Off", "Load", "Run", "Exec"
-label(0x8D4B, "option_name_offsets")   # Offsets into option_name_strings (4 entries)
-label(0x8D4F, "print_reply_bytes")     # Print Y bytes from FS reply buffer starting at offset X
 label(0x8D51, "print_reply_counted")   # STRIN1: sub-entry of print_reply_bytes with caller-supplied Y count
-label(0x8D5C, "print_spaces")          # Print X space characters
-label(0x8D63, "copy_filename")         # Copy filename from (fs_crc_lo) to $0F05+ (X=0)
-label(0x8D65, "copy_string_to_cmd")    # Copy string from (fs_crc_lo)+Y to $0F05+X until CR
 label(0x8D67, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
-label(0x8D73, "print_dir_name")        # Print directory name from reply buffer
 label(0x8D75, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
-label(0x8D84, "notify_and_exec")       # Send FS command $4A, execute response or jump via ($0F09)
 
 # --- *NET sub-command handlers ---
-label(0x8DAF, "net1_read_handle")      # *NET1: read file handle from RX buffer offset $6F
-label(0x8DB7, "calc_handle_offset")    # Calculate handle workspace offset: A → Y (A*12)
-label(0x8DC9, "net2_read_handle_entry")# *NET2: look up handle in workspace
-label(0x8DDF, "net3_close_handle")     # *NET3: mark handle as closed ($3F) in workspace
-label(0x8DF2, "net4_resume_remote")    # *NET4: resume after remote operation
-label(0x8DF7, "osword_fs_entry")       # OSWORD filing system entry: subtract $0F from command code
 
 # ============================================================
 # Named labels for ADLC NMI handler routines
@@ -790,30 +683,21 @@ label(0x8DF7, "osword_fs_entry")       # OSWORD filing system entry: subtract $0
 # BRIANX=+$0000 (transmit), BRIANP=+$0003 (power up),
 # BRIANC=+$0006 (relinquish NMI), BRIANQ=+$0009 (reclaim NMI),
 # BRIANI=+$000C (unknown interrupt handler)
-label(0x96DC, "adlc_full_reset")       # Full ADLC reset (CR1=$C1, CR4=$1E, CR3=$00)
-label(0x96EB, "adlc_rx_listen")        # Enter RX listen mode (CR1=$82, CR2=$67)
 
 # --- RX scout reception (inbound) ---
-label(0x96F6, "nmi_rx_scout")          # Default NMI handler: check AP, read dest_stn
-label(0x9715, "nmi_rx_scout_net")      # Read dest_net, validate network
 label(0x9723, "scout_reject")          # Reject: wrong network (RX_DISCONTINUE)
-label(0x9737, "scout_error")           # Error/discard: unexpected SR2 state (5 refs)
 label(0x9744, "scout_discard")         # Clean discard via $9A40
 label(0x974C, "scout_loop_rda")        # Scout data loop: check RDA
 label(0x975C, "scout_loop_second")     # Scout data loop: read second byte of pair
-label(0x9771, "scout_complete")        # Scout completion: disable PSE, check FV+RDA
 label(0x9797, "scout_no_match")        # Scout port/station mismatch (3 refs)
 label(0x979A, "scout_match_port")      # Port non-zero: look for matching RX block
 
 # --- Data frame RX (inbound four-way handshake) ---
 label(0x982D, "data_rx_setup")         # Switch to RX mode, install data RX handler
-label(0x9839, "nmi_data_rx")           # Data frame: check AP, read dest_stn
 label(0x984F, "nmi_data_rx_net")       # Data frame: validate dest_net = 0
 label(0x9865, "nmi_data_rx_skip")      # Data frame: skip ctrl/port (already from scout)
 label(0x988A, "rx_error")              # RX error dispatcher (13 refs -- most referenced!)
 label(0x9894, "rx_error_reset")        # Full reset and discard
-label(0x989A, "nmi_data_rx_bulk")      # Data frame: bulk read into port buffer
-label(0x98CE, "data_rx_complete")      # Data frame completion: disable PSE, check FV
 label(0x98F7, "nmi_data_rx_tube")      # Data frame: Tube co-processor variant
 
 # --- Data frame completion and FV validation ---
@@ -821,59 +705,33 @@ label(0x9933, "data_rx_tube_complete") # Tube data frame completion
 label(0x9930, "data_rx_tube_error")    # Tube data frame error (3 refs)
 
 # --- ACK transmission ---
-label(0x995E, "ack_tx")                # Send scout ACK or final ACK frame
 label(0x9966, "ack_tx_configure")      # Configure CR1/CR2 for TX
 label(0x9974, "ack_tx_write_dest")     # Write dest addr to TX FIFO
-label(0x9992, "nmi_ack_tx_src")        # NMI: write src addr, send TX_LAST_DATA
-label(0x99BB, "post_ack_scout")        # Post-ACK: process received scout data
 
 # --- Discard and idle ---
-label(0x9A34, "discard_reset_listen")  # Full ADLC reset then return to idle listen (5 refs)
-label(0x9A40, "discard_listen")        # RX_DISCONTINUE then return to idle listen
-label(0x9A43, "discard_after_reset")   # Just adlc_rx_listen + RTI (post-reset entry)
-label(0x9A59, "immediate_op")          # Port=0 immediate operation handler
 
 # --- TX path ---
-label(0x9C48, "inactive_poll")         # Poll SR2 for INACTIVE before TX
 label(0x9C84, "tx_active_start")       # Begin TX (CR1=$44)
-label(0x9C88, "tx_line_jammed")        # Timeout error: "Line Jammed"
-label(0x9CA2, "tx_prepare")            # Configure ADLC for TX, install NMI handler
-label(0x9D4C, "nmi_tx_data")           # NMI TX: write 2 bytes per invocation
 label(0x9D72, "tx_error")              # TX error path
-label(0x9D88, "tx_last_data")          # Write TX_LAST_DATA, close frame
-label(0x9D94, "nmi_tx_complete")       # TX done: switch to RX mode
 
 # --- RX reply scout (outbound handshake) ---
-label(0x9DB2, "nmi_reply_scout")       # Check AP, read dest_stn
-label(0x9DC8, "nmi_reply_cont")        # Read dest_net, validate
 label(0x9DDE, "reply_error")           # Reply error: store $41 (8 refs)
-label(0x9DE3, "nmi_reply_validate")    # Read src_stn/net, check FV (Path 2)
 
 # --- TX scout ACK + data phase ---
-label(0x9E2B, "nmi_scout_ack_src")     # Write our station/net to TX FIFO
 label(0x9E3B, "data_tx_begin")         # Begin data frame TX
-label(0x9E50, "nmi_data_tx")           # NMI: send data payload from port buffer
 label(0x9E7D, "data_tx_last")          # TX_LAST_DATA for data frame (5 refs)
 label(0x9E8E, "data_tx_error")         # Data TX error (5 refs)
 label(0x9E9B, "install_saved_handler") # Install handler from $0D4B/$0D4C
 label(0x9EA4, "nmi_data_tx_tube")      # NMI: send data from Tube
 
 # --- Four-way handshake: RX final ACK ---
-label(0x9EDD, "handshake_await_ack")   # Switch to RX, await final ACK
-label(0x9EE9, "nmi_final_ack")         # Check AP, read dest_stn
 label(0x9EFF, "nmi_final_ack_net")     # Read dest_net, validate
-label(0x9F15, "nmi_final_ack_validate")# Read src_stn/net, check FV
 
 # --- Completion and error ---
-label(0x9F39, "tx_result_ok")          # Store result=0 (success)
 label(0x9F3D, "tx_result_fail")        # Store result=$41 (not listening) (9 refs)
-label(0x9F3F, "tx_store_result")       # Store result code, signal completion (6 refs)
-label(0x9F5B, "tx_calc_transfer")      # Calculate transfer size for RX block
 
 # --- NMI shim at end of ROM ---
 label(0x9FCA, "nmi_shim_rom_src")      # Source for 32-byte copy to $0D00
-label(0x9FCB, "nmi_bootstrap_entry")   # Bootstrap NMI: hardcoded JMP nmi_rx_scout
-label(0x9FD9, "rom_set_nmi_vector")    # ROM copy of set_nmi_vector routine
 label(0x9FEB, "rom_nmi_tail")          # TX flags update + address calc (purpose unclear)
 
 # ============================================================
@@ -1129,8 +987,9 @@ entry(0x982D)   # LDA #$82; STA $FEA0; installs NMI handler $9839
 # ============================================================
 # Save FSCV arguments ($8508)
 # ============================================================
-comment(0x8508, """\
-Save FSCV/vector arguments
+subroutine(0x8508, "save_fscv_args", hook=None,
+    title="Save FSCV/vector arguments",
+    description="""\
 Stores A, X, Y into the filing system workspace. Called at the
 start of every FS vector handler (FILEV, ARGSV, BGETV, BPUTV,
 GBPBV, FINDV, FSCV). NFS repurposes CFS/RFS workspace locations:
@@ -1142,8 +1001,9 @@ GBPBV, FINDV, FSCV). NFS repurposes CFS/RFS workspace locations:
 # ============================================================
 # Attribute decoding ($8513 / $851D)
 # ============================================================
-comment(0x8513, """\
-Decode file attributes: FS → BBC format (FSBBC, 6-bit variant)
+subroutine(0x8513, "decode_attribs_6bit", hook=None,
+    title="Decode file attributes: FS → BBC format (FSBBC, 6-bit variant)",
+    description="""\
 Reads attribute byte at offset $0E from the parameter block,
 masks to 6 bits, then falls through to the shared bitmask
 builder. Converts fileserver protection format (5-6 bits) to
@@ -1151,8 +1011,9 @@ BBC OSFILE attribute format (8 bits) via the lookup table at
 $8530. The two formats use different bit layouts for file
 protection attributes.""")
 
-comment(0x851D, """\
-Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)
+subroutine(0x851D, "decode_attribs_5bit", hook=None,
+    title="Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)",
+    description="""\
 Masks A to 5 bits and builds an access bitmask via the
 lookup table at $8530. Each input bit position maps to a
 different output bit via the table. The conversion is done
@@ -1163,8 +1024,9 @@ between BBC (8-bit) and fileserver (5-bit) protection formats.""")
 # ============================================================
 # Skip spaces ($8555)
 # ============================================================
-comment(0x8555, """\
-Skip leading spaces in parameter block
+subroutine(0x8555, "skip_spaces", hook=None,
+    title="Skip leading spaces in parameter block",
+    description="""\
 Advances Y past space characters in (fs_options),Y.
 Returns with the first non-space character in A.
 Sets carry if the character is >= 'A' (alphabetic).""")
@@ -1234,14 +1096,16 @@ receiving handle values from the fileserver in reply packets.""",
 # ============================================================
 # Print decimal number ($85AF)
 # ============================================================
-comment(0x85AF, """\
-Print byte as 3-digit decimal number
+subroutine(0x85AF, "print_decimal", hook=None,
+    title="Print byte as 3-digit decimal number",
+    description="""\
 Prints A as a decimal number using repeated subtraction
 for each digit position (100, 10, 1). Leading zeros are
 printed (no suppression). Used to display station numbers.""")
 
-comment(0x85BC, """\
-Print one decimal digit by repeated subtraction
+subroutine(0x85BC, "print_decimal_digit", hook=None,
+    title="Print one decimal digit by repeated subtraction",
+    description="""\
 Divides Y by A using repeated subtraction. Prints the
 quotient as an ASCII digit ('0'-'9'). Returns with the
 remainder in Y. X starts at $2F ('0'-1) and increments
@@ -1264,13 +1128,15 @@ address ($B4-$B7) during multi-block file data transfers.""",
 # ============================================================
 # FS flags ($85DF / $85E4)
 # ============================================================
-comment(0x85DF, """\
-Clear bit(s) in FS flags ($0E07)
+subroutine(0x85DF, "clear_fs_flag", hook=None,
+    title="Clear bit(s) in FS flags ($0E07)",
+    description="""\
 Inverts A (EOR #$FF), then ANDs into fs_work_0e07 to clear
 the specified bits. Falls through to set_fs_flag to store.""")
 
-comment(0x85E4, """\
-Set bit(s) in FS flags ($0E07)
+subroutine(0x85E4, "set_fs_flag", hook=None,
+    title="Set bit(s) in FS flags ($0E07)",
+    description="""\
 ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
 one of up to 8 open file handles. When clear, the file is
 definitely NOT at EOF. When set, the fileserver must be queried
@@ -1283,8 +1149,9 @@ operations that might have reached the end.""")
 # ============================================================
 # Print file info ($8600)
 # ============================================================
-comment(0x8600, """\
-Print file catalogue line
+subroutine(0x8600, "print_file_info", hook=None,
+    title="Print file catalogue line",
+    description="""\
 Displays a formatted catalogue entry: filename (padded to 12
 chars with spaces), load address (4 hex bytes at offset 5-2),
 exec address (4 hex bytes at offset 9-6), and file length
@@ -1296,8 +1163,9 @@ if fs_work_0e06 is zero (no info available).""")
 # ============================================================
 # Hex printing ($85EB / $85F6)
 # ============================================================
-comment(0x85EB, """\
-Print byte as two hex digits
+subroutine(0x85EB, "print_hex", hook=None,
+    title="Print byte as two hex digits",
+    description="""\
 Prints the high nibble first (via 4× LSR), then the low
 nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
 and output via OSASCI.""")
@@ -1305,14 +1173,16 @@ and output via OSASCI.""")
 # ============================================================
 # TX control ($8644-$8650)
 # ============================================================
-comment(0x8644, """\
-Set up TX pointer to control block at $00C0
+subroutine(0x8644, "setup_tx_ptr_c0", hook=None,
+    title="Set up TX pointer to control block at $00C0",
+    description="""\
 Points net_tx_ptr to $00C0 where the TX control block has
 been built by init_tx_ctrl_block. Falls through to tx_poll_ff
 to initiate transmission with full retry.""")
 
-comment(0x864C, """\
-Transmit and poll for result (full retry)
+subroutine(0x864C, "tx_poll_ff", hook=None,
+    title="Transmit and poll for result (full retry)",
+    description="""\
 Sets A=$FF (retry count) and Y=$60 (timeout parameter).
 Falls through to tx_poll_core.""")
 
@@ -1381,8 +1251,9 @@ Paired with dispatch_lo ($8020). Together they form a table of
 # ============================================================
 # *NET command dispatch ($8069)
 # ============================================================
-comment(0x8069, """\
-*NET command dispatcher
+subroutine(0x8069, "dispatch_net_cmd", hook=None,
+    title="*NET command dispatcher",
+    description="""\
 Parses the character after *NET as '1'-'4', maps to table
 indices 33-36 via base offset Y=$20, and dispatches via $809F.
 Characters outside '1'-'4' fall through to return_1 (RTS).""")
@@ -1394,8 +1265,9 @@ comment(0x8075, "Y=$20: base offset for *NET commands (index 33+)", inline=True)
 # ============================================================
 # PHA/PHA/RTS dispatcher ($809F)
 # ============================================================
-comment(0x809F, """\
-PHA/PHA/RTS computed dispatch
+subroutine(0x809F, "dispatch", hook=None,
+    title="PHA/PHA/RTS computed dispatch",
+    description="""\
 X = command index within caller's group (e.g. service number)
 Y = base offset into dispatch table (0, $0D, $20, etc.)
 The loop adds Y+1 to X, so final X = command index + base + 1.
@@ -1418,8 +1290,9 @@ comment(0x80AE, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch ($8099)
 # ============================================================
-comment(0x8099, """\
-Language entry dispatcher
+subroutine(0x8099, hook=None,
+    title="Language entry dispatcher",
+    description="""\
 Called when the NFS ROM is entered as a language. X = reason code
 (0-4). Dispatches via table indices 14-18 (base offset Y=$0D).""")
 
@@ -1428,8 +1301,9 @@ comment(0x809D, "Y=$0D: base offset for language handlers (index 14+)", inline=T
 # ============================================================
 # Service call dispatch ($8127)
 # ============================================================
-comment(0x8127, """\
-Service call dispatcher
+subroutine(0x8127, "dispatch_service", hook=None,
+    title="Service call dispatcher",
+    description="""\
 Dispatches MOS service calls 0-12 via the shared dispatch table.
 Uses base offset Y=0, so table index = service number + 1.
 Service numbers >= 13 are ignored (branch to return_2).
@@ -1442,8 +1316,9 @@ comment(0x8139, "JSR to dispatcher (returns here after handler completes)", inli
 # ============================================================
 # Service handler entry ($80AF)
 # ============================================================
-comment(0x80AF, """\
-Service handler entry
+subroutine(0x80AF, hook=None,
+    title="Service handler entry",
+    description="""\
 Intercepts three special service calls before normal dispatch:
   $FE: Tube init — explode character definitions (OSBYTE $14, X=6)
   $FF: Full init — set up WRCHV/RDCHV/BRKV/EVNTV, copy NMI handler
@@ -1455,8 +1330,9 @@ All other service calls dispatch via dispatch_service ($8127).""")
 # ============================================================
 # Init: set up vectors and copy code ($80C8)
 # ============================================================
-comment(0x80C8, """\
-NFS initialisation (service $FF: full reset)
+subroutine(0x80C8, "init_vectors_and_copy", hook=None,
+    title="NFS initialisation (service $FF: full reset)",
+    description="""\
 Sets up OS vectors for Tube co-processor support:
   WRCHV = $051C (page 5 — WRCH handler)
   RDCHV = $04E7 (page 4 — RDCH handler)
@@ -1476,8 +1352,9 @@ comment(0x80F0, "Write $8E to Tube control register", inline=True)
 # ============================================================
 # Select NFS as active filing system ($8184)
 # ============================================================
-comment(0x8184, """\
-Select NFS as active filing system (INIT)
+subroutine(0x8184, "select_nfs", hook=None,
+    title="Select NFS as active filing system (INIT)",
+    description="""\
 Reached from service $12 (select FS) with Y=5, or when *NET command
 selects NFS. Notifies the current FS of shutdown via FSCV A=6 —
 this triggers the outgoing FS to save its context back to its
@@ -1492,8 +1369,9 @@ the command decoder to trigger auto-boot login.""")
 # ============================================================
 # Set up filing system vectors ($8217)
 # ============================================================
-comment(0x8217, """\
-Set up filing system vectors
+subroutine(0x8217, "setup_fs_vectors", hook=None,
+    title="Set up filing system vectors",
+    description="""\
 Copies 14 bytes from fs_vector_addrs ($824D) into FILEV-FSCV ($0212).
 These set all 7 filing system vectors to the standard extended vector
 dispatch addresses ($FF1B, $FF1E, $FF21, $FF24, $FF27, $FF2A, $FF2D).
@@ -1506,8 +1384,9 @@ comment(0x8217, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True
 # ============================================================
 # Service 1: claim absolute workspace ($826F)
 # ============================================================
-comment(0x826F, """\
-Service 1: claim absolute workspace
+subroutine(0x826F, "svc_abs_workspace", hook=None,
+    title="Service 1: claim absolute workspace",
+    description="""\
 Claims pages up to $10 for NMI workspace ($0D), FS state ($0E),
 and FS command buffer ($0F). If Y >= $10, workspace already
 allocated — returns unchanged.""")
@@ -1515,8 +1394,9 @@ allocated — returns unchanged.""")
 # ============================================================
 # Service 2: claim private workspace ($8278)
 # ============================================================
-comment(0x8278, """\
-Service 2: claim private workspace and initialise NFS
+subroutine(0x8278, "svc_private_workspace", hook=None,
+    title="Service 2: claim private workspace and initialise NFS",
+    description="""\
 Y = next available workspace page on entry.
 Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
 On soft break (OSBYTE $FD returns 0): skips FS state init,
@@ -1540,8 +1420,9 @@ comment(0x82C9, "Initialise ADLC hardware", inline=True)
 # ============================================================
 # Service 3: auto-boot ($81D1)
 # ============================================================
-comment(0x81D1, """\
-Service 3: auto-boot
+subroutine(0x81D1, "svc_autoboot", hook=None,
+    title="Service 3: auto-boot",
+    description="""\
 Notifies current FS of shutdown via FSCV A=6. Scans keyboard
 (OSBYTE $7A): if no key is pressed, auto-boot proceeds; if the
 'N' key is pressed (matrix address $55), the boot is declined
@@ -1554,8 +1435,9 @@ to set up NFS vectors (selecting NFS as the filing system).""")
 # ============================================================
 # Service 4: unrecognised * command ($8172)
 # ============================================================
-comment(0x8172, """\
-Service 4: unrecognised * command
+subroutine(0x8172, "svc_star_command", hook=None,
+    title="Service 4: unrecognised * command",
+    description="""\
 Matches the command text against ROM string table entries:
   X=8: matches "ROFF" at $8010 (within copyright string) → *ROFF
        (log off from fileserver) — jumps to resume_after_remote
@@ -1566,15 +1448,17 @@ If neither matches, returns with the service call unclaimed.""")
 # ============================================================
 # Service 9: *HELP ($81BC)
 # ============================================================
-comment(0x81BC, """\
-Service 9: *HELP
+subroutine(0x81BC, "svc_help", hook=None,
+    title="Service 9: *HELP",
+    description="""\
 Prints the ROM identification string using print_inline.""")
 
 # ============================================================
 # Match ROM string ($819B)
 # ============================================================
-comment(0x819B, """\
-Match command text against ROM string table
+subroutine(0x819B, "match_rom_string", hook=None,
+    title="Match command text against ROM string table",
+    description="""\
 Compares characters from (os_text_ptr)+Y against bytes starting
 at binary_version+X ($8008+X). Input is uppercased via AND $DF.
 Returns with Z=1 if the ROM string's NUL terminator was reached
@@ -1584,8 +1468,9 @@ past the matched text; on return, skips trailing spaces.""")
 # ============================================================
 # Call FSCV shutdown ($81CC)
 # ============================================================
-comment(0x81CC, """\
-Notify filing system of shutdown
+subroutine(0x81CC, "call_fscv_shutdown", hook=None,
+    title="Notify filing system of shutdown",
+    description="""\
 Loads A=6 (FS shutdown notification) and JMP (FSCV).
 The FSCV handler's RTS returns to the caller of this routine
 (JSR/JMP trick saves one level of stack).""")
@@ -1593,8 +1478,9 @@ The FSCV handler's RTS returns to the caller of this routine
 # ============================================================
 # Issue service: vectors claimed ($822E)
 # ============================================================
-comment(0x822E, """\
-Issue 'vectors claimed' service and optionally auto-boot
+subroutine(0x822E, "issue_vectors_claimed", hook=None,
+    title="Issue 'vectors claimed' service and optionally auto-boot",
+    description="""\
 Issues service $0F (vectors claimed) via OSBYTE $8F, then
 service $0A. If fs_temp_cd is zero (auto-boot not inhibited),
 sets up the command string "I .BOOT" at $8245 and jumps to
@@ -1605,8 +1491,9 @@ catch-all entry which forwards the command to the fileserver.""")
 # ============================================================
 # Set up ROM pointer table and NETV ($82D1)
 # ============================================================
-comment(0x82D1, """\
-Set up ROM pointer table and NETV
+subroutine(0x82D1, "setup_rom_ptrs_netv", hook=None,
+    title="Set up ROM pointer table and NETV",
+    description="""\
 Reads the ROM pointer table base address via OSBYTE $A8, stores
 it in osrdsc_ptr ($F6). Sets NETV low byte to $36. Then copies
 one 3-byte extended vector entry (addr=$9007, rom=current) into
@@ -1616,8 +1503,9 @@ as the NETV handler.""")
 # ============================================================
 # FSCV shutdown: save FS state ($82FD)
 # ============================================================
-comment(0x82FD, """\
-FSCV 6: Filing system shutdown / save state (FSDIE)
+subroutine(0x82FD, "fscv_shutdown", hook=None,
+    title="FSCV 6: Filing system shutdown / save state (FSDIE)",
+    description="""\
 Called when another filing system (e.g. DFS) is selected. Saves
 the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page $0E into the dynamic workspace
@@ -1629,16 +1517,18 @@ dangling file handles across the FS switch.""")
 # ============================================================
 # Init TX control block ($831C)
 # ============================================================
-comment(0x831C, """\
-Initialise TX control block at $00C0 from template
+subroutine(0x831C, "init_tx_ctrl_block", hook=None,
+    title="Initialise TX control block at $00C0 from template",
+    description="""\
 Copies 12 bytes from tx_ctrl_template ($8334) to $00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
 station/network from $0E00/$0E01 to $00C2/$00C3.
 The template sets up: control=$80, port=$99 (FS command port),
 command data length=$0F, plus padding bytes.""")
 
-comment(0x8334, """\
-TX control block template (TXTAB, 12 bytes)
+subroutine(0x8334, "tx_ctrl_template", hook=None,
+    title="TX control block template (TXTAB, 12 bytes)",
+    description="""\
 $00C0: $80 (control flag)    $00C1: $99 (port — FS command port)
 $00C2: server station        $00C3: server network
 $00C4: $00 (data low)        $00C5: $0F (data high — buffer page)
@@ -1701,8 +1591,9 @@ callers can handle, vs hard errors which go through FSERR.""",
 # ============================================================
 # FS error handler ($8402)
 # ============================================================
-comment(0x8402, """\
-Handle fileserver error replies (FSERR)
+subroutine(0x8402, "store_fs_error", hook=None,
+    title="Handle fileserver error replies (FSERR)",
+    description="""\
 The fileserver returns errors as: zero command code + error number +
 CR-terminated message string. This routine converts the reply buffer
 in-place to a standard MOS BRK error packet by:
@@ -1744,8 +1635,9 @@ byte-level operations.""",
 # ============================================================
 # Send command to fileserver ($844A)
 # ============================================================
-comment(0x844A, """\
-Send command to fileserver and handle reply (WAITFS)
+subroutine(0x844A, "send_to_fs", hook=None,
+    title="Send command to fileserver and handle reply (WAITFS)",
+    description="""\
 Performs a complete FS transaction: transmit then wait for reply.
 Sets bit 7 of rx_status_flags (mark FS transaction in progress),
 builds a TX frame from the data at (net_tx_ptr), and transmits
@@ -1760,8 +1652,9 @@ checks for escape conditions between blocks.""")
 # ============================================================
 # Check escape ($847A)
 # ============================================================
-comment(0x847A, """\
-Check and handle escape condition (ESC)
+subroutine(0x847A, "check_escape", hook=None,
+    title="Check and handle escape condition (ESC)",
+    description="""\
 Two-level escape gating: the MOS escape flag ($FF bit 7) is ANDed
 with the software enable flag ESCAP. Both must have bit 7 set for
 escape to fire. ESCAP is set non-zero during data port operations
@@ -1781,8 +1674,9 @@ from continuing to spool output to a broken file handle.""")
 # ============================================================
 # Error message table ($84AF)
 # ============================================================
-comment(0x84AF, """\
-Econet error message table (ERRTAB, 8 entries)
+subroutine(0x84AF, "error_msg_table", hook=None,
+    title="Econet error message table (ERRTAB, 8 entries)",
+    description="""\
 Each entry: error number byte followed by NUL-terminated string.
   $A0: "Line Jammed"     $A1: "Net Error"
   $A2: "Not listening"   $A3: "No Clock"
@@ -1799,8 +1693,9 @@ Indexed via the error dispatch at c8424/c842c.""")
 # ============================================================
 # Resume after remote operation ($8146)
 # ============================================================
-comment(0x8146, """\
-Resume after remote operation / *ROFF handler (NROFF)
+subroutine(0x8146, "resume_after_remote", hook=None,
+    title="Resume after remote operation / *ROFF handler (NROFF)",
+    description="""\
 Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
 disabled during a remote operation (peek/poke/boot). Clears
 the flag, re-enables the keyboard via OSBYTE $C9, and sends
@@ -1853,8 +1748,9 @@ Dispatches by function code A:
              "x": "restored",
              "y": "restored"})
 
-comment(0x86D0, """\
-Send FS examine command
+subroutine(0x86D0, "send_fs_examine", hook=None,
+    title="Send FS examine command",
+    description="""\
 Sends FS command $03 (FCEXAM: examine file) to the fileserver.
 Sets $0F02=$03 and error pointer to '*'. Called for OSFILE $FF
 (load file) with the filename already in the command buffer.
@@ -1863,16 +1759,18 @@ are used to set up the data transfer. The header URD field
 is repurposed to carry the Econet data port number (PLDATA=$92)
 for the subsequent block data transfer.""")
 
-comment(0x8716, """\
-Send file data in multi-block chunks
+subroutine(0x8716, "send_data_blocks", hook=None,
+    title="Send file data in multi-block chunks",
+    description="""\
 Repeatedly sends $80-byte (128-byte) blocks of file data to the
 fileserver using command $7F. Compares current address ($C8-$CB)
 against end address ($B4-$B7) via compare_addresses, and loops
 until the entire file has been transferred. Each block is sent
 via send_to_fs_star.""")
 
-comment(0x8746, """\
-OSFILE save handler (A=$00)
+subroutine(0x8746, "filev_save", hook=None,
+    title="OSFILE save handler (A=$00)",
+    description="""\
 Copies 4-byte load/exec/length addresses from the parameter block
 to the FS command buffer, along with the filename. Sends FS
 command $91 with function $14 to initiate the save, then
@@ -1883,19 +1781,22 @@ incremented by 1 to skip the command code (CC) byte, which
 indicates the FS type and must be preserved. N.B. this assumes
 the RX buffer does not cross a page boundary.""")
 
-comment(0x87AD, """\
-Copy load address from parameter block
+subroutine(0x87AD, "copy_load_addr_from_params", hook=None,
+    title="Copy load address from parameter block",
+    description="""\
 Copies 4 bytes from (fs_options)+2..5 (the load address in the
 OSFILE parameter block) to $AE-$B3 (local workspace).""")
 
-comment(0x87BA, """\
-Copy FS reply data to parameter block
+subroutine(0x87BA, "copy_reply_to_params", hook=None,
+    title="Copy FS reply data to parameter block",
+    description="""\
 Copies bytes from the FS command reply buffer ($0F02+) into the
 parameter block at (fs_options)+2..13. Used to fill in the OSFILE
 parameter block with information returned by the fileserver.""")
 
-comment(0x87C8, """\
-Multi-block file data transfer
+subroutine(0x87C8, "transfer_file_blocks", hook=None,
+    title="Multi-block file data transfer",
+    description="""\
 Manages the transfer of file data in chunks between the local
 machine and the fileserver. Entry conditions: WORK ($B0-$B3) and
 WORK+4 ($B4-$B7) hold the low and high addresses of the data
@@ -1906,8 +1807,9 @@ transferred. Handles address overflow and Tube co-processor
 transfers. For SAVE, WORK+8 holds the port on which to receive
 byte-level ACKs for each data block (flow control).""")
 
-comment(0x881F, """\
-FSCV 1: EOF handler
+subroutine(0x881F, "eof_handler", hook=None,
+    title="FSCV 1: EOF handler",
+    description="""\
 Checks whether a file handle has reached end-of-file. Converts
 the handle via handle_to_mask_clc, tests the result against the
 EOF hint byte ($0E07). If the hint bit is clear, returns X=0
@@ -1917,8 +1819,9 @@ the fileserver for definitive EOF status. Returns X=$FF if at
 EOF, X=$00 if not. This two-level check avoids an expensive
 network round-trip when the file is known to not be at EOF.""")
 
-comment(0x8844, """\
-FILEV attribute dispatch (A=1-6)
+subroutine(0x8844, "filev_attrib_dispatch", hook=None,
+    title="FILEV attribute dispatch (A=1-6)",
+    description="""\
 Dispatches OSFILE operations by function code:
   A=1: write catalogue info (load/exec/length/attrs) — FS $14
   A=2: write load address only
@@ -1933,22 +1836,25 @@ The control block layout uses dual-purpose fields: the 'data
 start' field doubles as 'length' and 'data end' doubles as
 'protection' depending on whether reading or writing attrs.""")
 
-comment(0x892C, """\
-Restore arguments and return
+subroutine(0x892C, "restore_args_return", hook=None,
+    title="Restore arguments and return",
+    description="""\
 Common exit point for FS vector handlers. Reloads A from
 fs_last_byte_flag ($BD), X from fs_options ($BB), and Y from
 fs_block_offset ($BC) — the values saved at entry by
 save_fscv_args — and returns to the caller.""")
 
-comment(0x89A1, """\
-FSCV 0: *OPT handler (OPTION)
+subroutine(0x89A1, "opt_handler", hook=None,
+    title="FSCV 0: *OPT handler (OPTION)",
+    description="""\
 Handles *OPT X,Y to set filing system options:
   *OPT 1,Y (Y=0/1): set local user option in $0E06 (OPT)
   *OPT 4,Y (Y=0-3): set boot option via FS command $16 (FCOPT)
 Other combinations generate error $CB (OPTER: "bad option").""")
 
-comment(0x89D2, """\
-Bidirectional 4-byte address adjustment
+subroutine(0x89D2, "adjust_addrs", hook=None,
+    title="Bidirectional 4-byte address adjustment",
+    description="""\
 Adjusts a 4-byte value in the parameter block at (fs_options)+Y:
   If fs_load_addr_2 ($B2) is positive: adds fs_lib_handle+X values
   If fs_load_addr_2 ($B2) is negative: subtracts fs_lib_handle+X
@@ -2000,8 +1906,9 @@ number tracking byte for the byte-stream protocol.""",
 # ============================================================
 # CLOSE handler ($8985)
 # ============================================================
-comment(0x8985, """\
-Close file handle(s) (CLOSE)
+subroutine(0x8985, "close_handle", hook=None,
+    title="Close file handle(s) (CLOSE)",
+    description="""\
   Y=0: close all files — first calls OSBYTE $77 (close SPOOL and
        EXEC files) to coordinate with the MOS before sending the
        close-all command to the fileserver. This ensures locally-
@@ -2036,8 +1943,9 @@ than the CR-terminated strings used elsewhere in the FS.""",
 # ============================================================
 # OSGBPB info handler ($8AAD)
 # ============================================================
-comment(0x8AAD, """\
-OSGBPB 5-8 info handler (OSINFO)
+subroutine(0x8AAD, "osgbpb_info", hook=None,
+    title="OSGBPB 5-8 info handler (OSINFO)",
+    description="""\
 Handles the "messy interface tacked onto OSGBPB" (original source).
 Checks whether the destination address is in Tube space by comparing
 the high bytes against TBFLAG. If in Tube space, data must be
@@ -2047,8 +1955,9 @@ slow 16032 co-processor) instead of direct memory access.""")
 # ============================================================
 # Forward unrecognised * command to fileserver ($8079)
 # ============================================================
-comment(0x8079, """\
-Forward unrecognised * command to fileserver (COMERR)
+subroutine(0x8079, "forward_star_cmd", hook=None,
+    title="Forward unrecognised * command to fileserver (COMERR)",
+    description="""\
 Copies command text from (fs_crc_lo) to $0F05+ via copy_filename,
 prepares an FS command with function code 0, and sends it to the
 fileserver to request decoding. The server returns a command code
@@ -2062,8 +1971,9 @@ in), returns without sending.""")
 # ============================================================
 # *BYE handler ($8349)
 # ============================================================
-comment(0x8349, """\
-*BYE handler (logoff)
+subroutine(0x8349, "bye_handler", hook=None,
+    title="*BYE handler (logoff)",
+    description="""\
 Closes any open *SPOOL and *EXEC files via OSBYTE $77 (FXSPEX),
 then falls into prepare_fs_cmd with Y=$17 (FCBYE: logoff code).
 Dispatched from the command match table at $8BD6 for "BYE".""")
@@ -2071,8 +1981,9 @@ Dispatched from the command match table at $8BD6 for "BYE".""")
 # ============================================================
 # FSCV unrecognised * handler ($8B92)
 # ============================================================
-comment(0x8B92, """\
-FSCV 2/3/4: unrecognised * command handler (DECODE)
+subroutine(0x8B92, "fscv_star_handler", hook=None,
+    title="FSCV 2/3/4: unrecognised * command handler (DECODE)",
+    description="""\
 CLI parser originally by Roger Wilson (later Sophie Wilson,
 co-designer of ARM). Matches command text against the table
 at $8BD6 using case-insensitive comparison with abbreviation
@@ -2089,8 +2000,9 @@ it dispatches via PHA/PHA/RTS to the entry's handler address.
 After matching, adjusts fs_crc_lo/fs_crc_hi to point past
 the matched command text.""")
 
-comment(0x8BD6, """\
-FS command match table (COMTAB)
+subroutine(0x8BD6, "fs_cmd_match_table", hook=None,
+    title="FS command match table (COMTAB)",
+    description="""\
 Format: command letters (bit 7 clear), then dispatch address
 as two bytes: high|(bit 7 set), low. The PHA/PHA/RTS trick
 adds 1 to the stored (address-1). Matching is case-insensitive
@@ -2108,14 +2020,16 @@ Entries:
 # ============================================================
 # *EX and *CAT handlers ($8BF2 / $8BFD)
 # ============================================================
-comment(0x8BF2, """\
-*EX handler (extended catalogue)
+subroutine(0x8BF2, "ex_handler", hook=None,
+    title="*EX handler (extended catalogue)",
+    description="""\
 Sets column width $B6=$50 (80 columns, one file per line with
 full details) and $B7=$01, then branches into cat_handler at
 $8C07, bypassing cat_handler's default 20-column setup.""")
 
-comment(0x8BFD, """\
-*CAT handler (directory catalogue)
+subroutine(0x8BFD, "cat_handler", hook=None,
+    title="*CAT handler (directory catalogue)",
+    description="""\
 Sets column width $B6=$14 (20 columns, four files per 80-column
 line) and $B7=$03. The catalogue protocol is multi-step: first
 sends FCUSER ($15: read user environment) to get CSD, disc, and
@@ -2141,8 +2055,9 @@ Display format:
 # ============================================================
 # Boot command strings ($8CEA)
 # ============================================================
-comment(0x8CEA, """\
-Boot command strings for auto-boot
+subroutine(0x8CEA, "boot_cmd_strings", hook=None,
+    title="Boot command strings for auto-boot",
+    description="""\
 The four boot options use OSCLI strings at offsets within page $8C:
   Option 0 (Off):  offset $F6 → $8CF6 = bare CR (empty command)
   Option 1 (Load): offset $E7 → $8CE7 = "L.!BOOT" (dual-purpose:
@@ -2157,27 +2072,31 @@ bytes serve double duty as both executable code and ASCII text.""")
 # ============================================================
 # Handle workspace management ($8CF7-$8CFF)
 # ============================================================
-comment(0x8CF7, """\
-Set library handle
+subroutine(0x8CF7, "set_lib_handle", hook=None,
+    title="Set library handle",
+    description="""\
 Stores Y into $0E04 (library directory handle in FS workspace).
 Falls through to c8cff (JMP c892c) if Y is non-zero.""")
 
-comment(0x8CFC, """\
-Set CSD handle
+subroutine(0x8CFC, "set_csd_handle", hook=None,
+    title="Set CSD handle",
+    description="""\
 Stores Y into $0E03 (current selected directory handle).
 Falls through to c8cff (JMP c892c).""")
 
 # ============================================================
 # Boot option table and "I AM" handler ($8D02-$8D1E)
 # ============================================================
-comment(0x8D02, """\
-Boot option → OSCLI string offset table
+subroutine(0x8D02, "boot_option_offsets", hook=None,
+    title="Boot option → OSCLI string offset table",
+    description="""\
 Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page $8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.""")
 
-comment(0x8D06, """\
-"I AM" command handler
+subroutine(0x8D06, "i_am_handler", hook=None,
+    title="\"I AM\" command handler",
+    description="""\
 Dispatched from the command match table when the user types
 "*I AM <station>" or "*I AM <station>.<network>".
 Parses the station number (and optional network number after '.')
@@ -2189,8 +2108,9 @@ Then forwards the command to the fileserver via forward_star_cmd.""")
 # ============================================================
 # Copy handles and boot ($8D1F / $8D20)
 # ============================================================
-comment(0x8D1F, """\
-Copy FS reply handles to workspace and execute boot command
+subroutine(0x8D1F, "copy_handles_and_boot", hook=None,
+    title="Copy FS reply handles to workspace and execute boot command",
+    description="""\
 SEC entry (LOGIN): copies 4 bytes from $0F05-$0F08 (FS reply) to
 $0E02-$0E05 (URD, CSD, LIB handles and boot option), then
 looks up the boot option in boot_option_offsets to get the
@@ -2200,8 +2120,9 @@ share the handle-copying code, but only LOGIN executes the boot
 command. This use of the carry flag to select behaviour between
 two callers avoids duplicating the handle-copy loop.""")
 
-comment(0x8D20, """\
-Copy FS reply handles to workspace (no boot)
+subroutine(0x8D20, "copy_handles", hook=None,
+    title="Copy FS reply handles to workspace (no boot)",
+    description="""\
 CLC entry (SDISC): copies handles only, then jumps to c8cff.
 Called when the FS reply contains updated handle values
 but no boot action is needed.""")
@@ -2209,42 +2130,48 @@ but no boot action is needed.""")
 # ============================================================
 # Option name display ($8D3A-$8D4E)
 # ============================================================
-comment(0x8D3A, """\
-Option name strings
+subroutine(0x8D3A, "option_name_strings", hook=None,
+    title="Option name strings",
+    description="""\
 Null-terminated strings for the four boot option names:
   "Off", "Load", "Run", "Exec"
 Used by cat_handler to display the current boot option setting.""")
 
-comment(0x8D4B, """\
-Option name offsets
+subroutine(0x8D4B, "option_name_offsets", hook=None,
+    title="Option name offsets",
+    description="""\
 Four-byte table of offsets into option_name_strings:
   0, 4, 9, $0D — one per boot option value (0-3).""")
 
 # ============================================================
 # Reply buffer display helpers ($8D4F-$8D72)
 # ============================================================
-comment(0x8D4F, """\
-Print reply buffer bytes
+subroutine(0x8D4F, "print_reply_bytes", hook=None,
+    title="Print reply buffer bytes",
+    description="""\
 Prints Y characters from the FS reply buffer ($0F05+X) to
 the screen via OSASCI. X = starting offset, Y = count.
 Used by cat_handler to display directory and library names.""")
 
-comment(0x8D5C, """\
-Print spaces
+subroutine(0x8D5C, "print_spaces", hook=None,
+    title="Print spaces",
+    description="""\
 Prints X space characters via print_space. Used by cat_handler
 to align columns in the directory listing.""")
 
 # ============================================================
 # Filename copy helpers ($8D63-$8D72)
 # ============================================================
-comment(0x8D63, """\
-Copy filename to FS command buffer
+subroutine(0x8D63, "copy_filename", hook=None,
+    title="Copy filename to FS command buffer",
+    description="""\
 Entry with X=0: copies from (fs_crc_lo),Y to $0F05+X until CR.
 Used to place a filename into the FS command buffer before
 sending to the fileserver. Falls through to copy_string_to_cmd.""")
 
-comment(0x8D65, """\
-Copy string to FS command buffer
+subroutine(0x8D65, "copy_string_to_cmd", hook=None,
+    title="Copy string to FS command buffer",
+    description="""\
 Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
 to $0F05+X, stopping when a CR ($0D) is encountered. The CR
 itself is also copied. Returns with X pointing past the last
@@ -2253,8 +2180,9 @@ byte written.""")
 # ============================================================
 # Print directory name ($8D73)
 # ============================================================
-comment(0x8D73, """\
-Print directory name from reply buffer
+subroutine(0x8D73, "print_dir_name", hook=None,
+    title="Print directory name from reply buffer",
+    description="""\
 Prints characters from the FS reply buffer ($0F05+X onwards).
 Null bytes ($00) are replaced with CR ($0D) for display.
 Stops when a byte with bit 7 set is encountered (high-bit
@@ -2263,8 +2191,9 @@ terminator). Used by cat_handler to display Dir. and Lib. paths.""")
 # ============================================================
 # Notify and execute ($8D84)
 # ============================================================
-comment(0x8D84, """\
-Send FS load-as-command and execute response
+subroutine(0x8D84, "notify_and_exec", hook=None,
+    title="Send FS load-as-command and execute response",
+    description="""\
 Sets up an FS command with function code $05 (FCCMND: load as
 command) using send_fs_examine. If a Tube co-processor is
 present (tx_in_progress != 0), transfers the response data
@@ -2274,14 +2203,16 @@ indirect pointer at ($0F09) to execute at the load address.""")
 # ============================================================
 # *NET sub-command handlers ($8DAF-$8DF5)
 # ============================================================
-comment(0x8DAF, """\
-*NET1: read file handle from received packet
+subroutine(0x8DAF, "net1_read_handle", hook=None,
+    title="*NET1: read file handle from received packet",
+    description="""\
 Reads a file handle byte from offset $6F in the RX buffer
 (net_rx_ptr), stores it in $F0, then falls through to the
 common handle workspace cleanup at c8dda (clear fs_temp_ce).""")
 
-comment(0x8DB7, """\
-Calculate handle workspace offset
+subroutine(0x8DB7, "calc_handle_offset", hook=None,
+    title="Calculate handle workspace offset",
+    description="""\
 Converts a file handle number (in A) to a byte offset (in Y)
 into the NFS handle workspace. The calculation is A*12:
   ASL A (A*2), ASL A (A*4), PHA, ASL A (A*8),
@@ -2290,22 +2221,25 @@ Validates that the offset is < $48 (max 6 handles × 12 bytes
 per handle entry = 72 bytes). If invalid (>= $48), returns
 with C set and Y=0, A=0 as an error indicator.""")
 
-comment(0x8DC9, """\
-*NET2: read handle entry from workspace
+subroutine(0x8DC9, "net2_read_handle_entry", hook=None,
+    title="*NET2: read handle entry from workspace",
+    description="""\
 Looks up the handle in $F0 via calc_handle_offset. If the
 workspace slot contains $3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
 Clears fs_temp_ce on exit.""")
 
-comment(0x8DDF, """\
-*NET3: close handle (mark as unused)
+subroutine(0x8DDF, "net3_close_handle", hook=None,
+    title="*NET3: close handle (mark as unused)",
+    description="""\
 Looks up the handle in $F0 via calc_handle_offset. Writes
 $3F ('?') to mark the handle slot as closed in the NFS
 workspace. Preserves the carry flag state across the write
 using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.""")
 
-comment(0x8DF2, """\
-*NET4: resume after remote operation
+subroutine(0x8DF2, "net4_resume_remote", hook=None,
+    title="*NET4: resume after remote operation",
+    description="""\
 Calls resume_after_remote ($8146) to re-enable the keyboard
 and send a completion notification. The BVC always branches
 to c8dda (clear fs_temp_ce) since resume_after_remote
@@ -2315,8 +2249,9 @@ returns with V clear (from CLV in prepare_cmd_clv).""")
 # ============================================================
 # Filing system OSWORD dispatch ($8DF7 / $8E01)
 # ============================================================
-comment(0x8DF7, """\
-Filing system OSWORD entry
+subroutine(0x8DF7, "osword_fs_entry", hook=None,
+    title="Filing system OSWORD entry",
+    description="""\
 Subtracts $0F from the command code in $EF, giving a 0-4 index
 for OSWORD calls $0F-$13 (15-19). Falls through to the
 PHA/PHA/RTS dispatch at $8E01.""")
@@ -2324,8 +2259,9 @@ PHA/PHA/RTS dispatch at $8E01.""")
 comment(0x8DF7, "Command code from $EF", inline=True)
 comment(0x8DF9, "Subtract $0F: OSWORD $0F-$13 become indices 0-4", inline=True)
 
-comment(0x8E01, """\
-PHA/PHA/RTS dispatch for filing system OSWORDs
+subroutine(0x8E01, "fs_osword_dispatch", hook=None,
+    title="PHA/PHA/RTS dispatch for filing system OSWORDs",
+    description="""\
 X = OSWORD number - $0F (0-4). Dispatches via the 5-entry table
 at $8E18 (low) / $8E1D (high).""")
 
@@ -2338,8 +2274,9 @@ comment(0x8113, "Copy NMI workspace initialiser from ROM to $0016-$0076")
 # ============================================================
 # Econet TX/RX handler ($8F72)
 # ============================================================
-comment(0x8F72, """\
-Econet transmit/receive handler
+subroutine(0x8F72, "econet_tx_rx", hook=None,
+    title="Econet transmit/receive handler",
+    description="""\
 A=0: Initialise TX control block from ROM template at $8310
      (zero entries substituted from NMI workspace $0DDA), transmit
      it, set up RX control block, and receive reply.
@@ -2407,8 +2344,9 @@ comment(0x903E, "ROR/ASL on stacked P: zeros carry to signal success", inline=Tr
 # ============================================================
 # Setup TX and send ($904B)
 # ============================================================
-comment(0x904B, """\
-Set up TX control block and send
+subroutine(0x904B, "setup_tx_and_send", hook=None,
+    title="Set up TX control block and send",
+    description="""\
 Builds a TX control block at (nfs_workspace)+$0C from the current
 workspace state, then initiates transmission via the ADLC TX path.
 This is the common send routine used after command data has been
@@ -2418,14 +2356,16 @@ further analysis.""")
 # ============================================================
 # Control block setup routine ($9159 / $9162)
 # ============================================================
-comment(0x9159, """\
-Alternate entry into control block setup
+subroutine(0x9159, "ctrl_block_setup_alt", hook=None,
+    title="Alternate entry into control block setup",
+    description="""\
 Sets X=$0D, Y=$7C. Tests bit 6 of $833A to choose target:
   V=0 (bit 6 clear): stores to (nfs_workspace)
   V=1 (bit 6 set):   stores to (net_rx_ptr)""")
 
-comment(0x9162, """\
-Control block setup — main entry
+subroutine(0x9162, "ctrl_block_setup", hook=None,
+    title="Control block setup — main entry",
+    description="""\
 Sets X=$1A, Y=$17, clears V (stores to nfs_workspace).
 Reads the template table at $918E indexed by X, storing each
 value into the target workspace at offset Y. Both X and Y
@@ -2438,8 +2378,9 @@ Template sentinel values:
 
 comment(0x9167, "Load template byte from ctrl_block_template[X]", inline=True)
 
-comment(0x918E, """\
-Control block initialisation template
+subroutine(0x918E, "ctrl_block_template", hook=None,
+    title="Control block initialisation template",
+    description="""\
 Read by the loop at $9167, indexed by X from a starting value
 down to 0. Values are stored into either (nfs_workspace) or
 (net_rx_ptr) at offset Y, depending on the V flag.
@@ -2456,8 +2397,9 @@ Sentinel values:
 # ============================================================
 # Bidirectional block copy ($8E22)
 # ============================================================
-comment(0x8E22, """\
-Bidirectional block copy between OSWORD param block and workspace.
+subroutine(0x8E22, "copy_param_block", hook=None,
+    title="Bidirectional block copy between OSWORD param block and workspace.",
+    description="""\
 C=1: copy X+1 bytes from ($F0),Y to (fs_crc_lo),Y (param to workspace)
 C=0: copy X+1 bytes from (fs_crc_lo),Y to ($F0),Y (workspace to param)""")
 
@@ -2482,8 +2424,9 @@ modify TXCBP between the copy and the claim.""",
              "x": "corrupted",
              "y": "$FF"})
 
-comment(0x8E53, """\
-OSWORD $11 handler: read JSR arguments (READRA)
+subroutine(0x8E53, "osword_11_handler", hook=None,
+    title="OSWORD $11 handler: read JSR arguments (READRA)",
+    description="""\
 Copies the JSR (remote procedure call) argument buffer from the
 static workspace page back to the caller's OSWORD parameter block.
 Reads the buffer size from workspace offset JSRSIZ, then copies
@@ -2492,8 +2435,9 @@ CLRJSR to reset the protection status. Also provides READRB as
 a sub-entry ($8E6A) to return just the buffer size and args size
 without copying the data.""")
 
-comment(0x8E7B, """\
-OSWORD $12 handler: read/set state information (RS)
+subroutine(0x8E7B, "osword_12_handler", hook=None,
+    title="OSWORD $12 handler: read/set state information (RS)",
+    description="""\
 Dispatches on the sub-function code (0-9):
   0: read FS station (FSLOCN at $0E00)
   1: set FS station
@@ -2533,20 +2477,23 @@ being read or opened.""",
 # ============================================================
 # Remote operation handlers ($90FC / $912A / $913A / $914A)
 # ============================================================
-comment(0x90FC, """\
-Remote boot/execute handler
+subroutine(0x90FC, "remote_boot_handler", hook=None,
+    title="Remote boot/execute handler",
+    description="""\
 Validates byte 4 of the RX control block (must be zero), copies the
 2-byte execution address from RX offsets $80/$81 into NFS workspace,
 sets up a control block, disables keyboard (OSBYTE $C9), then falls
 through to execute_at_0100.""")
 
-comment(0x912A, """\
-Execute downloaded code at $0100
+subroutine(0x912A, "execute_at_0100", hook=None,
+    title="Execute downloaded code at $0100",
+    description="""\
 Zeroes $0100-$0102 (safe BRK default), restores the protection mask,
 and JMP $0100 to execute code received over the network.""")
 
-comment(0x913A, """\
-Remote operation with source validation (REMOT)
+subroutine(0x913A, "remote_validated", hook=None,
+    title="Remote operation with source validation (REMOT)",
+    description="""\
 Validates that the source station/network in the received packet
 matches the controlling station stored in the remote RXCB. This
 ensures that only the station that initiated the remote session
@@ -2561,22 +2508,25 @@ Bit 0 of the status byte disallows further remote takeover
 attempts (preventing re-entrant remote control), while bit 3
 marks the machine as currently remoted.""")
 
-comment(0x914A, """\
-Insert remote keypress
+subroutine(0x914A, "insert_remote_key", hook=None,
+    title="Insert remote keypress",
+    description="""\
 Reads a character from RX block offset $82 and inserts it into
 keyboard input buffer 0 via OSBYTE $99.""")
 
 # ============================================================
 # Remote operation support routines ($8F57-$92F0)
 # ============================================================
-comment(0x8F57, """\
-Set up RX buffer pointers in NFS workspace
+subroutine(0x8F57, "setup_rx_buffer_ptrs", hook=None,
+    title="Set up RX buffer pointers in NFS workspace",
+    description="""\
 Calculates the start address of the RX data area ($F0+1) and stores
 it at workspace offset $28. Also reads the data length from ($F0)+1
 and adds it to $F0 to compute the end address at offset $2C.""")
 
-comment(0x9063, """\
-Fn 7: remote OSBYTE handler (NBYTE)
+subroutine(0x9063, "remote_cmd_dispatch", hook=None,
+    title="Fn 7: remote OSBYTE handler (NBYTE)",
+    description="""\
 Full RPC mechanism for OSBYTE calls across the network. When a
 machine is remoted, OSBYTE/OSWORD calls that affect terminal-side
 hardware (keyboard scanning, flash rates, etc.) must be indirected
@@ -2593,8 +2543,9 @@ manipulated via ROR/ASL to zero it, signaling success to the caller.
 OSBYTE $81 (INKEY) gets special handling as it must read the
 terminal's keyboard.""")
 
-comment(0x90CD, """\
-Fn 8: remote OSWORD handler (NWORD)
+subroutine(0x90CD, "remote_cmd_data", hook=None,
+    title="Fn 8: remote OSWORD handler (NWORD)",
+    description="""\
 Only intercepts OSWORD 7 (make a sound) and OSWORD 8 (define an
 envelope). Unlike NBYTE which returns results, NWORD is entirely
 fire-and-forget — no return path is implemented. The developer
@@ -2603,16 +2554,18 @@ don't return meaningful results. Copies up to 14 parameter bytes
 from the RX buffer to workspace, tags the message as RWORD, and
 transmits.""")
 
-comment(0x91B5, """\
-Fn 5: printer selection changed (SELECT)
+subroutine(0x91B5, "remote_display_setup", hook=None,
+    title="Fn 5: printer selection changed (SELECT)",
+    description="""\
 Called when the printer selection changes. Compares the new
 selection (in PARMX) against the network printer (buffer 4).
 If it matches, initialises the printer buffer pointer (PBUFFP)
 and sets the initial flag byte ($41). Otherwise just updates
 the printer status flags (PFLAGS).""")
 
-comment(0x91C7, """\
-Fn 1/2/3: network printer handler (PRINT)
+subroutine(0x91C7, "remote_print_handler", hook=None,
+    title="Fn 1/2/3: network printer handler (PRINT)",
+    description="""\
 Handles network printer output. Reason 1 = chars in buffer (extract
 from MOS buffer 3 and accumulate), reason 2 = Ctrl-B (start print),
 reason 3 = Ctrl-C (end print). The printer status byte PFLAGS uses:
@@ -2630,19 +2583,22 @@ be taken to never leave the pointer corrupted, as corruption would
 cause one subsystem to overwrite the other's data.
 Only handles buffer 4 (network printer); others are ignored.""")
 
-comment(0x91EC, """\
-Store output byte to network buffer
+subroutine(0x91EC, "store_output_byte", hook=None,
+    title="Store output byte to network buffer",
+    description="""\
 Stores byte A at the current output offset in the RX buffer
 pointed to by (net_rx_ptr). Advances the offset counter and
 triggers a flush if the buffer is full.""")
 
-comment(0x9217, """\
-Flush output block
+subroutine(0x9217, "flush_output_block", hook=None,
+    title="Flush output block",
+    description="""\
 Sends the accumulated output block over the network, resets the
 buffer pointer, and prepares for the next block of output data.""")
 
-comment(0x92DD, """\
-Save VDU workspace state
+subroutine(0x92DD, "save_vdu_state", hook=None,
+    title="Save VDU workspace state",
+    description="""\
 Stores the cursor position value from $0355 into NFS workspace,
 then reads cursor position (OSBYTE $85), shadow RAM (OSBYTE $C2),
 and screen start (OSBYTE $C3) via read_vdu_osbyte, storing
@@ -2651,39 +2607,45 @@ each result into consecutive workspace bytes.""")
 # ============================================================
 # ADLC initialisation ($966F)
 # ============================================================
-comment(0x966F, """\
-ADLC initialisation
+subroutine(0x966F, "adlc_init", hook=None,
+    title="ADLC initialisation",
+    description="""\
 Reads station ID (INTOFF side effect), performs full ADLC reset,
 checks for Tube presence (OSBYTE $EA), then falls through to
 adlc_init_workspace.""")
 
-comment(0x9681, """\
-Initialise NMI workspace
+subroutine(0x9681, "adlc_init_workspace", hook=None,
+    title="Initialise NMI workspace",
+    description="""\
 Copies NMI shim from ROM to $0D00, stores current ROM bank number
 into shim self-modifying code, sets TX status to $80 (idle/complete),
 saves station ID from $FE18 into TX scout buffer, re-enables NMIs
 by reading $FE20.""")
 
-comment(0x969D, """\
-Save Econet state to RX control block
+subroutine(0x969D, "save_econet_state", hook=None,
+    title="Save Econet state to RX control block",
+    description="""\
 Stores rx_status_flags, protection_mask, and tx_in_progress
 to (net_rx_ptr) at offsets 8-10. INTOFF side effect on entry.""")
 
-comment(0x96B4, """\
-Restore Econet state from RX control block
+subroutine(0x96B4, "restore_econet_state", hook=None,
+    title="Restore Econet state from RX control block",
+    description="""\
 Loads rx_status_flags, protection_mask, and tx_in_progress
 from (net_rx_ptr) at offsets 8-10, then reinitialises via
 adlc_init_workspace.""")
 
-comment(0x96CD, """\
-Copy NMI shim from ROM ($9FCA) to RAM ($0D00)
+subroutine(0x96CD, "install_nmi_shim", hook=None,
+    title="Copy NMI shim from ROM ($9FCA) to RAM ($0D00)",
+    description="""\
 Copies 32 bytes. Interrupts are enabled during the copy.""")
 
 # ============================================================
 # Relocated code block comments
 # ============================================================
-comment(0x0016, """\
-Tube BRK handler (BRKV target) — reference: NFS11 NEWBR
+subroutine(0x0016, "tube_brk_handler", hook=None,
+    title="Tube BRK handler (BRKV target) — reference: NFS11 NEWBR",
+    description="""\
 Sends error information to the Tube co-processor via R2 and R4:
   1. Sends $FF to R4 (WRIFOR) to signal error
   2. Reads R2 data (flush any pending byte)
@@ -2695,8 +2657,9 @@ to OSWRITCH $FFCB) and R2 for command bytes (dispatched via the
 14-entry table at $0500). The R2 command byte is stored at $55
 before dispatch via JMP ($0500).""")
 
-comment(0x0400, """\
-Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
+subroutine(0x0400, "tube_code_page4", hook=None,
+    title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
+    description="""\
 Copied from ROM at $934C during init. The first 28 bytes ($0400-$041B)
 overlap with the end of the ZP block (the same ROM bytes serve both
 the ZP copy at $005B-$0076 and this page at $0400-$041B). Contains:
@@ -2709,8 +2672,9 @@ the ZP copy at $005B-$0076 and this page at $0400-$041B). Contains:
   $04EF: tube_restore_regs — restore X,Y, dispatch entry 6
   $04F7: tube_read_r2 — poll R2 status, read data byte to A""")
 
-comment(0x0500, """\
-Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
+subroutine(0x0500, "tube_dispatch_table", hook=None,
+    title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
+    description="""\
 Copied from ROM at $944C during init. Contains:
   $0500: tube_dispatch_table — 14-entry handler address table
   $051C: tube_wrch_handler — WRCHV target
@@ -2729,8 +2693,9 @@ Copied from ROM at $944C during init. Contains:
   $05CD: tube_reply_byte — send byte and return to main loop
   $05D8: tube_osfile — whole file operation""")
 
-comment(0x0600, """\
-Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
+subroutine(0x0600, "tube_code_page6", hook=None,
+    title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
+    description="""\
 Copied from ROM at $954C during init. $0600-$0601 is the tail
 of tube_osfile (BEQ to tube_reply_byte when done). Contains:
   $0602: tube_osgbpb — multi-byte file I/O
@@ -2765,8 +2730,9 @@ Table of 3 OSBYTE codes used by save_palette_vdu_state ($9291):
 # ============================================================
 # Econet TX retry ($9248)
 # ============================================================
-comment(0x9248, """\
-Transmit with retry loop (XMITFS/XMITFY)
+subroutine(0x9248, "econet_tx_retry", hook=None,
+    title="Transmit with retry loop (XMITFS/XMITFY)",
+    description="""\
 Calls the low-level transmit routine (BRIANX) with FSTRY ($FF = 255)
 retries and FSDELY ($60 = 96) ms delay between attempts. On each
 iteration, checks the result code: zero means success, non-zero
@@ -2776,8 +2742,9 @@ Entry point XMITFY allows a custom delay in Y.""")
 # ============================================================
 # Save palette and VDU state ($9291)
 # ============================================================
-comment(0x9291, """\
-Save palette and VDU state (CVIEW)
+subroutine(0x9291, "save_palette_vdu", hook=None,
+    title="Save palette and VDU state (CVIEW)",
+    description="""\
 Part of the VIEW facility (second iteration, started 27/7/82).
 Uses dynamically allocated buffer store. The WORKP1 pointer
 ($9E,$9F) serves double duty: non-zero indicates data ready AND
@@ -2795,8 +2762,9 @@ the screen data capture to prevent interference.""")
 # ============================================================
 # Post-ACK scout processing ($99BB)
 # ============================================================
-comment(0x99BB, """\
-Post-ACK scout processing
+subroutine(0x99BB, "post_ack_scout", hook=None,
+    title="Post-ACK scout processing",
+    description="""\
 Called after the scout ACK has been transmitted. Processes the
 received scout data stored in the buffer at $0D3D-$0D48.
 Checks the port byte ($0D40) against open receive blocks to
@@ -2807,8 +2775,9 @@ If no match, discards the frame.""")
 # ============================================================
 # Immediate operation handler ($9A59)
 # ============================================================
-comment(0x9A59, """\
-Immediate operation handler (port = 0)
+subroutine(0x9A59, "immediate_op", hook=None,
+    title="Immediate operation handler (port = 0)",
+    description="""\
 Handles immediate (non-data-transfer) operations received via
 scout frames with port byte = 0. The control byte ($0D3F)
 determines the operation type:
@@ -2827,22 +2796,25 @@ ignored. LSTAT can be read/set via OSWORD $12 sub-functions 4/5.""")
 # ============================================================
 # Discard paths ($9A34 / $9A40 / $9A43)
 # ============================================================
-comment(0x9A34, """\
-Discard with full ADLC reset
+subroutine(0x9A34, "discard_reset_listen", hook=None,
+    title="Discard with full ADLC reset",
+    description="""\
 Performs adlc_full_reset (CR1=$C1, reset both TX and RX sections),
 then falls through to discard_after_reset. Used when the ADLC is
 in an unexpected state and needs a hard reset before returning
 to idle listen mode. 5 references — the main error recovery path.""")
 
-comment(0x9A40, """\
-Discard frame (gentle)
+subroutine(0x9A40, "discard_listen", hook=None,
+    title="Discard frame (gentle)",
+    description="""\
 Sends RX_DISCONTINUE (CR1=$A2: RIE|RX_DISCONTINUE) to abort the
 current frame reception without a full reset, then falls through
 to discard_after_reset. Used for clean rejection of frames that
 are correctly formatted but not for us (wrong station/network).""")
 
-comment(0x9A43, """\
-Return to idle listen after reset/discard
+subroutine(0x9A43, "discard_after_reset", hook=None,
+    title="Return to idle listen after reset/discard",
+    description="""\
 Just calls adlc_rx_listen (CR1=$82, CR2=$67) to re-enter idle
 RX mode, then RTI. The simplest of the three discard paths —
 used as the tail of both discard_reset_listen and discard_listen.""")
@@ -2850,8 +2822,9 @@ used as the tail of both discard_reset_listen and discard_listen.""")
 # ============================================================
 # Transfer size calculation ($9F5B)
 # ============================================================
-comment(0x9F5B, """\
-Calculate transfer size
+subroutine(0x9F5B, "tx_calc_transfer", hook=None,
+    title="Calculate transfer size",
+    description="""\
 Computes the number of bytes actually transferred during a data
 frame reception. Subtracts the low pointer (LPTR, offset 4 in
 the RXCB) from the current buffer position to get the byte count,
@@ -2861,8 +2834,9 @@ offset 8). This tells the caller how much data was received.""")
 # ============================================================
 # NMI shim at end of ROM ($9FCA-$9FFF)
 # ============================================================
-comment(0x9FCB, """\
-Bootstrap NMI entry point (in ROM)
+subroutine(0x9FCB, "nmi_bootstrap_entry", hook=None,
+    title="Bootstrap NMI entry point (in ROM)",
+    description="""\
 An alternate NMI handler that lives in the ROM itself rather than
 in the RAM workspace at $0D00. Unlike the RAM shim (which uses a
 self-modifying JMP to dispatch to different handlers), this one
@@ -2871,8 +2845,9 @@ before the workspace has been properly set up during initialisation.
 Same sequence as the RAM shim: BIT $FE18 (INTOFF), PHA, TYA, PHA,
 LDA romsel, STA $FE30, JMP $96F6.""")
 
-comment(0x9FD9, """\
-ROM copy of set_nmi_vector + nmi_rti
+subroutine(0x9FD9, "rom_set_nmi_vector", hook=None,
+    title="ROM copy of set_nmi_vector + nmi_rti",
+    description="""\
 A version of the NMI vector-setting subroutine and RTI sequence
 that lives in ROM. The RAM workspace copy at $0D0E/$0D14 is the
 one normally used at runtime; this ROM copy is used during early
@@ -2899,8 +2874,9 @@ the source for the initial copy to RAM.""")
 # ============================================================
 # ADLC full reset ($96DC)
 # ============================================================
-comment(0x96DC, """\
-ADLC full reset
+subroutine(0x96DC, "adlc_full_reset", hook=None,
+    title="ADLC full reset",
+    description="""\
 Aborts all activity and returns to idle RX listen mode.""")
 
 comment(0x96DC, "CR1=$C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)", inline=True)
@@ -2910,8 +2886,9 @@ comment(0x96E6, "CR3=$00 (via AC=1): no loop-back, no AEX, NRZ, no DTR", inline=
 # ============================================================
 # Enter RX listen mode ($96EB)
 # ============================================================
-comment(0x96EB, """\
-Enter RX listen mode
+subroutine(0x96EB, "adlc_rx_listen", hook=None,
+    title="Enter RX listen mode",
+    description="""\
 TX held in reset, RX active with interrupts. Clears all status.""")
 
 comment(0x96EB, "CR1=$82: TX_RESET | RIE (TX in reset, RX interrupts enabled)", inline=True)
@@ -2920,8 +2897,9 @@ comment(0x96F0, "CR2=$67: CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE", inl
 # ============================================================
 # NMI RX scout handler ($96F6) — idle listen
 # ============================================================
-comment(0x96F6, """\
-NMI RX scout handler (initial byte)
+subroutine(0x96F6, "nmi_rx_scout", hook=None,
+    title="NMI RX scout handler (initial byte)",
+    description="""\
 Default NMI handler for incoming scout frames. Checks if the frame
 is addressed to us or is a broadcast. Installed as the NMI target
 during idle RX listen mode.
@@ -2944,8 +2922,9 @@ comment(0x970E, "Install next NMI handler at $9715 (RX scout second byte)", inli
 # ============================================================
 # RX scout second byte handler ($9715)
 # ============================================================
-comment(0x9715, """\
-RX scout second byte handler
+subroutine(0x9715, "nmi_rx_scout_net", hook=None,
+    title="RX scout second byte handler",
+    description="""\
 Reads the second byte of an incoming scout (destination network).
 Checks for network match: 0 = local network (accept), $FF = broadcast
 (accept and flag), anything else = reject.
@@ -2966,8 +2945,9 @@ comment(0x9730, "Install scout data reading loop at $9747", inline=True)
 # ============================================================
 # Error/discard path ($9737)
 # ============================================================
-comment(0x9737, """\
-Scout error/discard handler
+subroutine(0x9737, "scout_error", hook=None,
+    title="Scout error/discard handler",
+    description="""\
 Reached when the scout data loop sees no RDA (BPL at $974C) or
 when scout completion finds unexpected SR2 state.
 If SR2 & $81 is non-zero (AP or RDA still active), performs full
@@ -2995,8 +2975,9 @@ comment(0x9741, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-comment(0x9747, """\
-Scout data reading loop
+subroutine(0x9747, hook=None,
+    title="Scout data reading loop",
+    description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores
 bytes at $0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 Between each pair it checks SR2:
@@ -3036,8 +3017,9 @@ comment(0x976E, "SR2 = 0 -- RTI, wait for next NMI", inline=True)
 # ============================================================
 # Scout completion ($9771-$978F)
 # ============================================================
-comment(0x9771, """\
-Scout completion handler
+subroutine(0x9771, "scout_complete", hook=None,
+    title="Scout completion handler",
+    description="""\
 Reached from the scout data loop when SR2 is non-zero (FV detected).
 Disables PSE to allow individual SR2 bit testing:
   CR1=$00 (clear all enables)
@@ -3071,8 +3053,9 @@ comment(0x9794, "Port = 0 -- immediate operation handler", inline=True)
 # This handler chain receives the data frame in a four-way handshake.
 # After sending the scout ACK, the ROM installs $9839 to receive
 # the incoming data frame.
-comment(0x9839, """\
-Data frame RX handler (four-way handshake)
+subroutine(0x9839, "nmi_data_rx", hook=None,
+    title="Data frame RX handler (four-way handshake)",
+    description="""\
 Receives the data frame after the scout ACK has been sent.
 First checks AP (Address Present) for the start of the data frame.
 Reads and validates the first two address bytes (dest_stn, dest_net)
@@ -3092,8 +3075,9 @@ comment(0x986D, "Discard port byte", inline=True)
 # ============================================================
 # Data frame bulk read ($989A-$98CE)
 # ============================================================
-comment(0x989A, """\
-Data frame bulk read loop
+subroutine(0x989A, "nmi_data_rx_bulk", hook=None,
+    title="Data frame bulk read loop",
+    description="""\
 Reads data payload bytes from the RX FIFO and stores them into
 the open port buffer at (open_port_buf),Y. Reads bytes in pairs
 (like the scout data loop), checking SR2 between each pair.
@@ -3106,8 +3090,9 @@ comment(0x989C, "Read SR2 for next pair", inline=True)
 # ============================================================
 # Data frame completion ($98CE-$98F4)
 # ============================================================
-comment(0x98CE, """\
-Data frame completion
+subroutine(0x98CE, "data_rx_complete", hook=None,
+    title="Data frame completion",
+    description="""\
 Reached when SR2 non-zero during data RX (FV detected).
 Same pattern as scout completion ($9771): disables PSE (CR1=$00,
 CR2=$84), then tests FV and RDA. If FV+RDA, reads the last byte.
@@ -3125,8 +3110,9 @@ comment(0x98E7, "FV+RDA: read and store last data byte", inline=True)
 # ============================================================
 # Scout ACK / Final ACK TX ($995E-$99B5)
 # ============================================================
-comment(0x995E, """\
-ACK transmission
+subroutine(0x995E, "ack_tx", hook=None,
+    title="ACK transmission",
+    description="""\
 Sends a scout ACK or final ACK frame as part of the four-way handshake.
 If bit7 of $0D4A is set, this is a final ACK -> completion ($9F39).
 Otherwise, configures for TX (CR1=$44, CR2=$A7) and sends the ACK
@@ -3147,8 +3133,9 @@ comment(0x9982, "Write dest station to TX FIFO", inline=True)
 comment(0x9985, "Write dest network to TX FIFO", inline=True)
 comment(0x998B, "Install handler at $9992 (write src addr)", inline=True)
 
-comment(0x9992, """\
-ACK TX continuation
+subroutine(0x9992, "nmi_ack_tx_src", hook=None,
+    title="ACK TX continuation",
+    description="""\
 Writes source station and network to TX FIFO, completing the 4-byte
 ACK frame. Then sends TX_LAST_DATA (CR2=$3F) to close the frame.""")
 comment(0x9992, "Load our station ID (also INTOFF)", inline=True)
@@ -3162,8 +3149,9 @@ comment(0x99AC, "Install saved handler from $0D4B/$0D4C", inline=True)
 # ============================================================
 # INACTIVE polling loop ($9C48)
 # ============================================================
-comment(0x9C48, """\
-INACTIVE polling loop
+subroutine(0x9C48, "inactive_poll", hook=None,
+    title="INACTIVE polling loop",
+    description="""\
 Polls SR2 for INACTIVE (bit2) to confirm the network line is idle before
 attempting transmission. Uses a 3-byte timeout counter on the stack.
 The timeout (~256^3 iterations) generates "Line Jammed" if INACTIVE
@@ -3189,8 +3177,9 @@ comment(0x9C71, "3-byte timeout counter on stack", inline=True)
 # Timeout error ($9C88) and TX setup ($9C84)
 # ============================================================
 comment(0x9C84, "TX_ACTIVE branch (A=$44 = CR1 value for TX active)")
-comment(0x9C88, """\
-Timeout error: writes CR2=$07 to abort, cleans stack,
+subroutine(0x9C88, "tx_line_jammed", hook=None,
+    title="Timeout error: writes CR2=$07 to abort, cleans stack,",
+    description="""\
 returns error $40 ("Line Jammed").""")
 
 comment(0x9C88, "CR2=$07: FC_TDRA | 2_1_BYTE | PSE (abort TX)", inline=True)
@@ -3199,8 +3188,9 @@ comment(0x9C90, "Error $40 = 'Line Jammed'", inline=True)
 # ============================================================
 # TX preparation ($9CA2)
 # ============================================================
-comment(0x9CA2, """\
-TX preparation
+subroutine(0x9CA2, "tx_prepare", hook=None,
+    title="TX preparation",
+    description="""\
 Configures ADLC for transmission: asserts RTS via CR2, enables TIE via CR1,
 installs NMI TX handler at $9D4C, and re-enables NMIs.""")
 
@@ -3212,8 +3202,9 @@ comment(0x9CB4, "INTON -- NMIs now fire for TDRA ($FE20 read)", inline=True)
 # ============================================================
 # NMI TX data handler ($9D4C)
 # ============================================================
-comment(0x9D4C, """\
-NMI TX data handler
+subroutine(0x9D4C, "nmi_tx_data", hook=None,
+    title="NMI TX data handler",
+    description="""\
 Writes 2 bytes per NMI invocation to the TX FIFO at $FEA2. Uses the
 BIT instruction on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7).
 After writing 2 bytes, checks if the frame is complete. If more data,
@@ -3244,8 +3235,9 @@ comment(0x9D85, "Jump to error handler", inline=True)
 # ============================================================
 # TX_LAST_DATA and frame completion ($9D88)
 # ============================================================
-comment(0x9D88, """\
-TX_LAST_DATA and frame completion
+subroutine(0x9D88, "tx_last_data", hook=None,
+    title="TX_LAST_DATA and frame completion",
+    description="""\
 Signals end of TX frame by writing CR2=$3F (TX_LAST_DATA). Then installs
 the TX completion NMI handler at $9D94 which switches to RX mode.
 CR2=$3F = 0011_1111:
@@ -3263,8 +3255,9 @@ comment(0x9D8D, "Install NMI handler at $9D94 (TX completion)", inline=True)
 # ============================================================
 # TX completion: switch to RX mode ($9D94)
 # ============================================================
-comment(0x9D94, """\
-TX completion: switch to RX mode
+subroutine(0x9D94, "nmi_tx_complete", hook=None,
+    title="TX completion: switch to RX mode",
+    description="""\
 Called via NMI after the frame (including CRC and closing flag) has been
 fully transmitted. Switches from TX mode to RX mode by writing CR1=$82.
 CR1=$82 = 1000_0010: TX_RESET | RIE (listen for reply).
@@ -3283,8 +3276,9 @@ comment(0x9DAB, "Install RX reply handler at $9DB2", inline=True)
 # ============================================================
 # RX reply scout handler ($9DB2)
 # ============================================================
-comment(0x9DB2, """\
-RX reply scout handler
+subroutine(0x9DB2, "nmi_reply_scout", hook=None,
+    title="RX reply scout handler",
+    description="""\
 Handles reception of the reply scout frame after transmission.
 Checks SR2 bit0 (AP) for incoming data, reads the first byte
 (destination station) and compares to our station ID via $FE18
@@ -3301,8 +3295,9 @@ comment(0x9DC1, "Install next handler at $9DC8 (reply continuation)", inline=Tru
 # ============================================================
 # RX reply continuation handler ($9DC8)
 # ============================================================
-comment(0x9DC8, """\
-RX reply continuation handler
+subroutine(0x9DC8, "nmi_reply_cont", hook=None,
+    title="RX reply continuation handler",
+    description="""\
 Reads the second byte of the reply scout (destination network) and
 validates it is zero (local network). Installs $9DE3 for the
 remaining two bytes (source station and network).
@@ -3336,8 +3331,9 @@ comment(0x9DDB, "IRQ not set -- install handler and RTI", inline=True)
 #   Read byte 2 at $9DE8 -> refills byte 3/LAST (FV set)
 #   Read byte 3 at $9DF1 -> FIFO empty
 #   Check FV at $9DFA -> FV is set
-comment(0x9DE3, """\
-RX reply validation (Path 2 for FV/PSE interaction)
+subroutine(0x9DE3, "nmi_reply_validate", hook=None,
+    title="RX reply validation (Path 2 for FV/PSE interaction)",
+    description="""\
 Reads the source station and source network from the reply scout and
 validates them against the original TX destination ($0D20/$0D21).
 Sequence:
@@ -3372,8 +3368,9 @@ comment(0x9E24, "Install handler at $9E2B (write src addr for scout ACK)", inlin
 # ============================================================
 # TX data phase: write src address ($9E2B)
 # ============================================================
-comment(0x9E2B, """\
-TX scout ACK: write source address
+subroutine(0x9E2B, "nmi_scout_ack_src", hook=None,
+    title="TX scout ACK: write source address",
+    description="""\
 Writes our station ID and network=0 to TX FIFO, completing the
 4-byte scout ACK frame. Then proceeds to send the data frame.""")
 comment(0x9E2B, "Load our station ID (also INTOFF)", inline=True)
@@ -3385,8 +3382,9 @@ comment(0x9E36, "Write network=0 to TX FIFO", inline=True)
 # ============================================================
 # TX data phase: send data payload ($9E50)
 # ============================================================
-comment(0x9E50, """\
-TX data phase: send payload
+subroutine(0x9E50, "nmi_data_tx", hook=None,
+    title="TX data phase: send payload",
+    description="""\
 Sends the data frame payload from (open_port_buf),Y in pairs per NMI.
 Same pattern as the NMI TX handler at $9D4C but reads from the port
 buffer instead of the TX workspace. Writes two bytes per iteration,
@@ -3400,8 +3398,9 @@ comment(0x9E7D, "CR2=$3F: TX_LAST_DATA (close data frame)", inline=True)
 # ============================================================
 # Four-way handshake: switch to RX for final ACK ($9EDD)
 # ============================================================
-comment(0x9EDD, """\
-Four-way handshake: switch to RX for final ACK
+subroutine(0x9EDD, "handshake_await_ack", hook=None,
+    title="Four-way handshake: switch to RX for final ACK",
+    description="""\
 After the data frame TX completes, switches to RX mode (CR1=$82)
 and installs $9EE9 to receive the final ACK from the remote station.""")
 comment(0x9EDD, "CR1=$82: TX_RESET | RIE (switch to RX for final ACK)", inline=True)
@@ -3412,8 +3411,9 @@ comment(0x9EE2, "Install handler at $9EE9 (RX final ACK)", inline=True)
 # ============================================================
 # Same pattern as $9DB2/$9DC8/$9DE3 but for the final ACK.
 # Validates that the final ACK is from the expected station.
-comment(0x9EE9, """\
-RX final ACK handler
+subroutine(0x9EE9, "nmi_final_ack", hook=None,
+    title="RX final ACK handler",
+    description="""\
 Receives the final ACK in a four-way handshake. Same validation
 pattern as the reply scout handler ($9DB2-$9DE3):
   $9EE9: Check AP, read dest_stn, compare to our station
@@ -3438,8 +3438,9 @@ comment(0x9F09, "Install handler at $9F15 (final ACK validation)", inline=True)
 comment(0x9F0D, "BIT SR1: test IRQ -- more data ready?", inline=True)
 comment(0x9F10, "IRQ set -- fall through to $9F15 without RTI", inline=True)
 
-comment(0x9F15, """\
-Final ACK validation
+subroutine(0x9F15, "nmi_final_ack_validate", hook=None,
+    title="Final ACK validation",
+    description="""\
 Reads and validates src_stn and src_net against original TX dest.
 Then checks FV for frame completion.""")
 comment(0x9F15, "BIT SR2: test RDA", inline=True)
@@ -3457,16 +3458,18 @@ comment(0x9F37, "No FV -- error", inline=True)
 # ============================================================
 # Completion and error handlers ($9F39-$9F48)
 # ============================================================
-comment(0x9F39, """\
-TX completion handler
+subroutine(0x9F39, "tx_result_ok", hook=None,
+    title="TX completion handler",
+    description="""\
 Stores result code 0 (success) into the first byte of the TX control
 block (nmi_tx_block),Y=0. Then sets $0D3A bit7 to signal completion
 and calls full ADLC reset + idle listen via $9A34.""")
 comment(0x9F39, "A=0: success result code", inline=True)
 comment(0x9F3B, "BEQ: always taken (A=0)", inline=True)
 
-comment(0x9F3F, """\
-TX error handler
+subroutine(0x9F3F, "tx_store_result", hook=None,
+    title="TX error handler",
+    description="""\
 Stores error code (A) into the TX control block, sets $0D3A bit7
 for completion, and returns to idle via $9A34.
 Error codes: $00=success, $40=line jammed, $41=not listening,
@@ -3481,6 +3484,7 @@ comment(0x9F48, "Full ADLC reset and return to idle listen", inline=True)
 # Generate disassembly
 # ============================================================
 
+import json
 import sys
 
 output = go(print_output=False)
@@ -3489,3 +3493,8 @@ _output_dirpath.mkdir(parents=True, exist_ok=True)
 output_filepath = _output_dirpath / "nfs-3.34.asm"
 output_filepath.write_text(output)
 print(f"Wrote {output_filepath}", file=sys.stderr)
+
+structured = get_structured()
+json_filepath = _output_dirpath / "nfs-3.34.json"
+json_filepath.write_text(json.dumps(structured))
+print(f"Wrote {json_filepath}", file=sys.stderr)
