@@ -1,21 +1,26 @@
 # Copyright 2026 Robert Smallshire <robert@smallshire.org.uk>
 #
-# This file is part of Beebium.
-#
-# Beebium is free software: you can redistribute it and/or modify it under the terms of the
-# GNU General Public License as published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version. Beebium is distributed in the hope that it will
-# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-# FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-# You should have received a copy of the GNU General Public License along with Beebium.
-# If not, see <https://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-import sys
-sys.path.insert(0, "/Users/rjs/Code/py8dis/py8dis")
-from commands import *
-import acorn
+import os
+from pathlib import Path
 
-load(0x8000, "/Users/rjs/Code/beebium/roms/acorn-nfs_3_34.rom", "6502")
+from py8dis.commands import *
+import py8dis.acorn as acorn
+
+# Paths are resolved relative to this script's location in the repo
+_script_dirpath = Path(__file__).resolve().parent
+_version_dirpath = _script_dirpath.parent
+_rom_filepath = os.environ.get(
+    "ACORN_NFS_ROM",
+    str(_version_dirpath / "rom" / "nfs-3.34.rom"),
+)
+_output_dirpath = Path(os.environ.get(
+    "ACORN_NFS_OUTPUT",
+    str(_version_dirpath / "output"),
+))
+
+load(0x8000, _rom_filepath, "6502")
 
 # ============================================================
 # Relocated code blocks
@@ -3471,124 +3476,14 @@ comment(0x9F45, "Signal TX complete", inline=True)
 comment(0x9F48, "Full ADLC reset and return to idle listen", inline=True)
 
 # ============================================================
-# Generate disassembly and split into section files
+# Generate disassembly
 # ============================================================
 
-output = go()
+import sys
 
-import re, os
+output = go(print_output=False)
 
-script_dirpath = os.path.dirname(os.path.abspath(__file__))
-base = "nfs_334_v2"
-
-# Section boundaries: (start_addr, label)
-# Each section covers start_addr up to (but not including) the next section's start_addr.
-section_breaks = [
-    (0x8000, "8000_84ff_header_dispatch_init"),
-    (0x8500, "8500_8dff_filing_system"),
-    (0x8E00, "8e00_96db_cli_and_commands"),
-    (0x96DC, "96dc_9fff_adlc_nmi_handlers"),
-]
-
-addr_re = re.compile(r';\s*([0-9a-f]{4}):', re.IGNORECASE)
-
-lines = output.rstrip('\n').split('\n')
-
-# Phase 1: split into preamble, code, appendix
-preamble = []
-code = []
-appendix = []
-phase = 'preamble'
-
-for line in lines:
-    if phase == 'preamble':
-        preamble.append(line)
-        if line.strip().startswith('org '):
-            preamble.append('')  # blank line after org
-            phase = 'code'
-    elif phase == 'code':
-        if line.startswith('.pydis_end') or line.startswith('save ') or \
-           line.startswith('; Label references'):
-            appendix.append(line)
-            phase = 'appendix'
-        else:
-            code.append(line)
-    else:
-        appendix.append(line)
-
-# Phase 2: split code lines by address into sections
-section_contents = {label: [] for _, label in section_breaks}
-current_label = section_breaks[0][1]
-pending = []  # lines without addresses, buffered until next addressed line
-
-def section_for_addr(addr):
-    """Return the section label for a given address."""
-    result = section_breaks[0][1]
-    for break_addr, label in section_breaks:
-        if addr >= break_addr:
-            result = label
-    return result
-
-for line in code:
-    m = addr_re.search(line)
-    if m:
-        addr = int(m.group(1), 16)
-        new_label = section_for_addr(addr)
-        if new_label != current_label:
-            # Flush pending to OLD section if they're trailing blanks/comments,
-            # or to NEW section if they look like a block comment for the new code.
-            # Heuristic: if pending ends with blank lines only, keep with old section.
-            # If pending contains non-blank comment lines, move to new section.
-            has_content = any(p.strip() for p in pending)
-            if has_content:
-                section_contents[new_label].extend(pending)
-            else:
-                section_contents[current_label].extend(pending)
-            current_label = new_label
-            pending = []
-        else:
-            section_contents[current_label].extend(pending)
-            pending = []
-        section_contents[current_label].append(line)
-    else:
-        pending.append(line)
-
-# Flush remaining pending
-if pending:
-    section_contents[current_label].extend(pending)
-
-# Phase 3: write files
-written_filenames = []
-
-# Preamble
-fn = f"{base}_preamble.asm"
-with open(os.path.join(script_dirpath, fn), 'w') as f:
-    f.write('\n'.join(preamble) + '\n')
-written_filenames.append(fn)
-
-# Code sections
-for _, label in section_breaks:
-    if section_contents[label]:
-        fn = f"{base}_{label}.asm"
-        with open(os.path.join(script_dirpath, fn), 'w') as f:
-            f.write('\n'.join(section_contents[label]) + '\n')
-        written_filenames.append(fn)
-
-# Appendix
-fn = f"{base}_appendix.asm"
-with open(os.path.join(script_dirpath, fn), 'w') as f:
-    f.write('\n'.join(appendix) + '\n')
-written_filenames.append(fn)
-
-# Master file with INCLUDEs
-master_filepath = os.path.join(script_dirpath, f"{base}.asm")
-with open(master_filepath, 'w') as f:
-    for fn in written_filenames:
-        f.write(f'INCLUDE "{fn}"\n')
-
-# Report
-print(f"Split into {len(written_filenames)} files:", file=__import__('sys').stderr)
-for fn in written_filenames:
-    filepath = os.path.join(script_dirpath, fn)
-    n = sum(1 for _ in open(filepath))
-    print(f"  {fn}: {n} lines", file=__import__('sys').stderr)
+_output_dirpath.mkdir(parents=True, exist_ok=True)
+output_filepath = _output_dirpath / "nfs-3.34.asm"
+output_filepath.write_text(output)
+print(f"Wrote {output_filepath}", file=sys.stderr)
