@@ -8,6 +8,8 @@ from pathlib import Path
 from py8dis.commands import *
 import py8dis.acorn as acorn
 
+init(assembler_name="beebasm", lower_case=True)
+
 # Paths are resolved relative to this script's location in the repo
 _script_dirpath = Path(__file__).resolve().parent
 _version_dirpath = _script_dirpath.parent
