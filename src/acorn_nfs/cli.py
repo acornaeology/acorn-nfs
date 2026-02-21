@@ -68,6 +68,14 @@ def cmd_correlate(args):
     sys.exit(result.returncode)
 
 
+def cmd_verify(args):
+    """Assemble the disassembly and verify it matches the original ROM."""
+    from acorn_nfs.verify import verify
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(verify(version_dirpath, args.version))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs",
@@ -86,6 +94,12 @@ def main():
     )
     cor_parser.add_argument("version", help="NFS version (e.g. 3.34)")
     cor_parser.set_defaults(func=cmd_correlate)
+
+    verify_parser = subparsers.add_parser(
+        "verify", help="Verify disassembly round-trips to original ROM"
+    )
+    verify_parser.add_argument("version", help="NFS version (e.g. 3.34)")
+    verify_parser.set_defaults(func=cmd_verify)
 
     args = parser.parse_args()
     args.func(args)

@@ -72,9 +72,6 @@ constant(0xFEA3, "adlc_tx2")   # Write: TX FIFO (last byte, terminates frame). R
 constant(0xFE18, "econet_station_id")  # Read: station DIP switches AND INTOFF (disable NMIs)
 constant(0xFE20, "econet_nmi_enable")  # Read: INTON (re-enable NMIs). Any read &FE20-&FE23.
 
-# Other hardware
-constant(0xFE30, "romsel")
-
 # Tube ULA registers (&FEE0-&FEE7) — named by acorn.bbc()
 # R1 (&FEE0/&FEE1): events and escape signalling (host↔parasite)
 # R2 (&FEE2/&FEE3): command bytes and general data transfer
@@ -308,6 +305,8 @@ entry(0x003A)
 label(0x0403, "tube_escape_entry")   # JMP to tube_escape_check (&06E2)
 label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in reference)
 label(0x0414, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
+label(0x0425, "return_tube_init")    # Return from tube_post_init path
+label(0x0472, "return_tube_xfer")   # Return from tube transfer/setup
 label(0x04E0, "tube_setup_transfer")  # Set Y=0, X=&57 (tube_transfer_addr), JMP tube_addr_claim
 label(0x04E7, "tube_rdch_handler")   # RDCHV target — send &01 via R2, enter main loop
 label(0x04EF, "tube_restore_regs")   # Restore X,Y from &10/&11 (dispatch entry 6)
@@ -431,6 +430,8 @@ label(0x9034, "osword_tbl_hi")         # Dispatch table high bytes
 # Remote operation function handlers (dispatched via osword_tbl)
 # (net_write_char subroutine defined above)
 label(0x90B5, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
+label(0x90BD, "return_match_osbyte") # Return from match_osbyte_code
+label(0x90FB, "return_remote_cmd")   # Return from remote command data handler
 
 # Control block setup
 label(0x9166, "ctrl_block_setup_clv") # CLV entry: same setup but clears V flag
@@ -554,6 +555,7 @@ label(0x8448, "send_to_fs_star")        # Send '*' command to fileserver
 label(0x8470, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
 # --- Pointer arithmetic helpers ---
+label(0x84A3, "return_bget")             # Return from BGET/BPUT handler
 label(0x84A4, "add_5_to_y")             # INY * 5; RTS
 label(0x84A5, "add_4_to_y")             # INY * 4; RTS
 label(0x84AA, "sub_4_from_y")           # DEY * 4; RTS
@@ -606,9 +608,11 @@ label(0x85F6, "print_hex_nibble")       # Print low nibble of A as hex digit
 
 # --- Address comparison ---
 # compare_addresses label created by subroutine() call below.
+label(0x85D9, "return_compare")          # Return from compare_addresses (not equal)
 
 # --- FSCV 7: read FS handles ---
 label(0x85DA, "fscv_read_handles")      # Return X=&20 (base handle), Y=&27 (top handle)
+label(0x85DE, "return_fscv_handles")    # Return from fscv_read_handles
 
 # --- FS flags manipulation ---
 
@@ -668,6 +672,7 @@ label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 # --- Boot command strings and option tables ---
 label(0x8D51, "print_reply_counted")   # STRIN1: sub-entry of print_reply_bytes with caller-supplied Y count
 label(0x8D67, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
+label(0x8D72, "return_copy_string")   # Return from copy_string_to_cmd
 label(0x8D75, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
 
 # --- *NET sub-command handlers ---
@@ -761,6 +766,7 @@ label(0x82FF, "fsdiel")               # NFS01: FS die loop
 label(0x831F, "fstxl1")               # NFS03: FS TX loop 1
 label(0x832F, "fstxl2")               # NFS03: FS TX loop 2
 label(0x838A, "dofsl7")               # NFS03: do FS loop 7
+label(0x8396, "return_dofsl7")        # NFS03: return from FS loop 7
 label(0x8397, "dofsl5")               # NFS03: do FS loop 5
 label(0x83DD, "error1")               # NFS03: error handler 1
 
@@ -783,6 +789,7 @@ label(0x86E8, "lodfil")               # NFS05: load file
 # --- FILEV, load/save size (&87xx) ---
 label(0x870B, "floop")                # NFS01: FS loop
 label(0x8735, "lodchk")               # NFS05: load check
+label(0x8740, "return_lodchk")        # NFS05: return from load check
 label(0x8741, "saveop")               # NFS05: save operation
 label(0x874A, "savsiz")               # NFS05: save size handling
 label(0x87AF, "lodrl1")               # NFS05: load reply loop 1
@@ -847,18 +854,21 @@ label(0x9085, "nbyte6")               # NFS09: net byte handler 6
 label(0x9087, "nbyte1")               # NFS09: net byte handler 1
 label(0x90A9, "nbyte4")               # NFS09: net byte handler 4
 label(0x90AD, "nbyte5")               # NFS09: net byte handler 5
+label(0x90B4, "return_nbyte")         # NFS09: return from net byte handler
 label(0x9102, "rchex")                # NFS03: receive hex
 label(0x9105, "remot1")               # NFS03: remote handler 1
 label(0x9167, "cbset2")               # NFS09: control block set 2
 label(0x917E, "cbset3")               # NFS09: control block set 3
 label(0x9184, "cbset4")               # NFS09: control block set 4
 label(0x91C3, "setup1")               # NFS09: setup 1
+label(0x91C6, "return_display_setup") # NFS09: return from remote_display_setup
 label(0x91D6, "prlp1")                # NFS09: printer loop 1
 
 # --- Broadcast/station search (&92xx) ---
 label(0x9254, "bsxl1")                # NFS09: broadcast search loop 1
 label(0x9271, "bspsx")                # NFS09: broadcast search parse exit
 label(0x9279, "bsxl0")                # NFS09: broadcast search loop 0
+label(0x9290, "return_bspsx")         # NFS09: return from broadcast search area
 
 # ============================================================
 # File header / overview comment (placed at &8000, first in code)
@@ -2347,6 +2357,8 @@ Validates that the offset is < &48 (max 6 handles × 12 bytes
 per handle entry = 72 bytes). If invalid (>= &48), returns
 with C set and Y=0, A=0 as an error indicator.""")
 
+label(0x8DC8, "return_calc_handle")      # Return from calc_handle_offset (invalid)
+
 subroutine(0x8DC9, "net2_read_handle_entry", hook=None,
     title="*NET2: read handle entry from workspace",
     description="""\
@@ -2532,6 +2544,8 @@ C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
 # ============================================================
 # OSWORD handler block comments
 # ============================================================
+label(0x8E32, "return_copy_param")       # Return from copy_param_block
+
 subroutine(0x8E33, "osword_0f_handler",
     title="OSWORD &0F handler: initiate transmit (CALLTX)",
     description="""\

@@ -39,7 +39,6 @@ port_printer                                = 209
 port_remote                                 = 147
 port_reply                                  = 144
 port_save_ack                               = 145
-romsel                                      = 65072
 rx_ready                                    = 127
 tx_flag                                     = 128
 
@@ -253,6 +252,718 @@ osnewl                                  = &ffe7
 osword                                  = &fff1
 osbyte                                  = &fff4
 oscli                                   = &fff7
+
+    org &9307
+
+.c9307
+
+; Move 1: &9307 to &16 for length 69
+    org &16
+; ***************************************************************************************
+; Tube BRK handler (BRKV target) — reference: NFS11 NEWBR
+; 
+; Sends error information to the Tube co-processor via R2 and R4:
+;   1. Sends &FF to R4 (WRIFOR) to signal error
+;   2. Reads R2 data (flush any pending byte)
+;   3. Sends &00 via R2, then error number from (&FD),0
+;   4. Loops sending error string bytes via R2 until zero terminator
+;   5. Falls through to tube_reset_stack → tube_main_loop
+; The main loop continuously polls R1 for WRCH requests (forwarded
+; to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
+; 14-entry table at &0500). The R2 command byte is stored at &55
+; before dispatch via JMP (&0500).
+; ***************************************************************************************
+; &9307 referenced 1 time by &8116
+.nmi_workspace_start
+.tube_brk_handler
+    lda #&ff                                                          ; 9307: a9 ff       ..  :0016[1]
+    jsr tube_send_r4                                                  ; 9309: 20 d9 06     .. :0018[1]
+    lda tube_data_register_2                                          ; 930c: ad e3 fe    ... :001b[1]
+    lda #0                                                            ; 930f: a9 00       ..  :001e[1]
+; &9311 referenced 1 time by &84b3
+.c0020
+    jsr tube_send_r2                                                  ; 9311: 20 d0 06     .. :0020[1]
+    tay                                                               ; 9314: a8          .   :0023[1]
+    lda (l00fd),y                                                     ; 9315: b1 fd       ..  :0024[1]
+    jsr tube_send_r2                                                  ; 9317: 20 d0 06     .. :0026[1]
+; &931a referenced 1 time by &0030[1]
+.tube_brk_send_loop
+    iny                                                               ; 931a: c8          .   :0029[1]
+    lda (l00fd),y                                                     ; 931b: b1 fd       ..  :002a[1]
+    jsr tube_send_r2                                                  ; 931d: 20 d0 06     .. :002c[1]
+    tax                                                               ; 9320: aa          .   :002f[1]
+    bne tube_brk_send_loop                                            ; 9321: d0 f7       ..  :0030[1]
+.tube_reset_stack
+    ldx #&ff                                                          ; 9323: a2 ff       ..  :0032[1]
+    txs                                                               ; 9325: 9a          .   :0034[1]
+    cli                                                               ; 9326: 58          X   :0035[1]
+; &9327 referenced 2 times by &04ec[2], &053a[3]
+.c0036
+    stx zp_temp_11                                                    ; 9327: 86 11       ..  :0036[1]
+    sty zp_temp_10                                                    ; 9329: 84 10       ..  :0038[1]
+; &932b referenced 7 times by &0048[1], &05ae[3], &05d5[3], &0623[4], &0638[4], &06a0[4], &06cd[4]
+.tube_main_loop
+    bit tube_status_1_and_tube_control                                ; 932b: 2c e0 fe    ,.. :003a[1]
+    bpl tube_poll_r2                                                  ; 932e: 10 06       ..  :003d[1]
+; &9330 referenced 1 time by &004d[1]
+.tube_handle_wrch
+    lda tube_data_register_1                                          ; 9330: ad e1 fe    ... :003f[1]
+    jsr nvwrch                                                        ; 9333: 20 cb ff     .. :0042[1]   ; Write character
+; &9336 referenced 1 time by &003d[1]
+.tube_poll_r2
+    bit tube_status_register_2                                        ; 9336: 2c e2 fe    ,.. :0045[1]
+    bpl tube_main_loop                                                ; 9339: 10 f0       ..  :0048[1]
+    bit tube_status_1_and_tube_control                                ; 933b: 2c e0 fe    ,.. :004a[1]
+    bmi tube_handle_wrch                                              ; 933e: 30 f0       0.  :004d[1]
+    ldx tube_data_register_2                                          ; 9340: ae e3 fe    ... :004f[1]
+    stx l0055                                                         ; 9343: 86 55       .U  :0052[1]
+.tube_dispatch_cmd
+l0055 = tube_dispatch_cmd+1
+    jmp (tube_dispatch_table)                                         ; 9345: 6c 00 05    l.. :0054[1]
+
+; &9346 referenced 1 time by &0052[1]
+; &9348 referenced 2 times by &0478[2], &0493[2]
+.tube_transfer_addr
+    equb 0                                                            ; 9348: 00          .   :0057[1]
+; &9349 referenced 2 times by &047c[2], &0498[2]
+.l0058
+    equb &80                                                          ; 9349: 80          .   :0058[1]
+; &934a referenced 1 time by &04a2[2]
+.l0059
+    equb 0                                                            ; 934a: 00          .   :0059[1]
+; &934b referenced 1 time by &04a0[2]
+.l005a
+    equb 0                                                            ; 934b: 00          .   :005a[1]
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock nmi_workspace_start, *, c9307
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear nmi_workspace_start, &005b
+
+    ; Set the program counter to the next position in the binary file.
+    org c9307 + (* - nmi_workspace_start)
+
+.c934c
+
+; Move 2: &934c to &0400 for length 256
+    org &0400
+; ***************************************************************************************
+; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
+; 
+; Copied from ROM at &934C during init. The first 28 bytes (&0400-&041B)
+; overlap with the end of the ZP block (the same ROM bytes serve both
+; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
+;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
+;   &0403: JMP &06E2 (tube_escape_check)
+;   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
+;   &0414: tube_post_init — called after ROM→RAM copy
+;   &0473: BEGIN — startup/CLI entry, break type check
+;   &04E7: tube_rdch_handler — RDCHV target
+;   &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
+;   &04F7: tube_read_r2 — poll R2 status, read data byte to A
+; ***************************************************************************************
+; &934c referenced 1 time by &80fc
+.tube_code_page4
+    jmp c0473                                                         ; 934c: 4c 73 04    Ls. :0400[2]
+
+.tube_escape_entry
+    jmp tube_escape_check                                             ; 934f: 4c e2 06    L.. :0403[2]
+
+; &9352 referenced 10 times by &04bc[2], &04e4[2], &8b1d, &8b2f, &8b8c, &8da9, &99f0, &9a3d, &9f98, &9fa0
+.tube_addr_claim
+    cmp #&80                                                          ; 9352: c9 80       ..  :0406[2]
+    bcc c0426                                                         ; 9354: 90 1c       ..  :0408[2]
+    cmp #&c0                                                          ; 9356: c9 c0       ..  :040a[2]
+    bcs c0419                                                         ; 9358: b0 0b       ..  :040c[2]
+    ora #&40 ; '@'                                                    ; 935a: 09 40       .@  :040e[2]
+    cmp l0015                                                         ; 935c: c5 15       ..  :0410[2]
+    bne return_tube_init                                              ; 935e: d0 11       ..  :0412[2]
+; &9360 referenced 1 time by &810e
+.tube_post_init
+    lda #&80                                                          ; 9360: a9 80       ..  :0414[2]
+    sta l0014                                                         ; 9362: 85 14       ..  :0416[2]
+    rts                                                               ; 9364: 60          `   :0418[2]
+
+; &9365 referenced 1 time by &040c[2]
+.c0419
+    asl l0014                                                         ; 9365: 06 14       ..  :0419[2]
+    bcs c0423                                                         ; 9367: b0 06       ..  :041b[2]
+    cmp l0015                                                         ; 9369: c5 15       ..  :041d[2]
+    beq return_tube_init                                              ; 936b: f0 04       ..  :041f[2]
+    clc                                                               ; 936d: 18          .   :0421[2]
+    rts                                                               ; 936e: 60          `   :0422[2]
+
+; &936f referenced 1 time by &041b[2]
+.c0423
+    sta l0015                                                         ; 936f: 85 15       ..  :0423[2]
+; &9371 referenced 2 times by &0412[2], &041f[2]
+.return_tube_init
+    rts                                                               ; 9371: 60          `   :0425[2]
+
+; &9372 referenced 1 time by &0408[2]
+.c0426
+    sty l0013                                                         ; 9372: 84 13       ..  :0426[2]
+    stx l0012                                                         ; 9374: 86 12       ..  :0428[2]
+    jsr tube_send_r4                                                  ; 9376: 20 d9 06     .. :042a[2]
+    tax                                                               ; 9379: aa          .   :042d[2]
+    ldy #3                                                            ; 937a: a0 03       ..  :042e[2]
+; &937c referenced 1 time by &0436[2]
+.loop_c0430
+    lda (l0012),y                                                     ; 937c: b1 12       ..  :0430[2]
+    jsr tube_send_r4                                                  ; 937e: 20 d9 06     .. :0432[2]
+    dey                                                               ; 9381: 88          .   :0435[2]
+    bpl loop_c0430                                                    ; 9382: 10 f8       ..  :0436[2]
+    ldy #8                                                            ; 9384: a0 08       ..  :0438[2]
+    sty tube_status_1_and_tube_control                                ; 9386: 8c e0 fe    ... :043a[2]
+    ldy #&10                                                          ; 9389: a0 10       ..  :043d[2]
+    cpx #2                                                            ; 938b: e0 02       ..  :043f[2]
+    bcc c0445                                                         ; 938d: 90 02       ..  :0441[2]
+    ldy #&90                                                          ; 938f: a0 90       ..  :0443[2]
+; &9391 referenced 1 time by &0441[2]
+.c0445
+    sty tube_status_1_and_tube_control                                ; 9391: 8c e0 fe    ... :0445[2]
+    jsr tube_send_r4                                                  ; 9394: 20 d9 06     .. :0448[2]
+    ldy #&88                                                          ; 9397: a0 88       ..  :044b[2]
+    txa                                                               ; 9399: 8a          .   :044d[2]
+    beq c0464                                                         ; 939a: f0 14       ..  :044e[2]
+    cmp #2                                                            ; 939c: c9 02       ..  :0450[2]
+    beq c0464                                                         ; 939e: f0 10       ..  :0452[2]
+    sty tube_status_1_and_tube_control                                ; 93a0: 8c e0 fe    ... :0454[2]
+    cmp #4                                                            ; 93a3: c9 04       ..  :0457[2]
+    bne return_tube_xfer                                              ; 93a5: d0 17       ..  :0459[2]
+    pla                                                               ; 93a7: 68          h   :045b[2]
+    pla                                                               ; 93a8: 68          h   :045c[2]
+; &93a9 referenced 1 time by &04b8[2]
+.c045d
+    lda #&80                                                          ; 93a9: a9 80       ..  :045d[2]
+    sta l0014                                                         ; 93ab: 85 14       ..  :045f[2]
+    jmp tube_reply_byte                                               ; 93ad: 4c cd 05    L.. :0461[2]
+
+; &93b0 referenced 3 times by &044e[2], &0452[2], &0467[2]
+.c0464
+    bit tube_status_register_4_and_cpu_control                        ; 93b0: 2c e6 fe    ,.. :0464[2]
+    bvc c0464                                                         ; 93b3: 50 fb       P.  :0467[2]
+    bit tube_data_register_3                                          ; 93b5: 2c e5 fe    ,.. :0469[2]
+    bit tube_data_register_3                                          ; 93b8: 2c e5 fe    ,.. :046c[2]
+    sty tube_status_1_and_tube_control                                ; 93bb: 8c e0 fe    ... :046f[2]
+; &93be referenced 1 time by &0459[2]
+.return_tube_xfer
+    rts                                                               ; 93be: 60          `   :0472[2]
+
+; &93bf referenced 1 time by &0400[2]
+.c0473
+    cli                                                               ; 93bf: 58          X   :0473[2]
+    php                                                               ; 93c0: 08          .   :0474[2]
+    pha                                                               ; 93c1: 48          H   :0475[2]
+    ldy #0                                                            ; 93c2: a0 00       ..  :0476[2]
+    sty tube_transfer_addr                                            ; 93c4: 84 57       .W  :0478[2]
+    lda #&80                                                          ; 93c6: a9 80       ..  :047a[2]
+    sta l0058                                                         ; 93c8: 85 58       .X  :047c[2]
+    sta l0001                                                         ; 93ca: 85 01       ..  :047e[2]
+    lda #&20 ; ' '                                                    ; 93cc: a9 20       .   :0480[2]
+    and rom_type                                                      ; 93ce: 2d 06 80    -.. :0482[2]
+    beq c04a0                                                         ; 93d1: f0 19       ..  :0485[2]
+    ldx copyright_offset                                              ; 93d3: ae 07 80    ... :0487[2]
+; &93d6 referenced 1 time by &048e[2]
+.loop_c048a
+    inx                                                               ; 93d6: e8          .   :048a[2]
+    lda rom_header,x                                                  ; 93d7: bd 00 80    ... :048b[2]
+    bne loop_c048a                                                    ; 93da: d0 fa       ..  :048e[2]
+    lda l8001,x                                                       ; 93dc: bd 01 80    ... :0490[2]
+    sta tube_transfer_addr                                            ; 93df: 85 57       .W  :0493[2]
+    lda l8002,x                                                       ; 93e1: bd 02 80    ... :0495[2]
+    sta l0058                                                         ; 93e4: 85 58       .X  :0498[2]
+    ldy service_entry,x                                               ; 93e6: bc 03 80    ... :049a[2]
+    lda l8004,x                                                       ; 93e9: bd 04 80    ... :049d[2]
+; &93ec referenced 1 time by &0485[2]
+.c04a0
+    sta l005a                                                         ; 93ec: 85 5a       .Z  :04a0[2]
+    sty l0059                                                         ; 93ee: 84 59       .Y  :04a2[2]
+    pla                                                               ; 93f0: 68          h   :04a4[2]
+    plp                                                               ; 93f1: 28          (   :04a5[2]
+    bcs beginr                                                        ; 93f2: b0 12       ..  :04a6[2]
+    tax                                                               ; 93f4: aa          .   :04a8[2]
+    bne begink                                                        ; 93f5: d0 03       ..  :04a9[2]
+    jmp tube_reply_ack                                                ; 93f7: 4c cb 05    L.. :04ab[2]
+
+; &93fa referenced 1 time by &04a9[2]
+.begink
+    ldx #0                                                            ; 93fa: a2 00       ..  :04ae[2]
+    ldy #&ff                                                          ; 93fc: a0 ff       ..  :04b0[2]
+    lda #osbyte_read_write_last_break_type                            ; 93fe: a9 fd       ..  :04b2[2]
+    jsr osbyte                                                        ; 9400: 20 f4 ff     .. :04b4[2]   ; Read type of last reset
+    txa                                                               ; 9403: 8a          .   :04b7[2]   ; X=value of type of last reset
+    beq c045d                                                         ; 9404: f0 a3       ..  :04b8[2]
+; &9406 referenced 2 times by &04a6[2], &04bf[2]
+.beginr
+    lda #&ff                                                          ; 9406: a9 ff       ..  :04ba[2]
+    jsr tube_addr_claim                                               ; 9408: 20 06 04     .. :04bc[2]
+    bcc beginr                                                        ; 940b: 90 f9       ..  :04bf[2]
+    lda #1                                                            ; 940d: a9 01       ..  :04c1[2]
+    jsr tube_setup_transfer                                           ; 940f: 20 e0 04     .. :04c3[2]
+    ldy #0                                                            ; 9412: a0 00       ..  :04c6[2]
+    sty l0000                                                         ; 9414: 84 00       ..  :04c8[2]
+    ldx #&40 ; '@'                                                    ; 9416: a2 40       .@  :04ca[2]
+; &9418 referenced 2 times by &04d7[2], &04dc[2]
+.c04cc
+    lda (l0000),y                                                     ; 9418: b1 00       ..  :04cc[2]
+    sta tube_data_register_3                                          ; 941a: 8d e5 fe    ... :04ce[2]
+; &941d referenced 1 time by &04d4[2]
+.loop_c04d1
+    bit tube_status_register_3                                        ; 941d: 2c e4 fe    ,.. :04d1[2]
+    bvc loop_c04d1                                                    ; 9420: 50 fb       P.  :04d4[2]
+    iny                                                               ; 9422: c8          .   :04d6[2]
+    bne c04cc                                                         ; 9423: d0 f3       ..  :04d7[2]
+    inc l0001                                                         ; 9425: e6 01       ..  :04d9[2]
+    dex                                                               ; 9427: ca          .   :04db[2]
+    bne c04cc                                                         ; 9428: d0 ee       ..  :04dc[2]
+    lda #4                                                            ; 942a: a9 04       ..  :04de[2]
+; &942c referenced 1 time by &04c3[2]
+.tube_setup_transfer
+    ldy #0                                                            ; 942c: a0 00       ..  :04e0[2]
+    ldx #&57 ; 'W'                                                    ; 942e: a2 57       .W  :04e2[2]
+    jmp tube_addr_claim                                               ; 9430: 4c 06 04    L.. :04e4[2]
+
+.tube_rdch_handler
+    lda #1                                                            ; 9433: a9 01       ..  :04e7[2]
+    jsr tube_send_r2                                                  ; 9435: 20 d0 06     .. :04e9[2]
+    jmp c0036                                                         ; 9438: 4c 36 00    L6. :04ec[2]
+
+.tube_restore_regs
+    ldy zp_temp_10                                                    ; 943b: a4 10       ..  :04ef[2]
+    ldx zp_temp_11                                                    ; 943d: a6 11       ..  :04f1[2]
+    jsr tube_read_r2                                                  ; 943f: 20 f7 04     .. :04f3[2]
+    asl a                                                             ; 9442: 0a          .   :04f6[2]
+; &9443 referenced 22 times by &04f3[2], &04fa[2], &0543[3], &0547[3], &0550[3], &0569[3], &0580[3], &058c[3], &0592[3], &059b[3], &05b5[3], &05da[3], &05eb[3], &0604[4], &060c[4], &0626[4], &062a[4], &063b[4], &063f[4], &0643[4], &065d[4], &06a5[4]
+.tube_read_r2
+    bit tube_status_register_2                                        ; 9443: 2c e2 fe    ,.. :04f7[2]
+    bpl tube_read_r2                                                  ; 9446: 10 fb       ..  :04fa[2]
+    lda tube_data_register_2                                          ; 9448: ad e3 fe    ... :04fc[2]
+    rts                                                               ; 944b: 60          `   :04ff[2]
+
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock tube_code_page4, *, c934c
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear tube_code_page4, &0500
+
+    ; Set the program counter to the next position in the binary file.
+    org c934c + (* - tube_code_page4)
+
+.l944c
+
+; Move 3: &944c to &0500 for length 256
+    org &0500
+; ***************************************************************************************
+; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
+; 
+; Copied from ROM at &944C during init. Contains:
+;   &0500: tube_dispatch_table — 14-entry handler address table
+;   &051C: tube_wrch_handler — WRCHV target
+;   &051F: tube_send_and_poll — send byte via R2, poll for reply
+;   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
+;   &053D: tube_release_return — restore regs and RTS
+;   &0543: tube_osbput — write byte to file
+;   &0550: tube_osbget — read byte from file
+;   &055B: tube_osrdch — read character
+;   &0569: tube_osfind — open file
+;   &0580: tube_osfind_close — close file (A=0)
+;   &058C: tube_osargs — file argument read/write
+;   &05B1: tube_read_string — read CR-terminated string into &0700
+;   &05C5: tube_oscli — execute * command
+;   &05CB: tube_reply_ack — send &7F acknowledge
+;   &05CD: tube_reply_byte — send byte and return to main loop
+;   &05D8: tube_osfile — whole file operation
+; ***************************************************************************************
+; &944c referenced 2 times by &0054[1], &8102
+.tube_dispatch_table
+    equb &5b, 5, &c5, 5, &26, 6, &3b, 6, &5d, 6, &a3, 6, &ef, 4       ; 944c: 5b 05 c5... [.. :0500[3]
+    equb &3d, 5, &8c, 5, &50, 5, &43, 5, &69, 5, &d8, 5,   2, 6       ; 945a: 3d 05 8c... =.. :050e[3]
+
+.tube_wrch_handler
+    pha                                                               ; 9468: 48          H   :051c[3]
+    lda #0                                                            ; 9469: a9 00       ..  :051d[3]
+.tube_send_and_poll
+    jsr tube_send_r2                                                  ; 946b: 20 d0 06     .. :051f[3]
+; &946e referenced 2 times by &052a[3], &0532[3]
+.c0522
+    bit tube_status_register_2                                        ; 946e: 2c e2 fe    ,.. :0522[3]
+    bvs c0535                                                         ; 9471: 70 0e       p.  :0525[3]
+.tube_poll_r1_wrch
+    bit tube_status_1_and_tube_control                                ; 9473: 2c e0 fe    ,.. :0527[3]
+    bpl c0522                                                         ; 9476: 10 f6       ..  :052a[3]
+    lda tube_data_register_1                                          ; 9478: ad e1 fe    ... :052c[3]
+    jsr nvwrch                                                        ; 947b: 20 cb ff     .. :052f[3]   ; Write character
+.tube_resume_poll
+    jmp c0522                                                         ; 947e: 4c 22 05    L". :0532[3]
+
+; &9481 referenced 1 time by &0525[3]
+.c0535
+    pla                                                               ; 9481: 68          h   :0535[3]
+    sta tube_data_register_2                                          ; 9482: 8d e3 fe    ... :0536[3]
+    pha                                                               ; 9485: 48          H   :0539[3]
+    jmp c0036                                                         ; 9486: 4c 36 00    L6. :053a[3]
+
+.tube_release_return
+    ldx zp_temp_11                                                    ; 9489: a6 11       ..  :053d[3]
+    ldy zp_temp_10                                                    ; 948b: a4 10       ..  :053f[3]
+    pla                                                               ; 948d: 68          h   :0541[3]
+    rts                                                               ; 948e: 60          `   :0542[3]
+
+.tube_osbput
+    jsr tube_read_r2                                                  ; 948f: 20 f7 04     .. :0543[3]
+    tay                                                               ; 9492: a8          .   :0546[3]
+    jsr tube_read_r2                                                  ; 9493: 20 f7 04     .. :0547[3]
+    jsr osbput                                                        ; 9496: 20 d4 ff     .. :054a[3]   ; Write a single byte A to an open file Y
+    jmp tube_reply_ack                                                ; 9499: 4c cb 05    L.. :054d[3]
+
+.tube_osbget
+    jsr tube_read_r2                                                  ; 949c: 20 f7 04     .. :0550[3]
+    tay                                                               ; 949f: a8          .   :0553[3]   ; Y=file handle
+    jsr osbget                                                        ; 94a0: 20 d7 ff     .. :0554[3]   ; Read a single byte from an open file Y
+    pha                                                               ; 94a3: 48          H   :0557[3]
+    jmp c055f                                                         ; 94a4: 4c 5f 05    L_. :0558[3]
+
+.tube_osrdch
+    jsr nvrdch                                                        ; 94a7: 20 c8 ff     .. :055b[3]   ; Read a character from the current input stream
+    pha                                                               ; 94aa: 48          H   :055e[3]   ; A=character read
+; &94ab referenced 1 time by &0558[3]
+.c055f
+    ora #&80                                                          ; 94ab: 09 80       ..  :055f[3]
+.tube_rdch_reply
+    ror a                                                             ; 94ad: 6a          j   :0561[3]
+    jsr tube_send_r2                                                  ; 94ae: 20 d0 06     .. :0562[3]
+    pla                                                               ; 94b1: 68          h   :0565[3]
+    jmp tube_reply_byte                                               ; 94b2: 4c cd 05    L.. :0566[3]
+
+.tube_osfind
+    jsr tube_read_r2                                                  ; 94b5: 20 f7 04     .. :0569[3]
+    beq tube_osfind_close                                             ; 94b8: f0 12       ..  :056c[3]
+    pha                                                               ; 94ba: 48          H   :056e[3]
+    jsr tube_read_string                                              ; 94bb: 20 b1 05     .. :056f[3]
+    pla                                                               ; 94be: 68          h   :0572[3]
+    jsr osfind                                                        ; 94bf: 20 ce ff     .. :0573[3]   ; Open or close file(s)
+    pha                                                               ; 94c2: 48          H   :0576[3]
+    lda #&ff                                                          ; 94c3: a9 ff       ..  :0577[3]
+    jsr tube_send_r2                                                  ; 94c5: 20 d0 06     .. :0579[3]
+    pla                                                               ; 94c8: 68          h   :057c[3]
+    jmp tube_reply_byte                                               ; 94c9: 4c cd 05    L.. :057d[3]
+
+; &94cc referenced 1 time by &056c[3]
+.tube_osfind_close
+    jsr tube_read_r2                                                  ; 94cc: 20 f7 04     .. :0580[3]
+    tay                                                               ; 94cf: a8          .   :0583[3]
+    lda #osfind_close                                                 ; 94d0: a9 00       ..  :0584[3]
+    jsr osfind                                                        ; 94d2: 20 ce ff     .. :0586[3]   ; Close one or all files
+    jmp tube_reply_ack                                                ; 94d5: 4c cb 05    L.. :0589[3]
+
+.tube_osargs
+    jsr tube_read_r2                                                  ; 94d8: 20 f7 04     .. :058c[3]
+    tay                                                               ; 94db: a8          .   :058f[3]
+.tube_read_params
+    ldx #3                                                            ; 94dc: a2 03       ..  :0590[3]
+; &94de referenced 1 time by &0598[3]
+.loop_c0592
+    jsr tube_read_r2                                                  ; 94de: 20 f7 04     .. :0592[3]
+    sta l0000,x                                                       ; 94e1: 95 00       ..  :0595[3]
+    dex                                                               ; 94e3: ca          .   :0597[3]
+    bpl loop_c0592                                                    ; 94e4: 10 f8       ..  :0598[3]
+    inx                                                               ; 94e6: e8          .   :059a[3]
+    jsr tube_read_r2                                                  ; 94e7: 20 f7 04     .. :059b[3]
+    jsr osargs                                                        ; 94ea: 20 da ff     .. :059e[3]   ; Read or write a file's attributes
+    jsr tube_send_r2                                                  ; 94ed: 20 d0 06     .. :05a1[3]
+    ldx #3                                                            ; 94f0: a2 03       ..  :05a4[3]
+; &94f2 referenced 1 time by &05ac[3]
+.loop_c05a6
+    lda l0000,x                                                       ; 94f2: b5 00       ..  :05a6[3]
+    jsr tube_send_r2                                                  ; 94f4: 20 d0 06     .. :05a8[3]
+    dex                                                               ; 94f7: ca          .   :05ab[3]
+    bpl loop_c05a6                                                    ; 94f8: 10 f8       ..  :05ac[3]
+    jmp tube_main_loop                                                ; 94fa: 4c 3a 00    L:. :05ae[3]
+
+; &94fd referenced 3 times by &056f[3], &05c5[3], &05e2[3]
+.tube_read_string
+    ldx #0                                                            ; 94fd: a2 00       ..  :05b1[3]
+    ldy #0                                                            ; 94ff: a0 00       ..  :05b3[3]
+; &9501 referenced 1 time by &05c0[3]
+.strnh
+    jsr tube_read_r2                                                  ; 9501: 20 f7 04     .. :05b5[3]
+    sta l0700,y                                                       ; 9504: 99 00 07    ... :05b8[3]
+    iny                                                               ; 9507: c8          .   :05bb[3]
+    beq c05c2                                                         ; 9508: f0 04       ..  :05bc[3]
+    cmp #&0d                                                          ; 950a: c9 0d       ..  :05be[3]
+    bne strnh                                                         ; 950c: d0 f3       ..  :05c0[3]
+; &950e referenced 1 time by &05bc[3]
+.c05c2
+    ldy #7                                                            ; 950e: a0 07       ..  :05c2[3]
+    rts                                                               ; 9510: 60          `   :05c4[3]
+
+.tube_oscli
+    jsr tube_read_string                                              ; 9511: 20 b1 05     .. :05c5[3]
+    jsr oscli                                                         ; 9514: 20 f7 ff     .. :05c8[3]
+; &9517 referenced 3 times by &04ab[2], &054d[3], &0589[3]
+.tube_reply_ack
+    lda #&7f                                                          ; 9517: a9 7f       ..  :05cb[3]
+; &9519 referenced 5 times by &0461[2], &0566[3], &057d[3], &05d0[3], &06b8[4]
+.tube_reply_byte
+    bit tube_status_register_2                                        ; 9519: 2c e2 fe    ,.. :05cd[3]
+    bvc tube_reply_byte                                               ; 951c: 50 fb       P.  :05d0[3]
+    sta tube_data_register_2                                          ; 951e: 8d e3 fe    ... :05d2[3]
+; &9521 referenced 1 time by &0600[4]
+.mj
+    jmp tube_main_loop                                                ; 9521: 4c 3a 00    L:. :05d5[3]
+
+.tube_osfile
+    ldx #&10                                                          ; 9524: a2 10       ..  :05d8[3]
+; &9526 referenced 1 time by &05e0[3]
+.argsw
+    jsr tube_read_r2                                                  ; 9526: 20 f7 04     .. :05da[3]
+    sta l0001,x                                                       ; 9529: 95 01       ..  :05dd[3]
+    dex                                                               ; 952b: ca          .   :05df[3]
+    bne argsw                                                         ; 952c: d0 f8       ..  :05e0[3]
+    jsr tube_read_string                                              ; 952e: 20 b1 05     .. :05e2[3]
+    stx l0000                                                         ; 9531: 86 00       ..  :05e5[3]
+    sty l0001                                                         ; 9533: 84 01       ..  :05e7[3]
+    ldy #0                                                            ; 9535: a0 00       ..  :05e9[3]
+    jsr tube_read_r2                                                  ; 9537: 20 f7 04     .. :05eb[3]
+    jsr osfile                                                        ; 953a: 20 dd ff     .. :05ee[3]
+    ora #&80                                                          ; 953d: 09 80       ..  :05f1[3]
+    jsr tube_send_r2                                                  ; 953f: 20 d0 06     .. :05f3[3]
+    ldx #&10                                                          ; 9542: a2 10       ..  :05f6[3]
+; &9544 referenced 1 time by &05fe[3]
+.loop_c05f8
+    lda l0001,x                                                       ; 9544: b5 01       ..  :05f8[3]
+    jsr tube_send_r2                                                  ; 9546: 20 d0 06     .. :05fa[3]
+    dex                                                               ; 9549: ca          .   :05fd[3]
+    bne loop_c05f8                                                    ; 954a: d0 f8       ..  :05fe[3]
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock tube_dispatch_table, *, l944c
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear tube_dispatch_table, &0600
+
+    ; Set the program counter to the next position in the binary file.
+    org l944c + (* - tube_dispatch_table)
+
+.c954c
+
+; Move 4: &954c to &0600 for length 256
+    org &0600
+; ***************************************************************************************
+; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
+; 
+; Copied from ROM at &954C during init. &0600-&0601 is the tail
+; of tube_osfile (BEQ to tube_reply_byte when done). Contains:
+;   &0602: tube_osgbpb — multi-byte file I/O
+;   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
+;   &063B: tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)
+;   &065D: tube_osword — variable-length OSWORD (buffer at &0130)
+;   &06A3: tube_osword_rdln — OSWORD 0 (read line, 5-byte params)
+;   &06BB: tube_rdln_send_line — send input line from &0700
+;   &06D0: tube_send_r2 — poll R2 status, write A to R2 data
+;   &06D9: tube_send_r4 — poll R4 status, write A to R4 data
+;   &06E2: tube_escape_check — check &FF, forward escape to R1
+;   &06E8: tube_event_handler — EVNTV: forward event (A,X,Y) via R1
+;   &06F7: tube_send_r1 — poll R1 status, write A to R1 data
+; ***************************************************************************************
+; &954c referenced 1 time by &8108
+.tube_code_page6
+    beq mj                                                            ; 954c: f0 d3       ..  :0600[4]
+.tube_osgbpb
+    ldx #&0c                                                          ; 954e: a2 0c       ..  :0602[4]
+; &9550 referenced 1 time by &060a[4]
+.loop_c0604
+    jsr tube_read_r2                                                  ; 9550: 20 f7 04     .. :0604[4]
+    sta l0000,x                                                       ; 9553: 95 00       ..  :0607[4]
+    dex                                                               ; 9555: ca          .   :0609[4]
+    bpl loop_c0604                                                    ; 9556: 10 f8       ..  :060a[4]
+    jsr tube_read_r2                                                  ; 9558: 20 f7 04     .. :060c[4]
+    inx                                                               ; 955b: e8          .   :060f[4]
+    ldy #0                                                            ; 955c: a0 00       ..  :0610[4]
+    jsr osgbpb                                                        ; 955e: 20 d1 ff     .. :0612[4]   ; Read or write multiple bytes to an open file
+    ror a                                                             ; 9561: 6a          j   :0615[4]
+    jsr tube_send_r2                                                  ; 9562: 20 d0 06     .. :0616[4]
+    ldx #&0c                                                          ; 9565: a2 0c       ..  :0619[4]
+; &9567 referenced 1 time by &0621[4]
+.loop_c061b
+    lda l0000,x                                                       ; 9567: b5 00       ..  :061b[4]
+    jsr tube_send_r2                                                  ; 9569: 20 d0 06     .. :061d[4]
+    dex                                                               ; 956c: ca          .   :0620[4]
+    bpl loop_c061b                                                    ; 956d: 10 f8       ..  :0621[4]
+    jmp tube_main_loop                                                ; 956f: 4c 3a 00    L:. :0623[4]
+
+.tube_osbyte_short
+    jsr tube_read_r2                                                  ; 9572: 20 f7 04     .. :0626[4]
+    tax                                                               ; 9575: aa          .   :0629[4]
+    jsr tube_read_r2                                                  ; 9576: 20 f7 04     .. :062a[4]
+    jsr osbyte                                                        ; 9579: 20 f4 ff     .. :062d[4]
+; &957c referenced 2 times by &0633[4], &065b[4]
+.tube_osbyte_send_x
+    bit tube_status_register_2                                        ; 957c: 2c e2 fe    ,.. :0630[4]
+    bvc tube_osbyte_send_x                                            ; 957f: 50 fb       P.  :0633[4]
+    stx tube_data_register_2                                          ; 9581: 8e e3 fe    ... :0635[4]
+; &9584 referenced 1 time by &064b[4]
+.bytex
+    jmp tube_main_loop                                                ; 9584: 4c 3a 00    L:. :0638[4]
+
+.tube_osbyte_long
+    jsr tube_read_r2                                                  ; 9587: 20 f7 04     .. :063b[4]
+    tax                                                               ; 958a: aa          .   :063e[4]
+    jsr tube_read_r2                                                  ; 958b: 20 f7 04     .. :063f[4]
+    tay                                                               ; 958e: a8          .   :0642[4]
+    jsr tube_read_r2                                                  ; 958f: 20 f7 04     .. :0643[4]
+    jsr osbyte                                                        ; 9592: 20 f4 ff     .. :0646[4]
+    eor #&9d                                                          ; 9595: 49 9d       I.  :0649[4]
+    beq bytex                                                         ; 9597: f0 eb       ..  :064b[4]
+    lda #&40 ; '@'                                                    ; 9599: a9 40       .@  :064d[4]
+    ror a                                                             ; 959b: 6a          j   :064f[4]
+    jsr tube_send_r2                                                  ; 959c: 20 d0 06     .. :0650[4]
+; &959f referenced 1 time by &0656[4]
+.tube_osbyte_send_y
+    bit tube_status_register_2                                        ; 959f: 2c e2 fe    ,.. :0653[4]
+    bvc tube_osbyte_send_y                                            ; 95a2: 50 fb       P.  :0656[4]
+    sty tube_data_register_2                                          ; 95a4: 8c e3 fe    ... :0658[4]
+    bvs tube_osbyte_send_x                                            ; 95a7: 70 d3       p.  :065b[4]   ; ALWAYS branch
+
+.tube_osword
+    jsr tube_read_r2                                                  ; 95a9: 20 f7 04     .. :065d[4]
+    tay                                                               ; 95ac: a8          .   :0660[4]
+; &95ad referenced 1 time by &0664[4]
+.tube_osword_read
+    bit tube_status_register_2                                        ; 95ad: 2c e2 fe    ,.. :0661[4]
+    bpl tube_osword_read                                              ; 95b0: 10 fb       ..  :0664[4]
+    ldx tube_data_register_2                                          ; 95b2: ae e3 fe    ... :0666[4]
+    dex                                                               ; 95b5: ca          .   :0669[4]
+    bmi c067b                                                         ; 95b6: 30 0f       0.  :066a[4]
+; &95b8 referenced 2 times by &066f[4], &0678[4]
+.tube_osword_read_lp
+    bit tube_status_register_2                                        ; 95b8: 2c e2 fe    ,.. :066c[4]
+    bpl tube_osword_read_lp                                           ; 95bb: 10 fb       ..  :066f[4]
+    lda tube_data_register_2                                          ; 95bd: ad e3 fe    ... :0671[4]
+    sta l0130,x                                                       ; 95c0: 9d 30 01    .0. :0674[4]
+    dex                                                               ; 95c3: ca          .   :0677[4]
+    bpl tube_osword_read_lp                                           ; 95c4: 10 f2       ..  :0678[4]
+    tya                                                               ; 95c6: 98          .   :067a[4]
+; &95c7 referenced 1 time by &066a[4]
+.c067b
+    ldx #<(l0130)                                                     ; 95c7: a2 30       .0  :067b[4]
+    ldy #>(l0130)                                                     ; 95c9: a0 01       ..  :067d[4]
+    jsr osword                                                        ; 95cb: 20 f1 ff     .. :067f[4]
+    lda #&ff                                                          ; 95ce: a9 ff       ..  :0682[4]
+    jsr tube_send_r2                                                  ; 95d0: 20 d0 06     .. :0684[4]
+; &95d3 referenced 1 time by &068a[4]
+.loop_c0687
+    bit tube_status_register_2                                        ; 95d3: 2c e2 fe    ,.. :0687[4]
+    bpl loop_c0687                                                    ; 95d6: 10 fb       ..  :068a[4]
+    ldx tube_data_register_2                                          ; 95d8: ae e3 fe    ... :068c[4]
+    dex                                                               ; 95db: ca          .   :068f[4]
+    bmi tube_return_main                                              ; 95dc: 30 0e       0.  :0690[4]
+; &95de referenced 1 time by &069e[4]
+.tube_osword_write
+    ldy l0130,x                                                       ; 95de: bc 30 01    .0. :0692[4]
+; &95e1 referenced 1 time by &0698[4]
+.tube_osword_write_lp
+    bit tube_status_register_2                                        ; 95e1: 2c e2 fe    ,.. :0695[4]
+    bvc tube_osword_write_lp                                          ; 95e4: 50 fb       P.  :0698[4]
+    sty tube_data_register_2                                          ; 95e6: 8c e3 fe    ... :069a[4]
+    dex                                                               ; 95e9: ca          .   :069d[4]
+    bpl tube_osword_write                                             ; 95ea: 10 f2       ..  :069e[4]
+; &95ec referenced 1 time by &0690[4]
+.tube_return_main
+    jmp tube_main_loop                                                ; 95ec: 4c 3a 00    L:. :06a0[4]
+
+.tube_osword_rdln
+    ldx #4                                                            ; 95ef: a2 04       ..  :06a3[4]
+; &95f1 referenced 1 time by &06ab[4]
+.loop_c06a5
+    jsr tube_read_r2                                                  ; 95f1: 20 f7 04     .. :06a5[4]
+    sta l0000,x                                                       ; 95f4: 95 00       ..  :06a8[4]
+    dex                                                               ; 95f6: ca          .   :06aa[4]
+    bpl loop_c06a5                                                    ; 95f7: 10 f8       ..  :06ab[4]
+    inx                                                               ; 95f9: e8          .   :06ad[4]
+    ldy #0                                                            ; 95fa: a0 00       ..  :06ae[4]
+    txa                                                               ; 95fc: 8a          .   :06b0[4]
+    jsr osword                                                        ; 95fd: 20 f1 ff     .. :06b1[4]
+    bcc tube_rdln_send_line                                           ; 9600: 90 05       ..  :06b4[4]
+    lda #&ff                                                          ; 9602: a9 ff       ..  :06b6[4]
+    jmp tube_reply_byte                                               ; 9604: 4c cd 05    L.. :06b8[4]
+
+; &9607 referenced 1 time by &06b4[4]
+.tube_rdln_send_line
+    ldx #0                                                            ; 9607: a2 00       ..  :06bb[4]
+    lda #&7f                                                          ; 9609: a9 7f       ..  :06bd[4]
+    jsr tube_send_r2                                                  ; 960b: 20 d0 06     .. :06bf[4]
+; &960e referenced 1 time by &06cb[4]
+.tube_rdln_send_loop
+    lda l0700,x                                                       ; 960e: bd 00 07    ... :06c2[4]
+.tube_rdln_send_byte
+    jsr tube_send_r2                                                  ; 9611: 20 d0 06     .. :06c5[4]
+    inx                                                               ; 9614: e8          .   :06c8[4]
+    cmp #&0d                                                          ; 9615: c9 0d       ..  :06c9[4]
+    bne tube_rdln_send_loop                                           ; 9617: d0 f5       ..  :06cb[4]
+    jmp tube_main_loop                                                ; 9619: 4c 3a 00    L:. :06cd[4]
+
+; &961c referenced 18 times by &0020[1], &0026[1], &002c[1], &04e9[2], &051f[3], &0562[3], &0579[3], &05a1[3], &05a8[3], &05f3[3], &05fa[3], &0616[4], &061d[4], &0650[4], &0684[4], &06bf[4], &06c5[4], &06d3[4]
+.tube_send_r2
+    bit tube_status_register_2                                        ; 961c: 2c e2 fe    ,.. :06d0[4]
+    bvc tube_send_r2                                                  ; 961f: 50 fb       P.  :06d3[4]
+    sta tube_data_register_2                                          ; 9621: 8d e3 fe    ... :06d5[4]
+    rts                                                               ; 9624: 60          `   :06d8[4]
+
+; &9625 referenced 5 times by &0018[1], &042a[2], &0432[2], &0448[2], &06dc[4]
+.tube_send_r4
+    bit tube_status_register_4_and_cpu_control                        ; 9625: 2c e6 fe    ,.. :06d9[4]
+    bvc tube_send_r4                                                  ; 9628: 50 fb       P.  :06dc[4]
+    sta tube_data_register_4                                          ; 962a: 8d e7 fe    ... :06de[4]
+    rts                                                               ; 962d: 60          `   :06e1[4]
+
+; &962e referenced 1 time by &0403[2]
+.tube_escape_check
+    lda l00ff                                                         ; 962e: a5 ff       ..  :06e2[4]
+    sec                                                               ; 9630: 38          8   :06e4[4]
+    ror a                                                             ; 9631: 6a          j   :06e5[4]
+    bmi tube_send_r1                                                  ; 9632: 30 0f       0.  :06e6[4]
+.tube_event_handler
+    pha                                                               ; 9634: 48          H   :06e8[4]
+    lda #0                                                            ; 9635: a9 00       ..  :06e9[4]
+    jsr tube_send_r1                                                  ; 9637: 20 f7 06     .. :06eb[4]
+    tya                                                               ; 963a: 98          .   :06ee[4]
+    jsr tube_send_r1                                                  ; 963b: 20 f7 06     .. :06ef[4]
+    txa                                                               ; 963e: 8a          .   :06f2[4]
+    jsr tube_send_r1                                                  ; 963f: 20 f7 06     .. :06f3[4]
+    pla                                                               ; 9642: 68          h   :06f6[4]
+; &9643 referenced 5 times by &06e6[4], &06eb[4], &06ef[4], &06f3[4], &06fa[4]
+.tube_send_r1
+    bit tube_status_1_and_tube_control                                ; 9643: 2c e0 fe    ,.. :06f7[4]
+    bvc tube_send_r1                                                  ; 9646: 50 fb       P.  :06fa[4]
+    sta tube_data_register_1                                          ; 9648: 8d e1 fe    ... :06fc[4]
+    rts                                                               ; 964b: 60          `   :06ff[4]
+
+
+    ; Copy the newly assembled block of code back to it's proper place in the binary
+    ; file.
+    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
+    copyblock tube_code_page6, *, c954c
+
+    ; Clear the area of memory we just temporarily used to assemble the new block,
+    ; allowing us to assemble there again if needed
+    clear tube_code_page6, &0700
+
+    ; Set the program counter to the next position in the binary file.
+    org c954c + (* - tube_code_page6)
+
 
     org &8000
 
@@ -1249,14 +1960,14 @@ l8014 = l800d+7
     iny                                                               ; 838a: c8          .
     lda (l00c4),y                                                     ; 838b: b1 c4       ..
     tax                                                               ; 838d: aa          .
-    beq return_1                                                      ; 838e: f0 06       ..
+    beq return_dofsl7                                                 ; 838e: f0 06       ..
     bvc c8394                                                         ; 8390: 50 02       P.
     adc #&2a ; '*'                                                    ; 8392: 69 2a       i*
 ; &8394 referenced 1 time by &8390
 .c8394
     bne store_fs_error                                                ; 8394: d0 6c       .l
 ; &8396 referenced 1 time by &838e
-.return_1
+.return_dofsl7
     rts                                                               ; 8396: 60          `
 
 ; &8397 referenced 1 time by &8379
@@ -1498,7 +2209,7 @@ l8014 = l800d+7
 .check_escape
     lda #osbyte_acknowledge_escape                                    ; 847a: a9 7e       .~
     bit l00ff                                                         ; 847c: 24 ff       $.
-    bpl return_2                                                      ; 847e: 10 23       .#
+    bpl return_bget                                                   ; 847e: 10 23       .#
     jsr osbyte                                                        ; 8480: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
     bne nlisne                                                        ; 8483: d0 a5       ..
 .bgetv_handler
@@ -1507,7 +2218,7 @@ l8014 = l800d+7
     sec                                                               ; 8489: 38          8
     lda #&fe                                                          ; 848a: a9 fe       ..
     bit l0fdf                                                         ; 848c: 2c df 0f    ,..
-    bvs return_2                                                      ; 848f: 70 12       p.
+    bvs return_bget                                                   ; 848f: 70 12       p.
     clc                                                               ; 8491: 18          .
     bmi c849b                                                         ; 8492: 30 07       0.
     lda l00cf                                                         ; 8494: a5 cf       ..
@@ -1521,7 +2232,7 @@ l8014 = l800d+7
 .c84a0
     lda l0fde                                                         ; 84a0: ad de 0f    ...
 ; &84a3 referenced 2 times by &847e, &848f
-.return_2
+.return_bget
     rts                                                               ; 84a3: 60          `
 
 ; &84a4 referenced 1 time by &8760
@@ -1919,18 +2630,18 @@ l8014 = l800d+7
 .loop_c85d0
     lda l00af,x                                                       ; 85d0: b5 af       ..
     eor l00b3,x                                                       ; 85d2: 55 b3       U.
-    bne return_3                                                      ; 85d4: d0 03       ..
+    bne return_compare                                                ; 85d4: d0 03       ..
     dex                                                               ; 85d6: ca          .
     bne loop_c85d0                                                    ; 85d7: d0 f7       ..
 ; &85d9 referenced 1 time by &85d4
-.return_3
+.return_compare
     rts                                                               ; 85d9: 60          `
 
 .fscv_read_handles
     ldx #&20 ; ' '                                                    ; 85da: a2 20       .
     ldy #&27 ; '''                                                    ; 85dc: a0 27       .'
 ; &85de referenced 1 time by &8603
-.return_4
+.return_fscv_handles
     rts                                                               ; 85de: 60          `
 
 ; ***************************************************************************************
@@ -2001,7 +2712,7 @@ l8014 = l800d+7
 ; &8600 referenced 2 times by &8703, &8783
 .print_file_info
     ldy fs_messages_flag                                              ; 8600: ac 06 0e    ...
-    beq return_4                                                      ; 8603: f0 d9       ..
+    beq return_fscv_handles                                           ; 8603: f0 d9       ..
     ldy #0                                                            ; 8605: a0 00       ..
 ; &8607 referenced 1 time by &8615
 .loop_c8607
@@ -2283,7 +2994,7 @@ l8014 = l800d+7
 ; &8716 referenced 2 times by &8706, &8a70
 .send_data_blocks
     jsr compare_addresses                                             ; 8716: 20 ce 85     ..            ; Compare two 4-byte addresses
-    beq return_5                                                      ; 8719: f0 25       .%
+    beq return_lodchk                                                 ; 8719: f0 25       .%
     lda #&92                                                          ; 871b: a9 92       ..
     sta l00c1                                                         ; 871d: 85 c1       ..
 ; &871f referenced 1 time by &873b
@@ -2309,7 +3020,7 @@ l8014 = l800d+7
     dey                                                               ; 873d: 88          .
     bpl lodchk                                                        ; 873e: 10 f5       ..
 ; &8740 referenced 1 time by &8719
-.return_5
+.return_lodchk
     rts                                                               ; 8740: 60          `
 
 ; &8741 referenced 1 time by &86c2
@@ -3679,7 +4390,7 @@ l8bd7 = fs_cmd_match_table+1
     eor #&0d                                                          ; 8d6e: 49 0d       I.
     bne copy_string_from_offset                                       ; 8d70: d0 f5       ..
 ; &8d72 referenced 1 time by &8d78
-.return_6
+.return_copy_string
     rts                                                               ; 8d72: 60          `
 
 ; ***************************************************************************************
@@ -3695,7 +4406,7 @@ l8bd7 = fs_cmd_match_table+1
 ; &8d75 referenced 2 times by &8cd2, &8d82
 .print_dir_from_offset
     lda fs_cmd_data,x                                                 ; 8d75: bd 05 0f    ...
-    bmi return_6                                                      ; 8d78: 30 f8       0.
+    bmi return_copy_string                                            ; 8d78: 30 f8       0.
     bne infol2                                                        ; 8d7a: d0 02       ..
     lda #&0d                                                          ; 8d7c: a9 0d       ..
 ; &8d7e referenced 1 time by &8d7a
@@ -3769,11 +4480,11 @@ l8bd7 = fs_cmd_match_table+1
     tay                                                               ; 8dbf: a8          .
     pla                                                               ; 8dc0: 68          h
     cmp #&48 ; 'H'                                                    ; 8dc1: c9 48       .H
-    bcc return_7                                                      ; 8dc3: 90 03       ..
+    bcc return_calc_handle                                            ; 8dc3: 90 03       ..
     ldy #0                                                            ; 8dc5: a0 00       ..
     tya                                                               ; 8dc7: 98          .              ; A=&00
 ; &8dc8 referenced 1 time by &8dc3
-.return_7
+.return_calc_handle
     rts                                                               ; 8dc8: 60          `
 
 ; ***************************************************************************************
@@ -3841,9 +4552,9 @@ l8bd7 = fs_cmd_match_table+1
 .osword_fs_entry
     lda l00ef                                                         ; 8df7: a5 ef       ..             ; Command code from &EF
     sbc #&0f                                                          ; 8df9: e9 0f       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
-    bmi return_8                                                      ; 8dfb: 30 35       05
+    bmi return_copy_param                                             ; 8dfb: 30 35       05
     cmp #5                                                            ; 8dfd: c9 05       ..
-    bcs return_8                                                      ; 8dff: b0 31       .1
+    bcs return_copy_param                                             ; 8dff: b0 31       .1
 ; ***************************************************************************************
 ; PHA/PHA/RTS dispatch for filing system OSWORDs
 ; 
@@ -3905,7 +4616,7 @@ l8bd7 = fs_cmd_match_table+1
     dex                                                               ; 8e2f: ca          .
     bpl copy_param_block                                              ; 8e30: 10 f0       ..
 ; &8e32 referenced 2 times by &8dfb, &8dff
-.return_8
+.return_copy_param
     rts                                                               ; 8e32: 60          `
 
 ; ***************************************************************************************
@@ -4494,7 +5205,7 @@ l8bd7 = fs_cmd_match_table+1
 .c907c
     ldx #2                                                            ; 907c: a2 02       ..
     tya                                                               ; 907e: 98          .
-    beq return_9                                                      ; 907f: f0 33       .3
+    beq return_nbyte                                                  ; 907f: f0 33       .3
     php                                                               ; 9081: 08          .
     bpl nbyte6                                                        ; 9082: 10 01       ..
     inx                                                               ; 9084: e8          .              ; X=&03
@@ -4511,7 +5222,7 @@ l8bd7 = fs_cmd_match_table+1
     txa                                                               ; 9091: 8a          .
     jsr setup_tx_and_send                                             ; 9092: 20 4b 90     K.
     plp                                                               ; 9095: 28          (
-    bpl return_9                                                      ; 9096: 10 1c       ..
+    bpl return_nbyte                                                  ; 9096: 10 1c       ..
     lda #&7f                                                          ; 9098: a9 7f       ..
     sta (net_tx_ptr,x)                                                ; 909a: 81 9a       ..
 ; &909c referenced 1 time by &909e
@@ -4535,17 +5246,17 @@ l8bd7 = fs_cmd_match_table+1
     cpy #&da                                                          ; 90b0: c0 da       ..
     bne nbyte4                                                        ; 90b2: d0 f5       ..
 ; &90b4 referenced 2 times by &907f, &9096
-.return_9
+.return_nbyte
     rts                                                               ; 90b4: 60          `
 
 ; &90b5 referenced 3 times by &906d, &9076, &90bb
 .match_osbyte_code
     cmp l90be,x                                                       ; 90b5: dd be 90    ...
-    beq return_10                                                     ; 90b8: f0 03       ..
+    beq return_match_osbyte                                           ; 90b8: f0 03       ..
     dex                                                               ; 90ba: ca          .
     bpl match_osbyte_code                                             ; 90bb: 10 f8       ..
 ; &90bd referenced 1 time by &90b8
-.return_10
+.return_match_osbyte
     rts                                                               ; 90bd: 60          `
 
 ; &90be referenced 1 time by &90b5
@@ -4569,7 +5280,7 @@ l8bd7 = fs_cmd_match_table+1
     cmp #7                                                            ; 90cf: c9 07       ..
     beq c90d7                                                         ; 90d1: f0 04       ..
     cmp #8                                                            ; 90d3: c9 08       ..
-    bne return_11                                                     ; 90d5: d0 24       .$
+    bne return_remote_cmd                                             ; 90d5: d0 24       .$
 ; &90d7 referenced 1 time by &90d1
 .c90d7
     ldx #&db                                                          ; 90d7: a2 db       ..
@@ -4593,7 +5304,7 @@ l8bd7 = fs_cmd_match_table+1
     stx nfs_workspace                                                 ; 90f6: 86 9e       ..
     jsr ctrl_block_setup_alt                                          ; 90f8: 20 59 91     Y.
 ; &90fb referenced 1 time by &90d5
-.return_11
+.return_remote_cmd
     rts                                                               ; 90fb: 60          `
 
 ; ***************************************************************************************
@@ -4804,7 +5515,7 @@ l8bd7 = fs_cmd_match_table+1
 .setup1
     sta l0d60                                                         ; 91c3: 8d 60 0d    .`.
 ; &91c6 referenced 2 times by &91c9, &91dd
-.return_12
+.return_display_setup
     rts                                                               ; 91c6: 60          `
 
 ; ***************************************************************************************
@@ -4829,7 +5540,7 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 .remote_print_handler
     cpy #4                                                            ; 91c7: c0 04       ..
-    bne return_12                                                     ; 91c9: d0 fb       ..
+    bne return_display_setup                                          ; 91c9: d0 fb       ..
     txa                                                               ; 91cb: 8a          .
     dex                                                               ; 91cc: ca          .
     bne c91f5                                                         ; 91cd: d0 26       .&
@@ -4841,7 +5552,7 @@ l8bd7 = fs_cmd_match_table+1
     lda #osbyte_read_buffer                                           ; 91d6: a9 91       ..
     ldx #buffer_printer                                               ; 91d8: a2 03       ..
     jsr osbyte                                                        ; 91da: 20 f4 ff     ..            ; Get character from input buffer (C is set if the buffer is empty, otherwise Y=extracted character)
-    bcs return_12                                                     ; 91dd: b0 e7       ..
+    bcs return_display_setup                                          ; 91dd: b0 e7       ..
     tya                                                               ; 91df: 98          .              ; Y is the character extracted from the buffer
     jsr store_output_byte                                             ; 91e0: 20 ec 91     ..
     cpy #&6e ; 'n'                                                    ; 91e3: c0 6e       .n
@@ -4978,10 +5689,10 @@ l8bd7 = fs_cmd_match_table+1
     pla                                                               ; 9288: 68          h
     tax                                                               ; 9289: aa          .
     inx                                                               ; 928a: e8          .
-    beq return_13                                                     ; 928b: f0 03       ..
+    beq return_bspsx                                                  ; 928b: f0 03       ..
     eor fs_sequence_nos                                               ; 928d: 4d 08 0e    M..
 ; &9290 referenced 1 time by &928b
-.return_13
+.return_bspsx
     rts                                                               ; 9290: 60          `
 
 ; ***************************************************************************************
@@ -5089,714 +5800,8 @@ l8bd7 = fs_cmd_match_table+1
 .osbyte_vdu_table
     equb &85, &c2, &c3                                                ; 9304: 85 c2 c3    ...
 ; &9307 referenced 1 time by &8113
-.c9307
 
-; Move 1: &9307 to &16 for length 69
-    org &16
-; ***************************************************************************************
-; Tube BRK handler (BRKV target) — reference: NFS11 NEWBR
-; 
-; Sends error information to the Tube co-processor via R2 and R4:
-;   1. Sends &FF to R4 (WRIFOR) to signal error
-;   2. Reads R2 data (flush any pending byte)
-;   3. Sends &00 via R2, then error number from (&FD),0
-;   4. Loops sending error string bytes via R2 until zero terminator
-;   5. Falls through to tube_reset_stack → tube_main_loop
-; The main loop continuously polls R1 for WRCH requests (forwarded
-; to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
-; 14-entry table at &0500). The R2 command byte is stored at &55
-; before dispatch via JMP (&0500).
-; ***************************************************************************************
-; &9307 referenced 1 time by &8116
-.nmi_workspace_start
-.tube_brk_handler
-    lda #&ff                                                          ; 9307: a9 ff       ..  :0016[1]
-    jsr tube_send_r4                                                  ; 9309: 20 d9 06     .. :0018[1]
-    lda tube_data_register_2                                          ; 930c: ad e3 fe    ... :001b[1]
-    lda #0                                                            ; 930f: a9 00       ..  :001e[1]
-; &9311 referenced 1 time by &84b3
-.c0020
-    jsr tube_send_r2                                                  ; 9311: 20 d0 06     .. :0020[1]
-    tay                                                               ; 9314: a8          .   :0023[1]
-    lda (l00fd),y                                                     ; 9315: b1 fd       ..  :0024[1]
-    jsr tube_send_r2                                                  ; 9317: 20 d0 06     .. :0026[1]
-; &931a referenced 1 time by &0030[1]
-.tube_brk_send_loop
-    iny                                                               ; 931a: c8          .   :0029[1]
-    lda (l00fd),y                                                     ; 931b: b1 fd       ..  :002a[1]
-    jsr tube_send_r2                                                  ; 931d: 20 d0 06     .. :002c[1]
-    tax                                                               ; 9320: aa          .   :002f[1]
-    bne tube_brk_send_loop                                            ; 9321: d0 f7       ..  :0030[1]
-.tube_reset_stack
-    ldx #&ff                                                          ; 9323: a2 ff       ..  :0032[1]
-    txs                                                               ; 9325: 9a          .   :0034[1]
-    cli                                                               ; 9326: 58          X   :0035[1]
-; &9327 referenced 2 times by &04ec[2], &053a[3]
-.c0036
-    stx zp_temp_11                                                    ; 9327: 86 11       ..  :0036[1]
-    sty zp_temp_10                                                    ; 9329: 84 10       ..  :0038[1]
-; &932b referenced 7 times by &0048[1], &05ae[3], &05d5[3], &0623[4], &0638[4], &06a0[4], &06cd[4]
-.tube_main_loop
-    bit tube_status_1_and_tube_control                                ; 932b: 2c e0 fe    ,.. :003a[1]
-    bpl tube_poll_r2                                                  ; 932e: 10 06       ..  :003d[1]
-; &9330 referenced 1 time by &004d[1]
-.tube_handle_wrch
-    lda tube_data_register_1                                          ; 9330: ad e1 fe    ... :003f[1]
-    jsr nvwrch                                                        ; 9333: 20 cb ff     .. :0042[1]   ; Write character
-; &9336 referenced 1 time by &003d[1]
-.tube_poll_r2
-    bit tube_status_register_2                                        ; 9336: 2c e2 fe    ,.. :0045[1]
-    bpl tube_main_loop                                                ; 9339: 10 f0       ..  :0048[1]
-    bit tube_status_1_and_tube_control                                ; 933b: 2c e0 fe    ,.. :004a[1]
-    bmi tube_handle_wrch                                              ; 933e: 30 f0       0.  :004d[1]
-    ldx tube_data_register_2                                          ; 9340: ae e3 fe    ... :004f[1]
-    stx l0055                                                         ; 9343: 86 55       .U  :0052[1]
-.tube_dispatch_cmd
-l0055 = tube_dispatch_cmd+1
-    jmp (tube_dispatch_table)                                         ; 9345: 6c 00 05    l.. :0054[1]
-
-; &9346 referenced 1 time by &0052[1]
-; &9348 referenced 2 times by &0478[2], &0493[2]
-.tube_transfer_addr
-    equb 0                                                            ; 9348: 00          .   :0057[1]
-; &9349 referenced 2 times by &047c[2], &0498[2]
-.l0058
-    equb &80                                                          ; 9349: 80          .   :0058[1]
-; &934a referenced 1 time by &04a2[2]
-.l0059
-    equb 0                                                            ; 934a: 00          .   :0059[1]
-; &934b referenced 1 time by &04a0[2]
-.l005a
-    equb 0                                                            ; 934b: 00          .   :005a[1]
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock nmi_workspace_start, *, c9307
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear nmi_workspace_start, &005b
-
-    ; Set the program counter to the next position in the binary file.
-    org c9307 + (* - nmi_workspace_start)
-
-.c934c
-
-; Move 2: &934c to &0400 for length 256
-    org &0400
-; ***************************************************************************************
-; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
-; 
-; Copied from ROM at &934C during init. The first 28 bytes (&0400-&041B)
-; overlap with the end of the ZP block (the same ROM bytes serve both
-; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
-;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
-;   &0403: JMP &06E2 (tube_escape_check)
-;   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
-;   &0414: tube_post_init — called after ROM→RAM copy
-;   &0473: BEGIN — startup/CLI entry, break type check
-;   &04E7: tube_rdch_handler — RDCHV target
-;   &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
-;   &04F7: tube_read_r2 — poll R2 status, read data byte to A
-; ***************************************************************************************
-; &934c referenced 1 time by &80fc
-.tube_code_page4
-    jmp c0473                                                         ; 934c: 4c 73 04    Ls. :0400[2]
-
-.tube_escape_entry
-    jmp tube_escape_check                                             ; 934f: 4c e2 06    L.. :0403[2]
-
-; &9352 referenced 10 times by &04bc[2], &04e4[2], &8b1d, &8b2f, &8b8c, &8da9, &99f0, &9a3d, &9f98, &9fa0
-.tube_addr_claim
-    cmp #&80                                                          ; 9352: c9 80       ..  :0406[2]
-    bcc c0426                                                         ; 9354: 90 1c       ..  :0408[2]
-    cmp #&c0                                                          ; 9356: c9 c0       ..  :040a[2]
-    bcs c0419                                                         ; 9358: b0 0b       ..  :040c[2]
-    ora #&40 ; '@'                                                    ; 935a: 09 40       .@  :040e[2]
-    cmp l0015                                                         ; 935c: c5 15       ..  :0410[2]
-    bne return_14                                                     ; 935e: d0 11       ..  :0412[2]
-; &9360 referenced 1 time by &810e
-.tube_post_init
-    lda #&80                                                          ; 9360: a9 80       ..  :0414[2]
-    sta l0014                                                         ; 9362: 85 14       ..  :0416[2]
-    rts                                                               ; 9364: 60          `   :0418[2]
-
-; &9365 referenced 1 time by &040c[2]
-.c0419
-    asl l0014                                                         ; 9365: 06 14       ..  :0419[2]
-    bcs c0423                                                         ; 9367: b0 06       ..  :041b[2]
-    cmp l0015                                                         ; 9369: c5 15       ..  :041d[2]
-    beq return_14                                                     ; 936b: f0 04       ..  :041f[2]
-    clc                                                               ; 936d: 18          .   :0421[2]
-    rts                                                               ; 936e: 60          `   :0422[2]
-
-; &936f referenced 1 time by &041b[2]
-.c0423
-    sta l0015                                                         ; 936f: 85 15       ..  :0423[2]
-; &9371 referenced 2 times by &0412[2], &041f[2]
-.return_14
-    rts                                                               ; 9371: 60          `   :0425[2]
-
-; &9372 referenced 1 time by &0408[2]
-.c0426
-    sty l0013                                                         ; 9372: 84 13       ..  :0426[2]
-    stx l0012                                                         ; 9374: 86 12       ..  :0428[2]
-    jsr tube_send_r4                                                  ; 9376: 20 d9 06     .. :042a[2]
-    tax                                                               ; 9379: aa          .   :042d[2]
-    ldy #3                                                            ; 937a: a0 03       ..  :042e[2]
-; &937c referenced 1 time by &0436[2]
-.loop_c0430
-    lda (l0012),y                                                     ; 937c: b1 12       ..  :0430[2]
-    jsr tube_send_r4                                                  ; 937e: 20 d9 06     .. :0432[2]
-    dey                                                               ; 9381: 88          .   :0435[2]
-    bpl loop_c0430                                                    ; 9382: 10 f8       ..  :0436[2]
-    ldy #8                                                            ; 9384: a0 08       ..  :0438[2]
-    sty tube_status_1_and_tube_control                                ; 9386: 8c e0 fe    ... :043a[2]
-    ldy #&10                                                          ; 9389: a0 10       ..  :043d[2]
-    cpx #2                                                            ; 938b: e0 02       ..  :043f[2]
-    bcc c0445                                                         ; 938d: 90 02       ..  :0441[2]
-    ldy #&90                                                          ; 938f: a0 90       ..  :0443[2]
-; &9391 referenced 1 time by &0441[2]
-.c0445
-    sty tube_status_1_and_tube_control                                ; 9391: 8c e0 fe    ... :0445[2]
-    jsr tube_send_r4                                                  ; 9394: 20 d9 06     .. :0448[2]
-    ldy #&88                                                          ; 9397: a0 88       ..  :044b[2]
-    txa                                                               ; 9399: 8a          .   :044d[2]
-    beq c0464                                                         ; 939a: f0 14       ..  :044e[2]
-    cmp #2                                                            ; 939c: c9 02       ..  :0450[2]
-    beq c0464                                                         ; 939e: f0 10       ..  :0452[2]
-    sty tube_status_1_and_tube_control                                ; 93a0: 8c e0 fe    ... :0454[2]
-    cmp #4                                                            ; 93a3: c9 04       ..  :0457[2]
-    bne return_15                                                     ; 93a5: d0 17       ..  :0459[2]
-    pla                                                               ; 93a7: 68          h   :045b[2]
-    pla                                                               ; 93a8: 68          h   :045c[2]
-; &93a9 referenced 1 time by &04b8[2]
-.c045d
-    lda #&80                                                          ; 93a9: a9 80       ..  :045d[2]
-    sta l0014                                                         ; 93ab: 85 14       ..  :045f[2]
-    jmp tube_reply_byte                                               ; 93ad: 4c cd 05    L.. :0461[2]
-
-; &93b0 referenced 3 times by &044e[2], &0452[2], &0467[2]
-.c0464
-    bit tube_status_register_4_and_cpu_control                        ; 93b0: 2c e6 fe    ,.. :0464[2]
-    bvc c0464                                                         ; 93b3: 50 fb       P.  :0467[2]
-    bit tube_data_register_3                                          ; 93b5: 2c e5 fe    ,.. :0469[2]
-    bit tube_data_register_3                                          ; 93b8: 2c e5 fe    ,.. :046c[2]
-    sty tube_status_1_and_tube_control                                ; 93bb: 8c e0 fe    ... :046f[2]
-; &93be referenced 1 time by &0459[2]
-.return_15
-    rts                                                               ; 93be: 60          `   :0472[2]
-
-; &93bf referenced 1 time by &0400[2]
-.c0473
-    cli                                                               ; 93bf: 58          X   :0473[2]
-    php                                                               ; 93c0: 08          .   :0474[2]
-    pha                                                               ; 93c1: 48          H   :0475[2]
-    ldy #0                                                            ; 93c2: a0 00       ..  :0476[2]
-    sty tube_transfer_addr                                            ; 93c4: 84 57       .W  :0478[2]
-    lda #&80                                                          ; 93c6: a9 80       ..  :047a[2]
-    sta l0058                                                         ; 93c8: 85 58       .X  :047c[2]
-    sta l0001                                                         ; 93ca: 85 01       ..  :047e[2]
-    lda #&20 ; ' '                                                    ; 93cc: a9 20       .   :0480[2]
-    and rom_type                                                      ; 93ce: 2d 06 80    -.. :0482[2]
-    beq c04a0                                                         ; 93d1: f0 19       ..  :0485[2]
-    ldx copyright_offset                                              ; 93d3: ae 07 80    ... :0487[2]
-; &93d6 referenced 1 time by &048e[2]
-.loop_c048a
-    inx                                                               ; 93d6: e8          .   :048a[2]
-    lda rom_header,x                                                  ; 93d7: bd 00 80    ... :048b[2]
-    bne loop_c048a                                                    ; 93da: d0 fa       ..  :048e[2]
-    lda l8001,x                                                       ; 93dc: bd 01 80    ... :0490[2]
-    sta tube_transfer_addr                                            ; 93df: 85 57       .W  :0493[2]
-    lda l8002,x                                                       ; 93e1: bd 02 80    ... :0495[2]
-    sta l0058                                                         ; 93e4: 85 58       .X  :0498[2]
-    ldy service_entry,x                                               ; 93e6: bc 03 80    ... :049a[2]
-    lda l8004,x                                                       ; 93e9: bd 04 80    ... :049d[2]
-; &93ec referenced 1 time by &0485[2]
-.c04a0
-    sta l005a                                                         ; 93ec: 85 5a       .Z  :04a0[2]
-    sty l0059                                                         ; 93ee: 84 59       .Y  :04a2[2]
-    pla                                                               ; 93f0: 68          h   :04a4[2]
-    plp                                                               ; 93f1: 28          (   :04a5[2]
-    bcs beginr                                                        ; 93f2: b0 12       ..  :04a6[2]
-    tax                                                               ; 93f4: aa          .   :04a8[2]
-    bne begink                                                        ; 93f5: d0 03       ..  :04a9[2]
-    jmp tube_reply_ack                                                ; 93f7: 4c cb 05    L.. :04ab[2]
-
-; &93fa referenced 1 time by &04a9[2]
-.begink
-    ldx #0                                                            ; 93fa: a2 00       ..  :04ae[2]
-    ldy #&ff                                                          ; 93fc: a0 ff       ..  :04b0[2]
-    lda #osbyte_read_write_last_break_type                            ; 93fe: a9 fd       ..  :04b2[2]
-    jsr osbyte                                                        ; 9400: 20 f4 ff     .. :04b4[2]   ; Read type of last reset
-    txa                                                               ; 9403: 8a          .   :04b7[2]   ; X=value of type of last reset
-    beq c045d                                                         ; 9404: f0 a3       ..  :04b8[2]
-; &9406 referenced 2 times by &04a6[2], &04bf[2]
-.beginr
-    lda #&ff                                                          ; 9406: a9 ff       ..  :04ba[2]
-    jsr tube_addr_claim                                               ; 9408: 20 06 04     .. :04bc[2]
-    bcc beginr                                                        ; 940b: 90 f9       ..  :04bf[2]
-    lda #1                                                            ; 940d: a9 01       ..  :04c1[2]
-    jsr tube_setup_transfer                                           ; 940f: 20 e0 04     .. :04c3[2]
-    ldy #0                                                            ; 9412: a0 00       ..  :04c6[2]
-    sty l0000                                                         ; 9414: 84 00       ..  :04c8[2]
-    ldx #&40 ; '@'                                                    ; 9416: a2 40       .@  :04ca[2]
-; &9418 referenced 2 times by &04d7[2], &04dc[2]
-.c04cc
-    lda (l0000),y                                                     ; 9418: b1 00       ..  :04cc[2]
-    sta tube_data_register_3                                          ; 941a: 8d e5 fe    ... :04ce[2]
-; &941d referenced 1 time by &04d4[2]
-.loop_c04d1
-    bit tube_status_register_3                                        ; 941d: 2c e4 fe    ,.. :04d1[2]
-    bvc loop_c04d1                                                    ; 9420: 50 fb       P.  :04d4[2]
-    iny                                                               ; 9422: c8          .   :04d6[2]
-    bne c04cc                                                         ; 9423: d0 f3       ..  :04d7[2]
-    inc l0001                                                         ; 9425: e6 01       ..  :04d9[2]
-    dex                                                               ; 9427: ca          .   :04db[2]
-    bne c04cc                                                         ; 9428: d0 ee       ..  :04dc[2]
-    lda #4                                                            ; 942a: a9 04       ..  :04de[2]
-; &942c referenced 1 time by &04c3[2]
-.tube_setup_transfer
-    ldy #0                                                            ; 942c: a0 00       ..  :04e0[2]
-    ldx #&57 ; 'W'                                                    ; 942e: a2 57       .W  :04e2[2]
-    jmp tube_addr_claim                                               ; 9430: 4c 06 04    L.. :04e4[2]
-
-.tube_rdch_handler
-    lda #1                                                            ; 9433: a9 01       ..  :04e7[2]
-    jsr tube_send_r2                                                  ; 9435: 20 d0 06     .. :04e9[2]
-    jmp c0036                                                         ; 9438: 4c 36 00    L6. :04ec[2]
-
-.tube_restore_regs
-    ldy zp_temp_10                                                    ; 943b: a4 10       ..  :04ef[2]
-    ldx zp_temp_11                                                    ; 943d: a6 11       ..  :04f1[2]
-    jsr tube_read_r2                                                  ; 943f: 20 f7 04     .. :04f3[2]
-    asl a                                                             ; 9442: 0a          .   :04f6[2]
-; &9443 referenced 22 times by &04f3[2], &04fa[2], &0543[3], &0547[3], &0550[3], &0569[3], &0580[3], &058c[3], &0592[3], &059b[3], &05b5[3], &05da[3], &05eb[3], &0604[4], &060c[4], &0626[4], &062a[4], &063b[4], &063f[4], &0643[4], &065d[4], &06a5[4]
-.tube_read_r2
-    bit tube_status_register_2                                        ; 9443: 2c e2 fe    ,.. :04f7[2]
-    bpl tube_read_r2                                                  ; 9446: 10 fb       ..  :04fa[2]
-    lda tube_data_register_2                                          ; 9448: ad e3 fe    ... :04fc[2]
-    rts                                                               ; 944b: 60          `   :04ff[2]
-
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_code_page4, *, c934c
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear tube_code_page4, &0500
-
-    ; Set the program counter to the next position in the binary file.
-    org c934c + (* - tube_code_page4)
-
-.l944c
-
-; Move 3: &944c to &0500 for length 256
-    org &0500
-; ***************************************************************************************
-; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
-; 
-; Copied from ROM at &944C during init. Contains:
-;   &0500: tube_dispatch_table — 14-entry handler address table
-;   &051C: tube_wrch_handler — WRCHV target
-;   &051F: tube_send_and_poll — send byte via R2, poll for reply
-;   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
-;   &053D: tube_release_return — restore regs and RTS
-;   &0543: tube_osbput — write byte to file
-;   &0550: tube_osbget — read byte from file
-;   &055B: tube_osrdch — read character
-;   &0569: tube_osfind — open file
-;   &0580: tube_osfind_close — close file (A=0)
-;   &058C: tube_osargs — file argument read/write
-;   &05B1: tube_read_string — read CR-terminated string into &0700
-;   &05C5: tube_oscli — execute * command
-;   &05CB: tube_reply_ack — send &7F acknowledge
-;   &05CD: tube_reply_byte — send byte and return to main loop
-;   &05D8: tube_osfile — whole file operation
-; ***************************************************************************************
-; &944c referenced 2 times by &0054[1], &8102
-.tube_dispatch_table
-    equb &5b, 5, &c5, 5, &26, 6, &3b, 6, &5d, 6, &a3, 6, &ef, 4       ; 944c: 5b 05 c5... [.. :0500[3]
-    equb &3d, 5, &8c, 5, &50, 5, &43, 5, &69, 5, &d8, 5,   2, 6       ; 945a: 3d 05 8c... =.. :050e[3]
-
-.tube_wrch_handler
-    pha                                                               ; 9468: 48          H   :051c[3]
-    lda #0                                                            ; 9469: a9 00       ..  :051d[3]
-.tube_send_and_poll
-    jsr tube_send_r2                                                  ; 946b: 20 d0 06     .. :051f[3]
-; &946e referenced 2 times by &052a[3], &0532[3]
-.c0522
-    bit tube_status_register_2                                        ; 946e: 2c e2 fe    ,.. :0522[3]
-    bvs c0535                                                         ; 9471: 70 0e       p.  :0525[3]
-.tube_poll_r1_wrch
-    bit tube_status_1_and_tube_control                                ; 9473: 2c e0 fe    ,.. :0527[3]
-    bpl c0522                                                         ; 9476: 10 f6       ..  :052a[3]
-    lda tube_data_register_1                                          ; 9478: ad e1 fe    ... :052c[3]
-    jsr nvwrch                                                        ; 947b: 20 cb ff     .. :052f[3]   ; Write character
-.tube_resume_poll
-    jmp c0522                                                         ; 947e: 4c 22 05    L". :0532[3]
-
-; &9481 referenced 1 time by &0525[3]
-.c0535
-    pla                                                               ; 9481: 68          h   :0535[3]
-    sta tube_data_register_2                                          ; 9482: 8d e3 fe    ... :0536[3]
-    pha                                                               ; 9485: 48          H   :0539[3]
-    jmp c0036                                                         ; 9486: 4c 36 00    L6. :053a[3]
-
-.tube_release_return
-    ldx zp_temp_11                                                    ; 9489: a6 11       ..  :053d[3]
-    ldy zp_temp_10                                                    ; 948b: a4 10       ..  :053f[3]
-    pla                                                               ; 948d: 68          h   :0541[3]
-    rts                                                               ; 948e: 60          `   :0542[3]
-
-.tube_osbput
-    jsr tube_read_r2                                                  ; 948f: 20 f7 04     .. :0543[3]
-    tay                                                               ; 9492: a8          .   :0546[3]
-    jsr tube_read_r2                                                  ; 9493: 20 f7 04     .. :0547[3]
-    jsr osbput                                                        ; 9496: 20 d4 ff     .. :054a[3]   ; Write a single byte A to an open file Y
-    jmp tube_reply_ack                                                ; 9499: 4c cb 05    L.. :054d[3]
-
-.tube_osbget
-    jsr tube_read_r2                                                  ; 949c: 20 f7 04     .. :0550[3]
-    tay                                                               ; 949f: a8          .   :0553[3]   ; Y=file handle
-    jsr osbget                                                        ; 94a0: 20 d7 ff     .. :0554[3]   ; Read a single byte from an open file Y
-    pha                                                               ; 94a3: 48          H   :0557[3]
-    jmp c055f                                                         ; 94a4: 4c 5f 05    L_. :0558[3]
-
-.tube_osrdch
-    jsr nvrdch                                                        ; 94a7: 20 c8 ff     .. :055b[3]   ; Read a character from the current input stream
-    pha                                                               ; 94aa: 48          H   :055e[3]   ; A=character read
-; &94ab referenced 1 time by &0558[3]
-.c055f
-    ora #&80                                                          ; 94ab: 09 80       ..  :055f[3]
-.tube_rdch_reply
-    ror a                                                             ; 94ad: 6a          j   :0561[3]
-    jsr tube_send_r2                                                  ; 94ae: 20 d0 06     .. :0562[3]
-    pla                                                               ; 94b1: 68          h   :0565[3]
-    jmp tube_reply_byte                                               ; 94b2: 4c cd 05    L.. :0566[3]
-
-.tube_osfind
-    jsr tube_read_r2                                                  ; 94b5: 20 f7 04     .. :0569[3]
-    beq tube_osfind_close                                             ; 94b8: f0 12       ..  :056c[3]
-    pha                                                               ; 94ba: 48          H   :056e[3]
-    jsr tube_read_string                                              ; 94bb: 20 b1 05     .. :056f[3]
-    pla                                                               ; 94be: 68          h   :0572[3]
-    jsr osfind                                                        ; 94bf: 20 ce ff     .. :0573[3]   ; Open or close file(s)
-    pha                                                               ; 94c2: 48          H   :0576[3]
-    lda #&ff                                                          ; 94c3: a9 ff       ..  :0577[3]
-    jsr tube_send_r2                                                  ; 94c5: 20 d0 06     .. :0579[3]
-    pla                                                               ; 94c8: 68          h   :057c[3]
-    jmp tube_reply_byte                                               ; 94c9: 4c cd 05    L.. :057d[3]
-
-; &94cc referenced 1 time by &056c[3]
-.tube_osfind_close
-    jsr tube_read_r2                                                  ; 94cc: 20 f7 04     .. :0580[3]
-    tay                                                               ; 94cf: a8          .   :0583[3]
-    lda #osfind_close                                                 ; 94d0: a9 00       ..  :0584[3]
-    jsr osfind                                                        ; 94d2: 20 ce ff     .. :0586[3]   ; Close one or all files
-    jmp tube_reply_ack                                                ; 94d5: 4c cb 05    L.. :0589[3]
-
-.tube_osargs
-    jsr tube_read_r2                                                  ; 94d8: 20 f7 04     .. :058c[3]
-    tay                                                               ; 94db: a8          .   :058f[3]
-.tube_read_params
-    ldx #3                                                            ; 94dc: a2 03       ..  :0590[3]
-; &94de referenced 1 time by &0598[3]
-.loop_c0592
-    jsr tube_read_r2                                                  ; 94de: 20 f7 04     .. :0592[3]
-    sta l0000,x                                                       ; 94e1: 95 00       ..  :0595[3]
-    dex                                                               ; 94e3: ca          .   :0597[3]
-    bpl loop_c0592                                                    ; 94e4: 10 f8       ..  :0598[3]
-    inx                                                               ; 94e6: e8          .   :059a[3]
-    jsr tube_read_r2                                                  ; 94e7: 20 f7 04     .. :059b[3]
-    jsr osargs                                                        ; 94ea: 20 da ff     .. :059e[3]   ; Read or write a file's attributes
-    jsr tube_send_r2                                                  ; 94ed: 20 d0 06     .. :05a1[3]
-    ldx #3                                                            ; 94f0: a2 03       ..  :05a4[3]
-; &94f2 referenced 1 time by &05ac[3]
-.loop_c05a6
-    lda l0000,x                                                       ; 94f2: b5 00       ..  :05a6[3]
-    jsr tube_send_r2                                                  ; 94f4: 20 d0 06     .. :05a8[3]
-    dex                                                               ; 94f7: ca          .   :05ab[3]
-    bpl loop_c05a6                                                    ; 94f8: 10 f8       ..  :05ac[3]
-    jmp tube_main_loop                                                ; 94fa: 4c 3a 00    L:. :05ae[3]
-
-; &94fd referenced 3 times by &056f[3], &05c5[3], &05e2[3]
-.tube_read_string
-    ldx #0                                                            ; 94fd: a2 00       ..  :05b1[3]
-    ldy #0                                                            ; 94ff: a0 00       ..  :05b3[3]
-; &9501 referenced 1 time by &05c0[3]
-.strnh
-    jsr tube_read_r2                                                  ; 9501: 20 f7 04     .. :05b5[3]
-    sta l0700,y                                                       ; 9504: 99 00 07    ... :05b8[3]
-    iny                                                               ; 9507: c8          .   :05bb[3]
-    beq c05c2                                                         ; 9508: f0 04       ..  :05bc[3]
-    cmp #&0d                                                          ; 950a: c9 0d       ..  :05be[3]
-    bne strnh                                                         ; 950c: d0 f3       ..  :05c0[3]
-; &950e referenced 1 time by &05bc[3]
-.c05c2
-    ldy #7                                                            ; 950e: a0 07       ..  :05c2[3]
-    rts                                                               ; 9510: 60          `   :05c4[3]
-
-.tube_oscli
-    jsr tube_read_string                                              ; 9511: 20 b1 05     .. :05c5[3]
-    jsr oscli                                                         ; 9514: 20 f7 ff     .. :05c8[3]
-; &9517 referenced 3 times by &04ab[2], &054d[3], &0589[3]
-.tube_reply_ack
-    lda #&7f                                                          ; 9517: a9 7f       ..  :05cb[3]
-; &9519 referenced 5 times by &0461[2], &0566[3], &057d[3], &05d0[3], &06b8[4]
-.tube_reply_byte
-    bit tube_status_register_2                                        ; 9519: 2c e2 fe    ,.. :05cd[3]
-    bvc tube_reply_byte                                               ; 951c: 50 fb       P.  :05d0[3]
-    sta tube_data_register_2                                          ; 951e: 8d e3 fe    ... :05d2[3]
-; &9521 referenced 1 time by &0600[4]
-.mj
-    jmp tube_main_loop                                                ; 9521: 4c 3a 00    L:. :05d5[3]
-
-.tube_osfile
-    ldx #&10                                                          ; 9524: a2 10       ..  :05d8[3]
-; &9526 referenced 1 time by &05e0[3]
-.argsw
-    jsr tube_read_r2                                                  ; 9526: 20 f7 04     .. :05da[3]
-    sta l0001,x                                                       ; 9529: 95 01       ..  :05dd[3]
-    dex                                                               ; 952b: ca          .   :05df[3]
-    bne argsw                                                         ; 952c: d0 f8       ..  :05e0[3]
-    jsr tube_read_string                                              ; 952e: 20 b1 05     .. :05e2[3]
-    stx l0000                                                         ; 9531: 86 00       ..  :05e5[3]
-    sty l0001                                                         ; 9533: 84 01       ..  :05e7[3]
-    ldy #0                                                            ; 9535: a0 00       ..  :05e9[3]
-    jsr tube_read_r2                                                  ; 9537: 20 f7 04     .. :05eb[3]
-    jsr osfile                                                        ; 953a: 20 dd ff     .. :05ee[3]
-    ora #&80                                                          ; 953d: 09 80       ..  :05f1[3]
-    jsr tube_send_r2                                                  ; 953f: 20 d0 06     .. :05f3[3]
-    ldx #&10                                                          ; 9542: a2 10       ..  :05f6[3]
-; &9544 referenced 1 time by &05fe[3]
-.loop_c05f8
-    lda l0001,x                                                       ; 9544: b5 01       ..  :05f8[3]
-    jsr tube_send_r2                                                  ; 9546: 20 d0 06     .. :05fa[3]
-    dex                                                               ; 9549: ca          .   :05fd[3]
-    bne loop_c05f8                                                    ; 954a: d0 f8       ..  :05fe[3]
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_dispatch_table, *, l944c
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear tube_dispatch_table, &0600
-
-    ; Set the program counter to the next position in the binary file.
-    org l944c + (* - tube_dispatch_table)
-
-.c954c
-
-; Move 4: &954c to &0600 for length 256
-    org &0600
-; ***************************************************************************************
-; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
-; 
-; Copied from ROM at &954C during init. &0600-&0601 is the tail
-; of tube_osfile (BEQ to tube_reply_byte when done). Contains:
-;   &0602: tube_osgbpb — multi-byte file I/O
-;   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
-;   &063B: tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)
-;   &065D: tube_osword — variable-length OSWORD (buffer at &0130)
-;   &06A3: tube_osword_rdln — OSWORD 0 (read line, 5-byte params)
-;   &06BB: tube_rdln_send_line — send input line from &0700
-;   &06D0: tube_send_r2 — poll R2 status, write A to R2 data
-;   &06D9: tube_send_r4 — poll R4 status, write A to R4 data
-;   &06E2: tube_escape_check — check &FF, forward escape to R1
-;   &06E8: tube_event_handler — EVNTV: forward event (A,X,Y) via R1
-;   &06F7: tube_send_r1 — poll R1 status, write A to R1 data
-; ***************************************************************************************
-; &954c referenced 1 time by &8108
-.tube_code_page6
-    beq mj                                                            ; 954c: f0 d3       ..  :0600[4]
-.tube_osgbpb
-    ldx #&0c                                                          ; 954e: a2 0c       ..  :0602[4]
-; &9550 referenced 1 time by &060a[4]
-.loop_c0604
-    jsr tube_read_r2                                                  ; 9550: 20 f7 04     .. :0604[4]
-    sta l0000,x                                                       ; 9553: 95 00       ..  :0607[4]
-    dex                                                               ; 9555: ca          .   :0609[4]
-    bpl loop_c0604                                                    ; 9556: 10 f8       ..  :060a[4]
-    jsr tube_read_r2                                                  ; 9558: 20 f7 04     .. :060c[4]
-    inx                                                               ; 955b: e8          .   :060f[4]
-    ldy #0                                                            ; 955c: a0 00       ..  :0610[4]
-    jsr osgbpb                                                        ; 955e: 20 d1 ff     .. :0612[4]   ; Read or write multiple bytes to an open file
-    ror a                                                             ; 9561: 6a          j   :0615[4]
-    jsr tube_send_r2                                                  ; 9562: 20 d0 06     .. :0616[4]
-    ldx #&0c                                                          ; 9565: a2 0c       ..  :0619[4]
-; &9567 referenced 1 time by &0621[4]
-.loop_c061b
-    lda l0000,x                                                       ; 9567: b5 00       ..  :061b[4]
-    jsr tube_send_r2                                                  ; 9569: 20 d0 06     .. :061d[4]
-    dex                                                               ; 956c: ca          .   :0620[4]
-    bpl loop_c061b                                                    ; 956d: 10 f8       ..  :0621[4]
-    jmp tube_main_loop                                                ; 956f: 4c 3a 00    L:. :0623[4]
-
-.tube_osbyte_short
-    jsr tube_read_r2                                                  ; 9572: 20 f7 04     .. :0626[4]
-    tax                                                               ; 9575: aa          .   :0629[4]
-    jsr tube_read_r2                                                  ; 9576: 20 f7 04     .. :062a[4]
-    jsr osbyte                                                        ; 9579: 20 f4 ff     .. :062d[4]
-; &957c referenced 2 times by &0633[4], &065b[4]
-.tube_osbyte_send_x
-    bit tube_status_register_2                                        ; 957c: 2c e2 fe    ,.. :0630[4]
-    bvc tube_osbyte_send_x                                            ; 957f: 50 fb       P.  :0633[4]
-    stx tube_data_register_2                                          ; 9581: 8e e3 fe    ... :0635[4]
-; &9584 referenced 1 time by &064b[4]
-.bytex
-    jmp tube_main_loop                                                ; 9584: 4c 3a 00    L:. :0638[4]
-
-.tube_osbyte_long
-    jsr tube_read_r2                                                  ; 9587: 20 f7 04     .. :063b[4]
-    tax                                                               ; 958a: aa          .   :063e[4]
-    jsr tube_read_r2                                                  ; 958b: 20 f7 04     .. :063f[4]
-    tay                                                               ; 958e: a8          .   :0642[4]
-    jsr tube_read_r2                                                  ; 958f: 20 f7 04     .. :0643[4]
-    jsr osbyte                                                        ; 9592: 20 f4 ff     .. :0646[4]
-    eor #&9d                                                          ; 9595: 49 9d       I.  :0649[4]
-    beq bytex                                                         ; 9597: f0 eb       ..  :064b[4]
-    lda #&40 ; '@'                                                    ; 9599: a9 40       .@  :064d[4]
-    ror a                                                             ; 959b: 6a          j   :064f[4]
-    jsr tube_send_r2                                                  ; 959c: 20 d0 06     .. :0650[4]
-; &959f referenced 1 time by &0656[4]
-.tube_osbyte_send_y
-    bit tube_status_register_2                                        ; 959f: 2c e2 fe    ,.. :0653[4]
-    bvc tube_osbyte_send_y                                            ; 95a2: 50 fb       P.  :0656[4]
-    sty tube_data_register_2                                          ; 95a4: 8c e3 fe    ... :0658[4]
-    bvs tube_osbyte_send_x                                            ; 95a7: 70 d3       p.  :065b[4]   ; ALWAYS branch
-
-.tube_osword
-    jsr tube_read_r2                                                  ; 95a9: 20 f7 04     .. :065d[4]
-    tay                                                               ; 95ac: a8          .   :0660[4]
-; &95ad referenced 1 time by &0664[4]
-.tube_osword_read
-    bit tube_status_register_2                                        ; 95ad: 2c e2 fe    ,.. :0661[4]
-    bpl tube_osword_read                                              ; 95b0: 10 fb       ..  :0664[4]
-    ldx tube_data_register_2                                          ; 95b2: ae e3 fe    ... :0666[4]
-    dex                                                               ; 95b5: ca          .   :0669[4]
-    bmi c067b                                                         ; 95b6: 30 0f       0.  :066a[4]
-; &95b8 referenced 2 times by &066f[4], &0678[4]
-.tube_osword_read_lp
-    bit tube_status_register_2                                        ; 95b8: 2c e2 fe    ,.. :066c[4]
-    bpl tube_osword_read_lp                                           ; 95bb: 10 fb       ..  :066f[4]
-    lda tube_data_register_2                                          ; 95bd: ad e3 fe    ... :0671[4]
-    sta l0130,x                                                       ; 95c0: 9d 30 01    .0. :0674[4]
-    dex                                                               ; 95c3: ca          .   :0677[4]
-    bpl tube_osword_read_lp                                           ; 95c4: 10 f2       ..  :0678[4]
-    tya                                                               ; 95c6: 98          .   :067a[4]
-; &95c7 referenced 1 time by &066a[4]
-.c067b
-    ldx #<(l0130)                                                     ; 95c7: a2 30       .0  :067b[4]
-    ldy #>(l0130)                                                     ; 95c9: a0 01       ..  :067d[4]
-    jsr osword                                                        ; 95cb: 20 f1 ff     .. :067f[4]
-    lda #&ff                                                          ; 95ce: a9 ff       ..  :0682[4]
-    jsr tube_send_r2                                                  ; 95d0: 20 d0 06     .. :0684[4]
-; &95d3 referenced 1 time by &068a[4]
-.loop_c0687
-    bit tube_status_register_2                                        ; 95d3: 2c e2 fe    ,.. :0687[4]
-    bpl loop_c0687                                                    ; 95d6: 10 fb       ..  :068a[4]
-    ldx tube_data_register_2                                          ; 95d8: ae e3 fe    ... :068c[4]
-    dex                                                               ; 95db: ca          .   :068f[4]
-    bmi tube_return_main                                              ; 95dc: 30 0e       0.  :0690[4]
-; &95de referenced 1 time by &069e[4]
-.tube_osword_write
-    ldy l0130,x                                                       ; 95de: bc 30 01    .0. :0692[4]
-; &95e1 referenced 1 time by &0698[4]
-.tube_osword_write_lp
-    bit tube_status_register_2                                        ; 95e1: 2c e2 fe    ,.. :0695[4]
-    bvc tube_osword_write_lp                                          ; 95e4: 50 fb       P.  :0698[4]
-    sty tube_data_register_2                                          ; 95e6: 8c e3 fe    ... :069a[4]
-    dex                                                               ; 95e9: ca          .   :069d[4]
-    bpl tube_osword_write                                             ; 95ea: 10 f2       ..  :069e[4]
-; &95ec referenced 1 time by &0690[4]
-.tube_return_main
-    jmp tube_main_loop                                                ; 95ec: 4c 3a 00    L:. :06a0[4]
-
-.tube_osword_rdln
-    ldx #4                                                            ; 95ef: a2 04       ..  :06a3[4]
-; &95f1 referenced 1 time by &06ab[4]
-.loop_c06a5
-    jsr tube_read_r2                                                  ; 95f1: 20 f7 04     .. :06a5[4]
-    sta l0000,x                                                       ; 95f4: 95 00       ..  :06a8[4]
-    dex                                                               ; 95f6: ca          .   :06aa[4]
-    bpl loop_c06a5                                                    ; 95f7: 10 f8       ..  :06ab[4]
-    inx                                                               ; 95f9: e8          .   :06ad[4]
-    ldy #0                                                            ; 95fa: a0 00       ..  :06ae[4]
-    txa                                                               ; 95fc: 8a          .   :06b0[4]
-    jsr osword                                                        ; 95fd: 20 f1 ff     .. :06b1[4]
-    bcc tube_rdln_send_line                                           ; 9600: 90 05       ..  :06b4[4]
-    lda #&ff                                                          ; 9602: a9 ff       ..  :06b6[4]
-    jmp tube_reply_byte                                               ; 9604: 4c cd 05    L.. :06b8[4]
-
-; &9607 referenced 1 time by &06b4[4]
-.tube_rdln_send_line
-    ldx #0                                                            ; 9607: a2 00       ..  :06bb[4]
-    lda #&7f                                                          ; 9609: a9 7f       ..  :06bd[4]
-    jsr tube_send_r2                                                  ; 960b: 20 d0 06     .. :06bf[4]
-; &960e referenced 1 time by &06cb[4]
-.tube_rdln_send_loop
-    lda l0700,x                                                       ; 960e: bd 00 07    ... :06c2[4]
-.tube_rdln_send_byte
-    jsr tube_send_r2                                                  ; 9611: 20 d0 06     .. :06c5[4]
-    inx                                                               ; 9614: e8          .   :06c8[4]
-    cmp #&0d                                                          ; 9615: c9 0d       ..  :06c9[4]
-    bne tube_rdln_send_loop                                           ; 9617: d0 f5       ..  :06cb[4]
-    jmp tube_main_loop                                                ; 9619: 4c 3a 00    L:. :06cd[4]
-
-; &961c referenced 18 times by &0020[1], &0026[1], &002c[1], &04e9[2], &051f[3], &0562[3], &0579[3], &05a1[3], &05a8[3], &05f3[3], &05fa[3], &0616[4], &061d[4], &0650[4], &0684[4], &06bf[4], &06c5[4], &06d3[4]
-.tube_send_r2
-    bit tube_status_register_2                                        ; 961c: 2c e2 fe    ,.. :06d0[4]
-    bvc tube_send_r2                                                  ; 961f: 50 fb       P.  :06d3[4]
-    sta tube_data_register_2                                          ; 9621: 8d e3 fe    ... :06d5[4]
-    rts                                                               ; 9624: 60          `   :06d8[4]
-
-; &9625 referenced 5 times by &0018[1], &042a[2], &0432[2], &0448[2], &06dc[4]
-.tube_send_r4
-    bit tube_status_register_4_and_cpu_control                        ; 9625: 2c e6 fe    ,.. :06d9[4]
-    bvc tube_send_r4                                                  ; 9628: 50 fb       P.  :06dc[4]
-    sta tube_data_register_4                                          ; 962a: 8d e7 fe    ... :06de[4]
-    rts                                                               ; 962d: 60          `   :06e1[4]
-
-; &962e referenced 1 time by &0403[2]
-.tube_escape_check
-    lda l00ff                                                         ; 962e: a5 ff       ..  :06e2[4]
-    sec                                                               ; 9630: 38          8   :06e4[4]
-    ror a                                                             ; 9631: 6a          j   :06e5[4]
-    bmi tube_send_r1                                                  ; 9632: 30 0f       0.  :06e6[4]
-.tube_event_handler
-    pha                                                               ; 9634: 48          H   :06e8[4]
-    lda #0                                                            ; 9635: a9 00       ..  :06e9[4]
-    jsr tube_send_r1                                                  ; 9637: 20 f7 06     .. :06eb[4]
-    tya                                                               ; 963a: 98          .   :06ee[4]
-    jsr tube_send_r1                                                  ; 963b: 20 f7 06     .. :06ef[4]
-    txa                                                               ; 963e: 8a          .   :06f2[4]
-    jsr tube_send_r1                                                  ; 963f: 20 f7 06     .. :06f3[4]
-    pla                                                               ; 9642: 68          h   :06f6[4]
-; &9643 referenced 5 times by &06e6[4], &06eb[4], &06ef[4], &06f3[4], &06fa[4]
-.tube_send_r1
-    bit tube_status_1_and_tube_control                                ; 9643: 2c e0 fe    ,.. :06f7[4]
-    bvc tube_send_r1                                                  ; 9646: 50 fb       P.  :06fa[4]
-    sta tube_data_register_1                                          ; 9648: 8d e1 fe    ... :06fc[4]
-    rts                                                               ; 964b: 60          `   :06ff[4]
-
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_code_page6, *, c954c
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear tube_code_page6, &0700
-
-    ; Set the program counter to the next position in the binary file.
-    org c954c + (* - tube_code_page6)
+    org &964c
 
     equb &60, &ff, &42, &ff, 0, &ff, &77, &ff, &ff, &ff, &df, &ff     ; 964c: 60 ff 42... `.B
     equb   0, &ff,   0, &ff, 0, &ff,   4, &ff                         ; 9658: 00 ff 00... ...
@@ -7724,7 +7729,6 @@ save pydis_start, pydis_end
 ;     fs_crc_hi:                                7
 ;     l00b3:                                    7
 ;     reply_error:                              7
-;     return_1:                                 7
 ;     tube_main_loop:                           7
 ;     tx_dst_stn:                               7
 ;     c8f48:                                    6
@@ -7735,6 +7739,7 @@ save pydis_start, pydis_end
 ;     nmi_rti:                                  6
 ;     nmi_tx_block_hi:                          6
 ;     osasci:                                   6
+;     return_1:                                 6
 ;     save_fscv_args:                           6
 ;     tx_ctrl_status:                           6
 ;     tx_in_progress:                           6
@@ -7780,7 +7785,6 @@ save pydis_start, pydis_end
 ;     nmi_next_lo:                              4
 ;     osrdsc_ptr:                               4
 ;     print_spaces:                             4
-;     return_2:                                 4
 ;     rx_port:                                  4
 ;     rx_src_net:                               4
 ;     tx_length:                                4
@@ -7827,7 +7831,6 @@ save pydis_start, pydis_end
 ;     osword:                                   3
 ;     pad_filename_spaces:                      3
 ;     print_reply_bytes:                        3
-;     return_3:                                 3
 ;     romsel_copy:                              3
 ;     rx_ctrl_copy:                             3
 ;     scout_no_match:                           3
@@ -7936,10 +7939,13 @@ save pydis_start, pydis_end
 ;     readc1:                                   2
 ;     remot1:                                   2
 ;     resume_after_remote:                      2
-;     return_12:                                2
-;     return_14:                                2
-;     return_8:                                 2
-;     return_9:                                 2
+;     return_2:                                 2
+;     return_3:                                 2
+;     return_bget:                              2
+;     return_copy_param:                        2
+;     return_display_setup:                     2
+;     return_nbyte:                             2
+;     return_tube_init:                         2
 ;     romsel:                                   2
 ;     rx_extra_byte:                            2
 ;     rxpol2:                                   2
@@ -8373,14 +8379,16 @@ save pydis_start, pydis_end
 ;     readry:                                   1
 ;     rest1:                                    1
 ;     restore_econet_state:                     1
-;     return_10:                                1
-;     return_11:                                1
-;     return_13:                                1
-;     return_15:                                1
-;     return_4:                                 1
-;     return_5:                                 1
-;     return_6:                                 1
-;     return_7:                                 1
+;     return_bspsx:                             1
+;     return_calc_handle:                       1
+;     return_compare:                           1
+;     return_copy_string:                       1
+;     return_dofsl7:                            1
+;     return_fscv_handles:                      1
+;     return_lodchk:                            1
+;     return_match_osbyte:                      1
+;     return_remote_cmd:                        1
+;     return_tube_xfer:                         1
 ;     rom_header:                               1
 ;     rom_type:                                 1
 ;     rsl1:                                     1
@@ -8786,21 +8794,6 @@ save pydis_start, pydis_end
 ;     loop_c9d52
 ;     loop_c9d80
 ;     loop_c9f77
-;     return_1
-;     return_10
-;     return_11
-;     return_12
-;     return_13
-;     return_14
-;     return_15
-;     return_2
-;     return_3
-;     return_4
-;     return_5
-;     return_6
-;     return_7
-;     return_8
-;     return_9
 ;     sub_c9a15
 ;     sub_c9c59
 ;     sub_c9ec9
