@@ -610,7 +610,7 @@ l8014 = l800d+7
     ldy #0                                                            ; 80f7: a0 00       ..
 ; Copy NMI handler code from ROM to RAM pages &04-&06
 ; &80f9 referenced 1 time by &810c
-.loop_c80f9
+.cloop
     lda c934c,y                                                       ; 80f9: b9 4c 93    .L.
     sta tube_code_page4,y                                             ; 80fc: 99 00 04    ...
     lda l944c,y                                                       ; 80ff: b9 4c 94    .L.
@@ -618,7 +618,7 @@ l8014 = l800d+7
     lda c954c,y                                                       ; 8105: b9 4c 95    .L.
     sta tube_code_page6,y                                             ; 8108: 99 00 06    ...
     dey                                                               ; 810b: 88          .
-    bne loop_c80f9                                                    ; 810c: d0 eb       ..
+    bne cloop                                                         ; 810c: d0 eb       ..
     jsr tube_post_init                                                ; 810e: 20 14 04     ..
     ldx #&60 ; '`'                                                    ; 8111: a2 60       .`
 ; Copy NMI workspace initialiser from ROM to &0016-&0076
@@ -755,12 +755,12 @@ l8014 = l800d+7
     jsr issue_vectors_claimed                                         ; 818a: 20 2e 82     ..
     ldy #&1d                                                          ; 818d: a0 1d       ..
 ; &818f referenced 1 time by &8197
-.loop_c818f
+.initl
     lda (net_rx_ptr),y                                                ; 818f: b1 9c       ..
     sta fs_state_deb,y                                                ; 8191: 99 eb 0d    ...
     dey                                                               ; 8194: 88          .
     cpy #&14                                                          ; 8195: c0 14       ..
-    bne loop_c818f                                                    ; 8197: d0 f6       ..
+    bne initl                                                         ; 8197: d0 f6       ..
     beq setup_fs_vectors                                              ; 8199: f0 7c       .|             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -792,13 +792,13 @@ l8014 = l800d+7
     rts                                                               ; 81b1: 60          `
 
 ; &81b2 referenced 1 time by &81b7
-.loop_c81b2
+.skpspi
     iny                                                               ; 81b2: c8          .
 ; &81b3 referenced 1 time by &81af
 .skip_cmd_spaces
     lda (os_text_ptr),y                                               ; 81b3: b1 f2       ..
     cmp #&20 ; ' '                                                    ; 81b5: c9 20       .
-    beq loop_c81b2                                                    ; 81b7: f0 f9       ..
+    beq skpspi                                                        ; 81b7: f0 f9       ..
     eor #&0d                                                          ; 81b9: 49 0d       I.
     rts                                                               ; 81bb: 60          `
 
@@ -884,11 +884,11 @@ l8014 = l800d+7
 .setup_fs_vectors
     ldy #&0d                                                          ; 8217: a0 0d       ..             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
 ; &8219 referenced 1 time by &8220
-.loop_c8219
+.dofsl1
     lda fs_vector_addrs,y                                             ; 8219: b9 4d 82    .M.
     sta filev,y                                                       ; 821c: 99 12 02    ...
     dey                                                               ; 821f: 88          .
-    bpl loop_c8219                                                    ; 8220: 10 f7       ..
+    bpl dofsl1                                                        ; 8220: 10 f7       ..
     jsr setup_rom_ptrs_netv                                           ; 8222: 20 d1 82     ..
     ldy #&1b                                                          ; 8225: a0 1b       ..
     ldx #7                                                            ; 8227: a2 07       ..
@@ -1058,12 +1058,12 @@ l8014 = l800d+7
 .fscv_shutdown
     ldy #&1d                                                          ; 82fd: a0 1d       ..
 ; &82ff referenced 1 time by &8307
-.loop_c82ff
+.fsdiel
     lda fs_state_deb,y                                                ; 82ff: b9 eb 0d    ...
     sta (net_rx_ptr),y                                                ; 8302: 91 9c       ..
     dey                                                               ; 8304: 88          .
     cpy #&14                                                          ; 8305: c0 14       ..
-    bne loop_c82ff                                                    ; 8307: d0 f6       ..
+    bne fsdiel                                                        ; 8307: d0 f6       ..
     lda #osbyte_printer_driver_going_dormant                          ; 8309: a9 7b       .{
     jmp osbyte                                                        ; 830b: 4c f4 ff    L..            ; Printer driver going dormant
 
@@ -1093,17 +1093,17 @@ l8014 = l800d+7
     pha                                                               ; 831c: 48          H
     ldy #&0b                                                          ; 831d: a0 0b       ..
 ; &831f referenced 1 time by &8330
-.loop_c831f
+.fstxl1
     lda tx_ctrl_template,y                                            ; 831f: b9 34 83    .4.
     sta l00c0,y                                                       ; 8322: 99 c0 00    ...
     cpy #2                                                            ; 8325: c0 02       ..
-    bpl c832f                                                         ; 8327: 10 06       ..
+    bpl fstxl2                                                        ; 8327: 10 06       ..
     lda fs_server_stn,y                                               ; 8329: b9 00 0e    ...
     sta l00c2,y                                                       ; 832c: 99 c2 00    ...
 ; &832f referenced 1 time by &8327
-.c832f
+.fstxl2
     dey                                                               ; 832f: 88          .
-    bpl loop_c831f                                                    ; 8330: 10 ed       ..
+    bpl fstxl1                                                        ; 8330: 10 ed       ..
     pla                                                               ; 8332: 68          h
     rts                                                               ; 8333: 60          `
 
@@ -1233,7 +1233,7 @@ l8014 = l800d+7
     adc #5                                                            ; 8374: 69 05       i.
     sta l00c8                                                         ; 8376: 85 c8       ..
     plp                                                               ; 8378: 28          (
-    bcs c8397                                                         ; 8379: b0 1c       ..
+    bcs dofsl5                                                        ; 8379: b0 1c       ..
     php                                                               ; 837b: 08          .
     jsr setup_tx_ptr_c0                                               ; 837c: 20 44 86     D.
     plp                                                               ; 837f: 28          (
@@ -1245,7 +1245,7 @@ l8014 = l800d+7
     jsr send_to_fs                                                    ; 8386: 20 4a 84     J.
     plp                                                               ; 8389: 28          (
 ; &838a referenced 1 time by &83a0
-.loop_c838a
+.dofsl7
     iny                                                               ; 838a: c8          .
     lda (l00c4),y                                                     ; 838b: b1 c4       ..
     tax                                                               ; 838d: aa          .
@@ -1260,13 +1260,13 @@ l8014 = l800d+7
     rts                                                               ; 8396: 60          `
 
 ; &8397 referenced 1 time by &8379
-.c8397
+.dofsl5
     pla                                                               ; 8397: 68          h
     ldx #&c0                                                          ; 8398: a2 c0       ..
     iny                                                               ; 839a: c8          .
     jsr econet_tx_retry                                               ; 839b: 20 48 92     H.
     sta l00b3                                                         ; 839e: 85 b3       ..
-    bcc loop_c838a                                                    ; 83a0: 90 e8       ..
+    bcc dofsl7                                                        ; 83a0: 90 e8       ..
 .bputv_handler
     clc                                                               ; 83a2: 18          .
 ; ***************************************************************************************
@@ -1330,11 +1330,11 @@ l8014 = l800d+7
     beq update_sequence_return                                        ; 83d9: f0 40       .@
     ldy #&1f                                                          ; 83db: a0 1f       ..
 ; &83dd referenced 1 time by &83e4
-.loop_c83dd
+.error1
     lda fs_putb_buf,y                                                 ; 83dd: b9 dc 0f    ...
     sta l0fe0,y                                                       ; 83e0: 99 e0 0f    ...
     dey                                                               ; 83e3: 88          .
-    bpl loop_c83dd                                                    ; 83e4: 10 f7       ..
+    bpl error1                                                        ; 83e4: 10 f7       ..
     tax                                                               ; 83e6: aa          .              ; X=File handle
     lda #osbyte_read_write_spool_file_handle                          ; 83e7: a9 c7       ..
     jsr osbyte                                                        ; 83e9: 20 f4 ff     ..            ; Read/Write *SPOOL file handle
@@ -1398,10 +1398,10 @@ l8014 = l800d+7
     bne set_listen_offset                                             ; 8426: d0 04       ..             ; ALWAYS branch
 
 ; &8428 referenced 1 time by &868d
-.c8428
+.nlistn
     lda (net_tx_ptr,x)                                                ; 8428: a1 9a       ..
 ; &842a referenced 2 times by &8483, &89b8
-.c842a
+.nlisne
     and #7                                                            ; 842a: 29 07       ).
 ; &842c referenced 1 time by &8426
 .set_listen_offset
@@ -1455,16 +1455,16 @@ l8014 = l800d+7
     tay                                                               ; 8458: a8          .              ; Y=&00
     tsx                                                               ; 8459: ba          .
 ; &845a referenced 3 times by &8464, &8469, &846e
-.c845a
+.incpx
     lda (net_tx_ptr),y                                                ; 845a: b1 9a       ..
     bmi fs_wait_cleanup                                               ; 845c: 30 12       0.
     jsr check_escape                                                  ; 845e: 20 7a 84     z.
     dec l0101,x                                                       ; 8461: de 01 01    ...
-    bne c845a                                                         ; 8464: d0 f4       ..
+    bne incpx                                                         ; 8464: d0 f4       ..
     dec l0102,x                                                       ; 8466: de 02 01    ...
-    bne c845a                                                         ; 8469: d0 ef       ..
+    bne incpx                                                         ; 8469: d0 ef       ..
     dec l0104,x                                                       ; 846b: de 04 01    ...
-    bne c845a                                                         ; 846e: d0 ea       ..
+    bne incpx                                                         ; 846e: d0 ea       ..
 ; &8470 referenced 1 time by &845c
 .fs_wait_cleanup
     pla                                                               ; 8470: 68          h
@@ -1500,7 +1500,7 @@ l8014 = l800d+7
     bit l00ff                                                         ; 847c: 24 ff       $.
     bpl return_2                                                      ; 847e: 10 23       .#
     jsr osbyte                                                        ; 8480: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
-    bne c842a                                                         ; 8483: d0 a5       ..
+    bne nlisne                                                        ; 8483: d0 a5       ..
 .bgetv_handler
     sec                                                               ; 8485: 38          8
     jsr handle_bput_bget                                              ; 8486: 20 a3 83     ..            ; Handle BPUT/BGET file byte I/O
@@ -1805,19 +1805,19 @@ l8014 = l800d+7
     txa                                                               ; 858b: 8a          .
     pha                                                               ; 858c: 48          H
     tya                                                               ; 858d: 98          .
-    bcc c8592                                                         ; 858e: 90 02       ..
+    bcc y2fsl5                                                        ; 858e: 90 02       ..
     beq c85a1                                                         ; 8590: f0 0f       ..
 ; &8592 referenced 1 time by &858e
-.c8592
+.y2fsl5
     sec                                                               ; 8592: 38          8
     sbc #&1f                                                          ; 8593: e9 1f       ..
     tax                                                               ; 8595: aa          .
     lda #1                                                            ; 8596: a9 01       ..
 ; &8598 referenced 1 time by &859a
-.loop_c8598
+.y2fsl2
     asl a                                                             ; 8598: 0a          .
     dex                                                               ; 8599: ca          .
-    bne loop_c8598                                                    ; 859a: d0 fc       ..
+    bne y2fsl2                                                        ; 859a: d0 fc       ..
     ror a                                                             ; 859c: 6a          j
     tay                                                               ; 859d: a8          .
     bne c85a1                                                         ; 859e: d0 01       ..
@@ -1850,10 +1850,10 @@ l8014 = l800d+7
 .mask_to_handle
     ldx #0                                                            ; 85a5: a2 00       ..
 ; &85a7 referenced 1 time by &85a9
-.loop_c85a7
+.fs2al1
     inx                                                               ; 85a7: e8          .
     lsr a                                                             ; 85a8: 4a          J
-    bne loop_c85a7                                                    ; 85a9: d0 fc       ..
+    bne fs2al1                                                        ; 85a9: d0 fc       ..
     txa                                                               ; 85ab: 8a          .
     adc #&1e                                                          ; 85ac: 69 1e       i.
     rts                                                               ; 85ae: 60          `
@@ -2030,18 +2030,18 @@ l8014 = l800d+7
     jsr print_hex_bytes                                               ; 862c: 20 35 86     5.
     ldy #&0c                                                          ; 862f: a0 0c       ..
     ldx #3                                                            ; 8631: a2 03       ..
-    bne c8637                                                         ; 8633: d0 02       ..             ; ALWAYS branch
+    bne num01                                                         ; 8633: d0 02       ..             ; ALWAYS branch
 
 ; &8635 referenced 2 times by &8621, &862c
 .print_hex_bytes
     ldx #4                                                            ; 8635: a2 04       ..
 ; &8637 referenced 2 times by &8633, &863e
-.c8637
+.num01
     lda (fs_options),y                                                ; 8637: b1 bb       ..
     jsr print_hex                                                     ; 8639: 20 eb 85     ..
     dey                                                               ; 863c: 88          .
     dex                                                               ; 863d: ca          .
-    bne c8637                                                         ; 863e: d0 f7       ..
+    bne num01                                                         ; 863e: d0 f7       ..
 ; &8640 referenced 2 times by &8617, &8d5c
 .print_space
     lda #&20 ; ' '                                                    ; 8640: a9 20       .
@@ -2118,9 +2118,9 @@ l8014 = l800d+7
     sta nmi_tx_block_hi                                               ; 8665: 85 a1       ..
     jsr trampoline_tx_setup                                           ; 8667: 20 60 96     `.
 ; &866a referenced 1 time by &866c
-.loop_c866a
+.l4
     lda (net_tx_ptr,x)                                                ; 866a: a1 9a       ..
-    bmi loop_c866a                                                    ; 866c: 30 fc       0.
+    bmi l4                                                            ; 866c: 30 fc       0.
     asl a                                                             ; 866e: 0a          .
     bpl c8690                                                         ; 866f: 10 1f       ..
     asl a                                                             ; 8671: 0a          .
@@ -2148,7 +2148,7 @@ l8014 = l800d+7
 ; &868c referenced 2 times by &8672, &867c
 .c868c
     tax                                                               ; 868c: aa          .
-    jmp c8428                                                         ; 868d: 4c 28 84    L(.
+    jmp nlistn                                                        ; 868d: 4c 28 84    L(.
 
 ; &8690 referenced 1 time by &866f
 .c8690
@@ -2183,22 +2183,22 @@ l8014 = l800d+7
     jsr save_fscv_args                                                ; 8694: 20 08 85     ..
     ldy #1                                                            ; 8697: a0 01       ..
 ; &8699 referenced 1 time by &869f
-.loop_c8699
+.file1
     lda (fs_options),y                                                ; 8699: b1 bb       ..
     sta os_text_ptr,y                                                 ; 869b: 99 f2 00    ...
     dey                                                               ; 869e: 88          .
-    bpl loop_c8699                                                    ; 869f: 10 f8       ..
+    bpl file1                                                         ; 869f: 10 f8       ..
     iny                                                               ; 86a1: c8          .
     ldx #&ff                                                          ; 86a2: a2 ff       ..
     clc                                                               ; 86a4: 18          .
     jsr gsinit                                                        ; 86a5: 20 c2 ff     ..
 ; &86a8 referenced 1 time by &86b1
-.loop_c86a8
+.quote1
     jsr gsread                                                        ; 86a8: 20 c5 ff     ..
     bcs c86b3                                                         ; 86ab: b0 06       ..
     inx                                                               ; 86ad: e8          .
     sta l0fc5,x                                                       ; 86ae: 9d c5 0f    ...
-    bcc loop_c86a8                                                    ; 86b1: 90 f5       ..             ; ALWAYS branch
+    bcc quote1                                                        ; 86b1: 90 f5       ..             ; ALWAYS branch
 
 ; &86b3 referenced 1 time by &86ab
 .c86b3
@@ -2209,13 +2209,13 @@ l8014 = l800d+7
     lda #&0f                                                          ; 86bc: a9 0f       ..
     sta fs_crc_hi                                                     ; 86be: 85 bf       ..
     lda fs_last_byte_flag                                             ; 86c0: a5 bd       ..
-    bpl c8741                                                         ; 86c2: 10 7d       .}
+    bpl saveop                                                        ; 86c2: 10 7d       .}
     cmp #&ff                                                          ; 86c4: c9 ff       ..
-    beq c86cb                                                         ; 86c6: f0 03       ..
+    beq loadop                                                        ; 86c6: f0 03       ..
     jmp restore_args_return                                           ; 86c8: 4c 2c 89    L,.
 
 ; &86cb referenced 1 time by &86c6
-.c86cb
+.loadop
     jsr copy_filename                                                 ; 86cb: 20 63 8d     c.
     ldy #2                                                            ; 86ce: a0 02       ..
 ; ***************************************************************************************
@@ -2237,12 +2237,12 @@ l8014 = l800d+7
     jsr prepare_cmd_clv                                               ; 86d7: 20 46 83     F.
     ldy #6                                                            ; 86da: a0 06       ..
     lda (fs_options),y                                                ; 86dc: b1 bb       ..
-    bne c86e8                                                         ; 86de: d0 08       ..
+    bne lodfil                                                        ; 86de: d0 08       ..
     jsr copy_load_addr_from_params                                    ; 86e0: 20 ad 87     ..
     jsr copy_reply_to_params                                          ; 86e3: 20 ba 87     ..
     bcc c86ee                                                         ; 86e6: 90 06       ..
 ; &86e8 referenced 1 time by &86de
-.c86e8
+.lodfil
     jsr copy_reply_to_params                                          ; 86e8: 20 ba 87     ..
     jsr copy_load_addr_from_params                                    ; 86eb: 20 ad 87     ..
 ; &86ee referenced 1 time by &86e6
@@ -2264,11 +2264,11 @@ l8014 = l800d+7
     jsr send_data_blocks                                              ; 8706: 20 16 87     ..
     ldx #2                                                            ; 8709: a2 02       ..
 ; &870b referenced 1 time by &8712
-.loop_c870b
+.floop
     lda l0f10,x                                                       ; 870b: bd 10 0f    ...
     sta fs_cmd_data,x                                                 ; 870e: 9d 05 0f    ...
     dex                                                               ; 8711: ca          .
-    bpl loop_c870b                                                    ; 8712: 10 f7       ..
+    bpl floop                                                         ; 8712: 10 f7       ..
     bmi c878c                                                         ; 8714: 30 76       0v             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -2302,18 +2302,18 @@ l8014 = l800d+7
     jsr send_to_fs_star                                               ; 8730: 20 48 84     H.
     ldy #3                                                            ; 8733: a0 03       ..
 ; &8735 referenced 1 time by &873e
-.loop_c8735
+.lodchk
     lda l00c8,y                                                       ; 8735: b9 c8 00    ...
     eor l00b4,y                                                       ; 8738: 59 b4 00    Y..
     bne loop_c871f                                                    ; 873b: d0 e2       ..
     dey                                                               ; 873d: 88          .
-    bpl loop_c8735                                                    ; 873e: 10 f5       ..
+    bpl lodchk                                                        ; 873e: 10 f5       ..
 ; &8740 referenced 1 time by &8719
 .return_5
     rts                                                               ; 8740: 60          `
 
 ; &8741 referenced 1 time by &86c2
-.c8741
+.saveop
     beq filev_save                                                    ; 8741: f0 03       ..
     jmp filev_attrib_dispatch                                         ; 8743: 4c 44 88    LD.
 
@@ -2335,7 +2335,7 @@ l8014 = l800d+7
     ldx #4                                                            ; 8746: a2 04       ..
     ldy #&0e                                                          ; 8748: a0 0e       ..
 ; &874a referenced 1 time by &8764
-.loop_c874a
+.savsiz
     lda (fs_options),y                                                ; 874a: b1 bb       ..
     sta port_ws_offset,y                                              ; 874c: 99 a6 00    ...
     jsr sub_4_from_y                                                  ; 874f: 20 aa 84     ..
@@ -2348,7 +2348,7 @@ l8014 = l800d+7
     sta (fs_options),y                                                ; 875e: 91 bb       ..
     jsr add_5_to_y                                                    ; 8760: 20 a4 84     ..
     dex                                                               ; 8763: ca          .
-    bne loop_c874a                                                    ; 8764: d0 e4       ..
+    bne savsiz                                                        ; 8764: d0 e4       ..
     ldy #9                                                            ; 8766: a0 09       ..
 ; &8768 referenced 1 time by &876e
 .loop_c8768
@@ -2398,12 +2398,12 @@ l8014 = l800d+7
 .copy_load_addr_from_params
     ldy #5                                                            ; 87ad: a0 05       ..
 ; &87af referenced 1 time by &87b7
-.loop_c87af
+.lodrl1
     lda (fs_options),y                                                ; 87af: b1 bb       ..
     sta l00ae,y                                                       ; 87b1: 99 ae 00    ...
     dey                                                               ; 87b4: 88          .
     cpy #2                                                            ; 87b5: c0 02       ..
-    bcs loop_c87af                                                    ; 87b7: b0 f6       ..
+    bcs lodrl1                                                        ; 87b7: b0 f6       ..
     rts                                                               ; 87b9: 60          `
 
 ; ***************************************************************************************
@@ -2418,12 +2418,12 @@ l8014 = l800d+7
     ldy #&0d                                                          ; 87ba: a0 0d       ..
     txa                                                               ; 87bc: 8a          .
 ; &87bd referenced 1 time by &87c5
-.loop_c87bd
+.lodrl2
     sta (fs_options),y                                                ; 87bd: 91 bb       ..
     lda fs_cmd_urd,y                                                  ; 87bf: b9 02 0f    ...
     dey                                                               ; 87c2: 88          .
     cpy #2                                                            ; 87c3: c0 02       ..
-    bcs loop_c87bd                                                    ; 87c5: b0 f6       ..
+    bcs lodrl2                                                        ; 87c5: b0 f6       ..
     rts                                                               ; 87c7: 60          `
 
 ; ***************************************************************************************
@@ -2464,12 +2464,12 @@ l8014 = l800d+7
     bcs c87f7                                                         ; 87e8: b0 0d       ..
     sec                                                               ; 87ea: 38          8
 ; &87eb referenced 1 time by &87f3
-.loop_c87eb
+.savchk
     lda fs_load_addr,y                                                ; 87eb: b9 b0 00    ...
     sbc l00b4,y                                                       ; 87ee: f9 b4 00    ...
     iny                                                               ; 87f1: c8          .
     dex                                                               ; 87f2: ca          .
-    bne loop_c87eb                                                    ; 87f3: d0 f6       ..
+    bne savchk                                                        ; 87f3: d0 f6       ..
     bcc c8800                                                         ; 87f5: 90 09       ..
 ; &87f7 referenced 1 time by &87e8
 .c87f7
@@ -2554,12 +2554,12 @@ l8014 = l800d+7
 .filev_attrib_dispatch
     sta fs_cmd_data                                                   ; 8844: 8d 05 0f    ...
     cmp #6                                                            ; 8847: c9 06       ..
-    beq c888a                                                         ; 8849: f0 3f       .?
+    beq cha6                                                          ; 8849: f0 3f       .?
     bcs c8895                                                         ; 884b: b0 48       .H
     cmp #5                                                            ; 884d: c9 05       ..
-    beq c88a3                                                         ; 884f: f0 52       .R
+    beq cha5                                                          ; 884f: f0 52       .R
     cmp #4                                                            ; 8851: c9 04       ..
-    beq c8899                                                         ; 8853: f0 44       .D
+    beq cha4                                                          ; 8853: f0 44       .D
     cmp #1                                                            ; 8855: c9 01       ..
     beq get_file_protection                                           ; 8857: f0 15       ..
     asl a                                                             ; 8859: 0a          .
@@ -2568,12 +2568,12 @@ l8014 = l800d+7
     jsr sub_3_from_y                                                  ; 885c: 20 ab 84     ..
     ldx #3                                                            ; 885f: a2 03       ..
 ; &8861 referenced 1 time by &8868
-.loop_c8861
+.chalp1
     lda (fs_options),y                                                ; 8861: b1 bb       ..
     sta l0f06,x                                                       ; 8863: 9d 06 0f    ...
     dey                                                               ; 8866: 88          .
     dex                                                               ; 8867: ca          .
-    bpl loop_c8861                                                    ; 8868: 10 f7       ..
+    bpl chalp1                                                        ; 8868: 10 f7       ..
     ldx #5                                                            ; 886a: a2 05       ..
     bne copy_filename_to_cmd                                          ; 886c: d0 15       ..             ; ALWAYS branch
 
@@ -2584,12 +2584,12 @@ l8014 = l800d+7
     ldy #9                                                            ; 8874: a0 09       ..
     ldx #8                                                            ; 8876: a2 08       ..
 ; &8878 referenced 1 time by &887f
-.loop_c8878
+.chalp2
     lda (fs_options),y                                                ; 8878: b1 bb       ..
     sta fs_cmd_data,x                                                 ; 887a: 9d 05 0f    ...
     dey                                                               ; 887d: 88          .
     dex                                                               ; 887e: ca          .
-    bne loop_c8878                                                    ; 887f: d0 f7       ..
+    bne chalp2                                                        ; 887f: d0 f7       ..
     ldx #&0a                                                          ; 8881: a2 0a       ..
 ; &8883 referenced 2 times by &886c, &88a1
 .copy_filename_to_cmd
@@ -2598,7 +2598,7 @@ l8014 = l800d+7
     bne c888f                                                         ; 8888: d0 05       ..             ; ALWAYS branch
 
 ; &888a referenced 1 time by &8849
-.c888a
+.cha6
     jsr copy_filename                                                 ; 888a: 20 63 8d     c.
     ldy #&14                                                          ; 888d: a0 14       ..
 ; &888f referenced 1 time by &8888
@@ -2611,14 +2611,14 @@ l8014 = l800d+7
     bcc c8910                                                         ; 8897: 90 77       .w             ; ALWAYS branch
 
 ; &8899 referenced 1 time by &8853
-.c8899
+.cha4
     jsr decode_attribs_6bit                                           ; 8899: 20 13 85     ..
     sta l0f06                                                         ; 889c: 8d 06 0f    ...
     ldx #2                                                            ; 889f: a2 02       ..
     bne copy_filename_to_cmd                                          ; 88a1: d0 e0       ..             ; ALWAYS branch
 
 ; &88a3 referenced 1 time by &884f
-.c88a3
+.cha5
     ldx #1                                                            ; 88a3: a2 01       ..
     jsr copy_string_to_cmd                                            ; 88a5: 20 65 8d     e.
     ldy #&12                                                          ; 88a8: a0 12       ..             ; Y=function code for HDRFN
@@ -2644,12 +2644,12 @@ l8014 = l800d+7
     inx                                                               ; 88cf: e8          .
     ldy #&11                                                          ; 88d0: a0 11       ..
 ; &88d2 referenced 1 time by &88d9
-.loop_c88d2
+.cha5lp
     lda l0f12,x                                                       ; 88d2: bd 12 0f    ...
     sta (fs_options),y                                                ; 88d5: 91 bb       ..
     dey                                                               ; 88d7: 88          .
     dex                                                               ; 88d8: ca          .
-    bpl loop_c88d2                                                    ; 88d9: 10 f7       ..
+    bpl cha5lp                                                        ; 88d9: 10 f7       ..
     ldx fs_cmd_data                                                   ; 88db: ae 05 0f    ...
 ; &88de referenced 1 time by &88bc
 .c88de
@@ -2753,11 +2753,11 @@ l8014 = l800d+7
     lsr a                                                             ; 893a: 4a          J
     bne restore_args_return                                           ; 893b: d0 ef       ..
 ; &893d referenced 1 time by &8943
-.loop_c893d
+.osarg1
     lda l0e0b,y                                                       ; 893d: b9 0b 0e    ...
     sta (fs_options),y                                                ; 8940: 91 bb       ..
     dey                                                               ; 8942: 88          .
-    bpl loop_c893d                                                    ; 8943: 10 f8       ..
+    bpl osarg1                                                        ; 8943: 10 f8       ..
 ; &8945 referenced 3 times by &8955, &8a95, &8b32
 .c8945
     lda #0                                                            ; 8945: a9 00       ..             ; A=operation (0=close, &40=read, &80=write, &C0=R/W)
@@ -2858,23 +2858,23 @@ l8014 = l800d+7
     cpx #4                                                            ; 89a1: e0 04       ..
     bne c89a9                                                         ; 89a3: d0 04       ..
     cpy #4                                                            ; 89a5: c0 04       ..
-    bcc c89bb                                                         ; 89a7: 90 12       ..
+    bcc optl1                                                         ; 89a7: 90 12       ..
 ; &89a9 referenced 1 time by &89a3
 .c89a9
     cpx #1                                                            ; 89a9: e0 01       ..
-    bne c89b6                                                         ; 89ab: d0 09       ..
+    bne opter1                                                        ; 89ab: d0 09       ..
     cpy #2                                                            ; 89ad: c0 02       ..
-    bcs c89b6                                                         ; 89af: b0 05       ..
+    bcs opter1                                                        ; 89af: b0 05       ..
     sty fs_messages_flag                                              ; 89b1: 8c 06 0e    ...
     bcc c89c8                                                         ; 89b4: 90 12       ..             ; ALWAYS branch
 
 ; &89b6 referenced 2 times by &89ab, &89af
-.c89b6
+.opter1
     lda #7                                                            ; 89b6: a9 07       ..
-    jmp c842a                                                         ; 89b8: 4c 2a 84    L*.
+    jmp nlisne                                                        ; 89b8: 4c 2a 84    L*.
 
 ; &89bb referenced 1 time by &89a7
-.c89bb
+.optl1
     sty fs_cmd_data                                                   ; 89bb: 8c 05 0f    ...
     ldy #&16                                                          ; 89be: a0 16       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 89c0: 20 50 83     P.            ; Prepare FS command buffer (12 references)
@@ -2911,13 +2911,13 @@ l8014 = l800d+7
     bit fs_load_addr_2                                                ; 89d6: 24 b2       $.
     bmi c89e0                                                         ; 89d8: 30 06       0.
     adc fs_cmd_context,x                                              ; 89da: 7d 0a 0e    }..
-    jmp c89e3                                                         ; 89dd: 4c e3 89    L..
+    jmp gbpbx                                                         ; 89dd: 4c e3 89    L..
 
 ; &89e0 referenced 1 time by &89d8
 .c89e0
     sbc fs_cmd_context,x                                              ; 89e0: fd 0a 0e    ...
 ; &89e3 referenced 1 time by &89dd
-.c89e3
+.gbpbx
     sta (fs_options),y                                                ; 89e3: 91 bb       ..
     iny                                                               ; 89e5: c8          .
     inx                                                               ; 89e6: e8          .
@@ -2949,49 +2949,49 @@ l8014 = l800d+7
 .gbpbv_handler
     jsr save_fscv_args                                                ; 89ea: 20 08 85     ..
     tax                                                               ; 89ed: aa          .
-    beq c89f5                                                         ; 89ee: f0 05       ..
+    beq gbpbx0                                                        ; 89ee: f0 05       ..
     dex                                                               ; 89f0: ca          .
     cpx #8                                                            ; 89f1: e0 08       ..
-    bcc c89f8                                                         ; 89f3: 90 03       ..
+    bcc gbpbx1                                                        ; 89f3: 90 03       ..
 ; &89f5 referenced 1 time by &89ee
-.c89f5
+.gbpbx0
     jmp restore_args_return                                           ; 89f5: 4c 2c 89    L,.
 
 ; &89f8 referenced 1 time by &89f3
-.c89f8
+.gbpbx1
     txa                                                               ; 89f8: 8a          .
     ldy #0                                                            ; 89f9: a0 00       ..
     pha                                                               ; 89fb: 48          H
     cmp #4                                                            ; 89fc: c9 04       ..
-    bcc c8a03                                                         ; 89fe: 90 03       ..
+    bcc gbpbe1                                                        ; 89fe: 90 03       ..
     jmp osgbpb_info                                                   ; 8a00: 4c ad 8a    L..
 
 ; &8a03 referenced 1 time by &89fe
-.c8a03
+.gbpbe1
     lda (fs_options),y                                                ; 8a03: b1 bb       ..
     jsr handle_to_mask_a                                              ; 8a05: 20 88 85     ..
     sty fs_cmd_data                                                   ; 8a08: 8c 05 0f    ...
     ldy #&0b                                                          ; 8a0b: a0 0b       ..
     ldx #6                                                            ; 8a0d: a2 06       ..
 ; &8a0f referenced 1 time by &8a1b
-.loop_c8a0f
+.gbpbf1
     lda (fs_options),y                                                ; 8a0f: b1 bb       ..
     sta l0f06,x                                                       ; 8a11: 9d 06 0f    ...
     dey                                                               ; 8a14: 88          .
     cpy #8                                                            ; 8a15: c0 08       ..
-    bne c8a1a                                                         ; 8a17: d0 01       ..
+    bne gbpbf2                                                        ; 8a17: d0 01       ..
     dey                                                               ; 8a19: 88          .
 ; &8a1a referenced 1 time by &8a17
-.c8a1a
+.gbpbf2
     dex                                                               ; 8a1a: ca          .
-    bne loop_c8a0f                                                    ; 8a1b: d0 f2       ..
+    bne gbpbf1                                                        ; 8a1b: d0 f2       ..
     pla                                                               ; 8a1d: 68          h
     lsr a                                                             ; 8a1e: 4a          J
     pha                                                               ; 8a1f: 48          H
-    bcc c8a23                                                         ; 8a20: 90 01       ..
+    bcc gbpbl1                                                        ; 8a20: 90 01       ..
     inx                                                               ; 8a22: e8          .
 ; &8a23 referenced 1 time by &8a20
-.c8a23
+.gbpbl1
     stx l0f06                                                         ; 8a23: 8e 06 0f    ...
     ldy #&0b                                                          ; 8a26: a0 0b       ..
     ldx #&91                                                          ; 8a28: a2 91       ..
@@ -3011,7 +3011,7 @@ l8014 = l800d+7
     sta fs_sequence_nos                                               ; 8a40: 8d 08 0e    ...
     ldx #4                                                            ; 8a43: a2 04       ..
 ; &8a45 referenced 1 time by &8a59
-.loop_c8a45
+.gbpbl3
     lda (fs_options),y                                                ; 8a45: b1 bb       ..
     sta l00af,y                                                       ; 8a47: 99 af 00    ...
     sta l00c7,y                                                       ; 8a4a: 99 c7 00    ...
@@ -3020,14 +3020,14 @@ l8014 = l800d+7
     sta l00af,y                                                       ; 8a52: 99 af 00    ...
     jsr sub_3_from_y                                                  ; 8a55: 20 ab 84     ..
     dex                                                               ; 8a58: ca          .
-    bne loop_c8a45                                                    ; 8a59: d0 ea       ..
+    bne gbpbl3                                                        ; 8a59: d0 ea       ..
     inx                                                               ; 8a5b: e8          .
 ; &8a5c referenced 1 time by &8a63
-.loop_c8a5c
+.gbpbf3
     lda fs_cmd_csd,x                                                  ; 8a5c: bd 03 0f    ...
     sta l0f06,x                                                       ; 8a5f: 9d 06 0f    ...
     dex                                                               ; 8a62: ca          .
-    bpl loop_c8a5c                                                    ; 8a63: 10 f7       ..
+    bpl gbpbf3                                                        ; 8a63: 10 f7       ..
     pla                                                               ; 8a65: 68          h
     bne c8a70                                                         ; 8a66: d0 08       ..
     lda fs_cmd_urd                                                    ; 8a68: ad 02 0f    ...
@@ -3090,11 +3090,11 @@ l8014 = l800d+7
 .c8abb
     sta fs_temp_ce                                                    ; 8abb: 85 ce       ..
 ; &8abd referenced 1 time by &8ac3
-.loop_c8abd
+.info2
     lda (fs_options),y                                                ; 8abd: b1 bb       ..
     sta fs_last_byte_flag,y                                           ; 8abf: 99 bd 00    ...
     dey                                                               ; 8ac2: 88          .
-    bne loop_c8abd                                                    ; 8ac3: d0 f8       ..
+    bne info2                                                         ; 8ac3: d0 f8       ..
     pla                                                               ; 8ac5: 68          h
     and #3                                                            ; 8ac6: 29 03       ).
     beq c8a98                                                         ; 8ac8: f0 ce       ..
@@ -3152,12 +3152,12 @@ l8014 = l800d+7
     jsr tube_addr_claim                                               ; 8b1d: 20 06 04     ..
     ldx fs_load_addr                                                  ; 8b20: a6 b0       ..
 ; &8b22 referenced 1 time by &8b2b
-.loop_c8b22
+.tbcop1
     lda fs_cmd_data,x                                                 ; 8b22: bd 05 0f    ...
     sta tube_data_register_3                                          ; 8b25: 8d e5 fe    ...
     inx                                                               ; 8b28: e8          .
     dec fs_load_addr_2                                                ; 8b29: c6 b2       ..
-    bne loop_c8b22                                                    ; 8b2b: d0 f5       ..
+    bne tbcop1                                                        ; 8b2b: d0 f5       ..
     lda #&83                                                          ; 8b2d: a9 83       ..
     jsr tube_addr_claim                                               ; 8b2f: 20 06 04     ..
 ; &8b32 referenced 2 times by &8b0e, &8b88
@@ -3241,29 +3241,29 @@ l8014 = l800d+7
 .loop_c8b97
     ldy #&ff                                                          ; 8b97: a0 ff       ..
 ; &8b99 referenced 1 time by &8ba4
-.loop_c8b99
+.decfir
     iny                                                               ; 8b99: c8          .
     inx                                                               ; 8b9a: e8          .
 ; &8b9b referenced 1 time by &8bb6
-.loop_c8b9b
+.decmor
     lda fs_cmd_match_table,x                                          ; 8b9b: bd d6 8b    ...
     bmi c8bb8                                                         ; 8b9e: 30 18       0.
     eor (fs_crc_lo),y                                                 ; 8ba0: 51 be       Q.
     and #&df                                                          ; 8ba2: 29 df       ).
-    beq loop_c8b99                                                    ; 8ba4: f0 f3       ..
+    beq decfir                                                        ; 8ba4: f0 f3       ..
     dex                                                               ; 8ba6: ca          .
 ; &8ba7 referenced 1 time by &8bab
-.loop_c8ba7
+.decmin
     inx                                                               ; 8ba7: e8          .
     lda fs_cmd_match_table,x                                          ; 8ba8: bd d6 8b    ...
-    bpl loop_c8ba7                                                    ; 8bab: 10 fa       ..
+    bpl decmin                                                        ; 8bab: 10 fa       ..
     lda (fs_crc_lo),y                                                 ; 8bad: b1 be       ..
     inx                                                               ; 8baf: e8          .
     cmp #&2e ; '.'                                                    ; 8bb0: c9 2e       ..
     bne loop_c8b97                                                    ; 8bb2: d0 e3       ..
     iny                                                               ; 8bb4: c8          .
     dex                                                               ; 8bb5: ca          .
-    bcs loop_c8b9b                                                    ; 8bb6: b0 e3       ..
+    bcs decmor                                                        ; 8bb6: b0 e3       ..
 ; &8bb8 referenced 1 time by &8b9e
 .c8bb8
     pha                                                               ; 8bb8: 48          H
@@ -3573,15 +3573,15 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 .copy_handles
     ldx #3                                                            ; 8d20: a2 03       ..
-    bcc c8d2a                                                         ; 8d22: 90 06       ..
+    bcc logon3                                                        ; 8d22: 90 06       ..
 ; &8d24 referenced 1 time by &8d2b
-.loop_c8d24
+.logon2
     lda fs_cmd_data,x                                                 ; 8d24: bd 05 0f    ...
     sta fs_urd_handle,x                                               ; 8d27: 9d 02 0e    ...
 ; &8d2a referenced 1 time by &8d22
-.c8d2a
+.logon3
     dex                                                               ; 8d2a: ca          .
-    bpl loop_c8d24                                                    ; 8d2b: 10 f7       ..
+    bpl logon2                                                        ; 8d2b: 10 f7       ..
     bcc c8cff                                                         ; 8d2d: 90 d0       ..
     ldy fs_boot_option                                                ; 8d2f: ac 05 0e    ...
     ldx boot_option_offsets,y                                         ; 8d32: be 02 8d    ...
@@ -3696,10 +3696,10 @@ l8bd7 = fs_cmd_match_table+1
 .print_dir_from_offset
     lda fs_cmd_data,x                                                 ; 8d75: bd 05 0f    ...
     bmi return_6                                                      ; 8d78: 30 f8       0.
-    bne c8d7e                                                         ; 8d7a: d0 02       ..
+    bne infol2                                                        ; 8d7a: d0 02       ..
     lda #&0d                                                          ; 8d7c: a9 0d       ..
 ; &8d7e referenced 1 time by &8d7a
-.c8d7e
+.infol2
     jsr osasci                                                        ; 8d7e: 20 e3 ff     ..            ; Write character 13
     inx                                                               ; 8d81: e8          .
     bne print_dir_from_offset                                         ; 8d82: d0 f1       ..
@@ -3787,12 +3787,12 @@ l8bd7 = fs_cmd_match_table+1
 .net2_read_handle_entry
     lda l00f0                                                         ; 8dc9: a5 f0       ..
     jsr calc_handle_offset                                            ; 8dcb: 20 b7 8d     ..
-    bcs c8dd6                                                         ; 8dce: b0 06       ..
+    bcs rxpol2                                                        ; 8dce: b0 06       ..
     lda (nfs_workspace),y                                             ; 8dd0: b1 9e       ..
     cmp #&3f ; '?'                                                    ; 8dd2: c9 3f       .?
     bne c8dd8                                                         ; 8dd4: d0 02       ..
 ; &8dd6 referenced 2 times by &8dce, &8de4
-.c8dd6
+.rxpol2
     lda #0                                                            ; 8dd6: a9 00       ..
 ; &8dd8 referenced 1 time by &8dd4
 .c8dd8
@@ -3814,7 +3814,7 @@ l8bd7 = fs_cmd_match_table+1
 .net3_close_handle
     lda l00f0                                                         ; 8ddf: a5 f0       ..
     jsr calc_handle_offset                                            ; 8de1: 20 b7 8d     ..
-    bcs c8dd6                                                         ; 8de4: b0 f0       ..
+    bcs rxpol2                                                        ; 8de4: b0 f0       ..
     rol rx_status_flags                                               ; 8de6: 2e 38 0d    .8.
     lda #&3f ; '?'                                                    ; 8de9: a9 3f       .?
     sta (nfs_workspace),y                                             ; 8deb: 91 9e       ..
@@ -3858,11 +3858,11 @@ l8bd7 = fs_cmd_match_table+1
     pha                                                               ; 8e09: 48          H
     ldy #2                                                            ; 8e0a: a0 02       ..
 ; &8e0c referenced 1 time by &8e12
-.loop_c8e0c
+.save1
     lda fs_last_byte_flag,y                                           ; 8e0c: b9 bd 00    ...
     sta (net_rx_ptr),y                                                ; 8e0f: 91 9c       ..
     dey                                                               ; 8e11: 88          .
-    bpl loop_c8e0c                                                    ; 8e12: 10 f8       ..
+    bpl save1                                                         ; 8e12: 10 f8       ..
     iny                                                               ; 8e14: c8          .
     lda (l00f0),y                                                     ; 8e15: b1 f0       ..
     rts                                                               ; 8e17: 60          `
@@ -3893,14 +3893,14 @@ l8bd7 = fs_cmd_match_table+1
     bcc c8e2a                                                         ; 8e22: 90 06       ..
     lda (l00f0),y                                                     ; 8e24: b1 f0       ..
     sta (fs_crc_lo),y                                                 ; 8e26: 91 be       ..
-    bcs c8e2e                                                         ; 8e28: b0 04       ..             ; ALWAYS branch
+    bcs copyl3                                                        ; 8e28: b0 04       ..             ; ALWAYS branch
 
 ; &8e2a referenced 1 time by &8e22
 .c8e2a
     lda (fs_crc_lo),y                                                 ; 8e2a: b1 be       ..
     sta (l00f0),y                                                     ; 8e2c: 91 f0       ..
 ; &8e2e referenced 1 time by &8e28
-.c8e2e
+.copyl3
     iny                                                               ; 8e2e: c8          .
     dex                                                               ; 8e2f: ca          .
     bpl copy_param_block                                              ; 8e30: 10 f0       ..
@@ -3948,7 +3948,7 @@ l8bd7 = fs_cmd_match_table+1
 .c8e4f
     sec                                                               ; 8e4f: 38          8
     tya                                                               ; 8e50: 98          .
-    bcs c8e75                                                         ; 8e51: b0 22       ."             ; ALWAYS branch
+    bcs readry                                                        ; 8e51: b0 22       ."             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; OSWORD &11 handler: read JSR arguments (READRA)
@@ -3983,7 +3983,7 @@ l8bd7 = fs_cmd_match_table+1
     iny                                                               ; 8e72: c8          .              ; Y=&02
     lda #&80                                                          ; 8e73: a9 80       ..
 ; &8e75 referenced 1 time by &8e51
-.c8e75
+.readry
     sta (l00f0),y                                                     ; 8e75: 91 f0       ..
     bcs c8ee1                                                         ; 8e77: b0 68       .h
 ; &8e79 referenced 1 time by &8e8d
@@ -4010,9 +4010,9 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 .osword_12_handler
     cmp #6                                                            ; 8e7b: c9 06       ..
-    bcs c8eb7                                                         ; 8e7d: b0 38       .8
+    bcs rsl1                                                          ; 8e7d: b0 38       .8
     cmp #4                                                            ; 8e7f: c9 04       ..
-    bcs c8e9b                                                         ; 8e81: b0 18       ..
+    bcs rssl1                                                         ; 8e81: b0 18       ..
     lsr a                                                             ; 8e83: 4a          J
     ldx #&0d                                                          ; 8e84: a2 0d       ..
     tay                                                               ; 8e86: a8          .
@@ -4028,15 +4028,15 @@ l8bd7 = fs_cmd_match_table+1
     jsr copy_param_block                                              ; 8e96: 20 22 8e     ".
     bne c8eac                                                         ; 8e99: d0 11       ..
 ; &8e9b referenced 1 time by &8e81
-.c8e9b
+.rssl1
     lsr a                                                             ; 8e9b: 4a          J
     iny                                                               ; 8e9c: c8          .
     lda (l00f0),y                                                     ; 8e9d: b1 f0       ..
-    bcs c8ea6                                                         ; 8e9f: b0 05       ..
+    bcs rssl2                                                         ; 8e9f: b0 05       ..
     lda prot_status                                                   ; 8ea1: ad 63 0d    .c.
     sta (l00f0),y                                                     ; 8ea4: 91 f0       ..
 ; &8ea6 referenced 1 time by &8e9f
-.c8ea6
+.rssl2
     sta prot_status                                                   ; 8ea6: 8d 63 0d    .c.
     sta rx_ctrl_copy                                                  ; 8ea9: 8d 3b 0d    .;.
 ; &8eac referenced 2 times by &8e68, &8e99
@@ -4051,7 +4051,7 @@ l8bd7 = fs_cmd_match_table+1
     sta (l00f0),y                                                     ; 8eb3: 91 f0       ..
     bcs c8ee1                                                         ; 8eb5: b0 2a       .*
 ; &8eb7 referenced 1 time by &8e7d
-.c8eb7
+.rsl1
     cmp #8                                                            ; 8eb7: c9 08       ..
     beq loop_c8eaf                                                    ; 8eb9: f0 f4       ..
     cmp #9                                                            ; 8ebb: c9 09       ..
@@ -4059,7 +4059,7 @@ l8bd7 = fs_cmd_match_table+1
     bpl c8edb                                                         ; 8ebf: 10 1a       ..
     ldy #3                                                            ; 8ec1: a0 03       ..
     lsr a                                                             ; 8ec3: 4a          J
-    bcc c8ee3                                                         ; 8ec4: 90 1d       ..
+    bcc readc1                                                        ; 8ec4: 90 1d       ..
     sty fs_temp_cd                                                    ; 8ec6: 84 cd       ..
 ; &8ec8 referenced 1 time by &8ed7
 .loop_c8ec8
@@ -4082,12 +4082,12 @@ l8bd7 = fs_cmd_match_table+1
 .c8ee1
     bcs c8f48                                                         ; 8ee1: b0 65       .e
 ; &8ee3 referenced 2 times by &8ec4, &8eec
-.c8ee3
+.readc1
     lda fs_server_net,y                                               ; 8ee3: b9 01 0e    ...            ; A=single-bit bitmask
     jsr mask_to_handle                                                ; 8ee6: 20 a5 85     ..            ; Convert bitmask to handle number (FS2A)
     sta (l00f0),y                                                     ; 8ee9: 91 f0       ..             ; A=handle number (&20-&27); Y=preserved
     dey                                                               ; 8eeb: 88          .              ; Y=parameter block address high byte
-    bne c8ee3                                                         ; 8eec: d0 f5       ..
+    bne readc1                                                        ; 8eec: d0 f5       ..
     beq c8f48                                                         ; 8eee: f0 58       .X             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -4125,28 +4125,28 @@ l8bd7 = fs_cmd_match_table+1
     bne c8f1a                                                         ; 8efd: d0 1b       ..
     lda #3                                                            ; 8eff: a9 03       ..
 ; &8f01 referenced 1 time by &8f13
-.loop_c8f01
+.scan0
     jsr calc_handle_offset                                            ; 8f01: 20 b7 8d     ..
-    bcs c8f43                                                         ; 8f04: b0 3d       .=
+    bcs openl4                                                        ; 8f04: b0 3d       .=
     lsr a                                                             ; 8f06: 4a          J
     lsr a                                                             ; 8f07: 4a          J
     tax                                                               ; 8f08: aa          .
     lda (fs_crc_lo),y                                                 ; 8f09: b1 be       ..
-    beq c8f43                                                         ; 8f0b: f0 36       .6
+    beq openl4                                                        ; 8f0b: f0 36       .6
     cmp #&3f ; '?'                                                    ; 8f0d: c9 3f       .?
-    beq c8f15                                                         ; 8f0f: f0 04       ..
+    beq scan1                                                         ; 8f0f: f0 04       ..
     inx                                                               ; 8f11: e8          .
     txa                                                               ; 8f12: 8a          .
-    bne loop_c8f01                                                    ; 8f13: d0 ec       ..
+    bne scan0                                                         ; 8f13: d0 ec       ..
 ; &8f15 referenced 1 time by &8f0f
-.c8f15
+.scan1
     txa                                                               ; 8f15: 8a          .
     ldx #0                                                            ; 8f16: a2 00       ..
     sta (l00f0,x)                                                     ; 8f18: 81 f0       ..
 ; &8f1a referenced 1 time by &8efd
 .c8f1a
     jsr calc_handle_offset                                            ; 8f1a: 20 b7 8d     ..
-    bcs c8f43                                                         ; 8f1d: b0 24       .$
+    bcs openl4                                                        ; 8f1d: b0 24       .$
     dey                                                               ; 8f1f: 88          .
     sty fs_crc_lo                                                     ; 8f20: 84 be       ..
     lda #&c0                                                          ; 8f22: a9 c0       ..
@@ -4154,13 +4154,13 @@ l8bd7 = fs_cmd_match_table+1
     ldx #&0b                                                          ; 8f26: a2 0b       ..
     cpy fs_last_byte_flag                                             ; 8f28: c4 bd       ..
     adc (fs_crc_lo),y                                                 ; 8f2a: 71 be       q.
-    beq c8f31                                                         ; 8f2c: f0 03       ..
-    bmi c8f3e                                                         ; 8f2e: 30 0e       0.
+    beq openl6                                                        ; 8f2c: f0 03       ..
+    bmi openl7                                                        ; 8f2e: 30 0e       0.
 ; &8f30 referenced 1 time by &8f40
 .loop_c8f30
     clc                                                               ; 8f30: 18          .
 ; &8f31 referenced 1 time by &8f2c
-.c8f31
+.openl6
     jsr copy_param_block                                              ; 8f31: 20 22 8e     ".
     bcs c8f45                                                         ; 8f34: b0 0f       ..
     lda #&3f ; '?'                                                    ; 8f36: a9 3f       .?
@@ -4169,12 +4169,12 @@ l8bd7 = fs_cmd_match_table+1
     bne c8f45                                                         ; 8f3c: d0 07       ..             ; ALWAYS branch
 
 ; &8f3e referenced 1 time by &8f2e
-.c8f3e
+.openl7
     adc #1                                                            ; 8f3e: 69 01       i.
     bne loop_c8f30                                                    ; 8f40: d0 ee       ..
     dey                                                               ; 8f42: 88          .
 ; &8f43 referenced 3 times by &8f04, &8f0b, &8f1d
-.c8f43
+.openl4
     sta (l00f0),y                                                     ; 8f43: 91 f0       ..
 ; &8f45 referenced 2 times by &8f34, &8f3c
 .c8f45
@@ -4185,11 +4185,11 @@ l8bd7 = fs_cmd_match_table+1
     sty fs_temp_ce                                                    ; 8f4a: 84 ce       ..
     ldy #2                                                            ; 8f4c: a0 02       ..
 ; &8f4e referenced 1 time by &8f54
-.loop_c8f4e
+.rest1
     lda (net_rx_ptr),y                                                ; 8f4e: b1 9c       ..
     sta fs_last_byte_flag,y                                           ; 8f50: 99 bd 00    ...
     dey                                                               ; 8f53: 88          .
-    bpl loop_c8f4e                                                    ; 8f54: 10 f8       ..
+    bpl rest1                                                         ; 8f54: 10 f8       ..
     rts                                                               ; 8f56: 60          `
 
 ; ***************************************************************************************
@@ -4231,7 +4231,7 @@ l8bd7 = fs_cmd_match_table+1
     bcs c8fc0                                                         ; 8f74: b0 4a       .J
     ldy #&2f ; '/'                                                    ; 8f76: a0 2f       ./
 ; &8f78 referenced 1 time by &8f85
-.loop_c8f78
+.dofs01
     lda init_tx_ctrl_port,y                                           ; 8f78: b9 10 83    ...            ; Load from ROM template (zero = use NMI workspace value)
     bne c8f80                                                         ; 8f7b: d0 03       ..
     lda l0dda,y                                                       ; 8f7d: b9 da 0d    ...
@@ -4240,7 +4240,7 @@ l8bd7 = fs_cmd_match_table+1
     sta (nfs_workspace),y                                             ; 8f80: 91 9e       ..
     dey                                                               ; 8f82: 88          .
     cpy #&23 ; '#'                                                    ; 8f83: c0 23       .#
-    bne loop_c8f78                                                    ; 8f85: d0 f1       ..
+    bne dofs01                                                        ; 8f85: d0 f1       ..
     iny                                                               ; 8f87: c8          .
     sty net_tx_ptr                                                    ; 8f88: 84 9a       ..
     jsr setup_rx_buffer_ptrs                                          ; 8f8a: 20 57 8f     W.
@@ -4289,7 +4289,7 @@ l8bd7 = fs_cmd_match_table+1
     txa                                                               ; 8fd1: 8a          .
     sta (net_rx_ptr),y                                                ; 8fd2: 91 9c       ..
     plp                                                               ; 8fd4: 28          (
-    bne c8ff5                                                         ; 8fd5: d0 1e       ..
+    bne dofs2                                                         ; 8fd5: d0 1e       ..
 ; &8fd7 referenced 1 time by &8ff1
 .loop_c8fd7
     ldy fs_crc_lo                                                     ; 8fd7: a4 be       ..             ; Receive data blocks until command byte = &00 or &0D
@@ -4313,7 +4313,7 @@ l8bd7 = fs_cmd_match_table+1
 .c8ff3
     beq c9004                                                         ; 8ff3: f0 0f       ..
 ; &8ff5 referenced 1 time by &8fd5
-.c8ff5
+.dofs2
     jsr ctrl_block_setup_alt                                          ; 8ff5: 20 59 91     Y.
     ldy #&7b ; '{'                                                    ; 8ff8: a0 7b       .{
     lda (net_rx_ptr),y                                                ; 8ffa: b1 9c       ..
@@ -4360,11 +4360,11 @@ l8bd7 = fs_cmd_match_table+1
     tsx                                                               ; 900d: ba          .
     lda l0103,x                                                       ; 900e: bd 03 01    ...            ; Retrieve original A (function code) from stack
     cmp #9                                                            ; 9011: c9 09       ..
-    bcs c9019                                                         ; 9013: b0 04       ..
+    bcs entry1                                                        ; 9013: b0 04       ..
     tax                                                               ; 9015: aa          .
     jsr osword_trampoline                                             ; 9016: 20 20 90      .
 ; &9019 referenced 1 time by &9013
-.c9019
+.entry1
     pla                                                               ; 9019: 68          h
     tay                                                               ; 901a: a8          .
     pla                                                               ; 901b: 68          h
@@ -4496,18 +4496,18 @@ l8bd7 = fs_cmd_match_table+1
     tya                                                               ; 907e: 98          .
     beq return_9                                                      ; 907f: f0 33       .3
     php                                                               ; 9081: 08          .
-    bpl c9085                                                         ; 9082: 10 01       ..
+    bpl nbyte6                                                        ; 9082: 10 01       ..
     inx                                                               ; 9084: e8          .              ; X=&03
 ; &9085 referenced 1 time by &9082
-.c9085
+.nbyte6
     ldy #&dc                                                          ; 9085: a0 dc       ..
 ; &9087 referenced 1 time by &908f
-.loop_c9087
+.nbyte1
     lda l0015,y                                                       ; 9087: b9 15 00    ...
     sta (nfs_workspace),y                                             ; 908a: 91 9e       ..
     dey                                                               ; 908c: 88          .
     cpy #&da                                                          ; 908d: c0 da       ..
-    bpl loop_c9087                                                    ; 908f: 10 f6       ..
+    bpl nbyte1                                                        ; 908f: 10 f6       ..
     txa                                                               ; 9091: 8a          .
     jsr setup_tx_and_send                                             ; 9092: 20 4b 90     K.
     plp                                                               ; 9095: 28          (
@@ -4522,18 +4522,18 @@ l8bd7 = fs_cmd_match_table+1
     ldy #&dd                                                          ; 90a1: a0 dd       ..
     lda (nfs_workspace),y                                             ; 90a3: b1 9e       ..
     ora #&44 ; 'D'                                                    ; 90a5: 09 44       .D
-    bne c90ad                                                         ; 90a7: d0 04       ..             ; ALWAYS branch
+    bne nbyte5                                                        ; 90a7: d0 04       ..             ; ALWAYS branch
 
 ; &90a9 referenced 1 time by &90b2
-.loop_c90a9
+.nbyte4
     dey                                                               ; 90a9: 88          .
     dex                                                               ; 90aa: ca          .
     lda (nfs_workspace),y                                             ; 90ab: b1 9e       ..
 ; &90ad referenced 1 time by &90a7
-.c90ad
+.nbyte5
     sta l0106,x                                                       ; 90ad: 9d 06 01    ...
     cpy #&da                                                          ; 90b0: c0 da       ..
-    bne loop_c90a9                                                    ; 90b2: d0 f5       ..
+    bne nbyte4                                                        ; 90b2: d0 f5       ..
 ; &90b4 referenced 2 times by &907f, &9096
 .return_9
     rts                                                               ; 90b4: 60          `
@@ -4607,13 +4607,13 @@ l8bd7 = fs_cmd_match_table+1
 .remote_boot_handler
     ldy #4                                                            ; 90fc: a0 04       ..
     lda (net_rx_ptr),y                                                ; 90fe: b1 9c       ..
-    beq c9105                                                         ; 9100: f0 03       ..
+    beq remot1                                                        ; 9100: f0 03       ..
 ; &9102 referenced 1 time by &9148
-.c9102
+.rchex
     jmp clear_jsr_protection                                          ; 9102: 4c d6 92    L..
 
 ; &9105 referenced 2 times by &9100, &913e
-.c9105
+.remot1
     ora #9                                                            ; 9105: 09 09       ..
     sta (net_rx_ptr),y                                                ; 9107: 91 9c       ..
     ldx #&80                                                          ; 9109: a2 80       ..
@@ -4670,12 +4670,12 @@ l8bd7 = fs_cmd_match_table+1
 .remote_validated
     ldy #4                                                            ; 913a: a0 04       ..
     lda (net_rx_ptr),y                                                ; 913c: b1 9c       ..
-    beq c9105                                                         ; 913e: f0 c5       ..
+    beq remot1                                                        ; 913e: f0 c5       ..
     ldy #&80                                                          ; 9140: a0 80       ..
     lda (net_rx_ptr),y                                                ; 9142: b1 9c       ..
     ldy #&0e                                                          ; 9144: a0 0e       ..
     cmp (nfs_workspace),y                                             ; 9146: d1 9e       ..
-    bne c9102                                                         ; 9148: d0 b8       ..
+    bne rchex                                                         ; 9148: d0 b8       ..
 ; ***************************************************************************************
 ; Insert remote keypress
 ; 
@@ -4703,7 +4703,7 @@ l8bd7 = fs_cmd_match_table+1
     ldx #&0d                                                          ; 9159: a2 0d       ..
     ldy #&7c ; '|'                                                    ; 915b: a0 7c       .|
     bit l833a                                                         ; 915d: 2c 3a 83    ,:.
-    bvs c9167                                                         ; 9160: 70 05       p.
+    bvs cbset2                                                        ; 9160: 70 05       p.
 ; ***************************************************************************************
 ; Control block setup — main entry
 ; 
@@ -4725,14 +4725,14 @@ l8bd7 = fs_cmd_match_table+1
 .ctrl_block_setup_clv
     clv                                                               ; 9166: b8          .
 ; &9167 referenced 2 times by &9160, &9188
-.c9167
+.cbset2
     lda ctrl_block_template,x                                         ; 9167: bd 8e 91    ...            ; Load template byte from ctrl_block_template[X]
     cmp #&fe                                                          ; 916a: c9 fe       ..
     beq c918a                                                         ; 916c: f0 1c       ..
     cmp #&fd                                                          ; 916e: c9 fd       ..
     beq c9186                                                         ; 9170: f0 14       ..
     cmp #&fc                                                          ; 9172: c9 fc       ..
-    bne c917e                                                         ; 9174: d0 08       ..
+    bne cbset3                                                        ; 9174: d0 08       ..
     lda net_rx_ptr_hi                                                 ; 9176: a5 9d       ..
     bvs c917c                                                         ; 9178: 70 02       p.
     lda nfs_workspace_hi                                              ; 917a: a5 9f       ..
@@ -4740,19 +4740,19 @@ l8bd7 = fs_cmd_match_table+1
 .c917c
     sta net_tx_ptr_hi                                                 ; 917c: 85 9b       ..
 ; &917e referenced 1 time by &9174
-.c917e
-    bvs c9184                                                         ; 917e: 70 04       p.
+.cbset3
+    bvs cbset4                                                        ; 917e: 70 04       p.
     sta (nfs_workspace),y                                             ; 9180: 91 9e       ..
     bvc c9186                                                         ; 9182: 50 02       P.             ; ALWAYS branch
 
 ; &9184 referenced 1 time by &917e
-.c9184
+.cbset4
     sta (net_rx_ptr),y                                                ; 9184: 91 9c       ..
 ; &9186 referenced 2 times by &9170, &9182
 .c9186
     dey                                                               ; 9186: 88          .
     dex                                                               ; 9187: ca          .
-    bpl c9167                                                         ; 9188: 10 dd       ..
+    bpl cbset2                                                        ; 9188: 10 dd       ..
 ; &918a referenced 1 time by &916c
 .c918a
     iny                                                               ; 918a: c8          .
@@ -4796,12 +4796,12 @@ l8bd7 = fs_cmd_match_table+1
     lda #0                                                            ; 91b5: a9 00       ..
     dex                                                               ; 91b7: ca          .
     cpx l00f0                                                         ; 91b8: e4 f0       ..
-    bne c91c3                                                         ; 91ba: d0 07       ..
+    bne setup1                                                        ; 91ba: d0 07       ..
     lda #&1f                                                          ; 91bc: a9 1f       ..
     sta printer_buf_ptr                                               ; 91be: 8d 61 0d    .a.
     lda #&43 ; 'C'                                                    ; 91c1: a9 43       .C
 ; &91c3 referenced 1 time by &91ba
-.c91c3
+.setup1
     sta l0d60                                                         ; 91c3: 8d 60 0d    .`.
 ; &91c6 referenced 2 times by &91c9, &91dd
 .return_12
@@ -4837,7 +4837,7 @@ l8bd7 = fs_cmd_match_table+1
     ora l0106,x                                                       ; 91d0: 1d 06 01    ...
     sta l0106,x                                                       ; 91d3: 9d 06 01    ...
 ; &91d6 referenced 2 times by &91e5, &91ea
-.c91d6
+.prlp1
     lda #osbyte_read_buffer                                           ; 91d6: a9 91       ..
     ldx #buffer_printer                                               ; 91d8: a2 03       ..
     jsr osbyte                                                        ; 91da: 20 f4 ff     ..            ; Get character from input buffer (C is set if the buffer is empty, otherwise Y=extracted character)
@@ -4845,9 +4845,9 @@ l8bd7 = fs_cmd_match_table+1
     tya                                                               ; 91df: 98          .              ; Y is the character extracted from the buffer
     jsr store_output_byte                                             ; 91e0: 20 ec 91     ..
     cpy #&6e ; 'n'                                                    ; 91e3: c0 6e       .n
-    bcc c91d6                                                         ; 91e5: 90 ef       ..
+    bcc prlp1                                                         ; 91e5: 90 ef       ..
     jsr flush_output_block                                            ; 91e7: 20 17 92     ..
-    bne c91d6                                                         ; 91ea: d0 ea       ..
+    bne prlp1                                                         ; 91ea: d0 ea       ..
 ; ***************************************************************************************
 ; Store output byte to network buffer
 ; 
@@ -4935,10 +4935,10 @@ l8bd7 = fs_cmd_match_table+1
     sty net_tx_ptr_hi                                                 ; 924a: 84 9b       ..
     pha                                                               ; 924c: 48          H
     and fs_sequence_nos                                               ; 924d: 2d 08 0e    -..
-    beq c9254                                                         ; 9250: f0 02       ..
+    beq bsxl1                                                         ; 9250: f0 02       ..
     lda #1                                                            ; 9252: a9 01       ..
 ; &9254 referenced 1 time by &9250
-.c9254
+.bsxl1
     ldy #0                                                            ; 9254: a0 00       ..
     ora (net_tx_ptr),y                                                ; 9256: 11 9a       ..
     pha                                                               ; 9258: 48          H
@@ -4954,10 +4954,10 @@ l8bd7 = fs_cmd_match_table+1
     ldy #&d1                                                          ; 9269: a0 d1       ..
     pla                                                               ; 926b: 68          h
     pha                                                               ; 926c: 48          H
-    beq c9271                                                         ; 926d: f0 02       ..
+    beq bspsx                                                         ; 926d: f0 02       ..
     ldy #&90                                                          ; 926f: a0 90       ..
 ; &9271 referenced 1 time by &926d
-.c9271
+.bspsx
     tya                                                               ; 9271: 98          .
     ldy #1                                                            ; 9272: a0 01       ..
     sta (net_tx_ptr),y                                                ; 9274: 91 9a       ..
@@ -4965,7 +4965,7 @@ l8bd7 = fs_cmd_match_table+1
     dey                                                               ; 9277: 88          .              ; Y=&00
     pha                                                               ; 9278: 48          H
 ; &9279 referenced 1 time by &9285
-.loop_c9279
+.bsxl0
     lda #&7f                                                          ; 9279: a9 7f       ..
     sta (net_tx_ptr),y                                                ; 927b: 91 9a       ..
     jsr send_to_fs_star                                               ; 927d: 20 48 84     H.
@@ -4973,7 +4973,7 @@ l8bd7 = fs_cmd_match_table+1
     pha                                                               ; 9281: 48          H
     eor (net_tx_ptr),y                                                ; 9282: 51 9a       Q.
     ror a                                                             ; 9284: 6a          j
-    bcs loop_c9279                                                    ; 9285: b0 f2       ..
+    bcs bsxl0                                                         ; 9285: b0 f2       ..
     pla                                                               ; 9287: 68          h
     pla                                                               ; 9288: 68          h
     tax                                                               ; 9289: aa          .
@@ -5319,13 +5319,13 @@ l0055 = tube_dispatch_cmd+1
     sty l0059                                                         ; 93ee: 84 59       .Y  :04a2[2]
     pla                                                               ; 93f0: 68          h   :04a4[2]
     plp                                                               ; 93f1: 28          (   :04a5[2]
-    bcs c04ba                                                         ; 93f2: b0 12       ..  :04a6[2]
+    bcs beginr                                                        ; 93f2: b0 12       ..  :04a6[2]
     tax                                                               ; 93f4: aa          .   :04a8[2]
-    bne c04ae                                                         ; 93f5: d0 03       ..  :04a9[2]
+    bne begink                                                        ; 93f5: d0 03       ..  :04a9[2]
     jmp tube_reply_ack                                                ; 93f7: 4c cb 05    L.. :04ab[2]
 
 ; &93fa referenced 1 time by &04a9[2]
-.c04ae
+.begink
     ldx #0                                                            ; 93fa: a2 00       ..  :04ae[2]
     ldy #&ff                                                          ; 93fc: a0 ff       ..  :04b0[2]
     lda #osbyte_read_write_last_break_type                            ; 93fe: a9 fd       ..  :04b2[2]
@@ -5333,10 +5333,10 @@ l0055 = tube_dispatch_cmd+1
     txa                                                               ; 9403: 8a          .   :04b7[2]   ; X=value of type of last reset
     beq c045d                                                         ; 9404: f0 a3       ..  :04b8[2]
 ; &9406 referenced 2 times by &04a6[2], &04bf[2]
-.c04ba
+.beginr
     lda #&ff                                                          ; 9406: a9 ff       ..  :04ba[2]
     jsr tube_addr_claim                                               ; 9408: 20 06 04     .. :04bc[2]
-    bcc c04ba                                                         ; 940b: 90 f9       ..  :04bf[2]
+    bcc beginr                                                        ; 940b: 90 f9       ..  :04bf[2]
     lda #1                                                            ; 940d: a9 01       ..  :04c1[2]
     jsr tube_setup_transfer                                           ; 940f: 20 e0 04     .. :04c3[2]
     ldy #0                                                            ; 9412: a0 00       ..  :04c6[2]
@@ -5528,13 +5528,13 @@ l0055 = tube_dispatch_cmd+1
     ldx #0                                                            ; 94fd: a2 00       ..  :05b1[3]
     ldy #0                                                            ; 94ff: a0 00       ..  :05b3[3]
 ; &9501 referenced 1 time by &05c0[3]
-.loop_c05b5
+.strnh
     jsr tube_read_r2                                                  ; 9501: 20 f7 04     .. :05b5[3]
     sta l0700,y                                                       ; 9504: 99 00 07    ... :05b8[3]
     iny                                                               ; 9507: c8          .   :05bb[3]
     beq c05c2                                                         ; 9508: f0 04       ..  :05bc[3]
     cmp #&0d                                                          ; 950a: c9 0d       ..  :05be[3]
-    bne loop_c05b5                                                    ; 950c: d0 f3       ..  :05c0[3]
+    bne strnh                                                         ; 950c: d0 f3       ..  :05c0[3]
 ; &950e referenced 1 time by &05bc[3]
 .c05c2
     ldy #7                                                            ; 950e: a0 07       ..  :05c2[3]
@@ -5552,17 +5552,17 @@ l0055 = tube_dispatch_cmd+1
     bvc tube_reply_byte                                               ; 951c: 50 fb       P.  :05d0[3]
     sta tube_data_register_2                                          ; 951e: 8d e3 fe    ... :05d2[3]
 ; &9521 referenced 1 time by &0600[4]
-.c05d5
+.mj
     jmp tube_main_loop                                                ; 9521: 4c 3a 00    L:. :05d5[3]
 
 .tube_osfile
     ldx #&10                                                          ; 9524: a2 10       ..  :05d8[3]
 ; &9526 referenced 1 time by &05e0[3]
-.loop_c05da
+.argsw
     jsr tube_read_r2                                                  ; 9526: 20 f7 04     .. :05da[3]
     sta l0001,x                                                       ; 9529: 95 01       ..  :05dd[3]
     dex                                                               ; 952b: ca          .   :05df[3]
-    bne loop_c05da                                                    ; 952c: d0 f8       ..  :05e0[3]
+    bne argsw                                                         ; 952c: d0 f8       ..  :05e0[3]
     jsr tube_read_string                                              ; 952e: 20 b1 05     .. :05e2[3]
     stx l0000                                                         ; 9531: 86 00       ..  :05e5[3]
     sty l0001                                                         ; 9533: 84 01       ..  :05e7[3]
@@ -5614,7 +5614,7 @@ l0055 = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; &954c referenced 1 time by &8108
 .tube_code_page6
-    beq c05d5                                                         ; 954c: f0 d3       ..  :0600[4]
+    beq mj                                                            ; 954c: f0 d3       ..  :0600[4]
 .tube_osgbpb
     ldx #&0c                                                          ; 954e: a2 0c       ..  :0602[4]
 ; &9550 referenced 1 time by &060a[4]
@@ -5649,7 +5649,7 @@ l0055 = tube_dispatch_cmd+1
     bvc tube_osbyte_send_x                                            ; 957f: 50 fb       P.  :0633[4]
     stx tube_data_register_2                                          ; 9581: 8e e3 fe    ... :0635[4]
 ; &9584 referenced 1 time by &064b[4]
-.loop_c0638
+.bytex
     jmp tube_main_loop                                                ; 9584: 4c 3a 00    L:. :0638[4]
 
 .tube_osbyte_long
@@ -5660,7 +5660,7 @@ l0055 = tube_dispatch_cmd+1
     jsr tube_read_r2                                                  ; 958f: 20 f7 04     .. :0643[4]
     jsr osbyte                                                        ; 9592: 20 f4 ff     .. :0646[4]
     eor #&9d                                                          ; 9595: 49 9d       I.  :0649[4]
-    beq loop_c0638                                                    ; 9597: f0 eb       ..  :064b[4]
+    beq bytex                                                         ; 9597: f0 eb       ..  :064b[4]
     lda #&40 ; '@'                                                    ; 9599: a9 40       .@  :064d[4]
     ror a                                                             ; 959b: 6a          j   :064f[4]
     jsr tube_send_r2                                                  ; 959c: 20 d0 06     .. :0650[4]
@@ -7787,12 +7787,10 @@ save pydis_start, pydis_end
 ;     video_ula_control:                        4
 ;     adlc_full_reset:                          3
 ;     c0464:                                    3
-;     c845a:                                    3
 ;     c8945:                                    3
 ;     c8cff:                                    3
 ;     c8dda:                                    3
 ;     c8ee1:                                    3
-;     c8f43:                                    3
 ;     c907c:                                    3
 ;     c97d7:                                    3
 ;     c9912:                                    3
@@ -7814,6 +7812,7 @@ save pydis_start, pydis_end
 ;     fs_urd_handle:                            3
 ;     handle_to_mask_a:                         3
 ;     handle_to_mask_clc:                       3
+;     incpx:                                    3
 ;     init_tx_ctrl_block:                       3
 ;     l0014:                                    3
 ;     l00af:                                    3
@@ -7822,6 +7821,7 @@ save pydis_start, pydis_end
 ;     l0fde:                                    3
 ;     l833a:                                    3
 ;     match_osbyte_code:                        3
+;     openl4:                                   3
 ;     os_text_ptr:                              3
 ;     oscli:                                    3
 ;     osword:                                   3
@@ -7844,33 +7844,25 @@ save pydis_start, pydis_end
 ;     tx_poll_ff:                               3
 ;     ack_tx:                                   2
 ;     adjust_addrs:                             2
+;     beginr:                                   2
 ;     binary_version:                           2
 ;     c0036:                                    2
-;     c04ba:                                    2
 ;     c04cc:                                    2
 ;     c0522:                                    2
 ;     c81c9:                                    2
 ;     c8240:                                    2
 ;     c82c3:                                    2
 ;     c840f:                                    2
-;     c842a:                                    2
 ;     c8584:                                    2
 ;     c85a1:                                    2
 ;     c85fe:                                    2
-;     c8637:                                    2
 ;     c868c:                                    2
-;     c89b6:                                    2
 ;     c8abb:                                    2
 ;     c8b32:                                    2
 ;     c8dac:                                    2
-;     c8dd6:                                    2
 ;     c8eac:                                    2
-;     c8ee3:                                    2
 ;     c8f45:                                    2
-;     c9105:                                    2
-;     c9167:                                    2
 ;     c9186:                                    2
-;     c91d6:                                    2
 ;     c98f4:                                    2
 ;     c99b8:                                    2
 ;     c9a19:                                    2
@@ -7879,6 +7871,7 @@ save pydis_start, pydis_end
 ;     c9c96:                                    2
 ;     c9fa7:                                    2
 ;     call_fscv_shutdown:                       2
+;     cbset2:                                   2
 ;     check_escape:                             2
 ;     cmd_name_matched:                         2
 ;     compare_addresses:                        2
@@ -7921,9 +7914,12 @@ save pydis_start, pydis_end
 ;     l0fdf:                                    2
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
+;     nlisne:                                   2
 ;     nmi_jmp_hi:                               2
 ;     nmi_jmp_lo:                               2
+;     num01:                                    2
 ;     nvwrch:                                   2
+;     opter1:                                   2
 ;     osfind:                                   2
 ;     parse_decimal:                            2
 ;     prepare_cmd_clv:                          2
@@ -7936,6 +7932,9 @@ save pydis_start, pydis_end
 ;     print_hex_bytes:                          2
 ;     print_reply_counted:                      2
 ;     print_space:                              2
+;     prlp1:                                    2
+;     readc1:                                   2
+;     remot1:                                   2
 ;     resume_after_remote:                      2
 ;     return_12:                                2
 ;     return_14:                                2
@@ -7943,6 +7942,7 @@ save pydis_start, pydis_end
 ;     return_9:                                 2
 ;     romsel:                                   2
 ;     rx_extra_byte:                            2
+;     rxpol2:                                   2
 ;     scout_complete:                           2
 ;     send_data_blocks:                         2
 ;     send_fs_reply_cmd:                        2
@@ -7980,9 +7980,15 @@ save pydis_start, pydis_end
 ;     adlc_init:                                1
 ;     adlc_init_workspace:                      1
 ;     adlc_rx_listen:                           1
+;     argsw:                                    1
+;     begink:                                   1
 ;     boot_option_offsets:                      1
 ;     brkv:                                     1
+;     bspsx:                                    1
+;     bsxl0:                                    1
+;     bsxl1:                                    1
 ;     build_send_fs_cmd:                        1
+;     bytex:                                    1
 ;     c0020:                                    1
 ;     c0419:                                    1
 ;     c0423:                                    1
@@ -7991,25 +7997,20 @@ save pydis_start, pydis_end
 ;     c045d:                                    1
 ;     c0473:                                    1
 ;     c04a0:                                    1
-;     c04ae:                                    1
 ;     c0535:                                    1
 ;     c055f:                                    1
 ;     c05c2:                                    1
-;     c05d5:                                    1
 ;     c067b:                                    1
 ;     c811b:                                    1
 ;     c811f:                                    1
 ;     c817d:                                    1
 ;     c81e6:                                    1
 ;     c8212:                                    1
-;     c832f:                                    1
 ;     c8359:                                    1
 ;     c835a:                                    1
 ;     c8394:                                    1
-;     c8397:                                    1
 ;     c83fb:                                    1
 ;     c8424:                                    1
-;     c8428:                                    1
 ;     c8441:                                    1
 ;     c849b:                                    1
 ;     c84a0:                                    1
@@ -8018,25 +8019,18 @@ save pydis_start, pydis_end
 ;     c8549:                                    1
 ;     c8552:                                    1
 ;     c8585:                                    1
-;     c8592:                                    1
 ;     c85cb:                                    1
 ;     c8657:                                    1
 ;     c8690:                                    1
 ;     c86b3:                                    1
-;     c86cb:                                    1
-;     c86e8:                                    1
 ;     c86ee:                                    1
-;     c8741:                                    1
 ;     c878c:                                    1
 ;     c87a3:                                    1
 ;     c87ce:                                    1
 ;     c87f7:                                    1
 ;     c8800:                                    1
-;     c888a:                                    1
 ;     c888f:                                    1
 ;     c8895:                                    1
-;     c8899:                                    1
-;     c88a3:                                    1
 ;     c88de:                                    1
 ;     c88df:                                    1
 ;     c8910:                                    1
@@ -8044,15 +8038,8 @@ save pydis_start, pydis_end
 ;     c893a:                                    1
 ;     c899f:                                    1
 ;     c89a9:                                    1
-;     c89bb:                                    1
 ;     c89c8:                                    1
 ;     c89e0:                                    1
-;     c89e3:                                    1
-;     c89f5:                                    1
-;     c89f8:                                    1
-;     c8a03:                                    1
-;     c8a1a:                                    1
-;     c8a23:                                    1
 ;     c8a31:                                    1
 ;     c8a70:                                    1
 ;     c8a73:                                    1
@@ -8072,42 +8059,22 @@ save pydis_start, pydis_end
 ;     c8cba:                                    1
 ;     c8d16:                                    1
 ;     c8d1c:                                    1
-;     c8d2a:                                    1
-;     c8d7e:                                    1
 ;     c8dd8:                                    1
 ;     c8e2a:                                    1
-;     c8e2e:                                    1
 ;     c8e4f:                                    1
-;     c8e75:                                    1
 ;     c8e8b:                                    1
-;     c8e9b:                                    1
-;     c8ea6:                                    1
-;     c8eb7:                                    1
 ;     c8edb:                                    1
-;     c8f15:                                    1
 ;     c8f1a:                                    1
-;     c8f31:                                    1
-;     c8f3e:                                    1
 ;     c8f80:                                    1
 ;     c8fc0:                                    1
 ;     c8ff3:                                    1
-;     c8ff5:                                    1
 ;     c9004:                                    1
-;     c9019:                                    1
-;     c9085:                                    1
-;     c90ad:                                    1
 ;     c90d7:                                    1
-;     c9102:                                    1
 ;     c917c:                                    1
-;     c917e:                                    1
-;     c9184:                                    1
 ;     c918a:                                    1
-;     c91c3:                                    1
 ;     c91f5:                                    1
 ;     c920b:                                    1
 ;     c920e:                                    1
-;     c9254:                                    1
-;     c9271:                                    1
 ;     c9307:                                    1
 ;     c934c:                                    1
 ;     c954c:                                    1
@@ -8164,25 +8131,48 @@ save pydis_start, pydis_end
 ;     c9ea7:                                    1
 ;     c9f32:                                    1
 ;     c9fa4:                                    1
+;     cbset3:                                   1
+;     cbset4:                                   1
+;     cha4:                                     1
+;     cha5:                                     1
+;     cha5lp:                                   1
+;     cha6:                                     1
+;     chalp1:                                   1
+;     chalp2:                                   1
 ;     clear_osbyte_ce_cf:                       1
+;     cloop:                                    1
 ;     close_handle:                             1
 ;     close_single_handle:                      1
 ;     copy_fs_reply_to_cb:                      1
+;     copyl3:                                   1
 ;     copyright_offset:                         1
 ;     ctrl_block_setup:                         1
 ;     ctrl_block_setup_clv:                     1
 ;     ctrl_block_template:                      1
 ;     data_tx_begin:                            1
+;     decfir:                                   1
+;     decmin:                                   1
+;     decmor:                                   1
 ;     dispatch_hi:                              1
 ;     dispatch_lo:                              1
 ;     dispatch_service:                         1
+;     dofs01:                                   1
+;     dofs2:                                    1
+;     dofsl1:                                   1
+;     dofsl5:                                   1
+;     dofsl7:                                   1
 ;     econet_data_terminate_frame:              1
+;     entry1:                                   1
+;     error1:                                   1
 ;     error_msg_table:                          1
 ;     evntv:                                    1
+;     file1:                                    1
 ;     filev:                                    1
 ;     filev_attrib_dispatch:                    1
 ;     filev_save:                               1
+;     floop:                                    1
 ;     forward_star_cmd:                         1
+;     fs2al1:                                   1
 ;     fs_cmd_lib:                               1
 ;     fs_cmd_ptr:                               1
 ;     fs_cmd_type:                              1
@@ -8192,6 +8182,18 @@ save pydis_start, pydis_end
 ;     fs_wait_cleanup:                          1
 ;     fscv:                                     1
 ;     fscv_star_handler:                        1
+;     fsdiel:                                   1
+;     fstxl1:                                   1
+;     fstxl2:                                   1
+;     gbpbe1:                                   1
+;     gbpbf1:                                   1
+;     gbpbf2:                                   1
+;     gbpbf3:                                   1
+;     gbpbl1:                                   1
+;     gbpbl3:                                   1
+;     gbpbx:                                    1
+;     gbpbx0:                                   1
+;     gbpbx1:                                   1
 ;     get_file_protection:                      1
 ;     gsinit:                                   1
 ;     gsread:                                   1
@@ -8199,8 +8201,11 @@ save pydis_start, pydis_end
 ;     handle_to_mask:                           1
 ;     handshake_await_ack:                      1
 ;     immediate_op:                             1
+;     info2:                                    1
+;     infol2:                                   1
 ;     init_tx_ctrl_data:                        1
 ;     init_vectors_and_copy:                    1
+;     initl:                                    1
 ;     install_nmi_shim:                         1
 ;     install_saved_handler:                    1
 ;     issue_vectors_claimed:                    1
@@ -8237,6 +8242,7 @@ save pydis_start, pydis_end
 ;     l0fc6:                                    1
 ;     l0fe0:                                    1
 ;     l212e:                                    1
+;     l4:                                       1
 ;     l6465:                                    1
 ;     l7dfd:                                    1
 ;     l8001:                                    1
@@ -8255,95 +8261,60 @@ save pydis_start, pydis_end
 ;     l9ed2:                                    1
 ;     language_entry:                           1
 ;     language_handler:                         1
+;     loadop:                                   1
+;     lodchk:                                   1
+;     lodfil:                                   1
+;     lodrl1:                                   1
+;     lodrl2:                                   1
+;     logon2:                                   1
+;     logon3:                                   1
 ;     loop_c0430:                               1
 ;     loop_c048a:                               1
 ;     loop_c04d1:                               1
 ;     loop_c0592:                               1
 ;     loop_c05a6:                               1
-;     loop_c05b5:                               1
-;     loop_c05da:                               1
 ;     loop_c05f8:                               1
 ;     loop_c0604:                               1
 ;     loop_c061b:                               1
-;     loop_c0638:                               1
 ;     loop_c0687:                               1
 ;     loop_c06a5:                               1
-;     loop_c80f9:                               1
 ;     loop_c8113:                               1
 ;     loop_c8160:                               1
-;     loop_c818f:                               1
 ;     loop_c819d:                               1
-;     loop_c81b2:                               1
-;     loop_c8219:                               1
 ;     loop_c82b4:                               1
-;     loop_c82ff:                               1
-;     loop_c831f:                               1
 ;     loop_c8361:                               1
-;     loop_c838a:                               1
-;     loop_c83dd:                               1
 ;     loop_c8435:                               1
 ;     loop_c8525:                               1
 ;     loop_c8543:                               1
 ;     loop_c8565:                               1
-;     loop_c8598:                               1
-;     loop_c85a7:                               1
 ;     loop_c85c2:                               1
 ;     loop_c85d0:                               1
 ;     loop_c8607:                               1
 ;     loop_c865a:                               1
-;     loop_c866a:                               1
-;     loop_c8699:                               1
-;     loop_c86a8:                               1
 ;     loop_c86f0:                               1
-;     loop_c870b:                               1
 ;     loop_c871f:                               1
 ;     loop_c8721:                               1
-;     loop_c8735:                               1
-;     loop_c874a:                               1
 ;     loop_c8768:                               1
 ;     loop_c87a0:                               1
-;     loop_c87af:                               1
-;     loop_c87bd:                               1
 ;     loop_c87d9:                               1
-;     loop_c87eb:                               1
 ;     loop_c87f9:                               1
-;     loop_c8861:                               1
-;     loop_c8878:                               1
-;     loop_c88d2:                               1
 ;     loop_c8907:                               1
 ;     loop_c8916:                               1
-;     loop_c893d:                               1
 ;     loop_c89d4:                               1
-;     loop_c8a0f:                               1
-;     loop_c8a45:                               1
-;     loop_c8a5c:                               1
-;     loop_c8abd:                               1
 ;     loop_c8b03:                               1
-;     loop_c8b22:                               1
 ;     loop_c8b73:                               1
 ;     loop_c8b97:                               1
-;     loop_c8b99:                               1
-;     loop_c8b9b:                               1
-;     loop_c8ba7:                               1
 ;     loop_c8c76:                               1
 ;     loop_c8caf:                               1
-;     loop_c8d24:                               1
-;     loop_c8e0c:                               1
 ;     loop_c8eaf:                               1
 ;     loop_c8ec8:                               1
-;     loop_c8f01:                               1
 ;     loop_c8f30:                               1
-;     loop_c8f4e:                               1
-;     loop_c8f78:                               1
 ;     loop_c8f95:                               1
 ;     loop_c8fd7:                               1
 ;     loop_c8fe9:                               1
-;     loop_c9087:                               1
 ;     loop_c909c:                               1
-;     loop_c90a9:                               1
 ;     loop_c90db:                               1
 ;     loop_c912e:                               1
-;     loop_c9279:                               1
 ;     loop_c92a8:                               1
 ;     loop_c96d1:                               1
 ;     loop_c99ce:                               1
@@ -8355,7 +8326,13 @@ save pydis_start, pydis_end
 ;     loop_c9d52:                               1
 ;     loop_c9d80:                               1
 ;     loop_c9f77:                               1
+;     mj:                                       1
+;     nbyte1:                                   1
+;     nbyte4:                                   1
+;     nbyte5:                                   1
+;     nbyte6:                                   1
 ;     netv:                                     1
+;     nlistn:                                   1
 ;     nmi_data_rx_bulk:                         1
 ;     nmi_data_rx_skip:                         1
 ;     nmi_final_ack_validate:                   1
@@ -8366,8 +8343,12 @@ save pydis_start, pydis_end
 ;     nmi_shim_rom_src:                         1
 ;     nmi_workspace_start:                      1
 ;     nvrdch:                                   1
+;     openl6:                                   1
+;     openl7:                                   1
 ;     option_name_offsets:                      1
 ;     option_name_strings:                      1
+;     optl1:                                    1
+;     osarg1:                                   1
 ;     osargs:                                   1
 ;     osbget:                                   1
 ;     osbput:                                   1
@@ -8383,10 +8364,14 @@ save pydis_start, pydis_end
 ;     print_exec_and_len:                       1
 ;     print_hex_nibble:                         1
 ;     pydis_start:                              1
+;     quote1:                                   1
+;     rchex:                                    1
 ;     rdchv:                                    1
 ;     read_args_size:                           1
 ;     read_vdu_osbyte:                          1
 ;     read_vdu_osbyte_x0:                       1
+;     readry:                                   1
+;     rest1:                                    1
 ;     restore_econet_state:                     1
 ;     return_10:                                1
 ;     return_11:                                1
@@ -8398,10 +8383,19 @@ save pydis_start, pydis_end
 ;     return_7:                                 1
 ;     rom_header:                               1
 ;     rom_type:                                 1
+;     rsl1:                                     1
+;     rssl1:                                    1
+;     rssl2:                                    1
 ;     rx_error_reset:                           1
+;     savchk:                                   1
+;     save1:                                    1
 ;     save_args_handle:                         1
 ;     save_econet_state:                        1
 ;     save_vdu_state:                           1
+;     saveop:                                   1
+;     savsiz:                                   1
+;     scan0:                                    1
+;     scan1:                                    1
 ;     scout_discard:                            1
 ;     scout_loop_rda:                           1
 ;     scout_loop_second:                        1
@@ -8412,14 +8406,18 @@ save pydis_start, pydis_end
 ;     service_entry:                            1
 ;     service_handler:                          1
 ;     set_listen_offset:                        1
+;     setup1:                                   1
 ;     setup_fs_vectors:                         1
 ;     setup_rom_ptrs_netv:                      1
 ;     setup_rx_buffer_ptrs:                     1
 ;     skip_cmd_spaces:                          1
+;     skpspi:                                   1
 ;     store_16bit_at_y:                         1
 ;     store_fs_error:                           1
 ;     store_retry_count:                        1
+;     strnh:                                    1
 ;     sub_4_from_y:                             1
+;     tbcop1:                                   1
 ;     trampoline_adlc_init:                     1
 ;     tube_brk_handler:                         1
 ;     tube_brk_send_loop:                       1
@@ -8451,6 +8449,8 @@ save pydis_start, pydis_end
 ;     tx_src_net:                               1
 ;     update_sequence_return:                   1
 ;     wrchv:                                    1
+;     y2fsl2:                                   1
+;     y2fsl5:                                   1
 
 ; Automatically generated labels:
 ;     c0020
@@ -8463,14 +8463,11 @@ save pydis_start, pydis_end
 ;     c0464
 ;     c0473
 ;     c04a0
-;     c04ae
-;     c04ba
 ;     c04cc
 ;     c0522
 ;     c0535
 ;     c055f
 ;     c05c2
-;     c05d5
 ;     c067b
 ;     c811b
 ;     c811f
@@ -8480,18 +8477,13 @@ save pydis_start, pydis_end
 ;     c8212
 ;     c8240
 ;     c82c3
-;     c832f
 ;     c8359
 ;     c835a
 ;     c8394
-;     c8397
 ;     c83fb
 ;     c840f
 ;     c8424
-;     c8428
-;     c842a
 ;     c8441
-;     c845a
 ;     c849b
 ;     c84a0
 ;     c8521
@@ -8500,30 +8492,22 @@ save pydis_start, pydis_end
 ;     c8552
 ;     c8584
 ;     c8585
-;     c8592
 ;     c85a1
 ;     c85cb
 ;     c85fe
-;     c8637
 ;     c8657
 ;     c868c
 ;     c8690
 ;     c86b3
-;     c86cb
-;     c86e8
 ;     c86ee
-;     c8741
 ;     c878c
 ;     c87a3
 ;     c87ce
 ;     c87f7
 ;     c8800
 ;     c8840
-;     c888a
 ;     c888f
 ;     c8895
-;     c8899
-;     c88a3
 ;     c88de
 ;     c88df
 ;     c8910
@@ -8533,16 +8517,8 @@ save pydis_start, pydis_end
 ;     c8945
 ;     c899f
 ;     c89a9
-;     c89b6
-;     c89bb
 ;     c89c8
 ;     c89e0
-;     c89e3
-;     c89f5
-;     c89f8
-;     c8a03
-;     c8a1a
-;     c8a23
 ;     c8a31
 ;     c8a70
 ;     c8a73
@@ -8565,56 +8541,30 @@ save pydis_start, pydis_end
 ;     c8cff
 ;     c8d16
 ;     c8d1c
-;     c8d2a
-;     c8d7e
 ;     c8dac
-;     c8dd6
 ;     c8dd8
 ;     c8dda
 ;     c8e2a
-;     c8e2e
 ;     c8e4f
-;     c8e75
 ;     c8e8b
-;     c8e9b
-;     c8ea6
 ;     c8eac
-;     c8eb7
 ;     c8edb
 ;     c8ee1
-;     c8ee3
-;     c8f15
 ;     c8f1a
-;     c8f31
-;     c8f3e
-;     c8f43
 ;     c8f45
 ;     c8f48
 ;     c8f80
 ;     c8fc0
 ;     c8ff3
-;     c8ff5
 ;     c9004
-;     c9019
 ;     c907c
-;     c9085
-;     c90ad
 ;     c90d7
-;     c9102
-;     c9105
-;     c9167
 ;     c917c
-;     c917e
-;     c9184
 ;     c9186
 ;     c918a
-;     c91c3
-;     c91d6
 ;     c91f5
 ;     c920b
 ;     c920e
-;     c9254
-;     c9271
 ;     c9307
 ;     c934c
 ;     c954c
@@ -8783,90 +8733,48 @@ save pydis_start, pydis_end
 ;     loop_c04d1
 ;     loop_c0592
 ;     loop_c05a6
-;     loop_c05b5
-;     loop_c05da
 ;     loop_c05f8
 ;     loop_c0604
 ;     loop_c061b
-;     loop_c0638
 ;     loop_c0687
 ;     loop_c06a5
-;     loop_c80f9
 ;     loop_c8113
 ;     loop_c8160
-;     loop_c818f
 ;     loop_c819d
-;     loop_c81b2
-;     loop_c8219
 ;     loop_c82b4
-;     loop_c82ff
-;     loop_c831f
 ;     loop_c8361
-;     loop_c838a
-;     loop_c83dd
 ;     loop_c8435
 ;     loop_c8525
 ;     loop_c8543
 ;     loop_c8565
-;     loop_c8598
-;     loop_c85a7
 ;     loop_c85c2
 ;     loop_c85d0
 ;     loop_c8607
 ;     loop_c865a
-;     loop_c866a
-;     loop_c8699
-;     loop_c86a8
 ;     loop_c86f0
-;     loop_c870b
 ;     loop_c871f
 ;     loop_c8721
-;     loop_c8735
-;     loop_c874a
 ;     loop_c8768
 ;     loop_c87a0
-;     loop_c87af
-;     loop_c87bd
 ;     loop_c87d9
-;     loop_c87eb
 ;     loop_c87f9
-;     loop_c8861
-;     loop_c8878
-;     loop_c88d2
 ;     loop_c8907
 ;     loop_c8916
-;     loop_c893d
 ;     loop_c89d4
-;     loop_c8a0f
-;     loop_c8a45
-;     loop_c8a5c
-;     loop_c8abd
 ;     loop_c8b03
-;     loop_c8b22
 ;     loop_c8b73
 ;     loop_c8b97
-;     loop_c8b99
-;     loop_c8b9b
-;     loop_c8ba7
 ;     loop_c8c76
 ;     loop_c8caf
-;     loop_c8d24
-;     loop_c8e0c
 ;     loop_c8eaf
 ;     loop_c8ec8
-;     loop_c8f01
 ;     loop_c8f30
-;     loop_c8f4e
-;     loop_c8f78
 ;     loop_c8f95
 ;     loop_c8fd7
 ;     loop_c8fe9
-;     loop_c9087
 ;     loop_c909c
-;     loop_c90a9
 ;     loop_c90db
 ;     loop_c912e
-;     loop_c9279
 ;     loop_c92a8
 ;     loop_c96d1
 ;     loop_c99ce

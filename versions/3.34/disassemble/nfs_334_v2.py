@@ -735,6 +735,132 @@ label(0x9FCA, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
 label(0x9FEB, "rom_nmi_tail")          # TX flags update + address calc (purpose unclear)
 
 # ============================================================
+# Labels from DNFS 3.60 source correspondence
+# ============================================================
+# These labels were identified by opcode fingerprint matching between
+# the NFS 3.34 ROM and the original Acorn DNFS 3.60 source code
+# (NFS00-NFS13). Each replaces a py8dis auto-generated label with
+# the name used in the Acorn reference source.
+
+# --- Relocated Tube code (pages 4-6) ---
+label(0x04AE, "begink")               # NFS12: Tube begin
+label(0x04BA, "beginr")               # NFS12: Tube begin return
+label(0x05B5, "strnh")                # NFS13: string handling
+label(0x05D5, "mj")                   # NFS13: conditional jump
+label(0x05DA, "argsw")                # NFS13: OSARGS workspace
+label(0x0638, "bytex")                # NFS13: byte transfer
+
+# --- Service call init (&80xx) ---
+label(0x80F9, "cloop")                # NFS01: copy loop (page copy)
+label(0x818F, "initl")                # NFS01: init loop
+label(0x81B2, "skpspi")               # NFS01: skip SPI
+
+# --- FS command dispatch (&82xx-&83xx) ---
+label(0x8219, "dofsl1")               # NFS03: do FS loop 1
+label(0x82FF, "fsdiel")               # NFS01: FS die loop
+label(0x831F, "fstxl1")               # NFS03: FS TX loop 1
+label(0x832F, "fstxl2")               # NFS03: FS TX loop 2
+label(0x838A, "dofsl7")               # NFS03: do FS loop 7
+label(0x8397, "dofsl5")               # NFS03: do FS loop 5
+label(0x83DD, "error1")               # NFS03: error handler 1
+
+# --- Net list / pointer arithmetic (&84xx-&85xx) ---
+label(0x8428, "nlistn")               # NFS03: net list entry
+label(0x842A, "nlisne")               # NFS03: net list next entry
+label(0x845A, "incpx")                # NFS04: increment pointer X
+label(0x8592, "y2fsl5")               # NFS04: Y-to-FS loop 5
+label(0x8598, "y2fsl2")               # NFS04: Y-to-FS loop 2
+label(0x85A7, "fs2al1")               # NFS04: FS-to-A loop 1
+
+# --- Number formatting and file info (&86xx) ---
+label(0x8637, "num01")                # NFS07: number print entry
+label(0x866A, "l4")                   # NFS03: net TX polling loop
+label(0x8699, "file1")                # NFS05: FILEV entry 1
+label(0x86A8, "quote1")               # NFS05: filename quote loop
+label(0x86CB, "loadop")               # NFS05: load operation
+label(0x86E8, "lodfil")               # NFS05: load file
+
+# --- FILEV, load/save size (&87xx) ---
+label(0x870B, "floop")                # NFS01: FS loop
+label(0x8735, "lodchk")               # NFS05: load check
+label(0x8741, "saveop")               # NFS05: save operation
+label(0x874A, "savsiz")               # NFS05: save size handling
+label(0x87AF, "lodrl1")               # NFS05: load reply loop 1
+label(0x87BD, "lodrl2")               # NFS05: load reply loop 2
+label(0x87EB, "savchk")               # NFS05: save check
+
+# --- Channel/attribute handling (&88xx-&89xx) ---
+label(0x8861, "chalp1")               # NFS05: channel loop 1
+label(0x8878, "chalp2")               # NFS05: channel loop 2
+label(0x888A, "cha6")                  # NFS05: channel handler 6
+label(0x8899, "cha4")                  # NFS05: channel handler 4
+label(0x88A3, "cha5")                  # NFS05: channel handler 5
+label(0x88D2, "cha5lp")               # NFS05: channel 5 loop
+label(0x893D, "osarg1")               # NFS05: OSARGS handler 1
+label(0x89B6, "opter1")               # NFS05: *OPT error 1
+label(0x89BB, "optl1")                # NFS05: *OPT loop 1
+
+# --- GBPB handler (&89xx-&8Axx) ---
+label(0x89E3, "gbpbx")                # NFS05: GBPB dispatch
+label(0x89F5, "gbpbx0")               # NFS05: GBPB dispatch 0
+label(0x89F8, "gbpbx1")               # NFS05: GBPB dispatch 1
+label(0x8A03, "gbpbe1")               # NFS05: GBPB EOF 1
+label(0x8A0F, "gbpbf1")               # NFS05: GBPB forward 1
+label(0x8A1A, "gbpbf2")               # NFS05: GBPB forward 2
+label(0x8A23, "gbpbl1")               # NFS05: GBPB loop 1
+label(0x8A45, "gbpbl3")               # NFS05: GBPB loop 3
+label(0x8A5C, "gbpbf3")               # NFS05: GBPB forward 3
+
+# --- *INFO and decimal print (&8Axx-&8Bxx) ---
+label(0x8ABD, "info2")                # NFS06: *INFO loop 2
+label(0x8B22, "tbcop1")               # NFS06: Tube copy loop 1
+label(0x8B99, "decfir")               # NFS07: decimal first digit
+label(0x8B9B, "decmor")               # NFS07: decimal more digits
+label(0x8BA7, "decmin")               # NFS07: decimal minimum
+
+# --- Logon and *NET (&8Dxx) ---
+label(0x8D24, "logon2")               # NFS07: logon handler 2
+label(0x8D2A, "logon3")               # NFS07: logon handler 3
+label(0x8D7E, "infol2")               # NFS07: info loop 2
+
+# --- File I/O: save, read, open (&8Dxx-&8Fxx) ---
+label(0x8DD6, "rxpol2")               # NFS08: RX poll loop 2
+label(0x8E0C, "save1")                # NFS08: save handler 1
+label(0x8E2E, "copyl3")               # NFS08: copy loop 3
+label(0x8E75, "readry")               # NFS08: read ready
+label(0x8E9B, "rssl1")                # NFS08: read size/status loop 1
+label(0x8EA6, "rssl2")                # NFS08: read size/status loop 2
+label(0x8EB7, "rsl1")                 # NFS08: read status loop 1
+label(0x8EE3, "readc1")               # NFS08: read char 1
+label(0x8F01, "scan0")                # NFS08: scan entry 0
+label(0x8F15, "scan1")                # NFS08: scan entry 1
+label(0x8F31, "openl6")               # NFS08: open loop 6
+label(0x8F3E, "openl7")               # NFS08: open loop 7
+label(0x8F43, "openl4")               # NFS08: open loop 4
+label(0x8F4E, "rest1")                # NFS08: restore 1
+label(0x8F78, "dofs01")               # NFS08: do FS 01
+label(0x8FF5, "dofs2")                # NFS08: do FS 2
+
+# --- OSWORD and remote ops (&90xx-&91xx) ---
+label(0x9019, "entry1")               # NFS09: OSWORD entry 1
+label(0x9085, "nbyte6")               # NFS09: net byte handler 6
+label(0x9087, "nbyte1")               # NFS09: net byte handler 1
+label(0x90A9, "nbyte4")               # NFS09: net byte handler 4
+label(0x90AD, "nbyte5")               # NFS09: net byte handler 5
+label(0x9102, "rchex")                # NFS03: receive hex
+label(0x9105, "remot1")               # NFS03: remote handler 1
+label(0x9167, "cbset2")               # NFS09: control block set 2
+label(0x917E, "cbset3")               # NFS09: control block set 3
+label(0x9184, "cbset4")               # NFS09: control block set 4
+label(0x91C3, "setup1")               # NFS09: setup 1
+label(0x91D6, "prlp1")                # NFS09: printer loop 1
+
+# --- Broadcast/station search (&92xx) ---
+label(0x9254, "bsxl1")                # NFS09: broadcast search loop 1
+label(0x9271, "bspsx")                # NFS09: broadcast search parse exit
+label(0x9279, "bsxl0")                # NFS09: broadcast search loop 0
+
+# ============================================================
 # File header / overview comment (placed at &8000, first in code)
 # ============================================================
 comment(0x8000, """\

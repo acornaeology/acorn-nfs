@@ -1,0 +1,101 @@
+===============================================================================================
+Label Correspondence Report: NFS 3.34 / DNFS 3.60
+===============================================================================================
+
+STRONG MATCHES (22 labels, >= 3 consecutive opcode matches)
+
+ROM Addr   Our Label            Ref Label            Source    Conf   Match Opcode
+─────────  ───────────────────  ───────────────────  ───────  ───── ─────── ──────
+&05D5      c05d5                MJ                   NFS13     100%     5/5    yes
+&0638      loop_c0638           BYTEX                NFS13     100%     8/8    yes
+&81B2      loop_c81b2           SKPSPI               NFS01     100%     8/8    yes
+&8428      c8428                NLISTN               NFS03     100%     4/4    yes
+&842A      c842a                NLISNE               NFS03     100%     6/6    yes
+&86CB      c86cb                LOADOP               NFS05      80%    8/10    yes
+&86E8      c86e8                LODFIL               NFS05     100%     7/7    yes
+&8741      c8741                SAVEOP               NFS05     100%     5/5    yes
+&888A      c888a                CHA6                 NFS05     100%     7/7    yes
+&89B6      c89b6                OPTER1               NFS05      88%     7/8    yes
+&89F5      c89f5                GBPBX0               NFS05     100%     9/9    yes
+&8B99      loop_c8b99           DECFIR               NFS07     100%     7/7    yes
+&8D24      loop_c8d24           LOGON2               NFS07     100%     8/8    yes
+&8D7E      c8d7e                INFOL2               NFS07     100%     4/4    yes
+&8DD6      c8dd6                RXPOL2               NFS08      71%     5/7    yes
+&8E75      c8e75                READRY               NFS08      83%     5/6    yes
+&8EA6      c8ea6                RSSL2                NFS08      86%     6/7    yes
+&8F43      c8f43                OPENL4               NFS08      83%     5/6    yes
+&9085      c9085                NBYTE6               NFS09     100%     9/9    yes
+&9102      c9102                RCHEX                NFS03     100%     8/8    yes
+&9184      c9184                CBSET4               NFS09     100%     7/7    yes
+&91C3      c91c3                SETUP1               NFS09     100%     5/5    yes
+
+WEAK MATCHES (17 labels, < 3 opcodes or opcode mismatch — review needed)
+
+ROM Addr   Our Label            Ref Label            Source    Conf   Match Opcode
+─────────  ───────────────────  ───────────────────  ───────  ───── ─────── ──────
+&05C2      c05c2                STRNJ                NFS13     100%     2/2    yes
+&811F      c811f                XXXL1                NFS01      50%     3/6    yes
+&82C3      c82c3                DOFSER               NFS03     100%     2/2    yes
+&8394      c8394                BBCFS2               NFS03     100%     2/2    yes
+&8424      c8424                NREPLY               NFS03     100%     2/2    yes
+&8435      loop_c8435           NOL2                 NFS03      50%     3/6    yes
+&84A0      c84a0                DECIN2               NFS04     100%     2/2    yes
+&8657      c8657                L0                   NFS03     100%     2/2    yes
+&868C      c868c                LE                   NFS03     100%     2/2    yes
+&888F      c888f                CHAFSX               NFS05     100%     2/2    yes
+&8895      c8895                CHA6XX               NFS05     100%     2/2    yes
+&8A98      c8a98                INFO5                NFS06      50%     4/8    yes
+&8ACF      c8acf                INFO6                NFS06     100%     2/2    yes
+&8B03      loop_c8b03           INFOH1               NFS06      57%     4/7    yes
+&8B73      loop_c8b73           INFO81               NFS06      50%    5/10    yes
+&907C      c907c                NCAL2                NFS09     100%     2/2    yes
+&9A19      c9a19                NETON                NFS01      50%     3/6    yes
+
+Total: 22 strong + 17 weak = 39
+
+===============================================================================================
+Pasteable label() calls for nfs_334_v2.py
+(Strong matches only — review weak matches manually)
+===============================================================================================
+
+label(0x05D5, "mj")    # was c05d5, from NFS13
+label(0x0638, "bytex")    # was loop_c0638, from NFS13
+label(0x81B2, "skpspi")    # was loop_c81b2, from NFS01
+label(0x8428, "nlistn")    # was c8428, from NFS03
+label(0x842A, "nlisne")    # was c842a, from NFS03
+label(0x86CB, "loadop")    # was c86cb, from NFS05
+label(0x86E8, "lodfil")    # was c86e8, from NFS05
+label(0x8741, "saveop")    # was c8741, from NFS05
+label(0x888A, "cha6")    # was c888a, from NFS05
+label(0x89B6, "opter1")    # was c89b6, from NFS05
+label(0x89F5, "gbpbx0")    # was c89f5, from NFS05
+label(0x8B99, "decfir")    # was loop_c8b99, from NFS07
+label(0x8D24, "logon2")    # was loop_c8d24, from NFS07
+label(0x8D7E, "infol2")    # was c8d7e, from NFS07
+label(0x8DD6, "rxpol2")    # was c8dd6, from NFS08
+label(0x8E75, "readry")    # was c8e75, from NFS08
+label(0x8EA6, "rssl2")    # was c8ea6, from NFS08
+label(0x8F43, "openl4")    # was c8f43, from NFS08
+label(0x9085, "nbyte6")    # was c9085, from NFS09
+label(0x9102, "rchex")    # was c9102, from NFS03
+label(0x9184, "cbset4")    # was c9184, from NFS09
+label(0x91C3, "setup1")    # was c91c3, from NFS09
+
+# Weak matches (review before using):
+# label(0x05C2, "strnj")    # was c05c2, from NFS13 [only 2 opcode(s)]
+# label(0x811F, "xxxl1")    # was c811f, from NFS01 [only 3 opcode(s)]
+# label(0x82C3, "dofser")    # was c82c3, from NFS03 [only 2 opcode(s)]
+# label(0x8394, "bbcfs2")    # was c8394, from NFS03 [only 2 opcode(s)]
+# label(0x8424, "nreply")    # was c8424, from NFS03 [only 2 opcode(s)]
+# label(0x8435, "nol2")    # was loop_c8435, from NFS03 [only 3 opcode(s)]
+# label(0x84A0, "decin2")    # was c84a0, from NFS04 [only 2 opcode(s)]
+# label(0x8657, "l0")    # was c8657, from NFS03 [only 2 opcode(s)]
+# label(0x868C, "le")    # was c868c, from NFS03 [only 2 opcode(s)]
+# label(0x888F, "chafsx")    # was c888f, from NFS05 [only 2 opcode(s)]
+# label(0x8895, "cha6xx")    # was c8895, from NFS05 [only 2 opcode(s)]
+# label(0x8A98, "info5")    # was c8a98, from NFS06 [only 4 opcode(s)]
+# label(0x8ACF, "info6")    # was c8acf, from NFS06 [only 2 opcode(s)]
+# label(0x8B03, "infoh1")    # was loop_c8b03, from NFS06 [only 4 opcode(s)]
+# label(0x8B73, "info81")    # was loop_c8b73, from NFS06 [only 5 opcode(s)]
+# label(0x907C, "ncal2")    # was c907c, from NFS09 [only 2 opcode(s)]
+# label(0x9A19, "neton")    # was c9a19, from NFS01 [only 3 opcode(s)]
