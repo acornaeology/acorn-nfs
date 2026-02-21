@@ -8,9 +8,9 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
 
 ## Versions
 
-### NFS 3.34
+### Acorn NFS 3.34
 
-- [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/nfs/3.34.html)
+- [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.34.html)
 - [Raw assembly source](versions/3.34/output/nfs-3.34.asm)
 - [Acorn NFS 3.34 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=d6761cb566cd87b0c1117b5b600cff16)
 

@@ -27,7 +27,7 @@ jobs:
           make -C /tmp/beebasm/build -j$(nproc)
           sudo cp /tmp/beebasm/build/beebasm /usr/local/bin/
 
-      - name: Disassemble NFS 3.34
+      - name: Disassemble Acorn NFS 3.34
         run: uv run acorn-nfs disassemble 3.34
 
       - name: Verify round-trip assembly

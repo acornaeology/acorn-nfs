@@ -42,7 +42,7 @@ def main():
         rom_meta = json.loads(rom_json_filepath.read_text())
         title = rom_meta.get("title", f"{name} {version_id}")
 
-        site_url = f"https://acornaeology.uk/nfs/{version_id}.html"
+        site_url = f"https://acornaeology.uk/{manifest['slug']}/{version_id}.html"
         asm_path = f"versions/{version_id}/output/nfs-{version_id}.asm"
 
         lines.append(f"### {title}")

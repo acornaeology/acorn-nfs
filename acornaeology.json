@@ -1,5 +1,5 @@
 {
-    "slug": "nfs",
+    "slug": "acorn-nfs",
     "name": "Acorn NFS",
     "description": "Network Filing System for the BBC Micro Econet interface.",
     "versions": ["3.34"],
