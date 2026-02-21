@@ -1,0 +1,34 @@
+name: Verify disassembly
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build beebasm
+        run: |
+          git clone --depth 1 --branch v1.11 https://github.com/stardot/beebasm.git /tmp/beebasm
+          cmake -S /tmp/beebasm -B /tmp/beebasm/build
+          make -C /tmp/beebasm/build -j$(nproc)
+          sudo cp /tmp/beebasm/build/beebasm /usr/local/bin/
+
+      - name: Disassemble NFS 3.34
+        run: uv run acorn-nfs disassemble 3.34
+
+      - name: Verify round-trip assembly
+        run: uv run acorn-nfs verify 3.34
