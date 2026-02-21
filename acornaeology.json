@@ -2,5 +2,12 @@
     "slug": "nfs",
     "name": "Acorn NFS",
     "description": "Network Filing System for the BBC Micro Econet interface.",
-    "versions": ["3.34"]
+    "versions": ["3.34"],
+    "references": [
+        {
+            "label": "Acorn DNFS 3.00 source code",
+            "url": "https://github.com/stardot/AcornDNFSv300",
+            "note": "This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process."
+        }
+    ]
 }
