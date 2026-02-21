@@ -30,5 +30,11 @@ jobs:
       - name: Disassemble Acorn NFS 3.34
         run: uv run acorn-nfs-disasm-tool disassemble 3.34
 
-      - name: Verify round-trip assembly
+      - name: Verify Acorn NFS 3.34
         run: uv run acorn-nfs-disasm-tool verify 3.34
+
+      - name: Disassemble Acorn NFS 3.34B
+        run: uv run acorn-nfs-disasm-tool disassemble 3.34B
+
+      - name: Verify Acorn NFS 3.34B
+        run: uv run acorn-nfs-disasm-tool verify 3.34B

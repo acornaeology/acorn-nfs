@@ -35,7 +35,8 @@ def get_version_dirpath(version):
 def cmd_disassemble(args):
     """Run the disassembly for a given NFS version."""
     version_dirpath = get_version_dirpath(args.version)
-    script_filepath = version_dirpath / "disassemble" / "disasm_nfs_334.py"
+    script_filename = f"disasm_nfs_{args.version.replace('.', '').lower()}.py"
+    script_filepath = version_dirpath / "disassemble" / script_filename
 
     if not script_filepath.exists():
         print(f"Error: {script_filepath} not found", file=sys.stderr)
@@ -76,6 +77,16 @@ def cmd_verify(args):
     sys.exit(verify(version_dirpath, args.version))
 
 
+def cmd_compare(args):
+    """Compare two ROM versions byte-by-byte and instruction-by-instruction."""
+    from disasm_tools.compare import compare
+
+    version_dirpath_a = get_version_dirpath(args.version_a)
+    version_dirpath_b = get_version_dirpath(args.version_b)
+    sys.exit(compare(version_dirpath_a, args.version_a,
+                     version_dirpath_b, args.version_b))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -100,6 +111,13 @@ def main():
     )
     verify_parser.add_argument("version", help="NFS version (e.g. 3.34)")
     verify_parser.set_defaults(func=cmd_verify)
+
+    compare_parser = subparsers.add_parser(
+        "compare", help="Compare two ROM versions"
+    )
+    compare_parser.add_argument("version_a", help="First NFS version (e.g. 3.34)")
+    compare_parser.add_argument("version_b", help="Second NFS version (e.g. 3.34B)")
+    compare_parser.set_defaults(func=cmd_compare)
 
     args = parser.parse_args()
     args.func(args)
