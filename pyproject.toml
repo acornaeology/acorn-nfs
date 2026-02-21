@@ -7,6 +7,9 @@ dependencies = [
     "py8dis @ git+https://github.com/acornaeology/py8dis.git",
 ]
 
+[tool.uv]
+index-url = "https://pypi.org/simple"
+
 [project.scripts]
 acorn-nfs = "acorn_nfs.cli:main"
 
