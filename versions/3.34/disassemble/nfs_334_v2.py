@@ -878,13 +878,14 @@ NFS ROM 3.34 disassembly (Acorn Econet filing system)
 
 NMI handler architecture
 ========================
-The NFS ROM uses self-modifying code to implement a state machine for
-ADLC communication. An NMI workspace shim is copied to &0D00 at init.
+The NFS ROM uses self-modifying code to implement a state
+machine for ADLC communication. An NMI workspace shim is
+copied to &0D00 at init.
 
 NMI entry (&0D00):
   BIT &FE18       ; INTOFF -- immediately disable further NMIs
   PHA / TYA / PHA ; save A, Y
-  LDA #$nn        ; page in NFS ROM bank (self-modified at init)
+  LDA #$nn        ; page in NFS ROM bank (self-modified)
   STA &FE30
   JMP $xxxx       ; self-modifying target at &0D0C/&0D0D
 
@@ -898,7 +899,7 @@ nmi_rti (&0D14):
   BIT &FE20       ; INTON -- re-enable NMIs
   RTI
 
-NMI handler chain for outbound transmission (four-way handshake):
+NMI handler chain for outbound TX (four-way handshake):
   &96F6: RX scout (idle listen, default handler)
   &9C48: INACTIVE polling (pre-TX, waits for idle line)
   &9D4C: TX data (2 bytes per NMI, tight loop if IRQ persists)
@@ -927,10 +928,12 @@ Key ADLC register values:
   CR1=&C1: full reset (TX_RESET|RX_RESET|AC)
   CR1=&82: RX listen (TX_RESET|RIE)
   CR1=&44: TX active (RX_RESET|TIE)
-  CR2=&67: clear all status (CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
-  CR2=&E7: TX prepare (RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
-  CR2=&3F: TX last data (CLR_RX_ST|TX_LAST_DATA|FLAG_IDLE|FC_TDRA|2_1_BYTE|PSE)
-  CR2=&A7: TX in handshake (RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE)""")
+
+  CR2 values (all set FC_TDRA|2_1_BYTE|PSE):
+  &67: clear status  CLR_TX_ST|CLR_RX_ST
+  &E7: TX prepare    RTS|CLR_TX_ST|CLR_RX_ST
+  &3F: TX last data  CLR_RX_ST|TX_LAST_DATA|FLAG_IDLE
+  &A7: TX handshake  RTS|CLR_TX_ST""")
 
 # ============================================================
 # Dispatch table at &8020 (low bytes) / &8044 (high bytes)
