@@ -1,0 +1,19 @@
+version = 1
+revision = 1
+requires-python = ">=3.10"
+
+[[package]]
+name = "acorn-nfs"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "py8dis" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "py8dis", git = "https://github.com/acornaeology/py8dis.git" }]
+
+[[package]]
+name = "py8dis"
+version = "0.1.0"
+source = { git = "https://github.com/acornaeology/py8dis.git#516ece908995651606874b5864f3ad1650146a9a" }
