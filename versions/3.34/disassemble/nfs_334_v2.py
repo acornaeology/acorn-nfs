@@ -1,7 +1,3 @@
-# Copyright 2026 Robert Smallshire <robert@smallshire.org.uk>
-#
-# SPDX-License-Identifier: GPL-3.0-or-later
-
 import os
 from pathlib import Path
 
