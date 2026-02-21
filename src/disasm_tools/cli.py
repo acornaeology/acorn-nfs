@@ -35,7 +35,7 @@ def get_version_dirpath(version):
 def cmd_disassemble(args):
     """Run the disassembly for a given NFS version."""
     version_dirpath = get_version_dirpath(args.version)
-    script_filepath = version_dirpath / "disassemble" / "nfs_334_v2.py"
+    script_filepath = version_dirpath / "disassemble" / "disasm_nfs_334.py"
 
     if not script_filepath.exists():
         print(f"Error: {script_filepath} not found", file=sys.stderr)

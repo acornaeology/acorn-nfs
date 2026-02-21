@@ -54,7 +54,7 @@ ROM Addr   Our Label            Ref Label            Source    Conf   Match Opco
 Total: 22 strong + 17 weak = 39
 
 ===============================================================================================
-Pasteable label() calls for nfs_334_v2.py
+Pasteable label() calls for disasm_nfs_334.py
 (Strong matches only — review weak matches manually)
 ===============================================================================================
 

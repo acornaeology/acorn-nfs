@@ -22,7 +22,7 @@ from typing import Optional
 
 REFERENCE_DIR = Path("/Users/rjs/Code/acorn_1770_dfs_disassembly/submodules/AcornDNFSv300/src")
 ROM_FILEPATH = Path("/Users/rjs/Code/beebium/roms/acorn-nfs_3_34.rom")
-DISASSEMBLY_FILEPATH = Path("/Users/rjs/Code/beebium/disassembly/nfs_334_v2.py")
+DISASSEMBLY_FILEPATH = Path("/Users/rjs/Code/beebium/disassembly/disasm_nfs_334.py")
 
 ROM_BASE = 0x8000
 ROM_SIZE = 8192
@@ -953,7 +953,7 @@ def correlate_main_rom(items: list, rom_data: bytes, symbols: dict):
 
 
 def parse_existing_labels(filepath: Path) -> dict:
-    """Parse label() calls from nfs_334_v2.py to build addr → name map."""
+    """Parse label() calls from disasm_nfs_334.py to build addr → name map."""
     labels = {}
     try:
         with open(filepath, 'r') as f:

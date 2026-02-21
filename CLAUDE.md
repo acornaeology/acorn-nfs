@@ -26,7 +26,7 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### Disassembly driver
 
-`versions/3.34/disassemble/nfs_334_v2.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
+`versions/3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
 
 ### Verification
 

@@ -409,7 +409,7 @@ def generate_report(correspondences):
 
     # Pasteable label() calls (strong matches only)
     lines.append("=" * 95)
-    lines.append("Pasteable label() calls for nfs_334_v2.py")
+    lines.append("Pasteable label() calls for disasm_nfs_334.py")
     lines.append("(Strong matches only — review weak matches manually)")
     lines.append("=" * 95)
     lines.append("")
