@@ -15,7 +15,7 @@ dependencies = [
 index-url = "https://pypi.org/simple"
 
 [project.scripts]
-acorn-nfs = "acorn_nfs.cli:main"
+acorn-nfs-disasm-tool = "disasm_tools.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -25,4 +25,4 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/acorn_nfs"]
+packages = ["src/disasm_tools"]

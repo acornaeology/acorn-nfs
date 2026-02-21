@@ -1,4 +1,4 @@
-"""CLI entry point for acorn-nfs."""
+"""CLI entry point for acorn-nfs-disasm-tool."""
 
 import argparse
 import os
@@ -70,7 +70,7 @@ def cmd_correlate(args):
 
 def cmd_verify(args):
     """Assemble the disassembly and verify it matches the original ROM."""
-    from acorn_nfs.verify import verify
+    from disasm_tools.verify import verify
 
     version_dirpath = get_version_dirpath(args.version)
     sys.exit(verify(version_dirpath, args.version))
@@ -78,7 +78,7 @@ def cmd_verify(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="acorn-nfs",
+        prog="acorn-nfs-disasm-tool",
         description="Acorn NFS ROM disassembly tools",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)

@@ -83,8 +83,8 @@ def main():
     lines.append("```sh")
     lines.append("uv sync")
     for version_id in versions:
-        lines.append(f"uv run acorn-nfs disassemble {version_id}")
-        lines.append(f"uv run acorn-nfs verify {version_id}")
+        lines.append(f"uv run acorn-nfs-disasm-tool disassemble {version_id}")
+        lines.append(f"uv run acorn-nfs-disasm-tool verify {version_id}")
     lines.append("```")
     lines.append("")
 

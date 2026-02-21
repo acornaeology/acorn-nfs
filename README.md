@@ -26,8 +26,8 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync
-uv run acorn-nfs disassemble 3.34
-uv run acorn-nfs verify 3.34
+uv run acorn-nfs-disasm-tool disassemble 3.34
+uv run acorn-nfs-disasm-tool verify 3.34
 ```
 
 ## References

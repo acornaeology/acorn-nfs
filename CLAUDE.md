@@ -12,8 +12,8 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync                            # Install dependencies
-uv run acorn-nfs disassemble 3.34  # Generate .asm and .json from ROM
-uv run acorn-nfs verify 3.34       # Reassemble and byte-compare against original ROM
+uv run acorn-nfs-disasm-tool disassemble 3.34  # Generate .asm and .json from ROM
+uv run acorn-nfs-disasm-tool verify 3.34       # Reassemble and byte-compare against original ROM
 ```
 
 Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. CI runs both `disassemble` then `verify` on every push.
@@ -22,7 +22,7 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### CLI entry point
 
-`src/acorn_nfs/cli.py` — three subcommands: `disassemble`, `correlate`, `verify`. Sets env vars `ACORN_NFS_ROM` and `ACORN_NFS_OUTPUT` before invoking version-specific scripts.
+`src/disasm_tools/cli.py` — three subcommands: `disassemble`, `correlate`, `verify`. Sets env vars `ACORN_NFS_ROM` and `ACORN_NFS_OUTPUT` before invoking version-specific scripts.
 
 ### Disassembly driver
 
@@ -30,7 +30,7 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### Verification
 
-`src/acorn_nfs/verify.py` — assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
+`src/disasm_tools/verify.py` — assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
 
 ### Correlation tools
 

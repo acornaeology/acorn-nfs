@@ -28,7 +28,7 @@ jobs:
           sudo cp /tmp/beebasm/build/beebasm /usr/local/bin/
 
       - name: Disassemble Acorn NFS 3.34
-        run: uv run acorn-nfs disassemble 3.34
+        run: uv run acorn-nfs-disasm-tool disassemble 3.34
 
       - name: Verify round-trip assembly
-        run: uv run acorn-nfs verify 3.34
+        run: uv run acorn-nfs-disasm-tool verify 3.34

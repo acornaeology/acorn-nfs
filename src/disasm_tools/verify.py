@@ -21,7 +21,7 @@ def verify(version_dirpath, version):
 
     if not asm_filepath.exists():
         print(f"Error: assembly file not found: {asm_filepath}", file=sys.stderr)
-        print("Run 'acorn-nfs disassemble' first.", file=sys.stderr)
+        print("Run 'acorn-nfs-disasm-tool disassemble' first.", file=sys.stderr)
         return 1
 
     beebasm_filepath = shutil.which("beebasm")
