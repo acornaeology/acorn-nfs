@@ -9,5 +9,20 @@
             "url": "https://tobylobster.github.io/rom_library/?md5=f1ce449900053d6d28c743904fc0efb1",
             "icon": "chip"
         }
+    ],
+    "docs": [
+        {
+            "type": "changes",
+            "label": "Changes from NFS 3.34",
+            "path": "CHANGES-FROM-3.34.md",
+            "address_links": [
+                {"pattern": "&8099", "occurrence": 0, "version": "3.34", "address": "0x8099"},
+                {"pattern": "&80AF", "occurrence": 0, "version": "3.34", "address": "0x80AF"},
+                {"pattern": "&81C4", "occurrence": 0, "version": "3.34", "address": "0x81C4"},
+                {"pattern": "&964B", "occurrence": 0, "version": "3.34", "address": "0x964B"},
+                {"pattern": "&9307", "occurrence": 0, "version": "3.34", "address": "0x9307"},
+                {"pattern": "&9308", "occurrence": 0, "version": "3.34B", "address": "0x9308"}
+            ]
+        }
     ]
 }
