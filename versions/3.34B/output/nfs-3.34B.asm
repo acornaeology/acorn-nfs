@@ -967,7 +967,7 @@ l0055 = tube_dispatch_cmd+1
     org &8000
 
 ; Sideways ROM header
-; NFS ROM 3.34 disassembly (Acorn Econet filing system)
+; NFS ROM 3.34B disassembly (Acorn Econet filing system)
 ; 
 ; NMI handler architecture
 ; ========================

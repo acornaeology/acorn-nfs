@@ -888,7 +888,7 @@ label(0x9291, "return_bspsx")         # NFS09: return from broadcast search area
 # File header / overview comment (placed at &8000, first in code)
 # ============================================================
 comment(0x8000, """\
-NFS ROM 3.34 disassembly (Acorn Econet filing system)
+NFS ROM 3.34B disassembly (Acorn Econet filing system)
 
 NMI handler architecture
 ========================
