@@ -1,131 +1,63 @@
-#!/usr/bin/env python3
-"""Generate README.md from project metadata."""
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["jinja2>=3.1"]
+# ///
+"""Generate README.md from project metadata and a Jinja2 template."""
 
 import json
 from pathlib import Path
 
+from jinja2 import Environment, FileSystemLoader
+
 REPO_ROOT = Path(__file__).resolve().parent
 REPO_URL = "https://github.com/acornaeology/acorn-nfs"
+SITE_URL = "https://acornaeology.uk"
 
 
 def main():
     manifest = json.loads((REPO_ROOT / "acornaeology.json").read_text())
-    name = manifest["name"]
-    description = manifest["description"]
-    versions = manifest["versions"]
+    slug = manifest["slug"]
 
-    lines = []
-
-    lines.append(f"# {name}")
-    lines.append("")
-    lines.append(
-        "[![Verify disassembly]"
-        f"({REPO_URL}/actions/workflows/verify.yml/badge.svg)]"
-        f"({REPO_URL}/actions/workflows/verify.yml)"
-    )
-    lines.append("")
-    lines.append(description)
-    lines.append("")
-    lines.append(
-        "This repository contains annotated disassemblies of the Acorn NFS ROM, "
-        "produced by reverse-engineering the original 6502 machine code. Each "
-        "disassembly includes named labels, comments explaining the logic, and "
-        "cross-references between subroutines."
-    )
-    lines.append("")
-
-    lines.append("## Versions")
-    lines.append("")
-    for version_id in versions:
+    versions = []
+    for version_id in manifest["versions"]:
         version_dirpath = REPO_ROOT / "versions" / version_id
-        rom_json_filepath = version_dirpath / "rom" / "rom.json"
-        rom_meta = json.loads(rom_json_filepath.read_text())
-        title = rom_meta.get("title", f"{name} {version_id}")
-
-        site_url = f"https://acornaeology.uk/{manifest['slug']}/{version_id}.html"
-        asm_path = f"versions/{version_id}/output/nfs-{version_id}.asm"
-
-        lines.append(f"### {title}")
-        lines.append("")
-        lines.append(
-            f"- [Formatted disassembly on acornaeology.uk]({site_url})"
+        rom_meta = json.loads(
+            (version_dirpath / "rom" / "rom.json").read_text()
         )
-        lines.append(f"- [Raw assembly source]({asm_path})")
 
-        for link in rom_meta.get("links", []):
-            lines.append(f"- [{link['label']}]({link['url']})")
+        docs = []
+        for doc in rom_meta.get("docs", []):
+            docs.append({
+                "label": doc["label"],
+                "path": f"versions/{version_id}/{doc['path']}",
+            })
 
-        lines.append("")
+        versions.append({
+            "id": version_id,
+            "title": rom_meta.get("title", f"{manifest['name']} {version_id}"),
+            "site_url": f"{SITE_URL}/{slug}/{version_id}.html",
+            "asm_path": f"versions/{version_id}/output/nfs-{version_id}.asm",
+            "links": rom_meta.get("links", []),
+            "docs": docs,
+        })
 
-    lines.append("## How it works")
-    lines.append("")
-    lines.append(
-        "The disassembly is produced by a Python script that drives "
-        "a custom version of [py8dis](https://github.com/acornaeology/py8dis), a programmable "
-        "disassembler for 6502 binaries. The script feeds the original ROM "
-        "image to py8dis along with annotations — entry points, labels, "
-        "constants, and comments — to produce readable assembly output."
+    env = Environment(
+        loader=FileSystemLoader(REPO_ROOT),
+        keep_trailing_newline=True,
     )
-    lines.append("")
-    lines.append(
-        "The output is verified by reassembling with "
-        "[beebasm](https://github.com/stardot/beebasm) and comparing the "
-        "result byte-for-byte against the original ROM. This round-trip "
-        "verification runs automatically in CI on every push."
-    )
-    lines.append("")
+    template = env.get_template("README.md.j2")
 
-    lines.append("## Building locally")
-    lines.append("")
-    lines.append("Requires [uv](https://docs.astral.sh/uv/) and "
-                 "[beebasm](https://github.com/stardot/beebasm).")
-    lines.append("")
-    lines.append("```sh")
-    lines.append("uv sync")
-    for version_id in versions:
-        lines.append(f"uv run acorn-nfs-disasm-tool disassemble {version_id}")
-        lines.append(f"uv run acorn-nfs-disasm-tool verify {version_id}")
-    lines.append("```")
-    lines.append("")
-
-    references = manifest.get("references", [])
-    if references:
-        lines.append("## References")
-        lines.append("")
-        for ref in references:
-            lines.append(f"- [{ref['label']}]({ref['url']})")
-            if "note" in ref:
-                lines.append(f"  {ref['note']}")
-        lines.append("")
-
-    lines.append("## Credits")
-    lines.append("")
-    lines.append(
-        "- [py8dis](https://github.com/acornaeology/py8dis) by "
-        "[SteveF](https://github.com/ZornsLemma), forked for use with "
-        "acornaeology"
+    readme_text = template.render(
+        name=manifest["name"],
+        description=manifest["description"],
+        repo_url=REPO_URL,
+        versions=versions,
+        references=manifest.get("references", []),
     )
-    lines.append(
-        "- [beebasm](https://github.com/stardot/beebasm) by Rich Mayfield "
-        "and contributors"
-    )
-    lines.append(
-        "- [The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/) "
-        "by tobylobster"
-    )
-    lines.append("")
-
-    lines.append("## License")
-    lines.append("")
-    lines.append(
-        "The annotations and disassembly scripts in this repository are "
-        "released under the [MIT License](LICENSE). The original ROM images "
-        "remain the property of their respective copyright holders."
-    )
-    lines.append("")
 
     readme_filepath = REPO_ROOT / "README.md"
-    readme_filepath.write_text("\n".join(lines))
+    readme_filepath.write_text(readme_text)
     print(f"Generated {readme_filepath.relative_to(REPO_ROOT)}")
 
 

@@ -1,22 +1,23 @@
-# Acorn NFS
+# {{ name }}
 
-[![Verify disassembly](https://github.com/acornaeology/acorn-nfs/actions/workflows/verify.yml/badge.svg)](https://github.com/acornaeology/acorn-nfs/actions/workflows/verify.yml)
+[![Verify disassembly]({{ repo_url }}/actions/workflows/verify.yml/badge.svg)]({{ repo_url }}/actions/workflows/verify.yml)
 
-Network Filing System for the BBC Micro Econet interface.
+{{ description }}
 
 This repository contains annotated disassemblies of the Acorn NFS ROM, produced by reverse-engineering the original 6502 machine code. Each disassembly includes named labels, comments explaining the logic, and cross-references between subroutines.
 
 ## Versions
-
-- **Acorn NFS 3.34**
-  - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.34.html)
-  - [Raw assembly source](versions/3.34/output/nfs-3.34.asm)
-  - [Acorn NFS 3.34 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=d6761cb566cd87b0c1117b5b600cff16)
-- **Acorn NFS 3.34B**
-  - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.34B.html)
-  - [Raw assembly source](versions/3.34B/output/nfs-3.34B.asm)
-  - [Acorn NFS 3.34B in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=f1ce449900053d6d28c743904fc0efb1)
-  - [Changes from NFS 3.34](versions/3.34B/CHANGES-FROM-3.34.md)
+{% for version in versions %}
+- **{{ version.title }}**
+  - [Formatted disassembly on acornaeology.uk]({{ version.site_url }})
+  - [Raw assembly source]({{ version.asm_path }})
+{%- for link in version.links %}
+  - [{{ link.label }}]({{ link.url }})
+{%- endfor %}
+{%- for doc in version.docs %}
+  - [{{ doc.label }}]({{ doc.path }})
+{%- endfor %}
+{%- endfor %}
 
 ## How it works
 
@@ -30,16 +31,20 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync
-uv run acorn-nfs-disasm-tool disassemble 3.34
-uv run acorn-nfs-disasm-tool verify 3.34
-uv run acorn-nfs-disasm-tool disassemble 3.34B
-uv run acorn-nfs-disasm-tool verify 3.34B
+{% for version in versions -%}
+uv run acorn-nfs-disasm-tool disassemble {{ version.id }}
+uv run acorn-nfs-disasm-tool verify {{ version.id }}
+{% endfor -%}
 ```
-
+{% if references %}
 ## References
-
-- [Acorn DNFS 3.00 source code](https://github.com/stardot/AcornDNFSv300)
-  This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process.
+{% for ref in references %}
+- [{{ ref.label }}]({{ ref.url }})
+{%- if ref.note %}
+  {{ ref.note }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
 
 ## Credits
 
