@@ -18,10 +18,59 @@
             "address_links": [
                 {"pattern": "&8099", "occurrence": 0, "version": "3.34", "address": "0x8099"},
                 {"pattern": "&80AF", "occurrence": 0, "version": "3.34", "address": "0x80AF"},
+
                 {"pattern": "&81C4", "occurrence": 0, "version": "3.34", "address": "0x81C4"},
+
                 {"pattern": "&964B", "occurrence": 0, "version": "3.34", "address": "0x964B"},
+                {"pattern": "&06FF", "occurrence": 0, "version": "3.34", "address": "0x06FF"},
+                {"pattern": "&964C", "occurrence": 0, "version": "3.34", "address": "0x964C"},
+
+                {"pattern": "&003A", "occurrence": 0, "version": "3.34B", "address": "0x003A"},
+                {"pattern": "&003F", "occurrence": 0, "version": "3.34B", "address": "0x003F"},
+                {"pattern": "&004A", "occurrence": 0, "version": "3.34B", "address": "0x004A"},
+                {"pattern": "&0527", "occurrence": 0, "version": "3.34B", "address": "0x0527"},
+                {"pattern": "&052C", "occurrence": 0, "version": "3.34B", "address": "0x052C"},
+
+                {"pattern": "&06E2", "occurrence": 0, "version": "3.34B", "address": "0x06E2"},
+                {"pattern": "&06E8", "occurrence": 0, "version": "3.34B", "address": "0x06E8"},
+                {"pattern": "&06F7", "occurrence": 0, "version": "3.34B", "address": "0x06F7"},
+
+                {"pattern": "&81C8", "occurrence": 0, "version": "3.34", "address": "0x81C8"},
+                {"pattern": "&964A", "occurrence": 0, "version": "3.34", "address": "0x964A"},
+                {"pattern": "&81C9", "occurrence": 0, "version": "3.34B", "address": "0x81C9"},
+                {"pattern": "&964B", "occurrence": 1, "version": "3.34B", "address": "0x964B"},
+
+                {"pattern": "&8000", "occurrence": 0, "version": "3.34", "address": "0x8000"},
+                {"pattern": "&81C7", "occurrence": 0, "version": "3.34", "address": "0x81C7"},
+                {"pattern": "&8000", "occurrence": 1, "version": "3.34B", "address": "0x8000"},
+                {"pattern": "&81C7", "occurrence": 1, "version": "3.34B", "address": "0x81C7"},
+                {"pattern": "&81C8", "occurrence": 1, "version": "3.34B", "address": "0x81C8"},
+                {"pattern": "&81C8", "occurrence": 2, "version": "3.34", "address": "0x81C8"},
+                {"pattern": "&964A", "occurrence": 1, "version": "3.34", "address": "0x964A"},
+                {"pattern": "&81C9", "occurrence": 1, "version": "3.34B", "address": "0x81C9"},
+                {"pattern": "&964B", "occurrence": 2, "version": "3.34B", "address": "0x964B"},
+                {"pattern": "&964B", "occurrence": 3, "version": "3.34", "address": "0x964B"},
+                {"pattern": "&964C", "occurrence": 1, "version": "3.34", "address": "0x964C"},
+                {"pattern": "&9FFF", "occurrence": 0, "version": "3.34", "address": "0x9FFF"},
+                {"pattern": "&964C", "occurrence": 2, "version": "3.34B", "address": "0x964C"},
+                {"pattern": "&9FFF", "occurrence": 1, "version": "3.34B", "address": "0x9FFF"},
+
                 {"pattern": "&9307", "occurrence": 0, "version": "3.34", "address": "0x9307"},
-                {"pattern": "&9308", "occurrence": 0, "version": "3.34B", "address": "0x9308"}
+                {"pattern": "&9308", "occurrence": 0, "version": "3.34B", "address": "0x9308"},
+                {"pattern": "&0016", "occurrence": 0, "version": "3.34B", "address": "0x0016"},
+                {"pattern": "&0076", "occurrence": 0, "version": "3.34B", "address": "0x0076"},
+                {"pattern": "&934C", "occurrence": 0, "version": "3.34", "address": "0x934C"},
+                {"pattern": "&934D", "occurrence": 0, "version": "3.34B", "address": "0x934D"},
+                {"pattern": "&0400", "occurrence": 0, "version": "3.34B", "address": "0x0400"},
+                {"pattern": "&04FF", "occurrence": 0, "version": "3.34B", "address": "0x04FF"},
+                {"pattern": "&944C", "occurrence": 0, "version": "3.34", "address": "0x944C"},
+                {"pattern": "&944D", "occurrence": 0, "version": "3.34B", "address": "0x944D"},
+                {"pattern": "&0500", "occurrence": 0, "version": "3.34B", "address": "0x0500"},
+                {"pattern": "&05FF", "occurrence": 0, "version": "3.34B", "address": "0x05FF"},
+                {"pattern": "&954C", "occurrence": 0, "version": "3.34", "address": "0x954C"},
+                {"pattern": "&954D", "occurrence": 0, "version": "3.34B", "address": "0x954D"},
+                {"pattern": "&0600", "occurrence": 0, "version": "3.34B", "address": "0x0600"},
+                {"pattern": "&06FF", "occurrence": 1, "version": "3.34B", "address": "0x06FF"}
             ]
         }
     ]
