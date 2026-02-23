@@ -54,7 +54,6 @@ l0013                                   = &0013
 l0014                                   = &0014
 l0015                                   = &0015
 zp_63                                   = &0063
-l006d                                   = &006d
 escapable                               = &0097
 need_release_tube                       = &0098
 net_tx_ptr                              = &009a
@@ -216,7 +215,6 @@ l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l212e                                   = &212e
-l6465                                   = &6465
 l7dfd                                   = &7dfd
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
@@ -280,8 +278,6 @@ oscli                                   = &fff7
     jsr tube_send_r4                                                  ; 9309: 20 d9 06     .. :0018[1]
     lda tube_data_register_2                                          ; 930c: ad e3 fe    ... :001b[1]
     lda #0                                                            ; 930f: a9 00       ..  :001e[1]
-; &9311 referenced 1 time by &84b3
-.c0020
     jsr tube_send_r2                                                  ; 9311: 20 d0 06     .. :0020[1]
     tay                                                               ; 9314: a8          .   :0023[1]
     lda (l00fd),y                                                     ; 9315: b1 fd       ..  :0024[1]
@@ -2259,9 +2255,7 @@ l8014 = l800d+7
     dey                                                               ; 84ad: 88          .
     rts                                                               ; 84ae: 60          `
 
-; ***************************************************************************************
-; Econet error message table (ERRTAB, 8 entries)
-; 
+; Econet error message table (ERRTAB, 8 entries).
 ; Each entry: error number byte followed by NUL-terminated string.
 ;   &A0: "Line Jammed"     &A1: "Net Error"
 ;   &A2: "Not listening"   &A3: "No Clock"
@@ -2274,32 +2268,24 @@ l8014 = l800d+7
 ; within the timeout period; NLISTN fires when the destination
 ; station actively refused the connection.
 ; Indexed via the error dispatch at c8424/c842c.
-; ***************************************************************************************
 ; &84af referenced 1 time by &8435
 .error_msg_table
-    ldy #&4c ; 'L'                                                    ; 84af: a0 4c       .L
-    adc #&6e ; 'n'                                                    ; 84b1: 69 6e       in
-    adc c0020                                                         ; 84b3: 65 20       e
-    lsr a                                                             ; 84b5: 4a          J
-    adc (l006d,x)                                                     ; 84b6: 61 6d       am
-    adc l6465                                                         ; 84b8: 6d 65 64    med
-    brk                                                               ; 84bb: 00          .
-
+    equb &a0                                                          ; 84af: a0          .
+    equs "Line Jammed", 0                                             ; 84b0: 4c 69 6e... Lin
     equb &a1                                                          ; 84bc: a1          .
-    equs "Net Error"                                                  ; 84bd: 4e 65 74... Net
-    equb 0, &a2                                                       ; 84c6: 00 a2       ..
-    equs "Not listening"                                              ; 84c8: 4e 6f 74... Not
-    equb 0, &a3                                                       ; 84d5: 00 a3       ..
-    equs "No Clock"                                                   ; 84d7: 4e 6f 20... No
-    equb 0, &a4                                                       ; 84df: 00 a4       ..
-    equs "Bad Txcb"                                                   ; 84e1: 42 61 64... Bad
-    equb 0, &11                                                       ; 84e9: 00 11       ..
-    equs "Escape"                                                     ; 84eb: 45 73 63... Esc
-    equb 0, &cb                                                       ; 84f1: 00 cb       ..
-    equs "Bad Option"                                                 ; 84f3: 42 61 64... Bad
-    equb 0, &a5                                                       ; 84fd: 00 a5       ..
-    equs "No reply"                                                   ; 84ff: 4e 6f 20... No
-    equb 0                                                            ; 8507: 00          .
+    equs "Net Error", 0                                               ; 84bd: 4e 65 74... Net
+    equb &a2                                                          ; 84c7: a2          .
+    equs "Not listening", 0                                           ; 84c8: 4e 6f 74... Not
+    equb &a3                                                          ; 84d6: a3          .
+    equs "No Clock", 0                                                ; 84d7: 4e 6f 20... No
+    equb &a4                                                          ; 84e0: a4          .
+    equs "Bad Txcb", 0                                                ; 84e1: 42 61 64... Bad
+    equb &11                                                          ; 84ea: 11          .
+    equs "Escape", 0                                                  ; 84eb: 45 73 63... Esc
+    equb &cb                                                          ; 84f2: cb          .
+    equs "Bad Option", 0                                              ; 84f3: 42 61 64... Bad
+    equb &a5                                                          ; 84fe: a5          .
+    equs "No reply", 0                                                ; 84ff: 4e 6f 20... No
 
 ; ***************************************************************************************
 ; Save FSCV/vector arguments
@@ -7998,7 +7984,6 @@ save pydis_start, pydis_end
 ;     bsxl1:                                    1
 ;     build_send_fs_cmd:                        1
 ;     bytex:                                    1
-;     c0020:                                    1
 ;     c0419:                                    1
 ;     c0423:                                    1
 ;     c0426:                                    1
@@ -8223,7 +8208,6 @@ save pydis_start, pydis_end
 ;     l0055:                                    1
 ;     l0059:                                    1
 ;     l005a:                                    1
-;     l006d:                                    1
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
@@ -8252,7 +8236,6 @@ save pydis_start, pydis_end
 ;     l0fe0:                                    1
 ;     l212e:                                    1
 ;     l4:                                       1
-;     l6465:                                    1
 ;     l7dfd:                                    1
 ;     l8001:                                    1
 ;     l8002:                                    1
@@ -8464,7 +8447,6 @@ save pydis_start, pydis_end
 ;     y2fsl5:                                   1
 
 ; Automatically generated labels:
-;     c0020
 ;     c0036
 ;     c0419
 ;     c0423
@@ -8658,7 +8640,6 @@ save pydis_start, pydis_end
 ;     l0058
 ;     l0059
 ;     l005a
-;     l006d
 ;     l00ae
 ;     l00af
 ;     l00b3
@@ -8720,7 +8701,6 @@ save pydis_start, pydis_end
 ;     l0fdf
 ;     l0fe0
 ;     l212e
-;     l6465
 ;     l7dfd
 ;     l8001
 ;     l8002
@@ -8804,11 +8784,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7383 bytes (90%)
-;     Data                     = 809 bytes (10%)
+;     Code                     = 7370 bytes (90%)
+;     Data                     = 822 bytes (10%)
 ;
-;     Number of instructions   = 3562
-;     Number of data bytes     = 601 bytes
+;     Number of instructions   = 3555
+;     Number of data bytes     = 595 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 208 bytes
-;     Number of strings        = 37
+;     Number of string bytes   = 227 bytes
+;     Number of strings        = 38

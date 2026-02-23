@@ -1827,9 +1827,12 @@ from continuing to spool output to a broken file handle.""")
 # ============================================================
 # Error message table (&84B0)
 # ============================================================
-subroutine(0x84B0, "error_msg_table", hook=None,
-    title="Econet error message table (ERRTAB, 8 entries)",
-    description="""\
+# N.B. This is data, not code — we use label() not subroutine()
+# to avoid entry() tracing from &84B0, where the &A0 error code
+# byte would be misinterpreted as LDY #imm.
+label(0x84B0, "error_msg_table")
+comment(0x84B0, """\
+Econet error message table (ERRTAB, 8 entries).
 Each entry: error number byte followed by NUL-terminated string.
   &A0: "Line Jammed"     &A1: "Net Error"
   &A2: "Not listening"   &A3: "No Clock"
@@ -1842,6 +1845,13 @@ stack page: NREPLY fires when the fileserver does not respond
 within the timeout period; NLISTN fires when the destination
 station actively refused the connection.
 Indexed via the error dispatch at c8424/c842c.""")
+
+# Mark each error table entry as data: error code byte + NUL-terminated string.
+# Without this, the first entry's &A0 byte is traced as code (LDY #imm).
+addr = 0x84B0
+for _ in range(8):
+    byte(addr, 1)           # error number byte
+    addr = stringz(addr + 1)  # NUL-terminated message string
 
 # ============================================================
 # Resume after remote operation (&8146)

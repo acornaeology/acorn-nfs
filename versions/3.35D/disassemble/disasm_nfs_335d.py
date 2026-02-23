@@ -1105,6 +1105,191 @@ entry(0x9095)   # Dispatch trampoline (PHA/PHA/RTS into table at &90A0/&90A9)
 for i in range(9):
     rts_code_ptr(0x90A0 + i, 0x90A9 + i)
 
+# ============================================================
+# Immediate operation dispatch table at &9A24/&9A2C
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9A96 (immediate_op handler).
+# Y = rx_ctrl (&81-&88), so table entries are at base+&81..base+&88.
+# The control byte determines the remote operation type:
+#
+# Y   Operation   Target
+# ──   ─────────   ──────
+# &81  PEEK        &9AF1
+# &82  POKE        &9AD3
+# &83  JSR         &9AB5
+# &84  UserProc    &9AB5
+# &85  OSProc      &9AB5
+# &86  HALT        &9B17
+# &87  CONTINUE    &9B17
+# &88  (machine type query)  &9ADE
+for y in range(0x81, 0x89):
+    rts_code_ptr(0x9A24 + y, 0x9A2C + y)
+
+# ============================================================
+# TX completion dispatch table at &9B1D/&9B22
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9B97.
+# Y = tx_work_57 (the Econet operation type being sent).
+# The dispatch is reached both by Y >= &86 (via BCS at &9B8A)
+# and by Y < &86 (falls through from &9B94 after saving
+# prot_status). Table entries for Y=&81/&82 overlap with the
+# PHA/RTS code itself and are not valid — those operation types
+# (PEEK/POKE) are response-only and never initiated via TX.
+#
+# Y   Operation   Target
+# ──   ─────────   ──────
+# &83  JSR         &9BAA  (remote JSR initiation)
+# &84  UserProc    &9BB3  (user procedure initiation)
+# &85  OSProc      &9BC1  (OS procedure initiation)
+# &86  HALT        &9BCD  (HALT completion)
+# &87  CONTINUE    &9BE4  (CONTINUE completion)
+for y in range(0x83, 0x88):
+    rts_code_ptr(0x9B1D + y, 0x9B22 + y)
+
+# ============================================================
+# TX ctrl byte dispatch table at &9C62/&9C6A
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9CCB.
+# Y = tx_ctrl_byte (&81-&88), selects the transmit handler for
+# each Econet operation type.
+#
+# Y   Target
+# ──   ──────
+# &81  &9CF7
+# &82  &9CFB
+# &83  &9D1A  (JSR/UserProc/OSProc share handler)
+# &84  &9D1A
+# &85  &9D1A
+# &86  &9D54  (HALT/CONTINUE share handler)
+# &87  &9D54
+# &88  &9CF3
+for y in range(0x81, 0x89):
+    rts_code_ptr(0x9C62 + y, 0x9C6A + y)
+
+# ============================================================
+# Immediate operation RX handler labels (&9AB5-&9AF1)
+# ============================================================
+# Targets of dispatch table 1 at &9A24/&9A2C.
+# These handle incoming immediate operations (PEEK, POKE, JSR,
+# UserProc, OSProc, machine type query) received from the network.
+
+label(0x9AB5, "rx_imm_exec")
+subroutine(0x9AB5, hook=None,
+    title="RX immediate: JSR/UserProc/OSProc setup",
+    description="""\
+Sets up the port buffer to receive remote procedure data.
+Copies the 4-byte remote address from rx_remote_addr into
+the execution address workspace at &0D58, then jumps to
+the common receive path at c9826. Used for operation types
+&83 (JSR), &84 (UserProc), and &85 (OSProc).""")
+
+label(0x9AD3, "rx_imm_poke")
+subroutine(0x9AD3, hook=None,
+    title="RX immediate: POKE setup",
+    description="""\
+Sets up workspace offsets for receiving POKE data.
+port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
+the common data-receive path at c9805.""")
+
+label(0x9ADE, "rx_imm_machine_type")
+subroutine(0x9ADE, hook=None,
+    title="RX immediate: machine type query",
+    description="""\
+Sets up a buffer at &7F21 (length &01FC) for the machine
+type query response, then jumps to the query handler at
+c9b0f. Returns system identification data to the remote
+station.""")
+
+label(0x9AF1, "rx_imm_peek")
+subroutine(0x9AF1, hook=None,
+    title="RX immediate: PEEK setup",
+    description="""\
+Saves the current TX block pointer, replaces it with a
+pointer to &0D3D, and prepares to send the PEEK response
+data back to the requesting station.""")
+
+# ============================================================
+# TX completion handler labels (&9BAA-&9BEC)
+# ============================================================
+# Targets of dispatch table 2 at &9B1D/&9B22.
+# Called when an outbound immediate operation TX completes.
+
+label(0x9BAA, "tx_done_jsr")
+subroutine(0x9BAA, hook=None,
+    title="TX done: remote JSR execution",
+    description="""\
+Pushes address &9BEB on the stack (so RTS returns to
+tx_done_exit), then does JMP (l0d58) to call the remote
+JSR target routine. When that routine returns via RTS,
+control resumes at tx_done_exit.""")
+
+label(0x9BB3, "tx_done_user_proc")
+subroutine(0x9BB3, hook=None,
+    title="TX done: UserProc event",
+    description="""\
+Generates a network event (event 8) via OSEVEN with
+X=l0d58, A=l0d59 (the remote address). This notifies
+the user program that a UserProc operation has completed.""")
+
+label(0x9BC1, "tx_done_os_proc")
+subroutine(0x9BC1, hook=None,
+    title="TX done: OSProc call",
+    description="""\
+Calls the ROM entry point at &8000 (rom_header) with
+X=l0d58, Y=l0d59. This invokes an OS-level procedure
+on behalf of the remote station.""")
+
+label(0x9BCD, "tx_done_halt")
+subroutine(0x9BCD, hook=None,
+    title="TX done: HALT",
+    description="""\
+Sets bit 2 of rx_flags (&0D64), enables interrupts, and
+spin-waits until bit 2 is cleared (by a CONTINUE from the
+remote station). If bit 2 is already set, skips to exit.""")
+
+label(0x9BE4, "tx_done_continue")
+subroutine(0x9BE4, hook=None,
+    title="TX done: CONTINUE",
+    description="""\
+Clears bit 2 of rx_flags (&0D64), releasing any station
+that is halted and spinning in tx_done_halt.""")
+
+label(0x9BEC, "tx_done_exit")
+
+# ============================================================
+# TX ctrl byte handler labels (&9CF7-&9D54)
+# ============================================================
+# Targets of dispatch table 3 at &9C62/&9C6A.
+# Called to set up the scout control byte and transfer
+# parameters for outbound immediate operations.
+
+label(0x9CF7, "tx_ctrl_peek")
+subroutine(0x9CF7, hook=None,
+    title="TX ctrl: PEEK transfer setup",
+    description="""\
+Sets scout_status=3, then performs a 4-byte addition of
+bytes from the TX block into the transfer parameter
+workspace at &0D1E-&0D21 (with carry propagation).
+Calls tx_calc_transfer to finalise, then exits via
+tx_ctrl_exit.""")
+
+label(0x9CFB, "tx_ctrl_poke")
+subroutine(0x9CFB, hook=None,
+    title="TX ctrl: POKE transfer setup",
+    description="""\
+Sets scout_status=2 and shares the 4-byte addition and
+transfer calculation path with tx_ctrl_peek.""")
+
+label(0x9D1A, "tx_ctrl_proc")
+subroutine(0x9D1A, hook=None,
+    title="TX ctrl: JSR/UserProc/OSProc setup",
+    description="""\
+Sets scout_status=2 and calls tx_calc_transfer directly
+(no 4-byte address addition needed for procedure calls).
+Shared by operation types &83-&85.""")
+
+label(0x9D54, "tx_ctrl_exit")
+
 # Alternate entry into ctrl_block_setup (&9163)
 entry(0x916D)   # ADLC setup: LDX #&0D; LDY #&7C; BIT &833B; BVS c9167
 
@@ -1800,11 +1985,14 @@ close the channel before raising the error — preventing the system
 from continuing to spool output to a broken file handle.""")
 
 # ============================================================
-# Error message table (&84B0)
+# Error message table (&8556)
 # ============================================================
-subroutine(0x8556, "error_msg_table", hook=None,
-    title="Econet error message table (ERRTAB, 8 entries)",
-    description="""\
+# N.B. This is data, not code — we use label() not subroutine()
+# to avoid entry() tracing from &8556, where the &A0 error code
+# byte would be misinterpreted as LDY #imm.
+label(0x8556, "error_msg_table")
+comment(0x8556, """\
+Econet error message table (ERRTAB, 8 entries).
 Each entry: error number byte followed by NUL-terminated string.
   &A0: "Line Jammed"     &A1: "Net Error"
   &A2: "Not listening"   &A3: "No Clock"
@@ -1817,6 +2005,13 @@ stack page: NREPLY fires when the fileserver does not respond
 within the timeout period; NLISTN fires when the destination
 station actively refused the connection.
 Indexed via the error dispatch at c8424/c842c.""")
+
+# Mark each error table entry as data: error code byte + NUL-terminated string.
+# Without this, the first entry's &A0 byte is traced as code (LDY #imm).
+addr = 0x8556
+for _ in range(8):
+    byte(addr, 1)           # error number byte
+    addr = stringz(addr + 1)  # NUL-terminated message string
 
 # ============================================================
 # Resume after remote operation (&8146)
