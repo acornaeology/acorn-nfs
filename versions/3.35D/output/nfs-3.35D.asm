@@ -1182,10 +1182,10 @@ l8014 = l800d+7
     cmp #4                                                            ; 806f: c9 04       ..
     bcs return_1                                                      ; 8071: b0 76       .v
     tax                                                               ; 8073: aa          .
-    lda #0                                                            ; 8074: a9 00       ..             ; Y=&20: base offset for *NET commands (index 33+)
+    lda #0                                                            ; 8074: a9 00       ..
     sta rom_svc_num                                                   ; 8076: 85 a9       ..
     tya                                                               ; 8078: 98          .
-    ldy #&20 ; ' '                                                    ; 8079: a0 20       .
+    ldy #&20 ; ' '                                                    ; 8079: a0 20       .              ; Y=&20: base offset for *NET commands (index 33+)
     bne dispatch                                                      ; 807b: d0 5d       .]             ; ALWAYS branch
 
 ; &807d referenced 1 time by &8082
@@ -1212,27 +1212,27 @@ l8014 = l800d+7
     lda #0                                                            ; 8088: a9 00       ..
     jsr parse_decimal                                                 ; 808a: 20 fd 85     ..            ; Parse decimal number from (fs_options),Y (DECIN)
     bcc c8093                                                         ; 808d: 90 04       ..
-    iny                                                               ; 808f: c8          .              ; Function code >= 8? Return (unsupported); Y=offset into (fs_options) buffer
+    iny                                                               ; 808f: c8          .              ; Y=offset into (fs_options) buffer
     jsr parse_decimal                                                 ; 8090: 20 fd 85     ..            ; Parse decimal number from (fs_options),Y (DECIN)
 ; &8093 referenced 1 time by &808d
 .c8093
-    sta fs_server_stn                                                 ; 8093: 8d 00 0e    ...            ; A=parsed value (accumulated in &B2); Y=&12: base offset for FSCV dispatch (indices 19+)
+    sta fs_server_stn                                                 ; 8093: 8d 00 0e    ...            ; A=parsed value (accumulated in &B2)
     stx fs_server_net                                                 ; 8096: 8e 01 0e    ...            ; X=corrupted
 ; &8099 referenced 2 times by &8086, &80a2
 .c8099
     iny                                                               ; 8099: c8          .
     lda (fs_options),y                                                ; 809a: b1 bb       ..
-    cmp #&0d                                                          ; 809c: c9 0d       ..             ; Y=&0D: base offset for language handlers (index 14+)
+    cmp #&0d                                                          ; 809c: c9 0d       ..
     beq forward_star_cmd                                              ; 809e: f0 14       ..
     cmp #&3a ; ':'                                                    ; 80a0: c9 3a       .:
     bne c8099                                                         ; 80a2: d0 f5       ..
-    jsr oswrch                                                        ; 80a4: 20 ee ff     ..            ; Load high byte of (handler - 1) from table; Write character
+    jsr oswrch                                                        ; 80a4: 20 ee ff     ..            ; Write character
 ; &80a7 referenced 1 time by &80af
 .loop_c80a7
-    jsr osrdch                                                        ; 80a7: 20 e0 ff     ..            ; Push high byte onto stack; Read a character from the current input stream; Load low byte of (handler - 1) from table
-    sta (fs_options),y                                                ; 80aa: 91 bb       ..             ; A=character read; Push low byte onto stack
-    iny                                                               ; 80ac: c8          .              ; Restore X (fileserver options) for use by handler
-    cmp #&0d                                                          ; 80ad: c9 0d       ..             ; RTS pops address, adds 1, jumps to handler
+    jsr osrdch                                                        ; 80a7: 20 e0 ff     ..            ; Read a character from the current input stream
+    sta (fs_options),y                                                ; 80aa: 91 bb       ..             ; A=character read
+    iny                                                               ; 80ac: c8          .
+    cmp #&0d                                                          ; 80ad: c9 0d       ..
     bne loop_c80a7                                                    ; 80af: d0 f6       ..
     jsr osnewl                                                        ; 80b1: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; ***************************************************************************************
@@ -1282,10 +1282,10 @@ l8014 = l800d+7
 .fscv_handler
     jsr l85a5                                                         ; 80c7: 20 a5 85     ..            ; Store A/X/Y in FS workspace
     cmp #8                                                            ; 80ca: c9 08       ..
-    bcs return_1                                                      ; 80cc: b0 1b       ..
+    bcs return_1                                                      ; 80cc: b0 1b       ..             ; Function code >= 8? Return (unsupported)
     tax                                                               ; 80ce: aa          .
     tya                                                               ; 80cf: 98          .
-    ldy #&12                                                          ; 80d0: a0 12       ..
+    ldy #&12                                                          ; 80d0: a0 12       ..             ; Y=&12: base offset for FSCV dispatch (indices 19+)
     bne dispatch                                                      ; 80d2: d0 06       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -1298,7 +1298,7 @@ l8014 = l800d+7
 .language_handler
     cpx #5                                                            ; 80d4: e0 05       ..
     bcs return_1                                                      ; 80d6: b0 11       ..
-    ldy #&0d                                                          ; 80d8: a0 0d       ..
+    ldy #&0d                                                          ; 80d8: a0 0d       ..             ; Y=&0D: base offset for language handlers (index 14+)
 ; ***************************************************************************************
 ; PHA/PHA/RTS computed dispatch
 ; 
@@ -1319,14 +1319,14 @@ l8014 = l800d+7
     dey                                                               ; 80db: 88          .
     bpl dispatch                                                      ; 80dc: 10 fc       ..
     tay                                                               ; 80de: a8          .
-    lda dispatch_hi,x                                                 ; 80df: bd 44 80    .D.
-    pha                                                               ; 80e2: 48          H
-    lda dispatch_lo,x                                                 ; 80e3: bd 20 80    . .
-    pha                                                               ; 80e6: 48          H
-    ldx fs_options                                                    ; 80e7: a6 bb       ..
+    lda dispatch_hi,x                                                 ; 80df: bd 44 80    .D.            ; Load high byte of (handler - 1) from table
+    pha                                                               ; 80e2: 48          H              ; Push high byte onto stack
+    lda dispatch_lo,x                                                 ; 80e3: bd 20 80    . .            ; Load low byte of (handler - 1) from table
+    pha                                                               ; 80e6: 48          H              ; Push low byte onto stack
+    ldx fs_options                                                    ; 80e7: a6 bb       ..             ; Restore X (fileserver options) for use by handler
 ; &80e9 referenced 7 times by &806d, &8071, &80be, &80cc, &80d6, &80f2, &80fc
 .return_1
-    rts                                                               ; 80e9: 60          `
+    rts                                                               ; 80e9: 60          `              ; RTS pops address, adds 1, jumps to handler
 
 ; ***************************************************************************************
 ; Service handler entry
@@ -1354,7 +1354,6 @@ l8014 = l800d+7
     cmp #&fe                                                          ; 80f4: c9 fe       ..
     bcc c8150                                                         ; 80f6: 90 58       .X
     bne init_vectors_and_copy                                         ; 80f8: d0 13       ..
-; Copy NMI handler code from ROM to RAM pages &04-&06
     cpy #0                                                            ; 80fa: c0 00       ..
     beq return_1                                                      ; 80fc: f0 eb       ..
     stx zp_temp_11                                                    ; 80fe: 86 11       ..
@@ -1386,7 +1385,6 @@ l8014 = l800d+7
 ; &8111 referenced 1 time by &8123
 .loop_c8111
     ldx return_2,y                                                    ; 8111: be 76 81    .v.
-; Copy NMI workspace initialiser from ROM to &0016-&0076
     dey                                                               ; 8114: 88          .
     lda return_2,y                                                    ; 8115: b9 76 81    .v.
     sta userv+1,x                                                     ; 8118: 9d 01 02    ...
@@ -1397,6 +1395,7 @@ l8014 = l800d+7
     bne loop_c8111                                                    ; 8123: d0 ec       ..
     lda #&8e                                                          ; 8125: a9 8e       ..
     sta tube_status_1_and_tube_control                                ; 8127: 8d e0 fe    ...
+; Copy NMI handler code from ROM to RAM pages &04-&06
 ; &812a referenced 1 time by &813d
 .cloop
     lda c935f,y                                                       ; 812a: b9 5f 93    ._.
@@ -1409,6 +1408,7 @@ l8014 = l800d+7
     bne cloop                                                         ; 813d: d0 eb       ..
     jsr tube_post_init                                                ; 813f: 20 14 04     ..
     ldx #&60 ; '`'                                                    ; 8142: a2 60       .`
+; Copy NMI workspace initialiser from ROM to &0016-&0076
 ; &8144 referenced 1 time by &814a
 .loop_c8144
     lda c931a,x                                                       ; 8144: bd 1a 93    ...
@@ -1723,8 +1723,8 @@ l8014 = l800d+7
     equb &0d                                                          ; 8289: 0d          .
 ; &828a referenced 1 time by &8256
 .fs_vector_addrs
-    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 828a: 1b ff 1e... ...            ; OSBYTE &FD: read type of last reset
-    equb &2d, &ff, &e7, &86, &4a, &0c, &89, &44, &39, &85, &57, &ec   ; 8296: 2d ff e7... -..            ; Soft break (X=0): skip FS init; Station &FE = no server selected
+    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 828a: 1b ff 1e... ...
+    equb &2d, &ff, &e7, &86, &4a, &0c, &89, &44, &39, &85, &57, &ec   ; 8296: 2d ff e7... -..
     equb &83, &42, &10, &8a, &41, &78, &89, &52, &c7, &80             ; 82a2: 83 42 10... .B.
 
 ; ***************************************************************************************
@@ -1753,17 +1753,17 @@ l8014 = l800d+7
     sta (net_rx_ptr),y                                                ; 82be: 91 9c       ..
     ldy #&ff                                                          ; 82c0: a0 ff       ..
     sta net_rx_ptr                                                    ; 82c2: 85 9c       ..
-    sta nfs_workspace                                                 ; 82c4: 85 9e       ..             ; Read station ID (also INTOFF)
+    sta nfs_workspace                                                 ; 82c4: 85 9e       ..
     sta l00a8                                                         ; 82c6: 85 a8       ..
-    sta tx_clear_flag                                                 ; 82c8: 8d 62 0d    .b.            ; Initialise ADLC hardware
+    sta tx_clear_flag                                                 ; 82c8: 8d 62 0d    .b.
     tax                                                               ; 82cb: aa          .              ; X=&00
-    lda #osbyte_read_write_last_break_type                            ; 82cc: a9 fd       ..
+    lda #osbyte_read_write_last_break_type                            ; 82cc: a9 fd       ..             ; OSBYTE &FD: read type of last reset
     jsr osbyte                                                        ; 82ce: 20 f4 ff     ..            ; Read type of last reset
     txa                                                               ; 82d1: 8a          .              ; X=value of type of last reset
-    beq c8306                                                         ; 82d2: f0 32       .2
+    beq c8306                                                         ; 82d2: f0 32       .2             ; Soft break (X=0): skip FS init
     ldy #&15                                                          ; 82d4: a0 15       ..
     lda #&fe                                                          ; 82d6: a9 fe       ..
-    sta fs_server_stn                                                 ; 82d8: 8d 00 0e    ...
+    sta fs_server_stn                                                 ; 82d8: 8d 00 0e    ...            ; Station &FE = no server selected
     sta (net_rx_ptr),y                                                ; 82db: 91 9c       ..
     lda #0                                                            ; 82dd: a9 00       ..
     sta fs_server_net                                                 ; 82df: 8d 01 0e    ...
@@ -1788,10 +1788,10 @@ l8014 = l800d+7
     bne loop_c82f7                                                    ; 8304: d0 f1       ..
 ; &8306 referenced 2 times by &82d2, &82fc
 .c8306
-    lda station_id_disable_net_nmis                                   ; 8306: ad 18 fe    ...
+    lda station_id_disable_net_nmis                                   ; 8306: ad 18 fe    ...            ; Read station ID (also INTOFF)
     ldy #&14                                                          ; 8309: a0 14       ..
     sta (net_rx_ptr),y                                                ; 830b: 91 9c       ..
-    jsr trampoline_adlc_init                                          ; 830d: 20 63 96     c.
+    jsr trampoline_adlc_init                                          ; 830d: 20 63 96     c.            ; Initialise ADLC hardware
     lda #&40 ; '@'                                                    ; 8310: a9 40       .@
     sta rx_flags                                                      ; 8312: 8d 64 0d    .d.
 ; ***************************************************************************************
@@ -4590,7 +4590,7 @@ l8be3 = fs_cmd_match_table+1
     tya                                                               ; 8df3: 98          .
     adc os_text_ptr                                                   ; 8df4: 65 f2       e.
     sta fs_cmd_context                                                ; 8df6: 8d 0a 0e    ...
-    lda l00f3                                                         ; 8df9: a5 f3       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
+    lda l00f3                                                         ; 8df9: a5 f3       ..
     adc #0                                                            ; 8dfb: 69 00       i.
     sta l0e0b                                                         ; 8dfd: 8d 0b 0e    ...
     sec                                                               ; 8e00: 38          8
@@ -4603,14 +4603,14 @@ l8be3 = fs_cmd_match_table+1
     ldx #9                                                            ; 8e11: a2 09       ..
     ldy #&0f                                                          ; 8e13: a0 0f       ..
     lda #4                                                            ; 8e15: a9 04       ..
-    jmp tube_addr_claim                                               ; 8e17: 4c 06 04    L..            ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    jmp tube_addr_claim                                               ; 8e17: 4c 06 04    L..
 
 ; &8e1a referenced 2 times by &8e04, &8e0c
 .c8e1a
     jmp (l0f09)                                                       ; 8e1a: 6c 09 0f    l..
 
 .sub_c8e1d
-    sty fs_lib_handle                                                 ; 8e1d: 8c 04 0e    ...            ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
+    sty fs_lib_handle                                                 ; 8e1d: 8c 04 0e    ...
     bne c8e25                                                         ; 8e20: d0 03       ..
 .sub_c8e22
     sty fs_csd_handle                                                 ; 8e22: 8c 03 0e    ...
@@ -4755,7 +4755,7 @@ osword_12_handler = sub_c8e7a+2
 ; ***************************************************************************************
 .osword_fs_entry
     lda l00ef                                                         ; 8e7e: a5 ef       ..             ; Command code from &EF
-    sbc #&0f                                                          ; 8e80: e9 0f       ..
+    sbc #&0f                                                          ; 8e80: e9 0f       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
     bmi return_7                                                      ; 8e82: 30 3b       0;
     cmp #5                                                            ; 8e84: c9 05       ..
     bcs return_7                                                      ; 8e86: b0 37       .7
@@ -4763,7 +4763,7 @@ osword_12_handler = sub_c8e7a+2
 ; PHA/PHA/RTS dispatch for filing system OSWORDs
 ; 
 ; X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table
-; at &8E19 (low) / &8E1E (high).
+; at &8EA7 (low) / &8EAC (high).
 ; ***************************************************************************************
 .fs_osword_dispatch
     tax                                                               ; 8e88: aa          .
@@ -4789,14 +4789,14 @@ osword_12_handler = sub_c8e7a+2
 
 ; &8ea7 referenced 1 time by &8e93
 .l8ea7
-    equb &bf, &6d                                                     ; 8ea7: bf 6d       .m
+    equb &bf, &6d                                                     ; 8ea7: bf 6d       .m             ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
 .fs_osword_tbl_lo
     equb <(osword_11_handler-1)                                       ; 8ea9: d9          .
     equb <(sub_c8eff-1)                                               ; 8eaa: fe          .
     equb <(econet_tx_rx-1)                                            ; 8eab: ec          .
 ; &8eac referenced 1 time by &8e8f
 .l8eac
-    equb <(sub_c908f-1)                                               ; 8eac: 8e          .
+    equb <(sub_c908f-1)                                               ; 8eac: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
     equb <(sub_c0490-1)                                               ; 8ead: 8f          .
 .fs_osword_tbl_hi
     equb >(osword_11_handler-1)                                       ; 8eae: 8e          .
@@ -5067,7 +5067,7 @@ osword_12_handler = sub_c8e7a+2
 ; &8fbc referenced 1 time by &8fac
 .openl7
     adc #1                                                            ; 8fbc: 69 01       i.             ; Initiate receive with timeout
-    bne loop_c8fae                                                    ; 8fbe: d0 ee       ..             ; Non-zero = error/timeout: jump to cleanup
+    bne loop_c8fae                                                    ; 8fbe: d0 ee       ..
     dey                                                               ; 8fc0: 88          .
 ; &8fc1 referenced 3 times by &8f82, &8f89, &8f9b
 .openl4
@@ -5117,7 +5117,7 @@ osword_12_handler = sub_c8e7a+2
 ; ***************************************************************************************
 .econet_tx_rx
     cmp #1                                                            ; 8fed: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
-    bcs c9039                                                         ; 8fef: b0 48       .H             ; Test for end-of-data marker (&0D)
+    bcs c9039                                                         ; 8fef: b0 48       .H
     ldy #&23 ; '#'                                                    ; 8ff1: a0 23       .#
 ; &8ff3 referenced 1 time by &9000
 .dofs01
@@ -5148,7 +5148,7 @@ osword_12_handler = sub_c8e7a+2
     lda nfs_workspace_hi                                              ; 901a: a5 9f       ..
     sta net_tx_ptr_hi                                                 ; 901c: 85 9b       ..
     cli                                                               ; 901e: 58          X
-    jsr tx_poll_ff                                                    ; 901f: 20 71 86     q.            ; PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it
+    jsr tx_poll_ff                                                    ; 901f: 20 71 86     q.
     ldy #&20 ; ' '                                                    ; 9022: a0 20       .
     lda #&ff                                                          ; 9024: a9 ff       ..
     sta (nfs_workspace),y                                             ; 9026: 91 9e       ..
@@ -5217,7 +5217,7 @@ osword_12_handler = sub_c8e7a+2
     bne loop_c9062                                                    ; 9063: d0 fd       ..
     pla                                                               ; 9065: 68          h
     beq return_8                                                      ; 9066: f0 04       ..
-    eor #&0d                                                          ; 9068: 49 0d       I.
+    eor #&0d                                                          ; 9068: 49 0d       I.             ; Test for end-of-data marker (&0D)
     bne loop_c9050                                                    ; 906a: d0 e4       ..
 ; &906c referenced 1 time by &9066
 .return_8
@@ -5284,7 +5284,7 @@ osword_12_handler = sub_c8e7a+2
 
 ; &9095 referenced 1 time by &908b
 .osword_trampoline
-    lda osword_tbl_hi,x                                               ; 9095: bd a9 90    ...
+    lda osword_tbl_hi,x                                               ; 9095: bd a9 90    ...            ; PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it
     pha                                                               ; 9098: 48          H
     lda osword_tbl_lo,x                                               ; 9099: bd a0 90    ...
     pha                                                               ; 909c: 48          H

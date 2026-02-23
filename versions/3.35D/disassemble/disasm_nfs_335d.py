@@ -1593,7 +1593,7 @@ Characters outside '1'-'4' fall through to return_1 (RTS).""")
 
 comment(0x8069, "Read command character following *NET", inline=True)
 comment(0x806B, "Subtract ASCII '1' to get 0-based command index", inline=True)
-comment(0x8075, "Y=&20: base offset for *NET commands (index 33+)", inline=True)
+comment(0x8079, "Y=&20: base offset for *NET commands (index 33+)", inline=True)
 
 # ============================================================
 # PHA/PHA/RTS dispatcher (&809F)
@@ -1613,12 +1613,12 @@ compensate. Multiple callers share one table via different Y
 base offsets.""")
 
 comment(0x80DA, "Add base offset Y to index X (loop: X += Y+1)", inline=True)
-comment(0x80A4, "Load high byte of (handler - 1) from table", inline=True)
-comment(0x80A7, "Push high byte onto stack", inline=True)
-comment(0x80A8, "Load low byte of (handler - 1) from table", inline=True)
-comment(0x80AB, "Push low byte onto stack", inline=True)
-comment(0x80AC, "Restore X (fileserver options) for use by handler", inline=True)
-comment(0x80AE, "RTS pops address, adds 1, jumps to handler", inline=True)
+comment(0x80DF, "Load high byte of (handler - 1) from table", inline=True)
+comment(0x80E2, "Push high byte onto stack", inline=True)
+comment(0x80E3, "Load low byte of (handler - 1) from table", inline=True)
+comment(0x80E6, "Push low byte onto stack", inline=True)
+comment(0x80E7, "Restore X (fileserver options) for use by handler", inline=True)
+comment(0x80E9, "RTS pops address, adds 1, jumps to handler", inline=True)
 
 # ============================================================
 # Language entry dispatch (&8099)
@@ -1629,7 +1629,7 @@ subroutine(0x80D4, hook=None,
 Called when the NFS ROM is entered as a language. X = reason code
 (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).""")
 
-comment(0x809D, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
+comment(0x80D8, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
 
 # ============================================================
 # Service handler entry (&80EA)
@@ -1727,11 +1727,11 @@ On power-up/CTRL-BREAK (result non-zero):
 In both cases: reads station ID from &FE18 (only valid during
 reset), calls adlc_init, enables user-level RX (LFLAG=&40).""")
 
-comment(0x8290, "OSBYTE &FD: read type of last reset", inline=True)
-comment(0x8296, "Soft break (X=0): skip FS init", inline=True)
-comment(0x829C, "Station &FE = no server selected", inline=True)
-comment(0x82C4, "Read station ID (also INTOFF)", inline=True)
-comment(0x82CA, "Initialise ADLC hardware", inline=True)
+comment(0x82CC, "OSBYTE &FD: read type of last reset", inline=True)
+comment(0x82D2, "Soft break (X=0): skip FS init", inline=True)
+comment(0x82D8, "Station &FE = no server selected", inline=True)
+comment(0x8306, "Read station ID (also INTOFF)", inline=True)
+comment(0x830D, "Initialise ADLC hardware", inline=True)
 
 # ============================================================
 # Service 3: auto-boot (&81D2)
@@ -2050,8 +2050,8 @@ Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
              "y": "depends on handler (preserved if A >= 8)"})
 
 comment(0x80C7, "Store A/X/Y in FS workspace", inline=True)
-comment(0x808F, "Function code >= 8? Return (unsupported)", inline=True)
-comment(0x8095, "Y=&12: base offset for FSCV dispatch (indices 19+)", inline=True)
+comment(0x80CC, "Function code >= 8? Return (unsupported)", inline=True)
+comment(0x80D0, "Y=&12: base offset for FSCV dispatch (indices 19+)", inline=True)
 
 # ============================================================
 # GSINIT/GSREAD filename parser (&86C3)
@@ -2605,19 +2605,19 @@ for OSWORD calls &0F-&13 (15-19). Falls through to the
 PHA/PHA/RTS dispatch at &8E02.""")
 
 comment(0x8E7E, "Command code from &EF", inline=True)
-comment(0x8DFA, "Subtract &0F: OSWORD &0F-&13 become indices 0-4", inline=True)
+comment(0x8E80, "Subtract &0F: OSWORD &0F-&13 become indices 0-4", inline=True)
 
 subroutine(0x8E88, "fs_osword_dispatch", hook=None,
     title="PHA/PHA/RTS dispatch for filing system OSWORDs",
     description="""\
 X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table
-at &8E19 (low) / &8E1E (high).""")
+at &8EA7 (low) / &8EAC (high).""")
 
-comment(0x8E19, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
-comment(0x8E1E, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline=True)
+comment(0x8EA7, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
+comment(0x8EAC, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline=True)
 
-comment(0x80F9, "Copy NMI handler code from ROM to RAM pages &04-&06")
-comment(0x8113, "Copy NMI workspace initialiser from ROM to &0016-&0076")
+comment(0x812A, "Copy NMI handler code from ROM to RAM pages &04-&06")
+comment(0x8144, "Copy NMI workspace initialiser from ROM to &0016-&0076")
 
 # ============================================================
 # Econet TX/RX handler (&8F73)
@@ -2635,11 +2635,12 @@ comment(0x8F79, "Load from ROM template (zero = use NMI workspace value)", inlin
 comment(0x8FA4, "Enable interrupts before transmit", inline=True)
 comment(0x8FAA, "Dest station = &FFFF (accept reply from any station)", inline=True)
 comment(0x8FBC, "Initiate receive with timeout", inline=True)
-comment(0x8FBF, "Non-zero = error/timeout: jump to cleanup", inline=True)
+# 3.34B had BNE (error/timeout branch) at &8FBF; in 3.35D this was
+# restructured into a JMP tail call at &9036, so the comment is removed.
 
 # Data transfer loop (&8FD8-&8FF4)
 comment(0x8FD8, "Receive data blocks until command byte = &00 or &0D", inline=True)
-comment(0x8FF0, "Test for end-of-data marker (&0D)", inline=True)
+comment(0x9068, "Test for end-of-data marker (&0D)", inline=True)
 
 # ============================================================
 # OSWORD-style function dispatch (&9008)
@@ -2666,7 +2667,7 @@ Dispatch targets (from NFS09):
              "y": "preserved"})
 
 comment(0x900F, "Retrieve original A (function code) from stack", inline=True)
-comment(0x9021, "PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it", inline=True)
+comment(0x9095, "PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it", inline=True)
 
 # ============================================================
 # NWRCH: net write character (&903E)
