@@ -46,7 +46,7 @@ shifting all subsequent addresses by +1.
 
 ### 2. Deleted RTS at end of page 6 relocated block
 
-An RTS instruction at &964B (the final byte of the page 6 Tube host code
+An RTS (Return from Subroutine) instruction at &964B (the final byte of the page 6 Tube host code
 block, runtime address &06FF) was removed. This 1-byte deletion compensates
 for the 1-byte version string insertion, keeping the ROM at exactly 8192
 bytes and leaving all addresses from &964C onwards unchanged.
@@ -55,7 +55,7 @@ bytes and leaving all addresses from &964C onwards unchanged.
 
 The most significant functional change. Five instructions in the Tube host
 code were modified to use Tube register R4 (&FEE6/&FEE7) instead of R1
-(&FEE0/&FEE1) for WRCH character I/O:
+(&FEE0/&FEE1) for WRCH (Write Character) I/O:
 
 | Runtime addr | 3.34            | 3.34B           | Routine                |
 |--------------|-----------------|-----------------|------------------------|
@@ -71,7 +71,7 @@ The routine at &0527 is labeled `tube_poll_r1_wrch` in 3.34 (polling R1) and
 These are all in the relocated Tube host code (BRK handler block and page 5
 block), which is copied from ROM to RAM during initialisation.
 
-**Why this matters:** The BBC Micro Tube ULA has four register pairs:
+**Why this matters:** The BBC Micro Tube ULA (Uncommitted Logic Array) has four register pairs:
 
 - R1 (&FEE0/&FEE1): events and escape signalling
 - R2 (&FEE2/&FEE3): command bytes and general data transfer

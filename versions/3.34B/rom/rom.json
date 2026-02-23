@@ -71,6 +71,10 @@
                 {"pattern": "&954D", "occurrence": 0, "version": "3.34B", "address": "0x954D"},
                 {"pattern": "&0600", "occurrence": 0, "version": "3.34B", "address": "0x0600"},
                 {"pattern": "&06FF", "occurrence": 1, "version": "3.34B", "address": "0x06FF"}
+            ],
+            "glossary_links": [
+                {"pattern": "Tube", "occurrence": 0, "term": "Tube"},
+                {"pattern": "ULA", "occurrence": 0, "term": "ULA"}
             ]
         }
     ]

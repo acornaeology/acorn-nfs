@@ -111,6 +111,24 @@
                 {"pattern": "&955F", "occurrence": 0, "version": "3.35D", "address": "0x955F"},
                 {"pattern": "&0600", "occurrence": 0, "version": "3.35D", "address": "0x0600"},
                 {"pattern": "&06FF", "occurrence": 0, "version": "3.35D", "address": "0x06FF"}
+            ],
+            "glossary_links": [
+                {"pattern": "Econet", "occurrence": 0, "term": "Econet"},
+                {"pattern": "MOS", "occurrence": 0, "term": "MOS"},
+                {"pattern": "OSCLI", "occurrence": 0, "term": "OSCLI"},
+                {"pattern": "OSRDCH", "occurrence": 0, "term": "OSRDCH"},
+                {"pattern": "CR", "occurrence": 0, "term": "CR"},
+                {"pattern": "service call", "occurrence": 0, "term": "service call"},
+                {"pattern": "Tube", "occurrence": 0, "term": "Tube"},
+                {"pattern": "BRKV", "occurrence": 0, "term": "BRKV"},
+                {"pattern": "WRCHV", "occurrence": 0, "term": "WRCHV"},
+                {"pattern": "RDCHV", "occurrence": 0, "term": "RDCHV"},
+                {"pattern": "EVNTV", "occurrence": 0, "term": "EVNTV"},
+                {"pattern": "ULA", "occurrence": 0, "term": "ULA"},
+                {"pattern": "FSCV", "occurrence": 0, "term": "FSCV"},
+                {"pattern": "GSINIT", "occurrence": 0, "term": "GSINIT"},
+                {"pattern": "GSREAD", "occurrence": 0, "term": "GSREAD"},
+                {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"}
             ]
         }
     ]

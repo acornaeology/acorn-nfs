@@ -52,7 +52,12 @@ Entirely new code at &807D-&80B3 adds two capabilities to the `*NET` command:
 **Station number syntax:** `*NET 123` or `*NET 123.45` directly sets the
 fileserver station and network numbers (stored at &0E00 and &0E01). In 3.34B,
 changing the fileserver required the `*I AM` command; `*NET` only dispatched
-numbered sub-commands (`*NET1` through `*NET4`).
+internal sub-commands (`*NET1` through `*NET4`), which manage file handles for
+Econet remote file operations. Despite the `*` prefix notation, these are not
+user-invocable commands — the MOS (Machine Operating System) command parser
+requires a space or terminator after `NET`, so typing `*NET1` at the command
+line does not match; the sub-commands are reached only through internal OSCLI
+(OS Command Line Interpreter) calls within the ROM.
 
 The parser at &8088 calls the existing `parse_decimal` routine (at &85FD)
 twice: once for the station number and, if a separator is found, again for
@@ -60,8 +65,9 @@ the network number. It handles both `station` and `station.network` forms.
 
 **Colon command continuation:** If a colon (`:`) is found in the command text,
 the code echoes the colon and reads interactive input character by character
-via OSRDCH (&80A7), appending it to the command buffer. After CR is received,
-the combined text is forwarded to the fileserver. This enables constructs like
+via OSRDCH (OS Read Character, &80A7), appending it to the command buffer.
+After CR (carriage return) is received, the combined text is forwarded to the
+fileserver. This enables constructs like
 `*NET 123:command` where the text after the colon is typed interactively.
 
 ### 3. Per-ROM disable flag
@@ -90,7 +96,9 @@ ROM physically.
 The hardcoded LDA/STA pairs in 3.34B's `init_vectors_and_copy` (at &80C8)
 have been replaced by a data-driven loop at &810D-&8123. The loop reads four
 triplets from a table at &8177, each containing (low byte, high byte, vector
-offset), and stores the 16-bit values at &0200+offset:
+offset), and stores the 16-bit addresses for BRKV (Break Vector), WRCHV (Write
+Character Vector), RDCHV (Read Character Vector), and EVNTV (Event Vector) at
+&0200+offset:
 
 | Vector | Address | 3.34B value | 3.35D value |
 |--------|---------|-------------|-------------|
@@ -137,10 +145,10 @@ The BBC Micro Tube ULA register pairs:
 
 ### 6. GSINIT/GSREAD filename parsing for FSCV
 
-In 3.34B, FSCV codes 2 (`*/`), 3 (unrecognised `*` command), and 4 (`*RUN`)
+In 3.34B, FSCV (Filing System Control Vector) codes 2 (`*/`), 3 (unrecognised `*` command), and 4 (`*RUN`)
 all dispatch to the same handler (`fscv_star_handler`). In 3.35D, codes 2 and
 4 now dispatch through a new wrapper at &8DC7 (`sub_c8dc7`) which calls
-`parse_filename_gs` first, using the MOS GSINIT/GSREAD API (&FFC2/&FFC5) to
+`parse_filename_gs` first, using the MOS GSINIT/GSREAD (General String Input) API (&FFC2/&FFC5) to
 parse the filename into the command buffer at &0E30 before forwarding it to
 the fileserver. A second GSINIT/GSREAD call at &8DE2 consumes the parsed
 filename and advances past trailing spaces.
@@ -163,7 +171,7 @@ easier to extend.
 
 ### 8. OSBYTE &C6 replaces &C7 in error handler
 
-In the error handling path (3.34B: &83E8, 3.35D: &8432), the OSBYTE call
+In the error handling path (3.34B: &83E8, 3.35D: &8432), the OSBYTE (OS Byte) call
 changed from &C7 (read/write `*SPOOL` file handle) to &C6 (read/write `*EXEC`
 file handle). The purpose is to check whether the currently open EXEC or SPOOL
 file is using the same handle as the one that just errored, and if so, to

@@ -6,6 +6,8 @@ Validates that:
 2. Every address_links entry in rom.json has a matching pattern in the
    Markdown document and resolves to a valid address in the referenced
    version's disassembly output.
+3. Every glossary_links entry in rom.json has a matching pattern in the
+   Markdown document and references a valid term in GLOSSARY.md.
 """
 
 import json
@@ -237,6 +239,84 @@ def lint_docs(version_dirpath, version):
     return errors, link_count
 
 
+def parse_glossary_terms(glossary_filepath):
+    """Extract term names from GLOSSARY.md.
+
+    Returns a set of term strings parsed from **TERM** bold markers.
+    """
+    terms = set()
+    for line in glossary_filepath.read_text().splitlines():
+        m = re.match(r'\*\*(.+?)\*\*', line)
+        if m:
+            terms.add(m.group(1))
+    return terms
+
+
+def lint_glossary_links(version_dirpath):
+    """Validate glossary_links in rom.json against Markdown docs and GLOSSARY.md.
+
+    Checks that:
+    1. Each pattern exists at the specified occurrence in the Markdown file.
+    2. Each term exists in GLOSSARY.md.
+
+    Returns (errors, link_count).
+    """
+    rom_json_filepath = version_dirpath / "rom" / "rom.json"
+    if not rom_json_filepath.exists():
+        return [], 0
+
+    rom_meta = json.loads(rom_json_filepath.read_text())
+    docs = rom_meta.get("docs", [])
+    if not docs:
+        return [], 0
+
+    repo_root = find_repo_root(version_dirpath)
+    glossary_filepath = repo_root / "GLOSSARY.md"
+    if not glossary_filepath.exists():
+        return [], 0
+
+    glossary_terms = parse_glossary_terms(glossary_filepath)
+
+    errors = []
+    link_count = 0
+
+    for doc in docs:
+        glossary_links = doc.get("glossary_links", [])
+        if not glossary_links:
+            continue
+
+        doc_filepath = version_dirpath / doc["path"]
+        if not doc_filepath.exists():
+            errors.append(f"  {doc['path']}: file not found")
+            continue
+
+        md_text = doc_filepath.read_text()
+
+        for link in glossary_links:
+            link_count += 1
+            pattern = link["pattern"]
+            occurrence = link["occurrence"]
+            term = link["term"]
+
+            # Check (a): pattern exists at the specified occurrence
+            count = md_text.count(pattern)
+            if occurrence >= count:
+                errors.append(
+                    f"  {doc['path']}: pattern \"{pattern}\" occurrence "
+                    f"{occurrence} not found (only {count} occurrence(s))"
+                )
+                continue
+
+            # Check (b): term exists in glossary
+            if term not in glossary_terms:
+                errors.append(
+                    f"  {doc['path']}: glossary term \"{term}\" "
+                    f"not found in GLOSSARY.md"
+                )
+
+    return errors, link_count
+
+
 def lint(version_dirpath, version):
     """Validate annotation addresses against the JSON output.
 
@@ -280,6 +360,9 @@ def lint(version_dirpath, version):
     # Lint documentation address links
     doc_errors, doc_link_count = lint_docs(version_dirpath, version)
 
+    # Lint glossary links
+    glossary_errors, glossary_link_count = lint_glossary_links(version_dirpath)
+
     failed = False
 
     if errors:
@@ -308,6 +391,15 @@ def lint(version_dirpath, version):
             print(msg, file=sys.stderr)
         failed = True
 
+    if glossary_errors:
+        print(
+            f"Lint FAILED: {len(glossary_errors)} glossary_link error(s) ({version})",
+            file=sys.stderr,
+        )
+        for msg in glossary_errors:
+            print(msg, file=sys.stderr)
+        failed = True
+
     if failed:
         return 1
 
@@ -318,6 +410,8 @@ def lint(version_dirpath, version):
     )
     if doc_link_count:
         summary += f", {doc_link_count} doc address links"
+    if glossary_link_count:
+        summary += f", {glossary_link_count} glossary links"
     summary += " checked"
     print(f"Lint passed: {summary} ({version})")
 
