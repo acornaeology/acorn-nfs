@@ -1087,6 +1087,180 @@ entry(0x9020)   # Dispatch trampoline (PHA/PHA/RTS into table at &902B/&9034)
 for i in range(9):
     rts_code_ptr(0x902B + i, 0x9034 + i)
 
+# ============================================================
+# Immediate operation dispatch table at &9A0E/&9A16
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9A86 (immediate_op handler).
+# Y = rx_ctrl (&81-&88), so table entries are at base+&81..base+&88.
+# The control byte determines the remote operation type:
+#
+# Y   Operation   Target
+# ──   ─────────   ──────
+# &81  PEEK        &9ADB
+# &82  POKE        &9ABD
+# &83  JSR         &9A9F
+# &84  UserProc    &9A9F
+# &85  OSProc      &9A9F
+# &86  HALT        &9B01
+# &87  CONTINUE    &9B01
+# &88  (machine type query)  &9AC8
+for y in range(0x81, 0x89):
+    rts_code_ptr(0x9A0E + y, 0x9A16 + y)
+
+# ============================================================
+# TX completion dispatch table at &9B0E/&9B13
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9B88.
+# Y = tx_work_57 (the Econet operation type being sent).
+# Table entries for Y=&81/&82 overlap with the PHA/RTS code
+# itself and are not valid — those operation types (PEEK/POKE)
+# are response-only and never initiated via TX.
+#
+# Y   Operation   Target
+# ──   ─────────   ──────
+# &83  JSR         &9B9B  (remote JSR initiation)
+# &84  UserProc    &9BA4  (user procedure initiation)
+# &85  OSProc      &9BB2  (OS procedure initiation)
+# &86  HALT        &9BBE  (HALT completion)
+# &87  CONTINUE    &9BD5  (CONTINUE completion)
+for y in range(0x83, 0x88):
+    rts_code_ptr(0x9B0E + y, 0x9B13 + y)
+
+# ============================================================
+# TX ctrl byte dispatch table at &9C53/&9C5B
+# ============================================================
+# Used by the PHA/PHA/RTS dispatch at &9CCB.
+# Y = tx_ctrl_byte (&81-&88), selects the transmit handler for
+# each Econet operation type.
+#
+# Y   Target
+# ──   ──────
+# &81  &9CE8
+# &82  &9CEC
+# &83  &9D0B  (JSR/UserProc/OSProc share handler)
+# &84  &9D0B
+# &85  &9D0B
+# &86  &9D45  (HALT/CONTINUE share handler)
+# &87  &9D45
+# &88  &9CE4
+for y in range(0x81, 0x89):
+    rts_code_ptr(0x9C53 + y, 0x9C5B + y)
+
+# ============================================================
+# Immediate operation RX handler labels (&9A9F-&9ADB)
+# ============================================================
+# Targets of dispatch table 1 at &9A0E/&9A16.
+
+label(0x9A9F, "rx_imm_exec")
+subroutine(0x9A9F, hook=None,
+    title="RX immediate: JSR/UserProc/OSProc setup",
+    description="""\
+Sets up the port buffer to receive remote procedure data.
+Copies the 4-byte remote address from rx_remote_addr into
+the execution address workspace, then jumps to the common
+receive path. Used for operation types &83-&85.""")
+
+label(0x9ABD, "rx_imm_poke")
+subroutine(0x9ABD, hook=None,
+    title="RX immediate: POKE setup",
+    description="""\
+Sets up workspace offsets for receiving POKE data, then
+jumps to the common data-receive path.""")
+
+label(0x9AC8, "rx_imm_machine_type")
+subroutine(0x9AC8, hook=None,
+    title="RX immediate: machine type query",
+    description="""\
+Sets up a buffer at &7F21 (length &01FC) for the machine
+type query response. Returns system identification data
+to the remote station.""")
+
+label(0x9ADB, "rx_imm_peek")
+subroutine(0x9ADB, hook=None,
+    title="RX immediate: PEEK setup",
+    description="""\
+Saves the current TX block pointer, replaces it with a
+pointer to the workspace, and prepares to send the PEEK
+response data back to the requesting station.""")
+
+# ============================================================
+# TX completion handler labels (&9B9B-&9BDD)
+# ============================================================
+# Targets of dispatch table 2 at &9B0E/&9B13.
+
+label(0x9B9B, "tx_done_jsr")
+subroutine(0x9B9B, hook=None,
+    title="TX done: remote JSR execution",
+    description="""\
+Pushes a return address on the stack (pointing to
+tx_done_exit), then does JMP indirect to call the remote
+JSR target routine. When that routine returns via RTS,
+control resumes at tx_done_exit.""")
+
+label(0x9BA4, "tx_done_user_proc")
+subroutine(0x9BA4, hook=None,
+    title="TX done: UserProc event",
+    description="""\
+Generates a network event (event 8) via OSEVEN with the
+remote address. This notifies the user program that a
+UserProc operation has completed.""")
+
+label(0x9BB2, "tx_done_os_proc")
+subroutine(0x9BB2, hook=None,
+    title="TX done: OSProc call",
+    description="""\
+Calls the ROM entry point at &8000 (rom_header) with
+X/Y from the remote address workspace. This invokes an
+OS-level procedure on behalf of the remote station.""")
+
+label(0x9BBE, "tx_done_halt")
+subroutine(0x9BBE, hook=None,
+    title="TX done: HALT",
+    description="""\
+Sets bit 2 of rx_flags, enables interrupts, and spin-waits
+until bit 2 is cleared (by a CONTINUE from the remote
+station). If bit 2 is already set, skips to exit.""")
+
+label(0x9BD5, "tx_done_continue")
+subroutine(0x9BD5, hook=None,
+    title="TX done: CONTINUE",
+    description="""\
+Clears bit 2 of rx_flags, releasing any station that is
+halted and spinning in tx_done_halt.""")
+
+label(0x9BDD, "tx_done_exit")
+
+# ============================================================
+# TX ctrl byte handler labels (&9CE8-&9D45)
+# ============================================================
+# Targets of dispatch table 3 at &9C53/&9C5B.
+
+label(0x9CE8, "tx_ctrl_peek")
+subroutine(0x9CE8, hook=None,
+    title="TX ctrl: PEEK transfer setup",
+    description="""\
+Sets scout_status=3, then performs a 4-byte addition of
+bytes from the TX block into the transfer parameter
+workspace (with carry propagation). Calls tx_calc_transfer
+to finalise, then exits via tx_ctrl_exit.""")
+
+label(0x9CEC, "tx_ctrl_poke")
+subroutine(0x9CEC, hook=None,
+    title="TX ctrl: POKE transfer setup",
+    description="""\
+Sets scout_status=2 and shares the 4-byte addition and
+transfer calculation path with tx_ctrl_peek.""")
+
+label(0x9D0B, "tx_ctrl_proc")
+subroutine(0x9D0B, hook=None,
+    title="TX ctrl: JSR/UserProc/OSProc setup",
+    description="""\
+Sets scout_status=2 and calls tx_calc_transfer directly
+(no 4-byte address addition needed for procedure calls).
+Shared by operation types &83-&85.""")
+
+label(0x9D45, "tx_ctrl_exit")
+
 # Alternate entry into ctrl_block_setup (&9162)
 entry(0x9159)   # ADLC setup: LDX #&0D; LDY #&7C; BIT &833A; BVS c9167
 
