@@ -2224,7 +2224,7 @@ l8014 = l800d+7
     rts                                                               ; 8476: 60          `
 
 ; ***************************************************************************************
-; Remote boot/execute handler (moved from &90FD)
+; Remote boot/execute handler
 ; 
 ; Checks byte 4 of the RX control block (remote status flag).
 ; If zero (not currently remoted), falls through to remot1 to
@@ -2261,7 +2261,7 @@ l8014 = l800d+7
     lda #osbyte_read_write_econet_keyboard_disable                    ; 84a0: a9 c9       ..
     jsr osbyte                                                        ; 84a2: 20 f4 ff     ..            ; Disable keyboard (for Econet)
 ; ***************************************************************************************
-; Execute code at &0100 (moved from &912B)
+; Execute code at &0100
 ; 
 ; Clears JSR protection, zeroes &0100-&0102 (creating a BRK
 ; instruction at &0100 as a safe default), then JMP &0100 to
@@ -2282,7 +2282,7 @@ l8014 = l800d+7
     jmp l0100                                                         ; 84b2: 4c 00 01    L..
 
 ; ***************************************************************************************
-; Remote operation with source validation (moved from &913B)
+; Remote operation with source validation
 ; 
 ; Validates that the source station in the received packet matches
 ; the controlling station stored in the NFS workspace. If byte 4 of
@@ -2302,7 +2302,7 @@ l8014 = l800d+7
     cmp (nfs_workspace),y                                             ; 84c1: d1 9e       ..
     bne rchex                                                         ; 84c3: d0 b8       ..
 ; ***************************************************************************************
-; Insert remote keypress (moved from &914B)
+; Insert remote keypress
 ; 
 ; Reads a character from RX block offset &82 and inserts it into
 ; keyboard input buffer 0 via OSBYTE &99.
@@ -5471,7 +5471,7 @@ osword_12_handler = sub_c8e7a+2
     equb &7a, &e3, &e4                                                ; 913f: 7a e3 e4    z..
 
 ; ***************************************************************************************
-; Fn 8: remote OSWORD handler (NWORD, moved from &90CE)
+; Fn 8: remote OSWORD handler (NWORD)
 ; 
 ; Only intercepts OSWORD 7 (make a sound) and OSWORD 8 (define an
 ; envelope). Unlike NBYTE which returns results, NWORD is entirely
@@ -5601,7 +5601,7 @@ osword_12_handler = sub_c8e7a+2
     equb &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; 91bf: fd fd 1f... ...
 
 ; ***************************************************************************************
-; Fn 5: printer selection changed (SELECT, moved from &91B6)
+; Fn 5: printer selection changed (SELECT)
 ; 
 ; Called when the printer selection changes. Compares X against
 ; the network printer buffer number (&F0). If it matches,

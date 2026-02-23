@@ -589,7 +589,7 @@ label(0x84DC, "set_listen_offset")      # NLISN2: use reply code as table offset
 # UNMAPPED: label(0x8449, "send_to_fs_star")        # Send '*' command to fileserver
 label(0x8520, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
-# --- Pointer arithmetic helpers (moved from &84A5 in 3.34B to &87E2) ---
+# --- Pointer arithmetic helpers ---
 label(0x87E2, "add_5_to_y")             # INY * 5; RTS
 label(0x87E3, "add_4_to_y")             # INY * 4; RTS
 label(0x87F5, "sub_4_from_y")           # DEY * 4; RTS
@@ -637,7 +637,7 @@ label(0x8625, "handle_to_mask_a")       # TAY; CLC; fall into handle_to_mask
 label(0x8626, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always convert)
 # handle_to_mask and mask_to_handle labels created by subroutine() calls below.
 
-# --- Number and hex printing (moved from &85xx in 3.34B to &8Dxx) ---
+# --- Number and hex printing ---
 label(0x8DA5, "print_hex")              # Print A as two hex digits
 label(0x8DB0, "print_hex_nibble")       # Print low nibble of A as hex digit
 
@@ -888,7 +888,7 @@ label(0x90FC, "nbyte1")               # NFS09: net byte handler 1
 label(0x911E, "nbyte4")               # NFS09: net byte handler 4
 label(0x9122, "nbyte5")               # NFS09: net byte handler 5
 label(0x9129, "return_nbyte")         # NFS09: return from net byte handler
-label(0x8480, "remot1")               # NFS03: remote handler 1 (moved from &9106)
+label(0x8480, "remot1")               # NFS03: remote handler 1
 label(0x917B, "cbset2")               # NFS09: control block set 2
 label(0x9192, "cbset3")               # NFS09: control block set 3
 label(0x9198, "cbset4")               # NFS09: control block set 4
@@ -1099,8 +1099,8 @@ entry(0x823D)
 # are not reachable via JSR/JMP from already-traced code (their
 # callers are themselves in equb regions -- cascading resolution).
 
-entry(0x87E2)   # INY*5; RTS (pointer arithmetic helper, moved from &84A5)
-entry(0x87F5)   # DEY*4; RTS (pointer arithmetic helper, moved from &84AB)
+entry(0x87E2)   # INY*5; RTS (pointer arithmetic helper)
+entry(0x87F5)   # DEY*4; RTS (pointer arithmetic helper)
 entry(0x87FA)   # PHA; JSR ... (called from &878A and &8A6C)
 entry(0x8875)   # STA abs; CMP#; ... (called from &8744)
 entry(0x8964)   # TAY; BNE; ... (preceded by RTS, standalone entry)
@@ -1316,7 +1316,7 @@ entry(0x916D)   # ADLC setup: LDX #&0D; LDY #&7C; BIT &833B; BVS c9167
 # function 8 (&90CE) are distinct. The exact purpose of each
 # function code hasn't been fully determined yet.
 entry(0x91D9)   # Function 1/2/3 handler (shared)
-entry(0x9142)   # Function 8 handler (remote_cmd_data, moved from &90CE)
+entry(0x9142)   # Function 8 handler (remote_cmd_data)
 
 # --- Code found in third-pass remaining equb regions ---
 entry(0x876E)   # BEQ +3; JMP &8845 (called from &8744 region)
@@ -1432,7 +1432,7 @@ receiving handle values from the fileserver in reply packets.""",
              "y": "preserved"})
 
 # ============================================================
-# Print decimal number (moved from &85B0 to &8D86)
+# Print decimal number (&8D86)
 # ============================================================
 subroutine(0x8D86, "print_decimal", hook=None,
     title="Print byte as 3-digit decimal number",
@@ -2863,11 +2863,10 @@ being read or opened.""",
              "y": "&FF"})
 
 # ============================================================
-# Remote operation handlers (&90FD / &912B / &913B / &914B)
+# Remote operation handlers (&8477-&84D1)
 # ============================================================
-# Remote operation handlers moved from &90FD-&914B in 3.34B to &8477-&84D1.
 subroutine(0x8477, "remote_boot_handler", hook=None,
-    title="Remote boot/execute handler (moved from &90FD)",
+    title="Remote boot/execute handler",
     description="""\
 Checks byte 4 of the RX control block (remote status flag).
 If zero (not currently remoted), falls through to remot1 to
@@ -2875,7 +2874,7 @@ set up a new remote session. If non-zero (already remoted),
 jumps to clear_jsr_protection and returns.""")
 
 subroutine(0x84A5, "execute_at_0100", hook=None,
-    title="Execute code at &0100 (moved from &912B)",
+    title="Execute code at &0100",
     description="""\
 Clears JSR protection, zeroes &0100-&0102 (creating a BRK
 instruction at &0100 as a safe default), then JMP &0100 to
@@ -2883,7 +2882,7 @@ execute code received over the network. If no code was loaded,
 the BRK triggers an error handler.""")
 
 subroutine(0x84B5, "remote_validated", hook=None,
-    title="Remote operation with source validation (moved from &913B)",
+    title="Remote operation with source validation",
     description="""\
 Validates that the source station in the received packet matches
 the controlling station stored in the NFS workspace. If byte 4 of
@@ -2894,7 +2893,7 @@ mismatched stations via clear_jsr_protection, accepts matching
 stations by falling through to insert_remote_key.""")
 
 subroutine(0x84C5, "insert_remote_key", hook=None,
-    title="Insert remote keypress (moved from &914B)",
+    title="Insert remote keypress",
     description="""\
 Reads a character from RX block offset &82 and inserts it into
 keyboard input buffer 0 via OSBYTE &99.""")
@@ -2929,7 +2928,7 @@ OSBYTE &81 (INKEY) gets special handling as it must read the
 terminal's keyboard.""")
 
 subroutine(0x9142, "remote_cmd_data", hook=None,
-    title="Fn 8: remote OSWORD handler (NWORD, moved from &90CE)",
+    title="Fn 8: remote OSWORD handler (NWORD)",
     description="""\
 Only intercepts OSWORD 7 (make a sound) and OSWORD 8 (define an
 envelope). Unlike NBYTE which returns results, NWORD is entirely
@@ -2940,7 +2939,7 @@ from the RX buffer to workspace, tags the message as RWORD, and
 transmits.""")
 
 subroutine(0x91C9, "remote_display_setup", hook=None,
-    title="Fn 5: printer selection changed (SELECT, moved from &91B6)",
+    title="Fn 5: printer selection changed (SELECT)",
     description="""\
 Called when the printer selection changes. Compares X against
 the network printer buffer number (&F0). If it matches,
@@ -3201,7 +3200,7 @@ RX mode, then RTI. The simplest of the three discard paths —
 used as the tail of both discard_reset_listen and discard_listen.""")
 
 # ============================================================
-# Transfer size calculation (moved from &9F5B to &9F6A)
+# Transfer size calculation (&9F6A)
 # ============================================================
 subroutine(0x9F6A, "tx_calc_transfer", hook=None,
     title="Calculate transfer size",
