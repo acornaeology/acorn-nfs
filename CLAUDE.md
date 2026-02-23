@@ -31,7 +31,7 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### Lint
 
-`src/disasm_tools/lint.py` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts.
+`src/disasm_tools/lint.py` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
 
 ### Verification
 
@@ -47,6 +47,29 @@ Each ROM version lives under `versions/<version>/` with subdirectories:
 - `rom/` — original ROM binary and metadata (`rom.json` with hashes)
 - `disassemble/` — py8dis driver script and correlation tools
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
+
+### Glossary
+
+`GLOSSARY.md` — project-level glossary of Acorn-specific terms, registered in `acornaeology.json` as `"glossary": "GLOSSARY.md"`. Uses Markdown definition-list syntax with a brief/extended split:
+
+```markdown
+**TERM** (Expansion)
+: Brief definition — one or two sentences. What the term IS.
+
+  Extended detail — how NFS uses it, implementation specifics,
+  or additional context. Shown only on the glossary page.
+```
+
+First paragraph = brief (tooltip text). Subsequent indented paragraphs after a blank line = extended (glossary page only). Entries without extended detail keep a single paragraph.
+
+### Documentation links in `rom.json`
+
+Each version's `rom/rom.json` has a `docs` array. Each doc entry can have:
+
+- `address_links` — maps hex address patterns in Markdown to disassembly addresses (validated by lint against the JSON output)
+- `glossary_links` — maps term patterns in Markdown to glossary entries (validated by lint against `GLOSSARY.md`)
+
+Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": "..."}`. The `occurrence` field is a 0-based index among all substring matches of the pattern.
 
 ## Key technical context
 
