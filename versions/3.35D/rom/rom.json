@@ -31,16 +31,11 @@
 
                 {"pattern": "&807D", "occurrence": 1, "version": "3.35D", "address": "0x807D"},
                 {"pattern": "&80B3", "occurrence": 1, "version": "3.35D", "address": "0x80B3"},
-                {"pattern": "&0E00", "occurrence": 0, "version": "3.35D", "address": "0x0E00"},
-                {"pattern": "&0E01", "occurrence": 0, "version": "3.35D", "address": "0x0E01"},
                 {"pattern": "&8088", "occurrence": 0, "version": "3.35D", "address": "0x8088"},
                 {"pattern": "&85FD", "occurrence": 0, "version": "3.35D", "address": "0x85FD"},
                 {"pattern": "&80A7", "occurrence": 0, "version": "3.35D", "address": "0x80A7"},
 
                 {"pattern": "&80EA", "occurrence": 2, "version": "3.35D", "address": "0x80EA"},
-                {"pattern": "&0DF0", "occurrence": 0, "version": "3.35D", "address": "0x0DF0"},
-                {"pattern": "&0D00", "occurrence": 0, "version": "3.35D", "address": "0x0D00"},
-
                 {"pattern": "&80EA", "occurrence": 3, "version": "3.35D", "address": "0x80EA"},
                 {"pattern": "&80EB", "occurrence": 0, "version": "3.35D", "address": "0x80EB"},
                 {"pattern": "&80EE", "occurrence": 0, "version": "3.35D", "address": "0x80EE"},
@@ -70,7 +65,6 @@
                 {"pattern": "&052C", "occurrence": 0, "version": "3.35D", "address": "0x052C"},
 
                 {"pattern": "&8DC7", "occurrence": 0, "version": "3.35D", "address": "0x8DC7"},
-                {"pattern": "&0E30", "occurrence": 0, "version": "3.35D", "address": "0x0E30"},
                 {"pattern": "&8DE2", "occurrence": 0, "version": "3.35D", "address": "0x8DE2"},
                 {"pattern": "&86A6", "occurrence": 0, "version": "3.34B", "address": "0x86A6"},
                 {"pattern": "&86C8", "occurrence": 0, "version": "3.35D", "address": "0x86C8"},
@@ -78,9 +72,6 @@
 
                 {"pattern": "&83E8", "occurrence": 0, "version": "3.34B", "address": "0x83E8"},
                 {"pattern": "&8432", "occurrence": 0, "version": "3.35D", "address": "0x8432"},
-
-                {"pattern": "&0D3A", "occurrence": 0, "version": "3.34B", "address": "0x0D3A"},
-                {"pattern": "&0D62", "occurrence": 0, "version": "3.35D", "address": "0x0D62"},
 
                 {"pattern": "&81C8", "occurrence": 0, "version": "3.34", "address": "0x81C8"},
 

@@ -113,8 +113,13 @@ def load_address_ranges(json_filepath):
     - The full ROM image (load_addr to end_addr from metadata), which
       covers both regular code and move() block source addresses.
     - Runtime address blocks for relocated code, derived from items
-      outside the ROM range.
-    - External label and subroutine addresses.
+      and subroutines outside the ROM range.
+
+    External labels are excluded: they name operand targets (e.g.
+    workspace variables) but don't produce assembly items that the
+    website can anchor to. A +32 byte padding on each block covers
+    data tails within relocated blocks (e.g. the BRK handler block
+    has workspace data after its last instruction).
     """
     data = json.loads(json_filepath.read_text())
     item_addrs = sorted(item['addr'] for item in data['items'])
@@ -127,13 +132,11 @@ def load_address_ranges(json_filepath):
     end_addr = meta.get('end_addr', load_addr + 0x2000)
     ranges = [(load_addr, end_addr - 1)]
 
-    # Collect all non-ROM addresses (relocated code, external labels, etc.)
+    # Collect all non-ROM addresses (relocated code items and subroutines)
     all_addrs = set()
     for addr in item_addrs:
         if addr < load_addr or addr >= end_addr:
             all_addrs.add(addr)
-    for addr in data.get('external_labels', {}).values():
-        all_addrs.add(addr)
     for sub in data.get('subroutines', []):
         all_addrs.add(sub['addr'])
 
@@ -145,7 +148,7 @@ def load_address_ranges(json_filepath):
 
         for addr in sorted_addrs[1:]:
             if addr - block_end > 256:
-                ranges.append((block_start, block_end + 16))
+                ranges.append((block_start, block_end + 32))
                 block_start = addr
             block_end = addr
 
