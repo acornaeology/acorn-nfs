@@ -56,7 +56,7 @@ l0014                                   = &0014
 l0015                                   = &0015
 zp_63                                   = &0063
 l0064                                   = &0064
-l008d                                   = &008d
+l0078                                   = &0078
 escapable                               = &0097
 need_release_tube                       = &0098
 net_tx_ptr                              = &009a
@@ -105,6 +105,8 @@ l00c8                                   = &00c8
 fs_temp_cd                              = &00cd
 fs_temp_ce                              = &00ce
 l00cf                                   = &00cf
+l00e2                                   = &00e2
+l00ea                                   = &00ea
 l00ef                                   = &00ef
 l00f0                                   = &00f0
 l00f1                                   = &00f1
@@ -1188,7 +1190,20 @@ l8014 = l800d+7
 
 ; &807d referenced 1 time by &8082
 .loop_c807d
-    iny                                                               ; 807d: c8          .              ; Y=offset into (fs_options) buffer
+    iny                                                               ; 807d: c8          .
+; ***************************************************************************************
+; "I AM" command handler
+; 
+; Dispatched from the command match table when the user types
+; "*I AM <station>" or "*I AM <station>.<network>". Also used as
+; the station number parser for "*NET <station>[.<network>]".
+; Skips leading spaces, then parses a decimal station number (and
+; optional network number after '.') via parse_decimal. Stores
+; the results in &0E00 (station) and &0E01 (network). If a colon
+; follows, reads interactive input via OSRDCH and appends it to
+; the command buffer. Finally jumps to forward_star_cmd.
+; ***************************************************************************************
+.i_am_handler
     lda (fs_options),y                                                ; 807e: b1 bb       ..
     cmp #&20 ; ' '                                                    ; 8080: c9 20       .
     beq loop_c807d                                                    ; 8082: f0 f9       ..
@@ -2193,7 +2208,7 @@ l8014 = l800d+7
     lda (net_rx_ptr),y                                                ; 8479: b1 9c       ..
     beq remot1                                                        ; 847b: f0 03       ..
 ; &847d referenced 1 time by &84c3
-.c847d
+.rchex
     jmp clear_jsr_protection                                          ; 847d: 4c e9 92    L..
 
 ; &8480 referenced 2 times by &847b, &84b9
@@ -2257,7 +2272,7 @@ l8014 = l800d+7
     lda (net_rx_ptr),y                                                ; 84bd: b1 9c       ..
     ldy #&0e                                                          ; 84bf: a0 0e       ..
     cmp (nfs_workspace),y                                             ; 84c1: d1 9e       ..
-    bne c847d                                                         ; 84c3: d0 b8       ..
+    bne rchex                                                         ; 84c3: d0 b8       ..
 ; ***************************************************************************************
 ; Insert remote keypress (moved from &914B)
 ; 
@@ -2385,19 +2400,19 @@ l8014 = l800d+7
     sec                                                               ; 8539: 38          8
     jsr handle_bput_bget                                              ; 853a: 20 ed 83     ..            ; Handle BPUT/BGET file byte I/O
     sec                                                               ; 853d: 38          8
-    lda #&fe                                                          ; 853e: a9 fe       ..             ; Pop return address (high)
+    lda #&fe                                                          ; 853e: a9 fe       ..
     bit l0fdf                                                         ; 8540: 2c df 0f    ,..
-    bvs return_4                                                      ; 8543: 70 10       p.             ; Advance pointer past return address / to next char
+    bvs return_4                                                      ; 8543: 70 10       p.
     clc                                                               ; 8545: 18          .
     php                                                               ; 8546: 08          .
     lda l00cf                                                         ; 8547: a5 cf       ..
     plp                                                               ; 8549: 28          (
-    bmi c854f                                                         ; 854a: 30 03       0.             ; Load next byte from inline string
-    jsr clear_fs_flag                                                 ; 854c: 20 60 86     `.            ; Bit 7 set? Done — this byte is the next opcode
+    bmi c854f                                                         ; 854a: 30 03       0.
+    jsr clear_fs_flag                                                 ; 854c: 20 60 86     `.
 ; &854f referenced 1 time by &854a
 .c854f
-    jsr sub_c865b                                                     ; 854f: 20 5b 86     [.
-    lda l0fde                                                         ; 8552: ad de 0f    ...            ; Jump to address of high-bit byte (resumes code after string)
+    jsr set_fs_flag                                                   ; 854f: 20 5b 86     [.
+    lda l0fde                                                         ; 8552: ad de 0f    ...
 ; &8555 referenced 2 times by &852e, &8543
 .return_4
     rts                                                               ; 8555: 60          `
@@ -2530,45 +2545,24 @@ decode_attribs_5bit = l85a6+30
 .print_inline
     pla                                                               ; 85e2: 68          h              ; Pop return address (low) — points to last byte of JSR
     sta fs_load_addr                                                  ; 85e3: 85 b0       ..
-; ***************************************************************************************
-; Set bit(s) in FS flags (&0E07)
-; 
-; ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
-; one of up to 8 open file handles. When clear, the file is
-; definitely NOT at EOF. When set, the fileserver must be queried
-; to confirm EOF status. This negative-cache optimisation avoids
-; expensive network round-trips for the common case. The hint is
-; cleared when the file pointer is updated (since seeking away
-; from EOF invalidates the hint) and set after BGET/OPEN/EOF
-; operations that might have reached the end.
-; ***************************************************************************************
-.set_fs_flag
-    pla                                                               ; 85e5: 68          h
+    pla                                                               ; 85e5: 68          h              ; Pop return address (high)
     sta fs_load_addr_hi                                               ; 85e6: 85 b1       ..
     ldy #0                                                            ; 85e8: a0 00       ..
 ; &85ea referenced 1 time by &85f7
 .loop_c85ea
-    inc fs_load_addr                                                  ; 85ea: e6 b0       ..
-; ***************************************************************************************
-; Print byte as two hex digits
-; 
-; Prints the high nibble first (via 4× LSR), then the low
-; nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
-; and output via OSASCI.
-; ***************************************************************************************
-.print_hex
+    inc fs_load_addr                                                  ; 85ea: e6 b0       ..             ; Advance pointer past return address / to next char
     bne c85f0                                                         ; 85ec: d0 02       ..
     inc fs_load_addr_hi                                               ; 85ee: e6 b1       ..
 ; &85f0 referenced 1 time by &85ec
 .c85f0
-    lda (fs_load_addr),y                                              ; 85f0: b1 b0       ..
-    bmi c85fa                                                         ; 85f2: 30 06       0.
+    lda (fs_load_addr),y                                              ; 85f0: b1 b0       ..             ; Load next byte from inline string
+    bmi c85fa                                                         ; 85f2: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode
     jsr osasci                                                        ; 85f4: 20 e3 ff     ..            ; Write character
     jmp loop_c85ea                                                    ; 85f7: 4c ea 85    L..
 
 ; &85fa referenced 1 time by &85f2
 .c85fa
-    jmp (fs_load_addr)                                                ; 85fa: 6c b0 00    l..
+    jmp (fs_load_addr)                                                ; 85fa: 6c b0 00    l..            ; Jump to address of high-bit byte (resumes code after string)
 
 ; ***************************************************************************************
 ; Parse decimal number from (fs_options),Y (DECIN)
@@ -2747,15 +2741,27 @@ decode_attribs_5bit = l85a6+30
 .return_fscv_handles
     rts                                                               ; 865a: 60          `
 
+; ***************************************************************************************
+; Set bit(s) in FS flags (&0E07)
+; 
+; ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
+; one of up to 8 open file handles. When clear, the file is
+; definitely NOT at EOF. When set, the fileserver must be queried
+; to confirm EOF status. This negative-cache optimisation avoids
+; expensive network round-trips for the common case. The hint is
+; cleared when the file pointer is updated (since seeking away
+; from EOF invalidates the hint) and set after BGET/OPEN/EOF
+; operations that might have reached the end.
+; ***************************************************************************************
 ; &865b referenced 5 times by &854f, &8954, &89a7, &89c7, &8aa6
-.sub_c865b
+.set_fs_flag
     ora fs_eof_flags                                                  ; 865b: 0d 07 0e    ...
     bne c8665                                                         ; 865e: d0 05       ..
 ; ***************************************************************************************
 ; Clear bit(s) in FS flags (&0E07)
 ; 
 ; Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-; the specified bits. Falls through to set_fs_flag to store.
+; the specified bits. Falls through to store the result.
 ; ***************************************************************************************
 ; &8660 referenced 3 times by &854c, &886e, &8aa3
 .clear_fs_flag
@@ -2839,10 +2845,7 @@ decode_attribs_5bit = l85a6+30
 .l4
     lda (net_tx_ptr,x)                                                ; 868f: a1 9a       ..
     bmi l4                                                            ; 8691: 30 fc       0.
-    asl a                                                             ; 8693: 0a          .
-.sub_c8694
-filev_handler = sub_c8694+1
-    bpl c86b5                                                         ; 8694: 10 1f       ..
+    asl a                                                             ; 8693: 0a          .              ; A=function code (&FF=load, &00=save, &01-&06=attrs)
 ; ***************************************************************************************
 ; FILEV handler (OSFILE entry point)
 ; 
@@ -2866,6 +2869,8 @@ filev_handler = sub_c8694+1
 ;     X: restored
 ;     Y: restored
 ; ***************************************************************************************
+.filev_handler
+    bpl c86b5                                                         ; 8694: 10 1f       ..
     asl a                                                             ; 8696: 0a          .
     beq c86b1                                                         ; 8697: f0 18       ..
     jsr check_escape                                                  ; 8699: 20 2a 85     *.
@@ -3471,7 +3476,7 @@ filev_handler = sub_c8694+1
     jsr prepare_fs_cmd                                                ; 894e: 20 94 83     ..            ; Prepare FS command buffer (12 references)
     stx fs_last_byte_flag                                             ; 8951: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 8953: 68          h
-    jsr sub_c865b                                                     ; 8954: 20 5b 86     [.
+    jsr set_fs_flag                                                   ; 8954: 20 5b 86     [.
 ; ***************************************************************************************
 ; Restore arguments and return
 ; 
@@ -3558,7 +3563,7 @@ filev_handler = sub_c8694+1
     bcs c8959                                                         ; 89a1: b0 b6       ..
     lda fs_cmd_data                                                   ; 89a3: ad 05 0f    ...
     tax                                                               ; 89a6: aa          .
-    jsr sub_c865b                                                     ; 89a7: 20 5b 86     [.
+    jsr set_fs_flag                                                   ; 89a7: 20 5b 86     [.
     txa                                                               ; 89aa: 8a          .              ; A=single-bit bitmask
     jsr mask_to_handle                                                ; 89ab: 20 42 86     B.            ; Convert bitmask to handle number (FS2A)
     bne c8959                                                         ; 89ae: d0 a9       ..
@@ -3589,7 +3594,7 @@ filev_handler = sub_c8694+1
     ldy #7                                                            ; 89bf: a0 07       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 89c1: 20 94 83     ..            ; Prepare FS command buffer (12 references)
     lda fs_cmd_data                                                   ; 89c4: ad 05 0f    ...
-    jsr sub_c865b                                                     ; 89c7: 20 5b 86     [.
+    jsr set_fs_flag                                                   ; 89c7: 20 5b 86     [.
 ; &89ca referenced 1 time by &89ee
 .c89ca
     bcc restore_args_return                                           ; 89ca: 90 8b       ..
@@ -3790,7 +3795,7 @@ filev_handler = sub_c8694+1
     jsr clear_fs_flag                                                 ; 8aa3: 20 60 86     `.
 ; &8aa6 referenced 1 time by &8aa1
 .c8aa6
-    jsr sub_c865b                                                     ; 8aa6: 20 5b 86     [.
+    jsr set_fs_flag                                                   ; 8aa6: 20 5b 86     [.
     stx fs_load_addr_2                                                ; 8aa9: 86 b2       ..
     jsr adjust_addrs_9                                                ; 8aab: 20 f0 89     ..
     dec fs_load_addr_2                                                ; 8aae: c6 b2       ..
@@ -4024,13 +4029,12 @@ filev_handler = sub_c8694+1
 ; (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
 ; 
 ; Entries:
-;   "I."     → &8079 (forward_star_cmd) — placed first as a fudge
+;   "I."     → &80B4 (forward_star_cmd) — placed first as a fudge
 ;              to catch *I. abbreviation before matching *I AM
-;   "I AM"   → &8D07 (i_am_handler: parse station.net, logon)
-;   "EX "    → &8BF3 (ex_handler: extended catalogue)
-;   "EX"\r   → &8BF3 (same, exact match at end of line)
-;   "BYE"\r  → &834A (bye_handler: logoff)
-;   <catch-all> → &8079 (forward anything else to FS)
+;   "I AM"   → &807E (i_am_handler: parse station.net, logon)
+;   "EX"     → &8BF8 (ex_handler: extended catalogue)
+;   "BYE"\r  → &838D (bye_handler: logoff)
+;   <catch-all> → &80B4 (forward anything else to FS)
 ; ***************************************************************************************
 ; &8be2 referenced 2 times by &8bbf, &8bcc
 .fs_cmd_match_table
@@ -4043,17 +4047,21 @@ l8be3 = fs_cmd_match_table+1
     equs "}EX"                                                        ; 8beb: 7d 45 58    }EX
     equb &8b, &f7                                                     ; 8bee: 8b f7       ..
     equs "BYE"                                                        ; 8bf0: 42 59 45    BYE
+    equb &0d, &83, &8c, &80, &b3                                      ; 8bf3: 0d 83 8c... ...
 
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
 ; 
-; Sets column width &B6=&50 (80 columns, one file per line with
-; full details) and &B7=&01, then branches into cat_handler at
-; &8C08, bypassing cat_handler's default 20-column setup.
+; Sets &B7=&01 and &B5=&03, then branches into cat_handler at
+; &8C0A, bypassing cat_handler's default column setup. &B7=1
+; gives one entry per line with full details (vs &B7=3 for *CAT
+; which gives multiple files per line).
 ; ***************************************************************************************
 .ex_handler
-    ora c8c83                                                         ; 8bf3: 0d 83 8c    ...
-    equb &80, &b3, &a2, 1, &86, &b7, &a9, 3, &d0, &0a                 ; 8bf6: 80 b3 a2... ...
+    ldx #1                                                            ; 8bf8: a2 01       ..
+    stx l00b7                                                         ; 8bfa: 86 b7       ..
+    lda #3                                                            ; 8bfc: a9 03       ..
+    bne c8c0a                                                         ; 8bfe: d0 0a       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; *CAT handler (directory catalogue)
@@ -4086,6 +4094,8 @@ l8be3 = fs_cmd_match_table+1
     ldy #0                                                            ; 8c04: a0 00       ..
     sty l00b9                                                         ; 8c06: 84 b9       ..
     lda #&0b                                                          ; 8c08: a9 0b       ..
+; &8c0a referenced 1 time by &8bfe
+.c8c0a
     sta l00b5                                                         ; 8c0a: 85 b5       ..
     lda #6                                                            ; 8c0c: a9 06       ..
     sta fs_cmd_data                                                   ; 8c0e: 8d 05 0f    ...
@@ -4139,7 +4149,7 @@ l8be3 = fs_cmd_match_table+1
     jsr osasci                                                        ; 8c7d: 20 e3 ff     ..            ; Write character
     iny                                                               ; 8c80: c8          .
     bne loop_c8c78                                                    ; 8c81: d0 f5       ..
-; &8c83 referenced 2 times by &8bf3, &8c7b
+; &8c83 referenced 1 time by &8c7b
 .c8c83
     jsr print_inline                                                  ; 8c83: 20 e2 85     ..
     equs ")", &0d, "Dir. "                                            ; 8c86: 29 0d 44... ).D
@@ -4203,10 +4213,19 @@ l8be3 = fs_cmd_match_table+1
     equb &0d                                                          ; 8ce9: 0d          .
     equs "E.!BOOT"                                                    ; 8cea: 45 2e 21... E.!
     equb &0d                                                          ; 8cf1: 0d          .
-; &8cf2 referenced 1 time by &8e3b
-.l8cf2
-    equb &f1, &e2, &e4, &ea, &45, &78                                 ; 8cf2: f1 e2 e4... ...
 
+; ***************************************************************************************
+; Boot option → OSCLI string offset table
+; 
+; Four bytes indexed by the boot option value (0-3). Each byte
+; is the low byte of a pointer into page &8C, where the OSCLI
+; command string for that boot option lives. See boot_cmd_strings.
+; ***************************************************************************************
+; &8cf2 referenced 1 time by &8e3b
+.boot_option_offsets
+    sbc (l00e2),y                                                     ; 8cf2: f1 e2       ..
+    cpx l00ea                                                         ; 8cf4: e4 ea       ..
+    eor l0078                                                         ; 8cf6: 45 78       Ex
 ; ***************************************************************************************
 ; Set library handle
 ; 
@@ -4238,61 +4257,37 @@ l8be3 = fs_cmd_match_table+1
 .set_csd_handle
     beq return_5                                                      ; 8cfd: f0 5b       .[
     ldy #0                                                            ; 8cff: a0 00       ..
-.sub_c8d01
-boot_option_offsets = sub_c8d01+2
     ldx fs_cmd_csd                                                    ; 8d01: ae 03 0f    ...
-; ***************************************************************************************
-; Boot option → OSCLI string offset table
-; 
-; Four bytes indexed by the boot option value (0-3). Each byte
-; is the low byte of a pointer into page &8C, where the OSCLI
-; command string for that boot option lives. See boot_cmd_strings.
-; ***************************************************************************************
     beq c8d0b                                                         ; 8d04: f0 05       ..
-; overlapping: jsr c8d61                                              ; 8d06: 20 61 8d     a.
-    equb &20                                                          ; 8d06: 20
-
-; ***************************************************************************************
-; "I AM" command handler
-; 
-; Dispatched from the command match table when the user types
-; "*I AM <station>" or "*I AM <station>.<network>".
-; Parses the station number (and optional network number after '.')
-; using skip_spaces and parse_decimal. Stores the results in:
-;   &0E00 = station number (or fileserver station)
-;   &0E01 = network number
-; Then forwards the command to the fileserver via forward_star_cmd.
-; ***************************************************************************************
-.i_am_handler
-    adc (l008d,x)                                                     ; 8d07: 61 8d       a.
+    jsr c8d61                                                         ; 8d06: 20 61 8d     a.
     bmi c8d23                                                         ; 8d09: 30 18       0.
 ; &8d0b referenced 2 times by &8d04, &8d19
 .c8d0b
     lda (fs_crc_lo),y                                                 ; 8d0b: b1 be       ..
     cmp #&0d                                                          ; 8d0d: c9 0d       ..
-    beq c8d1b                                                         ; 8d0f: f0 0a       ..
+    beq pad_filename_spaces                                           ; 8d0f: f0 0a       ..
     cmp #&20 ; ' '                                                    ; 8d11: c9 20       .
-    beq c8d1b                                                         ; 8d13: f0 06       ..
+    beq pad_filename_spaces                                           ; 8d13: f0 06       ..
     jsr osasci                                                        ; 8d15: 20 e3 ff     ..            ; Write character
     iny                                                               ; 8d18: c8          .
     bne c8d0b                                                         ; 8d19: d0 f0       ..
 ; &8d1b referenced 3 times by &8d0f, &8d13, &8d21
-.c8d1b
+.pad_filename_spaces
     jsr print_space                                                   ; 8d1b: 20 44 8d     D.
     iny                                                               ; 8d1e: c8          .
     cpy #&0c                                                          ; 8d1f: c0 0c       ..
-    bcc c8d1b                                                         ; 8d21: 90 f8       ..
+    bcc pad_filename_spaces                                           ; 8d21: 90 f8       ..
 ; &8d23 referenced 1 time by &8d09
 .c8d23
     ldy #5                                                            ; 8d23: a0 05       ..
     jsr print_hex_bytes                                               ; 8d25: 20 39 8d     9.
-    jsr sub_c8d2e                                                     ; 8d28: 20 2e 8d     ..
+    jsr print_exec_and_len                                            ; 8d28: 20 2e 8d     ..
 ; &8d2b referenced 1 time by &8cc5
 .c8d2b
     jmp osnewl                                                        ; 8d2b: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &8d2e referenced 1 time by &8d28
-.sub_c8d2e
+.print_exec_and_len
     ldy #9                                                            ; 8d2e: a0 09       ..
     jsr print_hex_bytes                                               ; 8d30: 20 39 8d     9.
     ldy #&0c                                                          ; 8d33: a0 0c       ..
@@ -4376,7 +4371,7 @@ boot_option_offsets = sub_c8d01+2
     adc (l0064,x)                                                     ; 8d5d: 61 64       ad
 .sub_c8d5f
     ldx #0                                                            ; 8d5f: a2 00       ..
-; &8d61 referenced 2 times by &8cc9, &8d81
+; &8d61 referenced 3 times by &8cc9, &8d06, &8d81
 .c8d61
     lda fs_cmd_data,x                                                 ; 8d61: bd 05 0f    ...
 ; ***************************************************************************************
@@ -4487,6 +4482,13 @@ boot_option_offsets = sub_c8d01+2
 .loop_c8da2
     jmp osasci                                                        ; 8da2: 4c e3 ff    L..            ; Write character
 
+; ***************************************************************************************
+; Print byte as two hex digits
+; 
+; Prints the high nibble first (via 4× LSR), then the low
+; nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
+; and output via OSASCI.
+; ***************************************************************************************
 ; &8da5 referenced 2 times by &8c6d, &8d3d
 .print_hex_byte
     pha                                                               ; 8da5: 48          H
@@ -4611,14 +4613,7 @@ boot_option_offsets = sub_c8d01+2
     sty fs_lib_handle                                                 ; 8e1d: 8c 04 0e    ...            ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
     bne c8e25                                                         ; 8e20: d0 03       ..
 .sub_c8e22
-copy_param_block = sub_c8e22+1
     sty fs_csd_handle                                                 ; 8e22: 8c 03 0e    ...
-; ***************************************************************************************
-; Bidirectional block copy between OSWORD param block and workspace.
-; 
-; C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
-; C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)
-; ***************************************************************************************
 ; &8e25 referenced 2 times by &8e20, &8e36
 .c8e25
     jmp restore_args_return                                           ; 8e25: 4c 57 89    LW.
@@ -4657,7 +4652,7 @@ copy_param_block = sub_c8e22+1
     bpl logon2                                                        ; 8e34: 10 f7       ..
     bcc c8e25                                                         ; 8e36: 90 ed       ..
     ldy fs_boot_option                                                ; 8e38: ac 05 0e    ...
-    ldx l8cf2,y                                                       ; 8e3b: be f2 8c    ...
+    ldx boot_option_offsets,y                                         ; 8e3b: be f2 8c    ...
     ldy #&8c                                                          ; 8e3e: a0 8c       ..
     jmp oscli                                                         ; 8e40: 4c f7 ff    L..
 
@@ -4807,9 +4802,15 @@ osword_12_handler = sub_c8e7a+2
     equb >(osword_11_handler-1)                                       ; 8eae: 8e          .
     equb >(sub_c8eff-1)                                               ; 8eaf: 8e          .
     equb >(econet_tx_rx-1)                                            ; 8eb0: 8f          .
+; ***************************************************************************************
+; Bidirectional block copy between OSWORD param block and workspace.
+; 
+; C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
+; C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)
+; ***************************************************************************************
 ; overlapping: bcc sub_c8eb7                                          ; 8eb1: 90 04       ..
 ; &8eb1 referenced 5 times by &8ebd, &8ed4, &8ee9, &8f1a, &8faf
-.l8eb1
+.copy_param_block
     equb >(sub_c908f-1)                                               ; 8eb1: 90          .
     equb >(sub_c0490-1)                                               ; 8eb2: 04          .
 
@@ -4821,7 +4822,7 @@ osword_12_handler = sub_c8e7a+2
 .copyl3
     iny                                                               ; 8ebb: c8          .
     dex                                                               ; 8ebc: ca          .
-    bpl l8eb1                                                         ; 8ebd: 10 f2       ..
+    bpl copy_param_block                                              ; 8ebd: 10 f2       ..
 ; &8ebf referenced 2 times by &8e82, &8e86
 .return_7
 .logon3
@@ -4861,7 +4862,7 @@ osword_12_handler = sub_c8e7a+2
     sta l00ab                                                         ; 8ece: 85 ab       ..
     sta nmi_tx_block                                                  ; 8ed0: 85 a0       ..
     ldx #&0f                                                          ; 8ed2: a2 0f       ..
-    jsr l8eb1                                                         ; 8ed4: 20 b1 8e     ..
+    jsr copy_param_block                                              ; 8ed4: 20 b1 8e     ..
     jmp trampoline_tx_setup                                           ; 8ed7: 4c 60 96    L`.
 
 ; ***************************************************************************************
@@ -4885,7 +4886,7 @@ osword_12_handler = sub_c8e7a+2
     tax                                                               ; 8ee5: aa          .
     dex                                                               ; 8ee6: ca          .
     ldy #0                                                            ; 8ee7: a0 00       ..
-    jsr l8eb1                                                         ; 8ee9: 20 b1 8e     ..
+    jsr copy_param_block                                              ; 8ee9: 20 b1 8e     ..
     jmp clear_jsr_protection                                          ; 8eec: 4c e9 92    L..
 
 ; &8eef referenced 1 time by &8f3e
@@ -4922,7 +4923,7 @@ osword_12_handler = sub_c8e7a+2
     sta l00ab                                                         ; 8f14: 85 ab       ..
     ldx #1                                                            ; 8f16: a2 01       ..
     ldy #1                                                            ; 8f18: a0 01       ..
-    jmp l8eb1                                                         ; 8f1a: 4c b1 8e    L..
+    jmp copy_param_block                                              ; 8f1a: 4c b1 8e    L..
 
 ; &8f1d referenced 1 time by &8f05
 .rssl1
@@ -5056,7 +5057,7 @@ osword_12_handler = sub_c8e7a+2
     clc                                                               ; 8fae: 18          .
 ; &8faf referenced 1 time by &8faa
 .openl6
-    jsr l8eb1                                                         ; 8faf: 20 b1 8e     ..
+    jsr copy_param_block                                              ; 8faf: 20 b1 8e     ..
     bcs c8fc3                                                         ; 8fb2: b0 0f       ..
     lda #&3f ; '?'                                                    ; 8fb4: a9 3f       .?
     ldy #1                                                            ; 8fb6: a0 01       ..
@@ -5869,7 +5870,7 @@ osword_12_handler = sub_c8e7a+2
     sta (nfs_workspace,x)                                             ; 9314: 81 9e       ..
     rts                                                               ; 9316: 60          `
 
-; Table of 3 OSBYTE codes used by save_palette_vdu_state (&9292):
+; Table of 3 OSBYTE codes used by save_palette_vdu_state (&92A4):
 ;   &85 = read cursor position
 ;   &C2 = read shadow RAM allocation
 ;   &C3 = read screen start address
@@ -8086,6 +8087,7 @@ save pydis_start, pydis_end
 ;     tx_in_progress:                           6
 ;     zp_temp_10:                               6
 ;     c8959:                                    5
+;     copy_param_block:                         5
 ;     dispatch:                                 5
 ;     fs_block_offset:                          5
 ;     fs_boot_option:                           5
@@ -8095,12 +8097,11 @@ save pydis_start, pydis_end
 ;     l0100:                                    5
 ;     l0106:                                    5
 ;     l0f07:                                    5
-;     l8eb1:                                    5
 ;     printer_buf_ptr:                          5
 ;     rx_ctrl:                                  5
 ;     rx_port:                                  5
 ;     scout_error:                              5
-;     sub_c865b:                                5
+;     set_fs_flag:                              5
 ;     system_via_acr:                           5
 ;     tube_reply_byte:                          5
 ;     tube_send_r1:                             5
@@ -8123,6 +8124,7 @@ save pydis_start, pydis_end
 ;     init_tx_ctrl_block:                       4
 ;     l0015:                                    4
 ;     l00ac:                                    4
+;     l00b7:                                    4
 ;     l00b9:                                    4
 ;     l00c0:                                    4
 ;     l00c1:                                    4
@@ -8142,7 +8144,7 @@ save pydis_start, pydis_end
 ;     adlc_full_reset:                          3
 ;     c84f8:                                    3
 ;     c850a:                                    3
-;     c8d1b:                                    3
+;     c8d61:                                    3
 ;     c90f1:                                    3
 ;     c97e1:                                    3
 ;     c991c:                                    3
@@ -8168,7 +8170,6 @@ save pydis_start, pydis_end
 ;     l00aa:                                    3
 ;     l00af:                                    3
 ;     l00b5:                                    3
-;     l00b7:                                    3
 ;     l00ba:                                    3
 ;     l00cf:                                    3
 ;     l0f08:                                    3
@@ -8181,6 +8182,7 @@ save pydis_start, pydis_end
 ;     openl4:                                   3
 ;     oscli:                                    3
 ;     osword:                                   3
+;     pad_filename_spaces:                      3
 ;     romsel_copy:                              3
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
@@ -8214,10 +8216,8 @@ save pydis_start, pydis_end
 ;     c86d8:                                    2
 ;     c8add:                                    2
 ;     c8b54:                                    2
-;     c8c83:                                    2
 ;     c8cde:                                    2
 ;     c8d0b:                                    2
-;     c8d61:                                    2
 ;     c8d7b:                                    2
 ;     c8db8:                                    2
 ;     c8e1a:                                    2
@@ -8354,6 +8354,7 @@ save pydis_start, pydis_end
 ;     adlc_init:                                1
 ;     argsw:                                    1
 ;     begink:                                   1
+;     boot_option_offsets:                      1
 ;     bspsx:                                    1
 ;     bsxl0:                                    1
 ;     bsxl1:                                    1
@@ -8385,7 +8386,6 @@ save pydis_start, pydis_end
 ;     c8443:                                    1
 ;     c8449:                                    1
 ;     c845d:                                    1
-;     c847d:                                    1
 ;     c84d4:                                    1
 ;     c854f:                                    1
 ;     c85d4:                                    1
@@ -8423,8 +8423,10 @@ save pydis_start, pydis_end
 ;     c8b57:                                    1
 ;     c8b93:                                    1
 ;     c8bdc:                                    1
+;     c8c0a:                                    1
 ;     c8c46:                                    1
 ;     c8c50:                                    1
+;     c8c83:                                    1
 ;     c8cb3:                                    1
 ;     c8d23:                                    1
 ;     c8d2b:                                    1
@@ -8575,10 +8577,12 @@ save pydis_start, pydis_end
 ;     l0059:                                    1
 ;     l005a:                                    1
 ;     l0064:                                    1
-;     l008d:                                    1
+;     l0078:                                    1
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
+;     l00e2:                                    1
+;     l00ea:                                    1
 ;     l00f3:                                    1
 ;     l00f7:                                    1
 ;     l0104:                                    1
@@ -8611,7 +8615,6 @@ save pydis_start, pydis_end
 ;     l8004:                                    1
 ;     l8014:                                    1
 ;     l8be3:                                    1
-;     l8cf2:                                    1
 ;     l8ea7:                                    1
 ;     l8eac:                                    1
 ;     l8efd:                                    1
@@ -8733,9 +8736,11 @@ save pydis_start, pydis_end
 ;     osword_trampoline:                        1
 ;     oswrch:                                   1
 ;     prepare_cmd_with_flag:                    1
+;     print_exec_and_len:                       1
 ;     print_hex_nibble:                         1
 ;     print_space:                              1
 ;     quote1:                                   1
+;     rchex:                                    1
 ;     read_args_size:                           1
 ;     read_vdu_osbyte:                          1
 ;     read_vdu_osbyte_x0:                       1
@@ -8784,7 +8789,6 @@ save pydis_start, pydis_end
 ;     sub_4_from_y:                             1
 ;     sub_c8352:                                1
 ;     sub_c86c5:                                1
-;     sub_c8d2e:                                1
 ;     tbcop1:                                   1
 ;     trampoline_adlc_init:                     1
 ;     tube_brk_handler:                         1
@@ -8855,7 +8859,6 @@ save pydis_start, pydis_end
 ;     c8443
 ;     c8449
 ;     c845d
-;     c847d
 ;     c84b2
 ;     c84d4
 ;     c84f8
@@ -8906,13 +8909,13 @@ save pydis_start, pydis_end
 ;     c8b57
 ;     c8b93
 ;     c8bdc
+;     c8c0a
 ;     c8c46
 ;     c8c50
 ;     c8c83
 ;     c8cb3
 ;     c8cde
 ;     c8d0b
-;     c8d1b
 ;     c8d23
 ;     c8d2b
 ;     c8d61
@@ -9027,7 +9030,7 @@ save pydis_start, pydis_end
 ;     l0059
 ;     l005a
 ;     l0064
-;     l008d
+;     l0078
 ;     l00a8
 ;     l00aa
 ;     l00ab
@@ -9048,6 +9051,8 @@ save pydis_start, pydis_end
 ;     l00c7
 ;     l00c8
 ;     l00cf
+;     l00e2
+;     l00ea
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -9111,11 +9116,9 @@ save pydis_start, pydis_end
 ;     l85a6
 ;     l85c8
 ;     l8be3
-;     l8cf2
 ;     l8d4b
 ;     l8ea7
 ;     l8eac
-;     l8eb1
 ;     l8efd
 ;     l9133
 ;     l945f
@@ -9201,11 +9204,7 @@ save pydis_start, pydis_end
 ;     sub_c82b5
 ;     sub_c8352
 ;     sub_c83c6
-;     sub_c865b
-;     sub_c8694
 ;     sub_c86c5
-;     sub_c8d01
-;     sub_c8d2e
 ;     sub_c8d4d
 ;     sub_c8d5f
 ;     sub_c8dba
@@ -9231,11 +9230,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7506 bytes (92%)
-;     Data                     = 686 bytes (8%)
+;     Code                     = 7518 bytes (92%)
+;     Data                     = 674 bytes (8%)
 ;
-;     Number of instructions   = 3624
-;     Number of data bytes     = 428 bytes
+;     Number of instructions   = 3630
+;     Number of data bytes     = 416 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 258 bytes
 ;     Number of strings        = 35

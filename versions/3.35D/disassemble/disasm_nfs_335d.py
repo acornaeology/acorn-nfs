@@ -448,6 +448,7 @@ label(0x90A9, "osword_tbl_hi")         # Dispatch table high bytes
 label(0x912A, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
 label(0x9132, "return_match_osbyte") # Return from match_osbyte_code
 label(0x8476, "return_remote_cmd")   # Return from remote command data handler
+label(0x847D, "rchex")                # Clear JSR protection after remote command exec
 
 # Control block setup
 label(0x917A, "ctrl_block_setup_clv") # CLV entry: same setup but clears V flag
@@ -638,6 +639,8 @@ label(0x865A, "return_fscv_handles")    # Return from fscv_read_handles
 # --- FS flags manipulation ---
 
 # --- File info display (hex print helpers moved to &8Dxx) ---
+label(0x8D1B, "pad_filename_spaces")    # Pad filename display to 12 chars with spaces
+label(0x8D2E, "print_exec_and_len")     # Print exec address (4 bytes) and file length (3 bytes)
 label(0x8D39, "print_hex_bytes")        # Print X bytes from (fs_options)+Y as hex (high->low)
 label(0x8D44, "print_space")            # Print a space character via OSASCI
 
@@ -1462,9 +1465,9 @@ subroutine(0x8660, "clear_fs_flag", hook=None,
     title="Clear bit(s) in FS flags (&0E07)",
     description="""\
 Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-the specified bits. Falls through to set_fs_flag to store.""")
+the specified bits. Falls through to store the result.""")
 
-subroutine(0x85E5, "set_fs_flag", hook=None,
+subroutine(0x865B, "set_fs_flag", hook=None,
     title="Set bit(s) in FS flags (&0E07)",
     description="""\
 ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
@@ -1491,9 +1494,9 @@ Data is read from (fs_crc_lo) for the filename and from
 if fs_work_0e06 is zero (no info available).""")
 
 # ============================================================
-# Hex printing (&85EC / &85F7)
+# Hex printing (&8DA5 / &8DB0)
 # ============================================================
-subroutine(0x85EC, "print_hex", hook=None,
+subroutine(0x8DA5, hook=None,
     title="Print byte as two hex digits",
     description="""\
 Prints the high nibble first (via 4× LSR), then the low
@@ -1538,7 +1541,7 @@ standard TXCB; tx_poll_core (&8651) is general-purpose.""",
              "y": "0"})
 
 # ============================================================
-# print_inline subroutine (&853C)
+# print_inline subroutine (&85E2)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
 subroutine(0x85E2, hook=None,
@@ -1556,11 +1559,11 @@ handler.""",
              "y": "0"})
 
 comment(0x85E2, "Pop return address (low) — points to last byte of JSR", inline=True)
-comment(0x853F, "Pop return address (high)", inline=True)
-comment(0x8544, "Advance pointer past return address / to next char", inline=True)
-comment(0x854A, "Load next byte from inline string", inline=True)
-comment(0x854C, "Bit 7 set? Done — this byte is the next opcode", inline=True)
-comment(0x8553, "Jump to address of high-bit byte (resumes code after string)", inline=True)
+comment(0x85E5, "Pop return address (high)", inline=True)
+comment(0x85EA, "Advance pointer past return address / to next char", inline=True)
+comment(0x85F0, "Load next byte from inline string", inline=True)
+comment(0x85F2, "Bit 7 set? Done — this byte is the next opcode", inline=True)
+comment(0x85FA, "Jump to address of high-bit byte (resumes code after string)", inline=True)
 
 # ============================================================
 # Dispatch table comments (&8020-&8068)
@@ -2071,7 +2074,7 @@ depending on the entry path.""",
 # ============================================================
 # FILEV handler (&8695)
 # ============================================================
-subroutine(0x8695, "filev_handler",
+subroutine(0x8694, "filev_handler",
     title="FILEV handler (OSFILE entry point)",
     description="""\
 Saves A/X/Y, copies the filename pointer from the parameter block
@@ -2351,23 +2354,23 @@ adds 1 to the stored (address-1). Matching is case-insensitive
 (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
 
 Entries:
-  "I."     → &8079 (forward_star_cmd) — placed first as a fudge
+  "I."     → &80B4 (forward_star_cmd) — placed first as a fudge
              to catch *I. abbreviation before matching *I AM
-  "I AM"   → &8D07 (i_am_handler: parse station.net, logon)
-  "EX "    → &8BF3 (ex_handler: extended catalogue)
-  "EX"\\r   → &8BF3 (same, exact match at end of line)
-  "BYE"\\r  → &834A (bye_handler: logoff)
-  <catch-all> → &8079 (forward anything else to FS)""")
+  "I AM"   → &807E (i_am_handler: parse station.net, logon)
+  "EX"     → &8BF8 (ex_handler: extended catalogue)
+  "BYE"\\r  → &838D (bye_handler: logoff)
+  <catch-all> → &80B4 (forward anything else to FS)""")
 
 # ============================================================
-# *EX and *CAT handlers (&8BF3 / &8BFE)
+# *EX and *CAT handlers (&8BF8 / &8C00)
 # ============================================================
-subroutine(0x8BF3, "ex_handler", hook=None,
+subroutine(0x8BF8, "ex_handler", hook=None,
     title="*EX handler (extended catalogue)",
     description="""\
-Sets column width &B6=&50 (80 columns, one file per line with
-full details) and &B7=&01, then branches into cat_handler at
-&8C08, bypassing cat_handler's default 20-column setup.""")
+Sets &B7=&01 and &B5=&03, then branches into cat_handler at
+&8C0A, bypassing cat_handler's default column setup. &B7=1
+gives one entry per line with full details (vs &B7=3 for *CAT
+which gives multiple files per line).""")
 
 subroutine(0x8C00, "cat_handler", hook=None,
     title="*CAT handler (directory catalogue)",
@@ -2429,23 +2432,24 @@ Falls through to c8cff (JMP c892c).""")
 # ============================================================
 # Boot option table and "I AM" handler (&8D03-&8D1F)
 # ============================================================
-subroutine(0x8D03, "boot_option_offsets", hook=None,
+subroutine(0x8CF2, "boot_option_offsets", hook=None,
     title="Boot option → OSCLI string offset table",
     description="""\
 Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.""")
 
-subroutine(0x8D07, "i_am_handler", hook=None,
+subroutine(0x807E, "i_am_handler", hook=None,
     title="\"I AM\" command handler",
     description="""\
 Dispatched from the command match table when the user types
-"*I AM <station>" or "*I AM <station>.<network>".
-Parses the station number (and optional network number after '.')
-using skip_spaces and parse_decimal. Stores the results in:
-  &0E00 = station number (or fileserver station)
-  &0E01 = network number
-Then forwards the command to the fileserver via forward_star_cmd.""")
+"*I AM <station>" or "*I AM <station>.<network>". Also used as
+the station number parser for "*NET <station>[.<network>]".
+Skips leading spaces, then parses a decimal station number (and
+optional network number after '.') via parse_decimal. Stores
+the results in &0E00 (station) and &0E01 (network). If a colon
+follows, reads interactive input via OSRDCH and appends it to
+the command buffer. Finally jumps to forward_star_cmd.""")
 
 # ============================================================
 # Copy handles and boot (&8D20 / &8D21)
@@ -2741,7 +2745,7 @@ Sentinel values:
 # ============================================================
 # Bidirectional block copy (&8E23)
 # ============================================================
-subroutine(0x8E23, "copy_param_block", hook=None,
+subroutine(0x8EB1, "copy_param_block", hook=None,
     title="Bidirectional block copy between OSWORD param block and workspace.",
     description="""\
 C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
@@ -3054,7 +3058,7 @@ of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 # ============================================================
 label(0x9317, "osbyte_vdu_table")
 comment(0x9317, """\
-Table of 3 OSBYTE codes used by save_palette_vdu_state (&9292):
+Table of 3 OSBYTE codes used by save_palette_vdu_state (&92A4):
   &85 = read cursor position
   &C2 = read shadow RAM allocation
   &C3 = read screen start address""")
