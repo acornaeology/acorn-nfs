@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.34", "3.34B"]
+        version: ["3.34", "3.34B", "3.35D"]
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +40,9 @@ jobs:
 
       - name: Disassemble Acorn NFS ${{ matrix.version }}
         run: uv run acorn-nfs-disasm-tool disassemble ${{ matrix.version }}
+
+      - name: Lint Acorn NFS ${{ matrix.version }}
+        run: uv run acorn-nfs-disasm-tool lint ${{ matrix.version }}
 
       - name: Verify Acorn NFS ${{ matrix.version }}
         run: uv run acorn-nfs-disasm-tool verify ${{ matrix.version }}

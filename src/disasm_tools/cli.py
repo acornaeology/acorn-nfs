@@ -77,6 +77,14 @@ def cmd_verify(args):
     sys.exit(verify(version_dirpath, args.version))
 
 
+def cmd_lint(args):
+    """Validate annotation addresses against the disassembly output."""
+    from disasm_tools.lint import lint
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(lint(version_dirpath, args.version))
+
+
 def cmd_compare(args):
     """Compare two ROM versions byte-by-byte and instruction-by-instruction."""
     from disasm_tools.compare import compare
@@ -111,6 +119,12 @@ def main():
     )
     verify_parser.add_argument("version", help="NFS version (e.g. 3.34)")
     verify_parser.set_defaults(func=cmd_verify)
+
+    lint_parser = subparsers.add_parser(
+        "lint", help="Validate annotation addresses in driver script"
+    )
+    lint_parser.add_argument("version", help="NFS version (e.g. 3.34)")
+    lint_parser.set_defaults(func=cmd_lint)
 
     compare_parser = subparsers.add_parser(
         "compare", help="Compare two ROM versions"
