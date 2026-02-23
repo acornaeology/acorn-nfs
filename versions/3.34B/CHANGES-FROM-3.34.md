@@ -75,6 +75,7 @@ block), which is copied from ROM to RAM during initialisation.
 
 - R1 (&FEE0/&FEE1): events and escape signalling
 - R2 (&FEE2/&FEE3): command bytes and general data transfer
+- R3 (&FEE4/&FEE5): multi-byte data transfers
 - R4 (&FEE6/&FEE7): one-byte transfers
 
 In NFS 3.34, R1 was overloaded: it handled both WRCH character data and

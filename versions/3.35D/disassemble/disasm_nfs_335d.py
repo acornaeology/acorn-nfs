@@ -1589,8 +1589,14 @@ subroutine(0x8069, "dispatch_net_cmd", hook=None,
     title="*NET command dispatcher",
     description="""\
 Parses the character after *NET as '1'-'4', maps to table
-indices 33-36 via base offset Y=&20, and dispatches via &809F.
-Characters outside '1'-'4' fall through to return_1 (RTS).""")
+indices 33-36 via base offset Y=&20, and dispatches via &80DA.
+Characters outside '1'-'4' fall through to return_1 (RTS).
+
+These internal sub-commands manage file handles in local workspace:
+  *NET1: read file handle from received packet (net1_read_handle)
+  *NET2: read handle entry from workspace (net2_read_handle_entry)
+  *NET3: close handle / mark as unused (net3_close_handle)
+  *NET4: resume after remote operation (net4_resume_remote)""")
 
 comment(0x8069, "Read command character following *NET", inline=True)
 comment(0x806B, "Subtract ASCII '1' to get 0-based command index", inline=True)

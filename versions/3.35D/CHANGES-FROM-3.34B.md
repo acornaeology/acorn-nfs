@@ -132,6 +132,7 @@ The BBC Micro Tube ULA register pairs:
 
 - R1 (&FEE0/&FEE1): events, escape signalling, and (in 3.34/3.35D) WRCH
 - R2 (&FEE2/&FEE3): command bytes and general data transfer
+- R3 (&FEE4/&FEE5): multi-byte data transfers
 - R4 (&FEE6/&FEE7): one-byte transfers
 
 ### 6. GSINIT/GSREAD filename parsing for FSCV

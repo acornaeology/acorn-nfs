@@ -1172,8 +1172,14 @@ l8014 = l800d+7
 ; *NET command dispatcher
 ; 
 ; Parses the character after *NET as '1'-'4', maps to table
-; indices 33-36 via base offset Y=&20, and dispatches via &809F.
+; indices 33-36 via base offset Y=&20, and dispatches via &80DA.
 ; Characters outside '1'-'4' fall through to return_1 (RTS).
+; 
+; These internal sub-commands manage file handles in local workspace:
+;   *NET1: read file handle from received packet (net1_read_handle)
+;   *NET2: read handle entry from workspace (net2_read_handle_entry)
+;   *NET3: close handle / mark as unused (net3_close_handle)
+;   *NET4: resume after remote operation (net4_resume_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
     lda l00ef                                                         ; 8069: a5 ef       ..             ; Read command character following *NET
