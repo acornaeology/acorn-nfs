@@ -1170,7 +1170,7 @@ label(0x9AC8, "rx_imm_machine_type")
 subroutine(0x9AC8, hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length &01FC) for the machine
+Sets up a buffer at &7F21 (length #&01FC) for the machine
 type query response. Returns system identification data
 to the remote station.""")
 
@@ -1572,16 +1572,16 @@ requires a space or terminator after 'NET', so *NET1 typed
 at the command line does not match; these are reached only
 via OSCLI calls within the ROM.
 
-*NET1: read file handle from received packet
-(net1_read_handle)
+*NET1 (&8DAF): read file handle from received
+packet (net1_read_handle)
 
-*NET2: read handle entry from workspace
+*NET2 (&8DC9): read handle entry from workspace
 (net2_read_handle_entry)
 
-*NET3: close handle / mark as unused
+*NET3 (&8DDF): close handle / mark as unused
 (net3_close_handle)
 
-*NET4: resume after remote operation
+*NET4 (&8DF2): resume after remote operation
 (net4_resume_remote)""")
 
 comment(0x8069, "Read command character following *NET", inline=True)

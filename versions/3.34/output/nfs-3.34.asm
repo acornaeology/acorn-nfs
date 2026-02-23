@@ -1164,16 +1164,16 @@ l8014 = l800d+7
 ; at the command line does not match; these are reached only
 ; via OSCLI calls within the ROM.
 ; 
-; *NET1: read file handle from received packet
-; (net1_read_handle)
+; *NET1 (&8DAF): read file handle from received
+; packet (net1_read_handle)
 ; 
-; *NET2: read handle entry from workspace
+; *NET2 (&8DC9): read handle entry from workspace
 ; (net2_read_handle_entry)
 ; 
-; *NET3: close handle / mark as unused
+; *NET3 (&8DDF): close handle / mark as unused
 ; (net3_close_handle)
 ; 
-; *NET4: resume after remote operation
+; *NET4 (&8DF2): resume after remote operation
 ; (net4_resume_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
@@ -6759,7 +6759,7 @@ l9a16 = sub_c9a15+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length &01FC) for the machine
+; Sets up a buffer at &7F21 (length #&01FC) for the machine
 ; type query response. Returns system identification data
 ; to the remote station.
 ; ***************************************************************************************
