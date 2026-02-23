@@ -398,6 +398,18 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # Named labels for dispatch table and key routines
 # ============================================================
 
+# ROM header: copyright string doubles as *ROFF command text
+# The copyright string "(C)ROFF" serves double duty: the MOS requires
+# a valid (C) marker for ROM recognition, and the "ROFF" suffix is
+# reused by the star command matcher (svc_star_command) as the command
+# text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
+# separate "ROFF" entry in the command table.
+comment(0x800D, """\
+The 'ROFF' suffix at &8010 is reused by the *ROFF
+command matcher (svc_star_command) — a space-saving
+trick that shares ROM bytes between the copyright
+string and the star command table.""")
+
 # Dispatch tables: split low/high byte address tables
 label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
 label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
@@ -1764,12 +1776,18 @@ to set up NFS vectors (selecting NFS as the filing system).""")
 subroutine(0x8172, "svc_star_command", hook=None,
     title="Service 4: unrecognised * command",
     description="""\
-Matches the command text against ROM string table entries:
-  X=8: matches "ROFF" at &8010 (within copyright string) → *ROFF
-       (end remote session) — jumps to resume_after_remote
-  X=1: matches "NET" at &8009 (ROM title) → *NET (select NFS)
-       — falls through to select_nfs
-If neither matches, returns with the service call unclaimed.""")
+Matches the command text against ROM string table entries.
+Both entries reuse bytes from the ROM header to save space:
+
+  X=8: matches "ROFF" at &8010 — the suffix of the
+       copyright string "(C)ROFF" → *ROFF (Remote Off,
+       end remote session) — jumps to resume_after_remote
+
+  X=1: matches "NET" at &8009 — the ROM title string
+       → *NET (select NFS) — falls through to select_nfs
+
+If neither matches, returns with the service call
+unclaimed.""")
 
 # ============================================================
 # Service 9: *HELP (&81BC)

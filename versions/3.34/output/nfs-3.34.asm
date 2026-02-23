@@ -1057,6 +1057,10 @@ l8004 = service_entry+1
     equs "NET"                                                        ; 8009: 4e 45 54    NET
 .copyright
     equb 0                                                            ; 800c: 00          .
+; The 'ROFF' suffix at &8010 is reused by the *ROFF
+; command matcher (svc_star_command) — a space-saving
+; trick that shares ROM bytes between the copyright
+; string and the star command table.
 .l800d
 l8014 = l800d+7
     equs "(C)ROFF", 0                                                 ; 800d: 28 43 29... (C)
@@ -1446,12 +1450,18 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
-; Matches the command text against ROM string table entries:
-;   X=8: matches "ROFF" at &8010 (within copyright string) → *ROFF
-;        (end remote session) — jumps to resume_after_remote
-;   X=1: matches "NET" at &8009 (ROM title) → *NET (select NFS)
-;        — falls through to select_nfs
-; If neither matches, returns with the service call unclaimed.
+; Matches the command text against ROM string table entries.
+; Both entries reuse bytes from the ROM header to save space:
+; 
+;   X=8: matches "ROFF" at &8010 — the suffix of the
+;        copyright string "(C)ROFF" → *ROFF (Remote Off,
+;        end remote session) — jumps to resume_after_remote
+; 
+;   X=1: matches "NET" at &8009 — the ROM title string
+;        → *NET (select NFS) — falls through to select_nfs
+; 
+; If neither matches, returns with the service call
+; unclaimed.
 ; ***************************************************************************************
 .svc_star_command
     ldx #8                                                            ; 8172: a2 08       ..
