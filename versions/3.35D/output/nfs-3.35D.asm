@@ -1183,10 +1183,13 @@ l8014 = l800d+7
 ; 
 ; *NET1: read file handle from received packet
 ; (net1_read_handle)
+; 
 ; *NET2: read handle entry from workspace
 ; (net2_read_handle_entry)
+; 
 ; *NET3: close handle / mark as unused
 ; (net3_close_handle)
+; 
 ; *NET4: resume after remote operation
 ; (net4_resume_remote)
 ; ***************************************************************************************
