@@ -307,8 +307,8 @@ label(0x0E10, "fs_cmd_ptr")         # CMNDP: pointer to rest of command line
 # Reference: NFS11 (NEWBR, TSTART, MAIN)
 label(0x0029, "tube_brk_send_loop")  # Loop: send error message bytes via R2 until zero terminator
 label(0x0032, "tube_reset_stack")    # Reset SP=&FF, CLI, fall through to main loop
-label(0x003A, "tube_main_loop")      # Poll R4 (WRCH) and R2 (commands), dispatch via table
-label(0x003F, "tube_handle_wrch")    # R4 data ready: read byte, call OSWRITCH (&FFCB)
+label(0x003A, "tube_main_loop")      # Poll R1 (WRCH) and R2 (commands), dispatch via table
+label(0x003F, "tube_handle_wrch")    # R1 data ready: read byte, call OSWRITCH (&FFCB)
 label(0x0045, "tube_poll_r2")        # Poll R2 status; if ready, read command and dispatch
 label(0x0054, "tube_dispatch_cmd")   # JMP (&0500) — dispatch to handler via table
 label(0x0057, "tube_transfer_addr")  # 4-byte transfer start address (written by address claim)
@@ -360,9 +360,9 @@ entry(0x04F7)
 #   &0C      12    &05D8  tube_osfile (OSFILE)
 #   &0D      13    &0602  tube_osgbpb (OSGBPB)
 label(0x051C, "tube_wrch_handler")    # WRCHV target -- write character via Tube
-label(0x051F, "tube_send_and_poll")   # Send byte via R2, poll R2/R4 for reply
-label(0x0527, "tube_poll_r4_wrch")    # Service R4 WRCH requests while waiting for R2
-label(0x0532, "tube_resume_poll")     # JMP back to R2 poll loop after servicing R4
+label(0x051F, "tube_send_and_poll")   # Send byte via R2, poll R2/R1 for reply
+label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
+label(0x0532, "tube_resume_poll")     # JMP back to R2 poll loop after servicing R1
 label(0x053D, "tube_release_return")  # Restore X,Y from &10/&11, PLA, RTS
 label(0x0543, "tube_osbput")          # OSBPUT: read channel+byte from R2, call &FFD4
 label(0x0550, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
@@ -625,7 +625,7 @@ label(0x8626, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always 
 # handle_to_mask and mask_to_handle labels created by subroutine() calls below.
 
 # --- Number and hex printing (moved from &85xx in 3.34B to &8Dxx) ---
-label(0x8DA5, "print_hex_byte")         # Print A as two hex digits
+label(0x8DA5, "print_hex")              # Print A as two hex digits
 label(0x8DB0, "print_hex_nibble")       # Print low nibble of A as hex digit
 
 # --- Address comparison ---
@@ -2995,7 +2995,7 @@ Sends error information to the Tube co-processor via R2 and R4:
   3. Sends &00 via R2, then error number from (&FD),0
   4. Loops sending error string bytes via R2 until zero terminator
   5. Falls through to tube_reset_stack → tube_main_loop
-The main loop continuously polls R4 for WRCH requests (forwarded
+The main loop continuously polls R1 for WRCH requests (forwarded
 to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
 14-entry table at &0500). The R2 command byte is stored at &55
 before dispatch via JMP (&0500).""")
@@ -3022,7 +3022,7 @@ Copied from ROM at &944D during init. Contains:
   &0500: tube_dispatch_table — 14-entry handler address table
   &051C: tube_wrch_handler — WRCHV target
   &051F: tube_send_and_poll — send byte via R2, poll for reply
-  &0527: tube_poll_r4_wrch — service R4 WRCH while waiting for R2
+  &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
   &053D: tube_release_return — restore regs and RTS
   &0543: tube_osbput — write byte to file
   &0550: tube_osbget — read byte from file

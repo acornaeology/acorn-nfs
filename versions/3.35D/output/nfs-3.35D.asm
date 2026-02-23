@@ -282,7 +282,7 @@ oscli                                   = &fff7
 ;   3. Sends &00 via R2, then error number from (&FD),0
 ;   4. Loops sending error string bytes via R2 until zero terminator
 ;   5. Falls through to tube_reset_stack → tube_main_loop
-; The main loop continuously polls R4 for WRCH requests (forwarded
+; The main loop continuously polls R1 for WRCH requests (forwarded
 ; to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
 ; 14-entry table at &0500). The R2 command byte is stored at &55
 ; before dispatch via JMP (&0500).
@@ -583,7 +583,7 @@ l0055 = tube_dispatch_cmd+1
 ;   &0500: tube_dispatch_table — 14-entry handler address table
 ;   &051C: tube_wrch_handler — WRCHV target
 ;   &051F: tube_send_and_poll — send byte via R2, poll for reply
-;   &0527: tube_poll_r4_wrch — service R4 WRCH while waiting for R2
+;   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
 ;   &053D: tube_release_return — restore regs and RTS
 ;   &0543: tube_osbput — write byte to file
 ;   &0550: tube_osbget — read byte from file
@@ -611,7 +611,7 @@ l0055 = tube_dispatch_cmd+1
 .c0522
     bit tube_status_register_2                                        ; 9481: 2c e2 fe    ,.. :0522[3]
     bvs c0535                                                         ; 9484: 70 0e       p.  :0525[3]
-.tube_poll_r4_wrch
+.tube_poll_r1_wrch
     bit tube_status_1_and_tube_control                                ; 9486: 2c e0 fe    ,.. :0527[3]
     bpl c0522                                                         ; 9489: 10 f6       ..  :052a[3]
     lda tube_data_register_1                                          ; 948b: ad e1 fe    ... :052c[3]
@@ -4137,7 +4137,7 @@ l8be3 = fs_cmd_match_table+1
 
     lda fs_boot_option                                                ; 8c69: ad 05 0e    ...
     tax                                                               ; 8c6c: aa          .
-    jsr print_hex_byte                                                ; 8c6d: 20 a5 8d     ..
+    jsr print_hex                                                     ; 8c6d: 20 a5 8d     ..
     jsr print_inline                                                  ; 8c70: 20 e2 85     ..
     equs " ("                                                         ; 8c73: 20 28        (
 
@@ -4307,7 +4307,7 @@ l8be3 = fs_cmd_match_table+1
 ; &8d3b referenced 2 times by &8d37, &8d42
 .option_name_strings
     lda (fs_options),y                                                ; 8d3b: b1 bb       ..
-    jsr print_hex_byte                                                ; 8d3d: 20 a5 8d     ..
+    jsr print_hex                                                     ; 8d3d: 20 a5 8d     ..
     dey                                                               ; 8d40: 88          .
     dex                                                               ; 8d41: ca          .
     bne option_name_strings                                           ; 8d42: d0 f7       ..
@@ -4490,7 +4490,7 @@ l8be3 = fs_cmd_match_table+1
 ; and output via OSASCI.
 ; ***************************************************************************************
 ; &8da5 referenced 2 times by &8c6d, &8d3d
-.print_hex_byte
+.print_hex
     pha                                                               ; 8da5: 48          H
     lsr a                                                             ; 8da6: 4a          J
     lsr a                                                             ; 8da7: 4a          J
@@ -8296,7 +8296,7 @@ save pydis_start, pydis_end
 ;     print_decimal:                            2
 ;     print_decimal_digit:                      2
 ;     print_file_info:                          2
-;     print_hex_byte:                           2
+;     print_hex:                                2
 ;     print_hex_bytes:                          2
 ;     print_reply_counted:                      2
 ;     prlp1:                                    2
