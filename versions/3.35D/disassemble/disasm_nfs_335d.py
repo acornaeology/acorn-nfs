@@ -175,6 +175,7 @@ label(0x00A4, "open_port_buf")       # Open port buffer address (low)
 label(0x00A5, "open_port_buf_hi")    # Open port buffer address (high)
 label(0x00A6, "port_ws_offset")      # Port workspace offset
 label(0x00A7, "rx_buf_offset")       # Receive buffer offset
+label(0x00A8, "nfs_temp")             # General-purpose NFS temporary (free zero-page byte)
 label(0x00A9, "rom_svc_num")         # ROM service number (7=osbyte, 8=osword)
 
 # ============================================================

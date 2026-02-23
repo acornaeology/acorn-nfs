@@ -73,7 +73,7 @@ open_port_buf                           = &00a4
 open_port_buf_hi                        = &00a5
 port_ws_offset                          = &00a6
 rx_buf_offset                           = &00a7
-l00a8                                   = &00a8
+nfs_temp                                = &00a8
 rom_svc_num                             = &00a9
 l00aa                                   = &00aa
 l00ab                                   = &00ab
@@ -1432,16 +1432,16 @@ l8014 = l800d+7
     tax                                                               ; 815c: aa          .
     lda rom_svc_num                                                   ; 815d: a5 a9       ..
     pha                                                               ; 815f: 48          H
-    lda l00a8                                                         ; 8160: a5 a8       ..
+    lda nfs_temp                                                      ; 8160: a5 a8       ..
     pha                                                               ; 8162: 48          H
     stx rom_svc_num                                                   ; 8163: 86 a9       ..
-    sty l00a8                                                         ; 8165: 84 a8       ..
+    sty nfs_temp                                                      ; 8165: 84 a8       ..
     tya                                                               ; 8167: 98          .
     ldy #0                                                            ; 8168: a0 00       ..
     jsr dispatch                                                      ; 816a: 20 da 80     ..
     ldx rom_svc_num                                                   ; 816d: a6 a9       ..
     pla                                                               ; 816f: 68          h
-    sta l00a8                                                         ; 8170: 85 a8       ..
+    sta nfs_temp                                                      ; 8170: 85 a8       ..
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
@@ -1531,7 +1531,7 @@ l8014 = l800d+7
 .select_nfs
     jsr call_fscv_shutdown                                            ; 81bf: 20 08 82     ..
     sec                                                               ; 81c2: 38          8
-    ror l00a8                                                         ; 81c3: 66 a8       f.
+    ror nfs_temp                                                      ; 81c3: 66 a8       f.
     jsr issue_vectors_claimed                                         ; 81c5: 20 6b 82     k.
     ldy #&1d                                                          ; 81c8: a0 1d       ..
 ; &81ca referenced 1 time by &81d2
@@ -1554,7 +1554,7 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; &81d6 referenced 2 times by &8185, &81ba
 .match_rom_string
-    ldy l00a8                                                         ; 81d6: a4 a8       ..
+    ldy nfs_temp                                                      ; 81d6: a4 a8       ..
 ; &81d8 referenced 1 time by &81e5
 .loop_c81d8
     lda (os_text_ptr),y                                               ; 81d8: b1 f2       ..
@@ -1593,7 +1593,7 @@ l8014 = l800d+7
 
 ; &8205 referenced 2 times by &81bd, &821a
 .c8205
-    ldy l00a8                                                         ; 8205: a4 a8       ..
+    ldy nfs_temp                                                      ; 8205: a4 a8       ..
     rts                                                               ; 8207: 60          `
 
 ; ***************************************************************************************
@@ -1693,7 +1693,7 @@ l8014 = l800d+7
     jsr osbyte                                                        ; 826f: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=15 - Vectors claimed
     ldx #&0a                                                          ; 8272: a2 0a       ..
     jsr osbyte                                                        ; 8274: 20 f4 ff     ..
-    ldx l00a8                                                         ; 8277: a6 a8       ..
+    ldx nfs_temp                                                      ; 8277: a6 a8       ..
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ; 
@@ -1754,7 +1754,7 @@ l8014 = l800d+7
     ldy #&ff                                                          ; 82c0: a0 ff       ..
     sta net_rx_ptr                                                    ; 82c2: 85 9c       ..
     sta nfs_workspace                                                 ; 82c4: 85 9e       ..
-    sta l00a8                                                         ; 82c6: 85 a8       ..
+    sta nfs_temp                                                      ; 82c6: 85 a8       ..
     sta tx_clear_flag                                                 ; 82c8: 8d 62 0d    .b.
     tax                                                               ; 82cb: aa          .              ; X=&00
     lda #osbyte_read_write_last_break_type                            ; 82cc: a9 fd       ..             ; OSBYTE &FD: read type of last reset
@@ -1779,12 +1779,12 @@ l8014 = l800d+7
     sta (nfs_workspace),y                                             ; 82f5: 91 9e       ..
 ; &82f7 referenced 1 time by &8304
 .loop_c82f7
-    lda l00a8                                                         ; 82f7: a5 a8       ..
+    lda nfs_temp                                                      ; 82f7: a5 a8       ..
     jsr calc_handle_offset                                            ; 82f9: 20 4c 8e     L.
     bcs c8306                                                         ; 82fc: b0 08       ..
     lda #&3f ; '?'                                                    ; 82fe: a9 3f       .?
     sta (nfs_workspace),y                                             ; 8300: 91 9e       ..
-    inc l00a8                                                         ; 8302: e6 a8       ..
+    inc nfs_temp                                                      ; 8302: e6 a8       ..
     bne loop_c82f7                                                    ; 8304: d0 f1       ..
 ; &8306 referenced 2 times by &82d2, &82fc
 .c8306
@@ -4957,16 +4957,16 @@ osword_12_handler = sub_c8e7a+2
     ldy #3                                                            ; 8f42: a0 03       ..
     lsr a                                                             ; 8f44: 4a          J
     bcc readc1                                                        ; 8f45: 90 1b       ..
-    sty l00a8                                                         ; 8f47: 84 a8       ..
+    sty nfs_temp                                                      ; 8f47: 84 a8       ..
 ; &8f49 referenced 1 time by &8f58
 .loop_c8f49
-    ldy l00a8                                                         ; 8f49: a4 a8       ..
+    ldy nfs_temp                                                      ; 8f49: a4 a8       ..
     lda (l00f0),y                                                     ; 8f4b: b1 f0       ..
     jsr handle_to_mask_a                                              ; 8f4d: 20 25 86     %.
     tya                                                               ; 8f50: 98          .
-    ldy l00a8                                                         ; 8f51: a4 a8       ..
+    ldy nfs_temp                                                      ; 8f51: a4 a8       ..
     sta fs_server_net,y                                               ; 8f53: 99 01 0e    ...
-    dec l00a8                                                         ; 8f56: c6 a8       ..
+    dec nfs_temp                                                      ; 8f56: c6 a8       ..
     bne loop_c8f49                                                    ; 8f58: d0 ef       ..
     rts                                                               ; 8f5a: 60          `
 
@@ -8042,7 +8042,7 @@ save pydis_start, pydis_end
 ;     fs_load_addr_2:                          15
 ;     l0f06:                                   15
 ;     station_id_disable_net_nmis:             15
-;     l00a8:                                   14
+;     nfs_temp:                                14
 ;     open_port_buf:                           14
 ;     print_inline:                            14
 ;     fs_load_addr:                            13
@@ -9031,7 +9031,6 @@ save pydis_start, pydis_end
 ;     l005a
 ;     l0064
 ;     l0078
-;     l00a8
 ;     l00aa
 ;     l00ab
 ;     l00ac

@@ -173,7 +173,6 @@ label(0xA4, "open_port_buf")       # Open port buffer address (low)
 label(0xA5, "open_port_buf_hi")    # Open port buffer address (high)
 label(0xA6, "port_ws_offset")      # Port workspace offset
 label(0xA7, "rx_buf_offset")       # Receive buffer offset
-label(0xA9, "rom_svc_num")         # ROM service number (7=osbyte, 8=osword)
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
@@ -199,8 +198,8 @@ label(0xBC, "fs_block_offset")     # TEMPY: block offset / control block pointer
 label(0xBD, "fs_last_byte_flag")   # TEMPA: b7=last byte from block / saved A
 label(0xBE, "fs_crc_lo")           # POINTR: generic pointer (low)
 label(0xBF, "fs_crc_hi")           # POINTR+1: generic pointer (high)
-label(0xCD, "fs_temp_cd")          # Free byte, used as temporary by NFS 3.34
-label(0xCE, "fs_temp_ce")          # Free byte, used as temporary by NFS 3.34
+label(0xCD, "nfs_temp")             # General-purpose NFS temporary (free zero-page byte)
+label(0xCE, "rom_svc_num")         # ROM service number (7=osbyte, 8=osword)
 
 # Zero page — Additional OS locations
 label(0x10, "zp_temp_10")          # Temporary storage (Y save during service calls)
@@ -1689,7 +1688,7 @@ workspace page, allowing restoration if re-selected later (the
 FSDIE handoff mechanism). Then sets up the standard OS vector
 indirections (FILEV through FSCV) to NFS entry points, claims the
 extended vector table entries, and issues service &0F (vectors
-claimed) to notify other ROMs. If fs_temp_cd is zero (auto-boot
+claimed) to notify other ROMs. If nfs_temp is zero (auto-boot
 not inhibited), injects the synthetic command "I .BOOT" through
 the command decoder to trigger auto-boot login.""")
 
@@ -1809,7 +1808,7 @@ subroutine(0x822F, "issue_vectors_claimed", hook=None,
     title="Issue 'vectors claimed' service and optionally auto-boot",
     description="""\
 Issues service &0F (vectors claimed) via OSBYTE &8F, then
-service &0A. If fs_temp_cd is zero (auto-boot not inhibited),
+service &0A. If nfs_temp is zero (auto-boot not inhibited),
 sets up the command string "I .BOOT" at &8246 and jumps to
 the FSCV 3 unrecognised-command handler (which matches against
 the command table at &8BD7). The "I." prefix triggers the
@@ -2545,7 +2544,7 @@ subroutine(0x8DB0, "net1_read_handle", hook=None,
     description="""\
 Reads a file handle byte from offset &6F in the RX buffer
 (net_rx_ptr), stores it in &F0, then falls through to the
-common handle workspace cleanup at c8dda (clear fs_temp_ce).""")
+common handle workspace cleanup at c8dda (clear rom_svc_num).""")
 
 subroutine(0x8DB8, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",
@@ -2566,7 +2565,7 @@ subroutine(0x8DCA, "net2_read_handle_entry", hook=None,
 Looks up the handle in &F0 via calc_handle_offset. If the
 workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
-Clears fs_temp_ce on exit.""")
+Clears rom_svc_num on exit.""")
 
 subroutine(0x8DE0, "net3_close_handle", hook=None,
     title="*NET3: close handle (mark as unused)",
@@ -2574,14 +2573,14 @@ subroutine(0x8DE0, "net3_close_handle", hook=None,
 Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
 workspace. Preserves the carry flag state across the write
-using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.""")
+using ROL/ROR on rx_status_flags. Clears rom_svc_num on exit.""")
 
 subroutine(0x8DF3, "net4_resume_remote", hook=None,
     title="*NET4: resume after remote operation",
     description="""\
 Calls resume_after_remote (&8146) to re-enable the keyboard
 and send a completion notification. The BVC always branches
-to c8dda (clear fs_temp_ce) since resume_after_remote
+to c8dda (clear rom_svc_num) since resume_after_remote
 returns with V clear (from CLV in prepare_cmd_clv).""")
 
 # NMI handler init — ROM code copies to page &04/&05/&06

@@ -57,13 +57,16 @@ The most significant functional change. Five instructions in the Tube host
 code were modified to use Tube register R4 (&FEE6/&FEE7) instead of R1
 (&FEE0/&FEE1) for WRCH character I/O:
 
-| Runtime addr | 3.34            | 3.34B           | Routine              |
-|--------------|-----------------|-----------------|----------------------|
-| &003A        | BIT &FEE0       | BIT &FEE6       | tube_main_loop       |
-| &003F        | LDA &FEE1       | LDA &FEE7       | tube_handle_wrch     |
-| &004A        | BIT &FEE0       | BIT &FEE6       | tube_poll_r2         |
-| &0527        | BIT &FEE0       | BIT &FEE6       | tube_poll_r4_wrch    |
-| &052C        | LDA &FEE1       | LDA &FEE7       | tube_poll_r4_wrch    |
+| Runtime addr | 3.34            | 3.34B           | Routine                |
+|--------------|-----------------|-----------------|------------------------|
+| &003A        | BIT &FEE0       | BIT &FEE6       | tube_main_loop         |
+| &003F        | LDA &FEE1       | LDA &FEE7       | tube_handle_wrch       |
+| &004A        | BIT &FEE0       | BIT &FEE6       | tube_poll_r2           |
+| &0527        | BIT &FEE0       | BIT &FEE6       | tube_poll_r1/r4_wrch   |
+| &052C        | LDA &FEE1       | LDA &FEE7       | tube_poll_r1/r4_wrch   |
+
+The routine at &0527 is labeled `tube_poll_r1_wrch` in 3.34 (polling R1) and
+`tube_poll_r4_wrch` in 3.34B (polling R4), reflecting the register change.
 
 These are all in the relocated Tube host code (BRK handler block and page 5
 block), which is copied from ROM to RAM during initialisation.

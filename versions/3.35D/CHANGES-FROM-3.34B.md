@@ -109,13 +109,16 @@ The most significant Tube protocol change, and a reversal of the 3.34 to
 Tube register R1 (&FEE0/&FEE1) instead of R4 (&FEE6/&FEE7) for WRCH
 character I/O:
 
-| Runtime addr | 3.34B           | 3.35D           | Routine              |
-|--------------|-----------------|-----------------|----------------------|
-| &003A        | BIT &FEE6       | BIT &FEE0       | tube_main_loop       |
-| &003F        | LDA &FEE7       | LDA &FEE1       | tube_handle_wrch     |
-| &004A        | BIT &FEE6       | BIT &FEE0       | tube_poll_r2         |
-| &0527        | BIT &FEE6       | BIT &FEE0       | tube_poll_r4_wrch    |
-| &052C        | LDA &FEE7       | LDA &FEE1       | tube_poll_r4_wrch    |
+| Runtime addr | 3.34B           | 3.35D           | Routine                |
+|--------------|-----------------|-----------------|------------------------|
+| &003A        | BIT &FEE6       | BIT &FEE0       | tube_main_loop         |
+| &003F        | LDA &FEE7       | LDA &FEE1       | tube_handle_wrch       |
+| &004A        | BIT &FEE6       | BIT &FEE0       | tube_poll_r2           |
+| &0527        | BIT &FEE6       | BIT &FEE0       | tube_poll_r4/r1_wrch   |
+| &052C        | LDA &FEE7       | LDA &FEE1       | tube_poll_r4/r1_wrch   |
+
+The routine at &0527 is labeled `tube_poll_r4_wrch` in 3.34B (polling R4) and
+`tube_poll_r1_wrch` in 3.35D (polling R1), reflecting the register reversion.
 
 These are all in the relocated Tube host code (BRK handler block and page 5
 block), which is copied from ROM to RAM during initialisation.
@@ -183,11 +186,11 @@ Several small changes to the `*CAT` display formatting:
 
 Several workspace variables moved to different addresses:
 
-| Purpose              | 3.34B address | 3.35D address |
-|----------------------|---------------|---------------|
-| Service temp         | &CD           | &A8           |
-| Service number       | &CE           | &A9           |
-| TX semaphore         | &0D3A         | &0D62         |
+| Label              | 3.34B address | 3.35D address |
+|--------------------|---------------|---------------|
+| `nfs_temp`         | &CD           | &A8           |
+| `rom_svc_num`      | &CE           | &A9           |
+| `tx_clear_flag`    | &0D3A         | &0D62         |
 | Per-ROM disable flag | (none)        | &0DF0+X       |
 
 ### 11. Shifted address operands
