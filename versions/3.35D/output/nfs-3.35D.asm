@@ -1465,7 +1465,7 @@ l8014 = l800d+7
 ; 
 ; Matches the command text against ROM string table entries:
 ;   X=8: matches "ROFF" at &8010 (within copyright string) → *ROFF
-;        (log off from fileserver) — jumps to resume_after_remote
+;        (end remote session) — jumps to resume_after_remote
 ;   X=1: matches "NET" at &8009 (ROM title) → *NET (select NFS)
 ;        — falls through to select_nfs
 ; If neither matches, returns with the service call unclaimed.
