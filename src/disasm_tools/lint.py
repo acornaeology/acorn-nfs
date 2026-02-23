@@ -1,9 +1,11 @@
-"""Lint annotation addresses in NFS ROM disassembly driver scripts.
+"""Lint NFS ROM disassembly driver scripts and documentation.
 
-Validates that every comment(), subroutine(), and label() address in the
-driver script corresponds to an actual item (instruction or data) address
-in the py8dis JSON output. Catches stale addresses carried over from a
-source version during auto-generation of a new driver script.
+Validates that:
+1. Every comment(), subroutine(), and label() address in the driver script
+   corresponds to a valid address in the py8dis JSON output.
+2. Every address_links entry in rom.json has a matching pattern in the
+   Markdown document and resolves to a valid address in the referenced
+   version's disassembly output.
 """
 
 import json
@@ -89,6 +91,152 @@ def load_valid_addresses(json_filepath):
     return addresses
 
 
+def find_repo_root(start_path):
+    """Find the repository root by looking for pyproject.toml."""
+    dirpath = Path(start_path).resolve()
+    while dirpath != dirpath.parent:
+        if (dirpath / "pyproject.toml").exists():
+            return dirpath
+        dirpath = dirpath.parent
+    raise RuntimeError("Could not find repository root")
+
+
+def load_address_ranges(json_filepath):
+    """Build address ranges covered by the disassembly.
+
+    Returns a list of (start, end) tuples representing contiguous address
+    ranges. Doc addresses are valid if they fall within any range.
+
+    Ranges include:
+    - The full ROM image (load_addr to end_addr from metadata), which
+      covers both regular code and move() block source addresses.
+    - Runtime address blocks for relocated code, derived from items
+      outside the ROM range.
+    - External label and subroutine addresses.
+    """
+    data = json.loads(json_filepath.read_text())
+    item_addrs = sorted(item['addr'] for item in data['items'])
+    if not item_addrs:
+        return []
+
+    # Start with the full ROM range from metadata
+    meta = data.get('meta', {})
+    load_addr = meta.get('load_addr', 0x8000)
+    end_addr = meta.get('end_addr', load_addr + 0x2000)
+    ranges = [(load_addr, end_addr - 1)]
+
+    # Collect all non-ROM addresses (relocated code, external labels, etc.)
+    all_addrs = set()
+    for addr in item_addrs:
+        if addr < load_addr or addr >= end_addr:
+            all_addrs.add(addr)
+    for addr in data.get('external_labels', {}).values():
+        all_addrs.add(addr)
+    for sub in data.get('subroutines', []):
+        all_addrs.add(sub['addr'])
+
+    # Group non-ROM addresses into contiguous blocks
+    sorted_addrs = sorted(all_addrs)
+    if sorted_addrs:
+        block_start = sorted_addrs[0]
+        block_end = sorted_addrs[0]
+
+        for addr in sorted_addrs[1:]:
+            if addr - block_end > 256:
+                ranges.append((block_start, block_end + 16))
+                block_start = addr
+            block_end = addr
+
+        ranges.append((block_start, block_end + 16))
+
+    return ranges
+
+
+def address_in_ranges(address, ranges):
+    """Check if an address falls within any of the given ranges."""
+    return any(start <= address <= end for start, end in ranges)
+
+
+def lint_docs(version_dirpath, version):
+    """Validate address_links in rom.json against Markdown docs and JSON outputs.
+
+    Checks that:
+    1. Each pattern exists at the specified occurrence in the Markdown file.
+    2. Each address falls within a memory range covered by the referenced
+       version's disassembly (not necessarily an exact item start, since
+       doc addresses may reference data offsets, range boundaries, or ORG
+       addresses).
+
+    Returns (errors, link_count).
+    """
+    rom_json_filepath = version_dirpath / "rom" / "rom.json"
+    if not rom_json_filepath.exists():
+        return [], 0
+
+    rom_meta = json.loads(rom_json_filepath.read_text())
+    docs = rom_meta.get("docs", [])
+    if not docs:
+        return [], 0
+
+    repo_root = find_repo_root(version_dirpath)
+    ranges_cache = {}
+
+    def get_ranges(ver):
+        if ver not in ranges_cache:
+            json_fp = repo_root / "versions" / ver / "output" / f"nfs-{ver}.json"
+            if json_fp.exists():
+                ranges_cache[ver] = load_address_ranges(json_fp)
+            else:
+                ranges_cache[ver] = None
+        return ranges_cache[ver]
+
+    errors = []
+    link_count = 0
+
+    for doc in docs:
+        address_links = doc.get("address_links", [])
+        if not address_links:
+            continue
+
+        doc_filepath = version_dirpath / doc["path"]
+        if not doc_filepath.exists():
+            errors.append(f"  {doc['path']}: file not found")
+            continue
+
+        md_text = doc_filepath.read_text()
+
+        for link in address_links:
+            link_count += 1
+            pattern = link["pattern"]
+            occurrence = link["occurrence"]
+            ver = link["version"]
+            address = int(link["address"], 16)
+
+            # Check (a): pattern exists at the specified occurrence
+            count = md_text.count(pattern)
+            if occurrence >= count:
+                errors.append(
+                    f"  {doc['path']}: pattern \"{pattern}\" occurrence "
+                    f"{occurrence} not found (only {count} occurrence(s))"
+                )
+                continue
+
+            # Check (b): address falls within a disassembly range
+            ranges = get_ranges(ver)
+            if ranges is None:
+                errors.append(
+                    f"  {doc['path']}: \"{pattern}\" references version "
+                    f"{ver} but no JSON output found"
+                )
+            elif not address_in_ranges(address, ranges):
+                errors.append(
+                    f"  {doc['path']}: \"{pattern}\" → {ver} "
+                    f"0x{address:04X} is outside all disassembly ranges"
+                )
+
+    return errors, link_count
+
+
 def lint(version_dirpath, version):
     """Validate annotation addresses against the JSON output.
 
@@ -129,6 +277,11 @@ def lint(version_dirpath, version):
             else:
                 errors.append(msg)
 
+    # Lint documentation address links
+    doc_errors, doc_link_count = lint_docs(version_dirpath, version)
+
+    failed = False
+
     if errors:
         print(
             f"Lint FAILED: {len(errors)} annotation(s) at invalid addresses ({version})",
@@ -144,13 +297,28 @@ def lint(version_dirpath, version):
             )
             for msg in warnings:
                 print(msg, file=sys.stderr)
+        failed = True
+
+    if doc_errors:
+        print(
+            f"Lint FAILED: {len(doc_errors)} address_link error(s) ({version})",
+            file=sys.stderr,
+        )
+        for msg in doc_errors:
+            print(msg, file=sys.stderr)
+        failed = True
+
+    if failed:
         return 1
 
     summary = (
         f"{counts['comment']} comments, "
         f"{counts['subroutine']} subroutines, "
-        f"{counts['label']} labels checked"
+        f"{counts['label']} labels"
     )
+    if doc_link_count:
+        summary += f", {doc_link_count} doc address links"
+    summary += " checked"
     print(f"Lint passed: {summary} ({version})")
 
     if warnings:
