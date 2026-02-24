@@ -2489,12 +2489,33 @@ l8579 = l854e+43
 ; &8613 referenced 1 time by &860f
 .c8613
     lda (fs_load_addr),y                                              ; 8613: b1 b0       ..             ; Load next byte from inline string
-    bmi c861d                                                         ; 8615: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode
+    bmi parse_decimal                                                 ; 8615: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode; Parse decimal number from (fs_options),Y (DECIN)
     jsr osasci                                                        ; 8617: 20 e3 ff     ..            ; Write character
     jmp loop_c860d                                                    ; 861a: 4c 0d 86    L..
 
+; ***************************************************************************************
+; Parse decimal number from (fs_options),Y (DECIN)
+; 
+; Reads ASCII digits and accumulates in &B2 (fs_load_addr_2).
+; Multiplication by 10 uses the identity: n*10 = n*8 + n*2,
+; computed as ASL &B2 (x2), then A = &B2*4 via two ASLs,
+; then ADC &B2 gives x10.
+; Terminates on "." (pathname separator), control chars, or space.
+; The delimiter handling was revised to support dot-separated path
+; components (e.g. "1.$.PROG") -- originally stopped on any char
+; >= &40 (any letter), but the revision allows numbers followed
+; by dots.
+; 
+; On Entry:
+;     Y: offset into (fs_options) buffer
+; 
+; On Exit:
+;     A: parsed value (accumulated in &B2)
+;     X: corrupted
+;     Y: offset past last digit parsed
+; ***************************************************************************************
 ; &861d referenced 1 time by &8615
-.c861d
+.parse_decimal
     jmp (fs_load_addr)                                                ; 861d: 6c b0 00    l..            ; Jump to address of high-bit byte (resumes code after string)
 
 ; &8620 referenced 2 times by &808c, &8095
@@ -2664,6 +2685,21 @@ l8579 = l854e+43
 ; &867e referenced 2 times by &8886, &8ac1
 .clear_fs_flag
     eor #&ff                                                          ; 867e: 49 ff       I.
+; ***************************************************************************************
+; Set bit(s) in FS flags (&0E07)
+; 
+; ORs A into fs_work_0e07 (EOF hint byte), then falls through
+; to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+; Each bit represents one of up to 8 open file handles. When
+; clear, the file is definitely NOT at EOF. When set, the
+; fileserver must be queried to confirm EOF status. This
+; negative-cache optimisation avoids expensive network
+; round-trips for the common case. The hint is cleared when
+; the file pointer is updated (since seeking away from EOF
+; invalidates the hint) and set after BGET/OPEN/EOF operations
+; that might have reached the end.
+; ***************************************************************************************
+.set_fs_flag
     and fs_eof_flags                                                  ; 8680: 2d 07 0e    -..
 ; &8683 referenced 1 time by &867c
 .store_fs_flag
@@ -4611,20 +4647,42 @@ l8e04 = sub_c8e03+1
 
 ; &8eb0 referenced 1 time by &8e9c
 .l8eb0
-    equb <(sub_c8eba-1)                                               ; 8eb0: b9          .
+    equb <(osword_0f_handler-1)                                       ; 8eb0: b9          .
     equb <(osword_10_handler-1)                                       ; 8eb1: 73          s
     equb <(osword_11_handler-1)                                       ; 8eb2: d3          .
     equb <(sub_c8ef9-1)                                               ; 8eb3: f8          .
     equb <(econet_tx_rx-1)                                            ; 8eb4: e7          .
 ; &8eb5 referenced 1 time by &8e98
 .fs_osword_tbl_hi
-    equb >(sub_c8eba-1)                                               ; 8eb5: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
+    equb >(osword_0f_handler-1)                                       ; 8eb5: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
     equb >(osword_10_handler-1)                                       ; 8eb6: 8f          .
     equb >(osword_11_handler-1)                                       ; 8eb7: 8e          .
     equb >(sub_c8ef9-1)                                               ; 8eb8: 8e          .
     equb >(econet_tx_rx-1)                                            ; 8eb9: 8f          .
 
-.sub_c8eba
+; ***************************************************************************************
+; OSWORD &0F handler: initiate transmit (CALLTX)
+; 
+; Checks the TX semaphore (TXCLR at &0D62) via ASL -- if carry is
+; clear, a TX is already in progress and the call returns an error,
+; preventing user code from corrupting a system transmit. Otherwise
+; copies 16 bytes from the caller's OSWORD parameter block into the
+; user TX control block (UTXCB) in static workspace. The TXCB
+; pointer is copied to LTXCBP only after the semaphore is claimed,
+; ensuring the low-level transmit code (BRIANX) sees a consistent
+; pointer -- if copied before claiming, another transmitter could
+; modify TXCBP between the copy and the claim.
+; 
+; On Entry:
+;     X: parameter block address low byte
+;     Y: parameter block address high byte
+; 
+; On Exit:
+;     A: corrupted
+;     X: corrupted
+;     Y: &FF
+; ***************************************************************************************
+.osword_0f_handler
     asl tx_clear_flag                                                 ; 8eba: 0e 62 0d    .b.
     tya                                                               ; 8ebd: 98          .
     bcc readry                                                        ; 8ebe: 90 34       .4
@@ -4706,6 +4764,13 @@ l8e04 = sub_c8e03+1
 ; &8f1a referenced 1 time by &8f14
 .c8f1a
     lda (l00ab),y                                                     ; 8f1a: b1 ab       ..
+; ***************************************************************************************
+; Bidirectional block copy between OSWORD param block and workspace.
+; 
+; C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
+; C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)
+; ***************************************************************************************
+.copy_param_block
     sta (l00f0),y                                                     ; 8f1c: 91 f0       ..
     iny                                                               ; 8f1e: c8          .
     dex                                                               ; 8f1f: ca          .
@@ -4864,8 +4929,15 @@ l8e04 = sub_c8e03+1
     rol rx_flags                                                      ; 8fc9: 2e 64 0d    .d.
     rts                                                               ; 8fcc: 60          `
 
+; ***************************************************************************************
+; Set up RX buffer pointers in NFS workspace
+; 
+; Calculates the start address of the RX data area (&F0+1) and stores
+; it at workspace offset &28. Also reads the data length from (&F0)+1
+; and adds it to &F0 to compute the end address at offset &2C.
+; ***************************************************************************************
 ; &8fcd referenced 1 time by &9000
-.sub_c8fcd
+.setup_rx_buffer_ptrs
     ldy #&1c                                                          ; 8fcd: a0 1c       ..
     lda l00f0                                                         ; 8fcf: a5 f0       ..
     adc #1                                                            ; 8fd1: 69 01       i.
@@ -4908,7 +4980,7 @@ l8e04 = sub_c8e03+1
     bne dofs01                                                        ; 8ffb: d0 f1       ..
     iny                                                               ; 8ffd: c8          .
     sty net_tx_ptr                                                    ; 8ffe: 84 9a       ..
-    jsr sub_c8fcd                                                     ; 9000: 20 cd 8f     ..
+    jsr setup_rx_buffer_ptrs                                          ; 9000: 20 cd 8f     ..
     ldy #2                                                            ; 9003: a0 02       ..
     lda #&90                                                          ; 9005: a9 90       ..
     sta (l00f0),y                                                     ; 9007: 91 f0       ..
@@ -6046,7 +6118,7 @@ l96ed = sub_c96ec+1
 .c97f7
     lda #3                                                            ; 97f7: a9 03       ..
     sta scout_status                                                  ; 97f9: 8d 5c 0d    .\.
-    jsr sub_c9f38                                                     ; 97fc: 20 38 9f     8.
+    jsr tx_calc_transfer                                              ; 97fc: 20 38 9f     8.
     bcs c9804                                                         ; 97ff: b0 03       ..
     jmp scout_no_match                                                ; 9801: 4c 93 97    L..
 
@@ -6327,6 +6399,17 @@ l96ed = sub_c96ec+1
     lda tx_flags                                                      ; 998b: ad 4a 0d    .J.
     bmi c999e                                                         ; 998e: 30 0e       0.
     lda #&3f ; '?'                                                    ; 9990: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
+; ***************************************************************************************
+; Post-ACK scout processing
+; 
+; Called after the scout ACK has been transmitted. Processes the
+; received scout data stored in the buffer at &0D3D-&0D48.
+; Checks the port byte (&0D40) against open receive blocks to
+; find a matching listener. If a match is found, sets up the
+; data RX handler chain for the four-way handshake data phase.
+; If no match, discards the frame.
+; ***************************************************************************************
+.post_ack_scout
     sta econet_control23_or_status2                                   ; 9992: 8d a1 fe    ...
     lda nmi_next_lo                                                   ; 9995: ad 4b 0d    .K.            ; Install saved handler from &0D4B/&0D4C
     ldy nmi_next_hi                                                   ; 9998: ac 4c 0d    .L.
@@ -6621,7 +6704,7 @@ l9a04 = sub_c9a03+1
     sta rx_buf_offset                                                 ; 9ad7: 85 a7       ..
     lda #2                                                            ; 9ad9: a9 02       ..
     sta scout_status                                                  ; 9adb: 8d 5c 0d    .\.
-    jsr sub_c9f38                                                     ; 9ade: 20 38 9f     8.
+    jsr tx_calc_transfer                                              ; 9ade: 20 38 9f     8.
     bcc c9b32                                                         ; 9ae1: 90 4f       .O
 ; &9ae3 referenced 1 time by &9ace
 .c9ae3
@@ -7042,6 +7125,14 @@ l9c42 = sub_c9c40+2
     sta l0d1e,y                                                       ; 9ce2: 99 1e 0d    ...
     iny                                                               ; 9ce5: c8          .
     php                                                               ; 9ce6: 08          .
+; ***************************************************************************************
+; TX ctrl: JSR/UserProc/OSProc setup
+; 
+; Sets scout_status=2 and calls tx_calc_transfer directly
+; (no 4-byte address addition needed for procedure calls).
+; Shared by operation types &83-&85.
+; ***************************************************************************************
+.tx_ctrl_proc
     cpy #&10                                                          ; 9ce7: c0 10       ..
     bcc loop_c9cdc                                                    ; 9ce9: 90 f1       ..
     plp                                                               ; 9ceb: 28          (
@@ -7082,7 +7173,7 @@ l9c42 = sub_c9c40+2
     sta port_ws_offset                                                ; 9d1d: 85 a6       ..
     lda nmi_tx_block_hi                                               ; 9d1f: a5 a1       ..
     sta rx_buf_offset                                                 ; 9d21: 85 a7       ..
-    jsr sub_c9f38                                                     ; 9d23: 20 38 9f     8.
+    jsr tx_calc_transfer                                              ; 9d23: 20 38 9f     8.
 ; &9d26 referenced 1 time by &9d0f
 .tx_ctrl_exit
     plp                                                               ; 9d26: 28          (
@@ -7522,8 +7613,17 @@ l9eaf = sub_c9eae+1
     equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9f28: 0e 0e 0a... ...
     equb &81                                                          ; 9f37: 81          .
 
+; ***************************************************************************************
+; Calculate transfer size
+; 
+; Computes the number of bytes actually transferred during a data
+; frame reception. Subtracts the low pointer (LPTR, offset 4 in
+; the RXCB) from the current buffer position to get the byte count,
+; and stores it back into the RXCB's high pointer field (HPTR,
+; offset 8). This tells the caller how much data was received.
+; ***************************************************************************************
 ; &9f38 referenced 3 times by &97fc, &9ade, &9d23
-.sub_c9f38
+.tx_calc_transfer
     ldy #6                                                            ; 9f38: a0 06       ..
     lda (port_ws_offset),y                                            ; 9f3a: b1 a6       ..
     iny                                                               ; 9f3c: c8          .              ; Y=&07
@@ -7669,6 +7769,7 @@ l9eaf = sub_c9eae+1
     assert <(l8e04-1) == &03
     assert <(l96ed-1) == &ec
     assert <(lb7f6-1) == &f5
+    assert <(osword_0f_handler-1) == &b9
     assert <(osword_10_handler-1) == &73
     assert <(osword_11_handler-1) == &d3
     assert <(printer_select_handler-1) == &ce
@@ -7696,7 +7797,6 @@ l9eaf = sub_c9eae+1
     assert <(sub_c8d21-1) == &20
     assert <(sub_c8d2a-1) == &29
     assert <(sub_c8dd7-1) == &d6
-    assert <(sub_c8eba-1) == &b9
     assert <(sub_c8ed5-1) == &d4
     assert <(sub_c8ef9-1) == &f8
     assert <(sub_c90ac-1) == &ab
@@ -7731,6 +7831,7 @@ l9eaf = sub_c9eae+1
     assert >(l8e04-1) == &8e
     assert >(l96ed-1) == &96
     assert >(lb7f6-1) == &b7
+    assert >(osword_0f_handler-1) == &8e
     assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
     assert >(printer_select_handler-1) == &91
@@ -7758,7 +7859,6 @@ l9eaf = sub_c9eae+1
     assert >(sub_c8d21-1) == &8d
     assert >(sub_c8d2a-1) == &8d
     assert >(sub_c8dd7-1) == &8d
-    assert >(sub_c8eba-1) == &8e
     assert >(sub_c8ed5-1) == &8e
     assert >(sub_c8ef9-1) == &8e
     assert >(sub_c90ac-1) == &90
@@ -7952,12 +8052,12 @@ save pydis_start, pydis_end
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
 ;     setup_tx_and_send:                        3
-;     sub_c9f38:                                3
 ;     tube_claim_loop:                          3
 ;     tube_data_register_1:                     3
 ;     tube_read_string:                         3
 ;     tube_reply_ack:                           3
 ;     tx_active_start:                          3
+;     tx_calc_transfer:                         3
 ;     tx_index:                                 3
 ;     ack_tx:                                   2
 ;     ack_tx_write_dest:                        2
@@ -8162,7 +8262,6 @@ save pydis_start, pydis_end
 ;     c85eb:                                    1
 ;     c85f7:                                    1
 ;     c8613:                                    1
-;     c861d:                                    1
 ;     c863f:                                    1
 ;     c8640:                                    1
 ;     c869a:                                    1
@@ -8506,6 +8605,7 @@ save pydis_start, pydis_end
 ;     osgbpb:                                   1
 ;     osgbpb_info:                              1
 ;     osword_trampoline:                        1
+;     parse_decimal:                            1
 ;     prepare_cmd_with_flag:                    1
 ;     print_exec_and_len:                       1
 ;     print_space:                              1
@@ -8549,6 +8649,7 @@ save pydis_start, pydis_end
 ;     set_listen_offset:                        1
 ;     setup1:                                   1
 ;     setup_rom_ptrs_netv:                      1
+;     setup_rx_buffer_ptrs:                     1
 ;     store_16bit_at_y:                         1
 ;     store_fs_error:                           1
 ;     store_fs_flag:                            1
@@ -8561,7 +8662,6 @@ save pydis_start, pydis_end
 ;     sub_c86d7:                                1
 ;     sub_c86e3:                                1
 ;     sub_c8d92:                                1
-;     sub_c8fcd:                                1
 ;     sub_c9072:                                1
 ;     sub_c9fe9:                                1
 ;     tbcop1:                                   1
@@ -8651,7 +8751,6 @@ save pydis_start, pydis_end
 ;     c85eb
 ;     c85f7
 ;     c8613
-;     c861d
 ;     c863f
 ;     c8640
 ;     c865c
@@ -9030,10 +9129,8 @@ save pydis_start, pydis_end
 ;     sub_c8dd7
 ;     sub_c8e03
 ;     sub_c8e45
-;     sub_c8eba
 ;     sub_c8ed5
 ;     sub_c8ef9
-;     sub_c8fcd
 ;     sub_c9072
 ;     sub_c90ac
 ;     sub_c9148
@@ -9051,7 +9148,6 @@ save pydis_start, pydis_end
 ;     sub_c9d16
 ;     sub_c9ea6
 ;     sub_c9eae
-;     sub_c9f38
 ;     sub_c9fe0
 ;     sub_c9fe9
 

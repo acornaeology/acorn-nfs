@@ -1324,13 +1324,13 @@ subroutine(0x9CD3, hook=None,
 Sets scout_status=2 and shares the 4-byte addition and
 transfer calculation path with tx_ctrl_peek.""")
 
-# UNMAPPED: label(0x9D1A, "tx_ctrl_proc")
-# UNMAPPED: subroutine(0x9D1A, hook=None,
-# UNMAPPED:     title="TX ctrl: JSR/UserProc/OSProc setup",
-# UNMAPPED:     description="""\
-# UNMAPPED: Sets scout_status=2 and calls tx_calc_transfer directly
-# UNMAPPED: (no 4-byte address addition needed for procedure calls).
-# UNMAPPED: Shared by operation types &83-&85.""")
+label(0x9CE7, "tx_ctrl_proc")
+subroutine(0x9CE7, hook=None,
+    title="TX ctrl: JSR/UserProc/OSProc setup",
+    description="""\
+Sets scout_status=2 and calls tx_calc_transfer directly
+(no 4-byte address addition needed for procedure calls).
+Shared by operation types &83-&85.""")
 
 label(0x9D26, "tx_ctrl_exit")
 
@@ -1348,7 +1348,7 @@ entry(0x9150)   # Function 8 handler (remote_cmd_data)
 
 # --- Code found in third-pass remaining equb regions ---
 entry(0x878A)   # BEQ +3; JMP &8870 (called from &8744 region)
-# UNMAPPED: entry(0x8FCA)   # LDY #&28; ... (preceded by RTS, standalone entry)
+entry(0x8FCD)   # LDY #&28; ... (preceded by RTS, standalone entry)
 entry(0x9815)   # LDA #&82; STA &FEA0; installs NMI handler &9843
 
 # ============================================================
@@ -1409,22 +1409,22 @@ between BBC (8-bit) and fileserver (5-bit) protection formats.""")
 # ============================================================
 # Decimal number parser (&85F3)
 # ============================================================
-# UNMAPPED: subroutine(0x85F3, "parse_decimal",
-# UNMAPPED:     title="Parse decimal number from (fs_options),Y (DECIN)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Reads ASCII digits and accumulates in &B2 (fs_load_addr_2).
-# UNMAPPED: Multiplication by 10 uses the identity: n*10 = n*8 + n*2,
-# UNMAPPED: computed as ASL &B2 (x2), then A = &B2*4 via two ASLs,
-# UNMAPPED: then ADC &B2 gives x10.
-# UNMAPPED: Terminates on "." (pathname separator), control chars, or space.
-# UNMAPPED: The delimiter handling was revised to support dot-separated path
-# UNMAPPED: components (e.g. "1.$.PROG") -- originally stopped on any char
-# UNMAPPED: >= &40 (any letter), but the revision allows numbers followed
-# UNMAPPED: by dots.""",
-# UNMAPPED:     on_entry={"y": "offset into (fs_options) buffer"},
-# UNMAPPED:     on_exit={"a": "parsed value (accumulated in &B2)",
-# UNMAPPED:              "x": "corrupted",
-# UNMAPPED:              "y": "offset past last digit parsed"})
+subroutine(0x861D, "parse_decimal",
+    title="Parse decimal number from (fs_options),Y (DECIN)",
+    description="""\
+Reads ASCII digits and accumulates in &B2 (fs_load_addr_2).
+Multiplication by 10 uses the identity: n*10 = n*8 + n*2,
+computed as ASL &B2 (x2), then A = &B2*4 via two ASLs,
+then ADC &B2 gives x10.
+Terminates on "." (pathname separator), control chars, or space.
+The delimiter handling was revised to support dot-separated path
+components (e.g. "1.$.PROG") -- originally stopped on any char
+>= &40 (any letter), but the revision allows numbers followed
+by dots.""",
+    on_entry={"y": "offset into (fs_options) buffer"},
+    on_exit={"a": "parsed value (accumulated in &B2)",
+             "x": "corrupted",
+             "y": "offset past last digit parsed"})
 
 # ============================================================
 # File handle conversion (&861B-&861D)
@@ -1518,20 +1518,20 @@ Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
 the specified bits. JMPs to the shared STA at &865C, skipping
 the ORA in set_fs_flag.""")
 
-# UNMAPPED: entry(0x8659)
-# UNMAPPED: subroutine(0x8659, "set_fs_flag", hook=None,
-# UNMAPPED:     title="Set bit(s) in FS flags (&0E07)",
-# UNMAPPED:     description="""\
-# UNMAPPED: ORs A into fs_work_0e07 (EOF hint byte), then falls through
-# UNMAPPED: to STA fs_eof_flags at &865C (shared with clear_fs_flag).
-# UNMAPPED: Each bit represents one of up to 8 open file handles. When
-# UNMAPPED: clear, the file is definitely NOT at EOF. When set, the
-# UNMAPPED: fileserver must be queried to confirm EOF status. This
-# UNMAPPED: negative-cache optimisation avoids expensive network
-# UNMAPPED: round-trips for the common case. The hint is cleared when
-# UNMAPPED: the file pointer is updated (since seeking away from EOF
-# UNMAPPED: invalidates the hint) and set after BGET/OPEN/EOF operations
-# UNMAPPED: that might have reached the end.""")
+entry(0x8680)
+subroutine(0x8680, "set_fs_flag", hook=None,
+    title="Set bit(s) in FS flags (&0E07)",
+    description="""\
+ORs A into fs_work_0e07 (EOF hint byte), then falls through
+to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+Each bit represents one of up to 8 open file handles. When
+clear, the file is definitely NOT at EOF. When set, the
+fileserver must be queried to confirm EOF status. This
+negative-cache optimisation avoids expensive network
+round-trips for the common case. The hint is cleared when
+the file pointer is updated (since seeking away from EOF
+invalidates the hint) and set after BGET/OPEN/EOF operations
+that might have reached the end.""")
 
 # ============================================================
 # Print file info (&8CFC)
@@ -2963,34 +2963,34 @@ byte(0x91B7, 1)
 # ============================================================
 # Bidirectional block copy (&8EB1)
 # ============================================================
-# UNMAPPED: subroutine(0x8EB1, "copy_param_block", hook=None,
-# UNMAPPED:     title="Bidirectional block copy between OSWORD param block and workspace.",
-# UNMAPPED:     description="""\
-# UNMAPPED: C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
-# UNMAPPED: C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
+subroutine(0x8F1C, "copy_param_block", hook=None,
+    title="Bidirectional block copy between OSWORD param block and workspace.",
+    description="""\
+C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
+C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
 
 # ============================================================
 # OSWORD handler block comments
 # ============================================================
 # UNMAPPED: label(0x8EB7, "return_copy_param")       # Return from copy_param_block
 
-# UNMAPPED: subroutine(0x8EB8, "osword_0f_handler",
-# UNMAPPED:     title="OSWORD &0F handler: initiate transmit (CALLTX)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Checks the TX semaphore (TXCLR at &0D62) via ASL -- if carry is
-# UNMAPPED: clear, a TX is already in progress and the call returns an error,
-# UNMAPPED: preventing user code from corrupting a system transmit. Otherwise
-# UNMAPPED: copies 16 bytes from the caller's OSWORD parameter block into the
-# UNMAPPED: user TX control block (UTXCB) in static workspace. The TXCB
-# UNMAPPED: pointer is copied to LTXCBP only after the semaphore is claimed,
-# UNMAPPED: ensuring the low-level transmit code (BRIANX) sees a consistent
-# UNMAPPED: pointer -- if copied before claiming, another transmitter could
-# UNMAPPED: modify TXCBP between the copy and the claim.""",
-# UNMAPPED:     on_entry={"x": "parameter block address low byte",
-# UNMAPPED:               "y": "parameter block address high byte"},
-# UNMAPPED:     on_exit={"a": "corrupted",
-# UNMAPPED:              "x": "corrupted",
-# UNMAPPED:              "y": "&FF"})
+subroutine(0x8EBA, "osword_0f_handler",
+    title="OSWORD &0F handler: initiate transmit (CALLTX)",
+    description="""\
+Checks the TX semaphore (TXCLR at &0D62) via ASL -- if carry is
+clear, a TX is already in progress and the call returns an error,
+preventing user code from corrupting a system transmit. Otherwise
+copies 16 bytes from the caller's OSWORD parameter block into the
+user TX control block (UTXCB) in static workspace. The TXCB
+pointer is copied to LTXCBP only after the semaphore is claimed,
+ensuring the low-level transmit code (BRIANX) sees a consistent
+pointer -- if copied before claiming, another transmitter could
+modify TXCBP between the copy and the claim.""",
+    on_entry={"x": "parameter block address low byte",
+              "y": "parameter block address high byte"},
+    on_exit={"a": "corrupted",
+             "x": "corrupted",
+             "y": "&FF"})
 
 subroutine(0x8ED4, "osword_11_handler", hook=None,
     title="OSWORD &11 handler: read JSR arguments (READRA)",
@@ -3081,12 +3081,12 @@ keyboard input buffer 0 via OSBYTE &99.""")
 # ============================================================
 # Remote operation support routines (&8FCA-&92FE)
 # ============================================================
-# UNMAPPED: subroutine(0x8FCA, "setup_rx_buffer_ptrs", hook=None,
-# UNMAPPED:     title="Set up RX buffer pointers in NFS workspace",
-# UNMAPPED:     description="""\
-# UNMAPPED: Calculates the start address of the RX data area (&F0+1) and stores
-# UNMAPPED: it at workspace offset &28. Also reads the data length from (&F0)+1
-# UNMAPPED: and adds it to &F0 to compute the end address at offset &2C.""")
+subroutine(0x8FCD, "setup_rx_buffer_ptrs", hook=None,
+    title="Set up RX buffer pointers in NFS workspace",
+    description="""\
+Calculates the start address of the RX data area (&F0+1) and stores
+it at workspace offset &28. Also reads the data length from (&F0)+1
+and adds it to &F0 to compute the end address at offset &2C.""")
 
 subroutine(0x90DE, "remote_cmd_dispatch", hook=None,
     title="Fn 7: remote OSBYTE handler (NBYTE)",
@@ -3320,15 +3320,15 @@ the screen data capture to prevent interference.""")
 # ============================================================
 # Post-ACK scout processing (&99C5)
 # ============================================================
-# UNMAPPED: subroutine(0x99C5, "post_ack_scout", hook=None,
-# UNMAPPED:     title="Post-ACK scout processing",
-# UNMAPPED:     description="""\
-# UNMAPPED: Called after the scout ACK has been transmitted. Processes the
-# UNMAPPED: received scout data stored in the buffer at &0D3D-&0D48.
-# UNMAPPED: Checks the port byte (&0D40) against open receive blocks to
-# UNMAPPED: find a matching listener. If a match is found, sets up the
-# UNMAPPED: data RX handler chain for the four-way handshake data phase.
-# UNMAPPED: If no match, discards the frame.""")
+subroutine(0x9992, "post_ack_scout", hook=None,
+    title="Post-ACK scout processing",
+    description="""\
+Called after the scout ACK has been transmitted. Processes the
+received scout data stored in the buffer at &0D3D-&0D48.
+Checks the port byte (&0D40) against open receive blocks to
+find a matching listener. If a match is found, sets up the
+data RX handler chain for the four-way handshake data phase.
+If no match, discards the frame.""")
 
 # ============================================================
 # Immediate operation handler (&9A6F)
@@ -3391,14 +3391,14 @@ byte(0x9F5A, 16)
 # ============================================================
 # Transfer size calculation (&9F6A)
 # ============================================================
-# UNMAPPED: subroutine(0x9F6A, "tx_calc_transfer", hook=None,
-# UNMAPPED:     title="Calculate transfer size",
-# UNMAPPED:     description="""\
-# UNMAPPED: Computes the number of bytes actually transferred during a data
-# UNMAPPED: frame reception. Subtracts the low pointer (LPTR, offset 4 in
-# UNMAPPED: the RXCB) from the current buffer position to get the byte count,
-# UNMAPPED: and stores it back into the RXCB's high pointer field (HPTR,
-# UNMAPPED: offset 8). This tells the caller how much data was received.""")
+subroutine(0x9F38, "tx_calc_transfer", hook=None,
+    title="Calculate transfer size",
+    description="""\
+Computes the number of bytes actually transferred during a data
+frame reception. Subtracts the low pointer (LPTR, offset 4 in
+the RXCB) from the current buffer position to get the byte count,
+and stores it back into the RXCB's high pointer field (HPTR,
+offset 8). This tells the caller how much data was received.""")
 
 # ============================================================
 # NMI shim at end of ROM (&9FD9-&9FFF)
