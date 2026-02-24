@@ -24,6 +24,8 @@ The disassembly is produced by a Python script that drives a custom version of [
 
 The output is verified by reassembling with [beebasm](https://github.com/stardot/beebasm) and comparing the result byte-for-byte against the original ROM. This round-trip verification runs automatically in CI on every push.
 
+For a detailed guide to the disassembly workflow, tooling, and annotation conventions, see [DISASSEMBLY.md](DISASSEMBLY.md).
+
 ## Building locally
 
 Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm).

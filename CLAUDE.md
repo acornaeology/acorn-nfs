@@ -71,6 +71,10 @@ Each version's `rom/rom.json` has a `docs` array. Each doc entry can have:
 
 Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": "..."}`. The `occurrence` field is a 0-based index among all substring matches of the pattern.
 
+### Disassembly guide
+
+`DISASSEMBLY.md` — comprehensive development guide covering the full workflow for producing a new version disassembly, CLI tool reference, py8dis DSL conventions, annotation guidelines, audit methodology, and common gotchas.
+
 ## Key technical context
 
 - ROM base address: 0x8000, size: 8192 bytes (standard BBC Micro sideways ROM)
