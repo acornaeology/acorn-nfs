@@ -431,11 +431,12 @@ command matcher (svc_star_command) — a space-saving
 trick that shares ROM bytes between the copyright
 string and the star command table.""")
 
-# Dispatch tables: split low/high byte address tables
-label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
-label(0x8024, "dispatch_lo_base")       # Base address for LDA dispatch_lo_base,X
-label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
-label(0x8049, "dispatch_hi_base")       # Base address for LDA dispatch_hi_base,X
+# Dispatch tables: split low/high byte address tables.
+# In 3.40 the ROM title is 4 bytes longer ("    NET" vs "NET"),
+# so ROM header data extends to &8023, and the dispatch tables
+# start at &8024/&8049 rather than &8020/&8044.
+label(0x8024, "dispatch_lo")            # Low bytes of (handler_addr - 1)
+label(0x8049, "dispatch_hi")            # High bytes of (handler_addr - 1)
 
 # Dispatcher and dispatch callers
 # Note: &80D4 is already labelled "language_handler" by acorn.is_sideways_rom()
@@ -996,32 +997,30 @@ Key ADLC register values:
 #   FS reply             &17      reply_code         27-32
 #   *NET1-4 commands     &21      char-'1'           33-36
 #
-# The dispatch code at &80EC/&80F0 reads via LDA dispatch_hi_base,X and
-# LDA dispatch_lo_base,X — base addresses &8049 and &8024, not the table
-# starts &8044 and &8020. After the loop adds Y+1 to X, the
-# final byte addresses for logical entry i are:
+# The dispatch code at &80EC/&80F0 reads via LDA dispatch_hi,X and
+# LDA dispatch_lo,X. After the loop adds Y+1 to X, the final byte
+# addresses for logical entry i are:
 #   lo = &8024 + (i+1) = &8025 + i
 #   hi = &8049 + (i+1) = &804A + i
 #
-# In older NFS versions (3.34-3.35K), the dispatch code uses
-# LDA &8020,X / LDA &8044,X — the table start addresses — so
-# rts_code_ptr(0x8020+i, 0x8044+i) works directly. In 3.40 the
-# ROM title is 4 bytes longer ("    NET" vs "NET"), shifting the
-# dispatch code. The LDA operands changed to &8024/&8049, making
-# the offsets +5/+6 instead of +0/+0 from the table starts.
+# In older NFS versions (3.34-3.35K), the tables start at &8020/&8044
+# so rts_code_ptr(0x8020+i, 0x8044+i) works directly. In 3.40 the
+# ROM title is 4 bytes longer ("    NET" vs "NET"), so ROM header
+# data extends to &8023 and the tables start at &8024/&8049.
 #
 # The lo and hi sub-tables overlap: lo bytes for the last 6
-# entries (i=31-36) fall within the hi table header (&8044-&8049),
+# entries (i=31-36) fall at &8044-&8049 (the start of the hi area),
 # and hi bytes for i=31-36 are read from dispatch_net_cmd code.
 #
 # Index 0 and unused indices point to an RTS (null handler), so
 # unrecognised service calls or out-of-range values fall through
 # harmlessly.
 
-# Preamble lo bytes: &8020-&8024 are never read as handler pairs.
-# They pad from dispatch_lo to dispatch_lo_base, which the dispatch
-# code at &80F0 indexes via LDA dispatch_lo_base,X.
-# (No hi preamble: &8044-&8049 double as lo bytes for entries 31-36.)
+# ROM header data between copyright string and dispatch table.
+# These 4 bytes (&8020-&8023) are not dispatch entries.
+# &8024 is the table start (dispatch_lo) but is a pad byte —
+# the dispatcher adds Y+1 to X before indexing, so the first
+# handler entry accessed is at &8025.
 for addr in range(0x8020, 0x8025):
     byte(addr)
 
@@ -1659,27 +1658,29 @@ comment(0x8615, "Bit 7 set? Done — this byte is the next opcode", inline=True)
 comment(0x861D, "Jump to address of high-bit byte (resumes code after string)", inline=True)
 
 # ============================================================
-# Dispatch table comments (&8020-&8068)
+# Dispatch table comments (&8024-&8068)
 # ============================================================
-comment(0x8020, """\
+comment(0x8024, """\
 Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80E7.
-See dispatch_hi (&8044) for the corresponding high bytes.
-The dispatch code accesses via dispatch_lo_base/dispatch_hi_base (offset +4/+5 from
-the table start). Base offset Y is added by the caller to select
-which group:
+See dispatch_hi (&8049) for the corresponding high bytes.
+
+Five callers share this table via different Y base offsets:
   Y=&00  Service calls 0-12       (indices 0-13)
   Y=&0E  Language entry reasons    (indices 14-18)
   Y=&13  FSCV codes 0-7           (indices 19-26)
   Y=&17  FS reply handlers        (indices 27-32)
-  Y=&21  *NET1-4 sub-commands     (indices 33-36)""")
+  Y=&21  *NET1-4 sub-commands     (indices 33-36)
 
-comment(0x8044, """\
+Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049,
+immediately before the hi bytes. Their hi bytes are read from
+dispatch_net_cmd code bytes at &8069+.""")
+
+comment(0x8049, """\
 Dispatch table: high bytes of (handler_address - 1)
-Paired with dispatch_lo (&8020). Together they form a table of
-37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
-Lo bytes for indices 31-36 overlap with this hi table header.""")
+Paired with dispatch_lo (&8024). Together they form a table of
+37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.""")
 
 # Inline comments on each low-byte dispatch table entry.
 # Service call handlers (Y=&00, indices 0-13)
