@@ -323,18 +323,14 @@ label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in refe
 label(0x041E, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
 label(0x042F, "return_tube_init")    # Return from tube_post_init path
 label(0x047C, "return_tube_xfer")   # Return from tube transfer/setup
-# UNMAPPED: label(0x04E0, "tube_setup_transfer")  # Set Y=0, X=&57 (tube_transfer_addr), JMP tube_addr_claim
-# UNMAPPED: label(0x04E7, "tube_rdch_handler")   # RDCHV target — send &01 via R2, enter main loop
-# UNMAPPED: label(0x04EF, "tube_restore_regs")   # Restore X,Y from &10/&11 (dispatch entry 6)
-# UNMAPPED: label(0x04F7, "tube_read_r2")        # Wait for R2 data ready, read byte to A
+# 3.35K label tube_setup_transfer ($04E0) — Tube code rewritten in 3.40
+label(0x04E7, "tube_rdch_handler")   # RDCHV target — send &01 via R2, enter main loop
+# 3.35K labels tube_restore_regs ($04EF), tube_read_r2 ($04F7) — Tube code rewritten
 entry(0x0400)
 entry(0x0403)
 entry(0x0406)
 entry(0x041E)
-# UNMAPPED: entry(0x04E0)
-# UNMAPPED: entry(0x04E7)
-# UNMAPPED: entry(0x04EF)
-# UNMAPPED: entry(0x04F7)
+entry(0x04E7)
 
 # Relocated code — page 5 (Tube dispatch table, WRCH, file I/O handlers)
 # Reference: NFS13 (TASKS table, BPUT, BGET, RDCHZ, FIND, ARGS, STRNG, CLI, FILE)
@@ -359,11 +355,10 @@ entry(0x041E)
 #   &0B      11    &0569  tube_osfind (OSFIND open)
 #   &0C      12    &05D8  tube_osfile (OSFILE)
 #   &0D      13    &0602  tube_osgbpb (OSGBPB)
-# UNMAPPED: label(0x051C, "tube_wrch_handler")    # WRCHV target -- write character via Tube
-# UNMAPPED: label(0x051F, "tube_send_and_poll")   # Send byte via R2, poll R2/R1 for reply
-# UNMAPPED: label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
-# UNMAPPED: label(0x0532, "tube_resume_poll")     # JMP back to R2 poll loop after servicing R1
-# UNMAPPED: label(0x053D, "tube_release_return")  # Restore X,Y from &10/&11, PLA, RTS
+# 3.35K labels tube_wrch_handler ($051C), tube_send_and_poll ($051F) — Tube code rewritten
+label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
+# 3.35K label tube_resume_poll ($0532) — Tube code rewritten
+label(0x053D, "tube_release_return")  # Restore X,Y from &10/&11, PLA, RTS
 label(0x0520, "tube_osbput")          # OSBPUT: read channel+byte from R2, call &FFD4
 label(0x052D, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
 label(0x0537, "tube_osrdch")          # OSRDCH: call &FFC8, send carry+byte reply
@@ -377,7 +372,6 @@ label(0x0596, "tube_oscli")           # OSCLI: read command string, call &FFF7
 label(0x059C, "tube_reply_ack")       # Send &7F acknowledge, return to main loop
 label(0x059E, "tube_reply_byte")      # Poll R2, send byte in A, return to main loop
 label(0x05A9, "tube_osfile")          # OSFILE: read 16 params+filename+reason, call &FFDD
-# UNMAPPED: entry(0x051C)
 # Dispatch table entry points (3.40 addresses)
 for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
              0x04EF, 0x053D, 0x0602,
@@ -386,19 +380,19 @@ for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
 
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)
-# UNMAPPED: label(0x0602, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call &FFD1
+# 3.35K label tube_osgbpb ($0602) — Tube code rewritten
 # 3.35K fix: after JSR osgbpb, ROR A encodes carry into bit 7
 # and sends it via tube_send_r2 BEFORE the 13 parameter bytes.
 # In 3.35D, PHA saved A but never sent or popped it — the
 # co-processor had no way to determine completion status.
-# UNMAPPED: comment(0x0615, """\
-# UNMAPPED: 3.35K fix: send carry result to co-processor.
-# UNMAPPED: 3.35D had PHA here (never sent, never popped).""", inline=True)
-# UNMAPPED: label(0x0626, "tube_osbyte_short")    # OSBYTE 2-param: read X+A, call &FFF4, return X
-# UNMAPPED: label(0x0630, "tube_osbyte_send_x")   # Poll R2, send X result
+comment(0x0615, """\
+3.35K fix: send carry result to co-processor.
+3.35D had PHA here (never sent, never popped).""", inline=True)
+label(0x0626, "tube_osbyte_short")    # OSBYTE 2-param: read X+A, call &FFF4, return X
+label(0x0630, "tube_osbyte_send_x")   # Poll R2, send X result
 label(0x0607, "tube_osbyte_long")     # OSBYTE 3-param: read X+Y+A, call &FFF4, return carry+Y+X
 label(0x061D, "tube_osbyte_send_y")   # Poll R2, send Y result, then fall through to send X
-# UNMAPPED: label(0x0627, "tube_osword")          # OSWORD variable-length: read A+params, call &FFF1
+# 3.35K label tube_osword ($0627) — Tube code rewritten
 label(0x062B, "tube_osword_read")     # Poll R2 for param block length, read params
 label(0x0636, "tube_osword_read_lp")  # Read param block bytes from R2 into &0130
 label(0x0657, "tube_osword_write")    # Write param block bytes from &0130 back to R2
@@ -411,9 +405,8 @@ label(0x068A, "tube_rdln_send_byte")  # Send byte via R2, loop until CR
 label(0x06A7, "tube_escape_check")    # Check &FF escape flag, forward to Tube via R1
 label(0x06AD, "tube_event_handler")   # EVNTV target: forward event (A,X,Y) to Tube via R1
 label(0x06BC, "tube_send_r1")         # Poll R1 status, write A to R1 data (ESCA in reference)
-# UNMAPPED: entry(0x0600)
-# UNMAPPED: entry(0x0602)
-# UNMAPPED: entry(0x0626)
+entry(0x0600)
+entry(0x0626)
 entry(0x0607)
 entry(0x0627)
 entry(0x0668)
@@ -446,7 +439,7 @@ label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
 # Note: &80D4 is already labelled "language_handler" by acorn.is_sideways_rom()
 
 # Filing system OSWORD dispatch (&8EB8-&8E3E)
-# UNMAPPED: label(0x8E9F, "fs_osword_tbl_lo")      # Low bytes of FS OSWORD handler table
+label(0x8E9F, "fs_osword_tbl_lo")      # Low bytes of FS OSWORD handler table
 label(0x8EB5, "fs_osword_tbl_hi")      # High bytes of FS OSWORD handler table
 
 # FS OSWORD handler routines
@@ -458,8 +451,8 @@ label(0x8EE9, "read_args_size")        # READRB: get args buffer size from RX bl
 label(0x8FDE, "store_16bit_at_y")     # Store 16-bit value at (nfs_workspace)+Y
 # osword_dispatch label created by subroutine() call below.
 label(0x908F, "osword_trampoline")     # PHA/PHA/RTS trampoline
-# UNMAPPED: label(0x9098, "osword_tbl_lo")         # Dispatch table low bytes
-# UNMAPPED: label(0x90A1, "osword_tbl_hi")         # Dispatch table high bytes
+label(0x909A, "osword_tbl_lo")         # Dispatch table low bytes
+label(0x90A1, "osword_tbl_hi")         # Dispatch table high bytes
 # net_write_char label created by subroutine() call below.
 
 # Remote operation function handlers (dispatched via osword_tbl)
@@ -516,7 +509,7 @@ label(0x069E, "tube_send_r4")       # Poll R4 status, write A to R4 data (WRIFOR
 label(0x80F6, "return_1")
 label(0x81AB, "return_2")
 label(0x82BE, "return_3")
-# UNMAPPED: label(0x8578, "return_4")
+label(0x8578, "return_4")
 label(0x8D84, "return_5")
 label(0x8E58, "return_6")
 label(0x8EAF, "return_7")
@@ -536,7 +529,7 @@ entry(0x9660)
 entry(0x9663)
 
 # --- Init and vector setup ---
-# UNMAPPED: label(0x8280, "fs_vector_addrs")        # FS vector dispatch and handler addresses (34 bytes)
+# label at $8280 removed — fs_vector_addrs mapped to $8294 in 3.40
 
 # --- FSCV handler and dispatch ---
 # FSCV (&80C7) dispatches via secondary indices 19-26:
@@ -570,16 +563,16 @@ entry(0x9663)
 #   FSCV  → &80C7
 # Labels and entry points for FSCV, FILEV, ARGSV, FINDV, GBPBV
 # are created by subroutine() calls below in the comment sections.
-# UNMAPPED: label(0x855C, "bgetv_handler")          # BGETV entry: SEC then JSR handle_bput_bget
+label(0x855C, "bgetv_handler")          # BGETV entry: SEC then JSR handle_bput_bget
 label(0x840F, "bputv_handler")          # BPUTV entry: CLC then fall into handle_bput_bget
-# UNMAPPED: entry(0x855C)
+entry(0x855C)
 entry(0x840F)
 entry(0x86D7)                            # Param block copy, falls through to parse_filename_gs
 entry(0x8705)                            # Actual FILEV entry point (ROM pointer table target)
 
 # --- Helper routines in header/init section ---
-# UNMAPPED: label(0x81DD, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
-# UNMAPPED: label(0x81E4, "skip_cmd_spaces")         # SKPSP: skip spaces in command text; Z=1 if CR follows
+label(0x81DD, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
+# 3.35K label skip_cmd_spaces ($81E4) — mapped to skpspi ($81E3) in 3.40
 label(0x8335, "store_rom_ptr_pair")     # Write 2-byte address + ROM bank to ROM pointer table
 
 # --- TX control block and FS command setup ---
@@ -596,7 +589,7 @@ label(0x83EF, "send_fs_reply_cmd")      # Send FS command with reply processing
 label(0x843A, "store_retry_count")      # RAND1: store retry count to &0FDD, initiate TX
 label(0x8491, "update_sequence_return") # RAND3: update sequence numbers and pull A/Y/X/return
 label(0x84FF, "set_listen_offset")      # NLISN2: use reply code as table offset for listen
-# UNMAPPED: label(0x84EB, "send_to_fs_star")        # Send '*' command to fileserver
+label(0x851B, "send_to_fs_star")        # Send '*' command to fileserver
 label(0x8543, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
 # --- Pointer arithmetic helpers ---
@@ -648,8 +641,8 @@ label(0x8644, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always 
 # handle_to_mask and mask_to_handle labels created by subroutine() calls below.
 
 # --- Number and hex printing ---
-# UNMAPPED: label(0x8D9D, "print_hex")              # Print A as two hex digits
-# UNMAPPED: label(0x8DA8, "print_hex_nibble")       # Print low nibble of A as hex digit
+# 3.35K print_hex ($8D9D) and print_hex_nibble ($8DA8) — replaced by
+# new routines at $9FE0/$9FE9 in 3.40
 
 # --- Address comparison ---
 # compare_addresses label created by subroutine() call below.
@@ -765,7 +758,7 @@ label(0x9C6B, "tx_active_start")       # Begin TX (CR1=&44)
 label(0x9D53, "tx_error")              # TX error path
 
 # --- RX reply scout (outbound handshake) ---
-# UNMAPPED: label(0x9DED, "reply_error")           # Reply error: store &41 (8 refs)
+# 3.35K label reply_error ($9DED) — mapped to tx_result_fail ($9F1A) in 3.40
 
 # --- TX scout ACK + data phase ---
 label(0x9E1A, "data_tx_begin")         # Begin data frame TX
@@ -793,8 +786,7 @@ label(0x9FA7, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
 # the name used in the Acorn reference source.
 
 # --- Relocated Tube code (pages 4-6) ---
-# UNMAPPED: label(0x04AE, "begink")               # NFS12: Tube begin
-# UNMAPPED: label(0x04BA, "beginr")               # NFS12: Tube begin return
+# 3.35K labels begink ($04AE), beginr ($04BA) — Tube code rewritten
 label(0x0586, "strnh")                # NFS13: string handling
 label(0x05A6, "mj")                   # NFS13: conditional jump
 label(0x05AB, "argsw")                # NFS13: OSARGS workspace
@@ -803,10 +795,10 @@ label(0x0604, "bytex")                # NFS13: byte transfer
 # --- Service call init (&80xx) ---
 label(0x815B, "cloop")                # NFS01: copy loop (page copy)
 label(0x81F8, "initl")                # NFS01: init loop
-# UNMAPPED: label(0x81E3, "skpspi")               # NFS01: skip SPI
+label(0x81E3, "skpspi")               # NFS01: skip SPI
 
 # --- FS command dispatch (&82xx-&83xx) ---
-# UNMAPPED: label(0x824C, "dofsl1")               # NFS03: do FS loop 1
+label(0x824C, "dofsl1")               # NFS03: do FS loop 1
 label(0x834F, "fsdiel")               # NFS01: FS die loop
 label(0x8394, "fstxl1")               # NFS03: FS TX loop 1
 label(0x83A4, "fstxl2")               # NFS03: FS TX loop 2
@@ -872,14 +864,14 @@ label(0x8BEE, "decmin")               # NFS07: decimal minimum
 
 # --- Logon and *NET (&8Dxx) ---
 label(0x8E2F, "logon2")               # NFS07: logon handler 2
-# UNMAPPED: label(0x8EB7, "logon3")               # NFS07: logon handler 3
+label(0x8EB7, "logon3")               # NFS07: logon handler 3
 label(0x8D8B, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
-# UNMAPPED: label(0x8D75, "infol2")               # NFS07: info loop 2
+label(0x8D75, "infol2")               # NFS07: info loop 2
 
 # --- File I/O: save, read, open (&8Dxx-&8Fxx) ---
 label(0x8E6A, "rxpol2")               # NFS08: RX poll loop 2
 label(0x8EA2, "save1")                # NFS08: save handler 1
-# UNMAPPED: label(0x8EB3, "copyl3")               # NFS08: copy loop 3
+label(0x8EB3, "copyl3")               # NFS08: copy loop 3
 label(0x8EF4, "readry")               # NFS08: read ready
 label(0x8F23, "rssl1")                # NFS08: read size/status loop 1
 label(0x8F2E, "rssl2")                # NFS08: read size/status loop 2
@@ -890,7 +882,7 @@ label(0x8F99, "scan1")                # NFS08: scan entry 1
 label(0x8FB5, "openl6")               # NFS08: open loop 6
 label(0x8FC2, "openl7")               # NFS08: open loop 7
 label(0x8FC7, "openl4")               # NFS08: open loop 4
-# UNMAPPED: label(0x8FC1, "rest1")                # NFS08: restore 1
+# 3.35K label rest1 ($8FC1) — data block removed in 3.40
 label(0x8FEE, "dofs01")               # NFS08: do FS 01
 label(0x9067, "dofs2")                # NFS08: do FS 2
 
@@ -1739,15 +1731,6 @@ All other service calls < &0D dispatch via c8146.
 # 2 vectors (EVNTV and BRKV) instead of 4. RDCHV and WRCHV
 # are no longer initialised during full reset.
 label(0x8140, "init_vectors_and_copy")
-subroutine(0x8140, "init_vectors_and_copy", hook=None,
-    title="NFS initialisation (service &FF: full reset)",
-    description="""\
-Sets EVNTV (&0220) = &06AD, BRKV (&0202) = &0016 using
-hardcoded stores. Then writes &8E to Tube control register
-(&FEE0) and copies 3 pages of Tube host code from ROM
-(&935D/&9456/&9556) to RAM (&0400/&0500/&0600), calls
-tube_post_init (&041E), and copies 97 bytes of workspace
-init from ROM (&931C) to &0016-&0076.""")
 
 # ============================================================
 # Select NFS as active filing system (&81B5)
@@ -1804,45 +1787,41 @@ padding byte.""")
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
 byte(0x828E, 1)
-# UNMAPPED: comment(0x828E, "FILEV handler lo (&86DE)", inline=True)
+comment(0x828E, "FILEV handler lo (&86DE)", inline=True)
 byte(0x828F, 1)
-# UNMAPPED: comment(0x828F, "FILEV handler hi", inline=True)
+comment(0x828F, "FILEV handler hi", inline=True)
 byte(0x8290, 1)
-# UNMAPPED: comment(0x8290, "(ROM bank — not read)", inline=True)
+comment(0x8290, "(ROM bank — not read)", inline=True)
 byte(0x8291, 1)
-# UNMAPPED: comment(0x8291, "ARGSV handler lo (&8907)", inline=True)
+comment(0x8291, "ARGSV handler lo (&8907)", inline=True)
 byte(0x8292, 1)
-# UNMAPPED: comment(0x8292, "ARGSV handler hi", inline=True)
+comment(0x8292, "ARGSV handler hi", inline=True)
 byte(0x8293, 1)
-# UNMAPPED: comment(0x82A9, "(ROM bank — not read)", inline=True)
 byte(0x8294, 1)
-# UNMAPPED: comment(0x82B0, "BGETV handler lo (&852E)", inline=True)
 byte(0x8295, 1)
-# UNMAPPED: comment(0x8295, "BGETV handler hi", inline=True)
+comment(0x8295, "BGETV handler hi", inline=True)
 byte(0x8296, 1)
-# UNMAPPED: comment(0x8296, "(ROM bank — not read)", inline=True)
+comment(0x8296, "(ROM bank — not read)", inline=True)
 byte(0x8297, 1)
-# UNMAPPED: comment(0x8297, "BPUTV handler lo (&83DC)", inline=True)
+comment(0x8297, "BPUTV handler lo (&83DC)", inline=True)
 byte(0x8298, 1)
-# UNMAPPED: comment(0x8298, "BPUTV handler hi", inline=True)
+comment(0x8298, "BPUTV handler hi", inline=True)
 byte(0x8299, 1)
-# UNMAPPED: comment(0x8299, "(ROM bank — not read)", inline=True)
+comment(0x8299, "(ROM bank — not read)", inline=True)
 byte(0x829A, 1)
-# UNMAPPED: comment(0x829A, "GBPBV handler lo (&8A0E)", inline=True)
+comment(0x829A, "GBPBV handler lo (&8A0E)", inline=True)
 byte(0x829B, 1)
-# UNMAPPED: comment(0x829B, "GBPBV handler hi", inline=True)
+comment(0x829B, "GBPBV handler hi", inline=True)
 byte(0x829C, 1)
-# UNMAPPED: comment(0x829C, "(ROM bank — not read)", inline=True)
+comment(0x829C, "(ROM bank — not read)", inline=True)
 byte(0x829D, 1)
-# UNMAPPED: comment(0x829D, "FINDV handler lo (&896F)", inline=True)
+comment(0x829D, "FINDV handler lo (&896F)", inline=True)
 byte(0x829E, 1)
-# UNMAPPED: comment(0x829E, "FINDV handler hi", inline=True)
+comment(0x829E, "FINDV handler hi", inline=True)
 byte(0x829F, 1)
-# UNMAPPED: comment(0x82B5, "(ROM bank — not read)", inline=True)
 byte(0x82A0, 1)
-# UNMAPPED: comment(0x82A0, "FSCV handler lo (&80C7)", inline=True)
+comment(0x82A0, "FSCV handler lo (&80C7)", inline=True)
 byte(0x82A1, 1)
-# UNMAPPED: comment(0x82B7, "FSCV handler hi", inline=True)
 
 # ============================================================
 # Service 1: claim absolute workspace (&82A2)
@@ -1928,16 +1907,6 @@ Prints the ROM identification string using print_inline.""")
 # Rewritten in 3.40 with '.' abbreviation support (CMP #&2E
 # at &8362). In 3.35K this was at &81CC without dot support.
 label(0x835E, "match_rom_string")
-subroutine(0x835E, "match_rom_string", hook=None,
-    title="Match command text against ROM string table",
-    description="""\
-Compares characters from (os_text_ptr)+Y against bytes starting
-at binary_version+X (&8008+X). Input is uppercased via AND &DF.
-New in 3.40: supports '.' abbreviation — if a dot is found in
-the input, skips to the space-skipping exit (match accepted).
-Returns with Z=1 if the ROM string's NUL terminator was reached
-(match) or dot was found, Z=0 on mismatch. On match, Y points
-past the matched text; on return, skips trailing spaces.""")
 
 # ============================================================
 # Call FSCV shutdown (&81FE)
@@ -2011,14 +1980,6 @@ Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
 # In 3.40, the code shifted so &836D-&8379 is now code (string
 # comparison loop tail: BNE/INY/INX/BNE + LDA abs,X/BEQ/RTS/INY).
 # The TX control block template is at different addresses in 3.40.
-
-subroutine(0x83B5, "prepare_cmd_with_flag", hook=None,
-    title="Prepare FS command with carry set",
-    description="""\
-Alternate entry to prepare_fs_cmd that pushes A, loads &2A
-into fs_error_ptr, and enters with carry set (SEC). The carry
-flag is later tested by build_send_fs_cmd to select the
-byte-stream (BSXMIT) transmission path.""")
 
 # ============================================================
 # Prepare FS command (&838A)
@@ -2159,19 +2120,9 @@ are always checked (3.35D skipped EXEC if SPOOL matched),
 and OSCLI is always called (with a harmless "." default if
 neither matched).""")
 
-# 3.35K: Y register initialised before STA (net_tx_ptr),Y
-# UNMAPPED: comment(0x8526, """\
-# UNMAPPED: 3.35K fix: initialise Y=0 before the indexed store.
-# UNMAPPED: In 3.35D, Y could hold any value here after the
-# UNMAPPED: OSBYTE escape acknowledge call.""")
-
-# 3.35K: BGETV EOF hint logic corrected
-# UNMAPPED: comment(0x8568, """\
-# UNMAPPED: 3.35K fix: EOF hint clear/set are now mutually
-# UNMAPPED: exclusive. In 3.35D, both clear_fs_flag and
-# UNMAPPED: set_fs_flag were called when N=0, with the clear
-# UNMAPPED: immediately undone by the set — making the EOF
-# UNMAPPED: hint always set regardless of file position.""")
+# 3.35K fix comments at $8526/$8568 — addresses shifted in 3.40;
+# these fixes originated in 3.35K and are present in 3.40 but at
+# different addresses (will be confirmed after code tracing).
 
 # ============================================================
 # Error message table (&854D)
@@ -2179,25 +2130,25 @@ neither matched).""")
 # N.B. This is data, not code — we use label() not subroutine()
 # to avoid entry() tracing from &854D, where the &A0 error code
 # byte would be misinterpreted as LDY #imm.
-# UNMAPPED: label(0x8579, "error_msg_table")
-# UNMAPPED: comment(0x8579, """\
-# UNMAPPED: Econet error message table (ERRTAB, 7 entries).
-# UNMAPPED: Each entry: error number byte followed by NUL-terminated string.
-# UNMAPPED:   &A0: "Line Jammed"     &A1: "Net Error"
-# UNMAPPED:   &A2: "Not listening"   &A3: "No Clock"
-# UNMAPPED:   &11: "Escape"           &CB: "Bad Option"
-# UNMAPPED:   &A5: "No reply"
-# UNMAPPED: Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
-# UNMAPPED: which encode the specific Econet failure reason. The NREPLY
-# UNMAPPED: and NLISTN routines build a MOS BRK error block at &100 on the
-# UNMAPPED: stack page: NREPLY fires when the fileserver does not respond
-# UNMAPPED: within the timeout period; NLISTN fires when the destination
-# UNMAPPED: station actively refused the connection.
-# UNMAPPED: Indexed via the error dispatch at c8424/c842c.""")
+label(0x8579, "error_msg_table")
+comment(0x8579, """\
+Econet error message table (ERRTAB, 7 entries).
+Each entry: error number byte followed by NUL-terminated string.
+  &A0: "Line Jammed"     &A1: "Net Error"
+  &A2: "Not listening"   &A3: "No Clock"
+  &11: "Escape"           &CB: "Bad Option"
+  &A5: "No reply"
+Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
+which encode the specific Econet failure reason. The NREPLY
+and NLISTN routines build a MOS BRK error block at &100 on the
+stack page: NREPLY fires when the fileserver does not respond
+within the timeout period; NLISTN fires when the destination
+station actively refused the connection.
+Indexed via the error dispatch at c8424/c842c.""")
 
 # Mark each error table entry as data: error code byte + NUL-terminated string.
 # Without this, the first entry's &A0 byte is traced as code (LDY #imm).
-addr = 0x854D
+addr = 0x8579
 for _ in range(7):
     byte(addr, 1)           # error number byte
     addr = stringz(addr + 1)  # NUL-terminated message string
@@ -2562,14 +2513,6 @@ Entries:
 # "EX" entry in the match table.
 entry(0x8C1B)
 label(0x8C1B, "ex_handler")
-subroutine(0x8C1B, "ex_handler", hook=None,
-    title="*EX handler (extended catalogue)",
-    description="""\
-Sets X=1, A=3, then branches into cat_handler at &8C29,
-bypassing cat_handler's default column setup. B7=1 (from X)
-gives one entry per line with full details (vs B7=3 for *CAT
-which gives multiple files per line). Code is embedded in the
-tail of fs_cmd_match_table as a space-saving optimisation.""")
 
 subroutine(0x8C21, "cat_handler", hook=None,
     title="*CAT handler (directory catalogue)",
@@ -2724,17 +2667,6 @@ terminator). Used by cat_handler to display Dir. and Lib. paths.""")
 # Entry at &8CFD: caller-supplied Y count.
 # Entry at &8CF4: PLA/CLC/ADC $B4/TAY/BNE to compute count
 # from stacked value, then enters loop via branch.
-subroutine(0x8CFB, "print_reply_bytes", hook=None,
-    title="Print reply buffer bytes (default count)",
-    description="""\
-Sets Y=&0A (10) then falls into print_reply_counted.
-Used by cat_handler to display directory and library names.""")
-
-subroutine(0x8CFD, "print_reply_counted", hook=None,
-    title="Print Y bytes from FS reply buffer",
-    description="""\
-Prints Y characters from the FS reply buffer (&0F05+X) to
-the screen via OSASCI. X = starting offset, Y = count.""")
 
 # ============================================================
 # Notify and execute (&8DC5)
@@ -2809,7 +2741,7 @@ subroutine(0x8E97, "fs_osword_dispatch", hook=None,
 X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table
 at &8E9F (low) / &8EA4 (high).""")
 
-# UNMAPPED: comment(0x8E9F, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
+comment(0x8E9F, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
 comment(0x8EB5, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline=True)
 
 comment(0x815B, "Copy NMI handler code from ROM to RAM pages &04-&06")
@@ -2941,13 +2873,13 @@ Sentinel values:
 byte(0x919D, 1)
 comment(0x91A8, "Alt-path only → Y=&6F", inline=True)
 byte(0x919E, 1)
-# UNMAPPED: comment(0x919E, "Alt-path only → Y=&70", inline=True)
+comment(0x919E, "Alt-path only → Y=&70", inline=True)
 byte(0x919F, 1)
 comment(0x91AA, "SKIP", inline=True)
 byte(0x91A0, 1)
-# UNMAPPED: comment(0x91A0, "SKIP", inline=True)
+comment(0x91A0, "SKIP", inline=True)
 byte(0x91A1, 1)
-# UNMAPPED: comment(0x91A1, "→ Y=&01 / Y=&73", inline=True)
+comment(0x91A1, "→ Y=&01 / Y=&73", inline=True)
 byte(0x91A2, 1)
 comment(0x91AD, "PAGE byte → Y=&02 / Y=&74", inline=True)
 byte(0x91A3, 1)
@@ -2957,9 +2889,9 @@ comment(0x91AF, "→ Y=&04 / Y=&76", inline=True)
 byte(0x91A5, 1)
 comment(0x91B0, "→ Y=&05 / Y=&77", inline=True)
 byte(0x91A6, 1)
-# UNMAPPED: comment(0x91A6, "PAGE byte → Y=&06 / Y=&78", inline=True)
+comment(0x91A6, "PAGE byte → Y=&06 / Y=&78", inline=True)
 byte(0x91A7, 1)
-# UNMAPPED: comment(0x91A7, "→ Y=&07 / Y=&79", inline=True)
+comment(0x91A7, "→ Y=&07 / Y=&79", inline=True)
 byte(0x91A8, 1)
 comment(0x91B3, "→ Y=&08 / Y=&7A", inline=True)
 byte(0x91A9, 1)
@@ -2969,29 +2901,23 @@ comment(0x91B5, "→ Y=&0A / Y=&7C", inline=True)
 byte(0x91AB, 1)
 comment(0x91B6, "STOP — main-path boundary", inline=True)
 byte(0x91AC, 1)
-# UNMAPPED: comment(0x91AC, "→ Y=&0C (main only)", inline=True)
+comment(0x91AC, "→ Y=&0C (main only)", inline=True)
 byte(0x91AD, 1)
-# UNMAPPED: comment(0x91AD, "→ Y=&0D (main only)", inline=True)
+comment(0x91AD, "→ Y=&0D (main only)", inline=True)
 byte(0x91AE, 1)
-# UNMAPPED: comment(0x91B9, "SKIP (main only)", inline=True)
 byte(0x91AF, 1)
-# UNMAPPED: comment(0x91AF, "SKIP (main only)", inline=True)
+comment(0x91AF, "SKIP (main only)", inline=True)
 byte(0x91B0, 1)
-# UNMAPPED: comment(0x91B0, "→ Y=&10 (main only)", inline=True)
+comment(0x91B0, "→ Y=&10 (main only)", inline=True)
 byte(0x91B1, 1)
-# UNMAPPED: comment(0x91BC, "PAGE byte → Y=&11 (main only)", inline=True)
 byte(0x91B2, 1)
-# UNMAPPED: comment(0x91BD, "→ Y=&12 (main only)", inline=True)
 byte(0x91B3, 1)
-# UNMAPPED: comment(0x91BE, "→ Y=&13 (main only)", inline=True)
 byte(0x91B4, 1)
-# UNMAPPED: comment(0x91BF, "→ Y=&14 (main only)", inline=True)
 byte(0x91B5, 1)
-# UNMAPPED: comment(0x91B5, "PAGE byte → Y=&15 (main only)", inline=True)
+comment(0x91B5, "PAGE byte → Y=&15 (main only)", inline=True)
 byte(0x91B6, 1)
-# UNMAPPED: comment(0x91B6, "→ Y=&16 (main only)", inline=True)
+comment(0x91B6, "→ Y=&16 (main only)", inline=True)
 byte(0x91B7, 1)
-# UNMAPPED: comment(0x91C2, "→ Y=&17 (main only)", inline=True)
 
 # ============================================================
 # Bidirectional block copy (&8EB1)
@@ -3005,7 +2931,7 @@ C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
 # ============================================================
 # OSWORD handler block comments
 # ============================================================
-# UNMAPPED: label(0x8EB7, "return_copy_param")       # Return from copy_param_block
+label(0x8EB7, "return_copy_param")       # Return from copy_param_block
 
 subroutine(0x8EBA, "osword_0f_handler",
     title="OSWORD &0F handler: initiate transmit (CALLTX)",
@@ -3515,7 +3441,7 @@ compares against our station ID. Reading &FE18 also disables NMIs
 
 comment(0x96F2, "A=&01: mask for SR2 bit0 (AP = Address Present)", inline=True)
 comment(0x96F4, "BIT SR2: Z = A AND SR2 -- tests if AP is set", inline=True)
-# UNMAPPED: comment(0x96F7, "AP not set, no incoming data -- check for errors", inline=True)
+comment(0x96F6, "AP not set, no incoming data -- check for errors", inline=True)
 comment(0x96F9, "Read first RX byte (destination station address)", inline=True)
 comment(0x96FC, "Compare to our station ID (&FE18 read = INTOFF, disables NMIs)", inline=True)
 comment(0x96FF, "Match -- accept frame", inline=True)
