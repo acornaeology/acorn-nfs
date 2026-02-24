@@ -4003,8 +4003,8 @@ l865c = set_fs_flag+1
 ; ***************************************************************************************
 ; FSCV 2/3/4: unrecognised * command handler (DECODE)
 ; 
-; CLI parser originally by Roger Wilson (later Sophie Wilson,
-; co-designer of ARM). Matches command text against the table
+; CLI parser originally by Sophie Wilson (co-designer of ARM). Matches command text
+; against the table
 ; at &8BE4 using case-insensitive comparison with abbreviation
 ; support — commands can be shortened with '.' (e.g. "I." for
 ; "INFO"). The "I." entry is a special fudge placed first in the
