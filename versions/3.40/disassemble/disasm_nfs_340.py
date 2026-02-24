@@ -378,10 +378,10 @@ label(0x059C, "tube_reply_ack")       # Send &7F acknowledge, return to main loo
 label(0x059E, "tube_reply_byte")      # Poll R2, send byte in A, return to main loop
 label(0x05A9, "tube_osfile")          # OSFILE: read 16 params+filename+reason, call &FFDD
 # UNMAPPED: entry(0x051C)
-# Dispatch table entry points
+# Dispatch table entry points (3.40 addresses)
 for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
-             0x04EF, 0x053D, 0x058C, 0x0550, 0x0543, 0x0569,
-             0x05D8, 0x0602]:
+             0x04EF, 0x053D, 0x0602,
+             0x0520, 0x052D, 0x0542, 0x055E, 0x05A9, 0x05F2]:
     entry(addr)
 
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
@@ -1029,7 +1029,7 @@ for i in range(33, 37):
     rts_code_ptr(0x8020 + i, 0x8044 + i)
 
 # ============================================================
-# Filing system OSWORD dispatch table at &8E9F/&8EA4
+# Filing system OSWORD dispatch table at &8EB0/&8EB5
 # ============================================================
 # Used by the PHA/PHA/RTS dispatch at &8E80 (entered from osword_fs_entry).
 # osword_fs_entry subtracts &0F from the command code in &EF, giving a
@@ -1037,13 +1037,13 @@ for i in range(33, 37):
 #
 # Index  OSWORD  Target   Purpose
 # ─────  ──────  ───────  ────────────────────────────
-#   0      &0F   &8EB8    Protection/status control
-#   1      &10   &8F66    RX block read/setup
-#   2      &11   &8ED2    Data block copy
-#   3      &12   &908F    FS server station lookup
-#   4      &13   &0490    Econet TX/RX handler (page 4)
-# UNMAPPED: for i in range(5):
-# UNMAPPED:     rts_code_ptr(0x8E9F + i, 0x8EA4 + i)
+#   0      &0F   &8EBA    Protection/status control
+#   1      &10   &8F74    RX block read/setup
+#   2      &11   &8ED4    Data block copy
+#   3      &12   &8EF9    FS server station lookup
+#   4      &13   &8FE8    Econet TX/RX handler
+for i in range(5):
+    rts_code_ptr(0x8EB0 + i, 0x8EB5 + i)
 
 # ============================================================
 # NMI handler chain entry points
@@ -1105,6 +1105,20 @@ entry(0x9E81)   # Data phase RX bulk transfer
 entry(0x8228)
 entry(0x8247)
 entry(0x8249)
+entry(0x81AC)   # Auto-boot/service handler (NOP pad + LDX #&0C; JSR)
+entry(0x8280)   # Issue vectors claimed handler (JSR osbyte)
+entry(0x836D)   # TX control block string copy loop tail
+entry(0x8674)   # FSCV read handles (LDX #&20; LDY #&27; RTS)
+entry(0x8CF4)   # Boot option dispatch (PLA; CLC; ADC zp)
+entry(0x8DCF)   # Notify and exec (JSR print; JSR boot)
+entry(0x8E59)   # Read handle entry (LDY #&6F; LDA (nfs_workspace),Y)
+entry(0x919C)   # Control block setup loop tail
+entry(0x9310)   # Read VDU OSBYTE (JSR osbyte; TXA; LDX #0)
+entry(0x9669)   # NMI claim trampolines (JMP; JMP)
+entry(0x966C)   # svc_unknown_irq: JMP to IRQ service
+entry(0x99E8)   # Econet RX immediate-operation handler
+entry(0x9AFC)   # ACK/reply handler: store source station, configure VIA
+entry(0x9B35)   # IRQ service: check CB1, dispatch TX done handlers
 
 # ============================================================
 # Code regions identified by manual inspection of equb data
@@ -1121,7 +1135,7 @@ entry(0x897C)   # TAY; BNE; ... (preceded by RTS, standalone entry)
 entry(0x8A2E)   # JSR &85A6; ... (preceded by RTS, standalone entry)
 # entry(0x8E34) created by subroutine() call below
 entry(0x90DE)   # LDY zp; CMP#; ... (preceded by RTS, standalone entry)
-# UNMAPPED: entry(0x99C5)   # Post-ACK: process received scout (check port, match RX block)
+entry(0x99C5)   # Post-ACK: process received scout (check port, match RX block)
 
 # --- Econet TX/RX handler and OSWORD dispatch (&8FE5-&90B8) ---
 # &8FE5: Main transmit/receive handler entry (A=0: set up and send, A>=1: handle result)
@@ -1130,10 +1144,10 @@ entry(0x8FE8)   # Econet TX/RX handler (CMP #1; BCS)
 # entry(0x9008) and entry(0x903E) created by subroutine() calls below
 entry(0x908F)   # Dispatch trampoline (PHA/PHA/RTS into table at &9098/&90A1)
 
-# Dispatch table at &9098 (low bytes) / &90A1 (high bytes)
-# 9 entries for function codes 0-8, used via PHA/PHA/RTS at &908D.
-# UNMAPPED: for i in range(9):
-# UNMAPPED:     rts_code_ptr(0x9098 + i, 0x90A1 + i)
+# Dispatch table at &909A (low bytes) / &90A3 (high bytes)
+# 9 entries for function codes 0-8, used via PHA/PHA/RTS at &908F.
+for i in range(9):
+    rts_code_ptr(0x909A + i, 0x90A3 + i)
 
 # ============================================================
 # Immediate operation dispatch table at &9A24/&9A2C
@@ -1152,8 +1166,8 @@ entry(0x908F)   # Dispatch trampoline (PHA/PHA/RTS into table at &9098/&90A1)
 # &86  HALT        &9B17
 # &87  CONTINUE    &9B17
 # &88  (machine type query)  &9ADE
-# UNMAPPED: for y in range(0x81, 0x89):
-# UNMAPPED:     rts_code_ptr(0x9A24 + y, 0x9A2C + y)
+for y in range(0x81, 0x89):
+    rts_code_ptr(0x9A04 + y, 0x9A0C + y)
 
 # ============================================================
 # TX completion dispatch table at &9B1D/&9B22
@@ -1173,8 +1187,8 @@ entry(0x908F)   # Dispatch trampoline (PHA/PHA/RTS into table at &9098/&90A1)
 # &85  OSProc      &9BC1  (OS procedure initiation)
 # &86  HALT        &9BCD  (HALT completion)
 # &87  CONTINUE    &9BE4  (CONTINUE completion)
-# UNMAPPED: for y in range(0x83, 0x88):
-# UNMAPPED:     rts_code_ptr(0x9B1D + y, 0x9B22 + y)
+for y in range(0x83, 0x88):
+    rts_code_ptr(0x9AF1 + y, 0x9AF6 + y)
 
 # ============================================================
 # TX ctrl byte dispatch table at &9C62/&9C6A
@@ -1194,7 +1208,7 @@ entry(0x908F)   # Dispatch trampoline (PHA/PHA/RTS into table at &9098/&90A1)
 # &87  &9D54
 # &88  &9CF3
 for y in range(0x81, 0x89):
-    rts_code_ptr(0x9C3A + y, 0x9C6A + y)
+    rts_code_ptr(0x9C3A + y, 0x9C42 + y)
 
 # ============================================================
 # Immediate operation RX handler labels (&9AB5-&9AF1)
@@ -1769,35 +1783,9 @@ comment(0x8224, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True
 # UNMAPPED: bank number without reading). The last entry (FSCV) has no
 # UNMAPPED: padding byte.""")
 
-# Part 1: extended vector dispatch addresses (7 x 2 bytes)
-byte(0x8280, 1)
-# UNMAPPED: comment(0x8280, "FILEV dispatch lo", inline=True)
-byte(0x8281, 1)
-# UNMAPPED: comment(0x8281, "FILEV dispatch hi", inline=True)
-byte(0x8282, 1)
-comment(0x8298, "ARGSV dispatch lo", inline=True)
-byte(0x8283, 1)
-# UNMAPPED: comment(0x8283, "ARGSV dispatch hi", inline=True)
-byte(0x8284, 1)
-# UNMAPPED: comment(0x8284, "BGETV dispatch lo", inline=True)
-byte(0x8285, 1)
-comment(0x829B, "BGETV dispatch hi", inline=True)
-byte(0x8286, 1)
-comment(0x829C, "BPUTV dispatch lo", inline=True)
-byte(0x8287, 1)
-# UNMAPPED: comment(0x8287, "BPUTV dispatch hi", inline=True)
-byte(0x8288, 1)
-comment(0x829E, "GBPBV dispatch lo", inline=True)
-byte(0x8289, 1)
-comment(0x829F, "GBPBV dispatch hi", inline=True)
-byte(0x828A, 1)
-comment(0x82A0, "FINDV dispatch lo", inline=True)
-byte(0x828B, 1)
-comment(0x82A1, "FINDV dispatch hi", inline=True)
-byte(0x828C, 1)
-comment(0x82A2, "FSCV dispatch lo", inline=True)
-byte(0x828D, 1)
-# UNMAPPED: comment(0x828D, "FSCV dispatch hi", inline=True)
+# Part 1 was extended vector dispatch addresses in 3.35K (7 x 2 bytes),
+# but in 3.40 the code shifted so &8280-&828D is now code
+# (issue_vectors_claimed continuation: JSR osbyte; LDX; BNE; LDX; LDY; JMP).
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
 byte(0x828E, 1)
@@ -1999,30 +1987,10 @@ subroutine(0x83A9, "tx_ctrl_template", hook=None,
 TX control block for FS commands: control flag, port, station/
 network, and data buffer pointers (&0F00-&0FFF). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
-byte(0x836E, 1)
-comment(0x83A9, "Control flag", inline=True)
-byte(0x836F, 1)
-# UNMAPPED: comment(0x83AA, "Port (FS command = &99)", inline=True)
-byte(0x8370, 1)
-# UNMAPPED: comment(0x8370, "Station (filled at runtime)", inline=True)
-byte(0x8371, 1)
-# UNMAPPED: comment(0x8371, "Network (filled at runtime)", inline=True)
-byte(0x8372, 1)
-# UNMAPPED: comment(0x83AD, "Buffer start low", inline=True)
-byte(0x8373, 1)
-# UNMAPPED: comment(0x83AE, "Buffer start high (page &0F)", inline=True)
-byte(0x8374, 1)
-comment(0x83AF, "Buffer start pad (4-byte Econet addr)", inline=True)
-byte(0x8375, 1)
-# UNMAPPED: comment(0x83B0, "Buffer start pad", inline=True)
-byte(0x8376, 1)
-# UNMAPPED: comment(0x83B1, "Buffer end low", inline=True)
-byte(0x8377, 1)
-# UNMAPPED: comment(0x83B2, "Buffer end high (page &0F)", inline=True)
-byte(0x8378, 1)
-# UNMAPPED: comment(0x83B3, "Buffer end pad", inline=True)
-byte(0x8379, 1)
-# UNMAPPED: comment(0x83B4, "Buffer end pad", inline=True)
+# In 3.35K, &836E-&837A was the TX control block template data.
+# In 3.40, the code shifted so &836D-&8379 is now code (string
+# comparison loop tail: BNE/INY/INX/BNE + LDA abs,X/BEQ/RTS/INY).
+# The TX control block template is at different addresses in 3.40.
 
 subroutine(0x83B5, "prepare_cmd_with_flag", hook=None,
     title="Prepare FS command with carry set",
@@ -3305,14 +3273,10 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 # ============================================================
 # OSBYTE code table for VDU state save (&9312)
 # ============================================================
-label(0x9319, "osbyte_vdu_table")
-comment(0x9319, "3-entry OSBYTE table for save_palette_vdu (&929F)")
-byte(0x9312, 1)
-comment(0x9319, "OSBYTE &85: read cursor position", inline=True)
-byte(0x9313, 1)
-# UNMAPPED: comment(0x9313, "OSBYTE &C2: read shadow RAM allocation", inline=True)
-byte(0x9314, 1)
-# UNMAPPED: comment(0x931B, "OSBYTE &C3: read screen start address", inline=True)
+# In 3.35K, &9312-&9314 was the osbyte_vdu_table (3 data bytes).
+# In 3.40, the code shifted so &9310-&9315 is now code
+# (read_vdu_osbyte: JSR osbyte; TXA; LDX #0).
+# The osbyte_vdu_table is at different addresses in 3.40.
 
 # ============================================================
 # Relocated code block sources (&9308, &934D, &944D, &954D)
