@@ -96,7 +96,6 @@ l00c8                                   = &00c8
 nfs_temp                                = &00cd
 rom_svc_num                             = &00ce
 l00cf                                   = &00cf
-l00e7                                   = &00e7
 l00ef                                   = &00ef
 l00f0                                   = &00f0
 l00f1                                   = &00f1
@@ -218,7 +217,6 @@ l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l212e                                   = &212e
-l7dfd                                   = &7dfd
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
 romsel                                  = &fe30
@@ -4310,12 +4308,10 @@ l8bd7 = fs_cmd_match_table+1
 ; is the low byte of a pointer into page &8C, where the OSCLI
 ; command string for that boot option lives. See boot_cmd_strings.
 ; ***************************************************************************************
-; overlapping: inc l00e7,x                                            ; 8d02: f6 e7       ..
 ; &8d02 referenced 1 time by &8d32
 .boot_option_offsets
     equb &f6                                                          ; 8d02: f6          .              ; Opt 0 (Off): bare CR
     equb &e7                                                          ; 8d03: e7          .              ; Opt 1 (Load): L.!BOOT
-; overlapping: sbc #&ef                                               ; 8d04: e9 ef       ..
     equb &e9                                                          ; 8d04: e9          .              ; Opt 2 (Run): !BOOT
     equb &ef                                                          ; 8d05: ef          .              ; Opt 3 (Exec): E.!BOOT
 
@@ -5571,12 +5567,10 @@ l8bd7 = fs_cmd_match_table+1
 ;   &FD = skip this offset (decrement Y but don't store)
 ;   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)
 ; ***************************************************************************************
-; overlapping: sta l0000                                              ; 918e: 85 00       ..
 ; &918e referenced 1 time by &9167
 .ctrl_block_template
     equb &85                                                          ; 918e: 85          .              ; Alt-path only → Y=&6F
     equb 0                                                            ; 918f: 00          .              ; Alt-path only → Y=&70
-; overlapping: sbc l7dfd,x                                            ; 9190: fd fd 7d    ..}
     equb &fd                                                          ; 9190: fd          .              ; SKIP
     equb &fd                                                          ; 9191: fd          .              ; SKIP
     equb &7d                                                          ; 9192: 7d          }              ; → Y=&01 / Y=&73
@@ -9068,7 +9062,6 @@ save pydis_start, pydis_end
 ;     l00c7
 ;     l00c8
 ;     l00cf
-;     l00e7
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -9118,7 +9111,6 @@ save pydis_start, pydis_end
 ;     l0fdf
 ;     l0fe0
 ;     l212e
-;     l7dfd
 ;     l8001
 ;     l8002
 ;     l8004

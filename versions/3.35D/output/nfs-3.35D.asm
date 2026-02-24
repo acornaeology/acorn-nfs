@@ -55,7 +55,6 @@ l0013                                   = &0013
 l0014                                   = &0014
 l0015                                   = &0015
 zp_63                                   = &0063
-l0078                                   = &0078
 escapable                               = &0097
 need_release_tube                       = &0098
 net_tx_ptr                              = &009a
@@ -104,8 +103,6 @@ l00c8                                   = &00c8
 fs_temp_cd                              = &00cd
 fs_temp_ce                              = &00ce
 l00cf                                   = &00cf
-l00e2                                   = &00e2
-l00ea                                   = &00ea
 l00ef                                   = &00ef
 l00f0                                   = &00f0
 l00f1                                   = &00f1
@@ -225,8 +222,6 @@ l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l18a5                                   = &18a5
 l212e                                   = &212e
-l7dfd                                   = &7dfd
-la560                                   = &a560
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
 romsel                                  = &fe30
@@ -4339,17 +4334,13 @@ l8be3 = fs_cmd_match_table+1
 ; is the low byte of a pointer into page &8C, where the OSCLI
 ; command string for that boot option lives. See boot_cmd_strings.
 ; ***************************************************************************************
-; overlapping: sbc (l00e2),y                                          ; 8cf2: f1 e2       ..
 ; &8cf2 referenced 1 time by &8e3b
 .boot_option_offsets
     equb &f1                                                          ; 8cf2: f1          .              ; Opt 0 (Off): bare CR
     equb &e2                                                          ; 8cf3: e2          .              ; Opt 1 (Load): L.!BOOT
-; overlapping: cpx l00ea                                              ; 8cf4: e4 ea       ..
     equb &e4                                                          ; 8cf4: e4          .              ; Opt 2 (Run): !BOOT
     equb &ea                                                          ; 8cf5: ea          .              ; Opt 3 (Exec): E.!BOOT
-; overlapping: eor l0078                                              ; 8cf6: 45 78       Ex
     equs "Exec"                                                       ; 8cf6: 45 78 65... Exe
-; overlapping: adc zp_63                                              ; 8cf8: 65 63       ec
 
 ; ***************************************************************************************
 ; Print file catalogue line
@@ -4816,7 +4807,6 @@ osword_12_handler = sub_c8e7a+2
 ; Even-numbered sub-functions read; odd-numbered ones write.
 ; Uses the bidirectional copy at &8E23 for station read/set.
 ; ***************************************************************************************
-; overlapping: ora la560                                              ; 8e7c: 0d 60 a5    .`.
     rts                                                               ; 8e7d: 60          `
 
 ; ***************************************************************************************
@@ -4881,7 +4871,6 @@ osword_12_handler = sub_c8e7a+2
 ; C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
 ; C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)
 ; ***************************************************************************************
-; overlapping: bcc sub_c8eb7                                          ; 8eb1: 90 04       ..
 ; &8eb1 referenced 5 times by &8ebd, &8ed4, &8ee9, &8f1a, &8faf
 .copy_param_block
     equb >(sub_c908f-1)                                               ; 8eb1: 90          .
@@ -4889,7 +4878,6 @@ osword_12_handler = sub_c8e7a+2
 
     lda (l00f0),y                                                     ; 8eb3: b1 f0       ..
     sta (l00ab),y                                                     ; 8eb5: 91 ab       ..
-.sub_c8eb7
     lda (l00ab),y                                                     ; 8eb7: b1 ab       ..
     sta (l00f0),y                                                     ; 8eb9: 91 f0       ..
 .copyl3
@@ -5637,12 +5625,10 @@ osword_12_handler = sub_c8e7a+2
 ;   &FD = skip this offset (decrement Y but don't store)
 ;   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)
 ; ***************************************************************************************
-; overlapping: sta l0000                                              ; 91a2: 85 00       ..
 ; &91a2 referenced 1 time by &917b
 .ctrl_block_template
     equb &85                                                          ; 91a2: 85          .              ; Alt-path only → Y=&6F
     equb 0                                                            ; 91a3: 00          .              ; Alt-path only → Y=&70
-; overlapping: sbc l7dfd,x                                            ; 91a4: fd fd 7d    ..}
     equb &fd                                                          ; 91a4: fd          .              ; SKIP
     equb &fd                                                          ; 91a5: fd          .              ; SKIP
     equb &7d                                                          ; 91a6: 7d          }              ; → Y=&01 / Y=&73
@@ -9127,7 +9113,6 @@ save pydis_start, pydis_end
 ;     l0058
 ;     l0059
 ;     l005a
-;     l0078
 ;     l00aa
 ;     l00ab
 ;     l00ac
@@ -9147,8 +9132,6 @@ save pydis_start, pydis_end
 ;     l00c7
 ;     l00c8
 ;     l00cf
-;     l00e2
-;     l00ea
 ;     l00ef
 ;     l00f0
 ;     l00f1
@@ -9200,7 +9183,6 @@ save pydis_start, pydis_end
 ;     l0fe0
 ;     l18a5
 ;     l212e
-;     l7dfd
 ;     l8001
 ;     l8002
 ;     l8004
@@ -9220,7 +9202,6 @@ save pydis_start, pydis_end
 ;     l9c6a
 ;     l9ed9
 ;     l9ee1
-;     la560
 ;     loop_c0430
 ;     loop_c0448
 ;     loop_c048a
@@ -9297,7 +9278,6 @@ save pydis_start, pydis_end
 ;     sub_c8dc7
 ;     sub_c8e4a
 ;     sub_c8e7a
-;     sub_c8eb7
 ;     sub_c8eff
 ;     sub_c908f
 ;     sub_c90b2

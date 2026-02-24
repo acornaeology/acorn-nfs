@@ -325,12 +325,16 @@ def lint_glossary_links(version_dirpath):
 
 
 def lint_double_comments(asm_filepath):
-    """Check assembly output for double-comment lines.
+    """Check assembly output for double-comment and overlapping lines.
 
     A line starting with "; ;" (comment-within-comment) indicates that
     py8dis placed a subroutine description at an address it considers
     data rather than code.  This typically means the subroutine address
     is wrong or a byte()/stringz() loop has overrun into code.
+
+    A line starting with "; overlapping:" indicates the tracer reached
+    bytes already classified as data, producing a spurious alternative
+    instruction interpretation.
 
     Returns a list of error strings.
     """
@@ -339,20 +343,19 @@ def lint_double_comments(asm_filepath):
 
     errors = []
     for line_number, line in enumerate(asm_filepath.read_text().splitlines(), 1):
+        addr_match = re.search(r';\s+([0-9a-f]{4}):', line)
+        addr_str = f" at &{addr_match.group(1).upper()}" if addr_match else ""
+
         if re.match(r'^;\s+;', line):
-            # Show the address from the hex dump if present, otherwise the line
-            addr_match = re.search(r';\s+([0-9a-f]{4}):', line)
-            if addr_match:
-                addr = addr_match.group(1)
-                errors.append(
-                    f"  asm line {line_number}: double comment at &{addr.upper()}"
-                    f" — subroutine description inside data"
-                )
-            else:
-                errors.append(
-                    f"  asm line {line_number}: double comment"
-                    f" — subroutine description inside data"
-                )
+            errors.append(
+                f"  asm line {line_number}: double comment{addr_str}"
+                f" — subroutine description inside data"
+            )
+        elif re.match(r'^; overlapping:', line):
+            errors.append(
+                f"  asm line {line_number}: overlapping comment{addr_str}"
+                f" — tracer reached data region"
+            )
     return errors
 
 

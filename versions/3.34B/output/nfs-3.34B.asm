@@ -217,7 +217,6 @@ l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l212e                                   = &212e
-l7dfd                                   = &7dfd
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
 romsel                                  = &fe30
@@ -5568,12 +5567,10 @@ l8bd8 = fs_cmd_match_table+1
 ;   &FD = skip this offset (decrement Y but don't store)
 ;   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)
 ; ***************************************************************************************
-; overlapping: sta l0000                                              ; 918f: 85 00       ..
 ; &918f referenced 1 time by &9168
 .ctrl_block_template
     equb &85                                                          ; 918f: 85          .              ; Alt-path only → Y=&6F
     equb 0                                                            ; 9190: 00          .              ; Alt-path only → Y=&70
-; overlapping: sbc l7dfd,x                                            ; 9191: fd fd 7d    ..}
     equb &fd                                                          ; 9191: fd          .              ; SKIP
     equb &fd                                                          ; 9192: fd          .              ; SKIP
     equb &7d                                                          ; 9193: 7d          }              ; → Y=&01 / Y=&73
@@ -9114,7 +9111,6 @@ save pydis_start, pydis_end
 ;     l0fdf
 ;     l0fe0
 ;     l212e
-;     l7dfd
 ;     l8001
 ;     l8002
 ;     l8004
