@@ -716,7 +716,8 @@ label(0x8BCF, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 # --- *EX and *CAT handlers ---
 
 # --- Boot command strings and option tables ---
-# UNMAPPED: label(0x8DB4, "print_reply_counted")   # STRIN1: sub-entry of print_reply_bytes with caller-supplied Y count
+label(0x8CFB, "print_reply_bytes")
+label(0x8CFD, "print_reply_counted")
 label(0x8D79, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
 
 # --- *NET sub-command handlers ---
@@ -1150,43 +1151,43 @@ for i in range(9):
     rts_code_ptr(0x909A + i, 0x90A3 + i)
 
 # ============================================================
-# Immediate operation dispatch table at &9A24/&9A2C
+# Immediate operation dispatch table at &9A04/&9A0C
 # ============================================================
-# Used by the PHA/PHA/RTS dispatch at &9A96 (immediate_op handler).
+# Used by the PHA/PHA/RTS dispatch at &9A56 (immediate_op handler).
 # Y = rx_ctrl (&81-&88), so table entries are at base+&81..base+&88.
 # The control byte determines the remote operation type:
 #
 # Y   Operation   Target
 # ──   ─────────   ──────
-# &81  PEEK        &9AF1
-# &82  POKE        &9AD3
-# &83  JSR         &9AB5
-# &84  UserProc    &9AB5
-# &85  OSProc      &9AB5
-# &86  HALT        &9B17
-# &87  CONTINUE    &9B17
-# &88  (machine type query)  &9ADE
+# &81  PEEK        &9AD1
+# &82  POKE        &9AB3
+# &83  JSR         &9A95
+# &84  UserProc    &9A95
+# &85  OSProc      &9A95
+# &86  HALT        &9AEB
+# &87  CONTINUE    &9AEB
+# &88  (machine type query)  &9ABE
 for y in range(0x81, 0x89):
     rts_code_ptr(0x9A04 + y, 0x9A0C + y)
 
 # ============================================================
-# TX completion dispatch table at &9B1D/&9B22
+# TX completion dispatch table at &9AF1/&9AF6
 # ============================================================
-# Used by the PHA/PHA/RTS dispatch at &9B97.
+# Used by the PHA/PHA/RTS dispatch at &9B6B.
 # Y = tx_work_57 (the Econet operation type being sent).
-# The dispatch is reached both by Y >= &86 (via BCS at &9B8A)
-# and by Y < &86 (falls through from &9B94 after saving
+# The dispatch is reached both by Y >= &86 (via BCS at &9B5E)
+# and by Y < &86 (falls through from &9B68 after saving
 # prot_status). Table entries for Y=&81/&82 overlap with the
 # PHA/RTS code itself and are not valid — those operation types
 # (PEEK/POKE) are response-only and never initiated via TX.
 #
 # Y   Operation   Target
 # ──   ─────────   ──────
-# &83  JSR         &9BAA  (remote JSR initiation)
-# &84  UserProc    &9BB3  (user procedure initiation)
-# &85  OSProc      &9BC1  (OS procedure initiation)
-# &86  HALT        &9BCD  (HALT completion)
-# &87  CONTINUE    &9BE4  (CONTINUE completion)
+# &83  JSR         &9B7E  (remote JSR initiation)
+# &84  UserProc    &9B87  (user procedure initiation)
+# &85  OSProc      &9B95  (OS procedure initiation)
+# &86  HALT        &9BA1  (HALT completion)
+# &87  CONTINUE    &9BB8  (CONTINUE completion)
 for y in range(0x83, 0x88):
     rts_code_ptr(0x9AF1 + y, 0x9AF6 + y)
 
@@ -1244,13 +1245,15 @@ type query response, then jumps to the query handler at
 c9b0f. Returns system identification data to the remote
 station.""")
 
-# UNMAPPED: label(0x9AF1, "rx_imm_peek")
-# UNMAPPED: subroutine(0x9AF1, hook=None,
-# UNMAPPED:     title="RX immediate: PEEK setup",
-# UNMAPPED:     description="""\
-# UNMAPPED: Saves the current TX block pointer, replaces it with a
-# UNMAPPED: pointer to &0D3D, and prepares to send the PEEK response
-# UNMAPPED: data back to the requesting station.""")
+label(0x9AD1, "rx_imm_peek")
+subroutine(0x9AD1, hook=None,
+    title="RX immediate: PEEK setup",
+    description="""\
+Writes &0D3D to port_ws_offset/rx_buf_offset, sets
+scout_status=2, then calls tx_calc_transfer to send the
+PEEK response data back to the requesting station.
+Rewritten in 3.40 to use workspace offsets (&A6/&A7)
+instead of saving/restoring nmi_tx_block (&A0/&A1).""")
 
 # ============================================================
 # TX completion handler labels (&9BAA-&9BEC)
@@ -1548,14 +1551,26 @@ Data is read from (fs_crc_lo) for the filename and from
 if fs_messages_flag is zero (no info available).""")
 
 # ============================================================
-# Hex printing (&8D9D / &8DA8)
+# Hex printing (&9FE0 / &9FE9)
 # ============================================================
-# UNMAPPED: subroutine(0x8D9D, hook=None,
-# UNMAPPED:     title="Print byte as two hex digits",
-# UNMAPPED:     description="""\
-# UNMAPPED: Prints the high nibble first (via 4× LSR), then the low
-# UNMAPPED: nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
-# UNMAPPED: and output via OSASCI.""")
+# Moved to end of ROM and rewritten in 3.40 (was at &8D9D in
+# 3.35K). The new routine uses CMP #&0A / ADC #6 / ADC #&30
+# instead of ORA #&30 / CMP #&3A / ADC #6, and explicitly
+# calls OSASCI before returning (self-contained, no fall-through).
+label(0x9FE0, "print_hex")
+subroutine(0x9FE0, hook=None,
+    title="Print byte as two hex digits",
+    description="""\
+Prints the high nibble first (via 4x LSR), then the low
+nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
+and output via OSASCI. Returns with carry set.""")
+
+label(0x9FE9, "print_hex_nibble")
+subroutine(0x9FE9, hook=None,
+    title="Print single hex nibble",
+    description="""\
+Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')
+and prints via OSASCI. Returns with carry set.""")
 
 # ============================================================
 # TX control (&8660-&866C)
@@ -1717,22 +1732,22 @@ All other service calls < &0D dispatch via c8146.
 3.35K removes the per-ROM disable flag check that 3.35D has.""")
 
 # ============================================================
-# Init: set up vectors and copy code (&8103)
+# Init: set up vectors and copy code (&8140)
 # ============================================================
-# UNMAPPED: subroutine(0x8103, "init_vectors_and_copy", hook=None,
-# UNMAPPED:     title="NFS initialisation (service &FF: full reset)",
-# UNMAPPED:     description="""\
-# UNMAPPED: New in 3.35D: table-driven vector initialisation replaces
-# UNMAPPED: the hardcoded LDA/STA pairs of 3.34B. Reads 4 triplets from
-# UNMAPPED: the data table at &816D (low byte, high byte, vector offset)
-# UNMAPPED: and stores each 16-bit value at &0200+offset:
-# UNMAPPED:   EVNTV (&0220) = &06E8   BRKV  (&0202) = &0016
-# UNMAPPED:   RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
-# UNMAPPED: Then writes &8E to Tube control register (&FEE0) and copies
-# UNMAPPED: 3 pages of Tube host code from ROM (&935A/&945A/&955A)
-# UNMAPPED: to RAM (&0400/&0500/&0600), calls tube_post_init (&0414),
-# UNMAPPED: and copies 97 bytes of workspace init from ROM (&9315) to
-# UNMAPPED: &0016-&0076.""")
+# Rewritten in 3.40: reverts from table-driven vector init
+# (3.35D/3.35K) to hardcoded LDA/STA pairs, and only sets
+# 2 vectors (EVNTV and BRKV) instead of 4. RDCHV and WRCHV
+# are no longer initialised during full reset.
+label(0x8140, "init_vectors_and_copy")
+subroutine(0x8140, "init_vectors_and_copy", hook=None,
+    title="NFS initialisation (service &FF: full reset)",
+    description="""\
+Sets EVNTV (&0220) = &06AD, BRKV (&0202) = &0016 using
+hardcoded stores. Then writes &8E to Tube control register
+(&FEE0) and copies 3 pages of Tube host code from ROM
+(&935D/&9456/&9556) to RAM (&0400/&0500/&0600), calls
+tube_post_init (&041E), and copies 97 bytes of workspace
+init from ROM (&931C) to &0016-&0076.""")
 
 # ============================================================
 # Select NFS as active filing system (&81B5)
@@ -1908,16 +1923,21 @@ subroutine(0x8204, "svc_help", hook=None,
 Prints the ROM identification string using print_inline.""")
 
 # ============================================================
-# Match ROM string (&81CC)
+# Match ROM string (&835E)
 # ============================================================
-# UNMAPPED: subroutine(0x81CC, "match_rom_string", hook=None,
-# UNMAPPED:     title="Match command text against ROM string table",
-# UNMAPPED:     description="""\
-# UNMAPPED: Compares characters from (os_text_ptr)+Y against bytes starting
-# UNMAPPED: at binary_version+X (&8008+X). Input is uppercased via AND &DF.
-# UNMAPPED: Returns with Z=1 if the ROM string's NUL terminator was reached
-# UNMAPPED: (match), or Z=0 if a mismatch was found. On match, Y points
-# UNMAPPED: past the matched text; on return, skips trailing spaces.""")
+# Rewritten in 3.40 with '.' abbreviation support (CMP #&2E
+# at &8362). In 3.35K this was at &81CC without dot support.
+label(0x835E, "match_rom_string")
+subroutine(0x835E, "match_rom_string", hook=None,
+    title="Match command text against ROM string table",
+    description="""\
+Compares characters from (os_text_ptr)+Y against bytes starting
+at binary_version+X (&8008+X). Input is uppercased via AND &DF.
+New in 3.40: supports '.' abbreviation — if a dot is found in
+the input, skips to the space-skipping exit (match accepted).
+Returns with Z=1 if the ROM string's NUL terminator was reached
+(match) or dot was found, Z=0 on mismatch. On match, Y points
+past the matched text; on return, skips trailing spaces.""")
 
 # ============================================================
 # Call FSCV shutdown (&81FE)
@@ -2525,23 +2545,31 @@ adds 1 to the stored (address-1). Matching is case-insensitive
 (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
 
 Entries:
-  "I."     → &80B4 (forward_star_cmd) — placed first as a fudge
+  "I."     → &80C1 (forward_star_cmd) — placed first as a fudge
              to catch *I. abbreviation before matching *I AM
-  "I AM"   → &807E (i_am_handler: parse station.net, logon)
-  "EX"     → &8BFA (ex_handler: extended catalogue)
-  "BYE"\\r  → &8383 (bye_handler: logoff)
-  <catch-all> → &80B4 (forward anything else to FS)""")
+  "I AM"   → &8082 (i_am_handler: parse station.net, logon)
+  "EX"     → &8C1B (ex_handler: embedded in table tail)
+  "BYE"\\r  → &83BC (bye_handler: logoff)
+  <catch-all> → &80C1 (forward anything else to FS)""")
 
 # ============================================================
-# *EX and *CAT handlers (&8BFA / &8C02)
+# *EX and *CAT handlers (&8C1B / &8C21)
 # ============================================================
-# UNMAPPED: subroutine(0x8BFA, "ex_handler", hook=None,
-# UNMAPPED:     title="*EX handler (extended catalogue)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Sets &B7=&01 and &B5=&03, then branches into cat_handler at
-# UNMAPPED: &8C0A, bypassing cat_handler's default column setup. &B7=1
-# UNMAPPED: gives one entry per line with full details (vs &B7=3 for *CAT
-# UNMAPPED: which gives multiple files per line).""")
+# In 3.40, ex_handler code is embedded in the tail of
+# fs_cmd_match_table at &8C1B — the bytes A2 01 A9 03 D0 08
+# serve as both table data and executable code (LDX #1 / LDA #3
+# / BNE cat_handler+8). Dispatched via PHA/PHA/RTS from the
+# "EX" entry in the match table.
+entry(0x8C1B)
+label(0x8C1B, "ex_handler")
+subroutine(0x8C1B, "ex_handler", hook=None,
+    title="*EX handler (extended catalogue)",
+    description="""\
+Sets X=1, A=3, then branches into cat_handler at &8C29,
+bypassing cat_handler's default column setup. B7=1 (from X)
+gives one entry per line with full details (vs B7=3 for *CAT
+which gives multiple files per line). Code is embedded in the
+tail of fs_cmd_match_table as a space-saving optimisation.""")
 
 subroutine(0x8C21, "cat_handler", hook=None,
     title="*CAT handler (directory catalogue)",
@@ -2595,15 +2623,10 @@ Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.
 Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
-byte(0x8CF4, 1)
-# UNMAPPED: comment(0x8CF4, "Opt 0 (Off): bare CR", inline=True)
-byte(0x8CF5, 1)
-# UNMAPPED: comment(0x8CF5, "Opt 1 (Load): L.!BOOT", inline=True)
-byte(0x8CF6, 1)
-# UNMAPPED: comment(0x8CF6, "Opt 2 (Run): !BOOT", inline=True)
-byte(0x8CF7, 1)
-# UNMAPPED: comment(0x8CF7, "Opt 3 (Exec): E.!BOOT", inline=True)
-string(0x8CF8, 4)
+# In 3.40, $8CF4-$8CFC is code (PLA/CLC/ADC $B4/TAY/BNE/LDY #$0A)
+# that forms the print_reply_bytes entry chain. The byte values also
+# serve as boot command string offsets in earlier versions, but in
+# 3.40 the boot option offset table is at boot_option_offsets ($8D1B).
 comment(0x8D07, """\
 Option name encoding: in 3.35, the boot option names ("Off",
 "Load", "Run", "Exec") are scattered through the code rather
@@ -2694,14 +2717,24 @@ Stops when a byte with bit 7 set is encountered (high-bit
 terminator). Used by cat_handler to display Dir. and Lib. paths.""")
 
 # ============================================================
-# Print reply buffer bytes (&8DB2)
+# Print reply buffer bytes (&8CFB / &8CFD)
 # ============================================================
-# UNMAPPED: subroutine(0x8DB2, "print_reply_bytes", hook=None,
-# UNMAPPED:     title="Print reply buffer bytes",
-# UNMAPPED:     description="""\
-# UNMAPPED: Prints Y characters from the FS reply buffer (&0F05+X) to
-# UNMAPPED: the screen via OSASCI. X = starting offset, Y = count.
-# UNMAPPED: Used by cat_handler to display directory and library names.""")
+# Rewritten in 3.40 and relocated from &8DB2 to &8CFB.
+# Entry at &8CFB: sets Y=10 and falls into the loop.
+# Entry at &8CFD: caller-supplied Y count.
+# Entry at &8CF4: PLA/CLC/ADC $B4/TAY/BNE to compute count
+# from stacked value, then enters loop via branch.
+subroutine(0x8CFB, "print_reply_bytes", hook=None,
+    title="Print reply buffer bytes (default count)",
+    description="""\
+Sets Y=&0A (10) then falls into print_reply_counted.
+Used by cat_handler to display directory and library names.""")
+
+subroutine(0x8CFD, "print_reply_counted", hook=None,
+    title="Print Y bytes from FS reply buffer",
+    description="""\
+Prints Y characters from the FS reply buffer (&0F05+X) to
+the screen via OSASCI. X = starting offset, Y = count.""")
 
 # ============================================================
 # Notify and execute (&8DC5)
@@ -3253,22 +3286,25 @@ Copied from ROM at &944D during init. Contains:
   &05CD: tube_reply_byte — send byte and return to main loop
   &05D8: tube_osfile — whole file operation""")
 
-# UNMAPPED: subroutine(0x0600, "tube_code_page6", hook=None,
-# UNMAPPED:     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Copied from ROM at &954D during init. &0600-&0601 is the tail
-# UNMAPPED: of tube_osfile (BEQ to tube_reply_byte when done). Contains:
-# UNMAPPED:   &0602: tube_osgbpb — multi-byte file I/O
-# UNMAPPED:   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
-# UNMAPPED:   &063B: tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)
-# UNMAPPED:   &065D: tube_osword — variable-length OSWORD (buffer at &0130)
-# UNMAPPED:   &06A3: tube_osword_rdln — OSWORD 0 (read line, 5-byte params)
-# UNMAPPED:   &06BB: tube_rdln_send_line — send input line from &0700
-# UNMAPPED:   &06D0: tube_send_r2 — poll R2 status, write A to R2 data
-# UNMAPPED:   &06D9: tube_send_r4 — poll R4 status, write A to R4 data
-# UNMAPPED:   &06E2: tube_escape_check — check &FF, forward escape to R1
-# UNMAPPED:   &06E8: tube_event_handler — EVNTV: forward event (A,X,Y) via R1
-# UNMAPPED:   &06F7: tube_send_r1 — poll R1 status, write A to R1 data""")
+# No tube_code_page6 subroutine in 3.40 — the page 5/6 boundary
+# at &05FF/&0600 splits a BVC instruction (opcode $50 at &05FF,
+# operand $FB at &0600). Page 6 is a seamless continuation of
+# page 5 code, not a separate entry point.
+#
+# The Tube client code was completely rewritten in 3.40. Page 6
+# contains (runtime addresses):
+#   &0601: OSBYTE result — write X to R2, return to main loop
+#   &0607: tube_osbyte_long — 3-param OSBYTE via R2
+#   &062B: tube_osword_read — read OSWORD params from R2
+#   &0645: tube_osword_dispatch — call OSWORD, send results
+#   &0668: tube_osword_param_read — read OSWORD param block
+#   &0680: tube_rdln_send_line — RDLN response via R2
+#   &0695: tube_send_r2 — poll R2 status, write A to R2
+#   &069E: tube_send_r4 — poll R4 status, write A to R4
+#   &06A7: tube_escape_check — check &FF, forward via R1
+#   &06AD: tube_event_handler — EVNTV handler, send via R1
+#   &06BC: tube_send_r1 — poll R1 status, write A to R1
+#   &06C5: tube_read_r2 — poll R2, read byte from R2
 
 # ============================================================
 # OSBYTE code table for VDU state save (&9312)
