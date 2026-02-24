@@ -1478,7 +1478,7 @@ exec address (4 hex bytes at offset 9-6), and file length
 (3 hex bytes at offset &0C-&0A), followed by a newline.
 Data is read from (fs_crc_lo) for the filename and from
 (fs_options) for the numeric fields. Returns immediately
-if fs_work_0e06 is zero (no info available).""")
+if fs_messages_flag is zero (no info available).""")
 
 # ============================================================
 # Hex printing (&85EB / &85F6)

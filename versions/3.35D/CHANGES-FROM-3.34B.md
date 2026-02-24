@@ -185,11 +185,72 @@ Several small changes to the `*CAT` display formatting:
   saving 3 bytes per occurrence.
 - The "Option" label gains 4 leading spaces (`"    Option "` vs `"Option "`),
   improving column alignment.
-- Directory and library name printing uses a different subroutine path.
 - The entries-per-line calculation uses a pre-set value rather than a runtime
   division loop.
 
-### 10. Workspace variable relocation
+### 10. Option name encoding reorganised
+
+The boot option names ("Off", "Load", "Run", "Exec") displayed by `*CAT` are
+stored and accessed differently in 3.35D.
+
+**3.34B:** The four strings are stored contiguously at `option_name_strings`
+(&8D3B), null-terminated, with a separate 4-byte offset table at
+`option_name_offsets` (&8D4C). The lookup code at &8C74 indexes the offset
+table, then reads characters until a zero byte:
+
+```
+    LDY option_name_offsets,X   ; &8C74: index into offset table
+.loop
+    LDA option_name_strings,Y   ; &8C77: read character
+    BEQ done                    ; null terminator
+```
+
+**3.35D:** The strings are scattered through the code between instructions,
+addressed via base+offset from &8CDE. The first four bytes at &8CDE — starting
+with the ROR A opcode &6A — double as the offset table:
+
+| Offset byte | Address        | String |
+|-------------|----------------|--------|
+| &6A         | &8CDE+&6A=&8D48 | "Off"  |
+| &7D         | &8CDE+&7D=&8D5B | "Load" |
+| &A5         | &8CDE+&A5=&8D83 | "Run"  |
+| &18         | &8CDE+&18=&8CF6 | "Exec" |
+
+Each string is terminated by the next byte having bit 7 set (the opcode of the
+following instruction, e.g. LDA #imm = &A9, RTS = &60) rather than by a null
+byte. The lookup code at &8C75 uses the same base address for both the offset
+table and the string data:
+
+```
+    LDY c8cde,X                 ; &8C75: read offset from base
+.loop
+    LDA c8cde,Y                 ; &8C78: read character from base+offset
+    BMI done                    ; high-bit terminator (next opcode)
+```
+
+This eliminates the contiguous 21-byte data block (17 string bytes + 4 offset
+bytes) by reusing existing code bytes as the offset table and embedding the
+string data in gaps between instructions.
+
+### 11. CSD check added to print_file_info
+
+The `print_file_info` routine (&8CFA) gains a conditional check at entry that
+is not present in 3.34B:
+
+**3.35D** (at &8D01-&8D09):
+```
+    LDX fs_cmd_csd              ; &8D01: load CSD handle from &0F03
+    BEQ &8D0B                   ; if zero, skip to print filename
+    JSR &8D61                   ; load fs_cmd_data[X], test bit 7
+    BMI &8D23                   ; if set, skip filename — show hex only
+```
+
+When the CSD handle byte is non-zero and the corresponding byte in the FS
+command data buffer has bit 7 set, the routine skips the filename display and
+jumps directly to the load/exec/length hex fields. This check was subsequently
+removed in 3.35K.
+
+### 12. Workspace variable relocation
 
 Several workspace variables moved to different addresses:
 
@@ -200,7 +261,7 @@ Several workspace variables moved to different addresses:
 | `tx_clear_flag`    | &0D3A         | &0D62         |
 | Per-ROM disable flag | (none)        | &0DF0+X       |
 
-### 11. Shifted address operands
+### 13. Shifted address operands
 
 All code throughout the ROM has shifted addresses due to the cumulative effect
 of insertions and deletions. Unlike the 3.34 to 3.34B transition (a uniform

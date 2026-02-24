@@ -2727,7 +2727,7 @@ l8014 = l800d+7
 ; (3 hex bytes at offset &0C-&0A), followed by a newline.
 ; Data is read from (fs_crc_lo) for the filename and from
 ; (fs_options) for the numeric fields. Returns immediately
-; if fs_work_0e06 is zero (no info available).
+; if fs_messages_flag is zero (no info available).
 ; ***************************************************************************************
 ; &8601 referenced 2 times by &8704, &8784
 .print_file_info
