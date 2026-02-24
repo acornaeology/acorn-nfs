@@ -550,12 +550,12 @@ label(0x8280, "fs_vector_addrs")        # 14-byte table: FILEV-FSCV extended vec
 #
 # Extended dispatch table entries (indices 27-36):
 # These appear to be used by FS reply processing and *NET sub-commands.
-#   index 27 → print_dir_name (&8D6C)        (print directory path)
+#   index 27 → print_dir_name (&8D57)        (print directory path)
 #   index 28 → copy_handles_and_boot (&8E20) (copy handles + run boot command)
 #   index 29 → copy_handles (&8E21)          (copy handles only)
-#   index 30 → set_csd_handle (&8CFF)        (update CSD handle)
+#   index 30 → set_csd_handle (&8E1A)        (update CSD handle)
 #   index 31 → notify_and_exec (&8DC5)       (send FS notify, execute response)
-#   index 32 → set_lib_handle (&8CFA)        (update library handle)
+#   index 32 → set_lib_handle (&8E15)        (update library handle)
 #
 # *NET sub-commands (base Y=&20, indices 33-36):
 #   *NET1 → index 33 → net1_read_handle (&8DA8)
@@ -1511,7 +1511,7 @@ exec address (4 hex bytes at offset 9-6), and file length
 (3 hex bytes at offset &0C-&0A), followed by a newline.
 Data is read from (fs_crc_lo) for the filename and from
 (fs_options) for the numeric fields. Returns immediately
-if fs_work_0e06 is zero (no info available).""")
+if fs_messages_flag is zero (no info available).""")
 
 # ============================================================
 # Hex printing (&8D9D / &8DA8)
@@ -2484,21 +2484,6 @@ This is a classic BBC ROM space optimisation: the string data
 overlaps with other byte sequences to save space.""")
 
 # ============================================================
-# Handle workspace management (&8CFA-&8D00)
-# ============================================================
-subroutine(0x8CFA, "set_lib_handle", hook=None,
-    title="Set library handle",
-    description="""\
-Stores Y into &0E04 (library directory handle in FS workspace).
-Falls through to c8cff (JMP c892c) if Y is non-zero.""")
-
-subroutine(0x8CFF, "set_csd_handle", hook=None,
-    title="Set CSD handle",
-    description="""\
-Stores Y into &0E03 (current selected directory handle).
-Falls through to c8cff (JMP c892c).""")
-
-# ============================================================
 # Boot option table and "I AM" handler (&8CF4-&8E20)
 # ============================================================
 subroutine(0x8CF4, "boot_option_offsets", hook=None,
@@ -2508,6 +2493,18 @@ Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.
 Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
+byte(0x8CF4, 4)
+string(0x8CF8, 4)
+comment(0x8CE0, """\
+Option name encoding: in 3.35, the boot option names ("Off",
+"Load", "Run", "Exec") are scattered through the code rather
+than stored as a contiguous table. They are addressed via
+base+offset from return_9 (&8CE0), whose first four bytes
+(starting with the RTS opcode &60) double as the offset table:
+  &60→&8D40 "Off", &73→&8D53 "Load",
+  &9B→&8D7B "Run", &18→&8CF8 "Exec"
+Each string is terminated by the next instruction's opcode
+having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""")
 
 subroutine(0x807E, "i_am_handler", hook=None,
     title="\"I AM\" command handler",
@@ -2520,6 +2517,21 @@ optional network number after '.') via parse_decimal. Stores
 the results in &0E00 (station) and &0E01 (network). If a colon
 follows, reads interactive input via OSRDCH and appends it to
 the command buffer. Finally jumps to forward_star_cmd.""")
+
+# ============================================================
+# Handle workspace management (&8E15-&8E1A)
+# ============================================================
+subroutine(0x8E15, "set_lib_handle", hook=None,
+    title="Set library handle",
+    description="""\
+Stores Y into &0E04 (library directory handle in FS workspace).
+Falls through to JMP restore_args_return if Y is non-zero.""")
+
+subroutine(0x8E1A, "set_csd_handle", hook=None,
+    title="Set CSD handle",
+    description="""\
+Stores Y into &0E03 (current selected directory handle).
+Falls through to JMP restore_args_return.""")
 
 # ============================================================
 # Copy handles and boot (&8E20 / &8E21)
@@ -2544,48 +2556,16 @@ Called when the FS reply contains updated handle values
 but no boot action is needed.""")
 
 # ============================================================
-# Option name display (&8D33-&8D47)
+# Filename copy helpers (&8D43-&8D51)
 # ============================================================
-subroutine(0x8D33, "option_name_strings", hook=None,
-    title="Option name strings",
-    description="""\
-Null-terminated strings for the four boot option names:
-  "Off", "Load", "Run", "Exec"
-Used by cat_handler to display the current boot option setting.""")
-
-subroutine(0x8D4C, "option_name_offsets", hook=None,
-    title="Option name offsets",
-    description="""\
-Four-byte table of offsets into option_name_strings:
-  0, 4, 9, &0D — one per boot option value (0-3).""")
-
-# ============================================================
-# Reply buffer display helpers (&8D50-&8D6C)
-# ============================================================
-subroutine(0x8D50, "print_reply_bytes", hook=None,
-    title="Print reply buffer bytes",
-    description="""\
-Prints Y characters from the FS reply buffer (&0F05+X) to
-the screen via OSASCI. X = starting offset, Y = count.
-Used by cat_handler to display directory and library names.""")
-
-subroutine(0x8D5D, "print_spaces", hook=None,
-    title="Print spaces",
-    description="""\
-Prints X space characters via print_space. Used by cat_handler
-to align columns in the directory listing.""")
-
-# ============================================================
-# Filename copy helpers (&8D5C-&8D6C)
-# ============================================================
-subroutine(0x8D5C, "copy_filename", hook=None,
+subroutine(0x8D43, "copy_filename", hook=None,
     title="Copy filename to FS command buffer",
     description="""\
 Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.
 Used to place a filename into the FS command buffer before
 sending to the fileserver. Falls through to copy_string_to_cmd.""")
 
-subroutine(0x8D5E, "copy_string_to_cmd", hook=None,
+subroutine(0x8D45, "copy_string_to_cmd", hook=None,
     title="Copy string to FS command buffer",
     description="""\
 Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
@@ -2594,15 +2574,25 @@ itself is also copied. Returns with X pointing past the last
 byte written.""")
 
 # ============================================================
-# Print directory name (&8D6C)
+# Print directory name (&8D57)
 # ============================================================
-subroutine(0x8D6C, "print_dir_name", hook=None,
+subroutine(0x8D57, "print_dir_name", hook=None,
     title="Print directory name from reply buffer",
     description="""\
 Prints characters from the FS reply buffer (&0F05+X onwards).
 Null bytes (&00) are replaced with CR (&0D) for display.
 Stops when a byte with bit 7 set is encountered (high-bit
 terminator). Used by cat_handler to display Dir. and Lib. paths.""")
+
+# ============================================================
+# Print reply buffer bytes (&8DB2)
+# ============================================================
+subroutine(0x8DB2, "print_reply_bytes", hook=None,
+    title="Print reply buffer bytes",
+    description="""\
+Prints Y characters from the FS reply buffer (&0F05+X) to
+the screen via OSASCI. X = starting offset, Y = count.
+Used by cat_handler to display directory and library names.""")
 
 # ============================================================
 # Notify and execute (&8DC5)

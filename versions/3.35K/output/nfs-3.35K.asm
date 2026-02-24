@@ -1105,12 +1105,12 @@ l8014 = l800d+7
     equb <(cat_handler-1)                                             ; 8038: 01          .
     equb <(fscv_shutdown-1)                                           ; 8039: 36          6
     equb <(fscv_read_handles-1)                                       ; 803a: 4b          K
-    equb <(sub_c8d57-1)                                               ; 803b: 56          V
+    equb <(print_dir_name-1)                                          ; 803b: 56          V
     equb <(copy_handles_and_boot-1)                                   ; 803c: 1f          .
     equb <(copy_handles-1)                                            ; 803d: 20
-    equb <(sub_c8e1a-1)                                               ; 803e: 19          .
+    equb <(set_csd_handle-1)                                          ; 803e: 19          .
     equb <(notify_and_exec-1)                                         ; 803f: c4          .
-    equb <(sub_c8e15-1)                                               ; 8040: 14          .
+    equb <(set_lib_handle-1)                                          ; 8040: 14          .
     equb <(net1_read_handle-1)                                        ; 8041: 3a          :
     equb <(sub_c8e56-1)                                               ; 8042: 55          U
     equb <(sub_c8e66-1)                                               ; 8043: 65          e
@@ -1146,12 +1146,12 @@ l8014 = l800d+7
     equb >(cat_handler-1)                                             ; 805c: 8c          .
     equb >(fscv_shutdown-1)                                           ; 805d: 83          .
     equb >(fscv_read_handles-1)                                       ; 805e: 86          .
-    equb >(sub_c8d57-1)                                               ; 805f: 8d          .
+    equb >(print_dir_name-1)                                          ; 805f: 8d          .
     equb >(copy_handles_and_boot-1)                                   ; 8060: 8e          .
     equb >(copy_handles-1)                                            ; 8061: 8e          .
-    equb >(sub_c8e1a-1)                                               ; 8062: 8e          .
+    equb >(set_csd_handle-1)                                          ; 8062: 8e          .
     equb >(notify_and_exec-1)                                         ; 8063: 8d          .
-    equb >(sub_c8e15-1)                                               ; 8064: 8e          .
+    equb >(set_lib_handle-1)                                          ; 8064: 8e          .
     equb >(net1_read_handle-1)                                        ; 8065: 8e          .
     equb >(sub_c8e56-1)                                               ; 8066: 8e          .
     equb >(sub_c8e66-1)                                               ; 8067: 8e          .
@@ -1257,7 +1257,7 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; &80b4 referenced 1 time by &809e
 .forward_star_cmd
-    jsr sub_c8d43                                                     ; 80b4: 20 43 8d     C.
+    jsr copy_filename                                                 ; 80b4: 20 43 8d     C.
     tay                                                               ; 80b7: a8          .              ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 80b8: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     ldx fs_cmd_csd                                                    ; 80bb: ae 03 0f    ...            ; X=depends on function
@@ -3130,7 +3130,7 @@ l865c = set_fs_flag+1
     sta fs_cmd_urd                                                    ; 8796: 8d 02 0f    ...
     sta fs_error_ptr                                                  ; 8799: 85 b8       ..
     ldx #&0b                                                          ; 879b: a2 0b       ..
-    jsr sub_c8d45                                                     ; 879d: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 879d: 20 45 8d     E.
     ldy #1                                                            ; 87a0: a0 01       ..
     lda #&14                                                          ; 87a2: a9 14       ..
     jsr prepare_cmd_clv                                               ; 87a4: 20 80 83     ..
@@ -3380,13 +3380,13 @@ l865c = set_fs_flag+1
     ldx #&0a                                                          ; 88ad: a2 0a       ..
 ; &88af referenced 2 times by &8898, &88cd
 .copy_filename_to_cmd
-    jsr sub_c8d45                                                     ; 88af: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 88af: 20 45 8d     E.
     ldy #&13                                                          ; 88b2: a0 13       ..
     bne c88bb                                                         ; 88b4: d0 05       ..             ; ALWAYS branch
 
 ; &88b6 referenced 1 time by &8875
 .cha6
-    jsr sub_c8d43                                                     ; 88b6: 20 43 8d     C.
+    jsr copy_filename                                                 ; 88b6: 20 43 8d     C.
     ldy #&14                                                          ; 88b9: a0 14       ..
 ; &88bb referenced 1 time by &88b4
 .c88bb
@@ -3407,7 +3407,7 @@ l865c = set_fs_flag+1
 ; &88cf referenced 1 time by &887b
 .cha5
     ldx #1                                                            ; 88cf: a2 01       ..
-    jsr sub_c8d45                                                     ; 88d1: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 88d1: 20 45 8d     E.
     ldy #&12                                                          ; 88d4: a0 12       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 88d6: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     lda l0f11                                                         ; 88d9: ad 11 0f    ...
@@ -3584,7 +3584,7 @@ l865c = set_fs_flag+1
     sta l0f06                                                         ; 8985: 8d 06 0f    ...
     jsr parse_filename_gs                                             ; 8988: 20 ba 86     ..
     ldx #2                                                            ; 898b: a2 02       ..
-    jsr sub_c8d45                                                     ; 898d: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 898d: 20 45 8d     E.
     ldy #6                                                            ; 8990: a0 06       ..
     bit l8374                                                         ; 8992: 2c 74 83    ,t.
     jsr init_tx_ctrl_data                                             ; 8995: 20 8b 83     ..
@@ -4139,11 +4139,11 @@ l8be5 = fs_cmd_match_table+1
     sta fs_cmd_data                                                   ; 8c10: 8d 05 0f    ...
     jsr sub_c86bc                                                     ; 8c13: 20 bc 86     ..
     ldx #1                                                            ; 8c16: a2 01       ..
-    jsr sub_c8d45                                                     ; 8c18: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 8c18: 20 45 8d     E.
     ldy #&12                                                          ; 8c1b: a0 12       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 8c1d: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     ldx #3                                                            ; 8c20: a2 03       ..
-    jsr sub_c8db2                                                     ; 8c22: 20 b2 8d     ..
+    jsr print_reply_bytes                                             ; 8c22: 20 b2 8d     ..
     jsr print_inline                                                  ; 8c25: 20 d9 85     ..
     equs "("                                                          ; 8c28: 28          (
 
@@ -4193,12 +4193,12 @@ l8be5 = fs_cmd_match_table+1
     equs ")", &0d, "Dir. "                                            ; 8c88: 29 0d 44... ).D
 
     ldx #&11                                                          ; 8c8f: a2 11       ..
-    jsr sub_c8db2                                                     ; 8c91: 20 b2 8d     ..
+    jsr print_reply_bytes                                             ; 8c91: 20 b2 8d     ..
     jsr print_inline                                                  ; 8c94: 20 d9 85     ..
     equs "     Lib. "                                                 ; 8c97: 20 20 20...
 
     ldx #&1b                                                          ; 8ca1: a2 1b       ..
-    jsr sub_c8db2                                                     ; 8ca3: 20 b2 8d     ..
+    jsr print_reply_bytes                                             ; 8ca3: 20 b2 8d     ..
     jsr print_inline                                                  ; 8ca6: 20 d9 85     ..
     equs &0d, &0d                                                     ; 8ca9: 0d 0d       ..
 
@@ -4211,7 +4211,7 @@ l8be5 = fs_cmd_match_table+1
     ldx l00b7                                                         ; 8cb5: a6 b7       ..
     stx fs_cmd_data                                                   ; 8cb7: 8e 05 0f    ...
     ldx #3                                                            ; 8cba: a2 03       ..
-    jsr sub_c8d45                                                     ; 8cbc: 20 45 8d     E.
+    jsr copy_string_to_cmd                                            ; 8cbc: 20 45 8d     E.
     ldy #3                                                            ; 8cbf: a0 03       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 8cc1: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     lda fs_cmd_data                                                   ; 8cc4: ad 05 0f    ...
@@ -4226,6 +4226,15 @@ l8be5 = fs_cmd_match_table+1
     lda l00b5                                                         ; 8cd9: a5 b5       ..
     sta l0f07                                                         ; 8cdb: 8d 07 0f    ...
     bne c8cb5                                                         ; 8cde: d0 d5       ..
+; Option name encoding: in 3.35, the boot option names ("Off",
+; "Load", "Run", "Exec") are scattered through the code rather
+; than stored as a contiguous table. They are addressed via
+; base+offset from return_9 (&8CE0), whose first four bytes
+; (starting with the RTS opcode &60) double as the offset table:
+;   &60→&8D40 "Off", &73→&8D53 "Load",
+;   &9B→&8D7B "Run", &18→&8CF8 "Exec"
+; Each string is terminated by the next instruction's opcode
+; having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).
 ; &8ce0 referenced 2 times by &8c77, &8c7a
 .return_9
     rts                                                               ; 8ce0: 60          `
@@ -4261,16 +4270,9 @@ l8be5 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8cf4 referenced 1 time by &8e33
 .boot_option_offsets
-    equb &f3, &e4, &e6, &ec, &45, &78                                 ; 8cf4: f3 e4 e6... ...
+    equb &f3, &e4, &e6, &ec                                           ; 8cf4: f3 e4 e6... ...
+    equs "Exec"                                                       ; 8cf8: 45 78 65... Exe
 
-; ***************************************************************************************
-; Set library handle
-; 
-; Stores Y into &0E04 (library directory handle in FS workspace).
-; Falls through to c8cff (JMP c892c) if Y is non-zero.
-; ***************************************************************************************
-.set_lib_handle
-    adc zp_63                                                         ; 8cfa: 65 63       ec
 ; ***************************************************************************************
 ; Print file catalogue line
 ; 
@@ -4280,18 +4282,11 @@ l8be5 = fs_cmd_match_table+1
 ; (3 hex bytes at offset &0C-&0A), followed by a newline.
 ; Data is read from (fs_crc_lo) for the filename and from
 ; (fs_options) for the numeric fields. Returns immediately
-; if fs_work_0e06 is zero (no info available).
+; if fs_messages_flag is zero (no info available).
 ; ***************************************************************************************
 ; &8cfc referenced 2 times by &8727, &87a7
 .print_file_info
     ldy fs_messages_flag                                              ; 8cfc: ac 06 0e    ...
-; ***************************************************************************************
-; Set CSD handle
-; 
-; Stores Y into &0E03 (current selected directory handle).
-; Falls through to c8cff (JMP c892c).
-; ***************************************************************************************
-.set_csd_handle
     beq return_5                                                      ; 8cff: f0 51       .Q
     ldy #0                                                            ; 8d01: a0 00       ..
 ; &8d03 referenced 1 time by &8d11
@@ -4328,16 +4323,8 @@ l8be5 = fs_cmd_match_table+1
 ; &8d31 referenced 2 times by &8d1d, &8d28
 .print_hex_bytes
     ldx #4                                                            ; 8d31: a2 04       ..
-; ***************************************************************************************
-; Option name strings
-; 
-; Null-terminated strings for the four boot option names:
-;   "Off", "Load", "Run", "Exec"
-; Used by cat_handler to display the current boot option setting.
-; ***************************************************************************************
 ; &8d33 referenced 2 times by &8d2f, &8d3a
 .num01
-.option_name_strings
     lda (fs_options),y                                                ; 8d33: b1 bb       ..
     jsr print_hex                                                     ; 8d35: 20 9d 8d     ..
     dey                                                               ; 8d38: 88          .
@@ -4350,46 +4337,6 @@ l8be5 = fs_cmd_match_table+1
 
     equs "Off"                                                        ; 8d40: 4f 66 66    Off
 
-; &8d43 referenced 3 times by &80b4, &88b6, &8dc2
-.sub_c8d43
-    ldx #0                                                            ; 8d43: a2 00       ..
-; &8d45 referenced 6 times by &879d, &88af, &88d1, &898d, &8c18, &8cbc
-.sub_c8d45
-    ldy #0                                                            ; 8d45: a0 00       ..
-; &8d47 referenced 1 time by &8d50
-.copy_string_from_offset
-    lda (fs_crc_lo),y                                                 ; 8d47: b1 be       ..
-    sta fs_cmd_data,x                                                 ; 8d49: 9d 05 0f    ...
-; ***************************************************************************************
-; Option name offsets
-; 
-; Four-byte table of offsets into option_name_strings:
-;   0, 4, 9, &0D — one per boot option value (0-3).
-; ***************************************************************************************
-.option_name_offsets
-    inx                                                               ; 8d4c: e8          .
-    iny                                                               ; 8d4d: c8          .
-    eor #&0d                                                          ; 8d4e: 49 0d       I.
-; ***************************************************************************************
-; Print reply buffer bytes
-; 
-; Prints Y characters from the FS reply buffer (&0F05+X) to
-; the screen via OSASCI. X = starting offset, Y = count.
-; Used by cat_handler to display directory and library names.
-; ***************************************************************************************
-.print_reply_bytes
-    bne copy_string_from_offset                                       ; 8d50: d0 f5       ..
-; &8d52 referenced 2 times by &8cff, &8d5c
-.return_5
-    rts                                                               ; 8d52: 60          `
-
-    equs "Load"                                                       ; 8d53: 4c 6f 61... Loa
-
-.sub_c8d57
-    ldx #0                                                            ; 8d57: a2 00       ..
-; &8d59 referenced 2 times by &8ccb, &8d79
-.c8d59
-    lda fs_cmd_data,x                                                 ; 8d59: bd 05 0f    ...
 ; ***************************************************************************************
 ; Copy filename to FS command buffer
 ; 
@@ -4397,15 +4344,9 @@ l8be5 = fs_cmd_match_table+1
 ; Used to place a filename into the FS command buffer before
 ; sending to the fileserver. Falls through to copy_string_to_cmd.
 ; ***************************************************************************************
+; &8d43 referenced 3 times by &80b4, &88b6, &8dc2
 .copy_filename
-print_spaces = copy_filename+1
-    bmi return_5                                                      ; 8d5c: 30 f4       0.
-; ***************************************************************************************
-; Print spaces
-; 
-; Prints X space characters via print_space. Used by cat_handler
-; to align columns in the directory listing.
-; ***************************************************************************************
+    ldx #0                                                            ; 8d43: a2 00       ..
 ; ***************************************************************************************
 ; Copy string to FS command buffer
 ; 
@@ -4414,15 +4355,23 @@ print_spaces = copy_filename+1
 ; itself is also copied. Returns with X pointing past the last
 ; byte written.
 ; ***************************************************************************************
+; &8d45 referenced 6 times by &879d, &88af, &88d1, &898d, &8c18, &8cbc
 .copy_string_to_cmd
-    bne infol2                                                        ; 8d5e: d0 15       ..
-    ldy l00b9                                                         ; 8d60: a4 b9       ..
-    bmi c8d73                                                         ; 8d62: 30 0f       0.
-    iny                                                               ; 8d64: c8          .
-    tya                                                               ; 8d65: 98          .
-    and #3                                                            ; 8d66: 29 03       ).
-    sta l00b9                                                         ; 8d68: 85 b9       ..
-    beq c8d73                                                         ; 8d6a: f0 07       ..
+    ldy #0                                                            ; 8d45: a0 00       ..
+; &8d47 referenced 1 time by &8d50
+.copy_string_from_offset
+    lda (fs_crc_lo),y                                                 ; 8d47: b1 be       ..
+    sta fs_cmd_data,x                                                 ; 8d49: 9d 05 0f    ...
+    inx                                                               ; 8d4c: e8          .
+    iny                                                               ; 8d4d: c8          .
+    eor #&0d                                                          ; 8d4e: 49 0d       I.
+    bne copy_string_from_offset                                       ; 8d50: d0 f5       ..
+; &8d52 referenced 2 times by &8cff, &8d5c
+.return_5
+    rts                                                               ; 8d52: 60          `
+
+    equs "Load"                                                       ; 8d53: 4c 6f 61... Loa
+
 ; ***************************************************************************************
 ; Print directory name from reply buffer
 ; 
@@ -4432,6 +4381,19 @@ print_spaces = copy_filename+1
 ; terminator). Used by cat_handler to display Dir. and Lib. paths.
 ; ***************************************************************************************
 .print_dir_name
+    ldx #0                                                            ; 8d57: a2 00       ..
+; &8d59 referenced 2 times by &8ccb, &8d79
+.c8d59
+    lda fs_cmd_data,x                                                 ; 8d59: bd 05 0f    ...
+    bmi return_5                                                      ; 8d5c: 30 f4       0.
+    bne infol2                                                        ; 8d5e: d0 15       ..
+    ldy l00b9                                                         ; 8d60: a4 b9       ..
+    bmi c8d73                                                         ; 8d62: 30 0f       0.
+    iny                                                               ; 8d64: c8          .
+    tya                                                               ; 8d65: 98          .
+    and #3                                                            ; 8d66: 29 03       ).
+    sta l00b9                                                         ; 8d68: 85 b9       ..
+    beq c8d73                                                         ; 8d6a: f0 07       ..
     jsr print_inline                                                  ; 8d6c: 20 d9 85     ..
     equs "  "                                                         ; 8d6f: 20 20
 
@@ -4531,8 +4493,15 @@ print_spaces = copy_filename+1
 ; &8db0 referenced 2 times by &8d3e, &8dac
 .c8db0
     bne loop_c8d9a                                                    ; 8db0: d0 e8       ..
+; ***************************************************************************************
+; Print reply buffer bytes
+; 
+; Prints Y characters from the FS reply buffer (&0F05+X) to
+; the screen via OSASCI. X = starting offset, Y = count.
+; Used by cat_handler to display directory and library names.
+; ***************************************************************************************
 ; &8db2 referenced 3 times by &8c22, &8c91, &8ca3
-.sub_c8db2
+.print_reply_bytes
     ldy #&0a                                                          ; 8db2: a0 0a       ..
 ; &8db4 referenced 2 times by &8c5a, &8dbc
 .print_reply_counted
@@ -4554,7 +4523,7 @@ print_spaces = copy_filename+1
 ; Clears rom_svc_num on exit.
 ; ***************************************************************************************
 .net2_read_handle_entry
-    jsr sub_c8d43                                                     ; 8dc2: 20 43 8d     C.
+    jsr copy_filename                                                 ; 8dc2: 20 43 8d     C.
 ; ***************************************************************************************
 ; Send FS load-as-command and execute response
 ; 
@@ -4628,10 +4597,22 @@ print_spaces = copy_filename+1
 .c8e12
     jmp (l0f09)                                                       ; 8e12: 6c 09 0f    l..
 
-.sub_c8e15
+; ***************************************************************************************
+; Set library handle
+; 
+; Stores Y into &0E04 (library directory handle in FS workspace).
+; Falls through to JMP restore_args_return if Y is non-zero.
+; ***************************************************************************************
+.set_lib_handle
     sty fs_lib_handle                                                 ; 8e15: 8c 04 0e    ...
     bne c8e1d                                                         ; 8e18: d0 03       ..
-.sub_c8e1a
+; ***************************************************************************************
+; Set CSD handle
+; 
+; Stores Y into &0E03 (current selected directory handle).
+; Falls through to JMP restore_args_return.
+; ***************************************************************************************
+.set_csd_handle
     sty fs_csd_handle                                                 ; 8e1a: 8c 03 0e    ...
 ; &8e1d referenced 2 times by &8e18, &8e2e
 .c8e1d
@@ -7934,6 +7915,7 @@ l9ee1 = sub_c9ee0+1
     assert <(osword_10_handler-1) == &65
     assert <(osword_11_handler-1) == &d1
     assert <(osword_fs_entry-1) == &75
+    assert <(print_dir_name-1) == &56
     assert <(remote_boot_handler-1) == &69
     assert <(remote_cmd_dispatch-1) == &cf
     assert <(remote_display_setup-1) == &c3
@@ -7946,12 +7928,11 @@ l9ee1 = sub_c9ee0+1
     assert <(rx_imm_peek-1) == &f0
     assert <(rx_imm_poke-1) == &d2
     assert <(save_palette_vdu-1) == &9e
+    assert <(set_csd_handle-1) == &19
+    assert <(set_lib_handle-1) == &14
     assert <(sub_c8179-1) == &78
     assert <(sub_c82ab-1) == &aa
-    assert <(sub_c8d57-1) == &56
     assert <(sub_c8dbf-1) == &be
-    assert <(sub_c8e15-1) == &14
-    assert <(sub_c8e1a-1) == &19
     assert <(sub_c8e56-1) == &55
     assert <(sub_c8e66-1) == &65
     assert <(sub_c8ef7-1) == &f6
@@ -7993,6 +7974,7 @@ l9ee1 = sub_c9ee0+1
     assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
     assert >(osword_fs_entry-1) == &8e
+    assert >(print_dir_name-1) == &8d
     assert >(remote_boot_handler-1) == &84
     assert >(remote_cmd_dispatch-1) == &90
     assert >(remote_display_setup-1) == &91
@@ -8005,12 +7987,11 @@ l9ee1 = sub_c9ee0+1
     assert >(rx_imm_peek-1) == &9a
     assert >(rx_imm_poke-1) == &9a
     assert >(save_palette_vdu-1) == &92
+    assert >(set_csd_handle-1) == &8e
+    assert >(set_lib_handle-1) == &8e
     assert >(sub_c8179-1) == &81
     assert >(sub_c82ab-1) == &82
-    assert >(sub_c8d57-1) == &8d
     assert >(sub_c8dbf-1) == &8d
-    assert >(sub_c8e15-1) == &8e
-    assert >(sub_c8e1a-1) == &8e
     assert >(sub_c8e56-1) == &8e
     assert >(sub_c8e66-1) == &8e
     assert >(sub_c8ef7-1) == &8e
@@ -8092,6 +8073,7 @@ save pydis_start, pydis_end
 ;     tube_main_loop:                           7
 ;     tx_clear_flag:                            7
 ;     tx_dst_stn:                               7
+;     copy_string_to_cmd:                       6
 ;     fs_cmd_csd:                               6
 ;     fs_load_addr_hi:                          6
 ;     fs_sequence_nos:                          6
@@ -8102,7 +8084,6 @@ save pydis_start, pydis_end
 ;     return_1:                                 6
 ;     rx_buf_offset:                            6
 ;     scout_status:                             6
-;     sub_c8d45:                                6
 ;     tx_in_progress:                           6
 ;     zp_temp_10:                               6
 ;     c8954:                                    5
@@ -8169,6 +8150,7 @@ save pydis_start, pydis_end
 ;     c9ee4:                                    3
 ;     calc_handle_offset:                       3
 ;     clear_fs_flag:                            3
+;     copy_filename:                            3
 ;     ctrl_block_setup_alt:                     3
 ;     data_rx_complete:                         3
 ;     data_rx_tube_error:                       3
@@ -8196,13 +8178,12 @@ save pydis_start, pydis_end
 ;     oscli:                                    3
 ;     osword:                                   3
 ;     pad_filename_spaces:                      3
+;     print_reply_bytes:                        3
 ;     romsel_copy:                              3
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
 ;     send_to_fs_star:                          3
 ;     setup_tx_and_send:                        3
-;     sub_c8d43:                                3
-;     sub_c8db2:                                3
 ;     tube_claim_loop:                          3
 ;     tube_data_register_1:                     3
 ;     tube_read_string:                         3
@@ -8298,7 +8279,6 @@ save pydis_start, pydis_end
 ;     nlisne:                                   2
 ;     num01:                                    2
 ;     nvwrch:                                   2
-;     option_name_strings:                      2
 ;     osfind:                                   2
 ;     osnewl:                                   2
 ;     parse_decimal:                            2
@@ -8829,7 +8809,6 @@ save pydis_start, pydis_end
 ;     userv:                                    1
 ;     y2fsl2:                                   1
 ;     y2fsl5:                                   1
-;     zp_63:                                    1
 
 ; Automatically generated labels:
 ;     c0036
@@ -9192,13 +9171,7 @@ save pydis_start, pydis_end
 ;     sub_c82ab
 ;     sub_c8348
 ;     sub_c86bc
-;     sub_c8d43
-;     sub_c8d45
-;     sub_c8d57
-;     sub_c8db2
 ;     sub_c8dbf
-;     sub_c8e15
-;     sub_c8e1a
 ;     sub_c8e42
 ;     sub_c8e56
 ;     sub_c8e66
@@ -9216,11 +9189,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7505 bytes (92%)
-;     Data                     = 687 bytes (8%)
+;     Code                     = 7503 bytes (92%)
+;     Data                     = 689 bytes (8%)
 ;
-;     Number of instructions   = 3621
-;     Number of data bytes     = 426 bytes
+;     Number of instructions   = 3620
+;     Number of data bytes     = 424 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 261 bytes
-;     Number of strings        = 37
+;     Number of string bytes   = 265 bytes
+;     Number of strings        = 38

@@ -1,23 +1,8 @@
-#!/usr/bin/env python3
-"""Extract sections of a disassembly .asm file by address range or label.
-
-Usage:
-    python asm_extract.py <asm_file> <start> [end]
-
-    start/end can be:
-      - Hex address: 80EA or $80EA or &80EA or 0x80EA
-      - Label name: service_handler
-
-    If end is omitted, extracts ~40 lines from start.
-
-Examples:
-    python asm_extract.py nfs-3.35D.asm 80EA 80F4
-    python asm_extract.py nfs-3.35D.asm service_handler
-    python asm_extract.py nfs-3.35D.asm &807D &80B4
-"""
+"""Extract sections of a disassembly .asm file by address range or label."""
 
 import re
 import sys
+from pathlib import Path
 
 
 def parse_address(s):
@@ -78,15 +63,8 @@ def find_line_for_target(target, lines, addr_to_line, label_to_line):
     return None
 
 
-def main():
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(1)
-
-    asm_filepath = sys.argv[1]
-    start_target = sys.argv[2]
-    end_target = sys.argv[3] if len(sys.argv) > 3 else None
-
+def extract(asm_filepath, start_target, end_target=None):
+    """Extract a section of assembly and print it with line numbers."""
     with open(asm_filepath) as f:
         lines = f.readlines()
 
@@ -95,7 +73,7 @@ def main():
     start_line = find_line_for_target(start_target, lines, addr_to_line, label_to_line)
     if start_line is None:
         print(f"Could not find '{start_target}'", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     # Back up to include preceding comment/label lines
     while start_line > 0 and not re.search(r";\s*[0-9a-f]{4}:", lines[start_line - 1]):
@@ -108,7 +86,7 @@ def main():
         end_line = find_line_for_target(end_target, lines, addr_to_line, label_to_line)
         if end_line is None:
             print(f"Could not find '{end_target}'", file=sys.stderr)
-            sys.exit(1)
+            return 1
         end_line += 1  # Include the end line
     else:
         end_line = min(start_line + 40, len(lines))
@@ -116,6 +94,4 @@ def main():
     for i in range(start_line, end_line):
         print(f"{i+1:5d}  {lines[i]}", end="")
 
-
-if __name__ == "__main__":
-    main()
+    return 0

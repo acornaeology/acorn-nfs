@@ -95,6 +95,20 @@ def cmd_compare(args):
                      version_dirpath_b, args.version_b))
 
 
+def cmd_extract(args):
+    """Extract a section of disassembly output by address range or label."""
+    from disasm_tools.asm_extract import extract
+
+    version_dirpath = get_version_dirpath(args.version)
+    asm_filepath = version_dirpath / "output" / f"nfs-{args.version}.asm"
+
+    if not asm_filepath.exists():
+        print(f"Error: {asm_filepath} not found (run disassemble first)", file=sys.stderr)
+        sys.exit(1)
+
+    sys.exit(extract(str(asm_filepath), args.start, args.end))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -132,6 +146,15 @@ def main():
     compare_parser.add_argument("version_a", help="First NFS version (e.g. 3.34)")
     compare_parser.add_argument("version_b", help="Second NFS version (e.g. 3.34B)")
     compare_parser.set_defaults(func=cmd_compare)
+
+    extract_parser = subparsers.add_parser(
+        "extract", help="Extract assembly section by address or label"
+    )
+    extract_parser.add_argument("version", help="NFS version (e.g. 3.35K)")
+    extract_parser.add_argument("start", help="Start address (hex) or label name")
+    extract_parser.add_argument("end", nargs="?", default=None,
+                                help="End address (hex) or label name (optional)")
+    extract_parser.set_defaults(func=cmd_extract)
 
     args = parser.parse_args()
     args.func(args)
