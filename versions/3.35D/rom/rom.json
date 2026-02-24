@@ -142,7 +142,8 @@
                 {"pattern": "FSCV", "occurrence": 0, "term": "FSCV"},
                 {"pattern": "GSINIT", "occurrence": 0, "term": "GSINIT"},
                 {"pattern": "GSREAD", "occurrence": 0, "term": "GSREAD"},
-                {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"}
+                {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"},
+                {"pattern": "CSD", "occurrence": 0, "term": "CSD"}
             ]
         }
     ]

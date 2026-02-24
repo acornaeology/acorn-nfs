@@ -131,7 +131,11 @@
                 {"pattern": "BRKV", "occurrence": 0, "term": "BRKV"},
                 {"pattern": "WRCHV", "occurrence": 0, "term": "WRCHV"},
                 {"pattern": "RDCHV", "occurrence": 0, "term": "RDCHV"},
-                {"pattern": "ROM", "occurrence": 0, "term": "ROM"}
+                {"pattern": "ROM", "occurrence": 0, "term": "ROM"},
+                {"pattern": "EOF", "occurrence": 0, "term": "EOF"},
+                {"pattern": "OSGBPB", "occurrence": 0, "term": "OSGBPB"},
+                {"pattern": "OSARGS", "occurrence": 0, "term": "OSARGS"},
+                {"pattern": "CSD", "occurrence": 0, "term": "CSD"}
             ]
         }
     ]

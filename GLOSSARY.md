@@ -100,11 +100,45 @@ the accumulator value.
   NFS uses OSBYTE calls for keyboard control (&7C to clear escape),
   handle queries (&C6/&C7 for EXEC/SPOOL handles), and ROM management.
 
+**OSARGS** (OS Arguments)
+: MOS routine at &FFDA. Reads or writes attributes of an open file handle,
+selected by the accumulator value, with the file handle in Y and a parameter
+block address in X.
+
+  NFS intercepts OSARGS via the ARGSV vector to handle remote file handle
+  queries over Econet. A=0 with Y=0 returns the filing system number (5 for
+  NFS).
+
 **OSCLI** (OS Command Line Interpreter)
 : MOS routine at &FFF7. Executes a `*` command string.
 
   NFS uses internal OSCLI calls to dispatch the `*NET1`-`*NET4`
   sub-commands, which manage file handles for Econet remote operations.
+
+**OSFILE** (OS File)
+: MOS routine at &FFDD. Performs whole-file operations (load, save,
+read/write attributes) using a parameter block pointed to by X and Y.
+
+  NFS intercepts OSFILE via the FILEV vector to load and save files over
+  Econet. The parameter block format differs between host and fileserver:
+  NFS translates between the MOS 4-byte attribute format and the fileserver's
+  2-byte format using a lookup table.
+
+**OSFIND** (OS Find)
+: MOS routine at &FFCE. Opens or closes a file, returning a file handle in A.
+A=0 closes the handle in Y; non-zero A values open the file named at X,Y.
+
+  NFS intercepts OSFIND via the FINDV vector to manage remote file handles
+  on the fileserver. 3.35K adds initialisation of the sequence number
+  tracking byte when opening a file, fixing a potential protocol error.
+
+**OSGBPB** (OS Get Bytes/Put Bytes)
+: MOS routine at &FFD1. Performs multi-byte file read or write operations
+using a 13-byte parameter block.
+
+  NFS intercepts OSGBPB via the GBPBV vector. The Tube host code for OSGBPB
+  had a bug in 3.35D where the carry result was not sent to the co-processor,
+  fixed in 3.35K.
 
 **OSRDCH** (OS Read Character)
 : MOS routine at &FFE0. Reads a single character from the current input
@@ -139,6 +173,33 @@ computers.
   the ADLC chip. Each station has a unique station number (and optional
   network number for bridged networks).
 
+**FIFO** (First In, First Out)
+: A hardware buffer in the MC6854 ADLC that queues bytes for transmission or
+reception. The ADLC has separate TX and RX FIFOs (3 bytes each).
+
+  NFS interrupt handlers feed outbound bytes into the TX FIFO and drain
+  inbound bytes from the RX FIFO during Econet frame transmission and
+  reception. FIFO status bits in the ADLC status registers drive the NMI
+  handler's decision to read or write data.
+
+**IRQ** (Interrupt Request)
+: A maskable hardware interrupt on the 6502 processor, triggered by
+peripheral devices pulling the IRQ line low.
+
+  In the BBC Micro, IRQs handle keyboard, timer, and VIA events. NFS's
+  Econet interrupt handling uses NMIs rather than IRQs for time-critical
+  network operations, since NMIs cannot be masked.
+
+**NMI** (Non-Maskable Interrupt)
+: A hardware interrupt on the 6502 that cannot be disabled. Triggered by
+the ADLC when Econet network activity requires immediate attention.
+
+  NFS installs an NMI handler (via the NMI workspace at &0D00) that manages
+  the ADLC during frame transmission and reception. The handler reads ADLC
+  status registers to determine the interrupt cause and processes TX/RX data
+  accordingly. The NMI shim at &0D00 dispatches to version-specific handlers
+  in pages 4-6.
+
 **Tube**
 : Acorn's second-processor interface, connecting the BBC Micro host to
 an external processor via four register pairs (R1-R4) at &FEE0-&FEE7.
@@ -163,6 +224,14 @@ second processor.
 **CFS** (Cassette Filing System)
 : The BBC Micro's built-in filing system for cassette tape storage.
 
+**CSD** (Current Selected Directory)
+: The currently active directory on the fileserver for file operations.
+Stored at &0F03 in the NFS workspace.
+
+  The CSD handle determines which directory is used for relative filename
+  lookups. In 3.35D, `*EX` conditionally skips filenames based on the CSD
+  handle state; this check was removed in 3.35K.
+
 **DFS** (Disc Filing System)
 : Filing system ROM for floppy disc storage, typically provided by Acorn
 or third-party ROMs.
@@ -171,11 +240,20 @@ or third-party ROMs.
 : A combined ROM containing both DFS and NFS, allowing disc and network
 access from a single ROM slot.
 
+**EOF** (End Of File)
+: Indicates that all data in a file has been read. NFS maintains per-handle
+EOF hint flags at &0E07 to avoid unnecessary network round-trips when
+checking file position.
+
+  The EOF hint cache was broken in 3.35D: a bug in the BGETV handler always
+  set the hint flag regardless of file position, forcing a network round-trip
+  on every EOF check. Fixed in 3.35K.
+
 **NFS** (Network Filing System)
 : The Econet filing system ROM that provides remote file access over the
 Econet network.
 
-  This project covers standalone NFS versions 3.34, 3.34B, and 3.35D.
+  This project covers standalone NFS versions 3.34, 3.34B, 3.35D, and 3.35K.
   The related DNFS 3.00/3.60 versions combine NFS with DFS in a single
   ROM.
 
