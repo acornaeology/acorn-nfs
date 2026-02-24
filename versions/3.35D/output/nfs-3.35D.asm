@@ -1092,7 +1092,7 @@ l8014 = l800d+7
     equb 3                                                            ; 8020: 03          .
     equb <(return_2-1)                                                ; 8021: 75          u
     equb <(svc_abs_workspace-1)                                       ; 8022: ab          .
-    equb <(sub_c82b5-1)                                               ; 8023: b4          .
+    equb <(svc_private_workspace-1)                                   ; 8023: b4          .
     equb <(svc_autoboot-1)                                            ; 8024: 0c          .
     equb <(sub_c8183-1)                                               ; 8025: 82          .
     equb <(svc_unknown_irq-1)                                         ; 8026: 6b          k
@@ -1133,7 +1133,7 @@ l8014 = l800d+7
     equb <(resume_after_remote-1)                                     ; 8044: 89          .
     equb >(return_2-1)                                                ; 8045: 81          .
     equb >(svc_abs_workspace-1)                                       ; 8046: 82          .
-    equb >(sub_c82b5-1)                                               ; 8047: 82          .
+    equb >(svc_private_workspace-1)                                   ; 8047: 82          .
     equb >(svc_autoboot-1)                                            ; 8048: 82          .
     equb >(sub_c8183-1)                                               ; 8049: 81          .
     equb >(svc_unknown_irq-1)                                         ; 804a: 96          .
@@ -1716,24 +1716,6 @@ l8014 = l800d+7
     ldx #&0a                                                          ; 8272: a2 0a       ..
     jsr osbyte                                                        ; 8274: 20 f4 ff     ..
     ldx nfs_temp                                                      ; 8277: a6 a8       ..
-; ***************************************************************************************
-; Service 2: claim private workspace and initialise NFS
-; 
-; Y = next available workspace page on entry.
-; Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
-; On soft break (OSBYTE &FD returns 0): skips FS state init,
-; preserving existing login state, file server selection, and
-; control block configuration — this is why pressing BREAK
-; keeps the user logged in.
-; On power-up/CTRL-BREAK (result non-zero):
-;   - Sets FS server station to &FE (FS, the default; no server)
-;   - Sets printer server to &EB (PS, the default)
-;   - Clears FS handles, OPT byte, message flag, SEQNOS
-;   - Initialises all RXCBs with &3F flag (available)
-; In both cases: reads station ID from &FE18 (only valid during
-; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
-; ***************************************************************************************
-.svc_private_workspace
     bne return_3                                                      ; 8279: d0 37       .7
     ldx #&82                                                          ; 827b: a2 82       ..
 ; &827d referenced 2 times by &8329, &832f
@@ -1766,7 +1748,24 @@ l8014 = l800d+7
 
     equb &7c, &90                                                     ; 82b3: 7c 90       |.
 
-.sub_c82b5
+; ***************************************************************************************
+; Service 2: claim private workspace and initialise NFS
+; 
+; Y = next available workspace page on entry.
+; Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
+; On soft break (OSBYTE &FD returns 0): skips FS state init,
+; preserving existing login state, file server selection, and
+; control block configuration — this is why pressing BREAK
+; keeps the user logged in.
+; On power-up/CTRL-BREAK (result non-zero):
+;   - Sets FS server station to &FE (FS, the default; no server)
+;   - Sets printer server to &EB (PS, the default)
+;   - Clears FS handles, OPT byte, message flag, SEQNOS
+;   - Initialises all RXCBs with &3F flag (available)
+; In both cases: reads station ID from &FE18 (only valid during
+; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
+; ***************************************************************************************
+.svc_private_workspace
     sty net_rx_ptr_hi                                                 ; 82b5: 84 9d       ..
     iny                                                               ; 82b7: c8          .
     sty nfs_workspace_hi                                              ; 82b8: 84 9f       ..
@@ -1919,21 +1918,36 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; TX control block template (TXTAB, 12 bytes)
 ; 
-; &00C0: &80 (control flag)    &00C1: &99 (port — FS command port)
-; &00C2: server station        &00C3: server network
-; &00C4: &00 (data low)        &00C5: &0F (data high — buffer page)
-; &00C6-&00CB: &FF (FILLER)
-; The &FF padding in the address fields is a recurring pattern:
-; Econet control blocks use 4-byte addresses but NFS only needs
-; 2-byte addresses, so the upper two bytes are filled with &FF.
+; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the
+; TX control block for FS commands: control flag, port, station/
+; network, and data buffer pointers (&0F00-&0FFF). The 4-byte
+; Econet addresses use only the low 2 bytes; upper bytes are &FF.
 ; ***************************************************************************************
 ; &8378 referenced 1 time by &8363
 .tx_ctrl_template
-    equb &80, &99, 0, 0, 0, &0f                                       ; 8378: 80 99 00... ...
+    equb &80                                                          ; 8378: 80          .              ; Control flag
+    equb &99                                                          ; 8379: 99          .              ; Port (FS command = &99)
+    equb 0                                                            ; 837a: 00          .              ; Station (filled at runtime)
+    equb 0                                                            ; 837b: 00          .              ; Network (filled at runtime)
+    equb 0                                                            ; 837c: 00          .              ; Buffer start low
+    equb &0f                                                          ; 837d: 0f          .              ; Buffer start high (page &0F)
 ; &837e referenced 3 times by &88c0, &899b, &9171
 .l837e
-    equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 837e: ff ff ff... ...
+    equb &ff                                                          ; 837e: ff          .              ; Buffer start pad (4-byte Econet addr)
+    equb &ff                                                          ; 837f: ff          .              ; Buffer start pad
+    equb &ff                                                          ; 8380: ff          .              ; Buffer end low
+    equb &0f                                                          ; 8381: 0f          .              ; Buffer end high (page &0F)
+    equb &ff                                                          ; 8382: ff          .              ; Buffer end pad
+    equb &ff                                                          ; 8383: ff          .              ; Buffer end pad
 
+; ***************************************************************************************
+; Prepare FS command with carry set
+; 
+; Alternate entry to prepare_fs_cmd that pushes A, loads &2A
+; into fs_error_ptr, and enters with carry set (SEC). The carry
+; flag is later tested by build_send_fs_cmd to select the
+; byte-stream (BSXMIT) transmission path.
+; ***************************************************************************************
 ; &8384 referenced 1 time by &8a61
 .prepare_cmd_with_flag
     pha                                                               ; 8384: 48          H
@@ -4265,8 +4279,11 @@ l8be3 = fs_cmd_match_table+1
 ; overlapping: sbc (l00e2),y                                          ; 8cf2: f1 e2       ..
 ; &8cf2 referenced 1 time by &8e3b
 .boot_option_offsets
-    equb &f1, &e2, &e4, &ea                                           ; 8cf2: f1 e2 e4... ...
+    equb &f1                                                          ; 8cf2: f1          .              ; Opt 0 (Off): bare CR
+    equb &e2                                                          ; 8cf3: e2          .              ; Opt 1 (Load): L.!BOOT
 ; overlapping: cpx l00ea                                              ; 8cf4: e4 ea       ..
+    equb &e4                                                          ; 8cf4: e4          .              ; Opt 2 (Run): !BOOT
+    equb &ea                                                          ; 8cf5: ea          .              ; Opt 3 (Exec): E.!BOOT
 ; overlapping: eor l0078                                              ; 8cf6: 45 78       Ex
     equs "Exec"                                                       ; 8cf6: 45 78 65... Exe
 ; overlapping: adc zp_63                                              ; 8cf8: 65 63       ec
@@ -5491,7 +5508,7 @@ osword_12_handler = sub_c8e7a+2
 ; ***************************************************************************************
 ; Alternate entry into control block setup
 ; 
-; Sets X=&0D, Y=&7C. Tests bit 6 of &833B to choose target:
+; Sets X=&0D, Y=&7C. Tests bit 6 of &837E to choose target:
 ;   V=0 (bit 6 clear): stores to (nfs_workspace)
 ;   V=1 (bit 6 set):   stores to (net_rx_ptr)
 ; ***************************************************************************************
@@ -5565,20 +5582,45 @@ osword_12_handler = sub_c8e7a+2
 ; 
 ; Two entry paths read different slices of this table:
 ;   ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0
-;   ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &833B
+;   ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &837E
 ; 
 ; Sentinel values:
 ;   &FE = stop processing
 ;   &FD = skip this offset (decrement Y but don't store)
 ;   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)
 ; ***************************************************************************************
+; overlapping: sta l0000                                              ; 91a2: 85 00       ..
 ; &91a2 referenced 1 time by &917b
 .ctrl_block_template
-    sta l0000                                                         ; 91a2: 85 00       ..
-    sbc l7dfd,x                                                       ; 91a4: fd fd 7d    ..}
-    equb &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80, &93   ; 91a7: fc ff ff... ...
-    equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; 91b3: fd fd d9... ...
-    equb &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; 91bf: fd fd 1f... ...
+    equb &85                                                          ; 91a2: 85          .              ; Alt-path only → Y=&6F
+    equb 0                                                            ; 91a3: 00          .              ; Alt-path only → Y=&70
+; overlapping: sbc l7dfd,x                                            ; 91a4: fd fd 7d    ..}
+    equb &fd                                                          ; 91a4: fd          .              ; SKIP
+    equb &fd                                                          ; 91a5: fd          .              ; SKIP
+    equb &7d                                                          ; 91a6: 7d          }              ; → Y=&01 / Y=&73
+    equb &fc                                                          ; 91a7: fc          .              ; PAGE byte → Y=&02 / Y=&74
+    equb &ff                                                          ; 91a8: ff          .              ; → Y=&03 / Y=&75
+    equb &ff                                                          ; 91a9: ff          .              ; → Y=&04 / Y=&76
+    equb &7e                                                          ; 91aa: 7e          ~              ; → Y=&05 / Y=&77
+    equb &fc                                                          ; 91ab: fc          .              ; PAGE byte → Y=&06 / Y=&78
+    equb &ff                                                          ; 91ac: ff          .              ; → Y=&07 / Y=&79
+    equb &ff                                                          ; 91ad: ff          .              ; → Y=&08 / Y=&7A
+    equb 0                                                            ; 91ae: 00          .              ; → Y=&09 / Y=&7B
+    equb 0                                                            ; 91af: 00          .              ; → Y=&0A / Y=&7C
+    equb &fe                                                          ; 91b0: fe          .              ; STOP — main-path boundary
+    equb &80                                                          ; 91b1: 80          .              ; → Y=&0C (main only)
+    equb &93                                                          ; 91b2: 93          .              ; → Y=&0D (main only)
+    equb &fd                                                          ; 91b3: fd          .              ; SKIP (main only)
+    equb &fd                                                          ; 91b4: fd          .              ; SKIP (main only)
+    equb &d9                                                          ; 91b5: d9          .              ; → Y=&10 (main only)
+    equb &fc                                                          ; 91b6: fc          .              ; PAGE byte → Y=&11 (main only)
+    equb &ff                                                          ; 91b7: ff          .              ; → Y=&12 (main only)
+    equb &ff                                                          ; 91b8: ff          .              ; → Y=&13 (main only)
+    equb &de                                                          ; 91b9: de          .              ; → Y=&14 (main only)
+    equb &fc                                                          ; 91ba: fc          .              ; PAGE byte → Y=&15 (main only)
+    equb &ff                                                          ; 91bb: ff          .              ; → Y=&16 (main only)
+    equb &ff                                                          ; 91bc: ff          .              ; → Y=&17 (main only)
+    equb &fe, &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff   ; 91bd: fe d1 fd... ...
 
 ; ***************************************************************************************
 ; Fn 5: printer selection changed (SELECT)
@@ -5878,13 +5920,12 @@ osword_12_handler = sub_c8e7a+2
     sta (nfs_workspace,x)                                             ; 9314: 81 9e       ..
     rts                                                               ; 9316: 60          `
 
-; Table of 3 OSBYTE codes used by save_palette_vdu_state (&92A4):
-;   &85 = read cursor position
-;   &C2 = read shadow RAM allocation
-;   &C3 = read screen start address
+; 3-entry OSBYTE table for save_palette_vdu (&92A4)
 ; &9317 referenced 1 time by &9309
 .osbyte_vdu_table
-    equb &85, &c2, &c3                                                ; 9317: 85 c2 c3    ...
+    equb &85                                                          ; 9317: 85          .              ; OSBYTE &85: read cursor position
+    equb &c2                                                          ; 9318: c2          .              ; OSBYTE &C2: read shadow RAM allocation
+    equb &c3                                                          ; 9319: c3          .              ; OSBYTE &C3: read screen start address
 ; &931a referenced 1 time by &8144
 
     org &965f
@@ -7940,7 +7981,6 @@ l9ee1 = sub_c9ee0+1
     assert <(set_lib_handle-1) == &1c
     assert <(sub_c0490-1) == &8f
     assert <(sub_c8183-1) == &82
-    assert <(sub_c82b5-1) == &b4
     assert <(sub_c8dc7-1) == &c6
     assert <(sub_c8e5e-1) == &5d
     assert <(sub_c8e6e-1) == &6d
@@ -7954,6 +7994,7 @@ l9ee1 = sub_c9ee0+1
     assert <(svc_help-1) == &f6
     assert <(svc_nmi_claim-1) == &68
     assert <(svc_nmi_release-1) == &65
+    assert <(svc_private_workspace-1) == &b4
     assert <(svc_unknown_irq-1) == &6b
     assert <(tx_ctrl_exit-1) == &53
     assert <(tx_ctrl_peek-1) == &f6
@@ -7999,7 +8040,6 @@ l9ee1 = sub_c9ee0+1
     assert >(set_lib_handle-1) == &8e
     assert >(sub_c0490-1) == &04
     assert >(sub_c8183-1) == &81
-    assert >(sub_c82b5-1) == &82
     assert >(sub_c8dc7-1) == &8d
     assert >(sub_c8e5e-1) == &8e
     assert >(sub_c8e6e-1) == &8e
@@ -8013,6 +8053,7 @@ l9ee1 = sub_c9ee0+1
     assert >(svc_help-1) == &81
     assert >(svc_nmi_claim-1) == &96
     assert >(svc_nmi_release-1) == &96
+    assert >(svc_private_workspace-1) == &82
     assert >(svc_unknown_irq-1) == &96
     assert >(tx_ctrl_exit-1) == &9d
     assert >(tx_ctrl_peek-1) == &9c
@@ -8064,11 +8105,11 @@ save pydis_start, pydis_end
 ;     nfs_workspace_hi:                        10
 ;     rom_svc_num:                             10
 ;     tube_addr_claim:                         10
-;     l0000:                                    9
 ;     l00c8:                                    9
 ;     nmi_tx_block_hi:                          9
 ;     rx_src_stn:                               9
 ;     tube_data_register_3:                     9
+;     l0000:                                    8
 ;     l00ad:                                    8
 ;     l00b4:                                    8
 ;     l00c4:                                    8
@@ -8612,7 +8653,6 @@ save pydis_start, pydis_end
 ;     l18a5:                                    1
 ;     l212e:                                    1
 ;     l4:                                       1
-;     l7dfd:                                    1
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
@@ -9196,7 +9236,6 @@ save pydis_start, pydis_end
 ;     loop_c9f86
 ;     sub_c0490
 ;     sub_c8183
-;     sub_c82b5
 ;     sub_c8352
 ;     sub_c86c5
 ;     sub_c8dc7
@@ -9219,11 +9258,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7511 bytes (92%)
-;     Data                     = 681 bytes (8%)
+;     Code                     = 7506 bytes (92%)
+;     Data                     = 686 bytes (8%)
 ;
-;     Number of instructions   = 3626
-;     Number of data bytes     = 415 bytes
+;     Number of instructions   = 3624
+;     Number of data bytes     = 420 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 266 bytes
 ;     Number of strings        = 37

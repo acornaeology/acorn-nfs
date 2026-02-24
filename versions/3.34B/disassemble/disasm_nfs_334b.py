@@ -1891,13 +1891,42 @@ command data length=&0F, plus padding bytes.""")
 subroutine(0x8335, "tx_ctrl_template", hook=None,
     title="TX control block template (TXTAB, 12 bytes)",
     description="""\
-&00C0: &80 (control flag)    &00C1: &99 (port — FS command port)
-&00C2: server station        &00C3: server network
-&00C4: &00 (data low)        &00C5: &0F (data high — buffer page)
-&00C6-&00CB: &FF (FILLER)
-The &FF padding in the address fields is a recurring pattern:
-Econet control blocks use 4-byte addresses but NFS only needs
-2-byte addresses, so the upper two bytes are filled with &FF.""")
+12-byte template copied to &00C0 by init_tx_ctrl. Defines the
+TX control block for FS commands: control flag, port, station/
+network, and data buffer pointers (&0F00-&0FFF). The 4-byte
+Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
+byte(0x8335, 1)
+comment(0x8335, "Control flag", inline=True)
+byte(0x8336, 1)
+comment(0x8336, "Port (FS command = &99)", inline=True)
+byte(0x8337, 1)
+comment(0x8337, "Station (filled at runtime)", inline=True)
+byte(0x8338, 1)
+comment(0x8338, "Network (filled at runtime)", inline=True)
+byte(0x8339, 1)
+comment(0x8339, "Buffer start low", inline=True)
+byte(0x833A, 1)
+comment(0x833A, "Buffer start high (page &0F)", inline=True)
+byte(0x833B, 1)
+comment(0x833B, "Buffer start pad (4-byte Econet addr)", inline=True)
+byte(0x833C, 1)
+comment(0x833C, "Buffer start pad", inline=True)
+byte(0x833D, 1)
+comment(0x833D, "Buffer end low", inline=True)
+byte(0x833E, 1)
+comment(0x833E, "Buffer end high (page &0F)", inline=True)
+byte(0x833F, 1)
+comment(0x833F, "Buffer end pad", inline=True)
+byte(0x8340, 1)
+comment(0x8340, "Buffer end pad", inline=True)
+
+subroutine(0x8341, "prepare_cmd_with_flag", hook=None,
+    title="Prepare FS command with carry set",
+    description="""\
+Alternate entry to prepare_fs_cmd that pushes A, loads &2A
+into fs_error_ptr, and enters with carry set (SEC). The carry
+flag is later tested by build_send_fs_cmd to select the
+byte-stream (BSXMIT) transmission path.""")
 
 # ============================================================
 # Prepare FS command (&8351)
@@ -2464,6 +2493,14 @@ subroutine(0x8D03, "boot_option_offsets", hook=None,
 Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.""")
+byte(0x8D03, 1)
+comment(0x8D03, "Opt 0 (Off): bare CR", inline=True)
+byte(0x8D04, 1)
+comment(0x8D04, "Opt 1 (Load): L.!BOOT", inline=True)
+byte(0x8D05, 1)
+comment(0x8D05, "Opt 2 (Run): !BOOT", inline=True)
+byte(0x8D06, 1)
+comment(0x8D06, "Opt 3 (Exec): E.!BOOT", inline=True)
 
 subroutine(0x8D07, "i_am_handler", hook=None,
     title="\"I AM\" command handler",
@@ -2766,6 +2803,60 @@ Sentinel values:
   &FE = stop processing
   &FD = skip this offset (decrement Y but don't store)
   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)""")
+byte(0x918F, 1)
+comment(0x918F, "Alt-path only → Y=&6F", inline=True)
+byte(0x9190, 1)
+comment(0x9190, "Alt-path only → Y=&70", inline=True)
+byte(0x9191, 1)
+comment(0x9191, "SKIP", inline=True)
+byte(0x9192, 1)
+comment(0x9192, "SKIP", inline=True)
+byte(0x9193, 1)
+comment(0x9193, "→ Y=&01 / Y=&73", inline=True)
+byte(0x9194, 1)
+comment(0x9194, "PAGE byte → Y=&02 / Y=&74", inline=True)
+byte(0x9195, 1)
+comment(0x9195, "→ Y=&03 / Y=&75", inline=True)
+byte(0x9196, 1)
+comment(0x9196, "→ Y=&04 / Y=&76", inline=True)
+byte(0x9197, 1)
+comment(0x9197, "→ Y=&05 / Y=&77", inline=True)
+byte(0x9198, 1)
+comment(0x9198, "PAGE byte → Y=&06 / Y=&78", inline=True)
+byte(0x9199, 1)
+comment(0x9199, "→ Y=&07 / Y=&79", inline=True)
+byte(0x919A, 1)
+comment(0x919A, "→ Y=&08 / Y=&7A", inline=True)
+byte(0x919B, 1)
+comment(0x919B, "→ Y=&09 / Y=&7B", inline=True)
+byte(0x919C, 1)
+comment(0x919C, "→ Y=&0A / Y=&7C", inline=True)
+byte(0x919D, 1)
+comment(0x919D, "STOP — main-path boundary", inline=True)
+byte(0x919E, 1)
+comment(0x919E, "→ Y=&0C (main only)", inline=True)
+byte(0x919F, 1)
+comment(0x919F, "→ Y=&0D (main only)", inline=True)
+byte(0x91A0, 1)
+comment(0x91A0, "SKIP (main only)", inline=True)
+byte(0x91A1, 1)
+comment(0x91A1, "SKIP (main only)", inline=True)
+byte(0x91A2, 1)
+comment(0x91A2, "→ Y=&10 (main only)", inline=True)
+byte(0x91A3, 1)
+comment(0x91A3, "PAGE byte → Y=&11 (main only)", inline=True)
+byte(0x91A4, 1)
+comment(0x91A4, "→ Y=&12 (main only)", inline=True)
+byte(0x91A5, 1)
+comment(0x91A5, "→ Y=&13 (main only)", inline=True)
+byte(0x91A6, 1)
+comment(0x91A6, "→ Y=&14 (main only)", inline=True)
+byte(0x91A7, 1)
+comment(0x91A7, "PAGE byte → Y=&15 (main only)", inline=True)
+byte(0x91A8, 1)
+comment(0x91A8, "→ Y=&16 (main only)", inline=True)
+byte(0x91A9, 1)
+comment(0x91A9, "→ Y=&17 (main only)", inline=True)
 
 # ============================================================
 # Bidirectional block copy (&8E23)
@@ -3089,11 +3180,13 @@ of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 # OSBYTE code table for VDU state save (&9305)
 # ============================================================
 label(0x9305, "osbyte_vdu_table")
-comment(0x9305, """\
-Table of 3 OSBYTE codes used by save_palette_vdu_state (&9292):
-  &85 = read cursor position
-  &C2 = read shadow RAM allocation
-  &C3 = read screen start address""")
+comment(0x9305, "3-entry OSBYTE table for save_palette_vdu (&9292)")
+byte(0x9305, 1)
+comment(0x9305, "OSBYTE &85: read cursor position", inline=True)
+byte(0x9306, 1)
+comment(0x9306, "OSBYTE &C2: read shadow RAM allocation", inline=True)
+byte(0x9307, 1)
+comment(0x9307, "OSBYTE &C3: read screen start address", inline=True)
 
 # ============================================================
 # Relocated code block sources (&9308, &934D, &944D, &954D)

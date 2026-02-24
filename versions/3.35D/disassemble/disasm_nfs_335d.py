@@ -490,7 +490,7 @@ label(0x06D6, "tube_send_r4")       # Poll R4 status, write A to R4 data (WRIFOR
 # Service call numbers and their dispatch table indices:
 #   svc 0  → index 1  → return_2 (no-op)
 #   svc 1  → index 2  → svc_abs_workspace (&8270)
-#   svc 2  → index 3  → svc_private_workspace (&8279)
+#   svc 2  → index 3  → svc_private_workspace (&82B5)
 #   svc 3  → index 4  → svc_autoboot (&81D2)
 #   svc 4  → index 5  → svc_star_command (&8172)
 #   svc 5  → index 6  → svc_unknown_irq (&966C) → JMP c9b52
@@ -1738,9 +1738,9 @@ and FS command buffer (&0F). If Y >= &10, workspace already
 allocated — returns unchanged.""")
 
 # ============================================================
-# Service 2: claim private workspace (&8279)
+# Service 2: claim private workspace (&82B5)
 # ============================================================
-subroutine(0x8279, "svc_private_workspace", hook=None,
+subroutine(0x82B5, "svc_private_workspace", hook=None,
     title="Service 2: claim private workspace and initialise NFS",
     description="""\
 Y = next available workspace page on entry.
@@ -1881,13 +1881,42 @@ command data length=&0F, plus padding bytes.""")
 subroutine(0x8378, "tx_ctrl_template", hook=None,
     title="TX control block template (TXTAB, 12 bytes)",
     description="""\
-&00C0: &80 (control flag)    &00C1: &99 (port — FS command port)
-&00C2: server station        &00C3: server network
-&00C4: &00 (data low)        &00C5: &0F (data high — buffer page)
-&00C6-&00CB: &FF (FILLER)
-The &FF padding in the address fields is a recurring pattern:
-Econet control blocks use 4-byte addresses but NFS only needs
-2-byte addresses, so the upper two bytes are filled with &FF.""")
+12-byte template copied to &00C0 by init_tx_ctrl. Defines the
+TX control block for FS commands: control flag, port, station/
+network, and data buffer pointers (&0F00-&0FFF). The 4-byte
+Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
+byte(0x8378, 1)
+comment(0x8378, "Control flag", inline=True)
+byte(0x8379, 1)
+comment(0x8379, "Port (FS command = &99)", inline=True)
+byte(0x837A, 1)
+comment(0x837A, "Station (filled at runtime)", inline=True)
+byte(0x837B, 1)
+comment(0x837B, "Network (filled at runtime)", inline=True)
+byte(0x837C, 1)
+comment(0x837C, "Buffer start low", inline=True)
+byte(0x837D, 1)
+comment(0x837D, "Buffer start high (page &0F)", inline=True)
+byte(0x837E, 1)
+comment(0x837E, "Buffer start pad (4-byte Econet addr)", inline=True)
+byte(0x837F, 1)
+comment(0x837F, "Buffer start pad", inline=True)
+byte(0x8380, 1)
+comment(0x8380, "Buffer end low", inline=True)
+byte(0x8381, 1)
+comment(0x8381, "Buffer end high (page &0F)", inline=True)
+byte(0x8382, 1)
+comment(0x8382, "Buffer end pad", inline=True)
+byte(0x8383, 1)
+comment(0x8383, "Buffer end pad", inline=True)
+
+subroutine(0x8384, "prepare_cmd_with_flag", hook=None,
+    title="Prepare FS command with carry set",
+    description="""\
+Alternate entry to prepare_fs_cmd that pushes A, loads &2A
+into fs_error_ptr, and enters with carry set (SEC). The carry
+flag is later tested by build_send_fs_cmd to select the
+byte-stream (BSXMIT) transmission path.""")
 
 # ============================================================
 # Prepare FS command (&8351)
@@ -2469,7 +2498,14 @@ subroutine(0x8CF2, "boot_option_offsets", hook=None,
 Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
 command string for that boot option lives. See boot_cmd_strings.""")
-byte(0x8CF2, 4)
+byte(0x8CF2, 1)
+comment(0x8CF2, "Opt 0 (Off): bare CR", inline=True)
+byte(0x8CF3, 1)
+comment(0x8CF3, "Opt 1 (Load): L.!BOOT", inline=True)
+byte(0x8CF4, 1)
+comment(0x8CF4, "Opt 2 (Run): !BOOT", inline=True)
+byte(0x8CF5, 1)
+comment(0x8CF5, "Opt 3 (Exec): E.!BOOT", inline=True)
 string(0x8CF6, 4)
 comment(0x8CDE, """\
 Option name encoding: in 3.35, the boot option names ("Off",
@@ -2744,7 +2780,7 @@ further analysis.""")
 subroutine(0x916D, "ctrl_block_setup_alt", hook=None,
     title="Alternate entry into control block setup",
     description="""\
-Sets X=&0D, Y=&7C. Tests bit 6 of &833B to choose target:
+Sets X=&0D, Y=&7C. Tests bit 6 of &837E to choose target:
   V=0 (bit 6 clear): stores to (nfs_workspace)
   V=1 (bit 6 set):   stores to (net_rx_ptr)""")
 
@@ -2772,12 +2808,66 @@ down to 0. Values are stored into either (nfs_workspace) or
 
 Two entry paths read different slices of this table:
   ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0
-  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &833B
+  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &837E
 
 Sentinel values:
   &FE = stop processing
   &FD = skip this offset (decrement Y but don't store)
   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)""")
+byte(0x91A2, 1)
+comment(0x91A2, "Alt-path only → Y=&6F", inline=True)
+byte(0x91A3, 1)
+comment(0x91A3, "Alt-path only → Y=&70", inline=True)
+byte(0x91A4, 1)
+comment(0x91A4, "SKIP", inline=True)
+byte(0x91A5, 1)
+comment(0x91A5, "SKIP", inline=True)
+byte(0x91A6, 1)
+comment(0x91A6, "→ Y=&01 / Y=&73", inline=True)
+byte(0x91A7, 1)
+comment(0x91A7, "PAGE byte → Y=&02 / Y=&74", inline=True)
+byte(0x91A8, 1)
+comment(0x91A8, "→ Y=&03 / Y=&75", inline=True)
+byte(0x91A9, 1)
+comment(0x91A9, "→ Y=&04 / Y=&76", inline=True)
+byte(0x91AA, 1)
+comment(0x91AA, "→ Y=&05 / Y=&77", inline=True)
+byte(0x91AB, 1)
+comment(0x91AB, "PAGE byte → Y=&06 / Y=&78", inline=True)
+byte(0x91AC, 1)
+comment(0x91AC, "→ Y=&07 / Y=&79", inline=True)
+byte(0x91AD, 1)
+comment(0x91AD, "→ Y=&08 / Y=&7A", inline=True)
+byte(0x91AE, 1)
+comment(0x91AE, "→ Y=&09 / Y=&7B", inline=True)
+byte(0x91AF, 1)
+comment(0x91AF, "→ Y=&0A / Y=&7C", inline=True)
+byte(0x91B0, 1)
+comment(0x91B0, "STOP — main-path boundary", inline=True)
+byte(0x91B1, 1)
+comment(0x91B1, "→ Y=&0C (main only)", inline=True)
+byte(0x91B2, 1)
+comment(0x91B2, "→ Y=&0D (main only)", inline=True)
+byte(0x91B3, 1)
+comment(0x91B3, "SKIP (main only)", inline=True)
+byte(0x91B4, 1)
+comment(0x91B4, "SKIP (main only)", inline=True)
+byte(0x91B5, 1)
+comment(0x91B5, "→ Y=&10 (main only)", inline=True)
+byte(0x91B6, 1)
+comment(0x91B6, "PAGE byte → Y=&11 (main only)", inline=True)
+byte(0x91B7, 1)
+comment(0x91B7, "→ Y=&12 (main only)", inline=True)
+byte(0x91B8, 1)
+comment(0x91B8, "→ Y=&13 (main only)", inline=True)
+byte(0x91B9, 1)
+comment(0x91B9, "→ Y=&14 (main only)", inline=True)
+byte(0x91BA, 1)
+comment(0x91BA, "PAGE byte → Y=&15 (main only)", inline=True)
+byte(0x91BB, 1)
+comment(0x91BB, "→ Y=&16 (main only)", inline=True)
+byte(0x91BC, 1)
+comment(0x91BC, "→ Y=&17 (main only)", inline=True)
 
 # ============================================================
 # Bidirectional block copy (&8E23)
@@ -3093,11 +3183,13 @@ of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 # OSBYTE code table for VDU state save (&9305)
 # ============================================================
 label(0x9317, "osbyte_vdu_table")
-comment(0x9317, """\
-Table of 3 OSBYTE codes used by save_palette_vdu_state (&92A4):
-  &85 = read cursor position
-  &C2 = read shadow RAM allocation
-  &C3 = read screen start address""")
+comment(0x9317, "3-entry OSBYTE table for save_palette_vdu (&92A4)")
+byte(0x9317, 1)
+comment(0x9317, "OSBYTE &85: read cursor position", inline=True)
+byte(0x9318, 1)
+comment(0x9318, "OSBYTE &C2: read shadow RAM allocation", inline=True)
+byte(0x9319, 1)
+comment(0x9319, "OSBYTE &C3: read screen start address", inline=True)
 
 # ============================================================
 # Relocated code block sources (&9308, &934D, &944D, &954D)
