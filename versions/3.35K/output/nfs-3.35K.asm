@@ -122,7 +122,6 @@ l0350                                   = &0350
 l0351                                   = &0351
 l0355                                   = &0355
 l0700                                   = &0700
-l078d                                   = &078d
 l0cff                                   = &0cff
 nmi_shim_07                             = &0d07
 nmi_jmp_lo                              = &0d0c
@@ -215,7 +214,6 @@ l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l7dfd                                   = &7dfd
-la260                                   = &a260
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
 romsel                                  = &fe30
@@ -2481,7 +2479,7 @@ l8014 = l800d+7
 ; &8544 referenced 1 time by &853b
 .c8544
     lda l00cf                                                         ; 8544: a5 cf       ..
-    jsr l8659                                                         ; 8546: 20 59 86     Y.
+    jsr set_fs_flag                                                   ; 8546: 20 59 86     Y.
 ; &8549 referenced 1 time by &8542
 .c8549
     lda l0fde                                                         ; 8549: ad de 0f    ...
@@ -2823,39 +2821,35 @@ l8014 = l800d+7
 ; Clear bit(s) in FS flags (&0E07)
 ; 
 ; Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-; the specified bits. Falls through to store the result.
+; the specified bits. JMPs to the shared STA at &865C, skipping
+; the ORA in set_fs_flag.
 ; ***************************************************************************************
 ; &8651 referenced 3 times by &853f, &8869, &8aa5
 .clear_fs_flag
     eor #&ff                                                          ; 8651: 49 ff       I.
     and fs_eof_flags                                                  ; 8653: 2d 07 0e    -..
-    jmp l865c                                                         ; 8656: 4c 5c 86    L\.
-
-; overlapping: ora fs_eof_flags                                       ; 8659: 0d 07 0e    ...
-; &8659 referenced 5 times by &8546, &894f, &899e, &89c5, &8aa8
-.l8659
-    equb &0d, 7                                                       ; 8659: 0d 07       ..
+    jmp c865c                                                         ; 8656: 4c 5c 86    L\.
 
 ; ***************************************************************************************
 ; Set bit(s) in FS flags (&0E07)
 ; 
-; ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
-; one of up to 8 open file handles. When clear, the file is
-; definitely NOT at EOF. When set, the fileserver must be queried
-; to confirm EOF status. This negative-cache optimisation avoids
-; expensive network round-trips for the common case. The hint is
-; cleared when the file pointer is updated (since seeking away
-; from EOF invalidates the hint) and set after BGET/OPEN/EOF
-; operations that might have reached the end.
+; ORs A into fs_work_0e07 (EOF hint byte), then falls through
+; to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+; Each bit represents one of up to 8 open file handles. When
+; clear, the file is definitely NOT at EOF. When set, the
+; fileserver must be queried to confirm EOF status. This
+; negative-cache optimisation avoids expensive network
+; round-trips for the common case. The hint is cleared when
+; the file pointer is updated (since seeking away from EOF
+; invalidates the hint) and set after BGET/OPEN/EOF operations
+; that might have reached the end.
 ; ***************************************************************************************
+; &8659 referenced 5 times by &8546, &894f, &899e, &89c5, &8aa8
 .set_fs_flag
-l865c = set_fs_flag+1
-    asl l078d                                                         ; 865b: 0e 8d 07    ...
-; overlapping: sta fs_eof_flags                                       ; 865c: 8d 07 0e    ...
+    ora fs_eof_flags                                                  ; 8659: 0d 07 0e    ...
 ; &865c referenced 1 time by &8656
-; overlapping: asl la260                                              ; 865e: 0e 60 a2    .`.
-    equb &0e                                                          ; 865e: 0e          .
-
+.c865c
+    sta fs_eof_flags                                                  ; 865c: 8d 07 0e    ...
     rts                                                               ; 865f: 60          `
 
 ; ***************************************************************************************
@@ -2868,9 +2862,7 @@ l865c = set_fs_flag+1
 ; &8660 referenced 2 times by &83b6, &8836
 .setup_tx_ptr_c0
     ldx #&c0                                                          ; 8660: a2 c0       ..
-; overlapping: cpy #&86                                               ; 8661: c0 86       ..
     stx net_tx_ptr                                                    ; 8662: 86 9a       ..
-; overlapping: txs                                                    ; 8663: 9a          .
     ldx #0                                                            ; 8664: a2 00       ..
     stx net_tx_ptr_hi                                                 ; 8666: 86 9b       ..
 ; ***************************************************************************************
@@ -3577,7 +3569,7 @@ l865c = set_fs_flag+1
     jsr prepare_fs_cmd                                                ; 8949: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     stx fs_last_byte_flag                                             ; 894c: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 894e: 68          h
-    jsr l8659                                                         ; 894f: 20 59 86     Y.
+    jsr set_fs_flag                                                   ; 894f: 20 59 86     Y.
 ; ***************************************************************************************
 ; Restore arguments and return
 ; 
@@ -3663,7 +3655,7 @@ l865c = set_fs_flag+1
     bcs c8954                                                         ; 8998: b0 ba       ..
     lda fs_cmd_data                                                   ; 899a: ad 05 0f    ...
     tax                                                               ; 899d: aa          .
-    jsr l8659                                                         ; 899e: 20 59 86     Y.
+    jsr set_fs_flag                                                   ; 899e: 20 59 86     Y.
 ; 3.35K fix: OR handle bit into fs_sequence_nos
 ; (&0E08). Without this, a newly opened file could
 ; inherit a stale sequence number from a previous
@@ -3702,7 +3694,7 @@ l865c = set_fs_flag+1
     ldy #7                                                            ; 89bd: a0 07       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 89bf: 20 8a 83     ..            ; Prepare FS command buffer (12 references)
     lda fs_cmd_data                                                   ; 89c2: ad 05 0f    ...
-    jsr l8659                                                         ; 89c5: 20 59 86     Y.
+    jsr set_fs_flag                                                   ; 89c5: 20 59 86     Y.
 ; &89c8 referenced 1 time by &89ec
 .c89c8
     bcc restore_args_return                                           ; 89c8: 90 88       ..
@@ -3905,7 +3897,7 @@ l865c = set_fs_flag+1
     jsr clear_fs_flag                                                 ; 8aa5: 20 51 86     Q.
 ; &8aa8 referenced 1 time by &8aa3
 .c8aa8
-    jsr l8659                                                         ; 8aa8: 20 59 86     Y.
+    jsr set_fs_flag                                                   ; 8aa8: 20 59 86     Y.
     stx fs_load_addr_2                                                ; 8aab: 86 b2       ..
     jsr adjust_addrs_9                                                ; 8aad: 20 ee 89     ..
     dec fs_load_addr_2                                                ; 8ab0: c6 b2       ..
@@ -8197,11 +8189,11 @@ save pydis_start, pydis_end
 ;     l0100:                                    5
 ;     l0106:                                    5
 ;     l0f07:                                    5
-;     l8659:                                    5
 ;     printer_buf_ptr:                          5
 ;     rx_ctrl:                                  5
 ;     rx_port:                                  5
 ;     scout_error:                              5
+;     set_fs_flag:                              5
 ;     system_via_acr:                           5
 ;     tube_reply_byte:                          5
 ;     tube_send_r1:                             5
@@ -8217,6 +8209,7 @@ save pydis_start, pydis_end
 ;     data_tx_last:                             4
 ;     discard_reset_listen:                     4
 ;     fs_cmd_context:                           4
+;     fs_eof_flags:                             4
 ;     fs_server_net:                            4
 ;     init_tx_ctrl_block:                       4
 ;     l0015:                                    4
@@ -8344,7 +8337,6 @@ save pydis_start, pydis_end
 ;     flush_output_block:                       2
 ;     fs_cmd_match_table:                       2
 ;     fs_cmd_y_param:                           2
-;     fs_eof_flags:                             2
 ;     fs_last_error:                            2
 ;     fs_lib_handle:                            2
 ;     fs_putb_buf:                              2
@@ -8487,6 +8479,7 @@ save pydis_start, pydis_end
 ;     c85e7:                                    1
 ;     c85f0:                                    1
 ;     c8618:                                    1
+;     c865c:                                    1
 ;     c8673:                                    1
 ;     c86ac:                                    1
 ;     c8712:                                    1
@@ -8683,7 +8676,6 @@ save pydis_start, pydis_end
 ;     l0351:                                    1
 ;     l0355:                                    1
 ;     l046b:                                    1
-;     l078d:                                    1
 ;     l0cff:                                    1
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
@@ -8704,7 +8696,6 @@ save pydis_start, pydis_end
 ;     l8002:                                    1
 ;     l8004:                                    1
 ;     l8014:                                    1
-;     l865c:                                    1
 ;     l8be5:                                    1
 ;     l8ef5:                                    1
 ;     l912b:                                    1
@@ -8961,6 +8952,7 @@ save pydis_start, pydis_end
 ;     c8617
 ;     c8618
 ;     c8634
+;     c865c
 ;     c8673
 ;     c86a0
 ;     c86a8
@@ -9150,7 +9142,6 @@ save pydis_start, pydis_end
 ;     l0355
 ;     l046b
 ;     l0700
-;     l078d
 ;     l0cff
 ;     l0d1e
 ;     l0d58
@@ -9187,8 +9178,6 @@ save pydis_start, pydis_end
 ;     l800d
 ;     l8014
 ;     l8374
-;     l8659
-;     l865c
 ;     l8be5
 ;     l8ef5
 ;     l912b
@@ -9200,7 +9189,6 @@ save pydis_start, pydis_end
 ;     l9c6a
 ;     l9ed9
 ;     l9ee1
-;     la260
 ;     loop_c0430
 ;     loop_c0448
 ;     loop_c048a
@@ -9291,11 +9279,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7569 bytes (92%)
-;     Data                     = 623 bytes (8%)
+;     Code                     = 7572 bytes (92%)
+;     Data                     = 620 bytes (8%)
 ;
-;     Number of instructions   = 3651
-;     Number of data bytes     = 395 bytes
+;     Number of instructions   = 3652
+;     Number of data bytes     = 392 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 228 bytes
 ;     Number of strings        = 36

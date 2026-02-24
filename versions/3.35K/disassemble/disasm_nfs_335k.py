@@ -1491,25 +1491,29 @@ address (&B4-&B7) during multi-block file data transfers.""",
              "y": "preserved"})
 
 # ============================================================
-# FS flags (&8651 / &865B)
+# FS flags (&8651 / &8659)
 # ============================================================
 subroutine(0x8651, "clear_fs_flag", hook=None,
     title="Clear bit(s) in FS flags (&0E07)",
     description="""\
 Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-the specified bits. Falls through to store the result.""")
+the specified bits. JMPs to the shared STA at &865C, skipping
+the ORA in set_fs_flag.""")
 
-subroutine(0x865B, "set_fs_flag", hook=None,
+entry(0x8659)
+subroutine(0x8659, "set_fs_flag", hook=None,
     title="Set bit(s) in FS flags (&0E07)",
     description="""\
-ORs A into fs_work_0e07 (EOF hint byte). Each bit represents
-one of up to 8 open file handles. When clear, the file is
-definitely NOT at EOF. When set, the fileserver must be queried
-to confirm EOF status. This negative-cache optimisation avoids
-expensive network round-trips for the common case. The hint is
-cleared when the file pointer is updated (since seeking away
-from EOF invalidates the hint) and set after BGET/OPEN/EOF
-operations that might have reached the end.""")
+ORs A into fs_work_0e07 (EOF hint byte), then falls through
+to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+Each bit represents one of up to 8 open file handles. When
+clear, the file is definitely NOT at EOF. When set, the
+fileserver must be queried to confirm EOF status. This
+negative-cache optimisation avoids expensive network
+round-trips for the common case. The hint is cleared when
+the file pointer is updated (since seeking away from EOF
+invalidates the hint) and set after BGET/OPEN/EOF operations
+that might have reached the end.""")
 
 # ============================================================
 # Print file info (&8CFC)
