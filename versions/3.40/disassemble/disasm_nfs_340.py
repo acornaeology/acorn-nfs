@@ -532,15 +532,15 @@ entry(0x9663)
 # label at $8280 removed — fs_vector_addrs mapped to $8294 in 3.40
 
 # --- FSCV handler and dispatch ---
-# FSCV (&80C7) dispatches via secondary indices 19-26:
-#   FSCV 0 (*OPT)               → index 19 → opt_handler (&89CA)
-#   FSCV 1 (EOF)                → index 20 → eof_handler (&884C)
-#   FSCV 2 (*/ run)             → index 21 → fscv_star_handler (match known FS commands)
-#   FSCV 3 (unrecognised *)     → index 22 → fscv_star_handler (match known FS commands)
-#   FSCV 4 (*RUN)               → index 23 → fscv_star_handler (match known FS commands)
-#   FSCV 5 (*CAT)               → index 24 → cat_handler (&8C02)
-#   FSCV 6 (shut down)          → index 25 → fscv_shutdown (&8337)
-#   FSCV 7 (read handles/info)  → index 26 → fscv_read_handles (&864C)
+# FSCV dispatches via table indices 20-27 (base Y=&13):
+#   FSCV 0 (*OPT)               → index 20 → &89E8 (BEQ before opt_handler)
+#   FSCV 1 (EOF)                → index 21 → eof_handler
+#   FSCV 2 (*/ run)             → index 22 → fscv_star_handler
+#   FSCV 3 (unrecognised *)     → index 23 → fscv_star_handler
+#   FSCV 4 (*RUN)               → index 24 → fscv_star_handler
+#   FSCV 5 (*CAT)               → index 25 → cat_handler
+#   FSCV 6 (shut down)          → index 26 → fscv_shutdown
+#   FSCV 7 (read handles/info)  → index 27 → fscv_read_handles
 #
 # Extended dispatch table entries (indices 27-36):
 # These appear to be used by FS reply processing and *NET sub-commands.
@@ -551,11 +551,11 @@ entry(0x9663)
 #   index 31 → notify_and_exec (&8DC5)       (send FS notify, execute response)
 #   index 32 → set_lib_handle (&8E15)        (update library handle)
 #
-# *NET sub-commands (base Y=&20, indices 33-36):
-#   *NET1 → index 33 → net1_read_handle (&8E3B)
-#   *NET2 → index 34 → net2_read_handle_entry (&8E56)
-#   *NET3 → index 35 → net3_close_handle (&8E66)
-#   *NET4 → index 36 → resume_after_remote (&8180)
+# *NET sub-commands (base Y=&21, indices 35-38):
+#   *NET1 → index 35 → net1_read_handle (&8E59)
+#   *NET2 → index 36 → net2_read_handle_entry (&8E5F)
+#   *NET3 → index 37 → net3_close_handle (&8E6F)
+#   *NET4 → index 38 → resume_after_remote (&81B8)
 # --- Filing system vector entry points ---
 # Extended vector table entries set up at init (&831F):
 #   FILEV → &86DE    ARGSV → &8907    BGETV → &852E
@@ -1003,13 +1003,13 @@ Key ADLC register values:
 for i in range(1, 14):
     rts_code_ptr(0x8020 + i, 0x8044 + i)
 
-# Language entry handlers (indices 14-18)
+# Language entry handlers (indices 15-19, base Y=&0E)
 for i in range(14, 19):
     rts_code_ptr(0x8020 + i, 0x8044 + i)
 
-# Indices 19-32: secondary dispatch for *-command parsing and
-# filing system operations. Accessed via callers at &80B4 (Y=&12)
-# and &80C7 (Y=&13). The exact mapping of indices to individual
+# Indices 20-32: secondary dispatch for *-command parsing and
+# filing system operations. Accessed via FSCV (Y=&13).
+# The exact mapping of indices to individual
 # handlers hasn't been fully traced yet.
 for i in range(19, 33):
     if i == 30:
@@ -1593,8 +1593,8 @@ and polls the control byte for completion:
   bit 6 set = error (check escape or report)
   bit 6 clear = success (clean return)
 On error, checks for escape condition and handles retries.
-Two entry points: setup_tx_ptr_c0 (&8660) always uses the
-standard TXCB; tx_poll_core (&866C) is general-purpose.""",
+Two entry points: setup_tx_ptr_c0 (&8687) always uses the
+standard TXCB; tx_poll_core (&8693) is general-purpose.""",
     on_entry={"a": "retry count (&FF = full retry)",
               "y": "timeout parameter (&60 = standard)"},
     on_exit={"a": "entry A (retry count, restored from stack)",
@@ -1634,8 +1634,9 @@ Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80DA.
 See dispatch_hi (&8044) for the corresponding high bytes.
-Indexed by service number (1-13), language reason (14-18),
-or *NET command (33-36), with a base offset added by the caller.""")
+The dispatch code accesses via l8024/l8049 (offset +4/+5 from
+the table start). Base offset Y is added by the caller to select
+which group: services (Y=0), language (Y=&0E), FSCV (Y=&13).""")
 
 comment(0x8044, """\
 Dispatch table: high bytes of (handler_address - 1)
@@ -1649,30 +1650,32 @@ subroutine(0x8069, "dispatch_net_cmd", hook=None,
     title="*NET command dispatcher",
     description="""\
 Parses the character after *NET as '1'-'4', maps to table
-indices 33-36 via base offset Y=&20, and dispatches via &80DA.
+indices 35-38 via base offset Y=&21, and dispatches via &80E7.
 Characters outside '1'-'4' fall through to return_1 (RTS).
 
 These are internal sub-commands used only by the ROM itself,
 not user-accessible star commands. The MOS command parser
 requires a space or terminator after 'NET', so *NET1 typed
 at the command line does not match; these are reached only
-via OSCLI calls within the ROM.
+via OSCLI calls within the ROM. The "hi bytes" for these
+dispatch entries are read from the code bytes of this very
+routine — a space-saving trick.
 
-*NET1 (&8E3B): read file handle from received
+*NET1 (&8E59): read file handle from received
 packet (net1_read_handle)
 
-*NET2 (&8E56): read handle entry from workspace
+*NET2 (&8E5F): read handle entry from workspace
 (net2_read_handle_entry)
 
-*NET3 (&8E66): close handle / mark as unused
+*NET3 (&8E6F): close handle / mark as unused
 (net3_close_handle)
 
-*NET4 (&8180): resume after remote operation
+*NET4 (&81B8): resume after remote operation
 (resume_after_remote)""")
 
 comment(0x8069, "Read command character following *NET", inline=True)
 comment(0x8071, "Subtract ASCII '1' to get 0-based command index", inline=True)
-comment(0x807D, "Y=&20: base offset for *NET commands (index 33+)", inline=True)
+comment(0x807D, "Y=&21: base offset for *NET commands (index 35+)", inline=True)
 
 # ============================================================
 # PHA/PHA/RTS dispatcher (&80DA)
@@ -1681,7 +1684,7 @@ subroutine(0x80E7, "dispatch", hook=None,
     title="PHA/PHA/RTS computed dispatch",
     description="""\
 X = command index within caller's group (e.g. service number)
-Y = base offset into dispatch table (0, &0D, &20, etc.)
+Y = base offset into dispatch table (0, &0E, &13, &21, etc.)
 The loop adds Y+1 to X, so final X = command index + base + 1.
 Then high and low bytes of (handler-1) are pushed onto the stack,
 and RTS pops them and jumps to handler_address.
@@ -1706,9 +1709,9 @@ subroutine(0x80E1, hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. X = reason code
-(0-4). Dispatches via table indices 14-18 (base offset Y=&0D).""")
+(0-4). Dispatches via table indices 15-19 (base offset Y=&0E).""")
 
-comment(0x80E5, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
+comment(0x80E5, "Y=&0E: base offset for language handlers (index 15+)", inline=True)
 
 # ============================================================
 # Service handler entry (&80EA)
@@ -1755,14 +1758,18 @@ the command decoder to trigger auto-boot login.""")
 subroutine(0x8224, "setup_fs_vectors", hook=None,
     title="Set up filing system vectors",
     description="""\
-Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212).
-These set all 7 filing system vectors to the standard extended vector
-dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
-Then calls setup_rom_ptrs_netv to install the extended vector table
-entries with the actual NFS handler addresses, and issues service
-requests to notify other ROMs.""")
+Entered from svc_autoboot: first checks the pressed key (EOR #&55),
+prints "Econet Station <n>" via print_inline/print_decimal, and checks
+ADLC SR2 for network clock — prints "No Clock" if absent.
 
-comment(0x8224, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
+Then copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV
+(&0212), setting all 7 filing system vectors to the extended vector
+dispatch addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install
+the ROM pointer table entries with the actual NFS handler addresses.
+The vector copy loop at &8260 is also reached directly from select_nfs
+via BEQ, bypassing the station/clock display.""")
+
+comment(0x8260, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
 
 # ============================================================
 # Auto-boot command string (&828E)
@@ -1875,14 +1882,21 @@ to set up NFS vectors (selecting NFS as the filing system).""")
 subroutine(0x81A5, "svc_star_command", hook=None,
     title="Service 4: unrecognised * command",
     description="""\
-Matches the command text against ROM string table entries.
-Both entries reuse bytes from the ROM header to save space:
+The first 7 bytes (&81A5-&81AB) are the service handler epilogue:
+PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
+This is the return path reached after any dispatched service
+handler completes.
 
-  X=8: matches "ROFF" at &8010 — the suffix of the
-       copyright string "(C)ROFF" → *ROFF (Remote Off,
-       end remote session) — jumps to resume_after_remote
+The service 4 handler itself is dispatched via the table to
+&81B1 (after 5 NOPs of padding). It makes two match_rom_string
+calls against the ROM header, reusing header bytes as command
+strings:
 
-  X=1: matches "NET" at &8009 — the ROM title string
+  X=&0C: matches "ROFF" at &8014 — the suffix of the
+         copyright string "(C)ROFF" → *ROFF (Remote Off,
+         end remote session) — falls through to resume_after_remote
+
+  X=5: matches "NET" at &800D — the ROM title suffix
        → *NET (select NFS) — falls through to select_nfs
 
 If neither matches, returns with the service call
@@ -1921,9 +1935,9 @@ subroutine(0x8277, "issue_vectors_claimed", hook=None,
     description="""\
 Issues service &0F (vectors claimed) via OSBYTE &8F, then
 service &0A. If nfs_temp is zero (auto-boot not inhibited),
-sets up the command string "I .BOOT" at &8246 and jumps to
+sets up the command string "I .BOOT" at &828E and jumps to
 the FSCV 3 unrecognised-command handler (which matches against
-the command table at &8BE4). The "I." prefix triggers the
+the command table at &8C05). The "I." prefix triggers the
 catch-all entry which forwards the command to the fileserver.""")
 
 # ============================================================
@@ -1958,7 +1972,7 @@ dangling file handles across the FS switch.""")
 subroutine(0x8391, "init_tx_ctrl_block", hook=None,
     title="Initialise TX control block at &00C0 from template",
     description="""\
-Copies 12 bytes from tx_ctrl_template (&836E) to &00C0.
+Copies 12 bytes from tx_ctrl_template (&83A9) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
 station/network from &0E00/&0E01 to &00C2/&00C3.
 The template sets up: control=&80, port=&99 (FS command port),
@@ -2170,8 +2184,8 @@ subroutine(0x80D4, "fscv_handler",
     description="""\
 Entered via the extended vector table when the MOS calls FSCV.
 Stores A/X/Y via save_fscv_args, compares A (function code) against 8,
-and dispatches codes 0-7 via the shared dispatch table at &8020
-with base offset Y=&12 (table indices 19-26).
+and dispatches codes 0-7 via the shared dispatch table at &8024
+with base offset Y=&13 (table indices 20-27).
 Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
 4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.""",
     on_entry={"a": "function code (0-7)",
@@ -2183,7 +2197,7 @@ Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
 
 comment(0x80D4, "Store A/X/Y in FS workspace", inline=True)
 comment(0x80D9, "Function code >= 8? Return (unsupported)", inline=True)
-comment(0x80DD, "Y=&12: base offset for FSCV dispatch (indices 19+)", inline=True)
+comment(0x80DD, "Y=&13: base offset for FSCV dispatch (indices 20+)", inline=True)
 
 # ============================================================
 # GSINIT/GSREAD filename parser (&86BA)
@@ -2206,15 +2220,15 @@ a non-zero starting Y offset.""",
 subroutine(0x8705, "filev_handler",
     title="FILEV handler (OSFILE entry point)",
     description="""\
-Calls save_fscv_args (&85A6) to preserve A/X/Y, then JSR &86B0
+Calls save_fscv_args (&85D2) to preserve A/X/Y, then JSR &86D7
 to copy the 2-byte filename pointer from the parameter block to
-os_text_ptr and fall through to parse_filename_gs (&86BA) which
+os_text_ptr and fall through to parse_filename_gs (&86E1) which
 parses the filename into &0E30+. Sets fs_crc_lo/hi to point at
 the parsed filename buffer.
 Dispatches by function code A:
-  A=&FF: load file (send_fs_examine at &86F4)
-  A=&00: save file (filev_save at &876A)
-  A=&01-&06: attribute operations (filev_attrib_dispatch at &8870)
+  A=&FF: load file (send_fs_examine at &871B)
+  A=&00: save file (filev_save at &878F)
+  A=&01-&06: attribute operations (filev_attrib_dispatch at &888D)
   Other: restore_args_return (unsupported, no-op)""",
     on_entry={"a": "function code (&FF=load, &00=save, &01-&06=attrs)",
               "x": "parameter block address low byte",
@@ -2447,7 +2461,7 @@ fileserver to request decoding. The server returns a command code
 indicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,
 5=load-as-command). This mechanism allows the fileserver to extend
 the client's command set without ROM updates. Called from the "I."
-and catch-all entries in the command match table at &8BE4, and
+and catch-all entries in the command match table at &8C05, and
 from FSCV 2/3/4 indirectly. If CSD handle is zero (not logged
 in), returns without sending.""")
 
@@ -2459,7 +2473,7 @@ subroutine(0x83BC, "bye_handler", hook=None,
     description="""\
 Closes any open *SPOOL and *EXEC files via OSBYTE &77 (FXSPEX),
 then falls into prepare_fs_cmd with Y=&17 (FCBYE: logoff code).
-Dispatched from the command match table at &8BE4 for "BYE".""")
+Dispatched from the command match table at &8C05 for "BYE".""")
 
 # ============================================================
 # FSCV unrecognised * handler (&8BB6)
@@ -2468,7 +2482,7 @@ subroutine(0x8BD7, "fscv_star_handler", hook=None,
     title="FSCV 2/3/4: unrecognised * command handler (DECODE)",
     description="""\
 CLI parser originally by Sophie Wilson (co-designer of ARM). Matches command text against the table
-at &8BE4 using case-insensitive comparison with abbreviation
+at &8C05 using case-insensitive comparison with abbreviation
 support — commands can be shortened with '.' (e.g. "I." for
 "INFO"). The "I." entry is a special fudge placed first in the
 table: since "I." could match multiple commands, it jumps to
@@ -2540,16 +2554,20 @@ Display format:
 subroutine(0x8D0F, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
-The four boot options use OSCLI strings at offsets within page &8C:
-  Option 0 (Off):  offset &F3 → &8CF3 = bare CR (empty command)
-  Option 1 (Load): offset &E4 → &8CE4 = "L.!BOOT" (dual-purpose:
-      the bytes &4C='L', &2E='.', &21='!' at &8CE4 are followed
-      by "BOOT" at &8CE7, forming the OSCLI string "L.!BOOT")
-  Option 2 (Run):  offset &E6 → &8CE6 = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &EC → &8CEC = "E.!BOOT"
+The four boot options use OSCLI strings at offsets within page &8D.
+The offset table at boot_option_offsets+1 (&8D1C) is indexed by
+the boot option value (0-3); each byte is the low byte of the
+string address, with the page high byte &8D loaded separately:
+  Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command)
+  Option 1 (Load): offset &0C → &8D0C = "L.!BOOT" (the bytes
+      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D0F)
+  Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN)
+  Option 3 (Exec): offset &14 → &8D14 = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the string data
-overlaps with other byte sequences to save space.""")
+overlaps with other byte sequences to save space. The &0D byte
+at &8D1B terminates "E.!BOOT" AND doubles as the bare-CR
+command for boot option 0.""")
 
 # ============================================================
 # Boot option table and "I AM" handler (&8CF4-&8E20)
@@ -2557,10 +2575,14 @@ overlaps with other byte sequences to save space.""")
 subroutine(0x8D1B, "boot_option_offsets", hook=None,
     title="Boot option → OSCLI string offset table",
     description="""\
-Four bytes indexed by the boot option value (0-3). Each byte
-is the low byte of a pointer into page &8C, where the OSCLI
-command string for that boot option lives. See boot_cmd_strings.
-Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
+Five bytes: the first byte (&0D) is the bare-CR target for boot
+option 0; bytes 1-4 are the offset table indexed by boot option
+(0-3). Each offset is the low byte of a pointer into page &8D.
+The code reads from boot_option_offsets+1 (&8D1C) via
+LDX l8d1c,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+See boot_cmd_strings for the target strings.""")
+for i in range(5):
+    byte(0x8D1B + i)
 # In 3.40, $8CF4-$8CFC is code (PLA/CLC/ADC $B4/TAY/BNE/LDY #$0A)
 # that forms the print_reply_bytes entry chain. The byte values also
 # serve as boot command string offsets in earlier versions, but in
@@ -2621,9 +2643,9 @@ two callers avoids duplicating the handle-copy loop.""")
 subroutine(0x8E2B, "copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
-CLC entry (SDISC): copies handles only, then jumps to c8cff.
-Called when the FS reply contains updated handle values
-but no boot action is needed.""")
+CLC entry (SDISC): copies handles only, then jumps to
+restore_args_return via c8e27. Called when the FS reply contains
+updated handle values but no boot action is needed.""")
 
 # ============================================================
 # Filename copy helpers (&8D43-&8D51)
@@ -2678,12 +2700,23 @@ indirect pointer at (&0F09) to execute at the load address.""")
 # ============================================================
 # *NET sub-command handlers (&8E3B-&8E75)
 # ============================================================
-subroutine(0x8E3A, "net1_read_handle", hook=None,
-    title="*NET1: read file handle from received packet",
+subroutine(0x8E3A, "boot_cmd_execute", hook=None,
+    title="Execute boot command via OSCLI",
     description="""\
-Reads a file handle byte from offset &6F in the RX buffer
-(net_rx_ptr), stores it in &F0, then falls through to the
-common handle workspace cleanup at c8dda (clear rom_svc_num).""")
+Reached from copy_handles_and_boot when carry is set (LOGIN
+path). Reads the boot option from fs_boot_option (&0E05),
+looks up the OSCLI command string offset from boot_option_offsets+1,
+and executes the boot command via JMP oscli with page &8D.""")
+
+# The actual *NET1 handler is at &8E59 (dispatched via table to &8E59).
+# The code at &8E3A was incorrectly labeled net1_read_handle by the
+# auto-generator — the address shifted due to the ROM header change.
+entry(0x8E59)
+label(0x8E59, "net1_read_handle")
+comment(0x8E59, """\
+*NET1: read file handle from received packet.
+Reads a byte from offset &6F of the RX buffer (net_rx_ptr)
+and falls through to net2_read_handle_entry's common path.""")
 
 subroutine(0x8E47, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",
@@ -2734,7 +2767,7 @@ subroutine(0x8E97, "fs_osword_dispatch", hook=None,
     title="PHA/PHA/RTS dispatch for filing system OSWORDs",
     description="""\
 X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table
-at &8E9F (low) / &8EA4 (high).""")
+at &8EB0 (low) / &8EB5 (high).""")
 
 comment(0x8E9F, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
 comment(0x8EB5, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline=True)
@@ -2748,10 +2781,10 @@ comment(0x8175, "Copy NMI workspace initialiser from ROM to &0016-&0076")
 subroutine(0x8FE8, "econet_tx_rx", hook=None,
     title="Econet transmit/receive handler",
     description="""\
-A=0: Initialise TX control block from ROM template at &834A
+A=0: Initialise TX control block from ROM template at &8391
      (zero entries substituted from NMI workspace &0DDA), transmit
      it, set up RX control block, and receive reply.
-A>=1: Handle transmit result (branch to cleanup at &8F49).""")
+A>=1: Handle transmit result (branch to cleanup at &9034).""")
 
 comment(0x8FE8, "A=0: set up and transmit; A>=1: handle result", inline=True)
 comment(0x8F7F, "Load from ROM template (zero = use NMI workspace value)", inline=True)
@@ -2831,7 +2864,7 @@ further analysis.""")
 subroutine(0x9173, "ctrl_block_setup_alt", hook=None,
     title="Alternate entry into control block setup",
     description="""\
-Sets X=&0D, Y=&7C. Tests bit 6 of &8374 to choose target:
+Sets X=&0D, Y=&7C. Tests bit 6 of &83AF to choose target:
   V=0 (bit 6 clear): stores to (nfs_workspace)
   V=1 (bit 6 set):   stores to (net_rx_ptr)""")
 
@@ -2839,7 +2872,7 @@ subroutine(0x917C, "ctrl_block_setup", hook=None,
     title="Control block setup — main entry",
     description="""\
 Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).
-Reads the template table at &919D indexed by X, storing each
+Reads the template table at &91A8 indexed by X, storing each
 value into the target workspace at offset Y. Both X and Y
 are decremented on each iteration.
 
@@ -3138,7 +3171,7 @@ subroutine(0x968A, "adlc_init_workspace", hook=None,
 New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
 request) before copying the NMI shim. Sub-entry at &968A skips
 the service request for quick re-init. Then copies 32 bytes of
-NMI shim from ROM (&9FE8) to RAM (&0D00), patches the current
+NMI shim from ROM (&9FA8) to RAM (&0D00), patches the current
 ROM bank number into the shim's self-modifying code at &0D07,
 sets TX clear flag and econet_init_flag to &80, reads station ID
 from &FE18 (INTOFF side effect), stores it in the TX scout buffer,
@@ -3269,7 +3302,7 @@ be the dominant filing system.
 Reads all 16 palette entries using OSWORD &0B (read palette) and
 stores the results. Then reads cursor position (OSBYTE &85),
 shadow RAM allocation (OSBYTE &C2), and screen start address
-(OSBYTE &C3) using the 3-entry table at &9312 (osbyte_vdu_table).
+(OSBYTE &C3) using the 3-entry table at &9319.
 On completion, restores the JSR buffer protection bits (LSTAT)
 from OLDJSR to re-enable JSR reception, which was disabled during
 the screen data capture to prevent interference.""")

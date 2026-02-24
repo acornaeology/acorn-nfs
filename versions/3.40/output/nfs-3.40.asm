@@ -131,7 +131,6 @@ l0350                                   = &0350
 l0351                                   = &0351
 l0355                                   = &0355
 l0700                                   = &0700
-l0c1b                                   = &0c1b
 l0cff                                   = &0cff
 nmi_shim_07                             = &0d07
 nmi_jmp_lo                              = &0d0c
@@ -226,7 +225,6 @@ l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l1e02                                   = &1e02
 l3af0                                   = &3af0
-l4514                                   = &4514
 l5801                                   = &5801
 l5e41                                   = &5e41
 l6e04                                   = &6e04
@@ -1040,8 +1038,9 @@ l8018 = l8011+7
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &80DA.
 ; See dispatch_hi (&8044) for the corresponding high bytes.
-; Indexed by service number (1-13), language reason (14-18),
-; or *NET command (33-36), with a base offset added by the caller.
+; The dispatch code accesses via l8024/l8049 (offset +4/+5 from
+; the table start). Base offset Y is added by the caller to select
+; which group: services (Y=0), language (Y=&0E), FSCV (Y=&13).
 .dispatch_lo
     equb &45                                                          ; 8020: 45          E
     equb <(l1e02-1)                                                   ; 8021: 01          .
@@ -1129,25 +1128,27 @@ l8018 = l8011+7
 ; *NET command dispatcher
 ; 
 ; Parses the character after *NET as '1'-'4', maps to table
-; indices 33-36 via base offset Y=&20, and dispatches via &80DA.
+; indices 35-38 via base offset Y=&21, and dispatches via &80E7.
 ; Characters outside '1'-'4' fall through to return_1 (RTS).
 ; 
 ; These are internal sub-commands used only by the ROM itself,
 ; not user-accessible star commands. The MOS command parser
 ; requires a space or terminator after 'NET', so *NET1 typed
 ; at the command line does not match; these are reached only
-; via OSCLI calls within the ROM.
+; via OSCLI calls within the ROM. The "hi bytes" for these
+; dispatch entries are read from the code bytes of this very
+; routine — a space-saving trick.
 ; 
-; *NET1 (&8E3B): read file handle from received
+; *NET1 (&8E59): read file handle from received
 ; packet (net1_read_handle)
 ; 
-; *NET2 (&8E56): read handle entry from workspace
+; *NET2 (&8E5F): read handle entry from workspace
 ; (net2_read_handle_entry)
 ; 
-; *NET3 (&8E66): close handle / mark as unused
+; *NET3 (&8E6F): close handle / mark as unused
 ; (net3_close_handle)
 ; 
-; *NET4 (&8180): resume after remote operation
+; *NET4 (&81B8): resume after remote operation
 ; (resume_after_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
@@ -1162,7 +1163,7 @@ l8018 = l8011+7
     lda #0                                                            ; 8078: a9 00       ..
     sta l00a9                                                         ; 807a: 85 a9       ..
     tya                                                               ; 807c: 98          .
-    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&20: base offset for *NET commands (index 33+)
+    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 35+)
 .sub_c807f
     bne dispatch                                                      ; 807f: d0 66       .f
 ; &8081 referenced 1 time by &8086
@@ -1227,7 +1228,7 @@ l8018 = l8011+7
 ; indicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,
 ; 5=load-as-command). This mechanism allows the fileserver to extend
 ; the client's command set without ROM updates. Called from the "I."
-; and catch-all entries in the command match table at &8BE4, and
+; and catch-all entries in the command match table at &8C05, and
 ; from FSCV 2/3/4 indirectly. If CSD handle is zero (not logged
 ; in), returns without sending.
 ; ***************************************************************************************
@@ -1248,8 +1249,8 @@ l8018 = l8011+7
 ; 
 ; Entered via the extended vector table when the MOS calls FSCV.
 ; Stores A/X/Y via save_fscv_args, compares A (function code) against 8,
-; and dispatches codes 0-7 via the shared dispatch table at &8020
-; with base offset Y=&12 (table indices 19-26).
+; and dispatches codes 0-7 via the shared dispatch table at &8024
+; with base offset Y=&13 (table indices 20-27).
 ; Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
 ; 4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.
 ; 
@@ -1269,14 +1270,14 @@ l8018 = l8011+7
     bcs return_1                                                      ; 80d9: b0 1b       ..             ; Function code >= 8? Return (unsupported)
     tax                                                               ; 80db: aa          .
     tya                                                               ; 80dc: 98          .
-    ldy #&13                                                          ; 80dd: a0 13       ..             ; Y=&12: base offset for FSCV dispatch (indices 19+)
+    ldy #&13                                                          ; 80dd: a0 13       ..             ; Y=&13: base offset for FSCV dispatch (indices 20+)
     bne dispatch                                                      ; 80df: d0 06       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; Language entry dispatcher
 ; 
 ; Called when the NFS ROM is entered as a language. X = reason code
-; (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).
+; (0-4). Dispatches via table indices 15-19 (base offset Y=&0E).
 ; ***************************************************************************************
 ; &80e1 referenced 1 time by &8000
 .language_handler
@@ -1284,12 +1285,12 @@ l8018 = l8011+7
 ; &80e3 referenced 1 time by &8075
 .c80e3
     bcs return_1                                                      ; 80e3: b0 11       ..
-    ldy #&0e                                                          ; 80e5: a0 0e       ..             ; Y=&0D: base offset for language handlers (index 14+)
+    ldy #&0e                                                          ; 80e5: a0 0e       ..             ; Y=&0E: base offset for language handlers (index 15+)
 ; ***************************************************************************************
 ; PHA/PHA/RTS computed dispatch
 ; 
 ; X = command index within caller's group (e.g. service number)
-; Y = base offset into dispatch table (0, &0D, &20, etc.)
+; Y = base offset into dispatch table (0, &0E, &13, &21, etc.)
 ; The loop adds Y+1 to X, so final X = command index + base + 1.
 ; Then high and low bytes of (handler-1) are pushed onto the stack,
 ; and RTS pops them and jumps to handler_address.
@@ -1447,14 +1448,21 @@ l818e = c818d+1
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
-; Matches the command text against ROM string table entries.
-; Both entries reuse bytes from the ROM header to save space:
+; The first 7 bytes (&81A5-&81AB) are the service handler epilogue:
+; PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
+; This is the return path reached after any dispatched service
+; handler completes.
 ; 
-;   X=8: matches "ROFF" at &8010 — the suffix of the
-;        copyright string "(C)ROFF" → *ROFF (Remote Off,
-;        end remote session) — jumps to resume_after_remote
+; The service 4 handler itself is dispatched via the table to
+; &81B1 (after 5 NOPs of padding). It makes two match_rom_string
+; calls against the ROM header, reusing header bytes as command
+; strings:
 ; 
-;   X=1: matches "NET" at &8009 — the ROM title string
+;   X=&0C: matches "ROFF" at &8014 — the suffix of the
+;          copyright string "(C)ROFF" → *ROFF (Remote Off,
+;          end remote session) — falls through to resume_after_remote
+; 
+;   X=5: matches "NET" at &800D — the ROM title suffix
 ;        → *NET (select NFS) — falls through to select_nfs
 ; 
 ; If neither matches, returns with the service call
@@ -1603,15 +1611,19 @@ l818e = c818d+1
 ; ***************************************************************************************
 ; Set up filing system vectors
 ; 
-; Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212).
-; These set all 7 filing system vectors to the standard extended vector
-; dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
-; Then calls setup_rom_ptrs_netv to install the extended vector table
-; entries with the actual NFS handler addresses, and issues service
-; requests to notify other ROMs.
+; Entered from svc_autoboot: first checks the pressed key (EOR #&55),
+; prints "Econet Station <n>" via print_inline/print_decimal, and checks
+; ADLC SR2 for network clock — prints "No Clock" if absent.
+; 
+; Then copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV
+; (&0212), setting all 7 filing system vectors to the extended vector
+; dispatch addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install
+; the ROM pointer table entries with the actual NFS handler addresses.
+; The vector copy loop at &8260 is also reached directly from select_nfs
+; via BEQ, bypassing the station/clock display.
 ; ***************************************************************************************
 .setup_fs_vectors
-    eor #&55 ; 'U'                                                    ; 8224: 49 55       IU             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
+    eor #&55 ; 'U'                                                    ; 8224: 49 55       IU
     bne c8211                                                         ; 8226: d0 e9       ..
     tay                                                               ; 8228: a8          .              ; Y=key
     lda #osbyte_write_keys_pressed                                    ; 8229: a9 78       .x
@@ -1639,7 +1651,7 @@ l818e = c818d+1
 
 ; &8260 referenced 1 time by &8202
 .c8260
-    ldy #&0d                                                          ; 8260: a0 0d       ..
+    ldy #&0d                                                          ; 8260: a0 0d       ..             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
 ; &8262 referenced 1 time by &8269
 .loop_c8262
     lda fs_vector_addrs,y                                             ; 8262: b9 96 82    ...
@@ -1656,9 +1668,9 @@ l818e = c818d+1
 ; 
 ; Issues service &0F (vectors claimed) via OSBYTE &8F, then
 ; service &0A. If nfs_temp is zero (auto-boot not inhibited),
-; sets up the command string "I .BOOT" at &8246 and jumps to
+; sets up the command string "I .BOOT" at &828E and jumps to
 ; the FSCV 3 unrecognised-command handler (which matches against
-; the command table at &8BE4). The "I." prefix triggers the
+; the command table at &8C05). The "I." prefix triggers the
 ; catch-all entry which forwards the command to the fileserver.
 ; ***************************************************************************************
 ; &8277 referenced 1 time by &81f3
@@ -1921,7 +1933,7 @@ l818e = c818d+1
 ; ***************************************************************************************
 ; Initialise TX control block at &00C0 from template
 ; 
-; Copies 12 bytes from tx_ctrl_template (&836E) to &00C0.
+; Copies 12 bytes from tx_ctrl_template (&83A9) to &00C0.
 ; For the first 2 bytes (Y=0,1), also copies the fileserver
 ; station/network from &0E00/&0E01 to &00C2/&00C3.
 ; The template sets up: control=&80, port=&99 (FS command port),
@@ -1977,7 +1989,7 @@ l818e = c818d+1
 ; 
 ; Closes any open *SPOOL and *EXEC files via OSBYTE &77 (FXSPEX),
 ; then falls into prepare_fs_cmd with Y=&17 (FCBYE: logoff code).
-; Dispatched from the command match table at &8BE4 for "BYE".
+; Dispatched from the command match table at &8C05 for "BYE".
 ; ***************************************************************************************
 .bye_handler
     lda #osbyte_close_spool_exec                                      ; 83bc: a9 77       .w
@@ -2865,8 +2877,8 @@ l84a6 = sub_c84a5+1
 ;   bit 6 set = error (check escape or report)
 ;   bit 6 clear = success (clean return)
 ; On error, checks for escape condition and handles retries.
-; Two entry points: setup_tx_ptr_c0 (&8660) always uses the
-; standard TXCB; tx_poll_core (&866C) is general-purpose.
+; Two entry points: setup_tx_ptr_c0 (&8687) always uses the
+; standard TXCB; tx_poll_core (&8693) is general-purpose.
 ; 
 ; On Entry:
 ;     A: retry count (&FF = full retry)
@@ -2993,15 +3005,15 @@ l84a6 = sub_c84a5+1
 ; ***************************************************************************************
 ; FILEV handler (OSFILE entry point)
 ; 
-; Calls save_fscv_args (&85A6) to preserve A/X/Y, then JSR &86B0
+; Calls save_fscv_args (&85D2) to preserve A/X/Y, then JSR &86D7
 ; to copy the 2-byte filename pointer from the parameter block to
-; os_text_ptr and fall through to parse_filename_gs (&86BA) which
+; os_text_ptr and fall through to parse_filename_gs (&86E1) which
 ; parses the filename into &0E30+. Sets fs_crc_lo/hi to point at
 ; the parsed filename buffer.
 ; Dispatches by function code A:
-;   A=&FF: load file (send_fs_examine at &86F4)
-;   A=&00: save file (filev_save at &876A)
-;   A=&01-&06: attribute operations (filev_attrib_dispatch at &8870)
+;   A=&FF: load file (send_fs_examine at &871B)
+;   A=&00: save file (filev_save at &878F)
+;   A=&01-&06: attribute operations (filev_attrib_dispatch at &888D)
 ;   Other: restore_args_return (unsupported, no-op)
 ; 
 ; On Entry:
@@ -4047,7 +4059,7 @@ l84a6 = sub_c84a5+1
 ; 
 ; CLI parser originally by Sophie Wilson (co-designer of ARM). Matches command text
 ; against the table
-; at &8BE4 using case-insensitive comparison with abbreviation
+; at &8C05 using case-insensitive comparison with abbreviation
 ; support — commands can be shortened with '.' (e.g. "I." for
 ; "INFO"). The "I." entry is a special fudge placed first in the
 ; table: since "I." could match multiple commands, it jumps to
@@ -4288,35 +4300,45 @@ l8c06 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Boot command strings for auto-boot
 ; 
-; The four boot options use OSCLI strings at offsets within page &8C:
-;   Option 0 (Off):  offset &F3 → &8CF3 = bare CR (empty command)
-;   Option 1 (Load): offset &E4 → &8CE4 = "L.!BOOT" (dual-purpose:
-;       the bytes &4C='L', &2E='.', &21='!' at &8CE4 are followed
-;       by "BOOT" at &8CE7, forming the OSCLI string "L.!BOOT")
-;   Option 2 (Run):  offset &E6 → &8CE6 = "!BOOT" (bare filename = *RUN)
-;   Option 3 (Exec): offset &EC → &8CEC = "E.!BOOT"
+; The four boot options use OSCLI strings at offsets within page &8D.
+; The offset table at boot_option_offsets+1 (&8D1C) is indexed by
+; the boot option value (0-3); each byte is the low byte of the
+; string address, with the page high byte &8D loaded separately:
+;   Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command)
+;   Option 1 (Load): offset &0C → &8D0C = "L.!BOOT" (the bytes
+;       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D0F)
+;   Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN)
+;   Option 3 (Exec): offset &14 → &8D14 = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the string data
-; overlaps with other byte sequences to save space.
+; overlaps with other byte sequences to save space. The &0D byte
+; at &8D1B terminates "E.!BOOT" AND doubles as the bare-CR
+; command for boot option 0.
 ; ***************************************************************************************
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8d0f: 42 4f 4f... BOO
     equb &0d                                                          ; 8d13: 0d          .
     equs "E.!BOOT"                                                    ; 8d14: 45 2e 21... E.!
-
 ; ***************************************************************************************
 ; Boot option → OSCLI string offset table
 ; 
-; Four bytes indexed by the boot option value (0-3). Each byte
-; is the low byte of a pointer into page &8C, where the OSCLI
-; command string for that boot option lives. See boot_cmd_strings.
-; Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.
+; Five bytes: the first byte (&0D) is the bare-CR target for boot
+; option 0; bytes 1-4 are the offset table indexed by boot option
+; (0-3). Each offset is the low byte of a pointer into page &8D.
+; The code reads from boot_option_offsets+1 (&8D1C) via
+; LDX l8d1c,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+; See boot_cmd_strings for the target strings.
 ; ***************************************************************************************
 .boot_option_offsets
-l8d1c = boot_option_offsets+1
-    ora l0c1b                                                         ; 8d1b: 0d 1b 0c    ...
+    equb &0d                                                          ; 8d1b: 0d          .
 ; &8d1c referenced 1 time by &8e3d
-    asl l4514                                                         ; 8d1e: 0e 14 45    ..E
+.l8d1c
+    equb &1b                                                          ; 8d1c: 1b          .
+    equb &0c                                                          ; 8d1d: 0c          .
+    equb &0e                                                          ; 8d1e: 0e          .
+    equb &14                                                          ; 8d1f: 14          .
+    equb &45                                                          ; 8d20: 45          E
+
 .sub_c8d21
     sei                                                               ; 8d21: 78          x
     adc l0063                                                         ; 8d22: 65 63       ec
@@ -4618,9 +4640,9 @@ l8e04 = sub_c8e03+1
 ; ***************************************************************************************
 ; Copy FS reply handles to workspace (no boot)
 ; 
-; CLC entry (SDISC): copies handles only, then jumps to c8cff.
-; Called when the FS reply contains updated handle values
-; but no boot action is needed.
+; CLC entry (SDISC): copies handles only, then jumps to
+; restore_args_return via c8e27. Called when the FS reply contains
+; updated handle values but no boot action is needed.
 ; ***************************************************************************************
 .copy_handles
     ldx #3                                                            ; 8e2b: a2 03       ..
@@ -4635,13 +4657,14 @@ l8e04 = sub_c8e03+1
     bpl logon2                                                        ; 8e36: 10 f7       ..
     bcc c8e27                                                         ; 8e38: 90 ed       ..
 ; ***************************************************************************************
-; *NET1: read file handle from received packet
+; Execute boot command via OSCLI
 ; 
-; Reads a file handle byte from offset &6F in the RX buffer
-; (net_rx_ptr), stores it in &F0, then falls through to the
-; common handle workspace cleanup at c8dda (clear rom_svc_num).
+; Reached from copy_handles_and_boot when carry is set (LOGIN
+; path). Reads the boot option from fs_boot_option (&0E05),
+; looks up the OSCLI command string offset from boot_option_offsets+1,
+; and executes the boot command via JMP oscli with page &8D.
 ; ***************************************************************************************
-.net1_read_handle
+.boot_cmd_execute
     ldy fs_boot_option                                                ; 8e3a: ac 05 0e    ...
     ldx l8d1c,y                                                       ; 8e3d: be 1c 8d    ...
     ldy #&8d                                                          ; 8e40: a0 8d       ..
@@ -4680,6 +4703,10 @@ l8e04 = sub_c8e03+1
 .return_calc_handle
     rts                                                               ; 8e58: 60          `
 
+; *NET1: read file handle from received packet.
+; Reads a byte from offset &6F of the RX buffer (net_rx_ptr)
+; and falls through to net2_read_handle_entry's common path.
+.net1_read_handle
     ldy #&6f ; 'o'                                                    ; 8e59: a0 6f       .o
     lda (net_rx_ptr),y                                                ; 8e5b: b1 9c       ..
     bcc c8e6c                                                         ; 8e5d: 90 0d       ..
@@ -4768,7 +4795,7 @@ l8e04 = sub_c8e03+1
 ; PHA/PHA/RTS dispatch for filing system OSWORDs
 ; 
 ; X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table
-; at &8E9F (low) / &8EA4 (high).
+; at &8EB0 (low) / &8EB5 (high).
 ; ***************************************************************************************
 ; &8e97 referenced 1 time by &8e89
 .fs_osword_dispatch
@@ -5108,10 +5135,10 @@ l8e04 = sub_c8e03+1
 ; ***************************************************************************************
 ; Econet transmit/receive handler
 ; 
-; A=0: Initialise TX control block from ROM template at &834A
+; A=0: Initialise TX control block from ROM template at &8391
 ;      (zero entries substituted from NMI workspace &0DDA), transmit
 ;      it, set up RX control block, and receive reply.
-; A>=1: Handle transmit result (branch to cleanup at &8F49).
+; A>=1: Handle transmit result (branch to cleanup at &9034).
 ; ***************************************************************************************
 .econet_tx_rx
     cmp #1                                                            ; 8fe8: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
@@ -5491,7 +5518,7 @@ l8e04 = sub_c8e03+1
 ; ***************************************************************************************
 ; Alternate entry into control block setup
 ; 
-; Sets X=&0D, Y=&7C. Tests bit 6 of &8374 to choose target:
+; Sets X=&0D, Y=&7C. Tests bit 6 of &83AF to choose target:
 ;   V=0 (bit 6 clear): stores to (nfs_workspace)
 ;   V=1 (bit 6 set):   stores to (net_rx_ptr)
 ; ***************************************************************************************
@@ -5505,7 +5532,7 @@ l8e04 = sub_c8e03+1
 ; Control block setup — main entry
 ; 
 ; Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).
-; Reads the template table at &919D indexed by X, storing each
+; Reads the template table at &91A8 indexed by X, storing each
 ; value into the target workspace at offset Y. Both X and Y
 ; are decremented on each iteration.
 ; 
@@ -5807,7 +5834,7 @@ l8e04 = sub_c8e03+1
 ; Reads all 16 palette entries using OSWORD &0B (read palette) and
 ; stores the results. Then reads cursor position (OSBYTE &85),
 ; shadow RAM allocation (OSBYTE &C2), and screen start address
-; (OSBYTE &C3) using the 3-entry table at &9312 (osbyte_vdu_table).
+; (OSBYTE &C3) using the 3-entry table at &9319.
 ; On completion, restores the JSR buffer protection bits (LSTAT)
 ; from OLDJSR to re-enable JSR reception, which was disabled during
 ; the screen data capture to prevent interference.
@@ -5945,7 +5972,7 @@ l8e04 = sub_c8e03+1
 ; New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
 ; request) before copying the NMI shim. Sub-entry at &968A skips
 ; the service request for quick re-init. Then copies 32 bytes of
-; NMI shim from ROM (&9FE8) to RAM (&0D00), patches the current
+; NMI shim from ROM (&9FA8) to RAM (&0D00), patches the current
 ; ROM bank number into the shim's self-modifying code at &0D07,
 ; sets TX clear flag and econet_init_flag to &80, reads station ID
 ; from &FE18 (INTOFF side effect), stores it in the TX scout buffer,
@@ -8637,7 +8664,6 @@ save pydis_start, pydis_end
 ;     l0351:                                    1
 ;     l0355:                                    1
 ;     l0518:                                    1
-;     l0c1b:                                    1
 ;     l0cff:                                    1
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
@@ -8655,7 +8681,6 @@ save pydis_start, pydis_end
 ;     l0fe0:                                    1
 ;     l3af0:                                    1
 ;     l4:                                       1
-;     l4514:                                    1
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
@@ -9136,7 +9161,6 @@ save pydis_start, pydis_end
 ;     l0355
 ;     l0518
 ;     l0700
-;     l0c1b
 ;     l0cff
 ;     l0d1e
 ;     l0d58
@@ -9169,7 +9193,6 @@ save pydis_start, pydis_end
 ;     l0fe0
 ;     l1e02
 ;     l3af0
-;     l4514
 ;     l5801
 ;     l5e41
 ;     l6e04
@@ -9322,11 +9345,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7486 bytes (91%)
-;     Data                     = 706 bytes (9%)
+;     Code                     = 7480 bytes (91%)
+;     Data                     = 712 bytes (9%)
 ;
-;     Number of instructions   = 3604
-;     Number of data bytes     = 457 bytes
+;     Number of instructions   = 3602
+;     Number of data bytes     = 463 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 249 bytes
 ;     Number of strings        = 35
