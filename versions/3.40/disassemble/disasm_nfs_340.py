@@ -993,9 +993,20 @@ Key ADLC register values:
 #   FSCV operations      &13      fscv_num           19-32
 #   *NET1-4 commands     &21      char-'1'           33-36
 #
-# The dispatch loop adds Y+1 to X, so the final table index for
-# logical entry i is accessed at lo=&8025+i, hi=&804A+i (i.e.
-# offsets +5/+6 from the printed table starts at &8020/&8044).
+# The dispatch code at &80EC/&80F0 reads via LDA l8049,X and
+# LDA l8024,X — base addresses &8049 and &8024, not the table
+# starts &8044 and &8020. After the loop adds Y+1 to X, the
+# final byte addresses for logical entry i are:
+#   lo = &8024 + (i+1) = &8025 + i
+#   hi = &8049 + (i+1) = &804A + i
+#
+# In older NFS versions (3.34-3.35K), the dispatch code uses
+# LDA &8020,X / LDA &8044,X — the table start addresses — so
+# rts_code_ptr(0x8020+i, 0x8044+i) works directly. In 3.40 the
+# ROM title is 4 bytes longer ("    NET" vs "NET"), shifting the
+# dispatch code. The LDA operands changed to &8024/&8049, making
+# the offsets +5/+6 instead of +0/+0 from the table starts.
+#
 # The lo and hi sub-tables overlap: lo bytes for the last 6
 # entries (i=31-36) fall within the hi table header (&8044-&8049),
 # and hi bytes for i=31-36 are read from dispatch_net_cmd code.
