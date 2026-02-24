@@ -77,8 +77,8 @@ The workspace at &0DF0+X is freed.
 | `nfs_temp`     | &CD   | &A8   | &CD   |
 | `rom_svc_num`  | &CE   | &A9   | &CE   |
 
-3.35K reverts both to their original &CD/&CE addresses. In 3.35K the labels
-are `fs_temp_cd` and `fs_temp_ce`. Addresses &A8/&A9 are in the MOS
+3.35K reverts both to their original &CD/&CE addresses (labelled `nfs_temp`
+and `rom_svc_num` in all versions). Addresses &A8/&A9 are in the MOS
 general-purpose scratch area, shared with other ROMs; &CD/&CE are in the
 filing system workspace area reserved for the active filing system. The
 reversion may resolve a conflict where &A8/&A9 were being overwritten by
@@ -250,9 +250,10 @@ from a different location:
 | 3.35D   | LDA &CF         | Zero page |
 | 3.35K   | LDA &0FDE       | Absolute workspace |
 
-This change is connected to the workspace variable reversion (change 3): &CF
-is now used by `fs_temp_cd`, so the retry count is read from its absolute
-workspace copy at &0FDE instead.
+This is connected to the workspace variable reversion (change 3): &CD is now
+`nfs_temp` again, and the adjacent &CF (which 3.35D used for the handle mask)
+may conflict, so the retry count is read from its absolute workspace copy at
+&0FDE instead.
 
 ### 10. *EX file info printing: CSD check removed
 

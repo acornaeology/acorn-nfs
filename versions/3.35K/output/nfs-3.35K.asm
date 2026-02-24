@@ -71,8 +71,6 @@ open_port_buf                           = &00a4
 open_port_buf_hi                        = &00a5
 port_ws_offset                          = &00a6
 rx_buf_offset                           = &00a7
-nfs_temp                                = &00a8
-rom_svc_num                             = &00a9
 l00ae                                   = &00ae
 l00af                                   = &00af
 fs_load_addr                            = &00b0
@@ -96,8 +94,8 @@ l00c2                                   = &00c2
 l00c4                                   = &00c4
 l00c7                                   = &00c7
 l00c8                                   = &00c8
-fs_temp_cd                              = &00cd
-fs_temp_ce                              = &00ce
+nfs_temp                                = &00cd
+rom_svc_num                             = &00ce
 l00cf                                   = &00cf
 l00ef                                   = &00ef
 l00f0                                   = &00f0
@@ -1192,7 +1190,7 @@ l8014 = l800d+7
     bcs return_1                                                      ; 8071: b0 76       .v
     tax                                                               ; 8073: aa          .
     lda #0                                                            ; 8074: a9 00       ..
-    sta fs_temp_ce                                                    ; 8076: 85 ce       ..
+    sta rom_svc_num                                                   ; 8076: 85 ce       ..
     tya                                                               ; 8078: 98          .
     ldy #&20 ; ' '                                                    ; 8079: a0 20       .              ; Y=&20: base offset for *NET commands (index 33+)
     bne dispatch                                                      ; 807b: d0 5d       .]             ; ALWAYS branch
@@ -1430,18 +1428,18 @@ l8014 = l800d+7
     cmp #&0d                                                          ; 814e: c9 0d       ..
     bcs return_2                                                      ; 8150: b0 1a       ..
     tax                                                               ; 8152: aa          .
-    lda fs_temp_ce                                                    ; 8153: a5 ce       ..
+    lda rom_svc_num                                                   ; 8153: a5 ce       ..
     pha                                                               ; 8155: 48          H
-    lda fs_temp_cd                                                    ; 8156: a5 cd       ..
+    lda nfs_temp                                                      ; 8156: a5 cd       ..
     pha                                                               ; 8158: 48          H
-    stx fs_temp_ce                                                    ; 8159: 86 ce       ..
-    sty fs_temp_cd                                                    ; 815b: 84 cd       ..
+    stx rom_svc_num                                                   ; 8159: 86 ce       ..
+    sty nfs_temp                                                      ; 815b: 84 cd       ..
     tya                                                               ; 815d: 98          .
     ldy #0                                                            ; 815e: a0 00       ..
     jsr dispatch                                                      ; 8160: 20 da 80     ..
-    ldx fs_temp_ce                                                    ; 8163: a6 ce       ..
+    ldx rom_svc_num                                                   ; 8163: a6 ce       ..
     pla                                                               ; 8165: 68          h
-    sta fs_temp_cd                                                    ; 8166: 85 cd       ..
+    sta nfs_temp                                                      ; 8166: 85 cd       ..
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
@@ -1460,7 +1458,7 @@ l8014 = l800d+7
 ; ***************************************************************************************
 .svc_star_command
     pla                                                               ; 8168: 68          h
-    sta fs_temp_ce                                                    ; 8169: 85 ce       ..
+    sta rom_svc_num                                                   ; 8169: 85 ce       ..
     txa                                                               ; 816b: 8a          .
 ; &816c referenced 4 times by &8107, &810b, &8112, &8150
 .return_2
@@ -1510,7 +1508,7 @@ l8014 = l800d+7
 ; &81a7 referenced 1 time by &8184
 .c81a7
     lda #0                                                            ; 81a7: a9 00       ..
-    sta fs_temp_ce                                                    ; 81a9: 85 ce       ..
+    sta rom_svc_num                                                   ; 81a9: 85 ce       ..
     sta nfs_workspace                                                 ; 81ab: 85 9e       ..
     rts                                                               ; 81ad: 60          `
 
@@ -1529,7 +1527,7 @@ l8014 = l800d+7
 ; FSDIE handoff mechanism). Then sets up the standard OS vector
 ; indirections (FILEV through FSCV) to NFS entry points, claims the
 ; extended vector table entries, and issues service &0F (vectors
-; claimed) to notify other ROMs. If fs_temp_cd is zero (auto-boot
+; claimed) to notify other ROMs. If nfs_temp is zero (auto-boot
 ; not inhibited), injects the synthetic command "I .BOOT" through
 ; the command decoder to trigger auto-boot login.
 ; ***************************************************************************************
@@ -1537,7 +1535,7 @@ l8014 = l800d+7
 .select_nfs
     jsr call_fscv_shutdown                                            ; 81b5: 20 fe 81     ..
     sec                                                               ; 81b8: 38          8
-    ror fs_temp_cd                                                    ; 81b9: 66 cd       f.
+    ror nfs_temp                                                      ; 81b9: 66 cd       f.
     jsr issue_vectors_claimed                                         ; 81bb: 20 61 82     a.
     ldy #&1d                                                          ; 81be: a0 1d       ..
 ; &81c0 referenced 1 time by &81c8
@@ -1560,7 +1558,7 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; &81cc referenced 2 times by &817b, &81b0
 .match_rom_string
-    ldy fs_temp_cd                                                    ; 81cc: a4 cd       ..
+    ldy nfs_temp                                                      ; 81cc: a4 cd       ..
 ; &81ce referenced 1 time by &81db
 .loop_c81ce
     lda (os_text_ptr),y                                               ; 81ce: b1 f2       ..
@@ -1599,7 +1597,7 @@ l8014 = l800d+7
 
 ; &81fb referenced 2 times by &81b3, &8210
 .c81fb
-    ldy fs_temp_cd                                                    ; 81fb: a4 cd       ..
+    ldy nfs_temp                                                      ; 81fb: a4 cd       ..
     rts                                                               ; 81fd: 60          `
 
 ; ***************************************************************************************
@@ -1681,12 +1679,12 @@ l8014 = l800d+7
     ldy #&1b                                                          ; 8258: a0 1b       ..
     ldx #7                                                            ; 825a: a2 07       ..
     jsr store_rom_ptr_pair                                            ; 825c: 20 1f 83     ..
-    stx fs_temp_ce                                                    ; 825f: 86 ce       ..
+    stx rom_svc_num                                                   ; 825f: 86 ce       ..
 ; ***************************************************************************************
 ; Issue 'vectors claimed' service and optionally auto-boot
 ; 
 ; Issues service &0F (vectors claimed) via OSBYTE &8F, then
-; service &0A. If fs_temp_cd is zero (auto-boot not inhibited),
+; service &0A. If nfs_temp is zero (auto-boot not inhibited),
 ; sets up the command string "I .BOOT" at &8246 and jumps to
 ; the FSCV 3 unrecognised-command handler (which matches against
 ; the command table at &8BE4). The "I." prefix triggers the
@@ -1699,7 +1697,7 @@ l8014 = l800d+7
     jsr osbyte                                                        ; 8265: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=15 - Vectors claimed
     ldx #&0a                                                          ; 8268: a2 0a       ..
     jsr osbyte                                                        ; 826a: 20 f4 ff     ..
-    ldx fs_temp_cd                                                    ; 826d: a6 cd       ..
+    ldx nfs_temp                                                      ; 826d: a6 cd       ..
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ; 
@@ -1760,7 +1758,7 @@ l8014 = l800d+7
     ldy #&ff                                                          ; 82b6: a0 ff       ..
     sta net_rx_ptr                                                    ; 82b8: 85 9c       ..
     sta nfs_workspace                                                 ; 82ba: 85 9e       ..
-    sta fs_temp_cd                                                    ; 82bc: 85 cd       ..
+    sta nfs_temp                                                      ; 82bc: 85 cd       ..
     sta tx_clear_flag                                                 ; 82be: 8d 62 0d    .b.
     tax                                                               ; 82c1: aa          .              ; X=&00
     lda #osbyte_read_write_last_break_type                            ; 82c2: a9 fd       ..             ; OSBYTE &FD: read type of last reset
@@ -1785,12 +1783,12 @@ l8014 = l800d+7
     sta (nfs_workspace),y                                             ; 82eb: 91 9e       ..
 ; &82ed referenced 1 time by &82fa
 .loop_c82ed
-    lda fs_temp_cd                                                    ; 82ed: a5 cd       ..
+    lda nfs_temp                                                      ; 82ed: a5 cd       ..
     jsr calc_handle_offset                                            ; 82ef: 20 44 8e     D.
     bcs c82fc                                                         ; 82f2: b0 08       ..
     lda #&3f ; '?'                                                    ; 82f4: a9 3f       .?
     sta (nfs_workspace),y                                             ; 82f6: 91 9e       ..
-    inc fs_temp_cd                                                    ; 82f8: e6 cd       ..
+    inc nfs_temp                                                      ; 82f8: e6 cd       ..
     bne loop_c82ed                                                    ; 82fa: d0 f1       ..
 ; &82fc referenced 2 times by &82c8, &82f2
 .c82fc
@@ -3876,7 +3874,7 @@ l865c = set_fs_flag+1
     sbc (fs_options),y                                                ; 8add: f1 bb       ..
 ; &8adf referenced 2 times by &8ad6, &8ada
 .c8adf
-    sta fs_temp_ce                                                    ; 8adf: 85 ce       ..
+    sta rom_svc_num                                                   ; 8adf: 85 ce       ..
 ; &8ae1 referenced 1 time by &8ae7
 .info2
     lda (fs_options),y                                                ; 8ae1: b1 bb       ..
@@ -3912,7 +3910,7 @@ l865c = set_fs_flag+1
     stx fs_load_addr                                                  ; 8b1d: 86 b0       ..
 ; &8b1f referenced 2 times by &8acf, &8b92
 .copy_reply_to_caller
-    lda fs_temp_ce                                                    ; 8b1f: a5 ce       ..
+    lda rom_svc_num                                                   ; 8b1f: a5 ce       ..
     bne c8b34                                                         ; 8b21: d0 11       ..
     ldx fs_load_addr                                                  ; 8b23: a6 b0       ..
     ldy fs_load_addr_hi                                               ; 8b25: a4 b1       ..
@@ -4553,7 +4551,7 @@ print_spaces = copy_filename+1
 ; Looks up the handle in &F0 via calc_handle_offset. If the
 ; workspace slot contains &3F ('?', meaning unused/closed),
 ; returns 0. Otherwise returns the stored handle value.
-; Clears fs_temp_ce on exit.
+; Clears rom_svc_num on exit.
 ; ***************************************************************************************
 .net2_read_handle_entry
     jsr sub_c8d43                                                     ; 8dc2: 20 43 8d     C.
@@ -4587,7 +4585,7 @@ print_spaces = copy_filename+1
 ; Looks up the handle in &F0 via calc_handle_offset. Writes
 ; &3F ('?') to mark the handle slot as closed in the NFS
 ; workspace. Preserves the carry flag state across the write
-; using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.
+; using ROL/ROR on rx_status_flags. Clears rom_svc_num on exit.
 ; ***************************************************************************************
 .net3_close_handle
     bcc loop_c8ddd                                                    ; 8de0: 90 fb       ..
@@ -4604,7 +4602,7 @@ print_spaces = copy_filename+1
 ; 
 ; Calls resume_after_remote (&8180) to re-enable the keyboard
 ; and send a completion notification. The BVC always branches
-; to c8dda (clear fs_temp_ce) since resume_after_remote
+; to c8dda (clear rom_svc_num) since resume_after_remote
 ; returns with V clear (from CLV in prepare_cmd_clv).
 ; ***************************************************************************************
 .net4_resume_remote
@@ -4682,7 +4680,7 @@ print_spaces = copy_filename+1
 ; 
 ; Reads a file handle byte from offset &6F in the RX buffer
 ; (net_rx_ptr), stores it in &F0, then falls through to the
-; common handle workspace cleanup at c8dda (clear fs_temp_ce).
+; common handle workspace cleanup at c8dda (clear rom_svc_num).
 ; ***************************************************************************************
 .net1_read_handle
     ldy #&6f ; 'o'                                                    ; 8e3b: a0 6f       .o
@@ -4803,7 +4801,7 @@ print_spaces = copy_filename+1
     bpl save1                                                         ; 8e97: 10 f8       ..
     iny                                                               ; 8e99: c8          .
     lda (l00f0),y                                                     ; 8e9a: b1 f0       ..
-    sty fs_temp_ce                                                    ; 8e9c: 84 ce       ..
+    sty rom_svc_num                                                   ; 8e9c: 84 ce       ..
     rts                                                               ; 8e9e: 60          `
 
 ; &8e9f referenced 1 time by &8e8b
@@ -4975,16 +4973,16 @@ print_spaces = copy_filename+1
     ldy #3                                                            ; 8f3a: a0 03       ..
     lsr a                                                             ; 8f3c: 4a          J
     bcc readc1                                                        ; 8f3d: 90 1b       ..
-    sty fs_temp_cd                                                    ; 8f3f: 84 cd       ..
+    sty nfs_temp                                                      ; 8f3f: 84 cd       ..
 ; &8f41 referenced 1 time by &8f50
 .loop_c8f41
-    ldy fs_temp_cd                                                    ; 8f41: a4 cd       ..
+    ldy nfs_temp                                                      ; 8f41: a4 cd       ..
     lda (l00f0),y                                                     ; 8f43: b1 f0       ..
     jsr handle_to_mask_a                                              ; 8f45: 20 1b 86     ..
     tya                                                               ; 8f48: 98          .
-    ldy fs_temp_cd                                                    ; 8f49: a4 cd       ..
+    ldy nfs_temp                                                      ; 8f49: a4 cd       ..
     sta fs_server_net,y                                               ; 8f4b: 99 01 0e    ...
-    dec fs_temp_cd                                                    ; 8f4e: c6 cd       ..
+    dec nfs_temp                                                      ; 8f4e: c6 cd       ..
     bne loop_c8f41                                                    ; 8f50: d0 ef       ..
     rts                                                               ; 8f52: 60          `
 
@@ -8063,7 +8061,7 @@ save pydis_start, pydis_end
 ;     rx_flags:                                16
 ;     l0f06:                                   15
 ;     station_id_disable_net_nmis:             15
-;     fs_temp_cd:                              14
+;     nfs_temp:                                14
 ;     open_port_buf:                           14
 ;     print_inline:                            14
 ;     fs_load_addr:                            13
@@ -8073,8 +8071,8 @@ save pydis_start, pydis_end
 ;     tube_data_register_2:                    12
 ;     fs_error_ptr:                            11
 ;     tube_status_register_2:                  11
-;     fs_temp_ce:                              10
 ;     nfs_workspace_hi:                        10
+;     rom_svc_num:                             10
 ;     tube_addr_claim:                         10
 ;     l0000:                                    9
 ;     l00c8:                                    9
