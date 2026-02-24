@@ -215,7 +215,6 @@ l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l7dfd                                   = &7dfd
-l85bf                                   = &85bf
 la260                                   = &a260
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
@@ -1287,7 +1286,7 @@ l8014 = l800d+7
 ;     Y: depends on handler (preserved if A >= 8)
 ; ***************************************************************************************
 .fscv_handler
-    jsr l859c                                                         ; 80c7: 20 9c 85     ..            ; Store A/X/Y in FS workspace
+    jsr save_fscv_args_with_ptrs                                      ; 80c7: 20 9c 85     ..            ; Store A/X/Y in FS workspace
     cmp #8                                                            ; 80ca: c9 08       ..
     bcs return_1                                                      ; 80cc: b0 1b       ..             ; Function code >= 8? Return (unsupported)
     tax                                                               ; 80ce: aa          .
@@ -2490,12 +2489,12 @@ l8014 = l800d+7
 .return_4
     rts                                                               ; 854c: 60          `
 
-; Econet error message table (ERRTAB, 8 entries).
+; Econet error message table (ERRTAB, 7 entries).
 ; Each entry: error number byte followed by NUL-terminated string.
 ;   &A0: "Line Jammed"     &A1: "Net Error"
 ;   &A2: "Not listening"   &A3: "No Clock"
-;   &A4: "Bad Txcb"        &11: "Escape"
-;   &CB: "Bad Option"      &A5: "No reply"
+;   &11: "Escape"           &CB: "Bad Option"
+;   &A5: "No reply"
 ; Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
 ; which encode the specific Econet failure reason. The NREPLY
 ; and NLISTN routines build a MOS BRK error block at &100 on the
@@ -2519,20 +2518,21 @@ l8014 = l800d+7
     equs "Bad Option", 0                                              ; 8587: 42 61 64... Bad
     equb &a5                                                          ; 8592: a5          .
     equs "No reply", 0                                                ; 8593: 4e 6f 20... No
-; overlapping: stx os_text_ptr                                        ; 859c: 86 f2       ..
+
+; ***************************************************************************************
+; Save FSCV arguments with text pointers
+; 
+; Extended entry used by FSCV, FINDV, and fscv_star_handler.
+; Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
+; falls through to save_fscv_args to store A/X/Y in the FS
+; workspace.
+; ***************************************************************************************
 ; &859c referenced 3 times by &80c7, &896f, &8bb6
-.l859c
-    equb &86                                                          ; 859c: 86          .
-.l859d
-save_fscv_args = l859d+9
-decode_attribs_6bit = l859d+20
-decode_attribs_5bit = l859d+30
-    equs &f2, &84, &f3, &8e, &10, &0e, &8c, &11, &0e, &85, &bd, &86   ; 859d: f2 84 f3... ...
-    equs &bb, &84, &bc, &86, &be, &84, &bf, "`", &a0, &0e, &b1, &bb   ; 85a9: bb 84 bc... ...
-    equs ")?", &a2, 4, &d0, 4, ")", &1f, &a2, &ff, &85, &b8, &a9, 0   ; 85b5: 29 3f a2... )?.
-; overlapping: sty l00f3                                              ; 859e: 84 f3       ..
-; overlapping: stx fs_cmd_ptr                                         ; 85a0: 8e 10 0e    ...
-; overlapping: sty l0e11                                              ; 85a3: 8c 11 0e    ...
+.save_fscv_args_with_ptrs
+    stx os_text_ptr                                                   ; 859c: 86 f2       ..
+    sty l00f3                                                         ; 859e: 84 f3       ..
+    stx fs_cmd_ptr                                                    ; 85a0: 8e 10 0e    ...
+    sty l0e11                                                         ; 85a3: 8c 11 0e    ...
 ; ***************************************************************************************
 ; Save FSCV/vector arguments
 ; 
@@ -2544,13 +2544,15 @@ decode_attribs_5bit = l859d+30
 ;   &BC (fs_block_offset)   = Y (control block ptr high)
 ;   &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)
 ; ***************************************************************************************
-; overlapping: sta fs_last_byte_flag                                  ; 85a6: 85 bd       ..
 ; &85a6 referenced 3 times by &86de, &8907, &8a0e
-; overlapping: stx fs_options                                         ; 85a8: 86 bb       ..
-; overlapping: sty fs_block_offset                                    ; 85aa: 84 bc       ..
-; overlapping: stx fs_crc_lo                                          ; 85ac: 86 be       ..
-; overlapping: sty fs_crc_hi                                          ; 85ae: 84 bf       ..
-; overlapping: rts                                                    ; 85b0: 60          `
+.save_fscv_args
+    sta fs_last_byte_flag                                             ; 85a6: 85 bd       ..
+    stx fs_options                                                    ; 85a8: 86 bb       ..
+    sty fs_block_offset                                               ; 85aa: 84 bc       ..
+    stx fs_crc_lo                                                     ; 85ac: 86 be       ..
+    sty fs_crc_hi                                                     ; 85ae: 84 bf       ..
+    rts                                                               ; 85b0: 60          `
+
 ; ***************************************************************************************
 ; Decode file attributes: FS → BBC format (FSBBC, 6-bit variant)
 ; 
@@ -2561,12 +2563,14 @@ decode_attribs_5bit = l859d+30
 ; &85CE. The two formats use different bit layouts for file
 ; protection attributes.
 ; ***************************************************************************************
-; overlapping: ldy #&0e                                               ; 85b1: a0 0e       ..
 ; &85b1 referenced 2 times by &889a, &88c5
-; overlapping: lda (fs_options),y                                     ; 85b3: b1 bb       ..
-; overlapping: and #&3f ; '?'                                         ; 85b5: 29 3f       )?
-; overlapping: ldx #4                                                 ; 85b7: a2 04       ..
-; overlapping: bne l85bf                                              ; 85b9: d0 04       ..
+.decode_attribs_6bit
+    ldy #&0e                                                          ; 85b1: a0 0e       ..
+    lda (fs_options),y                                                ; 85b3: b1 bb       ..
+    and #&3f ; '?'                                                    ; 85b5: 29 3f       )?
+    ldx #4                                                            ; 85b7: a2 04       ..
+    bne c85bf                                                         ; 85b9: d0 04       ..             ; ALWAYS branch
+
 ; ***************************************************************************************
 ; Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)
 ; 
@@ -2577,12 +2581,14 @@ decode_attribs_5bit = l859d+30
 ; corresponding destination bits from the table, translating
 ; between BBC (8-bit) and fileserver (5-bit) protection formats.
 ; ***************************************************************************************
-; overlapping: and #&1f                                               ; 85bb: 29 1f       ).
 ; &85bb referenced 2 times by &87bf, &88e2
-; overlapping: ldx #&ff                                               ; 85bd: a2 ff       ..
-; overlapping: sta fs_error_ptr                                       ; 85bf: 85 b8       ..
-; overlapping: lda #0                                                 ; 85c1: a9 00       ..
-
+.decode_attribs_5bit
+    and #&1f                                                          ; 85bb: 29 1f       ).
+    ldx #&ff                                                          ; 85bd: a2 ff       ..
+; &85bf referenced 1 time by &85b9
+.c85bf
+    sta fs_error_ptr                                                  ; 85bf: 85 b8       ..
+    lda #0                                                            ; 85c1: a9 00       ..
 ; &85c3 referenced 1 time by &85cb
 .loop_c85c3
     inx                                                               ; 85c3: e8          .
@@ -3635,7 +3641,7 @@ l865c = set_fs_flag+1
 ;     Y: restored
 ; ***************************************************************************************
 .findv_handler
-    jsr l859c                                                         ; 896f: 20 9c 85     ..
+    jsr save_fscv_args_with_ptrs                                      ; 896f: 20 9c 85     ..
     sec                                                               ; 8972: 38          8
     jsr handle_to_mask                                                ; 8973: 20 1d 86     ..            ; Convert file handle to bitmask (Y2FS)
     tax                                                               ; 8976: aa          .              ; A=preserved
@@ -4087,7 +4093,7 @@ l865c = set_fs_flag+1
 ; ***************************************************************************************
 ; &8bb6 referenced 1 time by &8275
 .fscv_star_handler
-    jsr l859c                                                         ; 8bb6: 20 9c 85     ..
+    jsr save_fscv_args_with_ptrs                                      ; 8bb6: 20 9c 85     ..
     ldx #&ff                                                          ; 8bb9: a2 ff       ..
     stx l00b9                                                         ; 8bbb: 86 b9       ..
 ; &8bbd referenced 1 time by &8bd8
@@ -8114,7 +8120,7 @@ save pydis_start, pydis_end
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           53
 ;     econet_control23_or_status2:             45
-;     fs_options:                              41
+;     fs_options:                              43
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             35
 ;     net_rx_ptr:                              34
@@ -8128,8 +8134,8 @@ save pydis_start, pydis_end
 ;     osbyte:                                  23
 ;     set_nmi_vector:                          22
 ;     tube_read_r2:                            22
+;     fs_crc_lo:                               20
 ;     port_buf_len:                            20
-;     fs_crc_lo:                               19
 ;     tube_send_r2:                            18
 ;     open_port_buf_hi:                        16
 ;     rx_flags:                                16
@@ -8141,18 +8147,18 @@ save pydis_start, pydis_end
 ;     fs_load_addr:                            13
 ;     port_buf_len_hi:                         13
 ;     c9894:                                   12
+;     fs_error_ptr:                            12
 ;     prepare_fs_cmd:                          12
 ;     tube_data_register_2:                    12
-;     fs_error_ptr:                            11
 ;     tube_status_register_2:                  11
 ;     nfs_workspace_hi:                        10
 ;     rom_svc_num:                             10
 ;     tube_addr_claim:                         10
+;     fs_last_byte_flag:                        9
 ;     l00c8:                                    9
 ;     nmi_tx_block_hi:                          9
 ;     rx_src_stn:                               9
 ;     tube_data_register_3:                     9
-;     fs_last_byte_flag:                        8
 ;     l0000:                                    8
 ;     l00b4:                                    8
 ;     l00c4:                                    8
@@ -8167,12 +8173,15 @@ save pydis_start, pydis_end
 ;     tx_clear_flag:                            7
 ;     tx_dst_stn:                               7
 ;     copy_string_to_cmd:                       6
+;     fs_block_offset:                          6
 ;     fs_cmd_csd:                               6
+;     fs_crc_hi:                                6
 ;     fs_load_addr_hi:                          6
 ;     fs_sequence_nos:                          6
 ;     net_rx_ptr_hi:                            6
 ;     net_tx_ptr_hi:                            6
 ;     nmi_rti:                                  6
+;     os_text_ptr:                              6
 ;     osasci:                                   6
 ;     return_1:                                 6
 ;     rx_buf_offset:                            6
@@ -8182,16 +8191,13 @@ save pydis_start, pydis_end
 ;     c8954:                                    5
 ;     c8ea9:                                    5
 ;     dispatch:                                 5
-;     fs_block_offset:                          5
 ;     fs_boot_option:                           5
-;     fs_crc_hi:                                5
 ;     l0001:                                    5
 ;     l00b3:                                    5
 ;     l0100:                                    5
 ;     l0106:                                    5
 ;     l0f07:                                    5
 ;     l8659:                                    5
-;     os_text_ptr:                              5
 ;     printer_buf_ptr:                          5
 ;     rx_ctrl:                                  5
 ;     rx_port:                                  5
@@ -8263,7 +8269,6 @@ save pydis_start, pydis_end
 ;     l0f08:                                    3
 ;     l0fde:                                    3
 ;     l8374:                                    3
-;     l859c:                                    3
 ;     match_osbyte_code:                        3
 ;     nmi_jmp_hi:                               3
 ;     nmi_jmp_lo:                               3
@@ -8274,6 +8279,7 @@ save pydis_start, pydis_end
 ;     print_reply_bytes:                        3
 ;     romsel_copy:                              3
 ;     save_fscv_args:                           3
+;     save_fscv_args_with_ptrs:                 3
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
 ;     send_to_fs_star:                          3
@@ -8351,6 +8357,7 @@ save pydis_start, pydis_end
 ;     l0012:                                    2
 ;     l0058:                                    2
 ;     l00f1:                                    2
+;     l00f3:                                    2
 ;     l00fd:                                    2
 ;     l00ff:                                    2
 ;     l0102:                                    2
@@ -8475,6 +8482,7 @@ save pydis_start, pydis_end
 ;     c84c7:                                    1
 ;     c8544:                                    1
 ;     c8549:                                    1
+;     c85bf:                                    1
 ;     c85cb:                                    1
 ;     c85e7:                                    1
 ;     c85f0:                                    1
@@ -8629,6 +8637,7 @@ save pydis_start, pydis_end
 ;     forward_star_cmd:                         1
 ;     fs2al1:                                   1
 ;     fs_cmd_lib:                               1
+;     fs_cmd_ptr:                               1
 ;     fs_cmd_type:                              1
 ;     fs_osword_tbl_hi:                         1
 ;     fs_osword_tbl_lo:                         1
@@ -8668,7 +8677,6 @@ save pydis_start, pydis_end
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
-;     l00f3:                                    1
 ;     l00f7:                                    1
 ;     l0104:                                    1
 ;     l0350:                                    1
@@ -8680,6 +8688,7 @@ save pydis_start, pydis_end
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
 ;     l0e0b:                                    1
+;     l0e11:                                    1
 ;     l0e16:                                    1
 ;     l0ef7:                                    1
 ;     l0f0b:                                    1
@@ -8945,6 +8954,7 @@ save pydis_start, pydis_end
 ;     c84fd
 ;     c8544
 ;     c8549
+;     c85bf
 ;     c85cb
 ;     c85e7
 ;     c85f0
@@ -9177,9 +9187,6 @@ save pydis_start, pydis_end
 ;     l800d
 ;     l8014
 ;     l8374
-;     l859c
-;     l859d
-;     l85bf
 ;     l8659
 ;     l865c
 ;     l8be5
@@ -9284,11 +9291,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7530 bytes (92%)
-;     Data                     = 662 bytes (8%)
+;     Code                     = 7569 bytes (92%)
+;     Data                     = 623 bytes (8%)
 ;
-;     Number of instructions   = 3632
-;     Number of data bytes     = 396 bytes
+;     Number of instructions   = 3651
+;     Number of data bytes     = 395 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 266 bytes
-;     Number of strings        = 37
+;     Number of string bytes   = 228 bytes
+;     Number of strings        = 36

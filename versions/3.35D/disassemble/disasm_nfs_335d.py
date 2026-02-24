@@ -1333,8 +1333,17 @@ entry(0x9837)   # LDA #&82; STA &FEA0; installs NMI handler &9839
 # we only add comments where the auto-annotations don't reach.
 
 # ============================================================
-# Save FSCV arguments (&8509)
+# Save FSCV arguments (&85A5)
 # ============================================================
+entry(0x85A5)
+subroutine(0x85A5, "save_fscv_args_with_ptrs", hook=None,
+    title="Save FSCV arguments with text pointers",
+    description="""\
+Extended entry used by FSCV, FINDV, and fscv_star_handler.
+Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
+falls through to save_fscv_args to store A/X/Y in the FS
+workspace.""")
+
 subroutine(0x85AF, "save_fscv_args", hook=None,
     title="Save FSCV/vector arguments",
     description="""\
@@ -2162,12 +2171,12 @@ from continuing to spool output to a broken file handle.""")
 # byte would be misinterpreted as LDY #imm.
 label(0x8556, "error_msg_table")
 comment(0x8556, """\
-Econet error message table (ERRTAB, 8 entries).
+Econet error message table (ERRTAB, 7 entries).
 Each entry: error number byte followed by NUL-terminated string.
   &A0: "Line Jammed"     &A1: "Net Error"
   &A2: "Not listening"   &A3: "No Clock"
-  &A4: "Bad Txcb"        &11: "Escape"
-  &CB: "Bad Option"      &A5: "No reply"
+  &11: "Escape"           &CB: "Bad Option"
+  &A5: "No reply"
 Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
 which encode the specific Econet failure reason. The NREPLY
 and NLISTN routines build a MOS BRK error block at &100 on the
@@ -2179,7 +2188,7 @@ Indexed via the error dispatch at c8424/c842c.""")
 # Mark each error table entry as data: error code byte + NUL-terminated string.
 # Without this, the first entry's &A0 byte is traced as code (LDY #imm).
 addr = 0x8556
-for _ in range(8):
+for _ in range(7):
     byte(addr, 1)           # error number byte
     addr = stringz(addr + 1)  # NUL-terminated message string
 
