@@ -16,4 +16,4 @@ requires-dist = [{ name = "py8dis", git = "https://github.com/acornaeology/py8di
 [[package]]
 name = "py8dis"
 version = "0.1.0"
-source = { git = "https://github.com/acornaeology/py8dis.git#6f1e2cc5f6d7208fe36c26aaf9ad62ed2bae1b48" }
+source = { git = "https://github.com/acornaeology/py8dis.git#815699f706e369fd5e24c9389651723058c0d52c" }

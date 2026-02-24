@@ -538,7 +538,6 @@ label(0x8485, "bgetv_handler")          # BGETV entry: SEC then JSR handle_bput_
 label(0x83A2, "bputv_handler")          # BPUTV entry: CLC then fall into handle_bput_bget
 entry(0x8485)
 entry(0x83A2)
-comment(0x83a2, "/ fall through...", inline=True)
 
 # --- Helper routines in header/init section ---
 label(0x81AC, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
@@ -552,7 +551,6 @@ label(0x8340, "prepare_cmd_with_flag")  # Prepare FS command with '*' flag and c
 label(0x8346, "prepare_cmd_clv")        # Prepare FS command with V cleared
 # prepare_fs_cmd and build_send_fs_cmd labels created by subroutine() calls below.
 label(0x8351, "prepare_fs_cmd_v")       # Prepare FS command, V flag preserved
-comment(0x8368, "/ fall through...", inline=True)
 label(0x8380, "send_fs_reply_cmd")      # Send FS command with reply processing
 
 # --- Byte I/O and escape ---
@@ -561,7 +559,6 @@ label(0x83CB, "store_retry_count")      # RAND1: store retry count to &0FDD, ini
 label(0x841B, "update_sequence_return") # RAND3: update sequence numbers and pull A/Y/X/return
 label(0x842C, "set_listen_offset")      # NLISN2: use reply code as table offset for listen
 label(0x8448, "send_to_fs_star")        # Send '*' command to fileserver
-comment(0x8448, "/ fall through...", inline=True)
 label(0x8470, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
 # --- Pointer arithmetic helpers ---
@@ -611,12 +608,10 @@ label(0x8530, "access_bit_table")       # Lookup table for attribute bit mapping
 # --- File handle ↔ bitmask conversion ---
 label(0x8588, "handle_to_mask_a")       # TAY; CLC; fall into handle_to_mask
 label(0x8589, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always convert)
-comment(0x8589, "/ fall through...", inline=True)
 # handle_to_mask and mask_to_handle labels created by subroutine() calls below.
 
 # --- Number and hex printing ---
 label(0x85F6, "print_hex_nibble")       # Print low nibble of A as hex digit
-comment(0x85fe, "/ fall through...", inline=True)
 
 # --- Address comparison ---
 # compare_addresses label created by subroutine() call below.
@@ -636,7 +631,6 @@ label(0x8640, "print_space")            # Print a space character via OSASCI
 
 # --- TX control and transmission ---
 label(0x864E, "tx_poll_timeout")        # Transmit with Y=&60 (specified timeout)
-comment(0x864e, "/ fall through...", inline=True)
 # tx_poll_core label created by subroutine() call below.
 label(0x8684, "delay_1ms")              # MSDELY: 1ms delay loop (nested DEX/DEY)
 
@@ -659,17 +653,14 @@ label(0x88C5, "copy_fs_reply_to_cb")  # COPYFS: copy FS reply buffer data to con
 
 # --- Common return point (&892C) ---
 label(0x8912, "save_args_handle")      # SETARG: save handle for OSARGS operation
-comment(0x8929, "/ fall through...", inline=True)
 
 # --- FSCV 0: *OPT handler (&89A1) ---
 label(0x898F, "close_single_handle")   # CLOSE1: send close command for specific handle to FS
-comment(0x899f, "/ fall through...", inline=True)
 
 # --- Address adjustment helpers (&89CA-&89E9) ---
 label(0x89CA, "adjust_addrs_9")        # Adjust 4-byte addresses at param block offset 9
 label(0x89CF, "adjust_addrs_1")        # Adjust 4-byte addresses at param block offset 1
 label(0x89D1, "adjust_addrs_clc")      # CLC entry: clear carry before address adjustment
-comment(0x89d1, "/ fall through...", inline=True)
 label(0x8AFB, "copy_reply_to_caller") # Copy FS reply data to caller buffer (direct or via Tube)
 label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until acquired
 
@@ -723,7 +714,6 @@ label(0x98F7, "nmi_data_rx_tube")      # Data frame: Tube co-processor variant
 
 # --- Data frame completion and FV validation ---
 label(0x9933, "data_rx_tube_complete") # Tube data frame completion
-comment(0x995b, "/ fall through...", inline=True)
 label(0x9930, "data_rx_tube_error")    # Tube data frame error (3 refs)
 
 # --- ACK transmission ---
@@ -751,7 +741,6 @@ label(0x9EFF, "nmi_final_ack_net")     # Read dest_net, validate
 
 # --- Completion and error ---
 label(0x9F3D, "tx_result_fail")        # Store result=&41 (not listening) (9 refs)
-comment(0x9f3d, "/ fall through...", inline=True)
 
 # --- NMI shim at end of ROM ---
 label(0x9FCA, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
@@ -780,7 +769,6 @@ label(0x81B2, "skpspi")               # NFS01: skip SPI
 
 # --- FS command dispatch (&82xx-&83xx) ---
 label(0x8219, "dofsl1")               # NFS03: do FS loop 1
-comment(0x822c, "/ fall through...", inline=True)
 label(0x82FF, "fsdiel")               # NFS01: FS die loop
 label(0x831F, "fstxl1")               # NFS03: FS TX loop 1
 label(0x832F, "fstxl2")               # NFS03: FS TX loop 2
@@ -788,7 +776,6 @@ label(0x838A, "dofsl7")               # NFS03: do FS loop 7
 label(0x8396, "return_dofsl7")        # NFS03: return from FS loop 7
 label(0x8397, "dofsl5")               # NFS03: do FS loop 5
 label(0x83DD, "error1")               # NFS03: error handler 1
-comment(0x83ff, "/ fall through...", inline=True)
 
 # --- Net list / pointer arithmetic (&84xx-&85xx) ---
 label(0x8428, "nlistn")               # NFS03: net list entry
@@ -804,7 +791,6 @@ label(0x866A, "l4")                   # NFS03: net TX polling loop
 label(0x8699, "file1")                # NFS05: FILEV entry 1
 label(0x86A8, "quote1")               # NFS05: filename quote loop
 label(0x86CB, "loadop")               # NFS05: load operation
-comment(0x86ce, "/ fall through...", inline=True)
 label(0x86E8, "lodfil")               # NFS05: load file
 
 # --- FILEV, load/save size (&87xx) ---
@@ -816,7 +802,6 @@ label(0x874A, "savsiz")               # NFS05: save size handling
 label(0x87AF, "lodrl1")               # NFS05: load reply loop 1
 label(0x87BD, "lodrl2")               # NFS05: load reply loop 2
 label(0x87EB, "savchk")               # NFS05: save check
-comment(0x881d, "/ fall through...", inline=True)
 
 # --- Channel/attribute handling (&88xx-&89xx) ---
 label(0x8861, "chalp1")               # NFS05: channel loop 1
@@ -825,7 +810,6 @@ label(0x888A, "cha6")                  # NFS05: channel handler 6
 label(0x8899, "cha4")                  # NFS05: channel handler 4
 label(0x88A3, "cha5")                  # NFS05: channel handler 5
 label(0x88D2, "cha5lp")               # NFS05: channel 5 loop
-comment(0x88df, "/ fall through...", inline=True)
 label(0x893D, "osarg1")               # NFS05: OSARGS handler 1
 label(0x89B6, "opter1")               # NFS05: *OPT error 1
 label(0x89BB, "optl1")                # NFS05: *OPT loop 1
@@ -852,14 +836,12 @@ label(0x8BA7, "decmin")               # NFS07: decimal minimum
 label(0x8D24, "logon2")               # NFS07: logon handler 2
 label(0x8D2A, "logon3")               # NFS07: logon handler 3
 label(0x8D7E, "infol2")               # NFS07: info loop 2
-comment(0x8d82, "/ fall through...", inline=True)
 
 # --- File I/O: save, read, open (&8Dxx-&8Fxx) ---
 label(0x8DD6, "rxpol2")               # NFS08: RX poll loop 2
 label(0x8E0C, "save1")                # NFS08: save handler 1
 label(0x8E2E, "copyl3")               # NFS08: copy loop 3
 label(0x8E75, "readry")               # NFS08: read ready
-comment(0x8e79, "/ fall through...", inline=True)
 label(0x8E9B, "rssl1")                # NFS08: read size/status loop 1
 label(0x8EA6, "rssl2")                # NFS08: read size/status loop 2
 label(0x8EB7, "rsl1")                 # NFS08: read status loop 1
@@ -882,14 +864,12 @@ label(0x90AD, "nbyte5")               # NFS09: net byte handler 5
 label(0x90B4, "return_nbyte")         # NFS09: return from net byte handler
 label(0x9102, "rchex")                # NFS03: receive hex
 label(0x9105, "remot1")               # NFS03: remote handler 1
-comment(0x9127, "/ fall through...", inline=True)
 label(0x9167, "cbset2")               # NFS09: control block set 2
 label(0x917E, "cbset3")               # NFS09: control block set 3
 label(0x9184, "cbset4")               # NFS09: control block set 4
 label(0x91C3, "setup1")               # NFS09: setup 1
 label(0x91C6, "return_printer_select") # NFS09: return from printer_select_handler
 label(0x91D6, "prlp1")                # NFS09: printer loop 1
-comment(0x91ea, "/ fall through...", inline=True)
 
 # --- Broadcast/station search (&92xx) ---
 label(0x9254, "bsxl1")                # NFS09: broadcast search loop 1
@@ -1087,7 +1067,6 @@ entry(0x81D0)
 entry(0x81E0)
 entry(0x81FE)
 entry(0x8200)
-comment(0x8215, "/ fall through...", inline=True)
 
 # ============================================================
 # Code regions identified by manual inspection of equb data
@@ -1105,7 +1084,6 @@ entry(0x89EA)   # JSR &8508; ... (preceded by RTS, standalone entry)
 # entry(0x8E33) created by subroutine() call below
 entry(0x9063)   # LDY zp; CMP#; ... (preceded by RTS, standalone entry)
 entry(0x99BB)   # Post-ACK: process received scout (check port, match RX block)
-comment(0x9a32, "/ fall through...", inline=True)
 
 # --- Econet TX/RX handler and OSWORD dispatch (&8F72-&904A) ---
 # &8F72: Main transmit/receive handler entry (A=0: set up and send, A>=1: handle result)
@@ -1262,7 +1240,6 @@ Clears bit 2 of rx_flags, releasing any station that is
 halted and spinning in tx_done_halt.""")
 
 label(0x9BDD, "tx_done_exit")
-comment(0x9c46, "/ fall through...", inline=True)
 
 # ============================================================
 # TX ctrl byte handler labels (&9CE8-&9D45)
@@ -1297,7 +1274,6 @@ label(0x9D45, "tx_ctrl_exit")
 
 # Alternate entry into ctrl_block_setup (&9162)
 entry(0x9159)   # ADLC setup: LDX #&0D; LDY #&7C; BIT &833A; BVS c9167
-comment(0x9160, "/ fall through...", inline=True)
 
 # Dispatch targets found in equb data regions
 # These are the bodies of the econet function dispatch handlers.
@@ -1446,7 +1422,6 @@ subroutine(0x85AF, "print_decimal", hook=None,
 Prints A as a decimal number using repeated subtraction
 for each digit position (100, 10, 1). Leading zeros are
 printed (no suppression). Used to display station numbers.""")
-comment(0x85ba, "/ fall through...", inline=True)
 
 subroutine(0x85BC, "print_decimal_digit", hook=None,
     title="Print one decimal digit by repeated subtraction",
@@ -1478,7 +1453,6 @@ subroutine(0x85DF, "clear_fs_flag", hook=None,
     description="""\
 Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
 the specified bits. Falls through to set_fs_flag to store.""")
-comment(0x85e1, "/ fall through...", inline=True)
 
 subroutine(0x85E4, "set_fs_flag", hook=None,
     title="Set bit(s) in FS flags (&0E07)",
@@ -1525,7 +1499,6 @@ subroutine(0x8644, "setup_tx_ptr_c0", hook=None,
 Points net_tx_ptr to &00C0 where the TX control block has
 been built by init_tx_ctrl_block. Falls through to tx_poll_ff
 to initiate transmission with full retry.""")
-comment(0x864a, "/ fall through...", inline=True)
 
 subroutine(0x864C, "tx_poll_ff", hook=None,
     title="Transmit and poll for result (full retry)",
@@ -1662,7 +1635,6 @@ Called when the NFS ROM is entered as a language. X = reason code
 (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).""")
 
 comment(0x809D, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
-comment(0x809d, "/ fall through...", inline=True)
 
 # ============================================================
 # Service call dispatch (&8127)
@@ -1692,7 +1664,6 @@ Intercepts three special service calls before normal dispatch:
        &0016-&0076, then fall through to select NFS.
   &12 with Y=5: Select NFS as active filing system.
 All other service calls dispatch via dispatch_service (&8127).""")
-comment(0x80c6, "/ fall through...", inline=True)
 
 # ============================================================
 # Init: set up vectors and copy code (&80C8)
@@ -1871,7 +1842,6 @@ comment(0x8295, "Soft break (X=0): skip FS init", inline=True)
 comment(0x829B, "Station &FE = no server selected", inline=True)
 comment(0x82C3, "Read station ID (also INTOFF)", inline=True)
 comment(0x82C9, "Initialise ADLC hardware", inline=True)
-comment(0x82ce, "/ fall through...", inline=True)
 
 # ============================================================
 # Service 3: auto-boot (&81D1)
@@ -1906,7 +1876,6 @@ Both entries reuse bytes from the ROM header to save space:
 
 If neither matches, returns with the service call
 unclaimed.""")
-comment(0x8182, "/ fall through...", inline=True)
 
 # ============================================================
 # Service 9: *HELP (&81BC)
@@ -2404,7 +2373,6 @@ number tracking byte for the byte-stream protocol.""",
     on_exit={"a": "handle on open, 0 on close-all, restored on close-one",
              "x": "restored",
              "y": "restored"})
-comment(0x8983, "/ fall through...", inline=True)
 
 # ============================================================
 # CLOSE handler (&8985)
@@ -2480,7 +2448,6 @@ subroutine(0x8349, "bye_handler", hook=None,
 Closes any open *SPOOL and *EXEC files via OSBYTE &77 (FXSPEX),
 then falls into prepare_fs_cmd with Y=&17 (FCBYE: logoff code).
 Dispatched from the command match table at &8BD6 for "BYE".""")
-comment(0x834e, "/ fall through...", inline=True)
 
 # ============================================================
 # FSCV unrecognised * handler (&8B92)
@@ -2519,7 +2486,6 @@ Entries:
   "EX"\\r   → &8BF2 (same, exact match at end of line)
   "BYE"\\r  → &8349 (bye_handler: logoff)
   <catch-all> → &8079 (forward anything else to FS)""")
-comment(0x8bed, "/ fall through...", inline=True)
 
 # ============================================================
 # *EX and *CAT handlers (&8BF2 / &8BFD)
@@ -2581,7 +2547,6 @@ subroutine(0x8CF7, "set_lib_handle", hook=None,
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
 Falls through to c8cff (JMP c892c) if Y is non-zero.""")
-comment(0x8cfa, "/ fall through...", inline=True)
 
 subroutine(0x8CFC, "set_csd_handle", hook=None,
     title="Set CSD handle",
@@ -2632,7 +2597,6 @@ The carry flag distinguishes LOGIN (SEC) from SDISC (CLC) — both
 share the handle-copying code, but only LOGIN executes the boot
 command. This use of the carry flag to select behaviour between
 two callers avoids duplicating the handle-copy loop.""")
-comment(0x8d1f, "/ fall through...", inline=True)
 
 subroutine(0x8D20, "copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
@@ -2682,7 +2646,6 @@ subroutine(0x8D63, "copy_filename", hook=None,
 Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.
 Used to place a filename into the FS command buffer before
 sending to the fileserver. Falls through to copy_string_to_cmd.""")
-comment(0x8d63, "/ fall through...", inline=True)
 
 subroutine(0x8D65, "copy_string_to_cmd", hook=None,
     title="Copy string to FS command buffer",
@@ -2724,7 +2687,6 @@ subroutine(0x8DAF, "net1_read_handle", hook=None,
 Reads a file handle byte from offset &6F in the RX buffer
 (net_rx_ptr), stores it in &F0, then falls through to the
 common handle workspace cleanup at c8dda (clear rom_svc_num).""")
-comment(0x8db5, "/ fall through...", inline=True)
 
 subroutine(0x8DB7, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",
@@ -2754,7 +2716,6 @@ Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
 workspace. Preserves the carry flag state across the write
 using ROL/ROR on rx_status_flags. Clears rom_svc_num on exit.""")
-comment(0x8df0, "/ fall through...", inline=True)
 
 subroutine(0x8DF2, "net4_resume_remote", hook=None,
     title="*NET4: resume after remote operation",
@@ -2763,7 +2724,6 @@ Calls resume_after_remote (&8146) to re-enable the keyboard
 and send a completion notification. The BVC always branches
 to c8dda (clear rom_svc_num) since resume_after_remote
 returns with V clear (from CLV in prepare_cmd_clv).""")
-comment(0x8df5, "/ fall through...", inline=True)
 
 # NMI handler init — ROM code copies to page &04/&05/&06
 # ============================================================
@@ -2778,7 +2738,6 @@ PHA/PHA/RTS dispatch at &8E01.""")
 
 comment(0x8DF7, "Command code from &EF", inline=True)
 comment(0x8DF9, "Subtract &0F: OSWORD &0F-&13 become indices 0-4", inline=True)
-comment(0x8dff, "/ fall through...", inline=True)
 
 subroutine(0x8E01, "fs_osword_dispatch", hook=None,
     title="PHA/PHA/RTS dispatch for filing system OSWORDs",
@@ -2791,7 +2750,6 @@ comment(0x8E1D, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline
 
 comment(0x80F9, "Copy NMI handler code from ROM to RAM pages &04-&06")
 comment(0x8113, "Copy NMI workspace initialiser from ROM to &0016-&0076")
-comment(0x8125, "/ fall through...", inline=True)
 
 # ============================================================
 # Econet TX/RX handler (&8F72)
@@ -2862,7 +2820,6 @@ return flags without touching the actual processor status.""",
              "y": "0"})
 
 comment(0x903E, "ROR/ASL on stacked P: zeros carry to signal success", inline=True)
-comment(0x9049, "/ fall through...", inline=True)
 
 # ============================================================
 # Setup TX and send (&904B)
@@ -3078,7 +3035,6 @@ matches the controlling station stored in the remote RXCB. This
 ensures that only the station that initiated the remote session
 can send commands — characters from other stations are rejected.
 Full init sequence: 1) disable keyboard, 2) set workspace ptr,
-comment(0x9148, "/ fall through...", inline=True)
 3) set status busy, 4) set R/W/byte/word masks, 5) set up CB,
 6) set MODE 7 (the only mode guaranteed for terminal emulation),
 7) set auto repeat rates, 8) enter current language. This is
@@ -3175,7 +3131,6 @@ subroutine(0x9217, "flush_output_block", hook=None,
     description="""\
 Sends the accumulated output block over the network, resets the
 buffer pointer, and prepares for the next block of output data.""")
-comment(0x9247, "/ fall through...", inline=True)
 
 subroutine(0x92DD, "save_vdu_state", hook=None,
     title="Save VDU workspace state",
@@ -3194,7 +3149,6 @@ subroutine(0x966F, "adlc_init", hook=None,
 Reads station ID (INTOFF side effect), performs full ADLC reset,
 checks for Tube presence (OSBYTE &EA), then falls through to
 adlc_init_workspace.""")
-comment(0x967e, "/ fall through...", inline=True)
 
 subroutine(0x9681, "adlc_init_workspace", hook=None,
     title="Initialise NMI workspace",
@@ -3387,7 +3341,6 @@ Performs adlc_full_reset (CR1=&C1, reset both TX and RX sections),
 then falls through to discard_after_reset. Used when the ADLC is
 in an unexpected state and needs a hard reset before returning
 to idle listen mode. 5 references — the main error recovery path.""")
-comment(0x9a3d, "/ fall through...", inline=True)
 
 subroutine(0x9A40, "discard_listen", hook=None,
     title="Discard frame (gentle)",
@@ -3396,7 +3349,6 @@ Sends RX_DISCONTINUE (CR1=&A2: RIE|RX_DISCONTINUE) to abort the
 current frame reception without a full reset, then falls through
 to discard_after_reset. Used for clean rejection of frames that
 are correctly formatted but not for us (wrong station/network).""")
-comment(0x9a40, "/ fall through...", inline=True)
 
 subroutine(0x9A43, "discard_after_reset", hook=None,
     title="Return to idle listen after reset/discard",
@@ -3468,7 +3420,6 @@ Aborts all activity and returns to idle RX listen mode.""")
 comment(0x96DC, "CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)", inline=True)
 comment(0x96E1, "CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding", inline=True)
 comment(0x96E6, "CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR", inline=True)
-comment(0x96e8, "/ fall through...", inline=True)
 
 # ============================================================
 # Enter RX listen mode (&96EB)
@@ -4043,7 +3994,6 @@ comment(0x9F28, "Mismatch -- error", inline=True)
 comment(0x9F32, "A=&02: FV mask for SR2 bit1", inline=True)
 comment(0x9F34, "BIT SR2: test FV -- frame must be complete", inline=True)
 comment(0x9F37, "No FV -- error", inline=True)
-comment(0x9f37, "/ fall through...", inline=True)
 
 # ============================================================
 # Completion and error handlers (&9F39-&9F48)
