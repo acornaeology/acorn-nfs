@@ -5371,7 +5371,7 @@ osword_12_handler = sub_c8e7a+2
     equb <(remote_print_handler-1)                                    ; 90a2: d8          .
     equb <(remote_print_handler-1)                                    ; 90a3: d8          .
     equb <(sub_c90b2-1)                                               ; 90a4: b1          .
-    equb <(remote_display_setup-1)                                    ; 90a5: c8          .
+    equb <(printer_select_handler-1)                                  ; 90a5: c8          .
     equb <(return_2-1)                                                ; 90a6: 75          u
     equb <(remote_cmd_dispatch-1)                                     ; 90a7: d7          .
     equb <(remote_cmd_data-1)                                         ; 90a8: 41          A
@@ -5382,7 +5382,7 @@ osword_12_handler = sub_c8e7a+2
     equb >(remote_print_handler-1)                                    ; 90ab: 91          .
     equb >(remote_print_handler-1)                                    ; 90ac: 91          .
     equb >(sub_c90b2-1)                                               ; 90ad: 90          .
-    equb >(remote_display_setup-1)                                    ; 90ae: 91          .
+    equb >(printer_select_handler-1)                                  ; 90ae: 91          .
     equb >(return_2-1)                                                ; 90af: 81          .
     equb >(remote_cmd_dispatch-1)                                     ; 90b0: 90          .
     equb >(remote_cmd_data-1)                                         ; 90b1: 91          .
@@ -5679,7 +5679,7 @@ osword_12_handler = sub_c8e7a+2
 ; sets the initial flag byte (&0D60 = &41). Otherwise falls
 ; through to return.
 ; ***************************************************************************************
-.remote_display_setup
+.printer_select_handler
     dex                                                               ; 91c9: ca          .
     cpx l00f0                                                         ; 91ca: e4 f0       ..
     bne setup1                                                        ; 91cc: d0 07       ..
@@ -5690,7 +5690,7 @@ osword_12_handler = sub_c8e7a+2
 .setup1
     sta l0d60                                                         ; 91d5: 8d 60 0d    .`.
 ; &91d8 referenced 2 times by &91db, &91ef
-.return_display_setup
+.return_printer_select
     rts                                                               ; 91d8: 60          `
 
 ; ***************************************************************************************
@@ -5715,7 +5715,7 @@ osword_12_handler = sub_c8e7a+2
 ; ***************************************************************************************
 .remote_print_handler
     cpy #4                                                            ; 91d9: c0 04       ..
-    bne return_display_setup                                          ; 91db: d0 fb       ..
+    bne return_printer_select                                         ; 91db: d0 fb       ..
     txa                                                               ; 91dd: 8a          .
     dex                                                               ; 91de: ca          .
     bne c9207                                                         ; 91df: d0 26       .&
@@ -5727,7 +5727,7 @@ osword_12_handler = sub_c8e7a+2
     lda #osbyte_read_buffer                                           ; 91e8: a9 91       ..
     ldx #buffer_printer                                               ; 91ea: a2 03       ..
     jsr osbyte                                                        ; 91ec: 20 f4 ff     ..            ; Get character from input buffer (C is set if the buffer is empty, otherwise Y=extracted character)
-    bcs return_display_setup                                          ; 91ef: b0 e7       ..
+    bcs return_printer_select                                         ; 91ef: b0 e7       ..
     tya                                                               ; 91f1: 98          .              ; Y is the character extracted from the buffer
     jsr store_output_byte                                             ; 91f2: 20 fe 91     ..
     cpy #&6e ; 'n'                                                    ; 91f5: c0 6e       .n
@@ -7265,9 +7265,11 @@ l9c6a = sub_c9c68+2
     bne c9ca5                                                         ; 9c95: d0 0e       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Timeout error: writes CR2=&07 to abort, cleans stack,
+; TX timeout error handler (Line Jammed)
 ; 
-; returns error &40 ("Line Jammed").
+; Writes CR2=&07 to abort TX, cleans 3 bytes from stack (the
+; timeout loop's state), then stores error code &40 ("Line
+; Jammed") into the TX control block and signals completion.
 ; ***************************************************************************************
 ; &9c97 referenced 1 time by &9c90
 .tx_line_jammed
@@ -8014,10 +8016,10 @@ l9ee1 = sub_c9ee0+1
     assert <(osword_11_handler-1) == &d9
     assert <(osword_fs_entry-1) == &7d
     assert <(print_dir_name-1) == &5e
+    assert <(printer_select_handler-1) == &c8
     assert <(remote_boot_handler-1) == &76
     assert <(remote_cmd_data-1) == &41
     assert <(remote_cmd_dispatch-1) == &d7
-    assert <(remote_display_setup-1) == &c8
     assert <(remote_print_handler-1) == &d8
     assert <(remote_validated-1) == &b4
     assert <(resume_after_remote-1) == &89
@@ -8073,10 +8075,10 @@ l9ee1 = sub_c9ee0+1
     assert >(osword_11_handler-1) == &8e
     assert >(osword_fs_entry-1) == &8e
     assert >(print_dir_name-1) == &8d
+    assert >(printer_select_handler-1) == &91
     assert >(remote_boot_handler-1) == &84
     assert >(remote_cmd_data-1) == &91
     assert >(remote_cmd_dispatch-1) == &90
-    assert >(remote_display_setup-1) == &91
     assert >(remote_print_handler-1) == &91
     assert >(remote_validated-1) == &84
     assert >(resume_after_remote-1) == &81
@@ -8408,9 +8410,9 @@ save pydis_start, pydis_end
 ;     return_5:                                 2
 ;     return_7:                                 2
 ;     return_copy_param:                        2
-;     return_display_setup:                     2
 ;     return_match_osbyte:                      2
 ;     return_nbyte:                             2
+;     return_printer_select:                    2
 ;     return_tube_init:                         2
 ;     return_tube_xfer:                         2
 ;     rom_header:                               2

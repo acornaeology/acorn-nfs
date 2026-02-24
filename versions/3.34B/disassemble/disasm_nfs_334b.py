@@ -886,7 +886,7 @@ label(0x9168, "cbset2")               # NFS09: control block set 2
 label(0x917F, "cbset3")               # NFS09: control block set 3
 label(0x9185, "cbset4")               # NFS09: control block set 4
 label(0x91C4, "setup1")               # NFS09: setup 1
-label(0x91C7, "return_display_setup") # NFS09: return from remote_display_setup
+label(0x91C7, "return_printer_select") # NFS09: return from printer_select_handler
 label(0x91D7, "prlp1")                # NFS09: printer loop 1
 
 # --- Broadcast/station search (&92xx) ---
@@ -3108,7 +3108,7 @@ don't return meaningful results. Copies up to 14 parameter bytes
 from the RX buffer to workspace, tags the message as RWORD, and
 transmits.""")
 
-subroutine(0x91B6, "remote_display_setup", hook=None,
+subroutine(0x91B6, "printer_select_handler", hook=None,
     title="Fn 5: printer selection changed (SELECT)",
     description="""\
 Called when the printer selection changes. Compares the new
@@ -3734,9 +3734,11 @@ comment(0x9C71, "3-byte timeout counter on stack", inline=True)
 # ============================================================
 comment(0x9C84, "TX_ACTIVE branch (A=&44 = CR1 value for TX active)")
 subroutine(0x9C88, "tx_line_jammed", hook=None,
-    title="Timeout error: writes CR2=&07 to abort, cleans stack,",
+    title="TX timeout error handler (Line Jammed)",
     description="""\
-returns error &40 ("Line Jammed").""")
+Writes CR2=&07 to abort TX, cleans 3 bytes from stack (the
+timeout loop's state), then stores error code &40 ("Line
+Jammed") into the TX control block and signals completion.""")
 
 comment(0x9C88, "CR2=&07: FC_TDRA | 2_1_BYTE | PSE (abort TX)", inline=True)
 comment(0x9C90, "Error &40 = 'Line Jammed'", inline=True)

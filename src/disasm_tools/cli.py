@@ -109,6 +109,16 @@ def cmd_extract(args):
     sys.exit(extract(str(asm_filepath), args.start, args.end))
 
 
+def cmd_audit(args):
+    """Audit subroutine annotations."""
+    from disasm_tools.audit import audit
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(audit(version_dirpath, args.version,
+                   sub_target=args.sub, summary=args.summary,
+                   flag_filter=args.flag))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -155,6 +165,16 @@ def main():
     extract_parser.add_argument("end", nargs="?", default=None,
                                 help="End address (hex) or label name (optional)")
     extract_parser.set_defaults(func=cmd_extract)
+
+    audit_parser = subparsers.add_parser(
+        "audit", help="Audit subroutine annotations"
+    )
+    audit_parser.add_argument("version", help="NFS version (e.g. 3.34)")
+    audit_parser.add_argument("--sub", help="Detail for one subroutine (addr or name)")
+    audit_parser.add_argument("--summary", action="store_true",
+                              help="Show summary table (default if no --sub)")
+    audit_parser.add_argument("--flag", help="Filter summary by flag")
+    audit_parser.set_defaults(func=cmd_audit)
 
     args = parser.parse_args()
     args.func(args)
