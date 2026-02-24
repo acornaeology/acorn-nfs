@@ -1769,19 +1769,19 @@ comment(0x8224, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True
 # ============================================================
 # FS vector dispatch and handler addresses (&8280)
 # ============================================================
-# UNMAPPED: subroutine(0x8280, "fs_vector_addrs", hook=None,
-# UNMAPPED:     title="FS vector dispatch and handler addresses (34 bytes)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Bytes 0-13: extended vector dispatch addresses, copied to
-# UNMAPPED: FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
-# UNMAPPED: a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
-# UNMAPPED: the handler in the ROM pointer table.
-# UNMAPPED: 
-# UNMAPPED: Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
-# UNMAPPED: Each entry has addr_lo, addr_hi, then a padding byte that is
-# UNMAPPED: not read at runtime (store_rom_ptr_pair writes the current ROM
-# UNMAPPED: bank number without reading). The last entry (FSCV) has no
-# UNMAPPED: padding byte.""")
+subroutine(0x8294, "fs_vector_addrs", hook=None,
+    title="FS vector dispatch and handler addresses (34 bytes)",
+    description="""\
+Bytes 0-13: extended vector dispatch addresses, copied to
+FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+the handler in the ROM pointer table.
+
+Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
+Each entry has addr_lo, addr_hi, then a padding byte that is
+not read at runtime (store_rom_ptr_pair writes the current ROM
+bank number without reading). The last entry (FSCV) has no
+padding byte.""")
 
 # Part 1 was extended vector dispatch addresses in 3.35K (7 x 2 bytes),
 # but in 3.40 the code shifted so &8280-&828D is now code
@@ -1842,22 +1842,22 @@ allocated — returns unchanged.""")
 # ============================================================
 # Service 2: claim private workspace (&82AB)
 # ============================================================
-# UNMAPPED: subroutine(0x82AB, "svc_private_workspace", hook=None,
-# UNMAPPED:     title="Service 2: claim private workspace and initialise NFS",
-# UNMAPPED:     description="""\
-# UNMAPPED: Y = next available workspace page on entry.
-# UNMAPPED: Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
-# UNMAPPED: On soft break (OSBYTE &FD returns 0): skips FS state init,
-# UNMAPPED: preserving existing login state, file server selection, and
-# UNMAPPED: control block configuration — this is why pressing BREAK
-# UNMAPPED: keeps the user logged in.
-# UNMAPPED: On power-up/CTRL-BREAK (result non-zero):
-# UNMAPPED:   - Sets FS server station to &FE (FS, the default; no server)
-# UNMAPPED:   - Sets printer server to &EB (PS, the default)
-# UNMAPPED:   - Clears FS handles, OPT byte, message flag, SEQNOS
-# UNMAPPED:   - Initialises all RXCBs with &3F flag (available)
-# UNMAPPED: In both cases: reads station ID from &FE18 (only valid during
-# UNMAPPED: reset), calls adlc_init, enables user-level RX (LFLAG=&40).""")
+subroutine(0x82C1, "svc_private_workspace", hook=None,
+    title="Service 2: claim private workspace and initialise NFS",
+    description="""\
+Y = next available workspace page on entry.
+Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
+On soft break (OSBYTE &FD returns 0): skips FS state init,
+preserving existing login state, file server selection, and
+control block configuration — this is why pressing BREAK
+keeps the user logged in.
+On power-up/CTRL-BREAK (result non-zero):
+  - Sets FS server station to &FE (FS, the default; no server)
+  - Sets printer server to &EB (PS, the default)
+  - Clears FS handles, OPT byte, message flag, SEQNOS
+  - Initialises all RXCBs with &3F flag (available)
+In both cases: reads station ID from &FE18 (only valid during
+reset), calls adlc_init, enables user-level RX (LFLAG=&40).""")
 
 comment(0x82D8, "OSBYTE &FD: read type of last reset", inline=True)
 comment(0x82DE, "Soft break (X=0): skip FS init", inline=True)
@@ -2115,29 +2115,29 @@ checks for escape conditions between blocks.""")
 # ============================================================
 # Check escape (&851D)
 # ============================================================
-# UNMAPPED: subroutine(0x851D, "check_escape", hook=None,
-# UNMAPPED:     title="Check and handle escape condition (ESC)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed
-# UNMAPPED: with the software enable flag ESCAP. Both must have bit 7 set for
-# UNMAPPED: escape to fire. ESCAP is set non-zero during data port operations
-# UNMAPPED: (LOADOP stores the data port &90, serving double duty as both the
-# UNMAPPED: port number and the escape-enable flag). ESCAP is disabled via LSR
-# UNMAPPED: in the ENTER routine, which clears bit 7 — PHP/PLP around the LSR
-# UNMAPPED: preserves the carry flag since ENTER is called from contexts where
-# UNMAPPED: carry has semantic meaning (e.g., PUTBYT vs BGET distinction).
-# UNMAPPED: This architecture allows escape between retransmission attempts
-# UNMAPPED: but prevents interruption during critical FS transactions. If
-# UNMAPPED: escape fires: acknowledges via OSBYTE &7E, then checks whether
-# UNMAPPED: the failing handle is the current SPOOL or EXEC handle (OSBYTE
-# UNMAPPED: &C6/&C7); if so, issues "*SP." or "*E." via OSCLI to gracefully
-# UNMAPPED: close the channel before raising the error — preventing the system
-# UNMAPPED: from continuing to spool output to a broken file handle.
-# UNMAPPED: 
-# UNMAPPED: 3.35K restructures the SPOOL/EXEC close logic: both handles
-# UNMAPPED: are always checked (3.35D skipped EXEC if SPOOL matched),
-# UNMAPPED: and OSCLI is always called (with a harmless "." default if
-# UNMAPPED: neither matched).""")
+subroutine(0x854C, "check_escape", hook=None,
+    title="Check and handle escape condition (ESC)",
+    description="""\
+Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed
+with the software enable flag ESCAP. Both must have bit 7 set for
+escape to fire. ESCAP is set non-zero during data port operations
+(LOADOP stores the data port &90, serving double duty as both the
+port number and the escape-enable flag). ESCAP is disabled via LSR
+in the ENTER routine, which clears bit 7 — PHP/PLP around the LSR
+preserves the carry flag since ENTER is called from contexts where
+carry has semantic meaning (e.g., PUTBYT vs BGET distinction).
+This architecture allows escape between retransmission attempts
+but prevents interruption during critical FS transactions. If
+escape fires: acknowledges via OSBYTE &7E, then checks whether
+the failing handle is the current SPOOL or EXEC handle (OSBYTE
+&C6/&C7); if so, issues "*SP." or "*E." via OSCLI to gracefully
+close the channel before raising the error — preventing the system
+from continuing to spool output to a broken file handle.
+
+3.35K restructures the SPOOL/EXEC close logic: both handles
+are always checked (3.35D skipped EXEC if SPOOL matched),
+and OSCLI is always called (with a harmless "." default if
+neither matched).""")
 
 # 3.35K: Y register initialised before STA (net_tx_ptr),Y
 # UNMAPPED: comment(0x8526, """\
@@ -2588,13 +2588,13 @@ overlaps with other byte sequences to save space.""")
 # ============================================================
 # Boot option table and "I AM" handler (&8CF4-&8E20)
 # ============================================================
-# UNMAPPED: subroutine(0x8CF4, "boot_option_offsets", hook=None,
-# UNMAPPED:     title="Boot option → OSCLI string offset table",
-# UNMAPPED:     description="""\
-# UNMAPPED: Four bytes indexed by the boot option value (0-3). Each byte
-# UNMAPPED: is the low byte of a pointer into page &8C, where the OSCLI
-# UNMAPPED: command string for that boot option lives. See boot_cmd_strings.
-# UNMAPPED: Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
+subroutine(0x8D1B, "boot_option_offsets", hook=None,
+    title="Boot option → OSCLI string offset table",
+    description="""\
+Four bytes indexed by the boot option value (0-3). Each byte
+is the low byte of a pointer into page &8C, where the OSCLI
+command string for that boot option lives. See boot_cmd_strings.
+Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
 byte(0x8CF4, 1)
 # UNMAPPED: comment(0x8CF4, "Opt 0 (Off): bare CR", inline=True)
 byte(0x8CF5, 1)
@@ -2718,12 +2718,12 @@ indirect pointer at (&0F09) to execute at the load address.""")
 # ============================================================
 # *NET sub-command handlers (&8E3B-&8E75)
 # ============================================================
-# UNMAPPED: subroutine(0x8E3B, "net1_read_handle", hook=None,
-# UNMAPPED:     title="*NET1: read file handle from received packet",
-# UNMAPPED:     description="""\
-# UNMAPPED: Reads a file handle byte from offset &6F in the RX buffer
-# UNMAPPED: (net_rx_ptr), stores it in &F0, then falls through to the
-# UNMAPPED: common handle workspace cleanup at c8dda (clear rom_svc_num).""")
+subroutine(0x8E3A, "net1_read_handle", hook=None,
+    title="*NET1: read file handle from received packet",
+    description="""\
+Reads a file handle byte from offset &6F in the RX buffer
+(net_rx_ptr), stores it in &F0, then falls through to the
+common handle workspace cleanup at c8dda (clear rom_svc_num).""")
 
 subroutine(0x8E47, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",
@@ -3232,26 +3232,26 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
   &04F7: tube_read_r2 — poll R2 status, read data byte to A""")
 
-# UNMAPPED: subroutine(0x0500, "tube_dispatch_table", hook=None,
-# UNMAPPED:     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
-# UNMAPPED:     description="""\
-# UNMAPPED: Copied from ROM at &944D during init. Contains:
-# UNMAPPED:   &0500: tube_dispatch_table — 14-entry handler address table
-# UNMAPPED:   &051C: tube_wrch_handler — WRCHV target
-# UNMAPPED:   &051F: tube_send_and_poll — send byte via R2, poll for reply
-# UNMAPPED:   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
-# UNMAPPED:   &053D: tube_release_return — restore regs and RTS
-# UNMAPPED:   &0543: tube_osbput — write byte to file
-# UNMAPPED:   &0550: tube_osbget — read byte from file
-# UNMAPPED:   &055B: tube_osrdch — read character
-# UNMAPPED:   &0569: tube_osfind — open file
-# UNMAPPED:   &0580: tube_osfind_close — close file (A=0)
-# UNMAPPED:   &058C: tube_osargs — file argument read/write
-# UNMAPPED:   &05B1: tube_read_string — read CR-terminated string into &0700
-# UNMAPPED:   &05C5: tube_oscli — execute * command
-# UNMAPPED:   &05CB: tube_reply_ack — send &7F acknowledge
-# UNMAPPED:   &05CD: tube_reply_byte — send byte and return to main loop
-# UNMAPPED:   &05D8: tube_osfile — whole file operation""")
+subroutine(0x0500, "tube_dispatch_table", hook=None,
+    title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
+    description="""\
+Copied from ROM at &944D during init. Contains:
+  &0500: tube_dispatch_table — 14-entry handler address table
+  &051C: tube_wrch_handler — WRCHV target
+  &051F: tube_send_and_poll — send byte via R2, poll for reply
+  &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
+  &053D: tube_release_return — restore regs and RTS
+  &0543: tube_osbput — write byte to file
+  &0550: tube_osbget — read byte from file
+  &055B: tube_osrdch — read character
+  &0569: tube_osfind — open file
+  &0580: tube_osfind_close — close file (A=0)
+  &058C: tube_osargs — file argument read/write
+  &05B1: tube_read_string — read CR-terminated string into &0700
+  &05C5: tube_oscli — execute * command
+  &05CB: tube_reply_ack — send &7F acknowledge
+  &05CD: tube_reply_byte — send byte and return to main loop
+  &05D8: tube_osfile — whole file operation""")
 
 # UNMAPPED: subroutine(0x0600, "tube_code_page6", hook=None,
 # UNMAPPED:     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",

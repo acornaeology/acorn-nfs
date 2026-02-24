@@ -131,6 +131,7 @@ l0350                                   = &0350
 l0351                                   = &0351
 l0355                                   = &0355
 l0700                                   = &0700
+l0c1b                                   = &0c1b
 l0cff                                   = &0cff
 nmi_shim_07                             = &0d07
 nmi_jmp_lo                              = &0d0c
@@ -225,6 +226,7 @@ l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
 l1e02                                   = &1e02
 l3af0                                   = &3af0
+l4514                                   = &4514
 l5801                                   = &5801
 l5e41                                   = &5e41
 l6e04                                   = &6e04
@@ -330,7 +332,7 @@ oscli                                   = &fff7
     stx l0051                                                         ; 9354: 86 51       .Q  :004e[1]
 .tube_dispatch_cmd
 l0051 = tube_dispatch_cmd+1
-    jmp (l0500)                                                       ; 9356: 6c 00 05    l.. :0050[1]
+    jmp (tube_dispatch_table)                                         ; 9356: 6c 00 05    l.. :0050[1]
 
 ; &9357 referenced 1 time by &004e[1]
 ; &9359 referenced 2 times by &04d7[2], &04e7[2]
@@ -569,8 +571,29 @@ l0051 = tube_dispatch_cmd+1
 
 ; Move 3: &9456 to &0500 for length 256
     org &0500
+; ***************************************************************************************
+; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
+; 
+; Copied from ROM at &944D during init. Contains:
+;   &0500: tube_dispatch_table — 14-entry handler address table
+;   &051C: tube_wrch_handler — WRCHV target
+;   &051F: tube_send_and_poll — send byte via R2, poll for reply
+;   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
+;   &053D: tube_release_return — restore regs and RTS
+;   &0543: tube_osbput — write byte to file
+;   &0550: tube_osbget — read byte from file
+;   &055B: tube_osrdch — read character
+;   &0569: tube_osfind — open file
+;   &0580: tube_osfind_close — close file (A=0)
+;   &058C: tube_osargs — file argument read/write
+;   &05B1: tube_read_string — read CR-terminated string into &0700
+;   &05C5: tube_oscli — execute * command
+;   &05CB: tube_reply_ack — send &7F acknowledge
+;   &05CD: tube_reply_byte — send byte and return to main loop
+;   &05D8: tube_osfile — whole file operation
+; ***************************************************************************************
 ; &9456 referenced 2 times by &0050[1], &8164
-.l0500
+.tube_dispatch_table
     equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; 9456: 37 05 96... 7.. :0500[3]
     equb &2d, 5, &20, 5, &42, 5, &a9, 5, &d1, 5                       ; 9464: 2d 05 20... -.  :050e[3]
 ; &946e referenced 1 time by &0451[2]
@@ -729,14 +752,14 @@ l0051 = tube_dispatch_cmd+1
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock l0500, *, l9456
+    copyblock tube_dispatch_table, *, l9456
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear l0500, &0600
+    clear tube_dispatch_table, &0600
 
     ; Set the program counter to the next position in the binary file.
-    org l9456 + (* - l0500)
+    org l9456 + (* - tube_dispatch_table)
 
 .l9556
 
@@ -1023,7 +1046,7 @@ l8018 = l8011+7
     equb <(l6e04-1)                                                   ; 8024: 03          .
     equb <(lb7f6-1)                                                   ; 8025: f5          .
     equb <(sub_c80b8-1)                                               ; 8026: b7          .
-    equb <(sub_c82c1-1)                                               ; 8027: c0          .
+    equb <(svc_private_workspace-1)                                   ; 8027: c0          .
     equb <(svc_autoboot-1)                                            ; 8028: 18          .
     equb <(sub_c82b1-1)                                               ; 8029: b0          .
     equb <(sub_c816c-1)                                               ; 802a: 6b          k
@@ -1065,7 +1088,7 @@ l8018 = l8011+7
 .l8049
     equb >(lb7f6-1)                                                   ; 8049: b7          .
     equb >(sub_c80b8-1)                                               ; 804a: 80          .
-    equb >(sub_c82c1-1)                                               ; 804b: 82          .
+    equb >(svc_private_workspace-1)                                   ; 804b: 82          .
     equb >(svc_autoboot-1)                                            ; 804c: 82          .
     equb >(sub_c82b1-1)                                               ; 804d: 82          .
     equb >(sub_c816c-1)                                               ; 804e: 81          .
@@ -1364,7 +1387,7 @@ l8018 = l8011+7
     lda c935d,y                                                       ; 815b: b9 5d 93    .].
     sta tube_code_page4,y                                             ; 815e: 99 00 04    ...
     lda l9456,y                                                       ; 8161: b9 56 94    .V.
-    sta l0500,y                                                       ; 8164: 99 00 05    ...
+    sta tube_dispatch_table,y                                         ; 8164: 99 00 05    ...
     lda l9556,y                                                       ; 8167: b9 56 95    .V.
     equb &99, 0                                                       ; 816a: 99 00       ..
 
@@ -1650,6 +1673,21 @@ l818e = c818d+1
     equb &42                                                          ; 8291: 42          B
     equb &4f                                                          ; 8292: 4f          O
     equb &4f                                                          ; 8293: 4f          O
+; ***************************************************************************************
+; FS vector dispatch and handler addresses (34 bytes)
+; 
+; Bytes 0-13: extended vector dispatch addresses, copied to
+; FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+; the handler in the ROM pointer table.
+; 
+; Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
+; Each entry has addr_lo, addr_hi, then a padding byte that is
+; not read at runtime (store_rom_ptr_pair writes the current ROM
+; bank number without reading). The last entry (FSCV) has no
+; padding byte.
+; ***************************************************************************************
+.fs_vector_addrs
     equb &54                                                          ; 8294: 54          T
     equb &0d                                                          ; 8295: 0d          .
 ; &8296 referenced 1 time by &8262
@@ -1691,7 +1729,24 @@ l818e = c818d+1
 
     equb &76, &90                                                     ; 82bf: 76 90       v.
 
-.sub_c82c1
+; ***************************************************************************************
+; Service 2: claim private workspace and initialise NFS
+; 
+; Y = next available workspace page on entry.
+; Sets up net_rx_ptr (Y) and nfs_workspace (Y+1) page pointers.
+; On soft break (OSBYTE &FD returns 0): skips FS state init,
+; preserving existing login state, file server selection, and
+; control block configuration — this is why pressing BREAK
+; keeps the user logged in.
+; On power-up/CTRL-BREAK (result non-zero):
+;   - Sets FS server station to &FE (FS, the default; no server)
+;   - Sets printer server to &EB (PS, the default)
+;   - Clears FS handles, OPT byte, message flag, SEQNOS
+;   - Initialises all RXCBs with &3F flag (available)
+; In both cases: reads station ID from &FE18 (only valid during
+; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
+; ***************************************************************************************
+.svc_private_workspace
     sty net_rx_ptr_hi                                                 ; 82c1: 84 9d       ..
     iny                                                               ; 82c3: c8          .
     sty nfs_workspace_hi                                              ; 82c4: 84 9f       ..
@@ -2348,6 +2403,31 @@ l84a6 = sub_c84a5+1
     sta rx_flags                                                      ; 8546: 8d 64 0d    .d.
     pla                                                               ; 8549: 68          h
     beq c84f7                                                         ; 854a: f0 ab       ..
+; ***************************************************************************************
+; Check and handle escape condition (ESC)
+; 
+; Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed
+; with the software enable flag ESCAP. Both must have bit 7 set for
+; escape to fire. ESCAP is set non-zero during data port operations
+; (LOADOP stores the data port &90, serving double duty as both the
+; port number and the escape-enable flag). ESCAP is disabled via LSR
+; in the ENTER routine, which clears bit 7 — PHP/PLP around the LSR
+; preserves the carry flag since ENTER is called from contexts where
+; carry has semantic meaning (e.g., PUTBYT vs BGET distinction).
+; This architecture allows escape between retransmission attempts
+; but prevents interruption during critical FS transactions. If
+; escape fires: acknowledges via OSBYTE &7E, then checks whether
+; the failing handle is the current SPOOL or EXEC handle (OSBYTE
+; &C6/&C7); if so, issues "*SP." or "*E." via OSCLI to gracefully
+; close the channel before raising the error — preventing the system
+; from continuing to spool output to a broken file handle.
+; 
+; 3.35K restructures the SPOOL/EXEC close logic: both handles
+; are always checked (3.35D skipped EXEC if SPOOL matched),
+; and OSCLI is always called (with a harmless "." default if
+; neither matched).
+; ***************************************************************************************
+.check_escape
     rts                                                               ; 854c: 60          `
 
 ; &854d referenced 3 times by &80b0, &852d, &86b7
@@ -4175,11 +4255,20 @@ l8cfb = l8cf8+3
     equs "BOOT"                                                       ; 8d0f: 42 4f 4f... BOO
     equb &0d                                                          ; 8d13: 0d          .
     equs "E.!BOOT"                                                    ; 8d14: 45 2e 21... E.!
-    equb &0d                                                          ; 8d1b: 0d          .
-; &8d1c referenced 1 time by &8e3d
-.l8d1c
-    equb &1b, &0c, &0e, &14, &45                                      ; 8d1c: 1b 0c 0e... ...
 
+; ***************************************************************************************
+; Boot option → OSCLI string offset table
+; 
+; Four bytes indexed by the boot option value (0-3). Each byte
+; is the low byte of a pointer into page &8C, where the OSCLI
+; command string for that boot option lives. See boot_cmd_strings.
+; Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.
+; ***************************************************************************************
+.boot_option_offsets
+l8d1c = boot_option_offsets+1
+    ora l0c1b                                                         ; 8d1b: 0d 1b 0c    ...
+; &8d1c referenced 1 time by &8e3d
+    asl l4514                                                         ; 8d1e: 0e 14 45    ..E
 .sub_c8d21
     sei                                                               ; 8d21: 78          x
     adc l0063                                                         ; 8d22: 65 63       ec
@@ -4496,6 +4585,14 @@ l8e04 = sub_c8e03+1
     dex                                                               ; 8e35: ca          .
     bpl logon2                                                        ; 8e36: 10 f7       ..
     bcc c8e27                                                         ; 8e38: 90 ed       ..
+; ***************************************************************************************
+; *NET1: read file handle from received packet
+; 
+; Reads a file handle byte from offset &6F in the RX buffer
+; (net_rx_ptr), stores it in &F0, then falls through to the
+; common handle workspace cleanup at c8dda (clear rom_svc_num).
+; ***************************************************************************************
+.net1_read_handle
     ldy fs_boot_option                                                ; 8e3a: ac 05 0e    ...
     ldx l8d1c,y                                                       ; 8e3d: be 1c 8d    ...
     ldy #&8d                                                          ; 8e40: a0 8d       ..
@@ -7788,7 +7885,6 @@ l9eaf = sub_c9eae+1
     assert <(sub_c816c-1) == &6b
     assert <(sub_c81e8-1) == &e7
     assert <(sub_c82b1-1) == &b0
-    assert <(sub_c82c1-1) == &c0
     assert <(sub_c82f6-1) == &f5
     assert <(sub_c8374-1) == &73
     assert <(sub_c8689-1) == &88
@@ -7809,6 +7905,7 @@ l9eaf = sub_c9eae+1
     assert <(sub_c9d16-1) == &15
     assert <(svc_autoboot-1) == &18
     assert <(svc_nmi_release-1) == &65
+    assert <(svc_private_workspace-1) == &c0
     assert <(tube_claim_loop-1) == &ce
     assert <(tx_ctrl_exit-1) == &25
     assert <(tx_ctrl_peek-1) == &ce
@@ -7850,7 +7947,6 @@ l9eaf = sub_c9eae+1
     assert >(sub_c816c-1) == &81
     assert >(sub_c81e8-1) == &81
     assert >(sub_c82b1-1) == &82
-    assert >(sub_c82c1-1) == &82
     assert >(sub_c82f6-1) == &82
     assert >(sub_c8374-1) == &83
     assert >(sub_c8689-1) == &86
@@ -7871,6 +7967,7 @@ l9eaf = sub_c9eae+1
     assert >(sub_c9d16-1) == &9d
     assert >(svc_autoboot-1) == &82
     assert >(svc_nmi_release-1) == &96
+    assert >(svc_private_workspace-1) == &82
     assert >(tube_claim_loop-1) == &8b
     assert >(tx_ctrl_exit-1) == &9d
     assert >(tx_ctrl_peek-1) == &9c
@@ -8143,7 +8240,6 @@ save pydis_start, pydis_end
 ;     l0102:                                    2
 ;     l0103:                                    2
 ;     l0128:                                    2
-;     l0500:                                    2
 ;     l0700:                                    2
 ;     l0d1e:                                    2
 ;     l0d59:                                    2
@@ -8198,6 +8294,7 @@ save pydis_start, pydis_end
 ;     system_via_sr:                            2
 ;     trampoline_tx_setup:                      2
 ;     transfer_file_blocks:                     2
+;     tube_dispatch_table:                      2
 ;     tube_osword_read_lp:                      2
 ;     tube_rdch_reply:                          2
 ;     tube_status_register_4_and_cpu_control:   2
@@ -8454,6 +8551,7 @@ save pydis_start, pydis_end
 ;     l0351:                                    1
 ;     l0355:                                    1
 ;     l0518:                                    1
+;     l0c1b:                                    1
 ;     l0cff:                                    1
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
@@ -8473,6 +8571,7 @@ save pydis_start, pydis_end
 ;     l0fe0:                                    1
 ;     l3af0:                                    1
 ;     l4:                                       1
+;     l4514:                                    1
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
@@ -8955,9 +9054,9 @@ save pydis_start, pydis_end
 ;     l0350
 ;     l0351
 ;     l0355
-;     l0500
 ;     l0518
 ;     l0700
+;     l0c1b
 ;     l0cff
 ;     l0d1e
 ;     l0d58
@@ -8990,6 +9089,7 @@ save pydis_start, pydis_end
 ;     l0fe0
 ;     l1e02
 ;     l3af0
+;     l4514
 ;     l5801
 ;     l5e41
 ;     l6e04
@@ -9110,7 +9210,6 @@ save pydis_start, pydis_end
 ;     sub_c816c
 ;     sub_c81e8
 ;     sub_c82b1
-;     sub_c82c1
 ;     sub_c82f6
 ;     sub_c835e
 ;     sub_c8374
@@ -9153,11 +9252,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7424 bytes (91%)
-;     Data                     = 768 bytes (9%)
+;     Code                     = 7430 bytes (91%)
+;     Data                     = 762 bytes (9%)
 ;
-;     Number of instructions   = 3572
-;     Number of data bytes     = 479 bytes
+;     Number of instructions   = 3574
+;     Number of data bytes     = 473 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 289 bytes
 ;     Number of strings        = 35

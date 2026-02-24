@@ -396,16 +396,17 @@ def main():
 
         fp = fingerprint_at(src_data_a, addr, base, n_opcodes=8)
 
-        # Determine search range in ROM B
+        # Determine search range in ROM B (wider for subroutines)
+        margin = 128 if kind == 'subroutine' else 64
         if interp_before is not None and interp_after is not None:
-            search_lo = min(interp_before, interp_after) - 32
-            search_hi = max(interp_before, interp_after) + 32
+            search_lo = min(interp_before, interp_after) - margin
+            search_hi = max(interp_before, interp_after) + margin
         elif interp_before is not None:
-            search_lo = interp_before - 32
-            search_hi = interp_before + 64
+            search_lo = interp_before - margin
+            search_hi = interp_before + margin * 2
         elif interp_after is not None:
-            search_lo = interp_after - 64
-            search_hi = interp_after + 32
+            search_lo = interp_after - margin * 2
+            search_hi = interp_after + margin
         else:
             search_lo = base
             search_hi = base + len(src_data_b)
