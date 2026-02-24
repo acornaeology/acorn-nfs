@@ -56,7 +56,6 @@ l0014                                   = &0014
 l0015                                   = &0015
 zp_63                                   = &005f
 l0063                                   = &0063
-l0088                                   = &0088
 escapable                               = &0097
 need_release_tube                       = &0098
 net_tx_ptr                              = &009a
@@ -223,13 +222,6 @@ fs_getb_buf                             = &0fdd
 l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
-l1e02                                   = &1e02
-l3af0                                   = &3af0
-l5801                                   = &5801
-l5e41                                   = &5e41
-l6e04                                   = &6e04
-lac85                                   = &ac85
-lb7f6                                   = &b7f6
 station_id_disable_net_nmis             = &fe18
 video_ula_control                       = &fe20
 romsel                                  = &fe30
@@ -766,6 +758,8 @@ l0051 = tube_dispatch_cmd+1
 
 ; Move 4: &9556 to &0600 for length 256
     org &0600
+; &9556 referenced 1 time by &816a
+.l0600
     equb &fb                                                          ; 9556: fb          .   :0600[4]
 
     stx tube_data_register_2                                          ; 9557: 8e e3 fe    ... :0601[4]
@@ -922,14 +916,14 @@ l0051 = tube_dispatch_cmd+1
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock &0600, *, l9556
+    copyblock l0600, *, l9556
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear &0600, &0700
+    clear l0600, &0700
 
     ; Set the program counter to the next position in the binary file.
-    org l9556 + (* - &0600)
+    org l9556 + (* - l0600)
 
 
     org &8000
@@ -1017,7 +1011,7 @@ l8004 = service_entry+1
 ; &8007 referenced 1 time by &04db[2]
 .copyright_offset
     equb copyright - rom_header                                       ; 8007: 10          .
-; &8008 referenced 1 time by &836a
+; &8008 referenced 2 times by &836a, &8373
 .binary_version
     equb &83                                                          ; 8008: 83          .
 .title
@@ -1043,86 +1037,86 @@ l8018 = l8011+7
 ; which group: services (Y=0), language (Y=&0E), FSCV (Y=&13).
 .dispatch_lo
     equb &45                                                          ; 8020: 45          E
-    equb <(l1e02-1)                                                   ; 8021: 01          .
-    equb <(l5801-1)                                                   ; 8022: 00          .
-    equb <(l5e41-1)                                                   ; 8023: 40          @
+    equb 1                                                            ; 8021: 01          .
+    equb 0                                                            ; 8022: 00          .
+    equb &40                                                          ; 8023: 40          @
 ; &8024 referenced 1 time by &80f0
 .l8024
-    equb <(l6e04-1)                                                   ; 8024: 03          .
-    equb <(lb7f6-1)                                                   ; 8025: f5          .
-    equb <(sub_c80b8-1)                                               ; 8026: b7          .
+    equb 3                                                            ; 8024: 03          .
+    equb <(return_1-1)                                                ; 8025: f5          .
+    equb <(svc_abs_workspace-1)                                       ; 8026: b7          .
     equb <(svc_private_workspace-1)                                   ; 8027: c0          .
     equb <(svc_autoboot-1)                                            ; 8028: 18          .
-    equb <(l82b1-1)                                                   ; 8029: b0          .
-    equb <(sub_c816c-1)                                               ; 802a: 6b          k
-    equb <(sub_c96f6-1)                                               ; 802b: f5          .
+    equb <(sub_c81b1-1)                                               ; 8029: b0          .
+    equb <(svc_unknown_irq-1)                                         ; 802a: 6b          k
+    equb <(return_1-1)                                                ; 802b: f5          .
     equb <(sub_c806f-1)                                               ; 802c: 6e          n
-    equb <(sub_c807f-1)                                               ; 802d: 7e          ~
-    equb <(l8e04-1)                                                   ; 802e: 03          .
-    equb <(sub_c82f6-1)                                               ; 802f: f5          .
-    equb <(dispatch_net_cmd-1)                                        ; 8030: 68          h
+    equb <(osword_fs_entry-1)                                         ; 802d: 7e          ~
+    equb <(svc_help-1)                                                ; 802e: 03          .
+    equb <(return_1-1)                                                ; 802f: f5          .
+    equb <(svc_nmi_claim-1)                                           ; 8030: 68          h
     equb <(svc_nmi_release-1)                                         ; 8031: 65          e
-    equb <(l96ed-1)                                                   ; 8032: ec          .
-    equb <(sub_c81e8-1)                                               ; 8033: e7          .
+    equb <(select_nfs-1)                                              ; 8032: ec          .
+    equb <(insert_remote_key-1)                                       ; 8033: e7          .
     equb <(remote_boot_handler-1)                                     ; 8034: 99          .
-    equb <(l84a6-1)                                                   ; 8035: a5          .
-    equb <(sub_c92c8-1)                                               ; 8036: c7          .
+    equb <(save_palette_vdu-1)                                        ; 8035: a5          .
+    equb <(execute_at_0100-1)                                         ; 8036: c7          .
     equb <(remote_validated-1)                                        ; 8037: d7          .
-    equb <(insert_remote_key-1)                                       ; 8038: e7          .
-    equb <(sub_c8969-1)                                               ; 8039: 68          h
-    equb <(sub_c88cf-1)                                               ; 803a: ce          .
-    equb <(sub_c8dd7-1)                                               ; 803b: d6          .
-    equb <(tube_claim_loop-1)                                         ; 803c: ce          .
-    equb <(sub_c8d21-1)                                               ; 803d: 20
-    equb &4c                                                          ; 803e: 4c          L
-    equb <(sub_c8374-1)                                               ; 803f: 73          s
-    equb <(sub_c8689-1)                                               ; 8040: 88          .
-    equb <(sub_c8d2a-1)                                               ; 8041: 29          )
+    equb <(sub_c89e8-1)                                               ; 8038: e7          .
+    equb <(eof_handler-1)                                             ; 8039: 68          h
+    equb <(sub_c8dcf-1)                                               ; 803a: ce          .
+    equb <(fscv_star_handler-1)                                       ; 803b: d6          .
+    equb <(sub_c8dcf-1)                                               ; 803c: ce          .
+    equb <(cat_handler-1)                                             ; 803d: 20
+    equb <(fscv_shutdown-1)                                           ; 803e: 4c          L
+    equb <(fscv_read_handles-1)                                       ; 803f: 73          s
+    equb <(print_dir_name-1)                                          ; 8040: 88          .
+    equb <(copy_handles_and_boot-1)                                   ; 8041: 29          )
     equb <(copy_handles-1)                                            ; 8042: 2a          *
     equb <(set_csd_handle-1)                                          ; 8043: 23          #
 ; Dispatch table: high bytes of (handler_address - 1)
 ; Paired with dispatch_lo (&8020). Together they form a table of
 ; 37 handler addresses, used via the PHA/PHA/RTS trick at &80DA.
 .dispatch_hi
-    equb <(sub_c8ed5-1)                                               ; 8044: d4          .
-    equb >(l1e02-1)                                                   ; 8045: 1e          .
-    equb >(l5801-1)                                                   ; 8046: 58          X
-    equb >(l5e41-1)                                                   ; 8047: 5e          ^
-    equb >(l6e04-1)                                                   ; 8048: 6e          n
+    equb &d4                                                          ; 8044: d4          .
+    equb &1e                                                          ; 8045: 1e          .
+    equb &58                                                          ; 8046: 58          X
+    equb &5e                                                          ; 8047: 5e          ^
+    equb &6e                                                          ; 8048: 6e          n
 ; &8049 referenced 1 time by &80ec
 .l8049
-    equb >(lb7f6-1)                                                   ; 8049: b7          .
-    equb >(sub_c80b8-1)                                               ; 804a: 80          .
-    equb >(svc_private_workspace-1)                                   ; 804b: 82          .
-    equb >(svc_autoboot-1)                                            ; 804c: 82          .
-    equb >(l82b1-1)                                                   ; 804d: 82          .
-    equb >(sub_c816c-1)                                               ; 804e: 81          .
-    equb >(sub_c96f6-1)                                               ; 804f: 96          .
-    equb >(sub_c806f-1)                                               ; 8050: 80          .
-    equb >(sub_c807f-1)                                               ; 8051: 80          .
-    equb >(l8e04-1)                                                   ; 8052: 8e          .
-    equb >(sub_c82f6-1)                                               ; 8053: 82          .
-    equb >(dispatch_net_cmd-1)                                        ; 8054: 80          .
-    equb >(svc_nmi_release-1)                                         ; 8055: 96          .
-    equb >(l96ed-1)                                                   ; 8056: 96          .
-    equb >(sub_c81e8-1)                                               ; 8057: 81          .
-    equb >(remote_boot_handler-1)                                     ; 8058: 84          .
-    equb >(l84a6-1)                                                   ; 8059: 84          .
-    equb >(sub_c92c8-1)                                               ; 805a: 92          .
-    equb >(remote_validated-1)                                        ; 805b: 84          .
-    equb >(insert_remote_key-1)                                       ; 805c: 84          .
-    equb >(sub_c8969-1)                                               ; 805d: 89          .
-    equb >(sub_c88cf-1)                                               ; 805e: 88          .
-    equb >(sub_c8dd7-1)                                               ; 805f: 8d          .
-    equb >(tube_claim_loop-1)                                         ; 8060: 8b          .
-    equb >(sub_c8d21-1)                                               ; 8061: 8d          .
-    equb &8c                                                          ; 8062: 8c          .
-    equb >(sub_c8374-1)                                               ; 8063: 83          .
-    equb >(sub_c8689-1)                                               ; 8064: 86          .
-    equb >(sub_c8d2a-1)                                               ; 8065: 8d          .
-    equb >(copy_handles-1)                                            ; 8066: 8e          .
-    equb >(set_csd_handle-1)                                          ; 8067: 8e          .
-    equb >(sub_c8ed5-1)                                               ; 8068: 8e          .
+    equb &b7                                                          ; 8049: b7          .
+    equb >(return_1-1)                                                ; 804a: 80          .
+    equb >(svc_abs_workspace-1)                                       ; 804b: 82          .
+    equb >(svc_private_workspace-1)                                   ; 804c: 82          .
+    equb >(svc_autoboot-1)                                            ; 804d: 82          .
+    equb >(sub_c81b1-1)                                               ; 804e: 81          .
+    equb >(svc_unknown_irq-1)                                         ; 804f: 96          .
+    equb >(return_1-1)                                                ; 8050: 80          .
+    equb >(sub_c806f-1)                                               ; 8051: 80          .
+    equb >(osword_fs_entry-1)                                         ; 8052: 8e          .
+    equb >(svc_help-1)                                                ; 8053: 82          .
+    equb >(return_1-1)                                                ; 8054: 80          .
+    equb >(svc_nmi_claim-1)                                           ; 8055: 96          .
+    equb >(svc_nmi_release-1)                                         ; 8056: 96          .
+    equb >(select_nfs-1)                                              ; 8057: 81          .
+    equb >(insert_remote_key-1)                                       ; 8058: 84          .
+    equb >(remote_boot_handler-1)                                     ; 8059: 84          .
+    equb >(save_palette_vdu-1)                                        ; 805a: 92          .
+    equb >(execute_at_0100-1)                                         ; 805b: 84          .
+    equb >(remote_validated-1)                                        ; 805c: 84          .
+    equb >(sub_c89e8-1)                                               ; 805d: 89          .
+    equb >(eof_handler-1)                                             ; 805e: 88          .
+    equb >(sub_c8dcf-1)                                               ; 805f: 8d          .
+    equb >(fscv_star_handler-1)                                       ; 8060: 8b          .
+    equb >(sub_c8dcf-1)                                               ; 8061: 8d          .
+    equb >(cat_handler-1)                                             ; 8062: 8c          .
+    equb >(fscv_shutdown-1)                                           ; 8063: 83          .
+    equb >(fscv_read_handles-1)                                       ; 8064: 86          .
+    equb >(print_dir_name-1)                                          ; 8065: 8d          .
+    equb >(copy_handles_and_boot-1)                                   ; 8066: 8e          .
+    equb >(copy_handles-1)                                            ; 8067: 8e          .
+    equb >(set_csd_handle-1)                                          ; 8068: 8e          .
 
 ; ***************************************************************************************
 ; *NET command dispatcher
@@ -1164,8 +1158,8 @@ l8018 = l8011+7
     sta l00a9                                                         ; 807a: 85 a9       ..
     tya                                                               ; 807c: 98          .
     ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 35+)
-.sub_c807f
-    bne dispatch                                                      ; 807f: d0 66       .f
+    bne dispatch                                                      ; 807f: d0 66       .f             ; ALWAYS branch
+
 ; &8081 referenced 1 time by &8086
 .loop_c8081
     iny                                                               ; 8081: c8          .
@@ -1214,7 +1208,6 @@ l8018 = l8011+7
     sta fs_cmd_data,y                                                 ; 80b3: 99 05 0f    ...
     iny                                                               ; 80b6: c8          .
     inx                                                               ; 80b7: e8          .
-.sub_c80b8
     cmp #&0d                                                          ; 80b8: c9 0d       ..
     bne loop_c80ad                                                    ; 80ba: d0 f1       ..
     jsr osnewl                                                        ; 80bc: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
@@ -1396,10 +1389,8 @@ l8018 = l8011+7
     lda l9456,y                                                       ; 8161: b9 56 94    .V.
     sta tube_dispatch_table,y                                         ; 8164: 99 00 05    ...
     lda l9556,y                                                       ; 8167: b9 56 95    .V.
-    equb &99, 0                                                       ; 816a: 99 00       ..
-
-.sub_c816c
-    asl l0088                                                         ; 816c: 06 88       ..
+    sta l0600,y                                                       ; 816a: 99 00 06    ...
+    dey                                                               ; 816d: 88          .
     bne cloop                                                         ; 816e: d0 eb       ..
     jsr tube_post_init                                                ; 8170: 20 1e 04     ..
     ldx #&60 ; '`'                                                    ; 8173: a2 60       .`
@@ -1482,6 +1473,7 @@ l818e = c818d+1
     nop                                                               ; 81ae: ea          .
     nop                                                               ; 81af: ea          .
     nop                                                               ; 81b0: ea          .
+.sub_c81b1
     ldx #&0c                                                          ; 81b1: a2 0c       ..
     jsr match_rom_string                                              ; 81b3: 20 5e 83     ^.
     bne c81e6                                                         ; 81b6: d0 2e       ..
@@ -1532,7 +1524,6 @@ l818e = c818d+1
 ; &81e6 referenced 1 time by &81b6
 .c81e6
     ldx #5                                                            ; 81e6: a2 05       ..
-.sub_c81e8
     jsr match_rom_string                                              ; 81e8: 20 5e 83     ^.
     bne c8211                                                         ; 81eb: d0 24       .$
 ; ***************************************************************************************
@@ -1725,7 +1716,6 @@ l818e = c818d+1
     equb &84                                                          ; 82ae: 84          .              ; BPUTV handler hi
     equb &42                                                          ; 82af: 42          B              ; (ROM bank — not read)
     equb &2e                                                          ; 82b0: 2e          .              ; GBPBV handler lo (&8A2E)
-.l82b1
     equb &8a                                                          ; 82b1: 8a          .              ; GBPBV handler hi
     equb &41                                                          ; 82b2: 41          A              ; (ROM bank — not read)
     equb &94                                                          ; 82b3: 94          .              ; FINDV handler lo (&8994)
@@ -1793,12 +1783,9 @@ l818e = c818d+1
     sta fs_server_net                                                 ; 82eb: 8d 01 0e    ...
     sta prot_status                                                   ; 82ee: 8d 63 0d    .c.
     sta fs_messages_flag                                              ; 82f1: 8d 06 0e    ...
-    equb &8d, 5                                                       ; 82f4: 8d 05       ..
-
-.sub_c82f6
-    asl l91c8                                                         ; 82f6: 0e c8 91    ...
-    equb &9c                                                          ; 82f9: 9c          .
-
+    sta fs_boot_option                                                ; 82f4: 8d 05 0e    ...
+    iny                                                               ; 82f7: c8          .              ; Y=&16
+    sta (net_rx_ptr),y                                                ; 82f8: 91 9c       ..
     ldy #3                                                            ; 82fa: a0 03       ..
     sta (nfs_workspace),y                                             ; 82fc: 91 9e       ..
     dey                                                               ; 82fe: 88          .              ; Y=&02
@@ -1890,20 +1877,15 @@ l818e = c818d+1
     cmp #&2e ; '.'                                                    ; 8362: c9 2e       ..
     beq c8379                                                         ; 8364: f0 13       ..
     and #&df                                                          ; 8366: 29 df       ).
-    beq l8373                                                         ; 8368: f0 09       ..
+    beq c8373                                                         ; 8368: f0 09       ..
     cmp binary_version,x                                              ; 836a: dd 08 80    ...
-    bne l8373                                                         ; 836d: d0 04       ..
+    bne c8373                                                         ; 836d: d0 04       ..
     iny                                                               ; 836f: c8          .
     inx                                                               ; 8370: e8          .
     bne loop_c8360                                                    ; 8371: d0 ed       ..
 ; &8373 referenced 2 times by &8368, &836d
-.l8373
-    equb &bd                                                          ; 8373: bd          .
-
-.sub_c8374
-    php                                                               ; 8374: 08          .
-    equb &80                                                          ; 8375: 80          .
-
+.c8373
+    lda binary_version,x                                              ; 8373: bd 08 80    ...
     beq c837a                                                         ; 8376: f0 02       ..
     rts                                                               ; 8378: 60          `
 
@@ -2266,8 +2248,6 @@ l818e = c818d+1
 ; &84a3 referenced 2 times by &849e, &84dc
 .remot1
     ora #9                                                            ; 84a3: 09 09       ..
-.sub_c84a5
-l84a6 = sub_c84a5+1
     sta (net_rx_ptr),y                                                ; 84a5: 91 9c       ..
     ldx #&80                                                          ; 84a7: a2 80       ..
     ldy #&80                                                          ; 84a9: a0 80       ..
@@ -2849,7 +2829,6 @@ l84a6 = sub_c84a5+1
 ; &8687 referenced 2 times by &83eb, &8855
 .setup_tx_ptr_c0
     ldx #&c0                                                          ; 8687: a2 c0       ..
-.sub_c8689
     stx net_tx_ptr                                                    ; 8689: 86 9a       ..
     ldx #0                                                            ; 868b: a2 00       ..
     stx net_tx_ptr_hi                                                 ; 868d: 86 9b       ..
@@ -3427,7 +3406,6 @@ l84a6 = sub_c84a5+1
 ; &88cc referenced 2 times by &88b5, &88ea
 .copy_filename_to_cmd
     jsr copy_string_to_cmd                                            ; 88cc: 20 77 8d     w.
-.sub_c88cf
     ldy #&13                                                          ; 88cf: a0 13       ..
     bne c88d8                                                         ; 88d1: d0 05       ..             ; ALWAYS branch
 
@@ -3550,7 +3528,6 @@ l84a6 = sub_c84a5+1
     ldy #&0d                                                          ; 8962: a0 0d       ..             ; Y=function code for HDRFN
     ldx #5                                                            ; 8964: a2 05       ..             ; X=preserved through header build
     jsr prepare_fs_cmd                                                ; 8966: 20 c3 83     ..            ; Prepare FS command buffer (12 references)
-.sub_c8969
     stx fs_last_byte_flag                                             ; 8969: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 896b: 68          h
     jsr sub_c8679                                                     ; 896c: 20 79 86     y.
@@ -3682,6 +3659,7 @@ l84a6 = sub_c84a5+1
 ; &89e6 referenced 1 time by &8a0c
 .c89e6
     bcc restore_args_return                                           ; 89e6: 90 87       ..
+.sub_c89e8
     beq c89f5                                                         ; 89e8: f0 0b       ..
 ; ***************************************************************************************
 ; FSCV 0: *OPT handler (OPTION)
@@ -4339,7 +4317,6 @@ l8c06 = fs_cmd_match_table+1
     equb &14                                                          ; 8d1f: 14          .
     equb &45                                                          ; 8d20: 45          E
 
-.sub_c8d21
     sei                                                               ; 8d21: 78          x
     adc l0063                                                         ; 8d22: 65 63       ec
 ; ***************************************************************************************
@@ -4357,11 +4334,7 @@ l8c06 = fs_cmd_match_table+1
 .print_file_info
     ldy fs_messages_flag                                              ; 8d24: ac 06 0e    ...
     beq return_5                                                      ; 8d27: f0 5b       .[
-    equb &a0                                                          ; 8d29: a0          .
-
-.sub_c8d2a
-    brk                                                               ; 8d2a: 00          .
-
+    ldy #0                                                            ; 8d29: a0 00       ..
     ldx fs_cmd_csd                                                    ; 8d2b: ae 03 0f    ...
     beq c8d35                                                         ; 8d2e: f0 05       ..
     jsr print_dir_from_offset                                         ; 8d30: 20 8b 8d     ..
@@ -4549,10 +4522,10 @@ l8c06 = fs_cmd_match_table+1
 .c8dcc
     jmp osasci                                                        ; 8dcc: 4c e3 ff    L..            ; Write character
 
+.sub_c8dcf
     jsr parse_filename_gs                                             ; 8dcf: 20 e1 86     ..
     jsr infol2                                                        ; 8dd2: 20 75 8d     u.
     ldy #0                                                            ; 8dd5: a0 00       ..
-.sub_c8dd7
     clc                                                               ; 8dd7: 18          .
     jsr gsinit                                                        ; 8dd8: 20 c2 ff     ..
 ; &8ddb referenced 1 time by &8dde
@@ -4585,8 +4558,6 @@ l8c06 = fs_cmd_match_table+1
     ldx #&4a ; 'J'                                                    ; 8dfc: a2 4a       .J
     ldy #5                                                            ; 8dfe: a0 05       ..
     jsr send_fs_examine                                               ; 8e00: 20 1b 87     ..
-.sub_c8e03
-l8e04 = sub_c8e03+1
     lda tube_flag                                                     ; 8e03: ad 67 0d    .g.
     beq c8e1c                                                         ; 8e06: f0 14       ..
     adc l0f0b                                                         ; 8e08: 6d 0b 0f    m..
@@ -4885,10 +4856,8 @@ l8e04 = sub_c8e03+1
 ; without copying the data.
 ; ***************************************************************************************
 .osword_11_handler
-    equb &a5                                                          ; 8ed4: a5          .
-
-.sub_c8ed5
-    sta lac85,x                                                       ; 8ed5: 9d 85 ac    ...
+    lda net_rx_ptr_hi                                                 ; 8ed4: a5 9d       ..
+    sta l00ac                                                         ; 8ed6: 85 ac       ..
     ldy #&7f                                                          ; 8ed8: a0 7f       ..
     lda (net_rx_ptr),y                                                ; 8eda: b1 9c       ..
     iny                                                               ; 8edc: c8          .              ; Y=&80
@@ -5620,10 +5589,7 @@ l8e04 = sub_c8e03+1
     equb &fe                                                          ; 91b6: fe          .              ; STOP — main-path boundary; → Y=&16 (main only)
     equb &80                                                          ; 91b7: 80          .
     equb &93, &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe   ; 91b8: 93 fd fd... ...
-    equb &d1, &fd, &fd, &1f                                           ; 91c4: d1 fd fd... ...
-; &91c8 referenced 1 time by &82f6
-.l91c8
-    equb &fd, &ff, &ff, &fd, &fd, &ff, &ff                            ; 91c8: fd ff ff... ...
+    equb &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff        ; 91c4: d1 fd fd... ...
 
 ; ***************************************************************************************
 ; Fn 5: printer selection changed (SELECT)
@@ -5859,7 +5825,6 @@ l8e04 = sub_c8e03+1
     ldy nfs_workspace_hi                                              ; 92c1: a4 9f       ..
     lda #osword_read_palette                                          ; 92c3: a9 0b       ..
     jsr osword                                                        ; 92c5: 20 f1 ff     ..            ; Read palette
-.sub_c92c8
     pla                                                               ; 92c8: 68          h
     ldy #0                                                            ; 92c9: a0 00       ..
     sta (nfs_workspace),y                                             ; 92cb: 91 9e       ..
@@ -6051,8 +6016,6 @@ l8e04 = sub_c8e03+1
 .adlc_rx_listen
     lda #&82                                                          ; 96e7: a9 82       ..             ; CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding; CR1=&82: TX_RESET | RIE (TX in reset, RX interrupts enabled)
     sta econet_control1_or_status1                                    ; 96e9: 8d a0 fe    ...
-.sub_c96ec
-l96ed = sub_c96ec+1
     lda #&67 ; 'g'                                                    ; 96ec: a9 67       .g             ; CR2=&67: CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 96ee: 8d a1 fe    ...
     rts                                                               ; 96f1: 60          `
@@ -6071,10 +6034,8 @@ l96ed = sub_c96ec+1
 ; &96f2 referenced 1 time by &9fb3
 .nmi_rx_scout
     lda #1                                                            ; 96f2: a9 01       ..             ; A=&01: mask for SR2 bit0 (AP = Address Present)
-    equb &2c, &a1                                                     ; 96f4: 2c a1       ,.             ; BIT SR2: Z = A AND SR2 -- tests if AP is set
-
-.sub_c96f6
-    inc l3af0,x                                                       ; 96f6: fe f0 3a    ..:            ; AP not set, no incoming data -- check for errors
+    bit econet_control23_or_status2                                   ; 96f4: 2c a1 fe    ,..            ; BIT SR2: Z = A AND SR2 -- tests if AP is set
+    beq scout_error                                                   ; 96f7: f0 3a       .:             ; AP not set, no incoming data -- check for errors
     lda econet_data_continue_frame                                    ; 96f9: ad a2 fe    ...            ; Read first RX byte (destination station address)
     cmp station_id_disable_net_nmis                                   ; 96fc: cd 18 fe    ...            ; Compare to our station ID (&FE18 read = INTOFF, disables NMIs)
     beq c970a                                                         ; 96ff: f0 09       ..             ; Match -- accept frame
@@ -6129,7 +6090,7 @@ l96ed = sub_c96ec+1
 ; This path is a common landing for any unexpected ADLC state during
 ; scout reception.
 ; ***************************************************************************************
-; &9733 referenced 4 times by &9714, &9748, &977c, &977e
+; &9733 referenced 5 times by &96f7, &9714, &9748, &977c, &977e
 .scout_error
     lda econet_control23_or_status2                                   ; 9733: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 9736: 29 81       ).             ; Test AP (b0) | RDA (b7)
@@ -7956,23 +7917,22 @@ l9eaf = sub_c9eae+1
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff                       ; 9ff8: ff ff ff... ...
 .pydis_end
 
+    assert <(cat_handler-1) == &20
     assert <(copy_handles-1) == &2a
-    assert <(dispatch_net_cmd-1) == &68
+    assert <(copy_handles_and_boot-1) == &29
     assert <(econet_tx_rx-1) == &e7
+    assert <(eof_handler-1) == &68
+    assert <(execute_at_0100-1) == &c7
+    assert <(fscv_read_handles-1) == &73
+    assert <(fscv_shutdown-1) == &4c
+    assert <(fscv_star_handler-1) == &d6
     assert <(insert_remote_key-1) == &e7
     assert <(l0128) == &28
-    assert <(l1e02-1) == &01
-    assert <(l5801-1) == &00
-    assert <(l5e41-1) == &40
-    assert <(l6e04-1) == &03
-    assert <(l82b1-1) == &b0
-    assert <(l84a6-1) == &a5
-    assert <(l8e04-1) == &03
-    assert <(l96ed-1) == &ec
-    assert <(lb7f6-1) == &f5
     assert <(osword_0f_handler-1) == &b9
     assert <(osword_10_handler-1) == &73
     assert <(osword_11_handler-1) == &d3
+    assert <(osword_fs_entry-1) == &7e
+    assert <(print_dir_name-1) == &88
     assert <(printer_select_handler-1) == &ce
     assert <(remote_boot_handler-1) == &99
     assert <(remote_cmd_dispatch-1) == &dd
@@ -7983,33 +7943,26 @@ l9eaf = sub_c9eae+1
     assert <(rx_imm_machine_type-1) == &bd
     assert <(rx_imm_peek-1) == &d0
     assert <(rx_imm_poke-1) == &b2
+    assert <(save_palette_vdu-1) == &a5
+    assert <(select_nfs-1) == &ec
     assert <(set_csd_handle-1) == &23
     assert <(sub_c806f-1) == &6e
-    assert <(sub_c807f-1) == &7e
-    assert <(sub_c80b8-1) == &b7
-    assert <(sub_c816c-1) == &6b
-    assert <(sub_c81e8-1) == &e7
-    assert <(sub_c82f6-1) == &f5
-    assert <(sub_c8374-1) == &73
-    assert <(sub_c8689-1) == &88
-    assert <(sub_c88cf-1) == &ce
-    assert <(sub_c8969-1) == &68
-    assert <(sub_c8d21-1) == &20
-    assert <(sub_c8d2a-1) == &29
-    assert <(sub_c8dd7-1) == &d6
-    assert <(sub_c8ed5-1) == &d4
+    assert <(sub_c81b1-1) == &b0
+    assert <(sub_c89e8-1) == &e7
+    assert <(sub_c8dcf-1) == &ce
     assert <(sub_c8ef9-1) == &f8
     assert <(sub_c90ac-1) == &ab
     assert <(sub_c9148-1) == &47
-    assert <(sub_c92c8-1) == &c7
-    assert <(sub_c96f6-1) == &f5
     assert <(sub_c9aeb-1) == &ea
     assert <(sub_c9ccb-1) == &ca
     assert <(sub_c9d16-1) == &15
+    assert <(svc_abs_workspace-1) == &b7
     assert <(svc_autoboot-1) == &18
+    assert <(svc_help-1) == &03
+    assert <(svc_nmi_claim-1) == &68
     assert <(svc_nmi_release-1) == &65
     assert <(svc_private_workspace-1) == &c0
-    assert <(tube_claim_loop-1) == &ce
+    assert <(svc_unknown_irq-1) == &6b
     assert <(tx_ctrl_exit-1) == &25
     assert <(tx_ctrl_peek-1) == &ce
     assert <(tx_ctrl_poke-1) == &d2
@@ -8018,23 +7971,22 @@ l9eaf = sub_c9eae+1
     assert <(tx_done_jsr-1) == &7d
     assert <(tx_done_os_proc-1) == &94
     assert <(tx_done_user_proc-1) == &86
+    assert >(cat_handler-1) == &8c
     assert >(copy_handles-1) == &8e
-    assert >(dispatch_net_cmd-1) == &80
+    assert >(copy_handles_and_boot-1) == &8e
     assert >(econet_tx_rx-1) == &8f
+    assert >(eof_handler-1) == &88
+    assert >(execute_at_0100-1) == &84
+    assert >(fscv_read_handles-1) == &86
+    assert >(fscv_shutdown-1) == &83
+    assert >(fscv_star_handler-1) == &8b
     assert >(insert_remote_key-1) == &84
     assert >(l0128) == &01
-    assert >(l1e02-1) == &1e
-    assert >(l5801-1) == &58
-    assert >(l5e41-1) == &5e
-    assert >(l6e04-1) == &6e
-    assert >(l82b1-1) == &82
-    assert >(l84a6-1) == &84
-    assert >(l8e04-1) == &8e
-    assert >(l96ed-1) == &96
-    assert >(lb7f6-1) == &b7
     assert >(osword_0f_handler-1) == &8e
     assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
+    assert >(osword_fs_entry-1) == &8e
+    assert >(print_dir_name-1) == &8d
     assert >(printer_select_handler-1) == &91
     assert >(remote_boot_handler-1) == &84
     assert >(remote_cmd_dispatch-1) == &90
@@ -8045,33 +7997,26 @@ l9eaf = sub_c9eae+1
     assert >(rx_imm_machine_type-1) == &9a
     assert >(rx_imm_peek-1) == &9a
     assert >(rx_imm_poke-1) == &9a
+    assert >(save_palette_vdu-1) == &92
+    assert >(select_nfs-1) == &81
     assert >(set_csd_handle-1) == &8e
     assert >(sub_c806f-1) == &80
-    assert >(sub_c807f-1) == &80
-    assert >(sub_c80b8-1) == &80
-    assert >(sub_c816c-1) == &81
-    assert >(sub_c81e8-1) == &81
-    assert >(sub_c82f6-1) == &82
-    assert >(sub_c8374-1) == &83
-    assert >(sub_c8689-1) == &86
-    assert >(sub_c88cf-1) == &88
-    assert >(sub_c8969-1) == &89
-    assert >(sub_c8d21-1) == &8d
-    assert >(sub_c8d2a-1) == &8d
-    assert >(sub_c8dd7-1) == &8d
-    assert >(sub_c8ed5-1) == &8e
+    assert >(sub_c81b1-1) == &81
+    assert >(sub_c89e8-1) == &89
+    assert >(sub_c8dcf-1) == &8d
     assert >(sub_c8ef9-1) == &8e
     assert >(sub_c90ac-1) == &90
     assert >(sub_c9148-1) == &91
-    assert >(sub_c92c8-1) == &92
-    assert >(sub_c96f6-1) == &96
     assert >(sub_c9aeb-1) == &9a
     assert >(sub_c9ccb-1) == &9c
     assert >(sub_c9d16-1) == &9d
+    assert >(svc_abs_workspace-1) == &82
     assert >(svc_autoboot-1) == &82
+    assert >(svc_help-1) == &82
+    assert >(svc_nmi_claim-1) == &96
     assert >(svc_nmi_release-1) == &96
     assert >(svc_private_workspace-1) == &82
-    assert >(tube_claim_loop-1) == &8b
+    assert >(svc_unknown_irq-1) == &96
     assert >(tx_ctrl_exit-1) == &9d
     assert >(tx_ctrl_peek-1) == &9c
     assert >(tx_ctrl_poke-1) == &9c
@@ -8086,13 +8031,13 @@ save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           53
-;     econet_control23_or_status2:             44
+;     econet_control23_or_status2:             45
 ;     fs_options:                              41
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             37
 ;     port_ws_offset:                          34
+;     net_rx_ptr:                              32
 ;     econet_control1_or_status1:              31
-;     net_rx_ptr:                              31
 ;     l00f0:                                   26
 ;     tx_flags:                                26
 ;     net_tx_ptr:                              24
@@ -8149,20 +8094,22 @@ save pydis_start, pydis_end
 ;     l0000:                                    6
 ;     l0001:                                    6
 ;     l0015:                                    6
+;     net_rx_ptr_hi:                            6
 ;     nmi_rti:                                  6
 ;     tube_main_loop:                           6
 ;     c8971:                                    5
 ;     copy_filename:                            5
 ;     dispatch:                                 5
+;     fs_boot_option:                           5
 ;     infol2:                                   5
 ;     l00b3:                                    5
 ;     l0100:                                    5
 ;     l0106:                                    5
-;     net_rx_ptr_hi:                            5
 ;     os_text_ptr:                              5
 ;     printer_buf_ptr:                          5
 ;     rx_ctrl:                                  5
 ;     rx_port:                                  5
+;     scout_error:                              5
 ;     scout_status:                             5
 ;     send_to_fs_star:                          5
 ;     sub_c8679:                                5
@@ -8178,13 +8125,13 @@ save pydis_start, pydis_end
 ;     data_tx_last:                             4
 ;     discard_reset_listen:                     4
 ;     econet_init_flag:                         4
-;     fs_boot_option:                           4
 ;     fs_cmd_context:                           4
 ;     fs_eof_flags:                             4
 ;     fs_sequence_nos:                          4
 ;     fs_server_net:                            4
 ;     init_tx_ctrl_block:                       4
 ;     l00aa:                                    4
+;     l00ac:                                    4
 ;     l00b9:                                    4
 ;     l00c0:                                    4
 ;     l00c1:                                    4
@@ -8198,7 +8145,6 @@ save pydis_start, pydis_end
 ;     osrdsc_ptr:                               4
 ;     romsel_copy:                              4
 ;     rx_src_net:                               4
-;     scout_error:                              4
 ;     tube_reply_byte:                          4
 ;     tx_done_exit:                             4
 ;     tx_length:                                4
@@ -8226,7 +8172,6 @@ save pydis_start, pydis_end
 ;     handle_to_mask_a:                         3
 ;     l0003:                                    3
 ;     l0054:                                    3
-;     l00ac:                                    3
 ;     l00af:                                    3
 ;     l00b7:                                    3
 ;     l00ba:                                    3
@@ -8266,6 +8211,7 @@ save pydis_start, pydis_end
 ;     ack_tx_write_dest:                        2
 ;     adjust_addrs:                             2
 ;     adlc_rx_listen:                           2
+;     binary_version:                           2
 ;     c047b:                                    2
 ;     c0491:                                    2
 ;     c04b9:                                    2
@@ -8278,6 +8224,7 @@ save pydis_start, pydis_end
 ;     c8211:                                    2
 ;     c8289:                                    2
 ;     c8312:                                    2
+;     c8373:                                    2
 ;     c8379:                                    2
 ;     c837a:                                    2
 ;     c84d5:                                    2
@@ -8353,7 +8300,6 @@ save pydis_start, pydis_end
 ;     l0f12:                                    2
 ;     l0fde:                                    2
 ;     l0fdf:                                    2
-;     l8373:                                    2
 ;     l8d08:                                    2
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
@@ -8423,7 +8369,6 @@ save pydis_start, pydis_end
 ;     adjust_addrs_clc:                         1
 ;     adlc_init:                                1
 ;     argsw:                                    1
-;     binary_version:                           1
 ;     brkv:                                     1
 ;     bspsx:                                    1
 ;     bsxl0:                                    1
@@ -8654,7 +8599,6 @@ save pydis_start, pydis_end
 ;     l0013:                                    1
 ;     l0051:                                    1
 ;     l0063:                                    1
-;     l0088:                                    1
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
@@ -8664,6 +8608,7 @@ save pydis_start, pydis_end
 ;     l0351:                                    1
 ;     l0355:                                    1
 ;     l0518:                                    1
+;     l0600:                                    1
 ;     l0cff:                                    1
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
@@ -8679,7 +8624,6 @@ save pydis_start, pydis_end
 ;     l0f14:                                    1
 ;     l0f16:                                    1
 ;     l0fe0:                                    1
-;     l3af0:                                    1
 ;     l4:                                       1
 ;     l8001:                                    1
 ;     l8002:                                    1
@@ -8696,7 +8640,6 @@ save pydis_start, pydis_end
 ;     l9139:                                    1
 ;     l91a0:                                    1
 ;     l91a4:                                    1
-;     l91c8:                                    1
 ;     l9319:                                    1
 ;     l9456:                                    1
 ;     l9556:                                    1
@@ -8706,7 +8649,6 @@ save pydis_start, pydis_end
 ;     l9c42:                                    1
 ;     l9ea7:                                    1
 ;     l9eaf:                                    1
-;     lac85:                                    1
 ;     language_handler:                         1
 ;     loadop:                                   1
 ;     lodchk:                                   1
@@ -8940,6 +8882,7 @@ save pydis_start, pydis_end
 ;     c8260
 ;     c8289
 ;     c8312
+;     c8373
 ;     c8379
 ;     c837a
 ;     c83ca
@@ -9120,7 +9063,6 @@ save pydis_start, pydis_end
 ;     l0055
 ;     l0056
 ;     l0063
-;     l0088
 ;     l00a8
 ;     l00a9
 ;     l00aa
@@ -9160,6 +9102,7 @@ save pydis_start, pydis_end
 ;     l0351
 ;     l0355
 ;     l0518
+;     l0600
 ;     l0700
 ;     l0cff
 ;     l0d1e
@@ -9191,11 +9134,6 @@ save pydis_start, pydis_end
 ;     l0fde
 ;     l0fdf
 ;     l0fe0
-;     l1e02
-;     l3af0
-;     l5801
-;     l5e41
-;     l6e04
 ;     l8001
 ;     l8002
 ;     l8004
@@ -9204,33 +9142,25 @@ save pydis_start, pydis_end
 ;     l8024
 ;     l8049
 ;     l818e
-;     l82b1
-;     l8373
 ;     l83af
-;     l84a6
 ;     l8c06
 ;     l8d08
 ;     l8d1c
-;     l8e04
 ;     l8eb0
 ;     l8ef7
 ;     l90a3
 ;     l9139
 ;     l91a0
 ;     l91a4
-;     l91c8
 ;     l9319
 ;     l9456
 ;     l9556
-;     l96ed
 ;     l9a04
 ;     l9af1
 ;     l9af6
 ;     l9c42
 ;     l9ea7
 ;     l9eaf
-;     lac85
-;     lb7f6
 ;     loop_c0441
 ;     loop_c0459
 ;     loop_c04a4
@@ -9302,36 +9232,21 @@ save pydis_start, pydis_end
 ;     sub_c04c4
 ;     sub_c04cb
 ;     sub_c806f
-;     sub_c807f
-;     sub_c80b8
-;     sub_c816c
-;     sub_c81e8
-;     sub_c82f6
-;     sub_c8374
+;     sub_c81b1
 ;     sub_c8383
-;     sub_c84a5
 ;     sub_c854d
 ;     sub_c8620
 ;     sub_c8679
-;     sub_c8689
 ;     sub_c86d7
 ;     sub_c86e3
-;     sub_c88cf
-;     sub_c8969
-;     sub_c8d21
-;     sub_c8d2a
+;     sub_c89e8
 ;     sub_c8d92
-;     sub_c8dd7
-;     sub_c8e03
+;     sub_c8dcf
 ;     sub_c8e45
-;     sub_c8ed5
 ;     sub_c8ef9
 ;     sub_c9072
 ;     sub_c90ac
 ;     sub_c9148
-;     sub_c92c8
-;     sub_c96ec
-;     sub_c96f6
 ;     sub_c99a4
 ;     sub_c9a03
 ;     sub_c9aeb
@@ -9345,11 +9260,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7480 bytes (91%)
-;     Data                     = 712 bytes (9%)
+;     Code                     = 7491 bytes (91%)
+;     Data                     = 701 bytes (9%)
 ;
-;     Number of instructions   = 3602
-;     Number of data bytes     = 463 bytes
+;     Number of instructions   = 3607
+;     Number of data bytes     = 452 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 249 bytes
 ;     Number of strings        = 35

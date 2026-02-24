@@ -975,51 +975,62 @@ Key ADLC register values:
 # ============================================================
 # Dispatch table at &8020 (low bytes) / &8044 (high bytes)
 # ============================================================
-# Used via the PHA/PHA/RTS dispatch trick at &80DA-&80E9.
+# Used via the PHA/PHA/RTS dispatch trick at &80E7.
 #
 # This is a standard 6502 computed-jump technique. The table stores
 # handler addresses minus 1, split into separate low-byte and high-byte
-# arrays. The dispatcher at &80DA pushes the high byte then the low
-# byte onto the stack. When RTS executes, it pops the address and adds
-# 1, jumping to the handler.
+# arrays. The dispatcher pushes the high byte then the low byte onto
+# the stack; RTS pops them and jumps to (address + 1).
 #
 # Multiple callers share this single table using different base offsets
-# in Y. The dispatcher loop at &80DA adds Y to X (the command index),
+# in Y. The dispatch loop at &80E7 adds Y+1 to X (the command index),
 # so each caller maps its index into a different region of the table:
 #
 #   Caller              Y (base)  X (index)         Table indices
 #   ─────────────────   ────────  ────────────────  ─────────────
-#   Service calls        &00      svc_num            1-13
-#   Language entry       &0D      reason             14-18
-#   *NET1-4 commands     &20      char-'1'           33-36
+#   Service calls        &00      svc_num            0-13
+#   Language entry       &0E      reason             14-18
+#   FSCV operations      &13      fscv_num           19-32
+#   *NET1-4 commands     &21      char-'1'           33-36
+#
+# The dispatch loop adds Y+1 to X, so the final table index for
+# logical entry i is accessed at lo=&8025+i, hi=&804A+i (i.e.
+# offsets +5/+6 from the printed table starts at &8020/&8044).
+# The lo and hi sub-tables overlap: lo bytes for the last 6
+# entries (i=31-36) fall within the hi table header (&8044-&8049),
+# and hi bytes for i=31-36 are read from dispatch_net_cmd code.
 #
 # Index 0 and unused indices point to an RTS (null handler), so
 # unrecognised service calls or out-of-range values fall through
 # harmlessly.
-#
-# rts_code_ptr(lo_addr, hi_addr) decodes the address and adds entry().
 
-# Service call handlers (indices 1-13)
-for i in range(1, 14):
-    rts_code_ptr(0x8020 + i, 0x8044 + i)
+# Preamble lo bytes: &8020-&8024 are never read as part of a handler pair.
+# They exist to position the l8024 label for the dispatch code.
+# (There is no hi preamble: &8044-&8049 are lo bytes for entries 31-36.)
+for addr in range(0x8020, 0x8025):
+    byte(addr)
 
-# Language entry handlers (indices 15-19, base Y=&0E)
+# Null handler and service call handlers (indices 0-13)
+for i in range(0, 14):
+    rts_code_ptr(0x8025 + i, 0x804A + i)
+
+# Language entry handlers (indices 14-18, base Y=&0E)
 for i in range(14, 19):
-    rts_code_ptr(0x8020 + i, 0x8044 + i)
+    rts_code_ptr(0x8025 + i, 0x804A + i)
 
-# Indices 20-32: secondary dispatch for *-command parsing and
-# filing system operations. Accessed via FSCV (Y=&13).
-# The exact mapping of indices to individual
-# handlers hasn't been fully traced yet.
-for i in range(19, 33):
-    if i == 30:
-        continue  # Entry 30 decodes to $8C4D, mid-instruction in 3.40
-    rts_code_ptr(0x8020 + i, 0x8044 + i)
+# FSCV handlers (indices 19-30, base Y=&13)
+for i in range(19, 31):
+    rts_code_ptr(0x8025 + i, 0x804A + i)
 
-# *NET command handlers (indices 33-36)
-# Index 36 overlaps: low byte at &8044 (= high table[0])
-for i in range(33, 37):
-    rts_code_ptr(0x8020 + i, 0x8044 + i)
+# Entries 31-36: hi bytes overlap with dispatch_net_cmd code (&8069+),
+# so we can't use rts_code_ptr (it would mark code bytes as data).
+# Mark the lo bytes as data and add entry points manually.
+# i=31: FSCV 12 -> &8DD5, i=32: FSCV 13 -> &8E1F (set_lib_handle)
+# i=33-36: *NET1-4 -> &8E59, &8E5F, &8E6F, &81B8
+for addr in range(0x8044, 0x804A):
+    byte(addr)
+for target in [0x8DD5, 0x8E1F, 0x8E59, 0x8E5F, 0x8E6F, 0x81B8]:
+    entry(target)
 
 # ============================================================
 # Filing system OSWORD dispatch table at &8EB0/&8EB5
@@ -3469,7 +3480,7 @@ compares against our station ID. Reading &FE18 also disables NMIs
 
 comment(0x96F2, "A=&01: mask for SR2 bit0 (AP = Address Present)", inline=True)
 comment(0x96F4, "BIT SR2: Z = A AND SR2 -- tests if AP is set", inline=True)
-comment(0x96F6, "AP not set, no incoming data -- check for errors", inline=True)
+comment(0x96F7, "AP not set, no incoming data -- check for errors", inline=True)
 comment(0x96F9, "Read first RX byte (destination station address)", inline=True)
 comment(0x96FC, "Compare to our station ID (&FE18 read = INTOFF, disables NMIs)", inline=True)
 comment(0x96FF, "Match -- accept frame", inline=True)
