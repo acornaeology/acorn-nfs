@@ -57,7 +57,6 @@ l0015                                   = &0015
 zp_63                                   = &005f
 l0063                                   = &0063
 l0088                                   = &0088
-l0094                                   = &0094
 escapable                               = &0097
 need_release_tube                       = &0098
 net_tx_ptr                              = &009a
@@ -1055,7 +1054,7 @@ l8018 = l8011+7
     equb <(sub_c80b8-1)                                               ; 8026: b7          .
     equb <(svc_private_workspace-1)                                   ; 8027: c0          .
     equb <(svc_autoboot-1)                                            ; 8028: 18          .
-    equb <(sub_c82b1-1)                                               ; 8029: b0          .
+    equb <(l82b1-1)                                                   ; 8029: b0          .
     equb <(sub_c816c-1)                                               ; 802a: 6b          k
     equb <(sub_c96f6-1)                                               ; 802b: f5          .
     equb <(sub_c806f-1)                                               ; 802c: 6e          n
@@ -1097,7 +1096,7 @@ l8018 = l8011+7
     equb >(sub_c80b8-1)                                               ; 804a: 80          .
     equb >(svc_private_workspace-1)                                   ; 804b: 82          .
     equb >(svc_autoboot-1)                                            ; 804c: 82          .
-    equb >(sub_c82b1-1)                                               ; 804d: 82          .
+    equb >(l82b1-1)                                                   ; 804d: 82          .
     equb >(sub_c816c-1)                                               ; 804e: 81          .
     equb >(sub_c96f6-1)                                               ; 804f: 96          .
     equb >(sub_c806f-1)                                               ; 8050: 80          .
@@ -1604,7 +1603,7 @@ l818e = c818d+1
 ; ***************************************************************************************
 ; Set up filing system vectors
 ; 
-; Copies 14 bytes from fs_vector_addrs (&8280) into FILEV-FSCV (&0212).
+; Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212).
 ; These set all 7 filing system vectors to the standard extended vector
 ; dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
 ; Then calls setup_rom_ptrs_netv to install the extended vector table
@@ -1643,7 +1642,7 @@ l818e = c818d+1
     ldy #&0d                                                          ; 8260: a0 0d       ..
 ; &8262 referenced 1 time by &8269
 .loop_c8262
-    lda l8296,y                                                       ; 8262: b9 96 82    ...
+    lda fs_vector_addrs,y                                             ; 8262: b9 96 82    ...
     sta filev,y                                                       ; 8265: 99 12 02    ...
     dey                                                               ; 8268: 88          .
     bpl loop_c8262                                                    ; 8269: 10 f7       ..
@@ -1677,12 +1676,7 @@ l818e = c818d+1
     ldy #&82                                                          ; 8289: a0 82       ..
     jmp fscv_star_handler                                             ; 828b: 4c d7 8b    L..
 
-    equb &49                                                          ; 828e: 49          I              ; FILEV handler lo (&86DE)
-    equb &20                                                          ; 828f: 20                         ; FILEV handler hi
-    equb &2e                                                          ; 8290: 2e          .              ; (ROM bank — not read)
-    equb &42                                                          ; 8291: 42          B              ; ARGSV handler lo (&8907)
-    equb &4f                                                          ; 8292: 4f          O              ; ARGSV handler hi
-    equb &4f                                                          ; 8293: 4f          O
+    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I .            ; Auto-boot command string for fscv_star_handler
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -1697,30 +1691,36 @@ l818e = c818d+1
 ; bank number without reading). The last entry (FSCV) has no
 ; padding byte.
 ; ***************************************************************************************
-.fs_vector_addrs
-    equb &54                                                          ; 8294: 54          T
-    equb &0d                                                          ; 8295: 0d          .              ; BGETV handler hi
 ; &8296 referenced 1 time by &8262
-.l8296
-    equb &1b                                                          ; 8296: 1b          .              ; (ROM bank — not read)
-    equb &ff                                                          ; 8297: ff          .              ; BPUTV handler lo (&83DC)
-    equb &1e                                                          ; 8298: 1e          .              ; BPUTV handler hi
-    equb &ff                                                          ; 8299: ff          .              ; (ROM bank — not read)
-    equb &21                                                          ; 829a: 21          !              ; GBPBV handler lo (&8A0E)
-    equb &ff                                                          ; 829b: ff          .              ; GBPBV handler hi
-    equb &24                                                          ; 829c: 24          $              ; (ROM bank — not read)
-    equb &ff                                                          ; 829d: ff          .              ; FINDV handler lo (&896F)
-    equb &27                                                          ; 829e: 27          '              ; FINDV handler hi
-    equb &ff                                                          ; 829f: ff          .
-    equb &2a                                                          ; 82a0: 2a          *              ; FSCV handler lo (&80C7)
-    equb &ff                                                          ; 82a1: ff          .
-    equb &2d, &ff,   5, &87, &4a, &24, &89, &44, &5c, &85, &57, &0f   ; 82a2: 2d ff 05... -..
-    equb &84, &42, &2e                                                ; 82ae: 84 42 2e    .B.
-
-.sub_c82b1
-    txa                                                               ; 82b1: 8a          .
-    eor (l0094,x)                                                     ; 82b2: 41 94       A.
-    equb &89, &52, &d4, &80                                           ; 82b4: 89 52 d4... .R.
+.fs_vector_addrs
+    equb &1b, &ff                                                     ; 8296: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equb &1e, &ff                                                     ; 8298: 1e ff       ..             ; ARGSV dispatch (&FF1E)
+    equb &21, &ff                                                     ; 829a: 21 ff       !.             ; BGETV dispatch (&FF21)
+    equb &24, &ff                                                     ; 829c: 24 ff       $.             ; BPUTV dispatch (&FF24)
+    equb &27, &ff                                                     ; 829e: 27 ff       '.             ; GBPBV dispatch (&FF27)
+    equb &2a, &ff                                                     ; 82a0: 2a ff       *.             ; FINDV dispatch (&FF2A)
+    equb &2d, &ff                                                     ; 82a2: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equb 5                                                            ; 82a4: 05          .              ; FILEV handler lo (&8705)
+    equb &87                                                          ; 82a5: 87          .              ; FILEV handler hi
+    equb &4a                                                          ; 82a6: 4a          J              ; (ROM bank — not read)
+    equb &24                                                          ; 82a7: 24          $              ; ARGSV handler lo (&8924)
+    equb &89                                                          ; 82a8: 89          .              ; ARGSV handler hi
+    equb &44                                                          ; 82a9: 44          D              ; (ROM bank — not read)
+    equb &5c                                                          ; 82aa: 5c          \              ; BGETV handler lo (&855C)
+    equb &85                                                          ; 82ab: 85          .              ; BGETV handler hi
+    equb &57                                                          ; 82ac: 57          W              ; (ROM bank — not read)
+    equb &0f                                                          ; 82ad: 0f          .              ; BPUTV handler lo (&840F)
+    equb &84                                                          ; 82ae: 84          .              ; BPUTV handler hi
+    equb &42                                                          ; 82af: 42          B              ; (ROM bank — not read)
+    equb &2e                                                          ; 82b0: 2e          .              ; GBPBV handler lo (&8A2E)
+.l82b1
+    equb &8a                                                          ; 82b1: 8a          .              ; GBPBV handler hi
+    equb &41                                                          ; 82b2: 41          A              ; (ROM bank — not read)
+    equb &94                                                          ; 82b3: 94          .              ; FINDV handler lo (&8994)
+    equb &89                                                          ; 82b4: 89          .              ; FINDV handler hi
+    equb &52                                                          ; 82b5: 52          R              ; (ROM bank — not read)
+    equb &d4                                                          ; 82b6: d4          .              ; FSCV handler lo (&80D4)
+    equb &80                                                          ; 82b7: 80          .              ; FSCV handler hi
 
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
@@ -7938,6 +7938,7 @@ l9eaf = sub_c9eae+1
     assert <(l5801-1) == &00
     assert <(l5e41-1) == &40
     assert <(l6e04-1) == &03
+    assert <(l82b1-1) == &b0
     assert <(l84a6-1) == &a5
     assert <(l8e04-1) == &03
     assert <(l96ed-1) == &ec
@@ -7961,7 +7962,6 @@ l9eaf = sub_c9eae+1
     assert <(sub_c80b8-1) == &b7
     assert <(sub_c816c-1) == &6b
     assert <(sub_c81e8-1) == &e7
-    assert <(sub_c82b1-1) == &b0
     assert <(sub_c82f6-1) == &f5
     assert <(sub_c8374-1) == &73
     assert <(sub_c8689-1) == &88
@@ -8000,6 +8000,7 @@ l9eaf = sub_c9eae+1
     assert >(l5801-1) == &58
     assert >(l5e41-1) == &5e
     assert >(l6e04-1) == &6e
+    assert >(l82b1-1) == &82
     assert >(l84a6-1) == &84
     assert >(l8e04-1) == &8e
     assert >(l96ed-1) == &96
@@ -8023,7 +8024,6 @@ l9eaf = sub_c9eae+1
     assert >(sub_c80b8-1) == &80
     assert >(sub_c816c-1) == &81
     assert >(sub_c81e8-1) == &81
-    assert >(sub_c82b1-1) == &82
     assert >(sub_c82f6-1) == &82
     assert >(sub_c8374-1) == &83
     assert >(sub_c8689-1) == &86
@@ -8596,6 +8596,7 @@ save pydis_start, pydis_end
 ;     fs_cmd_type:                              1
 ;     fs_osword_dispatch:                       1
 ;     fs_osword_tbl_hi:                         1
+;     fs_vector_addrs:                          1
 ;     fs_wait_cleanup:                          1
 ;     fscv:                                     1
 ;     fscv_star_handler:                        1
@@ -8627,7 +8628,6 @@ save pydis_start, pydis_end
 ;     l0051:                                    1
 ;     l0063:                                    1
 ;     l0088:                                    1
-;     l0094:                                    1
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
@@ -8663,7 +8663,6 @@ save pydis_start, pydis_end
 ;     l8024:                                    1
 ;     l8049:                                    1
 ;     l818e:                                    1
-;     l8296:                                    1
 ;     l8c06:                                    1
 ;     l8d1c:                                    1
 ;     l8eb0:                                    1
@@ -9097,7 +9096,6 @@ save pydis_start, pydis_end
 ;     l0056
 ;     l0063
 ;     l0088
-;     l0094
 ;     l00a8
 ;     l00a9
 ;     l00aa
@@ -9183,7 +9181,7 @@ save pydis_start, pydis_end
 ;     l8024
 ;     l8049
 ;     l818e
-;     l8296
+;     l82b1
 ;     l8373
 ;     l83af
 ;     l84a6
@@ -9285,7 +9283,6 @@ save pydis_start, pydis_end
 ;     sub_c80b8
 ;     sub_c816c
 ;     sub_c81e8
-;     sub_c82b1
 ;     sub_c82f6
 ;     sub_c8374
 ;     sub_c8383
@@ -9325,11 +9322,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7489 bytes (91%)
-;     Data                     = 703 bytes (9%)
+;     Code                     = 7486 bytes (91%)
+;     Data                     = 706 bytes (9%)
 ;
-;     Number of instructions   = 3606
-;     Number of data bytes     = 462 bytes
+;     Number of instructions   = 3604
+;     Number of data bytes     = 457 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 241 bytes
-;     Number of strings        = 34
+;     Number of string bytes   = 249 bytes
+;     Number of strings        = 35

@@ -1755,7 +1755,7 @@ the command decoder to trigger auto-boot login.""")
 subroutine(0x8224, "setup_fs_vectors", hook=None,
     title="Set up filing system vectors",
     description="""\
-Copies 14 bytes from fs_vector_addrs (&8280) into FILEV-FSCV (&0212).
+Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212).
 These set all 7 filing system vectors to the standard extended vector
 dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
 Then calls setup_rom_ptrs_netv to install the extended vector table
@@ -1765,9 +1765,18 @@ requests to notify other ROMs.""")
 comment(0x8224, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
 
 # ============================================================
-# FS vector dispatch and handler addresses (&8280)
+# Auto-boot command string (&828E)
 # ============================================================
-subroutine(0x8294, "fs_vector_addrs", hook=None,
+# In 3.35K, &828E was inside the vector dispatch table. In 3.40, the
+# code shifted: issue_vectors_claimed now loads X/Y pointing to &828E
+# as the "I .BOOT\r" command string passed to fscv_star_handler.
+string(0x828E, 8)
+comment(0x828E, "Auto-boot command string for fscv_star_handler", inline=True)
+
+# ============================================================
+# FS vector dispatch and handler addresses (&8296)
+# ============================================================
+subroutine(0x8296, "fs_vector_addrs", hook=None,
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""\
 Bytes 0-13: extended vector dispatch addresses, copied to
@@ -1781,47 +1790,33 @@ not read at runtime (store_rom_ptr_pair writes the current ROM
 bank number without reading). The last entry (FSCV) has no
 padding byte.""")
 
-# Part 1 was extended vector dispatch addresses in 3.35K (7 x 2 bytes),
-# but in 3.40 the code shifted so &8280-&828D is now code
-# (issue_vectors_claimed continuation: JSR osbyte; LDX; BNE; LDX; LDY; JMP).
+# Part 1: extended vector dispatch addresses (7 x 2 bytes)
+for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
+                           "GBPBV", "FINDV", "FSCV"]):
+    addr = 0x8296 + i * 2
+    byte(addr, 2)
+    comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
-byte(0x828E, 1)
-comment(0x828E, "FILEV handler lo (&86DE)", inline=True)
-byte(0x828F, 1)
-comment(0x828F, "FILEV handler hi", inline=True)
-byte(0x8290, 1)
-comment(0x8290, "(ROM bank — not read)", inline=True)
-byte(0x8291, 1)
-comment(0x8291, "ARGSV handler lo (&8907)", inline=True)
-byte(0x8292, 1)
-comment(0x8292, "ARGSV handler hi", inline=True)
-byte(0x8293, 1)
-byte(0x8294, 1)
-byte(0x8295, 1)
-comment(0x8295, "BGETV handler hi", inline=True)
-byte(0x8296, 1)
-comment(0x8296, "(ROM bank — not read)", inline=True)
-byte(0x8297, 1)
-comment(0x8297, "BPUTV handler lo (&83DC)", inline=True)
-byte(0x8298, 1)
-comment(0x8298, "BPUTV handler hi", inline=True)
-byte(0x8299, 1)
-comment(0x8299, "(ROM bank — not read)", inline=True)
-byte(0x829A, 1)
-comment(0x829A, "GBPBV handler lo (&8A0E)", inline=True)
-byte(0x829B, 1)
-comment(0x829B, "GBPBV handler hi", inline=True)
-byte(0x829C, 1)
-comment(0x829C, "(ROM bank — not read)", inline=True)
-byte(0x829D, 1)
-comment(0x829D, "FINDV handler lo (&896F)", inline=True)
-byte(0x829E, 1)
-comment(0x829E, "FINDV handler hi", inline=True)
-byte(0x829F, 1)
-byte(0x82A0, 1)
-comment(0x82A0, "FSCV handler lo (&80C7)", inline=True)
-byte(0x82A1, 1)
+# store_rom_ptr_pair reads lo/hi from ROM and writes ROM bank as pad.
+handler_names = [
+    ("FILEV",  0x8705),
+    ("ARGSV",  0x8924),
+    ("BGETV",  0x855C),
+    ("BPUTV",  0x840F),
+    ("GBPBV",  0x8A2E),
+    ("FINDV",  0x8994),
+    ("FSCV",   0x80D4),
+]
+for i, (name, handler_addr) in enumerate(handler_names):
+    base_addr = 0x82A4 + i * 3
+    byte(base_addr, 1)
+    comment(base_addr, f"{name} handler lo (&{handler_addr:04X})", inline=True)
+    byte(base_addr + 1, 1)
+    comment(base_addr + 1, f"{name} handler hi", inline=True)
+    if i < 6:  # pad byte for all but last entry
+        byte(base_addr + 2, 1)
+        comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
 # ============================================================
 # Service 1: claim absolute workspace (&82A2)
