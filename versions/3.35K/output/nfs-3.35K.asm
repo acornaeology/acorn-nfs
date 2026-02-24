@@ -1705,11 +1705,55 @@ l8014 = l800d+7
 
     equs "I .BOOT"                                                    ; 8278: 49 20 2e... I .
     equb &0d                                                          ; 827f: 0d          .
+; ***************************************************************************************
+; FS vector dispatch and handler addresses (34 bytes)
+; 
+; Bytes 0-13: extended vector dispatch addresses, copied to
+; FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+; the handler in the ROM pointer table.
+; 
+; Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
+; Each entry has addr_lo, addr_hi, then a padding byte that is
+; overwritten with the current ROM bank number at runtime. The
+; last entry (FSCV) has no padding byte.
+; ***************************************************************************************
 ; &8280 referenced 1 time by &824c
 .fs_vector_addrs
-    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 8280: 1b ff 1e... ...
-    equb &2d, &ff, &de, &86, &4a,   7, &89, &44, &2e, &85, &57, &dc   ; 828c: 2d ff de... -..
-    equb &83, &42, &0e, &8a, &41, &6f, &89, &52, &c7, &80             ; 8298: 83 42 0e... .B.
+    equb &1b                                                          ; 8280: 1b          .              ; FILEV dispatch lo
+    equb &ff                                                          ; 8281: ff          .              ; FILEV dispatch hi
+    equb &1e                                                          ; 8282: 1e          .              ; ARGSV dispatch lo
+    equb &ff                                                          ; 8283: ff          .              ; ARGSV dispatch hi
+    equb &21                                                          ; 8284: 21          !              ; BGETV dispatch lo
+    equb &ff                                                          ; 8285: ff          .              ; BGETV dispatch hi
+    equb &24                                                          ; 8286: 24          $              ; BPUTV dispatch lo
+    equb &ff                                                          ; 8287: ff          .              ; BPUTV dispatch hi
+    equb &27                                                          ; 8288: 27          '              ; GBPBV dispatch lo
+    equb &ff                                                          ; 8289: ff          .              ; GBPBV dispatch hi
+    equb &2a                                                          ; 828a: 2a          *              ; FINDV dispatch lo
+    equb &ff                                                          ; 828b: ff          .              ; FINDV dispatch hi
+    equb &2d                                                          ; 828c: 2d          -              ; FSCV dispatch lo
+    equb &ff                                                          ; 828d: ff          .              ; FSCV dispatch hi
+    equb &de                                                          ; 828e: de          .              ; FILEV handler lo (&86DE)
+    equb &86                                                          ; 828f: 86          .              ; FILEV handler hi
+    equb &4a                                                          ; 8290: 4a          J              ; (ROM bank — overwritten)
+    equb 7                                                            ; 8291: 07          .              ; ARGSV handler lo (&8907)
+    equb &89                                                          ; 8292: 89          .              ; ARGSV handler hi
+    equb &44                                                          ; 8293: 44          D              ; (ROM bank — overwritten)
+    equb &2e                                                          ; 8294: 2e          .              ; BGETV handler lo (&852E)
+    equb &85                                                          ; 8295: 85          .              ; BGETV handler hi
+    equb &57                                                          ; 8296: 57          W              ; (ROM bank — overwritten)
+    equb &dc                                                          ; 8297: dc          .              ; BPUTV handler lo (&83DC)
+    equb &83                                                          ; 8298: 83          .              ; BPUTV handler hi
+    equb &42                                                          ; 8299: 42          B              ; (ROM bank — overwritten)
+    equb &0e                                                          ; 829a: 0e          .              ; GBPBV handler lo (&8A0E)
+    equb &8a                                                          ; 829b: 8a          .              ; GBPBV handler hi
+    equb &41                                                          ; 829c: 41          A              ; (ROM bank — overwritten)
+    equb &6f                                                          ; 829d: 6f          o              ; FINDV handler lo (&896F)
+    equb &89                                                          ; 829e: 89          .              ; FINDV handler hi
+    equb &52                                                          ; 829f: 52          R              ; (ROM bank — overwritten)
+    equb &c7                                                          ; 82a0: c7          .              ; FSCV handler lo (&80C7)
+    equb &80                                                          ; 82a1: 80          .              ; FSCV handler hi
 
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace

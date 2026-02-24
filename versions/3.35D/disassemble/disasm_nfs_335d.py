@@ -528,7 +528,7 @@ entry(0x9660)
 entry(0x9663)
 
 # --- Init and vector setup ---
-label(0x828A, "fs_vector_addrs")        # 14-byte table: FILEV-FSCV extended vector addresses
+label(0x828A, "fs_vector_addrs")        # FS vector dispatch and handler addresses (34 bytes)
 
 # --- FSCV handler and dispatch ---
 # FSCV (&808C) dispatches via secondary indices 19-26:
@@ -1718,7 +1718,7 @@ the command decoder to trigger auto-boot login.""")
 subroutine(0x8218, "setup_fs_vectors", hook=None,
     title="Set up filing system vectors",
     description="""\
-Copies 14 bytes from fs_vector_addrs (&824E) into FILEV-FSCV (&0212).
+Copies 14 bytes from fs_vector_addrs (&828A) into FILEV-FSCV (&0212).
 These set all 7 filing system vectors to the standard extended vector
 dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
 Then calls setup_rom_ptrs_netv to install the extended vector table
@@ -1726,6 +1726,94 @@ entries with the actual NFS handler addresses, and issues service
 requests to notify other ROMs.""")
 
 comment(0x8218, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
+
+# ============================================================
+# FS vector dispatch and handler addresses (&828A)
+# ============================================================
+subroutine(0x828A, "fs_vector_addrs", hook=None,
+    title="FS vector dispatch and handler addresses (34 bytes)",
+    description="""\
+Bytes 0-13: extended vector dispatch addresses, copied to
+FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+the handler in the ROM pointer table.
+
+Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
+Each entry has addr_lo, addr_hi, then a padding byte that is
+overwritten with the current ROM bank number at runtime. The
+last entry (FSCV) has no padding byte.""")
+
+# Part 1: extended vector dispatch addresses (7 x 2 bytes)
+byte(0x828A, 1)
+comment(0x828A, "FILEV dispatch lo", inline=True)
+byte(0x828B, 1)
+comment(0x828B, "FILEV dispatch hi", inline=True)
+byte(0x828C, 1)
+comment(0x828C, "ARGSV dispatch lo", inline=True)
+byte(0x828D, 1)
+comment(0x828D, "ARGSV dispatch hi", inline=True)
+byte(0x828E, 1)
+comment(0x828E, "BGETV dispatch lo", inline=True)
+byte(0x828F, 1)
+comment(0x828F, "BGETV dispatch hi", inline=True)
+byte(0x8290, 1)
+comment(0x8290, "BPUTV dispatch lo", inline=True)
+byte(0x8291, 1)
+comment(0x8291, "BPUTV dispatch hi", inline=True)
+byte(0x8292, 1)
+comment(0x8292, "GBPBV dispatch lo", inline=True)
+byte(0x8293, 1)
+comment(0x8293, "GBPBV dispatch hi", inline=True)
+byte(0x8294, 1)
+comment(0x8294, "FINDV dispatch lo", inline=True)
+byte(0x8295, 1)
+comment(0x8295, "FINDV dispatch hi", inline=True)
+byte(0x8296, 1)
+comment(0x8296, "FSCV dispatch lo", inline=True)
+byte(0x8297, 1)
+comment(0x8297, "FSCV dispatch hi", inline=True)
+
+# Part 2: handler address entries (7 x {lo, hi, pad})
+byte(0x8298, 1)
+comment(0x8298, "FILEV handler lo (&86E7)", inline=True)
+byte(0x8299, 1)
+comment(0x8299, "FILEV handler hi", inline=True)
+byte(0x829A, 1)
+comment(0x829A, "(ROM bank — overwritten)", inline=True)
+byte(0x829B, 1)
+comment(0x829B, "ARGSV handler lo (&890C)", inline=True)
+byte(0x829C, 1)
+comment(0x829C, "ARGSV handler hi", inline=True)
+byte(0x829D, 1)
+comment(0x829D, "(ROM bank — overwritten)", inline=True)
+byte(0x829E, 1)
+comment(0x829E, "BGETV handler lo (&8539)", inline=True)
+byte(0x829F, 1)
+comment(0x829F, "BGETV handler hi", inline=True)
+byte(0x82A0, 1)
+comment(0x82A0, "(ROM bank — overwritten)", inline=True)
+byte(0x82A1, 1)
+comment(0x82A1, "BPUTV handler lo (&83EC)", inline=True)
+byte(0x82A2, 1)
+comment(0x82A2, "BPUTV handler hi", inline=True)
+byte(0x82A3, 1)
+comment(0x82A3, "(ROM bank — overwritten)", inline=True)
+byte(0x82A4, 1)
+comment(0x82A4, "GBPBV handler lo (&8A10)", inline=True)
+byte(0x82A5, 1)
+comment(0x82A5, "GBPBV handler hi", inline=True)
+byte(0x82A6, 1)
+comment(0x82A6, "(ROM bank — overwritten)", inline=True)
+byte(0x82A7, 1)
+comment(0x82A7, "FINDV handler lo (&8978)", inline=True)
+byte(0x82A8, 1)
+comment(0x82A8, "FINDV handler hi", inline=True)
+byte(0x82A9, 1)
+comment(0x82A9, "(ROM bank — overwritten)", inline=True)
+byte(0x82AA, 1)
+comment(0x82AA, "FSCV handler lo (&80C7)", inline=True)
+byte(0x82AB, 1)
+comment(0x82AB, "FSCV handler hi", inline=True)
 
 # ============================================================
 # Service 1: claim absolute workspace (&8270)

@@ -1651,7 +1651,7 @@ l8014 = l800d+7
 ; ***************************************************************************************
 ; Set up filing system vectors
 ; 
-; Copies 14 bytes from fs_vector_addrs (&824E) into FILEV-FSCV (&0212).
+; Copies 14 bytes from fs_vector_addrs (&828A) into FILEV-FSCV (&0212).
 ; These set all 7 filing system vectors to the standard extended vector
 ; dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
 ; Then calls setup_rom_ptrs_netv to install the extended vector table
@@ -1725,11 +1725,55 @@ l8014 = l800d+7
 
     equs "I .BOOT"                                                    ; 8282: 49 20 2e... I .
     equb &0d                                                          ; 8289: 0d          .
+; ***************************************************************************************
+; FS vector dispatch and handler addresses (34 bytes)
+; 
+; Bytes 0-13: extended vector dispatch addresses, copied to
+; FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+; the handler in the ROM pointer table.
+; 
+; Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
+; Each entry has addr_lo, addr_hi, then a padding byte that is
+; overwritten with the current ROM bank number at runtime. The
+; last entry (FSCV) has no padding byte.
+; ***************************************************************************************
 ; &828a referenced 1 time by &8256
 .fs_vector_addrs
-    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 828a: 1b ff 1e... ...
-    equb &2d, &ff, &e7, &86, &4a, &0c, &89, &44, &39, &85, &57, &ec   ; 8296: 2d ff e7... -..
-    equb &83, &42, &10, &8a, &41, &78, &89, &52, &c7, &80             ; 82a2: 83 42 10... .B.
+    equb &1b                                                          ; 828a: 1b          .              ; FILEV dispatch lo
+    equb &ff                                                          ; 828b: ff          .              ; FILEV dispatch hi
+    equb &1e                                                          ; 828c: 1e          .              ; ARGSV dispatch lo
+    equb &ff                                                          ; 828d: ff          .              ; ARGSV dispatch hi
+    equb &21                                                          ; 828e: 21          !              ; BGETV dispatch lo
+    equb &ff                                                          ; 828f: ff          .              ; BGETV dispatch hi
+    equb &24                                                          ; 8290: 24          $              ; BPUTV dispatch lo
+    equb &ff                                                          ; 8291: ff          .              ; BPUTV dispatch hi
+    equb &27                                                          ; 8292: 27          '              ; GBPBV dispatch lo
+    equb &ff                                                          ; 8293: ff          .              ; GBPBV dispatch hi
+    equb &2a                                                          ; 8294: 2a          *              ; FINDV dispatch lo
+    equb &ff                                                          ; 8295: ff          .              ; FINDV dispatch hi
+    equb &2d                                                          ; 8296: 2d          -              ; FSCV dispatch lo
+    equb &ff                                                          ; 8297: ff          .              ; FSCV dispatch hi
+    equb &e7                                                          ; 8298: e7          .              ; FILEV handler lo (&86E7)
+    equb &86                                                          ; 8299: 86          .              ; FILEV handler hi
+    equb &4a                                                          ; 829a: 4a          J              ; (ROM bank — overwritten)
+    equb &0c                                                          ; 829b: 0c          .              ; ARGSV handler lo (&890C)
+    equb &89                                                          ; 829c: 89          .              ; ARGSV handler hi
+    equb &44                                                          ; 829d: 44          D              ; (ROM bank — overwritten)
+    equb &39                                                          ; 829e: 39          9              ; BGETV handler lo (&8539)
+    equb &85                                                          ; 829f: 85          .              ; BGETV handler hi
+    equb &57                                                          ; 82a0: 57          W              ; (ROM bank — overwritten)
+    equb &ec                                                          ; 82a1: ec          .              ; BPUTV handler lo (&83EC)
+    equb &83                                                          ; 82a2: 83          .              ; BPUTV handler hi
+    equb &42                                                          ; 82a3: 42          B              ; (ROM bank — overwritten)
+    equb &10                                                          ; 82a4: 10          .              ; GBPBV handler lo (&8A10)
+    equb &8a                                                          ; 82a5: 8a          .              ; GBPBV handler hi
+    equb &41                                                          ; 82a6: 41          A              ; (ROM bank — overwritten)
+    equb &78                                                          ; 82a7: 78          x              ; FINDV handler lo (&8978)
+    equb &89                                                          ; 82a8: 89          .              ; FINDV handler hi
+    equb &52                                                          ; 82a9: 52          R              ; (ROM bank — overwritten)
+    equb &c7                                                          ; 82aa: c7          .              ; FSCV handler lo (&80C7)
+    equb &80                                                          ; 82ab: 80          .              ; FSCV handler hi
 
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
