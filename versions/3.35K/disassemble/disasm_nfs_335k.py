@@ -1676,14 +1676,12 @@ comment(0x80D8, "Y=&0D: base offset for language handlers (index 14+)", inline=T
 subroutine(0x80EA, hook=None,
     title="Service handler entry",
     description="""\
-Dispatches service calls. 3.35K removes the per-ROM disable
-flag check at &0DF0+X that was present in 3.35D.
-  &FE: Tube init -- explode character definitions (OSBYTE &14, X=6)
-  &FF: Full init -- table-driven vector setup, copy NMI handler
-       code from ROM to RAM pages &04-&06, copy workspace init to
-       &0016-&0076, then fall through to select NFS.
-  &12 with Y=5: Select NFS as active filing system.
-All other service calls < &0D dispatch via c80da.""")
+Intercepts three service calls before normal dispatch:
+  &FE: Tube init -- explode character definitions
+  &FF: Full init -- vector setup, copy code to RAM, select NFS
+  &12 (Y=5): Select NFS as active filing system
+All other service calls < &0D dispatch via c8146.
+3.35K removes the per-ROM disable flag check that 3.35D has.""")
 
 # ============================================================
 # Init: set up vectors and copy code (&8103)
