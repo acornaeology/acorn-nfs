@@ -1,0 +1,13 @@
+{
+    "title": "Acorn NFS 3.40",
+    "size": 8192,
+    "md5": "e08a5f08c5b3cd910d57581c81cb6c34",
+    "sha256": "189cb2a5da64e6e1a104d5583e9f4c0b7e8ca093f08e1210ef200db7d209e310",
+    "links": [
+        {
+            "label": "Acorn NFS 3.40 in The BBC Micro ROM Library",
+            "url": "https://tobylobster.github.io/rom_library/?md5=e08a5f08c5b3cd910d57581c81cb6c34",
+            "icon": "chip"
+        }
+    ]
+}

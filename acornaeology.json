@@ -3,7 +3,7 @@
     "name": "Acorn NFS",
     "description": "Network Filing System for the BBC Micro Econet interface.",
     "glossary": "GLOSSARY.md",
-    "versions": ["3.34", "3.34B", "3.35D", "3.35K"],
+    "versions": ["3.34", "3.34B", "3.35D", "3.35K", "3.40"],
     "references": [
         {
             "label": "Acorn DNFS 3.00 source code",
