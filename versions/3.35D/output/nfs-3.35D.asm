@@ -1207,7 +1207,7 @@ l8014 = l800d+7
 
 ; &807d referenced 1 time by &8082
 .loop_c807d
-    iny                                                               ; 807d: c8          .
+    iny                                                               ; 807d: c8          .              ; / fall through...
 ; ***************************************************************************************
 ; "I AM" command handler
 ; 
@@ -1251,7 +1251,7 @@ l8014 = l800d+7
     iny                                                               ; 80ac: c8          .
     cmp #&0d                                                          ; 80ad: c9 0d       ..
     bne loop_c80a7                                                    ; 80af: d0 f6       ..
-    jsr osnewl                                                        ; 80b1: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
+    jsr osnewl                                                        ; 80b1: 20 e7 ff     ..            ; / fall through...; Write newline (characters 10 and 13)
 ; ***************************************************************************************
 ; Forward unrecognised * command to fileserver (COMERR)
 ; 
@@ -1315,7 +1315,7 @@ l8014 = l800d+7
 .language_handler
     cpx #5                                                            ; 80d4: e0 05       ..
     bcs return_1                                                      ; 80d6: b0 11       ..
-    ldy #&0d                                                          ; 80d8: a0 0d       ..             ; Y=&0D: base offset for language handlers (index 14+)
+    ldy #&0d                                                          ; 80d8: a0 0d       ..             ; Y=&0D: base offset for language handlers (index 14+); / fall through...
 ; ***************************************************************************************
 ; PHA/PHA/RTS computed dispatch
 ; 
@@ -1377,7 +1377,7 @@ l8014 = l800d+7
     lda #osbyte_explode_chars                                         ; 8104: a9 14       ..
     jsr osbyte                                                        ; 8106: 20 f4 ff     ..            ; Explode character definition RAM (six extra pages), can redefine all characters 32-255 (X=6)
     ldx zp_temp_11                                                    ; 8109: a6 11       ..
-    bne c814c                                                         ; 810b: d0 3f       .?
+    bne c814c                                                         ; 810b: d0 3f       .?             ; / fall through...
 ; ***************************************************************************************
 ; NFS initialisation (service &FF: full reset)
 ; 
@@ -1456,7 +1456,7 @@ l8014 = l800d+7
     jsr dispatch                                                      ; 816a: 20 da 80     ..
     ldx rom_svc_num                                                   ; 816d: a6 a9       ..
     pla                                                               ; 816f: 68          h
-    sta nfs_temp                                                      ; 8170: 85 a8       ..
+    sta nfs_temp                                                      ; 8170: 85 a8       ..             ; / fall through...
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
@@ -1486,7 +1486,7 @@ l8014 = l800d+7
 .sub_c8183
     ldx #8                                                            ; 8183: a2 08       ..
     jsr match_rom_string                                              ; 8185: 20 d6 81     ..
-    bne c81b8                                                         ; 8188: d0 2e       ..
+    bne c81b8                                                         ; 8188: d0 2e       ..             ; / fall through...
 ; ***************************************************************************************
 ; Resume after remote operation / *ROFF handler (NROFF)
 ; 
@@ -1533,7 +1533,7 @@ l8014 = l800d+7
 .c81b8
     ldx #1                                                            ; 81b8: a2 01       ..
     jsr match_rom_string                                              ; 81ba: 20 d6 81     ..
-    bne c8205                                                         ; 81bd: d0 46       .F
+    bne c8205                                                         ; 81bd: d0 46       .F             ; / fall through...
 ; ***************************************************************************************
 ; Select NFS as active filing system (INIT)
 ; 
@@ -1646,7 +1646,7 @@ l8014 = l800d+7
     lda #osbyte_scan_keyboard_from_16                                 ; 8210: a9 7a       .z
     jsr osbyte                                                        ; 8212: 20 f4 ff     ..            ; Keyboard scan starting from key 16
     txa                                                               ; 8215: 8a          .              ; X is key number if key is pressed, or &ff otherwise
-    bmi c8222                                                         ; 8216: 30 0a       0.
+    bmi c8222                                                         ; 8216: 30 0a       0.             ; / fall through...
 ; ***************************************************************************************
 ; Set up filing system vectors
 ; 
@@ -1696,7 +1696,7 @@ l8014 = l800d+7
     ldy #&1b                                                          ; 8262: a0 1b       ..
     ldx #7                                                            ; 8264: a2 07       ..
     jsr store_rom_ptr_pair                                            ; 8266: 20 29 83     ).
-    stx rom_svc_num                                                   ; 8269: 86 a9       ..
+    stx rom_svc_num                                                   ; 8269: 86 a9       ..             ; / fall through...
 ; ***************************************************************************************
 ; Issue 'vectors claimed' service and optionally auto-boot
 ; 
@@ -1858,7 +1858,7 @@ l8014 = l800d+7
     sta (net_rx_ptr),y                                                ; 830b: 91 9c       ..
     jsr trampoline_adlc_init                                          ; 830d: 20 63 96     c.            ; Initialise ADLC hardware
     lda #&40 ; '@'                                                    ; 8310: a9 40       .@
-    sta rx_flags                                                      ; 8312: 8d 64 0d    .d.
+    sta rx_flags                                                      ; 8312: 8d 64 0d    .d.            ; / fall through...
 ; ***************************************************************************************
 ; Set up ROM pointer table and NETV
 ; 
@@ -2014,7 +2014,7 @@ l8014 = l800d+7
 .bye_handler
     lda #osbyte_close_spool_exec                                      ; 838d: a9 77       .w
     jsr osbyte                                                        ; 838f: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    ldy #&17                                                          ; 8392: a0 17       ..             ; Y=function code for HDRFN
+    ldy #&17                                                          ; 8392: a0 17       ..             ; / fall through...; Y=function code for HDRFN
 ; ***************************************************************************************
 ; Prepare FS command buffer (12 references)
 ; 
@@ -2058,7 +2058,7 @@ l8014 = l800d+7
     lda fs_csd_handle,y                                               ; 83a5: b9 03 0e    ...            ; A=timeout period for FS reply
     sta fs_cmd_csd,y                                                  ; 83a8: 99 03 0f    ...
     dey                                                               ; 83ab: 88          .              ; Y=function code
-    bpl loop_c83a5                                                    ; 83ac: 10 f7       ..
+    bpl loop_c83a5                                                    ; 83ac: 10 f7       ..             ; / fall through...
 ; ***************************************************************************************
 ; Build and send FS command (DOFSOP)
 ; 
@@ -2105,7 +2105,7 @@ l8014 = l800d+7
     php                                                               ; 83bf: 08          .
     jsr setup_tx_ptr_c0                                               ; 83c0: 20 69 86     i.
     plp                                                               ; 83c3: 28          (
-    bcc send_fs_reply_cmd                                             ; 83c4: 90 04       ..
+    bcc send_fs_reply_cmd                                             ; 83c4: 90 04       ..             ; / fall through...
 ; ***************************************************************************************
 ; Send FS command with standard timeout
 ; 
@@ -2152,7 +2152,7 @@ l8014 = l800d+7
     sta l00b3                                                         ; 83e8: 85 b3       ..
     bcc dofsl7                                                        ; 83ea: 90 e8       ..
 .bputv_handler
-    clc                                                               ; 83ec: 18          .
+    clc                                                               ; 83ec: 18          .              ; / fall through...
 ; ***************************************************************************************
 ; Handle BPUT/BGET file byte I/O
 ; 
@@ -2238,7 +2238,7 @@ l8014 = l800d+7
 .c8449
     lda #&e0                                                          ; 8449: a9 e0       ..
     sta l00c4                                                         ; 844b: 85 c4       ..
-    ldx fs_getb_buf                                                   ; 844d: ae dd 0f    ...
+    ldx fs_getb_buf                                                   ; 844d: ae dd 0f    ...            ; / fall through...
 ; ***************************************************************************************
 ; Handle fileserver error replies (FSERR)
 ; 
@@ -2322,7 +2322,7 @@ l8014 = l800d+7
     ldx #1                                                            ; 849c: a2 01       ..
     ldy #0                                                            ; 849e: a0 00       ..
     lda #osbyte_read_write_econet_keyboard_disable                    ; 84a0: a9 c9       ..
-    jsr osbyte                                                        ; 84a2: 20 f4 ff     ..            ; Disable keyboard (for Econet)
+    jsr osbyte                                                        ; 84a2: 20 f4 ff     ..            ; / fall through...; Disable keyboard (for Econet)
 ; ***************************************************************************************
 ; Execute code at &0100
 ; 
@@ -2363,7 +2363,7 @@ l8014 = l800d+7
     lda (net_rx_ptr),y                                                ; 84bd: b1 9c       ..
     ldy #&0e                                                          ; 84bf: a0 0e       ..
     cmp (nfs_workspace),y                                             ; 84c1: d1 9e       ..
-    bne rchex                                                         ; 84c3: d0 b8       ..
+    bne rchex                                                         ; 84c3: d0 b8       ..             ; / fall through...
 ; ***************************************************************************************
 ; Insert remote keypress
 ; 
@@ -2409,7 +2409,7 @@ l8014 = l800d+7
 
 ; &84f8 referenced 3 times by &875d, &9036, &9290
 .c84f8
-    lda #&2a ; '*'                                                    ; 84f8: a9 2a       .*
+    lda #&2a ; '*'                                                    ; 84f8: a9 2a       .*             ; / fall through...
 ; ***************************************************************************************
 ; Send command to fileserver and handle reply (WAITFS)
 ; 
@@ -2551,7 +2551,7 @@ l8014 = l800d+7
     stx os_text_ptr                                                   ; 85a5: 86 f2       ..
     sty l00f3                                                         ; 85a7: 84 f3       ..
     stx fs_cmd_ptr                                                    ; 85a9: 8e 10 0e    ...
-    sty l0e11                                                         ; 85ac: 8c 11 0e    ...
+    sty l0e11                                                         ; 85ac: 8c 11 0e    ...            ; / fall through...
 ; ***************************************************************************************
 ; Save FSCV/vector arguments
 ; 
@@ -2720,7 +2720,7 @@ l8014 = l800d+7
     tay                                                               ; 8625: a8          .
 ; &8626 referenced 2 times by &83f8, &8917
 .handle_to_mask_clc
-    clc                                                               ; 8626: 18          .
+    clc                                                               ; 8626: 18          .              ; / fall through...
 ; ***************************************************************************************
 ; Convert file handle to bitmask (Y2FS)
 ; 
@@ -2854,7 +2854,7 @@ l8014 = l800d+7
 ; &865b referenced 5 times by &854f, &8954, &89a7, &89c7, &8aa6
 .set_fs_flag
     ora fs_eof_flags                                                  ; 865b: 0d 07 0e    ...
-    bne c8665                                                         ; 865e: d0 05       ..
+    bne c8665                                                         ; 865e: d0 05       ..             ; / fall through...
 ; ***************************************************************************************
 ; Clear bit(s) in FS flags (&0E07)
 ; 
@@ -2882,7 +2882,7 @@ l8014 = l800d+7
     ldx #&c0                                                          ; 8669: a2 c0       ..
     stx net_tx_ptr                                                    ; 866b: 86 9a       ..
     ldx #0                                                            ; 866d: a2 00       ..
-    stx net_tx_ptr_hi                                                 ; 866f: 86 9b       ..
+    stx net_tx_ptr_hi                                                 ; 866f: 86 9b       ..             ; / fall through...
 ; ***************************************************************************************
 ; Transmit and poll for result (full retry)
 ; 
@@ -2893,7 +2893,7 @@ l8014 = l800d+7
 .tx_poll_ff
     lda #&ff                                                          ; 8671: a9 ff       ..
 .tx_poll_timeout
-    ldy #&60 ; '`'                                                    ; 8673: a0 60       .`             ; Y=timeout parameter (&60 = standard)
+    ldy #&60 ; '`'                                                    ; 8673: a0 60       .`             ; / fall through...; Y=timeout parameter (&60 = standard)
 ; ***************************************************************************************
 ; Core transmit and poll routine (XMIT)
 ; 
@@ -2987,7 +2987,7 @@ l8014 = l800d+7
     lda (fs_options),y                                                ; 86bb: b1 bb       ..
     sta os_text_ptr,y                                                 ; 86bd: 99 f2 00    ...
     dey                                                               ; 86c0: 88          .
-    bpl file1                                                         ; 86c1: 10 f8       ..
+    bpl file1                                                         ; 86c1: 10 f8       ..             ; / fall through...
 ; ***************************************************************************************
 ; Parse filename using GSINIT/GSREAD into &0E30
 ; 
@@ -3070,7 +3070,7 @@ l8014 = l800d+7
 ; &86f8 referenced 1 time by &86f3
 .loadop
     jsr copy_filename                                                 ; 86f8: 20 4b 8d     K.
-    ldy #2                                                            ; 86fb: a0 02       ..
+    ldy #2                                                            ; 86fb: a0 02       ..             ; / fall through...
 ; ***************************************************************************************
 ; Send FS examine command
 ; 
@@ -3365,7 +3365,7 @@ l8014 = l800d+7
     sta l00c1                                                         ; 8848: 85 c1       ..
     lda #&2a ; '*'                                                    ; 884a: a9 2a       .*
     jsr send_to_fs                                                    ; 884c: 20 fa 84     ..
-    bne c8800                                                         ; 884f: d0 af       ..
+    bne c8800                                                         ; 884f: d0 af       ..             ; / fall through...
 ; ***************************************************************************************
 ; FSCV 1: EOF handler
 ; 
@@ -3519,7 +3519,7 @@ l8014 = l800d+7
     lda fs_cmd_data                                                   ; 8907: ad 05 0f    ...
 ; &890a referenced 1 time by &88c6
 .c890a
-    bpl c8959                                                         ; 890a: 10 4d       .M
+    bpl c8959                                                         ; 890a: 10 4d       .M             ; / fall through...
 ; ***************************************************************************************
 ; ARGSV handler (OSARGS entry point)
 ; 
@@ -3586,7 +3586,7 @@ l8014 = l800d+7
     jsr prepare_fs_cmd                                                ; 894e: 20 94 83     ..            ; Prepare FS command buffer (12 references)
     stx fs_last_byte_flag                                             ; 8951: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 8953: 68          h
-    jsr set_fs_flag                                                   ; 8954: 20 5b 86     [.
+    jsr set_fs_flag                                                   ; 8954: 20 5b 86     [.            ; / fall through...
 ; ***************************************************************************************
 ; Restore arguments and return
 ; 
@@ -3676,7 +3676,7 @@ l8014 = l800d+7
     jsr set_fs_flag                                                   ; 89a7: 20 5b 86     [.
     txa                                                               ; 89aa: 8a          .              ; A=single-bit bitmask
     jsr mask_to_handle                                                ; 89ab: 20 42 86     B.            ; Convert bitmask to handle number (FS2A)
-    bne c8959                                                         ; 89ae: d0 a9       ..
+    bne c8959                                                         ; 89ae: d0 a9       ..             ; / fall through...
 ; ***************************************************************************************
 ; Close file handle(s) (CLOSE)
 ; 
@@ -3707,7 +3707,7 @@ l8014 = l800d+7
     jsr set_fs_flag                                                   ; 89c7: 20 5b 86     [.
 ; &89ca referenced 1 time by &89ee
 .c89ca
-    bcc restore_args_return                                           ; 89ca: 90 8b       ..
+    bcc restore_args_return                                           ; 89ca: 90 8b       ..             ; / fall through...
 ; ***************************************************************************************
 ; FSCV 0: *OPT handler (OPTION)
 ; 
@@ -3751,7 +3751,7 @@ l8014 = l800d+7
     ldy #1                                                            ; 89f5: a0 01       ..
 ; &89f7 referenced 1 time by &89f2
 .adjust_addrs_clc
-    clc                                                               ; 89f7: 18          .
+    clc                                                               ; 89f7: 18          .              ; / fall through...
 ; ***************************************************************************************
 ; Bidirectional 4-byte address adjustment
 ; 
@@ -4157,7 +4157,7 @@ l8be3 = fs_cmd_match_table+1
     equs "}EX"                                                        ; 8beb: 7d 45 58    }EX
     equb &8b, &f7                                                     ; 8bee: 8b f7       ..
     equs "BYE"                                                        ; 8bf0: 42 59 45    BYE
-    equb &0d, &83, &8c, &80, &b3                                      ; 8bf3: 0d 83 8c... ...
+    equb &0d, &83, &8c, &80, &b3                                      ; 8bf3: 0d 83 8c... ...            ; / fall through...
 
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
@@ -4419,7 +4419,7 @@ l8be3 = fs_cmd_match_table+1
     lda #&20 ; ' '                                                    ; 8d44: a9 20       .
     bne c8db8                                                         ; 8d46: d0 70       .p             ; ALWAYS branch
 
-    equs "Off"                                                        ; 8d48: 4f 66 66    Off
+    equs "Off"                                                        ; 8d48: 4f 66 66    Off            ; / fall through...
 
 ; ***************************************************************************************
 ; Copy filename to FS command buffer
@@ -4430,7 +4430,7 @@ l8be3 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8d4b referenced 4 times by &80b4, &86f8, &88bb, &8dca
 .copy_filename
-    ldx #0                                                            ; 8d4b: a2 00       ..
+    ldx #0                                                            ; 8d4b: a2 00       ..             ; / fall through...
 ; ***************************************************************************************
 ; Copy string to FS command buffer
 ; 
@@ -4492,7 +4492,7 @@ l8be3 = fs_cmd_match_table+1
 .c8d80
     inx                                                               ; 8d80: e8          .
     bne print_dir_from_offset                                         ; 8d81: d0 de       ..
-    equs "Run"                                                        ; 8d83: 52 75 6e    Run
+    equs "Run"                                                        ; 8d83: 52 75 6e    Run            ; / fall through...
 
 ; ***************************************************************************************
 ; Print byte as 3-digit decimal number
@@ -4516,7 +4516,7 @@ l8be3 = fs_cmd_match_table+1
     jsr print_decimal_digit                                           ; 8d89: 20 93 8d     ..
     lda #&0a                                                          ; 8d8c: a9 0a       ..
     jsr print_decimal_digit                                           ; 8d8e: 20 93 8d     ..
-    lda #1                                                            ; 8d91: a9 01       ..
+    lda #1                                                            ; 8d91: a9 01       ..             ; / fall through...
 ; ***************************************************************************************
 ; Print one decimal digit by repeated subtraction
 ; 
@@ -4576,7 +4576,7 @@ l8be3 = fs_cmd_match_table+1
     adc #6                                                            ; 8db6: 69 06       i.
 ; &8db8 referenced 2 times by &8d46, &8db4
 .c8db8
-    bne loop_c8da2                                                    ; 8db8: d0 e8       ..
+    bne loop_c8da2                                                    ; 8db8: d0 e8       ..             ; / fall through...
 ; ***************************************************************************************
 ; Print reply buffer bytes
 ; 
@@ -4598,7 +4598,7 @@ l8be3 = fs_cmd_match_table+1
 
 .sub_c8dc7
     jsr parse_filename_gs                                             ; 8dc7: 20 c3 86     ..
-    jsr copy_filename                                                 ; 8dca: 20 4b 8d     K.
+    jsr copy_filename                                                 ; 8dca: 20 4b 8d     K.            ; / fall through...
 ; ***************************************************************************************
 ; Send FS load-as-command and execute response
 ; 
@@ -4662,7 +4662,7 @@ l8be3 = fs_cmd_match_table+1
 ; ***************************************************************************************
 .set_lib_handle
     sty fs_lib_handle                                                 ; 8e1d: 8c 04 0e    ...
-    bne c8e25                                                         ; 8e20: d0 03       ..
+    bne c8e25                                                         ; 8e20: d0 03       ..             ; / fall through...
 ; ***************************************************************************************
 ; Set CSD handle
 ; 
@@ -4688,7 +4688,7 @@ l8be3 = fs_cmd_match_table+1
 ; two callers avoids duplicating the handle-copy loop.
 ; ***************************************************************************************
 .copy_handles_and_boot
-    sec                                                               ; 8e28: 38          8
+    sec                                                               ; 8e28: 38          8              ; / fall through...
 ; ***************************************************************************************
 ; Copy FS reply handles to workspace (no boot)
 ; 
@@ -4728,7 +4728,7 @@ l8be3 = fs_cmd_match_table+1
 
 ; &8e4a referenced 2 times by &8e5e, &8e6e
 .sub_c8e4a
-    lda l00f0                                                         ; 8e4a: a5 f0       ..
+    lda l00f0                                                         ; 8e4a: a5 f0       ..             ; / fall through...
 ; ***************************************************************************************
 ; Calculate handle workspace offset
 ; 
@@ -4797,7 +4797,7 @@ l8be3 = fs_cmd_match_table+1
     sta (nfs_workspace),y                                             ; 8e78: 91 9e       ..
 .sub_c8e7a
 osword_12_handler = sub_c8e7a+2
-    ror rx_flags                                                      ; 8e7a: 6e 64 0d    nd.
+    ror rx_flags                                                      ; 8e7a: 6e 64 0d    nd.            ; / fall through...
 ; ***************************************************************************************
 ; OSWORD &12 handler: read/set state information (RS)
 ; 
@@ -4831,7 +4831,7 @@ osword_12_handler = sub_c8e7a+2
     sbc #&0f                                                          ; 8e80: e9 0f       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
     bmi return_7                                                      ; 8e82: 30 3b       0;
     cmp #5                                                            ; 8e84: c9 05       ..
-    bcs return_7                                                      ; 8e86: b0 37       .7
+    bcs return_7                                                      ; 8e86: b0 37       .7             ; / fall through...
 ; ***************************************************************************************
 ; PHA/PHA/RTS dispatch for filing system OSWORDs
 ; 
@@ -5239,7 +5239,7 @@ osword_12_handler = sub_c8e7a+2
 .c9039
     php                                                               ; 9039: 08          .
     ldy #1                                                            ; 903a: a0 01       ..             ; Y=character to write
-    lda (l00f0),y                                                     ; 903c: b1 f0       ..
+    lda (l00f0),y                                                     ; 903c: b1 f0       ..             ; / fall through...
 ; ***************************************************************************************
 ; Fn 4: net write character (NWRCH)
 ; 
@@ -5394,7 +5394,7 @@ osword_12_handler = sub_c8e7a+2
     tya                                                               ; 90b9: 98          .
     ldy #&da                                                          ; 90ba: a0 da       ..
     sta (nfs_workspace),y                                             ; 90bc: 91 9e       ..
-    lda #0                                                            ; 90be: a9 00       ..
+    lda #0                                                            ; 90be: a9 00       ..             ; / fall through...
 ; ***************************************************************************************
 ; Set up TX control block and send
 ; 
@@ -5552,7 +5552,7 @@ osword_12_handler = sub_c8e7a+2
     sta (nfs_workspace),y                                             ; 9164: 91 9e       ..
     lda #1                                                            ; 9166: a9 01       ..
     jsr setup_tx_and_send                                             ; 9168: 20 c0 90     ..            ; Load template byte from ctrl_block_template[X]
-    stx nfs_workspace                                                 ; 916b: 86 9e       ..
+    stx nfs_workspace                                                 ; 916b: 86 9e       ..             ; / fall through...
 ; ***************************************************************************************
 ; Alternate entry into control block setup
 ; 
@@ -5565,7 +5565,7 @@ osword_12_handler = sub_c8e7a+2
     ldx #&0d                                                          ; 916d: a2 0d       ..
     ldy #&7c ; '|'                                                    ; 916f: a0 7c       .|
     bit l837e                                                         ; 9171: 2c 7e 83    ,~.
-    bvs cbset2                                                        ; 9174: 70 05       p.
+    bvs cbset2                                                        ; 9174: 70 05       p.             ; / fall through...
 ; ***************************************************************************************
 ; Control block setup — main entry
 ; 
@@ -5733,7 +5733,7 @@ osword_12_handler = sub_c8e7a+2
     cpy #&6e ; 'n'                                                    ; 91f5: c0 6e       .n
     bcc prlp1                                                         ; 91f7: 90 ef       ..
     jsr flush_output_block                                            ; 91f9: 20 2a 92     *.
-    bcc prlp1                                                         ; 91fc: 90 ea       ..
+    bcc prlp1                                                         ; 91fc: 90 ea       ..             ; / fall through...
 ; ***************************************************************************************
 ; Store output byte to network buffer
 ; 
@@ -5806,7 +5806,7 @@ osword_12_handler = sub_c8e7a+2
     lda #0                                                            ; 9255: a9 00       ..
     tax                                                               ; 9257: aa          .              ; X=&00
     ldy nfs_workspace_hi                                              ; 9258: a4 9f       ..
-    cli                                                               ; 925a: 58          X
+    cli                                                               ; 925a: 58          X              ; / fall through...
 ; ***************************************************************************************
 ; Transmit with retry loop (XMITFS/XMITFY)
 ; 
@@ -6015,7 +6015,7 @@ osword_12_handler = sub_c8e7a+2
     stx tx_in_progress                                                ; 967e: 8e 52 0d    .R.            ; X=value of Tube present flag
     lda #osbyte_issue_service_request                                 ; 9681: a9 8f       ..
     ldx #&0c                                                          ; 9683: a2 0c       ..
-    ldy #&ff                                                          ; 9685: a0 ff       ..
+    ldy #&ff                                                          ; 9685: a0 ff       ..             ; / fall through...
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ; 
@@ -6066,7 +6066,7 @@ osword_12_handler = sub_c8e7a+2
     lda nmi_jmp_hi                                                    ; 96c5: ad 0d 0d    ...
     cmp #&97                                                          ; 96c8: c9 97       ..
     bne c96be                                                         ; 96ca: d0 f2       ..
-    bit station_id_disable_net_nmis                                   ; 96cc: 2c 18 fe    ,..
+    bit station_id_disable_net_nmis                                   ; 96cc: 2c 18 fe    ,..            ; / fall through...
 ; ***************************************************************************************
 ; Save Econet state to RX control block
 ; 
@@ -6101,7 +6101,7 @@ osword_12_handler = sub_c8e7a+2
     lda #&1e                                                          ; 96eb: a9 1e       ..
     sta econet_data_terminate_frame                                   ; 96ed: 8d a3 fe    ...
     lda #0                                                            ; 96f0: a9 00       ..             ; CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR
-    sta econet_control23_or_status2                                   ; 96f2: 8d a1 fe    ...
+    sta econet_control23_or_status2                                   ; 96f2: 8d a1 fe    ...            ; / fall through...
 ; ***************************************************************************************
 ; Enter RX listen mode
 ; 
@@ -6587,7 +6587,7 @@ osword_12_handler = sub_c8e7a+2
     sta rx_extra_byte                                                 ; 995d: 8d 5d 0d    .].
     lda #&20 ; ' '                                                    ; 9960: a9 20       .
     ora tx_flags                                                      ; 9962: 0d 4a 0d    .J.
-    sta tx_flags                                                      ; 9965: 8d 4a 0d    .J.
+    sta tx_flags                                                      ; 9965: 8d 4a 0d    .J.            ; / fall through...
 ; ***************************************************************************************
 ; ACK transmission
 ; 
@@ -6753,7 +6753,7 @@ l9a2c = c9a2a+2
     dey                                                               ; 9a42: 88          .              ; Y=&00
     lda rx_ctrl                                                       ; 9a43: ad 3f 0d    .?.
     ora #&80                                                          ; 9a46: 09 80       ..
-    sta (port_ws_offset),y                                            ; 9a48: 91 a6       ..
+    sta (port_ws_offset),y                                            ; 9a48: 91 a6       ..             ; / fall through...
 ; ***************************************************************************************
 ; Discard with full ADLC reset
 ; 
@@ -6768,7 +6768,7 @@ l9a2c = c9a2a+2
     bit tx_flags                                                      ; 9a4c: 2c 4a 0d    ,J.
     beq discard_listen                                                ; 9a4f: f0 05       ..
     lda #&82                                                          ; 9a51: a9 82       ..
-    jsr tube_addr_claim                                               ; 9a53: 20 06 04     ..
+    jsr tube_addr_claim                                               ; 9a53: 20 06 04     ..            ; / fall through...
 ; ***************************************************************************************
 ; Discard frame (gentle)
 ; 
@@ -7209,7 +7209,7 @@ l9b22 = sub_c9b21+1
     pha                                                               ; 9c4f: 48          H
     lda #6                                                            ; 9c50: a9 06       ..
     sta tx_length                                                     ; 9c52: 8d 50 0d    .P.
-    lda #0                                                            ; 9c55: a9 00       ..
+    lda #0                                                            ; 9c55: a9 00       ..             ; / fall through...
 ; ***************************************************************************************
 ; INACTIVE polling loop
 ; 
@@ -7832,7 +7832,7 @@ l9ee1 = sub_c9ee0+1
 .c9f41
     lda #2                                                            ; 9f41: a9 02       ..             ; A=&02: FV mask for SR2 bit1
     bit econet_control23_or_status2                                   ; 9f43: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
-    beq tx_result_fail                                                ; 9f46: f0 04       ..             ; No FV -- error
+    beq tx_result_fail                                                ; 9f46: f0 04       ..             ; No FV -- error; / fall through...
 ; ***************************************************************************************
 ; TX completion handler
 ; 
@@ -7847,7 +7847,7 @@ l9ee1 = sub_c9ee0+1
 
 ; &9f4c referenced 8 times by &9efd, &9f05, &9f11, &9f16, &9f27, &9f2f, &9f37, &9f46
 .tx_result_fail
-    lda #&41 ; 'A'                                                    ; 9f4c: a9 41       .A
+    lda #&41 ; 'A'                                                    ; 9f4c: a9 41       .A             ; / fall through...
 ; ***************************************************************************************
 ; TX error handler
 ; 
