@@ -1715,8 +1715,9 @@ l8014 = l800d+7
 ; 
 ; Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
 ; Each entry has addr_lo, addr_hi, then a padding byte that is
-; overwritten with the current ROM bank number at runtime. The
-; last entry (FSCV) has no padding byte.
+; not read at runtime (store_rom_ptr_pair writes the current ROM
+; bank number without reading). The last entry (FSCV) has no
+; padding byte.
 ; ***************************************************************************************
 ; &8280 referenced 1 time by &824c
 .fs_vector_addrs
@@ -1736,22 +1737,22 @@ l8014 = l800d+7
     equb &ff                                                          ; 828d: ff          .              ; FSCV dispatch hi
     equb &de                                                          ; 828e: de          .              ; FILEV handler lo (&86DE)
     equb &86                                                          ; 828f: 86          .              ; FILEV handler hi
-    equb &4a                                                          ; 8290: 4a          J              ; (ROM bank — overwritten)
+    equb &4a                                                          ; 8290: 4a          J              ; (ROM bank — not read)
     equb 7                                                            ; 8291: 07          .              ; ARGSV handler lo (&8907)
     equb &89                                                          ; 8292: 89          .              ; ARGSV handler hi
-    equb &44                                                          ; 8293: 44          D              ; (ROM bank — overwritten)
+    equb &44                                                          ; 8293: 44          D              ; (ROM bank — not read)
     equb &2e                                                          ; 8294: 2e          .              ; BGETV handler lo (&852E)
     equb &85                                                          ; 8295: 85          .              ; BGETV handler hi
-    equb &57                                                          ; 8296: 57          W              ; (ROM bank — overwritten)
+    equb &57                                                          ; 8296: 57          W              ; (ROM bank — not read)
     equb &dc                                                          ; 8297: dc          .              ; BPUTV handler lo (&83DC)
     equb &83                                                          ; 8298: 83          .              ; BPUTV handler hi
-    equb &42                                                          ; 8299: 42          B              ; (ROM bank — overwritten)
+    equb &42                                                          ; 8299: 42          B              ; (ROM bank — not read)
     equb &0e                                                          ; 829a: 0e          .              ; GBPBV handler lo (&8A0E)
     equb &8a                                                          ; 829b: 8a          .              ; GBPBV handler hi
-    equb &41                                                          ; 829c: 41          A              ; (ROM bank — overwritten)
+    equb &41                                                          ; 829c: 41          A              ; (ROM bank — not read)
     equb &6f                                                          ; 829d: 6f          o              ; FINDV handler lo (&896F)
     equb &89                                                          ; 829e: 89          .              ; FINDV handler hi
-    equb &52                                                          ; 829f: 52          R              ; (ROM bank — overwritten)
+    equb &52                                                          ; 829f: 52          R              ; (ROM bank — not read)
     equb &c7                                                          ; 82a0: c7          .              ; FSCV handler lo (&80C7)
     equb &80                                                          ; 82a1: 80          .              ; FSCV handler hi
 
@@ -2546,7 +2547,7 @@ decode_attribs_5bit = l859d+30
 ;   &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)
 ; ***************************************************************************************
 ; overlapping: sta fs_last_byte_flag                                  ; 85a6: 85 bd       ..
-; &85a6 referenced 2 times by &8907, &8a0e
+; &85a6 referenced 3 times by &86de, &8907, &8a0e
 ; overlapping: stx fs_options                                         ; 85a8: 86 bb       ..
 ; overlapping: sty fs_block_offset                                    ; 85aa: 84 bc       ..
 ; overlapping: stx fs_crc_lo                                          ; 85ac: 86 be       ..
@@ -2928,31 +2929,7 @@ l865c = set_fs_flag+1
 .l4
     lda (net_tx_ptr,x)                                                ; 8686: a1 9a       ..
     bmi l4                                                            ; 8688: 30 fc       0.
-    asl a                                                             ; 868a: 0a          .              ; A=function code (&FF=load, &00=save, &01-&06=attrs)
-; ***************************************************************************************
-; FILEV handler (OSFILE entry point)
-; 
-; Saves A/X/Y, copies the filename pointer from the parameter block
-; to os_text_ptr, then uses GSINIT/GSREAD (via parse_filename_gs at
-; &86BA) to parse the filename into &0E30+. Sets fs_crc_lo/hi to
-; point at the parsed filename buffer.
-; Dispatches by function code A:
-;   A=&FF: load file (send_fs_examine at &86F4)
-;   A=&00: save file (filev_save at &876A)
-;   A=&01-&06: attribute operations (filev_attrib_dispatch at &8870)
-;   Other: restore_args_return (unsupported, no-op)
-; 
-; On Entry:
-;     A: function code (&FF=load, &00=save, &01-&06=attrs)
-;     X: parameter block address low byte
-;     Y: parameter block address high byte
-; 
-; On Exit:
-;     A: restored
-;     X: restored
-;     Y: restored
-; ***************************************************************************************
-.filev_handler
+    asl a                                                             ; 868a: 0a          .
     bpl c86ac                                                         ; 868b: 10 1f       ..
     asl a                                                             ; 868d: 0a          .
     beq c86a8                                                         ; 868e: f0 18       ..
@@ -2988,10 +2965,15 @@ l865c = set_fs_flag+1
     pla                                                               ; 86ae: 68          h
     rts                                                               ; 86af: 60          `
 
-    equb &a0, 1                                                       ; 86b0: a0 01       ..
+; &86b0 referenced 1 time by &86e1
+.sub_c86b0
+    ldy #1                                                            ; 86b0: a0 01       ..
+; &86b2 referenced 1 time by &86b8
 .file1
-    equb &b1, &bb, &99, &f2, 0, &88, &10, &f8                         ; 86b2: b1 bb 99... ...
-
+    lda (fs_options),y                                                ; 86b2: b1 bb       ..
+    sta os_text_ptr,y                                                 ; 86b4: 99 f2 00    ...
+    dey                                                               ; 86b7: 88          .
+    bpl file1                                                         ; 86b8: 10 f8       ..
 ; ***************************************************************************************
 ; Parse filename using GSINIT/GSREAD into &0E30
 ; 
@@ -3000,9 +2982,6 @@ l865c = set_fs_flag+1
 ; Stores the parsed result CR-terminated at &0E30 and sets up
 ; fs_crc_lo/hi to point to that buffer. Sub-entry at &86C5 allows
 ; a non-zero starting Y offset.
-; Note: the code uses overlapping bytes with send_fs_examine --
-; the BCS at &86F4 and the INX/STA at &86D2 share the same bytes
-; depending on the entry path.
 ; 
 ; On Entry:
 ;     Y: offset into (os_text_ptr) buffer (0 at &86C3)
@@ -3040,11 +3019,43 @@ l865c = set_fs_flag+1
     sta fs_crc_hi                                                     ; 86db: 85 bf       ..
     rts                                                               ; 86dd: 60          `
 
-    equb &20, &a6, &85, &20, &b0, &86, &a5, &bd, &10, &7d, &c9, &ff   ; 86de: 20 a6 85...  ..
-    equb &f0,   3, &4c, &52, &89                                      ; 86ea: f0 03 4c... ..L
-.loadop
-    equb &20, &43, &8d, &a0, 2                                        ; 86ef: 20 43 8d...  C.
+; ***************************************************************************************
+; FILEV handler (OSFILE entry point)
+; 
+; Calls save_fscv_args (&85A6) to preserve A/X/Y, then JSR &86B0
+; to copy the 2-byte filename pointer from the parameter block to
+; os_text_ptr and fall through to parse_filename_gs (&86BA) which
+; parses the filename into &0E30+. Sets fs_crc_lo/hi to point at
+; the parsed filename buffer.
+; Dispatches by function code A:
+;   A=&FF: load file (send_fs_examine at &86F4)
+;   A=&00: save file (filev_save at &876A)
+;   A=&01-&06: attribute operations (filev_attrib_dispatch at &8870)
+;   Other: restore_args_return (unsupported, no-op)
+; 
+; On Entry:
+;     A: function code (&FF=load, &00=save, &01-&06=attrs)
+;     X: parameter block address low byte
+;     Y: parameter block address high byte
+; 
+; On Exit:
+;     A: restored
+;     X: restored
+;     Y: restored
+; ***************************************************************************************
+.filev_handler
+    jsr save_fscv_args                                                ; 86de: 20 a6 85     ..
+    jsr sub_c86b0                                                     ; 86e1: 20 b0 86     ..
+    lda fs_last_byte_flag                                             ; 86e4: a5 bd       ..
+    bpl saveop                                                        ; 86e6: 10 7d       .}
+    cmp #&ff                                                          ; 86e8: c9 ff       ..
+    beq loadop                                                        ; 86ea: f0 03       ..
+    jmp restore_args_return                                           ; 86ec: 4c 52 89    LR.
 
+; &86ef referenced 1 time by &86ea
+.loadop
+    jsr copy_filename                                                 ; 86ef: 20 43 8d     C.
+    ldy #2                                                            ; 86f2: a0 02       ..
 ; ***************************************************************************************
 ; Send FS examine command
 ; 
@@ -3139,6 +3150,7 @@ l865c = set_fs_flag+1
 .return_lodchk
     rts                                                               ; 8764: 60          `
 
+; &8765 referenced 1 time by &86e6
 .saveop
     beq filev_save                                                    ; 8765: f0 03       ..
     jmp filev_attrib_dispatch                                         ; 8767: 4c 70 88    Lp.
@@ -3570,7 +3582,7 @@ l865c = set_fs_flag+1
 ; fs_block_offset (&BC) — the values saved at entry by
 ; save_fscv_args — and returns to the caller.
 ; ***************************************************************************************
-; &8952 referenced 7 times by &87ce, &890c, &8936, &8961, &89c8, &8a19, &8e1d
+; &8952 referenced 8 times by &86ec, &87ce, &890c, &8936, &8961, &89c8, &8a19, &8e1d
 .restore_args_return
     lda fs_last_byte_flag                                             ; 8952: a5 bd       ..
 ; &8954 referenced 5 times by &8905, &895e, &896d, &8998, &89ac
@@ -4403,7 +4415,7 @@ l8be5 = fs_cmd_match_table+1
 ; Used to place a filename into the FS command buffer before
 ; sending to the fileserver. Falls through to copy_string_to_cmd.
 ; ***************************************************************************************
-; &8d43 referenced 3 times by &80b4, &88b6, &8dc2
+; &8d43 referenced 4 times by &80b4, &86ef, &88b6, &8dc2
 .copy_filename
     ldx #0                                                            ; 8d43: a2 00       ..
 ; ***************************************************************************************
@@ -8104,7 +8116,7 @@ save pydis_start, pydis_end
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           53
 ;     econet_control23_or_status2:             45
-;     fs_options:                              40
+;     fs_options:                              41
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             35
 ;     net_rx_ptr:                              34
@@ -8142,17 +8154,17 @@ save pydis_start, pydis_end
 ;     nmi_tx_block_hi:                          9
 ;     rx_src_stn:                               9
 ;     tube_data_register_3:                     9
+;     fs_last_byte_flag:                        8
 ;     l0000:                                    8
 ;     l00b4:                                    8
 ;     l00c4:                                    8
+;     restore_args_return:                      8
 ;     tube_status_1_and_tube_control:           8
 ;     tx_result_fail:                           8
 ;     fs_cmd_urd:                               7
-;     fs_last_byte_flag:                        7
 ;     l0d60:                                    7
 ;     prot_status:                              7
 ;     reply_error:                              7
-;     restore_args_return:                      7
 ;     tube_main_loop:                           7
 ;     tx_clear_flag:                            7
 ;     tx_dst_stn:                               7
@@ -8181,6 +8193,7 @@ save pydis_start, pydis_end
 ;     l0106:                                    5
 ;     l0f07:                                    5
 ;     l8659:                                    5
+;     os_text_ptr:                              5
 ;     printer_buf_ptr:                          5
 ;     rx_ctrl:                                  5
 ;     rx_port:                                  5
@@ -8195,6 +8208,7 @@ save pydis_start, pydis_end
 ;     zp_temp_11:                               5
 ;     c886c:                                    4
 ;     clear_jsr_protection:                     4
+;     copy_filename:                            4
 ;     data_tx_error:                            4
 ;     data_tx_last:                             4
 ;     discard_reset_listen:                     4
@@ -8211,7 +8225,6 @@ save pydis_start, pydis_end
 ;     l0d58:                                    4
 ;     nmi_next_hi:                              4
 ;     nmi_next_lo:                              4
-;     os_text_ptr:                              4
 ;     osrdsc_ptr:                               4
 ;     return_2:                                 4
 ;     rx_src_net:                               4
@@ -8233,7 +8246,6 @@ save pydis_start, pydis_end
 ;     c9ee4:                                    3
 ;     calc_handle_offset:                       3
 ;     clear_fs_flag:                            3
-;     copy_filename:                            3
 ;     ctrl_block_setup_alt:                     3
 ;     data_rx_complete:                         3
 ;     data_rx_tube_error:                       3
@@ -8263,6 +8275,7 @@ save pydis_start, pydis_end
 ;     pad_filename_spaces:                      3
 ;     print_reply_bytes:                        3
 ;     romsel_copy:                              3
+;     save_fscv_args:                           3
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
 ;     send_to_fs_star:                          3
@@ -8393,7 +8406,6 @@ save pydis_start, pydis_end
 ;     romsel:                                   2
 ;     rx_extra_byte:                            2
 ;     rxpol2:                                   2
-;     save_fscv_args:                           2
 ;     scout_complete:                           2
 ;     send_data_blocks:                         2
 ;     send_fs_reply_cmd:                        2
@@ -8611,6 +8623,7 @@ save pydis_start, pydis_end
 ;     entry1:                                   1
 ;     error1:                                   1
 ;     error_msg_table:                          1
+;     file1:                                    1
 ;     filev:                                    1
 ;     filev_attrib_dispatch:                    1
 ;     filev_save:                               1
@@ -8697,6 +8710,7 @@ save pydis_start, pydis_end
 ;     l9ed9:                                    1
 ;     l9ee1:                                    1
 ;     language_handler:                         1
+;     loadop:                                   1
 ;     lodchk:                                   1
 ;     lodfil:                                   1
 ;     lodrl1:                                   1
@@ -8833,6 +8847,7 @@ save pydis_start, pydis_end
 ;     save1:                                    1
 ;     save_args_handle:                         1
 ;     save_vdu_state:                           1
+;     saveop:                                   1
 ;     savsiz:                                   1
 ;     scan0:                                    1
 ;     scan1:                                    1
@@ -8857,6 +8872,7 @@ save pydis_start, pydis_end
 ;     strnh:                                    1
 ;     sub_4_from_y:                             1
 ;     sub_c8348:                                1
+;     sub_c86b0:                                1
 ;     sub_c86bc:                                1
 ;     tbcop1:                                   1
 ;     trampoline_adlc_init:                     1
@@ -9250,6 +9266,7 @@ save pydis_start, pydis_end
 ;     loop_c9f86
 ;     sub_c8179
 ;     sub_c8348
+;     sub_c86b0
 ;     sub_c86bc
 ;     sub_c8dbf
 ;     sub_c8e42
@@ -9269,11 +9286,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7498 bytes (92%)
-;     Data                     = 694 bytes (8%)
+;     Code                     = 7530 bytes (92%)
+;     Data                     = 662 bytes (8%)
 ;
-;     Number of instructions   = 3618
-;     Number of data bytes     = 429 bytes
+;     Number of instructions   = 3632
+;     Number of data bytes     = 397 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 265 bytes
 ;     Number of strings        = 38

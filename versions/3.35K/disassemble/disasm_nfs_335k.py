@@ -564,7 +564,7 @@ label(0x8280, "fs_vector_addrs")        # FS vector dispatch and handler address
 #   *NET4 → index 36 → net4_resume_remote (&8DEB)
 # --- Filing system vector entry points ---
 # Extended vector table entries set up at init (&831F):
-#   FILEV → &868B    ARGSV → &8907    BGETV → &852E
+#   FILEV → &86DE    ARGSV → &8907    BGETV → &852E
 #   BPUTV → &83DC    GBPBV → &8A0E    FINDV → &896F
 #   FSCV  → &80C7
 # Labels and entry points for FSCV, FILEV, ARGSV, FINDV, GBPBV
@@ -573,6 +573,8 @@ label(0x852E, "bgetv_handler")          # BGETV entry: SEC then JSR handle_bput_
 label(0x83DC, "bputv_handler")          # BPUTV entry: CLC then fall into handle_bput_bget
 entry(0x852E)
 entry(0x83DC)
+entry(0x86B0)                            # Param block copy, falls through to parse_filename_gs
+entry(0x86DE)                            # Actual FILEV entry point (ROM pointer table target)
 
 # --- Helper routines in header/init section ---
 label(0x81DD, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
@@ -670,14 +672,14 @@ label(0x866A, "tx_poll_timeout")        # Transmit with Y=&60 (specified timeout
 label(0x86C4, "delay_1ms")              # MSDELY: 1ms delay loop (nested DEX/DEY)
 
 # ============================================================
-# File operations: FILEV, ARGSV, FINDV, GBPBV (&868B-&8BB6)
+# File operations: FILEV, ARGSV, FINDV, GBPBV (&86B0-&8BB6)
 # ============================================================
 # The FS vector handlers for file I/O. Each handler saves
 # args via save_fscv_args, processes the request by building
 # FS commands and sending them to the fileserver, then restores
 # args and returns via restore_args_return (&8952).
 
-# --- FILEV handler (&868B) and helpers ---
+# --- FILEV handler (&86DE) and helpers ---
 
 # --- FSCV 1: EOF handler (&884C) ---
 
@@ -1746,8 +1748,9 @@ the handler in the ROM pointer table.
 
 Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
 Each entry has addr_lo, addr_hi, then a padding byte that is
-overwritten with the current ROM bank number at runtime. The
-last entry (FSCV) has no padding byte.""")
+not read at runtime (store_rom_ptr_pair writes the current ROM
+bank number without reading). The last entry (FSCV) has no
+padding byte.""")
 
 # Part 1: extended vector dispatch addresses (7 x 2 bytes)
 byte(0x8280, 1)
@@ -1785,37 +1788,37 @@ comment(0x828E, "FILEV handler lo (&86DE)", inline=True)
 byte(0x828F, 1)
 comment(0x828F, "FILEV handler hi", inline=True)
 byte(0x8290, 1)
-comment(0x8290, "(ROM bank — overwritten)", inline=True)
+comment(0x8290, "(ROM bank — not read)", inline=True)
 byte(0x8291, 1)
 comment(0x8291, "ARGSV handler lo (&8907)", inline=True)
 byte(0x8292, 1)
 comment(0x8292, "ARGSV handler hi", inline=True)
 byte(0x8293, 1)
-comment(0x8293, "(ROM bank — overwritten)", inline=True)
+comment(0x8293, "(ROM bank — not read)", inline=True)
 byte(0x8294, 1)
 comment(0x8294, "BGETV handler lo (&852E)", inline=True)
 byte(0x8295, 1)
 comment(0x8295, "BGETV handler hi", inline=True)
 byte(0x8296, 1)
-comment(0x8296, "(ROM bank — overwritten)", inline=True)
+comment(0x8296, "(ROM bank — not read)", inline=True)
 byte(0x8297, 1)
 comment(0x8297, "BPUTV handler lo (&83DC)", inline=True)
 byte(0x8298, 1)
 comment(0x8298, "BPUTV handler hi", inline=True)
 byte(0x8299, 1)
-comment(0x8299, "(ROM bank — overwritten)", inline=True)
+comment(0x8299, "(ROM bank — not read)", inline=True)
 byte(0x829A, 1)
 comment(0x829A, "GBPBV handler lo (&8A0E)", inline=True)
 byte(0x829B, 1)
 comment(0x829B, "GBPBV handler hi", inline=True)
 byte(0x829C, 1)
-comment(0x829C, "(ROM bank — overwritten)", inline=True)
+comment(0x829C, "(ROM bank — not read)", inline=True)
 byte(0x829D, 1)
 comment(0x829D, "FINDV handler lo (&896F)", inline=True)
 byte(0x829E, 1)
 comment(0x829E, "FINDV handler hi", inline=True)
 byte(0x829F, 1)
-comment(0x829F, "(ROM bank — overwritten)", inline=True)
+comment(0x829F, "(ROM bank — not read)", inline=True)
 byte(0x82A0, 1)
 comment(0x82A0, "FSCV handler lo (&80C7)", inline=True)
 byte(0x82A1, 1)
@@ -2241,24 +2244,22 @@ Uses the MOS GSINIT/GSREAD API to parse a filename string from
 (os_text_ptr),Y, handling quoted strings and |-escaped characters.
 Stores the parsed result CR-terminated at &0E30 and sets up
 fs_crc_lo/hi to point to that buffer. Sub-entry at &86C5 allows
-a non-zero starting Y offset.
-Note: the code uses overlapping bytes with send_fs_examine --
-the BCS at &86F4 and the INX/STA at &86D2 share the same bytes
-depending on the entry path.""",
+a non-zero starting Y offset.""",
     on_entry={"y": "offset into (os_text_ptr) buffer (0 at &86C3)"},
     on_exit={"x": "length of parsed string",
              "y": "preserved"})
 
 # ============================================================
-# FILEV handler (&868B)
+# FILEV handler (&86DE)
 # ============================================================
-subroutine(0x868B, "filev_handler",
+subroutine(0x86DE, "filev_handler",
     title="FILEV handler (OSFILE entry point)",
     description="""\
-Saves A/X/Y, copies the filename pointer from the parameter block
-to os_text_ptr, then uses GSINIT/GSREAD (via parse_filename_gs at
-&86BA) to parse the filename into &0E30+. Sets fs_crc_lo/hi to
-point at the parsed filename buffer.
+Calls save_fscv_args (&85A6) to preserve A/X/Y, then JSR &86B0
+to copy the 2-byte filename pointer from the parameter block to
+os_text_ptr and fall through to parse_filename_gs (&86BA) which
+parses the filename into &0E30+. Sets fs_crc_lo/hi to point at
+the parsed filename buffer.
 Dispatches by function code A:
   A=&FF: load file (send_fs_examine at &86F4)
   A=&00: save file (filev_save at &876A)
