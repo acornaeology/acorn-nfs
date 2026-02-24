@@ -659,6 +659,7 @@ label(0x864C, "fscv_read_handles")      # Return X=&20 (base handle), Y=&27 (top
 label(0x8650, "return_fscv_handles")    # Return from fscv_read_handles
 
 # --- FS flags manipulation ---
+label(0x865C, "store_fs_flag")           # Shared STA fs_eof_flags / RTS for set/clear_fs_flag
 
 # --- File info display (hex print helpers moved to &8Dxx) ---
 label(0x8D13, "pad_filename_spaces")    # Pad filename display to 12 chars with spaces

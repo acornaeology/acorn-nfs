@@ -2828,7 +2828,7 @@ l8014 = l800d+7
 .clear_fs_flag
     eor #&ff                                                          ; 8651: 49 ff       I.
     and fs_eof_flags                                                  ; 8653: 2d 07 0e    -..
-    jmp c865c                                                         ; 8656: 4c 5c 86    L\.
+    jmp store_fs_flag                                                 ; 8656: 4c 5c 86    L\.
 
 ; ***************************************************************************************
 ; Set bit(s) in FS flags (&0E07)
@@ -2848,7 +2848,7 @@ l8014 = l800d+7
 .set_fs_flag
     ora fs_eof_flags                                                  ; 8659: 0d 07 0e    ...
 ; &865c referenced 1 time by &8656
-.c865c
+.store_fs_flag
     sta fs_eof_flags                                                  ; 865c: 8d 07 0e    ...
     rts                                                               ; 865f: 60          `
 
@@ -8479,7 +8479,6 @@ save pydis_start, pydis_end
 ;     c85e7:                                    1
 ;     c85f0:                                    1
 ;     c8618:                                    1
-;     c865c:                                    1
 ;     c8673:                                    1
 ;     c86ac:                                    1
 ;     c8712:                                    1
@@ -8866,6 +8865,7 @@ save pydis_start, pydis_end
 ;     skpspi:                                   1
 ;     store_16bit_at_y:                         1
 ;     store_fs_error:                           1
+;     store_fs_flag:                            1
 ;     store_retry_count:                        1
 ;     strnh:                                    1
 ;     sub_4_from_y:                             1
@@ -8952,7 +8952,6 @@ save pydis_start, pydis_end
 ;     c8617
 ;     c8618
 ;     c8634
-;     c865c
 ;     c8673
 ;     c86a0
 ;     c86a8
