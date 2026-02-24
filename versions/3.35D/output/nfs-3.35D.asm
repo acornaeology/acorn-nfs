@@ -7850,6 +7850,7 @@ l9ee1 = sub_c9ee0+1
     sta tx_clear_flag                                                 ; 9f54: 8d 62 0d    .b.            ; Signal TX complete
     jmp discard_reset_listen                                          ; 9f57: 4c 4a 9a    LJ.            ; Full ADLC reset and return to idle listen
 
+; Unreferenced data block (purpose unknown)
     equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9f5a: 0e 0e 0a... ...
     equb &81                                                          ; 9f69: 81          .
 

@@ -3411,6 +3411,17 @@ RX mode, then RTI. The simplest of the three discard paths —
 used as the tail of both discard_reset_listen and discard_listen.""")
 
 # ============================================================
+# Unreferenced data block (&9F5A-&9F69)
+# ============================================================
+# 16 bytes of unreferenced data between tx_store_result and
+# tx_calc_transfer. No code in any NFS version references this
+# block. The byte pattern suggests two 8-entry lookup tables
+# (possibly ADLC control register values), but their original
+# purpose is unknown.
+comment(0x9F5A, "Unreferenced data block (purpose unknown)")
+byte(0x9F5A, 16)
+
+# ============================================================
 # Transfer size calculation (&9F6A)
 # ============================================================
 subroutine(0x9F6A, "tx_calc_transfer", hook=None,
