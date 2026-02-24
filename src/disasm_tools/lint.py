@@ -8,6 +8,10 @@ Validates that:
    version's disassembly output.
 3. Every glossary_links entry in rom.json has a matching pattern in the
    Markdown document and references a valid term in GLOSSARY.md.
+4. The assembly output contains no double-comment lines ("; ;"), which
+   indicate a subroutine description placed at an address that py8dis
+   is treating as data (e.g. wrong subroutine address, or a data loop
+   overrunning into code).
 """
 
 import json
@@ -320,6 +324,38 @@ def lint_glossary_links(version_dirpath):
     return errors, link_count
 
 
+def lint_double_comments(asm_filepath):
+    """Check assembly output for double-comment lines.
+
+    A line starting with "; ;" (comment-within-comment) indicates that
+    py8dis placed a subroutine description at an address it considers
+    data rather than code.  This typically means the subroutine address
+    is wrong or a byte()/stringz() loop has overrun into code.
+
+    Returns a list of error strings.
+    """
+    if not asm_filepath.exists():
+        return []
+
+    errors = []
+    for line_number, line in enumerate(asm_filepath.read_text().splitlines(), 1):
+        if re.match(r'^;\s+;', line):
+            # Show the address from the hex dump if present, otherwise the line
+            addr_match = re.search(r';\s+([0-9a-f]{4}):', line)
+            if addr_match:
+                addr = addr_match.group(1)
+                errors.append(
+                    f"  asm line {line_number}: double comment at &{addr.upper()}"
+                    f" — subroutine description inside data"
+                )
+            else:
+                errors.append(
+                    f"  asm line {line_number}: double comment"
+                    f" — subroutine description inside data"
+                )
+    return errors
+
+
 def lint(version_dirpath, version):
     """Validate annotation addresses against the JSON output.
 
@@ -366,6 +402,10 @@ def lint(version_dirpath, version):
     # Lint glossary links
     glossary_errors, glossary_link_count = lint_glossary_links(version_dirpath)
 
+    # Lint assembly output for double-comment artefacts
+    asm_filepath = version_dirpath / "output" / f"nfs-{version}.asm"
+    double_comment_errors = lint_double_comments(asm_filepath)
+
     failed = False
 
     if errors:
@@ -400,6 +440,16 @@ def lint(version_dirpath, version):
             file=sys.stderr,
         )
         for msg in glossary_errors:
+            print(msg, file=sys.stderr)
+        failed = True
+
+    if double_comment_errors:
+        print(
+            f"Lint FAILED: {len(double_comment_errors)} double-comment line(s) "
+            f"in assembly output ({version})",
+            file=sys.stderr,
+        )
+        for msg in double_comment_errors:
             print(msg, file=sys.stderr)
         failed = True
 
