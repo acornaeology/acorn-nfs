@@ -2192,7 +2192,7 @@ Indexed via the error dispatch at c8424/c842c.""")
 
 # Mark each error table entry as data: error code byte + NUL-terminated string.
 # Without this, the first entry's &A0 byte is traced as code (LDY #imm).
-addr = 0x8556
+addr = 0x854D
 for _ in range(8):
     byte(addr, 1)           # error number byte
     addr = stringz(addr + 1)  # NUL-terminated message string

@@ -2506,9 +2506,7 @@ l8014 = l800d+7
 ; &854d referenced 1 time by &84d8
 .error_msg_table
     equb &a0                                                          ; 854d: a0          .
-    equs "Line Jam"                                                   ; 854e: 4c 69 6e... Lin
-    equb &6d                                                          ; 8556: 6d          m
-    equs "ed", 0                                                      ; 8557: 65 64 00    ed.
+    equs "Line Jammed", 0                                             ; 854e: 4c 69 6e... Lin
     equb &a1                                                          ; 855a: a1          .
     equs "Net Error", 0                                               ; 855b: 4e 65 74... Net
     equb &a2                                                          ; 8565: a2          .
@@ -9290,7 +9288,7 @@ save pydis_start, pydis_end
 ;     Data                     = 662 bytes (8%)
 ;
 ;     Number of instructions   = 3632
-;     Number of data bytes     = 397 bytes
+;     Number of data bytes     = 396 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 265 bytes
-;     Number of strings        = 38
+;     Number of string bytes   = 266 bytes
+;     Number of strings        = 37
