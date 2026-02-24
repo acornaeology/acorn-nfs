@@ -979,6 +979,8 @@ Key ADLC register values:
 #   ─────────────────   ────────  ────────────────  ─────────────
 #   Service calls        &00      svc_num            1-13
 #   Language entry       &0D      reason             14-18
+#   FSCV                 &12      fscv_code          19-26
+#   FS reply             &16      reply_code         27-32
 #   *NET1-4 commands     &20      char-'1'           33-36
 #
 # Index 0 and unused indices point to an RTS (null handler), so
@@ -995,11 +997,14 @@ for i in range(1, 14):
 for i in range(14, 19):
     rts_code_ptr(0x8020 + i, 0x8044 + i)
 
-# Indices 19-32: secondary dispatch for *-command parsing and
-# filing system operations. Accessed via callers at &8079 (Y=&12)
-# and &808C (Y=&13). The exact mapping of indices to individual
-# handlers hasn't been fully traced yet.
-for i in range(19, 33):
+# FSCV handlers (indices 19-26, codes 0-7, base Y=&12)
+for i in range(19, 27):
+    rts_code_ptr(0x8020 + i, 0x8044 + i)
+
+# FS reply handlers (indices 27-32)
+# Dispatched by forward_star_cmd with base Y=&16 using the
+# fileserver's reply code as the index.
+for i in range(27, 33):
     rts_code_ptr(0x8020 + i, 0x8044 + i)
 
 # *NET command handlers (indices 33-36)
@@ -1578,13 +1583,65 @@ Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &809F.
 See dispatch_hi (&8044) for the corresponding high bytes.
-Indexed by service number (1-13), language reason (14-18),
-or *NET command (33-36), with a base offset added by the caller.""")
+
+Five callers share this table via different Y base offsets:
+  Y=&00  Service calls 0-12       (indices 1-13)
+  Y=&0D  Language entry reasons    (indices 14-18)
+  Y=&12  FSCV codes 0-7           (indices 19-26)
+  Y=&16  FS reply handlers        (indices 27-32)
+  Y=&20  *NET1-4 sub-commands     (indices 33-36)""")
 
 comment(0x8044, """\
 Dispatch table: high bytes of (handler_address - 1)
 Paired with dispatch_lo (&8020). Together they form a table of
 37 handler addresses, used via the PHA/PHA/RTS trick at &809F.""")
+
+# Inline comments on each low-byte dispatch table entry.
+# Service call handlers (Y=&00, indices 1-13)
+comment(0x8021, "Svc 0: already claimed (no-op)", inline=True)
+comment(0x8022, "Svc 1: absolute workspace", inline=True)
+comment(0x8023, "Svc 2: private workspace", inline=True)
+comment(0x8024, "Svc 3: auto-boot", inline=True)
+comment(0x8025, "Svc 4: unrecognised star command", inline=True)
+comment(0x8026, "Svc 5: unrecognised interrupt", inline=True)
+comment(0x8027, "Svc 6: BRK (no-op)", inline=True)
+comment(0x8028, "Svc 7: unrecognised OSBYTE", inline=True)
+comment(0x8029, "Svc 8: unrecognised OSWORD", inline=True)
+comment(0x802A, "Svc 9: *HELP", inline=True)
+comment(0x802B, "Svc 10: static workspace (no-op)", inline=True)
+comment(0x802C, "Svc 11: NMI release (reclaim NMIs)", inline=True)
+comment(0x802D, "Svc 12: NMI claim (save NMI state)", inline=True)
+
+# Language entry handlers (Y=&0D, indices 14-18)
+comment(0x802E, "Lang 0: no language / Tube", inline=True)
+comment(0x802F, "Lang 1: normal startup", inline=True)
+comment(0x8030, "Lang 2: softkey byte (Electron)", inline=True)
+comment(0x8031, "Lang 3: softkey length (Electron)", inline=True)
+comment(0x8032, "Lang 4: remote validated", inline=True)
+
+# FSCV handlers (Y=&12, indices 19-26)
+comment(0x8033, "FSCV 0: *OPT", inline=True)
+comment(0x8034, "FSCV 1: EOF check", inline=True)
+comment(0x8035, "FSCV 2: */ (run)", inline=True)
+comment(0x8036, "FSCV 3: unrecognised star command", inline=True)
+comment(0x8037, "FSCV 4: *RUN", inline=True)
+comment(0x8038, "FSCV 5: *CAT", inline=True)
+comment(0x8039, "FSCV 6: shutdown", inline=True)
+comment(0x803A, "FSCV 7: read handle range", inline=True)
+
+# FS reply handlers (Y=&16, indices 27-32)
+comment(0x803B, "FS reply: print directory name", inline=True)
+comment(0x803C, "FS reply: copy handles + boot", inline=True)
+comment(0x803D, "FS reply: copy handles", inline=True)
+comment(0x803E, "FS reply: set CSD handle", inline=True)
+comment(0x803F, "FS reply: notify + execute", inline=True)
+comment(0x8040, "FS reply: set library handle", inline=True)
+
+# *NET sub-command handlers (Y=&20, indices 33-36)
+comment(0x8041, "*NET1: read handle from packet", inline=True)
+comment(0x8042, "*NET2: read handle from workspace", inline=True)
+comment(0x8043, "*NET3: close handle", inline=True)
+comment(0x8044, "*NET4: resume remote", inline=True)
 
 # ============================================================
 # *NET command dispatch (&8069)

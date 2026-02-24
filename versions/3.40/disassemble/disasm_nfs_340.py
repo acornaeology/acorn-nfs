@@ -433,7 +433,9 @@ string and the star command table.""")
 
 # Dispatch tables: split low/high byte address tables
 label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
+label(0x8024, "dispatch_lo_base")       # Base address for LDA dispatch_lo_base,X
 label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
+label(0x8049, "dispatch_hi_base")       # Base address for LDA dispatch_hi_base,X
 
 # Dispatcher and dispatch callers
 # Note: &80D4 is already labelled "language_handler" by acorn.is_sideways_rom()
@@ -990,11 +992,12 @@ Key ADLC register values:
 #   ─────────────────   ────────  ────────────────  ─────────────
 #   Service calls        &00      svc_num            0-13
 #   Language entry       &0E      reason             14-18
-#   FSCV operations      &13      fscv_num           19-32
+#   FSCV                 &13      fscv_code          19-26
+#   FS reply             &17      reply_code         27-32
 #   *NET1-4 commands     &21      char-'1'           33-36
 #
-# The dispatch code at &80EC/&80F0 reads via LDA l8049,X and
-# LDA l8024,X — base addresses &8049 and &8024, not the table
+# The dispatch code at &80EC/&80F0 reads via LDA dispatch_hi_base,X and
+# LDA dispatch_lo_base,X — base addresses &8049 and &8024, not the table
 # starts &8044 and &8020. After the loop adds Y+1 to X, the
 # final byte addresses for logical entry i are:
 #   lo = &8024 + (i+1) = &8025 + i
@@ -1015,9 +1018,10 @@ Key ADLC register values:
 # unrecognised service calls or out-of-range values fall through
 # harmlessly.
 
-# Preamble lo bytes: &8020-&8024 are never read as part of a handler pair.
-# They exist to position the l8024 label for the dispatch code.
-# (There is no hi preamble: &8044-&8049 are lo bytes for entries 31-36.)
+# Preamble lo bytes: &8020-&8024 are never read as handler pairs.
+# They pad from dispatch_lo to dispatch_lo_base, which the dispatch
+# code at &80F0 indexes via LDA dispatch_lo_base,X.
+# (No hi preamble: &8044-&8049 double as lo bytes for entries 31-36.)
 for addr in range(0x8020, 0x8025):
     byte(addr)
 
@@ -1029,14 +1033,20 @@ for i in range(0, 14):
 for i in range(14, 19):
     rts_code_ptr(0x8025 + i, 0x804A + i)
 
-# FSCV handlers (indices 19-30, base Y=&13)
-for i in range(19, 31):
+# FSCV handlers (indices 19-26, codes 0-7, base Y=&13)
+for i in range(19, 27):
+    rts_code_ptr(0x8025 + i, 0x804A + i)
+
+# FS reply handlers (indices 27-30)
+# Dispatched by forward_star_cmd with base Y=&17 using the
+# fileserver's reply code as the index.
+for i in range(27, 31):
     rts_code_ptr(0x8025 + i, 0x804A + i)
 
 # Entries 31-36: hi bytes overlap with dispatch_net_cmd code (&8069+),
 # so we can't use rts_code_ptr (it would mark code bytes as data).
 # Mark the lo bytes as data and add entry points manually.
-# i=31: FSCV 12 -> &8DD5, i=32: FSCV 13 -> &8E1F (set_lib_handle)
+# i=31-32: FS reply handlers -> &8DD5 (notify+exec), &8E1F (set_lib_handle)
 # i=33-36: *NET1-4 -> &8E59, &8E5F, &8E6F, &81B8
 for addr in range(0x8044, 0x804A):
     byte(addr)
@@ -1654,16 +1664,62 @@ comment(0x861D, "Jump to address of high-bit byte (resumes code after string)", 
 comment(0x8020, """\
 Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
-for use with the PHA/PHA/RTS dispatch trick at &80DA.
+for use with the PHA/PHA/RTS dispatch trick at &80E7.
 See dispatch_hi (&8044) for the corresponding high bytes.
-The dispatch code accesses via l8024/l8049 (offset +4/+5 from
+The dispatch code accesses via dispatch_lo_base/dispatch_hi_base (offset +4/+5 from
 the table start). Base offset Y is added by the caller to select
-which group: services (Y=0), language (Y=&0E), FSCV (Y=&13).""")
+which group:
+  Y=&00  Service calls 0-12       (indices 0-13)
+  Y=&0E  Language entry reasons    (indices 14-18)
+  Y=&13  FSCV codes 0-7           (indices 19-26)
+  Y=&17  FS reply handlers        (indices 27-32)
+  Y=&21  *NET1-4 sub-commands     (indices 33-36)""")
 
 comment(0x8044, """\
 Dispatch table: high bytes of (handler_address - 1)
 Paired with dispatch_lo (&8020). Together they form a table of
-37 handler addresses, used via the PHA/PHA/RTS trick at &80DA.""")
+37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
+Lo bytes for indices 31-36 overlap with this hi table header.""")
+
+# Inline comments on each low-byte dispatch table entry.
+# Service call handlers (Y=&00, indices 0-13)
+comment(0x8025, "Svc 0: already claimed (no-op)", inline=True)
+comment(0x8026, "Svc 1: absolute workspace", inline=True)
+comment(0x8027, "Svc 2: private workspace", inline=True)
+comment(0x8028, "Svc 3: auto-boot", inline=True)
+comment(0x8029, "Svc 4: unrecognised star command", inline=True)
+comment(0x802A, "Svc 5: unrecognised interrupt", inline=True)
+comment(0x802B, "Svc 6: BRK (no-op)", inline=True)
+comment(0x802C, "Svc 7: unrecognised OSBYTE", inline=True)
+comment(0x802D, "Svc 8: unrecognised OSWORD", inline=True)
+comment(0x802E, "Svc 9: *HELP", inline=True)
+comment(0x802F, "Svc 10: static workspace (no-op)", inline=True)
+comment(0x8030, "Svc 11: NMI release (reclaim NMIs)", inline=True)
+comment(0x8031, "Svc 12: NMI claim (save NMI state)", inline=True)
+comment(0x8032, "Svc 13: select NFS (intercepted before dispatch)", inline=True)
+
+# Language entry handlers (Y=&0E, indices 14-18)
+comment(0x8033, "Lang 0: no language / Tube", inline=True)
+comment(0x8034, "Lang 1: normal startup", inline=True)
+comment(0x8035, "Lang 2: softkey byte (Electron)", inline=True)
+comment(0x8036, "Lang 3: softkey length (Electron)", inline=True)
+comment(0x8037, "Lang 4: remote validated", inline=True)
+
+# FSCV handlers (Y=&13, indices 19-26)
+comment(0x8038, "FSCV 0: *OPT", inline=True)
+comment(0x8039, "FSCV 1: EOF check", inline=True)
+comment(0x803A, "FSCV 2: */ (run)", inline=True)
+comment(0x803B, "FSCV 3: unrecognised star command", inline=True)
+comment(0x803C, "FSCV 4: *RUN", inline=True)
+comment(0x803D, "FSCV 5: *CAT", inline=True)
+comment(0x803E, "FSCV 6: shutdown", inline=True)
+comment(0x803F, "FSCV 7: read handle range", inline=True)
+
+# FS reply handlers (Y=&17, indices 27-32)
+comment(0x8040, "FS reply: print directory name", inline=True)
+comment(0x8041, "FS reply: copy handles + boot", inline=True)
+comment(0x8042, "FS reply: copy handles", inline=True)
+comment(0x8043, "FS reply: set CSD handle", inline=True)
 
 # ============================================================
 # *NET command dispatch (&8069)
