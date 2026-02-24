@@ -36,11 +36,8 @@
 
                 {"pattern": "&8545", "occurrence": 0, "version": "3.35D", "address": "0x8545"},
                 {"pattern": "&8551", "occurrence": 0, "version": "3.35D", "address": "0x8551"},
-                {"pattern": "&854F", "occurrence": 0, "version": "3.35D", "address": "0x854F"},
                 {"pattern": "&853A", "occurrence": 0, "version": "3.35K", "address": "0x853A"},
                 {"pattern": "&8548", "occurrence": 0, "version": "3.35K", "address": "0x8548"},
-                {"pattern": "&8544", "occurrence": 0, "version": "3.35K", "address": "0x8544"},
-                {"pattern": "&8549", "occurrence": 0, "version": "3.35K", "address": "0x8549"},
 
                 {"pattern": "&8526", "occurrence": 0, "version": "3.35K", "address": "0x8526"},
                 {"pattern": "&8533", "occurrence": 0, "version": "3.35D", "address": "0x8533"},
@@ -48,27 +45,15 @@
 
                 {"pattern": "&0612", "occurrence": 0, "version": "3.35D", "address": "0x0612"},
                 {"pattern": "&0615", "occurrence": 0, "version": "3.35D", "address": "0x0615"},
-                {"pattern": "&0612", "occurrence": 1, "version": "3.35D", "address": "0x0612"},
-                {"pattern": "&0615", "occurrence": 1, "version": "3.35D", "address": "0x0615"},
-                {"pattern": "&0616", "occurrence": 0, "version": "3.35D", "address": "0x0616"},
-                {"pattern": "&0620", "occurrence": 0, "version": "3.35D", "address": "0x0620"},
-                {"pattern": "&0612", "occurrence": 2, "version": "3.35K", "address": "0x0612"},
                 {"pattern": "&0615", "occurrence": 2, "version": "3.35K", "address": "0x0615"},
-                {"pattern": "&0615", "occurrence": 3, "version": "3.35K", "address": "0x0615"},
-                {"pattern": "&0616", "occurrence": 1, "version": "3.35K", "address": "0x0616"},
-                {"pattern": "&0619", "occurrence": 0, "version": "3.35K", "address": "0x0619"},
-                {"pattern": "&0623", "occurrence": 0, "version": "3.35K", "address": "0x0623"},
                 {"pattern": "&003A", "occurrence": 0, "version": "3.35K", "address": "0x003A"},
 
                 {"pattern": "&89A1", "occurrence": 0, "version": "3.35K", "address": "0x89A1"},
 
                 {"pattern": "&8437", "occurrence": 0, "version": "3.35D", "address": "0x8437"},
                 {"pattern": "&8449", "occurrence": 0, "version": "3.35D", "address": "0x8449"},
-                {"pattern": "&8443", "occurrence": 0, "version": "3.35D", "address": "0x8443"},
                 {"pattern": "&8428", "occurrence": 0, "version": "3.35K", "address": "0x8428"},
                 {"pattern": "&8439", "occurrence": 0, "version": "3.35K", "address": "0x8439"},
-                {"pattern": "&8430", "occurrence": 0, "version": "3.35K", "address": "0x8430"},
-                {"pattern": "&8436", "occurrence": 0, "version": "3.35K", "address": "0x8436"},
 
                 {"pattern": "&841A", "occurrence": 0, "version": "3.35D", "address": "0x841A"},
                 {"pattern": "&840A", "occurrence": 0, "version": "3.35K", "address": "0x840A"},
@@ -77,10 +62,6 @@
                 {"pattern": "&8CFC", "occurrence": 0, "version": "3.35K", "address": "0x8CFC"},
                 {"pattern": "&8D01", "occurrence": 0, "version": "3.35D", "address": "0x8D01"},
                 {"pattern": "&8D09", "occurrence": 0, "version": "3.35D", "address": "0x8D09"},
-                {"pattern": "&8D01", "occurrence": 1, "version": "3.35D", "address": "0x8D01"},
-                {"pattern": "&8D0B", "occurrence": 0, "version": "3.35D", "address": "0x8D0B"},
-                {"pattern": "&8D61", "occurrence": 0, "version": "3.35D", "address": "0x8D61"},
-                {"pattern": "&8D23", "occurrence": 0, "version": "3.35D", "address": "0x8D23"},
 
 
                 {"pattern": "&85F7", "occurrence": 0, "version": "3.35D", "address": "0x85F7"},
