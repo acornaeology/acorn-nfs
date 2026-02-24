@@ -868,6 +868,7 @@ label(0x8BCD, "decmin")               # NFS07: decimal minimum
 # --- Logon and *NET (&8Dxx) ---
 label(0x8E25, "logon2")               # NFS07: logon handler 2
 label(0x8EB7, "logon3")               # NFS07: logon handler 3
+label(0x8D59, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
 label(0x8D75, "infol2")               # NFS07: info loop 2
 
 # --- File I/O: save, read, open (&8Dxx-&8Fxx) ---

@@ -301,13 +301,13 @@ equivalent but saves 1 byte by using overlapping instruction encoding.
 At &85F7 (3.35D) / &85EE (3.35K), a 3-byte `JMP` is replaced with a 2-byte
 `BNE` which is always taken (the preceding code guarantees Z=0). Saves 1 byte.
 
-### 14. sub_c83c6 inlined at call sites
+### 14. send_fs_reply_timed inlined at call sites
 
-3.35D has a small wrapper subroutine at &83C4-&83C8 that loads `#&2A` ('*')
-into `fs_error_ptr` (&B8) before falling through to `send_fs_reply_cmd`. In
-3.35K, this wrapper is eliminated. The two call sites inline the `LDA #&2A`
-/ `STA &B8` sequence before calling `send_fs_reply_cmd` directly (at &87B0
-and &8A97).
+3.35D has a small wrapper subroutine (`send_fs_reply_timed` at &83C4-&83C8)
+that loads `#&2A` into `fs_error_ptr` (&B8), setting the timeout outer loop
+count, before falling through to `send_fs_reply_cmd`. In 3.35K, this wrapper
+is eliminated. The two call sites inline the `LDA #&2A` / `STA &B8` sequence
+before calling `send_fs_reply_cmd` directly (at &87B0 and &8A97).
 
 ### 15. EVNTV target shifted +3
 

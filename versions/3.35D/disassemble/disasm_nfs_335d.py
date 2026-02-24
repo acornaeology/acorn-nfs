@@ -812,7 +812,7 @@ label(0x8635, "y2fsl2")               # NFS04: Y-to-FS loop 2
 label(0x8644, "fs2al1")               # NFS04: FS-to-A loop 1
 
 # --- Number formatting and file info (&86xx) ---
-# UNMAPPED: label(0x8638, "num01")                # NFS07: number print entry
+label(0x8D3B, "num01")                # NFS07: number print entry
 label(0x868F, "l4")                   # NFS03: net TX polling loop
 label(0x86BB, "file1")                # NFS05: FILEV entry 1
 label(0x86CD, "quote1")               # NFS05: filename quote loop
@@ -861,6 +861,7 @@ label(0x8BCB, "decmin")               # NFS07: decimal minimum
 # --- Logon and *NET (&8Dxx) ---
 label(0x8E2D, "logon2")               # NFS07: logon handler 2
 label(0x8EBF, "logon3")               # NFS07: logon handler 3
+label(0x8D61, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
 label(0x8D7D, "infol2")               # NFS07: info loop 2
 
 # --- File I/O: save, read, open (&8Dxx-&8Fxx) ---
@@ -1940,6 +1941,17 @@ callers can handle, vs hard errors which go through FSERR.""",
     on_exit={"a": "0 on success",
              "x": "0 on success, &D6 on not-found",
              "y": "1 (offset past command code in reply)"})
+
+subroutine(0x83C6, "send_fs_reply_timed", hook=None,
+    title="Send FS command with standard timeout",
+    description="""\
+Wrapper for send_fs_reply_cmd that sets the timeout counter
+(fs_error_ptr at &B8) to &2A before falling through. The &2A
+value becomes the outer loop count in send_to_fs's 3-level
+polling loop (~42 x 65536 iterations). Called after file
+transfer operations to send the completion command to the
+fileserver. Eliminated in 3.35K where call sites inline the
+LDA #&2A / STA fs_error_ptr sequence directly.""")
 
 # ============================================================
 # FS error handler (&8403)

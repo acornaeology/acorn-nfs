@@ -2050,8 +2050,19 @@ l8014 = l800d+7
     jsr setup_tx_ptr_c0                                               ; 83c0: 20 69 86     i.
     plp                                                               ; 83c3: 28          (
     bcc send_fs_reply_cmd                                             ; 83c4: 90 04       ..
+; ***************************************************************************************
+; Send FS command with standard timeout
+; 
+; Wrapper for send_fs_reply_cmd that sets the timeout counter
+; (fs_error_ptr at &B8) to &2A before falling through. The &2A
+; value becomes the outer loop count in send_to_fs's 3-level
+; polling loop (~42 x 65536 iterations). Called after file
+; transfer operations to send the completion command to the
+; fileserver. Eliminated in 3.35K where call sites inline the
+; LDA #&2A / STA fs_error_ptr sequence directly.
+; ***************************************************************************************
 ; &83c6 referenced 2 times by &87b9, &8a99
-.sub_c83c6
+.send_fs_reply_timed
     lda #&2a ; '*'                                                    ; 83c6: a9 2a       .*
     sta fs_error_ptr                                                  ; 83c8: 85 b8       ..
 ; &83ca referenced 1 time by &83c4
@@ -3136,7 +3147,7 @@ decode_attribs_5bit = l85a6+30
     jsr transfer_file_blocks                                          ; 87b6: 20 fa 87     ..
 ; &87b9 referenced 1 time by &8741
 .c87b9
-    jsr sub_c83c6                                                     ; 87b9: 20 c6 83     ..
+    jsr send_fs_reply_timed                                           ; 87b9: 20 c6 83     ..
     stx l0f08                                                         ; 87bc: 8e 08 0f    ...
     ldy #&0e                                                          ; 87bf: a0 0e       ..
     lda fs_cmd_data                                                   ; 87c1: ad 05 0f    ...
@@ -3812,7 +3823,7 @@ decode_attribs_5bit = l85a6+30
     jsr send_data_blocks                                              ; 8a96: 20 43 87     C.
 ; &8a99 referenced 1 time by &8a94
 .c8a99
-    jsr sub_c83c6                                                     ; 8a99: 20 c6 83     ..
+    jsr send_fs_reply_timed                                           ; 8a99: 20 c6 83     ..
     lda (fs_options,x)                                                ; 8a9c: a1 bb       ..
     bit fs_cmd_data                                                   ; 8a9e: 2c 05 0f    ,..
     bmi c8aa6                                                         ; 8aa1: 30 03       0.
@@ -4203,7 +4214,7 @@ l8be3 = fs_cmd_match_table+1
     lda fs_cmd_data                                                   ; 8cc2: ad 05 0f    ...
     beq c8d2b                                                         ; 8cc5: f0 64       .d
     ldx #2                                                            ; 8cc7: a2 02       ..
-    jsr c8d61                                                         ; 8cc9: 20 61 8d     a.
+    jsr print_dir_from_offset                                         ; 8cc9: 20 61 8d     a.
     clc                                                               ; 8ccc: 18          .
     lda l00b4                                                         ; 8ccd: a5 b4       ..
     adc fs_cmd_data                                                   ; 8ccf: 6d 05 0f    m..
@@ -4280,7 +4291,7 @@ l8be3 = fs_cmd_match_table+1
     ldy #0                                                            ; 8cff: a0 00       ..
     ldx fs_cmd_csd                                                    ; 8d01: ae 03 0f    ...
     beq c8d0b                                                         ; 8d04: f0 05       ..
-    jsr c8d61                                                         ; 8d06: 20 61 8d     a.
+    jsr print_dir_from_offset                                         ; 8d06: 20 61 8d     a.
     bmi c8d23                                                         ; 8d09: 30 18       0.
 ; &8d0b referenced 2 times by &8d04, &8d19
 .c8d0b
@@ -4313,18 +4324,18 @@ l8be3 = fs_cmd_match_table+1
     jsr print_hex_bytes                                               ; 8d30: 20 39 8d     9.
     ldy #&0c                                                          ; 8d33: a0 0c       ..
     ldx #3                                                            ; 8d35: a2 03       ..
-    bne c8d3b                                                         ; 8d37: d0 02       ..             ; ALWAYS branch
+    bne num01                                                         ; 8d37: d0 02       ..             ; ALWAYS branch
 
 ; &8d39 referenced 2 times by &8d25, &8d30
 .print_hex_bytes
     ldx #4                                                            ; 8d39: a2 04       ..
 ; &8d3b referenced 2 times by &8d37, &8d42
-.c8d3b
+.num01
     lda (fs_options),y                                                ; 8d3b: b1 bb       ..
     jsr print_hex                                                     ; 8d3d: 20 a5 8d     ..
     dey                                                               ; 8d40: 88          .
     dex                                                               ; 8d41: ca          .
-    bne c8d3b                                                         ; 8d42: d0 f7       ..
+    bne num01                                                         ; 8d42: d0 f7       ..
 ; &8d44 referenced 1 time by &8d1b
 .print_space
     lda #&20 ; ' '                                                    ; 8d44: a9 20       .
@@ -4378,7 +4389,7 @@ l8be3 = fs_cmd_match_table+1
 .print_dir_name
     ldx #0                                                            ; 8d5f: a2 00       ..
 ; &8d61 referenced 3 times by &8cc9, &8d06, &8d81
-.c8d61
+.print_dir_from_offset
     lda fs_cmd_data,x                                                 ; 8d61: bd 05 0f    ...
     bmi return_5                                                      ; 8d64: 30 f4       0.
     bne infol2                                                        ; 8d66: d0 15       ..
@@ -4402,7 +4413,7 @@ l8be3 = fs_cmd_match_table+1
 ; &8d80 referenced 1 time by &8d79
 .c8d80
     inx                                                               ; 8d80: e8          .
-    bne c8d61                                                         ; 8d81: d0 de       ..
+    bne print_dir_from_offset                                         ; 8d81: d0 de       ..
     equs "Run"                                                        ; 8d83: 52 75 6e    Run
 
 ; ***************************************************************************************
@@ -8143,7 +8154,6 @@ save pydis_start, pydis_end
 ;     adlc_full_reset:                          3
 ;     c84f8:                                    3
 ;     c850a:                                    3
-;     c8d61:                                    3
 ;     c90f1:                                    3
 ;     c97e1:                                    3
 ;     c991c:                                    3
@@ -8182,6 +8192,7 @@ save pydis_start, pydis_end
 ;     oscli:                                    3
 ;     osword:                                   3
 ;     pad_filename_spaces:                      3
+;     print_dir_from_offset:                    3
 ;     print_reply_bytes:                        3
 ;     romsel_copy:                              3
 ;     saved_jsr_mask:                           3
@@ -8217,7 +8228,6 @@ save pydis_start, pydis_end
 ;     c8b54:                                    2
 ;     c8cde:                                    2
 ;     c8d0b:                                    2
-;     c8d3b:                                    2
 ;     c8d7b:                                    2
 ;     c8db8:                                    2
 ;     c8e1a:                                    2
@@ -8284,6 +8294,7 @@ save pydis_start, pydis_end
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
 ;     nlisne:                                   2
+;     num01:                                    2
 ;     nvwrch:                                   2
 ;     osarg1:                                   2
 ;     osfind:                                   2
@@ -8319,12 +8330,12 @@ save pydis_start, pydis_end
 ;     save_fscv_args:                           2
 ;     scout_complete:                           2
 ;     send_data_blocks:                         2
+;     send_fs_reply_timed:                      2
 ;     send_to_fs:                               2
 ;     setup_tx_ptr_c0:                          2
 ;     store_output_byte:                        2
 ;     store_rom_ptr_pair:                       2
 ;     sub_3_from_y:                             2
-;     sub_c83c6:                                2
 ;     sub_c8e4a:                                2
 ;     system_via_ier:                           2
 ;     system_via_ifr:                           2
@@ -8911,8 +8922,6 @@ save pydis_start, pydis_end
 ;     c8d0b
 ;     c8d23
 ;     c8d2b
-;     c8d3b
-;     c8d61
 ;     c8d7b
 ;     c8d80
 ;     c8db8
@@ -9191,7 +9200,6 @@ save pydis_start, pydis_end
 ;     sub_c8183
 ;     sub_c82b5
 ;     sub_c8352
-;     sub_c83c6
 ;     sub_c86c5
 ;     sub_c8dc7
 ;     sub_c8e4a

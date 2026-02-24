@@ -4217,7 +4217,7 @@ l8be5 = fs_cmd_match_table+1
     lda fs_cmd_data                                                   ; 8cc4: ad 05 0f    ...
     beq c8d23                                                         ; 8cc7: f0 5a       .Z
     ldx #2                                                            ; 8cc9: a2 02       ..
-    jsr c8d59                                                         ; 8ccb: 20 59 8d     Y.
+    jsr print_dir_from_offset                                         ; 8ccb: 20 59 8d     Y.
     clc                                                               ; 8cce: 18          .
     lda l00b4                                                         ; 8ccf: a5 b4       ..
     adc fs_cmd_data                                                   ; 8cd1: 6d 05 0f    m..
@@ -4383,7 +4383,7 @@ l8be5 = fs_cmd_match_table+1
 .print_dir_name
     ldx #0                                                            ; 8d57: a2 00       ..
 ; &8d59 referenced 2 times by &8ccb, &8d79
-.c8d59
+.print_dir_from_offset
     lda fs_cmd_data,x                                                 ; 8d59: bd 05 0f    ...
     bmi return_5                                                      ; 8d5c: 30 f4       0.
     bne infol2                                                        ; 8d5e: d0 15       ..
@@ -4407,7 +4407,7 @@ l8be5 = fs_cmd_match_table+1
 ; &8d78 referenced 1 time by &8d71
 .c8d78
     inx                                                               ; 8d78: e8          .
-    bne c8d59                                                         ; 8d79: d0 de       ..
+    bne print_dir_from_offset                                         ; 8d79: d0 de       ..
     equs "Run"                                                        ; 8d7b: 52 75 6e    Run
 
 ; ***************************************************************************************
@@ -8211,7 +8211,6 @@ save pydis_start, pydis_end
 ;     c86cf:                                    2
 ;     c8adf:                                    2
 ;     c8b56:                                    2
-;     c8d59:                                    2
 ;     c8d73:                                    2
 ;     c8db0:                                    2
 ;     c8e12:                                    2
@@ -8287,6 +8286,7 @@ save pydis_start, pydis_end
 ;     prepare_fs_cmd_v:                         2
 ;     print_decimal:                            2
 ;     print_decimal_digit:                      2
+;     print_dir_from_offset:                    2
 ;     print_file_info:                          2
 ;     print_hex:                                2
 ;     print_hex_bytes:                          2
@@ -8899,7 +8899,6 @@ save pydis_start, pydis_end
 ;     c8c85
 ;     c8cb5
 ;     c8d23
-;     c8d59
 ;     c8d73
 ;     c8d78
 ;     c8db0
