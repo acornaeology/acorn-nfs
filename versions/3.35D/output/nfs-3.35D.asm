@@ -1122,8 +1122,8 @@ l8014 = l800d+7
     equb <(notify_and_exec-1)                                         ; 803f: cc          .
     equb <(set_lib_handle-1)                                          ; 8040: 1c          .
     equb <(net1_read_handle-1)                                        ; 8041: 42          B
-    equb <(sub_c8e5e-1)                                               ; 8042: 5d          ]
-    equb <(sub_c8e6e-1)                                               ; 8043: 6d          m
+    equb <(net2_read_handle_entry-1)                                  ; 8042: 5d          ]
+    equb <(net3_close_handle-1)                                       ; 8043: 6d          m
 ; Dispatch table: high bytes of (handler_address - 1)
 ; Paired with dispatch_lo (&8020). Together they form a table of
 ; 37 handler addresses, used via the PHA/PHA/RTS trick at &809F.
@@ -1163,8 +1163,8 @@ l8014 = l800d+7
     equb >(notify_and_exec-1)                                         ; 8063: 8d          .
     equb >(set_lib_handle-1)                                          ; 8064: 8e          .
     equb >(net1_read_handle-1)                                        ; 8065: 8e          .
-    equb >(sub_c8e5e-1)                                               ; 8066: 8e          .
-    equb >(sub_c8e6e-1)                                               ; 8067: 8e          .
+    equb >(net2_read_handle_entry-1)                                  ; 8066: 8e          .
+    equb >(net3_close_handle-1)                                       ; 8067: 8e          .
     equb >(resume_after_remote-1)                                     ; 8068: 81          .
 
 ; ***************************************************************************************
@@ -1183,14 +1183,14 @@ l8014 = l800d+7
 ; *NET1 (&8E43): read file handle from received
 ; packet (net1_read_handle)
 ; 
-; *NET2 (&8DCA): read handle entry from workspace
+; *NET2 (&8E5E): read handle entry from workspace
 ; (net2_read_handle_entry)
 ; 
-; *NET3 (&8DE0): close handle / mark as unused
+; *NET3 (&8E6E): close handle / mark as unused
 ; (net3_close_handle)
 ; 
-; *NET4 (&8DF3): resume after remote operation
-; (net4_resume_remote)
+; *NET4 (&818A): resume after remote operation
+; (resume_after_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
     lda l00ef                                                         ; 8069: a5 ef       ..             ; Read command character following *NET
@@ -4598,15 +4598,6 @@ l8be3 = fs_cmd_match_table+1
 
 .sub_c8dc7
     jsr parse_filename_gs                                             ; 8dc7: 20 c3 86     ..
-; ***************************************************************************************
-; *NET2: read handle entry from workspace
-; 
-; Looks up the handle in &F0 via calc_handle_offset. If the
-; workspace slot contains &3F ('?', meaning unused/closed),
-; returns 0. Otherwise returns the stored handle value.
-; Clears fs_temp_ce on exit.
-; ***************************************************************************************
-.net2_read_handle_entry
     jsr copy_filename                                                 ; 8dca: 20 4b 8d     K.
 ; ***************************************************************************************
 ; Send FS load-as-command and execute response
@@ -4626,20 +4617,7 @@ l8be3 = fs_cmd_match_table+1
     ldx #&4a ; 'J'                                                    ; 8dd8: a2 4a       .J
     ldy #5                                                            ; 8dda: a0 05       ..
     jsr send_fs_examine                                               ; 8ddc: 20 fd 86     ..
-; overlapping: ldy #0                                                 ; 8ddf: a0 00       ..
-    equb &a0                                                          ; 8ddf: a0          .
-
-; ***************************************************************************************
-; *NET3: close handle (mark as unused)
-; 
-; Looks up the handle in &F0 via calc_handle_offset. Writes
-; &3F ('?') to mark the handle slot as closed in the NFS
-; workspace. Preserves the carry flag state across the write
-; using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.
-; ***************************************************************************************
-.net3_close_handle
-    brk                                                               ; 8de0: 00          .
-
+    ldy #0                                                            ; 8ddf: a0 00       ..
     clc                                                               ; 8de1: 18          .
     jsr gsinit                                                        ; 8de2: 20 c2 ff     ..
 ; &8de5 referenced 1 time by &8de8
@@ -4654,15 +4632,6 @@ l8be3 = fs_cmd_match_table+1
     cmp #&20 ; ' '                                                    ; 8dee: c9 20       .
     beq loop_c8deb                                                    ; 8df0: f0 f9       ..
     clc                                                               ; 8df2: 18          .
-; ***************************************************************************************
-; *NET4: resume after remote operation
-; 
-; Calls resume_after_remote (&8146) to re-enable the keyboard
-; and send a completion notification. The BVC always branches
-; to c8dda (clear fs_temp_ce) since resume_after_remote
-; returns with V clear (from CLV in prepare_cmd_clv).
-; ***************************************************************************************
-.net4_resume_remote
     tya                                                               ; 8df3: 98          .
     adc os_text_ptr                                                   ; 8df4: 65 f2       e.
     sta fs_cmd_context                                                ; 8df6: 8d 0a 0e    ...
@@ -4790,7 +4759,15 @@ l8be3 = fs_cmd_match_table+1
 .return_calc_handle
     rts                                                               ; 8e5d: 60          `
 
-.sub_c8e5e
+; ***************************************************************************************
+; *NET2: read handle entry from workspace
+; 
+; Looks up the handle in &F0 via calc_handle_offset. If the
+; workspace slot contains &3F ('?', meaning unused/closed),
+; returns 0. Otherwise returns the stored handle value.
+; Clears fs_temp_ce on exit.
+; ***************************************************************************************
+.net2_read_handle_entry
     jsr sub_c8e4a                                                     ; 8e5e: 20 4a 8e     J.
     bcs rxpol2                                                        ; 8e61: b0 06       ..
     lda (nfs_workspace),y                                             ; 8e63: b1 9e       ..
@@ -4804,7 +4781,15 @@ l8be3 = fs_cmd_match_table+1
     sta l00f0                                                         ; 8e6b: 85 f0       ..
     rts                                                               ; 8e6d: 60          `
 
-.sub_c8e6e
+; ***************************************************************************************
+; *NET3: close handle (mark as unused)
+; 
+; Looks up the handle in &F0 via calc_handle_offset. Writes
+; &3F ('?') to mark the handle slot as closed in the NFS
+; workspace. Preserves the carry flag state across the write
+; using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.
+; ***************************************************************************************
+.net3_close_handle
     jsr sub_c8e4a                                                     ; 8e6e: 20 4a 8e     J.
     bcs rxpol2                                                        ; 8e71: b0 f6       ..
     rol rx_flags                                                      ; 8e73: 2e 64 0d    .d.
@@ -8022,6 +8007,8 @@ l9ee1 = sub_c9ee0+1
     assert <(insert_remote_key-1) == &c4
     assert <(l0128) == &28
     assert <(net1_read_handle-1) == &42
+    assert <(net2_read_handle_entry-1) == &5d
+    assert <(net3_close_handle-1) == &6d
     assert <(notify_and_exec-1) == &cc
     assert <(opt_handler-1) == &cb
     assert <(osword_11_handler-1) == &d9
@@ -8045,8 +8032,6 @@ l9ee1 = sub_c9ee0+1
     assert <(sub_c0490-1) == &8f
     assert <(sub_c8183-1) == &82
     assert <(sub_c8dc7-1) == &c6
-    assert <(sub_c8e5e-1) == &5d
-    assert <(sub_c8e6e-1) == &6d
     assert <(sub_c8eff-1) == &fe
     assert <(sub_c908f-1) == &8e
     assert <(sub_c90b2-1) == &b1
@@ -8081,6 +8066,8 @@ l9ee1 = sub_c9ee0+1
     assert >(insert_remote_key-1) == &84
     assert >(l0128) == &01
     assert >(net1_read_handle-1) == &8e
+    assert >(net2_read_handle_entry-1) == &8e
+    assert >(net3_close_handle-1) == &8e
     assert >(notify_and_exec-1) == &8d
     assert >(opt_handler-1) == &89
     assert >(osword_11_handler-1) == &8e
@@ -8104,8 +8091,6 @@ l9ee1 = sub_c9ee0+1
     assert >(sub_c0490-1) == &04
     assert >(sub_c8183-1) == &81
     assert >(sub_c8dc7-1) == &8d
-    assert >(sub_c8e5e-1) == &8e
-    assert >(sub_c8e6e-1) == &8e
     assert >(sub_c8eff-1) == &8e
     assert >(sub_c908f-1) == &90
     assert >(sub_c90b2-1) == &90
@@ -9309,8 +9294,6 @@ save pydis_start, pydis_end
 ;     sub_c86c5
 ;     sub_c8dc7
 ;     sub_c8e4a
-;     sub_c8e5e
-;     sub_c8e6e
 ;     sub_c8e7a
 ;     sub_c8eb7
 ;     sub_c8eff
@@ -9327,11 +9310,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7577 bytes (92%)
-;     Data                     = 615 bytes (8%)
+;     Code                     = 7578 bytes (93%)
+;     Data                     = 614 bytes (7%)
 ;
 ;     Number of instructions   = 3657
-;     Number of data bytes     = 387 bytes
+;     Number of data bytes     = 386 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 228 bytes
 ;     Number of strings        = 36

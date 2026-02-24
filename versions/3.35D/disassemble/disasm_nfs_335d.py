@@ -551,10 +551,10 @@ label(0x828A, "fs_vector_addrs")        # FS vector dispatch and handler address
 #   index 32 → set_lib_handle (&8E1D)        (update library handle)
 #
 # *NET sub-commands (base Y=&20, indices 33-36):
-#   *NET1 → index 33 → net1_read_handle (&8DB0)
-#   *NET2 → index 34 → net2_read_handle_entry (&8DCA)
-#   *NET3 → index 35 → net3_close_handle (&8DE0)
-#   *NET4 → index 36 → net4_resume_remote (&8DF3)
+#   *NET1 → index 33 → net1_read_handle (&8E43)
+#   *NET2 → index 34 → net2_read_handle_entry (&8E5E)
+#   *NET3 → index 35 → net3_close_handle (&8E6E)
+#   *NET4 → index 36 → resume_after_remote (&818A)
 # --- Filing system vector entry points ---
 # Extended vector table entries set up at init (&82E6):
 #   FILEV → &86E7    ARGSV → &890C    BGETV → &8539
@@ -1625,14 +1625,14 @@ via OSCLI calls within the ROM.
 *NET1 (&8E43): read file handle from received
 packet (net1_read_handle)
 
-*NET2 (&8DCA): read handle entry from workspace
+*NET2 (&8E5E): read handle entry from workspace
 (net2_read_handle_entry)
 
-*NET3 (&8DE0): close handle / mark as unused
+*NET3 (&8E6E): close handle / mark as unused
 (net3_close_handle)
 
-*NET4 (&8DF3): resume after remote operation
-(net4_resume_remote)""")
+*NET4 (&818A): resume after remote operation
+(resume_after_remote)""")
 
 comment(0x8069, "Read command character following *NET", inline=True)
 comment(0x806B, "Subtract ASCII '1' to get 0-based command index", inline=True)
@@ -2718,7 +2718,7 @@ to the Tube via tube_addr_claim. Otherwise jumps via the
 indirect pointer at (&0F09) to execute at the load address.""")
 
 # ============================================================
-# *NET sub-command handlers (&8DB0-&8DF6)
+# *NET sub-command handlers (&8E43-&8E7D)
 # ============================================================
 subroutine(0x8E43, "net1_read_handle", hook=None,
     title="*NET1: read file handle from received packet",
@@ -2740,7 +2740,8 @@ with C set and Y=0, A=0 as an error indicator.""")
 
 label(0x8E5D, "return_calc_handle")      # Return from calc_handle_offset (invalid)
 
-subroutine(0x8DCA, "net2_read_handle_entry", hook=None,
+entry(0x8E5E)
+subroutine(0x8E5E, "net2_read_handle_entry", hook=None,
     title="*NET2: read handle entry from workspace",
     description="""\
 Looks up the handle in &F0 via calc_handle_offset. If the
@@ -2748,21 +2749,14 @@ workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
 Clears fs_temp_ce on exit.""")
 
-subroutine(0x8DE0, "net3_close_handle", hook=None,
+entry(0x8E6E)
+subroutine(0x8E6E, "net3_close_handle", hook=None,
     title="*NET3: close handle (mark as unused)",
     description="""\
 Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
 workspace. Preserves the carry flag state across the write
 using ROL/ROR on rx_status_flags. Clears fs_temp_ce on exit.""")
-
-subroutine(0x8DF3, "net4_resume_remote", hook=None,
-    title="*NET4: resume after remote operation",
-    description="""\
-Calls resume_after_remote (&8146) to re-enable the keyboard
-and send a completion notification. The BVC always branches
-to c8dda (clear fs_temp_ce) since resume_after_remote
-returns with V clear (from CLV in prepare_cmd_clv).""")
 
 # NMI handler init — ROM code copies to page &04/&05/&06
 # ============================================================
