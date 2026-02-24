@@ -4236,31 +4236,31 @@ l8be5 = fs_cmd_match_table+1
 ; Boot command strings for auto-boot
 ; 
 ; The four boot options use OSCLI strings at offsets within page &8C:
-;   Option 0 (Off):  offset &F6 → &8CFA = bare CR (empty command)
-;   Option 1 (Load): offset &E7 → &8CE8 = "L.!BOOT" (dual-purpose:
-;       the JMP &212E instruction at &8CE8 has opcode &4C='L' and
-;       operand bytes &2E='.' &21='!', forming the string "L.!")
-;   Option 2 (Run):  offset &E9 → &8CE7 = "!BOOT" (bare filename = *RUN)
-;   Option 3 (Exec): offset &EF → &8CF0 = "E.!BOOT"
+;   Option 0 (Off):  offset &F3 → &8CF3 = bare CR (empty command)
+;   Option 1 (Load): offset &E4 → &8CE4 = "L.!BOOT" (dual-purpose:
+;       the bytes &4C='L', &2E='.', &21='!' at &8CE4 are followed
+;       by "BOOT" at &8CE7, forming the OSCLI string "L.!BOOT")
+;   Option 2 (Run):  offset &E6 → &8CE6 = "!BOOT" (bare filename = *RUN)
+;   Option 3 (Exec): offset &EC → &8CEC = "E.!BOOT"
 ; 
-; This is a classic BBC ROM space optimisation: the JMP instruction's
-; bytes serve double duty as both executable code and ASCII text.
+; This is a classic BBC ROM space optimisation: the string data
+; overlaps with other byte sequences to save space.
 ; ***************************************************************************************
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8ce7: 42 4f 4f... BOO
     equb &0d                                                          ; 8ceb: 0d          .
-    equs "E.!BOO"                                                     ; 8cec: 45 2e 21... E.!
+    equs "E.!BOOT"                                                    ; 8cec: 45 2e 21... E.!
+    equb &0d                                                          ; 8cf3: 0d          .
 ; ***************************************************************************************
 ; Boot option → OSCLI string offset table
 ; 
 ; Four bytes indexed by the boot option value (0-3). Each byte
 ; is the low byte of a pointer into page &8C, where the OSCLI
 ; command string for that boot option lives. See boot_cmd_strings.
+; Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.
 ; ***************************************************************************************
-.boot_option_offsets
-    equb &54, &0d                                                     ; 8cf2: 54 0d       T.
 ; &8cf4 referenced 1 time by &8e33
-.l8cf4
+.boot_option_offsets
     equb &f3, &e4, &e6, &ec, &45, &78                                 ; 8cf4: f3 e4 e6... ...
 
 ; ***************************************************************************************
@@ -4671,7 +4671,7 @@ print_spaces = copy_filename+1
     bpl logon2                                                        ; 8e2c: 10 f7       ..
     bcc c8e1d                                                         ; 8e2e: 90 ed       ..
     ldy fs_boot_option                                                ; 8e30: ac 05 0e    ...
-    ldx l8cf4,y                                                       ; 8e33: be f4 8c    ...
+    ldx boot_option_offsets,y                                         ; 8e33: be f4 8c    ...
     ldy #&8c                                                          ; 8e36: a0 8c       ..
     jmp oscli                                                         ; 8e38: 4c f7 ff    L..
 
@@ -8367,6 +8367,7 @@ save pydis_start, pydis_end
 ;     adlc_init:                                1
 ;     argsw:                                    1
 ;     begink:                                   1
+;     boot_option_offsets:                      1
 ;     bspsx:                                    1
 ;     bsxl0:                                    1
 ;     bsxl1:                                    1
@@ -8623,7 +8624,6 @@ save pydis_start, pydis_end
 ;     l8014:                                    1
 ;     l865c:                                    1
 ;     l8be5:                                    1
-;     l8cf4:                                    1
 ;     l8ef5:                                    1
 ;     l912b:                                    1
 ;     l945a:                                    1
@@ -9109,7 +9109,6 @@ save pydis_start, pydis_end
 ;     l8659
 ;     l865c
 ;     l8be5
-;     l8cf4
 ;     l8ef5
 ;     l912b
 ;     l945a
@@ -9221,7 +9220,7 @@ save pydis_start, pydis_end
 ;     Data                     = 687 bytes (8%)
 ;
 ;     Number of instructions   = 3621
-;     Number of data bytes     = 427 bytes
+;     Number of data bytes     = 426 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 260 bytes
+;     Number of string bytes   = 261 bytes
 ;     Number of strings        = 37

@@ -2473,15 +2473,15 @@ subroutine(0x8CE7, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
 The four boot options use OSCLI strings at offsets within page &8C:
-  Option 0 (Off):  offset &F6 → &8CFA = bare CR (empty command)
-  Option 1 (Load): offset &E7 → &8CE8 = "L.!BOOT" (dual-purpose:
-      the JMP &212E instruction at &8CE8 has opcode &4C='L' and
-      operand bytes &2E='.' &21='!', forming the string "L.!")
-  Option 2 (Run):  offset &E9 → &8CE7 = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &EF → &8CF0 = "E.!BOOT"
+  Option 0 (Off):  offset &F3 → &8CF3 = bare CR (empty command)
+  Option 1 (Load): offset &E4 → &8CE4 = "L.!BOOT" (dual-purpose:
+      the bytes &4C='L', &2E='.', &21='!' at &8CE4 are followed
+      by "BOOT" at &8CE7, forming the OSCLI string "L.!BOOT")
+  Option 2 (Run):  offset &E6 → &8CE6 = "!BOOT" (bare filename = *RUN)
+  Option 3 (Exec): offset &EC → &8CEC = "E.!BOOT"
 
-This is a classic BBC ROM space optimisation: the JMP instruction's
-bytes serve double duty as both executable code and ASCII text.""")
+This is a classic BBC ROM space optimisation: the string data
+overlaps with other byte sequences to save space.""")
 
 # ============================================================
 # Handle workspace management (&8CFA-&8D00)
@@ -2499,14 +2499,15 @@ Stores Y into &0E03 (current selected directory handle).
 Falls through to c8cff (JMP c892c).""")
 
 # ============================================================
-# Boot option table and "I AM" handler (&8CF2-&8E20)
+# Boot option table and "I AM" handler (&8CF4-&8E20)
 # ============================================================
-subroutine(0x8CF2, "boot_option_offsets", hook=None,
+subroutine(0x8CF4, "boot_option_offsets", hook=None,
     title="Boot option → OSCLI string offset table",
     description="""\
 Four bytes indexed by the boot option value (0-3). Each byte
 is the low byte of a pointer into page &8C, where the OSCLI
-command string for that boot option lives. See boot_cmd_strings.""")
+command string for that boot option lives. See boot_cmd_strings.
+Referenced by copy_handles_and_boot via LDX boot_option_offsets,Y.""")
 
 subroutine(0x807E, "i_am_handler", hook=None,
     title="\"I AM\" command handler",

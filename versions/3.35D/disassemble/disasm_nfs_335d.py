@@ -2434,18 +2434,18 @@ Display format:
     *EX sets CRFLAG=&FF to force one entry per line.""")
 
 # ============================================================
-# Boot command strings (&8CEB)
+# Boot command strings (&8CE5)
 # ============================================================
 subroutine(0x8CE5, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
 The four boot options use OSCLI strings at offsets within page &8C:
-  Option 0 (Off):  offset &F6 → &8CF7 = bare CR (empty command)
-  Option 1 (Load): offset &E7 → &8CE8 = "L.!BOOT" (dual-purpose:
-      the JMP &212E instruction at &8CE8 has opcode &4C='L' and
+  Option 0 (Off):  offset &F1 → &8CF1 = bare CR (empty command)
+  Option 1 (Load): offset &E2 → &8CE2 = "L.!BOOT" (dual-purpose:
+      the JMP &212E instruction at &8CE2 has opcode &4C='L' and
       operand bytes &2E='.' &21='!', forming the string "L.!")
-  Option 2 (Run):  offset &E9 → &8CEA = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &EF → &8CF0 = "E.!BOOT"
+  Option 2 (Run):  offset &E4 → &8CE4 = "!BOOT" (bare filename = *RUN)
+  Option 3 (Exec): offset &EA → &8CEA = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the JMP instruction's
 bytes serve double duty as both executable code and ASCII text.""")
