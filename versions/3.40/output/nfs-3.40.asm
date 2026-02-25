@@ -4869,8 +4869,6 @@ l8c06 = fs_cmd_match_table+1
 .fs_osword_tbl_hi
     equb >(osword_0f_handler-1)                                       ; 8eb5: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
     equb >(osword_10_handler-1)                                       ; 8eb6: 8f          .
-.logon3
-.return_copy_param
     equb >(osword_11_handler-1)                                       ; 8eb7: 8e          .
     equb >(sub_c8ef9-1)                                               ; 8eb8: 8e          .
     equb >(econet_tx_rx-1)                                            ; 8eb9: 8f          .
@@ -4988,6 +4986,8 @@ l8c06 = fs_cmd_match_table+1
     iny                                                               ; 8f1e: c8          .              ; Advance to next byte
     dex                                                               ; 8f1f: ca          .              ; Decrement byte counter
     bpl c8f14                                                         ; 8f20: 10 f2       ..             ; Loop while X >= 0
+.logon3
+.return_copy_param
     rts                                                               ; 8f22: 60          `
 
 ; &8f23 referenced 1 time by &8eff
@@ -7853,14 +7853,24 @@ l9eaf = sub_c9eae+1
     sec                                                               ; 9f50: 38          8              ; Init borrow for 4-byte subtract
     php                                                               ; 9f51: 08          .              ; Save carry on stack
     ldy #4                                                            ; 9f52: a0 04       ..             ; Y=4: start at RXCB offset 4
+; &9f54 referenced 1 time by &9f66
+.loop_c9f54
     lda (port_ws_offset),y                                            ; 9f54: b1 a6       ..             ; Load RXCB[Y] (current ptr byte)
     iny                                                               ; 9f56: c8          .              ; Y += 4: advance to RXCB[Y+4]
     iny                                                               ; 9f57: c8          .
     iny                                                               ; 9f58: c8          .
     iny                                                               ; 9f59: c8          .
-    equb &28, &f1, &a6, &99, &9a, 0, &88, &88, &88, 8, &c0, 8, &90    ; 9f5a: 28 f1 a6... (..
-    equb &ec, &28, &8a                                                ; 9f67: ec 28 8a    .(.
-
+    plp                                                               ; 9f5a: 28          (              ; Restore borrow from previous byte
+    sbc (port_ws_offset),y                                            ; 9f5b: f1 a6       ..             ; Subtract RXCB[Y+4] (start ptr byte)
+    sta net_tx_ptr,y                                                  ; 9f5d: 99 9a 00    ...            ; Store result byte
+    dey                                                               ; 9f60: 88          .              ; Y -= 3: next source byte
+    dey                                                               ; 9f61: 88          .
+    dey                                                               ; 9f62: 88          .
+    php                                                               ; 9f63: 08          .              ; Save borrow for next byte
+    cpy #8                                                            ; 9f64: c0 08       ..             ; Done all 4 bytes?
+    bcc loop_c9f54                                                    ; 9f66: 90 ec       ..             ; No: next byte pair
+    plp                                                               ; 9f68: 28          (              ; Discard final borrow
+    txa                                                               ; 9f69: 8a          .              ; A = saved X
     pha                                                               ; 9f6a: 48          H              ; Save X
     lda #4                                                            ; 9f6b: a9 04       ..             ; Compute address of RXCB+4
     clc                                                               ; 9f6d: 18          .
@@ -8114,12 +8124,12 @@ save pydis_start, pydis_end
 ;     fs_options:                              41
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             37
-;     port_ws_offset:                          34
+;     port_ws_offset:                          35
 ;     net_rx_ptr:                              32
 ;     econet_control1_or_status1:              31
 ;     l00f0:                                   26
 ;     tx_flags:                                26
-;     net_tx_ptr:                              24
+;     net_tx_ptr:                              25
 ;     osbyte:                                  23
 ;     set_nmi_vector:                          22
 ;     c06c5:                                   20
@@ -8801,6 +8811,7 @@ save pydis_start, pydis_end
 ;     loop_c9d05:                               1
 ;     loop_c9d33:                               1
 ;     loop_c9d61:                               1
+;     loop_c9f54:                               1
 ;     mj:                                       1
 ;     nbyte1:                                   1
 ;     nbyte4:                                   1
@@ -9299,6 +9310,7 @@ save pydis_start, pydis_end
 ;     loop_c9d05
 ;     loop_c9d33
 ;     loop_c9d61
+;     loop_c9f54
 ;     sub_c0414
 ;     sub_c04c4
 ;     sub_c04cb
@@ -9326,11 +9338,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7485 bytes (91%)
-;     Data                     = 707 bytes (9%)
+;     Code                     = 7501 bytes (92%)
+;     Data                     = 691 bytes (8%)
 ;
-;     Number of instructions   = 3605
-;     Number of data bytes     = 464 bytes
+;     Number of instructions   = 3616
+;     Number of data bytes     = 448 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34

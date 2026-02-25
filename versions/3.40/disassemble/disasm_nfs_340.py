@@ -884,7 +884,7 @@ label(0x8BEE, "decmin")               # NFS07: decimal minimum
 
 # --- Logon and *NET (&8Dxx) ---
 label(0x8E2F, "logon2")               # NFS07: logon handler 2
-label(0x8EB7, "logon3")               # NFS07: logon handler 3
+label(0x8F22, "logon3")               # NFS07: logon handler 3
 label(0x8D8B, "print_dir_from_offset") # INFOLP: sub-entry of fsreply_0_print_dir with caller-supplied X offset
 label(0x8D75, "infol2")               # NFS07: info loop 2
 
@@ -3228,7 +3228,7 @@ comment(0x91B6, "→ Y=&16 (main only)", inline=True)
 byte(0x91B7, 1)
 
 # ============================================================
-# Bidirectional block copy (&8EB1)
+# Bidirectional block copy (&8F14)
 # ============================================================
 subroutine(0x8F1C, "copy_param_block", hook=None,
     title="Bidirectional block copy between OSWORD param block and workspace.",
@@ -3247,7 +3247,7 @@ comment(0x8F20, "Loop while X >= 0", inline=True)
 # ============================================================
 # OSWORD handler block comments
 # ============================================================
-label(0x8EB7, "return_copy_param")       # Return from copy_param_block
+label(0x8F22, "return_copy_param")       # Return from copy_param_block
 
 subroutine(0x8EBA, "osword_0f_handler",
     title="OSWORD &0F handler: initiate transmit (CALLTX)",
@@ -3664,10 +3664,10 @@ used as the tail of both discard_reset_listen and discard_listen.""")
 # (possibly ADLC control register values), but their original
 # purpose is unknown.
 comment(0x9F28, "Unreferenced data block (purpose unknown)")
-byte(0x9F5A, 16)
+byte(0x9F28, 16)
 
 # ============================================================
-# Transfer size calculation (&9F6A)
+# Transfer size calculation (&9F38)
 # ============================================================
 subroutine(0x9F38, "tx_calc_transfer", hook=None,
     title="Calculate transfer size",
@@ -3689,6 +3689,15 @@ comment(0x9F51, "Save carry on stack", inline=True)
 comment(0x9F52, "Y=4: start at RXCB offset 4", inline=True)
 comment(0x9F54, "Load RXCB[Y] (current ptr byte)", inline=True)
 comment(0x9F56, "Y += 4: advance to RXCB[Y+4]", inline=True)
+comment(0x9F5A, "Restore borrow from previous byte", inline=True)
+comment(0x9F5B, "Subtract RXCB[Y+4] (start ptr byte)", inline=True)
+comment(0x9F5D, "Store result byte", inline=True)
+comment(0x9F60, "Y -= 3: next source byte", inline=True)
+comment(0x9F63, "Save borrow for next byte", inline=True)
+comment(0x9F64, "Done all 4 bytes?", inline=True)
+comment(0x9F66, "No: next byte pair", inline=True)
+comment(0x9F68, "Discard final borrow", inline=True)
+comment(0x9F69, "A = saved X", inline=True)
 comment(0x9F6A, "Save X", inline=True)
 comment(0x9F6B, "Compute address of RXCB+4", inline=True)
 comment(0x9F70, "X = low byte of RXCB+4", inline=True)
