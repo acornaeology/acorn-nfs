@@ -2875,6 +2875,17 @@ into the NFS handle workspace. The calculation is A*12:
 Validates that the offset is < &48 (max 6 handles × 12 bytes
 per handle entry = 72 bytes). If invalid (>= &48), returns
 with C set and Y=0, A=0 as an error indicator.""")
+comment(0x8DB7, "A = handle * 2", inline=True)
+comment(0x8DB8, "A = handle * 4", inline=True)
+comment(0x8DB9, "Push handle*4 onto stack", inline=True)
+comment(0x8DBA, "A = handle * 8", inline=True)
+comment(0x8DBB, "X = stack pointer", inline=True)
+comment(0x8DBC, "A = handle*8 + handle*4 = handle*12", inline=True)
+comment(0x8DBF, "Y = offset into handle workspace", inline=True)
+comment(0x8DC0, "Clean stack (discard handle*4)", inline=True)
+comment(0x8DC1, "Offset >= &48 (6 handles max)?", inline=True)
+comment(0x8DC3, "No: valid handle, return with C=0", inline=True)
+comment(0x8DC5, "Invalid: Y=0, A=0 error sentinel", inline=True)
 
 label(0x8DC8, "return_calc_handle")      # Return from calc_handle_offset (invalid)
 

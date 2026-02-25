@@ -4608,17 +4608,17 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8db7 referenced 5 times by &82b6, &8dcb, &8de1, &8f01, &8f1a
 .calc_handle_offset
-    asl a                                                             ; 8db7: 0a          .
-    asl a                                                             ; 8db8: 0a          .
-    pha                                                               ; 8db9: 48          H
-    asl a                                                             ; 8dba: 0a          .
-    tsx                                                               ; 8dbb: ba          .
-    adc l0101,x                                                       ; 8dbc: 7d 01 01    }..
-    tay                                                               ; 8dbf: a8          .
-    pla                                                               ; 8dc0: 68          h
-    cmp #&48 ; 'H'                                                    ; 8dc1: c9 48       .H
-    bcc return_calc_handle                                            ; 8dc3: 90 03       ..
-    ldy #0                                                            ; 8dc5: a0 00       ..
+    asl a                                                             ; 8db7: 0a          .              ; A = handle * 2
+    asl a                                                             ; 8db8: 0a          .              ; A = handle * 4
+    pha                                                               ; 8db9: 48          H              ; Push handle*4 onto stack
+    asl a                                                             ; 8dba: 0a          .              ; A = handle * 8
+    tsx                                                               ; 8dbb: ba          .              ; X = stack pointer
+    adc l0101,x                                                       ; 8dbc: 7d 01 01    }..            ; A = handle*8 + handle*4 = handle*12
+    tay                                                               ; 8dbf: a8          .              ; Y = offset into handle workspace
+    pla                                                               ; 8dc0: 68          h              ; Clean stack (discard handle*4)
+    cmp #&48 ; 'H'                                                    ; 8dc1: c9 48       .H             ; Offset >= &48 (6 handles max)?
+    bcc return_calc_handle                                            ; 8dc3: 90 03       ..             ; No: valid handle, return with C=0
+    ldy #0                                                            ; 8dc5: a0 00       ..             ; Invalid: Y=0, A=0 error sentinel
     tya                                                               ; 8dc7: 98          .              ; A=&00
 ; &8dc8 referenced 1 time by &8dc3
 .return_calc_handle
