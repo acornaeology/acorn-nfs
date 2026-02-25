@@ -1517,6 +1517,12 @@ receiving handle values from the fileserver in reply packets.""",
     on_exit={"a": "handle number (&20-&27)",
              "x": "corrupted",
              "y": "preserved"})
+comment(0x85A5, "X = 0 (bit position counter)", inline=True)
+comment(0x85A7, "Count this bit position", inline=True)
+comment(0x85A8, "Shift mask right; C=0 when done", inline=True)
+comment(0x85A9, "Loop until all bits shifted out", inline=True)
+comment(0x85AB, "A = bit position (1-based)", inline=True)
+comment(0x85AC, "Add &1E+C(=0) = &1E; handle=&1F+pos", inline=True)
 
 # ============================================================
 # Print decimal number (&85AF)

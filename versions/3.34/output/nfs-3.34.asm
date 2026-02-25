@@ -2692,14 +2692,14 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &85a5 referenced 2 times by &8980, &8ee6
 .mask_to_handle
-    ldx #0                                                            ; 85a5: a2 00       ..
+    ldx #0                                                            ; 85a5: a2 00       ..             ; X = 0 (bit position counter)
 ; &85a7 referenced 1 time by &85a9
 .fs2al1
-    inx                                                               ; 85a7: e8          .
-    lsr a                                                             ; 85a8: 4a          J
-    bne fs2al1                                                        ; 85a9: d0 fc       ..
-    txa                                                               ; 85ab: 8a          .
-    adc #&1e                                                          ; 85ac: 69 1e       i.
+    inx                                                               ; 85a7: e8          .              ; Count this bit position
+    lsr a                                                             ; 85a8: 4a          J              ; Shift mask right; C=0 when done
+    bne fs2al1                                                        ; 85a9: d0 fc       ..             ; Loop until all bits shifted out
+    txa                                                               ; 85ab: 8a          .              ; A = bit position (1-based)
+    adc #&1e                                                          ; 85ac: 69 1e       i.             ; Add &1E+C(=0) = &1E; handle=&1F+pos
     rts                                                               ; 85ae: 60          `
 
 ; ***************************************************************************************
