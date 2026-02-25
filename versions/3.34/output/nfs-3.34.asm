@@ -1537,32 +1537,32 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &819b referenced 2 times by &8174, &817f
 .match_rom_string
-    ldy nfs_temp                                                      ; 819b: a4 cd       ..
+    ldy nfs_temp                                                      ; 819b: a4 cd       ..             ; Y = saved text pointer offset
 ; &819d referenced 1 time by &81aa
 .loop_c819d
-    lda (os_text_ptr),y                                               ; 819d: b1 f2       ..
-    and #&df                                                          ; 819f: 29 df       ).
-    beq cmd_name_matched                                              ; 81a1: f0 09       ..
-    cmp binary_version,x                                              ; 81a3: dd 08 80    ...
-    bne cmd_name_matched                                              ; 81a6: d0 04       ..
-    iny                                                               ; 81a8: c8          .
-    inx                                                               ; 81a9: e8          .
-    bne loop_c819d                                                    ; 81aa: d0 f1       ..
+    lda (os_text_ptr),y                                               ; 819d: b1 f2       ..             ; Load next input character
+    and #&df                                                          ; 819f: 29 df       ).             ; Force uppercase (clear bit 5)
+    beq cmd_name_matched                                              ; 81a1: f0 09       ..             ; Input char is NUL/space: check ROM byte
+    cmp binary_version,x                                              ; 81a3: dd 08 80    ...            ; Compare with ROM string byte
+    bne cmd_name_matched                                              ; 81a6: d0 04       ..             ; Mismatch: check if ROM string ended
+    iny                                                               ; 81a8: c8          .              ; Advance input pointer
+    inx                                                               ; 81a9: e8          .              ; Advance ROM string pointer
+    bne loop_c819d                                                    ; 81aa: d0 f1       ..             ; Continue matching (always taken)
 ; &81ac referenced 2 times by &81a1, &81a6
 .cmd_name_matched
-    lda binary_version,x                                              ; 81ac: bd 08 80    ...
-    beq skip_cmd_spaces                                               ; 81af: f0 02       ..
-    rts                                                               ; 81b1: 60          `
+    lda binary_version,x                                              ; 81ac: bd 08 80    ...            ; Load ROM string byte at match point
+    beq skip_cmd_spaces                                               ; 81af: f0 02       ..             ; Zero = end of ROM string = full match
+    rts                                                               ; 81b1: 60          `              ; Non-zero = partial/no match; Z=0
 
 ; &81b2 referenced 1 time by &81b7
 .skpspi
-    iny                                                               ; 81b2: c8          .
+    iny                                                               ; 81b2: c8          .              ; Skip this space
 ; &81b3 referenced 1 time by &81af
 .skip_cmd_spaces
-    lda (os_text_ptr),y                                               ; 81b3: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; 81b5: c9 20       .
-    beq skpspi                                                        ; 81b7: f0 f9       ..
-    eor #&0d                                                          ; 81b9: 49 0d       I.
+    lda (os_text_ptr),y                                               ; 81b3: b1 f2       ..             ; Load next input character
+    cmp #&20 ; ' '                                                    ; 81b5: c9 20       .              ; Is it a space?
+    beq skpspi                                                        ; 81b7: f0 f9       ..             ; Yes: keep skipping
+    eor #&0d                                                          ; 81b9: 49 0d       I.             ; XOR with CR: Z=1 if end of line
     rts                                                               ; 81bb: 60          `
 
 ; ***************************************************************************************

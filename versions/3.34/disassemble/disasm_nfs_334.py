@@ -2073,6 +2073,23 @@ at binary_version+X (&8008+X). Input is uppercased via AND &DF.
 Returns with Z=1 if the ROM string's NUL terminator was reached
 (match), or Z=0 if a mismatch was found. On match, Y points
 past the matched text; on return, skips trailing spaces.""")
+comment(0x819B, "Y = saved text pointer offset", inline=True)
+comment(0x819D, "Load next input character", inline=True)
+comment(0x819F, "Force uppercase (clear bit 5)", inline=True)
+comment(0x81A1, "Input char is NUL/space: check ROM byte", inline=True)
+comment(0x81A3, "Compare with ROM string byte", inline=True)
+comment(0x81A6, "Mismatch: check if ROM string ended", inline=True)
+comment(0x81A8, "Advance input pointer", inline=True)
+comment(0x81A9, "Advance ROM string pointer", inline=True)
+comment(0x81AA, "Continue matching (always taken)", inline=True)
+comment(0x81AC, "Load ROM string byte at match point", inline=True)
+comment(0x81AF, "Zero = end of ROM string = full match", inline=True)
+comment(0x81B1, "Non-zero = partial/no match; Z=0", inline=True)
+comment(0x81B2, "Skip this space", inline=True)
+comment(0x81B3, "Load next input character", inline=True)
+comment(0x81B5, "Is it a space?", inline=True)
+comment(0x81B7, "Yes: keep skipping", inline=True)
+comment(0x81B9, "XOR with CR: Z=1 if end of line", inline=True)
 
 # ============================================================
 # Call FSCV shutdown (&81CC)
