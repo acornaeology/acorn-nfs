@@ -426,10 +426,14 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
 # separate "ROFF" entry in the command table.
 comment(0x8011, """\
-The 'ROFF' suffix at &8010 is reused by the *ROFF
+The 'ROFF' suffix at &8014 is reused by the *ROFF
 command matcher (svc_star_command) — a space-saving
 trick that shares ROM bytes between the copyright
 string and the star command table.""")
+
+# ROM header: copyright string and error offset table
+label(0x8011, "copyright_string")
+label(0x8018, "error_offsets")
 
 # Dispatch tables: split low/high byte address tables.
 # In 3.40 the ROM title is 4 bytes longer ("    NET" vs "NET"),
@@ -1016,12 +1020,29 @@ Key ADLC register values:
 # unrecognised service calls or out-of-range values fall through
 # harmlessly.
 
-# ROM header data between copyright string and dispatch table.
-# These 4 bytes (&8020-&8023) are not dispatch entries.
-# &8024 is the table start (dispatch_lo) but is a pad byte —
-# the dispatcher adds Y+1 to X before indexing, so the first
-# handler entry accessed is at &8025.
-for addr in range(0x8020, 0x8025):
+# Error message offset table (9 entries, indices 0-8).
+# Entry 0 is the copyright null at error_offsets.
+# Indexed by TXCB status: AND #7 for codes 0-7, or hardcoded 8.
+# Each value is a Y offset into error_msg_table.
+comment(0x8019, """\
+Error message offsets into error_msg_table, indexed by
+TXCB status (AND #7 for codes 0-7, or hardcoded 8).
+Entry 0 is the copyright null (Y=0 \u2192 "Line Jammed").""")
+for addr in range(0x8019, 0x8021):
+    byte(addr)
+comment(0x8019, '"Net Error"', inline=True)
+comment(0x801A, '"Not listening"', inline=True)
+comment(0x801B, '"No Clock"', inline=True)
+comment(0x801C, '"Escape"', inline=True)
+comment(0x801D, '"Escape"', inline=True)
+comment(0x801E, '"Escape"', inline=True)
+comment(0x801F, '"Bad Option"', inline=True)
+comment(0x8020, '"No reply"', inline=True)
+
+# Unreferenced padding between error offsets and dispatch table.
+# &8024 is the dispatch_lo pad byte — the dispatcher adds Y+1
+# to X before indexing, so entry 0 at &8025 is the first handler.
+for addr in range(0x8021, 0x8025):
     byte(addr)
 
 # Null handler and service call handlers (indices 0-13)

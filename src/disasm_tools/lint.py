@@ -90,6 +90,9 @@ def load_valid_addresses(json_filepath):
     """
     data = json.loads(json_filepath.read_text())
     addresses = {item['addr'] for item in data['items']}
+    for item in data['items']:
+        for addr_str in item.get('sub_labels', {}):
+            addresses.add(int(addr_str))
     for addr in data.get('external_labels', {}).values():
         addresses.add(addr)
     for sub in data.get('subroutines', []):

@@ -1059,13 +1059,24 @@ l8004 = service_entry+1
 ; command matcher (svc_star_command) — a space-saving
 ; trick that shares ROM bytes between the copyright
 ; string and the star command table.
-.l800d
-l8014 = l800d+7
+.copyright_string
+error_offsets = copyright_string+7
     equs "(C)ROFF", 0                                                 ; 800d: 28 43 29... (C)
 ; &8014 referenced 1 time by &84d0
-    equb &0d, &18                                                     ; 8015: 0d 18       ..
-    equs "'1119E"                                                     ; 8017: 27 31 31... '11
-    equb 1, 0, &35                                                    ; 801d: 01 00 35    ..5
+; Error message offsets into error_msg_table, indexed by
+; TXCB status (AND #7 for codes 0-7, or hardcoded 8).
+; Entry 0 is the copyright null (Y=0 → "Line Jammed").
+    equb &0d                                                          ; 8015: 0d          .              ; "Net Error"
+    equb &18                                                          ; 8016: 18          .              ; "Not listening"
+    equb &27                                                          ; 8017: 27          '              ; "No Clock"
+    equb &31                                                          ; 8018: 31          1              ; "Escape"
+    equb &31                                                          ; 8019: 31          1              ; "Escape"
+    equb &31                                                          ; 801a: 31          1              ; "Escape"
+    equb &39                                                          ; 801b: 39          9              ; "Bad Option"
+    equb &45                                                          ; 801c: 45          E              ; "No reply"
+    equb 1                                                            ; 801d: 01          .
+    equb 0                                                            ; 801e: 00          .
+    equb &35                                                          ; 801f: 35          5
 ; Dispatch table: low bytes of (handler_address - 1)
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &80DA.
@@ -2360,7 +2371,7 @@ l8014 = l800d+7
 ; &84cf referenced 1 time by &84c9
 .set_listen_offset
     tax                                                               ; 84cf: aa          .
-    ldy l8014,x                                                       ; 84d0: bc 14 80    ...
+    ldy error_offsets,x                                               ; 84d0: bc 14 80    ...
     ldx #0                                                            ; 84d3: a2 00       ..
     stx l0100                                                         ; 84d5: 8e 00 01    ...
 ; &84d8 referenced 1 time by &84e2
@@ -8615,6 +8626,7 @@ save pydis_start, pydis_end
 ;     entry1:                                   1
 ;     error1:                                   1
 ;     error_msg_table:                          1
+;     error_offsets:                            1
 ;     file1:                                    1
 ;     filev:                                    1
 ;     filev_attrib_dispatch:                    1
@@ -8688,7 +8700,6 @@ save pydis_start, pydis_end
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
-;     l8014:                                    1
 ;     l8be5:                                    1
 ;     l8ef5:                                    1
 ;     l912b:                                    1
@@ -9167,8 +9178,6 @@ save pydis_start, pydis_end
 ;     l8001
 ;     l8002
 ;     l8004
-;     l800d
-;     l8014
 ;     l8374
 ;     l8be5
 ;     l8ef5
@@ -9273,7 +9282,7 @@ save pydis_start, pydis_end
 ;     Data                     = 620 bytes (8%)
 ;
 ;     Number of instructions   = 3652
-;     Number of data bytes     = 392 bytes
+;     Number of data bytes     = 398 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 228 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 222 bytes
+;     Number of strings        = 35

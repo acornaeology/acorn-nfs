@@ -410,6 +410,33 @@ command matcher (svc_star_command) — a space-saving
 trick that shares ROM bytes between the copyright
 string and the star command table.""")
 
+# ROM header: copyright string and error offset table
+label(0x800D, "copyright_string")
+label(0x8014, "error_offsets")
+
+# Error message offset table (9 entries, indices 0-8).
+# Entry 0 is the copyright null at error_offsets.
+# Indexed by TXCB status: AND #7 for codes 0-7, or hardcoded 8.
+# Each value is a Y offset into error_msg_table.
+comment(0x8015, """\
+Error message offsets into error_msg_table, indexed by
+TXCB status (AND #7 for codes 0-7, or hardcoded 8).
+Entry 0 is the copyright null (Y=0 \u2192 "Line Jammed").""")
+for addr in range(0x8015, 0x801D):
+    byte(addr)
+comment(0x8015, '"Net Error"', inline=True)
+comment(0x8016, '"Not listening"', inline=True)
+comment(0x8017, '"No Clock"', inline=True)
+comment(0x8018, '"Bad Txcb"', inline=True)
+comment(0x8019, '"Escape"', inline=True)
+comment(0x801A, '"Escape"', inline=True)
+comment(0x801B, '"Bad Option"', inline=True)
+comment(0x801C, '"No reply"', inline=True)
+
+# Unreferenced padding between error offsets and dispatch table
+for addr in range(0x801D, 0x8020):
+    byte(addr)
+
 # Dispatch tables: split low/high byte address tables
 label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
 label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
