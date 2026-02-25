@@ -1066,7 +1066,7 @@ for addr in range(0x8021, 0x8025):
 comment(0x8021, "Purpose unknown", inline=True)
 comment(0x8022, "Purpose unknown", inline=True)
 comment(0x8023, "Purpose unknown", inline=True)
-comment(0x8024, "Purpose unknown; ignored by dispatcher", inline=True)
+comment(0x8024, "Purpose unknown", inline=True)
 
 # Null handler and service call handlers (indices 0-13)
 for i in range(0, 14):

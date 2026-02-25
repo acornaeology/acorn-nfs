@@ -1044,7 +1044,7 @@ l8004 = service_entry+1
     equb 0                                                            ; 8022: 00          .              ; Purpose unknown
     equb &40                                                          ; 8023: 40          @              ; Purpose unknown
 ; &8024 referenced 1 time by &80f0
-    equb 3                                                            ; 8024: 03          .              ; Purpose unknown; ignored by dispatcher
+    equb 3                                                            ; 8024: 03          .              ; Purpose unknown
 ; Dispatch table: low bytes of (handler_address - 1)
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &80E7.

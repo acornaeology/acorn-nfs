@@ -481,7 +481,7 @@ for addr in range(0x801D, 0x8021):
 comment(0x801D, "Purpose unknown", inline=True)
 comment(0x801E, "Purpose unknown", inline=True)
 comment(0x801F, "Purpose unknown", inline=True)
-comment(0x8020, "Purpose unknown; ignored by dispatcher", inline=True)
+comment(0x8020, "Purpose unknown", inline=True)
 
 # Dispatch tables: split low/high byte address tables
 label(0x8021, "dispatch_0_lo")          # First low byte entry (Svc 0)
