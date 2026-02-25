@@ -1522,6 +1522,25 @@ callers needing carry cleared use handle_to_mask_clc.""",
     on_exit={"a": "preserved",
              "x": "preserved",
              "y": "bitmask (single bit set) or &FF if handle invalid"})
+comment(0x861D, "Save A (will be restored on exit)", inline=True)
+comment(0x861E, "Save X (will be restored on exit)", inline=True)
+comment(0x861F, "  (second half of X save)", inline=True)
+comment(0x8620, "A = handle from Y", inline=True)
+comment(0x8621, "C=0: always convert", inline=True)
+comment(0x8623, "C=1 and Y=0: skip (handle 0 = none)", inline=True)
+comment(0x8625, "C=1 and Y!=0: convert", inline=True)
+comment(0x8626, "A = handle - &1F (1-based bit position)", inline=True)
+comment(0x8628, "X = shift count", inline=True)
+comment(0x8629, "Start with bit 0 set", inline=True)
+comment(0x862B, "Shift bit left", inline=True)
+comment(0x862C, "Count down", inline=True)
+comment(0x862D, "Loop until correct position", inline=True)
+comment(0x862F, "Undo final extra shift", inline=True)
+comment(0x8630, "Y = resulting bitmask", inline=True)
+comment(0x8631, "Non-zero: valid mask, skip to exit", inline=True)
+comment(0x8633, "Zero: invalid handle, set Y=&FF", inline=True)
+comment(0x8634, "Restore X", inline=True)
+comment(0x8636, "Restore A", inline=True)
 
 # ============================================================
 # Mask to handle (&8638)
@@ -1538,6 +1557,11 @@ receiving handle values from the fileserver in reply packets.""",
     on_exit={"a": "handle number (&20-&27)",
              "x": "corrupted",
              "y": "preserved"})
+comment(0x8638, "X = &1F (handle base - 1)", inline=True)
+comment(0x863A, "Count this bit position", inline=True)
+comment(0x863B, "Shift mask right; C=0 when done", inline=True)
+comment(0x863C, "Loop until all bits shifted out", inline=True)
+comment(0x863E, "A = X = &1F + bit position = handle", inline=True)
 
 # ============================================================
 # Print decimal number (&8D7E)
@@ -2091,6 +2115,23 @@ at binary_version+X (&8008+X). Input is uppercased via AND &DF.
 Returns with Z=1 if the ROM string's NUL terminator was reached
 (match), or Z=0 if a mismatch was found. On match, Y points
 past the matched text; on return, skips trailing spaces.""")
+comment(0x81CC, "Y = saved text pointer offset", inline=True)
+comment(0x81CE, "Load next input character", inline=True)
+comment(0x81D0, "Force uppercase (clear bit 5)", inline=True)
+comment(0x81D2, "Input char is NUL/space: check ROM byte", inline=True)
+comment(0x81D4, "Compare with ROM string byte", inline=True)
+comment(0x81D7, "Mismatch: check if ROM string ended", inline=True)
+comment(0x81D9, "Advance input pointer", inline=True)
+comment(0x81DA, "Advance ROM string pointer", inline=True)
+comment(0x81DB, "Continue matching (always taken)", inline=True)
+comment(0x81DD, "Load ROM string byte at match point", inline=True)
+comment(0x81E0, "Zero = end of ROM string = full match", inline=True)
+comment(0x81E2, "Non-zero = partial/no match; Z=0", inline=True)
+comment(0x81E3, "Skip this space", inline=True)
+comment(0x81E4, "Load next input character", inline=True)
+comment(0x81E6, "Is it a space?", inline=True)
+comment(0x81E8, "Yes: keep skipping", inline=True)
+comment(0x81EA, "XOR with CR: Z=1 if end of line", inline=True)
 
 # ============================================================
 # Call FSCV shutdown (&81FE)
@@ -2586,6 +2627,17 @@ Adjusts a 4-byte value in the parameter block at (fs_options)+Y:
   If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X
 Starting offset X=&FC means it reads from &0E06-&0E09 area.
 Used to convert between absolute and relative file positions.""")
+comment(0x89F6, "X=&FC: index into &0E06 area (wraps to 0)", inline=True)
+comment(0x89F8, "Load byte from param block", inline=True)
+comment(0x89FA, "Test sign of adjustment direction", inline=True)
+comment(0x89FC, "Negative: subtract instead", inline=True)
+comment(0x89FE, "Add adjustment value", inline=True)
+comment(0x8A01, "Skip to store result", inline=True)
+comment(0x8A04, "Subtract adjustment value", inline=True)
+comment(0x8A07, "Store adjusted byte back", inline=True)
+comment(0x8A09, "Next param block byte", inline=True)
+comment(0x8A0A, "Next adjustment byte (X wraps &FC->&00)", inline=True)
+comment(0x8A0B, "Loop 4 times (X=&FC,&FD,&FE,&FF,done)", inline=True)
 
 # ============================================================
 # ARGSV handler (&8907)
@@ -2900,6 +2952,13 @@ Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
 to &0F05+X, stopping when a CR (&0D) is encountered. The CR
 itself is also copied. Returns with X pointing past the last
 byte written.""")
+comment(0x8D45, "Start copying from offset 0", inline=True)
+comment(0x8D47, "Load next byte from source string", inline=True)
+comment(0x8D49, "Store to command buffer", inline=True)
+comment(0x8D4C, "Advance write position", inline=True)
+comment(0x8D4D, "Advance read position", inline=True)
+comment(0x8D4E, "XOR with CR: result=0 if byte was CR", inline=True)
+comment(0x8D50, "Loop until CR copied", inline=True)
 
 # ============================================================
 # Print directory name (&8D57)
@@ -2964,6 +3023,18 @@ into the NFS handle workspace. The calculation is A*12:
 Validates that the offset is < &48 (max 6 handles × 12 bytes
 per handle entry = 72 bytes). If invalid (>= &48), returns
 with C set and Y=0, A=0 as an error indicator.""")
+comment(0x8E44, "A = handle * 2", inline=True)
+comment(0x8E45, "A = handle * 4", inline=True)
+comment(0x8E46, "Push handle*4 onto stack", inline=True)
+comment(0x8E47, "A = handle * 8", inline=True)
+comment(0x8E48, "X = stack pointer", inline=True)
+comment(0x8E49, "A = handle*8 + handle*4 = handle*12", inline=True)
+comment(0x8E4C, "Y = offset into handle workspace", inline=True)
+comment(0x8E4D, "Clean up stack (discard handle*4)", inline=True)
+comment(0x8E4E, "Offset >= &48? (6 handles max)", inline=True)
+comment(0x8E50, "Valid: return with C clear", inline=True)
+comment(0x8E52, "Invalid: Y = 0", inline=True)
+comment(0x8E54, "A = 0, C set (error)", inline=True)
 
 label(0x8E55, "return_calc_handle")      # Return from calc_handle_offset (invalid)
 
@@ -3197,6 +3268,14 @@ subroutine(0x8EB1, "copy_param_block", hook=None,
     description="""\
 C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
 C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
+comment(0x8EA9, "C=0: skip param-to-workspace copy", inline=True)
+comment(0x8EAB, "Load byte from param block", inline=True)
+comment(0x8EAD, "Store to workspace", inline=True)
+comment(0x8EAF, "Load byte from workspace", inline=True)
+comment(0x8EB1, "Store to param block (no-op if C=1)", inline=True)
+comment(0x8EB3, "Advance to next byte", inline=True)
+comment(0x8EB4, "Decrement byte counter", inline=True)
+comment(0x8EB5, "Loop while X >= 0", inline=True)
 
 # ============================================================
 # OSWORD handler block comments
@@ -3632,6 +3711,46 @@ frame reception. Subtracts the low pointer (LPTR, offset 4 in
 the RXCB) from the current buffer position to get the byte count,
 and stores it back into the RXCB's high pointer field (HPTR,
 offset 8). This tells the caller how much data was received.""")
+comment(0x9F6A, "Load RXCB[6] (buffer addr byte 2)", inline=True)
+comment(0x9F6F, "AND with RXCB[7] (byte 3)", inline=True)
+comment(0x9F71, "Both &FF = no buffer?", inline=True)
+comment(0x9F73, "Yes: fallback path", inline=True)
+comment(0x9F75, "Transmit in progress?", inline=True)
+comment(0x9F78, "No: fallback path", inline=True)
+comment(0x9F7D, "Set bit 1 (transfer complete)", inline=True)
+comment(0x9F82, "Init borrow for 4-byte subtract", inline=True)
+comment(0x9F83, "Save carry on stack", inline=True)
+comment(0x9F84, "Y=4: start at RXCB offset 4", inline=True)
+comment(0x9F86, "Load RXCB[Y] (current ptr byte)", inline=True)
+comment(0x9F88, "Y += 4: advance to RXCB[Y+4]", inline=True)
+comment(0x9F8C, "Restore borrow from previous byte", inline=True)
+comment(0x9F8D, "Subtract RXCB[Y+4] (start ptr byte)", inline=True)
+comment(0x9F8F, "Store result byte", inline=True)
+comment(0x9F92, "Y -= 3: next source byte", inline=True)
+comment(0x9F95, "Save borrow for next byte", inline=True)
+comment(0x9F96, "Done all 4 bytes?", inline=True)
+comment(0x9F98, "No: next byte pair", inline=True)
+comment(0x9F9A, "Discard final borrow", inline=True)
+comment(0x9F9B, "Save X", inline=True)
+comment(0x9F9D, "Compute address of RXCB+4", inline=True)
+comment(0x9FA2, "X = low byte of RXCB+4", inline=True)
+comment(0x9FA3, "Y = high byte of RXCB ptr", inline=True)
+comment(0x9FA5, "Tube claim type &C2", inline=True)
+comment(0x9FAA, "No Tube: skip reclaim", inline=True)
+comment(0x9FAC, "Tube: reclaim with scout status", inline=True)
+comment(0x9FB2, "C=1: Tube address claimed", inline=True)
+comment(0x9FB3, "Restore X", inline=True)
+comment(0x9FB8, "Load RXCB[4] (current ptr lo)", inline=True)
+comment(0x9FBD, "Subtract RXCB[8] (start ptr lo)", inline=True)
+comment(0x9FBF, "Store transfer size lo", inline=True)
+comment(0x9FC3, "Load RXCB[5] (current ptr hi)", inline=True)
+comment(0x9FC5, "Propagate borrow only", inline=True)
+comment(0x9FC7, "Temp store of adjusted hi byte", inline=True)
+comment(0x9FCB, "Copy RXCB[8] to open port buffer lo", inline=True)
+comment(0x9FD1, "Load RXCB[9]", inline=True)
+comment(0x9FD4, "Subtract adjusted hi byte", inline=True)
+comment(0x9FD6, "Store transfer size hi", inline=True)
+comment(0x9FD8, "Return with C=1", inline=True)
 
 # ============================================================
 # NMI shim at end of ROM (&9FD9-&9FFF)
