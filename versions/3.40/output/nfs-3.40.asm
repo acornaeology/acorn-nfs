@@ -1023,12 +1023,15 @@ l8004 = service_entry+1
 ; trick that shares ROM bytes between the copyright
 ; string and the star command table.
 .copyright_string
-error_offsets = copyright_string+7
-    equs "(C)ROFF", 0                                                 ; 8011: 28 43 29... (C)
+    equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)
+; Error message offset table (9 entries).
+; Each byte is a Y offset into error_msg_table.
+; Entry 0 (Y=0, "Line Jammed") doubles as the
+; copyright string null terminator.
+; Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8018 referenced 1 time by &8500
-; Error message offsets into error_msg_table, indexed by
-; TXCB status (AND #7 for codes 0-7, or hardcoded 8).
-; Entry 0 is the copyright null (Y=0 → "Line Jammed").
+.error_offsets
+    equb 0                                                            ; 8018: 00          .              ; "Line Jammed"
     equb &0d                                                          ; 8019: 0d          .              ; "Net Error"
     equb &18                                                          ; 801a: 18          .              ; "Not listening"
     equb &27                                                          ; 801b: 27          '              ; "No Clock"
@@ -9274,7 +9277,7 @@ save pydis_start, pydis_end
 ;     Data                     = 701 bytes (9%)
 ;
 ;     Number of instructions   = 3607
-;     Number of data bytes     = 457 bytes
+;     Number of data bytes     = 458 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 244 bytes
+;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34

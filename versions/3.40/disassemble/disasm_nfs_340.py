@@ -74,6 +74,16 @@ move(0x0600, 0x9556, 0x100)
 acorn.bbc()
 acorn.is_sideways_rom()
 
+# Split the copyright string classification so the null terminator
+# at &8018 becomes a separate item.  This lets error_offsets have its
+# own label line rather than being expressed as copyright_string+7.
+from py8dis import classification as _cls, disassembly as _disasm
+from py8dis.memorymanager import RuntimeAddr as _RuntimeAddr
+from py8dis.movemanager import r2b as _r2b
+_copyright_bin = _r2b(_RuntimeAddr(0x8011))[0]
+_disasm.classifications[_copyright_bin] = _cls.String(7)       # "(C)ROFF"
+_disasm.classifications[_copyright_bin + 7] = _cls.Byte(1)     # null terminator
+
 # ============================================================
 # Hardware registers
 # ============================================================
@@ -1021,13 +1031,17 @@ Key ADLC register values:
 # harmlessly.
 
 # Error message offset table (9 entries, indices 0-8).
-# Entry 0 is the copyright null at error_offsets.
+# The copyright null terminator doubles as entry 0.
 # Indexed by TXCB status: AND #7 for codes 0-7, or hardcoded 8.
-# Each value is a Y offset into error_msg_table.
-comment(0x8019, """\
-Error message offsets into error_msg_table, indexed by
-TXCB status (AND #7 for codes 0-7, or hardcoded 8).
-Entry 0 is the copyright null (Y=0 \u2192 "Line Jammed").""")
+# Each value is a Y offset into error_msg_table; the code loads
+# error_msg_table,Y to copy the selected error string.
+comment(0x8018, """\
+Error message offset table (9 entries).
+Each byte is a Y offset into error_msg_table.
+Entry 0 (Y=0, "Line Jammed") doubles as the
+copyright string null terminator.
+Indexed by TXCB status (AND #7), or hardcoded 8.""")
+comment(0x8018, '"Line Jammed"', inline=True)
 for addr in range(0x8019, 0x8021):
     byte(addr)
 comment(0x8019, '"Net Error"', inline=True)
