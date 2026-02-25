@@ -49,7 +49,7 @@ now lowercase, an unusual convention for Acorn ROMs.
 
 Entirely new code at &807D-&80B3 adds two capabilities to the `*NET` command:
 
-**Station number syntax:** `*NET 123` or `*NET 123.45` directly sets the
+**Station number syntax:** `*NET 251` or `*NET 3.251` directly sets the
 fileserver station and network numbers (stored at &0E00 and &0E01). In 3.34B,
 changing the fileserver required the `*I AM` command; `*NET` only dispatched
 internal sub-commands (`*NET1` through `*NET4`), which manage file handles for
@@ -59,8 +59,9 @@ requires a space or terminator after `NET`, so typing `*NET1` at the command
 line does not match; the sub-commands are reached only through internal OSCLI calls within the ROM.
 
 The parser at &8088 calls the existing `parse_decimal` routine (at &85FD)
-twice: once for the station number and, if a separator is found, again for
-the network number. It handles both `station` and `station.network` forms.
+twice if a dot separator is present. The first number becomes the network
+(&0E01, via TAX pass-through in parse_decimal) and the second becomes the
+station (&0E00). It handles both `station` and `network.station` forms.
 
 **Colon command continuation:** If a colon (`:`) is found in the command text,
 the code echoes the colon and reads interactive input character by character
@@ -286,6 +287,6 @@ Relocated code block ROM sources (all +&12):
 | Block        | 3.34B  | 3.35D  | Runtime       | Size      |
 |--------------|--------|--------|---------------|-----------|
 | BRK handler  | &9308  | &931A  | &0016-&0076   | 97 bytes  |
-| Page 4       | &934D  | &935F  | &0400-&04FF   | 256 bytes |
-| Page 5       | &944D  | &945F  | &0500-&05FF   | 256 bytes |
-| Page 6       | &954D  | &955F  | &0600-&06FF   | 256 bytes |
+| Tube host (pg 4) | &934D  | &935F  | &0400-&04FF   | 256 bytes |
+| Tube host (pg 5) | &944D  | &945F  | &0500-&05FF   | 256 bytes |
+| Tube host (pg 6) | &954D  | &955F  | &0600-&06FF   | 256 bytes |

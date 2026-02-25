@@ -1266,7 +1266,9 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Language entry dispatcher
 ; 
-; Called when the NFS ROM is entered as a language. X = reason code
+; Called when the NFS ROM is entered as a language. Although rom_type
+; (&82) does not set the language bit, the MOS enters this point
+; after NFS claims service &FE (Tube post-init). X = reason code
 ; (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).
 ; ***************************************************************************************
 ; &8099 referenced 1 time by &8000
@@ -2560,7 +2562,7 @@ l8004 = service_entry+1
 ; 
 ; On Exit:
 ;     A: parsed value (accumulated in &B2)
-;     X: corrupted
+;     X: initial A value (saved by TAX)
 ;     Y: offset past last digit parsed
 ; ***************************************************************************************
 ; &8560 referenced 2 times by &8d0d, &8d13
@@ -4359,11 +4361,12 @@ l8bd7 = fs_cmd_match_table+1
 ; "I AM" command handler
 ; 
 ; Dispatched from the command match table when the user types
-; "*I AM <station>" or "*I AM <station>.<network>".
-; Parses the station number (and optional network number after '.')
-; using skip_spaces and parse_decimal. Stores the results in:
-;   &0E00 = station number (or fileserver station)
-;   &0E01 = network number
+; "*I AM <station>" or "*I AM <network>.<station>".
+; Skips leading spaces via skip_spaces, then calls parse_decimal
+; twice if a dot separator is present. The first number becomes the
+; network (&0E01, via TAX pass-through in parse_decimal) and the
+; second becomes the station (&0E00). With a single number, it is
+; stored as the station and the network defaults to 0 (local).
 ; Then forwards the command to the fileserver via forward_star_cmd.
 ; ***************************************************************************************
 .i_am_handler
@@ -4377,7 +4380,7 @@ l8bd7 = fs_cmd_match_table+1
 ; &8d16 referenced 1 time by &8d10
 .c8d16
     sta fs_server_stn                                                 ; 8d16: 8d 00 0e    ...            ; A=parsed value (accumulated in &B2)
-    stx fs_server_net                                                 ; 8d19: 8e 01 0e    ...            ; X=corrupted
+    stx fs_server_net                                                 ; 8d19: 8e 01 0e    ...            ; X=initial A value (saved by TAX)
 ; &8d1c referenced 1 time by &8d09
 .c8d1c
     jmp forward_star_cmd                                              ; 8d1c: 4c 79 80    Ly.

@@ -410,9 +410,9 @@ Relocated code block ROM sources:
 | Block        | 3.35K  | 3.40   | Runtime       | Size      |
 |--------------|--------|--------|---------------|-----------|
 | BRK handler  | &9315  | &931C  | &0016-&0056   | 65 bytes  |
-| Page 4       | &935A  | &935D  | &0400-&04F8   | 249 bytes |
-| Page 5       | &945A  | &9456  | &0500-&05FF   | 256 bytes |
-| Page 6       | &955A  | &9556  | &0600-&06FF   | 256 bytes |
+| Tube host (pg 4) | &935A  | &935D  | &0400-&04F8   | 249 bytes |
+| Tube host (pg 5) | &945A  | &9456  | &0500-&05FF   | 256 bytes |
+| Tube host (pg 6) | &955A  | &9556  | &0600-&06FF   | 256 bytes |
 
 The BRK handler block shrinks from 69 to 65 bytes (-4). Page 4 shrinks from
 256 to 249 bytes (-7). Pages 5 and 6 remain at 256 bytes each.

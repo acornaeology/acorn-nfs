@@ -1421,7 +1421,7 @@ components (e.g. "1.$.PROG") -- originally stopped on any char
 by dots.""",
     on_entry={"y": "offset into (fs_options) buffer"},
     on_exit={"a": "parsed value (accumulated in &B2)",
-             "x": "corrupted",
+             "x": "initial A value (saved by TAX)",
              "y": "offset past last digit parsed"})
 
 # ============================================================
@@ -1740,7 +1740,9 @@ comment(0x80AE, "RTS pops address, adds 1, jumps to handler", inline=True)
 subroutine(0x8099, hook=None,
     title="Language entry dispatcher",
     description="""\
-Called when the NFS ROM is entered as a language. X = reason code
+Called when the NFS ROM is entered as a language. Although rom_type
+(&82) does not set the language bit, the MOS enters this point
+after NFS claims service &FE (Tube post-init). X = reason code
 (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).""")
 
 comment(0x809D, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
@@ -2717,11 +2719,12 @@ subroutine(0x8D06, "i_am_handler", hook=None,
     title="\"I AM\" command handler",
     description="""\
 Dispatched from the command match table when the user types
-"*I AM <station>" or "*I AM <station>.<network>".
-Parses the station number (and optional network number after '.')
-using skip_spaces and parse_decimal. Stores the results in:
-  &0E00 = station number (or fileserver station)
-  &0E01 = network number
+"*I AM <station>" or "*I AM <network>.<station>".
+Skips leading spaces via skip_spaces, then calls parse_decimal
+twice if a dot separator is present. The first number becomes the
+network (&0E01, via TAX pass-through in parse_decimal) and the
+second becomes the station (&0E00). With a single number, it is
+stored as the station and the network defaults to 0 (local).
 Then forwards the command to the fileserver via forward_star_cmd.""")
 
 # ============================================================

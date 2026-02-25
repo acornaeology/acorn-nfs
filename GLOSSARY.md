@@ -200,6 +200,22 @@ the ADLC when Econet network activity requires immediate attention.
   accordingly. The NMI shim at &0D00 dispatches to version-specific handlers
   in pages 4-6.
 
+**RAM** (Random Access Memory)
+: Main memory. NFS copies relocated code blocks from ROM into RAM pages
+during initialisation for execution at runtime addresses.
+
+**ROM** (Read-Only Memory)
+: In Acorn context, typically refers to a sideways ROM — a 16 KB slot in
+the BBC Micro's paged ROM bank (&8000-&BFFF).
+
+  NFS occupies one 8 KB sideways ROM slot. Up to 16 sideways ROMs can
+  be installed, bank-switched by the MOS.
+
+**sideways ROM**
+: One of up to 16 ROM slots in the BBC Micro, all mapped to the same
+address range (&8000-&BFFF) and bank-switched by the MOS. Only one
+sideways ROM is paged in at a time.
+
 **Tube**
 : Acorn's second-processor interface, connecting the BBC Micro host to
 an external processor via four register pairs (R1-R4) at &FEE0-&FEE7.
@@ -257,17 +273,6 @@ Econet network.
   The related DNFS 3.00/3.60 versions combine NFS with DFS in a single
   ROM.
 
-**RAM** (Random Access Memory)
-: Main memory. NFS copies relocated code blocks from ROM into RAM pages
-during initialisation for execution at runtime addresses.
-
-**ROM** (Read-Only Memory)
-: In Acorn context, typically refers to a sideways ROM — a 16 KB slot in
-the BBC Micro's paged ROM bank (&8000-&BFFF).
-
-  NFS occupies one 8 KB sideways ROM slot. Up to 16 sideways ROMs can
-  be installed, bank-switched by the MOS.
-
 ## Networking
 
 **CR** (Carriage Return)
@@ -307,8 +312,3 @@ ROM's service entry point with a service number in the accumulator.
   ROMs inspect the number and either handle the call (claiming it by
   zeroing A) or pass it on. NFS handles service calls for filing system
   selection, command dispatch, and Econet events.
-
-**sideways ROM**
-: One of up to 16 ROM slots in the BBC Micro, all mapped to the same
-address range (&8000-&BFFF) and bank-switched by the MOS. Only one
-sideways ROM is paged in at a time.

@@ -1219,11 +1219,13 @@ l8004 = service_entry+1
 ; "I AM" command handler
 ; 
 ; Dispatched from the command match table when the user types
-; "*I AM <station>" or "*I AM <station>.<network>". Also used as
-; the station number parser for "*NET <station>[.<network>]".
-; Skips leading spaces, then parses a decimal station number (and
-; optional network number after '.') via parse_decimal. Stores
-; the results in &0E00 (station) and &0E01 (network). If a colon
+; "*I AM <station>" or "*I AM <network>.<station>". Also used as
+; the station number parser for "*NET <network>.<station>".
+; Skips leading spaces, then calls parse_decimal twice if a dot
+; separator is present. The first number becomes the network
+; (&0E01, via TAX pass-through in parse_decimal) and the second
+; becomes the station (&0E00). With a single number, it is stored
+; as the station and the network defaults to 0 (local). If a colon
 ; follows, reads interactive input via OSRDCH and appends it to
 ; the command buffer. Finally jumps to forward_star_cmd.
 ; ***************************************************************************************
@@ -1241,7 +1243,7 @@ l8004 = service_entry+1
 ; &8093 referenced 1 time by &808d
 .c8093
     sta fs_server_stn                                                 ; 8093: 8d 00 0e    ...            ; A=parsed value (accumulated in &B2)
-    stx fs_server_net                                                 ; 8096: 8e 01 0e    ...            ; X=corrupted
+    stx fs_server_net                                                 ; 8096: 8e 01 0e    ...            ; X=initial A value (saved by TAX)
 ; &8099 referenced 2 times by &8086, &80a2
 .c8099
     iny                                                               ; 8099: c8          .
@@ -1315,7 +1317,9 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Language entry dispatcher
 ; 
-; Called when the NFS ROM is entered as a language. X = reason code
+; Called when the NFS ROM is entered as a language. Although rom_type
+; (&82) does not set the language bit, the MOS enters this point
+; after NFS claims service &FE (Tube post-init). X = reason code
 ; (0-4). Dispatches via table indices 14-18 (base offset Y=&0D).
 ; ***************************************************************************************
 ; &80d4 referenced 1 time by &8000
@@ -2704,7 +2708,7 @@ l8004 = service_entry+1
 ; 
 ; On Exit:
 ;     A: parsed value (accumulated in &B2)
-;     X: corrupted
+;     X: initial A value (saved by TAX)
 ;     Y: offset past last digit parsed
 ; ***************************************************************************************
 ; &85f3 referenced 2 times by &808a, &8090

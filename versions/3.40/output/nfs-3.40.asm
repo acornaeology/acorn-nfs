@@ -1187,11 +1187,13 @@ l8004 = service_entry+1
 ; "I AM" command handler
 ; 
 ; Dispatched from the command match table when the user types
-; "*I AM <station>" or "*I AM <station>.<network>". Also used as
-; the station number parser for "*NET <station>[.<network>]".
-; Skips leading spaces, then parses a decimal station number (and
-; optional network number after '.') via parse_decimal. Stores
-; the results in &0E00 (station) and &0E01 (network). If a colon
+; "*I AM <station>" or "*I AM <network>.<station>". Also used as
+; the station number parser for "*NET <network>.<station>".
+; Skips leading spaces, then calls parse_decimal twice if a dot
+; separator is present. The first number becomes the network
+; (&0E01, via TAX pass-through in parse_decimal) and the second
+; becomes the station (&0E00). With a single number, it is stored
+; as the station and the network defaults to 0 (local). If a colon
 ; follows, reads interactive input via OSRDCH and appends it to
 ; the command buffer. Finally jumps to forward_star_cmd.
 ; ***************************************************************************************
@@ -1289,7 +1291,9 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Language entry dispatcher
 ; 
-; Called when the NFS ROM is entered as a language. X = reason code
+; Called when the NFS ROM is entered as a language. Although rom_type
+; (&82) does not set the language bit, the MOS enters this point
+; after NFS claims service &FE (Tube post-init). X = reason code
 ; (0-4). Dispatches via table indices 15-19 (base offset Y=&0E).
 ; ***************************************************************************************
 ; &80e1 referenced 1 time by &8000
@@ -2665,7 +2669,7 @@ l8004 = service_entry+1
 ; 
 ; On Exit:
 ;     A: parsed value (accumulated in &B2)
-;     X: corrupted
+;     X: initial A value (saved by TAX)
 ;     Y: offset past last digit parsed
 ; ***************************************************************************************
 ; &861d referenced 1 time by &8615
