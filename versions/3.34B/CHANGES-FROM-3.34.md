@@ -40,7 +40,7 @@ as an inline string printed by the `*HELP` handler.
 
 ### 1. Version string: "3.34" to "3.34B"
 
-The ROM identification string printed by `*HELP` (at &81C4 in 3.34) changed
+The ROM identification string printed by `*HELP` (at &81BF in 3.34) changed
 from "3.34" to "3.34B". This inserts one byte ("B") into the ROM image,
 shifting all subsequent addresses by +1.
 
