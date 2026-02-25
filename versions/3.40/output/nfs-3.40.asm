@@ -1056,8 +1056,8 @@ l8004 = service_entry+1
 ;   Y=&21  *NET1-4 sub-commands     (indices 33-36)
 ; 
 ; Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049,
-; immediately before the hi bytes. Their hi bytes are read from
-; dispatch_net_cmd code bytes at &8069+.
+; immediately before the hi bytes. Their hi bytes are at
+; &8069-&806E, after the main dispatch_hi table.
 ; &8024 referenced 1 time by &80f0
 .dispatch_lo
     equb 3                                                            ; 8024: 03          .
@@ -1068,7 +1068,7 @@ l8004 = service_entry+1
     equb <(sub_c81b1-1)                                               ; 8029: b0          .              ; Svc 4: unrecognised star command
     equb <(svc_unknown_irq-1)                                         ; 802a: 6b          k              ; Svc 5: unrecognised interrupt
     equb <(return_1-1)                                                ; 802b: f5          .              ; Svc 6: BRK (no-op)
-    equb <(sub_c806f-1)                                               ; 802c: 6e          n              ; Svc 7: unrecognised OSBYTE
+    equb <(dispatch_net_cmd-1)                                        ; 802c: 6e          n              ; Svc 7: unrecognised OSBYTE
     equb <(osword_fs_entry-1)                                         ; 802d: 7e          ~              ; Svc 8: unrecognised OSWORD
     equb <(svc_help-1)                                                ; 802e: 03          .              ; Svc 9: *HELP
     equb <(return_1-1)                                                ; 802f: f5          .              ; Svc 10: static workspace (no-op)
@@ -1092,17 +1092,17 @@ l8004 = service_entry+1
     equb <(copy_handles_and_boot-1)                                   ; 8041: 29          )              ; FS reply: copy handles + boot
     equb <(copy_handles-1)                                            ; 8042: 2a          *              ; FS reply: copy handles
     equb <(set_csd_handle-1)                                          ; 8043: 23          #              ; FS reply: set CSD handle
-    equb &d4                                                          ; 8044: d4          .
-    equb &1e                                                          ; 8045: 1e          .
-    equb &58                                                          ; 8046: 58          X
-    equb &5e                                                          ; 8047: 5e          ^
-    equb &6e                                                          ; 8048: 6e          n
+    equb <(sub_c8dd5-1)                                               ; 8044: d4          .              ; FS reply: notify + execute
+    equb <(set_lib_handle-1)                                          ; 8045: 1e          .              ; FS reply: set library handle
+    equb <(net1_read_handle-1)                                        ; 8046: 58          X              ; *NET1: read handle from packet
+    equb <(net2_read_handle_entry-1)                                  ; 8047: 5e          ^              ; *NET2: read handle from workspace
+    equb <(net3_close_handle-1)                                       ; 8048: 6e          n              ; *NET3: close handle
 ; Dispatch table: high bytes of (handler_address - 1)
 ; Paired with dispatch_lo (&8024). Together they form a table of
 ; 37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
 ; &8049 referenced 1 time by &80ec
 .dispatch_hi
-    equb &b7                                                          ; 8049: b7          .
+    equb <(resume_after_remote-1)                                     ; 8049: b7          .              ; *NET4: resume remote
     equb >(return_1-1)                                                ; 804a: 80          .
     equb >(svc_abs_workspace-1)                                       ; 804b: 82          .
     equb >(svc_private_workspace-1)                                   ; 804c: 82          .
@@ -1110,7 +1110,7 @@ l8004 = service_entry+1
     equb >(sub_c81b1-1)                                               ; 804e: 81          .
     equb >(svc_unknown_irq-1)                                         ; 804f: 96          .
     equb >(return_1-1)                                                ; 8050: 80          .
-    equb >(sub_c806f-1)                                               ; 8051: 80          .
+    equb >(dispatch_net_cmd-1)                                        ; 8051: 80          .
     equb >(osword_fs_entry-1)                                         ; 8052: 8e          .
     equb >(svc_help-1)                                                ; 8053: 82          .
     equb >(return_1-1)                                                ; 8054: 80          .
@@ -1134,21 +1134,25 @@ l8004 = service_entry+1
     equb >(copy_handles_and_boot-1)                                   ; 8066: 8e          .
     equb >(copy_handles-1)                                            ; 8067: 8e          .
     equb >(set_csd_handle-1)                                          ; 8068: 8e          .
+    equb >(sub_c8dd5-1)                                               ; 8069: 8d          .
+    equb >(set_lib_handle-1)                                          ; 806a: 8e          .
+    equb >(net1_read_handle-1)                                        ; 806b: 8e          .
+    equb >(net2_read_handle_entry-1)                                  ; 806c: 8e          .
+    equb >(net3_close_handle-1)                                       ; 806d: 8e          .
+    equb >(resume_after_remote-1)                                     ; 806e: 81          .
 
 ; ***************************************************************************************
 ; *NET command dispatcher
 ; 
 ; Parses the character after *NET as '1'-'4', maps to table
-; indices 35-38 via base offset Y=&21, and dispatches via &80E7.
+; indices 33-36 via base offset Y=&21, and dispatches via &80E7.
 ; Characters outside '1'-'4' fall through to return_1 (RTS).
 ; 
 ; These are internal sub-commands used only by the ROM itself,
 ; not user-accessible star commands. The MOS command parser
 ; requires a space or terminator after 'NET', so *NET1 typed
 ; at the command line does not match; these are reached only
-; via OSCLI calls within the ROM. The "hi bytes" for these
-; dispatch entries are read from the code bytes of this very
-; routine — a space-saving trick.
+; via OSCLI calls within the ROM.
 ; 
 ; *NET1 (&8E59): read file handle from received
 ; packet (net1_read_handle)
@@ -1163,10 +1167,7 @@ l8004 = service_entry+1
 ; (resume_after_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
-    sta c8e8e                                                         ; 8069: 8d 8e 8e    ...            ; Read command character following *NET
-    stx l818e                                                         ; 806c: 8e 8e 81    ...
-.sub_c806f
-    lda l00ef                                                         ; 806f: a5 ef       ..
+    lda l00ef                                                         ; 806f: a5 ef       ..             ; Read command character following *NET
     sbc #&31 ; '1'                                                    ; 8071: e9 31       .1             ; Subtract ASCII '1' to get 0-based command index
     cmp #4                                                            ; 8073: c9 04       ..
     bcs c80e3                                                         ; 8075: b0 6c       .l
@@ -1174,7 +1175,7 @@ l8004 = service_entry+1
     lda #0                                                            ; 8078: a9 00       ..
     sta l00a9                                                         ; 807a: 85 a9       ..
     tya                                                               ; 807c: 98          .
-    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 35+)
+    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 33+)
     bne dispatch                                                      ; 807f: d0 66       .f             ; ALWAYS branch
 
 ; &8081 referenced 1 time by &8086
@@ -1435,9 +1436,7 @@ l8004 = service_entry+1
     cmp #&0d                                                          ; 818b: c9 0d       ..
 ; &818d referenced 1 time by &811d
 .c818d
-l818e = c818d+1
     bcs return_2                                                      ; 818d: b0 1c       ..
-; &818e referenced 1 time by &806c
 ; &818f referenced 1 time by &8189
 .c818f
     tax                                                               ; 818f: aa          .
@@ -4542,6 +4541,7 @@ l8c06 = fs_cmd_match_table+1
 .sub_c8dcf
     jsr parse_filename_gs                                             ; 8dcf: 20 e1 86     ..
     jsr infol2                                                        ; 8dd2: 20 75 8d     u.
+.sub_c8dd5
     ldy #0                                                            ; 8dd5: a0 00       ..
     clc                                                               ; 8dd7: 18          .
     jsr gsinit                                                        ; 8dd8: 20 c2 ff     ..
@@ -4771,12 +4771,12 @@ l8c06 = fs_cmd_match_table+1
     bcs return_7                                                      ; 8e87: b0 26       .&
     jsr fs_osword_dispatch                                            ; 8e89: 20 97 8e     ..
     ldy #2                                                            ; 8e8c: a0 02       ..
-; &8e8e referenced 2 times by &8069, &8e94
-.c8e8e
+; &8e8e referenced 1 time by &8e94
+.loop_c8e8e
     lda (net_rx_ptr),y                                                ; 8e8e: b1 9c       ..
     sta l00aa,y                                                       ; 8e90: 99 aa 00    ...
     dey                                                               ; 8e93: 88          .
-    bpl c8e8e                                                         ; 8e94: 10 f8       ..
+    bpl loop_c8e8e                                                    ; 8e94: 10 f8       ..
     rts                                                               ; 8e96: 60          `
 
 ; ***************************************************************************************
@@ -7937,6 +7937,7 @@ l9eaf = sub_c9eae+1
     assert <(cat_handler-1) == &20
     assert <(copy_handles-1) == &2a
     assert <(copy_handles_and_boot-1) == &29
+    assert <(dispatch_net_cmd-1) == &6e
     assert <(econet_tx_rx-1) == &e7
     assert <(eof_handler-1) == &68
     assert <(execute_at_0100-1) == &c7
@@ -7945,6 +7946,9 @@ l9eaf = sub_c9eae+1
     assert <(fscv_star_handler-1) == &d6
     assert <(insert_remote_key-1) == &e7
     assert <(l0128) == &28
+    assert <(net1_read_handle-1) == &58
+    assert <(net2_read_handle_entry-1) == &5e
+    assert <(net3_close_handle-1) == &6e
     assert <(osword_0f_handler-1) == &b9
     assert <(osword_10_handler-1) == &73
     assert <(osword_11_handler-1) == &d3
@@ -7955,6 +7959,7 @@ l9eaf = sub_c9eae+1
     assert <(remote_cmd_dispatch-1) == &dd
     assert <(remote_print_handler-1) == &de
     assert <(remote_validated-1) == &d7
+    assert <(resume_after_remote-1) == &b7
     assert <(return_1-1) == &f5
     assert <(rx_imm_exec-1) == &94
     assert <(rx_imm_machine_type-1) == &bd
@@ -7963,10 +7968,11 @@ l9eaf = sub_c9eae+1
     assert <(save_palette_vdu-1) == &a5
     assert <(select_nfs-1) == &ec
     assert <(set_csd_handle-1) == &23
-    assert <(sub_c806f-1) == &6e
+    assert <(set_lib_handle-1) == &1e
     assert <(sub_c81b1-1) == &b0
     assert <(sub_c89e8-1) == &e7
     assert <(sub_c8dcf-1) == &ce
+    assert <(sub_c8dd5-1) == &d4
     assert <(sub_c8ef9-1) == &f8
     assert <(sub_c90ac-1) == &ab
     assert <(sub_c9148-1) == &47
@@ -7991,6 +7997,7 @@ l9eaf = sub_c9eae+1
     assert >(cat_handler-1) == &8c
     assert >(copy_handles-1) == &8e
     assert >(copy_handles_and_boot-1) == &8e
+    assert >(dispatch_net_cmd-1) == &80
     assert >(econet_tx_rx-1) == &8f
     assert >(eof_handler-1) == &88
     assert >(execute_at_0100-1) == &84
@@ -7999,6 +8006,9 @@ l9eaf = sub_c9eae+1
     assert >(fscv_star_handler-1) == &8b
     assert >(insert_remote_key-1) == &84
     assert >(l0128) == &01
+    assert >(net1_read_handle-1) == &8e
+    assert >(net2_read_handle_entry-1) == &8e
+    assert >(net3_close_handle-1) == &8e
     assert >(osword_0f_handler-1) == &8e
     assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
@@ -8009,6 +8019,7 @@ l9eaf = sub_c9eae+1
     assert >(remote_cmd_dispatch-1) == &90
     assert >(remote_print_handler-1) == &91
     assert >(remote_validated-1) == &84
+    assert >(resume_after_remote-1) == &81
     assert >(return_1-1) == &80
     assert >(rx_imm_exec-1) == &9a
     assert >(rx_imm_machine_type-1) == &9a
@@ -8017,10 +8028,11 @@ l9eaf = sub_c9eae+1
     assert >(save_palette_vdu-1) == &92
     assert >(select_nfs-1) == &81
     assert >(set_csd_handle-1) == &8e
-    assert >(sub_c806f-1) == &80
+    assert >(set_lib_handle-1) == &8e
     assert >(sub_c81b1-1) == &81
     assert >(sub_c89e8-1) == &89
     assert >(sub_c8dcf-1) == &8d
+    assert >(sub_c8dd5-1) == &8d
     assert >(sub_c8ef9-1) == &8e
     assert >(sub_c90ac-1) == &90
     assert >(sub_c9148-1) == &91
@@ -8256,7 +8268,6 @@ save pydis_start, pydis_end
 ;     c8e1c:                                    2
 ;     c8e27:                                    2
 ;     c8e6c:                                    2
-;     c8e8e:                                    2
 ;     c8fc9:                                    2
 ;     c96b7:                                    2
 ;     c97f7:                                    2
@@ -8648,7 +8659,6 @@ save pydis_start, pydis_end
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
-;     l818e:                                    1
 ;     l8c06:                                    1
 ;     l8d1c:                                    1
 ;     l8eb0:                                    1
@@ -8719,6 +8729,7 @@ save pydis_start, pydis_end
 ;     loop_c8ce8:                               1
 ;     loop_c8dc3:                               1
 ;     loop_c8ddb:                               1
+;     loop_c8e8e:                               1
 ;     loop_c8f35:                               1
 ;     loop_c8f4f:                               1
 ;     loop_c8fb4:                               1
@@ -8973,7 +8984,6 @@ save pydis_start, pydis_end
 ;     c8e27
 ;     c8e35
 ;     c8e6c
-;     c8e8e
 ;     c8f09
 ;     c8f14
 ;     c8f1a
@@ -9154,7 +9164,6 @@ save pydis_start, pydis_end
 ;     l8001
 ;     l8002
 ;     l8004
-;     l818e
 ;     l83af
 ;     l8c06
 ;     l8d08
@@ -9220,6 +9229,7 @@ save pydis_start, pydis_end
 ;     loop_c8ce8
 ;     loop_c8dc3
 ;     loop_c8ddb
+;     loop_c8e8e
 ;     loop_c8f35
 ;     loop_c8f4f
 ;     loop_c8fb4
@@ -9244,7 +9254,6 @@ save pydis_start, pydis_end
 ;     sub_c0414
 ;     sub_c04c4
 ;     sub_c04cb
-;     sub_c806f
 ;     sub_c81b1
 ;     sub_c8383
 ;     sub_c854d
@@ -9255,6 +9264,7 @@ save pydis_start, pydis_end
 ;     sub_c89e8
 ;     sub_c8d92
 ;     sub_c8dcf
+;     sub_c8dd5
 ;     sub_c8e45
 ;     sub_c8ef9
 ;     sub_c9072
@@ -9273,11 +9283,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7491 bytes (91%)
-;     Data                     = 701 bytes (9%)
+;     Code                     = 7485 bytes (91%)
+;     Data                     = 707 bytes (9%)
 ;
-;     Number of instructions   = 3607
-;     Number of data bytes     = 458 bytes
+;     Number of instructions   = 3605
+;     Number of data bytes     = 464 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34

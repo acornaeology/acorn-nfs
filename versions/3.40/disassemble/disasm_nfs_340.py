@@ -511,7 +511,7 @@ label(0x069E, "tube_send_r4")       # Poll R4 status, write A to R4 data (WRIFOR
 #   svc 4  → index 5  → svc_star_command (&8168)
 #   svc 5  → index 6  → svc_unknown_irq (&966C) → JMP c9b52
 #   svc 6  → index 7  → return_2 (BRK — no action)
-#   svc 7  → index 8  → dispatch_net_cmd (&8069) (unrecognised OSBYTE)
+#   svc 7  → index 8  → dispatch_net_cmd (&806F) (unrecognised OSBYTE)
 #   svc 8  → index 9  → fs_osword_dispatch (&8E76) (unrecognised OSWORD)
 #   svc 9  → index 10 → svc_help (&81ED)
 #   svc 10 → index 11 → return_2 (no action)
@@ -568,11 +568,11 @@ entry(0x9663)
 #   index 31 → notify_and_exec (&8DC5)       (send FS notify, execute response)
 #   index 32 → set_lib_handle (&8E15)        (update library handle)
 #
-# *NET sub-commands (base Y=&21, indices 35-38):
-#   *NET1 → index 35 → net1_read_handle (&8E59)
-#   *NET2 → index 36 → net2_read_handle_entry (&8E5F)
-#   *NET3 → index 37 → net3_close_handle (&8E6F)
-#   *NET4 → index 38 → resume_after_remote (&81B8)
+# *NET sub-commands (base Y=&21, indices 33-36):
+#   *NET1 → index 33 → net1_read_handle (&8E59)
+#   *NET2 → index 34 → net2_read_handle_entry (&8E5F)
+#   *NET3 → index 35 → net3_close_handle (&8E6F)
+#   *NET4 → index 36 → resume_after_remote (&81B8)
 # --- Filing system vector entry points ---
 # Extended vector table entries set up at init (&831F):
 #   FILEV → &86DE    ARGSV → &8907    BGETV → &852E
@@ -1024,7 +1024,8 @@ Key ADLC register values:
 #
 # The lo and hi sub-tables overlap: lo bytes for the last 6
 # entries (i=31-36) fall at &8044-&8049 (the start of the hi area),
-# and hi bytes for i=31-36 are read from dispatch_net_cmd code.
+# and hi bytes for i=31-36 are at &8069-&806E (between the main
+# dispatch_hi table and dispatch_net_cmd at &806F).
 #
 # Index 0 and unused indices point to an RTS (null handler), so
 # unrecognised service calls or out-of-range values fall through
@@ -1077,15 +1078,17 @@ for i in range(19, 27):
 for i in range(27, 31):
     rts_code_ptr(0x8025 + i, 0x804A + i)
 
-# Entries 31-36: hi bytes overlap with dispatch_net_cmd code (&8069+),
-# so we can't use rts_code_ptr (it would mark code bytes as data).
-# Mark the lo bytes as data and add entry points manually.
-# i=31-32: FS reply handlers -> &8DD5 (notify+exec), &8E1F (set_lib_handle)
-# i=33-36: *NET1-4 -> &8E59, &8E5F, &8E6F, &81B8
-for addr in range(0x8044, 0x804A):
-    byte(addr)
-for target in [0x8DD5, 0x8E1F, 0x8E59, 0x8E5F, 0x8E6F, 0x81B8]:
-    entry(target)
+# Entries 31-36: overlap zone. Lo bytes are at &8044-&8049 (start
+# of dispatch_hi area), hi bytes are at &8069-&806E (between the
+# main dispatch_hi table and dispatch_net_cmd at &806F).
+for i in range(31, 37):
+    rts_code_ptr(0x8025 + i, 0x804A + i)
+comment(0x8044, "FS reply: notify + execute", inline=True)
+comment(0x8045, "FS reply: set library handle", inline=True)
+comment(0x8046, "*NET1: read handle from packet", inline=True)
+comment(0x8047, "*NET2: read handle from workspace", inline=True)
+comment(0x8048, "*NET3: close handle", inline=True)
+comment(0x8049, "*NET4: resume remote", inline=True)
 
 # ============================================================
 # Filing system OSWORD dispatch table at &8EB0/&8EB5
@@ -1709,8 +1712,8 @@ Five callers share this table via different Y base offsets:
   Y=&21  *NET1-4 sub-commands     (indices 33-36)
 
 Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049,
-immediately before the hi bytes. Their hi bytes are read from
-dispatch_net_cmd code bytes at &8069+.""")
+immediately before the hi bytes. Their hi bytes are at
+&8069-&806E, after the main dispatch_hi table.""")
 
 comment(0x8049, """\
 Dispatch table: high bytes of (handler_address - 1)
@@ -1758,22 +1761,20 @@ comment(0x8042, "FS reply: copy handles", inline=True)
 comment(0x8043, "FS reply: set CSD handle", inline=True)
 
 # ============================================================
-# *NET command dispatch (&8069)
+# *NET command dispatch (&806F)
 # ============================================================
-subroutine(0x8069, "dispatch_net_cmd", hook=None,
+subroutine(0x806F, "dispatch_net_cmd", hook=None,
     title="*NET command dispatcher",
     description="""\
 Parses the character after *NET as '1'-'4', maps to table
-indices 35-38 via base offset Y=&21, and dispatches via &80E7.
+indices 33-36 via base offset Y=&21, and dispatches via &80E7.
 Characters outside '1'-'4' fall through to return_1 (RTS).
 
 These are internal sub-commands used only by the ROM itself,
 not user-accessible star commands. The MOS command parser
 requires a space or terminator after 'NET', so *NET1 typed
 at the command line does not match; these are reached only
-via OSCLI calls within the ROM. The "hi bytes" for these
-dispatch entries are read from the code bytes of this very
-routine — a space-saving trick.
+via OSCLI calls within the ROM.
 
 *NET1 (&8E59): read file handle from received
 packet (net1_read_handle)
@@ -1787,9 +1788,9 @@ packet (net1_read_handle)
 *NET4 (&81B8): resume after remote operation
 (resume_after_remote)""")
 
-comment(0x8069, "Read command character following *NET", inline=True)
+comment(0x806F, "Read command character following *NET", inline=True)
 comment(0x8071, "Subtract ASCII '1' to get 0-based command index", inline=True)
-comment(0x807D, "Y=&21: base offset for *NET commands (index 35+)", inline=True)
+comment(0x807D, "Y=&21: base offset for *NET commands (index 33+)", inline=True)
 
 # ============================================================
 # PHA/PHA/RTS dispatcher (&80DA)
