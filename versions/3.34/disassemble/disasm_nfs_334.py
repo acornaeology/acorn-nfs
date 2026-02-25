@@ -411,12 +411,12 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # ROM header: copyright string doubles as *ROFF command text
 # The copyright string "(C)ROFF" serves double duty: the MOS requires
 # a valid (C) marker for ROM recognition, and the "ROFF" suffix is
-# reused by the star command matcher (svc_star_command) as the command
+# reused by the star command matcher (svc_4_star_command) as the command
 # text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
 # separate "ROFF" entry in the command table.
 comment(0x800D, """\
 The 'ROFF' suffix at &8010 is reused by the *ROFF
-command matcher (svc_star_command) — a space-saving
+command matcher (svc_4_star_command) — a space-saving
 trick that shares ROM bytes between the copyright
 string and the star command table.""")
 
@@ -511,18 +511,18 @@ label(0x06D9, "tube_send_r4")       # Poll R4 status, write A to R4 data (WRIFOR
 # ============================================================
 # Service call numbers and their dispatch table indices:
 #   svc 0  → index 1  → return_2 (no-op)
-#   svc 1  → index 2  → svc_abs_workspace (&826F)
-#   svc 2  → index 3  → svc_private_workspace (&8278)
-#   svc 3  → index 4  → svc_autoboot (&81D1)
-#   svc 4  → index 5  → svc_star_command (&8172)
-#   svc 5  → index 6  → svc_unknown_irq (&966C) → JMP c9b52
+#   svc 1  → index 2  → svc_1_abs_workspace (&826F)
+#   svc 2  → index 3  → svc_2_private_workspace (&8278)
+#   svc 3  → index 4  → svc_3_autoboot (&81D1)
+#   svc 4  → index 5  → svc_4_star_command (&8172)
+#   svc 5  → index 6  → svc_5_unknown_irq (&966C) → JMP c9b52
 #   svc 6  → index 7  → return_2 (BRK — no action)
 #   svc 7  → index 8  → dispatch_net_cmd (&8069) (unrecognised OSBYTE)
-#   svc 8  → index 9  → fs_osword_dispatch (&8DF7) (unrecognised OSWORD)
-#   svc 9  → index 10 → svc_help (&81BC)
+#   svc 8  → index 9  → svc_8_osword (&8DF7) (unrecognised OSWORD)
+#   svc 9  → index 10 → svc_9_help (&81BC)
 #   svc 10 → index 11 → return_2 (no action)
-#   svc 11 → index 12 → svc_nmi_claim (&9669) → JMP restore_econet_state
-#   svc 12 → index 13 → svc_nmi_release (&9666) → JMP save_econet_state
+#   svc 11 → index 12 → svc_11_nmi_claim (&9669) → JMP restore_econet_state
+#   svc 12 → index 13 → svc_12_nmi_release (&9666) → JMP save_econet_state
 #
 # Special service handling (outside dispatch table):
 #   svc &12 (18) with Y=5 → select_nfs (&8184)
@@ -538,9 +538,9 @@ label(0x8275, "return_3")
 # --- Trampoline JMPs near ADLC init (&9660-&966C) ---
 label(0x9660, "trampoline_tx_setup")    # JMP c9be4 (TX control block setup)
 label(0x9663, "trampoline_adlc_init")   # JMP adlc_init (&966F)
-label(0x9666, "svc_nmi_release")        # Svc 12: JMP save_econet_state (&969D)
-label(0x9669, "svc_nmi_claim")          # Svc 11: JMP restore_econet_state (&96B4)
-label(0x966C, "svc_unknown_irq")        # Svc 5: JMP c9b52 (unknown interrupt handler)
+label(0x9666, "svc_12_nmi_release")        # Svc 12: JMP save_econet_state (&969D)
+label(0x9669, "svc_11_nmi_claim")          # Svc 11: JMP restore_econet_state (&96B4)
+label(0x966C, "svc_5_unknown_irq")        # Svc 5: JMP c9b52 (unknown interrupt handler)
 entry(0x9660)
 entry(0x9663)
 
@@ -549,29 +549,29 @@ label(0x824D, "fs_vector_addrs")        # FS vector dispatch and handler address
 
 # --- FSCV handler and dispatch ---
 # FSCV (&808C) dispatches via secondary indices 19-26:
-#   FSCV 0 (*OPT)               → index 19 → opt_handler (&89A1)
-#   FSCV 1 (EOF)                → index 20 → eof_handler (&881F)
-#   FSCV 2 (*/ run)             → index 21 → fscv_star_handler (match known FS commands)
-#   FSCV 3 (unrecognised *)     → index 22 → fscv_star_handler (match known FS commands)
-#   FSCV 4 (*RUN)               → index 23 → fscv_star_handler (match known FS commands)
-#   FSCV 5 (*CAT)               → index 24 → cat_handler (&8BFD)
-#   FSCV 6 (shut down)          → index 25 → fscv_shutdown (&82FD)
-#   FSCV 7 (read handles/info)  → index 26 → fscv_read_handles (&85DA)
+#   FSCV 0 (*OPT)               → index 19 → fscv_0_opt (&89A1)
+#   FSCV 1 (EOF)                → index 20 → fscv_1_eof (&881F)
+#   FSCV 2 (*/ run)             → index 21 → fscv_3_star_cmd (match known FS commands)
+#   FSCV 3 (unrecognised *)     → index 22 → fscv_3_star_cmd (match known FS commands)
+#   FSCV 4 (*RUN)               → index 23 → fscv_3_star_cmd (match known FS commands)
+#   FSCV 5 (*CAT)               → index 24 → fscv_5_cat (&8BFD)
+#   FSCV 6 (shut down)          → index 25 → fscv_6_shutdown (&82FD)
+#   FSCV 7 (read handles/info)  → index 26 → fscv_7_read_handles (&85DA)
 #
 # Extended dispatch table entries (indices 27-36):
 # These appear to be used by FS reply processing and *NET sub-commands.
-#   index 27 → print_dir_name (&8D73)        (print directory path)
-#   index 28 → copy_handles_and_boot (&8D1F) (copy handles + run boot command)
-#   index 29 → copy_handles (&8D20)          (copy handles only)
-#   index 30 → set_csd_handle (&8CFC)        (update CSD handle)
-#   index 31 → notify_and_exec (&8D84)       (send FS notify, execute response)
-#   index 32 → set_lib_handle (&8CF7)        (update library handle)
+#   index 27 → fsreply_0_print_dir (&8D73)        (print directory path)
+#   index 28 → fsreply_1_copy_handles_boot (&8D1F) (copy handles + run boot command)
+#   index 29 → fsreply_2_copy_handles (&8D20)          (copy handles only)
+#   index 30 → fsreply_3_set_csd (&8CFC)        (update CSD handle)
+#   index 31 → fsreply_4_notify_exec (&8D84)       (send FS notify, execute response)
+#   index 32 → fsreply_5_set_lib (&8CF7)        (update library handle)
 #
 # *NET sub-commands (base Y=&20, indices 33-36):
-#   *NET1 → index 33 → net1_read_handle (&8DAF)
-#   *NET2 → index 34 → net2_read_handle_entry (&8DC9)
-#   *NET3 → index 35 → net3_close_handle (&8DDF)
-#   *NET4 → index 36 → net4_resume_remote (&8DF2)
+#   *NET1 → index 33 → net_1_read_handle (&8DAF)
+#   *NET2 → index 34 → net_2_read_handle_entry (&8DC9)
+#   *NET3 → index 35 → net_3_close_handle (&8DDF)
+#   *NET4 → index 36 → net_4_resume_remote (&8DF2)
 # --- Filing system vector entry points ---
 # Extended vector table entries set up at init (&82E5):
 #   FILEV → &8694    ARGSV → &88E1    BGETV → &8485
@@ -663,8 +663,8 @@ label(0x85F6, "print_hex_nibble")       # Print low nibble of A as hex digit
 label(0x85D9, "return_compare")          # Return from compare_addresses (not equal)
 
 # --- FSCV 7: read FS handles ---
-label(0x85DA, "fscv_read_handles")      # Return X=&20 (base handle), Y=&27 (top handle)
-label(0x85DE, "return_fscv_handles")    # Return from fscv_read_handles
+label(0x85DA, "fscv_7_read_handles")      # Return X=&20 (base handle), Y=&27 (top handle)
+label(0x85DE, "return_fscv_handles")    # Return from fscv_7_read_handles
 
 # --- FS flags manipulation ---
 
@@ -712,7 +712,7 @@ label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 # ============================================================
 # *-Command handlers and FSCV dispatch (&8B92-&8DFF)
 # ============================================================
-# FSCV 2/3/4 (unrecognised *) routes through fscv_star_handler
+# FSCV 2/3/4 (unrecognised *) routes through fscv_3_star_cmd
 # which matches against known FS commands before forwarding.
 # The *CAT/*EX handlers display directory listings.
 # *NET1-4 sub-commands manage file handles in local workspace.
@@ -725,7 +725,7 @@ label(0x8B8A, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 label(0x8D51, "print_reply_counted")   # STRIN1: sub-entry of print_reply_bytes with caller-supplied Y count
 label(0x8D67, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
 label(0x8D72, "return_copy_string")   # Return from copy_string_to_cmd
-label(0x8D75, "print_dir_from_offset") # INFOLP: sub-entry of print_dir_name with caller-supplied X offset
+label(0x8D75, "print_dir_from_offset") # INFOLP: sub-entry of fsreply_0_print_dir with caller-supplied X offset
 
 # --- *NET sub-command handlers ---
 
@@ -1042,8 +1042,8 @@ for i in range(33, 37):
 # ============================================================
 # Filing system OSWORD dispatch table at &8E18/&8E1D
 # ============================================================
-# Used by the PHA/PHA/RTS dispatch at &8E01 (entered from osword_fs_entry).
-# osword_fs_entry subtracts &0F from the command code in &EF, giving a
+# Used by the PHA/PHA/RTS dispatch at &8E01 (entered from svc_8_osword).
+# svc_8_osword subtracts &0F from the command code in &EF, giving a
 # 0-4 index for OSWORD calls &0F-&13 (15-19).
 #
 # Index  OSWORD  Target   Purpose
@@ -1687,16 +1687,16 @@ at the command line does not match; these are reached only
 via OSCLI calls within the ROM.
 
 *NET1 (&8DAF): read file handle from received
-packet (net1_read_handle)
+packet (net_1_read_handle)
 
 *NET2 (&8DC9): read handle entry from workspace
-(net2_read_handle_entry)
+(net_2_read_handle_entry)
 
 *NET3 (&8DDF): close handle / mark as unused
-(net3_close_handle)
+(net_3_close_handle)
 
 *NET4 (&8DF2): resume after remote operation
-(net4_resume_remote)""")
+(net_4_resume_remote)""")
 
 comment(0x8069, "Read command character following *NET", inline=True)
 comment(0x806B, "Subtract ASCII '1' to get 0-based command index", inline=True)
@@ -1912,7 +1912,7 @@ comment(0x826E, "FSCV handler hi", inline=True)
 # ============================================================
 # Service 1: claim absolute workspace (&826F)
 # ============================================================
-subroutine(0x826F, "svc_abs_workspace", hook=None,
+subroutine(0x826F, "svc_1_abs_workspace", hook=None,
     title="Service 1: claim absolute workspace",
     description="""\
 Claims pages up to &10 for NMI workspace (&0D), FS state (&0E),
@@ -1922,7 +1922,7 @@ allocated — returns unchanged.""")
 # ============================================================
 # Service 2: claim private workspace (&8278)
 # ============================================================
-subroutine(0x8278, "svc_private_workspace", hook=None,
+subroutine(0x8278, "svc_2_private_workspace", hook=None,
     title="Service 2: claim private workspace and initialise NFS",
     description="""\
 Y = next available workspace page on entry.
@@ -1948,7 +1948,7 @@ comment(0x82C9, "Initialise ADLC hardware", inline=True)
 # ============================================================
 # Service 3: auto-boot (&81D1)
 # ============================================================
-subroutine(0x81D1, "svc_autoboot", hook=None,
+subroutine(0x81D1, "svc_3_autoboot", hook=None,
     title="Service 3: auto-boot",
     description="""\
 Notifies current FS of shutdown via FSCV A=6. Scans keyboard
@@ -1963,7 +1963,7 @@ to set up NFS vectors (selecting NFS as the filing system).""")
 # ============================================================
 # Service 4: unrecognised * command (&8172)
 # ============================================================
-subroutine(0x8172, "svc_star_command", hook=None,
+subroutine(0x8172, "svc_4_star_command", hook=None,
     title="Service 4: unrecognised * command",
     description="""\
 Matches the command text against ROM string table entries.
@@ -1982,7 +1982,7 @@ unclaimed.""")
 # ============================================================
 # Service 9: *HELP (&81BC)
 # ============================================================
-subroutine(0x81BC, "svc_help", hook=None,
+subroutine(0x81BC, "svc_9_help", hook=None,
     title="Service 9: *HELP",
     description="""\
 Prints the ROM identification string using print_inline.""")
@@ -2037,7 +2037,7 @@ as the NETV handler.""")
 # ============================================================
 # FSCV shutdown: save FS state (&82FD)
 # ============================================================
-subroutine(0x82FD, "fscv_shutdown", hook=None,
+subroutine(0x82FD, "fscv_6_shutdown", hook=None,
     title="FSCV 6: Filing system shutdown / save state (FSDIE)",
     description="""\
 Called when another filing system (e.g. DFS) is selected. Saves
@@ -2380,7 +2380,7 @@ transferred. Handles address overflow and Tube co-processor
 transfers. For SAVE, WORK+8 holds the port on which to receive
 byte-level ACKs for each data block (flow control).""")
 
-subroutine(0x881F, "eof_handler", hook=None,
+subroutine(0x881F, "fscv_1_eof", hook=None,
     title="FSCV 1: EOF handler",
     description="""\
 Checks whether a file handle has reached end-of-file. Converts
@@ -2417,7 +2417,7 @@ fs_last_byte_flag (&BD), X from fs_options (&BB), and Y from
 fs_block_offset (&BC) — the values saved at entry by
 save_fscv_args — and returns to the caller.""")
 
-subroutine(0x89A1, "opt_handler", hook=None,
+subroutine(0x89A1, "fscv_0_opt", hook=None,
     title="FSCV 0: *OPT handler (OPTION)",
     description="""\
 Handles *OPT X,Y to set filing system options:
@@ -2554,7 +2554,7 @@ Dispatched from the command match table at &8BD6 for "BYE".""")
 # ============================================================
 # FSCV unrecognised * handler (&8B92)
 # ============================================================
-subroutine(0x8B92, "fscv_star_handler", hook=None,
+subroutine(0x8B92, "fscv_3_star_cmd", hook=None,
     title="FSCV 2/3/4: unrecognised * command handler (DECODE)",
     description="""\
 CLI parser originally by Sophie Wilson (co-designer of ARM). Matches command text against the table
@@ -2596,10 +2596,10 @@ subroutine(0x8BF2, "ex_handler", hook=None,
     title="*EX handler (extended catalogue)",
     description="""\
 Sets column width &B6=&50 (80 columns, one file per line with
-full details) and &B7=&01, then branches into cat_handler at
-&8C07, bypassing cat_handler's default 20-column setup.""")
+full details) and &B7=&01, then branches into fscv_5_cat at
+&8C07, bypassing fscv_5_cat's default 20-column setup.""")
 
-subroutine(0x8BFD, "cat_handler", hook=None,
+subroutine(0x8BFD, "fscv_5_cat", hook=None,
     title="*CAT handler (directory catalogue)",
     description="""\
 Sets column width &B6=&14 (20 columns, four files per 80-column
@@ -2644,13 +2644,13 @@ bytes serve double duty as both executable code and ASCII text.""")
 # ============================================================
 # Handle workspace management (&8CF7-&8CFF)
 # ============================================================
-subroutine(0x8CF7, "set_lib_handle", hook=None,
+subroutine(0x8CF7, "fsreply_5_set_lib", hook=None,
     title="Set library handle",
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
 Falls through to c8cff (JMP c892c) if Y is non-zero.""")
 
-subroutine(0x8CFC, "set_csd_handle", hook=None,
+subroutine(0x8CFC, "fsreply_3_set_csd", hook=None,
     title="Set CSD handle",
     description="""\
 Stores Y into &0E03 (current selected directory handle).
@@ -2688,7 +2688,7 @@ Then forwards the command to the fileserver via forward_star_cmd.""")
 # ============================================================
 # Copy handles and boot (&8D1F / &8D20)
 # ============================================================
-subroutine(0x8D1F, "copy_handles_and_boot", hook=None,
+subroutine(0x8D1F, "fsreply_1_copy_handles_boot", hook=None,
     title="Copy FS reply handles to workspace and execute boot command",
     description="""\
 SEC entry (LOGIN): copies 4 bytes from &0F05-&0F08 (FS reply) to
@@ -2700,7 +2700,7 @@ share the handle-copying code, but only LOGIN executes the boot
 command. This use of the carry flag to select behaviour between
 two callers avoids duplicating the handle-copy loop.""")
 
-subroutine(0x8D20, "copy_handles", hook=None,
+subroutine(0x8D20, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
 CLC entry (SDISC): copies handles only, then jumps to c8cff.
@@ -2715,7 +2715,7 @@ subroutine(0x8D3A, "option_name_strings", hook=None,
     description="""\
 Null-terminated strings for the four boot option names:
   "Off", "Load", "Run", "Exec"
-Used by cat_handler to display the current boot option setting.""")
+Used by fscv_5_cat to display the current boot option setting.""")
 
 subroutine(0x8D4B, "option_name_offsets", hook=None,
     title="Option name offsets",
@@ -2731,12 +2731,12 @@ subroutine(0x8D4F, "print_reply_bytes", hook=None,
     description="""\
 Prints Y characters from the FS reply buffer (&0F05+X) to
 the screen via OSASCI. X = starting offset, Y = count.
-Used by cat_handler to display directory and library names.""")
+Used by fscv_5_cat to display directory and library names.""")
 
 subroutine(0x8D5C, "print_spaces", hook=None,
     title="Print spaces",
     description="""\
-Prints X space characters via print_space. Used by cat_handler
+Prints X space characters via print_space. Used by fscv_5_cat
 to align columns in the directory listing.""")
 
 # ============================================================
@@ -2760,18 +2760,18 @@ byte written.""")
 # ============================================================
 # Print directory name (&8D73)
 # ============================================================
-subroutine(0x8D73, "print_dir_name", hook=None,
+subroutine(0x8D73, "fsreply_0_print_dir", hook=None,
     title="Print directory name from reply buffer",
     description="""\
 Prints characters from the FS reply buffer (&0F05+X onwards).
 Null bytes (&00) are replaced with CR (&0D) for display.
 Stops when a byte with bit 7 set is encountered (high-bit
-terminator). Used by cat_handler to display Dir. and Lib. paths.""")
+terminator). Used by fscv_5_cat to display Dir. and Lib. paths.""")
 
 # ============================================================
 # Notify and execute (&8D84)
 # ============================================================
-subroutine(0x8D84, "notify_and_exec", hook=None,
+subroutine(0x8D84, "fsreply_4_notify_exec", hook=None,
     title="Send FS load-as-command and execute response",
     description="""\
 Sets up an FS command with function code &05 (FCCMND: load as
@@ -2783,7 +2783,7 @@ indirect pointer at (&0F09) to execute at the load address.""")
 # ============================================================
 # *NET sub-command handlers (&8DAF-&8DF5)
 # ============================================================
-subroutine(0x8DAF, "net1_read_handle", hook=None,
+subroutine(0x8DAF, "net_1_read_handle", hook=None,
     title="*NET1: read file handle from received packet",
     description="""\
 Reads a file handle byte from offset &6F in the RX buffer
@@ -2803,7 +2803,7 @@ with C set and Y=0, A=0 as an error indicator.""")
 
 label(0x8DC8, "return_calc_handle")      # Return from calc_handle_offset (invalid)
 
-subroutine(0x8DC9, "net2_read_handle_entry", hook=None,
+subroutine(0x8DC9, "net_2_read_handle_entry", hook=None,
     title="*NET2: read handle entry from workspace",
     description="""\
 Looks up the handle in &F0 via calc_handle_offset. If the
@@ -2811,7 +2811,7 @@ workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
 Clears rom_svc_num on exit.""")
 
-subroutine(0x8DDF, "net3_close_handle", hook=None,
+subroutine(0x8DDF, "net_3_close_handle", hook=None,
     title="*NET3: close handle (mark as unused)",
     description="""\
 Looks up the handle in &F0 via calc_handle_offset. Writes
@@ -2819,7 +2819,7 @@ Looks up the handle in &F0 via calc_handle_offset. Writes
 workspace. Preserves the carry flag state across the write
 using ROL/ROR on rx_status_flags. Clears rom_svc_num on exit.""")
 
-subroutine(0x8DF2, "net4_resume_remote", hook=None,
+subroutine(0x8DF2, "net_4_resume_remote", hook=None,
     title="*NET4: resume after remote operation",
     description="""\
 Calls resume_after_remote (&8146) to re-enable the keyboard
@@ -2831,7 +2831,7 @@ returns with V clear (from CLV in prepare_cmd_clv).""")
 # ============================================================
 # Filing system OSWORD dispatch (&8DF7 / &8E01)
 # ============================================================
-subroutine(0x8DF7, "osword_fs_entry", hook=None,
+subroutine(0x8DF7, "svc_8_osword", hook=None,
     title="Filing system OSWORD entry",
     description="""\
 Subtracts &0F from the command code in &EF, giving a 0-4 index
@@ -3115,21 +3115,21 @@ being read or opened.""",
 # ============================================================
 # Remote operation handlers (&90FC / &912A / &913A / &914A)
 # ============================================================
-subroutine(0x90FC, "remote_boot_handler", hook=None,
+subroutine(0x90FC, "lang_1_remote_boot", hook=None,
     title="Remote boot/execute handler",
     description="""\
 Validates byte 4 of the RX control block (must be zero), copies the
 2-byte execution address from RX offsets &80/&81 into NFS workspace,
 sets up a control block, disables keyboard (OSBYTE &C9), then falls
-through to execute_at_0100.""")
+through to lang_3_execute_at_0100.""")
 
-subroutine(0x912A, "execute_at_0100", hook=None,
+subroutine(0x912A, "lang_3_execute_at_0100", hook=None,
     title="Execute downloaded code at &0100",
     description="""\
 Zeroes &0100-&0102 (safe BRK default), restores the protection mask,
 and JMP &0100 to execute code received over the network.""")
 
-subroutine(0x913A, "remote_validated", hook=None,
+subroutine(0x913A, "lang_4_remote_validated", hook=None,
     title="Remote operation with source validation (REMOT)",
     description="""\
 Validates that the source station/network in the received packet
@@ -3146,7 +3146,7 @@ Bit 0 of the status byte disallows further remote takeover
 attempts (preventing re-entrant remote control), while bit 3
 marks the machine as currently remoted.""")
 
-subroutine(0x914A, "insert_remote_key", hook=None,
+subroutine(0x914A, "lang_0_insert_remote_key", hook=None,
     title="Insert remote keypress",
     description="""\
 Reads a character from RX block offset &82 and inserts it into
@@ -3352,7 +3352,7 @@ of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 # OSBYTE code table for VDU state save (&9304)
 # ============================================================
 label(0x9304, "osbyte_vdu_table")
-comment(0x9304, "3-entry OSBYTE table for save_palette_vdu (&9291)")
+comment(0x9304, "3-entry OSBYTE table for lang_2_save_palette_vdu (&9291)")
 byte(0x9304, 1)
 comment(0x9304, "OSBYTE &85: read cursor position", inline=True)
 byte(0x9305, 1)
@@ -3382,7 +3382,7 @@ Entry point XMITFY allows a custom delay in Y.""")
 # ============================================================
 # Save palette and VDU state (&9291)
 # ============================================================
-subroutine(0x9291, "save_palette_vdu", hook=None,
+subroutine(0x9291, "lang_2_save_palette_vdu", hook=None,
     title="Save palette and VDU state (CVIEW)",
     description="""\
 Part of the VIEW facility (second iteration, started 27/7/82).

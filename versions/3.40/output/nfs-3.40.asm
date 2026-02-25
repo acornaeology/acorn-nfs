@@ -1062,84 +1062,84 @@ l8004 = service_entry+1
 .dispatch_lo
     equb 3                                                            ; 8024: 03          .              ; Purpose unknown; ignored by dispatcher
     equb <(return_1-1)                                                ; 8025: f5          .              ; Svc 0: already claimed (no-op)
-    equb <(svc_abs_workspace-1)                                       ; 8026: b7          .              ; Svc 1: absolute workspace
-    equb <(svc_private_workspace-1)                                   ; 8027: c0          .              ; Svc 2: private workspace
-    equb <(svc_autoboot-1)                                            ; 8028: 18          .              ; Svc 3: auto-boot
-    equb <(sub_c81b1-1)                                               ; 8029: b0          .              ; Svc 4: unrecognised star command
-    equb <(svc_unknown_irq-1)                                         ; 802a: 6b          k              ; Svc 5: unrecognised interrupt
+    equb <(svc_1_abs_workspace-1)                                     ; 8026: b7          .              ; Svc 1: absolute workspace
+    equb <(svc_2_private_workspace-1)                                 ; 8027: c0          .              ; Svc 2: private workspace
+    equb <(svc_3_autoboot-1)                                          ; 8028: 18          .              ; Svc 3: auto-boot
+    equb <(svc_4_star_command-1)                                      ; 8029: b0          .              ; Svc 4: unrecognised star command
+    equb <(svc_5_unknown_irq-1)                                       ; 802a: 6b          k              ; Svc 5: unrecognised interrupt
     equb <(return_1-1)                                                ; 802b: f5          .              ; Svc 6: BRK (no-op)
     equb <(dispatch_net_cmd-1)                                        ; 802c: 6e          n              ; Svc 7: unrecognised OSBYTE
-    equb <(osword_fs_entry-1)                                         ; 802d: 7e          ~              ; Svc 8: unrecognised OSWORD
-    equb <(svc_help-1)                                                ; 802e: 03          .              ; Svc 9: *HELP
+    equb <(svc_8_osword-1)                                            ; 802d: 7e          ~              ; Svc 8: unrecognised OSWORD
+    equb <(svc_9_help-1)                                              ; 802e: 03          .              ; Svc 9: *HELP
     equb <(return_1-1)                                                ; 802f: f5          .              ; Svc 10: static workspace (no-op)
-    equb <(svc_nmi_claim-1)                                           ; 8030: 68          h              ; Svc 11: NMI release (reclaim NMIs)
-    equb <(svc_nmi_release-1)                                         ; 8031: 65          e              ; Svc 12: NMI claim (save NMI state)
-    equb <(select_nfs-1)                                              ; 8032: ec          .              ; Svc 13: select NFS (intercepted before dispatch)
-    equb <(insert_remote_key-1)                                       ; 8033: e7          .              ; Lang 0: no language / Tube
-    equb <(remote_boot_handler-1)                                     ; 8034: 99          .              ; Lang 1: normal startup
-    equb <(save_palette_vdu-1)                                        ; 8035: a5          .              ; Lang 2: softkey byte (Electron)
-    equb <(execute_at_0100-1)                                         ; 8036: c7          .              ; Lang 3: softkey length (Electron)
-    equb <(remote_validated-1)                                        ; 8037: d7          .              ; Lang 4: remote validated
-    equb <(sub_c89e8-1)                                               ; 8038: e7          .              ; FSCV 0: *OPT
-    equb <(eof_handler-1)                                             ; 8039: 68          h              ; FSCV 1: EOF check
-    equb <(sub_c8dcf-1)                                               ; 803a: ce          .              ; FSCV 2: */ (run)
-    equb <(fscv_star_handler-1)                                       ; 803b: d6          .              ; FSCV 3: unrecognised star command
-    equb <(sub_c8dcf-1)                                               ; 803c: ce          .              ; FSCV 4: *RUN
-    equb <(cat_handler-1)                                             ; 803d: 20                         ; FSCV 5: *CAT
-    equb <(fscv_shutdown-1)                                           ; 803e: 4c          L              ; FSCV 6: shutdown
-    equb <(fscv_read_handles-1)                                       ; 803f: 73          s              ; FSCV 7: read handle range
-    equb <(print_dir_name-1)                                          ; 8040: 88          .              ; FS reply: print directory name
-    equb <(copy_handles_and_boot-1)                                   ; 8041: 29          )              ; FS reply: copy handles + boot
-    equb <(copy_handles-1)                                            ; 8042: 2a          *              ; FS reply: copy handles
-    equb <(set_csd_handle-1)                                          ; 8043: 23          #              ; FS reply: set CSD handle
-    equb <(sub_c8dd5-1)                                               ; 8044: d4          .              ; FS reply: notify + execute
-    equb <(set_lib_handle-1)                                          ; 8045: 1e          .              ; FS reply: set library handle
-    equb <(net1_read_handle-1)                                        ; 8046: 58          X              ; *NET1: read handle from packet
-    equb <(net2_read_handle_entry-1)                                  ; 8047: 5e          ^              ; *NET2: read handle from workspace
-    equb <(net3_close_handle-1)                                       ; 8048: 6e          n              ; *NET3: close handle
+    equb <(svc_11_nmi_claim-1)                                        ; 8030: 68          h              ; Svc 11: NMI release (reclaim NMIs)
+    equb <(svc_12_nmi_release-1)                                      ; 8031: 65          e              ; Svc 12: NMI claim (save NMI state)
+    equb <(svc_13_select_nfs-1)                                       ; 8032: ec          .              ; Svc 13: select NFS (intercepted before dispatch)
+    equb <(lang_0_insert_remote_key-1)                                ; 8033: e7          .              ; Lang 0: no language / Tube
+    equb <(lang_1_remote_boot-1)                                      ; 8034: 99          .              ; Lang 1: normal startup
+    equb <(lang_2_save_palette_vdu-1)                                 ; 8035: a5          .              ; Lang 2: softkey byte (Electron)
+    equb <(lang_3_execute_at_0100-1)                                  ; 8036: c7          .              ; Lang 3: softkey length (Electron)
+    equb <(lang_4_remote_validated-1)                                 ; 8037: d7          .              ; Lang 4: remote validated
+    equb <(fscv_0_opt_entry-1)                                        ; 8038: e7          .              ; FSCV 0: *OPT
+    equb <(fscv_1_eof-1)                                              ; 8039: 68          h              ; FSCV 1: EOF check
+    equb <(fscv_2_star_run-1)                                         ; 803a: ce          .              ; FSCV 2: */ (run)
+    equb <(fscv_3_star_cmd-1)                                         ; 803b: d6          .              ; FSCV 3: unrecognised star command
+    equb <(fscv_2_star_run-1)                                         ; 803c: ce          .              ; FSCV 4: *RUN
+    equb <(fscv_5_cat-1)                                              ; 803d: 20                         ; FSCV 5: *CAT
+    equb <(fscv_6_shutdown-1)                                         ; 803e: 4c          L              ; FSCV 6: shutdown
+    equb <(fscv_7_read_handles-1)                                     ; 803f: 73          s              ; FSCV 7: read handle range
+    equb <(fsreply_0_print_dir-1)                                     ; 8040: 88          .              ; FS reply: print directory name
+    equb <(fsreply_1_copy_handles_boot-1)                             ; 8041: 29          )              ; FS reply: copy handles + boot
+    equb <(fsreply_2_copy_handles-1)                                  ; 8042: 2a          *              ; FS reply: copy handles
+    equb <(fsreply_3_set_csd-1)                                       ; 8043: 23          #              ; FS reply: set CSD handle
+    equb <(fsreply_4_notify_exec-1)                                   ; 8044: d4          .              ; FS reply: notify + execute
+    equb <(fsreply_5_set_lib-1)                                       ; 8045: 1e          .              ; FS reply: set library handle
+    equb <(net_1_read_handle-1)                                       ; 8046: 58          X              ; *NET1: read handle from packet
+    equb <(net_2_read_handle_entry-1)                                 ; 8047: 5e          ^              ; *NET2: read handle from workspace
+    equb <(net_3_close_handle-1)                                      ; 8048: 6e          n              ; *NET3: close handle
 ; Dispatch table: high bytes of (handler_address - 1)
 ; Paired with dispatch_lo (&8024). Together they form a table of
 ; 37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
 ; &8049 referenced 1 time by &80ec
 .dispatch_hi
-    equb <(resume_after_remote-1)                                     ; 8049: b7          .              ; *NET4: resume remote
+    equb <(net_4_resume_remote-1)                                     ; 8049: b7          .              ; *NET4: resume remote
     equb >(return_1-1)                                                ; 804a: 80          .
-    equb >(svc_abs_workspace-1)                                       ; 804b: 82          .
-    equb >(svc_private_workspace-1)                                   ; 804c: 82          .
-    equb >(svc_autoboot-1)                                            ; 804d: 82          .
-    equb >(sub_c81b1-1)                                               ; 804e: 81          .
-    equb >(svc_unknown_irq-1)                                         ; 804f: 96          .
+    equb >(svc_1_abs_workspace-1)                                     ; 804b: 82          .
+    equb >(svc_2_private_workspace-1)                                 ; 804c: 82          .
+    equb >(svc_3_autoboot-1)                                          ; 804d: 82          .
+    equb >(svc_4_star_command-1)                                      ; 804e: 81          .
+    equb >(svc_5_unknown_irq-1)                                       ; 804f: 96          .
     equb >(return_1-1)                                                ; 8050: 80          .
     equb >(dispatch_net_cmd-1)                                        ; 8051: 80          .
-    equb >(osword_fs_entry-1)                                         ; 8052: 8e          .
-    equb >(svc_help-1)                                                ; 8053: 82          .
+    equb >(svc_8_osword-1)                                            ; 8052: 8e          .
+    equb >(svc_9_help-1)                                              ; 8053: 82          .
     equb >(return_1-1)                                                ; 8054: 80          .
-    equb >(svc_nmi_claim-1)                                           ; 8055: 96          .
-    equb >(svc_nmi_release-1)                                         ; 8056: 96          .
-    equb >(select_nfs-1)                                              ; 8057: 81          .
-    equb >(insert_remote_key-1)                                       ; 8058: 84          .
-    equb >(remote_boot_handler-1)                                     ; 8059: 84          .
-    equb >(save_palette_vdu-1)                                        ; 805a: 92          .
-    equb >(execute_at_0100-1)                                         ; 805b: 84          .
-    equb >(remote_validated-1)                                        ; 805c: 84          .
-    equb >(sub_c89e8-1)                                               ; 805d: 89          .
-    equb >(eof_handler-1)                                             ; 805e: 88          .
-    equb >(sub_c8dcf-1)                                               ; 805f: 8d          .
-    equb >(fscv_star_handler-1)                                       ; 8060: 8b          .
-    equb >(sub_c8dcf-1)                                               ; 8061: 8d          .
-    equb >(cat_handler-1)                                             ; 8062: 8c          .
-    equb >(fscv_shutdown-1)                                           ; 8063: 83          .
-    equb >(fscv_read_handles-1)                                       ; 8064: 86          .
-    equb >(print_dir_name-1)                                          ; 8065: 8d          .
-    equb >(copy_handles_and_boot-1)                                   ; 8066: 8e          .
-    equb >(copy_handles-1)                                            ; 8067: 8e          .
-    equb >(set_csd_handle-1)                                          ; 8068: 8e          .
-    equb >(sub_c8dd5-1)                                               ; 8069: 8d          .
-    equb >(set_lib_handle-1)                                          ; 806a: 8e          .
-    equb >(net1_read_handle-1)                                        ; 806b: 8e          .
-    equb >(net2_read_handle_entry-1)                                  ; 806c: 8e          .
-    equb >(net3_close_handle-1)                                       ; 806d: 8e          .
-    equb >(resume_after_remote-1)                                     ; 806e: 81          .
+    equb >(svc_11_nmi_claim-1)                                        ; 8055: 96          .
+    equb >(svc_12_nmi_release-1)                                      ; 8056: 96          .
+    equb >(svc_13_select_nfs-1)                                       ; 8057: 81          .
+    equb >(lang_0_insert_remote_key-1)                                ; 8058: 84          .
+    equb >(lang_1_remote_boot-1)                                      ; 8059: 84          .
+    equb >(lang_2_save_palette_vdu-1)                                 ; 805a: 92          .
+    equb >(lang_3_execute_at_0100-1)                                  ; 805b: 84          .
+    equb >(lang_4_remote_validated-1)                                 ; 805c: 84          .
+    equb >(fscv_0_opt_entry-1)                                        ; 805d: 89          .
+    equb >(fscv_1_eof-1)                                              ; 805e: 88          .
+    equb >(fscv_2_star_run-1)                                         ; 805f: 8d          .
+    equb >(fscv_3_star_cmd-1)                                         ; 8060: 8b          .
+    equb >(fscv_2_star_run-1)                                         ; 8061: 8d          .
+    equb >(fscv_5_cat-1)                                              ; 8062: 8c          .
+    equb >(fscv_6_shutdown-1)                                         ; 8063: 83          .
+    equb >(fscv_7_read_handles-1)                                     ; 8064: 86          .
+    equb >(fsreply_0_print_dir-1)                                     ; 8065: 8d          .
+    equb >(fsreply_1_copy_handles_boot-1)                             ; 8066: 8e          .
+    equb >(fsreply_2_copy_handles-1)                                  ; 8067: 8e          .
+    equb >(fsreply_3_set_csd-1)                                       ; 8068: 8e          .
+    equb >(fsreply_4_notify_exec-1)                                   ; 8069: 8d          .
+    equb >(fsreply_5_set_lib-1)                                       ; 806a: 8e          .
+    equb >(net_1_read_handle-1)                                       ; 806b: 8e          .
+    equb >(net_2_read_handle_entry-1)                                 ; 806c: 8e          .
+    equb >(net_3_close_handle-1)                                      ; 806d: 8e          .
+    equb >(net_4_resume_remote-1)                                     ; 806e: 81          .
 
 ; ***************************************************************************************
 ; *NET command dispatcher
@@ -1155,16 +1155,16 @@ l8004 = service_entry+1
 ; via OSCLI calls within the ROM.
 ; 
 ; *NET1 (&8E59): read file handle from received
-; packet (net1_read_handle)
+; packet (net_1_read_handle)
 ; 
 ; *NET2 (&8E5F): read handle entry from workspace
-; (net2_read_handle_entry)
+; (net_2_read_handle_entry)
 ; 
 ; *NET3 (&8E6F): close handle / mark as unused
-; (net3_close_handle)
+; (net_3_close_handle)
 ; 
 ; *NET4 (&81B8): resume after remote operation
-; (resume_after_remote)
+; (net_4_resume_remote)
 ; ***************************************************************************************
 .dispatch_net_cmd
     lda l00ef                                                         ; 806f: a5 ef       ..             ; Read command character following *NET
@@ -1467,10 +1467,10 @@ l8004 = service_entry+1
 ; 
 ;   X=&0C: matches "ROFF" at &8014 — the suffix of the
 ;          copyright string "(C)ROFF" → *ROFF (Remote Off,
-;          end remote session) — falls through to resume_after_remote
+;          end remote session) — falls through to net_4_resume_remote
 ; 
 ;   X=5: matches "NET" at &800D — the ROM title suffix
-;        → *NET (select NFS) — falls through to select_nfs
+;        → *NET (select NFS) — falls through to svc_13_select_nfs
 ; 
 ; If neither matches, returns with the service call
 ; unclaimed.
@@ -1489,7 +1489,7 @@ l8004 = service_entry+1
     nop                                                               ; 81ae: ea          .
     nop                                                               ; 81af: ea          .
     nop                                                               ; 81b0: ea          .
-.sub_c81b1
+.svc_4_star_command
     ldx #&0c                                                          ; 81b1: a2 0c       ..
     jsr match_rom_string                                              ; 81b3: 20 5e 83     ^.
     bne c81e6                                                         ; 81b6: d0 2e       ..
@@ -1504,7 +1504,7 @@ l8004 = service_entry+1
 ; via OSBYTE &CE and returns control to the MOS, providing an
 ; escape route when a remote session becomes unresponsive.
 ; ***************************************************************************************
-.resume_after_remote
+.net_4_resume_remote
     ldy #4                                                            ; 81b8: a0 04       ..
     lda (net_rx_ptr),y                                                ; 81ba: b1 9c       ..
     beq c81df                                                         ; 81bc: f0 21       .!
@@ -1556,7 +1556,7 @@ l8004 = service_entry+1
 ; not inhibited), injects the synthetic command "I .BOOT" through
 ; the command decoder to trigger auto-boot login.
 ; ***************************************************************************************
-.select_nfs
+.svc_13_select_nfs
     jsr call_fscv_shutdown                                            ; 81ed: 20 14 82     ..
     sec                                                               ; 81f0: 38          8
     ror l00a8                                                         ; 81f1: 66 a8       f.
@@ -1576,7 +1576,7 @@ l8004 = service_entry+1
 ; 
 ; Prints the ROM identification string using print_inline.
 ; ***************************************************************************************
-.svc_help
+.svc_9_help
     jsr print_inline                                                  ; 8204: 20 05 86     ..
     equs &0d, "NFS 3.40", &0d                                         ; 8207: 0d 4e 46... .NF
 
@@ -1609,7 +1609,7 @@ l8004 = service_entry+1
 ; network communication possible without it). Then falls through
 ; to set up NFS vectors (selecting NFS as the filing system).
 ; ***************************************************************************************
-.svc_autoboot
+.svc_3_autoboot
     jsr call_fscv_shutdown                                            ; 8219: 20 14 82     ..
     lda #osbyte_scan_keyboard_from_16                                 ; 821c: a9 7a       .z
     jsr osbyte                                                        ; 821e: 20 f4 ff     ..            ; Keyboard scan starting from key 16
@@ -1618,7 +1618,7 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Set up filing system vectors
 ; 
-; Entered from svc_autoboot: first checks the pressed key (EOR #&55),
+; Entered from svc_3_autoboot: first checks the pressed key (EOR #&55),
 ; prints "Econet Station <n>" via print_inline/print_decimal, and checks
 ; ADLC SR2 for network clock — prints "No Clock" if absent.
 ; 
@@ -1626,7 +1626,7 @@ l8004 = service_entry+1
 ; (&0212), setting all 7 filing system vectors to the extended vector
 ; dispatch addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install
 ; the ROM pointer table entries with the actual NFS handler addresses.
-; The vector copy loop at &8260 is also reached directly from select_nfs
+; The vector copy loop at &8260 is also reached directly from svc_13_select_nfs
 ; via BEQ, bypassing the station/clock display.
 ; ***************************************************************************************
 .setup_fs_vectors
@@ -1693,9 +1693,9 @@ l8004 = service_entry+1
 ; &8289 referenced 2 times by &8335, &833b
 .c8289
     ldy #&82                                                          ; 8289: a0 82       ..
-    jmp fscv_star_handler                                             ; 828b: 4c d7 8b    L..
+    jmp fscv_3_star_cmd                                               ; 828b: 4c d7 8b    L..
 
-    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I .            ; Auto-boot command string for fscv_star_handler
+    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I .            ; Auto-boot command string for fscv_3_star_cmd
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -1747,7 +1747,7 @@ l8004 = service_entry+1
 ; and FS command buffer (&0F). If Y >= &10, workspace already
 ; allocated — returns unchanged.
 ; ***************************************************************************************
-.svc_abs_workspace
+.svc_1_abs_workspace
     cpy #&10                                                          ; 82b8: c0 10       ..
     bcs return_3                                                      ; 82ba: b0 02       ..
     ldy #&10                                                          ; 82bc: a0 10       ..
@@ -1774,7 +1774,7 @@ l8004 = service_entry+1
 ; In both cases: reads station ID from &FE18 (only valid during
 ; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
 ; ***************************************************************************************
-.svc_private_workspace
+.svc_2_private_workspace
     sty net_rx_ptr_hi                                                 ; 82c1: 84 9d       ..
     iny                                                               ; 82c3: c8          .
     sty nfs_workspace_hi                                              ; 82c4: 84 9f       ..
@@ -1872,7 +1872,7 @@ l8004 = service_entry+1
 ; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
 ; dangling file handles across the FS switch.
 ; ***************************************************************************************
-.fscv_shutdown
+.fscv_6_shutdown
     ldy #&1d                                                          ; 834d: a0 1d       ..
 ; &834f referenced 1 time by &8357
 .fsdiel
@@ -2253,7 +2253,7 @@ l8004 = service_entry+1
 ; set up a new remote session. If non-zero (already remoted),
 ; jumps to clear_jsr_protection and returns.
 ; ***************************************************************************************
-.remote_boot_handler
+.lang_1_remote_boot
     ldy #4                                                            ; 849a: a0 04       ..
     lda (net_rx_ptr),y                                                ; 849c: b1 9c       ..
     beq remot1                                                        ; 849e: f0 03       ..
@@ -2290,7 +2290,7 @@ l8004 = service_entry+1
 ; execute code received over the network. If no code was loaded,
 ; the BRK triggers an error handler.
 ; ***************************************************************************************
-.execute_at_0100
+.lang_3_execute_at_0100
     jsr clear_jsr_protection                                          ; 84c8: 20 eb 92     ..
     ldx #2                                                            ; 84cb: a2 02       ..
     lda #0                                                            ; 84cd: a9 00       ..
@@ -2312,9 +2312,9 @@ l8004 = service_entry+1
 ; new remote session via remot1. If non-zero, compares the source
 ; station at RX offset &80 against workspace offset &0E -- rejects
 ; mismatched stations via clear_jsr_protection, accepts matching
-; stations by falling through to insert_remote_key.
+; stations by falling through to lang_0_insert_remote_key.
 ; ***************************************************************************************
-.remote_validated
+.lang_4_remote_validated
     ldy #4                                                            ; 84d8: a0 04       ..
     lda (net_rx_ptr),y                                                ; 84da: b1 9c       ..
     beq remot1                                                        ; 84dc: f0 c5       ..
@@ -2329,7 +2329,7 @@ l8004 = service_entry+1
 ; Reads a character from RX block offset &82 and inserts it into
 ; keyboard input buffer 0 via OSBYTE &99.
 ; ***************************************************************************************
-.insert_remote_key
+.lang_0_insert_remote_key
     ldy #&82                                                          ; 84e8: a0 82       ..
     lda (net_rx_ptr),y                                                ; 84ea: b1 9c       ..
     tay                                                               ; 84ec: a8          .
@@ -2505,7 +2505,7 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Save FSCV arguments with text pointers
 ; 
-; Extended entry used by FSCV, FINDV, and fscv_star_handler.
+; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.
 ; Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
 ; falls through to save_fscv_args to store A/X/Y in the FS
 ; workspace.
@@ -2794,7 +2794,7 @@ l8004 = service_entry+1
 .return_compare
     rts                                                               ; 8673: 60          `
 
-.fscv_read_handles
+.fscv_7_read_handles
     ldx #&20 ; ' '                                                    ; 8674: a2 20       .
     ldy #&27 ; '''                                                    ; 8676: a0 27       .'
 .return_fscv_handles
@@ -3338,7 +3338,7 @@ l8004 = service_entry+1
 ; EOF, X=&00 if not. This two-level check avoids an expensive
 ; network round-trip when the file is known to not be at EOF.
 ; ***************************************************************************************
-.eof_handler
+.fscv_1_eof
     pha                                                               ; 8869: 48          H
     txa                                                               ; 886a: 8a          .
     jsr handle_to_mask_a                                              ; 886b: 20 43 86     C.
@@ -3675,7 +3675,7 @@ l8004 = service_entry+1
 ; &89e6 referenced 1 time by &8a0c
 .c89e6
     bcc restore_args_return                                           ; 89e6: 90 87       ..
-.sub_c89e8
+.fscv_0_opt_entry
     beq c89f5                                                         ; 89e8: f0 0b       ..
 ; ***************************************************************************************
 ; FSCV 0: *OPT handler (OPTION)
@@ -3685,7 +3685,7 @@ l8004 = service_entry+1
 ;   *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)
 ; Other combinations generate error &CB (OPTER: "bad option").
 ; ***************************************************************************************
-.opt_handler
+.fscv_0_opt
     cpx #4                                                            ; 89ea: e0 04       ..
     bne c89f2                                                         ; 89ec: d0 04       ..
     cpy #4                                                            ; 89ee: c0 04       ..
@@ -4068,7 +4068,7 @@ l8004 = service_entry+1
 ; the matched command text.
 ; ***************************************************************************************
 ; &8bd7 referenced 1 time by &828b
-.fscv_star_handler
+.fscv_3_star_cmd
     jsr save_fscv_args_with_ptrs                                      ; 8bd7: 20 c8 85     ..
     ldx #&ff                                                          ; 8bda: a2 ff       ..
     stx l00b9                                                         ; 8bdc: 86 b9       ..
@@ -4163,7 +4163,7 @@ l8c06 = fs_cmd_match_table+1
 ;     layout; at count 0 a newline is printed, others get spaces.
 ;     *EX sets CRFLAG=&FF to force one entry per line.
 ; ***************************************************************************************
-.cat_handler
+.fscv_5_cat
     ldx #3                                                            ; 8c21: a2 03       ..
     stx l00b9                                                         ; 8c23: 86 b9       ..
     ldy #0                                                            ; 8c25: a0 00       ..
@@ -4447,9 +4447,9 @@ l8c06 = fs_cmd_match_table+1
 ; Prints characters from the FS reply buffer (&0F05+X onwards).
 ; Null bytes (&00) are replaced with CR (&0D) for display.
 ; Stops when a byte with bit 7 set is encountered (high-bit
-; terminator). Used by cat_handler to display Dir. and Lib. paths.
+; terminator). Used by fscv_5_cat to display Dir. and Lib. paths.
 ; ***************************************************************************************
-.print_dir_name
+.fsreply_0_print_dir
     ldx #0                                                            ; 8d89: a2 00       ..
 ; &8d8b referenced 2 times by &8d30, &8dab
 .print_dir_from_offset
@@ -4538,10 +4538,28 @@ l8c06 = fs_cmd_match_table+1
 .c8dcc
     jmp osasci                                                        ; 8dcc: 4c e3 ff    L..            ; Write character
 
-.sub_c8dcf
+; ***************************************************************************************
+; FSCV 2/4: */ (run) and *RUN handler
+; 
+; Parses the filename via parse_filename_gs and calls infol2,
+; then falls through to fsreply_4_notify_exec to set up and
+; send the FS load-as-command request.
+; ***************************************************************************************
+.fscv_2_star_run
     jsr parse_filename_gs                                             ; 8dcf: 20 e1 86     ..
     jsr infol2                                                        ; 8dd2: 20 75 8d     u.
-.sub_c8dd5
+; ***************************************************************************************
+; FS reply 4: send FS load-as-command and execute response
+; 
+; Initialises a GS reader to skip past the filename and
+; calculate the command context address, then sets up an FS
+; command with function code &05 (FCCMND: load as command)
+; using send_fs_examine. If a Tube co-processor is present
+; (tx_in_progress != 0), transfers the response data to the
+; Tube via tube_addr_claim. Otherwise jumps via the indirect
+; pointer at (&0F09) to execute at the load address.
+; ***************************************************************************************
+.fsreply_4_notify_exec
     ldy #0                                                            ; 8dd5: a0 00       ..
     clc                                                               ; 8dd7: 18          .
     jsr gsinit                                                        ; 8dd8: 20 c2 ff     ..
@@ -4557,16 +4575,6 @@ l8c06 = fs_cmd_match_table+1
     lda l00f3                                                         ; 8dea: a5 f3       ..
     adc #0                                                            ; 8dec: 69 00       i.
     sta l0e0b                                                         ; 8dee: 8d 0b 0e    ...
-; ***************************************************************************************
-; Send FS load-as-command and execute response
-; 
-; Sets up an FS command with function code &05 (FCCMND: load as
-; command) using send_fs_examine. If a Tube co-processor is
-; present (tx_in_progress != 0), transfers the response data
-; to the Tube via tube_addr_claim. Otherwise jumps via the
-; indirect pointer at (&0F09) to execute at the load address.
-; ***************************************************************************************
-.notify_and_exec
     ldx #&0e                                                          ; 8df1: a2 0e       ..
     stx fs_block_offset                                               ; 8df3: 86 bc       ..
     lda #&10                                                          ; 8df5: a9 10       ..
@@ -4596,7 +4604,7 @@ l8c06 = fs_cmd_match_table+1
 ; Stores Y into &0E04 (library directory handle in FS workspace).
 ; Falls through to JMP restore_args_return if Y is non-zero.
 ; ***************************************************************************************
-.set_lib_handle
+.fsreply_5_set_lib
     sty fs_lib_handle                                                 ; 8e1f: 8c 04 0e    ...
     bcc c8e27                                                         ; 8e22: 90 03       ..
 ; ***************************************************************************************
@@ -4605,7 +4613,7 @@ l8c06 = fs_cmd_match_table+1
 ; Stores Y into &0E03 (current selected directory handle).
 ; Falls through to JMP restore_args_return.
 ; ***************************************************************************************
-.set_csd_handle
+.fsreply_3_set_csd
     sty fs_csd_handle                                                 ; 8e24: 8c 03 0e    ...
 ; &8e27 referenced 2 times by &8e22, &8e38
 .c8e27
@@ -4623,7 +4631,7 @@ l8c06 = fs_cmd_match_table+1
 ; command. This use of the carry flag to select behaviour between
 ; two callers avoids duplicating the handle-copy loop.
 ; ***************************************************************************************
-.copy_handles_and_boot
+.fsreply_1_copy_handles_boot
     sec                                                               ; 8e2a: 38          8
 ; ***************************************************************************************
 ; Copy FS reply handles to workspace (no boot)
@@ -4632,7 +4640,7 @@ l8c06 = fs_cmd_match_table+1
 ; restore_args_return via c8e27. Called when the FS reply contains
 ; updated handle values but no boot action is needed.
 ; ***************************************************************************************
-.copy_handles
+.fsreply_2_copy_handles
     ldx #3                                                            ; 8e2b: a2 03       ..
     bcc c8e35                                                         ; 8e2d: 90 06       ..
 ; &8e2f referenced 1 time by &8e36
@@ -4647,7 +4655,7 @@ l8c06 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Execute boot command via OSCLI
 ; 
-; Reached from copy_handles_and_boot when carry is set (LOGIN
+; Reached from fsreply_1_copy_handles_boot when carry is set (LOGIN
 ; path). Reads the boot option from fs_boot_option (&0E05),
 ; looks up the OSCLI command string offset from boot_option_offsets+1,
 ; and executes the boot command via JMP oscli with page &8D.
@@ -4693,8 +4701,8 @@ l8c06 = fs_cmd_match_table+1
 
 ; *NET1: read file handle from received packet.
 ; Reads a byte from offset &6F of the RX buffer (net_rx_ptr)
-; and falls through to net2_read_handle_entry's common path.
-.net1_read_handle
+; and falls through to net_2_read_handle_entry's common path.
+.net_1_read_handle
     ldy #&6f ; 'o'                                                    ; 8e59: a0 6f       .o
     lda (net_rx_ptr),y                                                ; 8e5b: b1 9c       ..
     bcc c8e6c                                                         ; 8e5d: 90 0d       ..
@@ -4706,7 +4714,7 @@ l8c06 = fs_cmd_match_table+1
 ; returns 0. Otherwise returns the stored handle value.
 ; Clears rom_svc_num on exit.
 ; ***************************************************************************************
-.net2_read_handle_entry
+.net_2_read_handle_entry
     jsr sub_c8e45                                                     ; 8e5f: 20 45 8e     E.
     bcs rxpol2                                                        ; 8e62: b0 06       ..
     lda (nfs_workspace),y                                             ; 8e64: b1 9e       ..
@@ -4728,7 +4736,7 @@ l8c06 = fs_cmd_match_table+1
 ; workspace. Preserves the carry flag state across the write
 ; using ROL/ROR on rx_status_flags. Clears rom_svc_num on exit.
 ; ***************************************************************************************
-.net3_close_handle
+.net_3_close_handle
     jsr sub_c8e45                                                     ; 8e6f: 20 45 8e     E.
     bcs rxpol2                                                        ; 8e72: b0 f6       ..
     ror rx_flags                                                      ; 8e74: 6e 64 0d    nd.
@@ -4744,7 +4752,7 @@ l8c06 = fs_cmd_match_table+1
 ; for OSWORD calls &0F-&13 (15-19). Falls through to the
 ; PHA/PHA/RTS dispatch at &8E80.
 ; ***************************************************************************************
-.osword_fs_entry
+.svc_8_osword
     lda l00ef                                                         ; 8e7f: a5 ef       ..             ; Command code from &EF
     sbc #&0f                                                          ; 8e81: e9 0f       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
     bmi return_7                                                      ; 8e83: 30 2a       0*
@@ -5822,7 +5830,7 @@ l8c06 = fs_cmd_match_table+1
 ; from OLDJSR to re-enable JSR reception, which was disabled during
 ; the screen data capture to prevent interference.
 ; ***************************************************************************************
-.save_palette_vdu
+.lang_2_save_palette_vdu
     lda l00ad                                                         ; 92a6: a5 ad       ..
     pha                                                               ; 92a8: 48          H
     lda #&e9                                                          ; 92a9: a9 e9       ..
@@ -5919,13 +5927,13 @@ l8c06 = fs_cmd_match_table+1
 .trampoline_adlc_init
     jmp adlc_init                                                     ; 9663: 4c 6f 96    Lo.
 
-.svc_nmi_release
+.svc_12_nmi_release
     jmp c96b2                                                         ; 9666: 4c b2 96    L..
 
-.svc_nmi_claim
+.svc_11_nmi_claim
     jmp c968d                                                         ; 9669: 4c 8d 96    L..
 
-.svc_unknown_irq
+.svc_5_unknown_irq
     jmp c9b35                                                         ; 966c: 4c 35 9b    L5.
 
 ; ***************************************************************************************
@@ -7934,58 +7942,58 @@ l9eaf = sub_c9eae+1
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff                       ; 9ff8: ff ff ff... ...
 .pydis_end
 
-    assert <(cat_handler-1) == &20
-    assert <(copy_handles-1) == &2a
-    assert <(copy_handles_and_boot-1) == &29
     assert <(dispatch_net_cmd-1) == &6e
     assert <(econet_tx_rx-1) == &e7
-    assert <(eof_handler-1) == &68
-    assert <(execute_at_0100-1) == &c7
-    assert <(fscv_read_handles-1) == &73
-    assert <(fscv_shutdown-1) == &4c
-    assert <(fscv_star_handler-1) == &d6
-    assert <(insert_remote_key-1) == &e7
+    assert <(fscv_0_opt_entry-1) == &e7
+    assert <(fscv_1_eof-1) == &68
+    assert <(fscv_2_star_run-1) == &ce
+    assert <(fscv_3_star_cmd-1) == &d6
+    assert <(fscv_5_cat-1) == &20
+    assert <(fscv_6_shutdown-1) == &4c
+    assert <(fscv_7_read_handles-1) == &73
+    assert <(fsreply_0_print_dir-1) == &88
+    assert <(fsreply_1_copy_handles_boot-1) == &29
+    assert <(fsreply_2_copy_handles-1) == &2a
+    assert <(fsreply_3_set_csd-1) == &23
+    assert <(fsreply_4_notify_exec-1) == &d4
+    assert <(fsreply_5_set_lib-1) == &1e
     assert <(l0128) == &28
-    assert <(net1_read_handle-1) == &58
-    assert <(net2_read_handle_entry-1) == &5e
-    assert <(net3_close_handle-1) == &6e
+    assert <(lang_0_insert_remote_key-1) == &e7
+    assert <(lang_1_remote_boot-1) == &99
+    assert <(lang_2_save_palette_vdu-1) == &a5
+    assert <(lang_3_execute_at_0100-1) == &c7
+    assert <(lang_4_remote_validated-1) == &d7
+    assert <(net_1_read_handle-1) == &58
+    assert <(net_2_read_handle_entry-1) == &5e
+    assert <(net_3_close_handle-1) == &6e
+    assert <(net_4_resume_remote-1) == &b7
     assert <(osword_0f_handler-1) == &b9
     assert <(osword_10_handler-1) == &73
     assert <(osword_11_handler-1) == &d3
-    assert <(osword_fs_entry-1) == &7e
-    assert <(print_dir_name-1) == &88
     assert <(printer_select_handler-1) == &ce
-    assert <(remote_boot_handler-1) == &99
     assert <(remote_cmd_dispatch-1) == &dd
     assert <(remote_print_handler-1) == &de
-    assert <(remote_validated-1) == &d7
-    assert <(resume_after_remote-1) == &b7
     assert <(return_1-1) == &f5
     assert <(rx_imm_exec-1) == &94
     assert <(rx_imm_machine_type-1) == &bd
     assert <(rx_imm_peek-1) == &d0
     assert <(rx_imm_poke-1) == &b2
-    assert <(save_palette_vdu-1) == &a5
-    assert <(select_nfs-1) == &ec
-    assert <(set_csd_handle-1) == &23
-    assert <(set_lib_handle-1) == &1e
-    assert <(sub_c81b1-1) == &b0
-    assert <(sub_c89e8-1) == &e7
-    assert <(sub_c8dcf-1) == &ce
-    assert <(sub_c8dd5-1) == &d4
     assert <(sub_c8ef9-1) == &f8
     assert <(sub_c90ac-1) == &ab
     assert <(sub_c9148-1) == &47
     assert <(sub_c9aeb-1) == &ea
     assert <(sub_c9ccb-1) == &ca
     assert <(sub_c9d16-1) == &15
-    assert <(svc_abs_workspace-1) == &b7
-    assert <(svc_autoboot-1) == &18
-    assert <(svc_help-1) == &03
-    assert <(svc_nmi_claim-1) == &68
-    assert <(svc_nmi_release-1) == &65
-    assert <(svc_private_workspace-1) == &c0
-    assert <(svc_unknown_irq-1) == &6b
+    assert <(svc_11_nmi_claim-1) == &68
+    assert <(svc_12_nmi_release-1) == &65
+    assert <(svc_13_select_nfs-1) == &ec
+    assert <(svc_1_abs_workspace-1) == &b7
+    assert <(svc_2_private_workspace-1) == &c0
+    assert <(svc_3_autoboot-1) == &18
+    assert <(svc_4_star_command-1) == &b0
+    assert <(svc_5_unknown_irq-1) == &6b
+    assert <(svc_8_osword-1) == &7e
+    assert <(svc_9_help-1) == &03
     assert <(tx_ctrl_exit-1) == &25
     assert <(tx_ctrl_peek-1) == &ce
     assert <(tx_ctrl_poke-1) == &d2
@@ -7994,58 +8002,58 @@ l9eaf = sub_c9eae+1
     assert <(tx_done_jsr-1) == &7d
     assert <(tx_done_os_proc-1) == &94
     assert <(tx_done_user_proc-1) == &86
-    assert >(cat_handler-1) == &8c
-    assert >(copy_handles-1) == &8e
-    assert >(copy_handles_and_boot-1) == &8e
     assert >(dispatch_net_cmd-1) == &80
     assert >(econet_tx_rx-1) == &8f
-    assert >(eof_handler-1) == &88
-    assert >(execute_at_0100-1) == &84
-    assert >(fscv_read_handles-1) == &86
-    assert >(fscv_shutdown-1) == &83
-    assert >(fscv_star_handler-1) == &8b
-    assert >(insert_remote_key-1) == &84
+    assert >(fscv_0_opt_entry-1) == &89
+    assert >(fscv_1_eof-1) == &88
+    assert >(fscv_2_star_run-1) == &8d
+    assert >(fscv_3_star_cmd-1) == &8b
+    assert >(fscv_5_cat-1) == &8c
+    assert >(fscv_6_shutdown-1) == &83
+    assert >(fscv_7_read_handles-1) == &86
+    assert >(fsreply_0_print_dir-1) == &8d
+    assert >(fsreply_1_copy_handles_boot-1) == &8e
+    assert >(fsreply_2_copy_handles-1) == &8e
+    assert >(fsreply_3_set_csd-1) == &8e
+    assert >(fsreply_4_notify_exec-1) == &8d
+    assert >(fsreply_5_set_lib-1) == &8e
     assert >(l0128) == &01
-    assert >(net1_read_handle-1) == &8e
-    assert >(net2_read_handle_entry-1) == &8e
-    assert >(net3_close_handle-1) == &8e
+    assert >(lang_0_insert_remote_key-1) == &84
+    assert >(lang_1_remote_boot-1) == &84
+    assert >(lang_2_save_palette_vdu-1) == &92
+    assert >(lang_3_execute_at_0100-1) == &84
+    assert >(lang_4_remote_validated-1) == &84
+    assert >(net_1_read_handle-1) == &8e
+    assert >(net_2_read_handle_entry-1) == &8e
+    assert >(net_3_close_handle-1) == &8e
+    assert >(net_4_resume_remote-1) == &81
     assert >(osword_0f_handler-1) == &8e
     assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
-    assert >(osword_fs_entry-1) == &8e
-    assert >(print_dir_name-1) == &8d
     assert >(printer_select_handler-1) == &91
-    assert >(remote_boot_handler-1) == &84
     assert >(remote_cmd_dispatch-1) == &90
     assert >(remote_print_handler-1) == &91
-    assert >(remote_validated-1) == &84
-    assert >(resume_after_remote-1) == &81
     assert >(return_1-1) == &80
     assert >(rx_imm_exec-1) == &9a
     assert >(rx_imm_machine_type-1) == &9a
     assert >(rx_imm_peek-1) == &9a
     assert >(rx_imm_poke-1) == &9a
-    assert >(save_palette_vdu-1) == &92
-    assert >(select_nfs-1) == &81
-    assert >(set_csd_handle-1) == &8e
-    assert >(set_lib_handle-1) == &8e
-    assert >(sub_c81b1-1) == &81
-    assert >(sub_c89e8-1) == &89
-    assert >(sub_c8dcf-1) == &8d
-    assert >(sub_c8dd5-1) == &8d
     assert >(sub_c8ef9-1) == &8e
     assert >(sub_c90ac-1) == &90
     assert >(sub_c9148-1) == &91
     assert >(sub_c9aeb-1) == &9a
     assert >(sub_c9ccb-1) == &9c
     assert >(sub_c9d16-1) == &9d
-    assert >(svc_abs_workspace-1) == &82
-    assert >(svc_autoboot-1) == &82
-    assert >(svc_help-1) == &82
-    assert >(svc_nmi_claim-1) == &96
-    assert >(svc_nmi_release-1) == &96
-    assert >(svc_private_workspace-1) == &82
-    assert >(svc_unknown_irq-1) == &96
+    assert >(svc_11_nmi_claim-1) == &96
+    assert >(svc_12_nmi_release-1) == &96
+    assert >(svc_13_select_nfs-1) == &81
+    assert >(svc_1_abs_workspace-1) == &82
+    assert >(svc_2_private_workspace-1) == &82
+    assert >(svc_3_autoboot-1) == &82
+    assert >(svc_4_star_command-1) == &81
+    assert >(svc_5_unknown_irq-1) == &96
+    assert >(svc_8_osword-1) == &8e
+    assert >(svc_9_help-1) == &82
     assert >(tx_ctrl_exit-1) == &9d
     assert >(tx_ctrl_peek-1) == &9c
     assert >(tx_ctrl_poke-1) == &9c
@@ -8602,7 +8610,7 @@ save pydis_start, pydis_end
 ;     fs_vector_addrs:                          1
 ;     fs_wait_cleanup:                          1
 ;     fscv:                                     1
-;     fscv_star_handler:                        1
+;     fscv_3_star_cmd:                          1
 ;     fsdiel:                                   1
 ;     fstxl1:                                   1
 ;     fstxl2:                                   1
@@ -9254,17 +9262,13 @@ save pydis_start, pydis_end
 ;     sub_c0414
 ;     sub_c04c4
 ;     sub_c04cb
-;     sub_c81b1
 ;     sub_c8383
 ;     sub_c854d
 ;     sub_c8620
 ;     sub_c8679
 ;     sub_c86d7
 ;     sub_c86e3
-;     sub_c89e8
 ;     sub_c8d92
-;     sub_c8dcf
-;     sub_c8dd5
 ;     sub_c8e45
 ;     sub_c8ef9
 ;     sub_c9072
