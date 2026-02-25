@@ -479,7 +479,6 @@ l0055 = tube_dispatch_cmd+1
     inx                                                               ; 93e9: e8          .   :048a[2]
     lda rom_header,x                                                  ; 93ea: bd 00 80    ... :048b[2]
     bne loop_c048a                                                    ; 93ed: d0 fa       ..  :048e[2]
-.sub_c0490
     lda l8001,x                                                       ; 93ef: bd 01 80    ... :0490[2]
     sta tube_transfer_addr                                            ; 93f2: 85 57       .W  :0493[2]
     lda l8002,x                                                       ; 93f4: bd 02 80    ... :0495[2]
@@ -4923,19 +4922,21 @@ osword_12_handler = sub_c8e7a+2
 
 ; &8ea7 referenced 1 time by &8e93
 .l8ea7
-    equb &bf, &6d                                                     ; 8ea7: bf 6d       .m             ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    equb <(osword_0f_handler-1)                                       ; 8ea7: bf          .              ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    equb <(osword_10_handler-1)                                       ; 8ea8: 6d          m
 .fs_osword_tbl_lo
     equb <(osword_11_handler-1)                                       ; 8ea9: d9          .
     equb <(sub_c8eff-1)                                               ; 8eaa: fe          .
     equb <(econet_tx_rx-1)                                            ; 8eab: ec          .
 ; &8eac referenced 1 time by &8e8f
 .l8eac
-    equb <(sub_c908f-1)                                               ; 8eac: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
-    equb <(sub_c0490-1)                                               ; 8ead: 8f          .
+    equb >(osword_0f_handler-1)                                       ; 8eac: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
+    equb >(osword_10_handler-1)                                       ; 8ead: 8f          .
 .fs_osword_tbl_hi
     equb >(osword_11_handler-1)                                       ; 8eae: 8e          .
     equb >(sub_c8eff-1)                                               ; 8eaf: 8e          .
     equb >(econet_tx_rx-1)                                            ; 8eb0: 8f          .
+
 ; ***************************************************************************************
 ; Bidirectional block copy between OSWORD param block and workspace.
 ; 
@@ -4944,11 +4945,11 @@ osword_12_handler = sub_c8e7a+2
 ; ***************************************************************************************
 ; &8eb1 referenced 5 times by &8ebd, &8ed4, &8ee9, &8f1a, &8faf
 .copy_param_block
-    equb >(sub_c908f-1)                                               ; 8eb1: 90          .
-    equb >(sub_c0490-1)                                               ; 8eb2: 04          .
-
+    bcc c8eb7                                                         ; 8eb1: 90 04       ..             ; C=0: skip param-to-workspace copy
     lda (l00f0),y                                                     ; 8eb3: b1 f0       ..             ; Load byte from param block
     sta (l00ab),y                                                     ; 8eb5: 91 ab       ..             ; Store to workspace
+; &8eb7 referenced 1 time by &8eb1
+.c8eb7
     lda (l00ab),y                                                     ; 8eb7: b1 ab       ..             ; Load byte from workspace
     sta (l00f0),y                                                     ; 8eb9: 91 f0       ..             ; Store to param block (no-op if C=1)
 .copyl3
@@ -5406,7 +5407,6 @@ osword_12_handler = sub_c8e7a+2
 ; &908e referenced 1 time by &9088
 .entry1
     pla                                                               ; 908e: 68          h
-.sub_c908f
     tay                                                               ; 908f: a8          .
     pla                                                               ; 9090: 68          h
     tax                                                               ; 9091: aa          .
@@ -8079,6 +8079,8 @@ l9ee1 = sub_c9ee0+1
     assert <(net_2_read_handle_entry-1) == &5d
     assert <(net_3_close_handle-1) == &6d
     assert <(net_4_resume_remote-1) == &89
+    assert <(osword_0f_handler-1) == &bf
+    assert <(osword_10_handler-1) == &6d
     assert <(osword_11_handler-1) == &d9
     assert <(printer_select_handler-1) == &c8
     assert <(remote_cmd_data-1) == &41
@@ -8089,9 +8091,7 @@ l9ee1 = sub_c9ee0+1
     assert <(rx_imm_machine_type-1) == &dd
     assert <(rx_imm_peek-1) == &f0
     assert <(rx_imm_poke-1) == &d2
-    assert <(sub_c0490-1) == &8f
     assert <(sub_c8eff-1) == &fe
-    assert <(sub_c908f-1) == &8e
     assert <(sub_c90b2-1) == &b1
     assert <(sub_c9b17-1) == &16
     assert <(sub_c9cf3-1) == &f2
@@ -8138,6 +8138,8 @@ l9ee1 = sub_c9ee0+1
     assert >(net_2_read_handle_entry-1) == &8e
     assert >(net_3_close_handle-1) == &8e
     assert >(net_4_resume_remote-1) == &81
+    assert >(osword_0f_handler-1) == &8e
+    assert >(osword_10_handler-1) == &8f
     assert >(osword_11_handler-1) == &8e
     assert >(printer_select_handler-1) == &91
     assert >(remote_cmd_data-1) == &91
@@ -8148,9 +8150,7 @@ l9ee1 = sub_c9ee0+1
     assert >(rx_imm_machine_type-1) == &9a
     assert >(rx_imm_peek-1) == &9a
     assert >(rx_imm_poke-1) == &9a
-    assert >(sub_c0490-1) == &04
     assert >(sub_c8eff-1) == &8e
-    assert >(sub_c908f-1) == &90
     assert >(sub_c90b2-1) == &90
     assert >(sub_c9b17-1) == &9b
     assert >(sub_c9cf3-1) == &9c
@@ -8591,6 +8591,7 @@ save pydis_start, pydis_end
 ;     c8d80:                                    1
 ;     c8e33:                                    1
 ;     c8e6b:                                    1
+;     c8eb7:                                    1
 ;     c8f0f:                                    1
 ;     c8f5b:                                    1
 ;     c8f98:                                    1
@@ -9080,6 +9081,7 @@ save pydis_start, pydis_end
 ;     c8e25
 ;     c8e33
 ;     c8e6b
+;     c8eb7
 ;     c8f0f
 ;     c8f5b
 ;     c8f98
@@ -9337,14 +9339,12 @@ save pydis_start, pydis_end
 ;     loop_c9d61
 ;     loop_c9d8f
 ;     loop_c9f86
-;     sub_c0490
 ;     sub_c8352
 ;     sub_c86b9
 ;     sub_c86c5
 ;     sub_c8e4a
 ;     sub_c8e7a
 ;     sub_c8eff
-;     sub_c908f
 ;     sub_c90b2
 ;     sub_c9a23
 ;     sub_c9b17
@@ -9357,11 +9357,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7578 bytes (93%)
-;     Data                     = 614 bytes (7%)
+;     Code                     = 7580 bytes (93%)
+;     Data                     = 612 bytes (7%)
 ;
-;     Number of instructions   = 3657
-;     Number of data bytes     = 392 bytes
+;     Number of instructions   = 3658
+;     Number of data bytes     = 390 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 222 bytes
 ;     Number of strings        = 35

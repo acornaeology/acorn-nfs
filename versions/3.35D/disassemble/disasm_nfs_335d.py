@@ -1086,7 +1086,7 @@ for i in range(33, 37):
 #   3      &12   &908F    FS server station lookup
 #   4      &13   &0490    Econet TX/RX handler (page 4)
 for i in range(5):
-    rts_code_ptr(0x8EA9 + i, 0x8EAE + i)
+    rts_code_ptr(0x8EA7 + i, 0x8EAC + i)
 
 # ============================================================
 # NMI handler chain entry points
@@ -3241,6 +3241,7 @@ subroutine(0x8EB1, "copy_param_block", hook=None,
     description="""\
 C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
 C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
+comment(0x8EB1, "C=0: skip param-to-workspace copy", inline=True)
 comment(0x8EB3, "Load byte from param block", inline=True)
 comment(0x8EB5, "Store to workspace", inline=True)
 comment(0x8EB7, "Load byte from workspace", inline=True)
