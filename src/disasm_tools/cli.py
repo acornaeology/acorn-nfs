@@ -119,6 +119,16 @@ def cmd_audit(args):
                    flag_filter=args.flag))
 
 
+def cmd_cfg(args):
+    """Build and query the inter-procedural call graph."""
+    from disasm_tools.cfg import cfg
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(cfg(version_dirpath, args.version,
+                 fmt=args.format, leaves=args.leaves, roots=args.roots,
+                 sub=args.sub, depth=args.depth))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -175,6 +185,22 @@ def main():
                               help="Show summary table (default if no --sub)")
     audit_parser.add_argument("--flag", help="Filter summary by flag")
     audit_parser.set_defaults(func=cmd_audit)
+
+    cfg_parser = subparsers.add_parser(
+        "cfg", help="Build and query inter-procedural call graph"
+    )
+    cfg_parser.add_argument("version", help="NFS version (e.g. 3.34)")
+    cfg_parser.add_argument("--format", default="json",
+                            choices=["json", "dot"],
+                            help="Output format (default: json)")
+    cfg_parser.add_argument("--leaves", action="store_true",
+                            help="List leaf subroutines (no outgoing calls)")
+    cfg_parser.add_argument("--roots", action="store_true",
+                            help="List root subroutines (no incoming calls)")
+    cfg_parser.add_argument("--sub", help="Show callers/callees of a subroutine")
+    cfg_parser.add_argument("--depth", action="store_true",
+                            help="Show call depth from leaves")
+    cfg_parser.set_defaults(func=cmd_cfg)
 
     args = parser.parse_args()
     args.func(args)

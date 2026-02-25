@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "networkx>=3.0",
     "py8dis @ git+https://github.com/acornaeology/py8dis.git",
 ]
 
