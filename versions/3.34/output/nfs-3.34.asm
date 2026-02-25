@@ -7864,77 +7864,77 @@ l9ed2 = sub_c9ed1+1
 ; ***************************************************************************************
 ; &9f5b referenced 5 times by &980e, &9aee, &9d05, &9d10, &9d42
 .tx_calc_transfer
-    ldy #6                                                            ; 9f5b: a0 06       ..
+    ldy #6                                                            ; 9f5b: a0 06       ..             ; Load RXCB[6] (buffer addr byte 2)
     lda (nmi_tx_block),y                                              ; 9f5d: b1 a0       ..
     iny                                                               ; 9f5f: c8          .              ; Y=&07
-    and (nmi_tx_block),y                                              ; 9f60: 31 a0       1.
-    cmp #&ff                                                          ; 9f62: c9 ff       ..
-    beq c9fa7                                                         ; 9f64: f0 41       .A
-    lda tx_in_progress                                                ; 9f66: ad 52 0d    .R.
-    beq c9fa7                                                         ; 9f69: f0 3c       .<
+    and (nmi_tx_block),y                                              ; 9f60: 31 a0       1.             ; AND with RXCB[7] (byte 3)
+    cmp #&ff                                                          ; 9f62: c9 ff       ..             ; Both &FF = no buffer?
+    beq c9fa7                                                         ; 9f64: f0 41       .A             ; Yes: fallback path
+    lda tx_in_progress                                                ; 9f66: ad 52 0d    .R.            ; Transmit in progress?
+    beq c9fa7                                                         ; 9f69: f0 3c       .<             ; No: fallback path
     lda tx_flags                                                      ; 9f6b: ad 4a 0d    .J.
-    ora #2                                                            ; 9f6e: 09 02       ..
+    ora #2                                                            ; 9f6e: 09 02       ..             ; Set bit 1 (transfer complete)
     sta tx_flags                                                      ; 9f70: 8d 4a 0d    .J.
-    sec                                                               ; 9f73: 38          8
-    php                                                               ; 9f74: 08          .
-    ldy #4                                                            ; 9f75: a0 04       ..
+    sec                                                               ; 9f73: 38          8              ; Init borrow for 4-byte subtract
+    php                                                               ; 9f74: 08          .              ; Save carry on stack
+    ldy #4                                                            ; 9f75: a0 04       ..             ; Y=4: start at RXCB offset 4
 ; &9f77 referenced 1 time by &9f89
 .loop_c9f77
-    lda (nmi_tx_block),y                                              ; 9f77: b1 a0       ..
-    iny                                                               ; 9f79: c8          .
+    lda (nmi_tx_block),y                                              ; 9f77: b1 a0       ..             ; Load RXCB[Y] (current ptr byte)
+    iny                                                               ; 9f79: c8          .              ; Y += 4: advance to RXCB[Y+4]
     iny                                                               ; 9f7a: c8          .
     iny                                                               ; 9f7b: c8          .
     iny                                                               ; 9f7c: c8          .
-    plp                                                               ; 9f7d: 28          (
-    sbc (nmi_tx_block),y                                              ; 9f7e: f1 a0       ..
-    sta net_tx_ptr,y                                                  ; 9f80: 99 9a 00    ...
-    dey                                                               ; 9f83: 88          .
+    plp                                                               ; 9f7d: 28          (              ; Restore borrow from previous byte
+    sbc (nmi_tx_block),y                                              ; 9f7e: f1 a0       ..             ; Subtract RXCB[Y+4] (start ptr byte)
+    sta net_tx_ptr,y                                                  ; 9f80: 99 9a 00    ...            ; Store result byte
+    dey                                                               ; 9f83: 88          .              ; Y -= 3: next source byte
     dey                                                               ; 9f84: 88          .
     dey                                                               ; 9f85: 88          .
-    php                                                               ; 9f86: 08          .
-    cpy #8                                                            ; 9f87: c0 08       ..
-    bcc loop_c9f77                                                    ; 9f89: 90 ec       ..
-    plp                                                               ; 9f8b: 28          (
-    txa                                                               ; 9f8c: 8a          .
+    php                                                               ; 9f86: 08          .              ; Save borrow for next byte
+    cpy #8                                                            ; 9f87: c0 08       ..             ; Done all 4 bytes?
+    bcc loop_c9f77                                                    ; 9f89: 90 ec       ..             ; No: next byte pair
+    plp                                                               ; 9f8b: 28          (              ; Discard final borrow
+    txa                                                               ; 9f8c: 8a          .              ; Save X
     pha                                                               ; 9f8d: 48          H
-    lda #4                                                            ; 9f8e: a9 04       ..
+    lda #4                                                            ; 9f8e: a9 04       ..             ; Compute address of RXCB+4
     clc                                                               ; 9f90: 18          .
     adc nmi_tx_block                                                  ; 9f91: 65 a0       e.
-    tax                                                               ; 9f93: aa          .
-    ldy nmi_tx_block_hi                                               ; 9f94: a4 a1       ..
-    lda #&c2                                                          ; 9f96: a9 c2       ..
+    tax                                                               ; 9f93: aa          .              ; X = low byte of RXCB+4
+    ldy nmi_tx_block_hi                                               ; 9f94: a4 a1       ..             ; Y = high byte of RXCB ptr
+    lda #&c2                                                          ; 9f96: a9 c2       ..             ; Tube claim type &C2
     jsr tube_addr_claim                                               ; 9f98: 20 06 04     ..
-    bcc c9fa4                                                         ; 9f9b: 90 07       ..
-    lda scout_status                                                  ; 9f9d: ad 5c 0d    .\.
+    bcc c9fa4                                                         ; 9f9b: 90 07       ..             ; No Tube: skip reclaim
+    lda scout_status                                                  ; 9f9d: ad 5c 0d    .\.            ; Tube: reclaim with scout status
     jsr tube_addr_claim                                               ; 9fa0: 20 06 04     ..
-    sec                                                               ; 9fa3: 38          8
+    sec                                                               ; 9fa3: 38          8              ; C=1: Tube address claimed
 ; &9fa4 referenced 1 time by &9f9b
 .c9fa4
-    pla                                                               ; 9fa4: 68          h
+    pla                                                               ; 9fa4: 68          h              ; Restore X
     tax                                                               ; 9fa5: aa          .
     rts                                                               ; 9fa6: 60          `
 
 ; &9fa7 referenced 2 times by &9f64, &9f69
 .c9fa7
     ldy #4                                                            ; 9fa7: a0 04       ..
-    lda (nmi_tx_block),y                                              ; 9fa9: b1 a0       ..
+    lda (nmi_tx_block),y                                              ; 9fa9: b1 a0       ..             ; Load RXCB[4] (current ptr lo)
     ldy #8                                                            ; 9fab: a0 08       ..
     sec                                                               ; 9fad: 38          8
-    sbc (nmi_tx_block),y                                              ; 9fae: f1 a0       ..
-    sta port_buf_len                                                  ; 9fb0: 85 a2       ..
+    sbc (nmi_tx_block),y                                              ; 9fae: f1 a0       ..             ; Subtract RXCB[8] (start ptr lo)
+    sta port_buf_len                                                  ; 9fb0: 85 a2       ..             ; Store transfer size lo
     ldy #5                                                            ; 9fb2: a0 05       ..
-    lda (nmi_tx_block),y                                              ; 9fb4: b1 a0       ..
-    sbc #0                                                            ; 9fb6: e9 00       ..
-    sta open_port_buf_hi                                              ; 9fb8: 85 a5       ..
+    lda (nmi_tx_block),y                                              ; 9fb4: b1 a0       ..             ; Load RXCB[5] (current ptr hi)
+    sbc #0                                                            ; 9fb6: e9 00       ..             ; Propagate borrow only
+    sta open_port_buf_hi                                              ; 9fb8: 85 a5       ..             ; Temp store of adjusted hi byte
     ldy #8                                                            ; 9fba: a0 08       ..
-    lda (nmi_tx_block),y                                              ; 9fbc: b1 a0       ..
+    lda (nmi_tx_block),y                                              ; 9fbc: b1 a0       ..             ; Copy RXCB[8] to open port buffer lo
     sta open_port_buf                                                 ; 9fbe: 85 a4       ..
     ldy #9                                                            ; 9fc0: a0 09       ..
-    lda (nmi_tx_block),y                                              ; 9fc2: b1 a0       ..
+    lda (nmi_tx_block),y                                              ; 9fc2: b1 a0       ..             ; Load RXCB[9]
     sec                                                               ; 9fc4: 38          8
-    sbc open_port_buf_hi                                              ; 9fc5: e5 a5       ..
-    sta port_buf_len_hi                                               ; 9fc7: 85 a3       ..
-    sec                                                               ; 9fc9: 38          8
+    sbc open_port_buf_hi                                              ; 9fc5: e5 a5       ..             ; Subtract adjusted hi byte
+    sta port_buf_len_hi                                               ; 9fc7: 85 a3       ..             ; Store transfer size hi
+    sec                                                               ; 9fc9: 38          8              ; Return with C=1
 ; &9fca referenced 1 time by &96d1
 .nmi_shim_rom_src
     rts                                                               ; 9fca: 60          `

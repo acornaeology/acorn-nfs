@@ -3556,6 +3556,51 @@ frame reception. Subtracts the low pointer (LPTR, offset 4 in
 the RXCB) from the current buffer position to get the byte count,
 and stores it back into the RXCB's high pointer field (HPTR,
 offset 8). This tells the caller how much data was received.""")
+# Buffer validity check
+comment(0x9F5B, "Load RXCB[6] (buffer addr byte 2)", inline=True)
+comment(0x9F60, "AND with RXCB[7] (byte 3)", inline=True)
+comment(0x9F62, "Both &FF = no buffer?", inline=True)
+comment(0x9F64, "Yes: fallback path", inline=True)
+comment(0x9F66, "Transmit in progress?", inline=True)
+comment(0x9F69, "No: fallback path", inline=True)
+# Set transfer-complete flag
+comment(0x9F6E, "Set bit 1 (transfer complete)", inline=True)
+# 4-byte subtraction: RXCB[4:7] - RXCB[8:11] → workspace
+comment(0x9F73, "Init borrow for 4-byte subtract", inline=True)
+comment(0x9F74, "Save carry on stack", inline=True)
+comment(0x9F75, "Y=4: start at RXCB offset 4", inline=True)
+comment(0x9F77, "Load RXCB[Y] (current ptr byte)", inline=True)
+comment(0x9F79, "Y += 4: advance to RXCB[Y+4]", inline=True)
+comment(0x9F7D, "Restore borrow from previous byte", inline=True)
+comment(0x9F7E, "Subtract RXCB[Y+4] (start ptr byte)", inline=True)
+comment(0x9F80, "Store result byte", inline=True)
+comment(0x9F83, "Y -= 3: next source byte", inline=True)
+comment(0x9F86, "Save borrow for next byte", inline=True)
+comment(0x9F87, "Done all 4 bytes?", inline=True)
+comment(0x9F89, "No: next byte pair", inline=True)
+comment(0x9F8B, "Discard final borrow", inline=True)
+# Tube address claim
+comment(0x9F8C, "Save X", inline=True)
+comment(0x9F8E, "Compute address of RXCB+4", inline=True)
+comment(0x9F93, "X = low byte of RXCB+4", inline=True)
+comment(0x9F94, "Y = high byte of RXCB ptr", inline=True)
+comment(0x9F96, "Tube claim type &C2", inline=True)
+comment(0x9F9B, "No Tube: skip reclaim", inline=True)
+comment(0x9F9D, "Tube: reclaim with scout status", inline=True)
+comment(0x9FA3, "C=1: Tube address claimed", inline=True)
+comment(0x9FA4, "Restore X", inline=True)
+# Fallback: 2-byte size when no active TX
+comment(0x9FA9, "Load RXCB[4] (current ptr lo)", inline=True)
+comment(0x9FAE, "Subtract RXCB[8] (start ptr lo)", inline=True)
+comment(0x9FB0, "Store transfer size lo", inline=True)
+comment(0x9FB4, "Load RXCB[5] (current ptr hi)", inline=True)
+comment(0x9FB6, "Propagate borrow only", inline=True)
+comment(0x9FB8, "Temp store of adjusted hi byte", inline=True)
+comment(0x9FBC, "Copy RXCB[8] to open port buffer lo", inline=True)
+comment(0x9FC2, "Load RXCB[9]", inline=True)
+comment(0x9FC5, "Subtract adjusted hi byte", inline=True)
+comment(0x9FC7, "Store transfer size hi", inline=True)
+comment(0x9FC9, "Return with C=1", inline=True)
 
 # ============================================================
 # NMI shim at end of ROM (&9FCA-&9FFF)
