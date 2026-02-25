@@ -1522,7 +1522,7 @@ l8004 = service_entry+1
     dey                                                               ; 8194: 88          .
     cpy #&14                                                          ; 8195: c0 14       ..
     bne initl                                                         ; 8197: d0 f6       ..
-    beq setup_fs_vectors                                              ; 8199: f0 7c       .|             ; ALWAYS branch
+    beq init_fs_vectors                                               ; 8199: f0 7c       .|             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; Match command text against ROM string table
@@ -1593,27 +1593,32 @@ l8004 = service_entry+1
 ; Service 3: auto-boot
 ; 
 ; Notifies current FS of shutdown via FSCV A=6. Scans keyboard
-; (OSBYTE &7A): if no key is pressed, auto-boot proceeds; if the
-; 'N' key is pressed (matrix address &55), the boot is declined
-; and the key is forgotten via OSBYTE &78. Any other key also
-; declines. Prints "Econet Station <n>" and checks the ADLC SR2
-; for the network clock signal — prints "No Clock" if absent (no
-; network communication possible without it). Then falls through
-; to set up NFS vectors (selecting NFS as the filing system).
+; (OSBYTE &7A): if the 'N' key is pressed (matrix address &55),
+; the keypress is forgotten via OSBYTE &78 and auto-boot proceeds.
+; Any other key causes the auto-boot to be declined. If no key is
+; pressed, auto-boot proceeds directly. Falls through to
+; print_station_info, then init_fs_vectors.
 ; ***************************************************************************************
 .svc_3_autoboot
     jsr call_fscv_shutdown                                            ; 81d1: 20 cc 81     ..
     lda #osbyte_scan_keyboard_from_16                                 ; 81d4: a9 7a       .z
     jsr osbyte                                                        ; 81d6: 20 f4 ff     ..            ; Keyboard scan starting from key 16
     txa                                                               ; 81d9: 8a          .              ; X is key number if key is pressed, or &ff otherwise
-    bmi c81e6                                                         ; 81da: 30 0a       0.
+    bmi print_station_info                                            ; 81da: 30 0a       0.
     eor #&55 ; 'U'                                                    ; 81dc: 49 55       IU
     bne c81c9                                                         ; 81de: d0 e9       ..
     tay                                                               ; 81e0: a8          .              ; Y=key
     lda #osbyte_write_keys_pressed                                    ; 81e1: a9 78       .x
     jsr osbyte                                                        ; 81e3: 20 f4 ff     ..            ; Write current keys pressed (X and Y)
+; ***************************************************************************************
+; Print station identification
+; 
+; Prints "Econet Station <n>" using the station number from the net
+; receive buffer, then tests ADLC SR2 for the network clock signal —
+; prints " No Clock" if absent. Falls through to init_fs_vectors.
+; ***************************************************************************************
 ; &81e6 referenced 1 time by &81da
-.c81e6
+.print_station_info
     jsr print_inline                                                  ; 81e6: 20 3b 85     ;.
     equs "Econet Station "                                            ; 81e9: 45 63 6f... Eco
 
@@ -1632,17 +1637,17 @@ l8004 = service_entry+1
     equs &0d, &0d                                                     ; 8215: 0d 0d       ..
 
 ; ***************************************************************************************
-; Set up filing system vectors
+; Initialise filing system vectors
 ; 
-; Copies 14 bytes from fs_vector_addrs (&824D) into FILEV-FSCV (&0212).
-; These set all 7 filing system vectors to the standard extended vector
-; dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
-; Then calls setup_rom_ptrs_netv to install the extended vector table
-; entries with the actual NFS handler addresses, and issues service
-; requests to notify other ROMs.
+; Copies 14 bytes from fs_vector_addrs (&824D) into FILEV-FSCV (&0212),
+; setting all 7 filing system vectors to the extended vector dispatch
+; addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
+; ROM pointer table entries with the actual NFS handler addresses. Also
+; reached directly from select_nfs, bypassing the station display.
+; Falls through to issue_vectors_claimed.
 ; ***************************************************************************************
 ; &8217 referenced 1 time by &8199
-.setup_fs_vectors
+.init_fs_vectors
     ldy #&0d                                                          ; 8217: a0 0d       ..             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
 ; &8219 referenced 1 time by &8220
 .dofsl1
@@ -1686,7 +1691,7 @@ l8004 = service_entry+1
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
 ; Bytes 0-13: extended vector dispatch addresses, copied to
-; FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+; FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
 ; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
 ; the handler in the ROM pointer table.
 ; 
@@ -8426,7 +8431,6 @@ save pydis_start, pydis_end
 ;     c811b:                                    1
 ;     c811f:                                    1
 ;     c817d:                                    1
-;     c81e6:                                    1
 ;     c8212:                                    1
 ;     c8359:                                    1
 ;     c835a:                                    1
@@ -8626,6 +8630,7 @@ save pydis_start, pydis_end
 ;     immediate_op:                             1
 ;     info2:                                    1
 ;     infol2:                                   1
+;     init_fs_vectors:                          1
 ;     init_tx_ctrl_data:                        1
 ;     init_vectors_and_copy:                    1
 ;     initl:                                    1
@@ -8784,6 +8789,7 @@ save pydis_start, pydis_end
 ;     prepare_cmd_with_flag:                    1
 ;     print_exec_and_len:                       1
 ;     print_hex_nibble:                         1
+;     print_station_info:                       1
 ;     quote1:                                   1
 ;     rchex:                                    1
 ;     rdchv:                                    1
@@ -8829,7 +8835,6 @@ save pydis_start, pydis_end
 ;     service_handler:                          1
 ;     set_listen_offset:                        1
 ;     setup1:                                   1
-;     setup_fs_vectors:                         1
 ;     setup_rom_ptrs_netv:                      1
 ;     setup_rx_buffer_ptrs:                     1
 ;     skip_cmd_spaces:                          1
@@ -8894,7 +8899,6 @@ save pydis_start, pydis_end
 ;     c811f
 ;     c817d
 ;     c81c9
-;     c81e6
 ;     c8212
 ;     c8240
 ;     c82c3

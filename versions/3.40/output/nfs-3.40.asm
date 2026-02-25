@@ -1571,7 +1571,7 @@ l8004 = service_entry+1
     dey                                                               ; 81fd: 88          .
     cpy #&14                                                          ; 81fe: c0 14       ..
     bne initl                                                         ; 8200: d0 f6       ..
-    beq c8260                                                         ; 8202: f0 5c       .\             ; ALWAYS branch
+    beq init_fs_vectors                                               ; 8202: f0 5c       .\             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; Service 9: *HELP
@@ -1603,42 +1603,40 @@ l8004 = service_entry+1
 ; Service 3: auto-boot
 ; 
 ; Notifies current FS of shutdown via FSCV A=6. Scans keyboard
-; (OSBYTE &7A): if no key is pressed, auto-boot proceeds; if the
-; 'N' key is pressed (matrix address &55), the boot is declined
-; and the key is forgotten via OSBYTE &78. Any other key also
-; declines. Prints "Econet Station <n>" and checks the ADLC SR2
-; for the network clock signal — prints "No Clock" if absent (no
-; network communication possible without it). Then falls through
-; to set up NFS vectors (selecting NFS as the filing system).
+; (OSBYTE &7A): if no key is pressed, auto-boot proceeds directly
+; via print_station_info. If a key is pressed, falls through to
+; check_boot_key: the 'N' key (matrix address &55) proceeds with
+; auto-boot, any other key causes the auto-boot to be declined.
 ; ***************************************************************************************
 .svc_3_autoboot
     jsr call_fscv_shutdown                                            ; 8219: 20 14 82     ..
     lda #osbyte_scan_keyboard_from_16                                 ; 821c: a9 7a       .z
     jsr osbyte                                                        ; 821e: 20 f4 ff     ..            ; Keyboard scan starting from key 16
     txa                                                               ; 8221: 8a          .              ; X is key number if key is pressed, or &ff otherwise
-    bmi c822e                                                         ; 8222: 30 0a       0.
+    bmi print_station_info                                            ; 8222: 30 0a       0.
 ; ***************************************************************************************
-; Set up filing system vectors
+; Check boot key
 ; 
-; Entered from svc_3_autoboot: first checks the pressed key (EOR #&55),
-; prints "Econet Station <n>" via print_inline/print_decimal, and checks
-; ADLC SR2 for network clock — prints "No Clock" if absent.
-; 
-; Then copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV
-; (&0212), setting all 7 filing system vectors to the extended vector
-; dispatch addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install
-; the ROM pointer table entries with the actual NFS handler addresses.
-; The vector copy loop at &8260 is also reached directly from svc_13_select_nfs
-; via BEQ, bypassing the station/clock display.
+; Checks if the pressed key (in A) is 'N' (matrix address &55). If
+; not 'N', returns to the MOS without claiming the service call
+; (another ROM may boot instead). If 'N', forgets the keypress via
+; OSBYTE &78 and falls through to print_station_info.
 ; ***************************************************************************************
-.setup_fs_vectors
+.check_boot_key
     eor #&55 ; 'U'                                                    ; 8224: 49 55       IU
     bne c8211                                                         ; 8226: d0 e9       ..
     tay                                                               ; 8228: a8          .              ; Y=key
     lda #osbyte_write_keys_pressed                                    ; 8229: a9 78       .x
     jsr osbyte                                                        ; 822b: 20 f4 ff     ..            ; Write current keys pressed (X and Y)
+; ***************************************************************************************
+; Print station identification
+; 
+; Prints "Econet Station <n>" using the station number from the net
+; receive buffer, then tests ADLC SR2 for the network clock signal —
+; prints " No Clock" if absent. Falls through to init_fs_vectors.
+; ***************************************************************************************
 ; &822e referenced 1 time by &8222
-.c822e
+.print_station_info
     jsr print_inline                                                  ; 822e: 20 05 86     ..
     equs "Econet Station "                                            ; 8231: 45 63 6f... Eco
 
@@ -1658,8 +1656,18 @@ l8004 = service_entry+1
     jsr print_inline                                                  ; 825b: 20 05 86     ..
     equs &0d, &0d                                                     ; 825e: 0d 0d       ..
 
+; ***************************************************************************************
+; Initialise filing system vectors
+; 
+; Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212),
+; setting all 7 filing system vectors to the extended vector dispatch
+; addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
+; ROM pointer table entries with the actual NFS handler addresses. Also
+; reached directly from svc_13_select_nfs, bypassing the station display.
+; Falls through to issue_vectors_claimed.
+; ***************************************************************************************
 ; &8260 referenced 1 time by &8202
-.c8260
+.init_fs_vectors
     ldy #&0d                                                          ; 8260: a0 0d       ..             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
 ; &8262 referenced 1 time by &8269
 .loop_c8262
@@ -1702,7 +1710,7 @@ l8004 = service_entry+1
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
 ; Bytes 0-13: extended vector dispatch addresses, copied to
-; FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+; FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
 ; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
 ; the handler in the ROM pointer table.
 ; 
@@ -8436,9 +8444,7 @@ save pydis_start, pydis_end
 ;     c818f:                                    1
 ;     c81df:                                    1
 ;     c81e6:                                    1
-;     c822e:                                    1
 ;     c825b:                                    1
-;     c8260:                                    1
 ;     c83ca:                                    1
 ;     c83cb:                                    1
 ;     c8401:                                    1
@@ -8631,6 +8637,7 @@ save pydis_start, pydis_end
 ;     handshake_await_ack:                      1
 ;     immediate_op:                             1
 ;     info2:                                    1
+;     init_fs_vectors:                          1
 ;     init_tx_ctrl_port:                        1
 ;     init_vectors_and_copy:                    1
 ;     initl:                                    1
@@ -8795,6 +8802,7 @@ save pydis_start, pydis_end
 ;     print_exec_and_len:                       1
 ;     print_hex_nibble:                         1
 ;     print_space:                              1
+;     print_station_info:                       1
 ;     quote1:                                   1
 ;     rchex:                                    1
 ;     read_args_size:                           1
@@ -8915,9 +8923,7 @@ save pydis_start, pydis_end
 ;     c81df
 ;     c81e6
 ;     c8211
-;     c822e
 ;     c825b
-;     c8260
 ;     c8289
 ;     c8312
 ;     c8373

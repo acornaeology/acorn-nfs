@@ -1846,19 +1846,40 @@ not inhibited), injects the synthetic command "I .BOOT" through
 the command decoder to trigger auto-boot login.""")
 
 # ============================================================
-# Set up filing system vectors (&820E)
+# Check boot key (&820E)
 # ============================================================
-subroutine(0x820E, "setup_fs_vectors", hook=None,
-    title="Set up filing system vectors",
+subroutine(0x820E, "check_boot_key", hook=None,
+    title="Check boot key",
     description="""\
-Copies 14 bytes from fs_vector_addrs (&8280) into FILEV-FSCV (&0212).
-These set all 7 filing system vectors to the standard extended vector
-dispatch addresses (&FF1B, &FF1E, &FF21, &FF24, &FF27, &FF2A, &FF2D).
-Then calls setup_rom_ptrs_netv to install the extended vector table
-entries with the actual NFS handler addresses, and issues service
-requests to notify other ROMs.""")
+Checks if the pressed key (in A) is 'N' (matrix address &55). If
+not 'N', returns to the MOS without claiming the service call
+(another ROM may boot instead). If 'N', forgets the keypress via
+OSBYTE &78 and falls through to print_station_info.""")
 
-comment(0x820E, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
+# ============================================================
+# Print station identification (&8218)
+# ============================================================
+subroutine(0x8218, "print_station_info", hook=None,
+    title="Print station identification",
+    description="""\
+Prints "Econet Station <n>" using the station number from the net
+receive buffer, then tests ADLC SR2 for the network clock signal —
+prints " No Clock" if absent. Falls through to init_fs_vectors.""")
+
+# ============================================================
+# Initialise filing system vectors (&824A)
+# ============================================================
+subroutine(0x824A, "init_fs_vectors", hook=None,
+    title="Initialise filing system vectors",
+    description="""\
+Copies 14 bytes from fs_vector_addrs (&8280) into FILEV-FSCV (&0212),
+setting all 7 filing system vectors to the extended vector dispatch
+addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
+ROM pointer table entries with the actual NFS handler addresses. Also
+reached directly from select_nfs, bypassing the station display.
+Falls through to issue_vectors_claimed.""")
+
+comment(0x824A, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
 
 # ============================================================
 # FS vector dispatch and handler addresses (&8280)
@@ -1867,7 +1888,7 @@ subroutine(0x8280, "fs_vector_addrs", hook=None,
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""\
 Bytes 0-13: extended vector dispatch addresses, copied to
-FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
 a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
 the handler in the ROM pointer table.
 
@@ -1992,13 +2013,10 @@ subroutine(0x8203, "svc_3_autoboot", hook=None,
     title="Service 3: auto-boot",
     description="""\
 Notifies current FS of shutdown via FSCV A=6. Scans keyboard
-(OSBYTE &7A): if no key is pressed, auto-boot proceeds; if the
-'N' key is pressed (matrix address &55), the boot is declined
-and the key is forgotten via OSBYTE &78. Any other key also
-declines. Prints "Econet Station <n>" and checks the ADLC SR2
-for the network clock signal — prints "No Clock" if absent (no
-network communication possible without it). Then falls through
-to set up NFS vectors (selecting NFS as the filing system).""")
+(OSBYTE &7A): if no key is pressed, auto-boot proceeds directly
+via print_station_info. If a key is pressed, falls through to
+check_boot_key: the 'N' key (matrix address &55) proceeds with
+auto-boot, any other key causes the auto-boot to be declined.""")
 
 # ============================================================
 # Service 4: unrecognised * command (&8168)

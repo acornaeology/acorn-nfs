@@ -1883,21 +1883,38 @@ not inhibited), injects the synthetic command "I .BOOT" through
 the command decoder to trigger auto-boot login.""")
 
 # ============================================================
-# Set up filing system vectors (&820E)
+# Check boot key (&8224)
 # ============================================================
-subroutine(0x8224, "setup_fs_vectors", hook=None,
-    title="Set up filing system vectors",
+subroutine(0x8224, "check_boot_key", hook=None,
+    title="Check boot key",
     description="""\
-Entered from svc_3_autoboot: first checks the pressed key (EOR #&55),
-prints "Econet Station <n>" via print_inline/print_decimal, and checks
-ADLC SR2 for network clock — prints "No Clock" if absent.
+Checks if the pressed key (in A) is 'N' (matrix address &55). If
+not 'N', returns to the MOS without claiming the service call
+(another ROM may boot instead). If 'N', forgets the keypress via
+OSBYTE &78 and falls through to print_station_info.""")
 
-Then copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV
-(&0212), setting all 7 filing system vectors to the extended vector
-dispatch addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install
-the ROM pointer table entries with the actual NFS handler addresses.
-The vector copy loop at &8260 is also reached directly from svc_13_select_nfs
-via BEQ, bypassing the station/clock display.""")
+# ============================================================
+# Print station identification (&822E)
+# ============================================================
+subroutine(0x822E, "print_station_info", hook=None,
+    title="Print station identification",
+    description="""\
+Prints "Econet Station <n>" using the station number from the net
+receive buffer, then tests ADLC SR2 for the network clock signal —
+prints " No Clock" if absent. Falls through to init_fs_vectors.""")
+
+# ============================================================
+# Initialise filing system vectors (&8260)
+# ============================================================
+subroutine(0x8260, "init_fs_vectors", hook=None,
+    title="Initialise filing system vectors",
+    description="""\
+Copies 14 bytes from fs_vector_addrs (&8296) into FILEV-FSCV (&0212),
+setting all 7 filing system vectors to the extended vector dispatch
+addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
+ROM pointer table entries with the actual NFS handler addresses. Also
+reached directly from svc_13_select_nfs, bypassing the station display.
+Falls through to issue_vectors_claimed.""")
 
 comment(0x8260, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True)
 
@@ -1917,7 +1934,7 @@ subroutine(0x8296, "fs_vector_addrs", hook=None,
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""\
 Bytes 0-13: extended vector dispatch addresses, copied to
-FILEV-FSCV (&0212) by setup_fs_vectors. Each 2-byte pair is
+FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
 a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
 the handler in the ROM pointer table.
 
@@ -1998,13 +2015,10 @@ subroutine(0x8219, "svc_3_autoboot", hook=None,
     title="Service 3: auto-boot",
     description="""\
 Notifies current FS of shutdown via FSCV A=6. Scans keyboard
-(OSBYTE &7A): if no key is pressed, auto-boot proceeds; if the
-'N' key is pressed (matrix address &55), the boot is declined
-and the key is forgotten via OSBYTE &78. Any other key also
-declines. Prints "Econet Station <n>" and checks the ADLC SR2
-for the network clock signal — prints "No Clock" if absent (no
-network communication possible without it). Then falls through
-to set up NFS vectors (selecting NFS as the filing system).""")
+(OSBYTE &7A): if no key is pressed, auto-boot proceeds directly
+via print_station_info. If a key is pressed, falls through to
+check_boot_key: the 'N' key (matrix address &55) proceeds with
+auto-boot, any other key causes the auto-boot to be declined.""")
 
 # ============================================================
 # Service 4: unrecognised * command (&8168)
