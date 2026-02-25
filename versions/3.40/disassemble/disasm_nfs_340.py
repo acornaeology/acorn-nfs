@@ -373,6 +373,12 @@ label(0x0520, "tube_osbput")          # OSBPUT: read channel+byte from R2, call 
 label(0x052D, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
 label(0x0537, "tube_osrdch")          # OSRDCH: call &FFC8, send carry+byte reply
 label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
+comment(0x053B, """\
+Overlapping code: bytes &053B-&053D (20 95 06) are
+JSR tube_send_r2 when falling through from ROR A
+above, but dispatch entry 7 jumps to &053D where
+byte &06 becomes the ASL opcode instead.""")
+comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
 label(0x0552, "tube_osfind_close")    # OSFIND close: read handle, call &FFCE with A=0
 label(0x055E, "tube_osargs")          # OSARGS: read handle+4 bytes+reason, call &FFDA

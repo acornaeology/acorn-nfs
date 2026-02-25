@@ -610,7 +610,11 @@ l0051 = tube_dispatch_cmd+1
 ; &9490 referenced 2 times by &0534[3], &05ef[3]
 .tube_rdch_reply
     ror a                                                             ; 9490: 6a          j   :053a[3]
-    equb &20, &95                                                     ; 9491: 20 95        .  :053b[3]
+; Overlapping code: bytes &053B-&053D (20 95 06) are
+; JSR tube_send_r2 when falling through from ROR A
+; above, but dispatch entry 7 jumps to &053D where
+; byte &06 becomes the ASL opcode instead.
+    equb &20, &95                                                     ; 9491: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
 .tube_release_return
     asl c002a                                                         ; 9493: 06 2a       .*  :053d[3]
