@@ -2831,6 +2831,13 @@ Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
 to &0F05+X, stopping when a CR (&0D) is encountered. The CR
 itself is also copied. Returns with X pointing past the last
 byte written.""")
+comment(0x8D65, "Start copying from offset 0", inline=True)
+comment(0x8D67, "Load next byte from source string", inline=True)
+comment(0x8D69, "Store to command buffer", inline=True)
+comment(0x8D6C, "Advance write position", inline=True)
+comment(0x8D6D, "Advance read position", inline=True)
+comment(0x8D6E, "XOR with CR: result=0 if byte was CR", inline=True)
+comment(0x8D70, "Loop until CR copied", inline=True)
 
 # ============================================================
 # Print directory name (&8D73)

@@ -4517,15 +4517,15 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8d65 referenced 4 times by &8779, &8883, &88a5, &8964
 .copy_string_to_cmd
-    ldy #0                                                            ; 8d65: a0 00       ..
+    ldy #0                                                            ; 8d65: a0 00       ..             ; Start copying from offset 0
 ; &8d67 referenced 3 times by &8c13, &8cc3, &8d70
 .copy_string_from_offset
-    lda (fs_crc_lo),y                                                 ; 8d67: b1 be       ..
-    sta fs_cmd_data,x                                                 ; 8d69: 9d 05 0f    ...
-    inx                                                               ; 8d6c: e8          .
-    iny                                                               ; 8d6d: c8          .
-    eor #&0d                                                          ; 8d6e: 49 0d       I.
-    bne copy_string_from_offset                                       ; 8d70: d0 f5       ..
+    lda (fs_crc_lo),y                                                 ; 8d67: b1 be       ..             ; Load next byte from source string
+    sta fs_cmd_data,x                                                 ; 8d69: 9d 05 0f    ...            ; Store to command buffer
+    inx                                                               ; 8d6c: e8          .              ; Advance write position
+    iny                                                               ; 8d6d: c8          .              ; Advance read position
+    eor #&0d                                                          ; 8d6e: 49 0d       I.             ; XOR with CR: result=0 if byte was CR
+    bne copy_string_from_offset                                       ; 8d70: d0 f5       ..             ; Loop until CR copied
 ; &8d72 referenced 1 time by &8d78
 .return_copy_string
     rts                                                               ; 8d72: 60          `
