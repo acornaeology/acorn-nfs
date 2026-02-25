@@ -1482,6 +1482,25 @@ callers needing carry cleared use handle_to_mask_clc.""",
     on_exit={"a": "preserved",
              "x": "preserved",
              "y": "bitmask (single bit set) or &FF if handle invalid"})
+comment(0x858A, "Save A (will be restored on exit)", inline=True)
+comment(0x858B, "Save X (will be restored on exit)", inline=True)
+comment(0x858C, "  (second half of X save)", inline=True)
+comment(0x858D, "A = handle from Y", inline=True)
+comment(0x858E, "C=0: always convert", inline=True)
+comment(0x8590, "C=1 and Y=0: skip (handle 0 = none)", inline=True)
+comment(0x8592, "C=1 and Y!=0: convert", inline=True)
+comment(0x8593, "A = handle - &1F (1-based bit position)", inline=True)
+comment(0x8595, "X = shift count", inline=True)
+comment(0x8596, "Start with bit 0 set", inline=True)
+comment(0x8598, "Shift bit left", inline=True)
+comment(0x8599, "Count down", inline=True)
+comment(0x859A, "Loop until correct position", inline=True)
+comment(0x859C, "Undo final extra shift", inline=True)
+comment(0x859D, "Y = resulting bitmask", inline=True)
+comment(0x859E, "Non-zero: valid mask, skip to exit", inline=True)
+comment(0x85A0, "Zero: invalid handle, set Y=&FF", inline=True)
+comment(0x85A1, "Restore X", inline=True)
+comment(0x85A3, "Restore A", inline=True)
 
 # ============================================================
 # Mask to handle (&85A5)

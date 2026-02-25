@@ -2645,32 +2645,32 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &858a referenced 1 time by &894d
 .handle_to_mask
-    pha                                                               ; 858a: 48          H
-    txa                                                               ; 858b: 8a          .
-    pha                                                               ; 858c: 48          H
-    tya                                                               ; 858d: 98          .
-    bcc y2fsl5                                                        ; 858e: 90 02       ..
-    beq c85a1                                                         ; 8590: f0 0f       ..
+    pha                                                               ; 858a: 48          H              ; Save A (will be restored on exit)
+    txa                                                               ; 858b: 8a          .              ; Save X (will be restored on exit)
+    pha                                                               ; 858c: 48          H              ;   (second half of X save)
+    tya                                                               ; 858d: 98          .              ; A = handle from Y
+    bcc y2fsl5                                                        ; 858e: 90 02       ..             ; C=0: always convert
+    beq c85a1                                                         ; 8590: f0 0f       ..             ; C=1 and Y=0: skip (handle 0 = none)
 ; &8592 referenced 1 time by &858e
 .y2fsl5
-    sec                                                               ; 8592: 38          8
-    sbc #&1f                                                          ; 8593: e9 1f       ..
-    tax                                                               ; 8595: aa          .
-    lda #1                                                            ; 8596: a9 01       ..
+    sec                                                               ; 8592: 38          8              ; C=1 and Y!=0: convert
+    sbc #&1f                                                          ; 8593: e9 1f       ..             ; A = handle - &1F (1-based bit position)
+    tax                                                               ; 8595: aa          .              ; X = shift count
+    lda #1                                                            ; 8596: a9 01       ..             ; Start with bit 0 set
 ; &8598 referenced 1 time by &859a
 .y2fsl2
-    asl a                                                             ; 8598: 0a          .
-    dex                                                               ; 8599: ca          .
-    bne y2fsl2                                                        ; 859a: d0 fc       ..
-    ror a                                                             ; 859c: 6a          j
-    tay                                                               ; 859d: a8          .
-    bne c85a1                                                         ; 859e: d0 01       ..
-    dey                                                               ; 85a0: 88          .
+    asl a                                                             ; 8598: 0a          .              ; Shift bit left
+    dex                                                               ; 8599: ca          .              ; Count down
+    bne y2fsl2                                                        ; 859a: d0 fc       ..             ; Loop until correct position
+    ror a                                                             ; 859c: 6a          j              ; Undo final extra shift
+    tay                                                               ; 859d: a8          .              ; Y = resulting bitmask
+    bne c85a1                                                         ; 859e: d0 01       ..             ; Non-zero: valid mask, skip to exit
+    dey                                                               ; 85a0: 88          .              ; Zero: invalid handle, set Y=&FF
 ; &85a1 referenced 2 times by &8590, &859e
 .c85a1
-    pla                                                               ; 85a1: 68          h
+    pla                                                               ; 85a1: 68          h              ; Restore X
     tax                                                               ; 85a2: aa          .
-    pla                                                               ; 85a3: 68          h
+    pla                                                               ; 85a3: 68          h              ; Restore A
     rts                                                               ; 85a4: 60          `
 
 ; ***************************************************************************************
