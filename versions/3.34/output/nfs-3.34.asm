@@ -2597,9 +2597,21 @@ l8004 = service_entry+1
     lda fs_load_addr_2                                                ; 8585: a5 b2       ..
     rts                                                               ; 8587: 60          `
 
+; ***************************************************************************************
+; Convert handle in A to bitmask
+; 
+; Transfers A to Y via TAY, then falls through to
+; handle_to_mask_clc to clear carry and convert.
+; ***************************************************************************************
 ; &8588 referenced 3 times by &83ed, &8a05, &8ecc
 .handle_to_mask_a
     tay                                                               ; 8588: a8          .
+; ***************************************************************************************
+; Convert handle to bitmask (carry cleared)
+; 
+; Clears carry to ensure handle_to_mask converts
+; unconditionally. Falls through to handle_to_mask.
+; ***************************************************************************************
 ; &8589 referenced 3 times by &83ac, &8822, &88ec
 .handle_to_mask_clc
     clc                                                               ; 8589: 18          .
@@ -2619,7 +2631,8 @@ l8004 = service_entry+1
 ; repeated ASL shifts all bits out, leaving A=0, which is converted
 ; to Y=&FF as a sentinel -- bad handles fail gracefully rather than
 ; indexing into garbage.
-; Three entry points: &858A (direct), &8589 (CLC first), &8588 (TAY first).
+; Callers needing to move the handle from A use handle_to_mask_a;
+; callers needing carry cleared use handle_to_mask_clc.
 ; 
 ; On Entry:
 ;     Y: handle number

@@ -692,9 +692,8 @@ label(0x85CE, "access_bit_table")       # Lookup table for attribute bit mapping
 # parse_decimal label created by subroutine() call below.
 
 # --- File handle ↔ bitmask conversion ---
-label(0x861B, "handle_to_mask_a")       # TAY; CLC; fall into handle_to_mask
-label(0x861C, "handle_to_mask_clc")     # CLC; fall into handle_to_mask (always convert)
-# handle_to_mask and mask_to_handle labels created by subroutine() calls below.
+# handle_to_mask_a, handle_to_mask_clc, handle_to_mask and mask_to_handle
+# labels created by subroutine() calls below.
 
 # --- Number and hex printing ---
 label(0x8D9D, "print_hex")              # Print A as two hex digits
@@ -1467,6 +1466,18 @@ by dots.""",
 # ============================================================
 # File handle conversion (&861B-&861D)
 # ============================================================
+subroutine(0x861B, "handle_to_mask_a", hook=None,
+    title="Convert handle in A to bitmask",
+    description="""\
+Transfers A to Y via TAY, then falls through to
+handle_to_mask_clc to clear carry and convert.""")
+
+subroutine(0x861C, "handle_to_mask_clc", hook=None,
+    title="Convert handle to bitmask (carry cleared)",
+    description="""\
+Clears carry to ensure handle_to_mask converts
+unconditionally. Falls through to handle_to_mask.""")
+
 subroutine(0x861D, "handle_to_mask",
     title="Convert file handle to bitmask (Y2FS)",
     description="""\
@@ -1483,7 +1494,8 @@ has a built-in validity check: if the handle is out of range, the
 repeated ASL shifts all bits out, leaving A=0, which is converted
 to Y=&FF as a sentinel -- bad handles fail gracefully rather than
 indexing into garbage.
-Three entry points: &861D (direct), &861C (CLC first), &861B (TAY first).""",
+Callers needing to move the handle from A use handle_to_mask_a;
+callers needing carry cleared use handle_to_mask_clc.""",
     on_entry={"y": "handle number",
               "c": "0: convert, 1 with Y=0: skip, 1 with Y!=0: convert"},
     on_exit={"a": "preserved",
