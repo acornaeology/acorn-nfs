@@ -1915,34 +1915,34 @@ l8004 = service_entry+1
 
 ; &835e referenced 2 times by &81b3, &81e8
 .match_rom_string
-    ldy l00a8                                                         ; 835e: a4 a8       ..
+    ldy l00a8                                                         ; 835e: a4 a8       ..             ; Y = saved text pointer offset
 ; &8360 referenced 1 time by &8371
 .loop_c8360
-    lda (os_text_ptr),y                                               ; 8360: b1 f2       ..
-    cmp #&2e ; '.'                                                    ; 8362: c9 2e       ..
-    beq c8379                                                         ; 8364: f0 13       ..
-    and #&df                                                          ; 8366: 29 df       ).
-    beq c8373                                                         ; 8368: f0 09       ..
-    cmp binary_version,x                                              ; 836a: dd 08 80    ...
-    bne c8373                                                         ; 836d: d0 04       ..
-    iny                                                               ; 836f: c8          .
-    inx                                                               ; 8370: e8          .
-    bne loop_c8360                                                    ; 8371: d0 ed       ..
+    lda (os_text_ptr),y                                               ; 8360: b1 f2       ..             ; Load next input character
+    cmp #&2e ; '.'                                                    ; 8362: c9 2e       ..             ; Is it a '.' (abbreviation)?
+    beq c8379                                                         ; 8364: f0 13       ..             ; Yes: skip to space skipper (match)
+    and #&df                                                          ; 8366: 29 df       ).             ; Force uppercase (clear bit 5)
+    beq c8373                                                         ; 8368: f0 09       ..             ; Input char is NUL/space: check ROM byte
+    cmp binary_version,x                                              ; 836a: dd 08 80    ...            ; Compare with ROM string byte
+    bne c8373                                                         ; 836d: d0 04       ..             ; Mismatch: check if ROM string ended
+    iny                                                               ; 836f: c8          .              ; Advance input pointer
+    inx                                                               ; 8370: e8          .              ; Advance ROM string pointer
+    bne loop_c8360                                                    ; 8371: d0 ed       ..             ; Continue matching (always taken)
 ; &8373 referenced 2 times by &8368, &836d
 .c8373
-    lda binary_version,x                                              ; 8373: bd 08 80    ...
-    beq c837a                                                         ; 8376: f0 02       ..
-    rts                                                               ; 8378: 60          `
+    lda binary_version,x                                              ; 8373: bd 08 80    ...            ; Load ROM string byte at match point
+    beq c837a                                                         ; 8376: f0 02       ..             ; Zero = end of ROM string = full match
+    rts                                                               ; 8378: 60          `              ; Non-zero = partial/no match; Z=0
 
 ; &8379 referenced 2 times by &8364, &837e
 .c8379
-    iny                                                               ; 8379: c8          .
+    iny                                                               ; 8379: c8          .              ; Skip this space
 ; &837a referenced 2 times by &8376, &8de0
 .c837a
-    lda (os_text_ptr),y                                               ; 837a: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; 837c: c9 20       .
-    beq c8379                                                         ; 837e: f0 f9       ..
-    eor #&0d                                                          ; 8380: 49 0d       I.
+    lda (os_text_ptr),y                                               ; 837a: b1 f2       ..             ; Load next input character
+    cmp #&20 ; ' '                                                    ; 837c: c9 20       .              ; Is it a space?
+    beq c8379                                                         ; 837e: f0 f9       ..             ; Yes: keep skipping
+    eor #&0d                                                          ; 8380: 49 0d       I.             ; XOR with CR: Z=1 if end of line
     rts                                                               ; 8382: 60          `
 
 ; &8383 referenced 1 time by &83f0
@@ -2753,32 +2753,32 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8645 referenced 1 time by &8998
 .handle_to_mask
-    pha                                                               ; 8645: 48          H
-    txa                                                               ; 8646: 8a          .
-    pha                                                               ; 8647: 48          H
-    tya                                                               ; 8648: 98          .
-    bcc y2fsl5                                                        ; 8649: 90 02       ..
-    beq c865c                                                         ; 864b: f0 0f       ..
+    pha                                                               ; 8645: 48          H              ; Save A (will be restored on exit)
+    txa                                                               ; 8646: 8a          .              ; Save X (will be restored on exit)
+    pha                                                               ; 8647: 48          H              ;   (second half of X save)
+    tya                                                               ; 8648: 98          .              ; A = handle from Y
+    bcc y2fsl5                                                        ; 8649: 90 02       ..             ; C=0: always convert
+    beq c865c                                                         ; 864b: f0 0f       ..             ; C=1 and Y=0: skip (handle 0 = none)
 ; &864d referenced 1 time by &8649
 .y2fsl5
-    sec                                                               ; 864d: 38          8
-    sbc #&1f                                                          ; 864e: e9 1f       ..
-    tax                                                               ; 8650: aa          .
-    lda #1                                                            ; 8651: a9 01       ..
+    sec                                                               ; 864d: 38          8              ; C=1 and Y!=0: convert
+    sbc #&1f                                                          ; 864e: e9 1f       ..             ; A = handle - &1F (1-based bit position)
+    tax                                                               ; 8650: aa          .              ; X = shift count
+    lda #1                                                            ; 8651: a9 01       ..             ; Start with bit 0 set
 ; &8653 referenced 1 time by &8655
 .y2fsl2
-    asl a                                                             ; 8653: 0a          .
-    dex                                                               ; 8654: ca          .
-    bne y2fsl2                                                        ; 8655: d0 fc       ..
-    ror a                                                             ; 8657: 6a          j
-    tay                                                               ; 8658: a8          .
-    bne c865c                                                         ; 8659: d0 01       ..
-    dey                                                               ; 865b: 88          .
+    asl a                                                             ; 8653: 0a          .              ; Shift bit left
+    dex                                                               ; 8654: ca          .              ; Count down
+    bne y2fsl2                                                        ; 8655: d0 fc       ..             ; Loop until correct position
+    ror a                                                             ; 8657: 6a          j              ; Undo final extra shift
+    tay                                                               ; 8658: a8          .              ; Y = resulting bitmask
+    bne c865c                                                         ; 8659: d0 01       ..             ; Non-zero: valid mask, skip to exit
+    dey                                                               ; 865b: 88          .              ; Zero: invalid handle, set Y=&FF
 ; &865c referenced 2 times by &864b, &8659
 .c865c
-    pla                                                               ; 865c: 68          h
+    pla                                                               ; 865c: 68          h              ; Restore X
     tax                                                               ; 865d: aa          .
-    pla                                                               ; 865e: 68          h
+    pla                                                               ; 865e: 68          h              ; Restore A
     rts                                                               ; 865f: 60          `
 
 ; ***************************************************************************************
@@ -2800,13 +2800,13 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8660 referenced 2 times by &89c7, &8f6b
 .mask_to_handle
-    ldx #&1f                                                          ; 8660: a2 1f       ..
+    ldx #&1f                                                          ; 8660: a2 1f       ..             ; X = &1F (handle base - 1)
 ; &8662 referenced 1 time by &8664
 .fs2al1
-    inx                                                               ; 8662: e8          .
-    lsr a                                                             ; 8663: 4a          J
-    bne fs2al1                                                        ; 8664: d0 fc       ..
-    txa                                                               ; 8666: 8a          .
+    inx                                                               ; 8662: e8          .              ; Count this bit position
+    lsr a                                                             ; 8663: 4a          J              ; Shift mask right; C=0 when done
+    bne fs2al1                                                        ; 8664: d0 fc       ..             ; Loop until all bits shifted out
+    txa                                                               ; 8666: 8a          .              ; A = X = &1F + bit position = handle
     rts                                                               ; 8667: 60          `
 
 ; ***************************************************************************************
@@ -3776,24 +3776,24 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8a16 referenced 2 times by &8acf, &8bca
 .adjust_addrs
-    ldx #&fc                                                          ; 8a16: a2 fc       ..
+    ldx #&fc                                                          ; 8a16: a2 fc       ..             ; X=&FC: index into &0E06 area (wraps to 0)
 ; &8a18 referenced 1 time by &8a2b
 .loop_c8a18
-    lda (fs_options),y                                                ; 8a18: b1 bb       ..
-    bit fs_load_addr_2                                                ; 8a1a: 24 b2       $.
-    bmi c8a24                                                         ; 8a1c: 30 06       0.
-    adc fs_cmd_context,x                                              ; 8a1e: 7d 0a 0e    }..
-    jmp gbpbx                                                         ; 8a21: 4c 27 8a    L'.
+    lda (fs_options),y                                                ; 8a18: b1 bb       ..             ; Load byte from param block
+    bit fs_load_addr_2                                                ; 8a1a: 24 b2       $.             ; Test sign of adjustment direction
+    bmi c8a24                                                         ; 8a1c: 30 06       0.             ; Negative: subtract instead
+    adc fs_cmd_context,x                                              ; 8a1e: 7d 0a 0e    }..            ; Add adjustment value
+    jmp gbpbx                                                         ; 8a21: 4c 27 8a    L'.            ; Skip to store result
 
 ; &8a24 referenced 1 time by &8a1c
 .c8a24
-    sbc fs_cmd_context,x                                              ; 8a24: fd 0a 0e    ...
+    sbc fs_cmd_context,x                                              ; 8a24: fd 0a 0e    ...            ; Subtract adjustment value
 ; &8a27 referenced 1 time by &8a21
 .gbpbx
-    sta (fs_options),y                                                ; 8a27: 91 bb       ..
-    iny                                                               ; 8a29: c8          .
-    inx                                                               ; 8a2a: e8          .
-    bne loop_c8a18                                                    ; 8a2b: d0 eb       ..
+    sta (fs_options),y                                                ; 8a27: 91 bb       ..             ; Store adjusted byte back
+    iny                                                               ; 8a29: c8          .              ; Next param block byte
+    inx                                                               ; 8a2a: e8          .              ; Next adjustment byte (X wraps &FC->&00)
+    bne loop_c8a18                                                    ; 8a2b: d0 eb       ..             ; Loop 4 times (X=&FC,&FD,&FE,&FF,done)
     rts                                                               ; 8a2d: 60          `
 
 ; ***************************************************************************************
@@ -4468,15 +4468,15 @@ l8c06 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8d77 referenced 6 times by &87c2, &88cc, &88ee, &89b2, &8c37, &8cd9
 .copy_string_to_cmd
-    ldy #0                                                            ; 8d77: a0 00       ..
+    ldy #0                                                            ; 8d77: a0 00       ..             ; Start copying from offset 0
 ; &8d79 referenced 1 time by &8d82
 .copy_string_from_offset
-    lda (fs_crc_lo),y                                                 ; 8d79: b1 be       ..
-    sta fs_cmd_data,x                                                 ; 8d7b: 9d 05 0f    ...
-    inx                                                               ; 8d7e: e8          .
-    iny                                                               ; 8d7f: c8          .
-    eor #&0d                                                          ; 8d80: 49 0d       I.
-    bne copy_string_from_offset                                       ; 8d82: d0 f5       ..
+    lda (fs_crc_lo),y                                                 ; 8d79: b1 be       ..             ; Load next byte from source string
+    sta fs_cmd_data,x                                                 ; 8d7b: 9d 05 0f    ...            ; Store to command buffer
+    inx                                                               ; 8d7e: e8          .              ; Advance write position
+    iny                                                               ; 8d7f: c8          .              ; Advance read position
+    eor #&0d                                                          ; 8d80: 49 0d       I.             ; XOR with CR: result=0 if byte was CR
+    bne copy_string_from_offset                                       ; 8d82: d0 f5       ..             ; Loop until CR copied
 ; &8d84 referenced 2 times by &8d27, &8d8e
 .return_5
     rts                                                               ; 8d84: 60          `
@@ -4724,18 +4724,18 @@ l8c06 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8e47 referenced 3 times by &8305, &8f85, &8f9e
 .calc_handle_offset
-    asl a                                                             ; 8e47: 0a          .
-    asl a                                                             ; 8e48: 0a          .
-    pha                                                               ; 8e49: 48          H
-    asl a                                                             ; 8e4a: 0a          .
-    tsx                                                               ; 8e4b: ba          .
-    adc l0101,x                                                       ; 8e4c: 7d 01 01    }..
-    tay                                                               ; 8e4f: a8          .
-    pla                                                               ; 8e50: 68          h
-    cmp #&48 ; 'H'                                                    ; 8e51: c9 48       .H
-    bcc return_6                                                      ; 8e53: 90 03       ..
-    ldy #0                                                            ; 8e55: a0 00       ..
-    tya                                                               ; 8e57: 98          .              ; A=&00
+    asl a                                                             ; 8e47: 0a          .              ; A = handle * 2
+    asl a                                                             ; 8e48: 0a          .              ; A = handle * 4
+    pha                                                               ; 8e49: 48          H              ; Push handle*4 onto stack
+    asl a                                                             ; 8e4a: 0a          .              ; A = handle * 8
+    tsx                                                               ; 8e4b: ba          .              ; X = stack pointer
+    adc l0101,x                                                       ; 8e4c: 7d 01 01    }..            ; A = handle*8 + handle*4 = handle*12
+    tay                                                               ; 8e4f: a8          .              ; Y = offset into handle workspace
+    pla                                                               ; 8e50: 68          h              ; Clean up stack (discard handle*4)
+    cmp #&48 ; 'H'                                                    ; 8e51: c9 48       .H             ; Offset >= &48? (6 handles max)
+    bcc return_6                                                      ; 8e53: 90 03       ..             ; Valid: return with C clear
+    ldy #0                                                            ; 8e55: a0 00       ..             ; Invalid: Y = 0
+    tya                                                               ; 8e57: 98          .              ; A = 0, C set (error); A=&00
 ; &8e58 referenced 1 time by &8e53
 .return_6
 .return_calc_handle
@@ -4971,12 +4971,12 @@ l8c06 = fs_cmd_match_table+1
     ldy #1                                                            ; 8f12: a0 01       ..
 ; &8f14 referenced 4 times by &8ece, &8ee3, &8f20, &8fb5
 .c8f14
-    bcc c8f1a                                                         ; 8f14: 90 04       ..
-    lda (l00f0),y                                                     ; 8f16: b1 f0       ..
-    sta (l00ab),y                                                     ; 8f18: 91 ab       ..
+    bcc c8f1a                                                         ; 8f14: 90 04       ..             ; C=0: skip param-to-workspace copy
+    lda (l00f0),y                                                     ; 8f16: b1 f0       ..             ; Load byte from param block
+    sta (l00ab),y                                                     ; 8f18: 91 ab       ..             ; Store to workspace
 ; &8f1a referenced 1 time by &8f14
 .c8f1a
-    lda (l00ab),y                                                     ; 8f1a: b1 ab       ..
+    lda (l00ab),y                                                     ; 8f1a: b1 ab       ..             ; Load byte from workspace
 ; ***************************************************************************************
 ; Bidirectional block copy between OSWORD param block and workspace.
 ; 
@@ -4984,10 +4984,10 @@ l8c06 = fs_cmd_match_table+1
 ; C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)
 ; ***************************************************************************************
 .copy_param_block
-    sta (l00f0),y                                                     ; 8f1c: 91 f0       ..
-    iny                                                               ; 8f1e: c8          .
-    dex                                                               ; 8f1f: ca          .
-    bpl c8f14                                                         ; 8f20: 10 f2       ..
+    sta (l00f0),y                                                     ; 8f1c: 91 f0       ..             ; Store to param block (no-op if C=1)
+    iny                                                               ; 8f1e: c8          .              ; Advance to next byte
+    dex                                                               ; 8f1f: ca          .              ; Decrement byte counter
+    bpl c8f14                                                         ; 8f20: 10 f2       ..             ; Loop while X >= 0
     rts                                                               ; 8f22: 60          `
 
 ; &8f23 referenced 1 time by &8eff
@@ -7839,67 +7839,67 @@ l9eaf = sub_c9eae+1
 ; ***************************************************************************************
 ; &9f38 referenced 3 times by &97fc, &9ade, &9d23
 .tx_calc_transfer
-    ldy #6                                                            ; 9f38: a0 06       ..
+    ldy #6                                                            ; 9f38: a0 06       ..             ; Load RXCB[6] (buffer addr byte 2)
     lda (port_ws_offset),y                                            ; 9f3a: b1 a6       ..
     iny                                                               ; 9f3c: c8          .              ; Y=&07
-    and (port_ws_offset),y                                            ; 9f3d: 31 a6       1.
-    cmp #&ff                                                          ; 9f3f: c9 ff       ..
-    beq c9f84                                                         ; 9f41: f0 41       .A
-    lda tube_flag                                                     ; 9f43: ad 67 0d    .g.
-    beq c9f84                                                         ; 9f46: f0 3c       .<
+    and (port_ws_offset),y                                            ; 9f3d: 31 a6       1.             ; AND with RXCB[7] (byte 3)
+    cmp #&ff                                                          ; 9f3f: c9 ff       ..             ; Both &FF = no buffer?
+    beq c9f84                                                         ; 9f41: f0 41       .A             ; Yes: fallback path
+    lda tube_flag                                                     ; 9f43: ad 67 0d    .g.            ; Tube transfer in progress?
+    beq c9f84                                                         ; 9f46: f0 3c       .<             ; No: fallback path
     lda tx_flags                                                      ; 9f48: ad 4a 0d    .J.
-    ora #2                                                            ; 9f4b: 09 02       ..
+    ora #2                                                            ; 9f4b: 09 02       ..             ; Set bit 1 (transfer complete)
     sta tx_flags                                                      ; 9f4d: 8d 4a 0d    .J.
-    sec                                                               ; 9f50: 38          8
-    php                                                               ; 9f51: 08          .
-    ldy #4                                                            ; 9f52: a0 04       ..
-    lda (port_ws_offset),y                                            ; 9f54: b1 a6       ..
-    iny                                                               ; 9f56: c8          .
+    sec                                                               ; 9f50: 38          8              ; Init borrow for 4-byte subtract
+    php                                                               ; 9f51: 08          .              ; Save carry on stack
+    ldy #4                                                            ; 9f52: a0 04       ..             ; Y=4: start at RXCB offset 4
+    lda (port_ws_offset),y                                            ; 9f54: b1 a6       ..             ; Load RXCB[Y] (current ptr byte)
+    iny                                                               ; 9f56: c8          .              ; Y += 4: advance to RXCB[Y+4]
     iny                                                               ; 9f57: c8          .
     iny                                                               ; 9f58: c8          .
     iny                                                               ; 9f59: c8          .
     equb &28, &f1, &a6, &99, &9a, 0, &88, &88, &88, 8, &c0, 8, &90    ; 9f5a: 28 f1 a6... (..
     equb &ec, &28, &8a                                                ; 9f67: ec 28 8a    .(.
 
-    pha                                                               ; 9f6a: 48          H
-    lda #4                                                            ; 9f6b: a9 04       ..
+    pha                                                               ; 9f6a: 48          H              ; Save X
+    lda #4                                                            ; 9f6b: a9 04       ..             ; Compute address of RXCB+4
     clc                                                               ; 9f6d: 18          .
     adc port_ws_offset                                                ; 9f6e: 65 a6       e.
-    tax                                                               ; 9f70: aa          .
-    ldy rx_buf_offset                                                 ; 9f71: a4 a7       ..
-    lda #&c2                                                          ; 9f73: a9 c2       ..
+    tax                                                               ; 9f70: aa          .              ; X = low byte of RXCB+4
+    ldy rx_buf_offset                                                 ; 9f71: a4 a7       ..             ; Y = high byte of RXCB ptr
+    lda #&c2                                                          ; 9f73: a9 c2       ..             ; Tube claim type &C2
     jsr tube_addr_claim                                               ; 9f75: 20 06 04     ..
-    bcc c9f81                                                         ; 9f78: 90 07       ..
-    lda scout_status                                                  ; 9f7a: ad 5c 0d    .\.
+    bcc c9f81                                                         ; 9f78: 90 07       ..             ; No Tube: skip reclaim
+    lda scout_status                                                  ; 9f7a: ad 5c 0d    .\.            ; Tube: reclaim with scout status
     jsr tube_addr_claim                                               ; 9f7d: 20 06 04     ..
-    sec                                                               ; 9f80: 38          8
+    sec                                                               ; 9f80: 38          8              ; C=1: Tube address claimed
 ; &9f81 referenced 1 time by &9f78
 .c9f81
-    pla                                                               ; 9f81: 68          h
+    pla                                                               ; 9f81: 68          h              ; Restore X
     tax                                                               ; 9f82: aa          .
     rts                                                               ; 9f83: 60          `
 
 ; &9f84 referenced 2 times by &9f41, &9f46
 .c9f84
     ldy #4                                                            ; 9f84: a0 04       ..
-    lda (port_ws_offset),y                                            ; 9f86: b1 a6       ..
+    lda (port_ws_offset),y                                            ; 9f86: b1 a6       ..             ; Load RXCB[4] (current ptr lo)
     ldy #8                                                            ; 9f88: a0 08       ..
     sec                                                               ; 9f8a: 38          8
-    sbc (port_ws_offset),y                                            ; 9f8b: f1 a6       ..
-    sta port_buf_len                                                  ; 9f8d: 85 a2       ..
+    sbc (port_ws_offset),y                                            ; 9f8b: f1 a6       ..             ; Subtract RXCB[8] (start ptr lo)
+    sta port_buf_len                                                  ; 9f8d: 85 a2       ..             ; Store transfer size lo
     ldy #5                                                            ; 9f8f: a0 05       ..
-    lda (port_ws_offset),y                                            ; 9f91: b1 a6       ..
-    sbc #0                                                            ; 9f93: e9 00       ..
-    sta open_port_buf_hi                                              ; 9f95: 85 a5       ..
+    lda (port_ws_offset),y                                            ; 9f91: b1 a6       ..             ; Load RXCB[5] (current ptr hi)
+    sbc #0                                                            ; 9f93: e9 00       ..             ; Propagate borrow only
+    sta open_port_buf_hi                                              ; 9f95: 85 a5       ..             ; Temp store of adjusted hi byte
     ldy #8                                                            ; 9f97: a0 08       ..
-    lda (port_ws_offset),y                                            ; 9f99: b1 a6       ..
+    lda (port_ws_offset),y                                            ; 9f99: b1 a6       ..             ; Copy RXCB[8] to open port buffer lo
     sta open_port_buf                                                 ; 9f9b: 85 a4       ..
     ldy #9                                                            ; 9f9d: a0 09       ..
-    lda (port_ws_offset),y                                            ; 9f9f: b1 a6       ..
+    lda (port_ws_offset),y                                            ; 9f9f: b1 a6       ..             ; Load RXCB[9]
     sec                                                               ; 9fa1: 38          8
-    sbc open_port_buf_hi                                              ; 9fa2: e5 a5       ..
-    sta port_buf_len_hi                                               ; 9fa4: 85 a3       ..
-    sec                                                               ; 9fa6: 38          8
+    sbc open_port_buf_hi                                              ; 9fa2: e5 a5       ..             ; Subtract adjusted hi byte
+    sta port_buf_len_hi                                               ; 9fa4: 85 a3       ..             ; Store transfer size hi
+    sec                                                               ; 9fa6: 38          8              ; Return with C=1
 ; &9fa7 referenced 1 time by &968f
 .nmi_shim_rom_src
     rts                                                               ; 9fa7: 60          `
