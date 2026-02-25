@@ -1043,10 +1043,12 @@ l8004 = service_entry+1
     equb 1                                                            ; 8021: 01          .              ; Purpose unknown
     equb 0                                                            ; 8022: 00          .              ; Purpose unknown
     equb &40                                                          ; 8023: 40          @              ; Purpose unknown
+; &8024 referenced 1 time by &80f0
+    equb 3                                                            ; 8024: 03          .              ; Purpose unknown; ignored by dispatcher
 ; Dispatch table: low bytes of (handler_address - 1)
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &80E7.
-; See dispatch_hi (&8049) for the corresponding high bytes.
+; See dispatch_0_hi (&804A) for the corresponding high bytes.
 ; 
 ; Five callers share this table via different Y base offsets:
 ;   Y=&00  Service calls 0-12       (indices 0-13)
@@ -1055,12 +1057,10 @@ l8004 = service_entry+1
 ;   Y=&17  FS reply handlers        (indices 27-32)
 ;   Y=&21  *NET1-4 sub-commands     (indices 33-36)
 ; 
-; Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049,
-; immediately before the hi bytes. Their hi bytes are at
-; &8069-&806E, after the main dispatch_hi table.
-; &8024 referenced 1 time by &80f0
-.dispatch_lo
-    equb 3                                                            ; 8024: 03          .              ; Purpose unknown; ignored by dispatcher
+; Lo bytes for the last 6 entries (indices 31-36) occupy
+; &8044-&8049, immediately before the hi bytes. Their hi
+; bytes are at &8069-&806E, after dispatch_0_hi.
+.dispatch_0_lo
     equb <(return_1-1)                                                ; 8025: f5          .              ; Svc 0: already claimed (no-op)
     equb <(svc_1_abs_workspace-1)                                     ; 8026: b7          .              ; Svc 1: absolute workspace
     equb <(svc_2_private_workspace-1)                                 ; 8027: c0          .              ; Svc 2: private workspace
@@ -1097,12 +1097,13 @@ l8004 = service_entry+1
     equb <(net_1_read_handle-1)                                       ; 8046: 58          X              ; *NET1: read handle from packet
     equb <(net_2_read_handle_entry-1)                                 ; 8047: 5e          ^              ; *NET2: read handle from workspace
     equb <(net_3_close_handle-1)                                      ; 8048: 6e          n              ; *NET3: close handle
-; Dispatch table: high bytes of (handler_address - 1)
-; Paired with dispatch_lo (&8024). Together they form a table of
-; 37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
 ; &8049 referenced 1 time by &80ec
-.dispatch_hi
     equb <(net_4_resume_remote-1)                                     ; 8049: b7          .              ; *NET4: resume remote
+; Dispatch table: high bytes of (handler_address - 1)
+; Paired with dispatch_0_lo (&8025). Together they form a table
+; of 37 handler addresses, used via the PHA/PHA/RTS trick at
+; &80E7.
+.dispatch_0_hi
     equb >(return_1-1)                                                ; 804a: 80          .
     equb >(svc_1_abs_workspace-1)                                     ; 804b: 82          .
     equb >(svc_2_private_workspace-1)                                 ; 804c: 82          .
@@ -1317,9 +1318,9 @@ l8004 = service_entry+1
     dey                                                               ; 80e8: 88          .
     bpl dispatch                                                      ; 80e9: 10 fc       ..
     tay                                                               ; 80eb: a8          .
-    lda dispatch_hi,x                                                 ; 80ec: bd 49 80    .I.            ; Load high byte of (handler - 1) from table
+    lda dispatch_0_hi-1,x                                             ; 80ec: bd 49 80    .I.            ; Load high byte of (handler - 1) from table
     pha                                                               ; 80ef: 48          H              ; Push high byte onto stack
-    lda dispatch_lo,x                                                 ; 80f0: bd 24 80    .$.            ; Load low byte of (handler - 1) from table
+    lda dispatch_0_lo-1,x                                             ; 80f0: bd 24 80    .$.            ; Load low byte of (handler - 1) from table
     pha                                                               ; 80f3: 48          H              ; Push low byte onto stack
     ldx fs_options                                                    ; 80f4: a6 bb       ..             ; Restore X (fileserver options) for use by handler
 ; &80f6 referenced 3 times by &80cb, &80d9, &80e3
@@ -8585,8 +8586,8 @@ save pydis_start, pydis_end
 ;     decmor:                                   1
 ;     delay_1ms:                                1
 ;     discard_after_reset:                      1
-;     dispatch_hi:                              1
-;     dispatch_lo:                              1
+;     dispatch_0_hi-1:                          1
+;     dispatch_0_lo-1:                          1
 ;     dofs01:                                   1
 ;     dofs2:                                    1
 ;     dofsl5:                                   1

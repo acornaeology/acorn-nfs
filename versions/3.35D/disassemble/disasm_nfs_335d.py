@@ -470,7 +470,7 @@ comment(0x801B, '"Bad Option"', inline=True)
 comment(0x801C, '"No reply"', inline=True)
 
 # Unreferenced padding between error offsets and dispatch table
-for addr in range(0x801D, 0x8020):
+for addr in range(0x801D, 0x8021):
     byte(addr)
 comment(0x801D, "Purpose unknown", inline=True)
 comment(0x801E, "Purpose unknown", inline=True)
@@ -478,8 +478,10 @@ comment(0x801F, "Purpose unknown", inline=True)
 comment(0x8020, "Purpose unknown; ignored by dispatcher", inline=True)
 
 # Dispatch tables: split low/high byte address tables
-label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)
-label(0x8044, "dispatch_hi")            # High bytes of (handler_addr - 1)
+label(0x8021, "dispatch_0_lo")          # First low byte entry (Svc 0)
+label(0x8045, "dispatch_0_hi")          # First high byte entry (Svc 0)
+expr_label(0x8020, "dispatch_0_lo-1")   # Code operand expression
+expr_label(0x8044, "dispatch_0_hi-1")   # Code operand expression
 
 # Dispatcher and dispatch callers
 # Note: &8099 is already labelled "language_handler" by acorn.is_sideways_rom()
@@ -1643,13 +1645,13 @@ comment(0x85F2, "Bit 7 set? Done — this byte is the next opcode", inline=True)
 comment(0x85FA, "Jump to address of high-bit byte (resumes code after string)", inline=True)
 
 # ============================================================
-# Dispatch table comments (&8020-&8068)
+# Dispatch table comments (&8021-&8068)
 # ============================================================
-comment(0x8020, """\
+comment(0x8021, """\
 Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80DA.
-See dispatch_hi (&8044) for the corresponding high bytes.
+See dispatch_0_hi (&8045) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
   Y=&00  Service calls 0-12       (indices 1-13)
@@ -1658,10 +1660,11 @@ Five callers share this table via different Y base offsets:
   Y=&16  FS reply handlers        (indices 27-32)
   Y=&20  *NET1-4 sub-commands     (indices 33-36)""")
 
-comment(0x8044, """\
+comment(0x8045, """\
 Dispatch table: high bytes of (handler_address - 1)
-Paired with dispatch_lo (&8020). Together they form a table of
-37 handler addresses, used via the PHA/PHA/RTS trick at &80DA.""")
+Paired with dispatch_0_lo (&8021). Together they form a table
+of 37 handler addresses, used via the PHA/PHA/RTS trick at
+&80DA.""")
 
 # Inline comments on each low-byte dispatch table entry.
 # Service call handlers (Y=&00, indices 1-13)

@@ -449,8 +449,10 @@ label(0x8018, "error_offsets")
 # In 3.40 the ROM title is 4 bytes longer ("    NET" vs "NET"),
 # so ROM header data extends to &8023, and the dispatch tables
 # start at &8024/&8049 rather than &8020/&8044.
-label(0x8024, "dispatch_lo")            # Low bytes of (handler_addr - 1)
-label(0x8049, "dispatch_hi")            # High bytes of (handler_addr - 1)
+label(0x8025, "dispatch_0_lo")          # First low byte entry (Svc 0)
+label(0x804A, "dispatch_0_hi")          # First high byte entry (Svc 0)
+expr_label(0x8024, "dispatch_0_lo-1")   # Code operand expression
+expr_label(0x8049, "dispatch_0_hi-1")   # Code operand expression
 
 # Dispatcher and dispatch callers
 # Note: &80D4 is already labelled "language_handler" by acorn.is_sideways_rom()
@@ -1013,9 +1015,9 @@ Key ADLC register values:
 #   FS reply             &17      reply_code         27-32
 #   *NET1-4 commands     &21      char-'1'           33-36
 #
-# The dispatch code at &80EC/&80F0 reads via LDA dispatch_hi,X and
-# LDA dispatch_lo,X. After the loop adds Y+1 to X, the final byte
-# addresses for logical entry i are:
+# The dispatch code at &80EC/&80F0 reads via LDA dispatch_0_hi-1,X
+# and LDA dispatch_0_lo-1,X. After the loop adds Y+1 to X,
+# the final byte addresses for logical entry i are:
 #   lo = &8024 + (i+1) = &8025 + i
 #   hi = &8049 + (i+1) = &804A + i
 #
@@ -1027,7 +1029,7 @@ Key ADLC register values:
 # The lo and hi sub-tables overlap: lo bytes for the last 6
 # entries (i=31-36) fall at &8044-&8049 (the start of the hi area),
 # and hi bytes for i=31-36 are at &8069-&806E (between the main
-# dispatch_hi table and dispatch_net_cmd at &806F).
+# dispatch_0_hi table and dispatch_net_cmd at &806F).
 #
 # Index 0 and unused indices point to an RTS (null handler), so
 # unrecognised service calls or out-of-range values fall through
@@ -1057,7 +1059,7 @@ comment(0x801F, '"Bad Option"', inline=True)
 comment(0x8020, '"No reply"', inline=True)
 
 # Unreferenced padding between error offsets and dispatch table.
-# &8024 is the dispatch_lo pad byte — the dispatcher adds Y+1
+# &8024 is the dispatch table pad byte — the dispatcher adds Y+1
 # to X before indexing, so entry 0 at &8025 is the first handler.
 for addr in range(0x8021, 0x8025):
     byte(addr)
@@ -1085,8 +1087,8 @@ for i in range(27, 31):
     rts_code_ptr(0x8025 + i, 0x804A + i)
 
 # Entries 31-36: overlap zone. Lo bytes are at &8044-&8049 (start
-# of dispatch_hi area), hi bytes are at &8069-&806E (between the
-# main dispatch_hi table and dispatch_net_cmd at &806F).
+# of dispatch_0_hi area), hi bytes are at &8069-&806E (between the
+# main dispatch_0_hi table and dispatch_net_cmd at &806F).
 for i in range(31, 37):
     rts_code_ptr(0x8025 + i, 0x804A + i)
 comment(0x8044, "FS reply: notify + execute", inline=True)
@@ -1702,13 +1704,13 @@ comment(0x8615, "Bit 7 set? Done — this byte is the next opcode", inline=True)
 comment(0x861D, "Jump to address of high-bit byte (resumes code after string)", inline=True)
 
 # ============================================================
-# Dispatch table comments (&8024-&8068)
+# Dispatch table comments (&8025-&8068)
 # ============================================================
-comment(0x8024, """\
+comment(0x8025, """\
 Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80E7.
-See dispatch_hi (&8049) for the corresponding high bytes.
+See dispatch_0_hi (&804A) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
   Y=&00  Service calls 0-12       (indices 0-13)
@@ -1717,14 +1719,15 @@ Five callers share this table via different Y base offsets:
   Y=&17  FS reply handlers        (indices 27-32)
   Y=&21  *NET1-4 sub-commands     (indices 33-36)
 
-Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049,
-immediately before the hi bytes. Their hi bytes are at
-&8069-&806E, after the main dispatch_hi table.""")
+Lo bytes for the last 6 entries (indices 31-36) occupy
+&8044-&8049, immediately before the hi bytes. Their hi
+bytes are at &8069-&806E, after dispatch_0_hi.""")
 
-comment(0x8049, """\
+comment(0x804A, """\
 Dispatch table: high bytes of (handler_address - 1)
-Paired with dispatch_lo (&8024). Together they form a table of
-37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.""")
+Paired with dispatch_0_lo (&8025). Together they form a table
+of 37 handler addresses, used via the PHA/PHA/RTS trick at
+&80E7.""")
 
 # Inline comments on each low-byte dispatch table entry.
 # Service call handlers (Y=&00, indices 0-13)
