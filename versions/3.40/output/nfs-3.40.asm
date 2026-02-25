@@ -2678,31 +2678,31 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8620 referenced 2 times by &808c, &8095
 .parse_decimal
-    lda #0                                                            ; 8620: a9 00       ..
+    lda #0                                                            ; 8620: a9 00       ..             ; Zero accumulator
     sta fs_load_addr_2                                                ; 8622: 85 b2       ..
 ; &8624 referenced 1 time by &863d
 .loop_c8624
-    lda (fs_options),y                                                ; 8624: b1 bb       ..
-    cmp #&2e ; '.'                                                    ; 8626: c9 2e       ..
-    beq c8640                                                         ; 8628: f0 16       ..
-    bcc c863f                                                         ; 862a: 90 13       ..
-    and #&0f                                                          ; 862c: 29 0f       ).
-    sta l00b3                                                         ; 862e: 85 b3       ..
-    asl fs_load_addr_2                                                ; 8630: 06 b2       ..
-    lda fs_load_addr_2                                                ; 8632: a5 b2       ..
-    asl a                                                             ; 8634: 0a          .
-    asl a                                                             ; 8635: 0a          .
-    adc fs_load_addr_2                                                ; 8636: 65 b2       e.
-    adc l00b3                                                         ; 8638: 65 b3       e.
-    sta fs_load_addr_2                                                ; 863a: 85 b2       ..
-    iny                                                               ; 863c: c8          .
-    bne loop_c8624                                                    ; 863d: d0 e5       ..
+    lda (fs_options),y                                                ; 8624: b1 bb       ..             ; Load next char from buffer
+    cmp #&2e ; '.'                                                    ; 8626: c9 2e       ..             ; Dot separator?
+    beq c8640                                                         ; 8628: f0 16       ..             ; Yes: exit with C=1 (dot found)
+    bcc c863f                                                         ; 862a: 90 13       ..             ; Control char or space: done
+    and #&0f                                                          ; 862c: 29 0f       ).             ; Mask ASCII digit to 0-9
+    sta l00b3                                                         ; 862e: 85 b3       ..             ; Save new digit
+    asl fs_load_addr_2                                                ; 8630: 06 b2       ..             ; Running total * 2
+    lda fs_load_addr_2                                                ; 8632: a5 b2       ..             ; A = running total * 2
+    asl a                                                             ; 8634: 0a          .              ; A = running total * 4
+    asl a                                                             ; 8635: 0a          .              ; A = running total * 8
+    adc fs_load_addr_2                                                ; 8636: 65 b2       e.             ; + total*2 = total * 10
+    adc l00b3                                                         ; 8638: 65 b3       e.             ; + digit = total*10 + digit
+    sta fs_load_addr_2                                                ; 863a: 85 b2       ..             ; Store new running total
+    iny                                                               ; 863c: c8          .              ; Advance to next char
+    bne loop_c8624                                                    ; 863d: d0 e5       ..             ; Loop (always: Y won't wrap to 0)
 ; &863f referenced 1 time by &862a
 .c863f
-    clc                                                               ; 863f: 18          .
+    clc                                                               ; 863f: 18          .              ; No dot found: C=0
 ; &8640 referenced 1 time by &8628
 .c8640
-    lda fs_load_addr_2                                                ; 8640: a5 b2       ..
+    lda fs_load_addr_2                                                ; 8640: a5 b2       ..             ; Return result in A
     rts                                                               ; 8642: 60          `
 
 ; ***************************************************************************************

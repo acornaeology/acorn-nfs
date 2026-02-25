@@ -1491,6 +1491,24 @@ by dots.""",
     on_exit={"a": "parsed value (accumulated in &B2)",
              "x": "preserved",
              "y": "offset past last digit parsed"})
+comment(0x8620, "Zero accumulator", inline=True)
+comment(0x8624, "Load next char from buffer", inline=True)
+comment(0x8626, "Dot separator?", inline=True)
+comment(0x8628, "Yes: exit with C=1 (dot found)", inline=True)
+comment(0x862A, "Control char or space: done", inline=True)
+comment(0x862C, "Mask ASCII digit to 0-9", inline=True)
+comment(0x862E, "Save new digit", inline=True)
+comment(0x8630, "Running total * 2", inline=True)
+comment(0x8632, "A = running total * 2", inline=True)
+comment(0x8634, "A = running total * 4", inline=True)
+comment(0x8635, "A = running total * 8", inline=True)
+comment(0x8636, "+ total*2 = total * 10", inline=True)
+comment(0x8638, "+ digit = total*10 + digit", inline=True)
+comment(0x863A, "Store new running total", inline=True)
+comment(0x863C, "Advance to next char", inline=True)
+comment(0x863D, "Loop (always: Y won't wrap to 0)", inline=True)
+comment(0x863F, "No dot found: C=0", inline=True)
+comment(0x8640, "Return result in A", inline=True)
 
 # ============================================================
 # File handle conversion (&8643-&8645)

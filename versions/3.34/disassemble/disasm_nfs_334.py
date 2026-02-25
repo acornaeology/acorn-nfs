@@ -1422,6 +1422,27 @@ by dots.""",
     on_exit={"a": "parsed value (accumulated in &B2)",
              "x": "initial A value (saved by TAX)",
              "y": "offset past last digit parsed"})
+comment(0x8560, "Save A in X for caller", inline=True)
+comment(0x8561, "Zero accumulator", inline=True)
+comment(0x8565, "Load next char from buffer", inline=True)
+comment(0x8567, "Letter or above?", inline=True)
+comment(0x8569, "Yes: not a digit, done", inline=True)
+comment(0x856B, "Dot separator?", inline=True)
+comment(0x856D, "Yes: exit with C=1 (dot found)", inline=True)
+comment(0x856F, "Control char or space: done", inline=True)
+comment(0x8571, "Mask ASCII digit to 0-9", inline=True)
+comment(0x8573, "Save new digit", inline=True)
+comment(0x8575, "Running total * 2", inline=True)
+comment(0x8577, "A = running total * 2", inline=True)
+comment(0x8579, "A = running total * 4", inline=True)
+comment(0x857A, "A = running total * 8", inline=True)
+comment(0x857B, "+ total*2 = total * 10", inline=True)
+comment(0x857D, "+ digit = total*10 + digit", inline=True)
+comment(0x857F, "Store new running total", inline=True)
+comment(0x8581, "Advance to next char", inline=True)
+comment(0x8582, "Loop (always: Y won't wrap to 0)", inline=True)
+comment(0x8584, "No dot found: C=0", inline=True)
+comment(0x8585, "Return result in A", inline=True)
 
 # ============================================================
 # File handle conversion (&8588-&858A)

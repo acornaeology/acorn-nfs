@@ -2567,34 +2567,34 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8560 referenced 2 times by &8d0d, &8d13
 .parse_decimal
-    tax                                                               ; 8560: aa          .
-    lda #0                                                            ; 8561: a9 00       ..
+    tax                                                               ; 8560: aa          .              ; Save A in X for caller
+    lda #0                                                            ; 8561: a9 00       ..             ; Zero accumulator
     sta fs_load_addr_2                                                ; 8563: 85 b2       ..
 ; &8565 referenced 1 time by &8582
 .loop_c8565
-    lda (fs_options),y                                                ; 8565: b1 bb       ..
-    cmp #&40 ; '@'                                                    ; 8567: c9 40       .@
-    bcs c8584                                                         ; 8569: b0 19       ..
-    cmp #&2e ; '.'                                                    ; 856b: c9 2e       ..
-    beq c8585                                                         ; 856d: f0 16       ..
-    bmi c8584                                                         ; 856f: 30 13       0.
-    and #&0f                                                          ; 8571: 29 0f       ).
-    sta l00b3                                                         ; 8573: 85 b3       ..
-    asl fs_load_addr_2                                                ; 8575: 06 b2       ..
-    lda fs_load_addr_2                                                ; 8577: a5 b2       ..
-    asl a                                                             ; 8579: 0a          .
-    asl a                                                             ; 857a: 0a          .
-    adc fs_load_addr_2                                                ; 857b: 65 b2       e.
-    adc l00b3                                                         ; 857d: 65 b3       e.
-    sta fs_load_addr_2                                                ; 857f: 85 b2       ..
-    iny                                                               ; 8581: c8          .
-    bne loop_c8565                                                    ; 8582: d0 e1       ..
+    lda (fs_options),y                                                ; 8565: b1 bb       ..             ; Load next char from buffer
+    cmp #&40 ; '@'                                                    ; 8567: c9 40       .@             ; Letter or above?
+    bcs c8584                                                         ; 8569: b0 19       ..             ; Yes: not a digit, done
+    cmp #&2e ; '.'                                                    ; 856b: c9 2e       ..             ; Dot separator?
+    beq c8585                                                         ; 856d: f0 16       ..             ; Yes: exit with C=1 (dot found)
+    bmi c8584                                                         ; 856f: 30 13       0.             ; Control char or space: done
+    and #&0f                                                          ; 8571: 29 0f       ).             ; Mask ASCII digit to 0-9
+    sta l00b3                                                         ; 8573: 85 b3       ..             ; Save new digit
+    asl fs_load_addr_2                                                ; 8575: 06 b2       ..             ; Running total * 2
+    lda fs_load_addr_2                                                ; 8577: a5 b2       ..             ; A = running total * 2
+    asl a                                                             ; 8579: 0a          .              ; A = running total * 4
+    asl a                                                             ; 857a: 0a          .              ; A = running total * 8
+    adc fs_load_addr_2                                                ; 857b: 65 b2       e.             ; + total*2 = total * 10
+    adc l00b3                                                         ; 857d: 65 b3       e.             ; + digit = total*10 + digit
+    sta fs_load_addr_2                                                ; 857f: 85 b2       ..             ; Store new running total
+    iny                                                               ; 8581: c8          .              ; Advance to next char
+    bne loop_c8565                                                    ; 8582: d0 e1       ..             ; Loop (always: Y won't wrap to 0)
 ; &8584 referenced 2 times by &8569, &856f
 .c8584
-    clc                                                               ; 8584: 18          .
+    clc                                                               ; 8584: 18          .              ; No dot found: C=0
 ; &8585 referenced 1 time by &856d
 .c8585
-    lda fs_load_addr_2                                                ; 8585: a5 b2       ..
+    lda fs_load_addr_2                                                ; 8585: a5 b2       ..             ; Return result in A
     rts                                                               ; 8587: 60          `
 
 ; ***************************************************************************************
