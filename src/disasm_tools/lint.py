@@ -169,6 +169,48 @@ def address_in_ranges(address, ranges):
     return any(start <= address <= end for start, end in ranges)
 
 
+def find_code_block_ranges(md_text):
+    """Find character offset ranges of fenced code blocks in Markdown.
+
+    Returns a list of (start, end) tuples covering the full extent of
+    each fenced code block (from opening ``` to closing ```).
+    """
+    ranges = []
+    in_block = False
+    block_start = 0
+    offset = 0
+    for line in md_text.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            if not in_block:
+                block_start = offset
+                in_block = True
+            else:
+                ranges.append((block_start, offset + len(line)))
+                in_block = False
+        offset += len(line)
+    return ranges
+
+
+def offset_in_code_block(offset, code_block_ranges):
+    """Check if a character offset falls inside any fenced code block."""
+    return any(start <= offset < end for start, end in code_block_ranges)
+
+
+def find_nth_occurrence(text, pattern, n):
+    """Find the character offset of the nth occurrence of pattern in text.
+
+    Returns -1 if the pattern doesn't occur n+1 times.
+    """
+    start = 0
+    for _ in range(n + 1):
+        pos = text.find(pattern, start)
+        if pos == -1:
+            return -1
+        start = pos + 1
+    return pos
+
+
 def lint_docs(version_dirpath, version):
     """Validate address_links in rom.json against Markdown docs and JSON outputs.
 
@@ -216,6 +258,7 @@ def lint_docs(version_dirpath, version):
             continue
 
         md_text = doc_filepath.read_text()
+        code_blocks = find_code_block_ranges(md_text)
 
         for link in address_links:
             link_count += 1
@@ -233,7 +276,16 @@ def lint_docs(version_dirpath, version):
                 )
                 continue
 
-            # Check (b): address falls within a disassembly range
+            # Check (b): match must not be inside a fenced code block
+            match_offset = find_nth_occurrence(md_text, pattern, occurrence)
+            if match_offset >= 0 and offset_in_code_block(match_offset, code_blocks):
+                errors.append(
+                    f"  {doc['path']}: \"{pattern}\" occurrence "
+                    f"{occurrence} is inside a fenced code block"
+                )
+                continue
+
+            # Check (c): address falls within a disassembly range
             ranges = get_ranges(ver)
             if ranges is None:
                 errors.append(
@@ -301,6 +353,7 @@ def lint_glossary_links(version_dirpath):
             continue
 
         md_text = doc_filepath.read_text()
+        code_blocks = find_code_block_ranges(md_text)
 
         for link in glossary_links:
             link_count += 1
@@ -317,7 +370,16 @@ def lint_glossary_links(version_dirpath):
                 )
                 continue
 
-            # Check (b): term exists in glossary
+            # Check (b): match must not be inside a fenced code block
+            match_offset = find_nth_occurrence(md_text, pattern, occurrence)
+            if match_offset >= 0 and offset_in_code_block(match_offset, code_blocks):
+                errors.append(
+                    f"  {doc['path']}: glossary \"{pattern}\" occurrence "
+                    f"{occurrence} is inside a fenced code block"
+                )
+                continue
+
+            # Check (c): term exists in glossary
             if term not in glossary_terms:
                 errors.append(
                     f"  {doc['path']}: glossary term \"{term}\" "

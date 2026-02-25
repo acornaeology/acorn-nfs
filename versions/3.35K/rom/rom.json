@@ -104,7 +104,7 @@
                 {"pattern": "Tube", "occurrence": 0, "term": "Tube"},
                 {"pattern": "BGETV", "occurrence": 0, "term": "BGETV"},
                 {"pattern": "FINDV", "occurrence": 0, "term": "FINDV"},
-                {"pattern": "OSCLI", "occurrence": 0, "term": "OSCLI"},
+                {"pattern": "OSCLI", "occurrence": 3, "term": "OSCLI"},
                 {"pattern": "service call", "occurrence": 0, "term": "service call"},
                 {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"},
                 {"pattern": "EVNTV", "occurrence": 0, "term": "EVNTV"},

@@ -32,22 +32,7 @@
                 {"pattern": "&80F7", "occurrence": 2, "version": "3.40", "address": "0x80F7"},
                 {"pattern": "&80FF", "occurrence": 0, "version": "3.40", "address": "0x80FF"},
 
-                {"pattern": "&80F4", "occurrence": 0, "version": "3.35K", "address": "0x80F4"},
-                {"pattern": "&80F6", "occurrence": 0, "version": "3.35K", "address": "0x80F6"},
-                {"pattern": "&80F8", "occurrence": 0, "version": "3.35K", "address": "0x80F8"},
-                {"pattern": "&80FA", "occurrence": 0, "version": "3.35K", "address": "0x80FA"},
-                {"pattern": "&80FC", "occurrence": 0, "version": "3.35K", "address": "0x80FC"},
-                {"pattern": "&80FF", "occurrence": 1, "version": "3.35K", "address": "0x80FF"},
-                {"pattern": "&8101", "occurrence": 0, "version": "3.35K", "address": "0x8101"},
-
-                {"pattern": "&8129", "occurrence": 0, "version": "3.40", "address": "0x8129"},
-                {"pattern": "&812B", "occurrence": 0, "version": "3.40", "address": "0x812B"},
-                {"pattern": "&812D", "occurrence": 0, "version": "3.40", "address": "0x812D"},
-
                 {"pattern": "&816D", "occurrence": 0, "version": "3.35K", "address": "0x816D"},
-
-                {"pattern": "&8146", "occurrence": 0, "version": "3.35K", "address": "0x8146"},
-                {"pattern": "&817F", "occurrence": 0, "version": "3.40", "address": "0x817F"},
 
                 {"pattern": "&8168", "occurrence": 0, "version": "3.35K", "address": "0x8168"},
                 {"pattern": "&81A5", "occurrence": 0, "version": "3.40", "address": "0x81A5"},
@@ -71,8 +56,6 @@
                 {"pattern": "&0500", "occurrence": 0, "version": "3.40", "address": "0x0500"},
 
                 {"pattern": "&0414", "occurrence": 0, "version": "3.35K", "address": "0x0414"},
-                {"pattern": "&0414", "occurrence": 1, "version": "3.35K", "address": "0x0414"},
-                {"pattern": "&041E", "occurrence": 0, "version": "3.40", "address": "0x041E"},
 
                 {"pattern": "&8D9D", "occurrence": 0, "version": "3.35K", "address": "0x8D9D"},
                 {"pattern": "&9FE0", "occurrence": 0, "version": "3.40", "address": "0x9FE0"},
@@ -80,7 +63,6 @@
                 {"pattern": "&9FE9", "occurrence": 0, "version": "3.40", "address": "0x9FE9"},
 
                 {"pattern": "&8E3A", "occurrence": 0, "version": "3.40", "address": "0x8E3A"},
-                {"pattern": "&8E3A", "occurrence": 1, "version": "3.40", "address": "0x8E3A"},
 
                 {"pattern": "&9FC8", "occurrence": 0, "version": "3.40", "address": "0x9FC8"},
                 {"pattern": "&9624", "occurrence": 0, "version": "3.40", "address": "0x9624"},
@@ -98,7 +80,6 @@
 
                 {"pattern": "&9315", "occurrence": 1, "version": "3.35K", "address": "0x9315"},
                 {"pattern": "&931C", "occurrence": 1, "version": "3.40", "address": "0x931C"},
-                {"pattern": "&0016", "occurrence": 0, "version": "3.40", "address": "0x0016"},
                 {"pattern": "&935A", "occurrence": 0, "version": "3.35K", "address": "0x935A"},
                 {"pattern": "&935D", "occurrence": 0, "version": "3.40", "address": "0x935D"},
                 {"pattern": "&0400", "occurrence": 0, "version": "3.40", "address": "0x0400"},
@@ -120,9 +101,8 @@
                 {"pattern": "RDCHV", "occurrence": 0, "term": "RDCHV"},
                 {"pattern": "FSCV", "occurrence": 0, "term": "FSCV"},
                 {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"},
-                {"pattern": "OSCLI", "occurrence": 0, "term": "OSCLI"},
                 {"pattern": "OSWRCH", "occurrence": 0, "term": "OSWRCH"},
-                {"pattern": "Econet", "occurrence": 0, "term": "Econet"},
+                {"pattern": "Econet", "occurrence": 1, "term": "Econet"},
                 {"pattern": "service call", "occurrence": 0, "term": "service call"},
                 {"pattern": "relocated code", "occurrence": 0, "term": "relocated code"}
             ]
