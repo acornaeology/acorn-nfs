@@ -1734,6 +1734,7 @@ l8004 = service_entry+1
 ; the FSCV 3 unrecognised-command handler (which matches against
 ; the command table at &8BD7). The "I." prefix triggers the
 ; catch-all entry which forwards the command to the fileserver.
+; Falls through to run_fscv_cmd.
 ; ***************************************************************************************
 ; &826b referenced 1 time by &81c5
 .issue_vectors_claimed
@@ -1745,8 +1746,17 @@ l8004 = service_entry+1
     ldx nfs_temp                                                      ; 8277: a6 a8       ..
     bne return_3                                                      ; 8279: d0 37       .7
     ldx #&82                                                          ; 827b: a2 82       ..
+; ***************************************************************************************
+; Run FSCV command from ROM
+; 
+; Sets Y to the ROM page high byte (&82) and jumps to fscv_3_star_cmd
+; to execute the command string at (X, Y). X is pre-loaded by the
+; caller with the low byte of the string address. Also used as a
+; data base address by store_rom_ptr_pair for Y-indexed access to
+; the handler address table.
+; ***************************************************************************************
 ; &827d referenced 2 times by &8329, &832f
-.c827d
+.run_fscv_cmd
     ldy #&82                                                          ; 827d: a0 82       ..
     jmp fscv_3_star_cmd                                               ; 827f: 4c b4 8b    L..
 
@@ -1909,10 +1919,10 @@ l8004 = service_entry+1
     ldx #1                                                            ; 8327: a2 01       ..
 ; &8329 referenced 2 times by &8266, &833b
 .store_rom_ptr_pair
-    lda c827d,y                                                       ; 8329: b9 7d 82    .}.
+    lda run_fscv_cmd,y                                                ; 8329: b9 7d 82    .}.
     sta (osrdsc_ptr),y                                                ; 832c: 91 f6       ..
     iny                                                               ; 832e: c8          .
-    lda c827d,y                                                       ; 832f: b9 7d 82    .}.
+    lda run_fscv_cmd,y                                                ; 832f: b9 7d 82    .}.
     sta (osrdsc_ptr),y                                                ; 8332: 91 f6       ..
     iny                                                               ; 8334: c8          .
     lda romsel_copy                                                   ; 8335: a5 f4       ..
@@ -8333,7 +8343,6 @@ save pydis_start, pydis_end
 ;     c055f:                                    2
 ;     c8099:                                    2
 ;     c8205:                                    2
-;     c827d:                                    2
 ;     c8306:                                    2
 ;     c84b2:                                    2
 ;     c8621:                                    2
@@ -8444,6 +8453,7 @@ save pydis_start, pydis_end
 ;     return_tube_xfer:                         2
 ;     rom_header:                               2
 ;     romsel:                                   2
+;     run_fscv_cmd:                             2
 ;     rx_extra_byte:                            2
 ;     rxpol2:                                   2
 ;     scout_complete:                           2
@@ -8975,7 +8985,6 @@ save pydis_start, pydis_end
 ;     c81b8
 ;     c8205
 ;     c824f
-;     c827d
 ;     c8306
 ;     c839d
 ;     c839e

@@ -2035,7 +2035,20 @@ service &0A. If nfs_temp is zero (auto-boot not inhibited),
 sets up the command string "I .BOOT" at &8245 and jumps to
 the FSCV 3 unrecognised-command handler (which matches against
 the command table at &8BD6). The "I." prefix triggers the
-catch-all entry which forwards the command to the fileserver.""")
+catch-all entry which forwards the command to the fileserver.
+Falls through to run_fscv_cmd.""")
+
+# ============================================================
+# Run FSCV command from ROM (&8240)
+# ============================================================
+subroutine(0x8240, "run_fscv_cmd", hook=None,
+    title="Run FSCV command from ROM",
+    description="""\
+Sets Y to the ROM page high byte (&82) and jumps to fscv_3_star_cmd
+to execute the command string at (X, Y). X is pre-loaded by the
+caller with the low byte of the string address. Also used as a
+data base address by store_rom_ptr_pair for Y-indexed access to
+the handler address table.""")
 
 # ============================================================
 # Set up ROM pointer table and NETV (&82D1)
