@@ -1091,12 +1091,6 @@ for i in range(27, 31):
 # main dispatch_0_hi table and dispatch_net_cmd at &806F).
 for i in range(31, 37):
     rts_code_ptr(0x8025 + i, 0x804A + i)
-comment(0x8044, "FS reply: notify + execute", inline=True)
-comment(0x8045, "FS reply: set library handle", inline=True)
-comment(0x8046, "*NET1: read handle from packet", inline=True)
-comment(0x8047, "*NET2: read handle from workspace", inline=True)
-comment(0x8048, "*NET3: close handle", inline=True)
-comment(0x8049, "*NET4: resume remote", inline=True)
 
 # ============================================================
 # Filing system OSWORD dispatch table at &8EB0/&8EB5
@@ -1729,45 +1723,56 @@ Paired with dispatch_0_lo (&8025). Together they form a table
 of 37 handler addresses, used via the PHA/PHA/RTS trick at
 &80E7.""")
 
-# Inline comments on each low-byte dispatch table entry.
-# Service call handlers (Y=&00, indices 0-13)
-comment(0x8025, "Svc 0: already claimed (no-op)", inline=True)
-comment(0x8026, "Svc 1: absolute workspace", inline=True)
-comment(0x8027, "Svc 2: private workspace", inline=True)
-comment(0x8028, "Svc 3: auto-boot", inline=True)
-comment(0x8029, "Svc 4: unrecognised star command", inline=True)
-comment(0x802A, "Svc 5: unrecognised interrupt", inline=True)
-comment(0x802B, "Svc 6: BRK (no-op)", inline=True)
-comment(0x802C, "Svc 7: unrecognised OSBYTE", inline=True)
-comment(0x802D, "Svc 8: unrecognised OSWORD", inline=True)
-comment(0x802E, "Svc 9: *HELP", inline=True)
-comment(0x802F, "Svc 10: static workspace (no-op)", inline=True)
-comment(0x8030, "Svc 11: NMI release (reclaim NMIs)", inline=True)
-comment(0x8031, "Svc 12: NMI claim (save NMI state)", inline=True)
-comment(0x8032, "Svc 13: select NFS (intercepted before dispatch)", inline=True)
-
-# Language entry handlers (Y=&0E, indices 14-18)
-comment(0x8033, "Lang 0: no language / Tube", inline=True)
-comment(0x8034, "Lang 1: normal startup", inline=True)
-comment(0x8035, "Lang 2: softkey byte (Electron)", inline=True)
-comment(0x8036, "Lang 3: softkey length (Electron)", inline=True)
-comment(0x8037, "Lang 4: remote validated", inline=True)
-
-# FSCV handlers (Y=&13, indices 19-26)
-comment(0x8038, "FSCV 0: *OPT", inline=True)
-comment(0x8039, "FSCV 1: EOF check", inline=True)
-comment(0x803A, "FSCV 2: */ (run)", inline=True)
-comment(0x803B, "FSCV 3: unrecognised star command", inline=True)
-comment(0x803C, "FSCV 4: *RUN", inline=True)
-comment(0x803D, "FSCV 5: *CAT", inline=True)
-comment(0x803E, "FSCV 6: shutdown", inline=True)
-comment(0x803F, "FSCV 7: read handle range", inline=True)
-
-# FS reply handlers (Y=&17, indices 27-32)
-comment(0x8040, "FS reply: print directory name", inline=True)
-comment(0x8041, "FS reply: copy handles + boot", inline=True)
-comment(0x8042, "FS reply: copy handles", inline=True)
-comment(0x8043, "FS reply: set CSD handle", inline=True)
+# Dispatch table inline comments (lo and hi bytes).
+# The comment bodies are defined once and emitted for both halves so
+# they stay in sync.
+dispatch_comments = [
+    # Service call handlers (Y=&00, indices 0-13)
+    "Svc 0: already claimed (no-op)",
+    "Svc 1: absolute workspace",
+    "Svc 2: private workspace",
+    "Svc 3: auto-boot",
+    "Svc 4: unrecognised star command",
+    "Svc 5: unrecognised interrupt",
+    "Svc 6: BRK (no-op)",
+    "Svc 7: unrecognised OSBYTE",
+    "Svc 8: unrecognised OSWORD",
+    "Svc 9: *HELP",
+    "Svc 10: static workspace (no-op)",
+    "Svc 11: NMI release (reclaim NMIs)",
+    "Svc 12: NMI claim (save NMI state)",
+    "Svc 13: select NFS (intercepted before dispatch)",
+    # Language entry handlers (Y=&0E, indices 14-18)
+    "Lang 0: no language / Tube",
+    "Lang 1: normal startup",
+    "Lang 2: softkey byte (Electron)",
+    "Lang 3: softkey length (Electron)",
+    "Lang 4: remote validated",
+    # FSCV handlers (Y=&13, indices 19-26)
+    "FSCV 0: *OPT",
+    "FSCV 1: EOF check",
+    "FSCV 2: */ (run)",
+    "FSCV 3: unrecognised star command",
+    "FSCV 4: *RUN",
+    "FSCV 5: *CAT",
+    "FSCV 6: shutdown",
+    "FSCV 7: read handle range",
+    # FS reply handlers (Y=&17, indices 27-32)
+    "FS reply: print directory name",
+    "FS reply: copy handles + boot",
+    "FS reply: copy handles",
+    "FS reply: set CSD handle",
+    "FS reply: notify + execute",
+    "FS reply: set library handle",
+    # *NET sub-command handlers (Y=&21, indices 33-36)
+    "*NET1: read handle from packet",
+    "*NET2: read handle from workspace",
+    "*NET3: close handle",
+    "*NET4: resume remote",
+]
+for i, body in enumerate(dispatch_comments):
+    comment(0x8025 + i, f"lo - {body}", inline=True)
+    comment(0x804A + i, f"hi - {body}", inline=True)
 
 # ============================================================
 # *NET command dispatch (&806F)
