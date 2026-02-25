@@ -3124,6 +3124,15 @@ subroutine(0x8E22, "copy_param_block", hook=None,
     description="""\
 C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)
 C=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)""")
+comment(0x8E22, "C=0: workspace to param direction", inline=True)
+comment(0x8E24, "Load byte from param block", inline=True)
+comment(0x8E26, "Store to workspace", inline=True)
+comment(0x8E28, "Always taken (C still set)", inline=True)
+comment(0x8E2A, "Load byte from workspace", inline=True)
+comment(0x8E2C, "Store to param block", inline=True)
+comment(0x8E2E, "Advance to next byte", inline=True)
+comment(0x8E2F, "Decrement byte counter", inline=True)
+comment(0x8E30, "Loop while X >= 0", inline=True)
 
 # ============================================================
 # OSWORD handler block comments

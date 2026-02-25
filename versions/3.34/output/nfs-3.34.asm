@@ -4738,20 +4738,20 @@ l8bd7 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8e22 referenced 5 times by &8e30, &8e46, &8e62, &8e96, &8f31
 .copy_param_block
-    bcc c8e2a                                                         ; 8e22: 90 06       ..
-    lda (l00f0),y                                                     ; 8e24: b1 f0       ..
-    sta (fs_crc_lo),y                                                 ; 8e26: 91 be       ..
-    bcs copyl3                                                        ; 8e28: b0 04       ..             ; ALWAYS branch
+    bcc c8e2a                                                         ; 8e22: 90 06       ..             ; C=0: workspace to param direction
+    lda (l00f0),y                                                     ; 8e24: b1 f0       ..             ; Load byte from param block
+    sta (fs_crc_lo),y                                                 ; 8e26: 91 be       ..             ; Store to workspace
+    bcs copyl3                                                        ; 8e28: b0 04       ..             ; Always taken (C still set); ALWAYS branch
 
 ; &8e2a referenced 1 time by &8e22
 .c8e2a
-    lda (fs_crc_lo),y                                                 ; 8e2a: b1 be       ..
-    sta (l00f0),y                                                     ; 8e2c: 91 f0       ..
+    lda (fs_crc_lo),y                                                 ; 8e2a: b1 be       ..             ; Load byte from workspace
+    sta (l00f0),y                                                     ; 8e2c: 91 f0       ..             ; Store to param block
 ; &8e2e referenced 1 time by &8e28
 .copyl3
-    iny                                                               ; 8e2e: c8          .
-    dex                                                               ; 8e2f: ca          .
-    bpl copy_param_block                                              ; 8e30: 10 f0       ..
+    iny                                                               ; 8e2e: c8          .              ; Advance to next byte
+    dex                                                               ; 8e2f: ca          .              ; Decrement byte counter
+    bpl copy_param_block                                              ; 8e30: 10 f0       ..             ; Loop while X >= 0
 ; &8e32 referenced 2 times by &8dfb, &8dff
 .return_copy_param
     rts                                                               ; 8e32: 60          `
