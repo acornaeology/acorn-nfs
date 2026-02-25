@@ -3748,24 +3748,24 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &89d2 referenced 2 times by &8a8f, &8b85
 .adjust_addrs
-    ldx #&fc                                                          ; 89d2: a2 fc       ..
+    ldx #&fc                                                          ; 89d2: a2 fc       ..             ; X=&FC: index into &0E06 area (wraps to 0)
 ; &89d4 referenced 1 time by &89e7
 .loop_c89d4
-    lda (fs_options),y                                                ; 89d4: b1 bb       ..
-    bit fs_load_addr_2                                                ; 89d6: 24 b2       $.
-    bmi c89e0                                                         ; 89d8: 30 06       0.
-    adc fs_cmd_context,x                                              ; 89da: 7d 0a 0e    }..
-    jmp gbpbx                                                         ; 89dd: 4c e3 89    L..
+    lda (fs_options),y                                                ; 89d4: b1 bb       ..             ; Load byte from param block
+    bit fs_load_addr_2                                                ; 89d6: 24 b2       $.             ; Test sign of adjustment direction
+    bmi c89e0                                                         ; 89d8: 30 06       0.             ; Negative: subtract instead
+    adc fs_cmd_context,x                                              ; 89da: 7d 0a 0e    }..            ; Add adjustment value
+    jmp gbpbx                                                         ; 89dd: 4c e3 89    L..            ; Skip to store result
 
 ; &89e0 referenced 1 time by &89d8
 .c89e0
-    sbc fs_cmd_context,x                                              ; 89e0: fd 0a 0e    ...
+    sbc fs_cmd_context,x                                              ; 89e0: fd 0a 0e    ...            ; Subtract adjustment value
 ; &89e3 referenced 1 time by &89dd
 .gbpbx
-    sta (fs_options),y                                                ; 89e3: 91 bb       ..
-    iny                                                               ; 89e5: c8          .
-    inx                                                               ; 89e6: e8          .
-    bne loop_c89d4                                                    ; 89e7: d0 eb       ..
+    sta (fs_options),y                                                ; 89e3: 91 bb       ..             ; Store adjusted byte back
+    iny                                                               ; 89e5: c8          .              ; Next param block byte
+    inx                                                               ; 89e6: e8          .              ; Next adjustment byte (X wraps &FC->&00)
+    bne loop_c89d4                                                    ; 89e7: d0 eb       ..             ; Loop 4 times (X=&FC,&FD,&FE,&FF,done)
     rts                                                               ; 89e9: 60          `
 
 ; ***************************************************************************************

@@ -2532,6 +2532,17 @@ Adjusts a 4-byte value in the parameter block at (fs_options)+Y:
   If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X
 Starting offset X=&FC means it reads from &0E06-&0E09 area.
 Used to convert between absolute and relative file positions.""")
+comment(0x89D2, "X=&FC: index into &0E06 area (wraps to 0)", inline=True)
+comment(0x89D4, "Load byte from param block", inline=True)
+comment(0x89D6, "Test sign of adjustment direction", inline=True)
+comment(0x89D8, "Negative: subtract instead", inline=True)
+comment(0x89DA, "Add adjustment value", inline=True)
+comment(0x89DD, "Skip to store result", inline=True)
+comment(0x89E0, "Subtract adjustment value", inline=True)
+comment(0x89E3, "Store adjusted byte back", inline=True)
+comment(0x89E5, "Next param block byte", inline=True)
+comment(0x89E6, "Next adjustment byte (X wraps &FC->&00)", inline=True)
+comment(0x89E7, "Loop 4 times (X=&FC,&FD,&FE,&FF,done)", inline=True)
 
 # ============================================================
 # ARGSV handler (&88E1)
