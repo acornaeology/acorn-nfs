@@ -1189,10 +1189,10 @@ l8004 = service_entry+1
 ; Dispatched from the command match table when the user types
 ; "*I AM <station>" or "*I AM <network>.<station>". Also used as
 ; the station number parser for "*NET <network>.<station>".
-; Skips leading spaces, then calls parse_decimal twice if a dot
-; separator is present. The first number becomes the network
-; (&0E01, via TAX pass-through in parse_decimal) and the second
-; becomes the station (&0E00). With a single number, it is stored
+; Skips leading spaces, then calls parse_decimal for the first
+; number. If a dot separator was found (carry set), it stores the
+; result directly as the network (&0E01) and calls parse_decimal
+; again for the station (&0E00). With a single number, it is stored
 ; as the station and the network defaults to 0 (local). If a colon
 ; follows, reads interactive input via OSRDCH and appends it to
 ; the command buffer. Finally jumps to forward_star_cmd.
@@ -1203,15 +1203,15 @@ l8004 = service_entry+1
     beq loop_c8081                                                    ; 8086: f0 f9       ..
     cmp #&3a ; ':'                                                    ; 8088: c9 3a       .:
     bcs c809d                                                         ; 808a: b0 11       ..
-    jsr sub_c8620                                                     ; 808c: 20 20 86      .
+    jsr parse_decimal                                                 ; 808c: 20 20 86      .            ; Parse decimal number from (fs_options),Y (DECIN)
     bcc c8098                                                         ; 808f: 90 07       ..
-    sta fs_server_net                                                 ; 8091: 8d 01 0e    ...
-    iny                                                               ; 8094: c8          .
-    jsr sub_c8620                                                     ; 8095: 20 20 86      .
+    sta fs_server_net                                                 ; 8091: 8d 01 0e    ...            ; A=parsed value (accumulated in &B2)
+    iny                                                               ; 8094: c8          .              ; Y=offset into (fs_options) buffer
+    jsr parse_decimal                                                 ; 8095: 20 20 86      .            ; Parse decimal number from (fs_options),Y (DECIN)
 ; &8098 referenced 1 time by &808f
 .c8098
     beq c809d                                                         ; 8098: f0 03       ..
-    sta fs_server_stn                                                 ; 809a: 8d 00 0e    ...
+    sta fs_server_stn                                                 ; 809a: 8d 00 0e    ...            ; A=parsed value (accumulated in &B2)
 ; &809d referenced 2 times by &808a, &8098
 .c809d
     jsr infol2                                                        ; 809d: 20 75 8d     u.
@@ -2647,9 +2647,13 @@ l8004 = service_entry+1
 ; &8613 referenced 1 time by &860f
 .c8613
     lda (fs_load_addr),y                                              ; 8613: b1 b0       ..             ; Load next byte from inline string
-    bmi parse_decimal                                                 ; 8615: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode; Parse decimal number from (fs_options),Y (DECIN)
+    bmi c861d                                                         ; 8615: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode
     jsr osasci                                                        ; 8617: 20 e3 ff     ..            ; Write character
     jmp loop_c860d                                                    ; 861a: 4c 0d 86    L..
+
+; &861d referenced 1 time by &8615
+.c861d
+    jmp (fs_load_addr)                                                ; 861d: 6c b0 00    l..            ; Jump to address of high-bit byte (resumes code after string)
 
 ; ***************************************************************************************
 ; Parse decimal number from (fs_options),Y (DECIN)
@@ -2669,15 +2673,11 @@ l8004 = service_entry+1
 ; 
 ; On Exit:
 ;     A: parsed value (accumulated in &B2)
-;     X: initial A value (saved by TAX)
+;     X: preserved
 ;     Y: offset past last digit parsed
 ; ***************************************************************************************
-; &861d referenced 1 time by &8615
-.parse_decimal
-    jmp (fs_load_addr)                                                ; 861d: 6c b0 00    l..            ; Jump to address of high-bit byte (resumes code after string)
-
 ; &8620 referenced 2 times by &808c, &8095
-.sub_c8620
+.parse_decimal
     lda #0                                                            ; 8620: a9 00       ..
     sta fs_load_addr_2                                                ; 8622: 85 b2       ..
 ; &8624 referenced 1 time by &863d
@@ -2727,7 +2727,7 @@ l8004 = service_entry+1
 ; repeated ASL shifts all bits out, leaving A=0, which is converted
 ; to Y=&FF as a sentinel -- bad handles fail gracefully rather than
 ; indexing into garbage.
-; Three entry points: &861D (direct), &861C (CLC first), &861B (TAY first).
+; Three entry points: &8645 (direct), &8644 (CLC first), &8643 (TAY first).
 ; 
 ; On Entry:
 ;     Y: handle number
@@ -8372,6 +8372,7 @@ save pydis_start, pydis_end
 ;     osarg1:                                   2
 ;     osfind:                                   2
 ;     osrdch:                                   2
+;     parse_decimal:                            2
 ;     parse_filename_gs:                        2
 ;     prepare_cmd_clv:                          2
 ;     prepare_fs_cmd_v:                         2
@@ -8405,7 +8406,6 @@ save pydis_start, pydis_end
 ;     store_rom_ptr_pair:                       2
 ;     sub_3_from_y:                             2
 ;     sub_c04cb:                                2
-;     sub_c8620:                                2
 ;     sub_c8e45:                                2
 ;     sub_c99a4:                                2
 ;     system_via_ier:                           2
@@ -8475,6 +8475,7 @@ save pydis_start, pydis_end
 ;     c85eb:                                    1
 ;     c85f7:                                    1
 ;     c8613:                                    1
+;     c861d:                                    1
 ;     c863f:                                    1
 ;     c8640:                                    1
 ;     c869a:                                    1
@@ -8816,7 +8817,6 @@ save pydis_start, pydis_end
 ;     osgbpb_info:                              1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1
-;     parse_decimal:                            1
 ;     prepare_cmd_with_flag:                    1
 ;     print_exec_and_len:                       1
 ;     print_hex_nibble:                         1
@@ -8960,6 +8960,7 @@ save pydis_start, pydis_end
 ;     c85eb
 ;     c85f7
 ;     c8613
+;     c861d
 ;     c863f
 ;     c8640
 ;     c865c
@@ -9290,7 +9291,6 @@ save pydis_start, pydis_end
 ;     sub_c04cb
 ;     sub_c8383
 ;     sub_c854d
-;     sub_c8620
 ;     sub_c8679
 ;     sub_c86d7
 ;     sub_c86e3

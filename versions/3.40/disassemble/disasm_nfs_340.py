@@ -653,7 +653,7 @@ label(0x0FDD, "fs_getb_buf")            # PUTB2/GETB2: shared GET/PUT byte works
 # --- Argument save and file handle conversion ---
 label(0x85FA, "access_bit_table")       # Lookup table for attribute bit mapping (11 bytes)
 
-# --- Decimal number parser (&85F3-&861B) ---
+# --- Decimal number parser (&8620-&8642) ---
 # parse_decimal label created by subroutine() call below.
 
 # --- File handle ↔ bitmask conversion ---
@@ -1474,9 +1474,9 @@ between BBC (8-bit) and fileserver (5-bit) protection formats.""")
 # was integrated into the new inline station number parser at &807D.
 
 # ============================================================
-# Decimal number parser (&85F3)
+# Decimal number parser (&8620)
 # ============================================================
-subroutine(0x861D, "parse_decimal",
+subroutine(0x8620, "parse_decimal",
     title="Parse decimal number from (fs_options),Y (DECIN)",
     description="""\
 Reads ASCII digits and accumulates in &B2 (fs_load_addr_2).
@@ -1490,11 +1490,11 @@ components (e.g. "1.$.PROG") -- originally stopped on any char
 by dots.""",
     on_entry={"y": "offset into (fs_options) buffer"},
     on_exit={"a": "parsed value (accumulated in &B2)",
-             "x": "initial A value (saved by TAX)",
+             "x": "preserved",
              "y": "offset past last digit parsed"})
 
 # ============================================================
-# File handle conversion (&861B-&861D)
+# File handle conversion (&8643-&8645)
 # ============================================================
 subroutine(0x8645, "handle_to_mask",
     title="Convert file handle to bitmask (Y2FS)",
@@ -1512,7 +1512,7 @@ has a built-in validity check: if the handle is out of range, the
 repeated ASL shifts all bits out, leaving A=0, which is converted
 to Y=&FF as a sentinel -- bad handles fail gracefully rather than
 indexing into garbage.
-Three entry points: &861D (direct), &861C (CLC first), &861B (TAY first).""",
+Three entry points: &8645 (direct), &8644 (CLC first), &8643 (TAY first).""",
     on_entry={"y": "handle number",
               "c": "0: convert, 1 with Y=0: skip, 1 with Y!=0: convert"},
     on_exit={"a": "preserved",
@@ -2767,10 +2767,10 @@ subroutine(0x8082, "i_am_handler", hook=None,
 Dispatched from the command match table when the user types
 "*I AM <station>" or "*I AM <network>.<station>". Also used as
 the station number parser for "*NET <network>.<station>".
-Skips leading spaces, then calls parse_decimal twice if a dot
-separator is present. The first number becomes the network
-(&0E01, via TAX pass-through in parse_decimal) and the second
-becomes the station (&0E00). With a single number, it is stored
+Skips leading spaces, then calls parse_decimal for the first
+number. If a dot separator was found (carry set), it stores the
+result directly as the network (&0E01) and calls parse_decimal
+again for the station (&0E00). With a single number, it is stored
 as the station and the network defaults to 0 (local). If a colon
 follows, reads interactive input via OSRDCH and appends it to
 the command buffer. Finally jumps to forward_star_cmd.""")
