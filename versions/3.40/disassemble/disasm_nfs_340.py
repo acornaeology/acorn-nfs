@@ -1921,11 +1921,13 @@ comment(0x8260, "Copy 14 bytes: FS vector addresses → FILEV-FSCV", inline=True
 # ============================================================
 # Auto-boot command string (&828E)
 # ============================================================
-# In 3.35K, &828E was inside the vector dispatch table. In 3.40, the
-# code shifted: issue_vectors_claimed now loads X/Y pointing to &828E
-# as the "I .BOOT\r" command string passed to fscv_3_star_cmd.
 string(0x828E, 8)
-comment(0x828E, "Auto-boot command string for fscv_3_star_cmd", inline=True)
+comment(0x828E, """\
+Synthetic auto-boot command string. "I " does not match any
+entry in NFS's local command table — "I." requires a dot, and
+"I AM" requires 'A' after the space — so fscv_3_star_cmd
+forwards the entire string to the fileserver, which executes
+the .BOOT file.""")
 
 # ============================================================
 # FS vector dispatch and handler addresses (&8296)

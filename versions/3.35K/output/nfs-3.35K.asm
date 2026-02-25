@@ -1742,8 +1742,12 @@ l8004 = service_entry+1
     ldy #&82                                                          ; 8273: a0 82       ..
     jmp fscv_3_star_cmd                                               ; 8275: 4c b6 8b    L..
 
-    equs "I .BOOT"                                                    ; 8278: 49 20 2e... I .
-    equb &0d                                                          ; 827f: 0d          .
+; Synthetic auto-boot command string. "I " does not match any
+; entry in NFS's local command table — "I." requires a dot, and
+; "I AM" requires 'A' after the space — so fscv_3_star_cmd
+; forwards the entire string to the fileserver, which executes
+; the .BOOT file.
+    equs "I .BOOT", &0d                                               ; 8278: 49 20 2e... I .
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -9311,7 +9315,7 @@ save pydis_start, pydis_end
 ;     Data                     = 620 bytes (8%)
 ;
 ;     Number of instructions   = 3652
-;     Number of data bytes     = 399 bytes
+;     Number of data bytes     = 398 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 221 bytes
+;     Number of string bytes   = 222 bytes
 ;     Number of strings        = 35

@@ -2051,6 +2051,17 @@ data base address by store_rom_ptr_pair for Y-indexed access to
 the handler address table.""")
 
 # ============================================================
+# Auto-boot command string (&8245)
+# ============================================================
+string(0x8245, 8)
+comment(0x8245, """\
+Synthetic auto-boot command string. "I " does not match any
+entry in NFS's local command table — "I." requires a dot, and
+"I AM" requires 'A' after the space — so fscv_3_star_cmd
+forwards the entire string to the fileserver, which executes
+the .BOOT file.""")
+
+# ============================================================
 # Set up ROM pointer table and NETV (&82D1)
 # ============================================================
 subroutine(0x82D1, "setup_rom_ptrs_netv", hook=None,

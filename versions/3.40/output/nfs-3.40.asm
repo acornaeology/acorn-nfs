@@ -1715,7 +1715,12 @@ l8004 = service_entry+1
     ldy #&82                                                          ; 8289: a0 82       ..
     jmp fscv_3_star_cmd                                               ; 828b: 4c d7 8b    L..
 
-    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I .            ; Auto-boot command string for fscv_3_star_cmd
+; Synthetic auto-boot command string. "I " does not match any
+; entry in NFS's local command table — "I." requires a dot, and
+; "I AM" requires 'A' after the space — so fscv_3_star_cmd
+; forwards the entire string to the fileserver, which executes
+; the .BOOT file.
+    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I .
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
