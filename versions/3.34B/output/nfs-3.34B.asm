@@ -1077,9 +1077,9 @@ l8004 = service_entry+1
     equb &3b                                                          ; 801a: 3b          ;              ; "Escape"
     equb &43                                                          ; 801b: 43          C              ; "Bad Option"
     equb &4f                                                          ; 801c: 4f          O              ; "No reply"
-    equb 1                                                            ; 801d: 01          .
-    equb 0                                                            ; 801e: 00          .
-    equb &3b                                                          ; 801f: 3b          ;
+    equb 1                                                            ; 801d: 01          .              ; Purpose unknown
+    equb 0                                                            ; 801e: 00          .              ; Purpose unknown
+    equb &3b                                                          ; 801f: 3b          ;              ; Purpose unknown
 ; Dispatch table: low bytes of (handler_address - 1)
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &809F.
@@ -1093,7 +1093,7 @@ l8004 = service_entry+1
 ;   Y=&20  *NET1-4 sub-commands     (indices 33-36)
 ; &8020 referenced 1 time by &80a8
 .dispatch_lo
-    equb 3                                                            ; 8020: 03          .
+    equb 3                                                            ; 8020: 03          .              ; Purpose unknown; ignored by dispatcher
     equb <(return_2-1)                                                ; 8021: 44          D              ; Svc 0: already claimed (no-op)
     equb <(svc_abs_workspace-1)                                       ; 8022: 6f          o              ; Svc 1: absolute workspace
     equb <(svc_private_workspace-1)                                   ; 8023: 78          x              ; Svc 2: private workspace

@@ -450,6 +450,10 @@ comment(0x801C, '"No reply"', inline=True)
 # Unreferenced padding between error offsets and dispatch table
 for addr in range(0x801D, 0x8020):
     byte(addr)
+comment(0x801D, "Purpose unknown", inline=True)
+comment(0x801E, "Purpose unknown", inline=True)
+comment(0x801F, "Purpose unknown", inline=True)
+comment(0x8020, "Purpose unknown; ignored by dispatcher", inline=True)
 
 # Dispatch tables: split low/high byte address tables
 label(0x8020, "dispatch_lo")            # Low bytes of (handler_addr - 1)

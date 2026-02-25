@@ -1059,6 +1059,10 @@ comment(0x8020, '"No reply"', inline=True)
 # to X before indexing, so entry 0 at &8025 is the first handler.
 for addr in range(0x8021, 0x8025):
     byte(addr)
+comment(0x8021, "Purpose unknown", inline=True)
+comment(0x8022, "Purpose unknown", inline=True)
+comment(0x8023, "Purpose unknown", inline=True)
+comment(0x8024, "Purpose unknown; ignored by dispatcher", inline=True)
 
 # Null handler and service call handlers (indices 0-13)
 for i in range(0, 14):
