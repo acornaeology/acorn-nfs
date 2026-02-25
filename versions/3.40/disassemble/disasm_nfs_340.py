@@ -1061,6 +1061,7 @@ comment(0x8020, '"No reply"', inline=True)
 # Unreferenced padding between error offsets and dispatch table.
 # &8024 is the dispatch table pad byte — the dispatcher adds Y+1
 # to X before indexing, so entry 0 at &8025 is the first handler.
+comment(0x8021, "Four bytes with unknown purpose.")
 for addr in range(0x8021, 0x8025):
     byte(addr)
 comment(0x8021, "Purpose unknown", inline=True)

@@ -1040,6 +1040,7 @@ l8004 = service_entry+1
     equb &31                                                          ; 801e: 31          1              ; "Escape"
     equb &39                                                          ; 801f: 39          9              ; "Bad Option"
     equb &45                                                          ; 8020: 45          E              ; "No reply"
+; Four bytes with unknown purpose.
     equb 1                                                            ; 8021: 01          .              ; Purpose unknown
     equb 0                                                            ; 8022: 00          .              ; Purpose unknown
     equb &40                                                          ; 8023: 40          @              ; Purpose unknown

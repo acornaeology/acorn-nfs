@@ -470,6 +470,7 @@ comment(0x801B, '"Bad Option"', inline=True)
 comment(0x801C, '"No reply"', inline=True)
 
 # Unreferenced padding between error offsets and dispatch table
+comment(0x801D, "Four bytes with unknown purpose.")
 for addr in range(0x801D, 0x8021):
     byte(addr)
 comment(0x801D, "Purpose unknown", inline=True)
