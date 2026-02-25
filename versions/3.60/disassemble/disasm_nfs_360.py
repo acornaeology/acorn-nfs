@@ -2805,18 +2805,18 @@ subroutine(0x8D5B, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
 The four boot options use OSCLI strings at offsets within page &8D.
-The offset table at boot_option_offsets+1 (&8D1C) is indexed by
+The offset table at boot_option_offsets+1 (&8D68) is indexed by
 the boot option value (0-3); each byte is the low byte of the
 string address, with the page high byte &8D loaded separately:
-  Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command)
-  Option 1 (Load): offset &0C → &8D0C = "L.!BOOT" (the bytes
-      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D0F)
-  Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &14 → &8D14 = "E.!BOOT"
+  Option 0 (Off):  offset &67 → &8D67 = bare CR (empty command)
+  Option 1 (Load): offset &58 → &8D58 = "L.!BOOT" (the bytes
+      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D5F)
+  Option 2 (Run):  offset &5A → &8D5A = "!BOOT" (bare filename = *RUN)
+  Option 3 (Exec): offset &60 → &8D60 = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the string data
 overlaps with other byte sequences to save space. The &0D byte
-at &8D1B terminates "E.!BOOT" AND doubles as the bare-CR
+at &8D67 terminates "E.!BOOT" AND doubles as the bare-CR
 command for boot option 0.""")
 
 # ============================================================
@@ -2828,15 +2828,11 @@ subroutine(0x8D67, "boot_option_offsets", hook=None,
 Five bytes: the first byte (&0D) is the bare-CR target for boot
 option 0; bytes 1-4 are the offset table indexed by boot option
 (0-3). Each offset is the low byte of a pointer into page &8D.
-The code reads from boot_option_offsets+1 (&8D1C) via
-LDX l8d1c,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+The code reads from boot_option_offsets+1 (&8D68) via
+LDX l8d68,Y with Y=boot_option, then LDY #&8D, JMP oscli.
 See boot_cmd_strings for the target strings.""")
 for i in range(5):
-    byte(0x8D1B + i)
-# In 3.40, $8CF4-$8CFC is code (PLA/CLC/ADC $B4/TAY/BNE/LDY #$0A)
-# that forms the print_reply_bytes entry chain. The byte values also
-# serve as boot command string offsets in earlier versions, but in
-# 3.40 the boot option offset table is at boot_option_offsets ($8D1B).
+    byte(0x8D67 + i)
 comment(0x8D53, """\
 Option name encoding: in 3.35, the boot option names ("Off",
 "Load", "Run", "Exec") are scattered through the code rather

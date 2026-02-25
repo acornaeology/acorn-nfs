@@ -217,7 +217,6 @@ fs_getb_buf                             = &0fdd
 l0fde                                   = &0fde
 l0fdf                                   = &0fdf
 l0fe0                                   = &0fe0
-l5867                                   = &5867
 c9630                                   = &9630
 sub_c9633                               = &9633
 sub_c9636                               = &9636
@@ -4371,12 +4370,8 @@ l8c4c = fs_cmd_match_table+1
     sty l00b4                                                         ; 8d14: 84 b4       ..
     ldx l00b5                                                         ; 8d16: a6 b5       ..
     stx l0f07                                                         ; 8d18: 8e 07 0f    ...
-    equb &a6                                                          ; 8d1b: a6          .
-    equb &b7                                                          ; 8d1c: b7          .
-    equb &8e                                                          ; 8d1d: 8e          .
-    equb 5                                                            ; 8d1e: 05          .
-    equb &0f                                                          ; 8d1f: 0f          .
-
+    ldx l00b7                                                         ; 8d1b: a6 b7       ..
+    stx fs_cmd_data                                                   ; 8d1d: 8e 05 0f    ...
     ldx #3                                                            ; 8d20: a2 03       ..
     jsr copy_string_to_cmd                                            ; 8d22: 20 84 8d     ..
     ldy #3                                                            ; 8d25: a0 03       ..             ; Y=function code for HDRFN
@@ -4432,40 +4427,43 @@ l8c4c = fs_cmd_match_table+1
 ; Boot command strings for auto-boot
 ; 
 ; The four boot options use OSCLI strings at offsets within page &8D.
-; The offset table at boot_option_offsets+1 (&8D1C) is indexed by
+; The offset table at boot_option_offsets+1 (&8D68) is indexed by
 ; the boot option value (0-3); each byte is the low byte of the
 ; string address, with the page high byte &8D loaded separately:
-;   Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command)
-;   Option 1 (Load): offset &0C → &8D0C = "L.!BOOT" (the bytes
-;       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D0F)
-;   Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN)
-;   Option 3 (Exec): offset &14 → &8D14 = "E.!BOOT"
+;   Option 0 (Off):  offset &67 → &8D67 = bare CR (empty command)
+;   Option 1 (Load): offset &58 → &8D58 = "L.!BOOT" (the bytes
+;       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D5F)
+;   Option 2 (Run):  offset &5A → &8D5A = "!BOOT" (bare filename = *RUN)
+;   Option 3 (Exec): offset &60 → &8D60 = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the string data
 ; overlaps with other byte sequences to save space. The &0D byte
-; at &8D1B terminates "E.!BOOT" AND doubles as the bare-CR
+; at &8D67 terminates "E.!BOOT" AND doubles as the bare-CR
 ; command for boot option 0.
 ; ***************************************************************************************
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8d5b: 42 4f 4f... BOO
     equb &0d                                                          ; 8d5f: 0d          .
     equs "E.!BOOT"                                                    ; 8d60: 45 2e 21... E.!
-
 ; ***************************************************************************************
 ; Boot option → OSCLI string offset table
 ; 
 ; Five bytes: the first byte (&0D) is the bare-CR target for boot
 ; option 0; bytes 1-4 are the offset table indexed by boot option
 ; (0-3). Each offset is the low byte of a pointer into page &8D.
-; The code reads from boot_option_offsets+1 (&8D1C) via
-; LDX l8d1c,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+; The code reads from boot_option_offsets+1 (&8D68) via
+; LDX l8d68,Y with Y=boot_option, then LDY #&8D, JMP oscli.
 ; See boot_cmd_strings for the target strings.
 ; ***************************************************************************************
 .boot_option_offsets
-l8d68 = boot_option_offsets+1
-    ora l5867                                                         ; 8d67: 0d 67 58    .gX
+    equb &0d                                                          ; 8d67: 0d          .
 ; &8d68 referenced 1 time by &8e4b
-    equs "Z`Exec"                                                     ; 8d6a: 5a 60 45... Z`E
+.l8d68
+    equb &67                                                          ; 8d68: 67          g
+    equb &58                                                          ; 8d69: 58          X
+    equb &5a                                                          ; 8d6a: 5a          Z
+    equb &60                                                          ; 8d6b: 60          `
+    equs "Exec"                                                       ; 8d6c: 45 78 65... Exe
 
 ; &8d70 referenced 2 times by &8805, &880a
 .print_hex_bytes
@@ -7962,7 +7960,7 @@ save pydis_start, pydis_end
 ;     econet_control23_or_status2:             45
 ;     fs_options:                              41
 ;     econet_data_continue_frame:              37
-;     fs_cmd_data:                             36
+;     fs_cmd_data:                             37
 ;     net_rx_ptr:                              32
 ;     econet_control1_or_status1:              31
 ;     port_ws_offset:                          29
@@ -8101,6 +8099,7 @@ save pydis_start, pydis_end
 ;     l0003:                                    3
 ;     l0054:                                    3
 ;     l00af:                                    3
+;     l00b7:                                    3
 ;     l00ba:                                    3
 ;     l00cf:                                    3
 ;     l0df0:                                    3
@@ -8205,7 +8204,6 @@ save pydis_start, pydis_end
 ;     l0055:                                    2
 ;     l0056:                                    2
 ;     l00b5:                                    2
-;     l00b7:                                    2
 ;     l00f1:                                    2
 ;     l00f3:                                    2
 ;     l00fd:                                    2
@@ -8537,7 +8535,6 @@ save pydis_start, pydis_end
 ;     l0fde:                                    1
 ;     l0fe0:                                    1
 ;     l4:                                       1
-;     l5867:                                    1
 ;     l8001:                                    1
 ;     l8002:                                    1
 ;     l8004:                                    1
@@ -9038,7 +9035,6 @@ save pydis_start, pydis_end
 ;     l0fde
 ;     l0fdf
 ;     l0fe0
-;     l5867
 ;     l8001
 ;     l8002
 ;     l8004
@@ -9157,11 +9153,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7280 bytes (89%)
-;     Data                     = 912 bytes (11%)
+;     Code                     = 7282 bytes (89%)
+;     Data                     = 910 bytes (11%)
 ;
-;     Number of instructions   = 3534
+;     Number of instructions   = 3535
 ;     Number of data bytes     = 667 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 245 bytes
+;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 37
