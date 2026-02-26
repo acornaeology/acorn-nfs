@@ -6300,59 +6300,59 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 97e6: a9 01       ..             ; A=&01: mask for AP (Address Present)
-    bit econet_control23_or_status2                                   ; 97e8: 2c a1 fe    ,..
-    beq c9835                                                         ; 97eb: f0 48       .H
-    lda econet_data_continue_frame                                    ; 97ed: ad a2 fe    ...
-    cmp station_id_disable_net_nmis                                   ; 97f0: cd 18 fe    ...
-    bne c9835                                                         ; 97f3: d0 40       .@
+    bit econet_control23_or_status2                                   ; 97e8: 2c a1 fe    ,..            ; BIT SR2: test AP bit
+    beq c9835                                                         ; 97eb: f0 48       .H             ; No AP: wrong frame or error
+    lda econet_data_continue_frame                                    ; 97ed: ad a2 fe    ...            ; Read first byte (dest station)
+    cmp station_id_disable_net_nmis                                   ; 97f0: cd 18 fe    ...            ; Compare to our station ID (INTOFF)
+    bne c9835                                                         ; 97f3: d0 40       .@             ; Not for us: error path
     lda #&fa                                                          ; 97f5: a9 fa       ..             ; Install net check handler at &97FA
-    jmp l0d11                                                         ; 97f7: 4c 11 0d    L..
+    jmp l0d11                                                         ; 97f7: 4c 11 0d    L..            ; Set NMI vector via RAM shim
 
 .nmi_data_rx_net
     bit econet_control23_or_status2                                   ; 97fa: 2c a1 fe    ,..            ; Validate source network = 0
-    bpl c9835                                                         ; 97fd: 10 36       .6
-    lda econet_data_continue_frame                                    ; 97ff: ad a2 fe    ...
-    bne c9835                                                         ; 9802: d0 31       .1
+    bpl c9835                                                         ; 97fd: 10 36       .6             ; SR2 bit7 clear: no data ready -- error
+    lda econet_data_continue_frame                                    ; 97ff: ad a2 fe    ...            ; Read dest network byte
+    bne c9835                                                         ; 9802: d0 31       .1             ; Network != 0: wrong network -- error
     lda #&10                                                          ; 9804: a9 10       ..             ; Install skip handler at &9810
-    ldy #&98                                                          ; 9806: a0 98       ..
+    ldy #&98                                                          ; 9806: a0 98       ..             ; High byte of &9810 handler
     bit econet_control1_or_status1                                    ; 9808: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
-    bmi nmi_data_rx_skip                                              ; 980b: 30 03       0.
-    jmp set_nmi_vector                                                ; 980d: 4c 0e 0d    L..
+    bmi nmi_data_rx_skip                                              ; 980b: 30 03       0.             ; Data ready: skip directly, no RTI
+    jmp set_nmi_vector                                                ; 980d: 4c 0e 0d    L..            ; Install handler and return via RTI
 
 ; &9810 referenced 1 time by &980b
 .nmi_data_rx_skip
     bit econet_control23_or_status2                                   ; 9810: 2c a1 fe    ,..            ; Skip control and port bytes (already known from scout)
-    bpl c9835                                                         ; 9813: 10 20       .
+    bpl c9835                                                         ; 9813: 10 20       .              ; SR2 bit7 clear: error
     lda econet_data_continue_frame                                    ; 9815: ad a2 fe    ...            ; Discard control byte
     lda econet_data_continue_frame                                    ; 9818: ad a2 fe    ...            ; Discard port byte
 ; &981b referenced 1 time by &9e9e
 .c981b
-    lda #2                                                            ; 981b: a9 02       ..
-    bit tx_flags                                                      ; 981d: 2c 4a 0d    ,J.
-    bne c982e                                                         ; 9820: d0 0c       ..
-    lda #&43 ; 'C'                                                    ; 9822: a9 43       .C
-    ldy #&98                                                          ; 9824: a0 98       ..
-    bit econet_control1_or_status1                                    ; 9826: 2c a0 fe    ,..
-    bmi nmi_data_rx_bulk                                              ; 9829: 30 18       0.
-    jmp set_nmi_vector                                                ; 982b: 4c 0e 0d    L..
+    lda #2                                                            ; 981b: a9 02       ..             ; A=2: Tube transfer flag mask
+    bit tx_flags                                                      ; 981d: 2c 4a 0d    ,J.            ; Check if Tube transfer active
+    bne c982e                                                         ; 9820: d0 0c       ..             ; Tube active: use Tube RX path
+    lda #&43 ; 'C'                                                    ; 9822: a9 43       .C             ; Install bulk read at &9843
+    ldy #&98                                                          ; 9824: a0 98       ..             ; High byte of &9843 handler
+    bit econet_control1_or_status1                                    ; 9826: 2c a0 fe    ,..            ; SR1 bit7: more data already waiting?
+    bmi nmi_data_rx_bulk                                              ; 9829: 30 18       0.             ; Yes: enter bulk read directly
+    jmp set_nmi_vector                                                ; 982b: 4c 0e 0d    L..            ; No: install handler and RTI
 
 ; &982e referenced 1 time by &9820
 .c982e
-    lda #&a0                                                          ; 982e: a9 a0       ..
-    ldy #&98                                                          ; 9830: a0 98       ..
-    jmp set_nmi_vector                                                ; 9832: 4c 0e 0d    L..
+    lda #&a0                                                          ; 982e: a9 a0       ..             ; Tube: install Tube RX at &98A0
+    ldy #&98                                                          ; 9830: a0 98       ..             ; High byte of &98A0 handler
+    jmp set_nmi_vector                                                ; 9832: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
 ; &9835 referenced 12 times by &97ab, &97c1, &97eb, &97f3, &97fd, &9802, &9813, &9856, &9888, &988e, &994b, &9a76
 .c9835
-    lda tx_flags                                                      ; 9835: ad 4a 0d    .J.
-    bpl rx_error                                                      ; 9838: 10 03       ..
-    jmp tx_result_fail                                                ; 983a: 4c ac 9e    L..
+    lda tx_flags                                                      ; 9835: ad 4a 0d    .J.            ; Check tx_flags for error path
+    bpl rx_error                                                      ; 9838: 10 03       ..             ; Bit7 clear: RX error path
+    jmp tx_result_fail                                                ; 983a: 4c ac 9e    L..            ; Bit7 set: TX result = not listening
 
 ; &983d referenced 1 time by &9838
 .rx_error
 .rx_error_reset
-    jsr adlc_full_reset                                               ; 983d: 20 3d 9f     =.
-    jmp discard_reset_listen                                          ; 9840: 4c db 99    L..
+    jsr adlc_full_reset                                               ; 983d: 20 3d 9f     =.            ; Full ADLC reset on RX error
+    jmp discard_reset_listen                                          ; 9840: 4c db 99    L..            ; Discard and return to idle listen
 
 ; ***************************************************************************************
 ; Data frame bulk read loop
@@ -6539,110 +6539,110 @@ l8c4c = fs_cmd_match_table+1
 ; If no match, discards the frame.
 ; ***************************************************************************************
 .post_ack_scout
-    sta econet_control23_or_status2                                   ; 993c: 8d a1 fe    ...
-    lda nmi_next_lo                                                   ; 993f: ad 4b 0d    .K.            ; Install saved handler from &0D4B/&0D4C
-    ldy nmi_next_hi                                                   ; 9942: ac 4c 0d    .L.
-    jmp set_nmi_vector                                                ; 9945: 4c 0e 0d    L..
+    sta econet_control23_or_status2                                   ; 993c: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
+    lda nmi_next_lo                                                   ; 993f: ad 4b 0d    .K.            ; Load saved next handler low byte; Install saved handler from &0D4B/&0D4C
+    ldy nmi_next_hi                                                   ; 9942: ac 4c 0d    .L.            ; Load saved next handler high byte
+    jmp set_nmi_vector                                                ; 9945: 4c 0e 0d    L..            ; Install next NMI handler
 
 ; &9948 referenced 1 time by &9938
 .c9948
-    jmp data_tx_begin                                                 ; 9948: 4c b3 9d    L..
+    jmp data_tx_begin                                                 ; 9948: 4c b3 9d    L..            ; Jump to start data TX phase
 
 ; &994b referenced 2 times by &9913, &992b
 .c994b
-    jmp c9835                                                         ; 994b: 4c 35 98    L5.
+    jmp c9835                                                         ; 994b: 4c 35 98    L5.            ; Jump to error handler
 
 ; &994e referenced 2 times by &98f3, &99a4
 .sub_c994e
-    lda #2                                                            ; 994e: a9 02       ..
-    bit tx_flags                                                      ; 9950: 2c 4a 0d    ,J.
-    beq return_10                                                     ; 9953: f0 3f       .?
-    clc                                                               ; 9955: 18          .
-    php                                                               ; 9956: 08          .
-    ldy #8                                                            ; 9957: a0 08       ..
+    lda #2                                                            ; 994e: a9 02       ..             ; A=2: test bit1 of tx_flags
+    bit tx_flags                                                      ; 9950: 2c 4a 0d    ,J.            ; BIT tx_flags: check data transfer bit
+    beq return_10                                                     ; 9953: f0 3f       .?             ; Bit1 clear: no transfer -- return
+    clc                                                               ; 9955: 18          .              ; CLC: init carry for 4-byte add
+    php                                                               ; 9956: 08          .              ; Save carry on stack for loop
+    ldy #8                                                            ; 9957: a0 08       ..             ; Y=8: RXCB high pointer offset
 ; &9959 referenced 1 time by &9965
 .loop_c9959
-    lda (port_ws_offset),y                                            ; 9959: b1 a6       ..
-    plp                                                               ; 995b: 28          (
-    adc net_tx_ptr,y                                                  ; 995c: 79 9a 00    y..
-    sta (port_ws_offset),y                                            ; 995f: 91 a6       ..
-    iny                                                               ; 9961: c8          .
-    php                                                               ; 9962: 08          .
-    cpy #&0c                                                          ; 9963: c0 0c       ..
-    bcc loop_c9959                                                    ; 9965: 90 f2       ..
-    plp                                                               ; 9967: 28          (
-    lda #&20 ; ' '                                                    ; 9968: a9 20       .
-    bit tx_flags                                                      ; 996a: 2c 4a 0d    ,J.
-    beq c9992                                                         ; 996d: f0 23       .#
-    txa                                                               ; 996f: 8a          .
-    pha                                                               ; 9970: 48          H
-    lda #8                                                            ; 9971: a9 08       ..
-    clc                                                               ; 9973: 18          .
-    adc port_ws_offset                                                ; 9974: 65 a6       e.
-    tax                                                               ; 9976: aa          .
-    ldy rx_buf_offset                                                 ; 9977: a4 a7       ..
-    lda #1                                                            ; 9979: a9 01       ..
-    jsr tube_addr_claim                                               ; 997b: 20 06 04     ..
-    lda rx_extra_byte                                                 ; 997e: ad 5d 0d    .].
-    sta tube_data_register_3                                          ; 9981: 8d e5 fe    ...
-    sec                                                               ; 9984: 38          8
-    ldy #8                                                            ; 9985: a0 08       ..
+    lda (port_ws_offset),y                                            ; 9959: b1 a6       ..             ; Load RXCB[Y] (buffer pointer byte)
+    plp                                                               ; 995b: 28          (              ; Restore carry from stack
+    adc net_tx_ptr,y                                                  ; 995c: 79 9a 00    y..            ; Add transfer count byte
+    sta (port_ws_offset),y                                            ; 995f: 91 a6       ..             ; Store updated pointer back to RXCB
+    iny                                                               ; 9961: c8          .              ; Next byte
+    php                                                               ; 9962: 08          .              ; Save carry for next iteration
+    cpy #&0c                                                          ; 9963: c0 0c       ..             ; Done 4 bytes? (Y reaches &0C)
+    bcc loop_c9959                                                    ; 9965: 90 f2       ..             ; No: continue adding
+    plp                                                               ; 9967: 28          (              ; Discard final carry
+    lda #&20 ; ' '                                                    ; 9968: a9 20       .              ; A=&20: test bit5 of tx_flags
+    bit tx_flags                                                      ; 996a: 2c 4a 0d    ,J.            ; BIT tx_flags: check Tube bit
+    beq c9992                                                         ; 996d: f0 23       .#             ; No Tube: skip Tube update
+    txa                                                               ; 996f: 8a          .              ; Save X on stack
+    pha                                                               ; 9970: 48          H              ; Push X
+    lda #8                                                            ; 9971: a9 08       ..             ; A=8: offset for Tube address
+    clc                                                               ; 9973: 18          .              ; CLC for address calculation
+    adc port_ws_offset                                                ; 9974: 65 a6       e.             ; Add workspace base offset
+    tax                                                               ; 9976: aa          .              ; X = address low for Tube claim
+    ldy rx_buf_offset                                                 ; 9977: a4 a7       ..             ; Y = address high for Tube claim
+    lda #1                                                            ; 9979: a9 01       ..             ; A=1: Tube claim type (read)
+    jsr tube_addr_claim                                               ; 997b: 20 06 04     ..            ; Claim Tube address for transfer
+    lda rx_extra_byte                                                 ; 997e: ad 5d 0d    .].            ; Load extra RX data byte
+    sta tube_data_register_3                                          ; 9981: 8d e5 fe    ...            ; Send to Tube via R3
+    sec                                                               ; 9984: 38          8              ; SEC: init carry for increment
+    ldy #8                                                            ; 9985: a0 08       ..             ; Y=8: start at high pointer
 ; &9987 referenced 1 time by &998e
 .loop_c9987
-    lda #0                                                            ; 9987: a9 00       ..
-    adc (port_ws_offset),y                                            ; 9989: 71 a6       q.
-    sta (port_ws_offset),y                                            ; 998b: 91 a6       ..
-    iny                                                               ; 998d: c8          .
-    bcs loop_c9987                                                    ; 998e: b0 f7       ..
-    pla                                                               ; 9990: 68          h
-    tax                                                               ; 9991: aa          .
+    lda #0                                                            ; 9987: a9 00       ..             ; A=0: add carry only (increment)
+    adc (port_ws_offset),y                                            ; 9989: 71 a6       q.             ; Add carry to pointer byte
+    sta (port_ws_offset),y                                            ; 998b: 91 a6       ..             ; Store back to RXCB
+    iny                                                               ; 998d: c8          .              ; Next byte
+    bcs loop_c9987                                                    ; 998e: b0 f7       ..             ; Keep going while carry propagates
+    pla                                                               ; 9990: 68          h              ; Restore X from stack
+    tax                                                               ; 9991: aa          .              ; Transfer to X register
 ; &9992 referenced 1 time by &996d
 .c9992
-    lda #&ff                                                          ; 9992: a9 ff       ..
+    lda #&ff                                                          ; 9992: a9 ff       ..             ; A=&FF: return value (transfer done)
 ; &9994 referenced 1 time by &9953
 .return_10
-    rts                                                               ; 9994: 60          `
+    rts                                                               ; 9994: 60          `              ; Return
 
-    lda rx_port                                                       ; 9995: ad 40 0d    .@.
-    bne c99a4                                                         ; 9998: d0 0a       ..
-    ldy rx_ctrl                                                       ; 999a: ac 3f 0d    .?.
-    cpy #&82                                                          ; 999d: c0 82       ..
-    beq c99a4                                                         ; 999f: f0 03       ..
-    jmp c9ae7                                                         ; 99a1: 4c e7 9a    L..
+    lda rx_port                                                       ; 9995: ad 40 0d    .@.            ; Load received port byte
+    bne c99a4                                                         ; 9998: d0 0a       ..             ; Port != 0: data transfer frame
+    ldy rx_ctrl                                                       ; 999a: ac 3f 0d    .?.            ; Port=0: load control byte
+    cpy #&82                                                          ; 999d: c0 82       ..             ; Ctrl = &82 (POKE)?
+    beq c99a4                                                         ; 999f: f0 03       ..             ; Yes: POKE also needs data transfer
+    jmp c9ae7                                                         ; 99a1: 4c e7 9a    L..            ; Other port-0 ops: immediate dispatch
 
 ; &99a4 referenced 3 times by &9998, &999f, &9a16
 .c99a4
-    jsr sub_c994e                                                     ; 99a4: 20 4e 99     N.
-    bne c99bb                                                         ; 99a7: d0 12       ..
-    lda port_buf_len                                                  ; 99a9: a5 a2       ..
-    clc                                                               ; 99ab: 18          .
-    adc open_port_buf                                                 ; 99ac: 65 a4       e.
-    bcc c99b2                                                         ; 99ae: 90 02       ..
-    inc open_port_buf_hi                                              ; 99b0: e6 a5       ..
+    jsr sub_c994e                                                     ; 99a4: 20 4e 99     N.            ; Update buffer pointer and check for Tube
+    bne c99bb                                                         ; 99a7: d0 12       ..             ; Transfer not done: skip buffer update
+    lda port_buf_len                                                  ; 99a9: a5 a2       ..             ; Load buffer bytes remaining
+    clc                                                               ; 99ab: 18          .              ; CLC for address add
+    adc open_port_buf                                                 ; 99ac: 65 a4       e.             ; Add to buffer base address
+    bcc c99b2                                                         ; 99ae: 90 02       ..             ; No carry: skip high byte increment
+    inc open_port_buf_hi                                              ; 99b0: e6 a5       ..             ; Carry: increment buffer high byte
 ; &99b2 referenced 1 time by &99ae
 .c99b2
-    ldy #8                                                            ; 99b2: a0 08       ..
-    sta (port_ws_offset),y                                            ; 99b4: 91 a6       ..
-    iny                                                               ; 99b6: c8          .              ; Y=&09
-    lda open_port_buf_hi                                              ; 99b7: a5 a5       ..
-    sta (port_ws_offset),y                                            ; 99b9: 91 a6       ..
+    ldy #8                                                            ; 99b2: a0 08       ..             ; Y=8: store updated buffer position
+    sta (port_ws_offset),y                                            ; 99b4: 91 a6       ..             ; Store updated low byte to RXCB
+    iny                                                               ; 99b6: c8          .              ; Y=9: buffer high byte offset; Y=&09
+    lda open_port_buf_hi                                              ; 99b7: a5 a5       ..             ; Load updated buffer high byte
+    sta (port_ws_offset),y                                            ; 99b9: 91 a6       ..             ; Store high byte to RXCB
 ; &99bb referenced 1 time by &99a7
 .c99bb
-    lda rx_port                                                       ; 99bb: ad 40 0d    .@.
-    beq discard_reset_listen                                          ; 99be: f0 1b       ..
-    lda rx_src_net                                                    ; 99c0: ad 3e 0d    .>.
-    ldy #3                                                            ; 99c3: a0 03       ..
-    sta (port_ws_offset),y                                            ; 99c5: 91 a6       ..
-    dey                                                               ; 99c7: 88          .              ; Y=&02
-    lda rx_src_stn                                                    ; 99c8: ad 3d 0d    .=.
-    sta (port_ws_offset),y                                            ; 99cb: 91 a6       ..
-    dey                                                               ; 99cd: 88          .              ; Y=&01
-    lda rx_port                                                       ; 99ce: ad 40 0d    .@.
-    sta (port_ws_offset),y                                            ; 99d1: 91 a6       ..
-    dey                                                               ; 99d3: 88          .              ; Y=&00
-    lda rx_ctrl                                                       ; 99d4: ad 3f 0d    .?.
-    ora #&80                                                          ; 99d7: 09 80       ..
-    sta (port_ws_offset),y                                            ; 99d9: 91 a6       ..
+    lda rx_port                                                       ; 99bb: ad 40 0d    .@.            ; Check port byte again
+    beq discard_reset_listen                                          ; 99be: f0 1b       ..             ; Port=0: immediate op, discard+listen
+    lda rx_src_net                                                    ; 99c0: ad 3e 0d    .>.            ; Load source network from scout buffer
+    ldy #3                                                            ; 99c3: a0 03       ..             ; Y=3: RXCB source network offset
+    sta (port_ws_offset),y                                            ; 99c5: 91 a6       ..             ; Store source network to RXCB
+    dey                                                               ; 99c7: 88          .              ; Y=2: source station offset; Y=&02
+    lda rx_src_stn                                                    ; 99c8: ad 3d 0d    .=.            ; Load source station from scout buffer
+    sta (port_ws_offset),y                                            ; 99cb: 91 a6       ..             ; Store source station to RXCB
+    dey                                                               ; 99cd: 88          .              ; Y=1: port byte offset; Y=&01
+    lda rx_port                                                       ; 99ce: ad 40 0d    .@.            ; Load port byte
+    sta (port_ws_offset),y                                            ; 99d1: 91 a6       ..             ; Store port to RXCB
+    dey                                                               ; 99d3: 88          .              ; Y=0: control/flag byte offset; Y=&00
+    lda rx_ctrl                                                       ; 99d4: ad 3f 0d    .?.            ; Load control byte from scout
+    ora #&80                                                          ; 99d7: 09 80       ..             ; Set bit7 = reception complete flag
+    sta (port_ws_offset),y                                            ; 99d9: 91 a6       ..             ; Store to RXCB (marks CB as complete)
 ; ***************************************************************************************
 ; Discard with Tube release
 ; 
@@ -6670,79 +6670,79 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &99e8 referenced 4 times by &970b, &99e3, &9a61, &9b1d
 .discard_listen
-    jsr adlc_rx_listen                                                ; 99e8: 20 4c 9f     L.
+    jsr adlc_rx_listen                                                ; 99e8: 20 4c 9f     L.            ; Re-enter idle RX listen mode
 ; &99eb referenced 2 times by &96ef, &9708
 .c99eb
     lda #&bf                                                          ; 99eb: a9 bf       ..             ; Install nmi_rx_scout (&96BF) as NMI handler
-    ldy #&96                                                          ; 99ed: a0 96       ..
-    jmp set_nmi_vector                                                ; 99ef: 4c 0e 0d    L..
+    ldy #&96                                                          ; 99ed: a0 96       ..             ; High byte of nmi_rx_scout
+    jmp set_nmi_vector                                                ; 99ef: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; &99f2 referenced 1 time by &97c8
 .c99f2
-    txa                                                               ; 99f2: 8a          .
-    pha                                                               ; 99f3: 48          H
-    ldx #4                                                            ; 99f4: a2 04       ..
-    lda #2                                                            ; 99f6: a9 02       ..
+    txa                                                               ; 99f2: 8a          .              ; Save X on stack
+    pha                                                               ; 99f3: 48          H              ; Push X
+    ldx #4                                                            ; 99f4: a2 04       ..             ; X=4: start at scout byte offset 4
+    lda #2                                                            ; 99f6: a9 02       ..             ; A=2: Tube transfer check mask
 ; &99f8 referenced 1 time by &9a69
 .c99f8
-    bit tx_flags                                                      ; 99f8: 2c 4a 0d    ,J.
-    bne c9a19                                                         ; 99fb: d0 1c       ..
-    ldy port_buf_len                                                  ; 99fd: a4 a2       ..
+    bit tx_flags                                                      ; 99f8: 2c 4a 0d    ,J.            ; BIT tx_flags: check Tube bit
+    bne c9a19                                                         ; 99fb: d0 1c       ..             ; Tube active: use R3 write path
+    ldy port_buf_len                                                  ; 99fd: a4 a2       ..             ; Y = current buffer position
 ; &99ff referenced 1 time by &9a12
 .loop_c99ff
-    lda rx_src_stn,x                                                  ; 99ff: bd 3d 0d    .=.
-    sta (open_port_buf),y                                             ; 9a02: 91 a4       ..
-    iny                                                               ; 9a04: c8          .
-    bne c9a0d                                                         ; 9a05: d0 06       ..
-    inc open_port_buf_hi                                              ; 9a07: e6 a5       ..
-    dec port_buf_len_hi                                               ; 9a09: c6 a3       ..
-    beq c9a6e                                                         ; 9a0b: f0 61       .a
+    lda rx_src_stn,x                                                  ; 99ff: bd 3d 0d    .=.            ; Load scout data byte
+    sta (open_port_buf),y                                             ; 9a02: 91 a4       ..             ; Store to port buffer
+    iny                                                               ; 9a04: c8          .              ; Advance buffer pointer
+    bne c9a0d                                                         ; 9a05: d0 06       ..             ; No page crossing
+    inc open_port_buf_hi                                              ; 9a07: e6 a5       ..             ; Page crossing: inc buffer high byte
+    dec port_buf_len_hi                                               ; 9a09: c6 a3       ..             ; Decrement remaining page count
+    beq c9a6e                                                         ; 9a0b: f0 61       .a             ; No pages left: overflow
 ; &9a0d referenced 1 time by &9a05
 .c9a0d
-    inx                                                               ; 9a0d: e8          .
-    sty port_buf_len                                                  ; 9a0e: 84 a2       ..
-    cpx #&0c                                                          ; 9a10: e0 0c       ..
-    bne loop_c99ff                                                    ; 9a12: d0 eb       ..
+    inx                                                               ; 9a0d: e8          .              ; Next scout data byte
+    sty port_buf_len                                                  ; 9a0e: 84 a2       ..             ; Save updated buffer position
+    cpx #&0c                                                          ; 9a10: e0 0c       ..             ; Done all scout data? (X reaches &0C)
+    bne loop_c99ff                                                    ; 9a12: d0 eb       ..             ; No: continue copying
 ; &9a14 referenced 2 times by &9a29, &9a72
 .c9a14
-    pla                                                               ; 9a14: 68          h
-    tax                                                               ; 9a15: aa          .
-    jmp c99a4                                                         ; 9a16: 4c a4 99    L..
+    pla                                                               ; 9a14: 68          h              ; Restore X from stack
+    tax                                                               ; 9a15: aa          .              ; Transfer to X register
+    jmp c99a4                                                         ; 9a16: 4c a4 99    L..            ; Jump to completion handler
 
 ; &9a19 referenced 2 times by &99fb, &9a27
 .c9a19
-    lda rx_src_stn,x                                                  ; 9a19: bd 3d 0d    .=.
-    sta tube_data_register_3                                          ; 9a1c: 8d e5 fe    ...
-    jsr sub_c9a37                                                     ; 9a1f: 20 37 9a     7.
-    beq c9a70                                                         ; 9a22: f0 4c       .L
-    inx                                                               ; 9a24: e8          .
-    cpx #&0c                                                          ; 9a25: e0 0c       ..
-    bne c9a19                                                         ; 9a27: d0 f0       ..
+    lda rx_src_stn,x                                                  ; 9a19: bd 3d 0d    .=.            ; Tube path: load scout data byte
+    sta tube_data_register_3                                          ; 9a1c: 8d e5 fe    ...            ; Send byte to Tube via R3
+    jsr sub_c9a37                                                     ; 9a1f: 20 37 9a     7.            ; Increment buffer position counters
+    beq c9a70                                                         ; 9a22: f0 4c       .L             ; Counter overflow: handle end of buffer
+    inx                                                               ; 9a24: e8          .              ; Next scout data byte
+    cpx #&0c                                                          ; 9a25: e0 0c       ..             ; Done all scout data?
+    bne c9a19                                                         ; 9a27: d0 f0       ..             ; No: continue Tube writes
     beq c9a14                                                         ; 9a29: f0 e9       ..             ; ALWAYS branch
 
 ; &9a2b referenced 2 times by &99e5, &9f12
 .sub_c9a2b
-    bit need_release_tube                                             ; 9a2b: 24 98       $.
-    bmi c9a34                                                         ; 9a2d: 30 05       0.
-    lda #&82                                                          ; 9a2f: a9 82       ..
-    jsr tube_addr_claim                                               ; 9a31: 20 06 04     ..
+    bit need_release_tube                                             ; 9a2b: 24 98       $.             ; Check if Tube needs releasing
+    bmi c9a34                                                         ; 9a2d: 30 05       0.             ; Bit7 set: already released
+    lda #&82                                                          ; 9a2f: a9 82       ..             ; A=&82: Tube release claim type
+    jsr tube_addr_claim                                               ; 9a31: 20 06 04     ..            ; Release Tube address claim
 ; &9a34 referenced 1 time by &9a2d
 .c9a34
-    lsr need_release_tube                                             ; 9a34: 46 98       F.
-    rts                                                               ; 9a36: 60          `
+    lsr need_release_tube                                             ; 9a34: 46 98       F.             ; Clear release flag (LSR clears bit7)
+    rts                                                               ; 9a36: 60          `              ; Return
 
 ; &9a37 referenced 3 times by &98a8, &98b6, &9a1f
 .sub_c9a37
-    inc port_buf_len                                                  ; 9a37: e6 a2       ..
-    bne return_inc_port_buf                                           ; 9a39: d0 0a       ..
-    inc port_buf_len_hi                                               ; 9a3b: e6 a3       ..
-    bne return_inc_port_buf                                           ; 9a3d: d0 06       ..
-    inc open_port_buf                                                 ; 9a3f: e6 a4       ..
-    bne return_inc_port_buf                                           ; 9a41: d0 02       ..
-    inc open_port_buf_hi                                              ; 9a43: e6 a5       ..
+    inc port_buf_len                                                  ; 9a37: e6 a2       ..             ; Increment buffer position (4-byte)
+    bne return_inc_port_buf                                           ; 9a39: d0 0a       ..             ; Low byte didn't wrap: done
+    inc port_buf_len_hi                                               ; 9a3b: e6 a3       ..             ; Carry into second byte
+    bne return_inc_port_buf                                           ; 9a3d: d0 06       ..             ; No further carry: done
+    inc open_port_buf                                                 ; 9a3f: e6 a4       ..             ; Carry into third byte
+    bne return_inc_port_buf                                           ; 9a41: d0 02       ..             ; No further carry: done
+    inc open_port_buf_hi                                              ; 9a43: e6 a5       ..             ; Carry into fourth byte
 ; &9a45 referenced 3 times by &9a39, &9a3d, &9a41
 .return_inc_port_buf
-    rts                                                               ; 9a45: 60          `
+    rts                                                               ; 9a45: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
@@ -6947,75 +6947,75 @@ l8c4c = fs_cmd_match_table+1
 
 ; &9b6e referenced 1 time by &06ce[4]
 .c9b6e
-    txa                                                               ; 9b6e: 8a          .
-    pha                                                               ; 9b6f: 48          H
-    ldy #2                                                            ; 9b70: a0 02       ..
-    lda (nmi_tx_block),y                                              ; 9b72: b1 a0       ..
-    sta tx_dst_stn                                                    ; 9b74: 8d 20 0d    . .
+    txa                                                               ; 9b6e: 8a          .              ; Save X on stack
+    pha                                                               ; 9b6f: 48          H              ; Push X
+    ldy #2                                                            ; 9b70: a0 02       ..             ; Y=2: TXCB offset for dest station
+    lda (nmi_tx_block),y                                              ; 9b72: b1 a0       ..             ; Load dest station from TX control block
+    sta tx_dst_stn                                                    ; 9b74: 8d 20 0d    . .            ; Store to TX scout buffer
     iny                                                               ; 9b77: c8          .              ; Y=&03
-    lda (nmi_tx_block),y                                              ; 9b78: b1 a0       ..
-    sta tx_dst_net                                                    ; 9b7a: 8d 21 0d    .!.
-    ldy #0                                                            ; 9b7d: a0 00       ..
-    lda (nmi_tx_block),y                                              ; 9b7f: b1 a0       ..
-    bmi c9b86                                                         ; 9b81: 30 03       0.
-    jmp tx_active_start                                               ; 9b83: 4c 11 9c    L..
+    lda (nmi_tx_block),y                                              ; 9b78: b1 a0       ..             ; Load dest network from TX control block
+    sta tx_dst_net                                                    ; 9b7a: 8d 21 0d    .!.            ; Store to TX scout buffer
+    ldy #0                                                            ; 9b7d: a0 00       ..             ; Y=0: first byte of TX control block
+    lda (nmi_tx_block),y                                              ; 9b7f: b1 a0       ..             ; Load control/flag byte
+    bmi c9b86                                                         ; 9b81: 30 03       0.             ; Bit7 set: immediate operation ctrl byte
+    jmp tx_active_start                                               ; 9b83: 4c 11 9c    L..            ; Bit7 clear: normal data transfer
 
 ; &9b86 referenced 1 time by &9b81
 .c9b86
-    sta tx_ctrl_byte                                                  ; 9b86: 8d 24 0d    .$.
-    tax                                                               ; 9b89: aa          .
-    iny                                                               ; 9b8a: c8          .
-    lda (nmi_tx_block),y                                              ; 9b8b: b1 a0       ..
-    sta tx_port                                                       ; 9b8d: 8d 25 0d    .%.
-    bne c9bc5                                                         ; 9b90: d0 33       .3
-    cpx #&83                                                          ; 9b92: e0 83       ..
-    bcs c9bb1                                                         ; 9b94: b0 1b       ..
-    sec                                                               ; 9b96: 38          8
-    php                                                               ; 9b97: 08          .
-    ldy #8                                                            ; 9b98: a0 08       ..
+    sta tx_ctrl_byte                                                  ; 9b86: 8d 24 0d    .$.            ; Store control byte to TX scout buffer
+    tax                                                               ; 9b89: aa          .              ; X = control byte for range checks
+    iny                                                               ; 9b8a: c8          .              ; Y=1: port byte offset
+    lda (nmi_tx_block),y                                              ; 9b8b: b1 a0       ..             ; Load port byte from TX control block
+    sta tx_port                                                       ; 9b8d: 8d 25 0d    .%.            ; Store port byte to TX scout buffer
+    bne c9bc5                                                         ; 9b90: d0 33       .3             ; Port != 0: skip immediate op setup
+    cpx #&83                                                          ; 9b92: e0 83       ..             ; Ctrl < &83: PEEK/POKE need address calc
+    bcs c9bb1                                                         ; 9b94: b0 1b       ..             ; Ctrl >= &83: skip to range check
+    sec                                                               ; 9b96: 38          8              ; SEC: init borrow for 4-byte subtract
+    php                                                               ; 9b97: 08          .              ; Save carry on stack for loop
+    ldy #8                                                            ; 9b98: a0 08       ..             ; Y=8: high pointer offset in TXCB
 ; &9b9a referenced 1 time by &9bae
 .loop_c9b9a
-    lda (nmi_tx_block),y                                              ; 9b9a: b1 a0       ..
-    dey                                                               ; 9b9c: 88          .
+    lda (nmi_tx_block),y                                              ; 9b9a: b1 a0       ..             ; Load TXCB[Y] (end addr byte)
+    dey                                                               ; 9b9c: 88          .              ; Y -= 4: back to start addr offset
     dey                                                               ; 9b9d: 88          .
     dey                                                               ; 9b9e: 88          .
     dey                                                               ; 9b9f: 88          .
-    plp                                                               ; 9ba0: 28          (
-    sbc (nmi_tx_block),y                                              ; 9ba1: f1 a0       ..
-    sta tx_data_start,y                                               ; 9ba3: 99 26 0d    .&.
+    plp                                                               ; 9ba0: 28          (              ; Restore borrow from stack
+    sbc (nmi_tx_block),y                                              ; 9ba1: f1 a0       ..             ; end - start = transfer size byte
+    sta tx_data_start,y                                               ; 9ba3: 99 26 0d    .&.            ; Store result to tx_data_start
     iny                                                               ; 9ba6: c8          .
     iny                                                               ; 9ba7: c8          .
     iny                                                               ; 9ba8: c8          .
     iny                                                               ; 9ba9: c8          .
     iny                                                               ; 9baa: c8          .
-    php                                                               ; 9bab: 08          .
-    cpy #&0c                                                          ; 9bac: c0 0c       ..
-    bcc loop_c9b9a                                                    ; 9bae: 90 ea       ..
-    plp                                                               ; 9bb0: 28          (
+    php                                                               ; 9bab: 08          .              ; Save borrow for next byte
+    cpy #&0c                                                          ; 9bac: c0 0c       ..             ; Done all 4 bytes? (Y reaches &0C)
+    bcc loop_c9b9a                                                    ; 9bae: 90 ea       ..             ; No: next byte pair
+    plp                                                               ; 9bb0: 28          (              ; Discard final borrow
 ; &9bb1 referenced 1 time by &9b94
 .c9bb1
-    cpx #&81                                                          ; 9bb1: e0 81       ..
-    bcc tx_active_start                                               ; 9bb3: 90 5c       .\
-    cpx #&89                                                          ; 9bb5: e0 89       ..
-    bcs tx_active_start                                               ; 9bb7: b0 58       .X
-    ldy #&0c                                                          ; 9bb9: a0 0c       ..
+    cpx #&81                                                          ; 9bb1: e0 81       ..             ; Ctrl < &81: not an immediate op
+    bcc tx_active_start                                               ; 9bb3: 90 5c       .\             ; Below range: normal data transfer
+    cpx #&89                                                          ; 9bb5: e0 89       ..             ; Ctrl >= &89: out of immediate range
+    bcs tx_active_start                                               ; 9bb7: b0 58       .X             ; Above range: normal data transfer
+    ldy #&0c                                                          ; 9bb9: a0 0c       ..             ; Y=&0C: start of extra data in TXCB
 ; &9bbb referenced 1 time by &9bc3
 .loop_c9bbb
-    lda (nmi_tx_block),y                                              ; 9bbb: b1 a0       ..
-    sta nmi_shim_1a,y                                                 ; 9bbd: 99 1a 0d    ...
-    iny                                                               ; 9bc0: c8          .
-    cpy #&10                                                          ; 9bc1: c0 10       ..
-    bcc loop_c9bbb                                                    ; 9bc3: 90 f6       ..
+    lda (nmi_tx_block),y                                              ; 9bbb: b1 a0       ..             ; Load extra parameter byte from TXCB
+    sta nmi_shim_1a,y                                                 ; 9bbd: 99 1a 0d    ...            ; Copy to NMI shim workspace at &0D1A+Y
+    iny                                                               ; 9bc0: c8          .              ; Next byte
+    cpy #&10                                                          ; 9bc1: c0 10       ..             ; Done 4 bytes? (Y reaches &10)
+    bcc loop_c9bbb                                                    ; 9bc3: 90 f6       ..             ; No: continue copying
 ; &9bc5 referenced 1 time by &9b90
 .c9bc5
-    lda #&20 ; ' '                                                    ; 9bc5: a9 20       .
-    bit econet_control23_or_status2                                   ; 9bc7: 2c a1 fe    ,..
-    bne c9c21                                                         ; 9bca: d0 55       .U
-    lda #&fd                                                          ; 9bcc: a9 fd       ..
-    pha                                                               ; 9bce: 48          H
-    lda #6                                                            ; 9bcf: a9 06       ..
-    sta tx_length                                                     ; 9bd1: 8d 50 0d    .P.
-    lda #0                                                            ; 9bd4: a9 00       ..
+    lda #&20 ; ' '                                                    ; 9bc5: a9 20       .              ; A=&20: mask for SR2 INACTIVE bit
+    bit econet_control23_or_status2                                   ; 9bc7: 2c a1 fe    ,..            ; BIT SR2: test if line is idle
+    bne c9c21                                                         ; 9bca: d0 55       .U             ; Line not idle: handle as line jammed
+    lda #&fd                                                          ; 9bcc: a9 fd       ..             ; A=&FD: high byte of timeout counter
+    pha                                                               ; 9bce: 48          H              ; Push timeout high byte to stack
+    lda #6                                                            ; 9bcf: a9 06       ..             ; Scout frame = 6 address+ctrl bytes
+    sta tx_length                                                     ; 9bd1: 8d 50 0d    .P.            ; Store scout frame length
+    lda #0                                                            ; 9bd4: a9 00       ..             ; A=0: init low byte of timeout counter
 ; ***************************************************************************************
 ; INACTIVE polling loop
 ; 
@@ -7165,44 +7165,44 @@ l9be2 = sub_c9be1+1
 
 ; &9c8e referenced 1 time by &9c4a
 .c9c8e
-    lda tx_dst_stn                                                    ; 9c8e: ad 20 0d    . .
-    and tx_dst_net                                                    ; 9c91: 2d 21 0d    -!.
-    cmp #&ff                                                          ; 9c94: c9 ff       ..
-    bne c9cb0                                                         ; 9c96: d0 18       ..
-    lda #&0e                                                          ; 9c98: a9 0e       ..
-    sta tx_length                                                     ; 9c9a: 8d 50 0d    .P.
-    lda #&40 ; '@'                                                    ; 9c9d: a9 40       .@
-    sta tx_flags                                                      ; 9c9f: 8d 4a 0d    .J.
-    ldy #4                                                            ; 9ca2: a0 04       ..
+    lda tx_dst_stn                                                    ; 9c8e: ad 20 0d    . .            ; Load dest station for broadcast check
+    and tx_dst_net                                                    ; 9c91: 2d 21 0d    -!.            ; AND with dest network
+    cmp #&ff                                                          ; 9c94: c9 ff       ..             ; Both &FF = broadcast address?
+    bne c9cb0                                                         ; 9c96: d0 18       ..             ; Not broadcast: unicast path
+    lda #&0e                                                          ; 9c98: a9 0e       ..             ; Broadcast scout: 14 bytes total
+    sta tx_length                                                     ; 9c9a: 8d 50 0d    .P.            ; Store broadcast scout length
+    lda #&40 ; '@'                                                    ; 9c9d: a9 40       .@             ; A=&40: broadcast flag
+    sta tx_flags                                                      ; 9c9f: 8d 4a 0d    .J.            ; Set broadcast flag in tx_flags
+    ldy #4                                                            ; 9ca2: a0 04       ..             ; Y=4: start of address data in TXCB
 ; &9ca4 referenced 1 time by &9cac
 .loop_c9ca4
-    lda (nmi_tx_block),y                                              ; 9ca4: b1 a0       ..
-    sta tx_src_stn,y                                                  ; 9ca6: 99 22 0d    .".
-    iny                                                               ; 9ca9: c8          .
-    cpy #&0c                                                          ; 9caa: c0 0c       ..
-    bcc loop_c9ca4                                                    ; 9cac: 90 f6       ..
+    lda (nmi_tx_block),y                                              ; 9ca4: b1 a0       ..             ; Copy TXCB address bytes to scout buffer
+    sta tx_src_stn,y                                                  ; 9ca6: 99 22 0d    .".            ; Store to TX source/data area
+    iny                                                               ; 9ca9: c8          .              ; Next byte
+    cpy #&0c                                                          ; 9caa: c0 0c       ..             ; Done 8 bytes? (Y reaches &0C)
+    bcc loop_c9ca4                                                    ; 9cac: 90 f6       ..             ; No: continue copying
     bcs tx_ctrl_exit                                                  ; 9cae: b0 15       ..             ; ALWAYS branch
 
 ; &9cb0 referenced 1 time by &9c96
 .c9cb0
-    lda #0                                                            ; 9cb0: a9 00       ..
-    sta tx_flags                                                      ; 9cb2: 8d 4a 0d    .J.
-    lda #2                                                            ; 9cb5: a9 02       ..
-    sta scout_status                                                  ; 9cb7: 8d 5c 0d    .\.
-    lda nmi_tx_block                                                  ; 9cba: a5 a0       ..
-    sta port_ws_offset                                                ; 9cbc: 85 a6       ..
-    lda nmi_tx_block_hi                                               ; 9cbe: a5 a1       ..
-    sta rx_buf_offset                                                 ; 9cc0: 85 a7       ..
-    jsr tx_calc_transfer                                              ; 9cc2: 20 ca 9e     ..
+    lda #0                                                            ; 9cb0: a9 00       ..             ; A=0: clear flags for unicast
+    sta tx_flags                                                      ; 9cb2: 8d 4a 0d    .J.            ; Clear tx_flags
+    lda #2                                                            ; 9cb5: a9 02       ..             ; scout_status=2: data transfer pending
+    sta scout_status                                                  ; 9cb7: 8d 5c 0d    .\.            ; Store scout status
+    lda nmi_tx_block                                                  ; 9cba: a5 a0       ..             ; Copy TX block pointer to workspace ptr
+    sta port_ws_offset                                                ; 9cbc: 85 a6       ..             ; Store low byte
+    lda nmi_tx_block_hi                                               ; 9cbe: a5 a1       ..             ; Copy TX block pointer high byte
+    sta rx_buf_offset                                                 ; 9cc0: 85 a7       ..             ; Store high byte
+    jsr tx_calc_transfer                                              ; 9cc2: 20 ca 9e     ..            ; Calculate transfer size from RXCB
 ; &9cc5 referenced 1 time by &9cae
 .tx_ctrl_exit
-    plp                                                               ; 9cc5: 28          (
-    pla                                                               ; 9cc6: 68          h
-    pla                                                               ; 9cc7: 68          h
-    pla                                                               ; 9cc8: 68          h
-    pla                                                               ; 9cc9: 68          h
-    tax                                                               ; 9cca: aa          .
-    rts                                                               ; 9ccb: 60          `
+    plp                                                               ; 9cc5: 28          (              ; Restore processor status from stack
+    pla                                                               ; 9cc6: 68          h              ; Restore stacked registers (4 PLAs)
+    pla                                                               ; 9cc7: 68          h              ; Second PLA
+    pla                                                               ; 9cc8: 68          h              ; Third PLA
+    pla                                                               ; 9cc9: 68          h              ; Fourth PLA
+    tax                                                               ; 9cca: aa          .              ; Restore X from A
+    rts                                                               ; 9ccb: 60          `              ; Return to caller
 
 ; ***************************************************************************************
 ; NMI TX data handler
@@ -7436,88 +7436,88 @@ l9be2 = sub_c9be1+1
 .c9dcd
     bvc c9e48                                                         ; 9dcd: 50 79       Py             ; TDRA not ready -- error
     lda (open_port_buf),y                                             ; 9dcf: b1 a4       ..             ; Write data byte to TX FIFO
-    sta econet_data_continue_frame                                    ; 9dd1: 8d a2 fe    ...
-    iny                                                               ; 9dd4: c8          .
-    bne c9ddd                                                         ; 9dd5: d0 06       ..
-    dec port_buf_len_hi                                               ; 9dd7: c6 a3       ..
-    beq data_tx_last                                                  ; 9dd9: f0 1a       ..
-    inc open_port_buf_hi                                              ; 9ddb: e6 a5       ..
+    sta econet_data_continue_frame                                    ; 9dd1: 8d a2 fe    ...            ; Write first byte of pair to FIFO
+    iny                                                               ; 9dd4: c8          .              ; Advance buffer offset
+    bne c9ddd                                                         ; 9dd5: d0 06       ..             ; No page crossing
+    dec port_buf_len_hi                                               ; 9dd7: c6 a3       ..             ; Page crossing: decrement page count
+    beq data_tx_last                                                  ; 9dd9: f0 1a       ..             ; No pages left: send last data
+    inc open_port_buf_hi                                              ; 9ddb: e6 a5       ..             ; Increment buffer high byte
 ; &9ddd referenced 1 time by &9dd5
 .c9ddd
-    lda (open_port_buf),y                                             ; 9ddd: b1 a4       ..
-    sta econet_data_continue_frame                                    ; 9ddf: 8d a2 fe    ...
-    iny                                                               ; 9de2: c8          .
-    sty port_buf_len                                                  ; 9de3: 84 a2       ..
-    bne c9ded                                                         ; 9de5: d0 06       ..
-    dec port_buf_len_hi                                               ; 9de7: c6 a3       ..
-    beq data_tx_last                                                  ; 9de9: f0 0a       ..
-    inc open_port_buf_hi                                              ; 9deb: e6 a5       ..
+    lda (open_port_buf),y                                             ; 9ddd: b1 a4       ..             ; Load second byte of pair
+    sta econet_data_continue_frame                                    ; 9ddf: 8d a2 fe    ...            ; Write second byte to FIFO
+    iny                                                               ; 9de2: c8          .              ; Advance buffer offset
+    sty port_buf_len                                                  ; 9de3: 84 a2       ..             ; Save updated buffer position
+    bne c9ded                                                         ; 9de5: d0 06       ..             ; No page crossing
+    dec port_buf_len_hi                                               ; 9de7: c6 a3       ..             ; Page crossing: decrement page count
+    beq data_tx_last                                                  ; 9de9: f0 0a       ..             ; No pages left: send last data
+    inc open_port_buf_hi                                              ; 9deb: e6 a5       ..             ; Increment buffer high byte
 ; &9ded referenced 1 time by &9de5
 .c9ded
-    bit econet_control1_or_status1                                    ; 9ded: 2c a0 fe    ,..
-    bmi c9dcd                                                         ; 9df0: 30 db       0.
-    jmp nmi_rti                                                       ; 9df2: 4c 14 0d    L..
+    bit econet_control1_or_status1                                    ; 9ded: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) for tight loop
+    bmi c9dcd                                                         ; 9df0: 30 db       0.             ; IRQ still set: write 2 more bytes
+    jmp nmi_rti                                                       ; 9df2: 4c 14 0d    L..            ; No IRQ: return, wait for next NMI
 
 ; &9df5 referenced 4 times by &9dd9, &9de9, &9e28, &9e3e
 .data_tx_last
     lda #&3f ; '?'                                                    ; 9df5: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA (close data frame)
-    sta econet_control23_or_status2                                   ; 9df7: 8d a1 fe    ...
-    lda tx_flags                                                      ; 9dfa: ad 4a 0d    .J.
-    bpl data_tx_error                                                 ; 9dfd: 10 07       ..
-    lda #&db                                                          ; 9dff: a9 db       ..
-    ldy #&99                                                          ; 9e01: a0 99       ..
-    jmp set_nmi_vector                                                ; 9e03: 4c 0e 0d    L..
+    sta econet_control23_or_status2                                   ; 9df7: 8d a1 fe    ...            ; Write CR2 to close frame
+    lda tx_flags                                                      ; 9dfa: ad 4a 0d    .J.            ; Check tx_flags for next action
+    bpl data_tx_error                                                 ; 9dfd: 10 07       ..             ; Bit7 clear: error, install saved handler
+    lda #&db                                                          ; 9dff: a9 db       ..             ; Install discard_reset_listen at &99DB
+    ldy #&99                                                          ; 9e01: a0 99       ..             ; High byte of &99DB handler
+    jmp set_nmi_vector                                                ; 9e03: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; &9e06 referenced 1 time by &9dfd
 .data_tx_error
 .install_saved_handler
-    lda nmi_next_lo                                                   ; 9e06: ad 4b 0d    .K.
-    ldy nmi_next_hi                                                   ; 9e09: ac 4c 0d    .L.
-    jmp set_nmi_vector                                                ; 9e0c: 4c 0e 0d    L..
+    lda nmi_next_lo                                                   ; 9e06: ad 4b 0d    .K.            ; Load saved next handler low byte
+    ldy nmi_next_hi                                                   ; 9e09: ac 4c 0d    .L.            ; Load saved next handler high byte
+    jmp set_nmi_vector                                                ; 9e0c: 4c 0e 0d    L..            ; Install saved handler and return
 
 .nmi_data_tx_tube
-    bit econet_control1_or_status1                                    ; 9e0f: 2c a0 fe    ,..
+    bit econet_control1_or_status1                                    ; 9e0f: 2c a0 fe    ,..            ; Tube TX: BIT SR1 test TDRA
 ; &9e12 referenced 1 time by &9e43
 .c9e12
-    bvc c9e48                                                         ; 9e12: 50 34       P4
-    lda tube_data_register_3                                          ; 9e14: ad e5 fe    ...
-    sta econet_data_continue_frame                                    ; 9e17: 8d a2 fe    ...
-    inc port_buf_len                                                  ; 9e1a: e6 a2       ..
-    bne c9e2a                                                         ; 9e1c: d0 0c       ..
-    inc port_buf_len_hi                                               ; 9e1e: e6 a3       ..
-    bne c9e2a                                                         ; 9e20: d0 08       ..
-    inc open_port_buf                                                 ; 9e22: e6 a4       ..
-    bne c9e2a                                                         ; 9e24: d0 04       ..
-    inc open_port_buf_hi                                              ; 9e26: e6 a5       ..
-    beq data_tx_last                                                  ; 9e28: f0 cb       ..
+    bvc c9e48                                                         ; 9e12: 50 34       P4             ; TDRA not ready -- error
+    lda tube_data_register_3                                          ; 9e14: ad e5 fe    ...            ; Read byte from Tube R3
+    sta econet_data_continue_frame                                    ; 9e17: 8d a2 fe    ...            ; Write to TX FIFO
+    inc port_buf_len                                                  ; 9e1a: e6 a2       ..             ; Increment 4-byte buffer counter
+    bne c9e2a                                                         ; 9e1c: d0 0c       ..             ; Low byte didn't wrap
+    inc port_buf_len_hi                                               ; 9e1e: e6 a3       ..             ; Carry into second byte
+    bne c9e2a                                                         ; 9e20: d0 08       ..             ; No further carry
+    inc open_port_buf                                                 ; 9e22: e6 a4       ..             ; Carry into third byte
+    bne c9e2a                                                         ; 9e24: d0 04       ..             ; No further carry
+    inc open_port_buf_hi                                              ; 9e26: e6 a5       ..             ; Carry into fourth byte
+    beq data_tx_last                                                  ; 9e28: f0 cb       ..             ; Counter wrapped to zero: last data
 ; &9e2a referenced 3 times by &9e1c, &9e20, &9e24
 .c9e2a
-    lda tube_data_register_3                                          ; 9e2a: ad e5 fe    ...
-    sta econet_data_continue_frame                                    ; 9e2d: 8d a2 fe    ...
-    inc port_buf_len                                                  ; 9e30: e6 a2       ..
-    bne c9e40                                                         ; 9e32: d0 0c       ..
-    inc port_buf_len_hi                                               ; 9e34: e6 a3       ..
-    bne c9e40                                                         ; 9e36: d0 08       ..
+    lda tube_data_register_3                                          ; 9e2a: ad e5 fe    ...            ; Read second Tube byte from R3
+    sta econet_data_continue_frame                                    ; 9e2d: 8d a2 fe    ...            ; Write second byte to TX FIFO
+    inc port_buf_len                                                  ; 9e30: e6 a2       ..             ; Increment 4-byte counter (second byte)
+    bne c9e40                                                         ; 9e32: d0 0c       ..             ; Low byte didn't wrap
+    inc port_buf_len_hi                                               ; 9e34: e6 a3       ..             ; Carry into second byte
+    bne c9e40                                                         ; 9e36: d0 08       ..             ; No further carry
 .sub_c9e38
 l9e39 = sub_c9e38+1
-    inc open_port_buf                                                 ; 9e38: e6 a4       ..
+    inc open_port_buf                                                 ; 9e38: e6 a4       ..             ; Carry into third byte
 ; &9e39 referenced 1 time by &9c55
-    bne c9e40                                                         ; 9e3a: d0 04       ..
-    inc open_port_buf_hi                                              ; 9e3c: e6 a5       ..
-    beq data_tx_last                                                  ; 9e3e: f0 b5       ..
+    bne c9e40                                                         ; 9e3a: d0 04       ..             ; No further carry
+    inc open_port_buf_hi                                              ; 9e3c: e6 a5       ..             ; Carry into fourth byte
+    beq data_tx_last                                                  ; 9e3e: f0 b5       ..             ; Counter wrapped to zero: last data
 ; &9e40 referenced 3 times by &9e32, &9e36, &9e3a
 .c9e40
 l9e41 = c9e40+1
-    bit econet_control1_or_status1                                    ; 9e40: 2c a0 fe    ,..
+    bit econet_control1_or_status1                                    ; 9e40: 2c a0 fe    ,..            ; BIT SR1: test IRQ for tight loop
 ; &9e41 referenced 1 time by &9c4f
-    bmi c9e12                                                         ; 9e43: 30 cd       0.
-    jmp nmi_rti                                                       ; 9e45: 4c 14 0d    L..
+    bmi c9e12                                                         ; 9e43: 30 cd       0.             ; IRQ still set: write 2 more bytes
+    jmp nmi_rti                                                       ; 9e45: 4c 14 0d    L..            ; No IRQ: return, wait for next NMI
 
 ; &9e48 referenced 2 times by &9dcd, &9e12
 .c9e48
-    lda tx_flags                                                      ; 9e48: ad 4a 0d    .J.
-    bpl tx_result_fail                                                ; 9e4b: 10 5f       ._
-    jmp discard_reset_listen                                          ; 9e4d: 4c db 99    L..
+    lda tx_flags                                                      ; 9e48: ad 4a 0d    .J.            ; TX error: check flags for path
+    bpl tx_result_fail                                                ; 9e4b: 10 5f       ._             ; Bit7 clear: TX result = not listening
+    jmp discard_reset_listen                                          ; 9e4d: 4c db 99    L..            ; Bit7 set: discard and return to listen
 
 ; ***************************************************************************************
 ; Four-way handshake: switch to RX for final ACK
