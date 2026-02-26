@@ -2467,54 +2467,54 @@ l8004 = service_entry+1
 ; checks for escape conditions between blocks.
 ; ***************************************************************************************
 .send_to_fs
-    pha                                                               ; 8532: 48          H
+    pha                                                               ; 8532: 48          H              ; Save function code on stack
 .send_to_fs_star
-    lda rx_flags                                                      ; 8533: ad 64 0d    .d.
-    pha                                                               ; 8536: 48          H
+    lda rx_flags                                                      ; 8533: ad 64 0d    .d.            ; Load current rx_flags
+    pha                                                               ; 8536: 48          H              ; Save rx_flags on stack for restore
     ldx net_tx_ptr_hi                                                 ; 8537: a6 9b       ..             ; Only flag rx_flags if using page-zero CB
-    bne c8540                                                         ; 8539: d0 05       ..
-    ora #&80                                                          ; 853b: 09 80       ..
-    sta rx_flags                                                      ; 853d: 8d 64 0d    .d.
+    bne c8540                                                         ; 8539: d0 05       ..             ; High byte != 0: skip flag set
+    ora #&80                                                          ; 853b: 09 80       ..             ; Set bit7: FS transaction in progress
+    sta rx_flags                                                      ; 853d: 8d 64 0d    .d.            ; Write back updated rx_flags
 ; &8540 referenced 1 time by &8539
 .c8540
     lda #0                                                            ; 8540: a9 00       ..             ; Push two zero bytes as timeout counters
-    pha                                                               ; 8542: 48          H
-    pha                                                               ; 8543: 48          H
-    tay                                                               ; 8544: a8          .              ; Y=&00
+    pha                                                               ; 8542: 48          H              ; First zero for timeout
+    pha                                                               ; 8543: 48          H              ; Second zero for timeout
+    tay                                                               ; 8544: a8          .              ; Y=0: index for flag byte check; Y=&00
     tsx                                                               ; 8545: ba          .              ; TSX: index stack-based timeout via X
 ; &8546 referenced 3 times by &854d, &8552, &8557
 .incpx
-    lda (net_tx_ptr),y                                                ; 8546: b1 9a       ..
+    lda (net_tx_ptr),y                                                ; 8546: b1 9a       ..             ; Read flag byte from TX control block
     bmi fs_wait_cleanup                                               ; 8548: 30 0f       0.             ; Bit 7 set = reply received
     dec l0101,x                                                       ; 854a: de 01 01    ...            ; Three-stage nested timeout: inner loop
-    bne incpx                                                         ; 854d: d0 f7       ..
+    bne incpx                                                         ; 854d: d0 f7       ..             ; Inner not expired: keep polling
     dec l0102,x                                                       ; 854f: de 02 01    ...            ; Middle timeout loop
-    bne incpx                                                         ; 8552: d0 f2       ..
+    bne incpx                                                         ; 8552: d0 f2       ..             ; Middle not expired: keep polling
     dec l0104,x                                                       ; 8554: de 04 01    ...            ; Outer timeout loop (slowest)
-    bne incpx                                                         ; 8557: d0 ed       ..
+    bne incpx                                                         ; 8557: d0 ed       ..             ; Outer not expired: keep polling
 ; &8559 referenced 1 time by &8548
 .fs_wait_cleanup
-    pla                                                               ; 8559: 68          h
-    pla                                                               ; 855a: 68          h
-    pla                                                               ; 855b: 68          h
+    pla                                                               ; 8559: 68          h              ; Pop first timeout byte
+    pla                                                               ; 855a: 68          h              ; Pop second timeout byte
+    pla                                                               ; 855b: 68          h              ; Pop saved rx_flags into A
     sta rx_flags                                                      ; 855c: 8d 64 0d    .d.            ; Restore saved rx_flags from stack
-    pla                                                               ; 855f: 68          h
+    pla                                                               ; 855f: 68          h              ; Pop saved function code
     beq c850c                                                         ; 8560: f0 aa       ..             ; A=saved func code; zero would mean no reply
-    rts                                                               ; 8562: 60          `
+    rts                                                               ; 8562: 60          `              ; Return to caller
 
 .bgetv_handler
-    sec                                                               ; 8563: 38          8
-    jsr sub_c8414                                                     ; 8564: 20 14 84     ..
-    sec                                                               ; 8567: 38          8
-    lda #&fe                                                          ; 8568: a9 fe       ..
-    bit l0fdf                                                         ; 856a: 2c df 0f    ,..
-    bvs return_4                                                      ; 856d: 70 10       p.
-    clc                                                               ; 856f: 18          .
-    php                                                               ; 8570: 08          .
-    lda l00cf                                                         ; 8571: a5 cf       ..
-    plp                                                               ; 8573: 28          (
-    bmi l8579                                                         ; 8574: 30 03       0.
-    jsr clear_fs_flag                                                 ; 8576: 20 d5 86     ..
+    sec                                                               ; 8563: 38          8              ; C=1: flag for BGET mode
+    jsr sub_c8414                                                     ; 8564: 20 14 84     ..            ; Handle BGET via FS command
+    sec                                                               ; 8567: 38          8              ; SEC: set carry for error check
+    lda #&fe                                                          ; 8568: a9 fe       ..             ; A=&FE: mask for EOF check
+    bit l0fdf                                                         ; 856a: 2c df 0f    ,..            ; BIT l0fdf: test error flags
+    bvs return_4                                                      ; 856d: 70 10       p.             ; V=1: error, return early
+    clc                                                               ; 856f: 18          .              ; CLC: no error
+    php                                                               ; 8570: 08          .              ; Save flags for EOF check
+    lda l00cf                                                         ; 8571: a5 cf       ..             ; Load BGET result byte
+    plp                                                               ; 8573: 28          (              ; Restore flags
+    bmi l8579                                                         ; 8574: 30 03       0.             ; Bit7 set: skip FS flag clear
+    jsr clear_fs_flag                                                 ; 8576: 20 d5 86     ..            ; Clear FS flag for handle
 ; &8579 referenced 1 time by &8574
 .l8579
     equb &20                                                          ; 8579: 20
@@ -4994,73 +4994,73 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 .copy_param_block
     sta (l00f0),y                                                     ; 8f24: 91 f0       ..             ; Store to param block (no-op if C=1)
-    iny                                                               ; 8f26: c8          .
-    dex                                                               ; 8f27: ca          .
-    bpl c8f1c                                                         ; 8f28: 10 f2       ..
+    iny                                                               ; 8f26: c8          .              ; Advance to next byte
+    dex                                                               ; 8f27: ca          .              ; Decrement remaining count
+    bpl c8f1c                                                         ; 8f28: 10 f2       ..             ; Loop while bytes remain
 .logon3
 .return_copy_param
-    rts                                                               ; 8f2a: 60          `
+    rts                                                               ; 8f2a: 60          `              ; Return
 
 ; &8f2b referenced 1 time by &8f07
 .rssl1
-    lsr a                                                             ; 8f2b: 4a          J
-    iny                                                               ; 8f2c: c8          .
-    lda (l00f0),y                                                     ; 8f2d: b1 f0       ..
-    bcs rssl2                                                         ; 8f2f: b0 05       ..
-    lda prot_status                                                   ; 8f31: ad 63 0d    .c.
-    sta (l00f0),y                                                     ; 8f34: 91 f0       ..
+    lsr a                                                             ; 8f2b: 4a          J              ; LSR A: test bit 0 of sub-function
+    iny                                                               ; 8f2c: c8          .              ; Y=1: offset for protection byte
+    lda (l00f0),y                                                     ; 8f2d: b1 f0       ..             ; Load protection byte from param block
+    bcs rssl2                                                         ; 8f2f: b0 05       ..             ; C=1 (odd sub): set protection
+    lda prot_status                                                   ; 8f31: ad 63 0d    .c.            ; C=0 (even sub): read current status
+    sta (l00f0),y                                                     ; 8f34: 91 f0       ..             ; Return current value to param block
 ; &8f36 referenced 1 time by &8f2f
 .rssl2
-    sta prot_status                                                   ; 8f36: 8d 63 0d    .c.
-    sta saved_jsr_mask                                                ; 8f39: 8d 65 0d    .e.
-    rts                                                               ; 8f3c: 60          `
+    sta prot_status                                                   ; 8f36: 8d 63 0d    .c.            ; Update protection status
+    sta saved_jsr_mask                                                ; 8f39: 8d 65 0d    .e.            ; Also save as JSR mask backup
+    rts                                                               ; 8f3c: 60          `              ; Return
 
 ; &8f3d referenced 1 time by &8f48
 .loop_c8f3d
-    ldy #&14                                                          ; 8f3d: a0 14       ..
-    lda (net_rx_ptr),y                                                ; 8f3f: b1 9c       ..
-    ldy #1                                                            ; 8f41: a0 01       ..
-    sta (l00f0),y                                                     ; 8f43: 91 f0       ..
-    rts                                                               ; 8f45: 60          `
+    ldy #&14                                                          ; 8f3d: a0 14       ..             ; Y=&14: RX buffer offset for FS handle
+    lda (net_rx_ptr),y                                                ; 8f3f: b1 9c       ..             ; Read FS reply handle from RX data
+    ldy #1                                                            ; 8f41: a0 01       ..             ; Y=1: param block byte 1
+    sta (l00f0),y                                                     ; 8f43: 91 f0       ..             ; Return handle to caller's param block
+    rts                                                               ; 8f45: 60          `              ; Return
 
 ; &8f46 referenced 1 time by &8f03
 .rsl1
-    cmp #8                                                            ; 8f46: c9 08       ..
-    beq loop_c8f3d                                                    ; 8f48: f0 f3       ..
-    cmp #9                                                            ; 8f4a: c9 09       ..
-    beq read_args_size                                                ; 8f4c: f0 a3       ..
-    bpl c8f69                                                         ; 8f4e: 10 19       ..
-    ldy #3                                                            ; 8f50: a0 03       ..
-    lsr a                                                             ; 8f52: 4a          J
-    bcc readc1                                                        ; 8f53: 90 1b       ..
-    sty l00a8                                                         ; 8f55: 84 a8       ..
+    cmp #8                                                            ; 8f46: c9 08       ..             ; Sub-function 8: read FS handle
+    beq loop_c8f3d                                                    ; 8f48: f0 f3       ..             ; Match: read handle from RX buffer
+    cmp #9                                                            ; 8f4a: c9 09       ..             ; Sub-function 9: read args size
+    beq read_args_size                                                ; 8f4c: f0 a3       ..             ; Match: read ARGS buffer info
+    bpl c8f69                                                         ; 8f4e: 10 19       ..             ; Sub >= 10 (bit 7 clear): read error
+    ldy #3                                                            ; 8f50: a0 03       ..             ; Y=3: start from handle 3 (descending)
+    lsr a                                                             ; 8f52: 4a          J              ; LSR: test read/write bit
+    bcc readc1                                                        ; 8f53: 90 1b       ..             ; C=0: read handles from workspace
+    sty l00a8                                                         ; 8f55: 84 a8       ..             ; Init loop counter at Y=3
 ; &8f57 referenced 1 time by &8f66
 .loop_c8f57
-    ldy l00a8                                                         ; 8f57: a4 a8       ..
-    lda (l00f0),y                                                     ; 8f59: b1 f0       ..
-    jsr handle_to_mask_a                                              ; 8f5b: 20 9a 86     ..
-    tya                                                               ; 8f5e: 98          .
-    ldy l00a8                                                         ; 8f5f: a4 a8       ..
-    sta fs_server_net,y                                               ; 8f61: 99 01 0e    ...
-    dec l00a8                                                         ; 8f64: c6 a8       ..
-    bne loop_c8f57                                                    ; 8f66: d0 ef       ..
-    rts                                                               ; 8f68: 60          `
+    ldy l00a8                                                         ; 8f57: a4 a8       ..             ; Reload loop counter
+    lda (l00f0),y                                                     ; 8f59: b1 f0       ..             ; Read handle from caller's param block
+    jsr handle_to_mask_a                                              ; 8f5b: 20 9a 86     ..            ; Convert handle number to bitmask
+    tya                                                               ; 8f5e: 98          .              ; TYA: get bitmask result
+    ldy l00a8                                                         ; 8f5f: a4 a8       ..             ; Reload loop counter
+    sta fs_server_net,y                                               ; 8f61: 99 01 0e    ...            ; Store bitmask to FS server table
+    dec l00a8                                                         ; 8f64: c6 a8       ..             ; Next handle (descending)
+    bne loop_c8f57                                                    ; 8f66: d0 ef       ..             ; Loop for handles 3,2,1
+    rts                                                               ; 8f68: 60          `              ; Return
 
 ; &8f69 referenced 1 time by &8f4e
 .c8f69
-    iny                                                               ; 8f69: c8          .
-    lda fs_last_error                                                 ; 8f6a: ad 09 0e    ...
-    sta (l00f0),y                                                     ; 8f6d: 91 f0       ..
-    rts                                                               ; 8f6f: 60          `
+    iny                                                               ; 8f69: c8          .              ; Y=1 (post-INY): param block byte 1
+    lda fs_last_error                                                 ; 8f6a: ad 09 0e    ...            ; Read last FS error code
+    sta (l00f0),y                                                     ; 8f6d: 91 f0       ..             ; Return error to caller's param block
+    rts                                                               ; 8f6f: 60          `              ; Return
 
 ; &8f70 referenced 2 times by &8f53, &8f79
 .readc1
     lda fs_server_net,y                                               ; 8f70: b9 01 0e    ...            ; A=single-bit bitmask
     jsr mask_to_handle                                                ; 8f73: 20 b7 86     ..            ; Convert bitmask to handle number (FS2A)
     sta (l00f0),y                                                     ; 8f76: 91 f0       ..             ; A=handle number (&20-&27); Y=preserved
-    dey                                                               ; 8f78: 88          .
-    bne readc1                                                        ; 8f79: d0 f5       ..
-    rts                                                               ; 8f7b: 60          `
+    dey                                                               ; 8f78: 88          .              ; Next handle (descending)
+    bne readc1                                                        ; 8f79: d0 f5       ..             ; Loop for handles 3,2,1
+    rts                                                               ; 8f7b: 60          `              ; Return
 
 ; ***************************************************************************************
 ; OSWORD &10 handler: open/read RX control block (OPENRX)
@@ -5088,70 +5088,70 @@ l8c4c = fs_cmd_match_table+1
 ;     Y: &FF
 ; ***************************************************************************************
 .osword_10_handler
-    ldx nfs_workspace_hi                                              ; 8f7c: a6 9f       ..
-    stx l00ac                                                         ; 8f7e: 86 ac       ..
-    sty l00ab                                                         ; 8f80: 84 ab       ..
+    ldx nfs_workspace_hi                                              ; 8f7c: a6 9f       ..             ; Workspace page high byte
+    stx l00ac                                                         ; 8f7e: 86 ac       ..             ; Set up pointer high byte in &AC
+    sty l00ab                                                         ; 8f80: 84 ab       ..             ; Save param block high byte in &AB
     ror rx_flags                                                      ; 8f82: 6e 64 0d    nd.            ; Disable user RX during CB operation
-    lda (l00f0),y                                                     ; 8f85: b1 f0       ..
-    sta l00aa                                                         ; 8f87: 85 aa       ..
-    bne c8fa6                                                         ; 8f89: d0 1b       ..
+    lda (l00f0),y                                                     ; 8f85: b1 f0       ..             ; Read first byte of param block
+    sta l00aa                                                         ; 8f87: 85 aa       ..             ; Save: 0=open new, non-zero=read RXCB
+    bne c8fa6                                                         ; 8f89: d0 1b       ..             ; Non-zero: read specified RXCB
     lda #3                                                            ; 8f8b: a9 03       ..             ; Start scan from RXCB #3 (0-2 reserved)
 ; &8f8d referenced 1 time by &8f9f
 .scan0
-    jsr calc_handle_offset                                            ; 8f8d: 20 55 8e     U.
-    bcs openl4                                                        ; 8f90: b0 3d       .=
-    lsr a                                                             ; 8f92: 4a          J
-    lsr a                                                             ; 8f93: 4a          J
-    tax                                                               ; 8f94: aa          .
-    lda (l00ab),y                                                     ; 8f95: b1 ab       ..
-    beq openl4                                                        ; 8f97: f0 36       .6
+    jsr calc_handle_offset                                            ; 8f8d: 20 55 8e     U.            ; Convert RXCB number to workspace offset
+    bcs openl4                                                        ; 8f90: b0 3d       .=             ; Invalid RXCB: return zero
+    lsr a                                                             ; 8f92: 4a          J              ; LSR twice: byte offset / 4
+    lsr a                                                             ; 8f93: 4a          J              ; Yields RXCB number from offset
+    tax                                                               ; 8f94: aa          .              ; X = RXCB number for iteration
+    lda (l00ab),y                                                     ; 8f95: b1 ab       ..             ; Read flag byte from RXCB workspace
+    beq openl4                                                        ; 8f97: f0 36       .6             ; Zero = end of CB list
     cmp #&3f ; '?'                                                    ; 8f99: c9 3f       .?             ; &3F = deleted slot, free for reuse
-    beq scan1                                                         ; 8f9b: f0 04       ..
-    inx                                                               ; 8f9d: e8          .
-    txa                                                               ; 8f9e: 8a          .
-    bne scan0                                                         ; 8f9f: d0 ec       ..
+    beq scan1                                                         ; 8f9b: f0 04       ..             ; Found free slot
+    inx                                                               ; 8f9d: e8          .              ; Try next RXCB
+    txa                                                               ; 8f9e: 8a          .              ; A = next RXCB number
+    bne scan0                                                         ; 8f9f: d0 ec       ..             ; Continue scan (always branches)
 ; &8fa1 referenced 1 time by &8f9b
 .scan1
-    txa                                                               ; 8fa1: 8a          .
-    ldx #0                                                            ; 8fa2: a2 00       ..
-    sta (l00f0,x)                                                     ; 8fa4: 81 f0       ..
+    txa                                                               ; 8fa1: 8a          .              ; A = free RXCB number
+    ldx #0                                                            ; 8fa2: a2 00       ..             ; X=0 for indexed indirect store
+    sta (l00f0,x)                                                     ; 8fa4: 81 f0       ..             ; Return RXCB number to caller's byte 0
 ; &8fa6 referenced 1 time by &8f89
 .c8fa6
-    jsr calc_handle_offset                                            ; 8fa6: 20 55 8e     U.
-    bcs openl4                                                        ; 8fa9: b0 24       .$
-    dey                                                               ; 8fab: 88          .
-    sty l00ab                                                         ; 8fac: 84 ab       ..
-    lda #&c0                                                          ; 8fae: a9 c0       ..
-    ldy #1                                                            ; 8fb0: a0 01       ..
-    ldx #&0b                                                          ; 8fb2: a2 0b       ..
-    cpy l00aa                                                         ; 8fb4: c4 aa       ..
-    adc (l00ab),y                                                     ; 8fb6: 71 ab       q.
-    beq openl6                                                        ; 8fb8: f0 03       ..
-    bmi openl7                                                        ; 8fba: 30 0e       0.
+    jsr calc_handle_offset                                            ; 8fa6: 20 55 8e     U.            ; Convert RXCB number to workspace offset
+    bcs openl4                                                        ; 8fa9: b0 24       .$             ; Invalid: write zero to param block
+    dey                                                               ; 8fab: 88          .              ; Y = offset-1: points to flag byte
+    sty l00ab                                                         ; 8fac: 84 ab       ..             ; Set &AB = workspace ptr low byte
+    lda #&c0                                                          ; 8fae: a9 c0       ..             ; &C0: test mask for flag byte
+    ldy #1                                                            ; 8fb0: a0 01       ..             ; Y=1: flag byte offset in RXCB
+    ldx #&0b                                                          ; 8fb2: a2 0b       ..             ; X=11: copy 12 bytes from RXCB
+    cpy l00aa                                                         ; 8fb4: c4 aa       ..             ; Compare Y(1) with saved byte (open/read)
+    adc (l00ab),y                                                     ; 8fb6: 71 ab       q.             ; ADC flag: test if slot is in use
+    beq openl6                                                        ; 8fb8: f0 03       ..             ; Zero: slot open, do copy
+    bmi openl7                                                        ; 8fba: 30 0e       0.             ; Negative: slot has received data
 ; &8fbc referenced 1 time by &8fcc
 .loop_c8fbc
-    clc                                                               ; 8fbc: 18          .
+    clc                                                               ; 8fbc: 18          .              ; C=0: workspace-to-param direction
 ; &8fbd referenced 1 time by &8fb8
 .openl6
-    jsr c8f1c                                                         ; 8fbd: 20 1c 8f     ..
-    bcs c8fd1                                                         ; 8fc0: b0 0f       ..
+    jsr c8f1c                                                         ; 8fbd: 20 1c 8f     ..            ; Copy RXCB data to param block
+    bcs c8fd1                                                         ; 8fc0: b0 0f       ..             ; Done: skip deletion on error
     lda #&3f ; '?'                                                    ; 8fc2: a9 3f       .?             ; Mark CB as consumed (consume-once)
-    ldy #1                                                            ; 8fc4: a0 01       ..
-    sta (l00ab),y                                                     ; 8fc6: 91 ab       ..
-    bne c8fd1                                                         ; 8fc8: d0 07       ..             ; ALWAYS branch
+    ldy #1                                                            ; 8fc4: a0 01       ..             ; Y=1: flag byte offset
+    sta (l00ab),y                                                     ; 8fc6: 91 ab       ..             ; Write &3F to mark slot deleted
+    bne c8fd1                                                         ; 8fc8: d0 07       ..             ; Branch to exit (always taken); ALWAYS branch
 
 ; &8fca referenced 1 time by &8fba
 .openl7
-    adc #1                                                            ; 8fca: 69 01       i.
-    bne loop_c8fbc                                                    ; 8fcc: d0 ee       ..
-    dey                                                               ; 8fce: 88          .
+    adc #1                                                            ; 8fca: 69 01       i.             ; Advance through multi-byte field
+    bne loop_c8fbc                                                    ; 8fcc: d0 ee       ..             ; Loop until all bytes processed
+    dey                                                               ; 8fce: 88          .              ; Y=-1 → Y=0 after STA below
 ; &8fcf referenced 3 times by &8f90, &8f97, &8fa9
 .openl4
-    sta (l00f0),y                                                     ; 8fcf: 91 f0       ..
+    sta (l00f0),y                                                     ; 8fcf: 91 f0       ..             ; Return zero (no free RXCB found)
 ; &8fd1 referenced 2 times by &8fc0, &8fc8
 .c8fd1
     rol rx_flags                                                      ; 8fd1: 2e 64 0d    .d.            ; Re-enable user RX
-    rts                                                               ; 8fd4: 60          `
+    rts                                                               ; 8fd4: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Set up RX buffer pointers in NFS workspace
@@ -5190,57 +5190,57 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 .econet_tx_rx
     cmp #1                                                            ; 8ff0: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
-    bcs c903e                                                         ; 8ff2: b0 4a       .J
-    ldy #&23 ; '#'                                                    ; 8ff4: a0 23       .#
+    bcs c903e                                                         ; 8ff2: b0 4a       .J             ; A >= 1: handle TX result
+    ldy #&23 ; '#'                                                    ; 8ff4: a0 23       .#             ; Y=&23: start of template (descending)
 ; &8ff6 referenced 1 time by &9003
 .dofs01
-    lda init_tx_ctrl_block,y                                          ; 8ff6: b9 95 83    ...
+    lda init_tx_ctrl_block,y                                          ; 8ff6: b9 95 83    ...            ; Load ROM template byte
     bne c8ffe                                                         ; 8ff9: d0 03       ..             ; Non-zero = use ROM template byte as-is
     lda l0de6,y                                                       ; 8ffb: b9 e6 0d    ...            ; Zero = substitute from NMI workspace
 ; &8ffe referenced 1 time by &8ff9
 .c8ffe
-    sta (nfs_workspace),y                                             ; 8ffe: 91 9e       ..
-    dey                                                               ; 9000: 88          .
-    cpy #&17                                                          ; 9001: c0 17       ..
-    bne dofs01                                                        ; 9003: d0 f1       ..
-    iny                                                               ; 9005: c8          .
-    sty net_tx_ptr                                                    ; 9006: 84 9a       ..
-    jsr setup_rx_buffer_ptrs                                          ; 9008: 20 d5 8f     ..
-    ldy #2                                                            ; 900b: a0 02       ..
-    lda #&90                                                          ; 900d: a9 90       ..
-    sta escapable                                                     ; 900f: 85 97       ..
-    sta (l00f0),y                                                     ; 9011: 91 f0       ..
+    sta (nfs_workspace),y                                             ; 8ffe: 91 9e       ..             ; Store to dynamic workspace
+    dey                                                               ; 9000: 88          .              ; Descend through template
+    cpy #&17                                                          ; 9001: c0 17       ..             ; Stop at offset &17
+    bne dofs01                                                        ; 9003: d0 f1       ..             ; Loop until all bytes copied
+    iny                                                               ; 9005: c8          .              ; Y=&18: TX block starts here
+    sty net_tx_ptr                                                    ; 9006: 84 9a       ..             ; Point net_tx_ptr at workspace+&18
+    jsr setup_rx_buffer_ptrs                                          ; 9008: 20 d5 8f     ..            ; Set up RX buffer start/end pointers
+    ldy #2                                                            ; 900b: a0 02       ..             ; Y=2: port byte offset in RXCB
+    lda #&90                                                          ; 900d: a9 90       ..             ; A=&90: FS reply port
+    sta escapable                                                     ; 900f: 85 97       ..             ; Mark as escapable operation
+    sta (l00f0),y                                                     ; 9011: 91 f0       ..             ; Store port &90 at (&F0)+2
     iny                                                               ; 9013: c8          .              ; Y=&03
     iny                                                               ; 9014: c8          .              ; Y=&04
 ; &9015 referenced 1 time by &901d
 .loop_c9015
-    lda l0dfe,y                                                       ; 9015: b9 fe 0d    ...
-    sta (l00f0),y                                                     ; 9018: 91 f0       ..
-    iny                                                               ; 901a: c8          .
-    cpy #7                                                            ; 901b: c0 07       ..
-    bne loop_c9015                                                    ; 901d: d0 f6       ..
-    lda nfs_workspace_hi                                              ; 901f: a5 9f       ..
-    sta net_tx_ptr_hi                                                 ; 9021: 85 9b       ..
+    lda l0dfe,y                                                       ; 9015: b9 fe 0d    ...            ; Copy FS station addr from workspace
+    sta (l00f0),y                                                     ; 9018: 91 f0       ..             ; Store to RX param block
+    iny                                                               ; 901a: c8          .              ; Next byte
+    cpy #7                                                            ; 901b: c0 07       ..             ; Done 3 bytes (Y=4,5,6)?
+    bne loop_c9015                                                    ; 901d: d0 f6       ..             ; No: continue copying
+    lda nfs_workspace_hi                                              ; 901f: a5 9f       ..             ; High byte of workspace for TX ptr
+    sta net_tx_ptr_hi                                                 ; 9021: 85 9b       ..             ; Store as TX pointer high byte
     cli                                                               ; 9023: 58          X              ; Enable interrupts before transmit
-    jsr tx_poll_ff                                                    ; 9024: 20 ff 85     ..
-    ldy #&20 ; ' '                                                    ; 9027: a0 20       .
+    jsr tx_poll_ff                                                    ; 9024: 20 ff 85     ..            ; Transmit with full retry
+    ldy #&20 ; ' '                                                    ; 9027: a0 20       .              ; Y=&20: RX end address offset
     lda #&ff                                                          ; 9029: a9 ff       ..             ; Set RX end address to &FFFF (accept any length)
-    sta (nfs_workspace),y                                             ; 902b: 91 9e       ..
+    sta (nfs_workspace),y                                             ; 902b: 91 9e       ..             ; Store end address low byte (&FF)
     iny                                                               ; 902d: c8          .              ; Y=&21
-    sta (nfs_workspace),y                                             ; 902e: 91 9e       ..
-    ldy #&19                                                          ; 9030: a0 19       ..
-    lda #&90                                                          ; 9032: a9 90       ..
-    sta (nfs_workspace),y                                             ; 9034: 91 9e       ..
+    sta (nfs_workspace),y                                             ; 902e: 91 9e       ..             ; Store end address high byte (&FF)
+    ldy #&19                                                          ; 9030: a0 19       ..             ; Y=&19: port byte in workspace RXCB
+    lda #&90                                                          ; 9032: a9 90       ..             ; A=&90: FS reply port
+    sta (nfs_workspace),y                                             ; 9034: 91 9e       ..             ; Store port to workspace RXCB
     dey                                                               ; 9036: 88          .              ; Y=&18
-    lda #&7f                                                          ; 9037: a9 7f       ..
-    sta (nfs_workspace),y                                             ; 9039: 91 9e       ..
-    jmp c8530                                                         ; 903b: 4c 30 85    L0.
+    lda #&7f                                                          ; 9037: a9 7f       ..             ; A=&7F: flag byte = waiting for reply
+    sta (nfs_workspace),y                                             ; 9039: 91 9e       ..             ; Store flag byte to workspace RXCB
+    jmp c8530                                                         ; 903b: 4c 30 85    L0.            ; Jump to RX poll (BRIANX)
 
 ; &903e referenced 1 time by &8ff2
 .c903e
-    php                                                               ; 903e: 08          .
-    ldy #1                                                            ; 903f: a0 01       ..
-    lda (l00f0),y                                                     ; 9041: b1 f0       ..
+    php                                                               ; 903e: 08          .              ; Save processor flags
+    ldy #1                                                            ; 903f: a0 01       ..             ; Y=1: first data byte offset
+    lda (l00f0),y                                                     ; 9041: b1 f0       ..             ; Load first data byte from RX buffer
 ; ***************************************************************************************
 ; FS response data relay (DOFS)
 ; 
@@ -5255,51 +5255,51 @@ l8c4c = fs_cmd_match_table+1
 ; where the data length field at (net_rx_ptr)+&7B is adjusted.
 ; ***************************************************************************************
 .net_write_char
-    tax                                                               ; 9043: aa          .
-    iny                                                               ; 9044: c8          .
-    lda (l00f0),y                                                     ; 9045: b1 f0       ..
-    iny                                                               ; 9047: c8          .
-    sty l00ab                                                         ; 9048: 84 ab       ..
+    tax                                                               ; 9043: aa          .              ; X = first data byte (command code)
+    iny                                                               ; 9044: c8          .              ; Advance to next data byte
+    lda (l00f0),y                                                     ; 9045: b1 f0       ..             ; Load station address high byte
+    iny                                                               ; 9047: c8          .              ; Advance past station addr
+    sty l00ab                                                         ; 9048: 84 ab       ..             ; Save Y as data index
     ldy #&72 ; 'r'                                                    ; 904a: a0 72       .r             ; Store station addr hi at (net_rx_ptr)+&72
-    sta (net_rx_ptr),y                                                ; 904c: 91 9c       ..
+    sta (net_rx_ptr),y                                                ; 904c: 91 9c       ..             ; Store to workspace
     dey                                                               ; 904e: 88          .              ; Y=&71
-    txa                                                               ; 904f: 8a          .
+    txa                                                               ; 904f: 8a          .              ; A = command code (from X)
     sta (net_rx_ptr),y                                                ; 9050: 91 9c       ..             ; Store station addr lo at (net_rx_ptr)+&71
-    plp                                                               ; 9052: 28          (
-    bne dofs2                                                         ; 9053: d0 1c       ..
+    plp                                                               ; 9052: 28          (              ; Restore flags from earlier PHP
+    bne dofs2                                                         ; 9053: d0 1c       ..             ; First call: adjust data length
 ; &9055 referenced 1 time by &906e
 .loop_c9055
-    ldy l00ab                                                         ; 9055: a4 ab       ..
-    inc l00ab                                                         ; 9057: e6 ab       ..
-    lda (l00f0),y                                                     ; 9059: b1 f0       ..
-    beq return_8                                                      ; 905b: f0 13       ..
-    ldy #&7d ; '}'                                                    ; 905d: a0 7d       .}
-    sta (net_rx_ptr),y                                                ; 905f: 91 9c       ..             ; Store data byte at (net_rx_ptr)+&7D for TX
-    pha                                                               ; 9061: 48          H
-    jsr ctrl_block_setup_alt                                          ; 9062: 20 7f 91     ..
-    jsr sub_c907c                                                     ; 9065: 20 7c 90     |.
+    ldy l00ab                                                         ; 9055: a4 ab       ..             ; Reload data index
+    inc l00ab                                                         ; 9057: e6 ab       ..             ; Advance data index for next iteration
+    lda (l00f0),y                                                     ; 9059: b1 f0       ..             ; Load next data byte
+    beq return_8                                                      ; 905b: f0 13       ..             ; Zero byte: end of data, return
+    ldy #&7d ; '}'                                                    ; 905d: a0 7d       .}             ; Y=&7D: store byte for TX at offset &7D
+    sta (net_rx_ptr),y                                                ; 905f: 91 9c       ..             ; Store data byte at (net_rx_ptr)+&7D for TX; Store data byte at (net_rx_ptr)+&7D for TX
+    pha                                                               ; 9061: 48          H              ; Save data byte for &0D check after TX
+    jsr ctrl_block_setup_alt                                          ; 9062: 20 7f 91     ..            ; Set up TX control block
+    jsr sub_c907c                                                     ; 9065: 20 7c 90     |.            ; Enable IRQs and transmit
 ; &9068 referenced 1 time by &9069
 .loop_c9068
-    dex                                                               ; 9068: ca          .
-    bne loop_c9068                                                    ; 9069: d0 fd       ..
-    pla                                                               ; 906b: 68          h
+    dex                                                               ; 9068: ca          .              ; Short delay loop between TX packets
+    bne loop_c9068                                                    ; 9069: d0 fd       ..             ; Spin until X reaches 0
+    pla                                                               ; 906b: 68          h              ; Restore data byte for terminator check
     eor #&0d                                                          ; 906c: 49 0d       I.             ; Test for end-of-data marker (&0D)
-    bne loop_c9055                                                    ; 906e: d0 e5       ..
+    bne loop_c9055                                                    ; 906e: d0 e5       ..             ; Not &0D: continue with next byte
 ; &9070 referenced 1 time by &905b
 .return_8
-    rts                                                               ; 9070: 60          `
+    rts                                                               ; 9070: 60          `              ; Return (data complete)
 
 ; &9071 referenced 1 time by &9053
 .dofs2
-    jsr ctrl_block_setup_alt                                          ; 9071: 20 7f 91     ..
-    ldy #&7b ; '{'                                                    ; 9074: a0 7b       .{
-    lda (net_rx_ptr),y                                                ; 9076: b1 9c       ..
-    adc #3                                                            ; 9078: 69 03       i.             ; Adjust data length by 3 for header bytes
-    sta (net_rx_ptr),y                                                ; 907a: 91 9c       ..
+    jsr ctrl_block_setup_alt                                          ; 9071: 20 7f 91     ..            ; First-packet: set up control block
+    ldy #&7b ; '{'                                                    ; 9074: a0 7b       .{             ; Y=&7B: data length offset
+    lda (net_rx_ptr),y                                                ; 9076: b1 9c       ..             ; Load current data length
+    adc #3                                                            ; 9078: 69 03       i.             ; Add 3 for header bytes; Adjust data length by 3 for header bytes
+    sta (net_rx_ptr),y                                                ; 907a: 91 9c       ..             ; Store adjusted length
 ; &907c referenced 1 time by &9065
 .sub_c907c
-    cli                                                               ; 907c: 58          X
-    jmp tx_poll_ff                                                    ; 907d: 4c ff 85    L..
+    cli                                                               ; 907c: 58          X              ; Enable interrupts
+    jmp tx_poll_ff                                                    ; 907d: 4c ff 85    L..            ; Transmit via tx_poll_ff
 
 ; ***************************************************************************************
 ; NETVEC dispatch handler (ENTRY)
@@ -5811,54 +5811,54 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &9266 referenced 2 times by &840c, &8448
 .econet_tx_retry
-    stx net_tx_ptr                                                    ; 9266: 86 9a       ..
-    sty net_tx_ptr_hi                                                 ; 9268: 84 9b       ..
-    pha                                                               ; 926a: 48          H
+    stx net_tx_ptr                                                    ; 9266: 86 9a       ..             ; Set TX control block ptr low byte
+    sty net_tx_ptr_hi                                                 ; 9268: 84 9b       ..             ; Set TX control block ptr high byte
+    pha                                                               ; 926a: 48          H              ; Save A (handle bitmask) for later
     and fs_sequence_nos                                               ; 926b: 2d 08 0e    -..            ; Compute sequence bit from handle
-    beq bsxl1                                                         ; 926e: f0 02       ..
-    lda #1                                                            ; 9270: a9 01       ..
+    beq bsxl1                                                         ; 926e: f0 02       ..             ; Zero: no sequence bit set
+    lda #1                                                            ; 9270: a9 01       ..             ; Non-zero: normalise to bit 0
 ; &9272 referenced 1 time by &926e
 .bsxl1
-    ldy #0                                                            ; 9272: a0 00       ..
+    ldy #0                                                            ; 9272: a0 00       ..             ; Y=0: flag byte offset in TXCB
     ora (net_tx_ptr),y                                                ; 9274: 11 9a       ..             ; Merge sequence into existing flag byte
-    pha                                                               ; 9276: 48          H
-    sta (net_tx_ptr),y                                                ; 9277: 91 9a       ..
-    jsr tx_poll_ff                                                    ; 9279: 20 ff 85     ..
+    pha                                                               ; 9276: 48          H              ; Save merged flag byte
+    sta (net_tx_ptr),y                                                ; 9277: 91 9a       ..             ; Write flag+sequence to TXCB byte 0
+    jsr tx_poll_ff                                                    ; 9279: 20 ff 85     ..            ; Transmit with full retry
     lda #&ff                                                          ; 927c: a9 ff       ..             ; End address &FFFF = unlimited data length
-    ldy #8                                                            ; 927e: a0 08       ..
-    sta (net_tx_ptr),y                                                ; 9280: 91 9a       ..
+    ldy #8                                                            ; 927e: a0 08       ..             ; Y=8: end address low offset in TXCB
+    sta (net_tx_ptr),y                                                ; 9280: 91 9a       ..             ; Store &FF to end addr low
     iny                                                               ; 9282: c8          .              ; Y=&09
-    sta (net_tx_ptr),y                                                ; 9283: 91 9a       ..
-    pla                                                               ; 9285: 68          h
-    tax                                                               ; 9286: aa          .
-    ldy #&d1                                                          ; 9287: a0 d1       ..
-    pla                                                               ; 9289: 68          h
-    pha                                                               ; 928a: 48          H
+    sta (net_tx_ptr),y                                                ; 9283: 91 9a       ..             ; Store &FF to end addr high (Y=9)
+    pla                                                               ; 9285: 68          h              ; Recover merged flag byte
+    tax                                                               ; 9286: aa          .              ; Save in X for sequence compare
+    ldy #&d1                                                          ; 9287: a0 d1       ..             ; Y=&D1: printer port number
+    pla                                                               ; 9289: 68          h              ; Recover saved handle bitmask
+    pha                                                               ; 928a: 48          H              ; Re-save for later consumption
     beq bspsx                                                         ; 928b: f0 02       ..             ; A=0: port &D1 (print); A!=0: port &90 (FS)
-    ldy #&90                                                          ; 928d: a0 90       ..
+    ldy #&90                                                          ; 928d: a0 90       ..             ; Y=&90: FS data port
 ; &928f referenced 1 time by &928b
 .bspsx
-    tya                                                               ; 928f: 98          .
-    ldy #1                                                            ; 9290: a0 01       ..
-    sta (net_tx_ptr),y                                                ; 9292: 91 9a       ..
-    txa                                                               ; 9294: 8a          .
+    tya                                                               ; 928f: 98          .              ; A = selected port number
+    ldy #1                                                            ; 9290: a0 01       ..             ; Y=1: port byte offset in TXCB
+    sta (net_tx_ptr),y                                                ; 9292: 91 9a       ..             ; Write port to TXCB byte 1
+    txa                                                               ; 9294: 8a          .              ; A = saved flag byte (expected sequence)
     dey                                                               ; 9295: 88          .              ; Y=&00
-    pha                                                               ; 9296: 48          H
+    pha                                                               ; 9296: 48          H              ; Push expected sequence for retry loop
 ; &9297 referenced 1 time by &92a3
 .bsxl0
-    lda #&7f                                                          ; 9297: a9 7f       ..
-    sta (net_tx_ptr),y                                                ; 9299: 91 9a       ..
-    jsr c8530                                                         ; 929b: 20 30 85     0.
-    pla                                                               ; 929e: 68          h
-    pha                                                               ; 929f: 48          H
+    lda #&7f                                                          ; 9297: a9 7f       ..             ; Flag byte &7F = waiting for reply
+    sta (net_tx_ptr),y                                                ; 9299: 91 9a       ..             ; Write to TXCB flag byte (Y=0)
+    jsr c8530                                                         ; 929b: 20 30 85     0.            ; Transmit and wait for reply (BRIANX)
+    pla                                                               ; 929e: 68          h              ; Recover expected sequence
+    pha                                                               ; 929f: 48          H              ; Keep on stack for next iteration
     eor (net_tx_ptr),y                                                ; 92a0: 51 9a       Q.             ; Check if TX result matches expected sequence
-    ror a                                                             ; 92a2: 6a          j
-    bcs bsxl0                                                         ; 92a3: b0 f2       ..
-    pla                                                               ; 92a5: 68          h
-    pla                                                               ; 92a6: 68          h
+    ror a                                                             ; 92a2: 6a          j              ; Bit 0 to carry (sequence mismatch?)
+    bcs bsxl0                                                         ; 92a3: b0 f2       ..             ; C=1: mismatch, retry transmit
+    pla                                                               ; 92a5: 68          h              ; Clean up: discard expected sequence
+    pla                                                               ; 92a6: 68          h              ; Discard saved handle bitmask
     eor fs_sequence_nos                                               ; 92a7: 4d 08 0e    M..            ; Toggle sequence bit on success
 .return_bspsx
-    rts                                                               ; 92aa: 60          `
+    rts                                                               ; 92aa: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Save palette and VDU state (CVIEW)
