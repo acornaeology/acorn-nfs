@@ -2749,9 +2749,9 @@ error_msg_table = error_table_base+6
     sta nmi_tx_block_hi                                               ; 8618: 85 a1       ..             ; Store high byte to NMI TX block
     jsr c9630                                                         ; 861a: 20 30 96     0.            ; Initiate ADLC transmission
 ; &861d referenced 1 time by &861f
-.l4
+.poll_tx_complete
     lda (net_tx_ptr,x)                                                ; 861d: a1 9a       ..             ; Poll: wait for bit 7 to clear (TX done)
-    bmi l4                                                            ; 861f: 30 fc       0.             ; Bit 7 set: still busy, keep polling
+    bmi poll_tx_complete                                              ; 861f: 30 fc       0.             ; Bit 7 set: still busy, keep polling
     asl a                                                             ; 8621: 0a          .              ; Bit 6 into sign: 0=success, 1=error
     bpl tx_success_exit                                               ; 8622: 10 1f       ..             ; Success: clean up stack and exit
     asl a                                                             ; 8624: 0a          .              ; Bit 5: escape condition?
@@ -8756,7 +8756,6 @@ save pydis_start, pydis_end
 ;     l0f16:                                    1
 ;     l0fde:                                    1
 ;     l0fe0:                                    1
-;     l4:                                       1
 ;     l9462:                                    1
 ;     l9562:                                    1
 ;     language_entry:                           1
@@ -8814,6 +8813,7 @@ save pydis_start, pydis_end
 ;     poll_r2_osword_result:                    1
 ;     poll_r4_copro_ack:                        1
 ;     poll_rxcb_flag:                           1
+;     poll_tx_complete:                         1
 ;     poll_tx_semaphore:                        1
 ;     prepare_cmd_dispatch:                     1
 ;     prepare_cmd_with_flag:                    1

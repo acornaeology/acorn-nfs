@@ -1445,7 +1445,7 @@ label(0x86B9, "fs2al1")               # NFS04: FS-to-A loop 1
 
 # --- Number formatting and file info (&86xx) ---
 label(0x8D72, "num01")                # NFS07: number print entry
-label(0x861D, "l4")                   # NFS03: net TX polling loop
+label(0x861D, "poll_tx_complete")      # Poll TX control byte bit 7 until done
 label(0x86E0, "file1")                # NFS05: FILEV entry 1
 label(0x86F2, "quote1")               # NFS05: filename quote loop
 label(0x871D, "loadop")               # NFS05: load operation
