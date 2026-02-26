@@ -1504,44 +1504,43 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Service 4: unrecognised * command
 ; 
-; The first 7 bytes (&81A5-&81AB) are the service handler epilogue:
+; The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
 ; PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-; This is the return path reached after any dispatched service
-; handler completes.
+; This is the common return path reached after any dispatched
+; service handler completes.
 ; 
-; The service 4 handler itself is dispatched via the table to
-; &81B1 (after 5 NOPs of padding). It makes two match_rom_string
-; calls against the ROM header, reusing header bytes as command
-; strings:
+; The service 4 handler entry at &81B5 (after 5 NOPs of padding)
+; makes two match_rom_string calls against the ROM header, reusing
+; header bytes as command strings:
 ; 
 ;   X=&0C: matches "ROFF" at &8014 — the suffix of the
-;          copyright string "(C)ROFF" → *ROFF (Remote Off,
+;          copyright string "(C)ROFF" — *ROFF (Remote Off,
 ;          end remote session) — falls through to net_4_resume_remote
 ; 
 ;   X=5: matches "NET" at &800D — the ROM title suffix
-;        → *NET (select NFS) — falls through to svc_13_select_nfs
+;        — *NET (select NFS) — falls through to svc_13_select_nfs
 ; 
 ; If neither matches, returns with the service call
 ; unclaimed.
 ; ***************************************************************************************
 .svc_star_command
-    pla                                                               ; 81a9: 68          h
-    sta l00a9                                                         ; 81aa: 85 a9       ..
-    txa                                                               ; 81ac: 8a          .
-    ldx romsel_copy                                                   ; 81ad: a6 f4       ..
+    pla                                                               ; 81a9: 68          h              ; Restore saved A from service dispatch
+    sta l00a9                                                         ; 81aa: 85 a9       ..             ; Save to workspace &A9
+    txa                                                               ; 81ac: 8a          .              ; Return ROM number in A
+    ldx romsel_copy                                                   ; 81ad: a6 f4       ..             ; Restore X from MOS ROM select copy
 ; &81af referenced 1 time by &8191
 .return_2
     rts                                                               ; 81af: 60          `
 
-    nop                                                               ; 81b0: ea          .
+    nop                                                               ; 81b0: ea          .              ; Padding: dispatch targets &81B5
     nop                                                               ; 81b1: ea          .
     nop                                                               ; 81b2: ea          .
     nop                                                               ; 81b3: ea          .
     nop                                                               ; 81b4: ea          .
 .svc_4_star_command
-    ldx #&0c                                                          ; 81b5: a2 0c       ..
-    jsr match_rom_string                                              ; 81b7: 20 62 83     b.
-    bne c81ea                                                         ; 81ba: d0 2e       ..
+    ldx #&0c                                                          ; 81b5: a2 0c       ..             ; ROM offset for "ROFF" (copyright suffix)
+    jsr match_rom_string                                              ; 81b7: 20 62 83     b.            ; Try matching *ROFF command
+    bne c81ea                                                         ; 81ba: d0 2e       ..             ; No match: try *NET
 ; ***************************************************************************************
 ; Resume after remote operation / *ROFF handler (NROFF)
 ; 
@@ -1643,8 +1642,8 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; &8218 referenced 2 times by &81f1, &821d
 .call_fscv_shutdown
-    lda #6                                                            ; 8218: a9 06       ..
-    jmp (fscv)                                                        ; 821a: 6c 1e 02    l..
+    lda #6                                                            ; 8218: a9 06       ..             ; FSCV reason 6 = FS shutdown
+    jmp (fscv)                                                        ; 821a: 6c 1e 02    l..            ; Tail-call via filing system control vector
 
 ; ***************************************************************************************
 ; Service 3: auto-boot
@@ -1821,9 +1820,9 @@ l8004 = service_entry+1
 ; allocated — returns unchanged.
 ; ***************************************************************************************
 .svc_1_abs_workspace
-    cpy #&10                                                          ; 82bc: c0 10       ..
-    bcs return_3                                                      ; 82be: b0 02       ..
-    ldy #&10                                                          ; 82c0: a0 10       ..
+    cpy #&10                                                          ; 82bc: c0 10       ..             ; Already at page &10 or above?
+    bcs return_3                                                      ; 82be: b0 02       ..             ; Yes: nothing to claim
+    ldy #&10                                                          ; 82c0: a0 10       ..             ; Claim pages &0D-&0F (3 pages)
 ; &82c2 referenced 2 times by &8289, &82be
 .return_3
     rts                                                               ; 82c2: 60          `
@@ -2375,17 +2374,17 @@ l8004 = service_entry+1
 ; the BRK triggers an error handler.
 ; ***************************************************************************************
 .lang_3_execute_at_0100
-    jsr clear_jsr_protection                                          ; 84dd: 20 f0 92     ..
-    ldx #2                                                            ; 84e0: a2 02       ..
+    jsr clear_jsr_protection                                          ; 84dd: 20 f0 92     ..            ; Allow JSR to page 1 (stack page)
+    ldx #2                                                            ; 84e0: a2 02       ..             ; Zero bytes &0100-&0102
     lda #0                                                            ; 84e2: a9 00       ..
 ; &84e4 referenced 1 time by &84e8
 .loop_c84e4
-    sta l0100,x                                                       ; 84e4: 9d 00 01    ...
+    sta l0100,x                                                       ; 84e4: 9d 00 01    ...            ; BRK at &0100 as safe default
     dex                                                               ; 84e7: ca          .
     bpl loop_c84e4                                                    ; 84e8: 10 fa       ..
 ; &84ea referenced 2 times by &8496, &8523
 .c84ea
-    jmp l0100                                                         ; 84ea: 4c 00 01    L..
+    jmp l0100                                                         ; 84ea: 4c 00 01    L..            ; Execute downloaded code
 
 ; ***************************************************************************************
 ; Remote operation with source validation
@@ -2611,10 +2610,10 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &85f7 referenced 2 times by &83ef, &8897
 .setup_tx_ptr_c0
-    ldx #&c0                                                          ; 85f7: a2 c0       ..
-    stx net_tx_ptr                                                    ; 85f9: 86 9a       ..
-    ldx #0                                                            ; 85fb: a2 00       ..
-    stx net_tx_ptr_hi                                                 ; 85fd: 86 9b       ..
+    ldx #&c0                                                          ; 85f7: a2 c0       ..             ; TX control block low byte
+    stx net_tx_ptr                                                    ; 85f9: 86 9a       ..             ; Set net_tx_ptr = &00C0
+    ldx #0                                                            ; 85fb: a2 00       ..             ; TX control block high byte
+    stx net_tx_ptr_hi                                                 ; 85fd: 86 9b       ..             ; Set net_tx_ptr+1 = &00
 ; ***************************************************************************************
 ; Transmit and poll for result (full retry)
 ; 
@@ -2720,8 +2719,8 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &8649 referenced 3 times by &80d4, &89d8, &8c1b
 .save_fscv_args_with_ptrs
-    stx os_text_ptr                                                   ; 8649: 86 f2       ..
-    sty l00f3                                                         ; 864b: 84 f3       ..
+    stx os_text_ptr                                                   ; 8649: 86 f2       ..             ; Set os_text_ptr low = X
+    sty l00f3                                                         ; 864b: 84 f3       ..             ; Set os_text_ptr high = Y
 ; ***************************************************************************************
 ; Save FSCV/vector arguments
 ; 
@@ -2844,7 +2843,7 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &869a referenced 3 times by &88af, &8a8d, &8f5b
 .handle_to_mask_a
-    tay                                                               ; 869a: a8          .
+    tay                                                               ; 869a: a8          .              ; Handle number to Y for conversion
 ; ***************************************************************************************
 ; Convert handle to bitmask (carry cleared)
 ; 
@@ -2988,8 +2987,8 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &86d0 referenced 4 times by &89b0, &8a07, &8a27, &8b08
 .set_fs_flag
-    ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...
-    bne store_fs_flag                                                 ; 86d3: d0 05       ..
+    ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...            ; Merge new bits into flags
+    bne store_fs_flag                                                 ; 86d3: d0 05       ..             ; Store updated flags (always taken)
 ; ***************************************************************************************
 ; Clear bit(s) in FS flags (&0E07)
 ; 
@@ -2998,11 +2997,11 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &86d5 referenced 3 times by &8576, &88ca, &8b05
 .clear_fs_flag
-    eor #&ff                                                          ; 86d5: 49 ff       I.
-    and fs_eof_flags                                                  ; 86d7: 2d 07 0e    -..
+    eor #&ff                                                          ; 86d5: 49 ff       I.             ; Invert mask: set bits become clear bits
+    and fs_eof_flags                                                  ; 86d7: 2d 07 0e    -..            ; Clear specified bits in flags
 ; &86da referenced 1 time by &86d3
 .store_fs_flag
-    sta fs_eof_flags                                                  ; 86da: 8d 07 0e    ...
+    sta fs_eof_flags                                                  ; 86da: 8d 07 0e    ...            ; Write back updated flags
     rts                                                               ; 86dd: 60          `
 
 ; &86de referenced 1 time by &870f
@@ -3308,17 +3307,17 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &882f referenced 2 times by &8732, &873d
 .copy_load_addr_from_params
-    ldy #5                                                            ; 882f: a0 05       ..
+    ldy #5                                                            ; 882f: a0 05       ..             ; Start at offset 5 (top of 4-byte addr)
 ; &8831 referenced 1 time by &8839
 .lodrl1
-    lda (fs_options),y                                                ; 8831: b1 bb       ..
-    sta l00ae,y                                                       ; 8833: 99 ae 00    ...
+    lda (fs_options),y                                                ; 8831: b1 bb       ..             ; Read from parameter block
+    sta l00ae,y                                                       ; 8833: 99 ae 00    ...            ; Store to local workspace
     dey                                                               ; 8836: 88          .
-    cpy #2                                                            ; 8837: c0 02       ..
+    cpy #2                                                            ; 8837: c0 02       ..             ; Copy offsets 5,4,3,2 (4 bytes)
     bcs lodrl1                                                        ; 8839: b0 f6       ..
 ; &883b referenced 1 time by &87af
 .add_5_to_y
-    iny                                                               ; 883b: c8          .
+    iny                                                               ; 883b: c8          .              ; Y=3 after loop; add 5 to get Y=8
 ; &883c referenced 1 time by &8ad5
 .add_4_to_y
     iny                                                               ; 883c: c8          .
@@ -3336,18 +3335,18 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &8841 referenced 2 times by &8735, &873a
 .copy_reply_to_params
-    ldy #&0d                                                          ; 8841: a0 0d       ..
-    txa                                                               ; 8843: 8a          .
+    ldy #&0d                                                          ; 8841: a0 0d       ..             ; Start at offset &0D (top of range)
+    txa                                                               ; 8843: 8a          .              ; First store uses X (attrib byte)
 ; &8844 referenced 1 time by &884c
 .lodrl2
-    sta (fs_options),y                                                ; 8844: 91 bb       ..
-    lda fs_cmd_urd,y                                                  ; 8846: b9 02 0f    ...
+    sta (fs_options),y                                                ; 8844: 91 bb       ..             ; Write to parameter block
+    lda fs_cmd_urd,y                                                  ; 8846: b9 02 0f    ...            ; Read next byte from reply buffer
     dey                                                               ; 8849: 88          .
-    cpy #2                                                            ; 884a: c0 02       ..
+    cpy #2                                                            ; 884a: c0 02       ..             ; Copy offsets &0D down to 2
     bcs lodrl2                                                        ; 884c: b0 f6       ..
 ; &884e referenced 1 time by &879e
 .sub_4_from_y
-    dey                                                               ; 884e: 88          .
+    dey                                                               ; 884e: 88          .              ; Y=1 after loop; sub 4 to get Y=&FD
 ; &884f referenced 2 times by &88e9, &8add
 .sub_3_from_y
     dey                                                               ; 884f: 88          .
@@ -4472,7 +4471,7 @@ l8c4c = fs_cmd_match_table+1
 ; &8d82 referenced 5 times by &809d, &80c1, &871d, &8917, &8ddf
 .infol2
 .copy_filename
-    ldx #0                                                            ; 8d82: a2 00       ..
+    ldx #0                                                            ; 8d82: a2 00       ..             ; Start writing at &0F05 (after cmd header)
 ; ***************************************************************************************
 ; Copy string to FS command buffer
 ; 

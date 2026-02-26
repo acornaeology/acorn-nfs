@@ -1529,6 +1529,8 @@ Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.
 Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
 falls through to save_fscv_args to store A/X/Y in the FS
 workspace.""")
+comment(0x8649, "Set os_text_ptr low = X", inline=True)
+comment(0x864B, "Set os_text_ptr high = Y", inline=True)
 
 subroutine(0x864D, "save_fscv_args", hook=None,
     title="Save FSCV/vector arguments",
@@ -1617,6 +1619,7 @@ subroutine(0x869A, "handle_to_mask_a", hook=None,
     description="""\
 Transfers A to Y via TAY, then falls through to
 handle_to_mask_clc to clear carry and convert.""")
+comment(0x869A, "Handle number to Y for conversion", inline=True)
 
 subroutine(0x869B, "handle_to_mask_clc", hook=None,
     title="Convert handle to bitmask (carry cleared)",
@@ -1743,12 +1746,17 @@ round-trips for the common case. The hint is cleared when
 the file pointer is updated (since seeking away from EOF
 invalidates the hint) and set after BGET/OPEN/EOF operations
 that might have reached the end.""")
+comment(0x86D0, "Merge new bits into flags", inline=True)
+comment(0x86D3, "Store updated flags (always taken)", inline=True)
 
 subroutine(0x86D5, "clear_fs_flag", hook=None,
     title="Clear bit(s) in FS flags (&0E07)",
     description="""\
 Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
 to clear the specified bits.""")
+comment(0x86D5, "Invert mask: set bits become clear bits", inline=True)
+comment(0x86D7, "Clear specified bits in flags", inline=True)
+comment(0x86DA, "Write back updated flags", inline=True)
 
 # ============================================================
 # Print file info — deleted in 3.60
@@ -1791,6 +1799,10 @@ subroutine(0x85F7, "setup_tx_ptr_c0", hook=None,
 Points net_tx_ptr to &00C0 where the TX control block has
 been built by init_tx_ctrl_block. Falls through to tx_poll_ff
 to initiate transmission with full retry.""")
+comment(0x85F7, "TX control block low byte", inline=True)
+comment(0x85F9, "Set net_tx_ptr = &00C0", inline=True)
+comment(0x85FB, "TX control block high byte", inline=True)
+comment(0x85FD, "Set net_tx_ptr+1 = &00", inline=True)
 
 subroutine(0x85FF, "tx_poll_ff", hook=None,
     title="Transmit and poll for result (full retry)",
@@ -2184,6 +2196,9 @@ subroutine(0x82BC, "svc_1_abs_workspace", hook=None,
 Claims pages up to &10 for NMI workspace (&0D), FS state (&0E),
 and FS command buffer (&0F). If Y >= &10, workspace already
 allocated — returns unchanged.""")
+comment(0x82BC, "Already at page &10 or above?", inline=True)
+comment(0x82BE, "Yes: nothing to claim", inline=True)
+comment(0x82C0, "Claim pages &0D-&0F (3 pages)", inline=True)
 
 # ============================================================
 # Service 2: claim private workspace (&82AB)
@@ -2233,25 +2248,32 @@ auto-boot, any other key causes the auto-boot to be declined.""")
 subroutine(0x81A9, "svc_star_command", hook=None,
     title="Service 4: unrecognised * command",
     description="""\
-The first 7 bytes (&81A5-&81AB) are the service handler epilogue:
+The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
 PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-This is the return path reached after any dispatched service
-handler completes.
+This is the common return path reached after any dispatched
+service handler completes.
 
-The service 4 handler itself is dispatched via the table to
-&81B1 (after 5 NOPs of padding). It makes two match_rom_string
-calls against the ROM header, reusing header bytes as command
-strings:
+The service 4 handler entry at &81B5 (after 5 NOPs of padding)
+makes two match_rom_string calls against the ROM header, reusing
+header bytes as command strings:
 
   X=&0C: matches "ROFF" at &8014 — the suffix of the
-         copyright string "(C)ROFF" → *ROFF (Remote Off,
+         copyright string "(C)ROFF" — *ROFF (Remote Off,
          end remote session) — falls through to net_4_resume_remote
 
   X=5: matches "NET" at &800D — the ROM title suffix
-       → *NET (select NFS) — falls through to svc_13_select_nfs
+       — *NET (select NFS) — falls through to svc_13_select_nfs
 
 If neither matches, returns with the service call
 unclaimed.""")
+comment(0x81A9, "Restore saved A from service dispatch", inline=True)
+comment(0x81AA, "Save to workspace &A9", inline=True)
+comment(0x81AC, "Return ROM number in A", inline=True)
+comment(0x81AD, "Restore X from MOS ROM select copy", inline=True)
+comment(0x81B0, "Padding: dispatch targets &81B5", inline=True)
+comment(0x81B5, "ROM offset for \"ROFF\" (copyright suffix)", inline=True)
+comment(0x81B7, "Try matching *ROFF command", inline=True)
+comment(0x81BA, "No match: try *NET", inline=True)
 
 # ============================================================
 # Service 9: *HELP (&81ED)
@@ -2294,6 +2316,8 @@ subroutine(0x8218, "call_fscv_shutdown", hook=None,
 Loads A=6 (FS shutdown notification) and JMP (FSCV).
 The FSCV handler's RTS returns to the caller of this routine
 (JSR/JMP trick saves one level of stack).""")
+comment(0x8218, "FSCV reason 6 = FS shutdown", inline=True)
+comment(0x821A, "Tail-call via filing system control vector", inline=True)
 
 # ============================================================
 # Issue service: vectors claimed (&8261)
@@ -2733,6 +2757,11 @@ subroutine(0x882F, "copy_load_addr_from_params", hook=None,
     description="""\
 Copies 4 bytes from (fs_options)+2..5 (the load address in the
 OSFILE parameter block) to &AE-&B3 (local workspace).""")
+comment(0x882F, "Start at offset 5 (top of 4-byte addr)", inline=True)
+comment(0x8831, "Read from parameter block", inline=True)
+comment(0x8833, "Store to local workspace", inline=True)
+comment(0x8837, "Copy offsets 5,4,3,2 (4 bytes)", inline=True)
+comment(0x883B, "Y=3 after loop; add 5 to get Y=8", inline=True)
 
 subroutine(0x8841, "copy_reply_to_params", hook=None,
     title="Copy FS reply data to parameter block",
@@ -2740,6 +2769,12 @@ subroutine(0x8841, "copy_reply_to_params", hook=None,
 Copies bytes from the FS command reply buffer (&0F02+) into the
 parameter block at (fs_options)+2..13. Used to fill in the OSFILE
 parameter block with information returned by the fileserver.""")
+comment(0x8841, "Start at offset &0D (top of range)", inline=True)
+comment(0x8843, "First store uses X (attrib byte)", inline=True)
+comment(0x8844, "Write to parameter block", inline=True)
+comment(0x8846, "Read next byte from reply buffer", inline=True)
+comment(0x884A, "Copy offsets &0D down to 2", inline=True)
+comment(0x884E, "Y=1 after loop; sub 4 to get Y=&FD", inline=True)
 
 subroutine(0x8853, "transfer_file_blocks", hook=None,
     title="Multi-block file data transfer",
@@ -3215,6 +3250,7 @@ subroutine(0x8D82, "copy_filename", hook=None,
 Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.
 Used to place a filename into the FS command buffer before
 sending to the fileserver. Falls through to copy_string_to_cmd.""")
+comment(0x8D82, "Start writing at &0F05 (after cmd header)", inline=True)
 
 subroutine(0x8D84, "copy_string_to_cmd", hook=None,
     title="Copy string to FS command buffer",
@@ -3652,6 +3688,10 @@ Clears JSR protection, zeroes &0100-&0102 (creating a BRK
 instruction at &0100 as a safe default), then JMP &0100 to
 execute code received over the network. If no code was loaded,
 the BRK triggers an error handler.""")
+comment(0x84DD, "Allow JSR to page 1 (stack page)", inline=True)
+comment(0x84E0, "Zero bytes &0100-&0102", inline=True)
+comment(0x84E4, "BRK at &0100 as safe default", inline=True)
+comment(0x84EA, "Execute downloaded code", inline=True)
 
 subroutine(0x84ED, "lang_4_remote_validated", hook=None,
     title="Remote operation with source validation",
