@@ -1750,6 +1750,16 @@ directly.""",
     on_entry={"a": "divisor (stored to &B8)",
               "y": "dividend"},
     on_exit={"y": "remainder"})
+comment(0x8DCA, "Save divisor to workspace", inline=True)
+comment(0x8DCC, "A = dividend (from Y)", inline=True)
+comment(0x8DCD, "X = &2F = ASCII '0' - 1", inline=True)
+comment(0x8DCF, "Prepare for subtraction", inline=True)
+comment(0x8DD0, "Count one subtraction (next digit value)", inline=True)
+comment(0x8DD1, "A = A - divisor", inline=True)
+comment(0x8DD3, "Loop while A >= 0 (borrow clear)", inline=True)
+comment(0x8DD5, "Undo last subtraction: A = remainder", inline=True)
+comment(0x8DD7, "Y = remainder for caller", inline=True)
+comment(0x8DD8, "A = X = ASCII digit character", inline=True)
 
 # ============================================================
 # Address comparison (&8640)
@@ -2402,9 +2412,29 @@ one 3-byte extended vector entry (addr=&9080, rom=current) into
 the ROM pointer table at offset &36, installing osword_dispatch
 as the NETV handler.""")
 
+comment(0x8325, "OSBYTE &A8: read ROM pointer table address", inline=True)
+comment(0x8327, "X=0: read low byte", inline=True)
+comment(0x8329, "Y=&FF: read high byte", inline=True)
+comment(0x832B, "Returns table address in X (lo) Y (hi)", inline=True)
+comment(0x832E, "Store table base address low byte", inline=True)
+comment(0x8330, "Store table base address high byte", inline=True)
 comment(0x8332, "NETV extended vector offset in ROM ptr table", inline=True)
+comment(0x8334, "Set NETV low byte = &36 (vector dispatch)", inline=True)
 comment(0x8337, "Install 1 entry (NETV) in ROM ptr table", inline=True)
+comment(0x8339, "Load handler address low byte from table", inline=True)
+comment(0x833C, "Store to ROM pointer table", inline=True)
+comment(0x833E, "Next byte", inline=True)
+comment(0x833F, "Load handler address high byte from table", inline=True)
+comment(0x8342, "Store to ROM pointer table", inline=True)
+comment(0x8344, "Next byte", inline=True)
 comment(0x8345, "Write current ROM bank number", inline=True)
+comment(0x8347, "Store ROM number to ROM pointer table", inline=True)
+comment(0x8349, "Advance to next entry position", inline=True)
+comment(0x834A, "Count down entries", inline=True)
+comment(0x834B, "Loop until all entries installed", inline=True)
+comment(0x834D, "Y = workspace high byte + 1 = next free page", inline=True)
+comment(0x834F, "Advance past workspace page", inline=True)
+comment(0x8350, "Return; Y = page after NFS workspace", inline=True)
 comment(0x834D, "Y = next workspace page for MOS", inline=True)
 
 # ============================================================
@@ -2480,7 +2510,15 @@ Called before building specific FS commands for transmission.""",
              "y": "1 (offset past command code in reply)"})
 
 comment(0x83C7, "V=0: standard FS command path", inline=True)
+comment(0x83C8, "Copy URD handle from workspace to buffer", inline=True)
+comment(0x83CB, "Store URD at &0F02", inline=True)
+comment(0x83CE, "CLC: no byte-stream path", inline=True)
+comment(0x83CF, "Store function code at &0F01", inline=True)
+comment(0x83D2, "Y=1: copy CSD (offset 1) then LIB (offset 0)", inline=True)
 comment(0x83D4, "Copy CSD and LIB handles to command buffer", inline=True)
+comment(0x83D7, "Store at &0F03 (CSD) and &0F04 (LIB)", inline=True)
+comment(0x83DA, "Y=function code", inline=True)
+comment(0x83DB, "Loop for both handles", inline=True)
 
 # ============================================================
 # Build and send FS command (&83A4)
@@ -2910,6 +2948,24 @@ Common exit point for FS vector handlers. Reloads A from
 fs_last_byte_flag (&BD), X from fs_options (&BB), and Y from
 fs_block_offset (&BC) — the values saved at entry by
 save_fscv_args — and returns to the caller.""")
+comment(0x89B3, "A = saved function code / command", inline=True)
+comment(0x89B5, "X = saved control block ptr low", inline=True)
+comment(0x89B7, "Y = saved control block ptr high", inline=True)
+comment(0x89B9, "Return to MOS with registers restored", inline=True)
+comment(0x89BA, "A=0: *ARGS Y,0; A=1: *ARGS Y,1; A>=2: FS", inline=True)
+comment(0x89BC, "A=2: FS-level ensure (write extent)", inline=True)
+comment(0x89BE, "A>=3: FS command (ARGSV write)", inline=True)
+comment(0x89C0, "Y = A = byte count for copy loop", inline=True)
+comment(0x89C1, "A!=0: copy command context block", inline=True)
+comment(0x89C3, "&0A >> 1 = 5 = NFS filing system number", inline=True)
+comment(0x89C5, "Shared: halve A (A=0 or A=2 paths)", inline=True)
+comment(0x89C6, "Return with A = FS number or 1", inline=True)
+comment(0x89C8, "Read FS command context byte", inline=True)
+comment(0x89CB, "Store to caller's parameter block", inline=True)
+comment(0x89CD, "Next byte (descending)", inline=True)
+comment(0x89CE, "Loop until all bytes copied", inline=True)
+comment(0x89D0, "Y=&FF after loop; fill high bytes", inline=True)
+comment(0x89D2, "Set 32-bit result bytes 2-3 to &FF", inline=True)
 
 label(0x8A2C, "fscv_0_opt_entry")       # FSCV 0 dispatch entry (BEQ guard before fscv_0_opt)
 
@@ -3272,6 +3328,8 @@ subroutine(0x8E2D, "fsreply_5_set_lib", hook=None,
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
 Falls through to JMP restore_args_return if Y is non-zero.""")
+comment(0x8E2D, "Save library handle from FS reply", inline=True)
+comment(0x8E30, "SDISC path: skip CSD, jump to return", inline=True)
 
 subroutine(0x8E32, "fsreply_3_set_csd", hook=None,
     title="Set CSD handle",
@@ -3293,6 +3351,7 @@ The carry flag distinguishes LOGIN (SEC) from SDISC (CLC) — both
 share the handle-copying code, but only LOGIN executes the boot
 command. This use of the carry flag to select behaviour between
 two callers avoids duplicating the handle-copy loop.""")
+comment(0x8E38, "Set carry: LOGIN path (copy + boot)", inline=True)
 
 subroutine(0x8E39, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
@@ -3391,6 +3450,11 @@ Reached from fsreply_1_copy_handles_boot when carry is set (LOGIN
 path). Reads the boot option from fs_boot_option (&0E05),
 looks up the OSCLI command string offset from boot_option_offsets+1,
 and executes the boot command via JMP oscli with page &8D.""")
+comment(0x8E48, "Y = boot option from FS workspace", inline=True)
+comment(0x8E4B, "X = command string offset from table", inline=True)
+comment(0x8E4E, "Y = &8D (high byte of command address)", inline=True)
+comment(0x8E50, "Execute boot command string via OSCLI", inline=True)
+comment(0x8E53, "Load handle from &F0", inline=True)
 
 # The actual *NET1 handler is at &8E67 (dispatched via table to &8E67).
 # The code at &8E3A was incorrectly labeled net_1_read_handle by the
@@ -3433,6 +3497,14 @@ Looks up the handle in &F0 via calc_handle_offset. If the
 workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
 Clears rom_svc_num on exit.""")
+comment(0x8E6D, "Look up handle &F0 in workspace", inline=True)
+comment(0x8E70, "Invalid handle: return 0", inline=True)
+comment(0x8E72, "Load stored handle value", inline=True)
+comment(0x8E74, "&3F = unused/closed slot marker", inline=True)
+comment(0x8E76, "Slot in use: return actual value", inline=True)
+comment(0x8E78, "Return 0 for closed/invalid handle", inline=True)
+comment(0x8E7A, "Store result back to &F0", inline=True)
+comment(0x8E7C, "Return", inline=True)
 
 entry(0x8E7D)
 subroutine(0x8E7D, "net_3_close_handle", hook=None,
@@ -3443,6 +3515,11 @@ Looks up the handle in &F0 via calc_handle_offset. Writes
 workspace. Returns via RTS (earlier versions preserved the
 carry flag across the write using ROL/ROR on rx_flags, but
 3.60 simplified this).""")
+comment(0x8E7D, "Look up handle &F0 in workspace", inline=True)
+comment(0x8E80, "Invalid handle: return 0", inline=True)
+comment(0x8E82, "&3F = '?' marks slot as unused", inline=True)
+comment(0x8E84, "Write close marker to workspace slot", inline=True)
+comment(0x8E86, "Return", inline=True)
 
 # NMI handler init — ROM code copies to page &04/&05/&06
 # ============================================================
@@ -3803,6 +3880,20 @@ subroutine(0x8FD5, "setup_rx_buffer_ptrs", hook=None,
 Calculates the start address of the RX data area (&F0+1) and stores
 it at workspace offset &1C. Also reads the data length from (&F0)+1
 and adds it to &F0 to compute the end address at offset &20.""")
+comment(0x8FD5, "Workspace offset &1C = RX data start", inline=True)
+comment(0x8FD7, "A = base address low byte", inline=True)
+comment(0x8FD9, "A = base + 1 (skip length byte)", inline=True)
+comment(0x8FDB, "Store 16-bit start addr at ws+&1C/&1D", inline=True)
+comment(0x8FDE, "Read data length from (&F0)+1", inline=True)
+comment(0x8FE0, "A = data length byte", inline=True)
+comment(0x8FE2, "Workspace offset &20 = RX data end", inline=True)
+comment(0x8FE4, "A = base + length = end address low", inline=True)
+comment(0x8FE6, "Store low byte of 16-bit address", inline=True)
+comment(0x8FE8, "Advance to high byte offset", inline=True)
+comment(0x8FE9, "A = high byte of base address", inline=True)
+comment(0x8FEB, "Add carry for 16-bit addition", inline=True)
+comment(0x8FED, "Store high byte", inline=True)
+comment(0x8FEF, "Return", inline=True)
 
 subroutine(0x90E8, "remote_cmd_dispatch", hook=None,
     title="Fn 7: remote OSBYTE handler (NBYTE)",
