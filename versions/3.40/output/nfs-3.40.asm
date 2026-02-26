@@ -2447,26 +2447,12 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Check and handle escape condition (ESC)
 ; 
-; Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed
-; with the software enable flag ESCAP. Both must have bit 7 set for
-; escape to fire. ESCAP is set non-zero during data port operations
-; (LOADOP stores the data port &90, serving double duty as both the
-; port number and the escape-enable flag). ESCAP is disabled via LSR
-; in the ENTER routine, which clears bit 7 — PHP/PLP around the LSR
-; preserves the carry flag since ENTER is called from contexts where
-; carry has semantic meaning (e.g., PUTBYT vs BGET distinction).
-; This architecture allows escape between retransmission attempts
-; but prevents interruption during critical FS transactions. If
-; escape fires: acknowledges via OSBYTE &7E, then checks whether
-; the failing handle is the current SPOOL or EXEC handle (OSBYTE
-; &C6/&C7); if so, issues "*SP." or "*E." via OSCLI to gracefully
-; close the channel before raising the error — preventing the system
-; from continuing to spool output to a broken file handle.
-; 
-; 3.35K restructures the SPOOL/EXEC close logic: both handles
-; are always checked (3.35D skipped EXEC if SPOOL matched),
-; and OSCLI is always called (with a harmless "." default if
-; neither matched).
+; Stub: bare RTS in 3.40. In earlier versions (3.34-3.35K), this
+; contained the full two-level escape gating logic (MOS escape flag
+; ANDed with the ESCAP software enable). In 3.40 the escape check
+; moved to sub_c854d (&854D), which is entered directly by callers
+; — check_escape itself has no references and is dead code that
+; preserves the fall-through entry point for bgetv_handler.
 ; ***************************************************************************************
 .check_escape
     rts                                                               ; 854c: 60          `
