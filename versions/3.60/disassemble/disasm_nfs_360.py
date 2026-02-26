@@ -3247,6 +3247,13 @@ subroutine(0x8E39, "fsreply_2_copy_handles", hook=None,
 CLC entry (SDISC): copies handles only, then jumps to
 restore_args_return via c8e27. Called when the FS reply contains
 updated handle values but no boot action is needed.""")
+comment(0x8E39, "Copy 4 bytes: boot option + 3 handles", inline=True)
+comment(0x8E3B, "SDISC: skip boot option, copy handles only", inline=True)
+comment(0x8E3D, "Load from FS reply (&0F05+X)", inline=True)
+comment(0x8E40, "Store to handle workspace (&0E02+X)", inline=True)
+comment(0x8E43, "Next handle (descending)", inline=True)
+comment(0x8E44, "Loop while X >= 0", inline=True)
+comment(0x8E46, "SDISC: done, restore args and return", inline=True)
 
 # ============================================================
 # Filename copy helpers (&8D43-&8D51)
