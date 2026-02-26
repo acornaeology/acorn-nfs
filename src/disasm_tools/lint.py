@@ -84,9 +84,10 @@ def load_valid_addresses(json_filepath):
 
     Includes item addresses (instructions and data), external label
     addresses (workspace RAM locations named for operand references),
-    and subroutine addresses (which may be in overlapping code regions
+    subroutine addresses (which may be in overlapping code regions
     where the same bytes decode as different instructions depending on
-    the entry point).
+    the entry point), and all ROM-range addresses (to support labels
+    at move() block source addresses that py8dis emits as EQU aliases).
     """
     data = json.loads(json_filepath.read_text())
     addresses = {item['addr'] for item in data['items']}
@@ -97,6 +98,9 @@ def load_valid_addresses(json_filepath):
         addresses.add(addr)
     for sub in data.get('subroutines', []):
         addresses.add(sub['addr'])
+    load_addr = data['meta']['load_addr']
+    end_addr = data['meta']['end_addr']
+    addresses.update(range(load_addr, end_addr))
     return addresses
 
 

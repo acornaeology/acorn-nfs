@@ -65,6 +65,12 @@ move(0x0400, 0x9362, 0x100)
 move(0x0500, 0x9462, 0x100)
 move(0x0600, 0x9562, 0x100)
 
+# ROM-address labels for move() block origins (referenced by copy routines)
+label(0x9321, "reloc_zp_src")        # ROM source of zero-page relocated code
+label(0x9362, "reloc_p4_src")        # ROM source of Tube host page 4 code
+label(0x9462, "reloc_p5_src")        # ROM source of Tube host page 5 code
+label(0x9562, "reloc_p6_src")        # ROM source of Tube host page 6 code
+
 # acorn.bbc() provides: os_text_ptr (&F2), romsel_copy (&F4), osrdsc_ptr (&F6),
 # all OS vectors (brkv, wrchv, ..., netv), all OS entry points (osasci, osbyte, ...),
 # plus hooks for automatic OSBYTE/OSWORD annotation.
@@ -170,6 +176,7 @@ constant(168, "osbyte_read_rom_ptr_table_low")
 
 label(0x0097, "escapable")           # b7=respond to Escape flag
 label(0x0098, "need_release_tube")   # b7=need to release Tube
+label(0x0099, "prot_flags")          # PFLAGS: printer/protocol status flags
 label(0x009A, "net_tx_ptr")          # NetTx control block pointer (low)
 label(0x009B, "net_tx_ptr_hi")       # NetTx control block pointer (high)
 label(0x009C, "net_rx_ptr")          # NetRx control blocks pointer (low)
@@ -184,6 +191,14 @@ label(0x00A4, "open_port_buf")       # Open port buffer address (low)
 label(0x00A5, "open_port_buf_hi")    # Open port buffer address (high)
 label(0x00A6, "port_ws_offset")      # Port workspace offset
 label(0x00A7, "rx_buf_offset")       # Receive buffer offset
+label(0x00A8, "ws_page")             # Multi-purpose: workspace page / RXCB counter / loop counter
+label(0x00A9, "svc_state")           # Multi-purpose: service state / Tube flag / workspace offset
+label(0x00AA, "osword_flag")         # OSWORD param byte / open-vs-read flag
+label(0x00AB, "ws_ptr_lo")           # Workspace indirect pointer (lo)
+label(0x00AC, "ws_ptr_hi")           # Workspace indirect pointer (hi)
+label(0x00AD, "table_idx")           # OSBYTE/palette table index counter
+label(0x00AE, "work_ae")             # Indexed workspace (single-use scratch)
+label(0x00AF, "addr_work")           # Address work byte for comparison (indexed)
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
@@ -203,20 +218,70 @@ label(0x00A7, "rx_buf_offset")       # Receive buffer offset
 label(0x00B0, "fs_load_addr")        # WORK: load/start address (4 bytes)
 label(0x00B1, "fs_load_addr_hi")
 label(0x00B2, "fs_load_addr_2")
+label(0x00B3, "fs_load_addr_3")     # WORK+3: load address byte 3
+label(0x00B4, "fs_work_4")          # WORK+4: end address / compare target (lo)
+label(0x00B5, "fs_work_5")          # WORK+5: examine arg count / end address (hi)
+label(0x00B7, "fs_work_7")          # WORK+7: column count / end address byte 3
 label(0x00B8, "fs_error_ptr")        # JWORK: error pointer / timing workspace
+label(0x00B9, "fs_crflag")          # CRFLAG: carriage return / column flag
+label(0x00BA, "fs_spool_handle")    # SPOOL1: saved spool file handle for comparison
 label(0x00BB, "fs_options")          # TEMPX: options/control block pointer (low)
 label(0x00BC, "fs_block_offset")     # TEMPY: block offset / control block pointer (high)
 label(0x00BD, "fs_last_byte_flag")   # TEMPA: b7=last byte from block / saved A
 label(0x00BE, "fs_crc_lo")           # POINTR: generic pointer (low)
 label(0x00BF, "fs_crc_hi")           # POINTR+1: generic pointer (high)
+label(0x00C0, "txcb_ctrl")          # TXCB control byte
+label(0x00C1, "txcb_port")          # TXCB command/port byte
+label(0x00C2, "txcb_dest")          # TXCB destination station (Y-indexed)
+label(0x00C4, "txcb_start")         # TXCB data start address (lo) / reply buffer ptr
+label(0x00C7, "txcb_pos")           # TXCB current transfer position (indexed)
+label(0x00C8, "txcb_end")           # TXCB data end address (lo) / dest address
 label(0x00CD, "nfs_temp")            # General-purpose NFS temporary
 label(0x00CE, "rom_svc_num")        # ROM service number, 7=osbyte, 8=osword
+label(0x00CF, "fs_spool0")          # SPOOL0: handle bitmask / BGET result byte
 
 # Zero page — Additional OS locations
+label(0x0000, "zp_ptr_lo")           # General-purpose ZP indirect pointer (lo) / indexed base
+label(0x0001, "zp_ptr_hi")           # General-purpose ZP pointer (hi) / page counter
+label(0x0002, "zp_work_2")           # Indexed scratch (control block access via X)
+label(0x0003, "zp_work_3")           # Indexed scratch (control block access via X)
 label(0x0010, "zp_temp_10")          # Temporary storage (Y save during service calls)
 label(0x0011, "zp_temp_11")          # Temporary storage (X save during service calls)
+label(0x0012, "tube_data_ptr")       # Tube host: indirect pointer to transfer data (lo)
+label(0x0013, "tube_data_ptr_hi")    # Tube host: indirect pointer to transfer data (hi)
+label(0x0014, "tube_claim_flag")     # Tube host: address claim in progress flag
+label(0x0015, "tube_claimed_id")     # Tube host: currently-claimed address (&80=none)
 label(0x0016, "nmi_workspace_start") # Start of NMI workspace area (&0016-&0076)
 label(0x005F, "zp_63")               # Used by NFS
+
+# Zero page — MOS locations (&EF-&FF)
+label(0x00EF, "osbyte_a_copy")       # MOS copy of OSBYTE A parameter / command code
+label(0x00F0, "osword_pb_ptr")       # OSBYTE/OSWORD parameter block pointer (lo)
+label(0x00F1, "osword_pb_ptr_hi")    # OSBYTE/OSWORD parameter block pointer (hi)
+label(0x00F3, "os_text_ptr_hi")      # GS text pointer (hi), paired with os_text_ptr at &F2
+label(0x00F7, "osrdsc_ptr_hi")       # OSRDSC pointer (hi), paired with osrdsc_ptr at &F6
+label(0x00FD, "brk_ptr")             # MOS BRK error pointer (lo), set after BRK instruction
+label(0x00FF, "escape_flag")         # MOS escape flag: b7=escape condition active
+
+# Page 1 — Stack page (&100-&128)
+label(0x0100, "error_block")         # BRK error block base / code download exec target
+label(0x0101, "error_text")          # Error message text area / stack offset +1
+label(0x0102, "stk_timeout_mid")     # Stack-indexed timeout counter (middle byte)
+label(0x0103, "stk_frame_3")         # Stack-indexed frame offset +3
+label(0x0104, "stk_timeout_hi")      # Stack-indexed timeout counter (outer byte)
+label(0x0106, "stk_frame_p")         # Stack-indexed frame: processor status byte
+label(0x0128, "tube_osword_pb")      # Tube host: OSWORD parameter block at &0128
+
+# Page 3 — VDU variables
+label(0x0350, "vdu_screen_mode")     # Current screen mode
+label(0x0351, "vdu_colours")         # Number of logical colours minus 1
+label(0x0355, "vdu_cursor_edit")     # Cursor editing state
+
+# Page 7 — String buffer
+label(0x0700, "string_buf")          # Tube host: string buffer for OSCLI/OSWORD 0
+
+# Page &0C — NMI shim write base
+label(0x0CFF, "nmi_code_base")       # Y-indexed base for writes to NMI shim at &0D00+
 
 # ============================================================
 # Page &0D — NMI handler workspace (&0D00-&0D67)
@@ -228,6 +293,7 @@ label(0x005F, "zp_63")               # Used by NFS
 label(0x0D0C, "nmi_jmp_lo")         # JMP target low byte (self-modifying)
 label(0x0D0D, "nmi_jmp_hi")         # JMP target high byte (self-modifying)
 label(0x0D0E, "set_nmi_vector")     # Subroutine: set NMI handler (A=low, Y=high)
+label(0x0D11, "install_nmi_handler") # Entry: A=handler offset, installs NMI vector
 label(0x0D14, "nmi_rti")            # NMI return: restore ROM bank, PLA, BIT INTON, RTI
 label(0x0D1A, "nmi_shim_1a")        # Referenced by NMI workspace init
 
@@ -278,6 +344,11 @@ label(0x0D65, "saved_jsr_mask")     # OLDJSR: old copy of JSR buffer protection 
 label(0x0D66, "econet_init_flag")   # b7=Econet using NMI code (&00=no, &80=yes)
 label(0x0D67, "tube_flag")          # TBFLAG: b7=Tube present (&00=no, &FF=yes)
 
+# Page &0D extended workspace
+label(0x0DE6, "nmi_sub_table")      # NMI substitution data (Y-indexed lookup)
+label(0x0DF0, "rom_ws_table")       # ROM workspace pointer table (16 bytes, X=ROM#)
+label(0x0DFE, "fs_context_base")    # Base for Y-indexed access to FS context at &0E00+
+
 # ============================================================
 # Page &0E — Filing system context (reference: NFS00 FSLOCN-CMNDP)
 # ============================================================
@@ -306,9 +377,13 @@ label(0x0E07, "fs_eof_flags")       # EOF: end-of-file flags
 label(0x0E08, "fs_sequence_nos")    # SEQNOS: byte stream sequence numbers
 label(0x0E09, "fs_last_error")      # ERROR: slot for last unknown error code
 label(0x0E0A, "fs_cmd_context")     # SPARE/JCMNDP: command context
+label(0x0E0B, "fs_context_hi")      # Command context high byte
 label(0x0E0D, "fs_reply_status")    # RSTAT: b0=remote ok, b1=view ok, b2=notify ok, b3=remoted, b7=FS selected
 label(0x0E0E, "fs_target_stn")      # TARGET: target station for remote ops (2 bytes)
 label(0x0E10, "fs_cmd_ptr")         # CMNDP: pointer to rest of command line
+label(0x0E16, "fs_work_16")         # FS workspace byte at offset &16
+label(0x0E30, "fs_filename_buf")    # Parsed filename buffer
+label(0x0EF7, "fs_reply_data")      # FS reply data area
 
 # Other workspace used by NFS
 # Relocated code — Tube host zero-page code (BRKV = &0016)
@@ -891,10 +966,17 @@ label(0x8215, "restore_ws_return")      # Restore workspace page and return uncl
 # --- Trampoline JMPs in page 6 relocated code (&06CE-&06D7) ---
 # In 3.40 these were in main ROM at &9660; in 3.60 they fell inside the
 # page 6 relocated block (source &9630, runtime &06CE).
+# Relocated-address labels (used in the code block itself):
 label(0x06CE, "trampoline_tx_setup")    # JMP TX control block setup
 label(0x06D1, "trampoline_adlc_init")   # JMP adlc_init
 label(0x06D4, "svc_12_nmi_release")     # Svc 12: JMP save_econet_state
 label(0x06D7, "svc_11_nmi_claim")       # Svc 11: JMP restore_econet_state
+# ROM-address aliases (used by main ROM code referencing &96xx directly):
+label(0x9630, "start_adlc_tx")         # ROM-addr alias: start ADLC transmission
+label(0x9633, "init_adlc_hw")          # ROM-addr alias: initialise ADLC hardware
+label(0x9636, "econet_save")           # ROM-addr alias: Svc 12 NMI claim / save state
+label(0x9639, "econet_restore")        # ROM-addr alias: Svc 11 NMI release / restore state
+label(0x963C, "svc5_irq_check")        # ROM-addr alias: Svc 5 unrecognised interrupt check
 label(0x9679, "svc_5_unknown_irq")        # Svc 5: JMP unknown interrupt handler
 entry(0x06CE)
 entry(0x06D1)
@@ -1051,8 +1133,25 @@ label(0x0F02, "fs_cmd_urd")             # HDRURD: URD handle slot
 label(0x0F03, "fs_cmd_csd")             # HDRCSD: CSD handle / RX control code
 label(0x0F04, "fs_cmd_lib")             # HDRLIB/RXRC: LIB slot / RX return code
 label(0x0F05, "fs_cmd_data")            # TXBUF/RXBUF: start of TX/RX data area
+label(0x0F06, "fs_func_code")           # Data byte 1: function code / direction flag / reply count
+label(0x0F07, "fs_data_count")          # Data byte 2: block size (hi) / entry count
+label(0x0F08, "fs_reply_cmd")           # Data byte 3: reply command / extent
+label(0x0F09, "fs_load_vector")         # Data byte 4: indirect JMP target (load address lo)
+label(0x0F0B, "fs_load_upper")          # Data byte 6: load address upper byte check
+label(0x0F0C, "fs_addr_check")          # Data byte 7: address range validation byte
+label(0x0F0D, "fs_file_len")            # Data byte 8: file length byte (indexed)
+label(0x0F0E, "fs_file_attrs")          # Data byte 9: encoded file attributes
+label(0x0F10, "fs_file_len_3")          # Data byte &0B: file length byte 3
+label(0x0F11, "fs_obj_type")            # Data byte &0C: object type from FS reply
+label(0x0F12, "fs_access_level")        # Data byte &0D: access level / length high
+label(0x0F13, "fs_reply_stn")           # Data byte &0E: station number from FS reply
+label(0x0F14, "fs_len_clear")           # Data byte &0F: length high (cleared on success)
+label(0x0F16, "fs_boot_data")           # Data byte &11: boot option in reply area
 label(0x0FDC, "fs_putb_buf")            # PUTB: single-byte random access buffer (4 bytes)
 label(0x0FDD, "fs_getb_buf")            # PUTB2/GETB2: shared GET/PUT byte workspace
+label(0x0FDE, "fs_handle_mask")         # Handle bitmask for sequence tracking
+label(0x0FDF, "fs_error_flags")         # BSXMIT error/status flags
+label(0x0FE0, "fs_error_buf")           # Error buffer at end of FS page
 
 # ============================================================
 # Filing system protocol client (&8501-&8700)
