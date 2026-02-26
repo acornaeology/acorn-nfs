@@ -712,6 +712,18 @@ label(0x05D3, "read_osgbpb_ctrl_blk") # Read 13-byte OSGBPB control block from R
 label(0x05E6, "send_osgbpb_result")  # Send 13-byte OSGBPB result block to co-processor via R2
 label(0x064C, "poll_r2_osword_result") # Poll R2 status waiting for OSWORD result data
 label(0x066A, "read_rdln_ctrl_block") # Read 5-byte OSWORD 0 control block from R2
+label(0x0432, "accept_new_claim")    # BCS: active claim exists, store incoming address
+label(0x0463, "skip_r3_flush")       # BCC: skip two dummy R3 reads when bit 2 clear
+label(0x047A, "copro_ack_nmi_check") # BCS: co-processor acknowledged, test NMI release
+label(0x0482, "skip_nmi_release")    # BNE/BCC: skip NMI release, PLP/RTS
+label(0x048C, "check_break_type")    # BNE: not soft break, query OSBYTE &FD reset type
+label(0x0498, "claim_addr_ff")       # Hard break or retry: claim address &FF
+label(0x04A2, "next_rom_page")       # BVC: more pages to send, loop SENDW
+label(0x04C0, "skip_addr_carry")     # BNE: skip 24-bit destination address carry
+label(0x04FB, "store_xfer_end_addr") # BEQ: no reloc flag, store default end address
+label(0x0593, "string_buf_done")     # BEQ: overflow or CR found, set XY=&0700/RTS
+label(0x0645, "skip_param_read")     # BMI: zero-length params, skip R2 read loop
+label(0x06E4, "handle_cb1_intr")     # BNE: IFR bit 4 set, reconfigure VIA for CB1
 entry(0x0600)
 entry(0x0625)
 entry(0x0607)
@@ -856,12 +868,23 @@ label(0x9994, "return_10")
 
 # --- Service call handlers ---
 label(0x8081, "skip_cmd_spaces")        # Skip leading spaces in command line before parsing
+label(0x8098, "got_station_num")       # BCC: no dot, parsed value is bare station number
+label(0x809D, "skip_stn_parse")        # BCS/BEQ: bypass station parsing, copy cmd text
+label(0x80A0, "scan_for_colon")        # Loop: scan backward through cmd buffer for ':'
 label(0x80AD, "read_remote_cmd_line")   # Read characters from keyboard into FS command buffer
 label(0x80C5, "prepare_cmd_dispatch")   # Prepare FS command and dispatch recognised *command
 label(0x80E3, "svc_dispatch_range")     # Service dispatch range check (out of range: return)
+label(0x8113, "set_adlc_disable")       # BNE: ADLC active, set bit 7 disable flag
+label(0x811A, "check_disable_flag")    # BNE/BEQ: skip probe, test workspace disable flag
 label(0x8123, "check_svc_high")         # Test service >= &FE (high-priority dispatch)
+label(0x8134, "poll_tube_ready")       # Top of Tube status polling loop
+label(0x8181, "tube_chars_done")       # BEQ: zero byte received, transfer complete
+label(0x8183, "check_svc_12")          # Convergence before CMP #&12 test
+label(0x818F, "not_svc_12_nfs")        # BNE: not service &12 or not NFS (Y!=5)
+label(0x8193, "do_svc_dispatch")        # BNE: entry to TAX/workspace save/dispatch
 label(0x8191, "svc_unhandled_return")   # Unhandled service (>= &0D): return unclaimed
 label(0x81B5, "svc_4_star_command")     # Svc 4 dispatch entry (mid-routine in svc_star_command)
+label(0x81E3, "skip_kbd_reenable")      # BEQ: keyboard not disabled, skip re-enable
 label(0x81EA, "match_net_cmd")          # Try matching *NET command text
 label(0x8215, "restore_ws_return")      # Restore workspace page and return unclaimed
 
@@ -877,6 +900,8 @@ entry(0x06CE)
 entry(0x06D1)
 
 # --- Init and vector setup ---
+label(0x825F, "skip_no_clock_msg")     # BEQ: clock present, skip "No Clock" message
+label(0x8316, "read_station_id")       # BEQ/BCS: soft break or RXCBs done, read &FE18
 # label at $8280 removed — fs_vector_addrs mapped to $8294 in 3.40
 
 # --- FSCV handler and dispatch ---
@@ -923,6 +948,7 @@ entry(0x870C)                            # Actual FILEV entry point (ROM pointer
 # --- Helper routines in header/init section ---
 label(0x81E1, "cmd_name_matched")       # MATCH2: full name matched, check terminator byte
 label(0x8364, "match_cmd_chars")       # Match input chars against ROM string byte-by-byte
+label(0x8377, "check_rom_end")        # BEQ/BNE: mismatch or space, test ROM string end
 # 3.35K label skip_cmd_spaces ($81E4) — mapped to skpspi ($81E3) in 3.40
 label(0x8339, "store_rom_ptr_pair")     # Write 2-byte address + ROM bank to ROM pointer table
 
@@ -937,12 +963,16 @@ label(0x83CF, "store_fs_hdr_fn")       # Store function code and CSD/LIB handles
 label(0x83D4, "copy_dir_handles")       # Copy CSD and LIB handles into FS command header
 label(0x83B9, "prepare_cmd_with_flag")  # Prepare FS command with '*' flag and carry set
 label(0x83BD, "prepare_cmd_clv")        # Prepare FS command with V cleared
+label(0x8405, "check_fs_error")        # BVC: standard path, BNE to store_fs_error
 # prepare_fs_cmd and build_send_fs_cmd labels created by subroutine() calls below.
 label(0x83C8, "prepare_fs_cmd_v")       # Prepare FS command, V flag preserved
 label(0x83F3, "send_fs_reply_cmd")      # Send FS command with reply processing
 
 # --- Byte I/O and escape ---
 # handle_bput_bget label created by subroutine() call below.
+label(0x846D, "close_spool_exec")       # BEQ: SPOOL handle matched, OSCLI close
+label(0x8473, "dispatch_fs_error")     # BNE: no handle match, reset ptr for FSERR
+label(0x8487, "error_code_clamped")    # BCS: error >= &A8, skip clamp, start scan
 label(0x8489, "copy_error_to_brk")      # Copy FS error reply to &0100 as BRK error block
 label(0x84E4, "zero_exec_header")      # Zero bytes &0100-&0102 before executing downloaded code
 label(0x84EA, "execute_downloaded")      # JMP &0100: execute downloaded code at stack page
@@ -974,12 +1004,23 @@ comment(0x8526, "Next dest byte", inline=True)
 comment(0x8527, "Continue copying message", inline=True)
 comment(0x8530, "A = '*' for FS command prefix", inline=True)
 label(0x85E1, "map_attrib_bits")         # Map source attribute bits via access_bit_table lookup
+label(0x85E9, "skip_set_attrib_bit")   # BCC: source bit was 0, don't OR destination
 label(0x860D, "poll_tx_semaphore")     # Spin on tx_clear_flag until TX semaphore is free
+label(0x860A, "rearm_tx_attempt")     # BEQ: after retry delay, write back control byte
+label(0x8637, "tx_retry_delay")       # Two-level X*Y countdown delay between TX retries
+label(0x863F, "tx_abort")             # Retries exhausted or escape: TAX/JMP nlistn
+label(0x8643, "tx_success_exit")      # BPL: success, PLA*3 then JMP clear_escapable
 label(0x8664, "print_inline_char")     # Print inline string bytes via OSASCI until bit-7 terminator
+label(0x866A, "print_next_char")      # INC lo-byte of pointer, load and print next char
+label(0x8674, "jump_via_addr")        # BMI: bit 7 terminator, JMP (fs_load_addr)
 label(0x867B, "scan_decimal_digit")    # Read ASCII digits and accumulate decimal value
+label(0x8696, "no_dot_exit")          # BCC: char < '.', CLC then RTS (no dot found)
+label(0x8697, "parse_decimal_rts")    # BEQ: char = '.', LDA result/RTS
+label(0x86B3, "handle_mask_exit")     # BEQ/BNE: PLA/TAX/PLA/RTS exit restoring X and A
 label(0x86C1, "compare_addr_byte")     # EOR bytes of two 4-byte addresses checking for mismatch
 label(0x8530, "waitfs")                  # Send command to FS and wait for reply (WAITFS)
 label(0x8533, "send_to_fs_star")        # Send '*' command to fileserver
+label(0x8540, "skip_rx_flag_set")       # BNE: non-zero TX hi byte, skip bit-7 set
 label(0x8559, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
 # --- Pointer arithmetic helpers ---
@@ -1047,6 +1088,7 @@ label(0x86CF, "return_fscv_handles")    # Return from fscv_7_read_handles
 label(0x86DA, "store_fs_flag")           # Shared STA fs_eof_flags / RTS for set/clear_fs_flag
 label(0x86DE, "copy_filename_ptr")       # Copy filename pointer to os_text_ptr and parse
 label(0x86EA, "parse_filename_gs_y")     # Parse filename via GS from offset Y
+label(0x86FD, "terminate_filename")   # BEQ/BCS: empty or end-of-GSREAD, append CR
 
 # --- Save args and escapable flag ---
 label(0x8657, "clear_escapable")         # Clear escapable flag preserving P
@@ -1071,14 +1113,21 @@ label(0x8601, "tx_poll_timeout")        # Transmit with Y=&60 (specified timeout
 # args and returns via restore_args_return (&8952).
 
 # --- FILEV handler (&86DE) and helpers ---
+label(0x8740, "skip_lodfil")           # BCC: skip lodfil block, proceed to compute end addr
 label(0x8742, "copy_load_end_addr")    # Copy 4 load-address bytes and compute end address
 label(0x876E, "send_block_loop")       # Outer loop: set up and send each 128-byte block
 label(0x8770, "copy_block_addrs")      # Inner loop: swap 4-byte current/end addresses
 label(0x87B7, "copy_save_params")      # Copy 9 bytes of load/exec address into FS command buffer
 label(0x87D8, "save_csd_display")       # Save CSD from reply and display file info
+label(0x87EF, "print_filename_char")  # BEQ/BNE: load and print each filename char
+label(0x87FB, "pad_filename_space")   # BCC: end of name, pad with spaces to col 12
+label(0x8803, "print_addresses")      # BMI: skip filename, start printing hex load/exec
+label(0x8817, "skip_catalogue_msg")   # BEQ: messages flag=0, skip display
 label(0x8822, "copy_attribs_reply")    # Copy 4 decoded attribute bytes from FS reply
+label(0x8859, "transfer_loop_top")     # BNE: blocks remain, top of block transfer loop
 label(0x8869, "setup_block_addrs")     # Set source = current pos, dest = current + block size
 label(0x8887, "clamp_dest_addr")       # Clamp dest addr when block overshoots transfer end
+label(0x888E, "send_block")           # BCC: no overshoot, skip clamp, send block
 label(0x88CD, "restore_ay_return")      # Restore A and Y registers, return
 
 # --- FSCV 1: EOF handler (&884C) ---
@@ -1090,7 +1139,11 @@ label(0x899D, "copy_fileptr_to_cmd")  # Copy 4-byte file pointer into FS command
 label(0x8997, "argsv_check_return")    # Conditional return after ARGSV file pointer op
 label(0x89B5, "restore_xy_return")     # Restore X and Y from workspace, return
 label(0x89BA, "argsv_fs_query")        # FS-level ARGSV query (A=0/1/2 dispatch)
+label(0x89C5, "halve_args_a")         # BEQ: A=2, LSR A then dispatch
 
+label(0x891C, "send_fs_cmd_v1")       # BNE: after copy_filename, BIT tx_ctrl_upper
+label(0x8922, "check_attrib_result")  # BCS: A>=7 unsupported, dispatch to error/return
+label(0x8966, "attrib_error_exit")    # BCS: not-found/error, BPL restore_xy_return
 label(0x88FB, "get_file_protection")  # CHA1: decode attribute byte for protection status
 label(0x8910, "copy_filename_to_cmd") # CHASK2: copy filename string into FS command buffer
 label(0x894D, "copy_fs_reply_to_cb")  # COPYFS: copy FS reply buffer data to control block
@@ -1101,16 +1154,31 @@ label(0x8999, "save_args_handle")      # SETARG: save handle for OSARGS operatio
 
 # --- FSCV 0: *OPT handler (&89CA) ---
 label(0x8A2A, "close_opt_return")      # Conditional return after close/opt handler
+label(0x8A36, "check_opt1")           # BNE: X!=4, DEX/BNE to check for *OPT 1
 label(0x8A39, "set_messages_flag")     # Set *OPT 1 local messages flag from Y
+label(0x8A50, "opt_return")           # BCC: *OPT 1 done, to close_opt_return
 label(0x8A1A, "close_single_handle")   # CLOSE1: send close command for specific handle to FS
 
 # --- Address adjustment helpers (&89EE-&8A0E) ---
 label(0x8A5C, "adjust_addr_byte")      # Add or subtract one adjustment byte per iteration (4 total)
+label(0x8A68, "subtract_adjust")      # BMI: fs_load_addr_2 negative, SBC instead of ADC
+label(0x8A7D, "gbpb_invalid_exit")    # BEQ/fall: A=0 or X>=8 out of range, JMP restore_args
 label(0x8A52, "adjust_addrs_9")        # Adjust 4-byte addresses at param block offset 9
 label(0x8A57, "adjust_addrs_1")        # Adjust 4-byte addresses at param block offset 1
 label(0x8A59, "adjust_addrs_clc")      # CLC entry: clear carry before address adjustment
 label(0x8B1C, "get_disc_title")        # Request disc title via FS function code &15
+label(0x8AB9, "gbpb_write_path")      # BEQ: A=0 write, keeps X=&91/Y=&0B
+label(0x8AF8, "gbpb_read_path")      # BNE: non-zero read, skip write transfer
+label(0x8AFB, "wait_fs_reply")        # BCS/fall: post-transfer, JSR send_fs_reply_cmd
+label(0x8B08, "skip_clear_flag")      # BMI: reply bit 7 set (not EOF), skip clear_fs_flag
+label(0x8B3F, "store_tube_flag")      # BEQ/BNE: store Tube-transfer flag to l00a9
+label(0x8B53, "gbpb6_read_name")      # BEQ: A=0 OSGBPB 6, load CSD/LIB/URD handle
 label(0x8B7F, "copy_reply_to_caller") # Copy FS reply data to caller buffer (direct or via Tube)
+label(0x8B94, "tube_transfer")        # BNE: l00a9 non-zero, claim Tube and send via R3
+label(0x8BA1, "no_page_wrap")         # BNE: no page boundary crossed in copy
+label(0x8BBB, "gbpb_done")            # BEQ: copy/adjust done, JMP return_a_zero
+label(0x8BBE, "gbpb8_read_dir")       # BCS: C=1 OSGBPB 8, read dir entries
+label(0x8BFA, "skip_copy_reply")      # BEQ: zero byte count, skip copy_reply_to_caller
 label(0x8B87, "copy_reply_bytes")     # Copy N bytes of FS reply data to caller buffer
 label(0x8BAF, "wait_tube_delay")      # 6-cycle delay loop between Tube R3 writes
 label(0x8BFC, "zero_cmd_bytes")       # Zero 3 bytes of &0F07 area before address adjustment
@@ -1126,36 +1194,55 @@ label(0x8C13, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 
 # --- FSCV unrecognised * and command matching ---
 label(0x8C24, "scan_cmd_table")        # Outer command-table search loop for * command match
+label(0x8C45, "dispatch_cmd")         # BMI: end-of-name marker, push handler addr/dispatch
 
 # --- *EX and *CAT handlers ---
 label(0x8C72, "init_cat_params")       # Store examine arg count, init catalogue display
 
 # --- Boot command strings and option tables ---
+label(0x8CB0, "print_public")          # BNE: access non-zero (public), print "Public"+CR
+label(0x8CBA, "print_user_env")       # Skip after Owner/Public, print user environment
 label(0x8CE2, "print_option_name")     # Print boot option name until bit-7 terminator
+label(0x8CED, "done_option_name")      # BMI: bit 7 set, option name printing complete
+label(0x8D11, "fetch_dir_batch")       # Loop: store entry offset, issue next examine batch
+label(0x8D33, "process_entries")      # BNE: non-zero entry count, save and process batch
 label(0x8D34, "scan_entry_terminator") # Advance through catalogue entry to bit-7 terminator
 label(0x8D47, "print_reply_bytes")
 label(0x8D49, "print_reply_counted")
 label(0x8D86, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
+label(0x8DB2, "print_cr")               # Column counter wraps/negative, load &0D
 label(0x8DB4, "print_newline")            # Print CR via OSASCI
+label(0x8DB7, "next_dir_entry")        # Always-branch: advance X, loop for next entry
 label(0x8DD0, "divide_subtract")        # Repeated-subtraction division for decimal print
 label(0x8DD9, "print_digit")            # Print decimal digit via JMP OSASCI
 label(0x8DE8, "skip_gs_filename")      # Call GSREAD repeatedly to skip past GS filename string
 label(0x8D9F, "cat_column_separator")    # Print catalogue column separator or newline
 
 # --- *NET sub-command handlers ---
+label(0x8E29, "exec_local")            # BNE: no Tube, execute via indirect JMP locally
+label(0x8E43, "copy_handles_loop")    # SDISC entry: skip boot option byte, X=3 descending
 label(0x8E35, "jmp_restore_args")      # JMP restore_args_return (common FS reply exit)
 label(0x8E7A, "store_handle_return")   # Store handle result to &F0, return
 label(0x8E96, "copy_param_ptr")       # Restore 3-byte param block pointer from (net_rx_ptr)
 label(0x8F3D, "read_fs_handle")       # Read one FS handle from RX data at offset &14
 label(0x8F57, "copy_handles_to_ws")   # Convert handles to bitmasks and store to workspace
 label(0x8FBC, "copy_rxcb_to_param")   # Copy RXCB data from workspace to param block
+label(0x8F11, "set_workspace_page")   # Sub-fn 0-1: use static page &0D, store to &AC
+label(0x8F22, "skip_param_write")     # C=0: skip writing param to workspace
+label(0x8F69, "return_last_error")    # Sub-fn >= 10, bit 7 clear: return last FS error
+label(0x8FA6, "read_rxcb")            # BNE: non-zero RXCB param, skip free-slot scan
+label(0x8FD1, "reenable_rx")          # Common exit: ROL rx_flags, RTS
+label(0x8FFE, "store_txcb_byte")      # BNE: non-zero template byte, skip substitution
 
 # --- Network operations and remote commands ---
 label(0x9015, "copy_fs_addr")          # Copy 3-byte FS station address into RX param block
 label(0x9055, "send_data_bytes")       # Outer loop: fetch and TX successive data bytes
 label(0x9068, "delay_between_tx")      # Spin-delay between consecutive TX packets
+label(0x903E, "handle_tx_result")     # BCS: A>=1, save flags and load RX result
+label(0x9101, "dispatch_remote_osbyte") # Common target for OSBYTE dispatch setup
 label(0x9123, "poll_rxcb_flag")        # Poll RXCB flag waiting for remote OSBYTE reply
 label(0x9162, "copy_osword_params")    # Copy OSWORD parameter bytes from RX buffer to workspace
+label(0x922A, "skip_flush")            # Sequence unchanged, skip flushing output block
 label(0x92C2, "save_palette_entry")    # Per-entry OSWORD &0B palette read and workspace store
 
 # ============================================================
@@ -1170,6 +1257,7 @@ label(0x92C2, "save_palette_entry")    # Per-entry OSWORD &0B palette read and w
 # BRIANC=+&0006 (relinquish NMI), BRIANQ=+&0009 (reclaim NMI),
 # BRIANI=+&000C (unknown interrupt handler)
 label(0x9698, "init_nmi_workspace")     # Init NMI workspace (skip service request)
+label(0x9672, "dispatch_svc5")         # BCS: Y>=&86, push dispatch address via RTS
 label(0x969A, "copy_nmi_shim")        # Copy 32 bytes of NMI shim code from ROM to &0D00
 
 # --- RX scout reception (inbound) ---
@@ -1179,16 +1267,35 @@ label(0x9713, "scout_loop_rda")        # Scout data loop: check RDA
 label(0x9723, "scout_loop_second")     # Scout data loop: read second byte of pair
 label(0x975E, "scout_no_match")        # Scout port/station mismatch (3 refs)
 label(0x9761, "scout_match_port")      # Port non-zero: look for matching RX block
+label(0x96D7, "accept_frame")         # Station ID matched, install next NMI handler
+label(0x96F2, "accept_local_net")     # Network=0: clear broadcast marker
+label(0x96F5, "accept_scout_net")     # Common accept for local/broadcast frames
+label(0x976B, "scan_port_list")        # Non-broadcast: skip CR2 setup, begin port scan
+label(0x9774, "scan_nfs_port_list")   # NFS workspace port list scan entry
+label(0x9778, "check_port_slot")      # Loop: read port control byte, zero=end
+label(0x978C, "check_station_filter") # Port matched: advance to station filter check
+label(0x979E, "next_port_slot")        # Mismatch: advance pointer by 12 for next slot
+label(0x97AB, "discard_no_match")     # No match found: JMP nmi_error_dispatch
+label(0x97AE, "try_nfs_port_list")    # Paged list exhausted: check NFS workspace RX
+label(0x97B9, "port_match_found")      # Station/network passed: record scout_status=3
+label(0x97CB, "send_data_rx_ack")     # Non-broadcast: set up CR1/CR2 for TX ACK
 
 # --- Data frame RX (inbound four-way handshake) ---
 label(0x97DC, "data_rx_setup")         # Switch to RX mode, install data RX handler
 label(0x97FA, "nmi_data_rx_net")       # Data frame: validate dest_net = 0
 label(0x9810, "nmi_data_rx_skip")      # Data frame: skip ctrl/port (already from scout)
 label(0x981B, "install_data_rx_handler") # Select bulk or Tube RX handler
+label(0x982E, "install_tube_rx")      # BNE: Tube active, install Tube RX handler
 label(0x9835, "nmi_error_dispatch")    # NMI error handler dispatch (12 refs)
 label(0x983D, "rx_error")              # RX error dispatcher (13 refs -- most referenced!)
 label(0x983D, "rx_error_reset")        # Full reset and discard
 label(0x98A0, "nmi_data_rx_tube")      # Data frame: Tube co-processor variant
+label(0x9848, "data_rx_loop")          # Loop: check SR2, if RDA continue reading byte pairs
+label(0x9858, "read_sr2_between_pairs") # After page boundary, read SR2 before second byte
+label(0x985F, "read_second_rx_byte")  # BMI: SR2 bit7 set, read second byte from FIFO
+label(0x986F, "check_sr2_loop_again") # After page boundary on second byte, check SR2
+label(0x988E, "read_last_rx_byte")    # Multi-source: check buffer then read trailing byte
+label(0x989D, "send_ack")             # No more data: unconditional JMP ack_tx
 label(0x98A3, "rx_tube_data")         # Poll SR2 RDA and forward byte pairs to Tube R3
 
 # --- Data frame completion and FV validation ---
@@ -1205,27 +1312,40 @@ label(0x994B, "dispatch_nmi_error")    # JMP nmi_error_dispatch for TX failures
 label(0x994E, "advance_rx_buffer_ptr") # Advance RX buffer pointer after transfer
 label(0x9959, "add_rxcb_ptr")         # 4-byte multi-precision add to RXCB buffer pointer
 label(0x9987, "inc_rxcb_ptr")         # Propagate carry through RXCB pointer bytes
+label(0x9992, "skip_tube_update")     # BEQ: Tube flag clear, skip Tube pointer update
+label(0x99B2, "store_buf_ptr_lo")     # BCC: no carry, store updated buffer low byte
+label(0x99BB, "skip_buf_ptr_update")  # BNE: transfer not done, skip buffer ptr write
 label(0x99A4, "rx_complete_update_rxcb") # Complete RX and update RXCB
 label(0x99EB, "install_rx_scout_handler") # Install RX scout NMI handler
 label(0x99F2, "copy_scout_to_buffer")  # Copy scout data to port buffer
 label(0x99FF, "copy_scout_bytes")     # Copy scout data bytes (offsets 4-11) to port buffer
 label(0x99F8, "copy_scout_select")   # Select direct or Tube scout copy path
 label(0x9A2B, "release_tube")          # Release Tube co-processor claim
+label(0x9A0D, "next_scout_byte")       # After page boundary, advance X and loop
 label(0x9A14, "scout_copy_done")       # Finish scout copy, jump to RX completion
+label(0x9A19, "copy_scout_via_tube")  # Tube path: read byte and write to R3
+label(0x9A34, "clear_release_flag")   # BNE: Tube already released, LSR clears flag
 label(0x9A37, "inc_buf_counter_32")    # Increment 32-bit buffer counter
 label(0x9A6E, "scout_page_overflow")   # Handle page overflow during scout copy
 label(0x9A70, "check_scout_done")    # Check if all scout bytes copied
 label(0x9A5D, "rotate_prot_mask")      # Rotate protection mask right to align permission bit
+label(0x9A63, "dispatch_imm_op")      # BNE: ctrl &87/&88 bypass protection, dispatch
+label(0x9A76, "imm_op_out_of_range")  # BCC/BCS: ctrl < &81 or > &88, JMP error dispatch
 label(0x9AE7, "imm_op_build_reply")    # Build immediate operation reply header
 
 # --- TX path ---
 label(0x9B9A, "calc_peek_poke_size")   # 4-byte subtraction for PEEK/POKE transfer size
 label(0x9BBB, "copy_imm_params")      # Copy 4 extra parameter bytes from TXCB to NMI workspace
+label(0x9B86, "tx_imm_op_setup")       # BMI: TXCB bit7 set, store ctrl byte for imm op
+label(0x9BB1, "tx_ctrl_range_check")  # BCS: ctrl >= &83, validate &81-&88 range
+label(0x9BC5, "tx_line_idle_check")   # BNE: port != 0, test SR2 INACTIVE before polling
 label(0x9B6E, "tx_begin")              # Begin TX operation
 label(0x9BDD, "test_inactive_retry")   # Reload INACTIVE mask and retry polling
 label(0x9BE1, "intoff_test_inactive")  # Disable NMIs and test INACTIVE
 label(0x9BE2, "intoff_operand")       # Operand of INTOFF instruction (self-mod target)
+label(0x9BFB, "inactive_retry")       # BEQ: INACTIVE not set, re-enable NMIs/retry
 label(0x9C11, "tx_active_start")       # Begin TX (CR1=&44)
+label(0x9CB0, "setup_unicast_xfer")   # BNE: not broadcast, clear flags/scout_status=2
 label(0x9C21, "tx_no_clock_error")   # Error code &43: "No Clock"
 label(0x9C23, "store_tx_error")      # Store error code to TX control block
 label(0x9C8E, "setup_data_xfer")       # Configure scout length and flags for data transfer
@@ -1233,6 +1353,10 @@ label(0x9CA4, "copy_bcast_addr")      # Copy 8-byte broadcast address data into 
 label(0x9CD2, "tx_fifo_write")        # NMI TX loop: write 2 bytes per iteration to ADLC FIFO
 label(0x9D00, "delay_nmi_disable")    # PHA/PLA delay loop after INTOFF before storing TX result
 label(0x9CF2, "tx_error")              # TX error path
+label(0x9CF6, "tx_fifo_not_ready")    # BVC: TDRA clear, write CR2=&67, error &41
+label(0x9CFD, "tx_store_error")       # BNE: error &42 path, merge with &9CF6
+label(0x9D21, "check_handshake_bit")  # BVC: tx_flags bit6 clear, check bit0
+label(0x9D2B, "install_reply_scout")  # BEQ: handshake bit0 clear, install nmi_reply_scout
 
 # --- RX reply scout (outbound handshake) ---
 # 3.35K label reply_error ($9DED) — mapped to tx_result_fail ($9F1A) in 3.40
@@ -1240,11 +1364,18 @@ label(0x9D58, "reject_reply")          # Reject invalid reply scout frame
 
 # --- TX scout ACK + data phase ---
 label(0x9DB3, "data_tx_begin")         # Begin data frame TX
+label(0x9DC1, "install_imm_data_nmi")  # BNE: tx_flags bit1 set, install nmi_imm_data
 label(0x9DCD, "data_tx_check_fifo")   # Test TDRA and write data byte pair to FIFO
+label(0x9DDD, "write_second_tx_byte") # BNE: skip page check, write second FIFO byte
+label(0x9DED, "check_irq_loop")       # BNE: skip page check, test SR1 IRQ for loop
 label(0x9DF5, "data_tx_last")          # TX_LAST_DATA for data frame (5 refs)
 label(0x9E06, "data_tx_error")         # Data TX error (5 refs)
 label(0x9E06, "install_saved_handler") # Install handler from &0D4B/&0D4C
 label(0x9E0F, "nmi_data_tx_tube")      # NMI: send data from Tube
+label(0x9E12, "tube_tx_fifo_write")    # BMI: IRQ set, Tube TX FIFO write entry point
+label(0x9E2A, "write_second_tube_byte") # BNE: skip carry, read/write second Tube byte
+label(0x9E40, "check_tube_irq_loop")  # BNE: skip carry, test SR1 IRQ for loop
+label(0x9E48, "tx_tdra_error")        # BVC: TDRA check failed, inspect tx_flags
 label(0x9E38, "tube_tx_inc_byte3")    # Tube TX buffer counter byte 3 increment
 label(0x9E39, "tube_tx_inc_operand") # Operand of Tube TX counter increment (self-mod)
 label(0x9E41, "tube_tx_sr1_operand") # Operand of Tube TX SR1 test (self-mod)
@@ -1253,15 +1384,20 @@ label(0x9E41, "tube_tx_sr1_operand") # Operand of Tube TX SR1 test (self-mod)
 label(0x9E70, "nmi_final_ack_net")     # Read dest_net, validate
 
 # --- Completion and error ---
+label(0x9EA1, "check_fv_final_ack")    # BPL: tx_flags bit7 clear, test FV for frame end
 label(0x9EE6, "calc_transfer_size")    # 4-byte subtraction to calculate actual bytes received
+label(0x9F16, "restore_x_and_return") # BCC: Tube not claimed, restore X/RTS
+label(0x9F19, "fallback_calc_transfer") # BEQ: no buffer/Tube, simple 2-byte subtract
 label(0x9EAC, "tx_result_fail")        # Store result=&41 (not listening) (9 refs)
 
+label(0x9F5C, "poll_nmi_idle")          # BNE: spin reading nmi_jmp until idle (&96BF)
 label(0x9F57, "wait_idle_and_reset")   # Wait for idle NMI state and reset Econet
 label(0x9F7A, "reset_enter_listen")  # Reset Econet flags and enter RX listen mode
 label(0x9F7C, "listen_jmp_hi")       # High byte of JMP adlc_rx_listen (self-mod target)
 
 # --- NMI shim at end of ROM ---
 label(0x9F3C, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
+label(0x9FAE, "add_ascii_base")        # BCC: nibble 0-9, ADC #&30 converts to ASCII
 # label(0x9FFA, "rom_nmi_tail") — removed: truncated code at ROM end
 
 # ============================================================
