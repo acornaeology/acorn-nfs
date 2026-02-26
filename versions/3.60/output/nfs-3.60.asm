@@ -315,9 +315,9 @@ oscli                                   = &fff7
     bit tube_status_1_and_tube_control                                ; 9351: 2c e0 fe    ,.. :0046[1]   ; Re-check R1: WRCH has priority over R2
     bmi tube_handle_wrch                                              ; 9354: 30 f0       0.  :0049[1]   ; R1 ready: handle WRCH first
     ldx tube_data_register_2                                          ; 9356: ae e3 fe    ... :004b[1]   ; Read command byte from Tube R2 data
-    stx l0051                                                         ; 9359: 86 51       .Q  :004e[1]   ; Self-modify JMP low byte for dispatch
+    stx tube_cmd_lo                                                   ; 9359: 86 51       .Q  :004e[1]   ; Self-modify JMP low byte for dispatch
 .tube_dispatch_cmd
-l0051 = tube_dispatch_cmd+1
+tube_cmd_lo = tube_dispatch_cmd+1
     jmp (tube_dispatch_table)                                         ; 935b: 6c 00 05    l.. :0050[1]   ; Dispatch to handler via indirect JMP
 
 ; &935c referenced 1 time by &004e[1]
@@ -325,13 +325,13 @@ l0051 = tube_dispatch_cmd+1
 .tube_transfer_addr
     equb 0                                                            ; 935e: 00          .   :0053[1]
 ; &935f referenced 3 times by &04b6[2], &04d4[2], &04f3[2]
-.l0054
+.tube_xfer_page
     equb &80                                                          ; 935f: 80          .   :0054[1]
 ; &9360 referenced 2 times by &04ba[2], &04fd[2]
-.l0055
+.tube_xfer_addr_2
     equb 0                                                            ; 9360: 00          .   :0055[1]
 ; &9361 referenced 2 times by &04be[2], &04fb[2]
-.l0056
+.tube_xfer_addr_3
     equb 0                                                            ; 9361: 00          .   :0056[1]
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -441,7 +441,7 @@ l0051 = tube_dispatch_cmd+1
     bpl loop_c0446                                                    ; 93ae: 10 f8       ..  :044c[2]   ; Loop for all 4 address bytes
     ldy #&18                                                          ; 93b0: a0 18       ..  :044e[2]   ; Y=&18: enable Tube control register
     sty tube_status_1_and_tube_control                                ; 93b2: 8c e0 fe    ... :0450[2]   ; Enable Tube interrupt generation
-    lda l0518,x                                                       ; 93b5: bd 18 05    ... :0453[2]   ; Look up Tube control bits for this xfer type
+    lda tube_ctrl_values,x                                            ; 93b5: bd 18 05    ... :0453[2]   ; Look up Tube control bits for this xfer type
     sta tube_status_1_and_tube_control                                ; 93b8: 8d e0 fe    ... :0456[2]   ; Apply transfer-specific control bits
     lsr a                                                             ; 93bb: 4a          J   :0459[2]   ; LSR: check bit 2 (2-byte flush needed?)
     lsr a                                                             ; 93bc: 4a          J   :045a[2]   ; LSR: shift bit 2 to carry
@@ -521,11 +521,11 @@ l0051 = tube_dispatch_cmd+1
     nop                                                               ; 9414: ea          .   :04b2[2]   ; NOP delay (3)
     iny                                                               ; 9415: c8          .   :04b3[2]   ; Next byte in page
     bne loop_c04ab                                                    ; 9416: d0 f5       ..  :04b4[2]   ; Loop for all 256 bytes
-    inc l0054                                                         ; 9418: e6 54       .T  :04b6[2]   ; Increment 24-bit destination addr
+    inc tube_xfer_page                                                ; 9418: e6 54       .T  :04b6[2]   ; Increment 24-bit destination addr
     bne c04c0                                                         ; 941a: d0 06       ..  :04b8[2]   ; No carry: skip higher bytes
-    inc l0055                                                         ; 941c: e6 55       .U  :04ba[2]   ; Carry into second byte
+    inc tube_xfer_addr_2                                              ; 941c: e6 55       .U  :04ba[2]   ; Carry into second byte
     bne c04c0                                                         ; 941e: d0 02       ..  :04bc[2]   ; No carry: skip third byte
-    inc l0056                                                         ; 9420: e6 56       .V  :04be[2]   ; Carry into third byte
+    inc tube_xfer_addr_3                                              ; 9420: e6 56       .V  :04be[2]   ; Carry into third byte
 ; &9422 referenced 2 times by &04b8[2], &04bc[2]
 .c04c0
     inc l0001                                                         ; 9422: e6 01       ..  :04c0[2]   ; Increment page counter
@@ -558,7 +558,7 @@ l0051 = tube_dispatch_cmd+1
 ; &9434 referenced 2 times by &049f[2], &04c6[2]
 .tube_init_reloc
     lda #&80                                                          ; 9434: a9 80       ..  :04d2[2]   ; Init: start sending from &8000
-    sta l0054                                                         ; 9436: 85 54       .T  :04d4[2]   ; Store &80 as source page high byte
+    sta tube_xfer_page                                                ; 9436: 85 54       .T  :04d4[2]   ; Store &80 as source page high byte
     sta l0001                                                         ; 9438: 85 01       ..  :04d6[2]   ; Store &80 as page counter initial value
     lda #&20 ; ' '                                                    ; 943a: a9 20       .   :04d8[2]   ; A=&20: bit 5 mask for ROM type check
     and rom_type                                                      ; 943c: 2d 06 80    -.. :04da[2]   ; ROM type bit 5: reloc address in header?
@@ -571,16 +571,16 @@ l0051 = tube_dispatch_cmd+1
     inx                                                               ; 9447: e8          .   :04e5[2]   ; Skip past null-terminated copyright string
     lda rom_header,x                                                  ; 9448: bd 00 80    ... :04e6[2]   ; Load next byte from ROM header
     bne loop_c04e5                                                    ; 944b: d0 fa       ..  :04e9[2]   ; Loop until null terminator found
-    lda l8001,x                                                       ; 944d: bd 01 80    ... :04eb[2]   ; Read 4-byte reloc address from ROM header
+    lda language_handler_lo,x                                         ; 944d: bd 01 80    ... :04eb[2]   ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; 9450: 85 53       .S  :04ee[2]   ; Store reloc addr byte 1 as transfer addr
-    lda l8002,x                                                       ; 9452: bd 02 80    ... :04f0[2]   ; Load reloc addr byte 2
-    sta l0054                                                         ; 9455: 85 54       .T  :04f3[2]   ; Store as source page start
+    lda language_handler_hi,x                                         ; 9452: bd 02 80    ... :04f0[2]   ; Load reloc addr byte 2
+    sta tube_xfer_page                                                ; 9455: 85 54       .T  :04f3[2]   ; Store as source page start
     ldy service_entry,x                                               ; 9457: bc 03 80    ... :04f5[2]   ; Load reloc addr byte 3
-    lda l8004,x                                                       ; 945a: bd 04 80    ... :04f8[2]   ; Load reloc addr byte 4 (highest)
+    lda service_handler_lo,x                                          ; 945a: bd 04 80    ... :04f8[2]   ; Load reloc addr byte 4 (highest)
 ; &945d referenced 1 time by &04e0[2]
 .c04fb
-    sta l0056                                                         ; 945d: 85 56       .V  :04fb[2]   ; Store high byte of end address
-    sty l0055                                                         ; 945f: 84 55       .U  :04fd[2]   ; Store byte 3 of end address
+    sta tube_xfer_addr_3                                              ; 945d: 85 56       .V  :04fb[2]   ; Store high byte of end address
+    sty tube_xfer_addr_2                                              ; 945f: 84 55       .U  :04fd[2]   ; Store byte 3 of end address
     rts                                                               ; 9461: 60          `   :04ff[2]   ; Return with pointers initialised
 
 
@@ -625,7 +625,7 @@ l0051 = tube_dispatch_cmd+1
     equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; 9462: 37 05 96... 7.. :0500[3]
     equb &2d, 5, &20, 5, &42, 5, &a9, 5, &d1, 5                       ; 9470: 2d 05 20... -.  :050e[3]
 ; &947a referenced 1 time by &0453[2]
-.l0518
+.tube_ctrl_values
     equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 947a: 86 88 96... ... :0518[3]
 
 .tube_osbput
@@ -800,7 +800,7 @@ l0051 = tube_dispatch_cmd+1
 ; Move 4: &9562 to &0600 for length 256
     org &0600
 ; &9562 referenced 1 time by &816e
-.l0600
+.tube_page6_start
     equb &fb                                                          ; 9562: fb          .   :0600[4]
 
     stx tube_data_register_2                                          ; 9563: 8e e3 fe    ... :0601[4]   ; Send X result for 2-param OSBYTE
@@ -990,14 +990,14 @@ l0051 = tube_dispatch_cmd+1
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock l0600, *, l9562
+    copyblock tube_page6_start, *, l9562
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear l0600, &0700
+    clear tube_page6_start, &0700
 
     ; Set the program counter to the next position in the binary file.
-    org l9562 + (* - l0600)
+    org l9562 + (* - tube_page6_start)
 
 
     org &8000
@@ -1065,15 +1065,15 @@ l0051 = tube_dispatch_cmd+1
 .pydis_start
 .rom_header
 .language_entry
-l8001 = rom_header+1
-l8002 = rom_header+2
+language_handler_lo = rom_header+1
+language_handler_hi = rom_header+2
     jmp language_handler                                              ; 8000: 4c e1 80    L..
 
 ; &8001 referenced 1 time by &04eb[2]
 ; &8002 referenced 1 time by &04f0[2]
 ; &8003 referenced 1 time by &04f5[2]
 .service_entry
-l8004 = service_entry+1
+service_handler_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c f7 80    L..
 
 ; &8004 referenced 1 time by &04f8[2]
@@ -1498,7 +1498,7 @@ l8004 = service_entry+1
     lda l9462,y                                                       ; 8165: b9 62 94    .b.            ; Load ROM byte from page &94
     sta tube_dispatch_table,y                                         ; 8168: 99 00 05    ...            ; Store to page &05 (dispatch table)
     lda l9562,y                                                       ; 816b: b9 62 95    .b.            ; Load ROM byte from page &95
-    sta l0600,y                                                       ; 816e: 99 00 06    ...            ; Store to page &06
+    sta tube_page6_start,y                                            ; 816e: 99 00 06    ...            ; Store to page &06
     dey                                                               ; 8171: 88          .              ; DEY wraps 0 -> &FF on first iteration
     bne cloop                                                         ; 8172: d0 eb       ..             ; Loop until 256 bytes copied per page
     jsr tube_post_init                                                ; 8174: 20 21 04     !.            ; Run post-init routine in copied code
@@ -1759,7 +1759,7 @@ l8004 = service_entry+1
     ldy #&0d                                                          ; 8264: a0 0d       ..             ; Copy 14 bytes: FS vector addresses to FILEV-FSCV
 ; &8266 referenced 1 time by &826d
 .loop_c8266
-    lda l829a,y                                                       ; 8266: b9 9a 82    ...            ; Load extended vector dispatch address
+    lda fs_dispatch_addrs,y                                           ; 8266: b9 9a 82    ...            ; Load extended vector dispatch address
     sta filev,y                                                       ; 8269: 99 12 02    ...            ; Write to FILEV-FSCV vector table
     dey                                                               ; 826c: 88          .              ; Next byte (descending)
     bpl loop_c8266                                                    ; 826d: 10 f7       ..             ; Loop until all 14 bytes copied
@@ -1825,7 +1825,7 @@ l8004 = service_entry+1
 .fs_vector_addrs
     equb &54, &0d                                                     ; 8298: 54 0d       T.             ; Auto-boot string tail / NETV handler data
 ; &829a referenced 1 time by &8266
-.l829a
+.fs_dispatch_addrs
     equb &1b, &ff                                                     ; 829a: 1b ff       ..             ; FILEV dispatch (&FF1B)
     equb &1e, &ff                                                     ; 829c: 1e ff       ..             ; ARGSV dispatch (&FF1E)
     equb &21, &ff                                                     ; 829e: 21 ff       !.             ; BGETV dispatch (&FF21)
@@ -2097,7 +2097,7 @@ l8004 = service_entry+1
 .tx_ctrl_template
     equb &80, &99, 0, 0, 0, &0f                                       ; 83ad: 80 99 00... ...
 ; &83b3 referenced 3 times by &891c, &89fb, &9183
-.l83b3
+.tx_ctrl_upper
     equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 83b3: ff ff ff... ...
 
 ; &83b9 referenced 1 time by &8ac3
@@ -2592,14 +2592,14 @@ l8004 = service_entry+1
     php                                                               ; 8570: 08          .              ; Save flags for EOF check
     lda l00cf                                                         ; 8571: a5 cf       ..             ; Load BGET result byte
     plp                                                               ; 8573: 28          (              ; Restore flags
-    bmi l8579                                                         ; 8574: 30 03       0.             ; Bit7 set: skip FS flag clear
+    bmi bgetv_shared_jsr                                              ; 8574: 30 03       0.             ; Bit7 set: skip FS flag clear
     jsr clear_fs_flag                                                 ; 8576: 20 d5 86     ..            ; Clear FS flag for handle
 ; &8579 referenced 1 time by &8574
-.l8579
+.bgetv_shared_jsr
     equb &20                                                          ; 8579: 20
-.l857a
-return_4 = l857a+5
-error_msg_table = l857a+6
+.error_table_base
+return_4 = error_table_base+5
+error_msg_table = error_table_base+6
     equs &d0, &86, &ad, &de, &0f, "`", &a0, "Line Jammed", 0          ; 857a: d0 86 ad... ...
 ; &857f referenced 1 time by &856d
 ; Econet error message table (ERRTAB, 7 entries).
@@ -3636,7 +3636,7 @@ error_msg_table = l857a+6
     ldy #&14                                                          ; 891a: a0 14       ..             ; Y=&14: fn code for FCDEL (delete)
 ; &891c referenced 1 time by &8915
 .c891c
-    bit l83b3                                                         ; 891c: 2c b3 83    ,..            ; Set V=1 (BIT trick: &B3 has bit 6 set)
+    bit tx_ctrl_upper                                                 ; 891c: 2c b3 83    ,..            ; Set V=1 (BIT trick: &B3 has bit 6 set)
     jsr init_tx_ctrl_data                                             ; 891f: 20 c8 83     ..            ; Send via prepare_fs_cmd_v (V=1 path)
 ; &8922 referenced 1 time by &88d8
 .c8922
@@ -3844,7 +3844,7 @@ error_msg_table = l857a+6
     ldx #2                                                            ; 89f4: a2 02       ..             ; X=2: copy after 2-byte flags
     jsr copy_string_to_cmd                                            ; 89f6: 20 84 8d     ..            ; Copy filename to FS command buffer
     ldy #6                                                            ; 89f9: a0 06       ..             ; Y=6: FS function code FCOPEN
-    bit l83b3                                                         ; 89fb: 2c b3 83    ,..            ; Set V flag from l83b3 bit 6
+    bit tx_ctrl_upper                                                 ; 89fb: 2c b3 83    ,..            ; Set V flag from l83b3 bit 6
     jsr init_tx_ctrl_data                                             ; 89fe: 20 c8 83     ..            ; Build and send FS open command
     bcs restore_xy_return                                             ; 8a01: b0 b2       ..             ; Error: restore and return
     lda fs_cmd_data                                                   ; 8a03: ad 05 0f    ...            ; Load reply handle from FS
@@ -4316,7 +4316,7 @@ error_msg_table = l857a+6
 ; &8c45 referenced 1 time by &8c2b
 .c8c45
     pha                                                               ; 8c45: 48          H              ; Push handler address high byte
-    lda l8c4c,x                                                       ; 8c46: bd 4c 8c    .L.            ; Load handler address low byte
+    lda cmd_match_data,x                                              ; 8c46: bd 4c 8c    .L.            ; Load handler address low byte
     pha                                                               ; 8c49: 48          H              ; Push handler address low byte
     rts                                                               ; 8c4a: 60          `              ; Dispatch via RTS (addr-1 on stack)
 
@@ -4338,7 +4338,7 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &8c4b referenced 2 times by &8c28, &8c35
 .fs_cmd_match_table
-l8c4c = fs_cmd_match_table+1
+cmd_match_data = fs_cmd_match_table+1
     eor #&2e ; '.'                                                    ; 8c4b: 49 2e       I.             ; Match last char against '.' for *I. abbreviation
 ; &8c4c referenced 1 time by &8c46
     equb &80, &c0                                                     ; 8c4d: 80 c0       ..
@@ -4433,10 +4433,10 @@ l8c4c = fs_cmd_match_table+1
     jsr print_inline                                                  ; 8cda: 20 5c 86     \.            ; Print ' ('
     equs " ("                                                         ; 8cdd: 20 28        (
 
-    ldy l8d54,x                                                       ; 8cdf: bc 54 8d    .T.            ; Load string offset for option name
+    ldy option_name_offsets,x                                         ; 8cdf: bc 54 8d    .T.            ; Load string offset for option name
 ; &8ce2 referenced 1 time by &8ceb
 .loop_c8ce2
-    lda l8d54,y                                                       ; 8ce2: b9 54 8d    .T.            ; Load character from option name string
+    lda option_name_offsets,y                                         ; 8ce2: b9 54 8d    .T.            ; Load character from option name string
     bmi c8ced                                                         ; 8ce5: 30 06       0.             ; Bit7 set: string terminated, done
     jsr osasci                                                        ; 8ce7: 20 e3 ff     ..            ; Write character
     iny                                                               ; 8cea: c8          .              ; Next character
@@ -4508,7 +4508,7 @@ l8c4c = fs_cmd_match_table+1
     rts                                                               ; 8d53: 60          `
 
 ; &8d54 referenced 2 times by &8cdf, &8ce2
-.l8d54
+.option_name_offsets
     equs "+>f"                                                        ; 8d54: 2b 3e 66    +>f
     equb &18                                                          ; 8d57: 18          .
     equs "L.!"                                                        ; 8d58: 4c 2e 21    L.!
@@ -4547,7 +4547,7 @@ l8c4c = fs_cmd_match_table+1
 .boot_option_offsets
     equb &0d                                                          ; 8d67: 0d          .
 ; &8d68 referenced 1 time by &8e4b
-.l8d68
+.boot_string_offsets
     equb &67                                                          ; 8d68: 67          g              ; Opt 0 (Off): bare CR at &8D67
     equb &58                                                          ; 8d69: 58          X              ; Opt 1 (Load): L.!BOOT at &8D58
     equb &5a                                                          ; 8d6a: 5a          Z              ; Opt 2 (Run): !BOOT at &8D5A
@@ -4837,7 +4837,7 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 .boot_cmd_execute
     ldy fs_boot_option                                                ; 8e48: ac 05 0e    ...            ; Y = boot option from FS workspace
-    ldx l8d68,y                                                       ; 8e4b: be 68 8d    .h.            ; X = command string offset from table
+    ldx boot_string_offsets,y                                         ; 8e4b: be 68 8d    .h.            ; X = command string offset from table
     ldy #&8d                                                          ; 8e4e: a0 8d       ..             ; Y = &8D (high byte of command address)
     jmp oscli                                                         ; 8e50: 4c f7 ff    L..            ; Execute boot command string via OSCLI
 
@@ -4977,7 +4977,7 @@ l8c4c = fs_cmd_match_table+1
     tax                                                               ; 8e9f: aa          .              ; X = sub-function code for table lookup
     lda fs_osword_tbl_hi,x                                            ; 8ea0: bd bd 8e    ...            ; Load handler address high byte from table
     pha                                                               ; 8ea3: 48          H              ; Push high byte for RTS dispatch
-    lda l8eb8,x                                                       ; 8ea4: bd b8 8e    ...            ; Load handler address low byte from table
+    lda osword_handler_lo,x                                           ; 8ea4: bd b8 8e    ...            ; Load handler address low byte from table
 .fs_osword_tbl_lo
     pha                                                               ; 8ea7: 48          H              ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
     ldy #2                                                            ; 8ea8: a0 02       ..             ; Y=2: save 3 bytes (&AA-&AC)
@@ -4995,7 +4995,7 @@ l8c4c = fs_cmd_match_table+1
     rts                                                               ; 8eb7: 60          `              ; RTS dispatches to pushed handler address
 
 ; &8eb8 referenced 1 time by &8ea4
-.l8eb8
+.osword_handler_lo
     equb <(osword_0f_handler-1)                                       ; 8eb8: c1          .
     equb <(osword_10_handler-1)                                       ; 8eb9: 7b          {
     equb <(osword_11_handler-1)                                       ; 8eba: db          .
@@ -5083,7 +5083,7 @@ l8c4c = fs_cmd_match_table+1
     rts                                                               ; 8efe: 60          `              ; Return
 
 ; &8eff referenced 1 time by &8f13
-.l8eff
+.osword_12_offsets
     equb &ff, 1                                                       ; 8eff: ff 01       ..
 
 ; ***************************************************************************************
@@ -5108,7 +5108,7 @@ l8c4c = fs_cmd_match_table+1
 ; &8f11 referenced 1 time by &8f0d
 .c8f11
     stx l00ac                                                         ; 8f11: 86 ac       ..             ; Store workspace page in &AC (hi byte)
-    lda l8eff,y                                                       ; 8f13: b9 ff 8e    ...            ; Load offset: &FF (sub 0-1) or &01 (sub 2-3)
+    lda osword_12_offsets,y                                           ; 8f13: b9 ff 8e    ...            ; Load offset: &FF (sub 0-1) or &01 (sub 2-3)
     sta l00ab                                                         ; 8f16: 85 ab       ..             ; Store offset in &AB (lo byte)
     ldx #1                                                            ; 8f18: a2 01       ..             ; X=1: copy 2 bytes
     ldy #1                                                            ; 8f1a: a0 01       ..             ; Y=1: start at param block offset 1
@@ -5663,7 +5663,7 @@ l8c4c = fs_cmd_match_table+1
 
 ; &913c referenced 3 times by &90f2, &90fb, &9142
 .match_osbyte_code
-    cmp l9145,x                                                       ; 913c: dd 45 91    .E.            ; Compare OSBYTE code with table entry
+    cmp remote_osbyte_table,x                                         ; 913c: dd 45 91    .E.            ; Compare OSBYTE code with table entry
     beq return_match_osbyte                                           ; 913f: f0 03       ..             ; Match found: return with Z=1
     dex                                                               ; 9141: ca          .              ; Next table entry (descending)
     bpl match_osbyte_code                                             ; 9142: 10 f8       ..             ; Loop for remaining entries
@@ -5672,7 +5672,7 @@ l8c4c = fs_cmd_match_table+1
     rts                                                               ; 9144: 60          `              ; Return; Z=1 if match, Z=0 if not
 
 ; &9145 referenced 1 time by &913c
-.l9145
+.remote_osbyte_table
     equb   4,   9, &0a, &15, &9a, &9b, &e1, &e2, &e3, &e4, &0b, &0c   ; 9145: 04 09 0a... ...
     equb &0f, &79, &7a                                                ; 9151: 0f 79 7a    .yz
 
@@ -5733,7 +5733,7 @@ l8c4c = fs_cmd_match_table+1
 .ctrl_block_setup_alt
     ldx #&0d                                                          ; 917f: a2 0d       ..             ; X=&0D: template offset for alt entry
     ldy #&7c ; '|'                                                    ; 9181: a0 7c       .|             ; Y=&7C: target workspace offset for alt entry
-    bit l83b3                                                         ; 9183: 2c b3 83    ,..            ; BIT test: V flag = bit 6 of &83B3
+    bit tx_ctrl_upper                                                 ; 9183: 2c b3 83    ,..            ; BIT test: V flag = bit 6 of &83B3
     bvs cbset2                                                        ; 9186: 70 05       p.             ; V=1: store to (net_rx_ptr) instead
 ; ***************************************************************************************
 ; Control block setup — main entry
@@ -5759,9 +5759,9 @@ l8c4c = fs_cmd_match_table+1
 .cbset2
     lda ctrl_block_template,x                                         ; 918d: bd b4 91    ...            ; Load template byte from ctrl_block_template[X]
     cmp #&fe                                                          ; 9190: c9 fe       ..             ; &FE = stop sentinel
-    beq l91b0                                                         ; 9192: f0 1c       ..             ; End of template: jump to exit
+    beq cb_template_tail                                              ; 9192: f0 1c       ..             ; End of template: jump to exit
     cmp #&fd                                                          ; 9194: c9 fd       ..             ; &FD = skip sentinel
-    beq l91ac                                                         ; 9196: f0 14       ..             ; Skip: don't store, just decrement Y
+    beq cb_template_main_start                                        ; 9196: f0 14       ..             ; Skip: don't store, just decrement Y
     cmp #&fc                                                          ; 9198: c9 fc       ..             ; &FC = page byte sentinel
     bne cbset3                                                        ; 919a: d0 08       ..             ; Not sentinel: store template value directly
     equb &a5                                                          ; 919c: a5          .
@@ -5784,13 +5784,13 @@ l8c4c = fs_cmd_match_table+1
     equb &91                                                          ; 91aa: 91          .              ; Alt-path only → Y=&70; → Y=&0A / Y=&7C
     equb &9c                                                          ; 91ab: 9c          .              ; STOP — main-path boundary
 ; &91ac referenced 1 time by &9196
-.l91ac
+.cb_template_main_start
     equb &88                                                          ; 91ac: 88          .              ; SKIP; → Y=&0C (main only)
     equb &ca                                                          ; 91ad: ca          .              ; → Y=&01 / Y=&73; → Y=&0D (main only)
     equb &10                                                          ; 91ae: 10          .
     equb &dd                                                          ; 91af: dd          .              ; SKIP (main only)
 ; &91b0 referenced 1 time by &9192
-.l91b0
+.cb_template_tail
     equb &c8                                                          ; 91b0: c8          .              ; → Y=&10 (main only)
     equb &84                                                          ; 91b1: 84          .
     equb &9a                                                          ; 91b2: 9a          .
@@ -6115,7 +6115,7 @@ l8c4c = fs_cmd_match_table+1
     ldy l00ad                                                         ; 930a: a4 ad       ..             ; Index into OSBYTE number table
     inc l00ad                                                         ; 930c: e6 ad       ..             ; Next table entry next time
     inc nfs_workspace                                                 ; 930e: e6 9e       ..             ; Advance workspace pointer
-    lda l931e,y                                                       ; 9310: b9 1e 93    ...            ; Read OSBYTE number from table
+    lda vdu_osbyte_table,y                                            ; 9310: b9 1e 93    ...            ; Read OSBYTE number from table
     ldy #&ff                                                          ; 9313: a0 ff       ..             ; Y=&FF: read current value
     jsr osbyte                                                        ; 9315: 20 f4 ff     ..            ; Call OSBYTE
     txa                                                               ; 9318: 8a          .              ; Result in X to A
@@ -6124,7 +6124,7 @@ l8c4c = fs_cmd_match_table+1
     rts                                                               ; 931d: 60          `
 
 ; &931e referenced 1 time by &9310
-.l931e
+.vdu_osbyte_table
     equb &85, &c2, &c3                                                ; 931e: 85 c2 c3    ...
 ; &9321 referenced 1 time by &8179
 
@@ -6142,7 +6142,7 @@ l8c4c = fs_cmd_match_table+1
 .c9672
     lda #&9b                                                          ; 9672: a9 9b       ..
     pha                                                               ; 9674: 48          H
-    lda l9a9d,y                                                       ; 9675: b9 9d 9a    ...
+    lda svc5_dispatch_lo,y                                            ; 9675: b9 9d 9a    ...
     pha                                                               ; 9678: 48          H
 .svc_5_unknown_irq
     rts                                                               ; 9679: 60          `
@@ -6194,7 +6194,7 @@ l8c4c = fs_cmd_match_table+1
     ldy #&20 ; ' '                                                    ; 9698: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
 ; &969a referenced 1 time by &96a1
 .loop_c969a
-    lda l9f7c,y                                                       ; 969a: b9 7c 9f    .|.            ; Read byte from NMI shim ROM source
+    lda listen_jmp_hi,y                                               ; 969a: b9 7c 9f    .|.            ; Read byte from NMI shim ROM source
     sta l0cff,y                                                       ; 969d: 99 ff 0c    ...            ; Write to NMI shim RAM at &0D00
     dey                                                               ; 96a0: 88          .              ; Next byte (descending)
     bne loop_c969a                                                    ; 96a1: d0 f7       ..             ; Loop until all 32 bytes copied
@@ -7057,7 +7057,7 @@ l8c4c = fs_cmd_match_table+1
     equb &a3, &a5, &9d, &85, &a5, &a0,   3, &b9, &41, &0d, &99, &58   ; 9a8c: a3 a5 9d... ...
     equb &0d, &88, &10, &f7, &4c                                      ; 9a98: 0d 88 10... ...
 ; &9a9d referenced 1 time by &9675
-.l9a9d
+.svc5_dispatch_lo
     equb &cb, &97                                                     ; 9a9d: cb 97       ..
 ; ***************************************************************************************
 ; RX immediate: POKE setup
@@ -7293,7 +7293,7 @@ l8c4c = fs_cmd_match_table+1
 ; for INACTIVE before proceeding with TX.
 ; ***************************************************************************************
 .intoff_test_inactive
-l9be2 = intoff_test_inactive+1
+intoff_operand = intoff_test_inactive+1
     bit station_id_disable_net_nmis                                   ; 9be1: 2c 18 fe    ,..            ; INTOFF -- disable NMIs
 ; &9be2 referenced 1 time by &9c5e
     bit station_id_disable_net_nmis                                   ; 9be4: 2c 18 fe    ,..            ; INTOFF again (belt-and-braces)
@@ -7378,13 +7378,13 @@ l9be2 = intoff_test_inactive+1
     lda tx_port                                                       ; 9c47: ad 25 0d    .%.            ; Load destination port number
     bne setup_data_xfer                                               ; 9c4a: d0 42       .B             ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 9c4c: ac 24 0d    .$.            ; Port 0: load control byte for table lookup
-    lda l9e41,y                                                       ; 9c4f: b9 41 9e    .A.            ; Look up tx_flags from table
+    lda tube_tx_sr1_operand,y                                         ; 9c4f: b9 41 9e    .A.            ; Look up tx_flags from table
     sta tx_flags                                                      ; 9c52: 8d 4a 0d    .J.            ; Store operation flags
-    lda l9e39,y                                                       ; 9c55: b9 39 9e    .9.            ; Look up tx_length from table
+    lda tube_tx_inc_operand,y                                         ; 9c55: b9 39 9e    .9.            ; Look up tx_length from table
     sta tx_length                                                     ; 9c58: 8d 50 0d    .P.            ; Store expected transfer length
     lda #&9c                                                          ; 9c5b: a9 9c       ..             ; Push high byte of return address (&9C)
     pha                                                               ; 9c5d: 48          H              ; Push high byte for PHA/PHA/RTS dispatch
-    lda l9be2,y                                                       ; 9c5e: b9 e2 9b    ...            ; Look up handler address low from table
+    lda intoff_operand,y                                              ; 9c5e: b9 e2 9b    ...            ; Look up handler address low from table
     pha                                                               ; 9c61: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9c62: 60          `              ; RTS dispatches to control-byte handler
 
@@ -7755,7 +7755,7 @@ l9be2 = intoff_test_inactive+1
     inc port_buf_len_hi                                               ; 9e34: e6 a3       ..             ; Carry into second byte
     bne c9e40                                                         ; 9e36: d0 08       ..             ; No further carry
 .tube_tx_inc_byte3
-l9e39 = tube_tx_inc_byte3+1
+tube_tx_inc_operand = tube_tx_inc_byte3+1
     inc open_port_buf                                                 ; 9e38: e6 a4       ..             ; Carry into third byte
 ; &9e39 referenced 1 time by &9c55
     bne c9e40                                                         ; 9e3a: d0 04       ..             ; No further carry
@@ -7763,7 +7763,7 @@ l9e39 = tube_tx_inc_byte3+1
     beq data_tx_last                                                  ; 9e3e: f0 b5       ..             ; Counter wrapped to zero: last data
 ; &9e40 referenced 3 times by &9e32, &9e36, &9e3a
 .c9e40
-l9e41 = c9e40+1
+tube_tx_sr1_operand = c9e40+1
     bit econet_control1_or_status1                                    ; 9e40: 2c a0 fe    ,..            ; BIT SR1: test IRQ for tight loop
 ; &9e41 referenced 1 time by &9c4f
     bmi c9e12                                                         ; 9e43: 30 cd       0.             ; IRQ still set: write 2 more bytes
@@ -8034,7 +8034,7 @@ l9e41 = c9e40+1
     ldy #5                                                            ; 9f78: a0 05       ..             ; Y=5: service call workspace page
 ; &9f7a referenced 1 time by &9f5a
 .reset_enter_listen
-l9f7c = reset_enter_listen+2
+listen_jmp_hi = reset_enter_listen+2
     jmp adlc_rx_listen                                                ; 9f7a: 4c 4c 9f    LL.            ; Set ADLC to RX listen mode
 
 ; &9f7c referenced 1 time by &969a
@@ -8357,13 +8357,11 @@ save pydis_start, pydis_end
 ;     inc_buf_counter_32:                       3
 ;     incpx:                                    3
 ;     l0003:                                    3
-;     l0054:                                    3
 ;     l00af:                                    3
 ;     l00b7:                                    3
 ;     l00ba:                                    3
 ;     l00cf:                                    3
 ;     l0df0:                                    3
-;     l83b3:                                    3
 ;     match_osbyte_code:                        3
 ;     nmi_jmp_hi:                               3
 ;     nmi_jmp_lo:                               3
@@ -8386,7 +8384,9 @@ save pydis_start, pydis_end
 ;     tube_data_register_1:                     3
 ;     tube_read_string:                         3
 ;     tube_reply_ack:                           3
+;     tube_xfer_page:                           3
 ;     tx_active_start:                          3
+;     tx_ctrl_upper:                            3
 ;     tx_index:                                 3
 ;     ack_tx:                                   2
 ;     adjust_addrs:                             2
@@ -8458,8 +8458,6 @@ save pydis_start, pydis_end
 ;     l0002:                                    2
 ;     l0012:                                    2
 ;     l0014:                                    2
-;     l0055:                                    2
-;     l0056:                                    2
 ;     l00b5:                                    2
 ;     l00f1:                                    2
 ;     l00f3:                                    2
@@ -8474,12 +8472,12 @@ save pydis_start, pydis_end
 ;     l0f11:                                    2
 ;     l0f12:                                    2
 ;     l0fdf:                                    2
-;     l8d54:                                    2
 ;     load_handle_calc_offset:                  2
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
 ;     nlisne:                                   2
 ;     num01:                                    2
+;     option_name_offsets:                      2
 ;     osarg1:                                   2
 ;     osfind:                                   2
 ;     osrdch:                                   2
@@ -8531,6 +8529,8 @@ save pydis_start, pydis_end
 ;     tube_rdch_reply:                          2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
+;     tube_xfer_addr_2:                         2
+;     tube_xfer_addr_3:                         2
 ;     tx_calc_transfer:                         2
 ;     tx_ctrl_byte:                             2
 ;     tx_port:                                  2
@@ -8554,6 +8554,8 @@ save pydis_start, pydis_end
 ;     argsw:                                    1
 ;     attrib_shift_bits:                        1
 ;     bgetv_entry:                              1
+;     bgetv_shared_jsr:                         1
+;     boot_string_offsets:                      1
 ;     brkv:                                     1
 ;     bspsx:                                    1
 ;     bsxl0:                                    1
@@ -8663,6 +8665,8 @@ save pydis_start, pydis_end
 ;     c9f16:                                    1
 ;     c9fae:                                    1
 ;     cat_column_separator:                     1
+;     cb_template_main_start:                   1
+;     cb_template_tail:                         1
 ;     cbset2:                                   1
 ;     cbset3:                                   1
 ;     cha4:                                     1
@@ -8678,6 +8682,7 @@ save pydis_start, pydis_end
 ;     close_handle:                             1
 ;     close_opt_return:                         1
 ;     close_single_handle:                      1
+;     cmd_match_data:                           1
 ;     copy_filename_ptr:                        1
 ;     copy_fs_reply_to_cb:                      1
 ;     copy_params_rword:                        1
@@ -8715,6 +8720,7 @@ save pydis_start, pydis_end
 ;     floop:                                    1
 ;     fs2al1:                                   1
 ;     fs_cmd_type:                              1
+;     fs_dispatch_addrs:                        1
 ;     fs_osword_dispatch:                       1
 ;     fs_osword_tbl_hi:                         1
 ;     fs_wait_cleanup:                          1
@@ -8747,9 +8753,9 @@ save pydis_start, pydis_end
 ;     initl:                                    1
 ;     install_data_rx_handler:                  1
 ;     install_saved_handler:                    1
+;     intoff_operand:                           1
 ;     issue_vectors_claimed:                    1
 ;     l0013:                                    1
-;     l0051:                                    1
 ;     l00ae:                                    1
 ;     l00c2:                                    1
 ;     l00c7:                                    1
@@ -8758,8 +8764,6 @@ save pydis_start, pydis_end
 ;     l0350:                                    1
 ;     l0351:                                    1
 ;     l0355:                                    1
-;     l0518:                                    1
-;     l0600:                                    1
 ;     l0cff:                                    1
 ;     l0de6:                                    1
 ;     l0dfe:                                    1
@@ -8777,28 +8781,13 @@ save pydis_start, pydis_end
 ;     l0fde:                                    1
 ;     l0fe0:                                    1
 ;     l4:                                       1
-;     l8001:                                    1
-;     l8002:                                    1
-;     l8004:                                    1
-;     l829a:                                    1
-;     l8579:                                    1
-;     l8c4c:                                    1
-;     l8d68:                                    1
-;     l8eb8:                                    1
-;     l8eff:                                    1
-;     l9145:                                    1
-;     l91ac:                                    1
-;     l91b0:                                    1
-;     l931e:                                    1
 ;     l9462:                                    1
 ;     l9562:                                    1
-;     l9a9d:                                    1
-;     l9be2:                                    1
-;     l9e39:                                    1
-;     l9e41:                                    1
-;     l9f7c:                                    1
 ;     language_entry:                           1
 ;     language_handler:                         1
+;     language_handler_hi:                      1
+;     language_handler_lo:                      1
+;     listen_jmp_hi:                            1
 ;     loadop:                                   1
 ;     lodchk:                                   1
 ;     lodfil:                                   1
@@ -8898,6 +8887,8 @@ save pydis_start, pydis_end
 ;     osfile:                                   1
 ;     osgbpb:                                   1
 ;     osgbpb_info:                              1
+;     osword_12_offsets:                        1
+;     osword_handler_lo:                        1
 ;     osword_tbl_hi:                            1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1
@@ -8916,6 +8907,7 @@ save pydis_start, pydis_end
 ;     read_vdu_osbyte:                          1
 ;     read_vdu_osbyte_x0:                       1
 ;     readry:                                   1
+;     remote_osbyte_table:                      1
 ;     reset_enter_listen:                       1
 ;     return_10:                                1
 ;     return_2:                                 1
@@ -8953,6 +8945,7 @@ save pydis_start, pydis_end
 ;     send_fs_examine:                          1
 ;     service_entry:                            1
 ;     service_handler:                          1
+;     service_handler_lo:                       1
 ;     set_listen_offset:                        1
 ;     set_messages_flag:                        1
 ;     setup1:                                   1
@@ -8969,6 +8962,7 @@ save pydis_start, pydis_end
 ;     strnh:                                    1
 ;     sub_4_from_y:                             1
 ;     sub_c9633:                                1
+;     svc5_dispatch_lo:                         1
 ;     svc_dispatch_range:                       1
 ;     svc_unhandled_return:                     1
 ;     tbcop1:                                   1
@@ -8977,7 +8971,9 @@ save pydis_start, pydis_end
 ;     tube_brk_handler:                         1
 ;     tube_brk_send_loop:                       1
 ;     tube_claim_default:                       1
+;     tube_cmd_lo:                              1
 ;     tube_code_page4:                          1
+;     tube_ctrl_values:                         1
 ;     tube_data_register_4:                     1
 ;     tube_escape_check:                        1
 ;     tube_handle_wrch:                         1
@@ -8986,6 +8982,7 @@ save pydis_start, pydis_end
 ;     tube_osword_read:                         1
 ;     tube_osword_write:                        1
 ;     tube_osword_write_lp:                     1
+;     tube_page6_start:                         1
 ;     tube_poll_r2:                             1
 ;     tube_post_init:                           1
 ;     tube_rdln_send_line:                      1
@@ -8996,6 +8993,8 @@ save pydis_start, pydis_end
 ;     tube_send_error_byte:                     1
 ;     tube_sendw_complete:                      1
 ;     tube_transfer_setup:                      1
+;     tube_tx_inc_operand:                      1
+;     tube_tx_sr1_operand:                      1
 ;     tx_begin:                                 1
 ;     tx_ctrl_exit:                             1
 ;     tx_ctrl_template:                         1
@@ -9007,6 +9006,7 @@ save pydis_start, pydis_end
 ;     tx_prepare:                               1
 ;     tx_src_net:                               1
 ;     update_sequence_return:                   1
+;     vdu_osbyte_table:                         1
 ;     wait_idle_and_reset:                      1
 ;     y2fsl2:                                   1
 ;     y2fsl5:                                   1
@@ -9159,10 +9159,6 @@ save pydis_start, pydis_end
 ;     l0013
 ;     l0014
 ;     l0015
-;     l0051
-;     l0054
-;     l0055
-;     l0056
 ;     l0099
 ;     l00a8
 ;     l00a9
@@ -9202,8 +9198,6 @@ save pydis_start, pydis_end
 ;     l0350
 ;     l0351
 ;     l0355
-;     l0518
-;     l0600
 ;     l0700
 ;     l0cff
 ;     l0d11
@@ -9231,29 +9225,8 @@ save pydis_start, pydis_end
 ;     l0fde
 ;     l0fdf
 ;     l0fe0
-;     l8001
-;     l8002
-;     l8004
-;     l829a
-;     l83b3
-;     l8579
-;     l857a
-;     l8c4c
-;     l8d54
-;     l8d68
-;     l8eb8
-;     l8eff
-;     l9145
-;     l91ac
-;     l91b0
-;     l931e
 ;     l9462
 ;     l9562
-;     l9a9d
-;     l9be2
-;     l9e39
-;     l9e41
-;     l9f7c
 ;     loop_c0446
 ;     loop_c0466
 ;     loop_c04ab

@@ -320,7 +320,11 @@ label(0x0036, "tube_main_loop")      # Poll R1 (WRCH) and R2 (commands), dispatc
 label(0x003B, "tube_handle_wrch")    # R1 data ready: read byte, call OSWRITCH (&FFCB)
 label(0x0041, "tube_poll_r2")        # Poll R2 status; if ready, read command and dispatch
 label(0x0050, "tube_dispatch_cmd")   # JMP (&0500) — dispatch to handler via table
+label(0x0051, "tube_cmd_lo")         # Self-modifying: dispatch JMP low byte operand
 label(0x0053, "tube_transfer_addr")  # 4-byte transfer start address (written by address claim)
+label(0x0054, "tube_xfer_page")      # Transfer source page high byte (&80 default)
+label(0x0055, "tube_xfer_addr_2")    # Transfer address byte 2
+label(0x0056, "tube_xfer_addr_3")    # Transfer address byte 3
 entry(0x0016)
 entry(0x0032)
 entry(0x0036)
@@ -544,6 +548,7 @@ label(0x0582, "tube_read_string")     # Read CR-terminated string from R2 into &
 label(0x0596, "tube_oscli")           # OSCLI: read command string, call &FFF7
 label(0x059C, "tube_reply_ack")       # Send &7F acknowledge, return to main loop
 label(0x059E, "tube_reply_byte")      # Poll R2, send byte in A, return to main loop
+label(0x0518, "tube_ctrl_values")     # 8-byte Tube control register lookup table
 label(0x05A9, "tube_osfile")          # OSFILE: read 16 params+filename+reason, call &FFDD
 # Dispatch table entry points (12 entries in 3.60, see table above)
 for addr in [0x0537, 0x0596, 0x05F2, 0x0607, 0x0627, 0x0668,
@@ -694,6 +699,7 @@ label(0x06A7, "tube_escape_check")    # Check &FF escape flag, forward to Tube v
 label(0x06AD, "tube_event_handler")   # EVNTV target: forward event (A,X,Y) to Tube via R1
 label(0x06BC, "tube_send_r1")         # Poll R1 status, write A to R1 data (ESCA in reference)
 label(0x05FC, "tube_poll_r2_result")  # Poll R2 status before sending result
+label(0x0600, "tube_page6_start")    # First byte of page 6 relocated Tube code
 label(0x06C5, "tube_read_r2")         # Poll R2 status, read R2 data into A
 entry(0x0600)
 entry(0x0625)
@@ -722,6 +728,9 @@ trick that shares ROM bytes between the copyright
 string and the star command table.""")
 
 # ROM header: copyright string and error offset table
+label(0x8001, "language_handler_lo")  # JMP operand: language handler address low byte
+label(0x8002, "language_handler_hi")  # JMP operand: language handler address high byte
+label(0x8004, "service_handler_lo")   # JMP operand: service handler address low byte
 label(0x8011, "copyright_string")
 label(0x8018, "error_offsets")
 
@@ -766,6 +775,7 @@ label(0x9218, "toggle_print_flag")    # Toggle print-active flag and update PFLA
 label(0x9154, "remote_osword_handler") # NETVEC fn 8: remote OSWORD (NWORD)
 label(0x913C, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
 label(0x9144, "return_match_osbyte") # Return from match_osbyte_code
+label(0x9145, "remote_osbyte_table") # OSBYTE codes accepted for remote execution
 label(0x84A0, "return_remote_cmd")   # Return from remote command data handler
 comment(0x84A1, "Read escape flag from MOS workspace", inline=True)
 comment(0x84A3, "Mask with escapable: bit 7 set if active", inline=True)
@@ -787,6 +797,7 @@ label(0x92F0, "clear_jsr_protection") # CLRJSR: reset JSR buffer protection bits
 # Palette/VDU state save
 label(0x9308, "read_vdu_osbyte_x0")  # Read next VDU OSBYTE with X=0 parameter
 label(0x930A, "read_vdu_osbyte")     # Read next OSBYTE from table, store result in workspace
+label(0x931E, "vdu_osbyte_table")   # OSBYTE numbers for VDU state save (&85, &C2, &C3)
 
 # ADLC initialisation and state management
 
@@ -825,8 +836,11 @@ label(0x857F, "return_4")
 label(0x8D91, "return_5")
 label(0x8E66, "return_6")
 label(0x8EB7, "return_7")
+label(0x8EB8, "osword_handler_lo")   # OSWORD handler dispatch low bytes (&0F-&13)
 label(0x9070, "return_8")
 label(0x8D53, "return_9")
+label(0x8D54, "option_name_offsets") # Boot option name offset table (4 bytes)
+label(0x8D68, "boot_string_offsets") # Boot option OSCLI string offset table
 label(0x9994, "return_10")
 
 # --- Service call handlers ---
@@ -885,6 +899,8 @@ entry(0x06D1)
 # Labels and entry points for FSCV, FILEV, ARGSV, FINDV, GBPBV
 # are created by subroutine() calls below in the comment sections.
 label(0x8563, "bgetv_handler")          # BGETV entry: SEC then JSR handle_bput_bget
+label(0x8579, "bgetv_shared_jsr")      # Embedded JSR opcode: code-sharing with error table
+label(0x857A, "error_table_base")      # Base address for error message table pointers
 label(0x8413, "bputv_handler")          # BPUTV entry: CLC then fall into handle_bput_bget
 entry(0x8563)
 entry(0x8413)
@@ -1146,6 +1162,7 @@ label(0x9AE7, "imm_op_build_reply")    # Build immediate operation reply header
 label(0x9B6E, "tx_begin")              # Begin TX operation
 label(0x9BDD, "test_inactive_retry")   # Reload INACTIVE mask and retry polling
 label(0x9BE1, "intoff_test_inactive")  # Disable NMIs and test INACTIVE
+label(0x9BE2, "intoff_operand")       # Operand of INTOFF instruction (self-mod target)
 label(0x9C11, "tx_active_start")       # Begin TX (CR1=&44)
 label(0x9C21, "tx_no_clock_error")   # Error code &43: "No Clock"
 label(0x9C23, "store_tx_error")      # Store error code to TX control block
@@ -1164,6 +1181,8 @@ label(0x9E06, "data_tx_error")         # Data TX error (5 refs)
 label(0x9E06, "install_saved_handler") # Install handler from &0D4B/&0D4C
 label(0x9E0F, "nmi_data_tx_tube")      # NMI: send data from Tube
 label(0x9E38, "tube_tx_inc_byte3")    # Tube TX buffer counter byte 3 increment
+label(0x9E39, "tube_tx_inc_operand") # Operand of Tube TX counter increment (self-mod)
+label(0x9E41, "tube_tx_sr1_operand") # Operand of Tube TX SR1 test (self-mod)
 
 # --- Four-way handshake: RX final ACK ---
 label(0x9E70, "nmi_final_ack_net")     # Read dest_net, validate
@@ -1173,6 +1192,7 @@ label(0x9EAC, "tx_result_fail")        # Store result=&41 (not listening) (9 ref
 
 label(0x9F57, "wait_idle_and_reset")   # Wait for idle NMI state and reset Econet
 label(0x9F7A, "reset_enter_listen")  # Reset Econet flags and enter RX listen mode
+label(0x9F7C, "listen_jmp_hi")       # High byte of JMP adlc_rx_listen (self-mod target)
 
 # --- NMI shim at end of ROM ---
 label(0x9F3C, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
@@ -1200,9 +1220,11 @@ label(0x81E7, "skpspi")               # NFS01: skip SPI
 
 # --- FS command dispatch (&82xx-&83xx) ---
 label(0x8250, "dofsl1")               # NFS03: do FS loop 1
+label(0x829A, "fs_dispatch_addrs")   # FS vector dispatch addresses (FILEV-FSCV)
 label(0x8353, "fsdiel")               # NFS01: FS die loop
 label(0x8398, "fstxl1")               # NFS03: FS TX loop 1
 label(0x83A8, "fstxl2")               # NFS03: FS TX loop 2
+label(0x83B3, "tx_ctrl_upper")       # TX control template upper half (high bytes/masks)
 label(0x83FB, "dofsl7")               # NFS03: do FS loop 7
 label(0x8407, "return_dofsl7")        # NFS03: return from FS loop 7
 label(0x8408, "dofsl5")               # NFS03: do FS loop 5
@@ -1262,6 +1284,7 @@ label(0x8BA6, "tbcop1")               # NFS06: Tube copy loop 1
 label(0x8C26, "decfir")               # NFS07: decimal first digit
 label(0x8C28, "decmor")               # NFS07: decimal more digits
 label(0x8C34, "decmin")               # NFS07: decimal minimum
+label(0x8C4C, "cmd_match_data")      # FS command match table data byte
 
 # --- Logon and *NET (&8Dxx) ---
 label(0x8E3D, "logon2")               # NFS07: logon handler 2
@@ -1274,6 +1297,7 @@ label(0x8E78, "rxpol2")               # NFS08: RX poll loop 2
 label(0x8EAA, "save1")                # NFS08: save handler 1
 # copyl3 label deleted in 3.60; dispatch table restructured.
 label(0x8EFC, "readry")               # NFS08: read ready
+label(0x8EFF, "osword_12_offsets")   # OSWORD &12 sub-function offset table
 label(0x8F2B, "rssl1")                # NFS08: read size/status loop 1
 label(0x8F36, "rssl2")                # NFS08: read size/status loop 2
 label(0x8F46, "rsl1")                 # NFS08: read status loop 1
@@ -1298,6 +1322,8 @@ label(0x84B8, "remot1")               # NFS03: remote handler 1
 label(0x918D, "cbset2")               # NFS09: control block set 2
 label(0x91A4, "cbset3")               # NFS09: control block set 3
 label(0x91AA, "cbset4")               # NFS09: control block set 4
+label(0x91AC, "cb_template_main_start") # Control block template: main-path section
+label(0x91B0, "cb_template_tail")    # Control block template: tail section
 label(0x91E7, "setup1")               # NFS09: setup 1
 label(0x91E9, "return_printer_select") # NFS09: return from printer_select_handler
 label(0x91F9, "prlp1")                # NFS09: printer loop 1
@@ -1663,6 +1689,7 @@ for i in range(9):
 label(0x9A45, "return_inc_port_buf")
 
 label(0x9A80, "rx_imm_exec")
+label(0x9A9D, "svc5_dispatch_lo")    # Service 5 (unknown IRQ) dispatch low bytes
 subroutine(0x9A80, hook=None,
     title="RX immediate: JSR/UserProc/OSProc setup",
     description="""\
