@@ -2554,17 +2554,13 @@ comment(0x855C, "Restore saved rx_flags from stack", inline=True)
 comment(0x8560, "A=saved func code; zero would mean no reply", inline=True)
 
 # ============================================================
-# Check escape (&851D)
+# Check escape (&8562)
 # ============================================================
 subroutine(0x8562, "check_escape", hook=None,
     title="Check and handle escape condition (ESC)",
     description="""\
-Stub: bare RTS in 3.60. In earlier versions (3.34-3.35K), this
-contained the full two-level escape gating logic (MOS escape flag
-ANDed with the ESCAP software enable). In 3.60 the escape check
-is inlined into the callers (sub_c84a1 at &84A1 and the
-tx_poll_core retry loop), leaving this as a no-op placeholder
-that preserves the fall-through entry point for bgetv_handler.""")
+Dead code: bare RTS with no callers. The escape check is inlined
+into callers (sub_c84a1 at &84A1 and the tx_poll_core retry loop).""")
 
 # 3.35K fix comments at $8526/$8568 — addresses shifted in 3.40;
 # these fixes originated in 3.35K and are present in 3.40 but at

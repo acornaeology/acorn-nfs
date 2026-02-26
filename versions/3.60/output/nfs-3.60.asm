@@ -2509,12 +2509,8 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Check and handle escape condition (ESC)
 ; 
-; Stub: bare RTS in 3.60. In earlier versions (3.34-3.35K), this
-; contained the full two-level escape gating logic (MOS escape flag
-; ANDed with the ESCAP software enable). In 3.60 the escape check
-; is inlined into the callers (sub_c84a1 at &84A1 and the
-; tx_poll_core retry loop), leaving this as a no-op placeholder
-; that preserves the fall-through entry point for bgetv_handler.
+; Dead code: bare RTS with no callers. The escape check is inlined
+; into callers (sub_c84a1 at &84A1 and the tx_poll_core retry loop).
 ; ***************************************************************************************
 .check_escape
     rts                                                               ; 8562: 60          `

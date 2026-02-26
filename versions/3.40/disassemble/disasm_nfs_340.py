@@ -2346,14 +2346,8 @@ checks for escape conditions between blocks.""")
 subroutine(0x854C, "check_escape", hook=None,
     title="Check and handle escape condition (ESC)",
     description="""\
-Checks the MOS escape flag (&FF bit 7); if set, acknowledges via
-OSBYTE &7E, stores zero into the TX control block via (net_tx_ptr),
-and branches to the NLISTN error path.
-
-The entry point at &854C is a bare RTS — dead code with no callers,
-left over from 3.35K where check_escape started here. In 3.40 the
-active entry moved to &854D (check_escape_handler) which is called
-directly by send_to_fs, tx_poll_core, and compare_addresses.""")
+Dead code: bare RTS with no callers. The active escape check
+entry is check_escape_handler (&854D).""")
 label(0x854D, "check_escape_handler")
 
 # 3.35K fix comments at $8526/$8568 — addresses shifted in 3.40;
