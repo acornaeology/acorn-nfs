@@ -1227,7 +1227,7 @@ l8004 = service_entry+1
 ; &80ad referenced 1 time by &80ba
 .loop_c80ad
     jsr osrdch                                                        ; 80ad: 20 e0 ff     ..            ; Read a character from the current input stream
-    jsr sub_c854d                                                     ; 80b0: 20 4d 85     M.
+    jsr check_escape_handler                                          ; 80b0: 20 4d 85     M.
     sta fs_cmd_data,y                                                 ; 80b3: 99 05 0f    ...
     iny                                                               ; 80b6: c8          .
     inx                                                               ; 80b7: e8          .
@@ -2426,7 +2426,7 @@ l8004 = service_entry+1
     tsx                                                               ; 852c: ba          .
 ; &852d referenced 3 times by &8537, &853c, &8541
 .c852d
-    jsr sub_c854d                                                     ; 852d: 20 4d 85     M.
+    jsr check_escape_handler                                          ; 852d: 20 4d 85     M.
 .incpx
     lda (net_tx_ptr),y                                                ; 8530: b1 9a       ..
     bmi fs_wait_cleanup                                               ; 8532: 30 0f       0.
@@ -2447,18 +2447,20 @@ l8004 = service_entry+1
 ; ***************************************************************************************
 ; Check and handle escape condition (ESC)
 ; 
-; Stub: bare RTS in 3.40. In earlier versions (3.34-3.35K), this
-; contained the full two-level escape gating logic (MOS escape flag
-; ANDed with the ESCAP software enable). In 3.40 the escape check
-; moved to sub_c854d (&854D), which is entered directly by callers
-; — check_escape itself has no references and is dead code that
-; preserves the fall-through entry point for bgetv_handler.
+; Checks the MOS escape flag (&FF bit 7); if set, acknowledges via
+; OSBYTE &7E, stores zero into the TX control block via (net_tx_ptr),
+; and branches to the NLISTN error path.
+; 
+; The entry point at &854C is a bare RTS — dead code with no callers,
+; left over from 3.35K where check_escape started here. In 3.40 the
+; active entry moved to &854D (check_escape_handler) which is called
+; directly by send_to_fs, tx_poll_core, and compare_addresses.
 ; ***************************************************************************************
 .check_escape
     rts                                                               ; 854c: 60          `
 
 ; &854d referenced 3 times by &80b0, &852d, &86b7
-.sub_c854d
+.check_escape_handler
     bit l00ff                                                         ; 854d: 24 ff       $.
     bpl return_4                                                      ; 854f: 10 27       .'
     lda #osbyte_acknowledge_escape                                    ; 8551: a9 7e       .~
@@ -2940,7 +2942,7 @@ l8004 = service_entry+1
     bpl c86d3                                                         ; 86b2: 10 1f       ..
     asl a                                                             ; 86b4: 0a          .
     beq c86cf                                                         ; 86b5: f0 18       ..
-    jsr sub_c854d                                                     ; 86b7: 20 4d 85     M.
+    jsr check_escape_handler                                          ; 86b7: 20 4d 85     M.
     pla                                                               ; 86ba: 68          h
     tax                                                               ; 86bb: aa          .
     pla                                                               ; 86bc: 68          h
@@ -8236,6 +8238,7 @@ save pydis_start, pydis_end
 ;     c9e9c:                                    3
 ;     c9eb2:                                    3
 ;     calc_handle_offset:                       3
+;     check_escape_handler:                     3
 ;     clear_fs_flag:                            3
 ;     data_rx_complete:                         3
 ;     data_rx_tube_error:                       3
@@ -8275,7 +8278,6 @@ save pydis_start, pydis_end
 ;     saved_jsr_mask:                           3
 ;     scout_no_match:                           3
 ;     setup_tx_and_send:                        3
-;     sub_c854d:                                3
 ;     tube_claim_loop:                          3
 ;     tube_data_register_1:                     3
 ;     tube_read_string:                         3
@@ -9302,7 +9304,6 @@ save pydis_start, pydis_end
 ;     sub_c04c4
 ;     sub_c04cb
 ;     sub_c8383
-;     sub_c854d
 ;     sub_c8679
 ;     sub_c86d7
 ;     sub_c86e3

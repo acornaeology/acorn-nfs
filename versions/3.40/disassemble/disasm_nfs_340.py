@@ -2346,23 +2346,23 @@ checks for escape conditions between blocks.""")
 subroutine(0x854C, "check_escape", hook=None,
     title="Check and handle escape condition (ESC)",
     description="""\
-Stub: bare RTS in 3.40. In earlier versions (3.34-3.35K), this
-contained the full two-level escape gating logic (MOS escape flag
-ANDed with the ESCAP software enable). In 3.40 the escape check
-moved to sub_c854d (&854D), which is entered directly by callers
-— check_escape itself has no references and is dead code that
-preserves the fall-through entry point for bgetv_handler.""")
+Checks the MOS escape flag (&FF bit 7); if set, acknowledges via
+OSBYTE &7E, stores zero into the TX control block via (net_tx_ptr),
+and branches to the NLISTN error path.
+
+The entry point at &854C is a bare RTS — dead code with no callers,
+left over from 3.35K where check_escape started here. In 3.40 the
+active entry moved to &854D (check_escape_handler) which is called
+directly by send_to_fs, tx_poll_core, and compare_addresses.""")
+label(0x854D, "check_escape_handler")
 
 # 3.35K fix comments at $8526/$8568 — addresses shifted in 3.40;
 # these fixes originated in 3.35K and are present in 3.40 but at
 # different addresses (will be confirmed after code tracing).
 
 # ============================================================
-# Error message table (&854D)
+# Error message table (&8579)
 # ============================================================
-# N.B. This is data, not code — we use label() not subroutine()
-# to avoid entry() tracing from &854D, where the &A0 error code
-# byte would be misinterpreted as LDY #imm.
 label(0x8579, "error_msg_table")
 comment(0x8579, """\
 Econet error message table (ERRTAB, 7 entries).
