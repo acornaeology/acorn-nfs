@@ -274,7 +274,7 @@ oscli                                   = &fff7
 ;   5. Falls through to tube_reset_stack → tube_main_loop
 ; The main loop continuously polls R1 for WRCH requests (forwarded
 ; to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
-; 14-entry table at &0500). The R2 command byte is stored at &55
+; 12-entry table at &0500). The R2 command byte is stored at &55
 ; before dispatch via JMP (&0500).
 ; ***************************************************************************************
 ; &931c referenced 1 time by &8178
@@ -365,9 +365,7 @@ l0051 = tube_dispatch_cmd+1
 ;   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
 ;   &0414: tube_post_init — called after ROM→RAM copy
 ;   &0473: BEGIN — startup/CLI entry, break type check
-;   &04E7: tube_rdch_handler — RDCHV target
-;   &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
-;   &04F7: tube_read_r2 — poll R2 status, read data byte to A
+;   &04D2: sub_c04d2 — extract relocation address from ROM table
 ; ***************************************************************************************
 ; &935d referenced 1 time by &815e
 .tube_code_page4
@@ -533,7 +531,6 @@ l0051 = tube_dispatch_cmd+1
     lda rom_header,x                                                  ; 943c: bd 00 80    ... :04df[2]
     bne loop_c04de                                                    ; 943f: d0 fa       ..  :04e2[2]
     lda l8001,x                                                       ; 9441: bd 01 80    ... :04e4[2]
-.tube_rdch_handler
     sta tube_transfer_addr                                            ; 9444: 85 53       .S  :04e7[2]
     lda l8002,x                                                       ; 9446: bd 02 80    ... :04e9[2]
     sta l0054                                                         ; 9449: 85 54       .T  :04ec[2]
@@ -566,22 +563,21 @@ l0051 = tube_dispatch_cmd+1
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
 ; Copied from ROM at &944D during init. Contains:
-;   &0500: tube_dispatch_table — 14-entry handler address table
-;   &051C: tube_wrch_handler — WRCHV target
-;   &051F: tube_send_and_poll — send byte via R2, poll for reply
-;   &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
-;   &053D: tube_release_return — restore regs and RTS
-;   &0543: tube_osbput — write byte to file
-;   &0550: tube_osbget — read byte from file
-;   &055B: tube_osrdch — read character
-;   &0569: tube_osfind — open file
-;   &0580: tube_osfind_close — close file (A=0)
-;   &058C: tube_osargs — file argument read/write
-;   &05B1: tube_read_string — read CR-terminated string into &0700
-;   &05C5: tube_oscli — execute * command
-;   &05CB: tube_reply_ack — send &7F acknowledge
-;   &05CD: tube_reply_byte — send byte and return to main loop
-;   &05D8: tube_osfile — whole file operation
+;   &0500: tube_dispatch_table — 12-entry handler address table
+;   &0518: R2 command byte table — 8 even command bytes (&00-&0E)
+;   &0520: tube_osbput — write byte to file
+;   &052D: tube_osbget — read byte from file
+;   &0537: tube_osrdch — read character
+;   &053A: tube_rdch_reply — ROR carry into byte, send via R2
+;   &053D: tube_release_return — dead code (was dispatch entry 7 in 3.34)
+;   &0542: tube_osfind — open file
+;   &0552: tube_osfind_close — close file (A=0)
+;   &055E: tube_osargs — file argument read/write
+;   &0582: tube_read_string — read CR-terminated string into &0700
+;   &0596: tube_oscli — execute * command
+;   &059C: tube_reply_ack — send &7F acknowledge
+;   &059E: tube_reply_byte — send byte and return to main loop
+;   &05A9: tube_osfile — whole file operation
 ; ***************************************************************************************
 ; &9456 referenced 2 times by &0050[1], &8164
 .tube_dispatch_table
@@ -612,8 +608,9 @@ l0051 = tube_dispatch_cmd+1
     ror a                                                             ; 9490: 6a          j   :053a[3]
 ; Overlapping code: bytes &053B-&053D (20 95 06) are
 ; JSR tube_send_r2 when falling through from ROR A
-; above, but dispatch entry 7 jumps to &053D where
-; byte &06 becomes the ASL opcode instead.
+; above. In 3.34, dispatch entry 7 jumped to &053D
+; where byte &06 becomes ASL; in 3.40 that entry was
+; removed and tube_release_return at &053D is dead code.
     equb &20, &95                                                     ; 9491: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
 .tube_release_return

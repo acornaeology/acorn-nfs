@@ -54,8 +54,6 @@ load(0x8000, _rom_filepath, "6502")
 #
 # Vectors set up during init:
 #   BRKV  = &0016 (in workspace block — BRK/error handler)
-#   RDCHV = &04E7 (in page 4 — RDCH handler)
-#   WRCHV = &051C (in page 5 — WRCH handler)
 #   EVNTV = &06E8 (in page 6 — event handler)
 
 # BRK handler + NMI workspace init code (&9308 → &0016-&0076)
@@ -333,19 +331,18 @@ label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in refe
 label(0x041E, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
 label(0x042F, "return_tube_init")    # Return from tube_post_init path
 label(0x047C, "return_tube_xfer")   # Return from tube transfer/setup
-# 3.35K label tube_setup_transfer ($04E0) — Tube code rewritten in 3.40
-label(0x04E7, "tube_rdch_handler")   # RDCHV target — send &01 via R2, enter main loop
-# 3.35K labels tube_restore_regs ($04EF), tube_read_r2 ($04F7) — Tube code rewritten
+# 3.35K labels tube_setup_transfer ($04E0), tube_rdch_handler ($04E7),
+# tube_restore_regs ($04EF), tube_read_r2 ($04F7) — Tube code rewritten in 3.40.
+# RDCHV is no longer claimed; &04E7 is now mid-flow in address extraction.
 entry(0x0400)
 entry(0x0403)
 entry(0x0406)
 entry(0x041E)
-entry(0x04E7)
 
 # Relocated code — page 5 (Tube dispatch table, WRCH, file I/O handlers)
 # Reference: NFS13 (TASKS table, BPUT, BGET, RDCHZ, FIND, ARGS, STRNG, CLI, FILE)
 #
-# &0500-&051B: 14-entry dispatch table of word addresses.
+# &0500-&051B: 12-entry dispatch table of word addresses.
 # JMP (&0500) at &0054 dispatches Tube commands; the address claim
 # protocol at &0406 patches &0500-&0501 with the target handler address.
 #
@@ -376,8 +373,9 @@ label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
 comment(0x053B, """\
 Overlapping code: bytes &053B-&053D (20 95 06) are
 JSR tube_send_r2 when falling through from ROR A
-above, but dispatch entry 7 jumps to &053D where
-byte &06 becomes the ASL opcode instead.""")
+above. In 3.34, dispatch entry 7 jumped to &053D
+where byte &06 becomes ASL; in 3.40 that entry was
+removed and tube_release_return at &053D is dead code.""")
 comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
 label(0x0552, "tube_osfind_close")    # OSFIND close: read handle, call &FFCE with A=0
@@ -3495,7 +3493,7 @@ Sends error information to the Tube co-processor via R2 and R4:
   5. Falls through to tube_reset_stack → tube_main_loop
 The main loop continuously polls R1 for WRCH requests (forwarded
 to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
-14-entry table at &0500). The R2 command byte is stored at &55
+12-entry table at &0500). The R2 command byte is stored at &55
 before dispatch via JMP (&0500).""")
 
 subroutine(0x0400, "tube_code_page4", hook=None,
@@ -3509,30 +3507,27 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
   &0414: tube_post_init — called after ROM→RAM copy
   &0473: BEGIN — startup/CLI entry, break type check
-  &04E7: tube_rdch_handler — RDCHV target
-  &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
-  &04F7: tube_read_r2 — poll R2 status, read data byte to A""")
+  &04D2: sub_c04d2 — extract relocation address from ROM table""")
 
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
 Copied from ROM at &944D during init. Contains:
-  &0500: tube_dispatch_table — 14-entry handler address table
-  &051C: tube_wrch_handler — WRCHV target
-  &051F: tube_send_and_poll — send byte via R2, poll for reply
-  &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
-  &053D: tube_release_return — restore regs and RTS
-  &0543: tube_osbput — write byte to file
-  &0550: tube_osbget — read byte from file
-  &055B: tube_osrdch — read character
-  &0569: tube_osfind — open file
-  &0580: tube_osfind_close — close file (A=0)
-  &058C: tube_osargs — file argument read/write
-  &05B1: tube_read_string — read CR-terminated string into &0700
-  &05C5: tube_oscli — execute * command
-  &05CB: tube_reply_ack — send &7F acknowledge
-  &05CD: tube_reply_byte — send byte and return to main loop
-  &05D8: tube_osfile — whole file operation""")
+  &0500: tube_dispatch_table — 12-entry handler address table
+  &0518: R2 command byte table — 8 even command bytes (&00-&0E)
+  &0520: tube_osbput — write byte to file
+  &052D: tube_osbget — read byte from file
+  &0537: tube_osrdch — read character
+  &053A: tube_rdch_reply — ROR carry into byte, send via R2
+  &053D: tube_release_return — dead code (was dispatch entry 7 in 3.34)
+  &0542: tube_osfind — open file
+  &0552: tube_osfind_close — close file (A=0)
+  &055E: tube_osargs — file argument read/write
+  &0582: tube_read_string — read CR-terminated string into &0700
+  &0596: tube_oscli — execute * command
+  &059C: tube_reply_ack — send &7F acknowledge
+  &059E: tube_reply_byte — send byte and return to main loop
+  &05A9: tube_osfile — whole file operation""")
 
 # No tube_code_page6 subroutine in 3.40 — the page 5/6 boundary
 # at &05FF/&0600 splits a BVC instruction (opcode $50 at &05FF,
