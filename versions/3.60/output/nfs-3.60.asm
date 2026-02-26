@@ -7894,10 +7894,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; Calculate transfer size
 ; 
 ; Computes the number of bytes actually transferred during a data
-; frame reception. Subtracts the low pointer (LPTR, offset 4 in
-; the RXCB) from the current buffer position to get the byte count,
-; and stores it back into the RXCB's high pointer field (HPTR,
-; offset 8). This tells the caller how much data was received.
+; frame reception by subtracting RXCB[8..11] (start address) from
+; RXCB[4..7] (current pointer), giving the byte count.
+; Two paths: the main path performs a 4-byte subtraction for Tube
+; transfers, storing results to port_buf_len..open_port_buf_hi
+; (&A2-&A5). The fallback path (no Tube or buffer addr = &FFFF)
+; does a 2-byte subtraction using open_port_buf/open_port_buf_hi
+; (&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
+; effect of the result area overlapping open_port_buf.
 ; ***************************************************************************************
 ; &9eca referenced 2 times by &97be, &9cc2
 .tx_calc_transfer
@@ -7954,18 +7958,23 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 
 ; &9f19 referenced 2 times by &9ed3, &9ed8
 .fallback_calc_transfer
-    ldy #4                                                            ; 9f19: a0 04       ..
+    ldy #4                                                            ; 9f19: a0 04       ..             ; Y=4: RXCB current pointer offset
     lda (port_ws_offset),y                                            ; 9f1b: b1 a6       ..             ; Load RXCB[4] (current ptr lo)
-    ldy #8                                                            ; 9f1d: a0 08       ..
-    sec                                                               ; 9f1f: 38          8
+    ldy #8                                                            ; 9f1d: a0 08       ..             ; Y=8: RXCB start address offset
+    sec                                                               ; 9f1f: 38          8              ; Set carry for subtraction
     sbc (port_ws_offset),y                                            ; 9f20: f1 a6       ..             ; Subtract RXCB[8] (start ptr lo)
     sta port_buf_len                                                  ; 9f22: 85 a2       ..             ; Store transfer size lo
-    ldy #5                                                            ; 9f24: a0 05       ..
+    ldy #5                                                            ; 9f24: a0 05       ..             ; Y=5: current ptr hi offset
     lda (port_ws_offset),y                                            ; 9f26: b1 a6       ..             ; Load RXCB[5] (current ptr hi)
-    equb &e9,   0, &85, &a5, &a0, 8, &b1, &a6, &85, &a4, &a0, 9, &b1  ; 9f28: e9 00 85... ...            ; Propagate borrow only
-    equb &a6, &38, &e5                                                ; 9f35: a6 38 e5    .8.
-    equb &a5                                                          ; 9f38: a5          .
-
+    sbc #0                                                            ; 9f28: e9 00       ..             ; Propagate borrow from lo subtraction
+    sta open_port_buf_hi                                              ; 9f2a: 85 a5       ..             ; Temp store adjusted current ptr hi
+    ldy #8                                                            ; 9f2c: a0 08       ..             ; Y=8: start address lo offset
+    lda (port_ws_offset),y                                            ; 9f2e: b1 a6       ..             ; Load RXCB[8] (start ptr lo)
+    sta open_port_buf                                                 ; 9f30: 85 a4       ..             ; Store to scratch (side effect)
+    ldy #9                                                            ; 9f32: a0 09       ..             ; Y=9: start address hi offset
+    lda (port_ws_offset),y                                            ; 9f34: b1 a6       ..             ; Load RXCB[9] (start ptr hi)
+    sec                                                               ; 9f36: 38          8              ; Set carry for subtraction
+    sbc open_port_buf_hi                                              ; 9f37: e5 a5       ..             ; start_hi - adjusted current_hi
     sta port_buf_len_hi                                               ; 9f39: 85 a3       ..             ; Store transfer size hi
     sec                                                               ; 9f3b: 38          8              ; Return with C=1
 .nmi_shim_rom_src
@@ -8224,7 +8233,7 @@ save pydis_start, pydis_end
 ;     fs_cmd_data:                             37
 ;     net_rx_ptr:                              32
 ;     econet_control1_or_status1:              31
-;     port_ws_offset:                          29
+;     port_ws_offset:                          31
 ;     osword_pb_ptr:                           26
 ;     tx_flags:                                25
 ;     osbyte:                                  23
@@ -8235,6 +8244,7 @@ save pydis_start, pydis_end
 ;     station_id_disable_net_nmis:             15
 ;     fs_func_code:                            14
 ;     fs_load_addr:                            14
+;     open_port_buf_hi:                        14
 ;     set_nmi_vector:                          14
 ;     ws_page:                                 14
 ;     nmi_tx_block:                            13
@@ -8242,9 +8252,8 @@ save pydis_start, pydis_end
 ;     tube_send_r2:                            13
 ;     ws_ptr_lo:                               13
 ;     nmi_error_dispatch:                      12
-;     open_port_buf_hi:                        12
+;     open_port_buf:                           12
 ;     prepare_fs_cmd:                          12
-;     open_port_buf:                           11
 ;     port_buf_len_hi:                         11
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
@@ -9013,11 +9022,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7283 bytes (89%)
-;     Data                     = 909 bytes (11%)
+;     Code                     = 7300 bytes (89%)
+;     Data                     = 892 bytes (11%)
 ;
-;     Number of instructions   = 3535
-;     Number of data bytes     = 666 bytes
+;     Number of instructions   = 3544
+;     Number of data bytes     = 649 bytes
 ;     Number of data words     = 0 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 37

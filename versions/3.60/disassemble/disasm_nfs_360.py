@@ -1863,6 +1863,7 @@ entry(0x9925)   # ACK TX continuation (write src addr, TX_LAST_DATA)
 # --- NMI shim at end of ROM (&9FD9-&9FFF) ---
 # Bootstrap NMI handler and ROM copies of workspace routines.
 # &9FD9 is the source for the 32-byte copy to &0D00 by install_nmi_shim.
+entry(0x9F19)   # fallback_calc_transfer: BEQ target from tx_calc_transfer
 entry(0x9F7D)   # Bootstrap NMI entry (hardcoded JMP nmi_rx_scout, no self-mod)
 entry(0x9F8B)   # ROM copy of set_nmi_vector + nmi_rti
 # entry(0x9FFA) — removed: code at $9FFA runs off ROM end ($9FFF STA truncated)
@@ -6791,7 +6792,6 @@ comment(0x9B1D, "Return to idle listen mode", inline=True)
 # (possibly ADLC control register values), but their original
 # purpose is unknown.
 comment(0x9EBA, "Unreferenced data block (purpose unknown)")
-byte(0x9F28, 16)
 
 # ============================================================
 # Transfer size calculation (&9ECA)
@@ -6800,10 +6800,14 @@ subroutine(0x9ECA, "tx_calc_transfer", hook=None,
     title="Calculate transfer size",
     description="""\
 Computes the number of bytes actually transferred during a data
-frame reception. Subtracts the low pointer (LPTR, offset 4 in
-the RXCB) from the current buffer position to get the byte count,
-and stores it back into the RXCB's high pointer field (HPTR,
-offset 8). This tells the caller how much data was received.""")
+frame reception by subtracting RXCB[8..11] (start address) from
+RXCB[4..7] (current pointer), giving the byte count.
+Two paths: the main path performs a 4-byte subtraction for Tube
+transfers, storing results to port_buf_len..open_port_buf_hi
+(&A2-&A5). The fallback path (no Tube or buffer addr = &FFFF)
+does a 2-byte subtraction using open_port_buf/open_port_buf_hi
+(&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
+effect of the result area overlapping open_port_buf.""")
 comment(0x9ECA, "Load RXCB[6] (buffer addr byte 2)", inline=True)
 comment(0x9ECF, "AND with RXCB[7] (byte 3)", inline=True)
 comment(0x9ED1, "Both &FF = no buffer?", inline=True)
@@ -6834,12 +6838,23 @@ comment(0x9F0A, "No Tube: skip reclaim", inline=True)
 comment(0x9F0C, "Tube: reclaim with scout status", inline=True)
 comment(0x9F15, "C=1: Tube address claimed", inline=True)
 comment(0x9F16, "Restore X", inline=True)
+comment(0x9F19, "Y=4: RXCB current pointer offset", inline=True)
 comment(0x9F1B, "Load RXCB[4] (current ptr lo)", inline=True)
+comment(0x9F1D, "Y=8: RXCB start address offset", inline=True)
+comment(0x9F1F, "Set carry for subtraction", inline=True)
 comment(0x9F20, "Subtract RXCB[8] (start ptr lo)", inline=True)
 comment(0x9F22, "Store transfer size lo", inline=True)
+comment(0x9F24, "Y=5: current ptr hi offset", inline=True)
 comment(0x9F26, "Load RXCB[5] (current ptr hi)", inline=True)
-comment(0x9F28, "Propagate borrow only", inline=True)
-# Inline comments removed — &9F28-&9F37 is data in 3.60, not code
+comment(0x9F28, "Propagate borrow from lo subtraction", inline=True)
+comment(0x9F2A, "Temp store adjusted current ptr hi", inline=True)
+comment(0x9F2C, "Y=8: start address lo offset", inline=True)
+comment(0x9F2E, "Load RXCB[8] (start ptr lo)", inline=True)
+comment(0x9F30, "Store to scratch (side effect)", inline=True)
+comment(0x9F32, "Y=9: start address hi offset", inline=True)
+comment(0x9F34, "Load RXCB[9] (start ptr hi)", inline=True)
+comment(0x9F36, "Set carry for subtraction", inline=True)
+comment(0x9F37, "start_hi - adjusted current_hi", inline=True)
 comment(0x9F39, "Store transfer size hi", inline=True)
 comment(0x9F3B, "Return with C=1", inline=True)
 
