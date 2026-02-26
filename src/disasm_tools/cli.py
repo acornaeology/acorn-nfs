@@ -129,6 +129,19 @@ def cmd_cfg(args):
                  sub=args.sub, depth=args.depth))
 
 
+def cmd_context(args):
+    """Generate per-subroutine context files for inline commenting."""
+    from disasm_tools.context import generate_context
+
+    version_dirpath = get_version_dirpath(args.version)
+    output_dirpath = Path(args.output) if args.output else None
+    sys.exit(generate_context(version_dirpath, args.version,
+                              threshold=args.threshold,
+                              output_dirpath=output_dirpath,
+                              single_sub=args.sub,
+                              summary_only=args.summary))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -201,6 +214,22 @@ def main():
     cfg_parser.add_argument("--depth", action="store_true",
                             help="Show call depth from leaves")
     cfg_parser.set_defaults(func=cmd_cfg)
+
+    context_parser = subparsers.add_parser(
+        "context", help="Generate per-subroutine context files for commenting"
+    )
+    context_parser.add_argument("version", help="NFS version (e.g. 3.60)")
+    context_parser.add_argument("--threshold", type=float, default=50,
+                                help="Max comment density %% to include "
+                                     "(default: 50)")
+    context_parser.add_argument("--output", help="Output directory "
+                                "(default: versions/<ver>/context/)")
+    context_parser.add_argument("--sub",
+                                help="Generate for one subroutine only "
+                                     "(addr or name)")
+    context_parser.add_argument("--summary", action="store_true",
+                                help="Print summary stats only, no files")
+    context_parser.set_defaults(func=cmd_context)
 
     args = parser.parse_args()
     args.func(args)
