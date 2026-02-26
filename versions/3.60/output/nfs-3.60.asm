@@ -7632,22 +7632,22 @@ intoff_operand = intoff_test_inactive+1
     bit econet_control23_or_status2                                   ; 9d72: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
     beq reject_reply                                                  ; 9d75: f0 e1       ..             ; No FV -- incomplete frame, error
     lda #&a7                                                          ; 9d77: a9 a7       ..             ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE (TX in handshake)
-    sta econet_control23_or_status2                                   ; 9d79: 8d a1 fe    ...
+    sta econet_control23_or_status2                                   ; 9d79: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 9d7c: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
-    sta econet_control1_or_status1                                    ; 9d7e: 8d a0 fe    ...
+    sta econet_control1_or_status1                                    ; 9d7e: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
     lda #&50 ; 'P'                                                    ; 9d81: a9 50       .P             ; Save handshake_await_ack (&9E50) in &0D4B/&0D4C
-    ldy #&9e                                                          ; 9d83: a0 9e       ..
-    sta nmi_next_lo                                                   ; 9d85: 8d 4b 0d    .K.
-    sty nmi_next_hi                                                   ; 9d88: 8c 4c 0d    .L.
+    ldy #&9e                                                          ; 9d83: a0 9e       ..             ; High byte &9E of next handler address
+    sta nmi_next_lo                                                   ; 9d85: 8d 4b 0d    .K.            ; Store low byte to nmi_next_lo
+    sty nmi_next_hi                                                   ; 9d88: 8c 4c 0d    .L.            ; Store high byte to nmi_next_hi
     lda tx_dst_stn                                                    ; 9d8b: ad 20 0d    . .            ; Load dest station for scout ACK TX
     bit econet_control1_or_status1                                    ; 9d8e: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
     bvc data_tx_check_fifo                                            ; 9d91: 50 3a       P:             ; TDRA not ready -- error
     sta econet_data_continue_frame                                    ; 9d93: 8d a2 fe    ...            ; Write dest station to TX FIFO
-    lda tx_dst_net                                                    ; 9d96: ad 21 0d    .!.            ; Write dest network to TX FIFO
-    sta econet_data_continue_frame                                    ; 9d99: 8d a2 fe    ...
+    lda tx_dst_net                                                    ; 9d96: ad 21 0d    .!.            ; Load dest network for scout ACK TX
+    sta econet_data_continue_frame                                    ; 9d99: 8d a2 fe    ...            ; Write dest network to TX FIFO
     lda #&a3                                                          ; 9d9c: a9 a3       ..             ; Install nmi_scout_ack_src at &9DA3
-    ldy #&9d                                                          ; 9d9e: a0 9d       ..
-    jmp set_nmi_vector                                                ; 9da0: 4c 0e 0d    L..
+    ldy #&9d                                                          ; 9d9e: a0 9d       ..             ; High byte &9D of handler address
+    jmp set_nmi_vector                                                ; 9da0: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; ***************************************************************************************
 ; TX scout ACK: write source address
