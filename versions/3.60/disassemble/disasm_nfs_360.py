@@ -314,6 +314,7 @@ label(0x0E10, "fs_cmd_ptr")         # CMNDP: pointer to rest of command line
 # Relocated code — Tube host zero-page code (BRKV = &0016)
 # Reference: NFS11 (NEWBR, TSTART, MAIN)
 label(0x0029, "tube_brk_send_loop")  # Loop: send error message bytes via R2 until zero terminator
+label(0x002A, "tube_send_error_byte") # Load next error byte and send via R2 (alt entry)
 label(0x0032, "tube_reset_stack")    # Reset SP=&FF, CLI, fall through to main loop
 label(0x0036, "tube_main_loop")      # Poll R1 (WRCH) and R2 (commands), dispatch via table
 label(0x003B, "tube_handle_wrch")    # R1 data ready: read byte, call OSWRITCH (&FFCB)
@@ -355,9 +356,12 @@ comment(0x0050, "Dispatch to handler via indirect JMP", inline=True)
 label(0x0403, "tube_escape_entry")   # JMP to tube_escape_check (&06E2)
 label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in reference)
 label(0x0414, "tube_release_claim")   # Release Tube address claim via R4 cmd 5
+label(0x0428, "addr_claim_external")  # External address claim check (another host)
+label(0x0435, "tube_transfer_setup")  # Data transfer setup (SENDW protocol)
 label(0x0421, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
 label(0x0434, "return_tube_init")    # Return from tube_post_init path
 label(0x0483, "return_tube_xfer")   # Return from tube transfer/setup
+label(0x0484, "tube_begin")          # BEGIN: startup entry for Tube host code
 label(0x04CB, "tube_claim_default")  # Claim default Tube transfer address (&0053)
 label(0x04D2, "tube_init_reloc")     # Init relocation address for ROM→Tube transfer
 # 3.35K label tube_setup_transfer ($04E0) — Tube code rewritten in 3.40
@@ -688,6 +692,7 @@ label(0x068A, "tube_rdln_send_byte")  # Send byte via R2, loop until CR
 label(0x06A7, "tube_escape_check")    # Check &FF escape flag, forward to Tube via R1
 label(0x06AD, "tube_event_handler")   # EVNTV target: forward event (A,X,Y) to Tube via R1
 label(0x06BC, "tube_send_r1")         # Poll R1 status, write A to R1 data (ESCA in reference)
+label(0x05FC, "tube_poll_r2_result")  # Poll R2 status before sending result
 label(0x06C5, "tube_read_r2")         # Poll R2 status, read R2 data into A
 entry(0x0600)
 entry(0x0625)
@@ -755,6 +760,8 @@ label(0x90B6, "net_write_char_handler") # NETVEC fn 4: net write character (NWRC
 
 # Remote operation function handlers (dispatched via osword_tbl)
 # (net_write_char subroutine defined above)
+label(0x915E, "copy_params_rword")     # Copy param bytes and tag as RWORD message
+label(0x9218, "toggle_print_flag")    # Toggle print-active flag and update PFLAGS
 label(0x9154, "remote_osword_handler") # NETVEC fn 8: remote OSWORD (NWORD)
 label(0x913C, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
 label(0x9144, "return_match_osbyte") # Return from match_osbyte_code
@@ -822,8 +829,13 @@ label(0x8D53, "return_9")
 label(0x9994, "return_10")
 
 # --- Service call handlers ---
-
+label(0x80C5, "prepare_cmd_dispatch")   # Prepare FS command and dispatch recognised *command
+label(0x80E3, "svc_dispatch_range")     # Service dispatch range check (out of range: return)
+label(0x8123, "check_svc_high")         # Test service >= &FE (high-priority dispatch)
+label(0x8191, "svc_unhandled_return")   # Unhandled service (>= &0D): return unclaimed
 label(0x81B5, "svc_4_star_command")     # Svc 4 dispatch entry (mid-routine in svc_star_command)
+label(0x81EA, "match_net_cmd")          # Try matching *NET command text
+label(0x8215, "restore_ws_return")      # Restore workspace page and return unclaimed
 
 # --- Trampoline JMPs in page 6 relocated code (&06CE-&06D7) ---
 # In 3.40 these were in main ROM at &9660; in 3.60 they fell inside the
@@ -884,10 +896,13 @@ label(0x81E1, "cmd_name_matched")       # MATCH2: full name matched, check termi
 label(0x8339, "store_rom_ptr_pair")     # Write 2-byte address + ROM bank to ROM pointer table
 
 # --- TX control block and FS command setup ---
+label(0x837D, "skip_space_next")         # INY then fall into skip_spaces
 label(0x837E, "skip_spaces")            # Skip spaces and test for end of line (CR)
 label(0x8387, "init_tx_reply_port")     # Init TX control block for FS reply on port &90
 label(0x83C8, "init_tx_ctrl_data")      # Init TX control block for data port (&90)
 label(0x8389, "init_tx_ctrl_port")      # Init TX control block with port in A (2 JSR refs)
+label(0x83CE, "store_fs_hdr_clc")       # CLC entry: clear carry then store function code
+label(0x83CF, "store_fs_hdr_fn")       # Store function code and CSD/LIB handles
 label(0x83B9, "prepare_cmd_with_flag")  # Prepare FS command with '*' flag and carry set
 label(0x83BD, "prepare_cmd_clv")        # Prepare FS command with V cleared
 # prepare_fs_cmd and build_send_fs_cmd labels created by subroutine() calls below.
@@ -896,6 +911,7 @@ label(0x83F3, "send_fs_reply_cmd")      # Send FS command with reply processing
 
 # --- Byte I/O and escape ---
 # handle_bput_bget label created by subroutine() call below.
+label(0x84EA, "execute_downloaded")      # JMP &0100: execute downloaded code at stack page
 label(0x8414, "bgetv_entry")            # BGETV entry: clear escapable, handle BGET
 label(0x84A1, "check_escape")           # Check for pending escape condition
 label(0x8441, "store_retry_count")      # RAND1: store retry count to &0FDD, initiate TX
@@ -905,6 +921,7 @@ comment(0x849B, "Restore Y from stack", inline=True)
 comment(0x849D, "Restore X from stack", inline=True)
 comment(0x849F, "Restore A from stack", inline=True)
 comment(0x84A0, "Return to caller", inline=True)
+label(0x850C, "error_not_listening")     # Error code 8: "Not listening"
 label(0x8514, "set_listen_offset")      # NLISN2: use reply code as table offset for listen
 comment(0x850C, "Error code 8: \"Not listening\" error", inline=True)
 comment(0x850E, "ALWAYS branch to set_listen_offset", inline=True)
@@ -963,6 +980,7 @@ label(0x0FDD, "fs_getb_buf")            # PUTB2/GETB2: shared GET/PUT byte works
 # file info display, and attribute decoding.
 
 # --- Argument save and file handle conversion ---
+label(0x85DD, "attrib_shift_bits")      # Attribute bitmask conversion (shared tail)
 label(0x85EC, "access_bit_table")       # Lookup table for attribute bit mapping (11 bytes)
 
 # --- Decimal number parser (&8620-&8642) ---
@@ -1012,10 +1030,17 @@ label(0x8601, "tx_poll_timeout")        # Transmit with Y=&60 (specified timeout
 # args and returns via restore_args_return (&8952).
 
 # --- FILEV handler (&86DE) and helpers ---
+label(0x87D8, "save_csd_display")       # Save CSD from reply and display file info
+label(0x88CD, "restore_ay_return")      # Restore A and Y registers, return
 
 # --- FSCV 1: EOF handler (&884C) ---
 
 # --- FILEV attribute dispatch (&8870) ---
+# --- FSCV 1: EOF handler and ARGSV (&884C) ---
+label(0x8997, "argsv_check_return")    # Conditional return after ARGSV file pointer op
+label(0x89B5, "restore_xy_return")     # Restore X and Y from workspace, return
+label(0x89BA, "argsv_fs_query")        # FS-level ARGSV query (A=0/1/2 dispatch)
+
 label(0x88FB, "get_file_protection")  # CHA1: decode attribute byte for protection status
 label(0x8910, "copy_filename_to_cmd") # CHASK2: copy filename string into FS command buffer
 label(0x894D, "copy_fs_reply_to_cb")  # COPYFS: copy FS reply buffer data to control block
@@ -1025,12 +1050,15 @@ label(0x89D4, "return_a_zero")          # Return with A=0 via register restore
 label(0x8999, "save_args_handle")      # SETARG: save handle for OSARGS operation
 
 # --- FSCV 0: *OPT handler (&89CA) ---
+label(0x8A2A, "close_opt_return")      # Conditional return after close/opt handler
+label(0x8A39, "set_messages_flag")     # Set *OPT 1 local messages flag from Y
 label(0x8A1A, "close_single_handle")   # CLOSE1: send close command for specific handle to FS
 
 # --- Address adjustment helpers (&89EE-&8A0E) ---
 label(0x8A52, "adjust_addrs_9")        # Adjust 4-byte addresses at param block offset 9
 label(0x8A57, "adjust_addrs_1")        # Adjust 4-byte addresses at param block offset 1
 label(0x8A59, "adjust_addrs_clc")      # CLC entry: clear carry before address adjustment
+label(0x8B1C, "get_disc_title")        # Request disc title via FS function code &15
 label(0x8B7F, "copy_reply_to_caller") # Copy FS reply data to caller buffer (direct or via Tube)
 label(0x8C13, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until acquired
 
@@ -1045,14 +1073,19 @@ label(0x8C13, "tube_claim_loop")      # TCLAIM: claim Tube with &C3, retry until
 # --- FSCV unrecognised * and command matching ---
 
 # --- *EX and *CAT handlers ---
+label(0x8C72, "init_cat_params")       # Store examine arg count, init catalogue display
 
 # --- Boot command strings and option tables ---
 label(0x8D47, "print_reply_bytes")
 label(0x8D49, "print_reply_counted")
 label(0x8D86, "copy_string_from_offset") # COPLP1: sub-entry of copy_string_to_cmd with caller-supplied Y offset
+label(0x8DB4, "print_newline")            # Print CR via OSASCI
+label(0x8DD9, "print_digit")            # Print decimal digit via JMP OSASCI
 label(0x8D9F, "cat_column_separator")    # Print catalogue column separator or newline
 
 # --- *NET sub-command handlers ---
+label(0x8E35, "jmp_restore_args")      # JMP restore_args_return (common FS reply exit)
+label(0x8E7A, "store_handle_return")   # Store handle result to &F0, return
 
 # ============================================================
 # Named labels for ADLC NMI handler routines
@@ -1094,25 +1127,37 @@ label(0x98F9, "ack_tx_configure")      # Configure CR1/CR2 for TX
 label(0x9907, "ack_tx_write_dest")     # Write dest addr to TX FIFO
 
 # --- Discard and idle ---
+label(0x9948, "start_data_tx")          # Start data TX phase of four-way handshake
+label(0x994B, "dispatch_nmi_error")    # JMP nmi_error_dispatch for TX failures
 label(0x994E, "advance_rx_buffer_ptr") # Advance RX buffer pointer after transfer
 label(0x99A4, "rx_complete_update_rxcb") # Complete RX and update RXCB
 label(0x99EB, "install_rx_scout_handler") # Install RX scout NMI handler
 label(0x99F2, "copy_scout_to_buffer")  # Copy scout data to port buffer
+label(0x99F8, "copy_scout_select")   # Select direct or Tube scout copy path
 label(0x9A2B, "release_tube")          # Release Tube co-processor claim
+label(0x9A14, "scout_copy_done")       # Finish scout copy, jump to RX completion
 label(0x9A37, "inc_buf_counter_32")    # Increment 32-bit buffer counter
+label(0x9A6E, "scout_page_overflow")   # Handle page overflow during scout copy
+label(0x9A70, "check_scout_done")    # Check if all scout bytes copied
 label(0x9AE7, "imm_op_build_reply")    # Build immediate operation reply header
 
 # --- TX path ---
 label(0x9B6E, "tx_begin")              # Begin TX operation
+label(0x9BDD, "test_inactive_retry")   # Reload INACTIVE mask and retry polling
 label(0x9BE1, "intoff_test_inactive")  # Disable NMIs and test INACTIVE
 label(0x9C11, "tx_active_start")       # Begin TX (CR1=&44)
+label(0x9C21, "tx_no_clock_error")   # Error code &43: "No Clock"
+label(0x9C23, "store_tx_error")      # Store error code to TX control block
+label(0x9C8E, "setup_data_xfer")       # Configure scout length and flags for data transfer
 label(0x9CF2, "tx_error")              # TX error path
 
 # --- RX reply scout (outbound handshake) ---
 # 3.35K label reply_error ($9DED) — mapped to tx_result_fail ($9F1A) in 3.40
+label(0x9D58, "reject_reply")          # Reject invalid reply scout frame
 
 # --- TX scout ACK + data phase ---
 label(0x9DB3, "data_tx_begin")         # Begin data frame TX
+label(0x9DCD, "data_tx_check_fifo")   # Test TDRA and write data byte pair to FIFO
 label(0x9DF5, "data_tx_last")          # TX_LAST_DATA for data frame (5 refs)
 label(0x9E06, "data_tx_error")         # Data TX error (5 refs)
 label(0x9E06, "install_saved_handler") # Install handler from &0D4B/&0D4C
@@ -1126,6 +1171,7 @@ label(0x9E70, "nmi_final_ack_net")     # Read dest_net, validate
 label(0x9EAC, "tx_result_fail")        # Store result=&41 (not listening) (9 refs)
 
 label(0x9F57, "wait_idle_and_reset")   # Wait for idle NMI state and reset Econet
+label(0x9F7A, "reset_enter_listen")  # Reset Econet flags and enter RX listen mode
 
 # --- NMI shim at end of ROM ---
 label(0x9F3C, "nmi_shim_rom_src")      # Source for 32-byte copy to &0D00
@@ -5960,6 +6006,15 @@ Sets source page to &8000 and page counter to &80. Checks
 ROM type bit 5 for a relocation address in the ROM header;
 if present, extracts the 4-byte address from after the
 copyright string. Otherwise uses default &8000 start.""")
+
+subroutine(0x0484, "tube_begin", hook=None,
+    title="Tube host startup entry (BEGIN)",
+    description="""\
+Entry point via JMP from &0400. Enables interrupts, checks
+break type via OSBYTE &FD: soft break re-initialises Tube and
+restarts, hard break claims address &FF. Sends ROM contents
+to co-processor page by page via SENDW, then claims the final
+transfer address.""")
 
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
