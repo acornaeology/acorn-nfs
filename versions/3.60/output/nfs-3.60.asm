@@ -5929,32 +5929,35 @@ l8c4c = fs_cmd_match_table+1
 ; Stores the cursor position value from &0355 into NFS workspace,
 ; then reads cursor position (OSBYTE &85), shadow RAM (OSBYTE &C2),
 ; and screen start (OSBYTE &C3) via read_vdu_osbyte, storing
-; each result into consecutive workspace bytes.
+; each result into consecutive workspace bytes. The JSR to
+; read_vdu_osbyte_x0 is a self-calling trick: it executes
+; read_vdu_osbyte twice (once for &C2, once for &C3) because the
+; RTS returns to the instruction at read_vdu_osbyte_x0 itself.
 ; ***************************************************************************************
 ; &92f7 referenced 1 time by &92e8
 .save_vdu_state
-    lda l0355                                                         ; 92f7: ad 55 03    .U.
-    sta (nfs_workspace),y                                             ; 92fa: 91 9e       ..
-    tax                                                               ; 92fc: aa          .
-    jsr read_vdu_osbyte                                               ; 92fd: 20 0a 93     ..
-    inc nfs_workspace                                                 ; 9300: e6 9e       ..
-    tya                                                               ; 9302: 98          .
-    sta (nfs_workspace,x)                                             ; 9303: 81 9e       ..
-    jsr read_vdu_osbyte_x0                                            ; 9305: 20 08 93     ..
+    lda l0355                                                         ; 92f7: ad 55 03    .U.            ; Read cursor editing state
+    sta (nfs_workspace),y                                             ; 92fa: 91 9e       ..             ; Store to workspace[Y]
+    tax                                                               ; 92fc: aa          .              ; Preserve in X for OSBYTE
+    jsr read_vdu_osbyte                                               ; 92fd: 20 0a 93     ..            ; OSBYTE &85: read cursor position
+    inc nfs_workspace                                                 ; 9300: e6 9e       ..             ; Advance workspace pointer
+    tya                                                               ; 9302: 98          .              ; Y result from OSBYTE &85
+    sta (nfs_workspace,x)                                             ; 9303: 81 9e       ..             ; Store Y pos to workspace (X=0)
+    jsr read_vdu_osbyte_x0                                            ; 9305: 20 08 93     ..            ; Self-call trick: executes twice
 ; &9308 referenced 1 time by &9305
 .read_vdu_osbyte_x0
-    ldx #0                                                            ; 9308: a2 00       ..
+    ldx #0                                                            ; 9308: a2 00       ..             ; X=0 for (zp,X) addressing
 ; &930a referenced 1 time by &92fd
 .read_vdu_osbyte
-    ldy l00ad                                                         ; 930a: a4 ad       ..
-    inc l00ad                                                         ; 930c: e6 ad       ..
-    inc nfs_workspace                                                 ; 930e: e6 9e       ..
-    lda l931e,y                                                       ; 9310: b9 1e 93    ...
-    ldy #&ff                                                          ; 9313: a0 ff       ..
-    jsr osbyte                                                        ; 9315: 20 f4 ff     ..
-    txa                                                               ; 9318: 8a          .
-    ldx #0                                                            ; 9319: a2 00       ..
-    sta (nfs_workspace,x)                                             ; 931b: 81 9e       ..
+    ldy l00ad                                                         ; 930a: a4 ad       ..             ; Index into OSBYTE number table
+    inc l00ad                                                         ; 930c: e6 ad       ..             ; Next table entry next time
+    inc nfs_workspace                                                 ; 930e: e6 9e       ..             ; Advance workspace pointer
+    lda l931e,y                                                       ; 9310: b9 1e 93    ...            ; Read OSBYTE number from table
+    ldy #&ff                                                          ; 9313: a0 ff       ..             ; Y=&FF: read current value
+    jsr osbyte                                                        ; 9315: 20 f4 ff     ..            ; Call OSBYTE
+    txa                                                               ; 9318: 8a          .              ; Result in X to A
+    ldx #0                                                            ; 9319: a2 00       ..             ; X=0 for indexed indirect store
+    sta (nfs_workspace,x)                                             ; 931b: 81 9e       ..             ; Store result to workspace
     rts                                                               ; 931d: 60          `
 
 ; &931e referenced 1 time by &9310

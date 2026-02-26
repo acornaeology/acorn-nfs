@@ -3851,7 +3851,28 @@ subroutine(0x92F7, "save_vdu_state", hook=None,
 Stores the cursor position value from &0355 into NFS workspace,
 then reads cursor position (OSBYTE &85), shadow RAM (OSBYTE &C2),
 and screen start (OSBYTE &C3) via read_vdu_osbyte, storing
-each result into consecutive workspace bytes.""")
+each result into consecutive workspace bytes. The JSR to
+read_vdu_osbyte_x0 is a self-calling trick: it executes
+read_vdu_osbyte twice (once for &C2, once for &C3) because the
+RTS returns to the instruction at read_vdu_osbyte_x0 itself.""")
+comment(0x92F7, "Read cursor editing state", inline=True)
+comment(0x92FA, "Store to workspace[Y]", inline=True)
+comment(0x92FC, "Preserve in X for OSBYTE", inline=True)
+comment(0x92FD, "OSBYTE &85: read cursor position", inline=True)
+comment(0x9300, "Advance workspace pointer", inline=True)
+comment(0x9302, "Y result from OSBYTE &85", inline=True)
+comment(0x9303, "Store Y pos to workspace (X=0)", inline=True)
+comment(0x9305, "Self-call trick: executes twice", inline=True)
+comment(0x9308, "X=0 for (zp,X) addressing", inline=True)
+comment(0x930A, "Index into OSBYTE number table", inline=True)
+comment(0x930C, "Next table entry next time", inline=True)
+comment(0x930E, "Advance workspace pointer", inline=True)
+comment(0x9310, "Read OSBYTE number from table", inline=True)
+comment(0x9313, "Y=&FF: read current value", inline=True)
+comment(0x9315, "Call OSBYTE", inline=True)
+comment(0x9318, "Result in X to A", inline=True)
+comment(0x9319, "X=0 for indexed indirect store", inline=True)
+comment(0x931B, "Store result to workspace", inline=True)
 
 comment(0x92AE, "Point workspace to palette save area (&E9)", inline=True)
 comment(0x92B6, "Save current screen MODE to workspace", inline=True)
