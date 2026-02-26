@@ -2973,16 +2973,19 @@ error_msg_table = l857a+6
 .return_fscv_handles
     rts                                                               ; 86cf: 60          `
 
-; Set bit(s) in the EOF hint flags (&0E07). ORs A into
-; fs_eof_flags then stores the result via store_fs_flag.
-; Each bit represents one of up to 8 open file handles. When
-; clear, the file is definitely NOT at EOF. When set, the
-; fileserver must be queried to confirm EOF status. This
-; negative-cache optimisation avoids expensive network
+; ***************************************************************************************
+; Set bit(s) in EOF hint flags (&0E07)
+; 
+; ORs A into fs_eof_flags then stores the result via
+; store_fs_flag. Each bit represents one of up to 8 open file
+; handles. When clear, the file is definitely NOT at EOF. When
+; set, the fileserver must be queried to confirm EOF status.
+; This negative-cache optimisation avoids expensive network
 ; round-trips for the common case. The hint is cleared when
 ; the file pointer is updated (since seeking away from EOF
 ; invalidates the hint) and set after BGET/OPEN/EOF operations
 ; that might have reached the end.
+; ***************************************************************************************
 ; &86d0 referenced 4 times by &89b0, &8a07, &8a27, &8b08
 .set_fs_flag
     ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...
