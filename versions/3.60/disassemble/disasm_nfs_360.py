@@ -1808,6 +1808,12 @@ to clear the specified bits.""")
 comment(0x86D5, "Invert mask: set bits become clear bits", inline=True)
 comment(0x86D7, "Clear specified bits in flags", inline=True)
 comment(0x86DA, "Write back updated flags", inline=True)
+comment(0x86DD, "Return", inline=True)
+comment(0x86DE, "Y=1: copy 2 bytes (high then low)", inline=True)
+comment(0x86E0, "Load filename ptr from control block", inline=True)
+comment(0x86E2, "Store to MOS text pointer (&F2/&F3)", inline=True)
+comment(0x86E5, "Next byte (descending)", inline=True)
+comment(0x86E6, "Loop for both bytes", inline=True)
 
 # ============================================================
 # Print file info — deleted in 3.60
@@ -2035,7 +2041,14 @@ packet (net_1_read_handle)
 
 comment(0x806F, "Read command character following *NET", inline=True)
 comment(0x8071, "Subtract ASCII '1' to get 0-based command index", inline=True)
+comment(0x8073, "Command index >= 4: invalid *NET sub-command", inline=True)
+comment(0x8075, "Out of range: return via c80e3/RTS", inline=True)
+comment(0x8077, "X = command index (0-3)", inline=True)
+comment(0x8078, "Clear &A9 (used by dispatch)", inline=True)
+comment(0x807A, "Store zero to &A9", inline=True)
+comment(0x807C, "Preserve A before dispatch", inline=True)
 comment(0x807D, "Y=&21: base offset for *NET commands (index 33+)", inline=True)
+comment(0x807F, "ALWAYS branch to dispatch", inline=True)
 
 # ============================================================
 # PHA/PHA/RTS dispatcher (&80DA)
@@ -2073,6 +2086,8 @@ Called when the NFS ROM is entered as a language. Although rom_type
 after NFS claims service &FE (Tube post-init). X = reason code
 (0-4). Dispatches via table indices 15-19 (base offset Y=&0E).""")
 
+comment(0x80E1, "X >= 5: invalid reason code, return", inline=True)
+comment(0x80E3, "Out of range: return via RTS", inline=True)
 comment(0x80E5, "Y=&0E: base offset for language handlers (index 15+)", inline=True)
 
 # ============================================================
@@ -3543,8 +3558,20 @@ reads the sub-function code from (&F0)+1, then dispatches via
 the 5-entry table at &8EB8 (low) / &8EBD (high) using
 PHA/PHA/RTS. The RTS at the end of the dispatched handler
 returns here, after which the caller restores &AA-&AC.""")
-
+comment(0x8E9F, "X = sub-function code for table lookup", inline=True)
+comment(0x8EA0, "Load handler address high byte from table", inline=True)
+comment(0x8EA3, "Push high byte for RTS dispatch", inline=True)
+comment(0x8EA4, "Load handler address low byte from table", inline=True)
 comment(0x8EA7, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", inline=True)
+comment(0x8EA8, "Y=2: save 3 bytes (&AA-&AC)", inline=True)
+comment(0x8EAA, "Load param block pointer byte", inline=True)
+comment(0x8EAD, "Save to NFS workspace via (net_rx_ptr)", inline=True)
+comment(0x8EAF, "Next byte (descending)", inline=True)
+comment(0x8EB0, "Loop for all 3 bytes", inline=True)
+comment(0x8EB2, "Y=0 after BPL exit; INY makes Y=1", inline=True)
+comment(0x8EB3, "Read sub-function code from (&F0)+1", inline=True)
+comment(0x8EB5, "Store Y=1 to &A9", inline=True)
+comment(0x8EB7, "RTS dispatches to pushed handler address", inline=True)
 comment(0x8EBD, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", inline=True)
 
 comment(0x815F, "Copy NMI handler code from ROM to RAM pages &04-&06")
@@ -3648,6 +3675,10 @@ subroutine(0x917F, "ctrl_block_setup_alt", hook=None,
 Sets X=&0D, Y=&7C. Tests bit 6 of &83B3 to choose target:
   V=0 (bit 6 clear): stores to (nfs_workspace)
   V=1 (bit 6 set):   stores to (net_rx_ptr)""")
+comment(0x917F, "X=&0D: template offset for alt entry", inline=True)
+comment(0x9181, "Y=&7C: target workspace offset for alt entry", inline=True)
+comment(0x9183, "BIT test: V flag = bit 6 of &83B3", inline=True)
+comment(0x9186, "V=1: store to (net_rx_ptr) instead", inline=True)
 
 subroutine(0x9188, "ctrl_block_setup", hook=None,
     title="Control block setup — main entry",
@@ -3854,8 +3885,13 @@ new remote session via remot1. If non-zero, compares the source
 station at RX offset &80 against workspace offset &0E -- rejects
 mismatched stations via clear_jsr_protection, accepts matching
 stations by falling through to lang_0_insert_remote_key.""")
+comment(0x84ED, "Y=4: RX control block byte 4 (remote status)", inline=True)
+comment(0x84EF, "Read remote status flag", inline=True)
+comment(0x84F1, "Zero = not remoted; allow new session", inline=True)
 comment(0x84F3, "Read source station from RX data at &80", inline=True)
+comment(0x84F5, "A = source station number", inline=True)
 comment(0x84F7, "Compare against controlling station at &0E", inline=True)
+comment(0x84F9, "Check if source matches controller", inline=True)
 comment(0x84FB, "Reject: source != controlling station", inline=True)
 
 subroutine(0x84FD, "lang_0_insert_remote_key", hook=None,
@@ -3957,6 +3993,14 @@ the network printer buffer number (&F0). If it matches,
 initialises the printer buffer pointer (&0D61 = &1F) and
 sets the initial flag byte (&0D60 = &41). Otherwise falls
 through to return.""")
+comment(0x91DB, "X-1: convert 1-based buffer to 0-based", inline=True)
+comment(0x91DC, "Is this the network printer buffer?", inline=True)
+comment(0x91DE, "No: skip printer init", inline=True)
+comment(0x91E0, "&1F = initial buffer pointer offset", inline=True)
+comment(0x91E2, "Reset printer buffer write position", inline=True)
+comment(0x91E5, "&41 = initial PFLAGS (bit 6 set, bit 0 set)", inline=True)
+comment(0x91E7, "Store A to printer status byte", inline=True)
+comment(0x91E9, "Return", inline=True)
 
 subroutine(0x91EA, "remote_print_handler", hook=None,
     title="Fn 1/2/3: network printer handler (PRINT)",
