@@ -2763,12 +2763,24 @@ a non-zero starting Y offset.""",
     on_entry={"y": "offset into (os_text_ptr) buffer (0 at &86E8)"},
     on_exit={"x": "length of parsed string",
              "y": "preserved"})
+comment(0x86E8, "Start from beginning of string", inline=True)
 comment(0x86EA, "X=&FF: INX will make X=0 (first char index)", inline=True)
 comment(0x86EC, "C=0 for GSINIT: parse from current position", inline=True)
+comment(0x86ED, "Initialise GS string parser", inline=True)
 comment(0x86F0, "Empty string: skip to CR terminator", inline=True)
+comment(0x86F2, "Read next character via GSREAD", inline=True)
 comment(0x86F5, "C=1 from GSREAD: end of string reached", inline=True)
+comment(0x86F7, "Advance buffer index", inline=True)
+comment(0x86F8, "Store parsed character to &0E30+X", inline=True)
+comment(0x86FB, "ALWAYS loop (GSREAD clears C on success)", inline=True)
 comment(0x86FD, "Terminate parsed string with CR", inline=True)
+comment(0x86FE, "CR = &0D", inline=True)
+comment(0x8700, "Store CR terminator at end of string", inline=True)
 comment(0x8703, "Point fs_crc_lo/hi at &0E30 parse buffer", inline=True)
+comment(0x8705, "fs_crc_lo = &30", inline=True)
+comment(0x8707, "fs_crc_hi = &0E → buffer at &0E30", inline=True)
+comment(0x8709, "Store high byte", inline=True)
+comment(0x870B, "Return; X = string length", inline=True)
 
 # ============================================================
 # FILEV handler (&870C)
@@ -2886,8 +2898,12 @@ OSFILE parameter block) to &AE-&B3 (local workspace).""")
 comment(0x882F, "Start at offset 5 (top of 4-byte addr)", inline=True)
 comment(0x8831, "Read from parameter block", inline=True)
 comment(0x8833, "Store to local workspace", inline=True)
+comment(0x8836, "Next byte (descending)", inline=True)
 comment(0x8837, "Copy offsets 5,4,3,2 (4 bytes)", inline=True)
+comment(0x8839, "Loop while Y >= 2", inline=True)
 comment(0x883B, "Y=3 after loop; add 5 to get Y=8", inline=True)
+comment(0x883C, "INY * 4 = add 4 to Y", inline=True)
+comment(0x8840, "Return", inline=True)
 
 subroutine(0x8841, "copy_reply_to_params", hook=None,
     title="Copy FS reply data to parameter block",
@@ -3237,6 +3253,9 @@ Entries:
   "EX"     → &8C61 (ex_handler: embedded in table tail)
   "BYE"\\r  → &83C0 (bye_handler: logoff)
   <catch-all> → &80C1 (forward anything else to FS)""")
+comment(0x8C4B, "Match last char against '.' for *I. abbreviation", inline=True)
+comment(0x8C61, "X=1: force one entry per line for *EX", inline=True)
+comment(0x8C63, "A=3: examine format code", inline=True)
 
 # ============================================================
 # *EX and *CAT handlers (&8C61 / &8C67)
