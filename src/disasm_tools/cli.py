@@ -142,6 +142,19 @@ def cmd_context(args):
                               summary_only=args.summary))
 
 
+def cmd_labels(args):
+    """Generate per-label context files for label renaming."""
+    from disasm_tools.labels import generate_labels
+
+    version_dirpath = get_version_dirpath(args.version)
+    output_dirpath = Path(args.output) if args.output else None
+    sys.exit(generate_labels(version_dirpath, args.version,
+                             output_dirpath=output_dirpath,
+                             category_filter=args.category,
+                             single_label=args.label,
+                             summary_only=args.summary))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -230,6 +243,24 @@ def main():
     context_parser.add_argument("--summary", action="store_true",
                                 help="Print summary stats only, no files")
     context_parser.set_defaults(func=cmd_context)
+
+    labels_parser = subparsers.add_parser(
+        "labels", help="Generate per-label context files for renaming"
+    )
+    labels_parser.add_argument("version", help="NFS version (e.g. 3.60)")
+    labels_parser.add_argument("--output", help="Output directory "
+                               "(default: versions/<ver>/labels/)")
+    labels_parser.add_argument("--category",
+                               choices=["subroutine", "shared_tail", "data",
+                                        "internal_loop",
+                                        "internal_conditional"],
+                               help="Filter to one category")
+    labels_parser.add_argument("--label",
+                               help="Generate for one label only "
+                                    "(addr or name)")
+    labels_parser.add_argument("--summary", action="store_true",
+                               help="Print summary stats only, no files")
+    labels_parser.set_defaults(func=cmd_labels)
 
     args = parser.parse_args()
     args.func(args)

@@ -19,10 +19,18 @@ def build_index(lines):
     addr_to_line = {}
     label_to_line = {}
     addr_re = re.compile(r";\s*([0-9a-f]{4}):")
+    runtime_addr_re = re.compile(r":([0-9a-f]{4})\[")
     label_re = re.compile(r"^\.(\w+)")
 
     for i, line in enumerate(lines):
         m = addr_re.search(line)
+        if m:
+            addr = int(m.group(1), 16)
+            if addr not in addr_to_line:
+                addr_to_line[addr] = i
+
+        # Also index relocated runtime addresses (e.g. ":06c5[4]")
+        m = runtime_addr_re.search(line)
         if m:
             addr = int(m.group(1), 16)
             if addr not in addr_to_line:
