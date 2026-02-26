@@ -1748,6 +1748,12 @@ printed (no suppression). Used to display station numbers.""",
     on_exit={"a": "last digit character",
              "x": "corrupted",
              "y": "0 (remainder after last division)"})
+comment(0x8DBD, "Y = value to print", inline=True)
+comment(0x8DBE, "Divisor = 100 (hundreds digit)", inline=True)
+comment(0x8DC0, "Print hundreds digit", inline=True)
+comment(0x8DC3, "Divisor = 10 (tens digit)", inline=True)
+comment(0x8DC5, "Print tens digit", inline=True)
+comment(0x8DC8, "Divisor = 1; fall through to units", inline=True)
 
 subroutine(0x8DCA, "print_decimal_digit", hook=None,
     title="Print one decimal digit by repeated subtraction",
@@ -1846,6 +1852,10 @@ subroutine(0x9F9D, hook=None,
 Prints the high nibble first (via 4x LSR), then the low
 nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
 and output via OSASCI. Returns with carry set.""")
+comment(0x9F9D, "Save original byte for low nibble", inline=True)
+comment(0x9F9E, "Shift high nibble right (4x LSR)", inline=True)
+comment(0x9FA2, "Print high nibble as hex", inline=True)
+comment(0x9FA5, "Restore byte; fall through for low nibble", inline=True)
 
 label(0x9FA6, "print_hex_nibble")
 subroutine(0x9FA6, hook=None,
@@ -2212,7 +2222,14 @@ reached directly from svc_13_select_nfs, bypassing the station display.
 Falls through to issue_vectors_claimed.""")
 
 comment(0x8264, "Copy 14 bytes: FS vector addresses to FILEV-FSCV", inline=True)
+comment(0x8266, "Load extended vector dispatch address", inline=True)
+comment(0x8269, "Write to FILEV-FSCV vector table", inline=True)
+comment(0x826C, "Next byte (descending)", inline=True)
+comment(0x826D, "Loop until all 14 bytes copied", inline=True)
+comment(0x826F, "Read ROM ptr table addr, install NETV", inline=True)
 comment(0x8272, "Install 7 handler entries in ROM ptr table", inline=True)
+comment(0x8274, "7 FS vectors to install", inline=True)
+comment(0x8276, "Install each 3-byte vector entry", inline=True)
 comment(0x8279, "X=0 after loop; store as workspace offset", inline=True)
 
 # ============================================================
@@ -2336,6 +2353,9 @@ Notifies current FS of shutdown via FSCV A=6. Scans keyboard
 via print_station_info. If a key is pressed, falls through to
 check_boot_key: the 'N' key (matrix address &55) proceeds with
 auto-boot, any other key causes the auto-boot to be declined.""")
+comment(0x821D, "Notify current FS of shutdown", inline=True)
+comment(0x8220, "OSBYTE &7A: scan keyboard", inline=True)
+comment(0x8226, "No key pressed: proceed with auto-boot", inline=True)
 
 # ============================================================
 # Service 4: unrecognised * command (&8168)
@@ -3407,6 +3427,8 @@ subroutine(0x8E32, "fsreply_3_set_csd", hook=None,
     description="""\
 Stores Y into &0E03 (current selected directory handle).
 Falls through to JMP restore_args_return.""")
+comment(0x8E32, "Store CSD handle from FS reply", inline=True)
+comment(0x8E35, "Restore A/X/Y and return to caller", inline=True)
 
 # ============================================================
 # Copy handles and boot (&8E20 / &8E21)
@@ -3493,6 +3515,8 @@ subroutine(0x8DDC, "fscv_2_star_run", hook=None,
 Parses the filename via parse_filename_gs and calls infol2,
 then falls through to fsreply_4_notify_exec to set up and
 send the FS load-as-command request.""")
+comment(0x8DDC, "Parse filename from command line", inline=True)
+comment(0x8DDF, "Copy filename to FS command buffer", inline=True)
 
 # ============================================================
 # FS reply 4: notify and execute (&8DD5)
@@ -3894,6 +3918,15 @@ pointer that was saved by fs_osword_dispatch before dispatch).
 
 The actual OSWORD &12 sub-function dispatch (read/set station,
 protection, handles etc.) lives in sub_c8f01.""")
+comment(0x8E8D, "Only OSWORDs &0F-&13 (index 0-4)", inline=True)
+comment(0x8E8F, "Index >= 5: not ours, return", inline=True)
+comment(0x8E91, "Dispatch via PHA/PHA/RTS table", inline=True)
+comment(0x8E94, "Y=2: restore 3 bytes (&AA-&AC)", inline=True)
+comment(0x8E96, "Load saved param block byte", inline=True)
+comment(0x8E98, "Restore to &AA-&AC", inline=True)
+comment(0x8E9B, "Next byte (descending)", inline=True)
+comment(0x8E9C, "Loop for all 3 bytes", inline=True)
+comment(0x8E9E, "Return to service handler", inline=True)
 
 subroutine(0x8F7C, "osword_10_handler",
     title="OSWORD &10 handler: open/read RX control block (OPENRX)",
@@ -4191,6 +4224,15 @@ subroutine(0x967A, "adlc_init", hook=None,
 Reads station ID (INTOFF side effect), performs full ADLC reset,
 checks for Tube presence (OSBYTE &EA), then falls through to
 adlc_init_workspace.""")
+comment(0x967A, "INTOFF: read station ID, disable NMIs", inline=True)
+comment(0x967D, "Full ADLC hardware reset", inline=True)
+comment(0x9680, "OSBYTE &EA: check Tube co-processor", inline=True)
+comment(0x9682, "X=0 for OSBYTE", inline=True)
+comment(0x9684, "Clear Econet init flag before setup", inline=True)
+comment(0x9687, "Y=&FF for OSBYTE", inline=True)
+comment(0x968F, "OSBYTE &8F: issue service request", inline=True)
+comment(0x9691, "X=&0C: NMI claim service", inline=True)
+comment(0x9693, "Y=&FF: pass to adlc_init_workspace", inline=True)
 
 subroutine(0x9695, "adlc_init_workspace", hook=None,
     title="Initialise NMI workspace",
@@ -4234,6 +4276,12 @@ subroutine(0x9F6D, "save_econet_state", hook=None,
 Disables NMIs via INTOFF (BIT &FE18), clears tx_clear_flag and
 econet_init_flag to zero, then falls through to adlc_rx_listen
 with Y=5.""")
+comment(0x9F6D, "INTOFF: disable NMIs", inline=True)
+comment(0x9F70, "Clear both flags", inline=True)
+comment(0x9F72, "TX not in progress", inline=True)
+comment(0x9F75, "Econet not initialised", inline=True)
+comment(0x9F78, "Y=5: service call workspace page", inline=True)
+comment(0x9F7A, "Set ADLC to RX listen mode", inline=True)
 
 # Initialisation sequence at &9698 issues OSBYTE &8F
 # service request before copying the NMI shim from &9F7D to &0D00.
@@ -4515,7 +4563,13 @@ hardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler
 before the workspace has been properly set up during initialisation.
 Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
 LDA romsel, STA &FE30, JMP &96BF.""")
+comment(0x9F7D, "INTOFF: disable NMIs while switching ROM", inline=True)
+comment(0x9F80, "Save A", inline=True)
+comment(0x9F81, "Transfer Y to A", inline=True)
+comment(0x9F82, "Save Y (via A)", inline=True)
 comment(0x9F83, "ROM bank 0 (patched during init for actual bank)", inline=True)
+comment(0x9F85, "Select Econet ROM bank via ROMSEL", inline=True)
+comment(0x9F88, "Jump to scout handler in ROM", inline=True)
 
 subroutine(0x9F8B, "rom_set_nmi_vector", hook=None,
     title="ROM copy of set_nmi_vector + nmi_rti",
