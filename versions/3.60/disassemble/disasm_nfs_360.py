@@ -1589,7 +1589,11 @@ builder. Converts fileserver protection format (5-6 bits) to
 BBC OSFILE attribute format (8 bits) via the lookup table at
 &85EC. The two formats use different bit layouts for file
 protection attributes.""")
+comment(0x85CF, "Y=&0E: attribute byte offset in param block", inline=True)
+comment(0x85D1, "Load FS attribute byte", inline=True)
+comment(0x85D3, "Mask to 6 bits (FS → BBC direction)", inline=True)
 comment(0x85D5, "X=4: skip first 4 table entries (BBC→FS half)", inline=True)
+comment(0x85D7, "ALWAYS branch to shared bitmask builder", inline=True)
 
 subroutine(0x85D9, "decode_attribs_5bit", hook=None,
     title="Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)",
@@ -1600,10 +1604,16 @@ different output bit via the table. The conversion is done
 by iterating through the source bits and OR-ing in the
 corresponding destination bits from the table, translating
 between BBC (8-bit) and fileserver (5-bit) protection formats.""")
+comment(0x85D9, "Mask to 5 bits (BBC → FS direction)", inline=True)
 comment(0x85DB, "X=&FF: INX makes 0; start from table index 0", inline=True)
 comment(0x85DD, "Temp storage for source bitmask to shift out", inline=True)
+comment(0x85DF, "A=0: accumulate destination bits here", inline=True)
+comment(0x85E1, "Next table entry", inline=True)
 comment(0x85E2, "Shift out source bits one at a time", inline=True)
+comment(0x85E4, "Bit was 0: skip this destination bit", inline=True)
 comment(0x85E6, "OR in destination bit from lookup table", inline=True)
+comment(0x85E9, "Loop while source bits remain (A != 0)", inline=True)
+comment(0x85EB, "Return; A = converted attribute bitmask", inline=True)
 
 
 # ============================================================
@@ -2156,6 +2166,9 @@ Checks if the pressed key (in A) is 'N' (matrix address &55). If
 not 'N', returns to the MOS without claiming the service call
 (another ROM may boot instead). If 'N', forgets the keypress via
 OSBYTE &78 and falls through to print_station_info.""")
+comment(0x8228, "XOR with &55: result=0 if key is 'N'", inline=True)
+comment(0x822A, "Not 'N': return without claiming", inline=True)
+comment(0x822D, "OSBYTE &78: clear key-pressed state", inline=True)
 
 # ============================================================
 # Print station identification (&822E)
@@ -3692,8 +3705,16 @@ Template sentinel values:
   &FE = stop (end of template for this entry path)
   &FD = skip (leave existing value unchanged)
   &FC = use page high byte of target pointer""")
-
+comment(0x9188, "Y=&17: workspace target offset (main entry)", inline=True)
+comment(0x918A, "X=&1A: template table index (main entry)", inline=True)
+comment(0x918C, "V=0: target is (nfs_workspace)", inline=True)
 comment(0x918D, "Load template byte from ctrl_block_template[X]", inline=True)
+comment(0x9190, "&FE = stop sentinel", inline=True)
+comment(0x9192, "End of template: jump to exit", inline=True)
+comment(0x9194, "&FD = skip sentinel", inline=True)
+comment(0x9196, "Skip: don't store, just decrement Y", inline=True)
+comment(0x9198, "&FC = page byte sentinel", inline=True)
+comment(0x919A, "Not sentinel: store template value directly", inline=True)
 
 subroutine(0x91B4, "ctrl_block_template", hook=None,
     title="Control block initialisation template",
@@ -3793,7 +3814,17 @@ modify TXCBP between the copy and the claim.""",
              "x": "corrupted",
              "y": "&FF"})
 comment(0x8EC2, "ASL TXCLR: C=1 means TX free to claim", inline=True)
+comment(0x8EC5, "Save Y (param block high) for later", inline=True)
 comment(0x8EC6, "C=0: TX busy, return error status", inline=True)
+comment(0x8EC8, "User TX CB in workspace page (high byte)", inline=True)
+comment(0x8ECA, "Set param block high byte", inline=True)
+comment(0x8ECC, "Set LTXCBP high byte for low-level TX", inline=True)
+comment(0x8ECE, "&6F: offset into workspace for user TXCB", inline=True)
+comment(0x8ED0, "Set param block low byte", inline=True)
+comment(0x8ED2, "Set LTXCBP low byte for low-level TX", inline=True)
+comment(0x8ED4, "X=15: copy 16 bytes (OSWORD param block)", inline=True)
+comment(0x8ED6, "Copy param block to user TX control block", inline=True)
+comment(0x8ED9, "Start user transmit via BRIANX", inline=True)
 
 subroutine(0x8EDC, "osword_11_handler", hook=None,
     title="OSWORD &11 handler: read JSR arguments (READRA)",
