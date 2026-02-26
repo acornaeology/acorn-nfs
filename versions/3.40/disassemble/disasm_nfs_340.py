@@ -1626,19 +1626,10 @@ address (&B4-&B7) during multi-block file data transfers.""",
 # ============================================================
 # FS flags (&8651 / &8659)
 # ============================================================
-subroutine(0x867E, "clear_fs_flag", hook=None,
-    title="Clear bit(s) in FS flags (&0E07)",
-    description="""\
-Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-the specified bits. JMPs to the shared STA at &865C, skipping
-the ORA in set_fs_flag.""")
-
-entry(0x8680)
-subroutine(0x8680, "set_fs_flag", hook=None,
-    title="Set bit(s) in FS flags (&0E07)",
-    description="""\
-ORs A into fs_work_0e07 (EOF hint byte), then falls through
-to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+label(0x8679, "set_fs_flag")
+comment(0x8679, """\
+Set bit(s) in the EOF hint flags (&0E07). ORs A into
+fs_eof_flags then stores the result via store_fs_flag.
 Each bit represents one of up to 8 open file handles. When
 clear, the file is definitely NOT at EOF. When set, the
 fileserver must be queried to confirm EOF status. This
@@ -1647,6 +1638,12 @@ round-trips for the common case. The hint is cleared when
 the file pointer is updated (since seeking away from EOF
 invalidates the hint) and set after BGET/OPEN/EOF operations
 that might have reached the end.""")
+
+subroutine(0x867E, "clear_fs_flag", hook=None,
+    title="Clear bit(s) in FS flags (&0E07)",
+    description="""\
+Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
+to clear the specified bits.""")
 
 # ============================================================
 # Print file info (&8CFC)

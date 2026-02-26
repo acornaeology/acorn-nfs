@@ -2973,28 +2973,8 @@ error_msg_table = l857a+6
 .return_fscv_handles
     rts                                                               ; 86cf: 60          `
 
-; &86d0 referenced 4 times by &89b0, &8a07, &8a27, &8b08
-.sub_c86d0
-    ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...
-    bne store_fs_flag                                                 ; 86d3: d0 05       ..
-; ***************************************************************************************
-; Clear bit(s) in FS flags (&0E07)
-; 
-; Inverts A (EOR #&FF), then falls through to set_fs_flag which
-; ANDs the result into fs_eof_flags to clear the specified bits.
-; ***************************************************************************************
-; &86d5 referenced 3 times by &8576, &88ca, &8b05
-.clear_fs_flag
-    eor #&ff                                                          ; 86d5: 49 ff       I.
-; ***************************************************************************************
-; AND mask into FS flags (&0E07)
-; 
-; ANDs A into fs_eof_flags (&0E07), then stores the result.
-; Despite the name, this entry point performs AND -- it is
-; used by clear_fs_flag to
-; mask out bits. In 3.60, bit-setting is handled by sub_c86d0
-; which ORs A into the flags and branches directly to
-; store_fs_flag, bypassing this AND step.
+; Set bit(s) in the EOF hint flags (&0E07). ORs A into
+; fs_eof_flags then stores the result via store_fs_flag.
 ; Each bit represents one of up to 8 open file handles. When
 ; clear, the file is definitely NOT at EOF. When set, the
 ; fileserver must be queried to confirm EOF status. This
@@ -3003,8 +2983,19 @@ error_msg_table = l857a+6
 ; the file pointer is updated (since seeking away from EOF
 ; invalidates the hint) and set after BGET/OPEN/EOF operations
 ; that might have reached the end.
-; ***************************************************************************************
+; &86d0 referenced 4 times by &89b0, &8a07, &8a27, &8b08
 .set_fs_flag
+    ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...
+    bne store_fs_flag                                                 ; 86d3: d0 05       ..
+; ***************************************************************************************
+; Clear bit(s) in FS flags (&0E07)
+; 
+; Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
+; to clear the specified bits.
+; ***************************************************************************************
+; &86d5 referenced 3 times by &8576, &88ca, &8b05
+.clear_fs_flag
+    eor #&ff                                                          ; 86d5: 49 ff       I.
     and fs_eof_flags                                                  ; 86d7: 2d 07 0e    -..
 ; &86da referenced 1 time by &86d3
 .store_fs_flag
@@ -3658,7 +3649,7 @@ error_msg_table = l857a+6
     jsr prepare_fs_cmd                                                ; 89aa: 20 c7 83     ..            ; Prepare FS command buffer (12 references)
     stx fs_last_byte_flag                                             ; 89ad: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 89af: 68          h
-    jsr sub_c86d0                                                     ; 89b0: 20 d0 86     ..
+    jsr set_fs_flag                                                   ; 89b0: 20 d0 86     ..
 ; ***************************************************************************************
 ; Restore arguments and return
 ; 
@@ -3747,7 +3738,7 @@ error_msg_table = l857a+6
     bcs c89b5                                                         ; 8a01: b0 b2       ..
     lda fs_cmd_data                                                   ; 8a03: ad 05 0f    ...
     tax                                                               ; 8a06: aa          .
-    jsr sub_c86d0                                                     ; 8a07: 20 d0 86     ..
+    jsr set_fs_flag                                                   ; 8a07: 20 d0 86     ..
 ; OR handle bit into fs_sequence_nos
 ; (&0E08). Without this, a newly opened file could
 ; inherit a stale sequence number from a previous
@@ -3783,7 +3774,7 @@ error_msg_table = l857a+6
     ldy #7                                                            ; 8a1f: a0 07       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 8a21: 20 c7 83     ..            ; Prepare FS command buffer (12 references)
     lda fs_cmd_data                                                   ; 8a24: ad 05 0f    ...
-    jsr sub_c86d0                                                     ; 8a27: 20 d0 86     ..
+    jsr set_fs_flag                                                   ; 8a27: 20 d0 86     ..
 ; &8a2a referenced 1 time by &8a50
 .c8a2a
     bcc restore_args_return                                           ; 8a2a: 90 87       ..
@@ -3988,7 +3979,7 @@ error_msg_table = l857a+6
     jsr clear_fs_flag                                                 ; 8b05: 20 d5 86     ..            ; At EOF: clear EOF hint for this handle
 ; &8b08 referenced 1 time by &8b03
 .c8b08
-    jsr sub_c86d0                                                     ; 8b08: 20 d0 86     ..
+    jsr set_fs_flag                                                   ; 8b08: 20 d0 86     ..
     stx fs_load_addr_2                                                ; 8b0b: 86 b2       ..             ; Direction=0: forward adjustment
     jsr adjust_addrs_9                                                ; 8b0d: 20 52 8a     R.
     dec fs_load_addr_2                                                ; 8b10: c6 b2       ..             ; Direction=&FF: reverse adjustment
@@ -8063,7 +8054,7 @@ save pydis_start, pydis_end
 ;     osrdsc_ptr:                               4
 ;     romsel_copy:                              4
 ;     rx_src_net:                               4
-;     sub_c86d0:                                4
+;     set_fs_flag:                              4
 ;     tube_reply_byte:                          4
 ;     tx_length:                                4
 ;     tx_poll_ff:                               4
@@ -9119,7 +9110,6 @@ save pydis_start, pydis_end
 ;     sub_c8387
 ;     sub_c8414
 ;     sub_c84a1
-;     sub_c86d0
 ;     sub_c86de
 ;     sub_c86ea
 ;     sub_c8d9f

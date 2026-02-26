@@ -2475,7 +2475,7 @@ l8004 = service_entry+1
     jsr clear_fs_flag                                                 ; 856f: 20 7e 86     ~.
 ; &8572 referenced 1 time by &856d
 .c8572
-    jsr sub_c8679                                                     ; 8572: 20 79 86     y.
+    jsr set_fs_flag                                                   ; 8572: 20 79 86     y.
     lda l0fde                                                         ; 8575: ad de 0f    ...
 ; &8578 referenced 2 times by &854f, &8566
 .return_4
@@ -2822,25 +2822,8 @@ l8004 = service_entry+1
 .return_fscv_handles
     rts                                                               ; 8678: 60          `
 
-; &8679 referenced 5 times by &8572, &896c, &89c3, &89e3, &8ac4
-.sub_c8679
-    ora fs_eof_flags                                                  ; 8679: 0d 07 0e    ...
-    bne store_fs_flag                                                 ; 867c: d0 05       ..
-; ***************************************************************************************
-; Clear bit(s) in FS flags (&0E07)
-; 
-; Inverts A (EOR #&FF), then ANDs into fs_work_0e07 to clear
-; the specified bits. JMPs to the shared STA at &865C, skipping
-; the ORA in set_fs_flag.
-; ***************************************************************************************
-; &867e referenced 3 times by &856f, &8886, &8ac1
-.clear_fs_flag
-    eor #&ff                                                          ; 867e: 49 ff       I.
-; ***************************************************************************************
-; Set bit(s) in FS flags (&0E07)
-; 
-; ORs A into fs_work_0e07 (EOF hint byte), then falls through
-; to STA fs_eof_flags at &865C (shared with clear_fs_flag).
+; Set bit(s) in the EOF hint flags (&0E07). ORs A into
+; fs_eof_flags then stores the result via store_fs_flag.
 ; Each bit represents one of up to 8 open file handles. When
 ; clear, the file is definitely NOT at EOF. When set, the
 ; fileserver must be queried to confirm EOF status. This
@@ -2849,8 +2832,19 @@ l8004 = service_entry+1
 ; the file pointer is updated (since seeking away from EOF
 ; invalidates the hint) and set after BGET/OPEN/EOF operations
 ; that might have reached the end.
-; ***************************************************************************************
+; &8679 referenced 5 times by &8572, &896c, &89c3, &89e3, &8ac4
 .set_fs_flag
+    ora fs_eof_flags                                                  ; 8679: 0d 07 0e    ...
+    bne store_fs_flag                                                 ; 867c: d0 05       ..
+; ***************************************************************************************
+; Clear bit(s) in FS flags (&0E07)
+; 
+; Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
+; to clear the specified bits.
+; ***************************************************************************************
+; &867e referenced 3 times by &856f, &8886, &8ac1
+.clear_fs_flag
+    eor #&ff                                                          ; 867e: 49 ff       I.
     and fs_eof_flags                                                  ; 8680: 2d 07 0e    -..
 ; &8683 referenced 1 time by &867c
 .store_fs_flag
@@ -3568,7 +3562,7 @@ l8004 = service_entry+1
     jsr prepare_fs_cmd                                                ; 8966: 20 c3 83     ..            ; Prepare FS command buffer (12 references)
     stx fs_last_byte_flag                                             ; 8969: 86 bd       ..             ; X=0 on success, &D6 on not-found
     pla                                                               ; 896b: 68          h
-    jsr sub_c8679                                                     ; 896c: 20 79 86     y.
+    jsr set_fs_flag                                                   ; 896c: 20 79 86     y.
 ; ***************************************************************************************
 ; Restore arguments and return
 ; 
@@ -3657,7 +3651,7 @@ l8004 = service_entry+1
     bcs c8971                                                         ; 89bd: b0 b2       ..
     lda fs_cmd_data                                                   ; 89bf: ad 05 0f    ...
     tax                                                               ; 89c2: aa          .
-    jsr sub_c8679                                                     ; 89c3: 20 79 86     y.
+    jsr set_fs_flag                                                   ; 89c3: 20 79 86     y.
 ; OR handle bit into fs_sequence_nos (&0E08) to prevent
 ; a newly opened file inheriting a stale sequence number
 ; from a previous file using the same handle.
@@ -3691,7 +3685,7 @@ l8004 = service_entry+1
     ldy #7                                                            ; 89db: a0 07       ..             ; Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 89dd: 20 c3 83     ..            ; Prepare FS command buffer (12 references)
     lda fs_cmd_data                                                   ; 89e0: ad 05 0f    ...
-    jsr sub_c8679                                                     ; 89e3: 20 79 86     y.
+    jsr set_fs_flag                                                   ; 89e3: 20 79 86     y.
 ; &89e6 referenced 1 time by &8a0c
 .c89e6
     bcc restore_args_return                                           ; 89e6: 90 87       ..
@@ -3896,7 +3890,7 @@ l8004 = service_entry+1
     jsr clear_fs_flag                                                 ; 8ac1: 20 7e 86     ~.
 ; &8ac4 referenced 1 time by &8abf
 .c8ac4
-    jsr sub_c8679                                                     ; 8ac4: 20 79 86     y.
+    jsr set_fs_flag                                                   ; 8ac4: 20 79 86     y.
     stx fs_load_addr_2                                                ; 8ac7: 86 b2       ..
     jsr adjust_addrs_9                                                ; 8ac9: 20 0e 8a     ..
     dec fs_load_addr_2                                                ; 8acc: c6 b2       ..
@@ -8178,7 +8172,7 @@ save pydis_start, pydis_end
 ;     scout_error:                              5
 ;     scout_status:                             5
 ;     send_to_fs_star:                          5
-;     sub_c8679:                                5
+;     set_fs_flag:                              5
 ;     system_via_acr:                           5
 ;     tube_flag:                                5
 ;     tube_send_r1:                             5
@@ -9292,7 +9286,6 @@ save pydis_start, pydis_end
 ;     sub_c04c4
 ;     sub_c04cb
 ;     sub_c8383
-;     sub_c8679
 ;     sub_c86d7
 ;     sub_c86e3
 ;     sub_c8d92

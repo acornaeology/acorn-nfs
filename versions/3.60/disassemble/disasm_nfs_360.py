@@ -1731,22 +1731,10 @@ address (&B4-&B7) during multi-block file data transfers.""",
 # ============================================================
 # FS flags (&8651 / &8659)
 # ============================================================
-subroutine(0x86D5, "clear_fs_flag", hook=None,
-    title="Clear bit(s) in FS flags (&0E07)",
-    description="""\
-Inverts A (EOR #&FF), then falls through to set_fs_flag which
-ANDs the result into fs_eof_flags to clear the specified bits.""")
-
-entry(0x86D7)
-subroutine(0x86D7, "set_fs_flag", hook=None,
-    title="AND mask into FS flags (&0E07)",
-    description="""\
-ANDs A into fs_eof_flags (&0E07), then stores the result.
-Despite the name, this entry point performs AND -- it is
-used by clear_fs_flag to
-mask out bits. In 3.60, bit-setting is handled by sub_c86d0
-which ORs A into the flags and branches directly to
-store_fs_flag, bypassing this AND step.
+label(0x86D0, "set_fs_flag")
+comment(0x86D0, """\
+Set bit(s) in the EOF hint flags (&0E07). ORs A into
+fs_eof_flags then stores the result via store_fs_flag.
 Each bit represents one of up to 8 open file handles. When
 clear, the file is definitely NOT at EOF. When set, the
 fileserver must be queried to confirm EOF status. This
@@ -1755,6 +1743,12 @@ round-trips for the common case. The hint is cleared when
 the file pointer is updated (since seeking away from EOF
 invalidates the hint) and set after BGET/OPEN/EOF operations
 that might have reached the end.""")
+
+subroutine(0x86D5, "clear_fs_flag", hook=None,
+    title="Clear bit(s) in FS flags (&0E07)",
+    description="""\
+Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
+to clear the specified bits.""")
 
 # ============================================================
 # Print file info — deleted in 3.60
