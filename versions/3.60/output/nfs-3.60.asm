@@ -7601,16 +7601,26 @@ l9e41 = c9e40+1
     lda #0                                                            ; 9ea8: a9 00       ..             ; A=0: success result code
     beq tx_store_result                                               ; 9eaa: f0 02       ..             ; BEQ: always taken (A=0); ALWAYS branch
 
+; ***************************************************************************************
+; TX failure: not listening
+; 
+; Loads error code &41 (not listening) and falls through to
+; tx_store_result. The most common TX error path — reached from
+; 11 sites across the final-ACK validation chain when the remote
+; station doesn't respond or the frame is malformed.
+; ***************************************************************************************
 ; &9eac referenced 11 times by &983a, &9d58, &9e4b, &9e61, &9e69, &9e73, &9e78, &9e87, &9e8f, &9e97, &9ea6
 .tx_result_fail
-    lda #&41 ; 'A'                                                    ; 9eac: a9 41       .A
+    lda #&41 ; 'A'                                                    ; 9eac: a9 41       .A             ; A=&41: not listening error code
 ; ***************************************************************************************
-; TX error handler
+; TX result store and completion
 ; 
-; Stores error code (A) into the TX control block, sets &0D3A bit7
-; for completion, and returns to idle via discard_reset_listen.
-; Error codes: &00=success, &40=line jammed, &41=not listening,
-; &42=net error.
+; Stores result code (A) into the TX control block at
+; (nmi_tx_block),0 and sets bit 7 of &0D3A to signal completion.
+; Returns to idle via discard_reset_listen. Reached from
+; tx_result_ok (A=0, success), tx_result_fail (A=&41, not
+; listening), and directly with other codes (A=&40 line jammed,
+; A=&42 net error).
 ; ***************************************************************************************
 ; &9eae referenced 2 times by &9d05, &9eaa
 .tx_store_result

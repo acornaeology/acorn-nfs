@@ -7152,13 +7152,24 @@ and calls discard_reset_listen to return to idle.""")
 comment(0x9EA8, "A=0: success result code", inline=True)
 comment(0x9EAA, "BEQ: always taken (A=0)", inline=True)
 
-subroutine(0x9EAE, "tx_store_result", hook=None,
-    title="TX error handler",
+subroutine(0x9EAC, "tx_result_fail", hook=None,
+    title="TX failure: not listening",
     description="""\
-Stores error code (A) into the TX control block, sets &0D3A bit7
-for completion, and returns to idle via discard_reset_listen.
-Error codes: &00=success, &40=line jammed, &41=not listening,
-&42=net error.""")
+Loads error code &41 (not listening) and falls through to
+tx_store_result. The most common TX error path — reached from
+11 sites across the final-ACK validation chain when the remote
+station doesn't respond or the frame is malformed.""")
+comment(0x9EAC, "A=&41: not listening error code", inline=True)
+
+subroutine(0x9EAE, "tx_store_result", hook=None,
+    title="TX result store and completion",
+    description="""\
+Stores result code (A) into the TX control block at
+(nmi_tx_block),0 and sets bit 7 of &0D3A to signal completion.
+Returns to idle via discard_reset_listen. Reached from
+tx_result_ok (A=0, success), tx_result_fail (A=&41, not
+listening), and directly with other codes (A=&40 line jammed,
+A=&42 net error).""")
 comment(0x9EAE, "Y=0: index into TX control block", inline=True)
 comment(0x9EB0, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x9EB2, "&80: completion flag for &0D3A", inline=True)
