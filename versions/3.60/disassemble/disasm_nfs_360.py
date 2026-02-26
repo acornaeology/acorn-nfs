@@ -1730,6 +1730,13 @@ address (&B4-&B7) during multi-block file data transfers.""",
     on_exit={"a": "corrupted (EOR result)",
              "x": "corrupted",
              "y": "preserved"})
+comment(0x86BF, "Compare 4 bytes (index 4,3,2,1)", inline=True)
+comment(0x86C1, "Load byte from first address", inline=True)
+comment(0x86C3, "XOR with corresponding byte", inline=True)
+comment(0x86C5, "Mismatch: Z=0, return unequal", inline=True)
+comment(0x86C8, "Continue comparing", inline=True)
+comment(0x86CB, "X=first handle (&20)", inline=True)
+comment(0x86CD, "Y=last handle (&27)", inline=True)
 
 # ============================================================
 # FS flags (&8651 / &8659)

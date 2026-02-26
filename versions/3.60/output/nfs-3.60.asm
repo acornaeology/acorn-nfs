@@ -2954,21 +2954,21 @@ error_msg_table = l857a+6
 ; ***************************************************************************************
 ; &86bf referenced 2 times by &8765, &8854
 .compare_addresses
-    ldx #4                                                            ; 86bf: a2 04       ..
+    ldx #4                                                            ; 86bf: a2 04       ..             ; Compare 4 bytes (index 4,3,2,1)
 ; &86c1 referenced 1 time by &86c8
 .loop_c86c1
-    lda l00af,x                                                       ; 86c1: b5 af       ..
-    eor l00b3,x                                                       ; 86c3: 55 b3       U.
-    bne return_compare                                                ; 86c5: d0 03       ..
+    lda l00af,x                                                       ; 86c1: b5 af       ..             ; Load byte from first address
+    eor l00b3,x                                                       ; 86c3: 55 b3       U.             ; XOR with corresponding byte
+    bne return_compare                                                ; 86c5: d0 03       ..             ; Mismatch: Z=0, return unequal
     dex                                                               ; 86c7: ca          .
-    bne loop_c86c1                                                    ; 86c8: d0 f7       ..
+    bne loop_c86c1                                                    ; 86c8: d0 f7       ..             ; Continue comparing
 ; &86ca referenced 1 time by &86c5
 .return_compare
     rts                                                               ; 86ca: 60          `
 
 .fscv_7_read_handles
-    ldx #&20 ; ' '                                                    ; 86cb: a2 20       .
-    ldy #&27 ; '''                                                    ; 86cd: a0 27       .'
+    ldx #&20 ; ' '                                                    ; 86cb: a2 20       .              ; X=first handle (&20)
+    ldy #&27 ; '''                                                    ; 86cd: a0 27       .'             ; Y=last handle (&27)
 .return_fscv_handles
     rts                                                               ; 86cf: 60          `
 
