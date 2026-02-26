@@ -4215,6 +4215,15 @@ that lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the
 one normally used at runtime; this ROM copy is used during early
 initialisation before the RAM workspace has been set up, and as
 the source for the initial copy to RAM.""")
+comment(0x9F8B, "Store handler high byte at &0D0D", inline=True)
+comment(0x9F8E, "Store handler low byte at &0D0C", inline=True)
+# nmi_rti sequence: restore ROM bank, registers, re-enable NMIs
+comment(0x9F91, "Restore NFS ROM bank", inline=True)
+comment(0x9F93, "Page in via hardware latch", inline=True)
+comment(0x9F96, "Restore Y from stack", inline=True)
+comment(0x9F98, "Restore A from stack", inline=True)
+comment(0x9F99, "INTON: re-enable NMIs", inline=True)
+comment(0x9F9C, "Return from interrupt", inline=True)
 
 # ============================================================
 # Secondary dispatch entries (indices 19-32)

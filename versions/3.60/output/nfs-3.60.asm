@@ -7793,15 +7793,15 @@ l9f7c = c9f7a+2
 ; the source for the initial copy to RAM.
 ; ***************************************************************************************
 .rom_set_nmi_vector
-    sty nmi_jmp_hi                                                    ; 9f8b: 8c 0d 0d    ...
-    sta nmi_jmp_lo                                                    ; 9f8e: 8d 0c 0d    ...
-    lda romsel_copy                                                   ; 9f91: a5 f4       ..
-    sta romsel                                                        ; 9f93: 8d 30 fe    .0.
-    pla                                                               ; 9f96: 68          h
+    sty nmi_jmp_hi                                                    ; 9f8b: 8c 0d 0d    ...            ; Store handler high byte at &0D0D
+    sta nmi_jmp_lo                                                    ; 9f8e: 8d 0c 0d    ...            ; Store handler low byte at &0D0C
+    lda romsel_copy                                                   ; 9f91: a5 f4       ..             ; Restore NFS ROM bank
+    sta romsel                                                        ; 9f93: 8d 30 fe    .0.            ; Page in via hardware latch
+    pla                                                               ; 9f96: 68          h              ; Restore Y from stack
     tay                                                               ; 9f97: a8          .
-    pla                                                               ; 9f98: 68          h
-    bit video_ula_control                                             ; 9f99: 2c 20 fe    , .
-    rti                                                               ; 9f9c: 40          @
+    pla                                                               ; 9f98: 68          h              ; Restore A from stack
+    bit video_ula_control                                             ; 9f99: 2c 20 fe    , .            ; INTON: re-enable NMIs
+    rti                                                               ; 9f9c: 40          @              ; Return from interrupt
 
 ; ***************************************************************************************
 ; Print byte as two hex digits
