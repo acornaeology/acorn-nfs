@@ -2348,11 +2348,13 @@ subroutine(0x854C, "check_escape", hook=None,
     description="""\
 Dead code: bare RTS with no callers. The active escape check
 entry is check_escape_handler (&854D).""")
-label(0x854D, "check_escape_handler")
-
-# 3.35K fix comments at $8526/$8568 — addresses shifted in 3.40;
-# these fixes originated in 3.35K and are present in 3.40 but at
-# different addresses (will be confirmed after code tracing).
+subroutine(0x854D, "check_escape_handler", hook=None,
+    title="Test MOS escape flag and abort if pending",
+    description="""\
+Tests MOS escape flag (&FF bit 7). If escape is pending:
+acknowledges via OSBYTE &7E, writes &3F (deleted marker) into
+the control block via (net_tx_ptr),Y, and branches to the
+NLISTN error path. If no escape, returns immediately.""")
 
 # ============================================================
 # Error message table (&8579)

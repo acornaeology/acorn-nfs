@@ -2453,6 +2453,14 @@ l8004 = service_entry+1
 .check_escape
     rts                                                               ; 854c: 60          `
 
+; ***************************************************************************************
+; Test MOS escape flag and abort if pending
+; 
+; Tests MOS escape flag (&FF bit 7). If escape is pending:
+; acknowledges via OSBYTE &7E, writes &3F (deleted marker) into
+; the control block via (net_tx_ptr),Y, and branches to the
+; NLISTN error path. If no escape, returns immediately.
+; ***************************************************************************************
 ; &854d referenced 3 times by &80b0, &852d, &86b7
 .check_escape_handler
     bit l00ff                                                         ; 854d: 24 ff       $.
