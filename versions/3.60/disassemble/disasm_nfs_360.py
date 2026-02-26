@@ -184,7 +184,6 @@ label(0x00A4, "open_port_buf")       # Open port buffer address (low)
 label(0x00A5, "open_port_buf_hi")    # Open port buffer address (high)
 label(0x00A6, "port_ws_offset")      # Port workspace offset
 label(0x00A7, "rx_buf_offset")       # Receive buffer offset
-# nfs_temp and rom_svc_num were at &A8/&A9 in 3.35D; reverted to &CD/&CE in 3.35K
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
@@ -210,8 +209,8 @@ label(0x00BC, "fs_block_offset")     # TEMPY: block offset / control block point
 label(0x00BD, "fs_last_byte_flag")   # TEMPA: b7=last byte from block / saved A
 label(0x00BE, "fs_crc_lo")           # POINTR: generic pointer (low)
 label(0x00BF, "fs_crc_hi")           # POINTR+1: generic pointer (high)
-label(0x00CD, "nfs_temp")            # General-purpose NFS temporary (at &A8 in 3.35D)
-label(0x00CE, "rom_svc_num")        # ROM service number, 7=osbyte, 8=osword (at &A9 in 3.35D)
+label(0x00CD, "nfs_temp")            # General-purpose NFS temporary
+label(0x00CE, "rom_svc_num")        # ROM service number, 7=osbyte, 8=osword
 
 # Zero page — Additional OS locations
 label(0x0010, "zp_temp_10")          # Temporary storage (Y save during service calls)
@@ -389,8 +388,7 @@ comment(0x04EB, "Read 4-byte reloc address from ROM header", inline=True)
 # Relocated code — page 5 (Tube dispatch table, WRCH, file I/O handlers)
 # Reference: NFS13 (TASKS table, BPUT, BGET, RDCHZ, FIND, ARGS, STRNG, CLI, FILE)
 #
-# &0500-&0517: 12-entry dispatch table of word addresses (rewritten in 3.40;
-# 3.34 had 14 entries with extra tube_restore_regs/tube_release_return at 6/7).
+# &0500-&0517: 12-entry dispatch table of word addresses.
 # The R2 command byte is stored directly as the JMP (&0050) operand low byte,
 # so even-numbered R2 commands index pairs of bytes in this table.
 #
@@ -411,7 +409,7 @@ comment(0x04EB, "Read 4-byte reloc address from ROM header", inline=True)
 # 3.35K labels tube_wrch_handler ($051C), tube_send_and_poll ($051F) — Tube code rewritten
 label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
 # 3.35K label tube_resume_poll ($0532) — Tube code rewritten
-label(0x053D, "tube_release_return")  # Dead code in 3.60 (was dispatch entry 7 in 3.34)
+label(0x053D, "tube_release_return")  # Dead code (unreferenced)
 label(0x0520, "tube_osbput")          # OSBPUT: read channel+byte from R2, call &FFD4
 label(0x052D, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
 label(0x0537, "tube_osrdch")          # OSRDCH: call &FFC8, send carry+byte reply
@@ -419,8 +417,7 @@ label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
 comment(0x053B, """\
 Overlapping code: bytes &053B-&053D (20 95 06) are
 JSR tube_send_r2 when falling through from ROR A
-above. In 3.34, dispatch entry 7 jumped to &053D
-where &06 became ASL; that entry was removed in 3.40
+above. tube_release_return at &053D is dead code
 so tube_release_return is now dead code.""")
 comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
@@ -465,13 +462,9 @@ comment(0x05E4, "Return 13-byte result block to co-processor", inline=True)
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)
 # 3.35K label tube_osgbpb ($0602) — Tube code rewritten
-# 3.35K fix: after JSR osgbpb, ROR A encodes carry into bit 7
+# After JSR osgbpb, ROR A encodes carry into bit 7
 # and sends it via tube_send_r2 BEFORE the 13 parameter bytes.
-# In 3.35D, PHA saved A but never sent or popped it — the
-# co-processor had no way to determine completion status.
-comment(0x0615, """\
-3.35K fix: send carry result to co-processor.
-3.35D had PHA here (never sent, never popped).""", inline=True)
+comment(0x0615, "Send carry result to co-processor", inline=True)
 comment(0x0601, "Send X result for 2-param OSBYTE", inline=True)
 comment(0x0607, "Read X, Y, A from R2 for 3-param OSBYTE", inline=True)
 comment(0x0617, "OSBYTE &9D (fast Tube BPUT): no result needed", inline=True)
@@ -1418,8 +1411,7 @@ subroutine(0x9ABC, hook=None,
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 scout_status=2, then calls tx_calc_transfer to send the
 PEEK response data back to the requesting station.
-Rewritten in 3.40 to use workspace offsets (&A6/&A7)
-instead of saving/restoring nmi_tx_block (&A0/&A1).""")
+Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 
 # ============================================================
 # TX completion handler labels (&9BAA-&9BEC)
@@ -1578,8 +1570,6 @@ comment(0x85DD, "Temp storage for source bitmask to shift out", inline=True)
 comment(0x85E2, "Shift out source bits one at a time", inline=True)
 comment(0x85E6, "OR in destination bit from lookup table", inline=True)
 
-# skip_spaces (&854D in 3.34B) was removed in 3.35D; its functionality
-# was integrated into the new inline station number parser at &807D.
 
 # ============================================================
 # Decimal number parser (&8620)
@@ -1752,8 +1742,8 @@ subroutine(0x86D7, "set_fs_flag", hook=None,
     title="AND mask into FS flags (&0E07)",
     description="""\
 ANDs A into fs_eof_flags (&0E07), then stores the result.
-Despite the name (retained from 3.34 where it used ORA), this
-entry point performs AND -- it is used by clear_fs_flag to
+Despite the name, this entry point performs AND -- it is
+used by clear_fs_flag to
 mask out bits. In 3.60, bit-setting is handled by sub_c86d0
 which ORs A into the flags and branches directly to
 store_fs_flag, bypassing this AND step.
@@ -2057,17 +2047,14 @@ Intercepts three service calls before normal dispatch:
   &12 (Y=5): Select NFS as active filing system
 All other service calls < &0D dispatch via c8146.
 
-3.40 change: replaced 3.35D's per-ROM disable flag at &80EA
-with ADLC register probing (3.35K had removed the check
-entirely). The 9 NOPs at &80F7 provide bus settling time.""")
+Probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1)
+to detect whether Econet hardware is present. Sets bit 7 of
+per-ROM workspace as a disable flag if not found. The 9 NOPs
+at &80F7 provide bus settling time after register access.""")
 
 # ============================================================
 # Init: set up vectors and copy code (&8140)
 # ============================================================
-# Rewritten in 3.40: reverts from table-driven vector init
-# (3.35D/3.35K) to hardcoded LDA/STA pairs, and only sets
-# 2 vectors (EVNTV and BRKV) instead of 4. RDCHV and WRCHV
-# are no longer initialised during full reset.
 label(0x8144, "init_vectors_and_copy")
 
 # ============================================================
@@ -2283,8 +2270,6 @@ Prints the ROM identification string using print_inline.""")
 # ============================================================
 # Match ROM string (&835E)
 # ============================================================
-# Rewritten in 3.40 with '.' abbreviation support (CMP #&2E
-# at &8362). In 3.35K this was at &81CC without dot support.
 label(0x8362, "match_rom_string")
 comment(0x8362, "Y = saved text pointer offset", inline=True)
 comment(0x8364, "Load next input character", inline=True)
@@ -2401,8 +2386,7 @@ subroutine(0x83AD, "tx_ctrl_template", hook=None,
 TX control block for FS commands: control flag, port, station/
 network, and data buffer pointers (&0F00-&0FFF). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
-# In 3.35K, &836E-&837A was the TX control block template data.
-# In 3.40, the code shifted so &836D-&8379 is now code (string
+# &836D-&8379 is code (string
 # comparison loop tail: BNE/INY/INX/BNE + LDA abs,X/BEQ/RTS/INY).
 # The TX control block template is at different addresses in 3.40.
 
@@ -2554,8 +2538,6 @@ comment(0x855C, "Restore saved rx_flags from stack", inline=True)
 comment(0x8560, "A=saved func code; zero would mean no reply", inline=True)
 
 # The RTS at &8562 is the tail of send_to_fs / fs_wait_cleanup.
-# In 3.34-3.35K it was labelled check_escape (a real subroutine);
-# in 3.40/3.60 the escape check was moved elsewhere.
 
 # ============================================================
 # Error message table (&854D)
@@ -2931,7 +2913,7 @@ comment(0x89EE, "Flag 2: create vs existing file", inline=True)
 
 # 3.35K: sequence number initialisation for newly opened handles
 comment(0x8A0A, """\
-3.35K fix: OR handle bit into fs_sequence_nos
+OR handle bit into fs_sequence_nos
 (&0E08). Without this, a newly opened file could
 inherit a stale sequence number from a previous
 file using the same handle, causing byte-stream
@@ -3263,7 +3245,6 @@ terminator). Used by fscv_5_cat to display Dir. and Lib. paths.""")
 # ============================================================
 # Print reply buffer bytes (&8CFB / &8CFD)
 # ============================================================
-# Rewritten in 3.40 and relocated from &8DB2 to &8CFB.
 # Entry at &8CFB: sets Y=10 and falls into the loop.
 # Entry at &8CFD: caller-supplied Y count.
 # Entry at &8CF4: PLA/CLC/ADC $B4/TAY/BNE to compute count
@@ -3456,8 +3437,6 @@ comment(0x905F, "Store data byte at (net_rx_ptr)+&7D for TX", inline=True)
 comment(0x9078, "Adjust data length by 3 for header bytes", inline=True)
 
 # sub_c90b6 is the actual NWRCH dispatch handler (code 4).
-# The ROR/ASL trick on stacked P at &0106 was previously part of
-# net_write_char in 3.34 but moved here in 3.60.
 comment(0x90B7, "ROR/ASL on stacked P: zeros carry to signal success", inline=True)
 comment(0x90BE, "Store character at workspace offset &DA", inline=True)
 
@@ -3853,9 +3832,9 @@ adlc_init_workspace.""")
 subroutine(0x9695, "adlc_init_workspace", hook=None,
     title="Initialise NMI workspace",
     description="""\
-New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
-request) before copying the NMI shim. Sub-entry at &9698 skips
-the service request for quick re-init. Then copies 32 bytes of
+Issues OSBYTE &8F with X=&0C (NMI claim service request) before
+copying the NMI shim. Sub-entry at &9698 skips the service
+request for quick re-init. Then copies 32 bytes of
 NMI shim from ROM (&9F7D) to RAM (&0D00), patches the current
 ROM bank number into the shim's self-modifying code at &0D07,
 sets TX clear flag and econet_init_flag to &80, reads station ID
@@ -3884,8 +3863,7 @@ Disables NMIs via INTOFF (BIT &FE18), clears tx_clear_flag and
 econet_init_flag to zero, then falls through to adlc_rx_listen
 with Y=5.""")
 
-# restore_econet_state and install_nmi_shim were restructured in 3.35D
-# into a new initialisation sequence at &9698 that issues OSBYTE &8F
+# Initialisation sequence at &9698 issues OSBYTE &8F
 # service request before copying the NMI shim from &9F7D to &0D00.
 
 # ============================================================
@@ -3918,16 +3896,12 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0421: tube_post_init — reset claimed-address state to &80
   &0435: data transfer setup (SENDW protocol) — &0435-&0483
   &0484: BEGIN — startup entry, sends ROM contents to Tube
-Rewritten in 3.40: RDCHV handler (&04E7 in 3.34) removed,
-replaced by relocation address extraction from ROM header.
-tube_restore_regs and tube_read_r2 also removed.""")
+  &04D2: sub_c04d2 — extract relocation address from ROM table""")
 
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &9462 during init. Rewritten in 3.40 (was 14
-entries in 3.34, now 12 — tube_restore_regs/tube_release_return
-entries removed). Contains:
+Copied from ROM at &9462 during init. Contains:
   &0500: 12-entry dispatch table (&0500-&0517)
   &0518: 8-byte Tube control register value table
   &0520: tube_osbput — write byte to file
@@ -3967,8 +3941,7 @@ straddles the page boundary with a BVC at &05FF/&0600).""")
 # ============================================================
 # OSBYTE code table for VDU state save (&9312)
 # ============================================================
-# In 3.35K, &9312-&9314 was the osbyte_vdu_table (3 data bytes).
-# In 3.40, the code shifted so &9310-&9315 is now code
+# &9310-&9315 is code
 # (read_vdu_osbyte: JSR osbyte; TXA; LDX #0).
 # The osbyte_vdu_table is at different addresses in 3.40.
 

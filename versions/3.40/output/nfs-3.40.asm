@@ -569,7 +569,7 @@ l0051 = tube_dispatch_cmd+1
 ;   &052D: tube_osbget — read byte from file
 ;   &0537: tube_osrdch — read character
 ;   &053A: tube_rdch_reply — ROR carry into byte, send via R2
-;   &053D: tube_release_return — dead code (was dispatch entry 7 in 3.34)
+;   &053D: tube_release_return — dead code (unreferenced)
 ;   &0542: tube_osfind — open file
 ;   &0552: tube_osfind_close — close file (A=0)
 ;   &055E: tube_osargs — file argument read/write
@@ -608,9 +608,7 @@ l0051 = tube_dispatch_cmd+1
     ror a                                                             ; 9490: 6a          j   :053a[3]
 ; Overlapping code: bytes &053B-&053D (20 95 06) are
 ; JSR tube_send_r2 when falling through from ROR A
-; above. In 3.34, dispatch entry 7 jumped to &053D
-; where byte &06 becomes ASL; in 3.40 that entry was
-; removed and tube_release_return at &053D is dead code.
+; above. tube_release_return at &053D is dead code.
     equb &20, &95                                                     ; 9491: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
 .tube_release_return
@@ -775,8 +773,7 @@ l0051 = tube_dispatch_cmd+1
     tay                                                               ; 9564: a8          .   :060e[4]
     jsr c06c5                                                         ; 9565: 20 c5 06     .. :060f[4]
     jsr osbyte                                                        ; 9568: 20 f4 ff     .. :0612[4]
-    eor #&9d                                                          ; 956b: 49 9d       I.  :0615[4]   ; 3.35K fix: send carry result to co-processor.
-; 3.35D had PHA here (never sent, never popped).
+    eor #&9d                                                          ; 956b: 49 9d       I.  :0615[4]   ; Send carry result to co-processor
     beq bytex                                                         ; 956d: f0 eb       ..  :0617[4]
     ror a                                                             ; 956f: 6a          j   :0619[4]
     jsr tube_send_r2                                                  ; 9570: 20 95 06     .. :061a[4]
@@ -1372,7 +1369,6 @@ l8004 = service_entry+1
 ;   &FF: Full init -- vector setup, copy code to RAM, select NFS
 ;   &12 (Y=5): Select NFS as active filing system
 ; All other service calls < &0D dispatch via c8146.
-; 3.35K removes the per-ROM disable flag check that 3.35D has.
 ; ***************************************************************************************
 ; &811f referenced 1 time by &811b
 .c811f
@@ -3662,11 +3658,9 @@ l8004 = service_entry+1
     lda fs_cmd_data                                                   ; 89bf: ad 05 0f    ...
     tax                                                               ; 89c2: aa          .
     jsr sub_c8679                                                     ; 89c3: 20 79 86     y.
-; 3.35K fix: OR handle bit into fs_sequence_nos
-; (&0E08). Without this, a newly opened file could
-; inherit a stale sequence number from a previous
-; file using the same handle, causing byte-stream
-; protocol errors.
+; OR handle bit into fs_sequence_nos (&0E08) to prevent
+; a newly opened file inheriting a stale sequence number
+; from a previous file using the same handle.
     txa                                                               ; 89c6: 8a          .              ; A=single-bit bitmask
     jsr mask_to_handle                                                ; 89c7: 20 60 86     `.            ; Convert bitmask to handle number (FS2A)
     bne c8971                                                         ; 89ca: d0 a5       ..
@@ -4301,7 +4295,7 @@ l8c06 = fs_cmd_match_table+1
     inx                                                               ; 8d03: e8          .
     dey                                                               ; 8d04: 88          .
     bne print_reply_counted                                           ; 8d05: d0 f6       ..
-; Option name encoding: in 3.35, the boot option names ("Off",
+; Option name encoding: the boot option names ("Off",
 ; "Load", "Run", "Exec") are scattered through the code rather
 ; than stored as a contiguous table. They are addressed via
 ; base+offset from return_9 (&8CE0), whose first four bytes
@@ -5985,9 +5979,9 @@ l8c06 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ; 
-; New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
-; request) before copying the NMI shim. Sub-entry at &968A skips
-; the service request for quick re-init. Then copies 32 bytes of
+; Issues OSBYTE &8F with X=&0C (NMI claim service request) before
+; copying the NMI shim. Sub-entry at &968A skips the service
+; request for quick re-init. Then copies 32 bytes of
 ; NMI shim from ROM (&9FA8) to RAM (&0D00), patches the current
 ; ROM bank number into the shim's self-modifying code at &0D07,
 ; sets TX clear flag and econet_init_flag to &80, reads station ID
@@ -6893,8 +6887,7 @@ l9a04 = sub_c9a03+1
 ; Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 ; scout_status=2, then calls tx_calc_transfer to send the
 ; PEEK response data back to the requesting station.
-; Rewritten in 3.40 to use workspace offsets (&A6/&A7)
-; instead of saving/restoring nmi_tx_block (&A0/&A1).
+; Uses workspace offsets (&A6/&A7) for nmi_tx_block.
 ; ***************************************************************************************
 .rx_imm_peek
     lda #&3d ; '='                                                    ; 9ad1: a9 3d       .=

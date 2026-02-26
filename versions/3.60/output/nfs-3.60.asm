@@ -363,9 +363,7 @@ l0051 = tube_dispatch_cmd+1
 ;   &0421: tube_post_init — reset claimed-address state to &80
 ;   &0435: data transfer setup (SENDW protocol) — &0435-&0483
 ;   &0484: BEGIN — startup entry, sends ROM contents to Tube
-; Rewritten in 3.40: RDCHV handler (&04E7 in 3.34) removed,
-; replaced by relocation address extraction from ROM header.
-; tube_restore_regs and tube_read_r2 also removed.
+;   &04D2: sub_c04d2 — extract relocation address from ROM table
 ; ***************************************************************************************
 ; &9362 referenced 1 time by &8162
 .tube_code_page4
@@ -571,9 +569,7 @@ l0051 = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &9462 during init. Rewritten in 3.40 (was 14
-; entries in 3.34, now 12 — tube_restore_regs/tube_release_return
-; entries removed). Contains:
+; Copied from ROM at &9462 during init. Contains:
 ;   &0500: 12-entry dispatch table (&0500-&0517)
 ;   &0518: 8-byte Tube control register value table
 ;   &0520: tube_osbput — write byte to file
@@ -619,8 +615,7 @@ l0051 = tube_dispatch_cmd+1
     ror a                                                             ; 949c: 6a          j   :053a[3]   ; ROR A: encode carry (error flag) into bit 7
 ; Overlapping code: bytes &053B-&053D (20 95 06) are
 ; JSR tube_send_r2 when falling through from ROR A
-; above. In 3.34, dispatch entry 7 jumped to &053D
-; where &06 became ASL; that entry was removed in 3.40
+; above. tube_release_return at &053D is dead code
 ; so tube_release_return is now dead code.
     equb &20, &95                                                     ; 949d: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
@@ -786,8 +781,7 @@ l0051 = tube_dispatch_cmd+1
     tay                                                               ; 9570: a8          .   :060e[4]
     jsr c06c5                                                         ; 9571: 20 c5 06     .. :060f[4]
     jsr osbyte                                                        ; 9574: 20 f4 ff     .. :0612[4]
-    eor #&9d                                                          ; 9577: 49 9d       I.  :0615[4]   ; 3.35K fix: send carry result to co-processor.
-; 3.35D had PHA here (never sent, never popped).
+    eor #&9d                                                          ; 9577: 49 9d       I.  :0615[4]   ; Send carry result to co-processor
     beq bytex                                                         ; 9579: f0 eb       ..  :0617[4]   ; OSBYTE &9D (fast Tube BPUT): no result needed
     ror a                                                             ; 957b: 6a          j   :0619[4]   ; Encode carry (error flag) into bit 7
     jsr tube_send_r2                                                  ; 957c: 20 95 06     .. :061a[4]
@@ -1417,9 +1411,10 @@ l8004 = service_entry+1
 ;   &12 (Y=5): Select NFS as active filing system
 ; All other service calls < &0D dispatch via c8146.
 ; 
-; 3.40 change: replaced 3.35D's per-ROM disable flag at &80EA
-; with ADLC register probing (3.35K had removed the check
-; entirely). The 9 NOPs at &80F7 provide bus settling time.
+; Probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1)
+; to detect whether Econet hardware is present. Sets bit 7 of
+; per-ROM workspace as a disable flag if not found. The 9 NOPs
+; at &80F7 provide bus settling time after register access.
 ; ***************************************************************************************
 ; &8123 referenced 1 time by &811f
 .c8123
@@ -2995,8 +2990,8 @@ error_msg_table = l857a+6
 ; AND mask into FS flags (&0E07)
 ; 
 ; ANDs A into fs_eof_flags (&0E07), then stores the result.
-; Despite the name (retained from 3.34 where it used ORA), this
-; entry point performs AND -- it is used by clear_fs_flag to
+; Despite the name, this entry point performs AND -- it is
+; used by clear_fs_flag to
 ; mask out bits. In 3.60, bit-setting is handled by sub_c86d0
 ; which ORs A into the flags and branches directly to
 ; store_fs_flag, bypassing this AND step.
@@ -3753,7 +3748,7 @@ error_msg_table = l857a+6
     lda fs_cmd_data                                                   ; 8a03: ad 05 0f    ...
     tax                                                               ; 8a06: aa          .
     jsr sub_c86d0                                                     ; 8a07: 20 d0 86     ..
-; 3.35K fix: OR handle bit into fs_sequence_nos
+; OR handle bit into fs_sequence_nos
 ; (&0E08). Without this, a newly opened file could
 ; inherit a stale sequence number from a previous
 ; file using the same handle, causing byte-stream
@@ -6017,9 +6012,9 @@ l8c4c = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ; 
-; New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
-; request) before copying the NMI shim. Sub-entry at &9698 skips
-; the service request for quick re-init. Then copies 32 bytes of
+; Issues OSBYTE &8F with X=&0C (NMI claim service request) before
+; copying the NMI shim. Sub-entry at &9698 skips the service
+; request for quick re-init. Then copies 32 bytes of
 ; NMI shim from ROM (&9F7D) to RAM (&0D00), patches the current
 ; ROM bank number into the shim's self-modifying code at &0D07,
 ; sets TX clear flag and econet_init_flag to &80, reads station ID
@@ -6865,8 +6860,7 @@ l8c4c = fs_cmd_match_table+1
 ; Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 ; scout_status=2, then calls tx_calc_transfer to send the
 ; PEEK response data back to the requesting station.
-; Rewritten in 3.40 to use workspace offsets (&A6/&A7)
-; instead of saving/restoring nmi_tx_block (&A0/&A1).
+; Uses workspace offsets (&A6/&A7) for nmi_tx_block.
 ; ***************************************************************************************
 .rx_imm_peek
     equb &a9, &3d, &85, &a6, &a9, &0d, &85, &a7, &a9,   2, &8d, &5c   ; 9abc: a9 3d 85... .=.

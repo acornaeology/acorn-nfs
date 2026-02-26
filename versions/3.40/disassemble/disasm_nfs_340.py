@@ -183,7 +183,6 @@ label(0x00A4, "open_port_buf")       # Open port buffer address (low)
 label(0x00A5, "open_port_buf_hi")    # Open port buffer address (high)
 label(0x00A6, "port_ws_offset")      # Port workspace offset
 label(0x00A7, "rx_buf_offset")       # Receive buffer offset
-# nfs_temp and rom_svc_num were at &A8/&A9 in 3.35D; reverted to &CD/&CE in 3.35K
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
@@ -209,8 +208,8 @@ label(0x00BC, "fs_block_offset")     # TEMPY: block offset / control block point
 label(0x00BD, "fs_last_byte_flag")   # TEMPA: b7=last byte from block / saved A
 label(0x00BE, "fs_crc_lo")           # POINTR: generic pointer (low)
 label(0x00BF, "fs_crc_hi")           # POINTR+1: generic pointer (high)
-label(0x00CD, "nfs_temp")            # General-purpose NFS temporary (at &A8 in 3.35D)
-label(0x00CE, "rom_svc_num")        # ROM service number, 7=osbyte, 8=osword (at &A9 in 3.35D)
+label(0x00CD, "nfs_temp")            # General-purpose NFS temporary
+label(0x00CE, "rom_svc_num")        # ROM service number, 7=osbyte, 8=osword
 
 # Zero page — Additional OS locations
 label(0x0010, "zp_temp_10")          # Temporary storage (Y save during service calls)
@@ -373,9 +372,7 @@ label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
 comment(0x053B, """\
 Overlapping code: bytes &053B-&053D (20 95 06) are
 JSR tube_send_r2 when falling through from ROR A
-above. In 3.34, dispatch entry 7 jumped to &053D
-where byte &06 becomes ASL; in 3.40 that entry was
-removed and tube_release_return at &053D is dead code.""")
+above. tube_release_return at &053D is dead code.""")
 comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
 label(0x0552, "tube_osfind_close")    # OSFIND close: read handle, call &FFCE with A=0
@@ -395,13 +392,9 @@ for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)
 # 3.35K label tube_osgbpb ($0602) — Tube code rewritten
-# 3.35K fix: after JSR osgbpb, ROR A encodes carry into bit 7
+# After JSR osgbpb, ROR A encodes carry into bit 7
 # and sends it via tube_send_r2 BEFORE the 13 parameter bytes.
-# In 3.35D, PHA saved A but never sent or popped it — the
-# co-processor had no way to determine completion status.
-comment(0x0615, """\
-3.35K fix: send carry result to co-processor.
-3.35D had PHA here (never sent, never popped).""", inline=True)
+comment(0x0615, "Send carry result to co-processor", inline=True)
 label(0x0626, "tube_osbyte_short")    # OSBYTE 2-param: read X+A, call &FFF4, return X
 label(0x0630, "tube_osbyte_send_x")   # Poll R2, send X result
 label(0x0607, "tube_osbyte_long")     # OSBYTE 3-param: read X+Y+A, call &FFF4, return carry+Y+X
@@ -1319,8 +1312,7 @@ subroutine(0x9AD1, hook=None,
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 scout_status=2, then calls tx_calc_transfer to send the
 PEEK response data back to the requesting station.
-Rewritten in 3.40 to use workspace offsets (&A6/&A7)
-instead of saving/restoring nmi_tx_block (&A0/&A1).""")
+Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 
 # ============================================================
 # TX completion handler labels (&9BAA-&9BEC)
@@ -1473,8 +1465,6 @@ by iterating through the source bits and OR-ing in the
 corresponding destination bits from the table, translating
 between BBC (8-bit) and fileserver (5-bit) protection formats.""")
 
-# skip_spaces (&854D in 3.34B) was removed in 3.35D; its functionality
-# was integrated into the new inline station number parser at &807D.
 
 # ============================================================
 # Decimal number parser (&8620)
@@ -1913,16 +1903,11 @@ Intercepts three service calls before normal dispatch:
   &FE: Tube init -- explode character definitions
   &FF: Full init -- vector setup, copy code to RAM, select NFS
   &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8146.
-3.35K removes the per-ROM disable flag check that 3.35D has.""")
+All other service calls < &0D dispatch via c8146.""")
 
 # ============================================================
 # Init: set up vectors and copy code (&8140)
 # ============================================================
-# Rewritten in 3.40: reverts from table-driven vector init
-# (3.35D/3.35K) to hardcoded LDA/STA pairs, and only sets
-# 2 vectors (EVNTV and BRKV) instead of 4. RDCHV and WRCHV
-# are no longer initialised during full reset.
 label(0x8140, "init_vectors_and_copy")
 
 # ============================================================
@@ -2119,8 +2104,6 @@ Prints the ROM identification string using print_inline.""")
 # ============================================================
 # Match ROM string (&835E)
 # ============================================================
-# Rewritten in 3.40 with '.' abbreviation support (CMP #&2E
-# at &8362). In 3.35K this was at &81CC without dot support.
 label(0x835E, "match_rom_string")
 comment(0x835E, "Y = saved text pointer offset", inline=True)
 comment(0x8360, "Load next input character", inline=True)
@@ -2223,9 +2206,6 @@ subroutine(0x83A9, "tx_ctrl_template", hook=None,
 TX control block for FS commands: control flag, port, station/
 network, and data buffer pointers (&0F00-&0FFF). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
-# In 3.35K, &836E-&837A was the TX control block template data.
-# In 3.40, the code shifted so &836D-&8379 is now code (string
-# comparison loop tail: BNE/INY/INX/BNE + LDA abs,X/BEQ/RTS/INY).
 # The TX control block template is at different addresses in 3.40.
 
 # ============================================================
@@ -2620,13 +2600,10 @@ number tracking byte for the byte-stream protocol.""",
              "x": "restored",
              "y": "restored"})
 
-# 3.35K: sequence number initialisation for newly opened handles
 comment(0x89C6, """\
-3.35K fix: OR handle bit into fs_sequence_nos
-(&0E08). Without this, a newly opened file could
-inherit a stale sequence number from a previous
-file using the same handle, causing byte-stream
-protocol errors.""")
+OR handle bit into fs_sequence_nos (&0E08) to prevent
+a newly opened file inheriting a stale sequence number
+from a previous file using the same handle.""")
 
 # ============================================================
 # CLOSE handler (&89AE)
@@ -2816,7 +2793,7 @@ for i in range(5):
 # serve as boot command string offsets in earlier versions, but in
 # 3.40 the boot option offset table is at boot_option_offsets ($8D1B).
 comment(0x8D07, """\
-Option name encoding: in 3.35, the boot option names ("Off",
+Option name encoding: the boot option names ("Off",
 "Load", "Run", "Exec") are scattered through the code rather
 than stored as a contiguous table. They are addressed via
 base+offset from return_9 (&8CE0), whose first four bytes
@@ -2916,7 +2893,6 @@ terminator). Used by fscv_5_cat to display Dir. and Lib. paths.""")
 # ============================================================
 # Print reply buffer bytes (&8CFB / &8CFD)
 # ============================================================
-# Rewritten in 3.40 and relocated from &8DB2 to &8CFB.
 # Entry at &8CFB: sets Y=10 and falls into the loop.
 # Entry at &8CFD: caller-supplied Y count.
 # Entry at &8CF4: PLA/CLC/ADC $B4/TAY/BNE to compute count
@@ -3052,8 +3028,6 @@ comment(0x8F7F, "Load from ROM template (zero = use NMI workspace value)", inlin
 comment(0x8FAA, "Enable interrupts before transmit", inline=True)
 comment(0x8FB0, "Dest station = &FFFF (accept reply from any station)", inline=True)
 comment(0x8FC2, "Initiate receive with timeout", inline=True)
-# 3.34B had BNE (error/timeout branch) at &8FBF; in 3.35D this was
-# restructured into a JMP tail call at &9036, so the comment is removed.
 
 # Data transfer loop (&8FD8-&8FF4)
 comment(0x8FD3, "Receive data blocks until command byte = &00 or &0D", inline=True)
@@ -3437,9 +3411,9 @@ adlc_init_workspace.""")
 subroutine(0x968A, "adlc_init_workspace", hook=None,
     title="Initialise NMI workspace",
     description="""\
-New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
-request) before copying the NMI shim. Sub-entry at &968A skips
-the service request for quick re-init. Then copies 32 bytes of
+Issues OSBYTE &8F with X=&0C (NMI claim service request) before
+copying the NMI shim. Sub-entry at &968A skips the service
+request for quick re-init. Then copies 32 bytes of
 NMI shim from ROM (&9FA8) to RAM (&0D00), patches the current
 ROM bank number into the shim's self-modifying code at &0D07,
 sets TX clear flag and econet_init_flag to &80, reads station ID
@@ -3452,9 +3426,6 @@ subroutine(0x96C8, "save_econet_state", hook=None,
 Stores rx_status_flags, protection_mask, and tx_in_progress
 to (net_rx_ptr) at offsets 8-10. INTOFF side effect on entry.""")
 
-# restore_econet_state and install_nmi_shim were restructured in 3.35D
-# into a new initialisation sequence at &968A that issues OSBYTE &8F
-# service request before copying the NMI shim from &9FE8 to &0D00.
 
 # ============================================================
 # Relocated code block comments
@@ -3496,7 +3467,7 @@ Copied from ROM at &944D during init. Contains:
   &052D: tube_osbget — read byte from file
   &0537: tube_osrdch — read character
   &053A: tube_rdch_reply — ROR carry into byte, send via R2
-  &053D: tube_release_return — dead code (was dispatch entry 7 in 3.34)
+  &053D: tube_release_return — dead code (unreferenced)
   &0542: tube_osfind — open file
   &0552: tube_osfind_close — close file (A=0)
   &055E: tube_osargs — file argument read/write
@@ -3529,9 +3500,6 @@ Copied from ROM at &944D during init. Contains:
 # ============================================================
 # OSBYTE code table for VDU state save (&9312)
 # ============================================================
-# In 3.35K, &9312-&9314 was the osbyte_vdu_table (3 data bytes).
-# In 3.40, the code shifted so &9310-&9315 is now code
-# (read_vdu_osbyte: JSR osbyte; TXA; LDX #0).
 # The osbyte_vdu_table is at different addresses in 3.40.
 
 # ============================================================
