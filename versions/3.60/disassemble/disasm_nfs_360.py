@@ -2999,10 +2999,23 @@ If the hint bit is set, sends FS command &11 (FCEOF) to query
 the fileserver for definitive EOF status. Returns X=&FF if at
 EOF, X=&00 if not. This two-level check avoids an expensive
 network round-trip when the file is known to not be at EOF.""")
+comment(0x88AD, "Save A (function code)", inline=True)
+comment(0x88AE, "X = file handle to check", inline=True)
+comment(0x88AF, "Convert handle to bitmask in A", inline=True)
+comment(0x88B2, "Y = handle bitmask from conversion", inline=True)
 comment(0x88B3, "Local hint: is EOF possible for this handle?", inline=True)
+comment(0x88B6, "X = result of AND (0 = not at EOF)", inline=True)
 comment(0x88B7, "Hint clear: definitely not at EOF", inline=True)
+comment(0x88B9, "Save bitmask for clear_fs_flag", inline=True)
+comment(0x88BA, "Handle byte in FS command buffer", inline=True)
+comment(0x88BD, "Y=&11: FS function code FCEOF", inline=True)
+comment(0x88C4, "Restore bitmask", inline=True)
 comment(0x88C5, "FS reply: non-zero = at EOF", inline=True)
+comment(0x88C8, "At EOF: skip flag clear", inline=True)
 comment(0x88CA, "Not at EOF: clear the hint bit", inline=True)
+comment(0x88CD, "Restore A", inline=True)
+comment(0x88CE, "Restore Y", inline=True)
+comment(0x88D0, "Return; X=0 (not EOF) or X=&FF (EOF)", inline=True)
 
 subroutine(0x88D1, "filev_attrib_dispatch", hook=None,
     title="FILEV attribute dispatch (A=1-6)",
@@ -3064,9 +3077,25 @@ Handles *OPT X,Y to set filing system options:
   *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)
   *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)
 Other combinations generate error &CB (OPTER: "bad option").""")
+comment(0x8A2E, "Is it *OPT 4,Y?", inline=True)
+comment(0x8A30, "No: check for *OPT 1", inline=True)
+comment(0x8A32, "Y must be 0-3 for boot option", inline=True)
+comment(0x8A34, "Y < 4: valid boot option", inline=True)
 comment(0x8A36, "Not *OPT 4: check for *OPT 1", inline=True)
+comment(0x8A37, "Not *OPT 1 either: bad option", inline=True)
 comment(0x8A39, "Set local messages flag (*OPT 1,Y)", inline=True)
+comment(0x8A3C, "Return via restore_args_return", inline=True)
+comment(0x8A3E, "Error index 7 (Bad option)", inline=True)
+comment(0x8A40, "Generate BRK error", inline=True)
+comment(0x8A43, "Boot option value in FS command", inline=True)
+comment(0x8A46, "Y=&16: FS function code FCOPT", inline=True)
+comment(0x8A4B, "Restore Y from saved value", inline=True)
 comment(0x8A4D, "Cache boot option locally", inline=True)
+comment(0x8A50, "Return via restore_args_return", inline=True)
+comment(0x8A52, "Y=9: adjust 9 address bytes", inline=True)
+comment(0x8A54, "Adjust with carry clear", inline=True)
+comment(0x8A57, "Y=1: adjust 1 address byte", inline=True)
+comment(0x8A59, "C=0 for address adjustment", inline=True)
 
 subroutine(0x8A5A, "adjust_addrs", hook=None,
     title="Bidirectional 4-byte address adjustment",
@@ -3167,6 +3196,15 @@ subroutine(0x8A10, "close_handle", hook=None,
   Y>0: close single handle — sends FS close command and clears
        the handle's bit in both the EOF hint byte and the sequence
        number tracking byte.""")
+comment(0x8A10, "A = handle (Y preserved in A)", inline=True)
+comment(0x8A11, "Y>0: close single file", inline=True)
+comment(0x8A13, "Close SPOOL/EXEC before FS close-all", inline=True)
+comment(0x8A18, "Y=0: close all handles on server", inline=True)
+comment(0x8A1A, "Handle byte in FS command buffer", inline=True)
+comment(0x8A24, "Reply handle for flag update", inline=True)
+comment(0x8A27, "Update EOF/sequence tracking bits", inline=True)
+comment(0x8A2A, "C=0: restore A/X/Y and return", inline=True)
+comment(0x8A2C, "Entry from fscv_0_opt (close-all path)", inline=True)
 
 # ============================================================
 # GBPBV handler (&8A72)
@@ -3281,6 +3319,33 @@ it dispatches via PHA/PHA/RTS to the entry's handler address.
 
 After matching, adjusts fs_crc_lo/fs_crc_hi to point past
 the matched command text.""")
+comment(0x8C1B, "Save A/X/Y and set up command ptr", inline=True)
+comment(0x8C1E, "X=&FF: table index (pre-incremented)", inline=True)
+comment(0x8C20, "Disable column formatting", inline=True)
+comment(0x8C22, "Enable escape checking", inline=True)
+comment(0x8C24, "Y=&FF: input index (pre-incremented)", inline=True)
+comment(0x8C26, "Advance input pointer", inline=True)
+comment(0x8C27, "Advance table pointer", inline=True)
+comment(0x8C28, "Load table character", inline=True)
+comment(0x8C2B, "Bit 7: end of name, dispatch", inline=True)
+comment(0x8C2D, "XOR input char with table char", inline=True)
+comment(0x8C2F, "Case-insensitive (clear bit 5)", inline=True)
+comment(0x8C31, "Match: continue comparing", inline=True)
+comment(0x8C33, "Mismatch: back up table pointer", inline=True)
+comment(0x8C34, "Skip to end of table entry", inline=True)
+comment(0x8C35, "Load table byte", inline=True)
+comment(0x8C38, "Loop until bit 7 set (end marker)", inline=True)
+comment(0x8C3A, "Check input for '.' abbreviation", inline=True)
+comment(0x8C3C, "Skip past handler high byte", inline=True)
+comment(0x8C3D, "Is input '.' (abbreviation)?", inline=True)
+comment(0x8C3F, "No: try next table entry", inline=True)
+comment(0x8C41, "Yes: skip '.' in input", inline=True)
+comment(0x8C42, "Back to handler high byte", inline=True)
+comment(0x8C43, "ALWAYS branch; dispatch via BMI", inline=True)
+comment(0x8C45, "Push handler address high byte", inline=True)
+comment(0x8C46, "Load handler address low byte", inline=True)
+comment(0x8C49, "Push handler address low byte", inline=True)
+comment(0x8C4A, "Dispatch via RTS (addr-1 on stack)", inline=True)
 
 subroutine(0x8C4B, "fs_cmd_match_table", hook=None,
     title="FS command match table (COMTAB)",
@@ -3497,6 +3562,22 @@ Prints characters from the FS reply buffer (&0F05+X onwards).
 Null bytes (&00) are replaced with CR (&0D) for display.
 Stops when a byte with bit 7 set is encountered (high-bit
 terminator). Used by fscv_5_cat to display Dir. and Lib. paths.""")
+comment(0x8D96, "X=0: start from first reply byte", inline=True)
+comment(0x8D98, "Load byte from FS reply buffer", inline=True)
+comment(0x8D9B, "Bit 7 set: end of string, return", inline=True)
+comment(0x8D9D, "Non-zero: print character", inline=True)
+comment(0x8D9F, "Null byte: check column counter", inline=True)
+comment(0x8DA1, "Negative: print CR (no columns)", inline=True)
+comment(0x8DA3, "Advance column counter", inline=True)
+comment(0x8DA4, "Transfer to A for modulo", inline=True)
+comment(0x8DA5, "Modulo 4 columns", inline=True)
+comment(0x8DA7, "Update column counter", inline=True)
+comment(0x8DA9, "Column 0: start new line", inline=True)
+comment(0x8DAB, "Print 2-space column separator", inline=True)
+comment(0x8DB0, "ALWAYS branch to next byte", inline=True)
+comment(0x8DB2, "CR = carriage return", inline=True)
+comment(0x8DB7, "Next byte in reply buffer", inline=True)
+comment(0x8DB8, "Loop until end of buffer", inline=True)
 
 # ============================================================
 # Print reply buffer bytes (&8CFB / &8CFD)
@@ -3964,10 +4045,27 @@ Checks byte 4 of the RX control block (remote status flag).
 If zero (not currently remoted), falls through to remot1 to
 set up a new remote session. If non-zero (already remoted),
 jumps to clear_jsr_protection and returns.""")
+comment(0x84AF, "Y=4: remote status flag offset", inline=True)
+comment(0x84B1, "Read remote status from RX CB", inline=True)
+comment(0x84B3, "Zero: not remoted, set up session", inline=True)
+comment(0x84B5, "Already remoted: clear and return", inline=True)
 comment(0x84B8, "Set remote status: bits 0+3 (ORA #9)", inline=True)
+comment(0x84BA, "Store updated remote status", inline=True)
+comment(0x84BC, "X=&80: RX data area offset", inline=True)
+comment(0x84BE, "Y=&80: read source station low", inline=True)
 comment(0x84C0, "Read source station lo from RX data at &80", inline=True)
+comment(0x84C2, "Save source station low byte", inline=True)
+comment(0x84C3, "Y=&81", inline=True)
 comment(0x84C4, "Read source station hi from RX data at &81", inline=True)
 comment(0x84C6, "Save controlling station to workspace &0E/&0F", inline=True)
+comment(0x84C8, "Store station high to ws+&0F", inline=True)
+comment(0x84CA, "Y=&0E", inline=True)
+comment(0x84CB, "Restore source station low", inline=True)
+comment(0x84CC, "Store station low to ws+&0E", inline=True)
+comment(0x84CE, "Clear OSBYTE &CE/&CF flags", inline=True)
+comment(0x84D1, "Set up TX control block", inline=True)
+comment(0x84D4, "X=1: disable keyboard", inline=True)
+comment(0x84D6, "Y=0 for OSBYTE", inline=True)
 comment(0x84D8, "Disable keyboard for remote session", inline=True)
 
 subroutine(0x84DD, "lang_3_execute_at_0100", hook=None,
