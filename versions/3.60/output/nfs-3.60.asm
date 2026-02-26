@@ -3040,13 +3040,12 @@ error_msg_table = l857a+6
     jsr gsinit                                                        ; 86ed: 20 c2 ff     ..
     beq c86fd                                                         ; 86f0: f0 0b       ..             ; Empty string: skip to CR terminator
 ; &86f2 referenced 1 time by &86fb
-.delay_1ms
 .quote1
     jsr gsread                                                        ; 86f2: 20 c5 ff     ..
     bcs c86fd                                                         ; 86f5: b0 06       ..             ; C=1 from GSREAD: end of string reached
     inx                                                               ; 86f7: e8          .
     sta l0e30,x                                                       ; 86f8: 9d 30 0e    .0.
-    bcc delay_1ms                                                     ; 86fb: 90 f5       ..             ; ALWAYS branch
+    bcc quote1                                                        ; 86fb: 90 f5       ..             ; ALWAYS branch
 
 ; &86fd referenced 2 times by &86f0, &86f5
 .c86fd
@@ -8442,7 +8441,6 @@ save pydis_start, pydis_end
 ;     decfir:                                   1
 ;     decmin:                                   1
 ;     decmor:                                   1
-;     delay_1ms:                                1
 ;     discard_after_reset:                      1
 ;     dispatch_0_hi-1:                          1
 ;     dispatch_0_lo-1:                          1

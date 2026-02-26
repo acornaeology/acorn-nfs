@@ -780,7 +780,7 @@ label(0x8D7B, "print_space")            # Print a space character via OSASCI
 # --- TX control and transmission ---
 label(0x8601, "tx_poll_timeout")        # Transmit with Y=&60 (specified timeout)
 # tx_poll_core label created by subroutine() call below.
-label(0x86F2, "delay_1ms")              # MSDELY: 1ms delay loop (nested DEX/DEY)
+
 
 # ============================================================
 # File operations: FILEV, ARGSV, FINDV, GBPBV (&86B0-&8BB6)

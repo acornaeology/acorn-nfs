@@ -2997,13 +2997,12 @@ l8004 = service_entry+1
     jsr gsinit                                                        ; 86e6: 20 c2 ff     ..
     beq c86f6                                                         ; 86e9: f0 0b       ..
 ; &86eb referenced 1 time by &86f4
-.delay_1ms
 .quote1
     jsr gsread                                                        ; 86eb: 20 c5 ff     ..
     bcs c86f6                                                         ; 86ee: b0 06       ..
     inx                                                               ; 86f0: e8          .
     sta l0e30,x                                                       ; 86f1: 9d 30 0e    .0.
-    bcc delay_1ms                                                     ; 86f4: 90 f5       ..             ; ALWAYS branch
+    bcc quote1                                                        ; 86f4: 90 f5       ..             ; ALWAYS branch
 
 ; &86f6 referenced 2 times by &86e9, &86ee
 .c86f6
@@ -8608,7 +8607,6 @@ save pydis_start, pydis_end
 ;     decfir:                                   1
 ;     decmin:                                   1
 ;     decmor:                                   1
-;     delay_1ms:                                1
 ;     discard_after_reset:                      1
 ;     dispatch_0_hi-1:                          1
 ;     dispatch_0_lo-1:                          1
