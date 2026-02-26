@@ -3331,6 +3331,12 @@ Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set
 up the TX control block, stores the port and control bytes, then
 decrements the control flag. Used by send_fs_reply_cmd to prepare
 for receiving the fileserver's reply.""")
+comment(0x8387, "A=&90: FS reply port (PREPLY)", inline=True)
+comment(0x8389, "Init TXCB from template", inline=True)
+comment(0x838C, "Store port number in TXCB", inline=True)
+comment(0x838E, "Control byte: 3 = transmit", inline=True)
+comment(0x8390, "Store control byte in TXCB", inline=True)
+comment(0x8392, "Decrement TXCB flag to arm TX", inline=True)
 
 subroutine(0x8351, "fscv_6_shutdown", hook=None,
     title="FSCV 6: Filing system shutdown / save state (FSDIE)",

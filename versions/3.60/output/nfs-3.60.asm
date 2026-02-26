@@ -2047,14 +2047,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; &8387 referenced 1 time by &83f4
 .init_tx_reply_port
-    lda #&90                                                          ; 8387: a9 90       ..
+    lda #&90                                                          ; 8387: a9 90       ..             ; A=&90: FS reply port (PREPLY)
 ; &8389 referenced 1 time by &889c
 .init_tx_ctrl_port
-    jsr init_tx_ctrl_block                                            ; 8389: 20 95 83     ..
-    sta txcb_port                                                     ; 838c: 85 c1       ..
-    lda #3                                                            ; 838e: a9 03       ..
-    sta txcb_start                                                    ; 8390: 85 c4       ..
-    dec txcb_ctrl                                                     ; 8392: c6 c0       ..
+    jsr init_tx_ctrl_block                                            ; 8389: 20 95 83     ..            ; Init TXCB from template
+    sta txcb_port                                                     ; 838c: 85 c1       ..             ; Store port number in TXCB
+    lda #3                                                            ; 838e: a9 03       ..             ; Control byte: 3 = transmit
+    sta txcb_start                                                    ; 8390: 85 c4       ..             ; Store control byte in TXCB
+    dec txcb_ctrl                                                     ; 8392: c6 c0       ..             ; Decrement TXCB flag to arm TX
     rts                                                               ; 8394: 60          `
 
 ; ***************************************************************************************
