@@ -573,6 +573,11 @@ label(0x90AD, "osword_tbl_hi")         # Dispatch table high bytes
 label(0x913C, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
 label(0x9144, "return_match_osbyte") # Return from match_osbyte_code
 label(0x84A0, "return_remote_cmd")   # Return from remote command data handler
+comment(0x84A1, "Read escape flag from MOS workspace", inline=True)
+comment(0x84A3, "Mask with escapable: bit 7 set if active", inline=True)
+comment(0x84A5, "No escape pending: return", inline=True)
+comment(0x84A7, "OSBYTE &7E: acknowledge escape condition", inline=True)
+comment(0x84AC, "Report escape error via error message table", inline=True)
 label(0x84B5, "rchex")                # Clear JSR protection after remote command exec
 
 # Control block setup
@@ -705,7 +710,27 @@ label(0x83F3, "send_fs_reply_cmd")      # Send FS command with reply processing
 # handle_bput_bget label created by subroutine() call below.
 label(0x8441, "store_retry_count")      # RAND1: store retry count to &0FDD, initiate TX
 label(0x8498, "update_sequence_return") # RAND3: update sequence numbers and pull A/Y/X/return
+comment(0x8498, "Save updated sequence number", inline=True)
+comment(0x849B, "Restore Y from stack", inline=True)
+comment(0x849D, "Restore X from stack", inline=True)
+comment(0x849F, "Restore A from stack", inline=True)
+comment(0x84A0, "Return to caller", inline=True)
 label(0x8514, "set_listen_offset")      # NLISN2: use reply code as table offset for listen
+comment(0x850C, "Error code 8: \"Not listening\" error", inline=True)
+comment(0x850E, "ALWAYS branch to set_listen_offset", inline=True)
+comment(0x8510, "Load TX status byte for error lookup", inline=True)
+comment(0x8512, "Mask to 3-bit error code (0-7)", inline=True)
+comment(0x8514, "X = error code index", inline=True)
+comment(0x8515, "Look up error message offset from table", inline=True)
+comment(0x8518, "X=0: start writing at &0101", inline=True)
+comment(0x851A, "Store BRK opcode at &0100", inline=True)
+comment(0x851D, "Load error message byte", inline=True)
+comment(0x8520, "Build error message at &0101+", inline=True)
+comment(0x8523, "Zero byte = end of message; go execute BRK", inline=True)
+comment(0x8525, "Next source byte", inline=True)
+comment(0x8526, "Next dest byte", inline=True)
+comment(0x8527, "Continue copying message", inline=True)
+comment(0x8530, "A = '*' for FS command prefix", inline=True)
 label(0x8533, "send_to_fs_star")        # Send '*' command to fileserver
 label(0x8559, "fs_wait_cleanup")        # WAITEX: tidy stack, restore rx_status_flags
 
@@ -1542,7 +1567,15 @@ GBPBV, FINDV, FSCV). NFS repurposes CFS/RFS workspace locations:
   &BB (fs_options)        = X (control block ptr low)
   &BC (fs_block_offset)   = Y (control block ptr high)
   &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)""")
+comment(0x864D, "Save A = function code / command", inline=True)
+comment(0x864F, "Save X = control block ptr low", inline=True)
+comment(0x8651, "Save Y = control block ptr high", inline=True)
+comment(0x8653, "Duplicate X for indirect indexed access", inline=True)
+comment(0x8655, "Duplicate Y for indirect indexed access", inline=True)
 comment(0x8657, "Clear escapable flag, preserving processor flags", inline=True)
+comment(0x8658, "Reset: this operation is not escapable yet", inline=True)
+comment(0x865A, "Restore flags (caller may need N/Z/C)", inline=True)
+comment(0x865B, "Return", inline=True)
 
 # ============================================================
 # Attribute decoding (&85B1 / &85BB)
@@ -1626,6 +1659,7 @@ subroutine(0x869B, "handle_to_mask_clc", hook=None,
     description="""\
 Clears carry to ensure handle_to_mask converts
 unconditionally. Falls through to handle_to_mask.""")
+comment(0x869B, "Force unconditional conversion", inline=True)
 
 subroutine(0x869C, "handle_to_mask",
     title="Convert file handle to bitmask (Y2FS)",
@@ -2401,8 +2435,18 @@ For the first 2 bytes (Y=0,1), also copies the fileserver
 station/network from &0E00/&0E01 to &00C2/&00C3.
 The template sets up: control=&80, port=&99 (FS command port),
 command data length=&0F, plus padding bytes.""")
-
+comment(0x8395, "Preserve A across call", inline=True)
+comment(0x8396, "Copy 12 bytes (Y=11..0)", inline=True)
+comment(0x8398, "Load template byte", inline=True)
+comment(0x839B, "Store to TX control block at &00C0", inline=True)
 comment(0x839E, "Y < 2: also copy FS server station/network", inline=True)
+comment(0x83A0, "Skip station/network copy for Y >= 2", inline=True)
+comment(0x83A2, "Load FS server station (Y=0) or network (Y=1)", inline=True)
+comment(0x83A5, "Store to dest station/network at &00C2", inline=True)
+comment(0x83A8, "Next byte (descending)", inline=True)
+comment(0x83A9, "Loop until all 12 bytes copied", inline=True)
+comment(0x83AB, "Restore A", inline=True)
+comment(0x83AC, "Return", inline=True)
 
 subroutine(0x83AD, "tx_ctrl_template", hook=None,
     title="TX control block template (TXTAB, 12 bytes)",
@@ -2489,11 +2533,20 @@ in-place to a standard MOS BRK error packet by:
      instruction — the zero command code serves as the BRK opcode
 N.B. This relies on the fileserver always returning a zero command
 code in position 0 of the reply buffer.""")
+comment(0x847A, "Remember raw FS error code", inline=True)
+comment(0x847D, "Y=1: point to error number byte in reply", inline=True)
 comment(0x847F, "Clamp FS errors below &A8 to standard &A8", inline=True)
+comment(0x8481, "Error >= &A8: keep original value", inline=True)
+comment(0x8483, "Error < &A8: override with standard &A8", inline=True)
+comment(0x8485, "Write clamped error number to reply buffer", inline=True)
+comment(0x8487, "Start scanning from offset &FF (will INY to 0)", inline=True)
+comment(0x8489, "Next byte in reply buffer", inline=True)
 comment(0x848A, "Copy reply buffer to &0100 for BRK execution", inline=True)
+comment(0x848C, "Build BRK error block at &0100", inline=True)
 comment(0x848F, "Scan for CR terminator (&0D)", inline=True)
+comment(0x8491, "Continue until CR found", inline=True)
 comment(0x8493, "Replace CR with zero = BRK error block end", inline=True)
-comment(0x8496, "Execute as BRK error block at &0100", inline=True)
+comment(0x8496, "Execute as BRK error block at &0100; ALWAYS", inline=True)
 
 # ============================================================
 # Handle BPUT/BGET (&83DD)
@@ -3273,7 +3326,14 @@ Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
 to &0F05+X, stopping when a CR (&0D) is encountered. The CR
 itself is also copied. Returns with X pointing past the last
 byte written.""")
+comment(0x8D84, "Start source offset at 0", inline=True)
+comment(0x8D86, "Load byte from source string", inline=True)
+comment(0x8D88, "Store to FS command buffer (&0F05+X)", inline=True)
+comment(0x8D8B, "Advance dest pointer", inline=True)
+comment(0x8D8C, "Advance source pointer", inline=True)
 comment(0x8D8D, "XOR with CR: result=0 if byte was CR", inline=True)
+comment(0x8D8F, "Loop until CR copied", inline=True)
+comment(0x8D91, "Return; X = next free position in buffer", inline=True)
 
 # ============================================================
 # Print directory name (&8D57)
@@ -3727,7 +3787,12 @@ subroutine(0x84FD, "lang_0_insert_remote_key", hook=None,
 Reads a character from RX block offset &82 and inserts it into
 keyboard input buffer 0 via OSBYTE &99.""")
 comment(0x84FD, "Read keypress from RX data at &82", inline=True)
+comment(0x84FF, "Load character byte", inline=True)
+comment(0x8501, "Y = character to insert", inline=True)
+comment(0x8502, "X = buffer 0 (keyboard input)", inline=True)
 comment(0x8504, "Release JSR protection before inserting key", inline=True)
+comment(0x8507, "OSBYTE &99: insert char into input buffer", inline=True)
+comment(0x8509, "Tail call: insert character Y into buffer X", inline=True)
 
 # ============================================================
 # Remote operation support routines (&8FCA-&92FE)
