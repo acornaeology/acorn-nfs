@@ -2341,13 +2341,8 @@ during the tight polling loop. Handles multi-block replies and
 checks for escape conditions between blocks.""")
 
 # ============================================================
-# Check escape (&854C)
+# Check escape handler (&854D)
 # ============================================================
-subroutine(0x854C, "check_escape", hook=None,
-    title="Check and handle escape condition (ESC)",
-    description="""\
-Dead code: bare RTS with no callers. The active escape check
-entry is check_escape_handler (&854D).""")
 subroutine(0x854D, "check_escape_handler", hook=None,
     title="Test MOS escape flag and abort if pending",
     description="""\

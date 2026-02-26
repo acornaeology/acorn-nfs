@@ -2444,13 +2444,6 @@ l8004 = service_entry+1
     sta rx_flags                                                      ; 8546: 8d 64 0d    .d.
     pla                                                               ; 8549: 68          h
     beq c84f7                                                         ; 854a: f0 ab       ..
-; ***************************************************************************************
-; Check and handle escape condition (ESC)
-; 
-; Dead code: bare RTS with no callers. The active escape check
-; entry is check_escape_handler (&854D).
-; ***************************************************************************************
-.check_escape
     rts                                                               ; 854c: 60          `
 
 ; ***************************************************************************************

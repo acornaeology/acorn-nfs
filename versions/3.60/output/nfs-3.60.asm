@@ -2506,13 +2506,6 @@ l8004 = service_entry+1
     sta rx_flags                                                      ; 855c: 8d 64 0d    .d.            ; Restore saved rx_flags from stack
     pla                                                               ; 855f: 68          h
     beq c850c                                                         ; 8560: f0 aa       ..             ; A=saved func code; zero would mean no reply
-; ***************************************************************************************
-; Check and handle escape condition (ESC)
-; 
-; Dead code: bare RTS with no callers. The escape check is inlined
-; into callers (sub_c84a1 at &84A1 and the tx_poll_core retry loop).
-; ***************************************************************************************
-.check_escape
     rts                                                               ; 8562: 60          `
 
 .bgetv_handler
