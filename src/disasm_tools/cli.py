@@ -142,6 +142,18 @@ def cmd_context(args):
                               summary_only=args.summary))
 
 
+def cmd_backfill(args):
+    """Propagate annotations from a richly-annotated version to an earlier one."""
+    from disasm_tools.backfill import backfill
+
+    repo_root = find_repo_root()
+    # Validate both versions exist
+    get_version_dirpath(args.version)
+    get_version_dirpath(args.source)
+    sys.exit(backfill(repo_root, args.source, args.version,
+                      threshold=args.threshold, dry_run=args.dry_run))
+
+
 def cmd_labels(args):
     """Generate per-label context files for label renaming."""
     from disasm_tools.labels import generate_labels
@@ -243,6 +255,21 @@ def main():
     context_parser.add_argument("--summary", action="store_true",
                                 help="Print summary stats only, no files")
     context_parser.set_defaults(func=cmd_context)
+
+    backfill_parser = subparsers.add_parser(
+        "backfill", help="Propagate annotations from one version to another"
+    )
+    backfill_parser.add_argument("version",
+                                 help="Target NFS version (e.g. 3.40)")
+    backfill_parser.add_argument("--from", dest="source", default="3.60",
+                                 help="Source version (default: 3.60)")
+    backfill_parser.add_argument("--threshold", type=int, default=5,
+                                 help="Min matching opcode block length "
+                                      "(default: 5)")
+    backfill_parser.add_argument("--dry-run", action="store_true",
+                                 help="Show what would be added without "
+                                      "modifying files")
+    backfill_parser.set_defaults(func=cmd_backfill)
 
     labels_parser = subparsers.add_parser(
         "labels", help="Generate per-label context files for renaming"
