@@ -1853,9 +1853,14 @@ subroutine(0x9FA6, hook=None,
     description="""\
 Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')
 and prints via OSASCI. Returns with carry set.""")
+comment(0x9FA6, "Mask to low nibble (0-F)", inline=True)
+comment(0x9FA8, "Digit A-F?", inline=True)
+comment(0x9FAA, "No: skip letter offset", inline=True)
 comment(0x9FAC, "A-F: ADC #6 + ADC #&30 + C = &41-&46", inline=True)
+comment(0x9FAE, "Add ASCII '0' base (with carry)", inline=True)
 comment(0x9FB0, "Write character", inline=True)
 comment(0x9FB3, "C=1: callers use SEC as sentinel", inline=True)
+comment(0x9FB4, "Return", inline=True)
 
 # ============================================================
 # TX control (&8660-&866C)
@@ -2155,6 +2160,17 @@ extended vector table entries, and issues service &0F (vectors
 claimed) to notify other ROMs. If nfs_temp is zero (auto-boot
 not inhibited), injects the synthetic command "I .BOOT" through
 the command decoder to trigger auto-boot login.""")
+comment(0x81F1, "Notify current FS of shutdown (FSCV A=6)", inline=True)
+comment(0x81F4, "C=1 for ROR", inline=True)
+comment(0x81F5, "Set bit 7 of l00a8 (inhibit auto-boot)", inline=True)
+comment(0x81F7, "Claim OS vectors, issue service &0F", inline=True)
+comment(0x81FA, "Y=&1D: top of FS state range", inline=True)
+comment(0x81FC, "Copy FS state from RX buffer...", inline=True)
+comment(0x81FE, "...to workspace (offsets &15-&1D)", inline=True)
+comment(0x8201, "Next byte (descending)", inline=True)
+comment(0x8202, "Loop until offset &14 done", inline=True)
+comment(0x8204, "Continue loop", inline=True)
+comment(0x8206, "ALWAYS branch to init_fs_vectors", inline=True)
 
 # ============================================================
 # Check boot key (&8224)
@@ -2361,6 +2377,9 @@ subroutine(0x8208, "svc_9_help", hook=None,
     title="Service 9: *HELP",
     description="""\
 Prints the ROM identification string using print_inline.""")
+comment(0x8208, "Print ROM identification string", inline=True)
+comment(0x8215, "Restore Y (workspace page number)", inline=True)
+comment(0x8217, "Return (service not claimed)", inline=True)
 
 # ============================================================
 # Match ROM string (&835E)
@@ -2516,6 +2535,11 @@ Econet addresses use only the low 2 bytes; upper bytes are &FF.""")
 # &836D-&8379 is code (string
 # comparison loop tail: BNE/INY/INX/BNE + LDA abs,X/BEQ/RTS/INY).
 # The TX control block template is at different addresses in 3.40.
+comment(0x83B9, "Save flag byte for command", inline=True)
+comment(0x83BA, "C=1: include flag in FS command", inline=True)
+comment(0x83BB, "ALWAYS branch to prepare_fs_cmd", inline=True)
+comment(0x83BD, "V=0: command has no flag byte", inline=True)
+comment(0x83BE, "ALWAYS branch to prepare_fs_cmd", inline=True)
 
 # ============================================================
 # Prepare FS command (&838A)
@@ -4096,11 +4120,31 @@ Sends the accumulated output block over the network, resets the
 buffer pointer, and prepares for the next block of output data.""")
 
 comment(0x9237, "Store buffer length at workspace offset &08", inline=True)
+comment(0x9239, "Current buffer fill position", inline=True)
+comment(0x923C, "Write to workspace offset &08", inline=True)
 comment(0x923E, "Store page high byte at offset &09", inline=True)
+comment(0x9240, "Y=&09", inline=True)
+comment(0x9241, "Write page high byte at offset &09", inline=True)
+comment(0x9243, "Also store at offset &05", inline=True)
+comment(0x9245, "(end address high byte)", inline=True)
+comment(0x9247, "Y=&0B: flag byte offset", inline=True)
 comment(0x9249, "X=&26: start from template entry &26", inline=True)
 comment(0x924B, "Reuse ctrl_block_setup with CLV entry", inline=True)
+comment(0x924E, "Y=&0A: sequence flag byte offset", inline=True)
+comment(0x924F, "Load protocol flags (PFLAGS)", inline=True)
+comment(0x9251, "Save current PFLAGS", inline=True)
+comment(0x9252, "Carry = current sequence (bit 7)", inline=True)
+comment(0x9253, "Restore original PFLAGS", inline=True)
 comment(0x9254, "Toggle sequence number (bit 7 of PFLAGS)", inline=True)
+comment(0x9256, "Save toggled PFLAGS", inline=True)
+comment(0x9258, "Old sequence bit into bit 0", inline=True)
+comment(0x9259, "Store sequence flag at offset &0A", inline=True)
+comment(0x925B, "Y=&1F: buffer start offset", inline=True)
 comment(0x925D, "Reset printer buffer to start (&1F)", inline=True)
+comment(0x9260, "A=0: printer output flag", inline=True)
+comment(0x9262, "X=0: workspace low byte", inline=True)
+comment(0x9263, "Y = workspace page high byte", inline=True)
+comment(0x9265, "Enable interrupts before TX", inline=True)
 
 subroutine(0x92F7, "save_vdu_state", hook=None,
     title="Save VDU workspace state",
@@ -4161,12 +4205,21 @@ from &FE18 (INTOFF side effect), stores it in the TX scout buffer,
 and re-enables NMIs by reading &FE20 (INTON side effect).""")
 
 comment(0x9698, "Copy 32 bytes of NMI shim from ROM to &0D00", inline=True)
+comment(0x969A, "Read byte from NMI shim ROM source", inline=True)
+comment(0x969D, "Write to NMI shim RAM at &0D00", inline=True)
+comment(0x96A0, "Next byte (descending)", inline=True)
+comment(0x96A1, "Loop until all 32 bytes copied", inline=True)
 comment(0x96A3, "Patch current ROM bank into NMI shim", inline=True)
+comment(0x96A5, "Self-modifying code: ROM bank at &0D07", inline=True)
 comment(0x96A8, "&80 = Econet initialised", inline=True)
+comment(0x96AA, "Mark TX as complete (ready)", inline=True)
+comment(0x96AD, "Mark Econet as initialised", inline=True)
 comment(0x96B0, "Read station ID (&FE18 = INTOFF side effect)", inline=True)
+comment(0x96B3, "Store our station ID in TX scout", inline=True)
 comment(0x96B6, "Y=0 after copy loop: net = local", inline=True)
 comment(0x96B9, "Clear Tube release flag", inline=True)
 comment(0x96BB, "INTON: re-enable NMIs (&FE20 read side effect)", inline=True)
+comment(0x96BE, "Return", inline=True)
 
 # c9f57: service 12 entry -- spin-wait for idle NMI handler
 # before releasing Econet. Checks that nmi_jmp points to
@@ -4848,7 +4901,18 @@ timeout loop's state), then stores error code &40 ("Line
 Jammed") into the TX control block and signals completion.""")
 
 comment(0x9C15, "CR2=&07: FC_TDRA | 2_1_BYTE | PSE (abort TX)", inline=True)
+comment(0x9C17, "Write CR2 to abort TX", inline=True)
+comment(0x9C1A, "Clean 3 bytes of timeout loop state", inline=True)
 comment(0x9C1D, "Error &40 = 'Line Jammed'", inline=True)
+comment(0x9C1F, "ALWAYS branch to shared error handler", inline=True)
+comment(0x9C21, "Error &43 = 'No Clock'", inline=True)
+comment(0x9C23, "Offset 0 = error byte in TX control block", inline=True)
+comment(0x9C25, "Store error code in TX CB byte 0", inline=True)
+comment(0x9C27, "&80 = TX complete flag", inline=True)
+comment(0x9C29, "Signal TX operation complete", inline=True)
+comment(0x9C2C, "Restore X saved by caller", inline=True)
+comment(0x9C2D, "Move to X register", inline=True)
+comment(0x9C2E, "Return to TX caller", inline=True)
 
 # ============================================================
 # TX preparation (&9C2F)
