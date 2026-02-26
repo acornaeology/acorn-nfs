@@ -165,6 +165,24 @@ hardware protocol.
   accesses the ADLC's status and control registers directly for
   low-level network operations.
 
+**CR1** (Control Register 1)
+: ADLC control register at &FEA0 (active when AC=0). Configures receiver
+and transmitter operating modes.
+
+  Key bits: b0=RIE (RX interrupt enable), b1=TIE (TX interrupt enable),
+  b2=RX_DISCONTINUE (abort receive), b3=RX_RESET, b4=TX_RESET,
+  b6=RIE complement, b7=AC (address control — selects CR1 vs CR3).
+
+**CR2** (Control Register 2)
+: ADLC control register at &FEA1 (active when AC=0). Controls frame
+transmission and prioritised status bits.
+
+  Key bits: b0=PSE (prioritised status enable), b1=2/1 byte mode,
+  b2=flag/mark idle, b3=FC_TDRA (TDRA select: FIFO available vs any
+  byte), b4=CLR_TX_ST (clear TX status), b5=RTS (request to send),
+  b6-b7=not used. Typical values: &1E (RX idle), &82 (flag idle wait),
+  &A7 (TX handshake with RTS+PSE).
+
 **Econet**
 : Acorn's low-cost local area network for BBC Micro and other Acorn
 computers.
@@ -182,6 +200,14 @@ reception. The ADLC has separate TX and RX FIFOs (3 bytes each).
   reception. FIFO status bits in the ADLC status registers drive the NMI
   handler's decision to read or write data.
 
+**FV** (Frame Valid)
+: ADLC status register 2 bit 1. Set when a complete, error-free frame
+has been received (valid CRC, no overrun, no abort).
+
+  NFS NMI handlers test FV to confirm a received scout or data frame is
+  complete before processing its contents. FV interacts with PSE: when
+  PSE is enabled, FV masks RDA in the prioritised status.
+
 **IRQ** (Interrupt Request)
 : A maskable hardware interrupt on the 6502 processor, triggered by
 peripheral devices pulling the IRQ line low.
@@ -189,6 +215,15 @@ peripheral devices pulling the IRQ line low.
   In the BBC Micro, IRQs handle keyboard, timer, and VIA events. NFS's
   Econet interrupt handling uses NMIs rather than IRQs for time-critical
   network operations, since NMIs cannot be masked.
+
+**PSE** (Prioritised Status Enable)
+: ADLC control register 2 bit 0. When set, enables prioritised status
+reporting in status register 2: FV, RX abort, and error conditions
+take priority over RDA.
+
+  NFS enables PSE during receive to detect frame-complete and error
+  conditions via SR2. The interaction between PSE, FV, and RDA is
+  central to the NMI handler's frame reception logic.
 
 **NMI** (Non-Maskable Interrupt)
 : A hardware interrupt on the 6502 that cannot be disabled. Triggered by
@@ -199,6 +234,14 @@ the ADLC when Econet network activity requires immediate attention.
   status registers to determine the interrupt cause and processes TX/RX data
   accordingly. The NMI shim at &0D00 dispatches to version-specific handlers
   in pages 4-6.
+
+**RDA** (Receive Data Available)
+: ADLC status register 2 bit 7. Set when data is available to read
+from the RX FIFO.
+
+  NFS NMI handlers test RDA (via BIT SR2, checking the sign flag) to
+  determine whether to read the next received byte from the ADLC data
+  register. When PSE is enabled, FV can mask RDA.
 
 **RAM** (Random Access Memory)
 : Main memory. NFS copies relocated code blocks from ROM into RAM pages
@@ -211,10 +254,34 @@ the BBC Micro's paged ROM bank (&8000-&BFFF).
   NFS occupies one 8 KB sideways ROM slot. Up to 16 sideways ROMs can
   be installed, bank-switched by the MOS.
 
+**RTS** (Request To Send)
+: ADLC control register 2 bit 5. When set, asserts the RTS line to
+signal readiness to transmit on the Econet bus.
+
+  NFS sets RTS in CR2 when beginning a transmission (scout or data
+  frame). The typical TX setup value &A7 includes RTS along with
+  CLR_TX_ST, FC_TDRA, and PSE.
+
 **sideways ROM**
 : One of up to 16 ROM slots in the BBC Micro, all mapped to the same
 address range (&8000-&BFFF) and bank-switched by the MOS. Only one
 sideways ROM is paged in at a time.
+
+**TDRA** (Transmit Data Register Available)
+: ADLC status register 1 bit 6. Set when the TX FIFO has space for
+at least one more byte.
+
+  NFS NMI handlers test TDRA (via BIT SR1, checking the overflow flag)
+  before writing each byte to the ADLC data register. If TDRA is not
+  set, the handler branches to an error or retry path.
+
+**TIE** (Transmit Interrupt Enable)
+: ADLC control register 1 bit 1. When set, enables NMI generation when
+TDRA becomes set (TX FIFO ready for data).
+
+  NFS enables TIE in CR1 when switching from receive to transmit mode,
+  so the NMI handler is called each time the ADLC is ready to accept
+  the next TX byte. Typical CR1 value &44 sets TIE with RX_RESET.
 
 **Tube**
 : Acorn's second-processor interface, connecting the BBC Micro host to
