@@ -459,7 +459,7 @@ l0051 = tube_dispatch_cmd+1
     cpx #4                                                            ; 93cf: e0 04       ..  :046d[2]   ; Type 4 = SENDW (host-to-parasite word xfer)
     bne c0482                                                         ; 93d1: d0 11       ..  :046f[2]   ; Not SENDW type: skip release path
 ; &93d3 referenced 1 time by &0496[2]
-.c0471
+.tube_sendw_complete
     jsr tube_release_claim                                            ; 93d3: 20 14 04     .. :0471[2]   ; SENDW complete: release, sync, restart
     jsr tube_send_r2                                                  ; 93d6: 20 95 06     .. :0474[2]   ; Sync via R2 send
     jmp tube_reset_stack                                              ; 93d9: 4c 32 00    L2. :0477[2]   ; Restart Tube main loop
@@ -499,7 +499,7 @@ l0051 = tube_dispatch_cmd+1
     lda #osbyte_read_write_last_break_type                            ; 93f2: a9 fd       ..  :0490[2]   ; OSBYTE &FD: what type of reset was this?
     jsr osbyte                                                        ; 93f4: 20 f4 ff     .. :0492[2]   ; Read type of last reset
     txa                                                               ; 93f7: 8a          .   :0495[2]   ; X=value of type of last reset
-    beq c0471                                                         ; 93f8: f0 d9       ..  :0496[2]   ; Soft break (X=0): re-init Tube and restart
+    beq tube_sendw_complete                                           ; 93f8: f0 d9       ..  :0496[2]   ; Soft break (X=0): re-init Tube and restart
 ; &93fa referenced 2 times by &0485[2], &049d[2]
 .c0498
     lda #&ff                                                          ; 93fa: a9 ff       ..  :0498[2]   ; Claim address &FF (startup = highest prio)
@@ -8562,7 +8562,6 @@ save pydis_start, pydis_end
 ;     bytex:                                    1
 ;     c0432:                                    1
 ;     c0463:                                    1
-;     c0471:                                    1
 ;     c047a:                                    1
 ;     c048c:                                    1
 ;     c04a2:                                    1
@@ -8995,6 +8994,7 @@ save pydis_start, pydis_end
 ;     tube_reset_stack:                         1
 ;     tube_return_main:                         1
 ;     tube_send_error_byte:                     1
+;     tube_sendw_complete:                      1
 ;     tube_transfer_setup:                      1
 ;     tx_begin:                                 1
 ;     tx_ctrl_exit:                             1
@@ -9014,7 +9014,6 @@ save pydis_start, pydis_end
 ; Automatically generated labels:
 ;     c0432
 ;     c0463
-;     c0471
 ;     c047a
 ;     c0482
 ;     c048c

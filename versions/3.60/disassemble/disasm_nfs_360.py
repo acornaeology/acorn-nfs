@@ -357,6 +357,7 @@ label(0x0403, "tube_escape_entry")   # JMP to tube_escape_check (&06E2)
 label(0x0406, "tube_addr_claim")     # Tube address claim protocol (ADRR in reference)
 label(0x0414, "tube_release_claim")   # Release Tube address claim via R4 cmd 5
 label(0x0428, "addr_claim_external")  # External address claim check (another host)
+label(0x0471, "tube_sendw_complete") # SENDW done: release claim, sync R2, restart
 label(0x0435, "tube_transfer_setup")  # Data transfer setup (SENDW protocol)
 label(0x0421, "tube_post_init")      # Called after ROM→RAM copy; initial Tube setup
 label(0x0434, "return_tube_init")    # Return from tube_post_init path
