@@ -7150,6 +7150,409 @@ comment(0x9FF1, "Add ASCII '0' base (with carry)", inline=True)
 comment(0x9FF3, "Write character", inline=True)
 comment(0x9FF6, "C=1: callers use SEC as sentinel", inline=True)
 comment(0x9FF7, "Return", inline=True)
+
+# ============================================================
+# Inline comments: gap-filling for 3.40-specific code
+# ============================================================
+# These instructions were not mapped from 3.60 (either in
+# opcode-change blocks or version-specific subroutines).
+
+# service_handler: ADLC detection probe (&80F7-&8118)
+comment(0x80F8, "(bus settling continued)", inline=True)
+comment(0x80F9, "(bus settling continued)", inline=True)
+comment(0x80FA, "(bus settling continued)", inline=True)
+comment(0x80FB, "(bus settling continued)", inline=True)
+comment(0x80FC, "(bus settling continued)", inline=True)
+comment(0x80FD, "(bus settling continued)", inline=True)
+comment(0x80FE, "(bus settling continued)", inline=True)
+comment(0x80FF, "(bus settling continued)", inline=True)
+comment(0x8101, "Load workspace byte for this ROM slot", inline=True)
+comment(0x8104, "Push detection flag", inline=True)
+comment(0x8105, "Non-zero: ROM already detected, skip probe", inline=True)
+comment(0x8107, "First call: mark ROM as present", inline=True)
+comment(0x810A, "Read station ID (INTOFF side effect)", inline=True)
+comment(0x810D, "Zero: no ADLC hardware, skip", inline=True)
+comment(0x810F, "Second read: bus stability check", inline=True)
+comment(0x8112, "Same value: ADLC present, continue", inline=True)
+comment(0x8114, "C=1: prepare to set disable flag", inline=True)
+comment(0x8115, "Bit 7 into workspace: disable this ROM", inline=True)
+comment(0x8118, "Restore detection flag", inline=True)
+
+# run_fscv_cmd (&8289)
+comment(0x8289, "Y=&82: ROM page high byte", inline=True)
+comment(0x828B, "Execute command string at (X, Y)", inline=True)
+
+# save_fscv_args_with_ptrs (&85C8)
+comment(0x85C8, "X to os_text_ptr (text ptr lo)", inline=True)
+comment(0x85CA, "Y to os_text_ptr hi", inline=True)
+comment(0x85CC, "X to FS command ptr lo", inline=True)
+comment(0x85CF, "Y to FS command ptr hi", inline=True)
+
+# save_fscv_args (&85D2)
+comment(0x85D2, "A = function code / command", inline=True)
+comment(0x85D4, "X = control block ptr lo", inline=True)
+comment(0x85D6, "Y = control block ptr hi", inline=True)
+comment(0x85D8, "X dup for indexed access via (fs_crc)", inline=True)
+comment(0x85DA, "Y dup for indexed access", inline=True)
+comment(0x85DC, "Return", inline=True)
+
+# setup_tx_ptr_c0 (&8687)
+comment(0x8687, "X=&C0: TX control block at &00C0", inline=True)
+comment(0x8689, "Set TX pointer lo", inline=True)
+comment(0x868B, "X=0: page zero", inline=True)
+comment(0x868D, "Set TX pointer hi", inline=True)
+
+# tx_poll_core (&8693)
+comment(0x8693, "Save retry count on stack", inline=True)
+comment(0x8694, "Transfer timeout to A", inline=True)
+comment(0x8695, "Save timeout on stack", inline=True)
+comment(0x8696, "X=0 for (net_tx_ptr,X) indirect", inline=True)
+comment(0x8698, "Load TXCB byte 0 (control/status)", inline=True)
+comment(0x869A, "Write control byte to start TX", inline=True)
+comment(0x869C, "Save control byte for retry", inline=True)
+comment(0x869D, "Test TX semaphore (C=1 when free)", inline=True)
+comment(0x86A0, "Spin until semaphore released", inline=True)
+comment(0x86A2, "Copy TX ptr lo to NMI block", inline=True)
+comment(0x86A4, "Store for NMI handler access", inline=True)
+comment(0x86A6, "Copy TX ptr hi to NMI block", inline=True)
+comment(0x86A8, "Store for NMI handler access", inline=True)
+comment(0x86AA, "Initiate ADLC TX via trampoline", inline=True)
+comment(0x86AD, "Poll TXCB byte 0 for completion", inline=True)
+comment(0x86AF, "Bit 7 set: still busy, keep polling", inline=True)
+comment(0x86B1, "Shift bit 6 into bit 7 (error flag)", inline=True)
+comment(0x86B2, "Bit 6 clear: success, clean return", inline=True)
+comment(0x86B4, "Shift bit 5 into carry", inline=True)
+comment(0x86B5, "Zero: fatal error, no escape", inline=True)
+comment(0x86B7, "Check for user escape condition", inline=True)
+comment(0x86BA, "Discard saved control byte", inline=True)
+comment(0x86BB, "Save to X for retry delay", inline=True)
+comment(0x86BC, "Restore timeout parameter", inline=True)
+comment(0x86BD, "Back to Y", inline=True)
+comment(0x86BE, "Restore retry count", inline=True)
+comment(0x86BF, "No retries left: report error", inline=True)
+comment(0x86C1, "Decrement retry count", inline=True)
+comment(0x86C3, "Save updated retry count", inline=True)
+comment(0x86C4, "Timeout to A for delay", inline=True)
+comment(0x86C5, "Save timeout parameter", inline=True)
+comment(0x86C6, "Control byte for delay duration", inline=True)
+comment(0x86C7, "Inner delay loop", inline=True)
+comment(0x86C8, "Spin until X=0", inline=True)
+comment(0x86CA, "Outer delay loop", inline=True)
+comment(0x86CB, "Continue delay", inline=True)
+comment(0x86CF, "Save error code in X", inline=True)
+comment(0x86D0, "Report 'Not listening' error", inline=True)
+comment(0x86D3, "Discard saved control byte", inline=True)
+comment(0x86D4, "Discard timeout parameter", inline=True)
+comment(0x86D5, "Discard retry count", inline=True)
+comment(0x86D6, "Return (success)", inline=True)
+
+# boot_option_offsets (&8D1B): data bytes misclassified as code
+comment(0x8D21, "Data byte: boot_cmd_strings 'x'", inline=True)
+comment(0x8D22, "Data bytes: boot_cmd_strings 'ec'", inline=True)
+
+# print_file_info (&8D24)
+comment(0x8D24, "Check if messages enabled", inline=True)
+comment(0x8D27, "Zero: no info to display, return", inline=True)
+comment(0x8D29, "Y=0: start of filename", inline=True)
+comment(0x8D2B, "Load current directory prefix flag", inline=True)
+comment(0x8D2E, "No prefix: skip directory display", inline=True)
+comment(0x8D30, "Print directory name prefix", inline=True)
+comment(0x8D33, "N=1: skip to hex fields after dir", inline=True)
+comment(0x8D35, "Load next filename character", inline=True)
+comment(0x8D37, "CR: end of filename", inline=True)
+comment(0x8D39, "CR found: pad remaining with spaces", inline=True)
+comment(0x8D3B, "Space: end of name field", inline=True)
+comment(0x8D3D, "Space found: pad with spaces", inline=True)
+comment(0x8D42, "Advance to next character", inline=True)
+comment(0x8D43, "Continue printing filename", inline=True)
+comment(0x8D45, "Print space for padding", inline=True)
+comment(0x8D48, "Advance column counter", inline=True)
+comment(0x8D49, "Reached 12 columns?", inline=True)
+comment(0x8D4B, "No: continue padding", inline=True)
+comment(0x8D4D, "Y=5: load address offset (4 bytes)", inline=True)
+comment(0x8D4F, "Print load address", inline=True)
+comment(0x8D52, "Print exec address and file length", inline=True)
+comment(0x8D58, "Y=9: exec address offset (4 bytes)", inline=True)
+comment(0x8D5A, "Print exec address", inline=True)
+comment(0x8D5D, "Y=&0C: file length offset", inline=True)
+comment(0x8D5F, "X=3: print 3 bytes (24-bit length)", inline=True)
+
+# net_3_close_handle (&8E6F)
+comment(0x8E74, "Save carry via rotate", inline=True)
+comment(0x8E77, "A=&3F: handle closed/unused marker", inline=True)
+comment(0x8E79, "Write marker to handle slot", inline=True)
+comment(0x8E7B, "Restore carry from rotate", inline=True)
+
+# save_econet_state (&96C8)
+comment(0x96C8, "INTOFF: disable NMIs", inline=True)
+comment(0x96CB, "A=0: clear TX and init flags", inline=True)
+comment(0x96CD, "Clear TX semaphore (allow new TX)", inline=True)
+comment(0x96D0, "Clear Econet init flag", inline=True)
+comment(0x96D3, "Y=5: status flags offset", inline=True)
+comment(0x96D5, "Re-enter idle RX listen mode", inline=True)
+
+# adlc_full_reset (&96D8)
+comment(0x96DA, "Write CR1: full reset", inline=True)
+comment(0x96DD, "CR4=&1E: 8-bit word, abort ext, NRZ", inline=True)
+comment(0x96DF, "Write CR4 via ADLC reg 3 (AC=1)", inline=True)
+comment(0x96E4, "Write CR3=0: clear loop-back/AEX/DTR", inline=True)
+
+# discard_listen gap: c9a47 scout field copy
+comment(0x9A47, "Y=4: start at RX CB offset 4", inline=True)
+comment(0x9A49, "Load scout field (stn/net/ctrl/port)", inline=True)
+comment(0x9A4C, "Store to port workspace buffer", inline=True)
+comment(0x9A4E, "Next field", inline=True)
+comment(0x9A4F, "All 8 fields copied?", inline=True)
+comment(0x9A51, "No: continue copy loop", inline=True)
+comment(0x9A53, "Skip buffer pointer update", inline=True)
+
+# rx_imm_exec (&9A95): JSR/UserProc/OSProc setup
+comment(0x9A95, "Buffer start lo = &00", inline=True)
+comment(0x9A97, "Set port buffer lo", inline=True)
+comment(0x9A99, "Buffer length lo = &82", inline=True)
+comment(0x9A9B, "Set buffer length lo", inline=True)
+comment(0x9A9D, "Buffer length hi = 1", inline=True)
+comment(0x9A9F, "Set buffer length hi", inline=True)
+comment(0x9AA1, "Load RX page hi for buffer", inline=True)
+comment(0x9AA3, "Set port buffer hi", inline=True)
+comment(0x9AA5, "Y=3: copy 4 bytes (3 down to 0)", inline=True)
+comment(0x9AA7, "Load remote address byte", inline=True)
+comment(0x9AAA, "Store to exec address workspace", inline=True)
+comment(0x9AAD, "Next byte (descending)", inline=True)
+comment(0x9AAE, "Loop until all 4 bytes copied", inline=True)
+comment(0x9AB0, "Enter common data-receive path", inline=True)
+
+# rx_imm_poke (&9AB3)
+comment(0x9AB3, "Port workspace offset = &3D", inline=True)
+comment(0x9AB5, "Store workspace offset lo", inline=True)
+comment(0x9AB7, "RX buffer page = &0D", inline=True)
+comment(0x9AB9, "Store workspace offset hi", inline=True)
+comment(0x9ABB, "Enter POKE data-receive path", inline=True)
+
+# rx_imm_machine_type (&9ABE)
+comment(0x9ABE, "Buffer length hi = 1", inline=True)
+comment(0x9AC0, "Set buffer length hi", inline=True)
+comment(0x9AC2, "Buffer length lo = &FC", inline=True)
+comment(0x9AC4, "Set buffer length lo", inline=True)
+comment(0x9AC6, "Buffer start lo = &25", inline=True)
+comment(0x9AC8, "Set port buffer lo", inline=True)
+comment(0x9ACA, "Buffer hi = &7F (below screen)", inline=True)
+comment(0x9ACC, "Set port buffer hi", inline=True)
+comment(0x9ACE, "Enter reply build path", inline=True)
+
+# rx_imm_peek (&9AD1)
+comment(0x9AD1, "Port workspace offset = &3D", inline=True)
+comment(0x9AD3, "Store workspace offset lo", inline=True)
+comment(0x9AD5, "RX buffer page = &0D", inline=True)
+comment(0x9AD7, "Store workspace offset hi", inline=True)
+comment(0x9AD9, "Scout status = 2 (PEEK response)", inline=True)
+comment(0x9ADB, "Store scout status", inline=True)
+comment(0x9ADE, "Calculate transfer size for response", inline=True)
+comment(0x9AE1, "C=0: transfer not set up, discard", inline=True)
+comment(0x9AE3, "Mark TX flags bit 7 (reply pending)", inline=True)
+comment(0x9AE6, "Set reply pending flag", inline=True)
+comment(0x9AE8, "Store updated TX flags", inline=True)
+comment(0x9AEB, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
+comment(0x9AED, "Write CR1: enable TX interrupts", inline=True)
+comment(0x9AF0, "NMI handler hi byte (self-modifying)", inline=True)
+comment(0x9AF2, "Write CR2 for TX setup", inline=True)
+comment(0x9AF5, "NMI handler lo byte (self-modifying)", inline=True)
+comment(0x9AF7, "Y=&9B: dispatch table page", inline=True)
+comment(0x9AF9, "Acknowledge and write TX dest", inline=True)
+
+# c9b35: TX done CB1 check and dispatch
+comment(0x9B35, "A=&04: IFR bit 2 (CB1) mask", inline=True)
+comment(0x9B37, "Test CB1 interrupt pending", inline=True)
+comment(0x9B3A, "CB1 fired: handle TX completion", inline=True)
+comment(0x9B3C, "A=5: no CB1, return status 5", inline=True)
+comment(0x9B3E, "Return (no CB1 interrupt)", inline=True)
+comment(0x9B3F, "Save X", inline=True)
+comment(0x9B40, "Push X", inline=True)
+comment(0x9B41, "Save Y", inline=True)
+comment(0x9B42, "Push Y", inline=True)
+comment(0x9B43, "Read ACR for shift register mode", inline=True)
+comment(0x9B46, "Clear SR mode bits (2-4)", inline=True)
+comment(0x9B48, "Restore original SR mode", inline=True)
+comment(0x9B4B, "Write updated ACR", inline=True)
+comment(0x9B4E, "Read SR to clear pending interrupt", inline=True)
+comment(0x9B51, "A=&04: CB1 bit mask", inline=True)
+comment(0x9B53, "Clear CB1 in IFR", inline=True)
+comment(0x9B56, "Disable CB1 in IER", inline=True)
+comment(0x9B59, "Load ctrl byte for dispatch", inline=True)
+comment(0x9B5C, "Ctrl >= &86? (HALT/CONTINUE)", inline=True)
+comment(0x9B5E, "Yes: skip protection mask save", inline=True)
+comment(0x9B60, "Load current protection mask", inline=True)
+comment(0x9B63, "Save mask before JSR modification", inline=True)
+comment(0x9B66, "Enable bits 2-4 (allow JSR ops)", inline=True)
+comment(0x9B68, "Store modified protection mask", inline=True)
+comment(0x9B6B, "Load handler addr hi from table", inline=True)
+comment(0x9B6E, "Push handler hi", inline=True)
+comment(0x9B6F, "Load handler addr lo from table", inline=True)
+comment(0x9B72, "Push handler lo", inline=True)
+comment(0x9B73, "Dispatch via RTS (addr-1 on stack)", inline=True)
+
+# tx_done_jsr (&9B7E)
+comment(0x9B7E, "Push hi of (tx_done_exit-1)", inline=True)
+comment(0x9B80, "Push hi byte on stack", inline=True)
+comment(0x9B81, "Push lo of (tx_done_exit-1)", inline=True)
+comment(0x9B83, "Push lo byte on stack", inline=True)
+comment(0x9B84, "Call remote JSR; RTS to tx_done_exit", inline=True)
+
+# tx_done_user_proc (&9B87)
+comment(0x9B87, "Y=8: network event type", inline=True)
+comment(0x9B89, "X = remote address lo", inline=True)
+comment(0x9B8C, "A = remote address hi", inline=True)
+comment(0x9B92, "Exit TX done handler", inline=True)
+
+# tx_done_os_proc (&9B95)
+comment(0x9B95, "X = remote address lo", inline=True)
+comment(0x9B98, "Y = remote address hi", inline=True)
+comment(0x9B9B, "Call ROM entry point at &8000", inline=True)
+comment(0x9B9E, "Exit TX done handler", inline=True)
+
+# tx_done_halt (&9BA1)
+comment(0x9BA1, "A=&04: bit 2 mask for rx_flags", inline=True)
+comment(0x9BA3, "Test if already halted", inline=True)
+comment(0x9BA6, "Already halted: skip to exit", inline=True)
+comment(0x9BA8, "Set bit 2 in rx_flags", inline=True)
+comment(0x9BAB, "Store halt flag", inline=True)
+comment(0x9BAE, "A=4: re-load halt bit mask", inline=True)
+comment(0x9BB0, "Enable interrupts during halt wait", inline=True)
+comment(0x9BB1, "Test halt flag", inline=True)
+comment(0x9BB4, "Still halted: keep spinning", inline=True)
+
+# inactive_poll (&9C2F)
+comment(0x9C2F, "Save TX index", inline=True)
+comment(0x9C32, "Push timeout byte 1 on stack", inline=True)
+comment(0x9C33, "Push timeout byte 2 on stack", inline=True)
+comment(0x9C38, "Save interrupt state", inline=True)
+comment(0x9C39, "Disable interrupts for ADLC access", inline=True)
+comment(0x9C4A, "Write CR2: clear status, prepare TX", inline=True)
+comment(0x9C57, "Restore interrupt state", inline=True)
+comment(0x9C59, "Increment timeout counter byte 1", inline=True)
+comment(0x9C5C, "Not overflowed: retry INACTIVE test", inline=True)
+comment(0x9C5E, "Increment timeout counter byte 2", inline=True)
+comment(0x9C61, "Not overflowed: retry INACTIVE test", inline=True)
+comment(0x9C63, "Increment timeout counter byte 3", inline=True)
+comment(0x9C66, "Not overflowed: retry INACTIVE test", inline=True)
+comment(0x9C68, "All 3 bytes overflowed: line jammed", inline=True)
+comment(0x9C6B, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
+
+# tx_ctrl_poke (&9CD3)
+comment(0x9CD3, "Scout status = 2 (POKE transfer)", inline=True)
+comment(0x9CD5, "Store scout status", inline=True)
+comment(0x9CD8, "Clear carry for 4-byte addition", inline=True)
+comment(0x9CD9, "Save carry on stack", inline=True)
+comment(0x9CDA, "Y=&0C: start at offset 12", inline=True)
+comment(0x9CDC, "Load workspace address byte", inline=True)
+comment(0x9CDF, "Restore carry from previous byte", inline=True)
+comment(0x9CE0, "Add TXCB address byte", inline=True)
+comment(0x9CE2, "Store updated address byte", inline=True)
+comment(0x9CE5, "Next byte", inline=True)
+comment(0x9CE6, "Save carry for next addition", inline=True)
+
+# ============================================================
+# Label renaming: auto-generated labels in 3.40
+# ============================================================
+# Names derived from context analysis and DNFS 3.60 reference source
+# (label_correspondence.py). DNFS matches noted where applicable.
+
+# --- Subroutine-category labels (18) ---
+label(0x0414, "tube_send_release")    # Sends release (5) + claimed ID via R4
+label(0x8EF9, "rs")                   # DNFS: RS — OSWORD 11 sub-function router
+label(0x9148, "nword")                # DNFS: NWORD — OSWORD 7/8 fire-and-forget
+label(0x96B2, "poll_nmi_ready")       # Polls NMI vector for shim installation
+label(0x97F7, "ack_scout_match")      # Sets scout_status=3, initiates ACK
+label(0x9A03, "inc_rxcb_buf_hi")      # Increments RXCB buffer high byte
+label(0x9A47, "copy_scout_fields")    # Copies scout fields to port workspace
+label(0x9AE3, "set_tx_reply_flag")    # Sets TX reply-pending flag (bit7)
+label(0x9AEB, "rx_imm_halt_cont")     # Handler for HALT/CONTINUE immediate ops
+label(0x9AF0, "tx_cr2_setup")         # Self-modifying CR2 configuration
+label(0x9AF5, "tx_nmi_setup")         # Self-modifying NMI handler lo byte
+label(0x9B32, "imm_op_discard")       # Error path: JMP discard_listen
+label(0x9B35, "check_cb1_irq")        # Tests CB1 interrupt pending via IFR
+label(0x9C40, "test_line_idle")       # Tests SR2 INACTIVE bit for line idle
+label(0x9CCB, "imm_op_status3")       # Loads scout_status=3 for immediate ops
+label(0x9D16, "proc_op_status2")      # Loads scout_status=2 for proc calls
+label(0x9EA6, "tube_tx_inc_byte2")    # Increment byte 2 of 4-byte counter
+label(0x9EAE, "tube_tx_inc_byte4")    # Increment byte 4 of 4-byte counter
+
+# --- Shared-tail labels (8) ---
+label(0x0020, "tube_send_zero_r2")    # Sends zero prefix via R2 to Tube
+label(0x8211, "return_service")       # LDY ws_page, RTS (service unclaimed)
+label(0x87D3, "send_fs_reply")        # Sends FS reply command after transfer
+label(0x8D55, "print_newline")        # JMP OSNEWL after catalogue line
+label(0x96D5, "enter_rx_listen")      # JMP adlc_rx_listen (idle RX mode)
+label(0x9A0C, "store_rxcb_buf_hi")    # Stores buffer hi byte to RXCB offset 9
+label(0x9CD5, "store_status_add4")    # Stores scout status + 4-byte addition
+label(0x9D18, "store_status_copy_ptr")  # Stores status + copies TX block ptr
+
+# --- Data labels (17) ---
+label(0x8001, "lang_entry_lo")        # ROM language entry address low byte
+label(0x8002, "lang_entry_hi")        # ROM language entry address high byte
+label(0x8004, "svc_entry_lo")         # ROM service entry address low byte
+label(0x0051, "tube_jmp_target")      # Self-modifying JMP operand
+label(0x0518, "r2_cmd_table")         # R2 command byte table (8 entries)
+label(0x86AD, "tx_poll_status")       # BIT target for poll loop (bit7 busy)
+label(0x8C06, "fs_cmd_dispatch_hi")   # FS command dispatch address high byte
+label(0x8D08, "boot_option_text")     # Boot option name/offset table
+label(0x8D1C, "boot_oscli_offset")    # Boot option OSCLI string offset table
+label(0x8EB0, "osword_handler_lo")    # OSWORD handler address lo table
+label(0x90A3, "netvec_handler_hi")    # NETVEC handler address hi table
+label(0x9A04, "imm_dispatch_lo")      # Immediate op handler addr lo base
+label(0x9AF1, "tx_done_handler_lo")   # TX done handler address lo table
+label(0x9AF6, "tx_done_handler_hi")   # TX done handler address hi table
+label(0x9C42, "sr2_idle_status")      # BIT operand for SR2 INACTIVE test
+label(0x9EA7, "tube_tx_count_2")      # 4-byte counter byte 2 operand
+label(0x9EAF, "tube_tx_count_4")      # 4-byte counter byte 4 operand
+
+# --- Internal loop labels (10) ---
+label(0x8262, "copy_vectors_loop")    # FS vector copy loop (cf. DOFSL1)
+label(0x869D, "tx_semaphore_spin")    # TX semaphore spinlock
+label(0x87E3, "copy_attr_loop")       # Copy 4 attribute bytes loop
+label(0x8825, "block_addr_loop")      # Multi-byte address addition loop
+label(0x8C99, "cattxt")               # DNFS: CATTXT — catalogue text print loop
+label(0x9117, "poll_rxcb_loop")       # Poll RXCB for OSBYTE reply
+label(0x9A49, "copy_scout_loop")      # Copy 8 scout fields to workspace
+label(0x9AA7, "copy_addr_loop")       # Copy 4-byte remote address loop
+label(0x9BB1, "halt_spin_loop")       # Spin-wait during system halt state
+label(0x9CDC, "add_bytes_loop")       # 4-byte address addition loop
+
+# --- Internal conditional labels (33) ---
+label(0x046D, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
+label(0x8114, "no_adlc_found")        # No ADLC: zero station ID, set flag
+label(0x8118, "adlc_detect_done")     # ADLC detection complete
+label(0x852D, "fs_reply_poll")        # Poll for FS reply with timeout/escape
+label(0x869A, "tx_retry")             # Retry TX after error
+label(0x86C7, "msdely")               # DNFS: MSDELY — delay loop
+label(0x86CF, "tx_not_listening")     # Fatal TX error: "Not listening"
+label(0x86D3, "tx_success")           # TX success: clean return
+label(0x87E6, "direct_attr_copy")     # Skip attr decode, direct copy
+label(0x881A, "next_block")           # Reinit for next transfer block
+label(0x8843, "clamp_dest_setup")     # Set up 4-byte dest clamping
+label(0x8C71, "cat_check_access")     # Branch on access level
+label(0x8D35, "next_filename_char")   # Load and print next filename char
+label(0x8D4D, "print_hex_fields")     # Print load/exec/length fields
+label(0x8DA5, "dir_column_check")     # Check column position for formatting
+label(0x8DA7, "dir_print_char")       # Column character output (cf. INFOL2)
+label(0x8E1C, "exec_at_load_addr")    # JMP (fs_load_vector) — execute locally
+label(0x9196, "rxcb_matched")         # Scout frame matched RXCB
+label(0x9221, "pril1")                # DNFS: PRIL1 — print/store loop
+label(0x96B7, "nmi_vec_lo_match")     # NMI vector low byte matches
+label(0x97AF, "scout_ctrl_check")     # Check scout control byte
+label(0x97CB, "scout_port_match")     # Check scout port number
+label(0x97DC, "scout_station_check")  # Check scout station number
+label(0x97E0, "scout_network_match")  # Check scout network number
+label(0x97EF, "scout_accept")         # Scout accepted: all checks passed
+label(0x98F8, "rx_update_buf")        # Update buffer pointer after RX
+label(0x990E, "rx_check_error")       # Check error status after data RX
+label(0x9A76, "imm_op_dispatch")      # PHA/PHA/RTS dispatch for immediate ops
+label(0x9A82, "imm_op_out_of_range")  # JMP nmi_error_dispatch
+label(0x9B3F, "tx_done_error")        # TX error code check
+label(0x9B6B, "tx_done_classify")     # TX operation type classification
+label(0x9D1B, "skip_buf_setup")       # Transfer size check: skip buffer
+label(0x9E75, "jmp_tx_result_fail")   # JMP tx_result_fail
+
 # ============================================================
 # Generate disassembly
 # ============================================================
