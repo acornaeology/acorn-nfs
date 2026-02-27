@@ -5686,6 +5686,22 @@ boot_string_offsets = boot_option_offsets+1
 .return_nbyte
     rts                                                               ; 913e: 60          `              ; Return to OSBYTE dispatcher
 
+; ***************************************************************************************
+; Search remote OSBYTE table for match (NCALLP)
+; 
+; Searches remote_osbyte_table for OSBYTE code A. X indexes the
+; last entry to check (table is scanned X..0). Returns Z=1 if
+; found. Called twice by remote_cmd_dispatch:
+; 
+;   X=9  → first 10 entries (NCTBPL: execute on both machines)
+;   X=14 → all 15 entries (NCTBMI: execute on terminal only)
+; 
+; The last 5 entries (&0B, &0C, &0F, &79, &7A) are terminal-only
+; because they affect the local keyboard or buffers.
+; 
+; On entry: A = OSBYTE code, X = table size - 1
+; On exit:  Z=1 if match found, Z=0 if not
+; ***************************************************************************************
 ; &913f referenced 3 times by &90f5, &90fe, &9145
 .match_osbyte_code
     cmp remote_osbyte_table,x                                         ; 913f: dd 48 91    .H.            ; Compare OSBYTE code with table entry
@@ -5698,8 +5714,21 @@ boot_string_offsets = boot_option_offsets+1
 
 ; &9148 referenced 1 time by &913f
 .remote_osbyte_table
-    equb   4,   9, &0a, &15, &9a, &9b, &e1, &e2, &e3, &e4, &0b, &0c   ; 9148: 04 09 0a... ...            ; OSBYTE function codes for remote ops
-    equb &0f, &79, &7a                                                ; 9154: 0f 79 7a    .yz
+    equb 4                                                            ; 9148: 04          .              ; OSBYTE &04: cursor key status
+    equb 9                                                            ; 9149: 09          .              ; OSBYTE &09: flash duration (1st colour)
+    equb &0a                                                          ; 914a: 0a          .              ; OSBYTE &0A: flash duration (2nd colour)
+    equb &15                                                          ; 914b: 15          .              ; OSBYTE &15: flush specific buffer
+    equb &9a                                                          ; 914c: 9a          .              ; OSBYTE &9A: video ULA control register
+    equb &9b                                                          ; 914d: 9b          .              ; OSBYTE &9B: video ULA palette
+    equb &e1                                                          ; 914e: e1          .              ; OSBYTE &E1: function key &C0-&CF
+    equb &e2                                                          ; 914f: e2          .              ; OSBYTE &E2: function key &D0-&DF
+    equb &e3                                                          ; 9150: e3          .              ; OSBYTE &E3: function key &E0-&EF
+    equb &e4                                                          ; 9151: e4          .              ; OSBYTE &E4: function key &F0-&FF
+    equb &0b                                                          ; 9152: 0b          .              ; OSBYTE &0B: auto-repeat delay
+    equb &0c                                                          ; 9153: 0c          .              ; OSBYTE &0C: auto-repeat rate
+    equb &0f                                                          ; 9154: 0f          .              ; OSBYTE &0F: flush buffer class
+    equb &79                                                          ; 9155: 79          y              ; OSBYTE &79: keyboard scan from X
+    equb &7a                                                          ; 9156: 7a          z              ; OSBYTE &7A: keyboard scan from 16
 
 ; ***************************************************************************************
 ; NETVEC fn 8: remote OSWORD dispatch (NWORD)

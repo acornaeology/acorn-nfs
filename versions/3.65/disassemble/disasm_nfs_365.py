@@ -6101,12 +6101,43 @@ comment(0x9135, "Load next result byte (X, then Y)", inline=True)
 comment(0x913A, "Copied all result bytes? (P at &DA)", inline=True)
 comment(0x913C, "Loop for remaining result bytes", inline=True)
 comment(0x913E, "Return to OSBYTE dispatcher", inline=True)
+subroutine(0x913F, "match_osbyte_code", hook=None,
+    title="Search remote OSBYTE table for match (NCALLP)",
+    description="""\
+Searches remote_osbyte_table for OSBYTE code A. X indexes the
+last entry to check (table is scanned X..0). Returns Z=1 if
+found. Called twice by remote_cmd_dispatch:
+
+  X=9  → first 10 entries (NCTBPL: execute on both machines)
+  X=14 → all 15 entries (NCTBMI: execute on terminal only)
+
+The last 5 entries (&0B, &0C, &0F, &79, &7A) are terminal-only
+because they affect the local keyboard or buffers.
+
+On entry: A = OSBYTE code, X = table size - 1
+On exit:  Z=1 if match found, Z=0 if not""")
 comment(0x913F, "Compare OSBYTE code with table entry", inline=True)
 comment(0x9142, "Match found: return with Z=1", inline=True)
 comment(0x9144, "Next table entry (descending)", inline=True)
 comment(0x9145, "Loop for remaining entries", inline=True)
 comment(0x9147, "Return; Z=1 if match, Z=0 if not", inline=True)
-comment(0x9148, "OSBYTE function codes for remote ops", inline=True)
+for addr in range(0x9148, 0x9157):
+    byte(addr)
+comment(0x9148, "OSBYTE &04: cursor key status", inline=True)
+comment(0x9149, "OSBYTE &09: flash duration (1st colour)", inline=True)
+comment(0x914A, "OSBYTE &0A: flash duration (2nd colour)", inline=True)
+comment(0x914B, "OSBYTE &15: flush specific buffer", inline=True)
+comment(0x914C, "OSBYTE &9A: video ULA control register", inline=True)
+comment(0x914D, "OSBYTE &9B: video ULA palette", inline=True)
+comment(0x914E, "OSBYTE &E1: function key &C0-&CF", inline=True)
+comment(0x914F, "OSBYTE &E2: function key &D0-&DF", inline=True)
+comment(0x9150, "OSBYTE &E3: function key &E0-&EF", inline=True)
+comment(0x9151, "OSBYTE &E4: function key &F0-&FF", inline=True)
+comment(0x9152, "OSBYTE &0B: auto-repeat delay", inline=True)
+comment(0x9153, "OSBYTE &0C: auto-repeat rate", inline=True)
+comment(0x9154, "OSBYTE &0F: flush buffer class", inline=True)
+comment(0x9155, "OSBYTE &79: keyboard scan from X", inline=True)
+comment(0x9156, "OSBYTE &7A: keyboard scan from 16", inline=True)
 comment(0x915B, "OSWORD 7 (sound): handle via common path", inline=True)
 
 subroutine(0x9157, "remote_osword_handler", hook=None,

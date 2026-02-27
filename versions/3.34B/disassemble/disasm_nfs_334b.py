@@ -502,7 +502,6 @@ label(0x9035, "osword_tbl_hi")         # Dispatch table high bytes
 
 # Remote operation function handlers (dispatched via osword_tbl)
 # (net_write_char subroutine defined above)
-label(0x90B6, "match_osbyte_code")   # NCALLP: compare A against OSBYTE function table; Z=1 on match
 label(0x90BE, "return_match_osbyte") # Return from match_osbyte_code
 label(0x90FC, "return_remote_cmd")   # Return from remote command data handler
 
@@ -3354,6 +3353,22 @@ manipulated via ROR/ASL to zero it, signaling success to the caller.
 OSBYTE &81 (INKEY) gets special handling as it must read the
 terminal's keyboard.""")
 
+subroutine(0x90B6, "match_osbyte_code", hook=None,
+    title="Search remote OSBYTE table for match (NCALLP)",
+    description="""\
+Searches remote_osbyte_table for OSBYTE code A. X indexes the
+last entry to check (table is scanned X..0). Returns Z=1 if
+found. Called twice by remote_cmd_dispatch:
+
+  X=9  -> first 10 entries (NCTBPL: execute on both machines)
+  X=14 -> all 15 entries (NCTBMI: execute on terminal only)
+
+The last 5 entries (&0F, &79, &7A, &E3, &E4) are terminal-only
+because they affect the local keyboard, buffers, or function keys.
+
+On entry: A = OSBYTE code, X = table size - 1
+On exit:  Z=1 if match found, Z=0 if not""")
+
 subroutine(0x90CE, "remote_cmd_data", hook=None,
     title="Fn 8: remote OSWORD handler (NWORD)",
     description="""\
@@ -5914,6 +5929,23 @@ comment(0x90BB, "Next table entry (descending)", inline=True)
 comment(0x90BC, "Loop for remaining entries", inline=True)
 comment(0x90BE, "Return; Z=1 if match, Z=0 if not", inline=True)
 label(0x90BF, "remote_osbyte_table") # OSBYTE codes accepted for remote execution
+for addr in range(0x90BF, 0x90CE):
+    byte(addr)
+comment(0x90BF, "OSBYTE &04: cursor key status", inline=True)
+comment(0x90C0, "OSBYTE &09: flash duration (1st colour)", inline=True)
+comment(0x90C1, "OSBYTE &0A: flash duration (2nd colour)", inline=True)
+comment(0x90C2, "OSBYTE &14: explode soft character RAM", inline=True)
+comment(0x90C3, "OSBYTE &9A: video ULA control register", inline=True)
+comment(0x90C4, "OSBYTE &9B: video ULA palette", inline=True)
+comment(0x90C5, "OSBYTE &9C: ACIA control register", inline=True)
+comment(0x90C6, "OSBYTE &E2: function key &D0-&DF", inline=True)
+comment(0x90C7, "OSBYTE &0B: auto-repeat delay", inline=True)
+comment(0x90C8, "OSBYTE &0C: auto-repeat rate", inline=True)
+comment(0x90C9, "OSBYTE &0F: flush buffer class", inline=True)
+comment(0x90CA, "OSBYTE &79: keyboard scan from X", inline=True)
+comment(0x90CB, "OSBYTE &7A: keyboard scan from &10", inline=True)
+comment(0x90CC, "OSBYTE &E3: function key &E0-&EF", inline=True)
+comment(0x90CD, "OSBYTE &E4: function key &F0-&FF", inline=True)
 comment(0x90D2, "OSWORD 7 (sound): handle via common path", inline=True)
 comment(0x90D4, "OSWORD 8 = define an envelope", inline=True)
 comment(0x90D6, "Not OSWORD 7 or 8: ignore (BNE exits)", inline=True)
