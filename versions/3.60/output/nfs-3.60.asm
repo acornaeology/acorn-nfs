@@ -324,16 +324,16 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &935c referenced 1 time by &004e[1]
 ; &935e referenced 2 times by &04de[2], &04ee[2]
 .tube_transfer_addr
-    equb 0                                                            ; 935e: 00          .   :0053[1]
+    equb 0                                                            ; 935e: 00          .   :0053[1]   ; Tube transfer address low byte
 ; &935f referenced 3 times by &04b6[2], &04d4[2], &04f3[2]
 .tube_xfer_page
-    equb &80                                                          ; 935f: 80          .   :0054[1]
+    equb &80                                                          ; 935f: 80          .   :0054[1]   ; Tube transfer page (default &80)
 ; &9360 referenced 2 times by &04ba[2], &04fd[2]
 .tube_xfer_addr_2
-    equb 0                                                            ; 9360: 00          .   :0055[1]
+    equb 0                                                            ; 9360: 00          .   :0055[1]   ; Tube transfer address byte 2
 ; &9361 referenced 2 times by &04be[2], &04fb[2]
 .tube_xfer_addr_3
-    equb 0                                                            ; 9361: 00          .   :0056[1]
+    equb 0                                                            ; 9361: 00          .   :0056[1]   ; Tube transfer address byte 3
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -624,11 +624,11 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; &9462 referenced 2 times by &0050[1], &8168
 .tube_dispatch_table
-    equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; 9462: 37 05 96... 7.. :0500[3]
+    equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; 9462: 37 05 96... 7.. :0500[3]   ; 12-entry Tube R2 command dispatch table
     equb &2d, 5, &20, 5, &42, 5, &a9, 5, &d1, 5                       ; 9470: 2d 05 20... -.  :050e[3]
 ; &947a referenced 1 time by &0453[2]
 .tube_ctrl_values
-    equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 947a: 86 88 96... ... :0518[3]
+    equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 947a: 86 88 96... ... :0518[3]   ; Tube control register value table (8 bytes)
 
 .tube_osbput
     jsr tube_read_r2                                                  ; 9482: 20 c5 06     .. :0520[3]   ; Read channel handle from R2 for BPUT
@@ -783,7 +783,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &955e referenced 2 times by &05ff[3], &0625[4]
 .tube_poll_r2_result
     bit tube_status_register_2                                        ; 955e: 2c e2 fe    ,.. :05fc[3]   ; Poll R2 status for result send
-    equb &50                                                          ; 9561: 50          P   :05ff[3]
+    equb &50                                                          ; 9561: 50          P   :05ff[3]   ; BVC: page 5/6 boundary straddle
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -803,7 +803,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &0600
 ; &9562 referenced 1 time by &816e
 .tube_page6_start
-    equb &fb                                                          ; 9562: fb          .   :0600[4]
+    equb &fb                                                          ; 9562: fb          .   :0600[4]   ; Send carry+status to co-processor via R2
 
     stx tube_data_register_2                                          ; 9563: 8e e3 fe    ... :0601[4]   ; Send X result for 2-param OSBYTE
 ; &9566 referenced 1 time by &0617[4]
@@ -988,7 +988,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     lda #4                                                            ; 9658: a9 04       ..  :06f6[4]   ; A=4: CB1 interrupt bit
     sta system_via_ifr                                                ; 965a: 8d 4d fe    .M. :06f8[4]   ; Clear CB1 interrupt flag
     sta system_via_ier                                                ; 965d: 8d 4e fe    .N. :06fb[4]   ; Disable CB1 interrupt
-    equb &ac, &57                                                     ; 9660: ac 57       .W  :06fe[4]
+    equb &ac, &57                                                     ; 9660: ac 57       .W  :06fe[4]   ; A=5: NMI not for us
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
@@ -1070,35 +1070,35 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .language_entry
 language_handler_lo = rom_header+1
 language_handler_hi = rom_header+2
-    jmp language_handler                                              ; 8000: 4c e1 80    L..
+    jmp language_handler                                              ; 8000: 4c e1 80    L..            ; JMP language_handler
 
 ; &8001 referenced 1 time by &04eb[2]
 ; &8002 referenced 1 time by &04f0[2]
 ; &8003 referenced 1 time by &04f5[2]
 .service_entry
 service_handler_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c f7 80    L..
+    jmp service_handler                                               ; 8003: 4c f7 80    L..            ; JMP service_handler
 
 ; &8004 referenced 1 time by &04f8[2]
 ; &8006 referenced 1 time by &04da[2]
 .rom_type
-    equb &82                                                          ; 8006: 82          .
+    equb &82                                                          ; 8006: 82          .              ; ROM type: service + language
 ; &8007 referenced 1 time by &04e2[2]
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 10          .
+    equb copyright - rom_header                                       ; 8007: 10          .              ; Copyright string offset from &8000
 ; &8008 referenced 2 times by &836e, &8377
 .binary_version
-    equb &83                                                          ; 8008: 83          .
+    equb &83                                                          ; 8008: 83          .              ; Binary version number
 .title
-    equs "    NET"                                                    ; 8009: 20 20 20...
+    equs "    NET"                                                    ; 8009: 20 20 20...                ; ROM title string "    NET"
 .copyright
-    equb 0                                                            ; 8010: 00          .
+    equb 0                                                            ; 8010: 00          .              ; Null terminator before copyright
 ; The 'ROFF' suffix at &8014 is reused by the *ROFF
 ; command matcher (svc_star_command) — a space-saving
 ; trick that shares ROM bytes between the copyright
 ; string and the star command table.
 .copyright_string
-    equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)
+    equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)            ; Copyright string "(C)ROFF"
 ; Error message offset table (9 entries).
 ; Each byte is a Y offset into error_msg_table.
 ; Entry 0 (Y=0, "Line Jammed") doubles as the
@@ -1671,7 +1671,7 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 .svc_9_help
     jsr print_inline                                                  ; 8208: 20 5c 86     \.            ; Print ROM identification string
-    equs &0d, "NFS 3.60", &0d                                         ; 820b: 0d 4e 46... .NF
+    equs &0d, "NFS 3.60", &0d                                         ; 820b: 0d 4e 46... .NF            ; Notify current FS of shutdown
 
 ; &8215 referenced 2 times by &81ef, &822a
 .restore_ws_return
@@ -1729,7 +1729,7 @@ service_handler_lo = service_entry+1
 ; &8232 referenced 1 time by &8226
 .print_station_info
     jsr print_inline                                                  ; 8232: 20 5c 86     \.            ; Print 'Econet Station ' banner
-    equs "Econet Station "                                            ; 8235: 45 63 6f... Eco
+    equs "Econet Station "                                            ; 8235: 45 63 6f... Eco            ; Inline string "Econet Station "
 
     ldy #&14                                                          ; 8244: a0 14       ..             ; Y=&14: station number offset in RX buf
     lda (net_rx_ptr),y                                                ; 8246: b1 9c       ..             ; Load station number
@@ -1739,13 +1739,13 @@ service_handler_lo = service_entry+1
 .dofsl1
     beq skip_no_clock_msg                                             ; 8250: f0 0d       ..             ; Clock present: skip warning
     jsr print_inline                                                  ; 8252: 20 5c 86     \.            ; Print ' No Clock' warning
-    equs " No Clock"                                                  ; 8255: 20 4e 6f...  No
+    equs " No Clock"                                                  ; 8255: 20 4e 6f...  No            ; Inline string " No Clock"
 
     nop                                                               ; 825e: ea          .              ; NOP (padding after inline string)
 ; &825f referenced 1 time by &8250
 .skip_no_clock_msg
     jsr print_inline                                                  ; 825f: 20 5c 86     \.            ; Print two CRs (blank line)
-    equs &0d, &0d                                                     ; 8262: 0d 0d       ..
+    equs &0d, &0d                                                     ; 8262: 0d 0d       ..             ; 7 FS vectors to install
 
 ; ***************************************************************************************
 ; Initialise filing system vectors
@@ -1872,7 +1872,7 @@ service_handler_lo = service_entry+1
 .return_3
     rts                                                               ; 82c2: 60          `              ; Return (workspace claim done)
 
-    equb &80, &90                                                     ; 82c3: 80 90       ..
+    equb &80, &90                                                     ; 82c3: 80 90       ..             ; FS page hi:lo for workspace pointer
 
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
@@ -2529,8 +2529,8 @@ service_handler_lo = service_entry+1
     iny                                                               ; 8525: c8          .              ; Next source byte
     inx                                                               ; 8526: e8          .              ; Next dest byte
     bne copy_error_message                                            ; 8527: d0 f4       ..             ; Continue copying message
-    equs "SP."                                                        ; 8529: 53 50 2e    SP.
-    equb &0d, &45, &2e, &0d                                           ; 852c: 0d 45 2e... .E.
+    equs "SP."                                                        ; 8529: 53 50 2e    SP.            ; Set bit7: FS transaction in progress
+    equb &0d, &45, &2e, &0d                                           ; 852c: 0d 45 2e... .E.            ; CR + E. + CR: *EXEC boot command
 
 ; ***************************************************************************************
 ; Load '*' prefix and send FS command (WAITFS)
@@ -2628,18 +2628,18 @@ error_msg_table = error_table_base+6
 ; station actively refused the connection.
 ; Indexed via c850c/nlistn/nlisne at &850C-&8514.
 ; &8580 referenced 1 time by &851d
-    equb &a1                                                          ; 858d: a1          .
-    equs "Net Error", 0                                               ; 858e: 4e 65 74... Net
-    equb &a2                                                          ; 8598: a2          .
-    equs "Not listening", 0                                           ; 8599: 4e 6f 74... Not
-    equb &a3                                                          ; 85a7: a3          .
-    equs "No Clock", 0                                                ; 85a8: 4e 6f 20... No
-    equb &11                                                          ; 85b1: 11          .
-    equs "Escape", 0                                                  ; 85b2: 45 73 63... Esc
-    equb &cb                                                          ; 85b9: cb          .
-    equs "Bad Option", 0                                              ; 85ba: 42 61 64... Bad
-    equb &a5                                                          ; 85c5: a5          .
-    equs "No reply", 0                                                ; 85c6: 4e 6f 20... No
+    equb &a1                                                          ; 858d: a1          .              ; Error &A1: Net Error
+    equs "Net Error", 0                                               ; 858e: 4e 65 74... Net            ; Error string "Net Error"
+    equb &a2                                                          ; 8598: a2          .              ; Error &A2: Not listening
+    equs "Not listening", 0                                           ; 8599: 4e 6f 74... Not            ; Error string "Not listening"
+    equb &a3                                                          ; 85a7: a3          .              ; Error &CB: Bad Option
+    equs "No Clock", 0                                                ; 85a8: 4e 6f 20... No             ; Error string "No Clock"
+    equb &11                                                          ; 85b1: 11          .              ; Error &11: Escape
+    equs "Escape", 0                                                  ; 85b2: 45 73 63... Esc            ; Error string "Escape"
+    equb &cb                                                          ; 85b9: cb          .              ; Error &CB: Bad Option
+    equs "Bad Option", 0                                              ; 85ba: 42 61 64... Bad            ; Error string "Bad Option"
+    equb &a5                                                          ; 85c5: a5          .              ; ALWAYS branch to shared bitmask builder
+    equs "No reply", 0                                                ; 85c6: 4e 6f 20... No             ; Error string "No reply"
 
 ; ***************************************************************************************
 ; Decode file attributes: FS → BBC format (FSBBC, 6-bit variant)
@@ -2690,7 +2690,7 @@ error_msg_table = error_table_base+6
 
 ; &85ec referenced 1 time by &85e6
 .access_bit_table
-    equb &50, &20, 5, 2, &88, 4, 8, &80, &10, 1, 2                    ; 85ec: 50 20 05... P .
+    equb &50, &20, 5, 2, &88, 4, 8, &80, &10, 1, 2                    ; 85ec: 50 20 05... P .            ; Attribute bit mapping table (11 entries)
 
 ; ***************************************************************************************
 ; Set up TX pointer to control block at &00C0
@@ -4338,9 +4338,10 @@ error_msg_table = error_table_base+6
 ; FS command match table (COMTAB)
 ; 
 ; Format: command letters (bit 7 clear), then dispatch address
-; as two bytes: high|(bit 7 set), low. The PHA/PHA/RTS trick
-; adds 1 to the stored (address-1). Matching is case-insensitive
-; (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
+; as two big-endian bytes: high|(bit 7 set), low. The bit 7 set
+; on the high byte marks the end of the command string. The
+; PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching
+; is case-insensitive (AND &DF) and supports '.' abbreviation.
 ; 
 ; Entries:
 ;   "I."     → &80C1 (forward_star_cmd) — placed first as a fudge
@@ -4355,11 +4356,20 @@ error_msg_table = error_table_base+6
 cmd_match_data = fs_cmd_match_table+1
     eor #&2e ; '.'                                                    ; 8c4b: 49 2e       I.             ; Match last char against '.' for *I. abbreviation
 ; &8c4c referenced 1 time by &8c46
-    equb &80, &c0                                                     ; 8c4d: 80 c0       ..
-    equs "I AM"                                                       ; 8c4f: 49 20 41... I A
-    equb &80, &81, &45, &58, &8c                                      ; 8c53: 80 81 45... ..E
-    equs "`BYE"                                                       ; 8c58: 60 42 59... `BY
-    equb &0d, &83, &bf, &80, &c0                                      ; 8c5c: 0d 83 bf... ...
+    equb &80                                                          ; 8c4d: 80          .              ; I. handler hi → &80C1 (forward_star_cmd)
+    equb &c0                                                          ; 8c4e: c0          .              ; I. handler lo
+    equs "I AM"                                                       ; 8c4f: 49 20 41... I A            ; "I AM" command string
+    equb &80                                                          ; 8c53: 80          .              ; I AM handler hi → &8082 (i_am_handler)
+    equb &81                                                          ; 8c54: 81          .              ; I AM handler lo
+    equs "EX"                                                         ; 8c55: 45 58       EX             ; "EX" command string
+    equb &8c                                                          ; 8c57: 8c          .              ; EX handler hi → &8C61 (ex_handler)
+    equb &60                                                          ; 8c58: 60          `              ; EX handler lo
+    equs "BYE"                                                        ; 8c59: 42 59 45    BYE            ; "BYE" command string
+    equb &0d                                                          ; 8c5c: 0d          .              ; CR terminator for BYE
+    equb &83                                                          ; 8c5d: 83          .              ; BYE handler hi → &83C0 (bye_handler)
+    equb &bf                                                          ; 8c5e: bf          .              ; BYE handler lo
+    equb &80                                                          ; 8c5f: 80          .              ; Catch-all hi → &80C1 (forward_star_cmd)
+    equb &c0                                                          ; 8c60: c0          .              ; Catch-all lo
 
 .ex_handler
     ldx #1                                                            ; 8c61: a2 01       ..             ; X=1: force one entry per line for *EX
@@ -4413,23 +4423,23 @@ cmd_match_data = fs_cmd_match_table+1
     ldx #3                                                            ; 8c88: a2 03       ..             ; X=3: start printing from reply offset 3
     jsr print_reply_bytes                                             ; 8c8a: 20 47 8d     G.            ; Print directory title (10 chars)
     jsr print_inline                                                  ; 8c8d: 20 5c 86     \.            ; Print '('
-    equs "("                                                          ; 8c90: 28          (
+    equs "("                                                          ; 8c90: 28          (              ; Inline string "("
 
     lda fs_reply_stn                                                  ; 8c91: ad 13 0f    ...            ; Load station number from FS reply
     jsr print_decimal                                                 ; 8c94: 20 bd 8d     ..            ; Print station number as decimal
     jsr print_inline                                                  ; 8c97: 20 5c 86     \.            ; Print ')     '
-    equs ")     "                                                     ; 8c9a: 29 20 20... )
+    equs ")     "                                                     ; 8c9a: 29 20 20... )              ; Inline string ")     "
 
     ldy fs_access_level                                               ; 8ca0: ac 12 0f    ...            ; Access level byte: 0=Owner, non-zero=Public
     bne print_public                                                  ; 8ca3: d0 0b       ..             ; Non-zero: Public access
     jsr print_inline                                                  ; 8ca5: 20 5c 86     \.            ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; 8ca8: 4f 77 6e... Own
+    equs "Owner", &0d                                                 ; 8ca8: 4f 77 6e... Own            ; Inline string "Owner" + CR
 
     bne print_user_env                                                ; 8cae: d0 0a       ..             ; Always branches (print_inline sets N=1)
 ; &8cb0 referenced 1 time by &8ca3
 .print_public
     jsr print_inline                                                  ; 8cb0: 20 5c 86     \.            ; Print 'Public' + CR
-    equs "Public", &0d                                                ; 8cb3: 50 75 62... Pub
+    equs "Public", &0d                                                ; 8cb3: 50 75 62... Pub            ; Print '    Option '
 
 ; &8cba referenced 1 time by &8cae
 .print_user_env
@@ -4439,13 +4449,13 @@ cmd_match_data = fs_cmd_match_table+1
     ldy #&10                                                          ; 8cc0: a0 10       ..             ; Y=&10: print 16 characters
     jsr print_reply_counted                                           ; 8cc2: 20 49 8d     I.            ; Print disc/CSD name from reply
     jsr print_inline                                                  ; 8cc5: 20 5c 86     \.            ; Print '    Option '
-    equs "    Option "                                                ; 8cc8: 20 20 20...
+    equs "    Option "                                                ; 8cc8: 20 20 20...                ; Print ' ('
 
     lda fs_boot_option                                                ; 8cd3: ad 05 0e    ...            ; Load boot option from workspace
     tax                                                               ; 8cd6: aa          .              ; X = boot option for name table lookup
     jsr print_hex                                                     ; 8cd7: 20 9d 9f     ..            ; Print boot option as hex digit
     jsr print_inline                                                  ; 8cda: 20 5c 86     \.            ; Print ' ('
-    equs " ("                                                         ; 8cdd: 20 28        (
+    equs " ("                                                         ; 8cdd: 20 28        (             ; Inline string " ("
 
     ldy option_name_offsets,x                                         ; 8cdf: bc 54 8d    .T.            ; Load string offset for option name
 ; &8ce2 referenced 1 time by &8ceb
@@ -4458,12 +4468,12 @@ cmd_match_data = fs_cmd_match_table+1
 ; &8ced referenced 1 time by &8ce5
 .done_option_name
     jsr print_inline                                                  ; 8ced: 20 5c 86     \.            ; Print ')' + CR + 'Dir. '
-    equs ")", &0d, "Dir. "                                            ; 8cf0: 29 0d 44... ).D
+    equs ")", &0d, "Dir. "                                            ; 8cf0: 29 0d 44... ).D            ; Inline string ")" + CR + "Dir. "
 
     ldx #&11                                                          ; 8cf7: a2 11       ..             ; X=&11: directory name offset in reply
     jsr print_reply_bytes                                             ; 8cf9: 20 47 8d     G.            ; Print current directory name
     jsr print_inline                                                  ; 8cfc: 20 5c 86     \.            ; Print '     Lib. '
-    equs "     Lib. "                                                 ; 8cff: 20 20 20...
+    equs "     Lib. "                                                 ; 8cff: 20 20 20...                ; Store entry start offset for request
 
     ldx #&1b                                                          ; 8d09: a2 1b       ..             ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8d0b: 20 47 8d     G.            ; Print library name
@@ -4524,9 +4534,9 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &8d54 referenced 2 times by &8cdf, &8ce2
 .option_name_offsets
-    equs "+>f"                                                        ; 8d54: 2b 3e 66    +>f
-    equb &18                                                          ; 8d57: 18          .
-    equs "L.!"                                                        ; 8d58: 4c 2e 21    L.!
+    equs "+>f"                                                        ; 8d54: 2b 3e 66    +>f            ; Option name offsets (4 entries)
+    equb &18                                                          ; 8d57: 18          .              ; Opt 1 (Load): L.!BOOT at &8D46
+    equs "L.!"                                                        ; 8d58: 4c 2e 21    L.!            ; Opt 2 (Run): !BOOT at &8D48
 ; ***************************************************************************************
 ; Boot command strings for auto-boot
 ; 
@@ -4546,9 +4556,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; command for boot option 0.
 ; ***************************************************************************************
 .boot_cmd_strings
-    equs "BOOT"                                                       ; 8d5b: 42 4f 4f... BOO
-    equb &0d                                                          ; 8d5f: 0d          .
-    equs "E.!BOOT"                                                    ; 8d60: 45 2e 21... E.!
+    equs "BOOT"                                                       ; 8d5b: 42 4f 4f... BOO            ; "BOOT" string for boot option 2
+    equb &0d                                                          ; 8d5f: 0d          .              ; CR terminator for BOOT string
+    equs "E.!BOOT"                                                    ; 8d60: 45 2e 21... E.!            ; Load byte from parameter block
 ; ***************************************************************************************
 ; Boot option → OSCLI string offset table
 ; 
@@ -4560,14 +4570,14 @@ cmd_match_data = fs_cmd_match_table+1
 ; See boot_cmd_strings for the target strings.
 ; ***************************************************************************************
 .boot_option_offsets
-    equb &0d                                                          ; 8d67: 0d          .
+    equb &0d                                                          ; 8d67: 0d          .              ; Loop until 4 bytes printed
 ; &8d68 referenced 1 time by &8e4b
 .boot_string_offsets
     equb &67                                                          ; 8d68: 67          g              ; Opt 0 (Off): bare CR at &8D67
     equb &58                                                          ; 8d69: 58          X              ; Opt 1 (Load): L.!BOOT at &8D58
     equb &5a                                                          ; 8d6a: 5a          Z              ; Opt 2 (Run): !BOOT at &8D5A
     equb &60                                                          ; 8d6b: 60          `              ; Opt 3 (Exec): E.!BOOT at &8D60
-    equs "Exec"                                                       ; 8d6c: 45 78 65... Exe
+    equs "Exec"                                                       ; 8d6c: 45 78 65... Exe            ; "Exec" option name string
 
 ; &8d70 referenced 2 times by &8805, &880a
 .print_hex_bytes
@@ -4584,7 +4594,7 @@ cmd_match_data = fs_cmd_match_table+1
     lda #&20 ; ' '                                                    ; 8d7b: a9 20       .              ; A=space character
     bne print_digit                                                   ; 8d7d: d0 5a       .Z             ; ALWAYS branch
 
-    equs "Off"                                                        ; 8d7f: 4f 66 66    Off
+    equs "Off"                                                        ; 8d7f: 4f 66 66    Off            ; Return; X = next free position in buffer
 
 ; ***************************************************************************************
 ; Copy filename to FS command buffer
@@ -4620,7 +4630,7 @@ cmd_match_data = fs_cmd_match_table+1
 .return_5
     rts                                                               ; 8d91: 60          `              ; Return; X = next free position in buffer
 
-    equs "Load"                                                       ; 8d92: 4c 6f 61... Loa
+    equs "Load"                                                       ; 8d92: 4c 6f 61... Loa            ; Transfer to A for modulo
 
 ; ***************************************************************************************
 ; Print directory name from reply buffer
@@ -4655,7 +4665,7 @@ cmd_match_data = fs_cmd_match_table+1
     sta fs_crflag                                                     ; 8da7: 85 b9       ..             ; Update column counter
     beq print_cr                                                      ; 8da9: f0 07       ..             ; Column 0: start new line
     jsr print_inline                                                  ; 8dab: 20 5c 86     \.            ; Print 2-space column separator
-    equs "  "                                                         ; 8dae: 20 20
+    equs "  "                                                         ; 8dae: 20 20                      ; Print hundreds digit
 
     bne next_dir_entry                                                ; 8db0: d0 05       ..             ; ALWAYS branch to next byte
 ; &8db2 referenced 2 times by &8da1, &8da9
@@ -4668,7 +4678,7 @@ cmd_match_data = fs_cmd_match_table+1
 .next_dir_entry
     inx                                                               ; 8db7: e8          .              ; Next byte in reply buffer
     bne print_dir_from_offset                                         ; 8db8: d0 de       ..             ; Loop until end of buffer
-    equs "Run"                                                        ; 8dba: 52 75 6e    Run
+    equs "Run"                                                        ; 8dba: 52 75 6e    Run            ; A = dividend (from Y)
 
 ; ***************************************************************************************
 ; Print byte as 3-digit decimal number
@@ -5012,18 +5022,18 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &8eb8 referenced 1 time by &8ea4
 .osword_handler_lo
-    equb <(osword_0f_handler-1)                                       ; 8eb8: c1          .
-    equb <(osword_10_handler-1)                                       ; 8eb9: 7b          {
-    equb <(osword_11_handler-1)                                       ; 8eba: db          .
-    equb <(osword_12_dispatch-1)                                      ; 8ebb: 00          .
-    equb <(econet_tx_rx-1)                                            ; 8ebc: ef          .
+    equb <(osword_0f_handler-1)                                       ; 8eb8: c1          .              ; Store Y=1 to &A9
+    equb <(osword_10_handler-1)                                       ; 8eb9: 7b          {              ; lo(osword_10_handler-1): OSWORD &10
+    equb <(osword_11_handler-1)                                       ; 8eba: db          .              ; RTS dispatches to pushed handler address
+    equb <(osword_12_dispatch-1)                                      ; 8ebb: 00          .              ; lo(osword_0f_handler-1): OSWORD &0F
+    equb <(econet_tx_rx-1)                                            ; 8ebc: ef          .              ; lo(osword_10_handler-1): OSWORD &10
 ; &8ebd referenced 1 time by &8ea0
 .fs_osword_tbl_hi
     equb >(osword_0f_handler-1)                                       ; 8ebd: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
-    equb >(osword_10_handler-1)                                       ; 8ebe: 8f          .
-    equb >(osword_11_handler-1)                                       ; 8ebf: 8e          .
-    equb >(osword_12_dispatch-1)                                      ; 8ec0: 8f          .
-    equb >(econet_tx_rx-1)                                            ; 8ec1: 8f          .
+    equb >(osword_10_handler-1)                                       ; 8ebe: 8f          .              ; lo(osword_12_dispatch-1): OSWORD &12
+    equb >(osword_11_handler-1)                                       ; 8ebf: 8e          .              ; lo(econet_tx_rx-1): OSWORD &13
+    equb >(osword_12_dispatch-1)                                      ; 8ec0: 8f          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
+    equb >(econet_tx_rx-1)                                            ; 8ec1: 8f          .              ; hi(osword_10_handler-1): OSWORD &10
 
 ; ***************************************************************************************
 ; OSWORD &0F handler: initiate transmit (CALLTX)
@@ -5100,7 +5110,7 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &8eff referenced 1 time by &8f13
 .osword_12_offsets
-    equb &ff, 1                                                       ; 8eff: ff 01       ..
+    equb &ff, 1                                                       ; 8eff: ff 01       ..             ; Store args start offset to (&F0)+2
 
 ; ***************************************************************************************
 ; OSWORD &12 handler: dispatch sub-functions 0-5
@@ -5524,26 +5534,26 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &90a4 referenced 1 time by &909d
 .osword_tbl_lo
-    equb <(return_1-1)                                                ; 90a4: f5          .
-    equb <(remote_print_handler-1)                                    ; 90a5: e9          .
-    equb <(remote_print_handler-1)                                    ; 90a6: e9          .
-    equb <(remote_print_handler-1)                                    ; 90a7: e9          .
-    equb <(net_write_char_handler-1)                                  ; 90a8: b5          .
-    equb <(printer_select_handler-1)                                  ; 90a9: da          .
-    equb <(return_1-1)                                                ; 90aa: f5          .
-    equb <(remote_cmd_dispatch-1)                                     ; 90ab: e7          .
-    equb <(remote_osword_handler-1)                                   ; 90ac: 53          S
+    equb <(return_1-1)                                                ; 90a4: f5          .              ; Load workspace byte &EF for handler
+    equb <(remote_print_handler-1)                                    ; 90a5: e9          .              ; Push low byte of handler address
+    equb <(remote_print_handler-1)                                    ; 90a6: e9          .              ; RTS dispatches to pushed handler
+    equb <(remote_print_handler-1)                                    ; 90a7: e9          .              ; lo(return_1-1): fn 0 (null handler)
+    equb <(net_write_char_handler-1)                                  ; 90a8: b5          .              ; lo(remote_print_handler-1): fn 1
+    equb <(printer_select_handler-1)                                  ; 90a9: da          .              ; lo(remote_print_handler-1): fn 2
+    equb <(return_1-1)                                                ; 90aa: f5          .              ; lo(remote_print_handler-1): fn 3
+    equb <(remote_cmd_dispatch-1)                                     ; 90ab: e7          .              ; lo(net_write_char_handler-1): fn 4
+    equb <(remote_osword_handler-1)                                   ; 90ac: 53          S              ; lo(printer_select_handler-1): fn 5
 ; &90ad referenced 1 time by &9099
 .osword_tbl_hi
-    equb >(return_1-1)                                                ; 90ad: 80          .
-    equb >(remote_print_handler-1)                                    ; 90ae: 91          .
-    equb >(remote_print_handler-1)                                    ; 90af: 91          .
-    equb >(remote_print_handler-1)                                    ; 90b0: 91          .
-    equb >(net_write_char_handler-1)                                  ; 90b1: 90          .
-    equb >(printer_select_handler-1)                                  ; 90b2: 91          .
-    equb >(return_1-1)                                                ; 90b3: 80          .
-    equb >(remote_cmd_dispatch-1)                                     ; 90b4: 90          .
-    equb >(remote_osword_handler-1)                                   ; 90b5: 91          .
+    equb >(return_1-1)                                                ; 90ad: 80          .              ; lo(return_1-1): fn 6 (null handler)
+    equb >(remote_print_handler-1)                                    ; 90ae: 91          .              ; lo(remote_cmd_dispatch-1): fn 7
+    equb >(remote_print_handler-1)                                    ; 90af: 91          .              ; lo(remote_osword_handler-1): fn 8
+    equb >(remote_print_handler-1)                                    ; 90b0: 91          .              ; hi(return_1-1): fn 0 (null handler)
+    equb >(net_write_char_handler-1)                                  ; 90b1: 90          .              ; hi(remote_print_handler-1): fn 1
+    equb >(printer_select_handler-1)                                  ; 90b2: 91          .              ; hi(remote_print_handler-1): fn 2
+    equb >(return_1-1)                                                ; 90b3: 80          .              ; hi(remote_print_handler-1): fn 3
+    equb >(remote_cmd_dispatch-1)                                     ; 90b4: 90          .              ; hi(net_write_char_handler-1): fn 4
+    equb >(remote_osword_handler-1)                                   ; 90b5: 91          .              ; hi(printer_select_handler-1): fn 5
 
 ; ***************************************************************************************
 ; NETVEC fn 4: handle net write character (NWRCH)
@@ -5689,7 +5699,7 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &9145 referenced 1 time by &913c
 .remote_osbyte_table
-    equb   4,   9, &0a, &15, &9a, &9b, &e1, &e2, &e3, &e4, &0b, &0c   ; 9145: 04 09 0a... ...
+    equb   4,   9, &0a, &15, &9a, &9b, &e1, &e2, &e3, &e4, &0b, &0c   ; 9145: 04 09 0a... ...            ; Loop for remaining entries
     equb &0f, &79, &7a                                                ; 9151: 0f 79 7a    .yz
 
 ; ***************************************************************************************
@@ -5781,11 +5791,11 @@ cmd_match_data = fs_cmd_match_table+1
     cmp #&fc                                                          ; 9198: c9 fc       ..             ; &FC = page byte sentinel
     bne cbset3                                                        ; 919a: d0 08       ..             ; Not sentinel: store template value directly
     equb &a5                                                          ; 919c: a5          .              ; V=1: use (net_rx_ptr) page
-    equb &9d                                                          ; 919d: 9d          .
-    equb &70                                                          ; 919e: 70          p
-    equb 2                                                            ; 919f: 02          .
-    equb &a5                                                          ; 91a0: a5          .
-    equb &9f                                                          ; 91a1: 9f          .
+    equb &9d                                                          ; 919d: 9d          .              ; Not sentinel: store template value directly
+    equb &70                                                          ; 919e: 70          p              ; BNE offset (code path: store template)
+    equb 2                                                            ; 919f: 02          .              ; V=1: use (net_rx_ptr) page
+    equb &a5                                                          ; 91a0: a5          .              ; V=0: load from (nfs_workspace)
+    equb &9f                                                          ; 91a1: 9f          .              ; BVS offset (V=1 path)
 .rxcb_matched
     equb &85                                                          ; 91a2: 85          .              ; PAGE byte → Y=&02 / Y=&74
     equb &9b                                                          ; 91a3: 9b          .              ; → Y=&03 / Y=&75
@@ -5794,7 +5804,7 @@ cmd_match_data = fs_cmd_match_table+1
     equb &70                                                          ; 91a4: 70          p              ; → Y=&04 / Y=&76
     equb 4                                                            ; 91a5: 04          .              ; → Y=&05 / Y=&77
     equb &91                                                          ; 91a6: 91          .              ; PAGE byte → Y=&06 / Y=&78
-    equb &9e                                                          ; 91a7: 9e          .
+    equb &9e                                                          ; 91a7: 9e          .              ; → Y=&04 / Y=&76
     equb &50                                                          ; 91a8: 50          P              ; → Y=&08 / Y=&7A
     equb 2                                                            ; 91a9: 02          .              ; → Y=&09 / Y=&7B
 .cbset4
@@ -5804,13 +5814,13 @@ cmd_match_data = fs_cmd_match_table+1
 .cb_template_main_start
     equb &88                                                          ; 91ac: 88          .              ; SKIP; → Y=&0C (main only)
     equb &ca                                                          ; 91ad: ca          .              ; → Y=&01 / Y=&73; → Y=&0D (main only)
-    equb &10                                                          ; 91ae: 10          .
+    equb &10                                                          ; 91ae: 10          .              ; STOP — main-path boundary
     equb &dd                                                          ; 91af: dd          .              ; SKIP (main only)
 ; &91b0 referenced 1 time by &9192
 .cb_template_tail
     equb &c8                                                          ; 91b0: c8          .              ; → Y=&10 (main only)
-    equb &84                                                          ; 91b1: 84          .
-    equb &9a                                                          ; 91b2: 9a          .
+    equb &84                                                          ; 91b1: 84          .              ; BPL offset (loop back)
+    equb &9a                                                          ; 91b2: 9a          .              ; SKIP (main only)
     equb &60                                                          ; 91b3: 60          `              ; → Y=&07 / Y=&79
 ; ***************************************************************************************
 ; Control block initialisation template
@@ -5833,7 +5843,7 @@ cmd_match_data = fs_cmd_match_table+1
     equb &85                                                          ; 91b4: 85          .              ; Alt-path only → Y=&6F
     equb 0                                                            ; 91b5: 00          .              ; PAGE byte → Y=&15 (main only)
     equb &fd                                                          ; 91b6: fd          .              ; SKIP; → Y=&16 (main only)
-    equb &fd                                                          ; 91b7: fd          .
+    equb &fd                                                          ; 91b7: fd          .              ; Alt-path only → Y=&6F
     equb &7d, &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80   ; 91b8: 7d fc ff... }..            ; PAGE byte → Y=&02 / Y=&74; → Y=&0D (main only); → Y=&03 / Y=&75; → Y=&04 / Y=&76; SKIP (main only); → Y=&05 / Y=&77; → Y=&10 (main only); → Y=&08 / Y=&7A; → Y=&09 / Y=&7B; → Y=&0A / Y=&7C; PAGE byte → Y=&15 (main only); STOP — main-path boundary; → Y=&16 (main only)
     equb &93, &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe   ; 91c4: 93 fd fd... ...            ; SKIP (main only); PAGE byte → Y=&11 (main only); → Y=&12 (main only); → Y=&13 (main only); → Y=&14 (main only); → Y=&17 (main only)
     equb &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff        ; 91d0: d1 fd fd... ...
@@ -6147,7 +6157,7 @@ cmd_match_data = fs_cmd_match_table+1
 
     org &9662
 
-    equb &0d                                                          ; 9662: 0d          .
+    equb &0d                                                          ; 9662: 0d          .              ; CR terminator for VDU state data
 
     cpy #&86                                                          ; 9663: c0 86       ..             ; Y >= &86: above dispatch range
     bcs dispatch_svc5                                                 ; 9665: b0 0b       ..             ; Out of range: skip protection
@@ -7065,7 +7075,7 @@ cmd_match_data = fs_cmd_match_table+1
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 9a76: 4c 35 98    L5.            ; Jump to discard handler
 
-    equb &bb, &9e, &80, &80, &80, &d5, &d5                            ; 9a79: bb 9e 80... ...
+    equb &bb, &9e, &80, &80, &80, &d5, &d5                            ; 9a79: bb 9e 80... ...            ; A = ctrl - &81 (0-based operation index)
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
 ; 
@@ -7082,7 +7092,7 @@ cmd_match_data = fs_cmd_match_table+1
     equb &b9, &41, &0d, &99, &58, &0d, &88, &10, &f7, &4c             ; 9a93: b9 41 0d... .A.            ; Load remote address byte; Store to exec address workspace; Next byte (descending); Loop until all 4 bytes copied; Enter common data-receive path
 ; &9a9d referenced 1 time by &9675
 .svc5_dispatch_lo
-    equb &cb, &97                                                     ; 9a9d: cb 97       ..
+    equb &cb, &97                                                     ; 9a9d: cb 97       ..             ; Immediate op dispatch lo bytes
 ; ***************************************************************************************
 ; RX immediate: POKE setup
 ; 
@@ -7160,7 +7170,7 @@ cmd_match_data = fs_cmd_match_table+1
 .imm_op_discard
     jmp discard_listen                                                ; 9b1d: 4c e8 99    L..            ; Return to idle listen mode
 
-    equs "$-;G^"                                                      ; 9b20: 24 2d 3b... $-;
+    equs "$-;G^"                                                      ; 9b20: 24 2d 3b... $-;            ; Immediate op port number table
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
@@ -7172,7 +7182,7 @@ cmd_match_data = fs_cmd_match_table+1
 .tx_done_jsr
     equb &a9, &9b, &48, &a9                                           ; 9b25: a9 9b 48... ..H            ; Push hi byte on stack; Push lo of (tx_done_exit-1)
     equs "fHlX"                                                       ; 9b29: 66 48 6c... fHl            ; Push lo byte on stack; Call remote JSR; RTS to tx_done_exit
-    equb &0d                                                          ; 9b2d: 0d          .
+    equb &0d                                                          ; 9b2d: 0d          .              ; Isolate shift register mode bits (2-4)
 ; ***************************************************************************************
 ; TX done: UserProc event
 ; 
@@ -7421,7 +7431,7 @@ intoff_operand = intoff_test_inactive+1
     pha                                                               ; 9c61: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9c62: 60          `              ; RTS dispatches to control-byte handler
 
-    equb &6e, &72, &b4, &b4, &b4, &c4, &c4, &6a                       ; 9c63: 6e 72 b4... nr.
+    equb &6e, &72, &b4, &b4, &b4, &c4, &c4, &6a                       ; 9c63: 6e 72 b4... nr.            ; TX timeout/retry parameter table
 .imm_op_status3
     equb &a9, 3, &d0, &48                                             ; 9c6b: a9 03 d0... ...            ; A=3: scout_status for POKE
 ; ***************************************************************************************
@@ -7930,7 +7940,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp discard_reset_listen                                          ; 9eb7: 4c db 99    L..            ; Full ADLC reset and return to idle listen
 
 ; Unreferenced data block (purpose unknown)
-    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9eba: 0e 0e 0a... ...
+    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9eba: 0e 0e 0a... ...            ; No RDA -- error
     equb &81                                                          ; 9ec9: 81          .
 
 ; ***************************************************************************************
@@ -8165,7 +8175,7 @@ listen_jmp_hi = reset_enter_listen+2
     sec                                                               ; 9fb3: 38          8              ; C=1: callers use SEC as sentinel
     rts                                                               ; 9fb4: 60          `              ; Return
 
-    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9fb5: ff ff ff... ...
+    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9fb5: ff ff ff... ...            ; Save A
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9fc1: ff ff ff... ...
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9fcd: ff ff ff... ...
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9fd9: ff ff ff... ...
@@ -9069,7 +9079,7 @@ save pydis_start, pydis_end
 ;     Data                     = 892 bytes (11%)
 ;
 ;     Number of instructions   = 3544
-;     Number of data bytes     = 652 bytes
+;     Number of data bytes     = 651 bytes
 ;     Number of data words     = 0 bytes
-;     Number of string bytes   = 240 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 241 bytes
+;     Number of strings        = 37
