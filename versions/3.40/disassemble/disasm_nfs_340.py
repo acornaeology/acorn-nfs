@@ -596,7 +596,6 @@ label(0x8335, "store_rom_ptr_pair")     # Write 2-byte address + ROM bank to ROM
 # --- TX control block and FS command setup ---
 label(0x83C4, "init_tx_ctrl_data")      # Init TX control block for data port (&90)
 label(0x8385, "init_tx_ctrl_port")      # Init TX control block with port in A (2 JSR refs)
-label(0x83B5, "prepare_cmd_with_flag")  # Prepare FS command with '*' flag and carry set
 label(0x83B9, "prepare_cmd_clv")        # Prepare FS command with V cleared
 # prepare_fs_cmd and build_send_fs_cmd labels created by subroutine() calls below.
 label(0x83C4, "prepare_fs_cmd_v")       # Prepare FS command, V flag preserved
@@ -4482,7 +4481,6 @@ label(0x04C4, "tube_claim_default")  # Claim default Tube transfer address (&005
 comment(0x04C4, "Y=0: transfer address low byte", inline=True)
 comment(0x04C6, "X=&53: transfer address high byte (&0053)", inline=True)
 comment(0x04C8, "Claim Tube address for transfer", inline=True)
-label(0x04CB, "tube_init_reloc")     # Init relocation address for ROM→Tube transfer
 comment(0x04CB, "Init: start sending from &8000", inline=True)
 comment(0x04CD, "Store &80 as source page high byte", inline=True)
 comment(0x04CF, "Store &80 as page counter initial value", inline=True)
@@ -4911,7 +4909,6 @@ label(0x8360, "match_cmd_chars")       # Match input chars against ROM string by
 label(0x8373, "check_rom_end")        # BEQ/BNE: mismatch or space, test ROM string end
 label(0x8379, "skip_space_next")         # INY then fall into skip_spaces
 label(0x837A, "skip_spaces")            # Skip spaces and test for end of line (CR)
-label(0x8383, "init_tx_reply_port")     # Init TX control block for FS reply on port &90
 comment(0x8383, "A=&90: FS reply port (PREPLY)", inline=True)
 comment(0x8385, "Init TXCB from template", inline=True)
 comment(0x8388, "Store port number in TXCB", inline=True)
@@ -5188,14 +5185,12 @@ comment(0x867E, "Invert mask: set bits become clear bits", inline=True)
 comment(0x8680, "Clear specified bits in flags", inline=True)
 comment(0x8683, "Write back updated flags", inline=True)
 comment(0x8686, "Return", inline=True)
-label(0x86D7, "copy_filename_ptr")       # Copy filename pointer to os_text_ptr and parse
 comment(0x86D7, "Y=1: copy 2 bytes (high then low)", inline=True)
 comment(0x86D9, "Load filename ptr from control block", inline=True)
 comment(0x86DB, "Store to MOS text pointer (&F2/&F3)", inline=True)
 comment(0x86DE, "Next byte (descending)", inline=True)
 comment(0x86DF, "Loop for both bytes", inline=True)
 comment(0x86E1, "Start from beginning of string", inline=True)
-label(0x86E3, "parse_filename_gs_y")     # Parse filename via GS from offset Y
 comment(0x86E3, "X=&FF: INX will make X=0 (first char index)", inline=True)
 comment(0x86E5, "C=0 for GSINIT: parse from current position", inline=True)
 comment(0x86E6, "Initialise GS string parser", inline=True)
@@ -5518,7 +5513,6 @@ comment(0x8989, "Next byte (descending)", inline=True)
 comment(0x898A, "Loop until all bytes copied", inline=True)
 comment(0x898C, "Y=&FF after loop; fill high bytes", inline=True)
 comment(0x898E, "Set 32-bit result bytes 2-3 to &FF", inline=True)
-label(0x8990, "return_a_zero")          # Return with A=0 via register restore
 comment(0x8994, "Save A/X/Y and set up pointers", inline=True)
 comment(0x8997, "SEC distinguishes open (A>0) from close", inline=True)
 comment(0x899C, "A=0: close file(s)", inline=True)
@@ -5895,7 +5889,6 @@ comment(0x8D89, "X=0: start from first reply byte", inline=True)
 comment(0x8D8B, "Load byte from FS reply buffer", inline=True)
 comment(0x8D8E, "Bit 7 set: end of string, return", inline=True)
 comment(0x8D90, "Non-zero: print character", inline=True)
-label(0x8D92, "cat_column_separator")    # Print catalogue column separator or newline
 comment(0x8D92, "Null byte: check column counter", inline=True)
 comment(0x8D94, "Negative: print CR (no columns)", inline=True)
 comment(0x8D96, "Advance column counter", inline=True)
@@ -5978,7 +5971,6 @@ comment(0x8E3A, "Y = boot option from FS workspace", inline=True)
 comment(0x8E3D, "X = command string offset from table", inline=True)
 comment(0x8E40, "Y = &8D (high byte of command address)", inline=True)
 comment(0x8E42, "Execute boot command string via OSCLI", inline=True)
-label(0x8E45, "load_handle_calc_offset") # Load handle from &F0 and calc workspace offset
 comment(0x8E45, "Load handle from &F0", inline=True)
 comment(0x8E57, "A=0, C set = error indicator", inline=True)
 comment(0x8E5F, "Look up handle &F0 in workspace", inline=True)
@@ -6245,7 +6237,6 @@ comment(0x906C, "Load current data length", inline=True)
 comment(0x906E, "Add 3 for header bytes", inline=True)
 comment(0x906E, "Adjust data length by 3 for header bytes", inline=True)
 comment(0x9070, "Store adjusted length", inline=True)
-label(0x9072, "enable_irq_and_tx")     # CLI then JMP tx_poll_ff
 comment(0x9072, "Enable interrupts", inline=True)
 comment(0x9073, "Transmit via tx_poll_ff", inline=True)
 comment(0x9076, "Save processor status", inline=True)
@@ -6563,7 +6554,6 @@ comment(0x967C, "Y=&FF for OSBYTE", inline=True)
 comment(0x9684, "OSBYTE &8F: issue service request", inline=True)
 comment(0x9686, "X=&0C: NMI claim service", inline=True)
 comment(0x9688, "Y=&FF: pass to adlc_init_workspace", inline=True)
-label(0x968D, "init_nmi_workspace")     # Init NMI workspace (skip service request)
 comment(0x968D, "Copy 32 bytes of NMI shim from ROM to &0D00", inline=True)
 label(0x968F, "copy_nmi_shim")        # Copy 32 bytes of NMI shim code from ROM to &0D00
 comment(0x968F, "Read byte from NMI shim ROM source", inline=True)
@@ -6650,7 +6640,6 @@ comment(0x9845, "SR1 bit7: IRQ, data already waiting", inline=True)
 comment(0x9848, "Data ready: skip directly, no RTI", inline=True)
 comment(0x984A, "Install handler and return via RTI", inline=True)
 comment(0x9850, "SR2 bit7 clear: error", inline=True)
-label(0x9858, "install_data_rx_handler") # Select bulk or Tube RX handler
 comment(0x9858, "A=2: Tube transfer flag mask", inline=True)
 comment(0x985A, "Check if Tube transfer active", inline=True)
 comment(0x985D, "Tube active: use Tube RX path", inline=True)
@@ -6663,7 +6652,6 @@ label(0x986B, "install_tube_rx")      # BNE: Tube active, install Tube RX handle
 comment(0x986B, "Tube: install Tube RX at &98A0", inline=True)
 comment(0x986D, "High byte of &98A0 handler", inline=True)
 comment(0x986F, "Install Tube handler and RTI", inline=True)
-label(0x9872, "nmi_error_dispatch")    # NMI error handler dispatch (12 refs)
 comment(0x9872, "Check tx_flags for error path", inline=True)
 comment(0x9875, "Bit7 clear: RX error path", inline=True)
 comment(0x9877, "Bit7 set: TX result = not listening", inline=True)
@@ -6756,7 +6744,6 @@ label(0x999E, "start_data_tx")          # Start data TX phase of four-way handsh
 comment(0x999E, "Jump to start data TX phase", inline=True)
 label(0x99A1, "dispatch_nmi_error")    # JMP nmi_error_dispatch for TX failures
 comment(0x99A1, "Jump to error handler", inline=True)
-label(0x99A4, "advance_rx_buffer_ptr") # Advance RX buffer pointer after transfer
 comment(0x99A4, "A=2: test bit1 of tx_flags", inline=True)
 comment(0x99A6, "BIT tx_flags: check data transfer bit", inline=True)
 comment(0x99A9, "Bit1 clear: no transfer -- return", inline=True)
@@ -6830,7 +6817,6 @@ comment(0x9A2E, "Tube flag bit 1 AND tx_flags bit 1", inline=True)
 comment(0x9A36, "No Tube transfer active -- skip release", inline=True)
 comment(0x9A3A, "Release Tube claim before discarding", inline=True)
 comment(0x9A3D, "Re-enter idle RX listen mode", inline=True)
-label(0x9A40, "install_rx_scout_handler") # Install RX scout NMI handler
 comment(0x9A40, "Install nmi_rx_scout (&96BF) as NMI handler", inline=True)
 comment(0x9A42, "High byte of nmi_rx_scout", inline=True)
 comment(0x9A44, "Set NMI vector and return", inline=True)
@@ -6850,7 +6836,6 @@ label(0x9A6D, "rotate_prot_mask")      # Rotate protection mask right to align p
 comment(0x9A6D, "Rotate mask right by control byte index", inline=True)
 comment(0x9A6E, "Decrement rotation counter", inline=True)
 comment(0x9A6F, "Loop until bit aligned", inline=True)
-label(0x9AFC, "imm_op_build_reply")    # Build immediate operation reply header
 comment(0x9AFC, "Get buffer position for reply header", inline=True)
 comment(0x9AFE, "Clear carry for offset addition", inline=True)
 comment(0x9AFF, "Data offset = buf_len + &80 (past header)", inline=True)
@@ -6874,7 +6859,6 @@ comment(0x9B2A, "SR mode 4: shift out under CB1 control", inline=True)
 comment(0x9B2C, "Apply new shift register mode", inline=True)
 comment(0x9B2F, "Read SR to clear pending interrupt", inline=True)
 comment(0x9B32, "Return to idle listen mode", inline=True)
-label(0x9BC7, "tx_begin")              # Begin TX operation
 comment(0x9BC7, "Save X on stack", inline=True)
 comment(0x9BC8, "Push X", inline=True)
 comment(0x9BC9, "Y=2: TXCB offset for dest station", inline=True)
@@ -6930,7 +6914,6 @@ comment(0x9C28, "Scout frame = 6 address+ctrl bytes", inline=True)
 comment(0x9C2A, "Store scout frame length", inline=True)
 comment(0x9C2D, "A=0: init low byte of timeout counter", inline=True)
 label(0x9C36, "test_inactive_retry")   # Reload INACTIVE mask and retry polling
-label(0x9C3A, "intoff_test_inactive")  # Disable NMIs and test INACTIVE
 label(0x9C54, "inactive_retry")       # BEQ: INACTIVE not set, re-enable NMIs/retry
 comment(0x9C71, "Write CR2 to abort TX", inline=True)
 comment(0x9C74, "Clean 3 bytes of timeout loop state", inline=True)
@@ -7552,6 +7535,635 @@ label(0x9B3F, "tx_done_error")        # TX error code check
 label(0x9B6B, "tx_done_classify")     # TX operation type classification
 label(0x9D1B, "skip_buf_setup")       # Transfer size check: skip buffer
 label(0x9E75, "jmp_tx_result_fail")   # JMP tx_result_fail
+
+
+# ============================================================
+# Annotations back-propagated from NFS 3.35K
+# ============================================================
+comment(0x041E, "&80 sentinel: clear address claim", inline=True)
+label(0x0432, "setup_data_transfer")   # Save (X,Y) as transfer addr, send type via R4
+comment(0x0449, "Send claimed address via R4", inline=True)
+comment(0x046D, "Flush R3 data (first byte)", inline=True)
+comment(0x0470, "Flush R3 data (second byte)", inline=True)
+subroutine(0x04CB, "tube_init_reloc", hook=None,
+    title="Initialise relocation address for ROM transfer",
+    description="""\
+Sets source page to &8000 and page counter to &80. Checks
+ROM type bit 5 for a relocation address in the ROM header;
+if present, extracts the 4-byte address from after the
+copyright string. Otherwise uses default &8000 start.""")
+comment(0x0604, "Return to main event loop", inline=True)
+comment(0x060A, "Save in X", inline=True)
+comment(0x060B, "Read Y parameter from co-processor", inline=True)
+comment(0x060E, "Save in Y", inline=True)
+comment(0x060F, "Read A (OSBYTE function code)", inline=True)
+comment(0x0612, "Execute OSBYTE A,X,Y", inline=True)
+comment(0x061A, "Send carry+status byte via R2", inline=True)
+comment(0x061D, "Poll R2 status for ready", inline=True)
+comment(0x0620, "Not ready: keep polling", inline=True)
+label(0x0627, "tube_osword")          # OSWORD variable-length: read A+params, call &FFF1
+comment(0x062A, "Save OSWORD number in Y", inline=True)
+comment(0x062B, "Poll R2 status for data ready", inline=True)
+comment(0x062E, "Not ready: keep polling", inline=True)
+comment(0x0634, "No params (length=0): skip read loop", inline=True)
+comment(0x0636, "Poll R2 status for data ready", inline=True)
+comment(0x0639, "Not ready: keep polling", inline=True)
+comment(0x063B, "Read param byte from R2", inline=True)
+comment(0x0641, "Next param byte (descending)", inline=True)
+comment(0x0642, "Loop until all params read", inline=True)
+comment(0x0647, "Y=&01: param block at &0128", inline=True)
+comment(0x0649, "Send result marker via R2", inline=True)
+comment(0x064C, "Poll R2 status for ready", inline=True)
+comment(0x064F, "Not ready: keep polling", inline=True)
+comment(0x0654, "Decrement result byte counter", inline=True)
+comment(0x065A, "Poll R2 status for ready", inline=True)
+comment(0x065D, "Not ready: keep polling", inline=True)
+comment(0x065F, "Send result byte via R2", inline=True)
+comment(0x0662, "Next result byte (descending)", inline=True)
+comment(0x0663, "Loop until all results sent", inline=True)
+comment(0x0665, "Return to main event loop", inline=True)
+comment(0x066A, "Read control block byte from R2", inline=True)
+comment(0x066D, "Store in zero page params", inline=True)
+comment(0x066F, "Next byte (descending)", inline=True)
+comment(0x0670, "Loop until all 5 bytes read", inline=True)
+comment(0x0673, "Y=0 for OSWORD 0", inline=True)
+comment(0x0675, "A=0: OSWORD 0 (read line)", inline=True)
+comment(0x0676, "Read input line from keyboard", inline=True)
+comment(0x067D, "Escape: send &FF error to co-processor", inline=True)
+comment(0x0680, "X=0: start of input buffer at &0700", inline=True)
+comment(0x0684, "Send &7F (success) to co-processor", inline=True)
+comment(0x0687, "Load char from input buffer", inline=True)
+comment(0x068A, "Send char to co-processor", inline=True)
+comment(0x068D, "Next character", inline=True)
+comment(0x0690, "Loop until CR terminator sent", inline=True)
+comment(0x0692, "Return to main event loop", inline=True)
+comment(0x0695, "Poll R2 status (bit 6 = ready)", inline=True)
+comment(0x0698, "Not ready: keep polling", inline=True)
+comment(0x069A, "Write A to Tube R2 data register", inline=True)
+comment(0x069D, "Return to caller", inline=True)
+comment(0x069E, "Poll R4 status (bit 6 = ready)", inline=True)
+comment(0x06A1, "Not ready: keep polling", inline=True)
+comment(0x06A3, "Write A to Tube R4 data register", inline=True)
+comment(0x06A6, "Return to caller", inline=True)
+comment(0x06AA, "ROR: shift escape bit 7 to carry", inline=True)
+comment(0x06B0, "Send event number via R1", inline=True)
+comment(0x06B3, "Y value for event", inline=True)
+comment(0x06B4, "Send Y via R1", inline=True)
+comment(0x06B7, "X value for event", inline=True)
+comment(0x06B8, "Send X via R1", inline=True)
+comment(0x06BB, "Restore A (event type)", inline=True)
+comment(0x06BC, "Poll R1 status (bit 6 = ready)", inline=True)
+comment(0x06BF, "Not ready: keep polling", inline=True)
+comment(0x06C1, "Write A to Tube R1 data register", inline=True)
+comment(0x06C4, "Return to caller", inline=True)
+comment(0x807D, "Y=&20: base offset for *NET commands (index 33+)", inline=True)
+comment(0x8081, "Advance past matched command text", inline=True)
+comment(0x80C1, "Copy command text to FS buffer", inline=True)
+comment(0x80CB, "CSD handle zero: not logged in", inline=True)
+comment(0x80D7, "FSCV function >= 8?", inline=True)
+comment(0x80DB, "X = function code for dispatch", inline=True)
+comment(0x80DC, "Save Y (command text ptr hi)", inline=True)
+comment(0x80DD, "Y=&12: base offset for FSCV dispatch (indices 19+)", inline=True)
+comment(0x80E5, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
+comment(0x8277, "A=&8F: issue service request", inline=True)
+comment(0x8279, "X=&0F: 'vectors claimed' service", inline=True)
+comment(0x827E, "X=&0A: service &0A", inline=True)
+comment(0x8285, "Non-zero: skip auto-boot", inline=True)
+comment(0x8298, "ARGSV dispatch lo", inline=True)
+comment(0x829B, "BGETV dispatch hi", inline=True)
+comment(0x829C, "BPUTV dispatch lo", inline=True)
+comment(0x829E, "GBPBV dispatch lo", inline=True)
+comment(0x829F, "GBPBV dispatch hi", inline=True)
+comment(0x82A0, "FINDV dispatch lo", inline=True)
+comment(0x82A1, "FINDV dispatch hi", inline=True)
+comment(0x82A2, "FSCV dispatch lo", inline=True)
+comment(0x82B7, "FSCV handler hi", inline=True)
+comment(0x82BE, "Return (workspace claim done)", inline=True)
+comment(0x834F, "Load FS state byte at offset Y", inline=True)
+comment(0x8352, "Store to workspace backup area", inline=True)
+comment(0x8354, "Next byte down", inline=True)
+comment(0x8357, "Loop for offsets &1D..&15", inline=True)
+comment(0x8359, "A=&7B: printer driver going dormant", inline=True)
+subroutine(0x8383, "init_tx_reply_port", hook=None,
+    title="Initialise TX control block for FS reply on port &90",
+    description="""\
+Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set
+up the TX control block, stores the port and control bytes, then
+decrements the control flag. Used by send_fs_reply_cmd to prepare
+for receiving the fileserver's reply.""")
+comment(0x8390, "Return after port setup", inline=True)
+comment(0x83A9, "Control flag", inline=True)
+comment(0x83AA, "Port (FS command = &99)", inline=True)
+comment(0x83AD, "Buffer start low", inline=True)
+comment(0x83AE, "Buffer start high (page &0F)", inline=True)
+comment(0x83AF, "Buffer start pad (4-byte Econet addr)", inline=True)
+comment(0x83B0, "Buffer start pad", inline=True)
+comment(0x83B1, "Buffer end low", inline=True)
+comment(0x83B2, "Buffer end high (page &0F)", inline=True)
+comment(0x83B3, "Buffer end pad", inline=True)
+comment(0x83B4, "Buffer end pad", inline=True)
+subroutine(0x83B5, "prepare_cmd_with_flag", hook=None,
+    title="Prepare FS command with carry set",
+    description="""\
+Alternate entry to prepare_fs_cmd that pushes A, loads &2A
+into fs_error_ptr, and enters with carry set (SEC). The carry
+flag is later tested by build_send_fs_cmd to select the
+byte-stream (BSXMIT) transmission path.""")
+comment(0x83BC, "A=&77: OSBYTE close spool/exec", inline=True)
+comment(0x840F, "CLC for address addition", inline=True)
+comment(0x8495, "Transfer A to Y for indexing", inline=True)
+comment(0x8497, "Transfer to X for return", inline=True)
+comment(0x84CD, "A=0: zero execution header bytes", inline=True)
+comment(0x84D2, "Next byte", inline=True)
+comment(0x84D3, "Loop until all zeroed", inline=True)
+comment(0x852D, "Check for user escape condition", inline=True)
+comment(0x8556, "LSR: get escape result bit", inline=True)
+comment(0x8557, "Store escape result to TXCB", inline=True)
+comment(0x8559, "Restore A", inline=True)
+comment(0x855A, "Non-zero: report 'Not listening'", inline=True)
+comment(0x8572, "Set EOF flag for this handle", inline=True)
+label(0x8575, "load_handle_mask")      # Load handle bitmask for return
+comment(0x8575, "Load handle bitmask for caller", inline=True)
+comment(0x8578, "Return with handle mask in A", inline=True)
+comment(0x8606, "Store return addr low as string ptr", inline=True)
+comment(0x8609, "Store return addr high as string ptr", inline=True)
+comment(0x860B, "Y=0: offset for indirect load", inline=True)
+comment(0x860F, "No page wrap: skip high byte inc", inline=True)
+comment(0x8611, "Handle page crossing in pointer", inline=True)
+comment(0x8642, "Return with result in A", inline=True)
+comment(0x865D, "Transfer mask to X for return", inline=True)
+comment(0x865F, "Return with mask in X", inline=True)
+comment(0x8667, "Return (identity: no conversion)", inline=True)
+comment(0x8670, "Next byte", inline=True)
+comment(0x8673, "Return with Z flag result", inline=True)
+comment(0x8678, "Return (FSCV 7 read handles)", inline=True)
+comment(0x868F, "A=&FF: full retry count", inline=True)
+subroutine(0x86D7, "copy_filename_ptr", hook=None,
+    title="Copy filename pointer to os_text_ptr and parse",
+    description="""\
+Copies the 2-byte filename pointer from (fs_options),Y into
+os_text_ptr (&F2/&F3), then falls through to parse_filename_gs
+to parse the filename via GSINIT/GSREAD into the &0E30 buffer.""")
+subroutine(0x86E3, "parse_filename_gs_y", hook=None,
+    title="Parse filename via GSINIT/GSREAD from offset Y",
+    description="""\
+Sub-entry of parse_filename_gs that accepts a non-zero Y offset
+into the (os_text_ptr) string. Initialises GSINIT, reads chars
+via GSREAD into &0E30, CR-terminates the result, and sets up
+fs_crc_lo/hi to point at the buffer.""")
+comment(0x8705, "Save A/X/Y in FS workspace", inline=True)
+comment(0x8711, "A=&FF: branch to load path", inline=True)
+comment(0x8716, "Copy parsed filename to cmd buffer", inline=True)
+comment(0x8719, "Y=2: FS function code offset", inline=True)
+comment(0x874C, "Display file info after FS reply", inline=True)
+comment(0x87D3, "Send FS reply acknowledgement", inline=True)
+comment(0x87E1, "Z=1: first byte, use A directly", inline=True)
+comment(0x87E3, "Load attribute byte from FS reply", inline=True)
+comment(0x87E6, "Store decoded access in param block", inline=True)
+comment(0x87E8, "Next attribute byte", inline=True)
+comment(0x87FE, "Add 1 (of 5) to Y", inline=True)
+comment(0x87FF, "Add 2 (of 5) to Y", inline=True)
+comment(0x8800, "Add 3 (of 5) to Y", inline=True)
+comment(0x880A, "Next byte (descending)", inline=True)
+comment(0x880D, "Loop until offset 2 reached", inline=True)
+comment(0x8810, "Subtract 1 (of 3) from Y", inline=True)
+comment(0x8811, "Subtract 2 (of 3) from Y", inline=True)
+comment(0x8812, "Subtract 3 (of 3) from Y", inline=True)
+comment(0x8813, "Return to caller", inline=True)
+comment(0x881A, "X=0: clear hi bytes of block size", inline=True)
+comment(0x881C, "Y=4: process 4 address bytes", inline=True)
+comment(0x881E, "Clear block size hi byte 1", inline=True)
+comment(0x8821, "Clear block size hi byte 2", inline=True)
+comment(0x8824, "CLC for ADC in loop", inline=True)
+comment(0x8825, "Source = current position", inline=True)
+comment(0x8827, "Store source address byte", inline=True)
+comment(0x8829, "Add block size to current position", inline=True)
+comment(0x8834, "Carry: address overflowed, clamp", inline=True)
+subroutine(0x8990, "return_a_zero", hook=None,
+    title="Return with A=0 via register restore",
+    description="""\
+Loads A=0 and branches (always taken) to the common register
+restore exit at restore_args_return. Used as a shared exit
+point by ARGSV, FINDV, and GBPBV when an operation is
+unsupported or should return zero.""")
+comment(0x89C6, "A=handle bitmask for new file", inline=True)
+comment(0x8A2D, "Return (unsupported function)", inline=True)
+comment(0x8CC5, "Print two CRs (blank line)", inline=True)
+label(0x8CD2, "cat_examine_loop")      # Send examine request and display entries
+subroutine(0x8D92, "cat_column_separator", hook=None,
+    title="Print catalogue column separator or newline",
+    description="""\
+Handles column formatting for *CAT display. On a null byte
+separator, advances the column counter modulo 4: prints a
+2-space separator between columns, or a CR at column 0.
+Called from fsreply_0_print_dir.""")
+subroutine(0x8E45, "load_handle_calc_offset", hook=None,
+    title="Load handle from &F0 and calculate workspace offset",
+    description="""\
+Loads the file handle byte from &F0, then falls through to
+calc_handle_offset which converts handle * 12 to a workspace
+byte offset. Validates offset < &48.""")
+comment(0x8E58, "Return after calculation", inline=True)
+comment(0x8E83, "Outside our OSWORD range, exit", inline=True)
+subroutine(0x9072, "enable_irq_and_tx", hook=None,
+    title="Enable interrupts and transmit via tx_poll_ff",
+    description="""\
+CLI to enable interrupts, then JMP tx_poll_ff. A short
+tail-call wrapper used after building the TX control block.""")
+comment(0x9115, "Write &7F to RXCB (wait for reply)", inline=True)
+comment(0x9117, "Poll RXCB for completion (bit7)", inline=True)
+comment(0x9190, "V=1: use (net_rx_ptr) page", inline=True)
+comment(0x9192, "V=1: skip to net_rx_ptr page", inline=True)
+comment(0x9194, "V=0: use (nfs_workspace) page", inline=True)
+comment(0x91B9, "SKIP (main only)", inline=True)
+comment(0x91BC, "PAGE byte → Y=&11 (main only)", inline=True)
+comment(0x91BD, "→ Y=&12 (main only)", inline=True)
+comment(0x91BE, "→ Y=&13 (main only)", inline=True)
+comment(0x91BF, "→ Y=&14 (main only)", inline=True)
+comment(0x91C2, "→ Y=&17 (main only)", inline=True)
+comment(0x91DB, "Store initial PFLAGS value", inline=True)
+comment(0x9214, "XOR with current PFLAGS", inline=True)
+comment(0x9217, "Test if sequence changed (bit 7 mismatch)", inline=True)
+comment(0x9218, "Sequence unchanged: skip flush", inline=True)
+comment(0x921A, "Undo ROR", inline=True)
+comment(0x921B, "Store toggled PFLAGS", inline=True)
+comment(0x921E, "Flush current output block", inline=True)
+comment(0x9221, "Reload current PFLAGS", inline=True)
+comment(0x922C, "Store recombined PFLAGS value", inline=True)
+comment(0x9248, "Load current PFLAGS", inline=True)
+comment(0x924B, "Save current PFLAGS", inline=True)
+comment(0x924C, "Carry = current sequence (bit 7)", inline=True)
+comment(0x924D, "Restore original PFLAGS", inline=True)
+comment(0x924E, "Toggle sequence number (bit 7 of PFLAGS)", inline=True)
+comment(0x9250, "Store toggled sequence number", inline=True)
+comment(0x9318, "Return after storing result", inline=True)
+comment(0x9319, "OSBYTE &85: read cursor position", inline=True)
+comment(0x931B, "OSBYTE &C3: read screen start address", inline=True)
+comment(0x9660, "Trampoline: forward to tx_begin", inline=True)
+comment(0x9663, "Trampoline: forward to adlc_init", inline=True)
+comment(0x9666, "Trampoline: forward to NMI release", inline=True)
+comment(0x9669, "Trampoline: forward to NMI claim", inline=True)
+comment(0x966C, "Trampoline: forward to IRQ handler", inline=True)
+subroutine(0x968D, "init_nmi_workspace", hook=None,
+    title="Initialise NMI workspace (skip service request)",
+    description="""\
+Sub-entry of adlc_init_workspace that skips the OSBYTE &8F
+service request. Copies 32 bytes of NMI shim from ROM to
+&0D00, patches the ROM bank number, sets init flags, reads
+station ID, and re-enables NMIs.""")
+comment(0x96B7, "Load NMI vector low byte", inline=True)
+comment(0x96BA, "Check if low byte is expected value", inline=True)
+comment(0x96BC, "Mismatch: keep polling", inline=True)
+comment(0x96BE, "Load NMI vector high byte", inline=True)
+comment(0x96C1, "Check if high byte is &97", inline=True)
+comment(0x96C3, "Mismatch: keep polling", inline=True)
+comment(0x96C5, "BIT INTOFF: disable NMIs", inline=True)
+comment(0x96E9, "Write CR1: RIE | TX_RESET", inline=True)
+comment(0x96EE, "Write CR2: listen mode config", inline=True)
+comment(0x9707, "Clear TX flags for new reception", inline=True)
+comment(0x970C, "High byte of scout net handler", inline=True)
+comment(0x970E, "Install next handler and RTI", inline=True)
+comment(0x9721, "Write CR1 to discontinue RX", inline=True)
+comment(0x9724, "Return to idle scout listening", inline=True)
+comment(0x972E, "High byte of scout data handler", inline=True)
+comment(0x9730, "Install scout data loop and RTI", inline=True)
+comment(0x9740, "Gentle discard: RX_DISCONTINUE", inline=True)
+comment(0x975F, "Copied all 12 scout bytes?", inline=True)
+comment(0x9763, "Save final buffer offset", inline=True)
+label(0x97A7, "scan_nfs_port_list")   # NFS workspace port list scan entry
+comment(0x97A7, "Store page to workspace pointer low", inline=True)
+comment(0x97A9, "A=0: no NFS workspace offset yet", inline=True)
+comment(0x97AB, "Clear NFS workspace search flag", inline=True)
+comment(0x97B7, "Y=1: advance to port byte in slot", inline=True)
+comment(0x97D5, "CLC for 12-byte slot advance", inline=True)
+comment(0x97D6, "Advance to next 12-byte port slot", inline=True)
+comment(0x97D8, "Update workspace pointer to next slot", inline=True)
+comment(0x97DA, "Always branches (page &C0 won't overflow)", inline=True)
+comment(0x97DC, "Check if NFS workspace already searched", inline=True)
+comment(0x97DE, "Already searched: no match found", inline=True)
+comment(0x97E0, "Try NFS workspace if paged list exhausted", inline=True)
+comment(0x97E3, "No NFS workspace RX (bit6 clear) -- discard", inline=True)
+comment(0x97E5, "Get NFS workspace page number", inline=True)
+comment(0x97E7, "Mark NFS workspace as search target", inline=True)
+comment(0x97E9, "Y=0: start at offset 0 in workspace", inline=True)
+comment(0x97EB, "Reset slot pointer to start", inline=True)
+comment(0x97EF, "Check broadcast flag (bit 6)", inline=True)
+comment(0x97F2, "Not broadcast: ACK and set up RX", inline=True)
+comment(0x97F4, "Broadcast: copy scout fields directly", inline=True)
+comment(0x97F7, "Match found: set scout_status = 3", inline=True)
+comment(0x97F9, "Record match for completion handler", inline=True)
+comment(0x97FF, "Transfer OK: send data ACK", inline=True)
+comment(0x981C, "High byte of nmi_data_rx handler", inline=True)
+comment(0x9832, "High byte of nmi_data_rx handler", inline=True)
+subroutine(0x9858, "install_data_rx_handler", hook=None,
+    title="Install data RX bulk or Tube handler",
+    description="""\
+Selects either the normal bulk RX handler (&9843) or the Tube
+RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+and installs the appropriate NMI handler.""")
+subroutine(0x9872, "nmi_error_dispatch", hook=None,
+    title="NMI error handler dispatch",
+    description="""\
+Common error/abort entry used by 12 call sites. Checks
+tx_flags bit 7: if clear, does a full ADLC reset and returns
+to idle listen (RX error path); if set, jumps to tx_result_fail
+(TX not-listening path).""")
+comment(0x98E5, "Advance Tube transfer byte count", inline=True)
+comment(0x98E7, "Send byte to Tube data register 3", inline=True)
+comment(0x98EA, "No overflow: read second byte", inline=True)
+comment(0x98EC, "Carry to transfer count byte 2", inline=True)
+comment(0x98EE, "No overflow: read second byte", inline=True)
+comment(0x98F0, "Carry to transfer count byte 3", inline=True)
+comment(0x98F2, "No overflow: read second byte", inline=True)
+comment(0x98F4, "Carry to transfer count byte 4", inline=True)
+comment(0x98F6, "All bytes zero: overflow error", inline=True)
+comment(0x98F8, "Read second data byte (paired transfer)", inline=True)
+comment(0x98FB, "Send second byte to Tube", inline=True)
+comment(0x98FE, "Advance count after second byte", inline=True)
+comment(0x9900, "No overflow: check for more data", inline=True)
+comment(0x9902, "Carry to count byte 2", inline=True)
+comment(0x9904, "No overflow: check for more data", inline=True)
+comment(0x9906, "Carry to count byte 3", inline=True)
+comment(0x9908, "No overflow: check for more data", inline=True)
+comment(0x990A, "Carry to count byte 4", inline=True)
+comment(0x990C, "Zero: Tube transfer complete", inline=True)
+comment(0x990E, "Re-read SR2 for next byte pair", inline=True)
+comment(0x9911, "More data available: continue loop", inline=True)
+comment(0x9913, "Return from NMI, wait for data", inline=True)
+comment(0x9988, "Write network=0 (local) to TX FIFO", inline=True)
+comment(0x998B, "Check tx_flags for data phase", inline=True)
+comment(0x998E, "bit7 set: start data TX phase", inline=True)
+subroutine(0x99A4, "advance_rx_buffer_ptr", hook=None,
+    title="Advance RX buffer pointer after transfer",
+    description="""\
+Adds the transfer count to the RXCB buffer pointer (4-byte
+addition). If a Tube transfer is active, re-claims the Tube
+address and sends the extra RX byte via R3, incrementing the
+Tube pointer by 1.""")
+comment(0x99DA, "Restore X from stack", inline=True)
+comment(0x99DB, "Transfer to X register", inline=True)
+comment(0x99DC, "Y=8: RXCB buffer ptr offset", inline=True)
+comment(0x99DE, "Load current RXCB buffer ptr lo", inline=True)
+comment(0x99E0, "SEC for ADC #0 = add carry", inline=True)
+comment(0x99E1, "Increment by 1 (Tube extra byte)", inline=True)
+comment(0x99E3, "Store updated ptr back to RXCB", inline=True)
+label(0x99FC, "add_buf_to_base")       # Add buffer length to base address (no Tube)
+label(0x9A07, "store_rxcb_buf_ptr")  # Store updated buffer pointer pair to RXCB
+comment(0x9A33, "Test tx_flags for Tube transfer", inline=True)
+comment(0x9A38, "A=&82: Tube release claim type", inline=True)
+subroutine(0x9A40, "install_rx_scout_handler", hook=None,
+    title="Install RX scout NMI handler",
+    description="""\
+Installs nmi_rx_scout (&96BF) as the NMI handler via
+set_nmi_vector, without first calling adlc_rx_listen.
+Used when the ADLC is already in the correct RX mode.""")
+comment(0x9A4C, "Store to port buffer", inline=True)
+comment(0x9A4E, "Advance buffer pointer", inline=True)
+comment(0x9A51, "No page crossing", inline=True)
+comment(0x9A53, "Jump to completion handler", inline=True)
+comment(0x9A71, "Carry clear: operation permitted", inline=True)
+comment(0x9A73, "Operation blocked by LSTAT mask", inline=True)
+comment(0x9A76, "Reload ctrl byte for dispatch table", inline=True)
+comment(0x9A79, "Look up handler address high byte", inline=True)
+comment(0x9A7C, "Push &9A as dispatch high byte", inline=True)
+comment(0x9A7C, "Push handler address high", inline=True)
+comment(0x9A7D, "Load handler low byte from jump table", inline=True)
+comment(0x9A7D, "Look up handler address low byte", inline=True)
+comment(0x9A80, "Push handler low byte", inline=True)
+comment(0x9A80, "Push handler address low", inline=True)
+comment(0x9A81, "RTS dispatches to handler", inline=True)
+comment(0x9A81, "RTS dispatch to handler", inline=True)
+comment(0x9A82, "Jump to discard handler", inline=True)
+subroutine(0x9AFC, "imm_op_build_reply", hook=None,
+    title="Build immediate operation reply header",
+    description="""\
+Stores data length, source station/network, and control byte
+into the RX buffer header area for port-0 immediate operations.
+Then disables CB1 interrupts and configures the VIA shift
+register for outgoing shift-out mode before returning to
+idle listen.""")
+comment(0x9BB8, "Load current RX flags", inline=True)
+comment(0x9BBB, "Clear bit 2: release halted station", inline=True)
+comment(0x9BBD, "Store updated flags", inline=True)
+comment(0x9BC0, "Restore Y from stack", inline=True)
+comment(0x9BC1, "Transfer to Y register", inline=True)
+comment(0x9BC2, "Restore X from stack", inline=True)
+comment(0x9BC3, "Transfer to X register", inline=True)
+comment(0x9BC4, "A=0: success status", inline=True)
+comment(0x9BC6, "Return with A=0 (success)", inline=True)
+subroutine(0x9BC7, "tx_begin", hook=None,
+    title="Begin TX operation",
+    description="""\
+Main TX initiation entry point (called via trampoline at &06CE).
+Copies dest station/network from the TXCB to the scout buffer,
+dispatches to immediate op setup (ctrl >= &81) or normal data
+transfer, calculates transfer sizes, copies extra parameters,
+then enters the INACTIVE polling loop.""")
+comment(0x9BF6, "(Y -= 4: reach start addr offset)", inline=True)
+comment(0x9BF7, "(continued)", inline=True)
+comment(0x9BF8, "(continued)", inline=True)
+comment(0x9BFF, "(Y += 5: advance to next end byte)", inline=True)
+comment(0x9C00, "(continued)", inline=True)
+comment(0x9C01, "(continued)", inline=True)
+comment(0x9C02, "(continued)", inline=True)
+comment(0x9C03, "(continued)", inline=True)
+label(0x9C0E, "check_imm_range")       # Check if ctrl byte is in immediate op range
+subroutine(0x9C3A, "intoff_test_inactive", hook=None,
+    title="Disable NMIs and test INACTIVE",
+    description="""\
+Mid-instruction label within the INACTIVE polling loop. The
+address &9BE2 is referenced as a constant for self-modifying
+code. Disables NMIs twice (belt-and-braces) then tests SR2
+for INACTIVE before proceeding with TX.""")
+comment(0x9C75, "Pop saved register", inline=True)
+comment(0x9C76, "Pop saved register", inline=True)
+comment(0x9CB2, "Load handler from dispatch table", inline=True)
+comment(0x9CB5, "Push high byte for PHA/PHA/RTS dispatch", inline=True)
+comment(0x9CB6, "Look up handler address low from table", inline=True)
+comment(0x9CB9, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
+comment(0x9CBA, "RTS dispatches to control-byte handler", inline=True)
+comment(0x9CCB, "A=3: scout_status for POKE", inline=True)
+comment(0x9CCF, "A=3: scout_status for PEEK op", inline=True)
+comment(0x9CE7, "Compare Y with 16-byte boundary", inline=True)
+comment(0x9CE9, "Below boundary: continue addition", inline=True)
+comment(0x9CEB, "Restore processor flags", inline=True)
+comment(0x9CEC, "Exit TX ctrl setup", inline=True)
+comment(0x9D3B, "Next TX buffer byte", inline=True)
+comment(0x9D3C, "Load second byte from TX buffer", inline=True)
+comment(0x9D3F, "Advance TX index past second byte", inline=True)
+comment(0x9D40, "Save updated TX buffer index", inline=True)
+comment(0x9D59, "Write CR2: clear status, idle listen", inline=True)
+comment(0x9D62, "PHA/PLA delay (~7 cycles each)", inline=True)
+comment(0x9D63, "Increment delay counter", inline=True)
+comment(0x9D64, "Loop 256 times for NMI disable", inline=True)
+comment(0x9D66, "Store error and return to idle", inline=True)
+comment(0x9D77, "Write CR1 to switch from TX to RX", inline=True)
+comment(0x9D82, "A=1: mask for bit0 test", inline=True)
+comment(0x9D84, "Test tx_flags bit0 (handshake)", inline=True)
+comment(0x9D87, "bit0 clear: install reply handler", inline=True)
+comment(0x9D8E, "High byte of nmi_reply_scout addr", inline=True)
+comment(0x9D90, "Install handler and RTI", inline=True)
+comment(0x9DA4, "High byte of nmi_reply_cont", inline=True)
+comment(0x9DA6, "Install continuation handler", inline=True)
+comment(0x9DB5, "High byte of nmi_reply_validate", inline=True)
+comment(0x9DBF, "Store error and return to idle", inline=True)
+comment(0x9E70, "bit7 clear: error path", inline=True)
+comment(0x9E72, "ADLC reset and return to idle", inline=True)
+comment(0x9E75, "Store result and return to idle", inline=True)
+comment(0x9E78, "Load saved handler low byte", inline=True)
+comment(0x9ED7, "High byte of handler address", inline=True)
+comment(0x9ED9, "Install continuation handler", inline=True)
+comment(0x9EE8, "High byte of handler address", inline=True)
+comment(0x9EEF, "Install handler and RTI", inline=True)
+comment(0x9F07, "Load TX flags for next action", inline=True)
+comment(0x9F0A, "bit7 clear: no data phase", inline=True)
+comment(0x9F0C, "Install data RX handler", inline=True)
+label(0x9F1A, "tx_result_fail")        # Store result=&41 (not listening) (9 refs)
+comment(0x9F43, "Transmit in progress?", inline=True)
+comment(0x9F48, "Load TX flags for transfer setup", inline=True)
+comment(0x9F4D, "Store with bit 1 set (Tube xfer)", inline=True)
+comment(0x9F57, "Y += 4: advance to high ptr offset", inline=True)
+comment(0x9F58, "(continued)", inline=True)
+comment(0x9F59, "(continued)", inline=True)
+comment(0x9F61, "Y -= 3: back to next low ptr byte", inline=True)
+comment(0x9F62, "(continued)", inline=True)
+comment(0x9F69, "Save X", inline=True)
+comment(0x9F6D, "CLC for base pointer addition", inline=True)
+comment(0x9F6E, "Add RXCB base to get RXCB+4 addr", inline=True)
+comment(0x9F75, "Claim Tube transfer address", inline=True)
+comment(0x9F7D, "Reclaim with scout status type", inline=True)
+comment(0x9F82, "Restore X from stack", inline=True)
+comment(0x9F83, "Return with C = transfer status", inline=True)
+comment(0x9FA7, "Return with C=1 (success)", inline=True)
+comment(0x9FC2, "Transfer ROM bank to Y", inline=True)
+
+# ============================================================
+# Inline comments for 3.40 change-block gaps
+# ============================================================
+
+# i_am_handler (&8082)
+comment(0x80B0, "Test escape flag before FS reply", inline=True)
+
+# svc_star_command (&81A5)
+comment(0x81AB, "Return to MOS service handler", inline=True)
+comment(0x81AD, "NOP padding for command table", inline=True)
+comment(0x81AE, "NOP padding", inline=True)
+comment(0x81AF, "NOP padding", inline=True)
+comment(0x81B0, "NOP padding", inline=True)
+
+# svc_9_help (&8204)
+comment(0x8211, "Load workspace page for printing", inline=True)
+
+# print_station_info (&822E)
+comment(0x8240, "Y=&14: offset for station number", inline=True)
+
+# init_fs_vectors (&8260)
+comment(0x8262, "Load vector address from table", inline=True)
+
+# svc_2_private_workspace (&82C1)
+comment(0x82C1, "Store page as RX buffer high byte", inline=True)
+comment(0x82C3, "Next page for NFS workspace", inline=True)
+comment(0x82C4, "Store page as NFS workspace high", inline=True)
+
+# fscv_6_shutdown (&834D)
+comment(0x8382, "Mark TX semaphore as available", inline=True)
+
+# check_escape_handler (&854D)
+comment(0x854D, "Test escape flag (bit 7)", inline=True)
+comment(0x854F, "Bit 7 clear: no escape, return", inline=True)
+comment(0x8551, "A=&7E: acknowledge escape OSBYTE", inline=True)
+
+# lang_0_insert_remote_key (&84E8)
+comment(0x851B, "A=&2A: error ptr for FS send", inline=True)
+
+# &8605 (print_inline)
+comment(0x861A, "Continue printing next character", inline=True)
+
+# parse_decimal (&8620)
+comment(0x8622, "Initialise accumulator to zero", inline=True)
+
+# filev_save (&878F)
+comment(0x87CA, "Display save info (addr/len)", inline=True)
+comment(0x87CD, "Load reply byte for transfer", inline=True)
+
+# fs_cmd_match_table (&8C05)
+comment(0x8C1B, "X=1: *EX single-entry examine", inline=True)
+comment(0x8C1D, "A=3: column count for *EX mode", inline=True)
+
+# fscv_5_cat (&8C21)
+comment(0x8C57, "Load access level from reply", inline=True)
+comment(0x8C65, "ALWAYS branch past 'Owner'", inline=True)
+comment(0x8C8A, "Load boot option from reply", inline=True)
+comment(0x8C96, "Y=string offset for this option", inline=True)
+comment(0x8C99, "Load next char of option name", inline=True)
+comment(0x8C9C, "Bit 7 set: end of option name", inline=True)
+comment(0x8CAE, "X=&11: Dir. name offset in reply", inline=True)
+comment(0x8CB0, "Print directory name (10 chars)", inline=True)
+comment(0x8CB3, "Print '     Lib. ' header", inline=True)
+comment(0x8CC0, "X=&1B: Lib. name offset in reply", inline=True)
+comment(0x8CE5, "Zero entries: catalogue complete", inline=True)
+comment(0x8D07, "Return from column separator", inline=True)
+
+# cat_column_separator (&8D92)
+comment(0x8DA3, "More entries: skip final newline", inline=True)
+comment(0x8DA5, "A=CR: print newline separator", inline=True)
+
+# calc_handle_offset (&8E47)
+comment(0x8E59, "Y=&6F: RX buffer handle offset", inline=True)
+comment(0x8E5B, "Read handle from RX packet", inline=True)
+comment(0x8E5D, "Valid handle: store and return", inline=True)
+
+# osword_0f_handler (&8EBA)
+comment(0x8EBA, "Test TX semaphore (bit 7 to C)", inline=True)
+comment(0x8EBD, "Save Y for return value", inline=True)
+comment(0x8EBE, "C=0: TX busy, return error", inline=True)
+
+# osword_11_handler (&8ED4)
+comment(0x8EF9, "Sub-function >= 6?", inline=True)
+comment(0x8EFB, "Yes: jump to sub 6-9 handler", inline=True)
+comment(0x8EFD, "Sub-function >= 4?", inline=True)
+
+# remote_cmd_dispatch (&90DE)
+comment(0x9148, "Y=14: max OSWORD parameter bytes", inline=True)
+comment(0x914A, "OSWORD 7 = make a sound", inline=True)
+
+# init_nmi_workspace (&968D)
+comment(0x96AE, "BIT VULA: enable NMIs via latch", inline=True)
+comment(0x96B1, "Return from NMI workspace init", inline=True)
+comment(0x96B2, "Test Econet init complete flag", inline=True)
+comment(0x96B5, "Init done: enter RX listen mode", inline=True)
+
+# scout_complete (&976D)
+comment(0x97FC, "Calculate transfer parameters", inline=True)
+
+# discard_reset_listen (&9A2E)
+comment(0x9A30, "Check if Tube transfer active", inline=True)
+
+# tx_calc_transfer (&9F38)
+comment(0x9F3A, "Load workspace byte at offset Y", inline=True)
+
+# &9FE0 (print_hex)
+comment(0x9FE2, "Shift high nibble to low", inline=True)
+comment(0x9FE3, "Shift high nibble to low", inline=True)
+comment(0x9FE4, "Shift high nibble to low", inline=True)
+
+# tube_code_page4 (&0400)
+comment(0x0414, "A=5: Tube release request code", inline=True)
+comment(0x0416, "Send release code via R4", inline=True)
+comment(0x0419, "Load current Tube claim ID", inline=True)
+comment(0x041B, "Send claim ID via R4", inline=True)
+comment(0x043E, "Send transfer address byte", inline=True)
+comment(0x04A9, "Load ROM header byte for TX", inline=True)
+
+# tube_dispatch_table (&0500)
+comment(0x0520, "Read channel handle from R2", inline=True)
+comment(0x052D, "Read channel handle from R2", inline=True)
+comment(0x053D, "Shift error flag for test", inline=True)
+comment(0x0542, "Read open mode from R2", inline=True)
+comment(0x055E, "Read file handle from R2", inline=True)
+comment(0x0596, "Read command string from R2", inline=True)
+comment(0x05A9, "X=&10: 16 bytes for OSFILE CB", inline=True)
+comment(0x05F2, "Read OSWORD number from R2", inline=True)
 
 # ============================================================
 # Generate disassembly

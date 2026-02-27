@@ -387,13 +387,13 @@ tube_jmp_target = tube_dispatch_cmd+1
     bne return_tube_init                                              ; 936f: d0 1b       ..  :0412[2]   ; Match: we own it, return (no release)
 ; &9371 referenced 1 time by &0464[2]
 .tube_send_release
-    lda #5                                                            ; 9371: a9 05       ..  :0414[2]
-    jsr tube_send_r4                                                  ; 9373: 20 9e 06     .. :0416[2]
-    lda tube_claimed_id                                               ; 9376: a5 15       ..  :0419[2]
-    jsr tube_send_r4                                                  ; 9378: 20 9e 06     .. :041b[2]
+    lda #5                                                            ; 9371: a9 05       ..  :0414[2]   ; A=5: Tube release request code
+    jsr tube_send_r4                                                  ; 9373: 20 9e 06     .. :0416[2]   ; Send release code via R4
+    lda tube_claimed_id                                               ; 9376: a5 15       ..  :0419[2]   ; Load current Tube claim ID
+    jsr tube_send_r4                                                  ; 9378: 20 9e 06     .. :041b[2]   ; Send claim ID via R4
 ; &937b referenced 1 time by &8170
 .tube_post_init
-    lda #&80                                                          ; 937b: a9 80       ..  :041e[2]
+    lda #&80                                                          ; 937b: a9 80       ..  :041e[2]   ; &80 sentinel: clear address claim
     sta tube_claim_flag                                               ; 937d: 85 14       ..  :0420[2]   ; Store to claim-in-progress flag
     rts                                                               ; 937f: 60          `   :0422[2]   ; Return from tube_post_init
 
@@ -417,20 +417,21 @@ tube_jmp_target = tube_dispatch_cmd+1
 .tube_transfer_setup
     php                                                               ; 938d: 08          .   :0430[2]   ; PHP: save interrupt state
     sei                                                               ; 938e: 78          x   :0431[2]   ; SEI: disable interrupts for R4 protocol
+.setup_data_transfer
     sty tube_data_ptr_hi                                              ; 938f: 84 13       ..  :0432[2]   ; Save 16-bit transfer address from (X,Y)
     stx tube_data_ptr                                                 ; 9391: 86 12       ..  :0434[2]   ; Store address pointer low byte
     jsr tube_send_r4                                                  ; 9393: 20 9e 06     .. :0436[2]   ; Send transfer type byte to co-processor
     tax                                                               ; 9396: aa          .   :0439[2]   ; X = transfer type for table lookup
     ldy #3                                                            ; 9397: a0 03       ..  :043a[2]   ; Y=3: send 4 bytes (address + claimed addr)
     lda tube_claimed_id                                               ; 9399: a5 15       ..  :043c[2]   ; Send our claimed address + 4-byte xfer addr
-    jsr tube_send_r4                                                  ; 939b: 20 9e 06     .. :043e[2]
+    jsr tube_send_r4                                                  ; 939b: 20 9e 06     .. :043e[2]   ; Send transfer address byte
 ; &939e referenced 1 time by &0447[2]
 .send_xfer_addr_bytes
     lda (tube_data_ptr),y                                             ; 939e: b1 12       ..  :0441[2]   ; Load transfer address byte from (X,Y)
     jsr tube_send_r4                                                  ; 93a0: 20 9e 06     .. :0443[2]   ; Send address byte to co-processor via R4
     dey                                                               ; 93a3: 88          .   :0446[2]   ; Previous byte (big-endian: 3,2,1,0)
     bpl send_xfer_addr_bytes                                          ; 93a4: 10 f8       ..  :0447[2]   ; Loop for all 4 address bytes
-    jsr tube_send_r4                                                  ; 93a6: 20 9e 06     .. :0449[2]
+    jsr tube_send_r4                                                  ; 93a6: 20 9e 06     .. :0449[2]   ; Send claimed address via R4
     ldy #&18                                                          ; 93a9: a0 18       ..  :044c[2]   ; Y=&18: enable Tube control register
     sty tube_status_1_and_tube_control                                ; 93ab: 8c e0 fe    ... :044e[2]   ; Enable Tube interrupt generation
     lda r2_cmd_table,x                                                ; 93ae: bd 18 05    ... :0451[2]   ; Look up Tube control bits for this xfer type
@@ -452,8 +453,8 @@ tube_jmp_target = tube_dispatch_cmd+1
 
 ; &93ca referenced 1 time by &045e[2]
 .flush_r3_nmi_check
-    bit tube_data_register_3                                          ; 93ca: 2c e5 fe    ,.. :046d[2]
-    bit tube_data_register_3                                          ; 93cd: 2c e5 fe    ,.. :0470[2]
+    bit tube_data_register_3                                          ; 93ca: 2c e5 fe    ,.. :046d[2]   ; Flush R3 data (first byte)
+    bit tube_data_register_3                                          ; 93cd: 2c e5 fe    ,.. :0470[2]   ; Flush R3 data (second byte)
 .copro_ack_nmi_check
     lsr a                                                             ; 93d0: 4a          J   :0473[2]   ; LSR: check bit 0 (NMI used?)
     bcc skip_nmi_release                                              ; 93d1: 90 05       ..  :0474[2]   ; C=0: NMI not used, skip NMI release
@@ -496,7 +497,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 .send_rom_page_bytes
     lda (zp_ptr_lo),y                                                 ; 9401: b1 00       ..  :04a4[2]   ; Send 256-byte page via R3, byte at a time
     sta tube_data_register_3                                          ; 9403: 8d e5 fe    ... :04a6[2]   ; Write byte to Tube R3 data register
-    lda rom_header                                                    ; 9406: ad 00 80    ... :04a9[2]
+    lda rom_header                                                    ; 9406: ad 00 80    ... :04a9[2]   ; Load ROM header byte for TX
     iny                                                               ; 9409: c8          .   :04ac[2]   ; Next byte in page
     bne send_rom_page_bytes                                           ; 940a: d0 f5       ..  :04ad[2]   ; Loop for all 256 bytes
     inc tube_xfer_page                                                ; 940c: e6 54       .T  :04af[2]   ; Increment 24-bit destination addr
@@ -517,6 +518,14 @@ tube_jmp_target = tube_dispatch_cmd+1
     ldx #&53 ; 'S'                                                    ; 9423: a2 53       .S  :04c6[2]   ; X=&53: transfer address high byte (&0053)
     jmp tube_addr_claim                                               ; 9425: 4c 06 04    L.. :04c8[2]   ; Claim Tube address for transfer
 
+; ***************************************************************************************
+; Initialise relocation address for ROM transfer
+; 
+; Sets source page to &8000 and page counter to &80. Checks
+; ROM type bit 5 for a relocation address in the ROM header;
+; if present, extracts the 4-byte address from after the
+; copyright string. Otherwise uses default &8000 start.
+; ***************************************************************************************
 ; &9428 referenced 2 times by &0498[2], &04bf[2]
 .tube_init_reloc
     lda #&80                                                          ; 9428: a9 80       ..  :04cb[2]   ; Init: start sending from &8000
@@ -591,7 +600,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 946e: 86 88 96... ... :0518[3]
 
 .tube_osbput
-    jsr tube_read_r2                                                  ; 9476: 20 c5 06     .. :0520[3]
+    jsr tube_read_r2                                                  ; 9476: 20 c5 06     .. :0520[3]   ; Read channel handle from R2
     tay                                                               ; 9479: a8          .   :0523[3]   ; Y=channel handle from R2
     jsr tube_read_r2                                                  ; 947a: 20 c5 06     .. :0524[3]   ; Read data byte from R2 for BPUT
 .tube_poll_r1_wrch
@@ -599,7 +608,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     jmp tube_reply_ack                                                ; 9480: 4c 9c 05    L.. :052a[3]   ; BPUT done: send acknowledge, return
 
 .tube_osbget
-    jsr tube_read_r2                                                  ; 9483: 20 c5 06     .. :052d[3]
+    jsr tube_read_r2                                                  ; 9483: 20 c5 06     .. :052d[3]   ; Read channel handle from R2
     tay                                                               ; 9486: a8          .   :0530[3]   ; Y=channel handle for OSBGET; Y=file handle
     jsr osbget                                                        ; 9487: 20 d7 ff     .. :0531[3]   ; Read a single byte from an open file Y
     jmp tube_rdch_reply                                               ; 948a: 4c 3a 05    L:. :0534[3]   ; Send carry+byte reply (BGET result)
@@ -615,11 +624,11 @@ tube_jmp_target = tube_dispatch_cmd+1
     equb &20, &95                                                     ; 9491: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
 .tube_release_return
-    asl tube_send_error_byte                                          ; 9493: 06 2a       .*  :053d[3]
+    asl tube_send_error_byte                                          ; 9493: 06 2a       .*  :053d[3]   ; Shift error flag for test
     jmp tube_reply_byte                                               ; 9495: 4c 9e 05    L.. :053f[3]   ; JMP tube_reply_byte (dead code path)
 
 .tube_osfind
-    jsr tube_read_r2                                                  ; 9498: 20 c5 06     .. :0542[3]
+    jsr tube_read_r2                                                  ; 9498: 20 c5 06     .. :0542[3]   ; Read open mode from R2
     beq tube_osfind_close                                             ; 949b: f0 0b       ..  :0545[3]   ; A=0: close file, else open with filename
     pha                                                               ; 949d: 48          H   :0547[3]   ; Save open mode while reading filename
     jsr tube_read_string                                              ; 949e: 20 82 05     .. :0548[3]   ; Read filename string from R2 into &0700
@@ -636,7 +645,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     jmp tube_reply_ack                                                ; 94b1: 4c 9c 05    L.. :055b[3]   ; Close done: send acknowledge, return
 
 .tube_osargs
-    jsr tube_read_r2                                                  ; 94b4: 20 c5 06     .. :055e[3]
+    jsr tube_read_r2                                                  ; 94b4: 20 c5 06     .. :055e[3]   ; Read file handle from R2
     tay                                                               ; 94b7: a8          .   :0561[3]   ; Y=file handle for OSARGS
 .tube_read_params
     ldx #4                                                            ; 94b8: a2 04       ..  :0562[3]   ; Read 4-byte arg + reason from R2 into ZP
@@ -676,7 +685,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     rts                                                               ; 94eb: 60          `   :0595[3]   ; Return with XY pointing to &0700
 
 .tube_oscli
-    jsr tube_read_string                                              ; 94ec: 20 82 05     .. :0596[3]
+    jsr tube_read_string                                              ; 94ec: 20 82 05     .. :0596[3]   ; Read command string from R2
     jsr oscli                                                         ; 94ef: 20 f7 ff     .. :0599[3]   ; Execute * command via OSCLI
 ; &94f2 referenced 3 times by &0482[2], &052a[3], &055b[3]
 .tube_reply_ack
@@ -691,7 +700,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; 94fc: 4c 36 00    L6. :05a6[3]   ; Return to Tube main loop
 
 .tube_osfile
-    ldx #&10                                                          ; 94ff: a2 10       ..  :05a9[3]
+    ldx #&10                                                          ; 94ff: a2 10       ..  :05a9[3]   ; X=&10: 16 bytes for OSFILE CB
 ; &9501 referenced 1 time by &05b1[3]
 .argsw
     jsr tube_read_r2                                                  ; 9501: 20 c5 06     .. :05ab[3]   ; Read next control block byte from R2
@@ -735,7 +744,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     pla                                                               ; 9544: 68          h   :05ee[3]   ; Recover completion status from stack
     jmp tube_rdch_reply                                               ; 9545: 4c 3a 05    L:. :05ef[3]   ; Send carry+status as RDCH-style reply
 
-    jsr tube_read_r2                                                  ; 9548: 20 c5 06     .. :05f2[3]
+    jsr tube_read_r2                                                  ; 9548: 20 c5 06     .. :05f2[3]   ; Read OSWORD number from R2
     tax                                                               ; 954b: aa          .   :05f5[3]   ; X = first parameter
     jsr tube_read_r2                                                  ; 954c: 20 c5 06     .. :05f6[3]   ; Read A (OSBYTE number) from R2
     jsr osbyte                                                        ; 954f: 20 f4 ff     .. :05f9[3]   ; Execute OSBYTE call
@@ -767,139 +776,140 @@ tube_jmp_target = tube_dispatch_cmd+1
     stx tube_data_register_2                                          ; 9557: 8e e3 fe    ... :0601[4]   ; Send X result for 2-param OSBYTE
 ; &955a referenced 1 time by &0617[4]
 .bytex
-    jmp tube_main_loop                                                ; 955a: 4c 36 00    L6. :0604[4]
+    jmp tube_main_loop                                                ; 955a: 4c 36 00    L6. :0604[4]   ; Return to main event loop
 
 .tube_osbyte_long
     jsr tube_read_r2                                                  ; 955d: 20 c5 06     .. :0607[4]
-    tax                                                               ; 9560: aa          .   :060a[4]
-    jsr tube_read_r2                                                  ; 9561: 20 c5 06     .. :060b[4]
-    tay                                                               ; 9564: a8          .   :060e[4]
-    jsr tube_read_r2                                                  ; 9565: 20 c5 06     .. :060f[4]
-    jsr osbyte                                                        ; 9568: 20 f4 ff     .. :0612[4]
+    tax                                                               ; 9560: aa          .   :060a[4]   ; Save in X
+    jsr tube_read_r2                                                  ; 9561: 20 c5 06     .. :060b[4]   ; Read Y parameter from co-processor
+    tay                                                               ; 9564: a8          .   :060e[4]   ; Save in Y
+    jsr tube_read_r2                                                  ; 9565: 20 c5 06     .. :060f[4]   ; Read A (OSBYTE function code)
+    jsr osbyte                                                        ; 9568: 20 f4 ff     .. :0612[4]   ; Execute OSBYTE A,X,Y
     eor #&9d                                                          ; 956b: 49 9d       I.  :0615[4]   ; Send carry result to co-processor
     beq bytex                                                         ; 956d: f0 eb       ..  :0617[4]   ; OSBYTE &9D (fast Tube BPUT): no result needed
     ror a                                                             ; 956f: 6a          j   :0619[4]   ; Encode carry (error flag) into bit 7
-    jsr tube_send_r2                                                  ; 9570: 20 95 06     .. :061a[4]
+    jsr tube_send_r2                                                  ; 9570: 20 95 06     .. :061a[4]   ; Send carry+status byte via R2
 ; &9573 referenced 1 time by &0620[4]
 .tube_osbyte_send_y
-    bit tube_status_register_2                                        ; 9573: 2c e2 fe    ,.. :061d[4]
-    bvc tube_osbyte_send_y                                            ; 9576: 50 fb       P.  :0620[4]
+    bit tube_status_register_2                                        ; 9573: 2c e2 fe    ,.. :061d[4]   ; Poll R2 status for ready
+    bvc tube_osbyte_send_y                                            ; 9576: 50 fb       P.  :0620[4]   ; Not ready: keep polling
     sty tube_data_register_2                                          ; 9578: 8c e3 fe    ... :0622[4]   ; Send Y result, then fall through to send X
     equb &70                                                          ; 957b: 70          p   :0625[4]
 
 .tube_osbyte_short
+tube_osword = tube_osbyte_short+1
     cmp tube_send_zero_r2,x                                           ; 957c: d5 20       .   :0626[4]
     cmp l0006                                                         ; 957e: c5 06       ..  :0628[4]
-    tay                                                               ; 9580: a8          .   :062a[4]
+    tay                                                               ; 9580: a8          .   :062a[4]   ; Save OSWORD number in Y
 ; &9581 referenced 1 time by &062e[4]
 .tube_osword_read
-    bit tube_status_register_2                                        ; 9581: 2c e2 fe    ,.. :062b[4]
-    bpl tube_osword_read                                              ; 9584: 10 fb       ..  :062e[4]
+    bit tube_status_register_2                                        ; 9581: 2c e2 fe    ,.. :062b[4]   ; Poll R2 status for data ready
+    bpl tube_osword_read                                              ; 9584: 10 fb       ..  :062e[4]   ; Not ready: keep polling
 .tube_osbyte_send_x
     ldx tube_data_register_2                                          ; 9586: ae e3 fe    ... :0630[4]   ; Read param block length from R2
     dex                                                               ; 9589: ca          .   :0633[4]   ; DEX: length 0 means no params to read
-    bmi skip_param_read                                               ; 958a: 30 0f       0.  :0634[4]
+    bmi skip_param_read                                               ; 958a: 30 0f       0.  :0634[4]   ; No params (length=0): skip read loop
 ; &958c referenced 2 times by &0639[4], &0642[4]
 .tube_osword_read_lp
-    bit tube_status_register_2                                        ; 958c: 2c e2 fe    ,.. :0636[4]
-    bpl tube_osword_read_lp                                           ; 958f: 10 fb       ..  :0639[4]
-    lda tube_data_register_2                                          ; 9591: ad e3 fe    ... :063b[4]
+    bit tube_status_register_2                                        ; 958c: 2c e2 fe    ,.. :0636[4]   ; Poll R2 status for data ready
+    bpl tube_osword_read_lp                                           ; 958f: 10 fb       ..  :0639[4]   ; Not ready: keep polling
+    lda tube_data_register_2                                          ; 9591: ad e3 fe    ... :063b[4]   ; Read param byte from R2
     sta l0128,x                                                       ; 9594: 9d 28 01    .(. :063e[4]   ; Store param bytes into block at &0128
-    dex                                                               ; 9597: ca          .   :0641[4]
-    bpl tube_osword_read_lp                                           ; 9598: 10 f2       ..  :0642[4]
+    dex                                                               ; 9597: ca          .   :0641[4]   ; Next param byte (descending)
+    bpl tube_osword_read_lp                                           ; 9598: 10 f2       ..  :0642[4]   ; Loop until all params read
     tya                                                               ; 959a: 98          .   :0644[4]   ; Restore OSWORD number from Y
 ; &959b referenced 1 time by &0634[4]
 .skip_param_read
     ldx #<(l0128)                                                     ; 959b: a2 28       .(  :0645[4]   ; XY=&0128: param block address for OSWORD
-    ldy #>(l0128)                                                     ; 959d: a0 01       ..  :0647[4]
-    jsr osword                                                        ; 959f: 20 f1 ff     .. :0649[4]
+    ldy #>(l0128)                                                     ; 959d: a0 01       ..  :0647[4]   ; Y=&01: param block at &0128
+    jsr osword                                                        ; 959f: 20 f1 ff     .. :0649[4]   ; Send result marker via R2
 ; &95a2 referenced 1 time by &064f[4]
 .poll_r2_osword_result
-    bit tube_status_register_2                                        ; 95a2: 2c e2 fe    ,.. :064c[4]
-    bpl poll_r2_osword_result                                         ; 95a5: 10 fb       ..  :064f[4]
+    bit tube_status_register_2                                        ; 95a2: 2c e2 fe    ,.. :064c[4]   ; Poll R2 status for ready
+    bpl poll_r2_osword_result                                         ; 95a5: 10 fb       ..  :064f[4]   ; Not ready: keep polling
     ldx tube_data_register_2                                          ; 95a7: ae e3 fe    ... :0651[4]   ; Read result block length from R2
-    dex                                                               ; 95aa: ca          .   :0654[4]
+    dex                                                               ; 95aa: ca          .   :0654[4]   ; Decrement result byte counter
     bmi tube_return_main                                              ; 95ab: 30 0e       0.  :0655[4]   ; No results to send: return to main loop
 ; &95ad referenced 1 time by &0663[4]
 .tube_osword_write
     ldy l0128,x                                                       ; 95ad: bc 28 01    .(. :0657[4]   ; Send result block bytes from &0128 via R2
 ; &95b0 referenced 1 time by &065d[4]
 .tube_osword_write_lp
-    bit tube_status_register_2                                        ; 95b0: 2c e2 fe    ,.. :065a[4]
-    bvc tube_osword_write_lp                                          ; 95b3: 50 fb       P.  :065d[4]
-    sty tube_data_register_2                                          ; 95b5: 8c e3 fe    ... :065f[4]
-    dex                                                               ; 95b8: ca          .   :0662[4]
-    bpl tube_osword_write                                             ; 95b9: 10 f2       ..  :0663[4]
+    bit tube_status_register_2                                        ; 95b0: 2c e2 fe    ,.. :065a[4]   ; Poll R2 status for ready
+    bvc tube_osword_write_lp                                          ; 95b3: 50 fb       P.  :065d[4]   ; Not ready: keep polling
+    sty tube_data_register_2                                          ; 95b5: 8c e3 fe    ... :065f[4]   ; Send result byte via R2
+    dex                                                               ; 95b8: ca          .   :0662[4]   ; Next result byte (descending)
+    bpl tube_osword_write                                             ; 95b9: 10 f2       ..  :0663[4]   ; Loop until all results sent
 ; &95bb referenced 1 time by &0655[4]
 .tube_return_main
-    jmp tube_main_loop                                                ; 95bb: 4c 36 00    L6. :0665[4]
+    jmp tube_main_loop                                                ; 95bb: 4c 36 00    L6. :0665[4]   ; Return to main event loop
 
 .tube_osword_rdln
     ldx #4                                                            ; 95be: a2 04       ..  :0668[4]
 ; &95c0 referenced 1 time by &0670[4]
 .read_rdln_ctrl_block
-    jsr tube_read_r2                                                  ; 95c0: 20 c5 06     .. :066a[4]
-    sta zp_ptr_lo,x                                                   ; 95c3: 95 00       ..  :066d[4]
-    dex                                                               ; 95c5: ca          .   :066f[4]
-    bpl read_rdln_ctrl_block                                          ; 95c6: 10 f8       ..  :0670[4]
+    jsr tube_read_r2                                                  ; 95c0: 20 c5 06     .. :066a[4]   ; Read control block byte from R2
+    sta zp_ptr_lo,x                                                   ; 95c3: 95 00       ..  :066d[4]   ; Store in zero page params
+    dex                                                               ; 95c5: ca          .   :066f[4]   ; Next byte (descending)
+    bpl read_rdln_ctrl_block                                          ; 95c6: 10 f8       ..  :0670[4]   ; Loop until all 5 bytes read
     inx                                                               ; 95c8: e8          .   :0672[4]   ; X=0 after loop, A=0 for OSWORD 0 (read line)
-    ldy #0                                                            ; 95c9: a0 00       ..  :0673[4]
-    txa                                                               ; 95cb: 8a          .   :0675[4]
-    jsr osword                                                        ; 95cc: 20 f1 ff     .. :0676[4]
+    ldy #0                                                            ; 95c9: a0 00       ..  :0673[4]   ; Y=0 for OSWORD 0
+    txa                                                               ; 95cb: 8a          .   :0675[4]   ; A=0: OSWORD 0 (read line)
+    jsr osword                                                        ; 95cc: 20 f1 ff     .. :0676[4]   ; Read input line from keyboard
     bcc tube_rdln_send_line                                           ; 95cf: 90 05       ..  :0679[4]   ; C=0: line read OK; C=1: escape pressed
     lda #&ff                                                          ; 95d1: a9 ff       ..  :067b[4]   ; &FF = escape/error signal to co-processor
-    jmp tube_reply_byte                                               ; 95d3: 4c 9e 05    L.. :067d[4]
+    jmp tube_reply_byte                                               ; 95d3: 4c 9e 05    L.. :067d[4]   ; Escape: send &FF error to co-processor
 
 ; &95d6 referenced 1 time by &0679[4]
 .tube_rdln_send_line
-    ldx #0                                                            ; 95d6: a2 00       ..  :0680[4]
+    ldx #0                                                            ; 95d6: a2 00       ..  :0680[4]   ; X=0: start of input buffer at &0700
     lda #&7f                                                          ; 95d8: a9 7f       ..  :0682[4]   ; &7F = line read successfully
-    jsr tube_send_r2                                                  ; 95da: 20 95 06     .. :0684[4]
+    jsr tube_send_r2                                                  ; 95da: 20 95 06     .. :0684[4]   ; Send &7F (success) to co-processor
 ; &95dd referenced 1 time by &0690[4]
 .tube_rdln_send_loop
-    lda l0700,x                                                       ; 95dd: bd 00 07    ... :0687[4]
+    lda l0700,x                                                       ; 95dd: bd 00 07    ... :0687[4]   ; Load char from input buffer
 .tube_rdln_send_byte
-    jsr tube_send_r2                                                  ; 95e0: 20 95 06     .. :068a[4]
-    inx                                                               ; 95e3: e8          .   :068d[4]
+    jsr tube_send_r2                                                  ; 95e0: 20 95 06     .. :068a[4]   ; Send char to co-processor
+    inx                                                               ; 95e3: e8          .   :068d[4]   ; Next character
     cmp #&0d                                                          ; 95e4: c9 0d       ..  :068e[4]   ; Loop until CR terminator sent
-    bne tube_rdln_send_loop                                           ; 95e6: d0 f5       ..  :0690[4]
-    jmp tube_main_loop                                                ; 95e8: 4c 36 00    L6. :0692[4]
+    bne tube_rdln_send_loop                                           ; 95e6: d0 f5       ..  :0690[4]   ; Loop until CR terminator sent
+    jmp tube_main_loop                                                ; 95e8: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
 ; &95eb referenced 13 times by &0020[1], &0026[1], &002c[1], &0467[2], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]
 .tube_send_r2
-    bit tube_status_register_2                                        ; 95eb: 2c e2 fe    ,.. :0695[4]
-    bvc tube_send_r2                                                  ; 95ee: 50 fb       P.  :0698[4]
-    sta tube_data_register_2                                          ; 95f0: 8d e3 fe    ... :069a[4]
-    rts                                                               ; 95f3: 60          `   :069d[4]
+    bit tube_status_register_2                                        ; 95eb: 2c e2 fe    ,.. :0695[4]   ; Poll R2 status (bit 6 = ready)
+    bvc tube_send_r2                                                  ; 95ee: 50 fb       P.  :0698[4]   ; Not ready: keep polling
+    sta tube_data_register_2                                          ; 95f0: 8d e3 fe    ... :069a[4]   ; Write A to Tube R2 data register
+    rts                                                               ; 95f3: 60          `   :069d[4]   ; Return to caller
 
 ; &95f4 referenced 8 times by &0018[1], &0416[2], &041b[2], &0436[2], &043e[2], &0443[2], &0449[2], &06a1[4]
 .tube_send_r4
-    bit tube_status_register_4_and_cpu_control                        ; 95f4: 2c e6 fe    ,.. :069e[4]
-    bvc tube_send_r4                                                  ; 95f7: 50 fb       P.  :06a1[4]
-    sta tube_data_register_4                                          ; 95f9: 8d e7 fe    ... :06a3[4]
-    rts                                                               ; 95fc: 60          `   :06a6[4]
+    bit tube_status_register_4_and_cpu_control                        ; 95f4: 2c e6 fe    ,.. :069e[4]   ; Poll R4 status (bit 6 = ready)
+    bvc tube_send_r4                                                  ; 95f7: 50 fb       P.  :06a1[4]   ; Not ready: keep polling
+    sta tube_data_register_4                                          ; 95f9: 8d e7 fe    ... :06a3[4]   ; Write A to Tube R4 data register
+    rts                                                               ; 95fc: 60          `   :06a6[4]   ; Return to caller
 
 ; &95fd referenced 1 time by &0403[2]
 .tube_escape_check
     lda escape_flag                                                   ; 95fd: a5 ff       ..  :06a7[4]   ; Check OS escape flag at &FF
     sec                                                               ; 95ff: 38          8   :06a9[4]   ; SEC+ROR: put bit 7 of &FF into carry+bit 7
-    ror a                                                             ; 9600: 6a          j   :06aa[4]
+    ror a                                                             ; 9600: 6a          j   :06aa[4]   ; ROR: shift escape bit 7 to carry
     bmi tube_send_r1                                                  ; 9601: 30 0f       0.  :06ab[4]   ; Escape set: forward to co-processor via R1
 .tube_event_handler
     pha                                                               ; 9603: 48          H   :06ad[4]   ; EVNTV: forward event A, Y, X to co-processor
     lda #0                                                            ; 9604: a9 00       ..  :06ae[4]   ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; 9606: 20 bc 06     .. :06b0[4]
-    tya                                                               ; 9609: 98          .   :06b3[4]
-    jsr tube_send_r1                                                  ; 960a: 20 bc 06     .. :06b4[4]
-    txa                                                               ; 960d: 8a          .   :06b7[4]
-    jsr tube_send_r1                                                  ; 960e: 20 bc 06     .. :06b8[4]
-    pla                                                               ; 9611: 68          h   :06bb[4]
+    jsr tube_send_r1                                                  ; 9606: 20 bc 06     .. :06b0[4]   ; Send event number via R1
+    tya                                                               ; 9609: 98          .   :06b3[4]   ; Y value for event
+    jsr tube_send_r1                                                  ; 960a: 20 bc 06     .. :06b4[4]   ; Send Y via R1
+    txa                                                               ; 960d: 8a          .   :06b7[4]   ; X value for event
+    jsr tube_send_r1                                                  ; 960e: 20 bc 06     .. :06b8[4]   ; Send X via R1
+    pla                                                               ; 9611: 68          h   :06bb[4]   ; Restore A (event type)
 ; &9612 referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]
 .tube_send_r1
-    bit tube_status_1_and_tube_control                                ; 9612: 2c e0 fe    ,.. :06bc[4]
-    bvc tube_send_r1                                                  ; 9615: 50 fb       P.  :06bf[4]
-    sta tube_data_register_1                                          ; 9617: 8d e1 fe    ... :06c1[4]
-    rts                                                               ; 961a: 60          `   :06c4[4]
+    bit tube_status_1_and_tube_control                                ; 9612: 2c e0 fe    ,.. :06bc[4]   ; Poll R1 status (bit 6 = ready)
+    bvc tube_send_r1                                                  ; 9615: 50 fb       P.  :06bf[4]   ; Not ready: keep polling
+    sta tube_data_register_1                                          ; 9617: 8d e1 fe    ... :06c1[4]   ; Write A to Tube R1 data register
+    rts                                                               ; 961a: 60          `   :06c4[4]   ; Return to caller
 
 ; &961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &066a[4], &06c8[4]
 .tube_read_r2
@@ -1178,12 +1188,12 @@ svc_entry_lo = service_entry+1
     lda #0                                                            ; 8078: a9 00       ..             ; Clear &A9 (used by dispatch)
     sta svc_state                                                     ; 807a: 85 a9       ..             ; Store zero to &A9
     tya                                                               ; 807c: 98          .              ; Preserve A before dispatch
-    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 33+)
+    ldy #&21 ; '!'                                                    ; 807d: a0 21       .!             ; Y=&21: base offset for *NET commands (index 33+); Y=&20: base offset for *NET commands (index 33+)
     bne dispatch                                                      ; 807f: d0 66       .f             ; ALWAYS branch to dispatch; ALWAYS branch
 
 ; &8081 referenced 1 time by &8086
 .skip_cmd_spaces
-    iny                                                               ; 8081: c8          .
+    iny                                                               ; 8081: c8          .              ; Advance past matched command text
 ; ***************************************************************************************
 ; "I AM" command handler
 ; 
@@ -1227,7 +1237,7 @@ svc_entry_lo = service_entry+1
 ; &80ad referenced 1 time by &80ba
 .read_remote_cmd_line
     jsr osrdch                                                        ; 80ad: 20 e0 ff     ..            ; Check for escape condition; Read a character from the current input stream
-    jsr check_escape_handler                                          ; 80b0: 20 4d 85     M.
+    jsr check_escape_handler                                          ; 80b0: 20 4d 85     M.            ; Test escape flag before FS reply
     sta fs_cmd_data,y                                                 ; 80b3: 99 05 0f    ...            ; Append typed character to command buffer
     iny                                                               ; 80b6: c8          .              ; Advance write pointer
     inx                                                               ; 80b7: e8          .              ; Increment character count
@@ -1249,13 +1259,13 @@ svc_entry_lo = service_entry+1
 ; in), returns without sending.
 ; ***************************************************************************************
 .forward_star_cmd
-    jsr infol2                                                        ; 80c1: 20 75 8d     u.
+    jsr infol2                                                        ; 80c1: 20 75 8d     u.            ; Copy command text to FS buffer
     tay                                                               ; 80c4: a8          .              ; Y=function code for HDRFN
 ; &80c5 referenced 1 time by &80a1
 .prepare_cmd_dispatch
     jsr prepare_fs_cmd                                                ; 80c5: 20 c3 83     ..            ; Prepare FS command buffer (12 references)
     ldx fs_cmd_csd                                                    ; 80c8: ae 03 0f    ...            ; X=depends on function
-    beq return_1                                                      ; 80cb: f0 29       .)
+    beq return_1                                                      ; 80cb: f0 29       .)             ; CSD handle zero: not logged in
     lda fs_cmd_data                                                   ; 80cd: ad 05 0f    ...            ; A=function code (0-7)
     ldy #&17                                                          ; 80d0: a0 17       ..             ; Y=depends on function
     bne dispatch                                                      ; 80d2: d0 13       ..             ; ALWAYS branch
@@ -1282,11 +1292,11 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 .fscv_handler
     jsr save_fscv_args_with_ptrs                                      ; 80d4: 20 c8 85     ..            ; Store A/X/Y in FS workspace
-    cmp #8                                                            ; 80d7: c9 08       ..
+    cmp #8                                                            ; 80d7: c9 08       ..             ; FSCV function >= 8?
     bcs return_1                                                      ; 80d9: b0 1b       ..             ; Function code >= 8? Return (unsupported)
-    tax                                                               ; 80db: aa          .
-    tya                                                               ; 80dc: 98          .
-    ldy #&13                                                          ; 80dd: a0 13       ..             ; Y=&13: base offset for FSCV dispatch (indices 20+)
+    tax                                                               ; 80db: aa          .              ; X = function code for dispatch
+    tya                                                               ; 80dc: 98          .              ; Save Y (command text ptr hi)
+    ldy #&13                                                          ; 80dd: a0 13       ..             ; Y=&13: base offset for FSCV dispatch (indices 20+); Y=&12: base offset for FSCV dispatch (indices 19+)
     bne dispatch                                                      ; 80df: d0 06       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -1303,7 +1313,7 @@ svc_entry_lo = service_entry+1
 ; &80e3 referenced 1 time by &8075
 .svc_dispatch_range
     bcs return_1                                                      ; 80e3: b0 11       ..             ; Out of range: return via RTS
-    ldy #&0e                                                          ; 80e5: a0 0e       ..             ; Y=&0E: base offset for language handlers (index 15+)
+    ldy #&0e                                                          ; 80e5: a0 0e       ..             ; Y=&0E: base offset for language handlers (index 15+); Y=&0D: base offset for language handlers (index 14+)
 ; ***************************************************************************************
 ; PHA/PHA/RTS computed dispatch
 ; 
@@ -1488,13 +1498,13 @@ svc_entry_lo = service_entry+1
     ldx romsel_copy                                                   ; 81a9: a6 f4       ..             ; Restore X from MOS ROM select copy
 ; &81ab referenced 1 time by &818d
 .return_2
-    rts                                                               ; 81ab: 60          `
+    rts                                                               ; 81ab: 60          `              ; Return to MOS service handler
 
     nop                                                               ; 81ac: ea          .              ; Padding: dispatch targets &81B5
-    nop                                                               ; 81ad: ea          .
-    nop                                                               ; 81ae: ea          .
-    nop                                                               ; 81af: ea          .
-    nop                                                               ; 81b0: ea          .
+    nop                                                               ; 81ad: ea          .              ; NOP padding for command table
+    nop                                                               ; 81ae: ea          .              ; NOP padding
+    nop                                                               ; 81af: ea          .              ; NOP padding
+    nop                                                               ; 81b0: ea          .              ; NOP padding
 .svc_4_star_command
     ldx #&0c                                                          ; 81b1: a2 0c       ..             ; ROM offset for "ROFF" (copyright suffix)
     jsr match_rom_string                                              ; 81b3: 20 5e 83     ^.            ; Try matching *ROFF command
@@ -1588,7 +1598,7 @@ svc_entry_lo = service_entry+1
 
 ; &8211 referenced 2 times by &81eb, &8226
 .return_service
-    ldy ws_page                                                       ; 8211: a4 a8       ..
+    ldy ws_page                                                       ; 8211: a4 a8       ..             ; Load workspace page for printing
     rts                                                               ; 8213: 60          `              ; Return (service not claimed)
 
 ; ***************************************************************************************
@@ -1644,7 +1654,7 @@ svc_entry_lo = service_entry+1
     jsr print_inline                                                  ; 822e: 20 05 86     ..            ; Print 'Econet Station ' banner
     equs "Econet Station "                                            ; 8231: 45 63 6f... Eco
 
-    ldy #&14                                                          ; 8240: a0 14       ..
+    ldy #&14                                                          ; 8240: a0 14       ..             ; Y=&14: offset for station number
     lda (net_rx_ptr),y                                                ; 8242: b1 9c       ..             ; Load station number
     jsr print_decimal                                                 ; 8244: 20 b0 8d     ..            ; Print as 3-digit decimal
     lda #&20 ; ' '                                                    ; 8247: a9 20       .              ; BIT trick: bit 5 of SR2 = clock present
@@ -1675,7 +1685,7 @@ svc_entry_lo = service_entry+1
     ldy #&0d                                                          ; 8260: a0 0d       ..             ; Copy 14 bytes: FS vector addresses → FILEV-FSCV
 ; &8262 referenced 1 time by &8269
 .copy_vectors_loop
-    lda fs_vector_addrs,y                                             ; 8262: b9 96 82    ...
+    lda fs_vector_addrs,y                                             ; 8262: b9 96 82    ...            ; Load vector address from table
     sta filev,y                                                       ; 8265: 99 12 02    ...            ; Write to FILEV-FSCV vector table
     dey                                                               ; 8268: 88          .              ; Next byte (descending)
     bpl copy_vectors_loop                                             ; 8269: 10 f7       ..             ; Loop until all 14 bytes copied
@@ -1697,13 +1707,13 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &8277 referenced 1 time by &81f3
 .issue_vectors_claimed
-    lda #osbyte_issue_service_request                                 ; 8277: a9 8f       ..
-    ldx #&0f                                                          ; 8279: a2 0f       ..
+    lda #osbyte_issue_service_request                                 ; 8277: a9 8f       ..             ; A=&8F: issue service request
+    ldx #&0f                                                          ; 8279: a2 0f       ..             ; X=&0F: 'vectors claimed' service
     jsr osbyte                                                        ; 827b: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=15 - Vectors claimed
-    ldx #&0a                                                          ; 827e: a2 0a       ..
+    ldx #&0a                                                          ; 827e: a2 0a       ..             ; X=&0A: service &0A
     jsr osbyte                                                        ; 8280: 20 f4 ff     ..            ; Issue service &0A
     ldx ws_page                                                       ; 8283: a6 a8       ..             ; Non-zero after hard reset: skip auto-boot
-    bne return_3                                                      ; 8285: d0 37       .7
+    bne return_3                                                      ; 8285: d0 37       .7             ; Non-zero: skip auto-boot
     ldx #&8e                                                          ; 8287: a2 8e       ..             ; X = lo byte of auto-boot string at &8292
 ; ***************************************************************************************
 ; Run FSCV command from ROM
@@ -1742,12 +1752,12 @@ svc_entry_lo = service_entry+1
 ; &8296 referenced 1 time by &8262
 .fs_vector_addrs
     equb &1b, &ff                                                     ; 8296: 1b ff       ..             ; FILEV dispatch (&FF1B)
-    equb &1e, &ff                                                     ; 8298: 1e ff       ..             ; ARGSV dispatch (&FF1E)
-    equb &21, &ff                                                     ; 829a: 21 ff       !.             ; BGETV dispatch (&FF21)
-    equb &24, &ff                                                     ; 829c: 24 ff       $.             ; BPUTV dispatch (&FF24)
-    equb &27, &ff                                                     ; 829e: 27 ff       '.             ; GBPBV dispatch (&FF27)
-    equb &2a, &ff                                                     ; 82a0: 2a ff       *.             ; FINDV dispatch (&FF2A)
-    equb &2d, &ff                                                     ; 82a2: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equb &1e, &ff                                                     ; 8298: 1e ff       ..             ; ARGSV dispatch (&FF1E); ARGSV dispatch lo
+    equb &21, &ff                                                     ; 829a: 21 ff       !.             ; BGETV dispatch (&FF21); BGETV dispatch hi
+    equb &24, &ff                                                     ; 829c: 24 ff       $.             ; BPUTV dispatch (&FF24); BPUTV dispatch lo
+    equb &27, &ff                                                     ; 829e: 27 ff       '.             ; GBPBV dispatch (&FF27); GBPBV dispatch lo; GBPBV dispatch hi
+    equb &2a, &ff                                                     ; 82a0: 2a ff       *.             ; FINDV dispatch (&FF2A); FINDV dispatch lo; FINDV dispatch hi
+    equb &2d, &ff                                                     ; 82a2: 2d ff       -.             ; FSCV dispatch (&FF2D); FSCV dispatch lo
     equb 5                                                            ; 82a4: 05          .              ; FILEV handler lo (&8705)
     equb &87                                                          ; 82a5: 87          .              ; FILEV handler hi
     equb &4a                                                          ; 82a6: 4a          J              ; (ROM bank — not read)
@@ -1767,7 +1777,7 @@ svc_entry_lo = service_entry+1
     equb &89                                                          ; 82b4: 89          .              ; FINDV handler hi
     equb &52                                                          ; 82b5: 52          R              ; (ROM bank — not read)
     equb &d4                                                          ; 82b6: d4          .              ; FSCV handler lo (&80D4)
-    equb &80                                                          ; 82b7: 80          .              ; FSCV handler hi
+    equb &80                                                          ; 82b7: 80          .              ; FSCV handler hi; FSCV handler hi
 
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
@@ -1782,7 +1792,7 @@ svc_entry_lo = service_entry+1
     ldy #&10                                                          ; 82bc: a0 10       ..             ; Claim pages &0D-&0F (3 pages)
 ; &82be referenced 2 times by &8285, &82ba
 .return_3
-    rts                                                               ; 82be: 60          `
+    rts                                                               ; 82be: 60          `              ; Return (workspace claim done)
 
     equb &76, &90                                                     ; 82bf: 76 90       v.
 
@@ -1804,9 +1814,9 @@ svc_entry_lo = service_entry+1
 ; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
 ; ***************************************************************************************
 .svc_2_private_workspace
-    sty net_rx_ptr_hi                                                 ; 82c1: 84 9d       ..
-    iny                                                               ; 82c3: c8          .
-    sty nfs_workspace_hi                                              ; 82c4: 84 9f       ..
+    sty net_rx_ptr_hi                                                 ; 82c1: 84 9d       ..             ; Store page as RX buffer high byte
+    iny                                                               ; 82c3: c8          .              ; Next page for NFS workspace
+    sty nfs_workspace_hi                                              ; 82c4: 84 9f       ..             ; Store page as NFS workspace high
     lda #0                                                            ; 82c6: a9 00       ..             ; A=0 for clearing workspace
     ldy #4                                                            ; 82c8: a0 04       ..             ; Y=4: remote status offset
     sta (net_rx_ptr),y                                                ; 82ca: 91 9c       ..             ; Clear status byte in net receive buffer
@@ -1905,12 +1915,12 @@ svc_entry_lo = service_entry+1
     ldy #&1d                                                          ; 834d: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup
 ; &834f referenced 1 time by &8357
 .fsdiel
-    lda fs_state_deb,y                                                ; 834f: b9 eb 0d    ...
-    sta (net_rx_ptr),y                                                ; 8352: 91 9c       ..
-    dey                                                               ; 8354: 88          .
+    lda fs_state_deb,y                                                ; 834f: b9 eb 0d    ...            ; Load FS state byte at offset Y
+    sta (net_rx_ptr),y                                                ; 8352: 91 9c       ..             ; Store to workspace backup area
+    dey                                                               ; 8354: 88          .              ; Next byte down
     cpy #&14                                                          ; 8355: c0 14       ..             ; Offsets &15-&1D: server, handles, OPT, etc.
-    bne fsdiel                                                        ; 8357: d0 f6       ..
-    lda #osbyte_close_spool_exec                                      ; 8359: a9 77       .w
+    bne fsdiel                                                        ; 8357: d0 f6       ..             ; Loop for offsets &1D..&15
+    lda #osbyte_close_spool_exec                                      ; 8359: a9 77       .w             ; A=&7B: printer driver going dormant
     jmp osbyte                                                        ; 835b: 4c f4 ff    L..            ; Close any *SPOOL and *EXEC files
 
 ; &835e referenced 2 times by &81b3, &81e8
@@ -1943,8 +1953,16 @@ svc_entry_lo = service_entry+1
     cmp #&20 ; ' '                                                    ; 837c: c9 20       .              ; Is it a space?
     beq skip_space_next                                               ; 837e: f0 f9       ..             ; Yes: keep skipping
     eor #&0d                                                          ; 8380: 49 0d       I.             ; XOR with CR: Z=1 if end of line
-    rts                                                               ; 8382: 60          `
+    rts                                                               ; 8382: 60          `              ; Mark TX semaphore as available
 
+; ***************************************************************************************
+; Initialise TX control block for FS reply on port &90
+; 
+; Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set
+; up the TX control block, stores the port and control bytes, then
+; decrements the control flag. Used by send_fs_reply_cmd to prepare
+; for receiving the fileserver's reply.
+; ***************************************************************************************
 ; &8383 referenced 1 time by &83f0
 .init_tx_reply_port
     lda #&90                                                          ; 8383: a9 90       ..             ; A=&90: FS reply port (PREPLY)
@@ -1955,7 +1973,7 @@ svc_entry_lo = service_entry+1
     lda #3                                                            ; 838a: a9 03       ..             ; Control byte: 3 = transmit
     sta txcb_start                                                    ; 838c: 85 c4       ..             ; Store control byte in TXCB
     dec txcb_ctrl                                                     ; 838e: c6 c0       ..             ; Decrement TXCB flag to arm TX
-    rts                                                               ; 8390: 60          `
+    rts                                                               ; 8390: 60          `              ; Return after port setup
 
 ; ***************************************************************************************
 ; Initialise TX control block at &00C0 from template
@@ -1995,11 +2013,19 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &83a9 referenced 1 time by &8394
 .tx_ctrl_template
-    equb &80, &99, 0, 0, 0, &0f                                       ; 83a9: 80 99 00... ...
+    equb &80, &99, 0, 0, 0, &0f                                       ; 83a9: 80 99 00... ...            ; Control flag; Port (FS command = &99); Buffer start low; Buffer start high (page &0F)
 ; &83af referenced 3 times by &88d8, &89b7, &9177
 .tx_ctrl_upper
-    equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 83af: ff ff ff... ...
+    equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 83af: ff ff ff... ...            ; Buffer start pad (4-byte Econet addr); Buffer start pad; Buffer end low; Buffer end high (page &0F); Buffer end pad; Buffer end pad
 
+; ***************************************************************************************
+; Prepare FS command with carry set
+; 
+; Alternate entry to prepare_fs_cmd that pushes A, loads &2A
+; into fs_error_ptr, and enters with carry set (SEC). The carry
+; flag is later tested by build_send_fs_cmd to select the
+; byte-stream (BSXMIT) transmission path.
+; ***************************************************************************************
 ; &83b5 referenced 1 time by &8a7f
 .prepare_cmd_with_flag
     pha                                                               ; 83b5: 48          H              ; Save flag byte for command
@@ -2019,7 +2045,7 @@ svc_entry_lo = service_entry+1
 ; Dispatched from the command match table at &8C05 for "BYE".
 ; ***************************************************************************************
 .bye_handler
-    lda #osbyte_close_spool_exec                                      ; 83bc: a9 77       .w
+    lda #osbyte_close_spool_exec                                      ; 83bc: a9 77       .w             ; A=&77: OSBYTE close spool/exec
     jsr osbyte                                                        ; 83be: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
     ldy #&17                                                          ; 83c1: a0 17       ..             ; Y=function code for HDRFN
 ; ***************************************************************************************
@@ -2140,7 +2166,7 @@ svc_entry_lo = service_entry+1
     sta fs_load_addr_3                                                ; 840b: 85 b3       ..             ; Store result to &B3
     bcc dofsl7                                                        ; 840d: 90 e8       ..             ; C=0: success, check reply code
 .bputv_handler
-    clc                                                               ; 840f: 18          .
+    clc                                                               ; 840f: 18          .              ; CLC for address addition
 ; ***************************************************************************************
 ; Handle BPUT/BGET file byte I/O
 ; 
@@ -2267,9 +2293,9 @@ svc_entry_lo = service_entry+1
 .update_sequence_return
     sta fs_sequence_nos                                               ; 8491: 8d 08 0e    ...            ; Save updated sequence number
     pla                                                               ; 8494: 68          h              ; Restore Y from stack
-    tay                                                               ; 8495: a8          .
+    tay                                                               ; 8495: a8          .              ; Transfer A to Y for indexing
     pla                                                               ; 8496: 68          h              ; Restore X from stack
-    tax                                                               ; 8497: aa          .
+    tax                                                               ; 8497: aa          .              ; Transfer to X for return
     pla                                                               ; 8498: 68          h              ; Restore A from stack
 .return_remote_cmd
     rts                                                               ; 8499: 60          `              ; Return to caller
@@ -2322,12 +2348,12 @@ svc_entry_lo = service_entry+1
 .lang_3_execute_at_0100
     jsr clear_jsr_protection                                          ; 84c8: 20 eb 92     ..            ; Allow JSR to page 1 (stack page)
     ldx #2                                                            ; 84cb: a2 02       ..             ; Zero bytes &0100-&0102
-    lda #0                                                            ; 84cd: a9 00       ..
+    lda #0                                                            ; 84cd: a9 00       ..             ; A=0: zero execution header bytes
 ; &84cf referenced 1 time by &84d3
 .zero_exec_header
     sta l0100,x                                                       ; 84cf: 9d 00 01    ...            ; BRK at &0100 as safe default
-    dex                                                               ; 84d2: ca          .
-    bpl zero_exec_header                                              ; 84d3: 10 fa       ..
+    dex                                                               ; 84d2: ca          .              ; Next byte
+    bpl zero_exec_header                                              ; 84d3: 10 fa       ..             ; Loop until all zeroed
 ; &84d5 referenced 2 times by &848f, &850e
 .execute_downloaded
     jmp l0100                                                         ; 84d5: 4c 00 01    L..            ; Execute downloaded code
@@ -2397,7 +2423,7 @@ svc_entry_lo = service_entry+1
 
 ; &851b referenced 5 times by &83f3, &8779, &8864, &9031, &9296
 .send_to_fs_star
-    lda #&2a ; '*'                                                    ; 851b: a9 2a       .*
+    lda #&2a ; '*'                                                    ; 851b: a9 2a       .*             ; A=&2A: error ptr for FS send
 ; ***************************************************************************************
 ; Send command to fileserver and handle reply (WAITFS)
 ; 
@@ -2426,7 +2452,7 @@ svc_entry_lo = service_entry+1
     tsx                                                               ; 852c: ba          .              ; TSX: index stack-based timeout via X
 ; &852d referenced 3 times by &8537, &853c, &8541
 .fs_reply_poll
-    jsr check_escape_handler                                          ; 852d: 20 4d 85     M.
+    jsr check_escape_handler                                          ; 852d: 20 4d 85     M.            ; Check for user escape condition
 .incpx
     lda (net_tx_ptr),y                                                ; 8530: b1 9a       ..             ; Read flag byte from TX control block
     bmi fs_wait_cleanup                                               ; 8532: 30 0f       0.             ; Bit 7 set = reply received
@@ -2456,14 +2482,14 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &854d referenced 3 times by &80b0, &852d, &86b7
 .check_escape_handler
-    bit escape_flag                                                   ; 854d: 24 ff       $.
-    bpl return_4                                                      ; 854f: 10 27       .'
-    lda #osbyte_acknowledge_escape                                    ; 8551: a9 7e       .~
+    bit escape_flag                                                   ; 854d: 24 ff       $.             ; Test escape flag (bit 7)
+    bpl return_4                                                      ; 854f: 10 27       .'             ; Bit 7 clear: no escape, return
+    lda #osbyte_acknowledge_escape                                    ; 8551: a9 7e       .~             ; A=&7E: acknowledge escape OSBYTE
     jsr osbyte                                                        ; 8553: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
-    lsr a                                                             ; 8556: 4a          J
-    sta (net_tx_ptr),y                                                ; 8557: 91 9a       ..
-    asl a                                                             ; 8559: 0a          .
-    bne nlisne                                                        ; 855a: d0 a1       ..
+    lsr a                                                             ; 8556: 4a          J              ; LSR: get escape result bit
+    sta (net_tx_ptr),y                                                ; 8557: 91 9a       ..             ; Store escape result to TXCB
+    asl a                                                             ; 8559: 0a          .              ; Restore A
+    bne nlisne                                                        ; 855a: d0 a1       ..             ; Non-zero: report 'Not listening'
 .bgetv_handler
     sec                                                               ; 855c: 38          8              ; C=1: flag for BGET mode
     jsr handle_bput_bget                                              ; 855d: 20 10 84     ..            ; Handle BGET via FS command; Handle BPUT/BGET file byte I/O
@@ -2479,11 +2505,12 @@ svc_entry_lo = service_entry+1
     jsr clear_fs_flag                                                 ; 856f: 20 7e 86     ~.            ; Clear FS flag for handle
 ; &8572 referenced 1 time by &856d
 .bgetv_shared_jsr
-    jsr set_fs_flag                                                   ; 8572: 20 79 86     y.
-    lda fs_handle_mask                                                ; 8575: ad de 0f    ...
+    jsr set_fs_flag                                                   ; 8572: 20 79 86     y.            ; Set EOF flag for this handle
+.load_handle_mask
+    lda fs_handle_mask                                                ; 8575: ad de 0f    ...            ; Load handle bitmask for caller
 ; &8578 referenced 2 times by &854f, &8566
 .return_4
-    rts                                                               ; 8578: 60          `
+    rts                                                               ; 8578: 60          `              ; Return with handle mask in A
 
 ; Econet error message table (ERRTAB, 7 entries).
 ; Each entry: error number byte followed by NUL-terminated string.
@@ -2619,21 +2646,21 @@ svc_entry_lo = service_entry+1
 ; &8605 referenced 13 times by &8204, &822e, &824e, &825b, &8c44, &8c4e, &8c5c, &8c67, &8c7c, &8c91, &8ca4, &8cb3, &8d9e
 .print_inline
     pla                                                               ; 8605: 68          h              ; Pop return address (low) — points to last byte of JSR
-    sta fs_load_addr                                                  ; 8606: 85 b0       ..
+    sta fs_load_addr                                                  ; 8606: 85 b0       ..             ; Store return addr low as string ptr
     pla                                                               ; 8608: 68          h              ; Pop return address (high)
-    sta fs_load_addr_hi                                               ; 8609: 85 b1       ..
-    ldy #0                                                            ; 860b: a0 00       ..
+    sta fs_load_addr_hi                                               ; 8609: 85 b1       ..             ; Store return addr high as string ptr
+    ldy #0                                                            ; 860b: a0 00       ..             ; Y=0: offset for indirect load
 ; &860d referenced 1 time by &861a
 .print_inline_char
     inc fs_load_addr                                                  ; 860d: e6 b0       ..             ; Advance pointer past return address / to next char
-    bne print_next_char                                               ; 860f: d0 02       ..
-    inc fs_load_addr_hi                                               ; 8611: e6 b1       ..
+    bne print_next_char                                               ; 860f: d0 02       ..             ; No page wrap: skip high byte inc
+    inc fs_load_addr_hi                                               ; 8611: e6 b1       ..             ; Handle page crossing in pointer
 ; &8613 referenced 1 time by &860f
 .print_next_char
     lda (fs_load_addr),y                                              ; 8613: b1 b0       ..             ; Load next byte from inline string
     bmi jump_via_addr                                                 ; 8615: 30 06       0.             ; Bit 7 set? Done — this byte is the next opcode
     jsr osasci                                                        ; 8617: 20 e3 ff     ..            ; Write character
-    jmp print_inline_char                                             ; 861a: 4c 0d 86    L..
+    jmp print_inline_char                                             ; 861a: 4c 0d 86    L..            ; Continue printing next character
 
 ; &861d referenced 1 time by &8615
 .jump_via_addr
@@ -2663,7 +2690,7 @@ svc_entry_lo = service_entry+1
 ; &8620 referenced 2 times by &808c, &8095
 .parse_decimal
     lda #0                                                            ; 8620: a9 00       ..             ; Zero accumulator
-    sta fs_load_addr_2                                                ; 8622: 85 b2       ..
+    sta fs_load_addr_2                                                ; 8622: 85 b2       ..             ; Initialise accumulator to zero
 ; &8624 referenced 1 time by &863d
 .scan_decimal_digit
     lda (fs_options),y                                                ; 8624: b1 bb       ..             ; Load next char from buffer
@@ -2687,7 +2714,7 @@ svc_entry_lo = service_entry+1
 ; &8640 referenced 1 time by &8628
 .parse_decimal_rts
     lda fs_load_addr_2                                                ; 8640: a5 b2       ..             ; Return result in A
-    rts                                                               ; 8642: 60          `
+    rts                                                               ; 8642: 60          `              ; Return with result in A
 
 ; ***************************************************************************************
 ; Convert handle in A to bitmask
@@ -2761,9 +2788,9 @@ svc_entry_lo = service_entry+1
 ; &865c referenced 2 times by &864b, &8659
 .handle_mask_exit
     pla                                                               ; 865c: 68          h              ; Restore X
-    tax                                                               ; 865d: aa          .
+    tax                                                               ; 865d: aa          .              ; Transfer mask to X for return
     pla                                                               ; 865e: 68          h              ; Restore A
-    rts                                                               ; 865f: 60          `
+    rts                                                               ; 865f: 60          `              ; Return with mask in X
 
 ; ***************************************************************************************
 ; Convert bitmask to handle number (FS2A)
@@ -2791,7 +2818,7 @@ svc_entry_lo = service_entry+1
     lsr a                                                             ; 8663: 4a          J              ; Shift mask right; C=0 when done
     bne fs2al1                                                        ; 8664: d0 fc       ..             ; Loop until all bits shifted out
     txa                                                               ; 8666: 8a          .              ; A = X = &1F + bit position = handle
-    rts                                                               ; 8667: 60          `
+    rts                                                               ; 8667: 60          `              ; Return (identity: no conversion)
 
 ; ***************************************************************************************
 ; Compare two 4-byte addresses
@@ -2814,17 +2841,17 @@ svc_entry_lo = service_entry+1
     lda addr_work,x                                                   ; 866a: b5 af       ..             ; Load byte from first address
     eor fs_load_addr_3,x                                              ; 866c: 55 b3       U.             ; XOR with corresponding byte
     bne return_compare                                                ; 866e: d0 03       ..             ; Mismatch: Z=0, return unequal
-    dex                                                               ; 8670: ca          .
+    dex                                                               ; 8670: ca          .              ; Next byte
     bne compare_addr_byte                                             ; 8671: d0 f7       ..             ; Continue comparing
 ; &8673 referenced 1 time by &866e
 .return_compare
-    rts                                                               ; 8673: 60          `
+    rts                                                               ; 8673: 60          `              ; Return with Z flag result
 
 .fscv_7_read_handles
     ldx #&20 ; ' '                                                    ; 8674: a2 20       .              ; X=first handle (&20)
     ldy #&27 ; '''                                                    ; 8676: a0 27       .'             ; Y=last handle (&27)
 .return_fscv_handles
-    rts                                                               ; 8678: 60          `
+    rts                                                               ; 8678: 60          `              ; Return (FSCV 7 read handles)
 
 ; ***************************************************************************************
 ; Set bit(s) in EOF hint flags (&0E07)
@@ -2879,7 +2906,7 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &868f referenced 4 times by &901a, &9073, &90d0, &9274
 .tx_poll_ff
-    lda #&ff                                                          ; 868f: a9 ff       ..
+    lda #&ff                                                          ; 868f: a9 ff       ..             ; A=&FF: full retry count
 .tx_poll_timeout
     ldy #&60 ; '`'                                                    ; 8691: a0 60       .`             ; Y=timeout parameter (&60 = standard)
 ; ***************************************************************************************
@@ -2967,6 +2994,13 @@ svc_entry_lo = service_entry+1
     pla                                                               ; 86d5: 68          h              ; Discard retry count
     rts                                                               ; 86d6: 60          `              ; Return (success)
 
+; ***************************************************************************************
+; Copy filename pointer to os_text_ptr and parse
+; 
+; Copies the 2-byte filename pointer from (fs_options),Y into
+; os_text_ptr (&F2/&F3), then falls through to parse_filename_gs
+; to parse the filename via GSINIT/GSREAD into the &0E30 buffer.
+; ***************************************************************************************
 ; &86d7 referenced 1 time by &8708
 .copy_filename_ptr
     ldy #1                                                            ; 86d7: a0 01       ..             ; Y=1: copy 2 bytes (high then low)
@@ -2995,6 +3029,14 @@ svc_entry_lo = service_entry+1
 ; &86e1 referenced 2 times by &89ad, &8dcf
 .parse_filename_gs
     ldy #0                                                            ; 86e1: a0 00       ..             ; Start from beginning of string
+; ***************************************************************************************
+; Parse filename via GSINIT/GSREAD from offset Y
+; 
+; Sub-entry of parse_filename_gs that accepts a non-zero Y offset
+; into the (os_text_ptr) string. Initialises GSINIT, reads chars
+; via GSREAD into &0E30, CR-terminates the result, and sets up
+; fs_crc_lo/hi to point at the buffer.
+; ***************************************************************************************
 ; &86e3 referenced 1 time by &8c32
 .parse_filename_gs_y
     ldx #&ff                                                          ; 86e3: a2 ff       ..             ; X=&FF: INX will make X=0 (first char index)
@@ -3045,18 +3087,18 @@ svc_entry_lo = service_entry+1
 ;     Y: restored
 ; ***************************************************************************************
 .filev_handler
-    jsr save_fscv_args                                                ; 8705: 20 d2 85     ..
+    jsr save_fscv_args                                                ; 8705: 20 d2 85     ..            ; Save A/X/Y in FS workspace
     jsr copy_filename_ptr                                             ; 8708: 20 d7 86     ..            ; Copy filename ptr from param block to os_text_ptr
     lda fs_last_byte_flag                                             ; 870b: a5 bd       ..             ; Recover function code from saved A
     bpl saveop                                                        ; 870d: 10 7b       .{             ; A >= 0: save (&00) or attribs (&01-&06)
     cmp #&ff                                                          ; 870f: c9 ff       ..             ; A=&FF? Only &FF is valid for load
-    beq loadop                                                        ; 8711: f0 03       ..
+    beq loadop                                                        ; 8711: f0 03       ..             ; A=&FF: branch to load path
     jmp restore_args_return                                           ; 8713: 4c 6f 89    Lo.            ; Unknown negative code: no-op return
 
 ; &8716 referenced 1 time by &8711
 .loadop
-    jsr infol2                                                        ; 8716: 20 75 8d     u.
-    ldy #2                                                            ; 8719: a0 02       ..
+    jsr infol2                                                        ; 8716: 20 75 8d     u.            ; Copy parsed filename to cmd buffer
+    ldy #2                                                            ; 8719: a0 02       ..             ; Y=2: FS function code offset
 ; ***************************************************************************************
 ; Send FS examine command
 ; 
@@ -3098,7 +3140,7 @@ svc_entry_lo = service_entry+1
     sec                                                               ; 8746: 38          8              ; Adjust high byte for 3-byte length overflow
     sbc fs_file_len_3                                                 ; 8747: ed 10 0f    ...            ; Subtract 4th length byte from end addr
     sta fs_work_7                                                     ; 874a: 85 b7       ..             ; Store adjusted end address high byte
-    jsr print_file_info                                               ; 874c: 20 24 8d     $.
+    jsr print_file_info                                               ; 874c: 20 24 8d     $.            ; Display file info after FS reply
     jsr send_data_blocks                                              ; 874f: 20 5f 87     _.            ; Transfer file data in &80-byte blocks
     ldx #2                                                            ; 8752: a2 02       ..             ; Copy 3-byte file length to FS reply cmd buffer
 ; &8754 referenced 1 time by &875b
@@ -3201,25 +3243,25 @@ svc_entry_lo = service_entry+1
     jsr copy_string_to_cmd                                            ; 87c2: 20 77 8d     w.            ; Append filename to cmd buffer at offset X
     ldy #1                                                            ; 87c5: a0 01       ..             ; Y=1: function code for save
     jsr prepare_cmd_clv                                               ; 87c7: 20 b9 83     ..            ; Build header and send FS save command
-    jsr print_file_info                                               ; 87ca: 20 24 8d     $.
-    lda fs_cmd_data                                                   ; 87cd: ad 05 0f    ...
+    jsr print_file_info                                               ; 87ca: 20 24 8d     $.            ; Display save info (addr/len)
+    lda fs_cmd_data                                                   ; 87cd: ad 05 0f    ...            ; Load reply byte for transfer
     jsr transfer_file_blocks                                          ; 87d0: 20 14 88     ..            ; Print file length in hex
 ; &87d3 referenced 1 time by &875d
 .send_fs_reply
-    jsr send_fs_reply_cmd                                             ; 87d3: 20 ef 83     ..
+    jsr send_fs_reply_cmd                                             ; 87d3: 20 ef 83     ..            ; Send FS reply acknowledgement
 .skip_catalogue_msg
     stx fs_reply_cmd                                                  ; 87d6: 8e 08 0f    ...            ; Store reply command for attr decode
     ldy #&0e                                                          ; 87d9: a0 0e       ..             ; Y=&0E: access byte offset in param block
     lda fs_cmd_data                                                   ; 87db: ad 05 0f    ...            ; Load access byte from FS reply
     jsr decode_attribs_5bit                                           ; 87de: 20 e7 85     ..            ; Convert FS access to BBC attribute format
-    beq direct_attr_copy                                              ; 87e1: f0 03       ..
+    beq direct_attr_copy                                              ; 87e1: f0 03       ..             ; Z=1: first byte, use A directly
 ; &87e3 referenced 1 time by &87eb
 .copy_attr_loop
-    lda fs_reply_data,y                                               ; 87e3: b9 f7 0e    ...
+    lda fs_reply_data,y                                               ; 87e3: b9 f7 0e    ...            ; Load attribute byte from FS reply
 ; &87e6 referenced 1 time by &87e1
 .direct_attr_copy
-    sta (fs_options),y                                                ; 87e6: 91 bb       ..
-    iny                                                               ; 87e8: c8          .
+    sta (fs_options),y                                                ; 87e6: 91 bb       ..             ; Store decoded access in param block
+    iny                                                               ; 87e8: c8          .              ; Next attribute byte
     cpy #&12                                                          ; 87e9: c0 12       ..             ; Copied all 4 bytes? (Y=&0E..&11)
     bne copy_attr_loop                                                ; 87eb: d0 f6       ..             ; Loop for 4 attribute bytes
     jmp restore_args_return                                           ; 87ed: 4c 6f 89    Lo.            ; Restore A/X/Y and return to caller
@@ -3246,9 +3288,9 @@ svc_entry_lo = service_entry+1
 ; &87fd referenced 1 time by &8a91
 .add_4_to_y
     iny                                                               ; 87fd: c8          .              ; INY * 4 = add 4 to Y
-    iny                                                               ; 87fe: c8          .
-    iny                                                               ; 87ff: c8          .
-    iny                                                               ; 8800: c8          .
+    iny                                                               ; 87fe: c8          .              ; Add 1 (of 5) to Y
+    iny                                                               ; 87ff: c8          .              ; Add 2 (of 5) to Y
+    iny                                                               ; 8800: c8          .              ; Add 3 (of 5) to Y
     rts                                                               ; 8801: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -3266,18 +3308,18 @@ svc_entry_lo = service_entry+1
 .lodrl2
     sta (fs_options),y                                                ; 8805: 91 bb       ..             ; Write to parameter block
     lda fs_cmd_urd,y                                                  ; 8807: b9 02 0f    ...            ; Read next byte from reply buffer
-    dey                                                               ; 880a: 88          .
+    dey                                                               ; 880a: 88          .              ; Next byte (descending)
     cpy #2                                                            ; 880b: c0 02       ..             ; Copy offsets &0D down to 2
-    bcs lodrl2                                                        ; 880d: b0 f6       ..
+    bcs lodrl2                                                        ; 880d: b0 f6       ..             ; Loop until offset 2 reached
 ; &880f referenced 1 time by &8798
 .sub_4_from_y
     dey                                                               ; 880f: 88          .              ; Y=1 after loop; sub 4 to get Y=&FD
 ; &8810 referenced 2 times by &88a5, &8a99
 .sub_3_from_y
-    dey                                                               ; 8810: 88          .
-    dey                                                               ; 8811: 88          .
-    dey                                                               ; 8812: 88          .
-    rts                                                               ; 8813: 60          `
+    dey                                                               ; 8810: 88          .              ; Subtract 1 (of 3) from Y
+    dey                                                               ; 8811: 88          .              ; Subtract 2 (of 3) from Y
+    dey                                                               ; 8812: 88          .              ; Subtract 3 (of 3) from Y
+    rts                                                               ; 8813: 60          `              ; Return to caller
 
 ; ***************************************************************************************
 ; Multi-block file data transfer
@@ -3299,22 +3341,22 @@ svc_entry_lo = service_entry+1
     beq restore_ay_return                                             ; 8818: f0 6f       .o             ; Addresses equal: nothing to transfer
 ; &881a referenced 1 time by &8867
 .next_block
-    ldx #0                                                            ; 881a: a2 00       ..
-    ldy #4                                                            ; 881c: a0 04       ..
-    stx fs_reply_cmd                                                  ; 881e: 8e 08 0f    ...
-    stx fs_load_vector                                                ; 8821: 8e 09 0f    ...
-    clc                                                               ; 8824: 18          .
+    ldx #0                                                            ; 881a: a2 00       ..             ; X=0: clear hi bytes of block size
+    ldy #4                                                            ; 881c: a0 04       ..             ; Y=4: process 4 address bytes
+    stx fs_reply_cmd                                                  ; 881e: 8e 08 0f    ...            ; Clear block size hi byte 1
+    stx fs_load_vector                                                ; 8821: 8e 09 0f    ...            ; Clear block size hi byte 2
+    clc                                                               ; 8824: 18          .              ; CLC for ADC in loop
 ; &8825 referenced 1 time by &8832
 .block_addr_loop
-    lda fs_load_addr,x                                                ; 8825: b5 b0       ..
-    sta txcb_start,x                                                  ; 8827: 95 c4       ..
-    adc fs_func_code,x                                                ; 8829: 7d 06 0f    }..
+    lda fs_load_addr,x                                                ; 8825: b5 b0       ..             ; Source = current position
+    sta txcb_start,x                                                  ; 8827: 95 c4       ..             ; Store source address byte
+    adc fs_func_code,x                                                ; 8829: 7d 06 0f    }..            ; Add block size to current position
     sta txcb_end,x                                                    ; 882c: 95 c8       ..             ; Store dest address byte
     sta fs_load_addr,x                                                ; 882e: 95 b0       ..             ; Advance current position
     inx                                                               ; 8830: e8          .              ; Next address byte
     dey                                                               ; 8831: 88          .              ; Decrement byte counter
     bne block_addr_loop                                               ; 8832: d0 f1       ..             ; Loop for all 4 bytes
-    bcs clamp_dest_setup                                              ; 8834: b0 0d       ..
+    bcs clamp_dest_setup                                              ; 8834: b0 0d       ..             ; Carry: address overflowed, clamp
     sec                                                               ; 8836: 38          8              ; SEC for SBC in overshoot check
 ; &8837 referenced 1 time by &883f
 .savchk
@@ -3608,6 +3650,14 @@ svc_entry_lo = service_entry+1
     bpl osarg1                                                        ; 898a: 10 f8       ..             ; Loop until all bytes copied
     sty zp_work_2,x                                                   ; 898c: 94 02       ..             ; Y=&FF after loop; fill high bytes
     sty zp_work_3,x                                                   ; 898e: 94 03       ..             ; Set 32-bit result bytes 2-3 to &FF
+; ***************************************************************************************
+; Return with A=0 via register restore
+; 
+; Loads A=0 and branches (always taken) to the common register
+; restore exit at restore_args_return. Used as a shared exit
+; point by ARGSV, FINDV, and GBPBV when an operation is
+; unsupported or should return zero.
+; ***************************************************************************************
 ; &8990 referenced 4 times by &897a, &89a0, &8ad5, &8b77
 .return_a_zero
     lda #0                                                            ; 8990: a9 00       ..             ; A=operation (0=close, &40=read, &80=write, &C0=R/W)
@@ -3663,7 +3713,7 @@ svc_entry_lo = service_entry+1
 ; OR handle bit into fs_sequence_nos (&0E08) to prevent
 ; a newly opened file inheriting a stale sequence number
 ; from a previous file using the same handle.
-    txa                                                               ; 89c6: 8a          .              ; A=single-bit bitmask
+    txa                                                               ; 89c6: 8a          .              ; A=handle bitmask for new file; A=single-bit bitmask
     jsr mask_to_handle                                                ; 89c7: 20 60 86     `.            ; Convert bitmask to handle number (FS2A)
     bne restore_xy_return                                             ; 89ca: d0 a5       ..             ; ALWAYS branch to restore and return
 ; ***************************************************************************************
@@ -3774,7 +3824,7 @@ svc_entry_lo = service_entry+1
     iny                                                               ; 8a29: c8          .              ; Next param block byte
     inx                                                               ; 8a2a: e8          .              ; Next adjustment byte (X wraps &FC->&00)
     bne adjust_addr_byte                                              ; 8a2b: d0 eb       ..             ; Loop 4 times (X=&FC,&FD,&FE,&FF,done)
-    rts                                                               ; 8a2d: 60          `
+    rts                                                               ; 8a2d: 60          `              ; Return (unsupported function)
 
 ; ***************************************************************************************
 ; GBPBV handler (OSGBPB entry point)
@@ -4156,8 +4206,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     equb &0d, &83, &bb, &80, &c0                                      ; 8c16: 0d 83 bb... ...
 
 .ex_handler
-    ldx #1                                                            ; 8c1b: a2 01       ..
-    lda #3                                                            ; 8c1d: a9 03       ..
+    ldx #1                                                            ; 8c1b: a2 01       ..             ; X=1: *EX single-entry examine
+    lda #3                                                            ; 8c1d: a9 03       ..             ; A=3: column count for *EX mode
     bne init_cat_params                                               ; 8c1f: d0 08       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -4211,12 +4261,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr print_inline                                                  ; 8c4e: 20 05 86     ..            ; Print ')     '
     equs ")     "                                                     ; 8c51: 29 20 20... )
 
-    ldx fs_access_level                                               ; 8c57: ae 12 0f    ...
+    ldx fs_access_level                                               ; 8c57: ae 12 0f    ...            ; Load access level from reply
     bne print_public                                                  ; 8c5a: d0 0b       ..             ; Non-zero: Public access
     jsr print_inline                                                  ; 8c5c: 20 05 86     ..            ; Print 'Owner' + CR
     equs "Owner", &0d                                                 ; 8c5f: 4f 77 6e... Own
 
-    bne cat_check_access                                              ; 8c65: d0 0a       ..
+    bne cat_check_access                                              ; 8c65: d0 0a       ..             ; ALWAYS branch past 'Owner'
 ; &8c67 referenced 1 time by &8c5a
 .print_public
     jsr print_inline                                                  ; 8c67: 20 05 86     ..            ; Print 'Public' + CR
@@ -4232,17 +4282,17 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr print_inline                                                  ; 8c7c: 20 05 86     ..            ; Print '    Option '
     equs "    Option "                                                ; 8c7f: 20 20 20...
 
-    lda fs_boot_option                                                ; 8c8a: ad 05 0e    ...
+    lda fs_boot_option                                                ; 8c8a: ad 05 0e    ...            ; Load boot option from reply
     tax                                                               ; 8c8d: aa          .              ; X = boot option for name table lookup
     jsr print_hex                                                     ; 8c8e: 20 e0 9f     ..            ; Print boot option as hex digit
     jsr print_inline                                                  ; 8c91: 20 05 86     ..            ; Print ' ('
     equs " ("                                                         ; 8c94: 20 28        (
 
-    ldy boot_option_text,x                                            ; 8c96: bc 08 8d    ...
+    ldy boot_option_text,x                                            ; 8c96: bc 08 8d    ...            ; Y=string offset for this option
 ; &8c99 referenced 1 time by &8ca2
 .cattxt
-    lda boot_option_text,y                                            ; 8c99: b9 08 8d    ...
-    bmi done_option_name                                              ; 8c9c: 30 06       0.
+    lda boot_option_text,y                                            ; 8c99: b9 08 8d    ...            ; Load next char of option name
+    bmi done_option_name                                              ; 8c9c: 30 06       0.             ; Bit 7 set: end of option name
     jsr osasci                                                        ; 8c9e: 20 e3 ff     ..            ; Write character
     iny                                                               ; 8ca1: c8          .              ; Next character
     bne cattxt                                                        ; 8ca2: d0 f5       ..             ; Continue printing option name
@@ -4251,20 +4301,21 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr print_inline                                                  ; 8ca4: 20 05 86     ..            ; Print ')' + CR + 'Dir. '
     equs ")", &0d, "Dir. "                                            ; 8ca7: 29 0d 44... ).D
 
-    ldx #&11                                                          ; 8cae: a2 11       ..
-    jsr print_reply_bytes                                             ; 8cb0: 20 fb 8c     ..
-    jsr print_inline                                                  ; 8cb3: 20 05 86     ..
+    ldx #&11                                                          ; 8cae: a2 11       ..             ; X=&11: Dir. name offset in reply
+    jsr print_reply_bytes                                             ; 8cb0: 20 fb 8c     ..            ; Print directory name (10 chars)
+    jsr print_inline                                                  ; 8cb3: 20 05 86     ..            ; Print '     Lib. ' header
     equs "     Lib. "                                                 ; 8cb6: 20 20 20...
 
-    ldx #&1b                                                          ; 8cc0: a2 1b       ..
+    ldx #&1b                                                          ; 8cc0: a2 1b       ..             ; X=&1B: Lib. name offset in reply
     jsr print_reply_bytes                                             ; 8cc2: 20 fb 8c     ..            ; Print library name
-    jsr osnewl                                                        ; 8cc5: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
+    jsr osnewl                                                        ; 8cc5: 20 e7 ff     ..            ; Print two CRs (blank line); Write newline (characters 10 and 13)
 ; &8cc8 referenced 1 time by &8cf9
 .fetch_dir_batch
     sty fs_func_code                                                  ; 8cc8: 8c 06 0f    ...            ; Store entry start offset for request
     sty fs_work_4                                                     ; 8ccb: 84 b4       ..             ; Save start offset in zero page for loop
     ldx fs_work_5                                                     ; 8ccd: a6 b5       ..             ; Load examine arg count for batch size
     stx fs_data_count                                                 ; 8ccf: 8e 07 0f    ...            ; Store as request count at &0F07
+.cat_examine_loop
     ldx fs_work_7                                                     ; 8cd2: a6 b7       ..             ; Load column count for display format
     stx fs_cmd_data                                                   ; 8cd4: 8e 05 0f    ...            ; Store column count in command data
     ldx #3                                                            ; 8cd7: a2 03       ..             ; X=3: copy directory name at offset 3
@@ -4273,7 +4324,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr prepare_fs_cmd                                                ; 8cde: 20 c3 83     ..            ; Prepare FS command buffer (12 references)
     inx                                                               ; 8ce1: e8          .              ; X past command code byte in reply
     lda fs_cmd_data                                                   ; 8ce2: ad 05 0f    ...            ; Load entry count from reply
-    beq print_newline                                                 ; 8ce5: f0 6e       .n
+    beq print_newline                                                 ; 8ce5: f0 6e       .n             ; Zero entries: catalogue complete
 .process_entries
     pha                                                               ; 8ce7: 48          H              ; Save entry count for batch processing
 ; &8ce8 referenced 1 time by &8cec
@@ -4308,7 +4359,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Each string is terminated by the next instruction's opcode
 ; having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).
 .return_9
-    rts                                                               ; 8d07: 60          `
+    rts                                                               ; 8d07: 60          `              ; Return from column separator
 
 ; &8d08 referenced 2 times by &8c96, &8c99
 .boot_option_text
@@ -4479,6 +4530,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda fs_cmd_data,x                                                 ; 8d8b: bd 05 0f    ...            ; Load byte from FS reply buffer
     bmi return_5                                                      ; 8d8e: 30 f4       0.             ; Bit 7 set: end of string, return
     bne dir_print_char                                                ; 8d90: d0 15       ..             ; Non-zero: print character
+; ***************************************************************************************
+; Print catalogue column separator or newline
+; 
+; Handles column formatting for *CAT display. On a null byte
+; separator, advances the column counter modulo 4: prints a
+; 2-space separator between columns, or a CR at column 0.
+; Called from fsreply_0_print_dir.
+; ***************************************************************************************
 ; &8d92 referenced 1 time by &8cf1
 .cat_column_separator
     ldy fs_crflag                                                     ; 8d92: a4 b9       ..             ; Null byte: check column counter
@@ -4491,10 +4550,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr print_inline                                                  ; 8d9e: 20 05 86     ..            ; Print 2-space column separator
     equs "  "                                                         ; 8da1: 20 20
 
-    bne next_dir_entry                                                ; 8da3: d0 05       ..
+    bne next_dir_entry                                                ; 8da3: d0 05       ..             ; More entries: skip final newline
 ; &8da5 referenced 2 times by &8d94, &8d9c
 .dir_column_check
-    lda #&0d                                                          ; 8da5: a9 0d       ..
+    lda #&0d                                                          ; 8da5: a9 0d       ..             ; A=CR: print newline separator
 ; &8da7 referenced 1 time by &8d90
 .dir_print_char
     jsr osasci                                                        ; 8da7: 20 e3 ff     ..            ; Write character 13
@@ -4689,6 +4748,13 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     ldy #&8d                                                          ; 8e40: a0 8d       ..             ; Y = &8D (high byte of command address)
     jmp oscli                                                         ; 8e42: 4c f7 ff    L..            ; Execute boot command string via OSCLI
 
+; ***************************************************************************************
+; Load handle from &F0 and calculate workspace offset
+; 
+; Loads the file handle byte from &F0, then falls through to
+; calc_handle_offset which converts handle * 12 to a workspace
+; byte offset. Validates offset < &48.
+; ***************************************************************************************
 ; &8e45 referenced 2 times by &8e5f, &8e6f
 .load_handle_calc_offset
     lda osword_pb_ptr                                                 ; 8e45: a5 f0       ..             ; Load handle from &F0
@@ -4720,15 +4786,15 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &8e58 referenced 1 time by &8e53
 .return_6
 .return_calc_handle
-    rts                                                               ; 8e58: 60          `
+    rts                                                               ; 8e58: 60          `              ; Return after calculation
 
 ; *NET1: read file handle from received packet.
 ; Reads a byte from offset &6F of the RX buffer (net_rx_ptr)
 ; and falls through to net_2_read_handle_entry's common path.
 .net_1_read_handle
-    ldy #&6f ; 'o'                                                    ; 8e59: a0 6f       .o
-    lda (net_rx_ptr),y                                                ; 8e5b: b1 9c       ..
-    bcc store_handle_return                                           ; 8e5d: 90 0d       ..
+    ldy #&6f ; 'o'                                                    ; 8e59: a0 6f       .o             ; Y=&6F: RX buffer handle offset
+    lda (net_rx_ptr),y                                                ; 8e5b: b1 9c       ..             ; Read handle from RX packet
+    bcc store_handle_return                                           ; 8e5d: 90 0d       ..             ; Valid handle: store and return
 ; ***************************************************************************************
 ; *NET2: read handle entry from workspace
 ; 
@@ -4778,7 +4844,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .svc_8_osword
     lda osbyte_a_copy                                                 ; 8e7f: a5 ef       ..             ; Command code from &EF
     sbc #&0f                                                          ; 8e81: e9 0f       ..             ; Subtract &0F: OSWORD &0F-&13 become indices 0-4
-    bmi return_7                                                      ; 8e83: 30 2a       0*
+    bmi return_7                                                      ; 8e83: 30 2a       0*             ; Outside our OSWORD range, exit
 ; ***************************************************************************************
 ; OSWORD &12 handler: read/set state information (RS)
 ; 
@@ -4877,9 +4943,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ;     Y: &FF
 ; ***************************************************************************************
 .osword_0f_handler
-    asl tx_clear_flag                                                 ; 8eba: 0e 62 0d    .b.
-    tya                                                               ; 8ebd: 98          .
-    bcc readry                                                        ; 8ebe: 90 34       .4
+    asl tx_clear_flag                                                 ; 8eba: 0e 62 0d    .b.            ; Test TX semaphore (bit 7 to C)
+    tya                                                               ; 8ebd: 98          .              ; Save Y for return value
+    bcc readry                                                        ; 8ebe: 90 34       .4             ; C=0: TX busy, return error
     lda net_rx_ptr_hi                                                 ; 8ec0: a5 9d       ..             ; User TX CB in workspace page (high byte)
     sta ws_ptr_hi                                                     ; 8ec2: 85 ac       ..             ; Set param block high byte
     sta nmi_tx_block_hi                                               ; 8ec4: 85 a1       ..             ; Set LTXCBP high byte for low-level TX
@@ -4932,9 +4998,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     equb &ff, 1                                                       ; 8ef7: ff 01       ..
 
 .rs
-    cmp #6                                                            ; 8ef9: c9 06       ..
-    bcs rsl1                                                          ; 8efb: b0 41       .A
-    cmp #4                                                            ; 8efd: c9 04       ..
+    cmp #6                                                            ; 8ef9: c9 06       ..             ; Sub-function >= 6?
+    bcs rsl1                                                          ; 8efb: b0 41       .A             ; Yes: jump to sub 6-9 handler
+    cmp #4                                                            ; 8efd: c9 04       ..             ; Sub-function >= 4?
     bcs rssl1                                                         ; 8eff: b0 22       ."             ; Sub-function 4 or 5: read/set station
     lsr a                                                             ; 8f01: 4a          J              ; LSR: 0->0, 1->0, 2->1, 3->1
     ldx #&0d                                                          ; 8f02: a2 0d       ..             ; X=&0D: default to static workspace page
@@ -5271,6 +5337,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda (net_rx_ptr),y                                                ; 906c: b1 9c       ..             ; Load current data length
     adc #3                                                            ; 906e: 69 03       i.             ; Add 3 for header bytes; Adjust data length by 3 for header bytes
     sta (net_rx_ptr),y                                                ; 9070: 91 9c       ..             ; Store adjusted length
+; ***************************************************************************************
+; Enable interrupts and transmit via tx_poll_ff
+; 
+; CLI to enable interrupts, then JMP tx_poll_ff. A short
+; tail-call wrapper used after building the TX control block.
+; ***************************************************************************************
 ; &9072 referenced 1 time by &905b
 .enable_irq_and_tx
     cli                                                               ; 9072: 58          X              ; Enable interrupts
@@ -5453,10 +5525,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     plp                                                               ; 9110: 28          (              ; Restore N flag from table match type
     bpl return_nbyte                                                  ; 9111: 10 1c       ..             ; Y was positive (NCTBPL): done, no result
     lda #&7f                                                          ; 9113: a9 7f       ..             ; Set up RX control block to wait for reply
-    sta (net_tx_ptr,x)                                                ; 9115: 81 9a       ..
+    sta (net_tx_ptr,x)                                                ; 9115: 81 9a       ..             ; Write &7F to RXCB (wait for reply)
 ; &9117 referenced 1 time by &9119
 .poll_rxcb_loop
-    lda (net_tx_ptr,x)                                                ; 9117: a1 9a       ..
+    lda (net_tx_ptr,x)                                                ; 9117: a1 9a       ..             ; Poll RXCB for completion (bit7)
     bpl poll_rxcb_loop                                                ; 9119: 10 fc       ..             ; Bit7 clear: still waiting, poll again
     tsx                                                               ; 911b: ba          .              ; X = stack pointer for register restoration
     ldy #&dd                                                          ; 911c: a0 dd       ..             ; Y=&DD: saved P byte offset in workspace
@@ -5494,8 +5566,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     equb &7a, &e3, &e4                                                ; 9145: 7a e3 e4    z..
 
 .nword
-    ldy #&0e                                                          ; 9148: a0 0e       ..
-    cmp #7                                                            ; 914a: c9 07       ..
+    ldy #&0e                                                          ; 9148: a0 0e       ..             ; Y=14: max OSWORD parameter bytes
+    cmp #7                                                            ; 914a: c9 07       ..             ; OSWORD 7 = make a sound
     beq copy_params_rword                                             ; 914c: f0 04       ..             ; OSWORD 7 (sound): handle via common path
     cmp #8                                                            ; 914e: c9 08       ..             ; OSWORD 8 = define an envelope
 ; ***************************************************************************************
@@ -5574,9 +5646,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     beq cb_template_main_start                                        ; 918a: f0 14       ..             ; Skip: don't store, just decrement Y
     cmp #&fc                                                          ; 918c: c9 fc       ..             ; &FC = page byte sentinel
     bne cbset3                                                        ; 918e: d0 08       ..             ; Not sentinel: store template value directly
-    lda net_rx_ptr_hi                                                 ; 9190: a5 9d       ..
-    bvs rxcb_matched                                                  ; 9192: 70 02       p.
-    lda nfs_workspace_hi                                              ; 9194: a5 9f       ..
+    lda net_rx_ptr_hi                                                 ; 9190: a5 9d       ..             ; V=1: use (net_rx_ptr) page
+    bvs rxcb_matched                                                  ; 9192: 70 02       p.             ; V=1: skip to net_rx_ptr page
+    lda nfs_workspace_hi                                              ; 9194: a5 9f       ..             ; V=0: use (nfs_workspace) page
 ; &9196 referenced 1 time by &9192
 .rxcb_matched
     sta net_tx_ptr_hi                                                 ; 9196: 85 9b       ..             ; PAGE byte → Y=&02 / Y=&74
@@ -5636,7 +5708,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     equb 0                                                            ; 91b5: 00          .              ; → Y=&0A / Y=&7C; PAGE byte → Y=&15 (main only)
     equb &fe                                                          ; 91b6: fe          .              ; STOP — main-path boundary; → Y=&16 (main only)
     equb &80                                                          ; 91b7: 80          .
-    equb &93, &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe   ; 91b8: 93 fd fd... ...
+    equb &93, &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe   ; 91b8: 93 fd fd... ...            ; SKIP (main only); PAGE byte → Y=&11 (main only); → Y=&12 (main only); → Y=&13 (main only); → Y=&14 (main only); → Y=&17 (main only)
     equb &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff        ; 91c4: d1 fd fd... ...
 
 ; ***************************************************************************************
@@ -5657,7 +5729,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda #&41 ; 'A'                                                    ; 91d9: a9 41       .A             ; &41 = initial PFLAGS (bit 6 set, bit 0 set)
 ; &91db referenced 1 time by &91d2
 .setup1
-    sta l0d60                                                         ; 91db: 8d 60 0d    .`.
+    sta l0d60                                                         ; 91db: 8d 60 0d    .`.            ; Store initial PFLAGS value
 ; &91de referenced 2 times by &91e1, &91f5
 .return_printer_select
     rts                                                               ; 91de: 60          `              ; Return
@@ -5723,15 +5795,15 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     txa                                                               ; 920e: 8a          .              ; A = reason code
     eor #1                                                            ; 920f: 49 01       I.             ; EOR #1: toggle print-active flag (bit 0)
     jsr store_output_byte                                             ; 9211: 20 04 92     ..            ; Store toggled flag as output byte
-    eor l0d60                                                         ; 9214: 4d 60 0d    M`.
-    ror a                                                             ; 9217: 6a          j
-    bcc pril1                                                         ; 9218: 90 07       ..
-    rol a                                                             ; 921a: 2a          *
-    sta l0d60                                                         ; 921b: 8d 60 0d    .`.
-    jsr flush_output_block                                            ; 921e: 20 30 92     0.
+    eor l0d60                                                         ; 9214: 4d 60 0d    M`.            ; XOR with current PFLAGS
+    ror a                                                             ; 9217: 6a          j              ; Test if sequence changed (bit 7 mismatch)
+    bcc pril1                                                         ; 9218: 90 07       ..             ; Sequence unchanged: skip flush
+    rol a                                                             ; 921a: 2a          *              ; Undo ROR
+    sta l0d60                                                         ; 921b: 8d 60 0d    .`.            ; Store toggled PFLAGS
+    jsr flush_output_block                                            ; 921e: 20 30 92     0.            ; Flush current output block
 ; &9221 referenced 1 time by &9218
 .pril1
-    lda l0d60                                                         ; 9221: ad 60 0d    .`.
+    lda l0d60                                                         ; 9221: ad 60 0d    .`.            ; Reload current PFLAGS
     and #&f0                                                          ; 9224: 29 f0       ).             ; Extract upper nibble of PFLAGS
     ror a                                                             ; 9226: 6a          j              ; Shift for bit extraction
     tax                                                               ; 9227: aa          .              ; Save in X
@@ -5739,7 +5811,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     ror a                                                             ; 9229: 6a          j              ; Merge print-active bit from original A
     txa                                                               ; 922a: 8a          .              ; Retrieve shifted PFLAGS
     rol a                                                             ; 922b: 2a          *              ; Recombine into new PFLAGS value
-    sta l0d60                                                         ; 922c: 8d 60 0d    .`.
+    sta l0d60                                                         ; 922c: 8d 60 0d    .`.            ; Store recombined PFLAGS value
     rts                                                               ; 922f: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -5762,12 +5834,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     ldx #&26 ; '&'                                                    ; 9242: a2 26       .&             ; X=&26: start from template entry &26
     jsr ctrl_block_setup_clv                                          ; 9244: 20 80 91     ..            ; Reuse ctrl_block_setup with CLV entry
     dey                                                               ; 9247: 88          .              ; Y=&0A: sequence flag byte offset
-    lda l0d60                                                         ; 9248: ad 60 0d    .`.
-    pha                                                               ; 924b: 48          H
-    rol a                                                             ; 924c: 2a          *
-    pla                                                               ; 924d: 68          h
-    eor #&80                                                          ; 924e: 49 80       I.
-    sta l0d60                                                         ; 9250: 8d 60 0d    .`.
+    lda l0d60                                                         ; 9248: ad 60 0d    .`.            ; Load current PFLAGS
+    pha                                                               ; 924b: 48          H              ; Save current PFLAGS
+    rol a                                                             ; 924c: 2a          *              ; Carry = current sequence (bit 7)
+    pla                                                               ; 924d: 68          h              ; Restore original PFLAGS
+    eor #&80                                                          ; 924e: 49 80       I.             ; Toggle sequence number (bit 7 of PFLAGS)
+    sta l0d60                                                         ; 9250: 8d 60 0d    .`.            ; Store toggled sequence number
     rol a                                                             ; 9253: 2a          *              ; Old sequence bit into bit 0
     sta (nfs_workspace),y                                             ; 9254: 91 9e       ..             ; Store sequence flag at offset &0A
     ldy #&1f                                                          ; 9256: a0 1f       ..             ; Y=&1F: buffer start offset
@@ -5931,11 +6003,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     txa                                                               ; 9313: 8a          .              ; Result in X to A
     ldx #0                                                            ; 9314: a2 00       ..             ; X=0 for indexed indirect store
     sta (nfs_workspace,x)                                             ; 9316: 81 9e       ..             ; Store result to workspace
-    rts                                                               ; 9318: 60          `
+    rts                                                               ; 9318: 60          `              ; Return after storing result
 
 ; &9319 referenced 1 time by &930b
 .vdu_osbyte_table
-    equb &85, &c2, &c3                                                ; 9319: 85 c2 c3    ...
+    equb &85, &c2, &c3                                                ; 9319: 85 c2 c3    ...            ; OSBYTE &85: read cursor position; OSBYTE &C3: read screen start address
 ; &931c referenced 1 time by &8175
 
     org &9656
@@ -5944,20 +6016,20 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 
 ; &9660 referenced 2 times by &86aa, &8ed1
 .trampoline_tx_setup
-    jmp tx_begin                                                      ; 9660: 4c c7 9b    L..
+    jmp tx_begin                                                      ; 9660: 4c c7 9b    L..            ; Trampoline: forward to tx_begin
 
 ; &9663 referenced 1 time by &8319
 .trampoline_adlc_init
-    jmp adlc_init                                                     ; 9663: 4c 6f 96    Lo.
+    jmp adlc_init                                                     ; 9663: 4c 6f 96    Lo.            ; Trampoline: forward to adlc_init
 
 .svc_12_nmi_release
-    jmp poll_nmi_ready                                                ; 9666: 4c b2 96    L..
+    jmp poll_nmi_ready                                                ; 9666: 4c b2 96    L..            ; Trampoline: forward to NMI release
 
 .svc_11_nmi_claim
-    jmp init_nmi_workspace                                            ; 9669: 4c 8d 96    L..
+    jmp init_nmi_workspace                                            ; 9669: 4c 8d 96    L..            ; Trampoline: forward to NMI claim
 
 .svc_5_unknown_irq
-    jmp check_cb1_irq                                                 ; 966c: 4c 35 9b    L5.
+    jmp check_cb1_irq                                                 ; 966c: 4c 35 9b    L5.            ; Trampoline: forward to IRQ handler
 
 ; ***************************************************************************************
 ; ADLC initialisation
@@ -5993,6 +6065,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; ***************************************************************************************
 .adlc_init_workspace
     jsr osbyte                                                        ; 968a: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=12 - NMI claim
+; ***************************************************************************************
+; Initialise NMI workspace (skip service request)
+; 
+; Sub-entry of adlc_init_workspace that skips the OSBYTE &8F
+; service request. Copies 32 bytes of NMI shim from ROM to
+; &0D00, patches the ROM bank number, sets init flags, reads
+; station ID, and re-enables NMIs.
+; ***************************************************************************************
 ; &968d referenced 1 time by &9669
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 968d: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
@@ -6010,22 +6090,22 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda station_id_disable_net_nmis                                   ; 96a5: ad 18 fe    ...            ; Read station ID (&FE18 = INTOFF side effect)
     sta tx_src_stn                                                    ; 96a8: 8d 22 0d    .".            ; Store our station ID in TX scout
     sty tx_src_net                                                    ; 96ab: 8c 23 0d    .#.            ; Y=0 after copy loop: net = local
-    bit video_ula_control                                             ; 96ae: 2c 20 fe    , .
-    rts                                                               ; 96b1: 60          `
+    bit video_ula_control                                             ; 96ae: 2c 20 fe    , .            ; BIT VULA: enable NMIs via latch
+    rts                                                               ; 96b1: 60          `              ; Return from NMI workspace init
 
 ; &96b2 referenced 1 time by &9666
 .poll_nmi_ready
-    bit econet_init_flag                                              ; 96b2: 2c 66 0d    ,f.
-    bpl enter_rx_listen                                               ; 96b5: 10 1e       ..
+    bit econet_init_flag                                              ; 96b2: 2c 66 0d    ,f.            ; Test Econet init complete flag
+    bpl enter_rx_listen                                               ; 96b5: 10 1e       ..             ; Init done: enter RX listen mode
 ; &96b7 referenced 2 times by &96bc, &96c3
 .nmi_vec_lo_match
-    lda nmi_jmp_lo                                                    ; 96b7: ad 0c 0d    ...
-    cmp #&f2                                                          ; 96ba: c9 f2       ..
-    bne nmi_vec_lo_match                                              ; 96bc: d0 f9       ..
-    lda nmi_jmp_hi                                                    ; 96be: ad 0d 0d    ...
-    cmp #&96                                                          ; 96c1: c9 96       ..
-    bne nmi_vec_lo_match                                              ; 96c3: d0 f2       ..
-    bit station_id_disable_net_nmis                                   ; 96c5: 2c 18 fe    ,..
+    lda nmi_jmp_lo                                                    ; 96b7: ad 0c 0d    ...            ; Load NMI vector low byte
+    cmp #&f2                                                          ; 96ba: c9 f2       ..             ; Check if low byte is expected value
+    bne nmi_vec_lo_match                                              ; 96bc: d0 f9       ..             ; Mismatch: keep polling
+    lda nmi_jmp_hi                                                    ; 96be: ad 0d 0d    ...            ; Load NMI vector high byte
+    cmp #&96                                                          ; 96c1: c9 96       ..             ; Check if high byte is &97
+    bne nmi_vec_lo_match                                              ; 96c3: d0 f2       ..             ; Mismatch: keep polling
+    bit station_id_disable_net_nmis                                   ; 96c5: 2c 18 fe    ,..            ; BIT INTOFF: disable NMIs
 ; ***************************************************************************************
 ; Save Econet state to RX control block
 ; 
@@ -6063,9 +6143,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &96e7 referenced 2 times by &96d5, &9a3d
 .adlc_rx_listen
     lda #&82                                                          ; 96e7: a9 82       ..             ; CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding; CR1=&82: TX_RESET | RIE (TX in reset, RX interrupts enabled)
-    sta econet_control1_or_status1                                    ; 96e9: 8d a0 fe    ...
+    sta econet_control1_or_status1                                    ; 96e9: 8d a0 fe    ...            ; Write CR1: RIE | TX_RESET
     lda #&67 ; 'g'                                                    ; 96ec: a9 67       .g             ; CR2=&67: CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE
-    sta econet_control23_or_status2                                   ; 96ee: 8d a1 fe    ...
+    sta econet_control23_or_status2                                   ; 96ee: 8d a1 fe    ...            ; Write CR2: listen mode config
     rts                                                               ; 96f1: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -6090,12 +6170,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     cmp #&ff                                                          ; 9701: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 9703: d0 1a       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 9705: a9 40       .@             ; Flag &40 = broadcast frame
-    sta tx_flags                                                      ; 9707: 8d 4a 0d    .J.
+    sta tx_flags                                                      ; 9707: 8d 4a 0d    .J.            ; Clear TX flags for new reception
 ; &970a referenced 1 time by &96ff
 .accept_frame
     lda #&11                                                          ; 970a: a9 11       ..             ; Install next NMI handler at &9715 (RX scout second byte); Install next NMI handler at &96DC (RX scout net byte)
-    ldy #&97                                                          ; 970c: a0 97       ..
-    jmp set_nmi_vector                                                ; 970e: 4c 0e 0d    L..
+    ldy #&97                                                          ; 970c: a0 97       ..             ; High byte of scout net handler
+    jmp set_nmi_vector                                                ; 970e: 4c 0e 0d    L..            ; Install next handler and RTI
 
 ; ***************************************************************************************
 ; RX scout second byte handler
@@ -6115,8 +6195,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &971f referenced 1 time by &9703
 .scout_reject
     lda #&a2                                                          ; 971f: a9 a2       ..             ; Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE
-    sta econet_control1_or_status1                                    ; 9721: 8d a0 fe    ...
-    jmp install_rx_scout_handler                                      ; 9724: 4c 40 9a    L@.
+    sta econet_control1_or_status1                                    ; 9721: 8d a0 fe    ...            ; Write CR1 to discontinue RX
+    jmp install_rx_scout_handler                                      ; 9724: 4c 40 9a    L@.            ; Return to idle scout listening
 
 ; &9727 referenced 1 time by &9719
 .accept_local_net
@@ -6125,8 +6205,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .accept_scout_net
     sta port_buf_len                                                  ; 972a: 85 a2       ..             ; Store Y offset for scout data buffer
     lda #&43 ; 'C'                                                    ; 972c: a9 43       .C             ; Install scout data reading loop at &9747; Install scout data reading loop at &970E
-    ldy #&97                                                          ; 972e: a0 97       ..
-    jmp set_nmi_vector                                                ; 9730: 4c 0e 0d    L..
+    ldy #&97                                                          ; 972e: a0 97       ..             ; High byte of scout data handler
+    jmp set_nmi_vector                                                ; 9730: 4c 0e 0d    L..            ; Install scout data loop and RTI
 
 ; ***************************************************************************************
 ; Scout error/discard handler
@@ -6148,7 +6228,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 
 ; &9740 referenced 1 time by &9738
 .scout_discard
-    jmp discard_listen                                                ; 9740: 4c 3d 9a    L=.
+    jmp discard_listen                                                ; 9740: 4c 3d 9a    L=.            ; Gentle discard: RX_DISCONTINUE
 
 ; ***************************************************************************************
 ; Scout data reading loop
@@ -6187,9 +6267,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda econet_data_continue_frame                                    ; 9758: ad a2 fe    ...            ; Read second byte of pair
     sta rx_src_stn,y                                                  ; 975b: 99 3d 0d    .=.            ; Store at &0D3D+Y
     iny                                                               ; 975e: c8          .              ; Advance and check buffer limit
-    cpy #&0c                                                          ; 975f: c0 0c       ..
+    cpy #&0c                                                          ; 975f: c0 0c       ..             ; Copied all 12 scout bytes?
     beq scout_complete                                                ; 9761: f0 0a       ..             ; Buffer full (Y=12) -- force completion
-    sty port_buf_len                                                  ; 9763: 84 a2       ..
+    sty port_buf_len                                                  ; 9763: 84 a2       ..             ; Save final buffer offset
     lda econet_control23_or_status2                                   ; 9765: ad a1 fe    ...            ; Read SR2 for next pair
     bne scout_loop_rda                                                ; 9768: d0 de       ..             ; SR2 non-zero -- loop back for more bytes
     jmp nmi_rti                                                       ; 976a: 4c 14 0d    L..            ; SR2 = 0 -- RTI, wait for next NMI
@@ -6244,9 +6324,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     bit rx_flags                                                      ; 97a0: 2c 64 0d    ,d.            ; Check if RX port list active (bit7)
     bpl scout_network_match                                           ; 97a3: 10 3b       .;             ; No active ports -- try NFS workspace
     lda #&c0                                                          ; 97a5: a9 c0       ..             ; Start scanning port list at page &C0
-    sta port_ws_offset                                                ; 97a7: 85 a6       ..
-    lda #0                                                            ; 97a9: a9 00       ..
-    sta rx_buf_offset                                                 ; 97ab: 85 a7       ..
+.scan_nfs_port_list
+    sta port_ws_offset                                                ; 97a7: 85 a6       ..             ; Store page to workspace pointer low
+    lda #0                                                            ; 97a9: a9 00       ..             ; A=0: no NFS workspace offset yet
+    sta rx_buf_offset                                                 ; 97ab: 85 a7       ..             ; Clear NFS workspace search flag
 ; &97ad referenced 1 time by &97da
 .check_port_slot
     ldy #0                                                            ; 97ad: a0 00       ..             ; Y=0: read control byte from start of slot
@@ -6256,7 +6337,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     beq scout_station_check                                           ; 97b1: f0 29       .)             ; Zero = end of port list, no match
     cmp #&7f                                                          ; 97b3: c9 7f       ..             ; &7F = any-port wildcard
     bne next_port_slot                                                ; 97b5: d0 1c       ..             ; Not wildcard -- check specific port match
-    iny                                                               ; 97b7: c8          .
+    iny                                                               ; 97b7: c8          .              ; Y=1: advance to port byte in slot
     lda (port_ws_offset),y                                            ; 97b8: b1 a6       ..             ; Read port number from slot (offset 1)
     beq check_station_filter                                          ; 97ba: f0 05       ..             ; Zero port in slot = match any port
     cmp rx_port                                                       ; 97bc: cd 40 0d    .@.            ; Check if port matches this slot
@@ -6277,36 +6358,36 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &97d3 referenced 3 times by &97b5, &97bf, &97c9
 .next_port_slot
     lda port_ws_offset                                                ; 97d3: a5 a6       ..             ; Check if NFS workspace search pending
-    clc                                                               ; 97d5: 18          .
-    adc #&0c                                                          ; 97d6: 69 0c       i.
-    sta port_ws_offset                                                ; 97d8: 85 a6       ..
-    bcc check_port_slot                                               ; 97da: 90 d1       ..
+    clc                                                               ; 97d5: 18          .              ; CLC for 12-byte slot advance
+    adc #&0c                                                          ; 97d6: 69 0c       i.             ; Advance to next 12-byte port slot
+    sta port_ws_offset                                                ; 97d8: 85 a6       ..             ; Update workspace pointer to next slot
+    bcc check_port_slot                                               ; 97da: 90 d1       ..             ; Always branches (page &C0 won't overflow)
 ; &97dc referenced 1 time by &97b1
 .scout_station_check
-    lda rx_buf_offset                                                 ; 97dc: a5 a7       ..
-    bne scout_no_match                                                ; 97de: d0 b3       ..
+    lda rx_buf_offset                                                 ; 97dc: a5 a7       ..             ; Check if NFS workspace already searched
+    bne scout_no_match                                                ; 97de: d0 b3       ..             ; Already searched: no match found
 ; &97e0 referenced 1 time by &97a3
 .scout_network_match
-    bit rx_flags                                                      ; 97e0: 2c 64 0d    ,d.
-    bvc scout_no_match                                                ; 97e3: 50 ae       P.
-    lda nfs_workspace_hi                                              ; 97e5: a5 9f       ..
-    sta rx_buf_offset                                                 ; 97e7: 85 a7       ..
-    ldy #0                                                            ; 97e9: a0 00       ..
-    sty port_ws_offset                                                ; 97eb: 84 a6       ..
+    bit rx_flags                                                      ; 97e0: 2c 64 0d    ,d.            ; Try NFS workspace if paged list exhausted
+    bvc scout_no_match                                                ; 97e3: 50 ae       P.             ; No NFS workspace RX (bit6 clear) -- discard
+    lda nfs_workspace_hi                                              ; 97e5: a5 9f       ..             ; Get NFS workspace page number
+    sta rx_buf_offset                                                 ; 97e7: 85 a7       ..             ; Mark NFS workspace as search target
+    ldy #0                                                            ; 97e9: a0 00       ..             ; Y=0: start at offset 0 in workspace
+    sty port_ws_offset                                                ; 97eb: 84 a6       ..             ; Reset slot pointer to start
     beq scout_ctrl_check                                              ; 97ed: f0 c0       ..             ; ALWAYS branch
 
 ; &97ef referenced 1 time by &97d1
 .scout_accept
-    bit tx_flags                                                      ; 97ef: 2c 4a 0d    ,J.
-    bvc ack_scout_match                                               ; 97f2: 50 03       P.
-    jmp copy_scout_fields                                             ; 97f4: 4c 47 9a    LG.
+    bit tx_flags                                                      ; 97ef: 2c 4a 0d    ,J.            ; Check broadcast flag (bit 6)
+    bvc ack_scout_match                                               ; 97f2: 50 03       P.             ; Not broadcast: ACK and set up RX
+    jmp copy_scout_fields                                             ; 97f4: 4c 47 9a    LG.            ; Broadcast: copy scout fields directly
 
 ; &97f7 referenced 2 times by &97f2, &9abb
 .ack_scout_match
-    lda #3                                                            ; 97f7: a9 03       ..
-    sta scout_status                                                  ; 97f9: 8d 5c 0d    .\.
-    jsr tx_calc_transfer                                              ; 97fc: 20 38 9f     8.
-    bcs send_data_rx_ack                                              ; 97ff: b0 03       ..
+    lda #3                                                            ; 97f7: a9 03       ..             ; Match found: set scout_status = 3
+    sta scout_status                                                  ; 97f9: 8d 5c 0d    .\.            ; Record match for completion handler
+    jsr tx_calc_transfer                                              ; 97fc: 20 38 9f     8.            ; Calculate transfer parameters
+    bcs send_data_rx_ack                                              ; 97ff: b0 03       ..             ; Transfer OK: send data ACK
     jmp scout_no_match                                                ; 9801: 4c 93 97    L..            ; Broadcast: different completion path
 
 ; &9804 referenced 2 times by &97ff, &9ab0
@@ -6323,7 +6404,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda #&82                                                          ; 9815: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 9817: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
     lda #&21 ; '!'                                                    ; 981a: a9 21       .!             ; Install nmi_data_rx at &97E6
-    ldy #&98                                                          ; 981c: a0 98       ..
+    ldy #&98                                                          ; 981c: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 981e: 4c 0e 0d    L..            ; Install nmi_data_rx and return from NMI
 
 ; ***************************************************************************************
@@ -6346,7 +6427,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     cmp station_id_disable_net_nmis                                   ; 982b: cd 18 fe    ...            ; Compare to our station ID (INTOFF)
     bne nmi_error_dispatch                                            ; 982e: d0 42       .B             ; Not for us: error path
     lda #&37 ; '7'                                                    ; 9830: a9 37       .7             ; Install net check handler at &97FA
-    ldy #&98                                                          ; 9832: a0 98       ..
+    ldy #&98                                                          ; 9832: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 9834: 4c 0e 0d    L..            ; Set NMI vector via RAM shim
 
 .nmi_data_rx_net
@@ -6366,6 +6447,13 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     bpl nmi_error_dispatch                                            ; 9850: 10 20       .              ; SR2 bit7 clear: error
     lda econet_data_continue_frame                                    ; 9852: ad a2 fe    ...            ; Discard control byte
     lda econet_data_continue_frame                                    ; 9855: ad a2 fe    ...            ; Discard port byte
+; ***************************************************************************************
+; Install data RX bulk or Tube handler
+; 
+; Selects either the normal bulk RX handler (&9843) or the Tube
+; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+; and installs the appropriate NMI handler.
+; ***************************************************************************************
 ; &9858 referenced 1 time by &9f0c
 .install_data_rx_handler
     lda #2                                                            ; 9858: a9 02       ..             ; A=2: Tube transfer flag mask
@@ -6383,6 +6471,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     ldy #&98                                                          ; 986d: a0 98       ..             ; High byte of &98A0 handler
     jmp set_nmi_vector                                                ; 986f: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
+; ***************************************************************************************
+; NMI error handler dispatch
+; 
+; Common error/abort entry used by 12 call sites. Checks
+; tx_flags bit 7: if clear, does a full ADLC reset and returns
+; to idle listen (RX error path); if set, jumps to tx_result_fail
+; (TX not-listening path).
+; ***************************************************************************************
 ; &9872 referenced 12 times by &9793, &9826, &982e, &983a, &983f, &9850, &9893, &98c5, &98cb, &9916, &99a1, &9a82
 .nmi_error_dispatch
     lda tx_flags                                                      ; 9872: ad 4a 0d    .J.            ; Check tx_flags for error path
@@ -6478,32 +6574,32 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .rx_tube_data
     bpl data_rx_tube_complete                                         ; 98e0: 10 37       .7             ; RDA clear: no more data, frame complete
     lda econet_data_continue_frame                                    ; 98e2: ad a2 fe    ...            ; Read data byte from ADLC RX FIFO
-    inc port_buf_len                                                  ; 98e5: e6 a2       ..
-    sta tube_data_register_3                                          ; 98e7: 8d e5 fe    ...
-    bne rx_update_buf                                                 ; 98ea: d0 0c       ..
-    inc port_buf_len_hi                                               ; 98ec: e6 a3       ..
-    bne rx_update_buf                                                 ; 98ee: d0 08       ..
-    inc open_port_buf                                                 ; 98f0: e6 a4       ..
-    bne rx_update_buf                                                 ; 98f2: d0 04       ..
-    inc open_port_buf_hi                                              ; 98f4: e6 a5       ..
-    beq data_rx_tube_error                                            ; 98f6: f0 1e       ..
+    inc port_buf_len                                                  ; 98e5: e6 a2       ..             ; Advance Tube transfer byte count
+    sta tube_data_register_3                                          ; 98e7: 8d e5 fe    ...            ; Send byte to Tube data register 3
+    bne rx_update_buf                                                 ; 98ea: d0 0c       ..             ; No overflow: read second byte
+    inc port_buf_len_hi                                               ; 98ec: e6 a3       ..             ; Carry to transfer count byte 2
+    bne rx_update_buf                                                 ; 98ee: d0 08       ..             ; No overflow: read second byte
+    inc open_port_buf                                                 ; 98f0: e6 a4       ..             ; Carry to transfer count byte 3
+    bne rx_update_buf                                                 ; 98f2: d0 04       ..             ; No overflow: read second byte
+    inc open_port_buf_hi                                              ; 98f4: e6 a5       ..             ; Carry to transfer count byte 4
+    beq data_rx_tube_error                                            ; 98f6: f0 1e       ..             ; All bytes zero: overflow error
 ; &98f8 referenced 3 times by &98ea, &98ee, &98f2
 .rx_update_buf
-    lda econet_data_continue_frame                                    ; 98f8: ad a2 fe    ...
-    sta tube_data_register_3                                          ; 98fb: 8d e5 fe    ...
-    inc port_buf_len                                                  ; 98fe: e6 a2       ..
-    bne rx_check_error                                                ; 9900: d0 0c       ..
-    inc port_buf_len_hi                                               ; 9902: e6 a3       ..
-    bne rx_check_error                                                ; 9904: d0 08       ..
-    inc open_port_buf                                                 ; 9906: e6 a4       ..
-    bne rx_check_error                                                ; 9908: d0 04       ..
-    inc open_port_buf_hi                                              ; 990a: e6 a5       ..
-    beq data_rx_tube_complete                                         ; 990c: f0 0b       ..
+    lda econet_data_continue_frame                                    ; 98f8: ad a2 fe    ...            ; Read second data byte (paired transfer)
+    sta tube_data_register_3                                          ; 98fb: 8d e5 fe    ...            ; Send second byte to Tube
+    inc port_buf_len                                                  ; 98fe: e6 a2       ..             ; Advance count after second byte
+    bne rx_check_error                                                ; 9900: d0 0c       ..             ; No overflow: check for more data
+    inc port_buf_len_hi                                               ; 9902: e6 a3       ..             ; Carry to count byte 2
+    bne rx_check_error                                                ; 9904: d0 08       ..             ; No overflow: check for more data
+    inc open_port_buf                                                 ; 9906: e6 a4       ..             ; Carry to count byte 3
+    bne rx_check_error                                                ; 9908: d0 04       ..             ; No overflow: check for more data
+    inc open_port_buf_hi                                              ; 990a: e6 a5       ..             ; Carry to count byte 4
+    beq data_rx_tube_complete                                         ; 990c: f0 0b       ..             ; Zero: Tube transfer complete
 ; &990e referenced 3 times by &9900, &9904, &9908
 .rx_check_error
-    lda econet_control23_or_status2                                   ; 990e: ad a1 fe    ...
-    bne rx_tube_data                                                  ; 9911: d0 cd       ..
-    jmp nmi_rti                                                       ; 9913: 4c 14 0d    L..
+    lda econet_control23_or_status2                                   ; 990e: ad a1 fe    ...            ; Re-read SR2 for next byte pair
+    bne rx_tube_data                                                  ; 9911: d0 cd       ..             ; More data available: continue loop
+    jmp nmi_rti                                                       ; 9913: 4c 14 0d    L..            ; Return from NMI, wait for data
 
 ; &9916 referenced 3 times by &98f6, &9928, &9934
 .data_rx_tube_error
@@ -6583,9 +6679,9 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     bvc dispatch_nmi_error                                            ; 9981: 50 1e       P.             ; TDRA not ready -- error
     sta econet_data_continue_frame                                    ; 9983: 8d a2 fe    ...            ; Write our station to TX FIFO
     lda #0                                                            ; 9986: a9 00       ..             ; Write network=0 to TX FIFO
-    sta econet_data_continue_frame                                    ; 9988: 8d a2 fe    ...
-    lda tx_flags                                                      ; 998b: ad 4a 0d    .J.
-    bmi start_data_tx                                                 ; 998e: 30 0e       0.
+    sta econet_data_continue_frame                                    ; 9988: 8d a2 fe    ...            ; Write network=0 (local) to TX FIFO
+    lda tx_flags                                                      ; 998b: ad 4a 0d    .J.            ; Check tx_flags for data phase
+    bmi start_data_tx                                                 ; 998e: 30 0e       0.             ; bit7 set: start data TX phase
     lda #&3f ; '?'                                                    ; 9990: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | PSE
 ; ***************************************************************************************
 ; Post-ACK scout processing
@@ -6611,6 +6707,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .dispatch_nmi_error
     jmp nmi_error_dispatch                                            ; 99a1: 4c 72 98    Lr.            ; Jump to error handler
 
+; ***************************************************************************************
+; Advance RX buffer pointer after transfer
+; 
+; Adds the transfer count to the RXCB buffer pointer (4-byte
+; addition). If a Tube transfer is active, re-claims the Tube
+; address and sends the extra RX byte via R3, incrementing the
+; Tube pointer by 1.
+; ***************************************************************************************
 ; &99a4 referenced 2 times by &9949, &99f7
 .advance_rx_buffer_ptr
     lda #2                                                            ; 99a4: a9 02       ..             ; A=2: test bit1 of tx_flags
@@ -6644,13 +6748,13 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr tube_addr_claim                                               ; 99d1: 20 06 04     ..            ; Claim Tube address for transfer
     lda rx_extra_byte                                                 ; 99d4: ad 5d 0d    .].            ; Load extra RX data byte
     sta tube_data_register_3                                          ; 99d7: 8d e5 fe    ...            ; Send to Tube via R3
-    pla                                                               ; 99da: 68          h
-    tax                                                               ; 99db: aa          .
-    ldy #8                                                            ; 99dc: a0 08       ..
-    lda (port_ws_offset),y                                            ; 99de: b1 a6       ..
-    sec                                                               ; 99e0: 38          8
-    adc #0                                                            ; 99e1: 69 00       i.
-    sta (port_ws_offset),y                                            ; 99e3: 91 a6       ..
+    pla                                                               ; 99da: 68          h              ; Restore X from stack
+    tax                                                               ; 99db: aa          .              ; Transfer to X register
+    ldy #8                                                            ; 99dc: a0 08       ..             ; Y=8: RXCB buffer ptr offset
+    lda (port_ws_offset),y                                            ; 99de: b1 a6       ..             ; Load current RXCB buffer ptr lo
+    sec                                                               ; 99e0: 38          8              ; SEC for ADC #0 = add carry
+    adc #0                                                            ; 99e1: 69 00       i.             ; Increment by 1 (Tube extra byte)
+    sta (port_ws_offset),y                                            ; 99e3: 91 a6       ..             ; Store updated ptr back to RXCB
 ; &99e5 referenced 1 time by &99c3
 .skip_tube_update
     lda #&ff                                                          ; 99e5: a9 ff       ..             ; A=&FF: return value (transfer done)
@@ -6669,6 +6773,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .rx_complete_update_rxcb
     jsr advance_rx_buffer_ptr                                         ; 99f7: 20 a4 99     ..            ; Update buffer pointer and check for Tube
     bne skip_buf_ptr_update                                           ; 99fa: d0 12       ..             ; Transfer not done: skip buffer update
+.add_buf_to_base
     lda port_buf_len                                                  ; 99fc: a5 a2       ..             ; Load buffer bytes remaining
     clc                                                               ; 99fe: 18          .              ; CLC for address add
     adc open_port_buf                                                 ; 99ff: 65 a4       e.             ; Add to buffer base address
@@ -6680,8 +6785,9 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a05 referenced 1 time by &9a01
 .store_buf_ptr_lo
     ldy #8                                                            ; 9a05: a0 08       ..             ; Y=8: store updated buffer position
+.store_rxcb_buf_ptr
     sta (port_ws_offset),y                                            ; 9a07: 91 a6       ..             ; Store updated low byte to RXCB
-    iny                                                               ; 9a09: c8          .              ; Y=9: buffer high byte offset; Y=&09
+    iny                                                               ; 9a09: c8          .              ; Y=9: buffer high byte offset
     lda open_port_buf_hi                                              ; 9a0a: a5 a5       ..             ; Load updated buffer high byte
 ; &9a0c referenced 1 time by &9a79
 .store_rxcb_buf_hi
@@ -6714,10 +6820,10 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a2e referenced 4 times by &987d, &9a11, &9e72, &9f25
 .discard_reset_listen
     lda #2                                                            ; 9a2e: a9 02       ..             ; Tube flag bit 1 AND tx_flags bit 1
-    and tube_flag                                                     ; 9a30: 2d 67 0d    -g.
-    bit tx_flags                                                      ; 9a33: 2c 4a 0d    ,J.
+    and tube_flag                                                     ; 9a30: 2d 67 0d    -g.            ; Check if Tube transfer active
+    bit tx_flags                                                      ; 9a33: 2c 4a 0d    ,J.            ; Test tx_flags for Tube transfer
     beq discard_listen                                                ; 9a36: f0 05       ..             ; No Tube transfer active -- skip release
-    lda #&82                                                          ; 9a38: a9 82       ..
+    lda #&82                                                          ; 9a38: a9 82       ..             ; A=&82: Tube release claim type
     jsr tube_addr_claim                                               ; 9a3a: 20 06 04     ..            ; Release Tube claim before discarding
 ; ***************************************************************************************
 ; Discard frame (gentle)
@@ -6730,6 +6836,13 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a3d referenced 3 times by &9740, &9a36, &9b32
 .discard_listen
     jsr adlc_rx_listen                                                ; 9a3d: 20 e7 96     ..            ; Re-enter idle RX listen mode
+; ***************************************************************************************
+; Install RX scout NMI handler
+; 
+; Installs nmi_rx_scout (&96BF) as the NMI handler via
+; set_nmi_vector, without first calling adlc_rx_listen.
+; Used when the ADLC is already in the correct RX mode.
+; ***************************************************************************************
 ; &9a40 referenced 2 times by &9724, &973d
 .install_rx_scout_handler
     lda #&f2                                                          ; 9a40: a9 f2       ..             ; Install nmi_rx_scout (&96BF) as NMI handler
@@ -6742,11 +6855,11 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a49 referenced 1 time by &9a51
 .copy_scout_loop
     lda rx_src_stn,y                                                  ; 9a49: b9 3d 0d    .=.            ; Load scout field (stn/net/ctrl/port)
-    sta (port_ws_offset),y                                            ; 9a4c: 91 a6       ..             ; Store to port workspace buffer
-    iny                                                               ; 9a4e: c8          .              ; Next field
+    sta (port_ws_offset),y                                            ; 9a4c: 91 a6       ..             ; Store to port workspace buffer; Store to port buffer
+    iny                                                               ; 9a4e: c8          .              ; Next field; Advance buffer pointer
     cpy #&0c                                                          ; 9a4f: c0 0c       ..             ; All 8 fields copied?
-    bne copy_scout_loop                                               ; 9a51: d0 f6       ..             ; No: continue copy loop
-    jmp skip_buf_ptr_update                                           ; 9a53: 4c 0e 9a    L..            ; Skip buffer pointer update
+    bne copy_scout_loop                                               ; 9a51: d0 f6       ..             ; No: continue copy loop; No page crossing
+    jmp skip_buf_ptr_update                                           ; 9a53: 4c 0e 9a    L..            ; Skip buffer pointer update; Jump to completion handler
 
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
@@ -6792,21 +6905,21 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
     ror a                                                             ; 9a6d: 6a          j              ; Rotate mask right by control byte index
     dey                                                               ; 9a6e: 88          .              ; Decrement rotation counter
     bpl rotate_prot_mask                                              ; 9a6f: 10 fc       ..             ; Loop until bit aligned
-    bcc imm_op_dispatch                                               ; 9a71: 90 03       ..
-    jmp imm_op_discard                                                ; 9a73: 4c 32 9b    L2.
+    bcc imm_op_dispatch                                               ; 9a71: 90 03       ..             ; Carry clear: operation permitted
+    jmp imm_op_discard                                                ; 9a73: 4c 32 9b    L2.            ; Operation blocked by LSTAT mask
 
 ; &9a76 referenced 2 times by &9a63, &9a71
 .imm_op_dispatch
-    ldy rx_ctrl                                                       ; 9a76: ac 3f 0d    .?.
-    lda store_rxcb_buf_hi,y                                           ; 9a79: b9 0c 9a    ...
-    pha                                                               ; 9a7c: 48          H
-    lda imm_dispatch_lo,y                                             ; 9a7d: b9 04 9a    ...
-    pha                                                               ; 9a80: 48          H
-    rts                                                               ; 9a81: 60          `
+    ldy rx_ctrl                                                       ; 9a76: ac 3f 0d    .?.            ; Reload ctrl byte for dispatch table
+    lda store_rxcb_buf_hi,y                                           ; 9a79: b9 0c 9a    ...            ; Look up handler address high byte
+    pha                                                               ; 9a7c: 48          H              ; Push &9A as dispatch high byte; Push handler address high
+    lda imm_dispatch_lo,y                                             ; 9a7d: b9 04 9a    ...            ; Load handler low byte from jump table; Look up handler address low byte
+    pha                                                               ; 9a80: 48          H              ; Push handler low byte; Push handler address low
+    rts                                                               ; 9a81: 60          `              ; RTS dispatches to handler; RTS dispatch to handler
 
 ; &9a82 referenced 2 times by &9a5b, &9a5f
 .imm_op_out_of_range
-    jmp nmi_error_dispatch                                            ; 9a82: 4c 72 98    Lr.
+    jmp nmi_error_dispatch                                            ; 9a82: 4c 72 98    Lr.            ; Jump to discard handler
 
     equb <(rx_imm_peek-1)                                             ; 9a85: d0          .
     equb <(rx_imm_poke-1)                                             ; 9a86: b2          .
@@ -6922,6 +7035,15 @@ tx_done_handler_hi = tx_nmi_setup+1
     ldy #&9b                                                          ; 9af7: a0 9b       ..             ; Y=&9B: dispatch table page
     jmp ack_tx_write_dest                                             ; 9af9: 4c 5d 99    L].            ; Acknowledge and write TX dest
 
+; ***************************************************************************************
+; Build immediate operation reply header
+; 
+; Stores data length, source station/network, and control byte
+; into the RX buffer header area for port-0 immediate operations.
+; Then disables CB1 interrupts and configures the VIA shift
+; register for outgoing shift-out mode before returning to
+; idle listen.
+; ***************************************************************************************
 ; &9afc referenced 1 time by &99f4
 .imm_op_build_reply
     lda port_buf_len                                                  ; 9afc: a5 a2       ..             ; Get buffer position for reply header
@@ -7069,18 +7191,27 @@ tx_done_handler_hi = tx_nmi_setup+1
 ; that is halted and spinning in tx_done_halt.
 ; ***************************************************************************************
 .tx_done_continue
-    lda rx_flags                                                      ; 9bb8: ad 64 0d    .d.
-    and #&fb                                                          ; 9bbb: 29 fb       ).
-    sta rx_flags                                                      ; 9bbd: 8d 64 0d    .d.
+    lda rx_flags                                                      ; 9bb8: ad 64 0d    .d.            ; Load current RX flags
+    and #&fb                                                          ; 9bbb: 29 fb       ).             ; Clear bit 2: release halted station
+    sta rx_flags                                                      ; 9bbd: 8d 64 0d    .d.            ; Store updated flags
 ; &9bc0 referenced 4 times by &9b92, &9b9e, &9ba6, &9bb6
 .tx_done_exit
-    pla                                                               ; 9bc0: 68          h
-    tay                                                               ; 9bc1: a8          .
-    pla                                                               ; 9bc2: 68          h
-    tax                                                               ; 9bc3: aa          .
-    lda #0                                                            ; 9bc4: a9 00       ..
-    rts                                                               ; 9bc6: 60          `
+    pla                                                               ; 9bc0: 68          h              ; Restore Y from stack
+    tay                                                               ; 9bc1: a8          .              ; Transfer to Y register
+    pla                                                               ; 9bc2: 68          h              ; Restore X from stack
+    tax                                                               ; 9bc3: aa          .              ; Transfer to X register
+    lda #0                                                            ; 9bc4: a9 00       ..             ; A=0: success status
+    rts                                                               ; 9bc6: 60          `              ; Return with A=0 (success)
 
+; ***************************************************************************************
+; Begin TX operation
+; 
+; Main TX initiation entry point (called via trampoline at &06CE).
+; Copies dest station/network from the TXCB to the scout buffer,
+; dispatches to immediate op setup (ctrl >= &81) or normal data
+; transfer, calculates transfer sizes, copies extra parameters,
+; then enters the INACTIVE polling loop.
+; ***************************************************************************************
 ; &9bc7 referenced 1 time by &9660
 .tx_begin
     txa                                                               ; 9bc7: 8a          .              ; Save X on stack
@@ -7113,17 +7244,17 @@ tx_done_handler_hi = tx_nmi_setup+1
 .calc_peek_poke_size
     lda (nmi_tx_block),y                                              ; 9bf3: b1 a0       ..             ; Load TXCB[Y] (end addr byte)
     dey                                                               ; 9bf5: 88          .              ; Y -= 4: back to start addr offset
-    dey                                                               ; 9bf6: 88          .
-    dey                                                               ; 9bf7: 88          .
-    dey                                                               ; 9bf8: 88          .
+    dey                                                               ; 9bf6: 88          .              ; (Y -= 4: reach start addr offset)
+    dey                                                               ; 9bf7: 88          .              ; (continued)
+    dey                                                               ; 9bf8: 88          .              ; (continued)
     plp                                                               ; 9bf9: 28          (              ; Restore borrow from stack
     sbc (nmi_tx_block),y                                              ; 9bfa: f1 a0       ..             ; end - start = transfer size byte
     sta tx_data_start,y                                               ; 9bfc: 99 26 0d    .&.            ; Store result to tx_data_start
-    iny                                                               ; 9bff: c8          .
-    iny                                                               ; 9c00: c8          .
-    iny                                                               ; 9c01: c8          .
-    iny                                                               ; 9c02: c8          .
-    iny                                                               ; 9c03: c8          .
+    iny                                                               ; 9bff: c8          .              ; (Y += 5: advance to next end byte)
+    iny                                                               ; 9c00: c8          .              ; (continued)
+    iny                                                               ; 9c01: c8          .              ; (continued)
+    iny                                                               ; 9c02: c8          .              ; (continued)
+    iny                                                               ; 9c03: c8          .              ; (continued)
     php                                                               ; 9c04: 08          .              ; Save borrow for next byte
     cpy #&0c                                                          ; 9c05: c0 0c       ..             ; Done all 4 bytes? (Y reaches &0C)
     bcc calc_peek_poke_size                                           ; 9c07: 90 ea       ..             ; No: next byte pair
@@ -7132,6 +7263,7 @@ tx_done_handler_hi = tx_nmi_setup+1
 .tx_ctrl_range_check
     cpx #&81                                                          ; 9c0a: e0 81       ..             ; Ctrl < &81: not an immediate op
     bcc tx_active_start                                               ; 9c0c: 90 5d       .]             ; Below range: normal data transfer
+.check_imm_range
     cpx #&89                                                          ; 9c0e: e0 89       ..             ; Ctrl >= &89: out of immediate range
     bcs tx_active_start                                               ; 9c10: b0 59       .Y             ; Above range: normal data transfer
     ldy #&0c                                                          ; 9c12: a0 0c       ..             ; Y=&0C: start of extra data in TXCB
@@ -7172,6 +7304,14 @@ tx_done_handler_hi = tx_nmi_setup+1
     lda #4                                                            ; 9c36: a9 04       ..             ; A=&04: INACTIVE mask for SR2 bit2
     php                                                               ; 9c38: 08          .              ; Save interrupt state
     sei                                                               ; 9c39: 78          x              ; Disable interrupts for ADLC access
+; ***************************************************************************************
+; Disable NMIs and test INACTIVE
+; 
+; Mid-instruction label within the INACTIVE polling loop. The
+; address &9BE2 is referenced as a constant for self-modifying
+; code. Disables NMIs twice (belt-and-braces) then tests SR2
+; for INACTIVE before proceeding with TX.
+; ***************************************************************************************
 ; &9c3a referenced 1 time by &9cb6
 .intoff_test_inactive
     bit station_id_disable_net_nmis                                   ; 9c3a: 2c 18 fe    ,..            ; INTOFF -- disable NMIs
@@ -7218,8 +7358,8 @@ sr2_idle_status = test_line_idle+2
     lda #7                                                            ; 9c6f: a9 07       ..             ; CR2=&07: FC_TDRA | 2_1_BYTE | PSE (abort TX)
     sta econet_control23_or_status2                                   ; 9c71: 8d a1 fe    ...            ; Write CR2 to abort TX
     pla                                                               ; 9c74: 68          h              ; Clean 3 bytes of timeout loop state
-    pla                                                               ; 9c75: 68          h
-    pla                                                               ; 9c76: 68          h
+    pla                                                               ; 9c75: 68          h              ; Pop saved register
+    pla                                                               ; 9c76: 68          h              ; Pop saved register
     lda #&40 ; '@'                                                    ; 9c77: a9 40       .@             ; Error &40 = 'Line Jammed'
     bne store_tx_error                                                ; 9c79: d0 02       ..             ; ALWAYS branch to shared error handler; ALWAYS branch
 
@@ -7259,11 +7399,11 @@ sr2_idle_status = test_line_idle+2
     sta tx_flags                                                      ; 9ca9: 8d 4a 0d    .J.            ; Store operation flags
     lda tube_tx_count_2,y                                             ; 9cac: b9 a7 9e    ...            ; Look up tx_length from table
     sta tx_length                                                     ; 9caf: 8d 50 0d    .P.            ; Store expected transfer length
-    lda sr2_idle_status,y                                             ; 9cb2: b9 42 9c    .B.
-    pha                                                               ; 9cb5: 48          H
-    lda intoff_test_inactive,y                                        ; 9cb6: b9 3a 9c    .:.
-    pha                                                               ; 9cb9: 48          H
-    rts                                                               ; 9cba: 60          `
+    lda sr2_idle_status,y                                             ; 9cb2: b9 42 9c    .B.            ; Load handler from dispatch table
+    pha                                                               ; 9cb5: 48          H              ; Push high byte for PHA/PHA/RTS dispatch
+    lda intoff_test_inactive,y                                        ; 9cb6: b9 3a 9c    .:.            ; Look up handler address low from table
+    pha                                                               ; 9cb9: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
+    rts                                                               ; 9cba: 60          `              ; RTS dispatches to control-byte handler
 
     equb <(tx_ctrl_peek-1)                                            ; 9cbb: ce          .
     equb <(tx_ctrl_poke-1)                                            ; 9cbc: d2          .
@@ -7283,7 +7423,7 @@ sr2_idle_status = test_line_idle+2
     equb >(imm_op_status3-1)                                          ; 9cca: 9c          .
 
 .imm_op_status3
-    lda #3                                                            ; 9ccb: a9 03       ..
+    lda #3                                                            ; 9ccb: a9 03       ..             ; A=3: scout_status for POKE
     bne store_status_copy_ptr                                         ; 9ccd: d0 49       .I             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -7296,7 +7436,7 @@ sr2_idle_status = test_line_idle+2
 ; tx_ctrl_exit.
 ; ***************************************************************************************
 .tx_ctrl_peek
-    lda #3                                                            ; 9ccf: a9 03       ..
+    lda #3                                                            ; 9ccf: a9 03       ..             ; A=3: scout_status for PEEK op
     bne store_status_add4                                             ; 9cd1: d0 02       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -7329,10 +7469,10 @@ sr2_idle_status = test_line_idle+2
 ; Shared by operation types &83-&85.
 ; ***************************************************************************************
 .tx_ctrl_proc
-    cpy #&10                                                          ; 9ce7: c0 10       ..
-    bcc add_bytes_loop                                                ; 9ce9: 90 f1       ..
-    plp                                                               ; 9ceb: 28          (
-    jmp skip_buf_setup                                                ; 9cec: 4c 1b 9d    L..
+    cpy #&10                                                          ; 9ce7: c0 10       ..             ; Compare Y with 16-byte boundary
+    bcc add_bytes_loop                                                ; 9ce9: 90 f1       ..             ; Below boundary: continue addition
+    plp                                                               ; 9ceb: 28          (              ; Restore processor flags
+    jmp skip_buf_setup                                                ; 9cec: 4c 1b 9d    L..            ; Exit TX ctrl setup
 
 ; &9cef referenced 1 time by &9ca1
 .setup_data_xfer
@@ -7397,10 +7537,10 @@ sr2_idle_status = test_line_idle+2
     bvc tx_fifo_not_ready                                             ; 9d33: 50 22       P"             ; TDRA not set -- TX error
     lda tx_dst_stn,y                                                  ; 9d35: b9 20 0d    . .            ; Load byte from TX buffer
     sta econet_data_continue_frame                                    ; 9d38: 8d a2 fe    ...            ; Write to TX_DATA (continue frame)
-    iny                                                               ; 9d3b: c8          .
-    lda tx_dst_stn,y                                                  ; 9d3c: b9 20 0d    . .
-    iny                                                               ; 9d3f: c8          .
-    sty tx_index                                                      ; 9d40: 8c 4f 0d    .O.
+    iny                                                               ; 9d3b: c8          .              ; Next TX buffer byte
+    lda tx_dst_stn,y                                                  ; 9d3c: b9 20 0d    . .            ; Load second byte from TX buffer
+    iny                                                               ; 9d3f: c8          .              ; Advance TX index past second byte
+    sty tx_index                                                      ; 9d40: 8c 4f 0d    .O.            ; Save updated TX buffer index
     sta econet_data_continue_frame                                    ; 9d43: 8d a2 fe    ...            ; Write second byte to TX_DATA
     cpy tx_length                                                     ; 9d46: cc 50 0d    .P.            ; Compare index to TX length
     bcs tx_last_data                                                  ; 9d49: b0 1e       ..             ; Frame complete -- go to TX_LAST_DATA
@@ -7417,7 +7557,7 @@ sr2_idle_status = test_line_idle+2
 ; &9d57 referenced 1 time by &9d33
 .tx_fifo_not_ready
     lda #&67 ; 'g'                                                    ; 9d57: a9 67       .g             ; CR2=&67: clear status, return to listen
-    sta econet_control23_or_status2                                   ; 9d59: 8d a1 fe    ...
+    sta econet_control23_or_status2                                   ; 9d59: 8d a1 fe    ...            ; Write CR2: clear status, idle listen
     lda #&41 ; 'A'                                                    ; 9d5c: a9 41       .A             ; Error &41 (TDRA not ready)
 ; &9d5e referenced 1 time by &9d55
 .tx_store_error
@@ -7425,10 +7565,10 @@ sr2_idle_status = test_line_idle+2
 ; &9d61 referenced 1 time by &9d64
 .delay_nmi_disable
     pha                                                               ; 9d61: 48          H              ; PHA/PLA delay loop (256 iterations for NMI disable)
-    pla                                                               ; 9d62: 68          h
-    iny                                                               ; 9d63: c8          .
-    bne delay_nmi_disable                                             ; 9d64: d0 fb       ..
-    jmp tx_store_result                                               ; 9d66: 4c 1c 9f    L..
+    pla                                                               ; 9d62: 68          h              ; PHA/PLA delay (~7 cycles each)
+    iny                                                               ; 9d63: c8          .              ; Increment delay counter
+    bne delay_nmi_disable                                             ; 9d64: d0 fb       ..             ; Loop 256 times for NMI disable
+    jmp tx_store_result                                               ; 9d66: 4c 1c 9f    L..            ; Store error and return to idle
 
 ; ***************************************************************************************
 ; TX_LAST_DATA and frame completion
@@ -7465,23 +7605,23 @@ sr2_idle_status = test_line_idle+2
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 9d75: a9 82       ..             ; Jump to error handler; CR1=&82: TX_RESET | RIE (now in RX mode)
-    sta econet_control1_or_status1                                    ; 9d77: 8d a0 fe    ...
+    sta econet_control1_or_status1                                    ; 9d77: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
     bit tx_flags                                                      ; 9d7a: 2c 4a 0d    ,J.            ; Test workspace flags
     bvc check_handshake_bit                                           ; 9d7d: 50 03       P.             ; bit6 not set -- check bit0
     jmp tx_result_ok                                                  ; 9d7f: 4c 16 9f    L..            ; bit6 set -- TX completion
 
 ; &9d82 referenced 1 time by &9d7d
 .check_handshake_bit
-    lda #1                                                            ; 9d82: a9 01       ..
-    bit tx_flags                                                      ; 9d84: 2c 4a 0d    ,J.
-    beq install_reply_scout                                           ; 9d87: f0 03       ..
+    lda #1                                                            ; 9d82: a9 01       ..             ; A=1: mask for bit0 test
+    bit tx_flags                                                      ; 9d84: 2c 4a 0d    ,J.            ; Test tx_flags bit0 (handshake)
+    beq install_reply_scout                                           ; 9d87: f0 03       ..             ; bit0 clear: install reply handler
     jmp handshake_await_ack                                           ; 9d89: 4c ba 9e    L..            ; bit0 set -- four-way handshake data phase
 
 ; &9d8c referenced 1 time by &9d87
 .install_reply_scout
     lda #&93                                                          ; 9d8c: a9 93       ..             ; Install RX reply handler at &9DB2; Install nmi_reply_scout at &9D30
-    ldy #&9d                                                          ; 9d8e: a0 9d       ..
-    jmp set_nmi_vector                                                ; 9d90: 4c 0e 0d    L..
+    ldy #&9d                                                          ; 9d8e: a0 9d       ..             ; High byte of nmi_reply_scout addr
+    jmp set_nmi_vector                                                ; 9d90: 4c 0e 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
 ; RX reply scout handler
@@ -7499,8 +7639,8 @@ sr2_idle_status = test_line_idle+2
     cmp station_id_disable_net_nmis                                   ; 9d9d: cd 18 fe    ...            ; Compare to our station ID (INTOFF side effect)
     bne reject_reply                                                  ; 9da0: d0 1d       ..             ; Not our station -- error/reject
     lda #&a9                                                          ; 9da2: a9 a9       ..             ; Install next handler at &9DC8 (reply continuation); Install nmi_reply_cont at &9D44
-    ldy #&9d                                                          ; 9da4: a0 9d       ..
-    jmp set_nmi_vector                                                ; 9da6: 4c 0e 0d    L..
+    ldy #&9d                                                          ; 9da4: a0 9d       ..             ; High byte of nmi_reply_cont
+    jmp set_nmi_vector                                                ; 9da6: 4c 0e 0d    L..            ; Install continuation handler
 
 ; ***************************************************************************************
 ; RX reply continuation handler
@@ -7519,14 +7659,14 @@ sr2_idle_status = test_line_idle+2
     lda econet_data_continue_frame                                    ; 9dae: ad a2 fe    ...            ; Read destination network byte
     bne reject_reply                                                  ; 9db1: d0 0c       ..             ; Non-zero -- network mismatch, error
     lda #&c2                                                          ; 9db3: a9 c2       ..             ; Install next handler at &9DE3 (reply validation); Install nmi_reply_validate at &9D5B
-    ldy #&9d                                                          ; 9db5: a0 9d       ..
+    ldy #&9d                                                          ; 9db5: a0 9d       ..             ; High byte of nmi_reply_validate
     bit econet_control1_or_status1                                    ; 9db7: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 9dba: 30 06       0.             ; IRQ set -- fall through to &9DE3 without RTI; IRQ set -- fall through to &9D5B without RTI
     jmp set_nmi_vector                                                ; 9dbc: 4c 0e 0d    L..            ; IRQ not set -- install handler and RTI
 
 ; &9dbf referenced 7 times by &9da0, &9dac, &9db1, &9dc5, &9dcd, &9dd5, &9ddc
 .reject_reply
-    jmp tx_result_fail                                                ; 9dbf: 4c 1a 9f    L..
+    jmp tx_result_fail                                                ; 9dbf: 4c 1a 9f    L..            ; Store error and return to idle
 
 ; ***************************************************************************************
 ; RX reply validation (Path 2 for FV/PSE interaction)
@@ -7650,16 +7790,16 @@ sr2_idle_status = test_line_idle+2
 ; &9e6d referenced 4 times by &9df8, &9e10, &9e34, &9e84
 .data_tx_error
     lda tx_flags                                                      ; 9e6d: ad 4a 0d    .J.            ; Load saved next handler low byte
-    bpl jmp_tx_result_fail                                            ; 9e70: 10 03       ..
-    jmp discard_reset_listen                                          ; 9e72: 4c 2e 9a    L..
+    bpl jmp_tx_result_fail                                            ; 9e70: 10 03       ..             ; bit7 clear: error path
+    jmp discard_reset_listen                                          ; 9e72: 4c 2e 9a    L..            ; ADLC reset and return to idle
 
 ; &9e75 referenced 1 time by &9e70
 .jmp_tx_result_fail
-    jmp tx_result_fail                                                ; 9e75: 4c 1a 9f    L..
+    jmp tx_result_fail                                                ; 9e75: 4c 1a 9f    L..            ; Store result and return to idle
 
 ; &9e78 referenced 1 time by &9e64
 .install_saved_handler
-    lda nmi_next_lo                                                   ; 9e78: ad 4b 0d    .K.
+    lda nmi_next_lo                                                   ; 9e78: ad 4b 0d    .K.            ; Load saved handler low byte
     ldy nmi_next_hi                                                   ; 9e7b: ac 4c 0d    .L.            ; Load saved next handler high byte
     jmp set_nmi_vector                                                ; 9e7e: 4c 0e 0d    L..            ; Install saved handler and return
 
@@ -7736,8 +7876,8 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     cmp station_id_disable_net_nmis                                   ; 9ed0: cd 18 fe    ...            ; Compare to our station (INTOFF side effect)
     bne tx_result_fail                                                ; 9ed3: d0 45       .E             ; Not our station -- error
     lda #&dc                                                          ; 9ed5: a9 dc       ..             ; Install handler at &9EFF (final ACK continuation); Install nmi_final_ack_net at &9E70
-    ldy #&9e                                                          ; 9ed7: a0 9e       ..
-    jmp set_nmi_vector                                                ; 9ed9: 4c 0e 0d    L..
+    ldy #&9e                                                          ; 9ed7: a0 9e       ..             ; High byte of handler address
+    jmp set_nmi_vector                                                ; 9ed9: 4c 0e 0d    L..            ; Install continuation handler
 
 .nmi_final_ack_net
     bit econet_control23_or_status2                                   ; 9edc: 2c a1 fe    ,..            ; BIT SR2: test RDA
@@ -7745,10 +7885,10 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     lda econet_data_continue_frame                                    ; 9ee1: ad a2 fe    ...            ; Read dest network
     bne tx_result_fail                                                ; 9ee4: d0 34       .4             ; Non-zero -- network mismatch, error
     lda #&f2                                                          ; 9ee6: a9 f2       ..             ; Install handler at &9F15 (final ACK validation); Install nmi_final_ack_validate at &9E84
-    ldy #&9e                                                          ; 9ee8: a0 9e       ..
+    ldy #&9e                                                          ; 9ee8: a0 9e       ..             ; High byte of handler address
     bit econet_control1_or_status1                                    ; 9eea: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
     bmi nmi_final_ack_validate                                        ; 9eed: 30 03       0.             ; IRQ set -- fall through to &9F15 without RTI; IRQ set -- fall through to &9E84 without RTI
-    jmp set_nmi_vector                                                ; 9eef: 4c 0e 0d    L..
+    jmp set_nmi_vector                                                ; 9eef: 4c 0e 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
 ; Final ACK validation
@@ -7766,9 +7906,9 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     lda econet_data_continue_frame                                    ; 9eff: ad a2 fe    ...            ; Read source network
     cmp tx_dst_net                                                    ; 9f02: cd 21 0d    .!.            ; Compare to TX dest network (&0D21)
     bne tx_result_fail                                                ; 9f05: d0 13       ..             ; Mismatch -- error
-    lda tx_flags                                                      ; 9f07: ad 4a 0d    .J.
-    bpl check_fv_final_ack                                            ; 9f0a: 10 03       ..
-    jmp install_data_rx_handler                                       ; 9f0c: 4c 58 98    LX.
+    lda tx_flags                                                      ; 9f07: ad 4a 0d    .J.            ; Load TX flags for next action
+    bpl check_fv_final_ack                                            ; 9f0a: 10 03       ..             ; bit7 clear: no data phase
+    jmp install_data_rx_handler                                       ; 9f0c: 4c 58 98    LX.            ; Install data RX handler
 
 ; &9f0f referenced 1 time by &9f0a
 .check_fv_final_ack
@@ -7830,16 +7970,16 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; &9f38 referenced 3 times by &97fc, &9ade, &9d23
 .tx_calc_transfer
     ldy #6                                                            ; 9f38: a0 06       ..             ; Load RXCB[6] (buffer addr byte 2)
-    lda (port_ws_offset),y                                            ; 9f3a: b1 a6       ..
+    lda (port_ws_offset),y                                            ; 9f3a: b1 a6       ..             ; Load workspace byte at offset Y
     iny                                                               ; 9f3c: c8          .              ; Y=&07
     and (port_ws_offset),y                                            ; 9f3d: 31 a6       1.             ; AND with RXCB[7] (byte 3)
     cmp #&ff                                                          ; 9f3f: c9 ff       ..             ; Both &FF = no buffer?
     beq fallback_calc_transfer                                        ; 9f41: f0 41       .A             ; Yes: fallback path
-    lda tube_flag                                                     ; 9f43: ad 67 0d    .g.            ; Tube transfer in progress?
+    lda tube_flag                                                     ; 9f43: ad 67 0d    .g.            ; Tube transfer in progress?; Transmit in progress?
     beq fallback_calc_transfer                                        ; 9f46: f0 3c       .<             ; No: fallback path
-    lda tx_flags                                                      ; 9f48: ad 4a 0d    .J.
+    lda tx_flags                                                      ; 9f48: ad 4a 0d    .J.            ; Load TX flags for transfer setup
     ora #2                                                            ; 9f4b: 09 02       ..             ; Set bit 1 (transfer complete)
-    sta tx_flags                                                      ; 9f4d: 8d 4a 0d    .J.
+    sta tx_flags                                                      ; 9f4d: 8d 4a 0d    .J.            ; Store with bit 1 set (Tube xfer)
     sec                                                               ; 9f50: 38          8              ; Init borrow for 4-byte subtract
     php                                                               ; 9f51: 08          .              ; Save carry on stack
     ldy #4                                                            ; 9f52: a0 04       ..             ; Y=4: start at RXCB offset 4
@@ -7847,37 +7987,37 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 .calc_transfer_size
     lda (port_ws_offset),y                                            ; 9f54: b1 a6       ..             ; Load RXCB[Y] (current ptr byte)
     iny                                                               ; 9f56: c8          .              ; Y += 4: advance to RXCB[Y+4]
-    iny                                                               ; 9f57: c8          .
-    iny                                                               ; 9f58: c8          .
-    iny                                                               ; 9f59: c8          .
+    iny                                                               ; 9f57: c8          .              ; Y += 4: advance to high ptr offset
+    iny                                                               ; 9f58: c8          .              ; (continued)
+    iny                                                               ; 9f59: c8          .              ; (continued)
     plp                                                               ; 9f5a: 28          (              ; Restore borrow from previous byte
     sbc (port_ws_offset),y                                            ; 9f5b: f1 a6       ..             ; Subtract RXCB[Y+4] (start ptr byte)
     sta net_tx_ptr,y                                                  ; 9f5d: 99 9a 00    ...            ; Store result byte
     dey                                                               ; 9f60: 88          .              ; Y -= 3: next source byte
-    dey                                                               ; 9f61: 88          .
-    dey                                                               ; 9f62: 88          .
+    dey                                                               ; 9f61: 88          .              ; Y -= 3: back to next low ptr byte
+    dey                                                               ; 9f62: 88          .              ; (continued)
     php                                                               ; 9f63: 08          .              ; Save borrow for next byte
     cpy #8                                                            ; 9f64: c0 08       ..             ; Done all 4 bytes?
     bcc calc_transfer_size                                            ; 9f66: 90 ec       ..             ; No: next byte pair
     plp                                                               ; 9f68: 28          (              ; Discard final borrow
-    txa                                                               ; 9f69: 8a          .              ; A = saved X
+    txa                                                               ; 9f69: 8a          .              ; A = saved X; Save X
     pha                                                               ; 9f6a: 48          H              ; Save X
     lda #4                                                            ; 9f6b: a9 04       ..             ; Compute address of RXCB+4
-    clc                                                               ; 9f6d: 18          .
-    adc port_ws_offset                                                ; 9f6e: 65 a6       e.
+    clc                                                               ; 9f6d: 18          .              ; CLC for base pointer addition
+    adc port_ws_offset                                                ; 9f6e: 65 a6       e.             ; Add RXCB base to get RXCB+4 addr
     tax                                                               ; 9f70: aa          .              ; X = low byte of RXCB+4
     ldy rx_buf_offset                                                 ; 9f71: a4 a7       ..             ; Y = high byte of RXCB ptr
     lda #&c2                                                          ; 9f73: a9 c2       ..             ; Tube claim type &C2
-    jsr tube_addr_claim                                               ; 9f75: 20 06 04     ..
+    jsr tube_addr_claim                                               ; 9f75: 20 06 04     ..            ; Claim Tube transfer address
     bcc restore_x_and_return                                          ; 9f78: 90 07       ..             ; No Tube: skip reclaim
     lda scout_status                                                  ; 9f7a: ad 5c 0d    .\.            ; Tube: reclaim with scout status
-    jsr tube_addr_claim                                               ; 9f7d: 20 06 04     ..
+    jsr tube_addr_claim                                               ; 9f7d: 20 06 04     ..            ; Reclaim with scout status type
     sec                                                               ; 9f80: 38          8              ; C=1: Tube address claimed
 ; &9f81 referenced 1 time by &9f78
 .restore_x_and_return
     pla                                                               ; 9f81: 68          h              ; Restore X
-    tax                                                               ; 9f82: aa          .
-    rts                                                               ; 9f83: 60          `
+    tax                                                               ; 9f82: aa          .              ; Restore X from stack
+    rts                                                               ; 9f83: 60          `              ; Return with C = transfer status
 
 ; &9f84 referenced 2 times by &9f41, &9f46
 .fallback_calc_transfer
@@ -7902,7 +8042,7 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     sec                                                               ; 9fa6: 38          8              ; Return with C=1
 ; &9fa7 referenced 1 time by &968f
 .nmi_shim_rom_src
-    rts                                                               ; 9fa7: 60          `
+    rts                                                               ; 9fa7: 60          `              ; Return with C=1 (success)
 
 ; ***************************************************************************************
 ; Bootstrap NMI entry point (in ROM)
@@ -7939,7 +8079,7 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     lda romsel_copy                                                   ; 9fbc: a5 f4       ..             ; Restore NFS ROM bank
     sta romsel                                                        ; 9fbe: 8d 30 fe    .0.            ; Page in via hardware latch
     pla                                                               ; 9fc1: 68          h              ; Restore Y from stack
-    tay                                                               ; 9fc2: a8          .
+    tay                                                               ; 9fc2: a8          .              ; Transfer ROM bank to Y
     pla                                                               ; 9fc3: 68          h              ; Restore A from stack
     bit video_ula_control                                             ; 9fc4: 2c 20 fe    , .            ; INTON: re-enable NMIs
     rti                                                               ; 9fc7: 40          @              ; Return from interrupt
@@ -7957,9 +8097,9 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 .print_hex
     pha                                                               ; 9fe0: 48          H              ; Save original byte for low nibble
     lsr a                                                             ; 9fe1: 4a          J              ; Shift high nibble right (4x LSR)
-    lsr a                                                             ; 9fe2: 4a          J
-    lsr a                                                             ; 9fe3: 4a          J
-    lsr a                                                             ; 9fe4: 4a          J
+    lsr a                                                             ; 9fe2: 4a          J              ; Shift high nibble to low
+    lsr a                                                             ; 9fe3: 4a          J              ; Shift high nibble to low
+    lsr a                                                             ; 9fe4: 4a          J              ; Shift high nibble to low
     jsr print_hex_nibble                                              ; 9fe5: 20 e9 9f     ..            ; Print high nibble as hex
     pla                                                               ; 9fe8: 68          h              ; Restore byte; fall through for low nibble
 ; ***************************************************************************************

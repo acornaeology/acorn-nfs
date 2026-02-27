@@ -8187,6 +8187,141 @@ label(0x9A59, "install_rx_scout_handler") # Install RX scout NMI handler
 label(0x9B28, "imm_op_build_reply")    # Build immediate operation reply header
 label(0x9BF3, "tx_begin")              # Begin TX operation
 label(0x9C62, "intoff_test_inactive")  # Disable NMIs and test INACTIVE
+
+# ============================================================
+# Inline comments for 3.35D change-block gaps
+# ============================================================
+
+# service_handler (&80EA) — per-ROM disable flag check (new in 3.35D)
+comment(0x80EA, "Save A (service call number)", inline=True)
+comment(0x80EB, "Load per-ROM workspace flag", inline=True)
+comment(0x80EE, "Shift bit 7 (disable) into carry", inline=True)
+comment(0x80EF, "Restore service call number", inline=True)
+comment(0x80F0, "Service >= &80: always handle", inline=True)
+comment(0x80F2, "C=1 (disabled): skip this ROM", inline=True)
+
+# svc_star_command (&8172)
+comment(0x8183, "X=8: compare 8 chars for *ROFF", inline=True)
+
+# svc_9_help (&81F7)
+comment(0x8205, "Reload saved character counter", inline=True)
+
+# print_station_info (&8222)
+comment(0x8234, "Y=&14: offset for station number", inline=True)
+
+# init_fs_vectors (&8254)
+comment(0x8256, "Load vector address from table", inline=True)
+
+# svc_2_private_workspace (&82B5)
+comment(0x82B5, "Store page as RX buffer high byte", inline=True)
+comment(0x82B7, "Next page for NFS workspace", inline=True)
+comment(0x82B8, "Store page as NFS workspace high", inline=True)
+
+# build_send_fs_cmd (&83AE)
+comment(0x83C4, "C=0: standard FS command path", inline=True)
+
+# send_fs_reply_timed (&83C6)
+comment(0x83C6, "A=&2A: error ptr for retry", inline=True)
+comment(0x83C8, "Store error ptr for TX poll", inline=True)
+
+# handle_bput_bget (&83ED)
+comment(0x841A, "Load handle bitmask for BSXMIT", inline=True)
+comment(0x843B, "Match: close SPOOL file", inline=True)
+comment(0x843D, "A=&F5: offset for 'E.' string", inline=True)
+comment(0x8441, "No match: dispatch FS error", inline=True)
+
+# lang_0_insert_remote_key (&84C5)
+comment(0x84ED, "Next error message source byte", inline=True)
+comment(0x84EE, "Next error buffer position", inline=True)
+comment(0x84F8, "A=&2A: error ptr for FS send", inline=True)
+
+# check_escape_handler (&852C)
+comment(0x8546, "Save P (C=0 from CLC above)", inline=True)
+comment(0x8547, "Load handle bitmask", inline=True)
+comment(0x8549, "Restore C flag for branch test", inline=True)
+comment(0x854A, "Bit 7 set: skip clear, just set", inline=True)
+comment(0x854C, "Clear EOF hint for this handle", inline=True)
+
+# set_fs_flag (&865B)
+comment(0x865B, "OR mask into EOF hint flags", inline=True)
+comment(0x865E, "ALWAYS branch to store result", inline=True)
+
+# clear_fs_flag (&8660)
+comment(0x8660, "Invert mask for AND clear", inline=True)
+comment(0x8662, "Clear specified bits in flags", inline=True)
+
+# print_inline (&85E2)
+comment(0x85F7, "Continue printing next character", inline=True)
+
+# restore_args_return (&8957)
+comment(0x895E, "OSARGS A=2: read filing system", inline=True)
+comment(0x8960, "A=2: halve to get FS number", inline=True)
+comment(0x8962, "A>2: unsupported, return zero", inline=True)
+comment(0x8964, "Y=A for block copy index", inline=True)
+comment(0x8965, "A=1: read command context block", inline=True)
+comment(0x8967, "A=&0A: NFS filing system number", inline=True)
+
+# fscv_5_cat (&8C00)
+comment(0x8C36, "Load access level from reply", inline=True)
+comment(0x8C44, "ALWAYS branch past 'Owner'", inline=True)
+comment(0x8C69, "Load boot option from reply", inline=True)
+comment(0x8C75, "Y=string offset for this option", inline=True)
+comment(0x8C78, "Load next char of option name", inline=True)
+comment(0x8C7B, "Bit 7 set: end of option name", inline=True)
+comment(0x8C8D, "X=&11: Dir. name offset in reply", inline=True)
+comment(0x8C8F, "Print directory name (10 chars)", inline=True)
+comment(0x8C92, "Print '     Lib. ' header", inline=True)
+comment(0x8C9F, "X=&1B: Lib. name offset in reply", inline=True)
+comment(0x8CA9, "Store next examine start offset", inline=True)
+comment(0x8CDE, "Boot option string offset table", inline=True)
+comment(0x8CDF, "Dual-purpose: offset data + code", inline=True)
+
+# print_file_info (&8CFA)
+comment(0x8D01, "Load CSD handle from reply", inline=True)
+comment(0x8D04, "Zero: no dir prefix needed", inline=True)
+comment(0x8D06, "Print directory prefix", inline=True)
+comment(0x8D09, "ALWAYS: skip to hex field output", inline=True)
+
+# cat_column_separator (&8D68)
+comment(0x8D79, "More entries: skip final newline", inline=True)
+comment(0x8D7B, "A=CR: print newline separator", inline=True)
+
+# osword_12_dispatch (&8EFF)
+comment(0x8EFF, "Sub-function >= 6?", inline=True)
+comment(0x8F01, "Yes: jump to sub 6-9 handler", inline=True)
+comment(0x8F03, "Sub-function >= 4?", inline=True)
+
+# &90B2 (nwrch_handler)
+comment(0x90B2, "Get stack pointer for P register", inline=True)
+
+# remote_cmd_data (&9142)
+comment(0x9142, "Y=14: max OSWORD parameter bytes", inline=True)
+comment(0x9144, "OSWORD 7 = make a sound", inline=True)
+
+# tx_calc_transfer (&9F6A)
+comment(0x9F6C, "Load TX block byte at offset 6", inline=True)
+
+# tube_init_reloc (&047A)
+comment(0x04EF, "Restore saved Y register", inline=True)
+
+# tube_dispatch_table (&0500)
+comment(0x051C, "Save A for WRCHV echo", inline=True)
+comment(0x053D, "Restore saved X from temporary", inline=True)
+comment(0x0543, "Read channel handle from R2", inline=True)
+comment(0x0550, "Read channel handle from R2", inline=True)
+comment(0x0569, "Read open mode from R2", inline=True)
+comment(0x058C, "Read file handle from R2", inline=True)
+comment(0x05C5, "Read command string from R2", inline=True)
+comment(0x05D8, "X=&10: 16 bytes for OSFILE CB", inline=True)
+
+# tube_code_page6 (&0600)
+comment(0x0602, "X=&0C: 13 bytes for OSGBPB CB", inline=True)
+comment(0x0615, "Save OSGBPB result on stack", inline=True)
+comment(0x0623, "Read X parameter from R2", inline=True)
+comment(0x0638, "Read X parameter from R2", inline=True)
+comment(0x065A, "Read OSWORD number from R2", inline=True)
+comment(0x06A0, "X=4: read 5-byte RDLN ctrl block", inline=True)
+
 # Generate disassembly
 
 # ============================================================
