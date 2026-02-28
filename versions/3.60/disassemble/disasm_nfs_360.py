@@ -2552,7 +2552,7 @@ comment(0x9FAE, "Add ASCII '0' base (with carry)", inline=True)
 comment(0x9FB0, "Write character", inline=True)
 comment(0x9FB3, "C=1: callers use SEC as sentinel", inline=True)
 comment(0x9FB4, "Return", inline=True)
-comment(0x9FB5, "Save A", inline=True)
+comment(0x9FB5, "Padding", inline=True)
 
 # ============================================================
 # TX control (&8660-&866C)
