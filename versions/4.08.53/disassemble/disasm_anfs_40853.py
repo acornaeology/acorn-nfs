@@ -2958,17 +2958,38 @@ label(0xB985, "cmd_type")
 label(0xB321, "cmd_unprot")
 label(0x8ACC, "cmd_roff")
 
-subroutine(0xB97F, "cmd_close", "")
-subroutine(0xBA06, "cmd_dump", "")
+subroutine(0xB97F, "cmd_close",
+    "*Close command.\n"
+    "Closes all open files via OSFIND #0.")
+subroutine(0xBA06, "cmd_dump",
+    "*Dump command.\n"
+    "Displays file contents in hex and\n"
+    "ASCII format, 8 bytes per line.")
 subroutine(0x8B0E, "cmd_net_fs",
     "*Net command (file server variant).\n"
     "Selects network filing system.")
-subroutine(0xB19F, "cmd_pollps", "")
-subroutine(0xB988, "cmd_print", "")
-subroutine(0xB2F0, "cmd_prot", "")
-subroutine(0xAFCE, "cmd_ps", "")
-subroutine(0xB985, "cmd_type", "")
-subroutine(0xB321, "cmd_unprot", "")
+subroutine(0xB19F, "cmd_pollps",
+    "Poll printer server status.\n"
+    "Waits for completion of the current\n"
+    "print job, displaying progress.")
+subroutine(0xB988, "cmd_print",
+    "*Print command.\n"
+    "Sends file to printer server with\n"
+    "optional page formatting.")
+subroutine(0xB2F0, "cmd_prot",
+    "*Prot command.\n"
+    "Sets protection attribute on a file\n"
+    "to prevent accidental deletion.")
+subroutine(0xAFCE, "cmd_ps",
+    "*PS command.\n"
+    "Lists printer server queue status.")
+subroutine(0xB985, "cmd_type",
+    "*Type command.\n"
+    "Displays file contents to screen.")
+subroutine(0xB321, "cmd_unprot",
+    "*Unprot command.\n"
+    "Removes protection attribute from\n"
+    "a file.")
 subroutine(0x8ACC, "cmd_roff",
     "*ROFF command. Disables remote\n"
     "operation. Clears the receive buffer,\n"
@@ -3009,25 +3030,55 @@ label(0xB33D, "cmd_wipe")
 subroutine(0x92D2, "cmd_fs_operation",
     "Shared handler for *Access, *Delete, *Info, *Lib.\n"
     "Command code distinguishes operation.")
-subroutine(0x948A, "cmd_bye", "")
-subroutine(0xACFE, "cmd_cdir", "")
-subroutine(0x93C9, "cmd_dir", "")
-subroutine(0xAD59, "cmd_ex", "")
-subroutine(0xA33E, "cmd_flip", "")
+subroutine(0x948A, "cmd_bye",
+    "*Bye command.\n"
+    "Logs off from the file server. Closes\n"
+    "open files, clears FS context, and\n"
+    "resets workspace state.")
+subroutine(0xACFE, "cmd_cdir",
+    "*CDir command.\n"
+    "Creates a new directory on the file\n"
+    "server.")
+subroutine(0x93C9, "cmd_dir",
+    "*Dir command.\n"
+    "Sets the current directory on the\n"
+    "file server.")
+subroutine(0xAD59, "cmd_ex",
+    "*Ex command.\n"
+    "Examines a directory, listing files\n"
+    "with attributes. *LCat and *LEx\n"
+    "fall through to this handler.")
+subroutine(0xA33E, "cmd_flip",
+    "*Flip command.\n"
+    "Toggles auto-boot configuration\n"
+    "setting.")
 subroutine(0xA063, "cmd_fs",
     "*FS command.\n"
     "Selects filing system by number.")
 subroutine(0x8D6E, "cmd_iam",
     "*I am command.\n"
     "Logs onto the file server with user credentials.")
-subroutine(0xAD4D, "cmd_lcat", "")
-subroutine(0xAD53, "cmd_lex", "")
+subroutine(0xAD4D, "cmd_lcat",
+    "*LCat command.\n"
+    "Lists catalogue from the library\n"
+    "directory. Falls through to *Ex.")
+subroutine(0xAD53, "cmd_lex",
+    "*LEx command.\n"
+    "Examines the library directory.\n"
+    "Falls through to *Ex.")
 subroutine(0x8DB1, "cmd_pass",
     "*Pass command.\n"
     "Changes file server password.")
-subroutine(0xAF46, "cmd_remove", "")
-subroutine(0x9377, "cmd_rename", "")
-subroutine(0xB33D, "cmd_wipe", "")
+subroutine(0xAF46, "cmd_remove",
+    "*Remove command.\n"
+    "Deletes a file from the file server.")
+subroutine(0x9377, "cmd_rename",
+    "*Rename command.\n"
+    "Renames a file on the file server.")
+subroutine(0xB33D, "cmd_wipe",
+    "*Wipe command.\n"
+    "Deletes files with interactive per-\n"
+    "file confirmation prompt.")
 
 # Sub-table 3: Net/Utils commands
 entry(0x8B8B)   # *Net (second variant)
