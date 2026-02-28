@@ -4147,30 +4147,30 @@ ws_init_data = loop_c8f29+2
 ; &9131 referenced 35 times by &8bab, &8bed, &8c94, &8fdd, &8ffd, &9522, &adae, &adb8, &adc6, &add1, &aded, &ae02, &ae15, &ae24, &af33, &b07e, &b08a, &b0a1, &b0ab, &b0b6, &b186, &b228, &b23d, &b260, &b26d, &b27c, &b28c, &b29b, &b3a8, &b3cd, &ba71, &ba8f, &ba9c, &bad1, &baf6
 .print_inline
     pla                                                               ; 9131: 68          h              ; Pop return address (low) — points to last byte of JSR
-    sta fs_error_ptr                                                  ; 9132: 85 b8       ..
+    sta fs_error_ptr                                                  ; 9132: 85 b8       ..             ; Store as string pointer low
     pla                                                               ; 9134: 68          h              ; Pop return address (high)
-    sta fs_crflag                                                     ; 9135: 85 b9       ..
-    ldy #0                                                            ; 9137: a0 00       ..
+    sta fs_crflag                                                     ; 9135: 85 b9       ..             ; Store as string pointer high
+    ldy #0                                                            ; 9137: a0 00       ..             ; Y=0: index for indirect loads
 ; &9139 referenced 1 time by &9154
 .loop_c9139
     inc fs_error_ptr                                                  ; 9139: e6 b8       ..             ; Advance pointer to next character
-    bne c913f                                                         ; 913b: d0 02       ..
-    inc fs_crflag                                                     ; 913d: e6 b9       ..
+    bne c913f                                                         ; 913b: d0 02       ..             ; No page crossing
+    inc fs_crflag                                                     ; 913d: e6 b9       ..             ; Carry into high byte
 ; &913f referenced 1 time by &913b
 .c913f
     lda (fs_error_ptr),y                                              ; 913f: b1 b8       ..             ; Load next byte from inline string
     bmi c9157                                                         ; 9141: 30 14       0.             ; Bit 7 set? Done — this byte is the next opcode
-    lda fs_error_ptr                                                  ; 9143: a5 b8       ..
-    pha                                                               ; 9145: 48          H
-    lda fs_crflag                                                     ; 9146: a5 b9       ..
-    pha                                                               ; 9148: 48          H
+    lda fs_error_ptr                                                  ; 9143: a5 b8       ..             ; Save string pointer on stack
+    pha                                                               ; 9145: 48          H              ; (push low byte)
+    lda fs_crflag                                                     ; 9146: a5 b9       ..             ; Save pointer high byte
+    pha                                                               ; 9148: 48          H              ; (push high byte)
     lda (fs_error_ptr),y                                              ; 9149: b1 b8       ..             ; Reload character (pointer may have been clobbered)
     jsr osasci                                                        ; 914b: 20 e3 ff     ..            ; Print character via OSASCI; Write character
-    pla                                                               ; 914e: 68          h
-    sta fs_crflag                                                     ; 914f: 85 b9       ..
-    pla                                                               ; 9151: 68          h
-    sta fs_error_ptr                                                  ; 9152: 85 b8       ..
-    jmp loop_c9139                                                    ; 9154: 4c 39 91    L9.
+    pla                                                               ; 914e: 68          h              ; Restore string pointer high
+    sta fs_crflag                                                     ; 914f: 85 b9       ..             ; Store pointer high
+    pla                                                               ; 9151: 68          h              ; Restore string pointer low
+    sta fs_error_ptr                                                  ; 9152: 85 b8       ..             ; Store pointer low
+    jmp loop_c9139                                                    ; 9154: 4c 39 91    L9.            ; Loop for next character
 
 ; &9157 referenced 1 time by &9141
 .c9157
@@ -4178,191 +4178,191 @@ ws_init_data = loop_c8f29+2
 
 ; &915a referenced 5 times by &8d8d, &8d99, &a095, &a0aa, &ad12
 .parse_addr_arg
-    lda #0                                                            ; 915a: a9 00       ..
-    sta fs_load_addr_2                                                ; 915c: 85 b2       ..
-    lda (fs_crc_lo),y                                                 ; 915e: b1 be       ..
-    cmp #&26 ; '&'                                                    ; 9160: c9 26       .&
-    bne c919a                                                         ; 9162: d0 36       .6
-    iny                                                               ; 9164: c8          .
-    lda (fs_crc_lo),y                                                 ; 9165: b1 be       ..
-    bcs c9174                                                         ; 9167: b0 0b       ..
+    lda #0                                                            ; 915a: a9 00       ..             ; Clear accumulator
+    sta fs_load_addr_2                                                ; 915c: 85 b2       ..             ; Initialise result to zero
+    lda (fs_crc_lo),y                                                 ; 915e: b1 be       ..             ; Get first character of argument
+    cmp #&26 ; '&'                                                    ; 9160: c9 26       .&             ; Is it '&' (hex prefix)?
+    bne c919a                                                         ; 9162: d0 36       .6             ; No: try decimal path
+    iny                                                               ; 9164: c8          .              ; Skip '&' prefix
+    lda (fs_crc_lo),y                                                 ; 9165: b1 be       ..             ; Get first hex digit
+    bcs c9174                                                         ; 9167: b0 0b       ..             ; C always set from CMP: validate digit
 ; &9169 referenced 1 time by &9198
 .c9169
-    iny                                                               ; 9169: c8          .
-    lda (fs_crc_lo),y                                                 ; 916a: b1 be       ..
-    cmp #&2e ; '.'                                                    ; 916c: c9 2e       ..
-    beq c91e7                                                         ; 916e: f0 77       .w
-    cmp #&21 ; '!'                                                    ; 9170: c9 21       .!
-    bcc c91c6                                                         ; 9172: 90 52       .R
+    iny                                                               ; 9169: c8          .              ; Advance to next character
+    lda (fs_crc_lo),y                                                 ; 916a: b1 be       ..             ; Get next character
+    cmp #&2e ; '.'                                                    ; 916c: c9 2e       ..             ; Is it '.' (net.station separator)?
+    beq c91e7                                                         ; 916e: f0 77       .w             ; Yes: handle dot separator
+    cmp #&21 ; '!'                                                    ; 9170: c9 21       .!             ; Below '!' (space/control)?
+    bcc c91c6                                                         ; 9172: 90 52       .R             ; Yes: end of number
 ; &9174 referenced 1 time by &9167
 .c9174
-    cmp #&30 ; '0'                                                    ; 9174: c9 30       .0
-    bcc c9184                                                         ; 9176: 90 0c       ..
-    cmp #&3a ; ':'                                                    ; 9178: c9 3a       .:
-    bcc c9186                                                         ; 917a: 90 0a       ..
-    and #&5f ; '_'                                                    ; 917c: 29 5f       )_
-    adc #&b8                                                          ; 917e: 69 b8       i.
-    bcs err_bad_hex                                                   ; 9180: b0 72       .r
-    cmp #&fa                                                          ; 9182: c9 fa       ..
+    cmp #&30 ; '0'                                                    ; 9174: c9 30       .0             ; Below '0'?
+    bcc c9184                                                         ; 9176: 90 0c       ..             ; Not a digit: bad hex
+    cmp #&3a ; ':'                                                    ; 9178: c9 3a       .:             ; Above '9'?
+    bcc c9186                                                         ; 917a: 90 0a       ..             ; Decimal digit: extract value
+    and #&5f ; '_'                                                    ; 917c: 29 5f       )_             ; Force uppercase
+    adc #&b8                                                          ; 917e: 69 b8       i.             ; Map 'A'-'F' to &FA-&FF
+    bcs err_bad_hex                                                   ; 9180: b0 72       .r             ; Overflow: not A-F
+    cmp #&fa                                                          ; 9182: c9 fa       ..             ; Valid hex letter (A-F)?
 ; &9184 referenced 1 time by &9176
 .c9184
-    bcc err_bad_hex                                                   ; 9184: 90 6e       .n
+    bcc err_bad_hex                                                   ; 9184: 90 6e       .n             ; Below A: bad hex
 ; &9186 referenced 1 time by &917a
 .c9186
-    and #&0f                                                          ; 9186: 29 0f       ).
-    sta fs_load_addr_3                                                ; 9188: 85 b3       ..
-    lda fs_load_addr_2                                                ; 918a: a5 b2       ..
-    cmp #&10                                                          ; 918c: c9 10       ..
-    bcs c91fd                                                         ; 918e: b0 6d       .m
-    asl a                                                             ; 9190: 0a          .
-    asl a                                                             ; 9191: 0a          .
-    asl a                                                             ; 9192: 0a          .
-    asl a                                                             ; 9193: 0a          .
-    adc fs_load_addr_3                                                ; 9194: 65 b3       e.
-    sta fs_load_addr_2                                                ; 9196: 85 b2       ..
-    bcc c9169                                                         ; 9198: 90 cf       ..
+    and #&0f                                                          ; 9186: 29 0f       ).             ; Extract digit value (0-15)
+    sta fs_load_addr_3                                                ; 9188: 85 b3       ..             ; Save current digit
+    lda fs_load_addr_2                                                ; 918a: a5 b2       ..             ; Load running result
+    cmp #&10                                                          ; 918c: c9 10       ..             ; Would shift overflow a byte?
+    bcs c91fd                                                         ; 918e: b0 6d       .m             ; Yes: overflow error
+    asl a                                                             ; 9190: 0a          .              ; Shift result left 4 (x16)
+    asl a                                                             ; 9191: 0a          .              ; (shift 2)
+    asl a                                                             ; 9192: 0a          .              ; (shift 3)
+    asl a                                                             ; 9193: 0a          .              ; (shift 4)
+    adc fs_load_addr_3                                                ; 9194: 65 b3       e.             ; Add new hex digit
+    sta fs_load_addr_2                                                ; 9196: 85 b2       ..             ; Store updated result
+    bcc c9169                                                         ; 9198: 90 cf       ..             ; Loop for next hex digit
 ; &919a referenced 2 times by &9162, &91c4
 .c919a
-    lda (fs_crc_lo),y                                                 ; 919a: b1 be       ..
-    cmp #&2e ; '.'                                                    ; 919c: c9 2e       ..
-    beq c91e7                                                         ; 919e: f0 47       .G
-    cmp #&21 ; '!'                                                    ; 91a0: c9 21       .!
-    bcc c91c6                                                         ; 91a2: 90 22       ."
-    jsr is_dec_digit_only                                             ; 91a4: 20 4c 92     L.
-    bcc c9215                                                         ; 91a7: 90 6c       .l
-    and #&0f                                                          ; 91a9: 29 0f       ).
-    sta fs_load_addr_3                                                ; 91ab: 85 b3       ..
-    asl fs_load_addr_2                                                ; 91ad: 06 b2       ..
-    bcs c91fd                                                         ; 91af: b0 4c       .L
-    lda fs_load_addr_2                                                ; 91b1: a5 b2       ..
-    asl a                                                             ; 91b3: 0a          .
-    bcs c91fd                                                         ; 91b4: b0 47       .G
-    asl a                                                             ; 91b6: 0a          .
-    bcs c91fd                                                         ; 91b7: b0 44       .D
-    adc fs_load_addr_2                                                ; 91b9: 65 b2       e.
-    bcs c91fd                                                         ; 91bb: b0 40       .@
-    adc fs_load_addr_3                                                ; 91bd: 65 b3       e.
-    bcs c91fd                                                         ; 91bf: b0 3c       .<
-    sta fs_load_addr_2                                                ; 91c1: 85 b2       ..
-    iny                                                               ; 91c3: c8          .
-    bne c919a                                                         ; 91c4: d0 d4       ..
+    lda (fs_crc_lo),y                                                 ; 919a: b1 be       ..             ; Get current character
+    cmp #&2e ; '.'                                                    ; 919c: c9 2e       ..             ; Is it '.' (net.station separator)?
+    beq c91e7                                                         ; 919e: f0 47       .G             ; Yes: handle dot separator
+    cmp #&21 ; '!'                                                    ; 91a0: c9 21       .!             ; Below '!' (space/control)?
+    bcc c91c6                                                         ; 91a2: 90 22       ."             ; Yes: end of number
+    jsr is_dec_digit_only                                             ; 91a4: 20 4c 92     L.            ; Is it a decimal digit?
+    bcc c9215                                                         ; 91a7: 90 6c       .l             ; No: 'Bad number' error
+    and #&0f                                                          ; 91a9: 29 0f       ).             ; Extract digit value (0-9)
+    sta fs_load_addr_3                                                ; 91ab: 85 b3       ..             ; Save current digit
+    asl fs_load_addr_2                                                ; 91ad: 06 b2       ..             ; result * 2
+    bcs c91fd                                                         ; 91af: b0 4c       .L             ; Overflow
+    lda fs_load_addr_2                                                ; 91b1: a5 b2       ..             ; Load result * 2
+    asl a                                                             ; 91b3: 0a          .              ; result * 4
+    bcs c91fd                                                         ; 91b4: b0 47       .G             ; Overflow
+    asl a                                                             ; 91b6: 0a          .              ; result * 8
+    bcs c91fd                                                         ; 91b7: b0 44       .D             ; Overflow
+    adc fs_load_addr_2                                                ; 91b9: 65 b2       e.             ; * 8 + * 2 = result * 10
+    bcs c91fd                                                         ; 91bb: b0 40       .@             ; Overflow
+    adc fs_load_addr_3                                                ; 91bd: 65 b3       e.             ; result * 10 + new digit
+    bcs c91fd                                                         ; 91bf: b0 3c       .<             ; Overflow
+    sta fs_load_addr_2                                                ; 91c1: 85 b2       ..             ; Store updated result
+    iny                                                               ; 91c3: c8          .              ; Advance to next character
+    bne c919a                                                         ; 91c4: d0 d4       ..             ; Loop (always branches)
 ; &91c6 referenced 2 times by &9172, &91a2
 .c91c6
-    lda fs_work_4                                                     ; 91c6: a5 b4       ..
-    bpl c91cf                                                         ; 91c8: 10 05       ..
-    lda fs_load_addr_2                                                ; 91ca: a5 b2       ..
-    beq c9221                                                         ; 91cc: f0 53       .S
-    rts                                                               ; 91ce: 60          `
+    lda fs_work_4                                                     ; 91c6: a5 b4       ..             ; Check parsing mode
+    bpl c91cf                                                         ; 91c8: 10 05       ..             ; Bit 7 clear: net.station mode
+    lda fs_load_addr_2                                                ; 91ca: a5 b2       ..             ; Decimal-only mode: get result
+    beq c9221                                                         ; 91cc: f0 53       .S             ; Zero: 'Bad parameter'
+    rts                                                               ; 91ce: 60          `              ; Return with result in A
 
 ; &91cf referenced 1 time by &91c8
 .c91cf
-    lda fs_load_addr_2                                                ; 91cf: a5 b2       ..
-    cmp #&ff                                                          ; 91d1: c9 ff       ..
-    beq err_bad_station_num                                           ; 91d3: f0 2c       .,
-    lda fs_load_addr_2                                                ; 91d5: a5 b2       ..
-    bne c91e5                                                         ; 91d7: d0 0c       ..
-    lda fs_work_4                                                     ; 91d9: a5 b4       ..
-    beq err_bad_station_num                                           ; 91db: f0 24       .$
-    dey                                                               ; 91dd: 88          .
-    lda (fs_crc_lo),y                                                 ; 91de: b1 be       ..
-    iny                                                               ; 91e0: c8          .
-    eor #&2e ; '.'                                                    ; 91e1: 49 2e       I.
-    bne err_bad_station_num                                           ; 91e3: d0 1c       ..
+    lda fs_load_addr_2                                                ; 91cf: a5 b2       ..             ; Get parsed station number
+    cmp #&ff                                                          ; 91d1: c9 ff       ..             ; Station 255 is reserved
+    beq err_bad_station_num                                           ; 91d3: f0 2c       .,             ; 255: 'Bad station number'
+    lda fs_load_addr_2                                                ; 91d5: a5 b2       ..             ; Reload result
+    bne c91e5                                                         ; 91d7: d0 0c       ..             ; Non-zero: valid station
+    lda fs_work_4                                                     ; 91d9: a5 b4       ..             ; Zero result: check if dot was seen
+    beq err_bad_station_num                                           ; 91db: f0 24       .$             ; No dot and zero: 'Bad station number'
+    dey                                                               ; 91dd: 88          .              ; Check character before current pos
+    lda (fs_crc_lo),y                                                 ; 91de: b1 be       ..             ; Load previous character
+    iny                                                               ; 91e0: c8          .              ; Restore Y
+    eor #&2e ; '.'                                                    ; 91e1: 49 2e       I.             ; Was previous char '.'?
+    bne err_bad_station_num                                           ; 91e3: d0 1c       ..             ; No: 'Bad station number'
 ; &91e5 referenced 1 time by &91d7
 .c91e5
-    sec                                                               ; 91e5: 38          8
-    rts                                                               ; 91e6: 60          `
+    sec                                                               ; 91e5: 38          8              ; C=1: number was parsed
+    rts                                                               ; 91e6: 60          `              ; Return (result in fs_load_addr_2)
 
 ; &91e7 referenced 2 times by &916e, &919e
 .c91e7
-    lda fs_work_4                                                     ; 91e7: a5 b4       ..
-    bne c9215                                                         ; 91e9: d0 2a       .*
-    inc fs_work_4                                                     ; 91eb: e6 b4       ..
-    lda fs_load_addr_2                                                ; 91ed: a5 b2       ..
-    cmp #&ff                                                          ; 91ef: c9 ff       ..
-    beq c9230                                                         ; 91f1: f0 3d       .=
-    rts                                                               ; 91f3: 60          `
+    lda fs_work_4                                                     ; 91e7: a5 b4       ..             ; Check if dot already seen
+    bne c9215                                                         ; 91e9: d0 2a       .*             ; Already seen: 'Bad number'
+    inc fs_work_4                                                     ; 91eb: e6 b4       ..             ; Set dot-seen flag
+    lda fs_load_addr_2                                                ; 91ed: a5 b2       ..             ; Get network number (before dot)
+    cmp #&ff                                                          ; 91ef: c9 ff       ..             ; Network 255 is reserved
+    beq c9230                                                         ; 91f1: f0 3d       .=             ; 255: 'Bad network number'
+    rts                                                               ; 91f3: 60          `              ; Return to caller with network part
 
 ; &91f4 referenced 3 times by &9180, &9184, &bbb2
 .err_bad_hex
-    lda #&f1                                                          ; 91f4: a9 f1       ..
-    jsr error_bad_inline                                              ; 91f6: 20 a2 96     ..
+    lda #&f1                                                          ; 91f4: a9 f1       ..             ; Error code &F1
+    jsr error_bad_inline                                              ; 91f6: 20 a2 96     ..            ; Generate 'Bad hex' error
     equs "hex", 0                                                     ; 91f9: 68 65 78... hex
 
 ; &91fd referenced 6 times by &918e, &91af, &91b4, &91b7, &91bb, &91bf
 .c91fd
-    bit fs_work_4                                                     ; 91fd: 24 b4       $.
-    bmi c9221                                                         ; 91ff: 30 20       0
+    bit fs_work_4                                                     ; 91fd: 24 b4       $.             ; Test parsing mode
+    bmi c9221                                                         ; 91ff: 30 20       0              ; Decimal mode: 'Bad parameter'
 ; &9201 referenced 4 times by &8f29, &91d3, &91db, &91e3
 .err_bad_station_num
-    lda #&d0                                                          ; 9201: a9 d0       ..
-    jsr error_bad_inline                                              ; 9203: 20 a2 96     ..
+    lda #&d0                                                          ; 9201: a9 d0       ..             ; Error code &D0
+    jsr error_bad_inline                                              ; 9203: 20 a2 96     ..            ; Generate 'Bad station number' error
     equs "station number", 0                                          ; 9206: 73 74 61... sta
 
 ; &9215 referenced 2 times by &91a7, &91e9
 .c9215
-    lda #&f0                                                          ; 9215: a9 f0       ..
-    jsr error_bad_inline                                              ; 9217: 20 a2 96     ..
+    lda #&f0                                                          ; 9215: a9 f0       ..             ; Error code &F0
+    jsr error_bad_inline                                              ; 9217: 20 a2 96     ..            ; Generate 'Bad number' error
     equs "number", 0                                                  ; 921a: 6e 75 6d... num
 
 ; &9221 referenced 2 times by &91cc, &91ff
 .c9221
-    lda #&94                                                          ; 9221: a9 94       ..
-    jsr error_bad_inline                                              ; 9223: 20 a2 96     ..
+    lda #&94                                                          ; 9221: a9 94       ..             ; Error code &94
+    jsr error_bad_inline                                              ; 9223: 20 a2 96     ..            ; Generate 'Bad parameter' error
     equs "parameter", 0                                               ; 9226: 70 61 72... par
 
 ; &9230 referenced 1 time by &91f1
 .c9230
-    lda #&d1                                                          ; 9230: a9 d1       ..
-    jsr error_bad_inline                                              ; 9232: 20 a2 96     ..
+    lda #&d1                                                          ; 9230: a9 d1       ..             ; Error code &D1
+    jsr error_bad_inline                                              ; 9232: 20 a2 96     ..            ; Generate 'Bad network number' error
     equs "network number", 0                                          ; 9235: 6e 65 74... net
 
 ; &9244 referenced 3 times by &8d88, &afe5, &b1b8
 .is_decimal_digit
-    cmp #&26 ; '&'                                                    ; 9244: c9 26       .&
-    beq return_12                                                     ; 9246: f0 0a       ..
-    cmp #&2e ; '.'                                                    ; 9248: c9 2e       ..
-    beq return_12                                                     ; 924a: f0 06       ..
+    cmp #&26 ; '&'                                                    ; 9244: c9 26       .&             ; Is it '&' (hex prefix)?
+    beq return_12                                                     ; 9246: f0 0a       ..             ; Yes: return C set (not decimal)
+    cmp #&2e ; '.'                                                    ; 9248: c9 2e       ..             ; Is it '.' (separator)?
+    beq return_12                                                     ; 924a: f0 06       ..             ; Yes: return C set (not decimal)
 ; &924c referenced 1 time by &91a4
 .is_dec_digit_only
-    cmp #&3a ; ':'                                                    ; 924c: c9 3a       .:
-    bcs c9253                                                         ; 924e: b0 03       ..
-    cmp #&30 ; '0'                                                    ; 9250: c9 30       .0
+    cmp #&3a ; ':'                                                    ; 924c: c9 3a       .:             ; Above '9'?
+    bcs c9253                                                         ; 924e: b0 03       ..             ; Yes: not a digit
+    cmp #&30 ; '0'                                                    ; 9250: c9 30       .0             ; Below '0'? C clear if so
 ; &9252 referenced 2 times by &9246, &924a
 .return_12
-    rts                                                               ; 9252: 60          `
+    rts                                                               ; 9252: 60          `              ; Return: C set if '0'-'9'
 
 ; &9253 referenced 1 time by &924e
 .c9253
-    clc                                                               ; 9253: 18          .
-    rts                                                               ; 9254: 60          `
+    clc                                                               ; 9253: 18          .              ; C=0: not a digit
+    rts                                                               ; 9254: 60          `              ; Return
 
 ; &9255 referenced 2 times by &9b0e, &9b3a
 .get_access_bits
-    ldy #&0e                                                          ; 9255: a0 0e       ..
-    lda (fs_options),y                                                ; 9257: b1 bb       ..
-    and #&3f ; '?'                                                    ; 9259: 29 3f       )?
-    ldx #4                                                            ; 925b: a2 04       ..
-    bne c9263                                                         ; 925d: d0 04       ..             ; ALWAYS branch
+    ldy #&0e                                                          ; 9255: a0 0e       ..             ; Offset &0E in directory entry
+    lda (fs_options),y                                                ; 9257: b1 bb       ..             ; Load raw access byte
+    and #&3f ; '?'                                                    ; 9259: 29 3f       )?             ; Mask to 6 access bits
+    ldx #4                                                            ; 925b: a2 04       ..             ; X=4: start encoding at bit 4
+    bne c9263                                                         ; 925d: d0 04       ..             ; ALWAYS branch to encoder; ALWAYS branch
 
 ; &925f referenced 2 times by &9a16, &9b57
 .get_prot_bits
-    and #&1f                                                          ; 925f: 29 1f       ).
-    ldx #&ff                                                          ; 9261: a2 ff       ..
+    and #&1f                                                          ; 925f: 29 1f       ).             ; Mask to 5 protection bits
+    ldx #&ff                                                          ; 9261: a2 ff       ..             ; X=&FF: start encoding at bit 0
 ; &9263 referenced 1 time by &925d
 .c9263
-    sta fs_error_ptr                                                  ; 9263: 85 b8       ..
-    lda #0                                                            ; 9265: a9 00       ..
+    sta fs_error_ptr                                                  ; 9263: 85 b8       ..             ; Save remaining bits
+    lda #0                                                            ; 9265: a9 00       ..             ; Clear encoded result
 ; &9267 referenced 1 time by &926f
 .loop_c9267
-    inx                                                               ; 9267: e8          .
-    lsr fs_error_ptr                                                  ; 9268: 46 b8       F.
-    bcc c926f                                                         ; 926a: 90 03       ..
-    ora prot_bit_encode_table,x                                       ; 926c: 1d 72 92    .r.
+    inx                                                               ; 9267: e8          .              ; Advance to next table position
+    lsr fs_error_ptr                                                  ; 9268: 46 b8       F.             ; Shift out lowest source bit
+    bcc c926f                                                         ; 926a: 90 03       ..             ; Bit clear: skip this position
+    ora prot_bit_encode_table,x                                       ; 926c: 1d 72 92    .r.            ; Bit set: OR in encoded value
 ; &926f referenced 1 time by &926a
 .c926f
-    bne loop_c9267                                                    ; 926f: d0 f6       ..
-    rts                                                               ; 9271: 60          `
+    bne loop_c9267                                                    ; 926f: d0 f6       ..             ; More bits to process
+    rts                                                               ; 9271: 60          `              ; Return encoded access in A
 
 ; &9272 referenced 1 time by &926c
 .prot_bit_encode_table
@@ -4370,76 +4370,76 @@ ws_init_data = loop_c8f29+2
 
 ; &927d referenced 1 time by &a0fc
 .set_text_and_xfer_ptr
-    stx os_text_ptr                                                   ; 927d: 86 f2       ..
-    sty os_text_ptr_hi                                                ; 927f: 84 f3       ..
+    stx os_text_ptr                                                   ; 927d: 86 f2       ..             ; Set text pointer low
+    sty os_text_ptr_hi                                                ; 927f: 84 f3       ..             ; Set text pointer high
 ; &9281 referenced 5 times by &8e1d, &9921, &9d45, &9e26, &ad6e
 .set_xfer_params
-    sta fs_last_byte_flag                                             ; 9281: 85 bd       ..
-    stx fs_crc_lo                                                     ; 9283: 86 be       ..
-    sty fs_crc_hi                                                     ; 9285: 84 bf       ..
+    sta fs_last_byte_flag                                             ; 9281: 85 bd       ..             ; Store transfer byte count
+    stx fs_crc_lo                                                     ; 9283: 86 be       ..             ; Store source pointer low
+    sty fs_crc_hi                                                     ; 9285: 84 bf       ..             ; Store source pointer high
 ; &9287 referenced 2 times by &9bb4, &b979
 .set_options_ptr
-    stx fs_options                                                    ; 9287: 86 bb       ..
-    sty fs_block_offset                                               ; 9289: 84 bc       ..
+    stx fs_options                                                    ; 9287: 86 bb       ..             ; Store options pointer low
+    sty fs_block_offset                                               ; 9289: 84 bc       ..             ; Store options pointer high
 ; &928b referenced 1 time by &9870
 .clear_escapable
-    php                                                               ; 928b: 08          .
-    lsr escapable                                                     ; 928c: 46 97       F.
-    plp                                                               ; 928e: 28          (
-    rts                                                               ; 928f: 60          `
+    php                                                               ; 928b: 08          .              ; Save processor flags
+    lsr escapable                                                     ; 928c: 46 97       F.             ; Clear bit 0 of escape flag
+    plp                                                               ; 928e: 28          (              ; Restore processor flags
+    rts                                                               ; 928f: 60          `              ; Return
 
 ; &9290 referenced 2 times by &9984, &9a89
 .cmp_5byte_handle
-    ldx #4                                                            ; 9290: a2 04       ..
+    ldx #4                                                            ; 9290: a2 04       ..             ; Compare 5 bytes (indices 4 down to 1)
 ; &9292 referenced 1 time by &9299
 .loop_c9292
-    lda l00af,x                                                       ; 9292: b5 af       ..
-    eor fs_load_addr_3,x                                              ; 9294: 55 b3       U.
-    bne return_13                                                     ; 9296: d0 03       ..
-    dex                                                               ; 9298: ca          .
-    bne loop_c9292                                                    ; 9299: d0 f7       ..
+    lda l00af,x                                                       ; 9292: b5 af       ..             ; Load byte from handle buffer
+    eor fs_load_addr_3,x                                              ; 9294: 55 b3       U.             ; Compare with channel handle
+    bne return_13                                                     ; 9296: d0 03       ..             ; Mismatch: return Z=0
+    dex                                                               ; 9298: ca          .              ; Next byte
+    bne loop_c9292                                                    ; 9299: d0 f7       ..             ; Loop until all compared
 ; &929b referenced 1 time by &9296
 .return_13
-    rts                                                               ; 929b: 60          `
+    rts                                                               ; 929b: 60          `              ; Return: Z=1 if all 5 matched
 
-    ldx #&20 ; ' '                                                    ; 929c: a2 20       .
-    ldy #&2f ; '/'                                                    ; 929e: a0 2f       ./
-    rts                                                               ; 92a0: 60          `
+    ldx #&20 ; ' '                                                    ; 929c: a2 20       .              ; Unreachable code
+    ldy #&2f ; '/'                                                    ; 929e: a0 2f       ./             ; (dead)
+    rts                                                               ; 92a0: 60          `              ; (dead)
 
 ; &92a1 referenced 2 times by &9c3a, &9e83
 .set_conn_active
-    php                                                               ; 92a1: 08          .
-    pha                                                               ; 92a2: 48          H
-    txa                                                               ; 92a3: 8a          .
-    pha                                                               ; 92a4: 48          H
-    tsx                                                               ; 92a5: ba          .
-    lda l0102,x                                                       ; 92a6: bd 02 01    ...
-    jsr attr_to_chan_index                                            ; 92a9: 20 5b b4     [.
-    bmi c92cd                                                         ; 92ac: 30 1f       0.
-    lda #&40 ; '@'                                                    ; 92ae: a9 40       .@
-    ora l1060,x                                                       ; 92b0: 1d 60 10    .`.
-    sta l1060,x                                                       ; 92b3: 9d 60 10    .`.
-    bne c92cd                                                         ; 92b6: d0 15       ..
+    php                                                               ; 92a1: 08          .              ; Save processor flags
+    pha                                                               ; 92a2: 48          H              ; Save A
+    txa                                                               ; 92a3: 8a          .              ; Transfer X to A
+    pha                                                               ; 92a4: 48          H              ; Save original X
+    tsx                                                               ; 92a5: ba          .              ; Get stack pointer
+    lda l0102,x                                                       ; 92a6: bd 02 01    ...            ; Read original A from stack
+    jsr attr_to_chan_index                                            ; 92a9: 20 5b b4     [.            ; Convert to channel index
+    bmi c92cd                                                         ; 92ac: 30 1f       0.             ; No channel found: skip
+    lda #&40 ; '@'                                                    ; 92ae: a9 40       .@             ; Bit 6: connection active flag
+    ora l1060,x                                                       ; 92b0: 1d 60 10    .`.            ; Set active flag in channel table
+    sta l1060,x                                                       ; 92b3: 9d 60 10    .`.            ; Store updated status
+    bne c92cd                                                         ; 92b6: d0 15       ..             ; ALWAYS branch to exit
 ; &92b8 referenced 2 times by &9c9b, &9e7e
 .clear_conn_active
-    php                                                               ; 92b8: 08          .
-    pha                                                               ; 92b9: 48          H
-    txa                                                               ; 92ba: 8a          .
-    pha                                                               ; 92bb: 48          H
-    tsx                                                               ; 92bc: ba          .
-    lda l0102,x                                                       ; 92bd: bd 02 01    ...
-    jsr attr_to_chan_index                                            ; 92c0: 20 5b b4     [.
-    bmi c92cd                                                         ; 92c3: 30 08       0.
-    lda #&bf                                                          ; 92c5: a9 bf       ..
-    and l1060,x                                                       ; 92c7: 3d 60 10    =`.
-    sta l1060,x                                                       ; 92ca: 9d 60 10    .`.
+    php                                                               ; 92b8: 08          .              ; Save processor flags
+    pha                                                               ; 92b9: 48          H              ; Save A
+    txa                                                               ; 92ba: 8a          .              ; Transfer X to A
+    pha                                                               ; 92bb: 48          H              ; Save original X
+    tsx                                                               ; 92bc: ba          .              ; Get stack pointer
+    lda l0102,x                                                       ; 92bd: bd 02 01    ...            ; Read original A from stack
+    jsr attr_to_chan_index                                            ; 92c0: 20 5b b4     [.            ; Convert to channel index
+    bmi c92cd                                                         ; 92c3: 30 08       0.             ; No channel found: skip
+    lda #&bf                                                          ; 92c5: a9 bf       ..             ; Bit 6 clear mask (&BF = ~&40)
+    and l1060,x                                                       ; 92c7: 3d 60 10    =`.            ; Clear active flag in channel table
+    sta l1060,x                                                       ; 92ca: 9d 60 10    .`.            ; Store updated status
 ; &92cd referenced 3 times by &92ac, &92b6, &92c3
 .c92cd
-    pla                                                               ; 92cd: 68          h
-    tax                                                               ; 92ce: aa          .
-    pla                                                               ; 92cf: 68          h
-    plp                                                               ; 92d0: 28          (
-    rts                                                               ; 92d1: 60          `
+    pla                                                               ; 92cd: 68          h              ; Restore X
+    tax                                                               ; 92ce: aa          .              ; Transfer back to X
+    pla                                                               ; 92cf: 68          h              ; Restore A
+    plp                                                               ; 92d0: 28          (              ; Restore processor flags
+    rts                                                               ; 92d1: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Shared handler for *Access, *Delete, *Info, *Lib.

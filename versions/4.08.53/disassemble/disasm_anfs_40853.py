@@ -4693,6 +4693,241 @@ comment(0xB18D, "Get station number", inline=True)
 comment(0xB18F, "Restore flags", inline=True)
 comment(0xB190, "Print station as 3 digits", inline=True)
 
+# print_inline gaps (&9132-&9154) — fill remaining items
+comment(0x9132, "Store as string pointer low", inline=True)
+comment(0x9135, "Store as string pointer high", inline=True)
+comment(0x9137, "Y=0: index for indirect loads", inline=True)
+comment(0x913B, "No page crossing", inline=True)
+comment(0x913D, "Carry into high byte", inline=True)
+comment(0x9143, "Save string pointer on stack", inline=True)
+comment(0x9145, "(push low byte)", inline=True)
+comment(0x9146, "Save pointer high byte", inline=True)
+comment(0x9148, "(push high byte)", inline=True)
+comment(0x914E, "Restore string pointer high", inline=True)
+comment(0x914F, "Store pointer high", inline=True)
+comment(0x9151, "Restore string pointer low", inline=True)
+comment(0x9152, "Store pointer low", inline=True)
+comment(0x9154, "Loop for next character", inline=True)
+
+# parse_addr_arg (&915A) — parse hex (&nn) or decimal number
+# fs_work_4 controls mode: 0=net.station, &FF=decimal-only
+comment(0x915A, "Clear accumulator", inline=True)
+comment(0x915C, "Initialise result to zero", inline=True)
+comment(0x915E, "Get first character of argument", inline=True)
+comment(0x9160, "Is it '&' (hex prefix)?", inline=True)
+comment(0x9162, "No: try decimal path", inline=True)
+comment(0x9164, "Skip '&' prefix", inline=True)
+comment(0x9165, "Get first hex digit", inline=True)
+comment(0x9167, "C always set from CMP: validate digit", inline=True)
+
+# Hex digit loop — reads chars, checks for '.'/terminator
+comment(0x9169, "Advance to next character", inline=True)
+comment(0x916A, "Get next character", inline=True)
+comment(0x916C, "Is it '.' (net.station separator)?", inline=True)
+comment(0x916E, "Yes: handle dot separator", inline=True)
+comment(0x9170, "Below '!' (space/control)?", inline=True)
+comment(0x9172, "Yes: end of number", inline=True)
+
+# Hex digit validation — '0'-'9' or case-insensitive 'A'-'F'
+comment(0x9174, "Below '0'?", inline=True)
+comment(0x9176, "Not a digit: bad hex", inline=True)
+comment(0x9178, "Above '9'?", inline=True)
+comment(0x917A, "Decimal digit: extract value", inline=True)
+comment(0x917C, "Force uppercase", inline=True)
+comment(0x917E, "Map 'A'-'F' to &FA-&FF", inline=True)
+comment(0x9180, "Overflow: not A-F", inline=True)
+comment(0x9182, "Valid hex letter (A-F)?", inline=True)
+comment(0x9184, "Below A: bad hex", inline=True)
+
+# Accumulate hex digit — shift result left 4, add digit
+comment(0x9186, "Extract digit value (0-15)", inline=True)
+comment(0x9188, "Save current digit", inline=True)
+comment(0x918A, "Load running result", inline=True)
+comment(0x918C, "Would shift overflow a byte?", inline=True)
+comment(0x918E, "Yes: overflow error", inline=True)
+comment(0x9190, "Shift result left 4 (x16)", inline=True)
+comment(0x9191, "(shift 2)", inline=True)
+comment(0x9192, "(shift 3)", inline=True)
+comment(0x9193, "(shift 4)", inline=True)
+comment(0x9194, "Add new hex digit", inline=True)
+comment(0x9196, "Store updated result", inline=True)
+comment(0x9198, "Loop for next hex digit", inline=True)
+
+# Decimal path — parse digits with multiply-by-10
+comment(0x919A, "Get current character", inline=True)
+comment(0x919C, "Is it '.' (net.station separator)?", inline=True)
+comment(0x919E, "Yes: handle dot separator", inline=True)
+comment(0x91A0, "Below '!' (space/control)?", inline=True)
+comment(0x91A2, "Yes: end of number", inline=True)
+comment(0x91A4, "Is it a decimal digit?", inline=True)
+comment(0x91A7, "No: 'Bad number' error", inline=True)
+comment(0x91A9, "Extract digit value (0-9)", inline=True)
+comment(0x91AB, "Save current digit", inline=True)
+comment(0x91AD, "result * 2", inline=True)
+comment(0x91AF, "Overflow", inline=True)
+comment(0x91B1, "Load result * 2", inline=True)
+comment(0x91B3, "result * 4", inline=True)
+comment(0x91B4, "Overflow", inline=True)
+comment(0x91B6, "result * 8", inline=True)
+comment(0x91B7, "Overflow", inline=True)
+comment(0x91B9, "* 8 + * 2 = result * 10", inline=True)
+comment(0x91BB, "Overflow", inline=True)
+comment(0x91BD, "result * 10 + new digit", inline=True)
+comment(0x91BF, "Overflow", inline=True)
+comment(0x91C1, "Store updated result", inline=True)
+comment(0x91C3, "Advance to next character", inline=True)
+comment(0x91C4, "Loop (always branches)", inline=True)
+
+# End-of-number validation
+comment(0x91C6, "Check parsing mode", inline=True)
+comment(0x91C8, "Bit 7 clear: net.station mode", inline=True)
+comment(0x91CA, "Decimal-only mode: get result", inline=True)
+comment(0x91CC, "Zero: 'Bad parameter'", inline=True)
+comment(0x91CE, "Return with result in A", inline=True)
+
+# Station number validation
+comment(0x91CF, "Get parsed station number", inline=True)
+comment(0x91D1, "Station 255 is reserved", inline=True)
+comment(0x91D3, "255: 'Bad station number'", inline=True)
+comment(0x91D5, "Reload result", inline=True)
+comment(0x91D7, "Non-zero: valid station", inline=True)
+comment(0x91D9, "Zero result: check if dot was seen", inline=True)
+comment(0x91DB, "No dot and zero: 'Bad station number'", inline=True)
+comment(0x91DD, "Check character before current pos", inline=True)
+comment(0x91DE, "Load previous character", inline=True)
+comment(0x91E0, "Restore Y", inline=True)
+comment(0x91E1, "Was previous char '.'?", inline=True)
+comment(0x91E3, "No: 'Bad station number'", inline=True)
+
+# Valid station: return with C set
+comment(0x91E5, "C=1: number was parsed", inline=True)
+comment(0x91E6, "Return (result in fs_load_addr_2)", inline=True)
+
+# Dot separator — store network part, set dot-seen flag
+comment(0x91E7, "Check if dot already seen", inline=True)
+comment(0x91E9, "Already seen: 'Bad number'", inline=True)
+comment(0x91EB, "Set dot-seen flag", inline=True)
+comment(0x91ED, "Get network number (before dot)", inline=True)
+comment(0x91EF, "Network 255 is reserved", inline=True)
+comment(0x91F1, "255: 'Bad network number'", inline=True)
+comment(0x91F3, "Return to caller with network part", inline=True)
+
+# Error handlers for parse_addr_arg
+comment(0x91F4, "Error code &F1", inline=True)
+comment(0x91F6, "Generate 'Bad hex' error", inline=True)
+comment(0x91FD, "Test parsing mode", inline=True)
+comment(0x91FF, "Decimal mode: 'Bad parameter'", inline=True)
+comment(0x9201, "Error code &D0", inline=True)
+comment(0x9203, "Generate 'Bad station number' error", inline=True)
+comment(0x9215, "Error code &F0", inline=True)
+comment(0x9217, "Generate 'Bad number' error", inline=True)
+comment(0x9221, "Error code &94", inline=True)
+comment(0x9223, "Generate 'Bad parameter' error", inline=True)
+comment(0x9230, "Error code &D1", inline=True)
+comment(0x9232, "Generate 'Bad network number' error", inline=True)
+
+# is_decimal_digit (&9244) — test if char is decimal digit
+# Also rejects '&' and '.' as non-decimal
+comment(0x9244, "Is it '&' (hex prefix)?", inline=True)
+comment(0x9246, "Yes: return C set (not decimal)", inline=True)
+comment(0x9248, "Is it '.' (separator)?", inline=True)
+comment(0x924A, "Yes: return C set (not decimal)", inline=True)
+# is_dec_digit_only entry — pure digit test
+comment(0x924C, "Above '9'?", inline=True)
+comment(0x924E, "Yes: not a digit", inline=True)
+comment(0x9250, "Below '0'? C clear if so", inline=True)
+comment(0x9252, "Return: C set if '0'-'9'", inline=True)
+comment(0x9253, "C=0: not a digit", inline=True)
+comment(0x9254, "Return", inline=True)
+
+# get_access_bits (&9255) — encode directory access byte
+comment(0x9255, "Offset &0E in directory entry", inline=True)
+comment(0x9257, "Load raw access byte", inline=True)
+comment(0x9259, "Mask to 6 access bits", inline=True)
+comment(0x925B, "X=4: start encoding at bit 4", inline=True)
+comment(0x925D, "ALWAYS branch to encoder", inline=True)
+
+# get_prot_bits (&925F) — encode protection attribute
+comment(0x925F, "Mask to 5 protection bits", inline=True)
+comment(0x9261, "X=&FF: start encoding at bit 0", inline=True)
+
+# Shared encoder loop — maps source bits via lookup table
+comment(0x9263, "Save remaining bits", inline=True)
+comment(0x9265, "Clear encoded result", inline=True)
+comment(0x9267, "Advance to next table position", inline=True)
+comment(0x9268, "Shift out lowest source bit", inline=True)
+comment(0x926A, "Bit clear: skip this position", inline=True)
+comment(0x926C, "Bit set: OR in encoded value", inline=True)
+comment(0x926F, "More bits to process", inline=True)
+comment(0x9271, "Return encoded access in A", inline=True)
+
+# set_text_and_xfer_ptr (&927D) — set OSWORD text and transfer pointers
+comment(0x927D, "Set text pointer low", inline=True)
+comment(0x927F, "Set text pointer high", inline=True)
+
+# set_xfer_params (&9281) — set transfer parameters
+comment(0x9281, "Store transfer byte count", inline=True)
+comment(0x9283, "Store source pointer low", inline=True)
+comment(0x9285, "Store source pointer high", inline=True)
+
+# set_options_ptr (&9287) — set options block pointer
+comment(0x9287, "Store options pointer low", inline=True)
+comment(0x9289, "Store options pointer high", inline=True)
+
+# clear_escapable (&928B) — clear escape-sensitive flag
+comment(0x928B, "Save processor flags", inline=True)
+comment(0x928C, "Clear bit 0 of escape flag", inline=True)
+comment(0x928E, "Restore processor flags", inline=True)
+comment(0x928F, "Return", inline=True)
+
+# cmp_5byte_handle (&9290) — compare 5-byte channel handle
+comment(0x9290, "Compare 5 bytes (indices 4 down to 1)", inline=True)
+comment(0x9292, "Load byte from handle buffer", inline=True)
+comment(0x9294, "Compare with channel handle", inline=True)
+comment(0x9296, "Mismatch: return Z=0", inline=True)
+comment(0x9298, "Next byte", inline=True)
+comment(0x9299, "Loop until all compared", inline=True)
+comment(0x929B, "Return: Z=1 if all 5 matched", inline=True)
+
+# Dead code (&929C-&92A0) — unreachable
+comment(0x929C, "Unreachable code", inline=True)
+comment(0x929E, "(dead)", inline=True)
+comment(0x92A0, "(dead)", inline=True)
+
+# set_conn_active (&92A1) — set channel connection active flag
+comment(0x92A1, "Save processor flags", inline=True)
+comment(0x92A2, "Save A", inline=True)
+comment(0x92A3, "Transfer X to A", inline=True)
+comment(0x92A4, "Save original X", inline=True)
+comment(0x92A5, "Get stack pointer", inline=True)
+comment(0x92A6, "Read original A from stack", inline=True)
+comment(0x92A9, "Convert to channel index", inline=True)
+comment(0x92AC, "No channel found: skip", inline=True)
+comment(0x92AE, "Bit 6: connection active flag", inline=True)
+comment(0x92B0, "Set active flag in channel table", inline=True)
+comment(0x92B3, "Store updated status", inline=True)
+comment(0x92B6, "ALWAYS branch to exit", inline=True)
+
+# clear_conn_active (&92B8) — clear channel connection active flag
+comment(0x92B8, "Save processor flags", inline=True)
+comment(0x92B9, "Save A", inline=True)
+comment(0x92BA, "Transfer X to A", inline=True)
+comment(0x92BB, "Save original X", inline=True)
+comment(0x92BC, "Get stack pointer", inline=True)
+comment(0x92BD, "Read original A from stack", inline=True)
+comment(0x92C0, "Convert to channel index", inline=True)
+comment(0x92C3, "No channel found: skip", inline=True)
+comment(0x92C5, "Bit 6 clear mask (&BF = ~&40)", inline=True)
+comment(0x92C7, "Clear active flag in channel table", inline=True)
+comment(0x92CA, "Store updated status", inline=True)
+
+# Shared exit for set/clear_conn_active
+comment(0x92CD, "Restore X", inline=True)
+comment(0x92CE, "Transfer back to X", inline=True)
+comment(0x92CF, "Restore A", inline=True)
+comment(0x92D0, "Restore processor flags", inline=True)
+comment(0x92D1, "Return", inline=True)
+
 
 # ============================================================
 # Generate disassembly
