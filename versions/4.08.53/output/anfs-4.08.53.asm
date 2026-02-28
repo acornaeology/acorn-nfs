@@ -5163,161 +5163,161 @@ bad_prefix = bad_str_anchor+1
 .error_inline
     tay                                                               ; 96be: a8          .              ; Save error number in Y
     pla                                                               ; 96bf: 68          h              ; Pop return address (low) — points to last byte of JSR
-    sta fs_load_addr                                                  ; 96c0: 85 b0       ..
+    sta fs_load_addr                                                  ; 96c0: 85 b0       ..             ; Store return address low
     pla                                                               ; 96c2: 68          h              ; Pop return address (high)
-    sta fs_load_addr_hi                                               ; 96c3: 85 b1       ..
-    ldx #0                                                            ; 96c5: a2 00       ..
+    sta fs_load_addr_hi                                               ; 96c3: 85 b1       ..             ; Store return address high
+    ldx #0                                                            ; 96c5: a2 00       ..             ; X=0: error text index
 ; &96c7 referenced 1 time by &96b9
 .write_error_num_and_str
     sty error_text                                                    ; 96c7: 8c 01 01    ...            ; Store error number in error block
-    tya                                                               ; 96ca: 98          .
-    pha                                                               ; 96cb: 48          H
-    ldy #0                                                            ; 96cc: a0 00       ..
+    tya                                                               ; 96ca: 98          .              ; Copy error number to A
+    pha                                                               ; 96cb: 48          H              ; Push error number on stack
+    ldy #0                                                            ; 96cc: a0 00       ..             ; Y=0: inline string index
     sty error_block                                                   ; 96ce: 8c 00 01    ...            ; Zero the BRK byte at &0100
 ; &96d1 referenced 1 time by &96d8
 .loop_c96d1
     inx                                                               ; 96d1: e8          .              ; Copy inline string into error block
-    iny                                                               ; 96d2: c8          .
+    iny                                                               ; 96d2: c8          .              ; Advance string index
     lda (fs_load_addr),y                                              ; 96d3: b1 b0       ..             ; Read next byte from inline string
-    sta error_text,x                                                  ; 96d5: 9d 01 01    ...
+    sta error_text,x                                                  ; 96d5: 9d 01 01    ...            ; Store byte in error block
     bne loop_c96d1                                                    ; 96d8: d0 f7       ..             ; Loop until null terminator
 ; &96da referenced 4 times by &9557, &9628, &9699, &b966
 .check_net_error_code
-    ldy #&0e                                                          ; 96da: a0 0e       ..
-    lda (net_rx_ptr),y                                                ; 96dc: b1 9c       ..
-    bne c96e8                                                         ; 96de: d0 08       ..
-    pla                                                               ; 96e0: 68          h
-    cmp #&de                                                          ; 96e1: c9 de       ..
-    beq c972b                                                         ; 96e3: f0 46       .F
+    ldy #&0e                                                          ; 96da: a0 0e       ..             ; Y=&0E: offset to error code in RX buffer
+    lda (net_rx_ptr),y                                                ; 96dc: b1 9c       ..             ; Load network error code from reply
+    bne c96e8                                                         ; 96de: d0 08       ..             ; Non-zero: network returned an error
+    pla                                                               ; 96e0: 68          h              ; Pop saved error number
+    cmp #&de                                                          ; 96e1: c9 de       ..             ; Was it &DE (file server error)?
+    beq c972b                                                         ; 96e3: f0 46       .F             ; Yes: append error number and trigger BRK
 ; &96e5 referenced 1 time by &9736
 .c96e5
-    jmp error_block                                                   ; 96e5: 4c 00 01    L..
+    jmp error_block                                                   ; 96e5: 4c 00 01    L..            ; Jump to BRK via error block
 
 ; &96e8 referenced 1 time by &96de
 .c96e8
-    sta l0d6d                                                         ; 96e8: 8d 6d 0d    .m.
-    pha                                                               ; 96eb: 48          H
-    txa                                                               ; 96ec: 8a          .
-    pha                                                               ; 96ed: 48          H
-    ldy #&0e                                                          ; 96ee: a0 0e       ..
-    lda (net_rx_ptr),y                                                ; 96f0: b1 9c       ..
-    sta fs_load_addr                                                  ; 96f2: 85 b0       ..
-    lda #0                                                            ; 96f4: a9 00       ..
-    sta (net_rx_ptr),y                                                ; 96f6: 91 9c       ..
-    lda #&c6                                                          ; 96f8: a9 c6       ..
-    jsr osbyte_x0                                                     ; 96fa: 20 6d 8e     m.            ; OSBYTE with X=0, Y=&FF.
+    sta l0d6d                                                         ; 96e8: 8d 6d 0d    .m.            ; Store error code in workspace
+    pha                                                               ; 96eb: 48          H              ; Push error code
+    txa                                                               ; 96ec: 8a          .              ; Save X (error text index)
+    pha                                                               ; 96ed: 48          H              ; Push X
+    ldy #&0e                                                          ; 96ee: a0 0e       ..             ; Y=&0E: error code offset
+    lda (net_rx_ptr),y                                                ; 96f0: b1 9c       ..             ; Load error code from RX buffer
+    sta fs_load_addr                                                  ; 96f2: 85 b0       ..             ; Save to fs_load_addr as spool handle
+    lda #0                                                            ; 96f4: a9 00       ..             ; A=0: clear error code in RX buffer
+    sta (net_rx_ptr),y                                                ; 96f6: 91 9c       ..             ; Zero the error code byte in buffer
+    lda #&c6                                                          ; 96f8: a9 c6       ..             ; A=&C6: OSBYTE read spool handle
+    jsr osbyte_x0                                                     ; 96fa: 20 6d 8e     m.            ; Read current spool file handle; OSBYTE with X=0, Y=&FF.
 ; Called from dispatch table for specific OSBYTE calls.
-    cpy fs_load_addr                                                  ; 96fd: c4 b0       ..
-    beq c970a                                                         ; 96ff: f0 09       ..
-    cpx fs_load_addr                                                  ; 9701: e4 b0       ..
-    bne c9717                                                         ; 9703: d0 12       ..
-    pha                                                               ; 9705: 48          H
-    lda #&c6                                                          ; 9706: a9 c6       ..
-    bne c970d                                                         ; 9708: d0 03       ..             ; ALWAYS branch
+    cpy fs_load_addr                                                  ; 96fd: c4 b0       ..             ; Compare Y result with saved handle
+    beq c970a                                                         ; 96ff: f0 09       ..             ; Match: close the spool file
+    cpx fs_load_addr                                                  ; 9701: e4 b0       ..             ; Compare X result with saved handle
+    bne c9717                                                         ; 9703: d0 12       ..             ; No match: skip spool close
+    pha                                                               ; 9705: 48          H              ; Push A (preserved)
+    lda #&c6                                                          ; 9706: a9 c6       ..             ; A=&C6: disable spool with OSBYTE
+    bne c970d                                                         ; 9708: d0 03       ..             ; ALWAYS branch to close spool; ALWAYS branch
 
 ; &970a referenced 1 time by &96ff
 .c970a
-    pha                                                               ; 970a: 48          H
-    lda #&c7                                                          ; 970b: a9 c7       ..
+    pha                                                               ; 970a: 48          H              ; Push A (preserved)
+    lda #&c7                                                          ; 970b: a9 c7       ..             ; A=&C7: disable exec with OSBYTE
 ; &970d referenced 1 time by &9708
 .c970d
-    jsr osbyte_x0_y0                                                  ; 970d: 20 76 8e     v.
-    pla                                                               ; 9710: 68          h
-    tay                                                               ; 9711: a8          .
-    lda #osfind_close                                                 ; 9712: a9 00       ..
-    jsr osfind                                                        ; 9714: 20 ce ff     ..            ; Close one or all files
+    jsr osbyte_x0_y0                                                  ; 970d: 20 76 8e     v.            ; OSBYTE with X=0, Y=0 to close
+    pla                                                               ; 9710: 68          h              ; Pull saved handle
+    tay                                                               ; 9711: a8          .              ; Transfer to Y for OSFIND
+    lda #osfind_close                                                 ; 9712: a9 00       ..             ; A=0: close file
+    jsr osfind                                                        ; 9714: 20 ce ff     ..            ; Close the spool/exec file; Close one or all files
 ; &9717 referenced 1 time by &9703
 .c9717
-    pla                                                               ; 9717: 68          h
-    tax                                                               ; 9718: aa          .
-    ldy #&0a                                                          ; 9719: a0 0a       ..
-    lda net_error_lookup_data,y                                       ; 971b: b9 98 97    ...
-    tay                                                               ; 971e: a8          .
+    pla                                                               ; 9717: 68          h              ; Pull saved X (error text index)
+    tax                                                               ; 9718: aa          .              ; Restore X
+    ldy #&0a                                                          ; 9719: a0 0a       ..             ; Y=&0A: lookup index for 'on channel'
+    lda net_error_lookup_data,y                                       ; 971b: b9 98 97    ...            ; Load message offset from lookup table
+    tay                                                               ; 971e: a8          .              ; Transfer offset to Y
 ; &971f referenced 1 time by &9729
 .loop_c971f
-    lda error_msg_table,y                                             ; 971f: b9 a4 97    ...
-    sta error_text,x                                                  ; 9722: 9d 01 01    ...
-    beq c972b                                                         ; 9725: f0 04       ..
-    inx                                                               ; 9727: e8          .
-    iny                                                               ; 9728: c8          .
-    bne loop_c971f                                                    ; 9729: d0 f4       ..
+    lda error_msg_table,y                                             ; 971f: b9 a4 97    ...            ; Load error message byte
+    sta error_text,x                                                  ; 9722: 9d 01 01    ...            ; Append to error text buffer
+    beq c972b                                                         ; 9725: f0 04       ..             ; Null terminator: done copying
+    inx                                                               ; 9727: e8          .              ; Advance error text index
+    iny                                                               ; 9728: c8          .              ; Advance message index
+    bne loop_c971f                                                    ; 9729: d0 f4       ..             ; Loop until full message copied
 ; &972b referenced 2 times by &96e3, &9725
 .c972b
-    stx fs_load_addr_2                                                ; 972b: 86 b2       ..
-    pla                                                               ; 972d: 68          h
-    jsr append_space_and_num                                          ; 972e: 20 5c 97     \.
-    lda #0                                                            ; 9731: a9 00       ..
-    sta l0102,x                                                       ; 9733: 9d 02 01    ...
-    beq c96e5                                                         ; 9736: f0 ad       ..             ; ALWAYS branch
+    stx fs_load_addr_2                                                ; 972b: 86 b2       ..             ; Save error text end position
+    pla                                                               ; 972d: 68          h              ; Pull saved error number
+    jsr append_space_and_num                                          ; 972e: 20 5c 97     \.            ; Append ' nnn' error number suffix
+    lda #0                                                            ; 9731: a9 00       ..             ; A=0: null terminator
+    sta l0102,x                                                       ; 9733: 9d 02 01    ...            ; Terminate error text string
+    beq c96e5                                                         ; 9736: f0 ad       ..             ; ALWAYS branch to trigger BRK error; ALWAYS branch
 
 ; &9738 referenced 2 times by &9620, &965e
 .append_drv_dot_num
-    lda #&20 ; ' '                                                    ; 9738: a9 20       .
-    sta error_text,x                                                  ; 973a: 9d 01 01    ...
-    inx                                                               ; 973d: e8          .
-    stx fs_load_addr_2                                                ; 973e: 86 b2       ..
-    ldy #3                                                            ; 9740: a0 03       ..
-    lda (net_tx_ptr),y                                                ; 9742: b1 9a       ..
-    beq c9752                                                         ; 9744: f0 0c       ..
-    jsr append_decimal_num                                            ; 9746: 20 67 97     g.
-    ldx fs_load_addr_2                                                ; 9749: a6 b2       ..
-    lda #&2e ; '.'                                                    ; 974b: a9 2e       ..
-    sta error_text,x                                                  ; 974d: 9d 01 01    ...
-    inc fs_load_addr_2                                                ; 9750: e6 b2       ..
+    lda #&20 ; ' '                                                    ; 9738: a9 20       .              ; A=' ': space separator
+    sta error_text,x                                                  ; 973a: 9d 01 01    ...            ; Append space to error text
+    inx                                                               ; 973d: e8          .              ; Advance error text index
+    stx fs_load_addr_2                                                ; 973e: 86 b2       ..             ; Save position for number formatting
+    ldy #3                                                            ; 9740: a0 03       ..             ; Y=3: offset to network number in TX CB
+    lda (net_tx_ptr),y                                                ; 9742: b1 9a       ..             ; Load network number
+    beq c9752                                                         ; 9744: f0 0c       ..             ; Zero: skip network part (local)
+    jsr append_decimal_num                                            ; 9746: 20 67 97     g.            ; Append network number as decimal
+    ldx fs_load_addr_2                                                ; 9749: a6 b2       ..             ; Reload error text position
+    lda #&2e ; '.'                                                    ; 974b: a9 2e       ..             ; A='.': dot separator
+    sta error_text,x                                                  ; 974d: 9d 01 01    ...            ; Append dot to error text
+    inc fs_load_addr_2                                                ; 9750: e6 b2       ..             ; Advance past dot
 ; &9752 referenced 1 time by &9744
 .c9752
-    ldy #2                                                            ; 9752: a0 02       ..
-    lda (net_tx_ptr),y                                                ; 9754: b1 9a       ..
-    jsr append_decimal_num                                            ; 9756: 20 67 97     g.
-    ldx fs_load_addr_2                                                ; 9759: a6 b2       ..
-    rts                                                               ; 975b: 60          `
+    ldy #2                                                            ; 9752: a0 02       ..             ; Y=2: offset to station number in TX CB
+    lda (net_tx_ptr),y                                                ; 9754: b1 9a       ..             ; Load station number
+    jsr append_decimal_num                                            ; 9756: 20 67 97     g.            ; Append station number as decimal
+    ldx fs_load_addr_2                                                ; 9759: a6 b2       ..             ; Reload error text position
+    rts                                                               ; 975b: 60          `              ; Return
 
 ; &975c referenced 2 times by &972e, &b4ca
 .append_space_and_num
-    tay                                                               ; 975c: a8          .
-    lda #&20 ; ' '                                                    ; 975d: a9 20       .
-    ldx fs_load_addr_2                                                ; 975f: a6 b2       ..
-    sta error_text,x                                                  ; 9761: 9d 01 01    ...
-    inc fs_load_addr_2                                                ; 9764: e6 b2       ..
-    tya                                                               ; 9766: 98          .
+    tay                                                               ; 975c: a8          .              ; Save number in Y
+    lda #&20 ; ' '                                                    ; 975d: a9 20       .              ; A=' ': space prefix
+    ldx fs_load_addr_2                                                ; 975f: a6 b2       ..             ; Load current error text position
+    sta error_text,x                                                  ; 9761: 9d 01 01    ...            ; Append space to error text
+    inc fs_load_addr_2                                                ; 9764: e6 b2       ..             ; Advance position past space
+    tya                                                               ; 9766: 98          .              ; Restore number to A
 ; &9767 referenced 2 times by &9746, &9756
 .append_decimal_num
-    tay                                                               ; 9767: a8          .
-    bit bit_test_ff_pad                                               ; 9768: 2c 7d 94    ,}.
-    lda #&64 ; 'd'                                                    ; 976b: a9 64       .d
-    jsr append_decimal_digit                                          ; 976d: 20 78 97     x.
-    lda #&0a                                                          ; 9770: a9 0a       ..
-    jsr append_decimal_digit                                          ; 9772: 20 78 97     x.
-    lda #1                                                            ; 9775: a9 01       ..
-    clv                                                               ; 9777: b8          .
+    tay                                                               ; 9767: a8          .              ; Save number in Y for division
+    bit bit_test_ff_pad                                               ; 9768: 2c 7d 94    ,}.            ; Set V: suppress leading zeros
+    lda #&64 ; 'd'                                                    ; 976b: a9 64       .d             ; A=100: hundreds digit divisor
+    jsr append_decimal_digit                                          ; 976d: 20 78 97     x.            ; Extract and append hundreds digit
+    lda #&0a                                                          ; 9770: a9 0a       ..             ; A=10: tens digit divisor
+    jsr append_decimal_digit                                          ; 9772: 20 78 97     x.            ; Extract and append tens digit
+    lda #1                                                            ; 9775: a9 01       ..             ; A=1: units digit (remainder)
+    clv                                                               ; 9777: b8          .              ; Clear V: always print units digit
 ; &9778 referenced 2 times by &976d, &9772
 .append_decimal_digit
-    sta fs_load_addr_3                                                ; 9778: 85 b3       ..
-    tya                                                               ; 977a: 98          .
-    ldx #&2f ; '/'                                                    ; 977b: a2 2f       ./
-    php                                                               ; 977d: 08          .
-    sec                                                               ; 977e: 38          8
+    sta fs_load_addr_3                                                ; 9778: 85 b3       ..             ; Store divisor
+    tya                                                               ; 977a: 98          .              ; Copy number to A for division
+    ldx #&2f ; '/'                                                    ; 977b: a2 2f       ./             ; X='0'-1: digit counter (ASCII offset)
+    php                                                               ; 977d: 08          .              ; Save V flag (leading zero suppression)
+    sec                                                               ; 977e: 38          8              ; Set carry for subtraction
 ; &977f referenced 1 time by &9782
 .loop_c977f
-    inx                                                               ; 977f: e8          .
-    sbc fs_load_addr_3                                                ; 9780: e5 b3       ..
-    bcs loop_c977f                                                    ; 9782: b0 fb       ..
-    adc fs_load_addr_3                                                ; 9784: 65 b3       e.
-    plp                                                               ; 9786: 28          (
-    tay                                                               ; 9787: a8          .
-    txa                                                               ; 9788: 8a          .
-    cmp #&30 ; '0'                                                    ; 9789: c9 30       .0
-    bne c978f                                                         ; 978b: d0 02       ..
-    bvs return_17                                                     ; 978d: 70 08       p.
+    inx                                                               ; 977f: e8          .              ; Increment digit counter
+    sbc fs_load_addr_3                                                ; 9780: e5 b3       ..             ; Subtract divisor
+    bcs loop_c977f                                                    ; 9782: b0 fb       ..             ; Not negative yet: continue counting
+    adc fs_load_addr_3                                                ; 9784: 65 b3       e.             ; Add back divisor (restore remainder)
+    plp                                                               ; 9786: 28          (              ; Restore V flag
+    tay                                                               ; 9787: a8          .              ; Save remainder back to Y
+    txa                                                               ; 9788: 8a          .              ; Digit counter to A (ASCII digit)
+    cmp #&30 ; '0'                                                    ; 9789: c9 30       .0             ; Is digit '0'?
+    bne c978f                                                         ; 978b: d0 02       ..             ; Non-zero: always print
+    bvs return_17                                                     ; 978d: 70 08       p.             ; V set (suppress leading zeros): skip
 ; &978f referenced 1 time by &978b
 .c978f
-    clv                                                               ; 978f: b8          .
-    ldx fs_load_addr_2                                                ; 9790: a6 b2       ..
-    sta error_text,x                                                  ; 9792: 9d 01 01    ...
-    inc fs_load_addr_2                                                ; 9795: e6 b2       ..
+    clv                                                               ; 978f: b8          .              ; Clear V: first non-zero digit seen
+    ldx fs_load_addr_2                                                ; 9790: a6 b2       ..             ; Load current text position
+    sta error_text,x                                                  ; 9792: 9d 01 01    ...            ; Store ASCII digit in error text
+    inc fs_load_addr_2                                                ; 9795: e6 b2       ..             ; Advance text position
 ; &9797 referenced 1 time by &978d
 .return_17
-    rts                                                               ; 9797: 60          `
+    rts                                                               ; 9797: 60          `              ; Return
 
 ; &9798 referenced 5 times by &9606, &9644, &9672, &9685, &971b
 .net_error_lookup_data
@@ -5349,73 +5349,73 @@ bad_prefix = bad_str_anchor+1
 
 ; &9822 referenced 2 times by &94d8, &9ac9
 .init_tx_ptr_and_send
-    ldx #&c0                                                          ; 9822: a2 c0       ..
-    stx net_tx_ptr                                                    ; 9824: 86 9a       ..
-    ldx #0                                                            ; 9826: a2 00       ..
-    stx net_tx_ptr_hi                                                 ; 9828: 86 9b       ..
+    ldx #&c0                                                          ; 9822: a2 c0       ..             ; X=&C0: TX control block base (low)
+    stx net_tx_ptr                                                    ; 9824: 86 9a       ..             ; Set TX pointer low
+    ldx #0                                                            ; 9826: a2 00       ..             ; X=0: TX control block base (high)
+    stx net_tx_ptr_hi                                                 ; 9828: 86 9b       ..             ; Set TX pointer high (page 0)
 ; &982a referenced 7 times by &a90c, &a965, &a9c2, &abb4, &ac3f, &b03b, &b216
 .send_net_packet
-    lda l0d6e                                                         ; 982a: ad 6e 0d    .n.
-    bne c9831                                                         ; 982d: d0 02       ..
-    lda #&ff                                                          ; 982f: a9 ff       ..
+    lda l0d6e                                                         ; 982a: ad 6e 0d    .n.            ; Load retry count from workspace
+    bne c9831                                                         ; 982d: d0 02       ..             ; Non-zero: use configured retry count
+    lda #&ff                                                          ; 982f: a9 ff       ..             ; A=&FF: default retry count (255)
 ; &9831 referenced 1 time by &982d
 .c9831
-    ldy #&60 ; '`'                                                    ; 9831: a0 60       .`
-    pha                                                               ; 9833: 48          H
-    tya                                                               ; 9834: 98          .              ; A=&60
-    pha                                                               ; 9835: 48          H
-    ldx #0                                                            ; 9836: a2 00       ..
-    lda (net_tx_ptr,x)                                                ; 9838: a1 9a       ..
+    ldy #&60 ; '`'                                                    ; 9831: a0 60       .`             ; Y=&60: timeout value
+    pha                                                               ; 9833: 48          H              ; Push retry count
+    tya                                                               ; 9834: 98          .              ; A=&60: copy timeout to A; A=&60
+    pha                                                               ; 9835: 48          H              ; Push timeout
+    ldx #0                                                            ; 9836: a2 00       ..             ; X=0: TX pointer index
+    lda (net_tx_ptr,x)                                                ; 9838: a1 9a       ..             ; Load first byte of TX control block
 ; &983a referenced 1 time by &985c
 .c983a
-    sta (net_tx_ptr,x)                                                ; 983a: 81 9a       ..
-    pha                                                               ; 983c: 48          H
-    jsr c98b4                                                         ; 983d: 20 b4 98     ..
-    asl a                                                             ; 9840: 0a          .
-    bpl c986d                                                         ; 9841: 10 2a       .*
-    asl a                                                             ; 9843: 0a          .
-    beq c9869                                                         ; 9844: f0 23       .#
-    jsr check_escape                                                  ; 9846: 20 5a 95     Z.
-    pla                                                               ; 9849: 68          h
-    tax                                                               ; 984a: aa          .
-    pla                                                               ; 984b: 68          h
-    tay                                                               ; 984c: a8          .
-    pla                                                               ; 984d: 68          h
-    beq c985e                                                         ; 984e: f0 0e       ..
+    sta (net_tx_ptr,x)                                                ; 983a: 81 9a       ..             ; Write control byte back to CB
+    pha                                                               ; 983c: 48          H              ; Push control byte
+    jsr c98b4                                                         ; 983d: 20 b4 98     ..            ; Poll ADLC until line idle
+    asl a                                                             ; 9840: 0a          .              ; Shift left: check bit 6 (success)
+    bpl c986d                                                         ; 9841: 10 2a       .*             ; Bit 6 clear: transmission complete
+    asl a                                                             ; 9843: 0a          .              ; Shift left: check bit 5 (fatal)
+    beq c9869                                                         ; 9844: f0 23       .#             ; Zero (bit 5 clear): fatal error
+    jsr check_escape                                                  ; 9846: 20 5a 95     Z.            ; Check for escape condition
+    pla                                                               ; 9849: 68          h              ; Pull control byte
+    tax                                                               ; 984a: aa          .              ; Restore to X
+    pla                                                               ; 984b: 68          h              ; Pull timeout
+    tay                                                               ; 984c: a8          .              ; Restore to Y
+    pla                                                               ; 984d: 68          h              ; Pull retry count
+    beq c985e                                                         ; 984e: f0 0e       ..             ; Zero retries remaining: try alternate
 ; &9850 referenced 1 time by &9867
 .loop_c9850
-    sbc #1                                                            ; 9850: e9 01       ..
-    pha                                                               ; 9852: 48          H
-    tya                                                               ; 9853: 98          .
-    pha                                                               ; 9854: 48          H
-    txa                                                               ; 9855: 8a          .
+    sbc #1                                                            ; 9850: e9 01       ..             ; Decrement retry counter
+    pha                                                               ; 9852: 48          H              ; Push updated retry count
+    tya                                                               ; 9853: 98          .              ; Copy timeout to A
+    pha                                                               ; 9854: 48          H              ; Push timeout for delay loop
+    txa                                                               ; 9855: 8a          .              ; Copy control byte to A
 ; &9856 referenced 2 times by &9857, &985a
 .c9856
-    dex                                                               ; 9856: ca          .
-    bne c9856                                                         ; 9857: d0 fd       ..
-    dey                                                               ; 9859: 88          .
-    bne c9856                                                         ; 985a: d0 fa       ..
-    beq c983a                                                         ; 985c: f0 dc       ..             ; ALWAYS branch
+    dex                                                               ; 9856: ca          .              ; Inner delay: decrement X
+    bne c9856                                                         ; 9857: d0 fd       ..             ; Loop until X=0
+    dey                                                               ; 9859: 88          .              ; Decrement outer counter Y
+    bne c9856                                                         ; 985a: d0 fa       ..             ; Loop until Y=0
+    beq c983a                                                         ; 985c: f0 dc       ..             ; ALWAYS branch: retry transmission; ALWAYS branch
 
 ; &985e referenced 1 time by &984e
 .c985e
-    cmp l0d6e                                                         ; 985e: cd 6e 0d    .n.
-    bne c9869                                                         ; 9861: d0 06       ..
-    lda #&80                                                          ; 9863: a9 80       ..
-    sta escapable                                                     ; 9865: 85 97       ..
-    bne loop_c9850                                                    ; 9867: d0 e7       ..             ; ALWAYS branch
+    cmp l0d6e                                                         ; 985e: cd 6e 0d    .n.            ; Compare retry count with alternate
+    bne c9869                                                         ; 9861: d0 06       ..             ; Different: go to error handling
+    lda #&80                                                          ; 9863: a9 80       ..             ; A=&80: set escapable flag
+    sta escapable                                                     ; 9865: 85 97       ..             ; Mark as escapable for second phase
+    bne loop_c9850                                                    ; 9867: d0 e7       ..             ; ALWAYS branch: retry with escapable; ALWAYS branch
 
 ; &9869 referenced 2 times by &9844, &9861
 .c9869
-    tax                                                               ; 9869: aa          .
-    jmp load_reply_and_classify                                       ; 986a: 4c 36 96    L6.
+    tax                                                               ; 9869: aa          .              ; Result code to X
+    jmp load_reply_and_classify                                       ; 986a: 4c 36 96    L6.            ; Jump to classify reply and return
 
 ; &986d referenced 1 time by &9841
 .c986d
-    pla                                                               ; 986d: 68          h
-    pla                                                               ; 986e: 68          h
-    pla                                                               ; 986f: 68          h
-    jmp clear_escapable                                               ; 9870: 4c 8b 92    L..
+    pla                                                               ; 986d: 68          h              ; Pull control byte
+    pla                                                               ; 986e: 68          h              ; Pull timeout
+    pla                                                               ; 986f: 68          h              ; Pull retry count
+    jmp clear_escapable                                               ; 9870: 4c 8b 92    L..            ; Clear escapable flag and return
 
 ; &9873 referenced 2 times by &9889, &98e3
 .pass_txbuf_init_table
