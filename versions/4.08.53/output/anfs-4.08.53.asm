@@ -662,21 +662,21 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_osfind
     jsr tube_read_r2                                                  ; bcd2: 20 c5 06     .. :0542[3]   ; Read open mode from R2 for OSFIND; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    beq tube_osfind_close                                             ; bcd5: f0 0b       ..  :0545[3]
-    pha                                                               ; bcd7: 48          H   :0547[3]
-    jsr tube_read_string                                              ; bcd8: 20 82 05     .. :0548[3]
-    pla                                                               ; bcdb: 68          h   :054b[3]
+    beq tube_osfind_close                                             ; bcd5: f0 0b       ..  :0545[3]   ; Mode=0: close file(s)
+    pha                                                               ; bcd7: 48          H   :0547[3]   ; Save open mode on stack
+    jsr tube_read_string                                              ; bcd8: 20 82 05     .. :0548[3]   ; Read filename string from R2
+    pla                                                               ; bcdb: 68          h   :054b[3]   ; Restore open mode
     jsr osfind                                                        ; bcdc: 20 ce ff     .. :054c[3]   ; Open or close file(s)
-    jmp tube_reply_byte                                               ; bcdf: 4c 9e 05    L.. :054f[3]
+    jmp tube_reply_byte                                               ; bcdf: 4c 9e 05    L.. :054f[3]   ; Reply with file handle via R2
 
 ; &bce2 referenced 1 time by &0545[3]
 .tube_osfind_close
     jsr tube_read_r2                                                  ; bce2: 20 c5 06     .. :0552[3]   ; OSFIND close: read handle from R2; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    tay                                                               ; bce5: a8          .   :0555[3]
-    lda #osfind_close                                                 ; bce6: a9 00       ..  :0556[3]
+    tay                                                               ; bce5: a8          .   :0555[3]   ; Transfer handle to Y
+    lda #osfind_close                                                 ; bce6: a9 00       ..  :0556[3]   ; A=0: close file
     jsr osfind                                                        ; bce8: 20 ce ff     .. :0558[3]   ; Close one or all files
-    jmp tube_reply_ack                                                ; bceb: 4c 9c 05    L.. :055b[3]
+    jmp tube_reply_ack                                                ; bceb: 4c 9c 05    L.. :055b[3]   ; Reply with acknowledgement via R2
 
 .tube_osargs
     equb &20, &c5, 6, &a8                                             ; bcee: 20 c5 06...  .. :055e[3]   ; Read file handle from R2 for OSARGS
@@ -687,39 +687,39 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .read_osargs_params
     jsr tube_read_r2                                                  ; bcf4: 20 c5 06     .. :0564[3]   ; Read next param byte from R2; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    sta escape_flag,x                                                 ; bcf7: 95 ff       ..  :0567[3]
-    dex                                                               ; bcf9: ca          .   :0569[3]
-    bne read_osargs_params                                            ; bcfa: d0 f8       ..  :056a[3]
+    sta escape_flag,x                                                 ; bcf7: 95 ff       ..  :0567[3]   ; Store param at ZP+X (escape_flag downward)
+    dex                                                               ; bcf9: ca          .   :0569[3]   ; Decrement index
+    bne read_osargs_params                                            ; bcfa: d0 f8       ..  :056a[3]   ; More params: continue reading
     jsr tube_read_r2                                                  ; bcfc: 20 c5 06     .. :056c[3]   ; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
     jsr osargs                                                        ; bcff: 20 da ff     .. :056f[3]   ; Read or write a file's attributes
-    jsr tube_send_r2                                                  ; bd02: 20 95 06     .. :0572[3]
-    ldx #3                                                            ; bd05: a2 03       ..  :0575[3]
+    jsr tube_send_r2                                                  ; bd02: 20 95 06     .. :0572[3]   ; Send result A via R2
+    ldx #3                                                            ; bd05: a2 03       ..  :0575[3]   ; X=3: send 4 result bytes
 ; &bd07 referenced 1 time by &057d[3]
 .send_osargs_result
     lda zp_ptr_lo,x                                                   ; bd07: b5 00       ..  :0577[3]   ; Load result byte from zero page
-    jsr tube_send_r2                                                  ; bd09: 20 95 06     .. :0579[3]
-    dex                                                               ; bd0c: ca          .   :057c[3]
-    bpl send_osargs_result                                            ; bd0d: 10 f8       ..  :057d[3]
-    jmp tube_main_loop                                                ; bd0f: 4c 36 00    L6. :057f[3]
+    jsr tube_send_r2                                                  ; bd09: 20 95 06     .. :0579[3]   ; Send result byte via R2
+    dex                                                               ; bd0c: ca          .   :057c[3]   ; Decrement byte counter
+    bpl send_osargs_result                                            ; bd0d: 10 f8       ..  :057d[3]   ; More bytes: continue sending
+    jmp tube_main_loop                                                ; bd0f: 4c 36 00    L6. :057f[3]   ; Return to Tube main loop
 
 ; &bd12 referenced 2 times by &0548[3], &05b3[3]
 .tube_read_string
     ldx #0                                                            ; bd12: a2 00       ..  :0582[3]   ; X=0: initialise string buffer index
-    ldy #0                                                            ; bd14: a0 00       ..  :0584[3]
+    ldy #0                                                            ; bd14: a0 00       ..  :0584[3]   ; Y=0: initialise string offset
 ; &bd16 referenced 1 time by &0591[3]
 .strnh
     jsr tube_read_r2                                                  ; bd16: 20 c5 06     .. :0586[3]   ; Read next string byte from R2; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    sta string_buf,y                                                  ; bd19: 99 00 07    ... :0589[3]
-    iny                                                               ; bd1c: c8          .   :058c[3]
-    beq string_buf_done                                               ; bd1d: f0 04       ..  :058d[3]
-    cmp #&0d                                                          ; bd1f: c9 0d       ..  :058f[3]
-    bne strnh                                                         ; bd21: d0 f3       ..  :0591[3]
+    sta string_buf,y                                                  ; bd19: 99 00 07    ... :0589[3]   ; Store in string buffer at &0700+Y
+    iny                                                               ; bd1c: c8          .   :058c[3]   ; Advance string index
+    beq string_buf_done                                               ; bd1d: f0 04       ..  :058d[3]   ; Buffer full (256 bytes): done
+    cmp #&0d                                                          ; bd1f: c9 0d       ..  :058f[3]   ; Check for CR terminator
+    bne strnh                                                         ; bd21: d0 f3       ..  :0591[3]   ; Not CR: continue reading
 ; &bd23 referenced 1 time by &058d[3]
 .string_buf_done
     ldy #7                                                            ; bd23: a0 07       ..  :0593[3]   ; Y=7: set XY=&0700 for OSCLI/OSFIND
-    rts                                                               ; bd25: 60          `   :0595[3]
+    rts                                                               ; bd25: 60          `   :0595[3]   ; Return with XY pointing to string buffer
 
 .tube_oscli
     equb &20, &82, 5, &20, &f7, &ff                                   ; bd26: 20 82 05...  .. :0596[3]   ; Read command string from R2 into &0700
@@ -743,48 +743,48 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .argsw
     jsr tube_read_r2                                                  ; bd3b: 20 c5 06     .. :05ab[3]   ; Read next control block byte from R2; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    sta zp_ptr_hi,x                                                   ; bd3e: 95 01       ..  :05ae[3]
-    dex                                                               ; bd40: ca          .   :05b0[3]
-    bne argsw                                                         ; bd41: d0 f8       ..  :05b1[3]
-    jsr tube_read_string                                              ; bd43: 20 82 05     .. :05b3[3]
-    stx zp_ptr_lo                                                     ; bd46: 86 00       ..  :05b6[3]
-    sty zp_ptr_hi                                                     ; bd48: 84 01       ..  :05b8[3]
-    ldy #0                                                            ; bd4a: a0 00       ..  :05ba[3]
+    sta zp_ptr_hi,x                                                   ; bd3e: 95 01       ..  :05ae[3]   ; Store at ZP+X (control block)
+    dex                                                               ; bd40: ca          .   :05b0[3]   ; Decrement index
+    bne argsw                                                         ; bd41: d0 f8       ..  :05b1[3]   ; More bytes: continue reading
+    jsr tube_read_string                                              ; bd43: 20 82 05     .. :05b3[3]   ; Read filename string from R2
+    stx zp_ptr_lo                                                     ; bd46: 86 00       ..  :05b6[3]   ; Set filename ptr low = 0
+    sty zp_ptr_hi                                                     ; bd48: 84 01       ..  :05b8[3]   ; Set filename ptr high = &07
+    ldy #0                                                            ; bd4a: a0 00       ..  :05ba[3]   ; Y=0: OSFILE reason code index
     jsr tube_read_r2                                                  ; bd4c: 20 c5 06     .. :05bc[3]   ; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    jsr osfile                                                        ; bd4f: 20 dd ff     .. :05bf[3]
-    jsr tube_send_r2                                                  ; bd52: 20 95 06     .. :05c2[3]
-    ldx #&10                                                          ; bd55: a2 10       ..  :05c5[3]
+    jsr osfile                                                        ; bd4f: 20 dd ff     .. :05bf[3]   ; Execute OSFILE
+    jsr tube_send_r2                                                  ; bd52: 20 95 06     .. :05c2[3]   ; Send result A via R2
+    ldx #&10                                                          ; bd55: a2 10       ..  :05c5[3]   ; X=&10: send 16 result bytes
 ; &bd57 referenced 1 time by &05cd[3]
 .send_osfile_ctrl_blk
     lda zp_ptr_hi,x                                                   ; bd57: b5 01       ..  :05c7[3]   ; Load control block byte
-    jsr tube_send_r2                                                  ; bd59: 20 95 06     .. :05c9[3]
-    dex                                                               ; bd5c: ca          .   :05cc[3]
-    bne send_osfile_ctrl_blk                                          ; bd5d: d0 f8       ..  :05cd[3]
+    jsr tube_send_r2                                                  ; bd59: 20 95 06     .. :05c9[3]   ; Send control block byte via R2
+    dex                                                               ; bd5c: ca          .   :05cc[3]   ; Decrement byte counter
+    bne send_osfile_ctrl_blk                                          ; bd5d: d0 f8       ..  :05cd[3]   ; More bytes: continue sending
     beq mj                                                            ; bd5f: f0 d5       ..  :05cf[3]   ; ALWAYS branch
 
-    ldx #&0d                                                          ; bd61: a2 0d       ..  :05d1[3]
+    ldx #&0d                                                          ; bd61: a2 0d       ..  :05d1[3]   ; X=&0D: read 13-byte OSGBPB ctrl block
 ; &bd63 referenced 1 time by &05d9[3]
 .read_osgbpb_ctrl_blk
     jsr tube_read_r2                                                  ; bd63: 20 c5 06     .. :05d3[3]   ; Read next control block byte from R2; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    sta escape_flag,x                                                 ; bd66: 95 ff       ..  :05d6[3]
-    dex                                                               ; bd68: ca          .   :05d8[3]
-    bne read_osgbpb_ctrl_blk                                          ; bd69: d0 f8       ..  :05d9[3]
+    sta escape_flag,x                                                 ; bd66: 95 ff       ..  :05d6[3]   ; Store at ZP+X (escape_flag downward)
+    dex                                                               ; bd68: ca          .   :05d8[3]   ; Decrement index
+    bne read_osgbpb_ctrl_blk                                          ; bd69: d0 f8       ..  :05d9[3]   ; More bytes: continue reading
     jsr tube_read_r2                                                  ; bd6b: 20 c5 06     .. :05db[3]   ; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
-    ldy #0                                                            ; bd6e: a0 00       ..  :05de[3]
+    ldy #0                                                            ; bd6e: a0 00       ..  :05de[3]   ; Y=0: OSGBPB direction/count
     jsr osgbpb                                                        ; bd70: 20 d1 ff     .. :05e0[3]   ; Read or write multiple bytes to an open file
-    pha                                                               ; bd73: 48          H   :05e3[3]
-    ldx #&0c                                                          ; bd74: a2 0c       ..  :05e4[3]
+    pha                                                               ; bd73: 48          H   :05e3[3]   ; Save result A on stack
+    ldx #&0c                                                          ; bd74: a2 0c       ..  :05e4[3]   ; X=&0C: send 12 result bytes
 ; &bd76 referenced 1 time by &05ec[3]
 .send_osgbpb_result
     lda zp_ptr_lo,x                                                   ; bd76: b5 00       ..  :05e6[3]   ; Load result byte from zero page
-    jsr tube_send_r2                                                  ; bd78: 20 95 06     .. :05e8[3]
-    dex                                                               ; bd7b: ca          .   :05eb[3]
-    bpl send_osgbpb_result                                            ; bd7c: 10 f8       ..  :05ec[3]
+    jsr tube_send_r2                                                  ; bd78: 20 95 06     .. :05e8[3]   ; Send result byte via R2
+    dex                                                               ; bd7b: ca          .   :05eb[3]   ; Decrement byte counter
+    bpl send_osgbpb_result                                            ; bd7c: 10 f8       ..  :05ec[3]   ; More bytes: continue sending
     pla                                                               ; bd7e: 68          h   :05ee[3]   ; Recover completion status from stack
-    jmp tube_rdch_reply                                               ; bd7f: 4c 3a 05    L:. :05ef[3]
+    jmp tube_rdch_reply                                               ; bd7f: 4c 3a 05    L:. :05ef[3]   ; Reply with RDCH-style result
 
     equb &20, &c5, 6, &aa, &20, &c5, 6, &20, &f4, &ff                 ; bd82: 20 c5 06...  .. :05f2[3]
 
@@ -838,7 +838,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bvc tube_osbyte_send_y                                            ; bdb0: 50 fb       P.  :0620[4]   ; Not ready: keep polling
     sty tube_data_register_2                                          ; bdb2: 8c e3 fe    ... :0622[4]   ; Send Y result, then fall through to send X
 .tube_osbyte_short
-    bvs tube_poll_r2_result                                           ; bdb5: 70 d5       p.  :0625[4]
+    bvs tube_poll_r2_result                                           ; bdb5: 70 d5       p.  :0625[4]   ; BVS always: jump to send X via R2
 .tube_osword
     jsr tube_read_r2                                                  ; bdb7: 20 c5 06     .. :0627[4]   ; Overlapping entry: &20 = JSR c06c5 (OSWORD); Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
@@ -1945,9 +1945,9 @@ service_handler_lo = service_entry+1
 ; receive error or transmit error based on
 ; SR1 flags.
 
-    cpy #&a3                                                          ; 847e: c0 a3       ..
-    sta l0085                                                         ; 8480: 85 85       ..
-    sta l00da                                                         ; 8482: 85 da       ..
+    cpy #&a3                                                          ; 847e: c0 a3       ..             ; Unreachable: data decoded as CPY #&A3
+    sta l0085                                                         ; 8480: 85 85       ..             ; Unreachable: data decoded as STA &85
+    sta l00da                                                         ; 8482: 85 da       ..             ; Unreachable: data decoded as STA &DA
     equb &da, &ae, &a9,   0, &85, &a4, &a9, &82, &85, &a2, &a9, 1     ; 8484: da ae a9... ...            ; Set port buffer lo; Buffer length lo = &82; Set buffer length lo; Buffer length hi = 1
     equb &85, &a3, &a5, &9d, &85, &a5, &a0,   1                       ; 8490: 85 a3 a5... ...            ; Set buffer length hi; Load RX page hi for buffer; Set port buffer hi; Y=3: copy 4 bytes (3 down to 0)
 .copy_addr_loop
@@ -2758,12 +2758,12 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp discard_reset_rx                                              ; 88d5: 4c eb 83    L..            ; Full ADLC reset and return to idle listen
 
     asl l0a0e                                                         ; 88d8: 0e 0e 0a    ...            ; Unreferenced data block (purpose unknown)
-    asl a                                                             ; 88db: 0a          .
-    asl a                                                             ; 88dc: 0a          .
-    asl l0006                                                         ; 88dd: 06 06       ..
-    asl a                                                             ; 88df: 0a          .
-    sta (zp_ptr_lo,x)                                                 ; 88e0: 81 00       ..
-    brk                                                               ; 88e2: 00          .
+    asl a                                                             ; 88db: 0a          .              ; Unreachable: data decoded as ASL A
+    asl a                                                             ; 88dc: 0a          .              ; Unreachable: data decoded as ASL A
+    asl l0006                                                         ; 88dd: 06 06       ..             ; Unreachable: data decoded as ASL &06
+    asl a                                                             ; 88df: 0a          .              ; Unreachable: data decoded as ASL A
+    sta (zp_ptr_lo,x)                                                 ; 88e0: 81 00       ..             ; Unreachable: data decoded as STA (&00,X)
+    brk                                                               ; 88e2: 00          .              ; Unreachable: data decoded as BRK
 
     equb 0, 0, 1, 1, &81                                              ; 88e3: 00 00 01... ...
 
@@ -6859,7 +6859,7 @@ bad_prefix = bad_str_anchor+1
     tya                                                               ; a0ca: 98          .              ; A=&00
 ; &a0cb referenced 1 time by &a0c6
 .return_20
-    rts                                                               ; a0cb: 60          `
+    rts                                                               ; a0cb: 60          `              ; Return with A=index, Y=index
 
     ldy #&6f ; 'o'                                                    ; a0cc: a0 6f       .o             ; Y=&6F: source offset
     lda (net_rx_ptr),y                                                ; a0ce: b1 9c       ..             ; Load byte from RX buffer
@@ -6974,9 +6974,9 @@ bad_prefix = bad_str_anchor+1
     bne loop_ca14d                                                    ; a162: d0 e9       ..             ; Try next table entry
 ; &a164 referenced 1 time by &a158
 .ca164
-    jsr l2322                                                         ; a164: 20 22 23     "#
-    bit tube_send_error_num                                           ; a167: 24 26       $&
-    rol a                                                             ; a169: 2a          *
+    jsr l2322                                                         ; a164: 20 22 23     "#            ; Data: command separator table (space/quotes)
+    bit tube_send_error_num                                           ; a167: 24 26       $&             ; Data: separator chars &24, &26
+    rol a                                                             ; a169: 2a          *              ; Data: separator char &2A (asterisk)
     equb &3a, &40, &0d                                                ; a16a: 3a 40 0d    :@.
 
 ; &a16d referenced 1 time by &a15b
@@ -7511,10 +7511,10 @@ bad_prefix = bad_str_anchor+1
 
 ; &a50f referenced 1 time by &a4f0
 .ca50f
-    lda open_port_buf_hi                                              ; a50f: a5 a5       ..
-    lda open_port_buf_hi                                              ; a511: a5 a5       ..
-    ldx port_ws_offset                                                ; a513: a6 a6       ..
-    tay                                                               ; a515: a8          .
+    lda open_port_buf_hi                                              ; a50f: a5 a5       ..             ; Data: OSWORD dispatch hi table (&A5)
+    lda open_port_buf_hi                                              ; a511: a5 a5       ..             ; Data: OSWORD dispatch hi (&A5)
+    ldx port_ws_offset                                                ; a513: a6 a6       ..             ; Data: OSWORD dispatch hi (&A6)
+    tay                                                               ; a515: a8          .              ; Data: OSWORD dispatch hi (&A8)
     pha                                                               ; a516: 48          H              ; Save A for later test
     bit l0d6c                                                         ; a517: 2c 6c 0d    ,l.            ; Test station active flag
     bpl return_22                                                     ; a51a: 10 09       ..             ; Not active: just return
@@ -7555,9 +7555,9 @@ bad_prefix = bad_str_anchor+1
     sta l0f06                                                         ; a561: 8d 06 0f    ...            ; Store BCD month
     pla                                                               ; a564: 68          h              ; Restore day+month byte
     lsr a                                                             ; a565: 4a          J              ; Shift high nibble down
-    lsr a                                                             ; a566: 4a          J
-    lsr a                                                             ; a567: 4a          J
-    lsr a                                                             ; a568: 4a          J
+    lsr a                                                             ; a566: 4a          J              ; Continue shifting
+    lsr a                                                             ; a567: 4a          J              ; Continue shifting
+    lsr a                                                             ; a568: 4a          J              ; 4th shift: isolate high nibble
     adc #&51 ; 'Q'                                                    ; a569: 69 51       iQ             ; Add &51 for year offset + carry
     jsr bin_to_bcd                                                    ; a56b: 20 7c a5     |.            ; Convert year to BCD
     sta l0f05                                                         ; a56e: 8d 05 0f    ...            ; Store BCD year
@@ -7962,7 +7962,7 @@ bad_prefix = bad_str_anchor+1
     jsr caa24                                                         ; a9da: 20 24 aa     $.            ; Search claim code table
     beq ca9e9                                                         ; a9dd: f0 0a       ..             ; Found: skip to processing
     dey                                                               ; a9df: 88          .              ; Try second table range
-    dey                                                               ; a9e0: 88          .
+    dey                                                               ; a9e0: 88          .              ; Y=-1: flag second range
     ldx #&11                                                          ; a9e1: a2 11       ..             ; X=&11: 18 codes to check
     jsr caa24                                                         ; a9e3: 20 24 aa     $.            ; Search claim code table
     beq ca9e9                                                         ; a9e6: f0 01       ..             ; Found: skip to processing
@@ -8085,8 +8085,8 @@ bad_prefix = bad_str_anchor+1
 
 ; &aa9f referenced 1 time by &aa78
 .caa9f
-    sta zp_ptr_lo                                                     ; aa9f: 85 00       ..
-    sbc l7dfd,x                                                       ; aaa1: fd fd 7d    ..}
+    sta zp_ptr_lo                                                     ; aa9f: 85 00       ..             ; Data: TXCB template (decoded as STA &00)
+    sbc l7dfd,x                                                       ; aaa1: fd fd 7d    ..}            ; Data: template continuation bytes
     equb &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80, &93   ; aaa4: fc ff ff... ...
     equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; aab0: fd fd d9... ...
     equb &fd, &fd, &25, &fd, &ff, &ff, &fd, &fd, &ff, &ff, &ca, &e4   ; aabc: fd fd 25... ..%
@@ -8275,14 +8275,14 @@ bad_prefix = bad_str_anchor+1
     bne cabfe                                                         ; abea: d0 12       ..             ; No: printer jammed error
 ; &abec referenced 1 time by &afd5
 .err_printer_busy
-    lda #&a6                                                          ; abec: a9 a6       ..
-    jsr error_inline_log                                              ; abee: 20 bb 96     ..
+    lda #&a6                                                          ; abec: a9 a6       ..             ; A=&A6: printer busy error number
+    jsr error_inline_log                                              ; abee: 20 bb 96     ..            ; Generate 'Printer busy' error
     equs "Printer busy", 0                                            ; abf1: 50 72 69... Pri
 
 ; &abfe referenced 1 time by &abea
 .cabfe
-    lda #&a7                                                          ; abfe: a9 a7       ..
-    jsr error_inline_log                                              ; ac00: 20 bb 96     ..
+    lda #&a7                                                          ; abfe: a9 a7       ..             ; A=&A7: printer jammed error number
+    jsr error_inline_log                                              ; ac00: 20 bb 96     ..            ; Generate 'Printer jammed' error
     equs "Printer jammed", 0                                          ; ac03: 50 72 69... Pri
 
 ; &ac12 referenced 3 times by &94f5, &ab5c, &b946
@@ -8738,7 +8738,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 
 ; &aee9 referenced 1 time by &ae07
 .caee9
-    brk                                                               ; aee9: 00          .
+    brk                                                               ; aee9: 00          .              ; Data: option string offset table
 
     equs "!.U"                                                        ; aeea: 21 2e 55    !.U
 ; &aeed referenced 1 time by &ae0a
@@ -11096,30 +11096,30 @@ net_channel_err_string = err_net_chan_not_found+2
 
     org &be90
 
-    sta brkv+1                                                        ; be90: 8d 03 02    ...
-    lda #&8e                                                          ; be93: a9 8e       ..
-    sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...
-    ldy #0                                                            ; be98: a0 00       ..
+    sta brkv+1                                                        ; be90: 8d 03 02    ...            ; Store BRK vector high byte
+    lda #&8e                                                          ; be93: a9 8e       ..             ; A=&8E: Tube control register value
+    sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...            ; Write Tube control register
+    ldy #0                                                            ; be98: a0 00       ..             ; Y=0: copy 256 bytes per page
 ; &be9a referenced 1 time by &bead
 .loop_cbe9a
-    lda reloc_p4_src,y                                                ; be9a: b9 00 bf    ...
-    sta tube_page4_vectors,y                                          ; be9d: 99 00 04    ...
-    lda reloc_p5_src,y                                                ; bea0: b9 90 bc    ...
-    sta tube_r2_dispatch_table,y                                      ; bea3: 99 00 05    ...
-    lda reloc_p6_src,y                                                ; bea6: b9 90 bd    ...
-    sta tube_osbyte_reply_block,y                                     ; bea9: 99 00 06    ...
-    dey                                                               ; beac: 88          .
-    bne loop_cbe9a                                                    ; bead: d0 eb       ..
-    jsr clear_tube_claim                                              ; beaf: 20 21 04     !.
-    ldx #&41 ; 'A'                                                    ; beb2: a2 41       .A
+    lda reloc_p4_src,y                                                ; be9a: b9 00 bf    ...            ; Load page 4 source byte
+    sta tube_page4_vectors,y                                          ; be9d: 99 00 04    ...            ; Store to page 4 destination
+    lda reloc_p5_src,y                                                ; bea0: b9 90 bc    ...            ; Load page 5 source byte
+    sta tube_r2_dispatch_table,y                                      ; bea3: 99 00 05    ...            ; Store to page 5 destination
+    lda reloc_p6_src,y                                                ; bea6: b9 90 bd    ...            ; Load page 6 source byte
+    sta tube_osbyte_reply_block,y                                     ; bea9: 99 00 06    ...            ; Store to page 6 destination
+    dey                                                               ; beac: 88          .              ; Decrement byte counter
+    bne loop_cbe9a                                                    ; bead: d0 eb       ..             ; Non-zero: continue copying
+    jsr clear_tube_claim                                              ; beaf: 20 21 04     !.            ; Clear tube claim state
+    ldx #&41 ; 'A'                                                    ; beb2: a2 41       .A             ; X=&41: copy 66 bytes of ZP workspace
 ; &beb4 referenced 1 time by &beba
 .loop_cbeb4
-    lda reloc_zp_src,x                                                ; beb4: bd bf be    ...
-    sta nmi_workspace_start,x                                         ; beb7: 95 16       ..
-    dex                                                               ; beb9: ca          .
-    bpl loop_cbeb4                                                    ; beba: 10 f8       ..
-    lda #0                                                            ; bebc: a9 00       ..
-    rts                                                               ; bebe: 60          `
+    lda reloc_zp_src,x                                                ; beb4: bd bf be    ...            ; Load ZP source byte from ROM
+    sta nmi_workspace_start,x                                         ; beb7: 95 16       ..             ; Store to NMI workspace at &16+X
+    dex                                                               ; beb9: ca          .              ; Decrement byte counter
+    bpl loop_cbeb4                                                    ; beba: 10 f8       ..             ; More bytes: continue copying
+    lda #0                                                            ; bebc: a9 00       ..             ; A=0: return success
+    rts                                                               ; bebe: 60          `              ; Return to caller
 
 ; &bebf referenced 1 time by &beb4
 
