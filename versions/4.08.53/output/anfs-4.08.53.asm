@@ -5124,17 +5124,17 @@ bad_prefix = bad_str_anchor+1
     jsr cond_save_error_code                                          ; 96a2: 20 fb 95     ..            ; Conditionally log error code to workspace
     tay                                                               ; 96a5: a8          .              ; Save error number in Y
     pla                                                               ; 96a6: 68          h              ; Pop return address (low) — points to last byte of JSR
-    sta fs_load_addr                                                  ; 96a7: 85 b0       ..
+    sta fs_load_addr                                                  ; 96a7: 85 b0       ..             ; Store return address low
     pla                                                               ; 96a9: 68          h              ; Pop return address (high)
-    sta fs_load_addr_hi                                               ; 96aa: 85 b1       ..
-    ldx #0                                                            ; 96ac: a2 00       ..
+    sta fs_load_addr_hi                                               ; 96aa: 85 b1       ..             ; Store return address high
+    ldx #0                                                            ; 96ac: a2 00       ..             ; X=0: start of prefix string
 ; &96ae referenced 1 time by &96b7
 .loop_c96ae
     inx                                                               ; 96ae: e8          .              ; Copy 'Bad ' prefix from lookup table
-    lda bad_prefix,x                                                  ; 96af: bd 9e 96    ...
-    sta error_text,x                                                  ; 96b2: 9d 01 01    ...
-    cmp #&20 ; ' '                                                    ; 96b5: c9 20       .
-    bne loop_c96ae                                                    ; 96b7: d0 f5       ..
+    lda bad_prefix,x                                                  ; 96af: bd 9e 96    ...            ; Get next prefix character
+    sta error_text,x                                                  ; 96b2: 9d 01 01    ...            ; Store in error text buffer
+    cmp #&20 ; ' '                                                    ; 96b5: c9 20       .              ; Is it space (end of 'Bad ')?
+    bne loop_c96ae                                                    ; 96b7: d0 f5       ..             ; No: copy next prefix character
     beq write_error_num_and_str                                       ; 96b9: f0 0c       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
