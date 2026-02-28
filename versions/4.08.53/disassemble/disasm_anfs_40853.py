@@ -5599,6 +5599,445 @@ comment(0x92CF, "Restore A", inline=True)
 comment(0x92D0, "Restore processor flags", inline=True)
 comment(0x92D1, "Return", inline=True)
 
+# cmd_dump (&BA06): *DUMP command — hex/ASCII file dump
+# Buffer layout: 21 bytes on stack (page 1), pointed to by l00ae/l00af
+#   buf[&00-&0F]: 16 data bytes read from file
+#   buf[&10-&13]: 4-byte display address (little-endian)
+#   buf[&14]:     flags/counter byte (high nibble for header control)
+# osword_flag (&AA) reused as byte counter during dump loop (-1 to 15)
+
+# Entry: open file and allocate stack buffer
+comment(0xBA06, "Open file for reading, set ws_page", inline=True)
+comment(0xBA09, "21 bytes to push (0-&14)", inline=True)
+comment(0xBA0B, "Zero fill value", inline=True)
+comment(0xBA0D, "Push zero onto stack", inline=True)
+comment(0xBA0E, "Count down", inline=True)
+comment(0xBA0F, "Loop until all 21 bytes pushed", inline=True)
+comment(0xBA11, "X = stack pointer (buffer base - 1)", inline=True)
+comment(0xBA12, "Set up buffer pointer and parse args", inline=True)
+
+# Check start alignment and maybe print header
+comment(0xBA15, "Load display address low byte", inline=True)
+comment(0xBA17, "Test high nibble", inline=True)
+comment(0xBA19, "Skip header if 16-byte aligned", inline=True)
+comment(0xBA1B, "Print column header for offset start", inline=True)
+
+# Main line loop: read up to 16 bytes per line
+comment(0xBA1E, "Check for Escape key", inline=True)
+comment(0xBA21, "Start byte counter at -1", inline=True)
+comment(0xBA23, "Reset counter", inline=True)
+
+# OSBGET read loop: fill buffer with up to 16 bytes
+comment(0xBA2A, "C=1 from OSBGET: end of file", inline=True)
+comment(0xBA2C, "Increment byte counter (0-15)", inline=True)
+comment(0xBA2E, "Use counter as buffer index", inline=True)
+comment(0xBA30, "Store byte in data buffer", inline=True)
+comment(0xBA32, "Read 16 bytes? (index 0-15)", inline=True)
+comment(0xBA34, "No: read next byte", inline=True)
+comment(0xBA36, "C=0: not EOF, full line read", inline=True)
+
+# EOF/empty check
+comment(0xBA37, "Save C: EOF status", inline=True)
+comment(0xBA38, "Check byte counter", inline=True)
+comment(0xBA3A, "Counter >= 0: have data to display", inline=True)
+comment(0xBA3C, "22 bytes to pop (21 buffer + PHP)", inline=True)
+
+# Stack cleanup loop (shared by EOF-no-data and last-line)
+comment(0xBA3E, "Pop one byte from stack", inline=True)
+comment(0xBA3F, "Count down", inline=True)
+comment(0xBA40, "Loop until stack cleaned up", inline=True)
+comment(0xBA42, "Close file and return", inline=True)
+
+# Check if header needed at 256-byte boundary
+comment(0xBA45, "Point to display address low byte", inline=True)
+comment(0xBA47, "Load display address low byte", inline=True)
+comment(0xBA49, "Test high nibble", inline=True)
+comment(0xBA4B, "Non-zero: header already current", inline=True)
+comment(0xBA4D, "Crossed 256-byte boundary: new header", inline=True)
+
+# Print 4-byte address big-endian
+comment(0xBA50, "Start from highest address byte", inline=True)
+comment(0xBA52, "Load address byte", inline=True)
+comment(0xBA54, "Save for address increment later", inline=True)
+comment(0xBA55, "Print as two hex digits", inline=True)
+comment(0xBA58, "Restore address byte", inline=True)
+comment(0xBA59, "Next byte down", inline=True)
+comment(0xBA5A, "Printed all 4 address bytes?", inline=True)
+comment(0xBA5C, "No: print next address byte", inline=True)
+
+# Advance display address by 16 for next line
+comment(0xBA5E, "Y=&10: point to address byte 0", inline=True)
+comment(0xBA5F, "Prepare for 16-byte add", inline=True)
+comment(0xBA60, "Add 16 to lowest address byte", inline=True)
+comment(0xBA62, "Save carry for propagation", inline=True)
+
+# 4-byte address increment loop (carry propagation)
+comment(0xBA63, "Restore carry from previous byte", inline=True)
+comment(0xBA64, "Store updated address byte", inline=True)
+comment(0xBA66, "Next address byte up", inline=True)
+comment(0xBA67, "Load next address byte", inline=True)
+comment(0xBA69, "Add carry", inline=True)
+comment(0xBA6B, "Save carry for next byte", inline=True)
+comment(0xBA6C, "Past all 4 address bytes?", inline=True)
+comment(0xBA6E, "No: continue propagation", inline=True)
+comment(0xBA70, "Discard final carry", inline=True)
+comment(0xBA71, "Print address/data separator", inline=True)
+
+# Hex byte display: print each data byte as hex
+comment(0xBA77, "Start from first data byte", inline=True)
+comment(0xBA79, "X = bytes read (counter for display)", inline=True)
+comment(0xBA7B, "Load data byte from buffer", inline=True)
+comment(0xBA7D, "Print as two hex digits", inline=True)
+comment(0xBA80, "Space separator", inline=True)
+comment(0xBA82, "Print space between hex bytes", inline=True)
+
+# Advance to next column position
+comment(0xBA85, "Next column", inline=True)
+comment(0xBA86, "All 16 columns done?", inline=True)
+comment(0xBA88, "Yes: go to ASCII separator", inline=True)
+comment(0xBA8A, "Decrement remaining data bytes", inline=True)
+comment(0xBA8B, "More data: print next hex byte", inline=True)
+
+# Pad missing hex columns with spaces
+comment(0xBA8D, "Save column position", inline=True)
+comment(0xBA8E, "Preserve Y across print", inline=True)
+comment(0xBA8F, "Print 3-space padding", inline=True)
+comment(0xBA95, "Inline string terminator (NOP)", inline=True)
+comment(0xBA96, "Restore column position", inline=True)
+comment(0xBA97, "Back to Y", inline=True)
+comment(0xBA98, "Check next column", inline=True)
+
+# ASCII section separator
+comment(0xBA9B, "Adjust X for advance_x_by_8", inline=True)
+comment(0xBA9C, "Print hex/ASCII separator", inline=True)
+comment(0xBAA1, "Inline string terminator (NOP)", inline=True)
+comment(0xBAA2, "X += 16: restore byte count for ASCII", inline=True)
+comment(0xBAA5, "Start from first data byte", inline=True)
+
+# ASCII display: print printable chars, '.' for others
+comment(0xBAA7, "Load data byte", inline=True)
+comment(0xBAA9, "Strip high bit", inline=True)
+comment(0xBAAB, "Printable? (>= space)", inline=True)
+comment(0xBAAD, "Yes: check for DEL", inline=True)
+comment(0xBAAF, "Non-printable: substitute '.'", inline=True)
+comment(0xBAB1, "Is it DEL (&7F)?", inline=True)
+comment(0xBAB3, "Yes: substitute '.'", inline=True)
+comment(0xBAB5, "Print ASCII character", inline=True)
+comment(0xBAB8, "Next column", inline=True)
+comment(0xBAB9, "All 16 columns done?", inline=True)
+comment(0xBABB, "Yes: end of line", inline=True)
+comment(0xBABD, "Decrement remaining data bytes", inline=True)
+comment(0xBABE, "More data: print next ASCII char", inline=True)
+
+# End of line: check for EOF
+comment(0xBAC0, "Print newline", inline=True)
+comment(0xBAC3, "Restore EOF status from &BA37", inline=True)
+comment(0xBAC4, "C=1: EOF reached, clean up", inline=True)
+comment(0xBAC6, "Not EOF: continue with next line", inline=True)
+
+# EOF on last partial line: clean up stack
+comment(0xBAC9, "21 bytes to pop (buffer only, PHP done)", inline=True)
+comment(0xBACB, "Reuse stack cleanup loop", inline=True)
+
+# print_dump_header: print column offset header
+comment(0xBACE, "Load display address low byte", inline=True)
+comment(0xBAD0, "Save as starting column number", inline=True)
+comment(0xBAD1, "Print header label with leading CR", inline=True)
+comment(0xBAE0, "Inline string terminator (NOP)", inline=True)
+comment(0xBAE1, "Restore starting column number", inline=True)
+comment(0xBAE2, "16 column headers to print", inline=True)
+
+# Column header print loop
+comment(0xBAE4, "Save current column number", inline=True)
+comment(0xBAE5, "Print as two hex digits", inline=True)
+comment(0xBAE8, "Space separator", inline=True)
+comment(0xBAEA, "Print space after column number", inline=True)
+comment(0xBAED, "Restore column number", inline=True)
+comment(0xBAEE, "SEC for +1 via ADC", inline=True)
+comment(0xBAEF, "Increment column number (SEC+ADC 0=+1)", inline=True)
+comment(0xBAF1, "Wrap to low nibble (0-F)", inline=True)
+comment(0xBAF3, "Count down", inline=True)
+comment(0xBAF4, "Loop for all 16 columns", inline=True)
+comment(0xBAF6, "Print trailer with ASCII label", inline=True)
+comment(0xBB0A, "Inline string terminator (NOP)", inline=True)
+comment(0xBB0B, "Return", inline=True)
+
+# close_ws_file: close file handle stored in ws_page
+comment(0xBB0C, "Y = file handle from ws_page", inline=True)
+comment(0xBB0E, "A=0: close file", inline=True)
+comment(0xBB10, "Close file and return", inline=True)
+
+# open_file_for_read: open file, advance past filename
+# On entry: Y = offset to filename start within command line
+# On exit: ws_page = file handle, Y = offset past filename
+comment(0xBB13, "Save processor flags", inline=True)
+comment(0xBB14, "A = filename offset", inline=True)
+comment(0xBB15, "Add to command text pointer", inline=True)
+comment(0xBB16, "Low byte of filename address", inline=True)
+comment(0xBB18, "Save on stack for later restore", inline=True)
+comment(0xBB19, "X = filename address low", inline=True)
+comment(0xBB1A, "Carry into high byte", inline=True)
+comment(0xBB1C, "High byte of filename address", inline=True)
+comment(0xBB1E, "Save on stack for later restore", inline=True)
+comment(0xBB1F, "Y = filename address high", inline=True)
+comment(0xBB20, "Open for input", inline=True)
+comment(0xBB22, "OSFIND: open file", inline=True)
+comment(0xBB26, "Store file handle", inline=True)
+comment(0xBB28, "Non-zero: file opened OK", inline=True)
+comment(0xBB2A, "Error number &D6", inline=True)
+comment(0xBB2C, "Generate 'Not found' error", inline=True)
+
+# Restore text pointer and skip past filename in command line
+comment(0xBB39, "Restore saved text pointer high", inline=True)
+comment(0xBB3A, "Restore os_text_ptr high byte", inline=True)
+comment(0xBB3C, "Restore saved text pointer low", inline=True)
+comment(0xBB3D, "Restore os_text_ptr low byte", inline=True)
+comment(0xBB3F, "Start scanning from offset 0", inline=True)
+
+# Scan past filename to find end (space or CR)
+comment(0xBB41, "Advance past current char", inline=True)
+comment(0xBB42, "Load next char from command line", inline=True)
+comment(0xBB44, "CR: end of command line", inline=True)
+comment(0xBB46, "Yes: done scanning", inline=True)
+comment(0xBB48, "Space: end of filename", inline=True)
+comment(0xBB4A, "No: keep scanning filename", inline=True)
+
+# Skip trailing spaces after filename
+comment(0xBB4C, "Advance past space", inline=True)
+comment(0xBB4D, "Load next char", inline=True)
+comment(0xBB4F, "Still a space?", inline=True)
+comment(0xBB51, "Yes: skip it", inline=True)
+
+# Return with Y pointing past filename/spaces
+comment(0xBB53, "Restore processor flags", inline=True)
+comment(0xBB54, "Return; Y = offset to next argument", inline=True)
+
+# parse_dump_range: parse hex address from command line
+# On entry: Y = offset into command line text
+# On exit: buf[0-3] = parsed 32-bit address,
+#   C=0 if valid address, C=1 if overflow
+#   Y = offset past parsed text
+comment(0xBB55, "Save command line offset to X", inline=True)
+comment(0xBB56, "X tracks current position", inline=True)
+comment(0xBB57, "Zero for clearing accumulator", inline=True)
+comment(0xBB59, "Y=0 for buffer indexing", inline=True)
+
+# Clear 4-byte accumulator in buffer
+comment(0xBB5A, "Clear accumulator byte", inline=True)
+comment(0xBB5C, "Next byte", inline=True)
+comment(0xBB5D, "All 4 bytes cleared?", inline=True)
+comment(0xBB5F, "No: clear next", inline=True)
+
+# Main parse loop: get next character
+comment(0xBB61, "Restore pre-increment offset to A", inline=True)
+comment(0xBB62, "Advance X to next char position", inline=True)
+comment(0xBB63, "Y = pre-increment offset for indexing", inline=True)
+comment(0xBB64, "Load character from command line", inline=True)
+comment(0xBB66, "CR: end of input", inline=True)
+comment(0xBB68, "Done: skip trailing spaces", inline=True)
+comment(0xBB6A, "Space: end of this parameter", inline=True)
+comment(0xBB6C, "Done: skip trailing spaces", inline=True)
+
+# Validate hex digit
+comment(0xBB6E, "Below '0'?", inline=True)
+comment(0xBB70, "Yes: not a hex digit, error", inline=True)
+comment(0xBB72, "Below ':'? (i.e. '0'-'9')", inline=True)
+comment(0xBB74, "Yes: is a decimal digit", inline=True)
+comment(0xBB76, "Force uppercase for A-F", inline=True)
+comment(0xBB78, "Map 'A'-'F' → &FA-&FF (C=0 here)", inline=True)
+comment(0xBB7A, "Carry set: char > 'F', error", inline=True)
+comment(0xBB7C, "Below &FA? (i.e. was < 'A')", inline=True)
+comment(0xBB7E, "Yes: gap between '9' and 'A', error", inline=True)
+
+# Extract low nibble as hex value
+comment(0xBB80, "Mask to low nibble (0-15)", inline=True)
+comment(0xBB82, "Save hex digit value", inline=True)
+comment(0xBB83, "Save current offset", inline=True)
+comment(0xBB84, "Preserve on stack", inline=True)
+comment(0xBB85, "4 bits to shift in", inline=True)
+
+# Shift 32-bit accumulator left by 4 (one nibble)
+comment(0xBB87, "Start from byte 0 (LSB)", inline=True)
+comment(0xBB89, "Clear A; C from PHA/PLP below", inline=True)
+
+# Inner loop: rotate one bit through all 4 bytes
+comment(0xBB8A, "Transfer carry bit to flags via stack", inline=True)
+comment(0xBB8B, "PLP: C = bit shifted out of prev iter", inline=True)
+comment(0xBB8C, "Load accumulator byte", inline=True)
+comment(0xBB8E, "Rotate left through carry", inline=True)
+comment(0xBB8F, "Store shifted byte", inline=True)
+comment(0xBB91, "Save carry for next byte", inline=True)
+comment(0xBB92, "Transfer to A for PHA/PLP trick", inline=True)
+comment(0xBB93, "Next accumulator byte", inline=True)
+comment(0xBB94, "All 4 bytes rotated?", inline=True)
+comment(0xBB96, "No: rotate next byte", inline=True)
+
+# Check for overflow after shift
+comment(0xBB98, "Transfer carry to flags", inline=True)
+comment(0xBB99, "C = overflow bit", inline=True)
+comment(0xBB9A, "Overflow: address too large", inline=True)
+comment(0xBB9C, "Count bits shifted", inline=True)
+comment(0xBB9D, "4 bits shifted? No: shift again", inline=True)
+
+# OR new nibble into accumulator byte 0
+comment(0xBB9F, "Restore command line offset", inline=True)
+comment(0xBBA0, "Back to X", inline=True)
+comment(0xBBA1, "Restore hex digit value", inline=True)
+comment(0xBBA2, "Point to LSB of accumulator", inline=True)
+comment(0xBBA4, "OR digit into low nibble", inline=True)
+comment(0xBBA6, "Store updated LSB", inline=True)
+comment(0xBBA8, "Parse next character", inline=True)
+
+# Overflow exit: address too large
+comment(0xBBAB, "Discard saved offset", inline=True)
+comment(0xBBAC, "Discard saved digit", inline=True)
+comment(0xBBAD, "C=1: overflow", inline=True)
+comment(0xBBAE, "Return with C=1", inline=True)
+
+# Bad hex digit: close file and error
+comment(0xBBAF, "Close open file before error", inline=True)
+comment(0xBBB2, "Generate 'Bad hex' error", inline=True)
+
+# Skip trailing spaces after parsed address
+comment(0xBBB5, "Advance past space", inline=True)
+comment(0xBBB6, "Load next char", inline=True)
+comment(0xBBB8, "Space?", inline=True)
+comment(0xBBBA, "Yes: skip it", inline=True)
+comment(0xBBBC, "C=0: valid parse (no overflow)", inline=True)
+comment(0xBBBD, "Return; Y past trailing spaces", inline=True)
+
+# init_dump_buffer: set up buffer pointer and parse arguments
+# On entry: X = stack pointer (buffer base - 1)
+# Buffer becomes page 1 at address X+1
+comment(0xBBBE, "X+1: first byte of buffer", inline=True)
+comment(0xBBBF, "Set buffer pointer low byte", inline=True)
+comment(0xBBC1, "Buffer is on stack in page 1", inline=True)
+comment(0xBBC3, "Set buffer pointer high byte", inline=True)
+comment(0xBBC5, "Parse start offset from command line", inline=True)
+comment(0xBBC8, "Overflow: 'Outside file' error", inline=True)
+
+# Save position, get file length for validation
+comment(0xBBCA, "A = command line offset after parse", inline=True)
+comment(0xBBCB, "Save for later (past start addr)", inline=True)
+comment(0xBBD0, "A=2: read file extent (length)", inline=True)
+comment(0xBBD5, "Check from MSB down", inline=True)
+
+# Compare file length with start offset
+comment(0xBBD7, "Load file length byte", inline=True)
+comment(0xBBDA, "Compare with start offset byte", inline=True)
+comment(0xBBDC, "Mismatch: check which is larger", inline=True)
+comment(0xBBDE, "Next byte down", inline=True)
+comment(0xBBDF, "More bytes to compare", inline=True)
+comment(0xBBE1, "All equal: start = length, within file", inline=True)
+
+# Handle length vs start comparison result
+comment(0xBBE3, "Length < start: outside file", inline=True)
+comment(0xBBE5, "Y=&FF: length > start, flag for later", inline=True)
+comment(0xBBE7, "Continue to copy start address", inline=True)
+
+# Outside file error
+comment(0xBBE9, "Close file before error", inline=True)
+comment(0xBBEC, "Error number &B7", inline=True)
+comment(0xBBEE, "Generate 'Outside file' error", inline=True)
+
+# Copy start offset to osword_flag as file pointer
+comment(0xBBFE, "Load start address byte from buffer", inline=True)
+comment(0xBC00, "Store to osword_flag (&AA-&AD)", inline=True)
+comment(0xBC03, "Next byte", inline=True)
+comment(0xBC04, "All 4 bytes copied?", inline=True)
+comment(0xBC06, "No: copy next byte", inline=True)
+
+# Set file pointer to start offset via OSARGS
+comment(0xBC0C, "A=1: write file pointer", inline=True)
+comment(0xBC0E, "OSARGS: set file pointer", inline=True)
+
+# Restore command line position, check for end parameter
+comment(0xBC11, "Restore saved command line offset", inline=True)
+comment(0xBC12, "Back to Y for command line indexing", inline=True)
+comment(0xBC13, "Load next char from command line", inline=True)
+comment(0xBC15, "End of command? (CR)", inline=True)
+comment(0xBC17, "No: parse display base address", inline=True)
+
+# No explicit display base: use file's load address
+comment(0xBC19, "Copy 2 bytes: os_text_ptr to buffer", inline=True)
+comment(0xBC1B, "Load os_text_ptr byte", inline=True)
+comment(0xBC1E, "Store as filename pointer in OSFILE CB", inline=True)
+comment(0xBC20, "Next byte", inline=True)
+comment(0xBC21, "Copy both low and high bytes", inline=True)
+
+# OSFILE to read catalogue info (gets load address)
+comment(0xBC23, "Read catalogue information", inline=True)
+comment(0xBC25, "X = control block low", inline=True)
+comment(0xBC27, "Y = control block high", inline=True)
+comment(0xBC29, "OSFILE: read file info", inline=True)
+
+# Copy load address from OSFILE +2..+5 down to buf[0-3]
+comment(0xBC2C, "Start at OSFILE +2 (load addr byte 0)", inline=True)
+comment(0xBC2E, "Load from OSFILE result offset", inline=True)
+comment(0xBC30, "Y-2: destination is 2 bytes earlier", inline=True)
+comment(0xBC31, "Continue decrement", inline=True)
+comment(0xBC32, "Store to buf[Y-2]", inline=True)
+comment(0xBC34, "Advance source index by 3", inline=True)
+comment(0xBC35, "(net +1 per iteration)", inline=True)
+comment(0xBC36, "Continue increment", inline=True)
+comment(0xBC37, "Copied all 4 load address bytes?", inline=True)
+comment(0xBC39, "No: copy next byte", inline=True)
+
+# Check if load address is &FFFFFFFF (not set)
+comment(0xBC3B, "Y=6 after loop exit", inline=True)
+comment(0xBC3C, "Y=4: check from buf[4] downward", inline=True)
+comment(0xBC3D, "Load address byte", inline=True)
+comment(0xBC3F, "Is it &FF?", inline=True)
+comment(0xBC41, "No: valid load address, use it", inline=True)
+comment(0xBC43, "Check next byte down", inline=True)
+comment(0xBC44, "More bytes to check", inline=True)
+
+# All &FF: clear load address to 0 (default base)
+comment(0xBC46, "Clear all 4 bytes", inline=True)
+comment(0xBC48, "Zero value", inline=True)
+comment(0xBC4A, "Clear byte", inline=True)
+comment(0xBC4C, "Next byte down", inline=True)
+comment(0xBC4D, "Loop for all 4 bytes", inline=True)
+comment(0xBC4F, "Continue to compute display address", inline=True)
+
+# Parse explicit display base address (second parameter)
+comment(0xBC51, "Parse second hex parameter", inline=True)
+comment(0xBC54, "Valid: use as display base", inline=True)
+comment(0xBC56, "Invalid: close file before error", inline=True)
+comment(0xBC59, "Error number &FC", inline=True)
+comment(0xBC5B, "Generate 'Bad address' error", inline=True)
+
+# Compute display start: display_addr = base + start_offset
+comment(0xBC66, "Start from LSB", inline=True)
+comment(0xBC68, "4 bytes to add", inline=True)
+comment(0xBC6A, "Clear carry for addition", inline=True)
+comment(0xBC6B, "Load display base byte", inline=True)
+comment(0xBC6D, "Add start offset byte", inline=True)
+comment(0xBC70, "Store result in osword_flag", inline=True)
+comment(0xBC73, "Next byte", inline=True)
+comment(0xBC74, "Count down", inline=True)
+comment(0xBC75, "Loop for all 4 bytes", inline=True)
+
+# Store display address into buf[&10-&13]
+comment(0xBC77, "Point past end of address area", inline=True)
+comment(0xBC79, "Start from MSB (byte 3)", inline=True)
+comment(0xBC7B, "Pre-decrement Y", inline=True)
+comment(0xBC7C, "Load computed display address byte", inline=True)
+comment(0xBC7E, "Store to buf[&10-&13]", inline=True)
+comment(0xBC80, "Next byte down", inline=True)
+comment(0xBC81, "Loop for all 4 bytes", inline=True)
+comment(0xBC83, "Return; Y=&10 (address low byte)", inline=True)
+
+# advance_x_by_8/4/inx4: increment X by 8, 4, or 4
+# Uses chained JSR/fall-through: advance_x_by_8 does 16 INXs
+comment(0xBC84, "JSR+fall-through: 8+8=16 INXs total", inline=True)
+comment(0xBC87, "JSR+fall-through: 4+4=8 INXs", inline=True)
+comment(0xBC8A, "X += 1", inline=True)
+comment(0xBC8B, "X += 2", inline=True)
+comment(0xBC8C, "X += 3", inline=True)
+comment(0xBC8D, "X += 4", inline=True)
+comment(0xBC8E, "Return", inline=True)
+
 
 # ============================================================
 # Generate disassembly

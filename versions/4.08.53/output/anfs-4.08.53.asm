@@ -10632,464 +10632,464 @@ net_channel_err_string = err_net_chan_not_found+2
 ; ASCII format, 8 bytes per line.
 ; ***************************************************************************************
 .cmd_dump
-    jsr open_file_for_read                                            ; ba06: 20 13 bb     ..
-    ldx #&14                                                          ; ba09: a2 14       ..
-    lda #0                                                            ; ba0b: a9 00       ..
+    jsr open_file_for_read                                            ; ba06: 20 13 bb     ..            ; Open file for reading, set ws_page
+    ldx #&14                                                          ; ba09: a2 14       ..             ; 21 bytes to push (0-&14)
+    lda #0                                                            ; ba0b: a9 00       ..             ; Zero fill value
 ; &ba0d referenced 1 time by &ba0f
 .loop_cba0d
-    pha                                                               ; ba0d: 48          H
-    dex                                                               ; ba0e: ca          .
-    bpl loop_cba0d                                                    ; ba0f: 10 fc       ..
-    tsx                                                               ; ba11: ba          .
-    jsr init_dump_buffer                                              ; ba12: 20 be bb     ..
-    lda (l00ae),y                                                     ; ba15: b1 ae       ..
-    and #&f0                                                          ; ba17: 29 f0       ).
-    beq cba1e                                                         ; ba19: f0 03       ..
-    jsr print_dump_header                                             ; ba1b: 20 ce ba     ..
+    pha                                                               ; ba0d: 48          H              ; Push zero onto stack
+    dex                                                               ; ba0e: ca          .              ; Count down
+    bpl loop_cba0d                                                    ; ba0f: 10 fc       ..             ; Loop until all 21 bytes pushed
+    tsx                                                               ; ba11: ba          .              ; X = stack pointer (buffer base - 1)
+    jsr init_dump_buffer                                              ; ba12: 20 be bb     ..            ; Set up buffer pointer and parse args
+    lda (l00ae),y                                                     ; ba15: b1 ae       ..             ; Load display address low byte
+    and #&f0                                                          ; ba17: 29 f0       ).             ; Test high nibble
+    beq cba1e                                                         ; ba19: f0 03       ..             ; Skip header if 16-byte aligned
+    jsr print_dump_header                                             ; ba1b: 20 ce ba     ..            ; Print column header for offset start
 ; &ba1e referenced 2 times by &ba19, &bac6
 .cba1e
-    jsr abort_if_escape                                               ; ba1e: 20 ea b9     ..
-    lda #&ff                                                          ; ba21: a9 ff       ..
-    sta osword_flag                                                   ; ba23: 85 aa       ..
+    jsr abort_if_escape                                               ; ba1e: 20 ea b9     ..            ; Check for Escape key
+    lda #&ff                                                          ; ba21: a9 ff       ..             ; Start byte counter at -1
+    sta osword_flag                                                   ; ba23: 85 aa       ..             ; Reset counter
 ; &ba25 referenced 1 time by &ba34
 .loop_cba25
     ldy ws_page                                                       ; ba25: a4 a8       ..             ; Y=file handle
     jsr osbget                                                        ; ba27: 20 d7 ff     ..            ; Read a single byte from an open file Y
-    bcs cba37                                                         ; ba2a: b0 0b       ..
-    inc osword_flag                                                   ; ba2c: e6 aa       ..
-    ldy osword_flag                                                   ; ba2e: a4 aa       ..
-    sta (l00ae),y                                                     ; ba30: 91 ae       ..
-    cpy #&0f                                                          ; ba32: c0 0f       ..
-    bne loop_cba25                                                    ; ba34: d0 ef       ..
-    clc                                                               ; ba36: 18          .
+    bcs cba37                                                         ; ba2a: b0 0b       ..             ; C=1 from OSBGET: end of file
+    inc osword_flag                                                   ; ba2c: e6 aa       ..             ; Increment byte counter (0-15)
+    ldy osword_flag                                                   ; ba2e: a4 aa       ..             ; Use counter as buffer index
+    sta (l00ae),y                                                     ; ba30: 91 ae       ..             ; Store byte in data buffer
+    cpy #&0f                                                          ; ba32: c0 0f       ..             ; Read 16 bytes? (index 0-15)
+    bne loop_cba25                                                    ; ba34: d0 ef       ..             ; No: read next byte
+    clc                                                               ; ba36: 18          .              ; C=0: not EOF, full line read
 ; &ba37 referenced 1 time by &ba2a
 .cba37
-    php                                                               ; ba37: 08          .
-    lda osword_flag                                                   ; ba38: a5 aa       ..
-    bpl cba45                                                         ; ba3a: 10 09       ..
-    ldx #&15                                                          ; ba3c: a2 15       ..
+    php                                                               ; ba37: 08          .              ; Save C: EOF status
+    lda osword_flag                                                   ; ba38: a5 aa       ..             ; Check byte counter
+    bpl cba45                                                         ; ba3a: 10 09       ..             ; Counter >= 0: have data to display
+    ldx #&15                                                          ; ba3c: a2 15       ..             ; 22 bytes to pop (21 buffer + PHP)
 ; &ba3e referenced 2 times by &ba40, &bacb
 .cba3e
-    pla                                                               ; ba3e: 68          h
-    dex                                                               ; ba3f: ca          .
-    bpl cba3e                                                         ; ba40: 10 fc       ..
-    jmp close_ws_file                                                 ; ba42: 4c 0c bb    L..
+    pla                                                               ; ba3e: 68          h              ; Pop one byte from stack
+    dex                                                               ; ba3f: ca          .              ; Count down
+    bpl cba3e                                                         ; ba40: 10 fc       ..             ; Loop until stack cleaned up
+    jmp close_ws_file                                                 ; ba42: 4c 0c bb    L..            ; Close file and return
 
 ; &ba45 referenced 1 time by &ba3a
 .cba45
-    ldy #&10                                                          ; ba45: a0 10       ..
-    lda (l00ae),y                                                     ; ba47: b1 ae       ..
-    and #&f0                                                          ; ba49: 29 f0       ).
-    bne cba50                                                         ; ba4b: d0 03       ..
-    jsr print_dump_header                                             ; ba4d: 20 ce ba     ..
+    ldy #&10                                                          ; ba45: a0 10       ..             ; Point to display address low byte
+    lda (l00ae),y                                                     ; ba47: b1 ae       ..             ; Load display address low byte
+    and #&f0                                                          ; ba49: 29 f0       ).             ; Test high nibble
+    bne cba50                                                         ; ba4b: d0 03       ..             ; Non-zero: header already current
+    jsr print_dump_header                                             ; ba4d: 20 ce ba     ..            ; Crossed 256-byte boundary: new header
 ; &ba50 referenced 1 time by &ba4b
 .cba50
-    ldy #&13                                                          ; ba50: a0 13       ..
+    ldy #&13                                                          ; ba50: a0 13       ..             ; Start from highest address byte
 ; &ba52 referenced 1 time by &ba5c
 .loop_cba52
-    lda (l00ae),y                                                     ; ba52: b1 ae       ..
-    pha                                                               ; ba54: 48          H
-    jsr print_hex_byte                                                ; ba55: 20 1b 91     ..
-    pla                                                               ; ba58: 68          h
-    dey                                                               ; ba59: 88          .
-    cpy #&0f                                                          ; ba5a: c0 0f       ..
-    bne loop_cba52                                                    ; ba5c: d0 f4       ..
-    iny                                                               ; ba5e: c8          .
-    clc                                                               ; ba5f: 18          .
-    adc #&10                                                          ; ba60: 69 10       i.
-    php                                                               ; ba62: 08          .
+    lda (l00ae),y                                                     ; ba52: b1 ae       ..             ; Load address byte
+    pha                                                               ; ba54: 48          H              ; Save for address increment later
+    jsr print_hex_byte                                                ; ba55: 20 1b 91     ..            ; Print as two hex digits
+    pla                                                               ; ba58: 68          h              ; Restore address byte
+    dey                                                               ; ba59: 88          .              ; Next byte down
+    cpy #&0f                                                          ; ba5a: c0 0f       ..             ; Printed all 4 address bytes?
+    bne loop_cba52                                                    ; ba5c: d0 f4       ..             ; No: print next address byte
+    iny                                                               ; ba5e: c8          .              ; Y=&10: point to address byte 0
+    clc                                                               ; ba5f: 18          .              ; Prepare for 16-byte add
+    adc #&10                                                          ; ba60: 69 10       i.             ; Add 16 to lowest address byte
+    php                                                               ; ba62: 08          .              ; Save carry for propagation
 ; &ba63 referenced 1 time by &ba6e
 .loop_cba63
-    plp                                                               ; ba63: 28          (
-    sta (l00ae),y                                                     ; ba64: 91 ae       ..
-    iny                                                               ; ba66: c8          .
-    lda (l00ae),y                                                     ; ba67: b1 ae       ..
-    adc #0                                                            ; ba69: 69 00       i.
-    php                                                               ; ba6b: 08          .
-    cpy #&14                                                          ; ba6c: c0 14       ..
-    bne loop_cba63                                                    ; ba6e: d0 f3       ..
-    plp                                                               ; ba70: 28          (
-    jsr print_inline                                                  ; ba71: 20 31 91     1.
+    plp                                                               ; ba63: 28          (              ; Restore carry from previous byte
+    sta (l00ae),y                                                     ; ba64: 91 ae       ..             ; Store updated address byte
+    iny                                                               ; ba66: c8          .              ; Next address byte up
+    lda (l00ae),y                                                     ; ba67: b1 ae       ..             ; Load next address byte
+    adc #0                                                            ; ba69: 69 00       i.             ; Add carry
+    php                                                               ; ba6b: 08          .              ; Save carry for next byte
+    cpy #&14                                                          ; ba6c: c0 14       ..             ; Past all 4 address bytes?
+    bne loop_cba63                                                    ; ba6e: d0 f3       ..             ; No: continue propagation
+    plp                                                               ; ba70: 28          (              ; Discard final carry
+    jsr print_inline                                                  ; ba71: 20 31 91     1.            ; Print address/data separator
     equs " : "                                                        ; ba74: 20 3a 20     :
 
-    ldy #0                                                            ; ba77: a0 00       ..
-    ldx osword_flag                                                   ; ba79: a6 aa       ..
+    ldy #0                                                            ; ba77: a0 00       ..             ; Start from first data byte
+    ldx osword_flag                                                   ; ba79: a6 aa       ..             ; X = bytes read (counter for display)
 ; &ba7b referenced 1 time by &ba8b
 .loop_cba7b
-    lda (l00ae),y                                                     ; ba7b: b1 ae       ..
-    jsr print_hex_byte                                                ; ba7d: 20 1b 91     ..
-    lda #&20 ; ' '                                                    ; ba80: a9 20       .
-    jsr osasci                                                        ; ba82: 20 e3 ff     ..            ; Write character 32
+    lda (l00ae),y                                                     ; ba7b: b1 ae       ..             ; Load data byte from buffer
+    jsr print_hex_byte                                                ; ba7d: 20 1b 91     ..            ; Print as two hex digits
+    lda #&20 ; ' '                                                    ; ba80: a9 20       .              ; Space separator
+    jsr osasci                                                        ; ba82: 20 e3 ff     ..            ; Print space between hex bytes; Write character 32
 ; &ba85 referenced 1 time by &ba98
 .loop_cba85
-    iny                                                               ; ba85: c8          .
-    cpy #&10                                                          ; ba86: c0 10       ..
-    beq cba9b                                                         ; ba88: f0 11       ..
-    dex                                                               ; ba8a: ca          .
-    bpl loop_cba7b                                                    ; ba8b: 10 ee       ..
-    tya                                                               ; ba8d: 98          .
-    pha                                                               ; ba8e: 48          H
-    jsr print_inline                                                  ; ba8f: 20 31 91     1.
+    iny                                                               ; ba85: c8          .              ; Next column
+    cpy #&10                                                          ; ba86: c0 10       ..             ; All 16 columns done?
+    beq cba9b                                                         ; ba88: f0 11       ..             ; Yes: go to ASCII separator
+    dex                                                               ; ba8a: ca          .              ; Decrement remaining data bytes
+    bpl loop_cba7b                                                    ; ba8b: 10 ee       ..             ; More data: print next hex byte
+    tya                                                               ; ba8d: 98          .              ; Save column position
+    pha                                                               ; ba8e: 48          H              ; Preserve Y across print
+    jsr print_inline                                                  ; ba8f: 20 31 91     1.            ; Print 3-space padding
     equs "   "                                                        ; ba92: 20 20 20
 
-    nop                                                               ; ba95: ea          .
-    pla                                                               ; ba96: 68          h
-    tay                                                               ; ba97: a8          .
-    jmp loop_cba85                                                    ; ba98: 4c 85 ba    L..
+    nop                                                               ; ba95: ea          .              ; Inline string terminator (NOP)
+    pla                                                               ; ba96: 68          h              ; Restore column position
+    tay                                                               ; ba97: a8          .              ; Back to Y
+    jmp loop_cba85                                                    ; ba98: 4c 85 ba    L..            ; Check next column
 
 ; &ba9b referenced 1 time by &ba88
 .cba9b
-    dex                                                               ; ba9b: ca          .
-    jsr print_inline                                                  ; ba9c: 20 31 91     1.
+    dex                                                               ; ba9b: ca          .              ; Adjust X for advance_x_by_8
+    jsr print_inline                                                  ; ba9c: 20 31 91     1.            ; Print hex/ASCII separator
     equs ": "                                                         ; ba9f: 3a 20       :
 
-    nop                                                               ; baa1: ea          .
-    jsr advance_x_by_8                                                ; baa2: 20 84 bc     ..
-    ldy #0                                                            ; baa5: a0 00       ..
+    nop                                                               ; baa1: ea          .              ; Inline string terminator (NOP)
+    jsr advance_x_by_8                                                ; baa2: 20 84 bc     ..            ; X += 16: restore byte count for ASCII
+    ldy #0                                                            ; baa5: a0 00       ..             ; Start from first data byte
 ; &baa7 referenced 1 time by &babe
 .loop_cbaa7
-    lda (l00ae),y                                                     ; baa7: b1 ae       ..
-    and #&7f                                                          ; baa9: 29 7f       ).
-    cmp #&20 ; ' '                                                    ; baab: c9 20       .
-    bcs cbab1                                                         ; baad: b0 02       ..
+    lda (l00ae),y                                                     ; baa7: b1 ae       ..             ; Load data byte
+    and #&7f                                                          ; baa9: 29 7f       ).             ; Strip high bit
+    cmp #&20 ; ' '                                                    ; baab: c9 20       .              ; Printable? (>= space)
+    bcs cbab1                                                         ; baad: b0 02       ..             ; Yes: check for DEL
 ; &baaf referenced 1 time by &bab3
 .loop_cbaaf
-    lda #&2e ; '.'                                                    ; baaf: a9 2e       ..
+    lda #&2e ; '.'                                                    ; baaf: a9 2e       ..             ; Non-printable: substitute '.'
 ; &bab1 referenced 1 time by &baad
 .cbab1
-    cmp #&7f                                                          ; bab1: c9 7f       ..
-    beq loop_cbaaf                                                    ; bab3: f0 fa       ..
-    jsr osasci                                                        ; bab5: 20 e3 ff     ..            ; Write character
-    iny                                                               ; bab8: c8          .
-    cpy #&10                                                          ; bab9: c0 10       ..
-    beq cbac0                                                         ; babb: f0 03       ..
-    dex                                                               ; babd: ca          .
-    bpl loop_cbaa7                                                    ; babe: 10 e7       ..
+    cmp #&7f                                                          ; bab1: c9 7f       ..             ; Is it DEL (&7F)?
+    beq loop_cbaaf                                                    ; bab3: f0 fa       ..             ; Yes: substitute '.'
+    jsr osasci                                                        ; bab5: 20 e3 ff     ..            ; Print ASCII character; Write character
+    iny                                                               ; bab8: c8          .              ; Next column
+    cpy #&10                                                          ; bab9: c0 10       ..             ; All 16 columns done?
+    beq cbac0                                                         ; babb: f0 03       ..             ; Yes: end of line
+    dex                                                               ; babd: ca          .              ; Decrement remaining data bytes
+    bpl loop_cbaa7                                                    ; babe: 10 e7       ..             ; More data: print next ASCII char
 ; &bac0 referenced 1 time by &babb
 .cbac0
-    jsr osnewl                                                        ; bac0: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    plp                                                               ; bac3: 28          (
-    bcs cbac9                                                         ; bac4: b0 03       ..
-    jmp cba1e                                                         ; bac6: 4c 1e ba    L..
+    jsr osnewl                                                        ; bac0: 20 e7 ff     ..            ; Print newline; Write newline (characters 10 and 13)
+    plp                                                               ; bac3: 28          (              ; Restore EOF status from &BA37
+    bcs cbac9                                                         ; bac4: b0 03       ..             ; C=1: EOF reached, clean up
+    jmp cba1e                                                         ; bac6: 4c 1e ba    L..            ; Not EOF: continue with next line
 
 ; &bac9 referenced 1 time by &bac4
 .cbac9
-    ldx #&14                                                          ; bac9: a2 14       ..
-    jmp cba3e                                                         ; bacb: 4c 3e ba    L>.
+    ldx #&14                                                          ; bac9: a2 14       ..             ; 21 bytes to pop (buffer only, PHP done)
+    jmp cba3e                                                         ; bacb: 4c 3e ba    L>.            ; Reuse stack cleanup loop
 
 ; &bace referenced 2 times by &ba1b, &ba4d
 .print_dump_header
-    lda (l00ae),y                                                     ; bace: b1 ae       ..
-    pha                                                               ; bad0: 48          H
-    jsr print_inline                                                  ; bad1: 20 31 91     1.
+    lda (l00ae),y                                                     ; bace: b1 ae       ..             ; Load display address low byte
+    pha                                                               ; bad0: 48          H              ; Save as starting column number
+    jsr print_inline                                                  ; bad1: 20 31 91     1.            ; Print header label with leading CR
     equs &0d, "Address  : "                                           ; bad4: 0d 41 64... .Ad
 
-    nop                                                               ; bae0: ea          .
-    pla                                                               ; bae1: 68          h
-    ldx #&0f                                                          ; bae2: a2 0f       ..
+    nop                                                               ; bae0: ea          .              ; Inline string terminator (NOP)
+    pla                                                               ; bae1: 68          h              ; Restore starting column number
+    ldx #&0f                                                          ; bae2: a2 0f       ..             ; 16 column headers to print
 ; &bae4 referenced 1 time by &baf4
 .loop_cbae4
-    pha                                                               ; bae4: 48          H
-    jsr print_hex_byte                                                ; bae5: 20 1b 91     ..
-    lda #&20 ; ' '                                                    ; bae8: a9 20       .
-    jsr osasci                                                        ; baea: 20 e3 ff     ..            ; Write character 32
-    pla                                                               ; baed: 68          h
-    sec                                                               ; baee: 38          8
-    adc #0                                                            ; baef: 69 00       i.
-    and #&0f                                                          ; baf1: 29 0f       ).
-    dex                                                               ; baf3: ca          .
-    bpl loop_cbae4                                                    ; baf4: 10 ee       ..
-    jsr print_inline                                                  ; baf6: 20 31 91     1.
+    pha                                                               ; bae4: 48          H              ; Save current column number
+    jsr print_hex_byte                                                ; bae5: 20 1b 91     ..            ; Print as two hex digits
+    lda #&20 ; ' '                                                    ; bae8: a9 20       .              ; Space separator
+    jsr osasci                                                        ; baea: 20 e3 ff     ..            ; Print space after column number; Write character 32
+    pla                                                               ; baed: 68          h              ; Restore column number
+    sec                                                               ; baee: 38          8              ; SEC for +1 via ADC
+    adc #0                                                            ; baef: 69 00       i.             ; Increment column number (SEC+ADC 0=+1)
+    and #&0f                                                          ; baf1: 29 0f       ).             ; Wrap to low nibble (0-F)
+    dex                                                               ; baf3: ca          .              ; Count down
+    bpl loop_cbae4                                                    ; baf4: 10 ee       ..             ; Loop for all 16 columns
+    jsr print_inline                                                  ; baf6: 20 31 91     1.            ; Print trailer with ASCII label
     equs ":    ASCII data", &0d, &0d                                  ; baf9: 3a 20 20... :
 
-    nop                                                               ; bb0a: ea          .
-    rts                                                               ; bb0b: 60          `
+    nop                                                               ; bb0a: ea          .              ; Inline string terminator (NOP)
+    rts                                                               ; bb0b: 60          `              ; Return
 
 ; &bb0c referenced 6 times by &b99b, &b9ef, &ba42, &bbaf, &bbe9, &bc56
 .close_ws_file
-    ldy ws_page                                                       ; bb0c: a4 a8       ..
-    lda #osfind_close                                                 ; bb0e: a9 00       ..
-    jmp osfind                                                        ; bb10: 4c ce ff    L..            ; Close one or all files
+    ldy ws_page                                                       ; bb0c: a4 a8       ..             ; Y = file handle from ws_page
+    lda #osfind_close                                                 ; bb0e: a9 00       ..             ; A=0: close file
+    jmp osfind                                                        ; bb10: 4c ce ff    L..            ; Close file and return; Close one or all files
 
 ; &bb13 referenced 2 times by &b98b, &ba06
 .open_file_for_read
-    php                                                               ; bb13: 08          .
-    tya                                                               ; bb14: 98          .
-    clc                                                               ; bb15: 18          .
-    adc os_text_ptr                                                   ; bb16: 65 f2       e.
-    pha                                                               ; bb18: 48          H
-    tax                                                               ; bb19: aa          .
-    lda #0                                                            ; bb1a: a9 00       ..
-    adc os_text_ptr_hi                                                ; bb1c: 65 f3       e.
-    pha                                                               ; bb1e: 48          H
-    tay                                                               ; bb1f: a8          .
-    lda #osfind_open_input                                            ; bb20: a9 40       .@
-    jsr osfind                                                        ; bb22: 20 ce ff     ..            ; Open file for input (A=64)
+    php                                                               ; bb13: 08          .              ; Save processor flags
+    tya                                                               ; bb14: 98          .              ; A = filename offset
+    clc                                                               ; bb15: 18          .              ; Add to command text pointer
+    adc os_text_ptr                                                   ; bb16: 65 f2       e.             ; Low byte of filename address
+    pha                                                               ; bb18: 48          H              ; Save on stack for later restore
+    tax                                                               ; bb19: aa          .              ; X = filename address low
+    lda #0                                                            ; bb1a: a9 00       ..             ; Carry into high byte
+    adc os_text_ptr_hi                                                ; bb1c: 65 f3       e.             ; High byte of filename address
+    pha                                                               ; bb1e: 48          H              ; Save on stack for later restore
+    tay                                                               ; bb1f: a8          .              ; Y = filename address high
+    lda #osfind_open_input                                            ; bb20: a9 40       .@             ; Open for input
+    jsr osfind                                                        ; bb22: 20 ce ff     ..            ; OSFIND: open file; Open file for input (A=64)
     tay                                                               ; bb25: a8          .              ; A=file handle (or zero on failure)
-    sta ws_page                                                       ; bb26: 85 a8       ..
-    bne cbb39                                                         ; bb28: d0 0f       ..
-    lda #&d6                                                          ; bb2a: a9 d6       ..
-    jsr error_inline                                                  ; bb2c: 20 be 96     ..
+    sta ws_page                                                       ; bb26: 85 a8       ..             ; Store file handle
+    bne cbb39                                                         ; bb28: d0 0f       ..             ; Non-zero: file opened OK
+    lda #&d6                                                          ; bb2a: a9 d6       ..             ; Error number &D6
+    jsr error_inline                                                  ; bb2c: 20 be 96     ..            ; Generate 'Not found' error
     equs "Not found", 0                                               ; bb2f: 4e 6f 74... Not
 
 ; &bb39 referenced 1 time by &bb28
 .cbb39
-    pla                                                               ; bb39: 68          h
-    sta os_text_ptr_hi                                                ; bb3a: 85 f3       ..
-    pla                                                               ; bb3c: 68          h
-    sta os_text_ptr                                                   ; bb3d: 85 f2       ..
-    ldy #0                                                            ; bb3f: a0 00       ..
+    pla                                                               ; bb39: 68          h              ; Restore saved text pointer high
+    sta os_text_ptr_hi                                                ; bb3a: 85 f3       ..             ; Restore os_text_ptr high byte
+    pla                                                               ; bb3c: 68          h              ; Restore saved text pointer low
+    sta os_text_ptr                                                   ; bb3d: 85 f2       ..             ; Restore os_text_ptr low byte
+    ldy #0                                                            ; bb3f: a0 00       ..             ; Start scanning from offset 0
 ; &bb41 referenced 1 time by &bb4a
 .loop_cbb41
-    iny                                                               ; bb41: c8          .
-    lda (os_text_ptr),y                                               ; bb42: b1 f2       ..
-    cmp #&0d                                                          ; bb44: c9 0d       ..
-    beq cbb53                                                         ; bb46: f0 0b       ..
-    cmp #&20 ; ' '                                                    ; bb48: c9 20       .
-    bne loop_cbb41                                                    ; bb4a: d0 f5       ..
+    iny                                                               ; bb41: c8          .              ; Advance past current char
+    lda (os_text_ptr),y                                               ; bb42: b1 f2       ..             ; Load next char from command line
+    cmp #&0d                                                          ; bb44: c9 0d       ..             ; CR: end of command line
+    beq cbb53                                                         ; bb46: f0 0b       ..             ; Yes: done scanning
+    cmp #&20 ; ' '                                                    ; bb48: c9 20       .              ; Space: end of filename
+    bne loop_cbb41                                                    ; bb4a: d0 f5       ..             ; No: keep scanning filename
 ; &bb4c referenced 1 time by &bb51
 .loop_cbb4c
-    iny                                                               ; bb4c: c8          .
-    lda (os_text_ptr),y                                               ; bb4d: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; bb4f: c9 20       .
-    beq loop_cbb4c                                                    ; bb51: f0 f9       ..
+    iny                                                               ; bb4c: c8          .              ; Advance past space
+    lda (os_text_ptr),y                                               ; bb4d: b1 f2       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; bb4f: c9 20       .              ; Still a space?
+    beq loop_cbb4c                                                    ; bb51: f0 f9       ..             ; Yes: skip it
 ; &bb53 referenced 1 time by &bb46
 .cbb53
-    plp                                                               ; bb53: 28          (
-    rts                                                               ; bb54: 60          `
+    plp                                                               ; bb53: 28          (              ; Restore processor flags
+    rts                                                               ; bb54: 60          `              ; Return; Y = offset to next argument
 
 ; &bb55 referenced 2 times by &bbc5, &bc51
 .parse_dump_range
-    tya                                                               ; bb55: 98          .
-    tax                                                               ; bb56: aa          .
-    lda #0                                                            ; bb57: a9 00       ..
-    tay                                                               ; bb59: a8          .              ; Y=&00
+    tya                                                               ; bb55: 98          .              ; Save command line offset to X
+    tax                                                               ; bb56: aa          .              ; X tracks current position
+    lda #0                                                            ; bb57: a9 00       ..             ; Zero for clearing accumulator
+    tay                                                               ; bb59: a8          .              ; Y=0 for buffer indexing; Y=&00
 ; &bb5a referenced 1 time by &bb5f
 .loop_cbb5a
-    sta (l00ae),y                                                     ; bb5a: 91 ae       ..
-    iny                                                               ; bb5c: c8          .
-    cpy #4                                                            ; bb5d: c0 04       ..
-    bne loop_cbb5a                                                    ; bb5f: d0 f9       ..
+    sta (l00ae),y                                                     ; bb5a: 91 ae       ..             ; Clear accumulator byte
+    iny                                                               ; bb5c: c8          .              ; Next byte
+    cpy #4                                                            ; bb5d: c0 04       ..             ; All 4 bytes cleared?
+    bne loop_cbb5a                                                    ; bb5f: d0 f9       ..             ; No: clear next
 ; &bb61 referenced 1 time by &bba8
 .cbb61
-    txa                                                               ; bb61: 8a          .
-    inx                                                               ; bb62: e8          .
-    tay                                                               ; bb63: a8          .
-    lda (os_text_ptr),y                                               ; bb64: b1 f2       ..
-    cmp #&0d                                                          ; bb66: c9 0d       ..
-    beq cbbb6                                                         ; bb68: f0 4c       .L
-    cmp #&20 ; ' '                                                    ; bb6a: c9 20       .
-    beq cbbb6                                                         ; bb6c: f0 48       .H
-    cmp #&30 ; '0'                                                    ; bb6e: c9 30       .0
-    bcc cbbaf                                                         ; bb70: 90 3d       .=
-    cmp #&3a ; ':'                                                    ; bb72: c9 3a       .:
-    bcc cbb80                                                         ; bb74: 90 0a       ..
-    and #&5f ; '_'                                                    ; bb76: 29 5f       )_
-    adc #&b8                                                          ; bb78: 69 b8       i.
-    bcs cbbaf                                                         ; bb7a: b0 33       .3
-    cmp #&fa                                                          ; bb7c: c9 fa       ..
-    bcc cbbaf                                                         ; bb7e: 90 2f       ./
+    txa                                                               ; bb61: 8a          .              ; Restore pre-increment offset to A
+    inx                                                               ; bb62: e8          .              ; Advance X to next char position
+    tay                                                               ; bb63: a8          .              ; Y = pre-increment offset for indexing
+    lda (os_text_ptr),y                                               ; bb64: b1 f2       ..             ; Load character from command line
+    cmp #&0d                                                          ; bb66: c9 0d       ..             ; CR: end of input
+    beq cbbb6                                                         ; bb68: f0 4c       .L             ; Done: skip trailing spaces
+    cmp #&20 ; ' '                                                    ; bb6a: c9 20       .              ; Space: end of this parameter
+    beq cbbb6                                                         ; bb6c: f0 48       .H             ; Done: skip trailing spaces
+    cmp #&30 ; '0'                                                    ; bb6e: c9 30       .0             ; Below '0'?
+    bcc cbbaf                                                         ; bb70: 90 3d       .=             ; Yes: not a hex digit, error
+    cmp #&3a ; ':'                                                    ; bb72: c9 3a       .:             ; Below ':'? (i.e. '0'-'9')
+    bcc cbb80                                                         ; bb74: 90 0a       ..             ; Yes: is a decimal digit
+    and #&5f ; '_'                                                    ; bb76: 29 5f       )_             ; Force uppercase for A-F
+    adc #&b8                                                          ; bb78: 69 b8       i.             ; Map 'A'-'F' → &FA-&FF (C=0 here)
+    bcs cbbaf                                                         ; bb7a: b0 33       .3             ; Carry set: char > 'F', error
+    cmp #&fa                                                          ; bb7c: c9 fa       ..             ; Below &FA? (i.e. was < 'A')
+    bcc cbbaf                                                         ; bb7e: 90 2f       ./             ; Yes: gap between '9' and 'A', error
 ; &bb80 referenced 1 time by &bb74
 .cbb80
-    and #&0f                                                          ; bb80: 29 0f       ).
-    pha                                                               ; bb82: 48          H
-    txa                                                               ; bb83: 8a          .
-    pha                                                               ; bb84: 48          H
-    ldx #4                                                            ; bb85: a2 04       ..
+    and #&0f                                                          ; bb80: 29 0f       ).             ; Mask to low nibble (0-15)
+    pha                                                               ; bb82: 48          H              ; Save hex digit value
+    txa                                                               ; bb83: 8a          .              ; Save current offset
+    pha                                                               ; bb84: 48          H              ; Preserve on stack
+    ldx #4                                                            ; bb85: a2 04       ..             ; 4 bits to shift in
 ; &bb87 referenced 1 time by &bb9d
 .loop_cbb87
-    ldy #0                                                            ; bb87: a0 00       ..
-    tya                                                               ; bb89: 98          .              ; A=&00
+    ldy #0                                                            ; bb87: a0 00       ..             ; Start from byte 0 (LSB)
+    tya                                                               ; bb89: 98          .              ; Clear A; C from PHA/PLP below; A=&00
 ; &bb8a referenced 1 time by &bb96
 .loop_cbb8a
-    pha                                                               ; bb8a: 48          H
-    plp                                                               ; bb8b: 28          (
-    lda (l00ae),y                                                     ; bb8c: b1 ae       ..
-    rol a                                                             ; bb8e: 2a          *
-    sta (l00ae),y                                                     ; bb8f: 91 ae       ..
-    php                                                               ; bb91: 08          .
-    pla                                                               ; bb92: 68          h
-    iny                                                               ; bb93: c8          .
-    cpy #4                                                            ; bb94: c0 04       ..
-    bne loop_cbb8a                                                    ; bb96: d0 f2       ..
-    pha                                                               ; bb98: 48          H
-    plp                                                               ; bb99: 28          (
-    bcs cbbab                                                         ; bb9a: b0 0f       ..
-    dex                                                               ; bb9c: ca          .
-    bne loop_cbb87                                                    ; bb9d: d0 e8       ..
-    pla                                                               ; bb9f: 68          h
-    tax                                                               ; bba0: aa          .
-    pla                                                               ; bba1: 68          h
-    ldy #0                                                            ; bba2: a0 00       ..
-    ora (l00ae),y                                                     ; bba4: 11 ae       ..
-    sta (l00ae),y                                                     ; bba6: 91 ae       ..
-    jmp cbb61                                                         ; bba8: 4c 61 bb    La.
+    pha                                                               ; bb8a: 48          H              ; Transfer carry bit to flags via stack
+    plp                                                               ; bb8b: 28          (              ; PLP: C = bit shifted out of prev iter
+    lda (l00ae),y                                                     ; bb8c: b1 ae       ..             ; Load accumulator byte
+    rol a                                                             ; bb8e: 2a          *              ; Rotate left through carry
+    sta (l00ae),y                                                     ; bb8f: 91 ae       ..             ; Store shifted byte
+    php                                                               ; bb91: 08          .              ; Save carry for next byte
+    pla                                                               ; bb92: 68          h              ; Transfer to A for PHA/PLP trick
+    iny                                                               ; bb93: c8          .              ; Next accumulator byte
+    cpy #4                                                            ; bb94: c0 04       ..             ; All 4 bytes rotated?
+    bne loop_cbb8a                                                    ; bb96: d0 f2       ..             ; No: rotate next byte
+    pha                                                               ; bb98: 48          H              ; Transfer carry to flags
+    plp                                                               ; bb99: 28          (              ; C = overflow bit
+    bcs cbbab                                                         ; bb9a: b0 0f       ..             ; Overflow: address too large
+    dex                                                               ; bb9c: ca          .              ; Count bits shifted
+    bne loop_cbb87                                                    ; bb9d: d0 e8       ..             ; 4 bits shifted? No: shift again
+    pla                                                               ; bb9f: 68          h              ; Restore command line offset
+    tax                                                               ; bba0: aa          .              ; Back to X
+    pla                                                               ; bba1: 68          h              ; Restore hex digit value
+    ldy #0                                                            ; bba2: a0 00       ..             ; Point to LSB of accumulator
+    ora (l00ae),y                                                     ; bba4: 11 ae       ..             ; OR digit into low nibble
+    sta (l00ae),y                                                     ; bba6: 91 ae       ..             ; Store updated LSB
+    jmp cbb61                                                         ; bba8: 4c 61 bb    La.            ; Parse next character
 
 ; &bbab referenced 1 time by &bb9a
 .cbbab
-    pla                                                               ; bbab: 68          h
-    pla                                                               ; bbac: 68          h
-    sec                                                               ; bbad: 38          8
-    rts                                                               ; bbae: 60          `
+    pla                                                               ; bbab: 68          h              ; Discard saved offset
+    pla                                                               ; bbac: 68          h              ; Discard saved digit
+    sec                                                               ; bbad: 38          8              ; C=1: overflow
+    rts                                                               ; bbae: 60          `              ; Return with C=1
 
 ; &bbaf referenced 3 times by &bb70, &bb7a, &bb7e
 .cbbaf
-    jsr close_ws_file                                                 ; bbaf: 20 0c bb     ..
-    jmp err_bad_hex                                                   ; bbb2: 4c f4 91    L..
+    jsr close_ws_file                                                 ; bbaf: 20 0c bb     ..            ; Close open file before error
+    jmp err_bad_hex                                                   ; bbb2: 4c f4 91    L..            ; Generate 'Bad hex' error
 
 ; &bbb5 referenced 1 time by &bbba
 .loop_cbbb5
-    iny                                                               ; bbb5: c8          .
+    iny                                                               ; bbb5: c8          .              ; Advance past space
 ; &bbb6 referenced 2 times by &bb68, &bb6c
 .cbbb6
-    lda (os_text_ptr),y                                               ; bbb6: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; bbb8: c9 20       .
-    beq loop_cbbb5                                                    ; bbba: f0 f9       ..
-    clc                                                               ; bbbc: 18          .
-    rts                                                               ; bbbd: 60          `
+    lda (os_text_ptr),y                                               ; bbb6: b1 f2       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; bbb8: c9 20       .              ; Space?
+    beq loop_cbbb5                                                    ; bbba: f0 f9       ..             ; Yes: skip it
+    clc                                                               ; bbbc: 18          .              ; C=0: valid parse (no overflow)
+    rts                                                               ; bbbd: 60          `              ; Return; Y past trailing spaces
 
 ; &bbbe referenced 1 time by &ba12
 .init_dump_buffer
-    inx                                                               ; bbbe: e8          .
-    stx l00ae                                                         ; bbbf: 86 ae       ..
-    ldx #1                                                            ; bbc1: a2 01       ..
-    stx l00af                                                         ; bbc3: 86 af       ..
-    jsr parse_dump_range                                              ; bbc5: 20 55 bb     U.
-    bcs cbbe9                                                         ; bbc8: b0 1f       ..
-    tya                                                               ; bbca: 98          .
-    pha                                                               ; bbcb: 48          H
+    inx                                                               ; bbbe: e8          .              ; X+1: first byte of buffer
+    stx l00ae                                                         ; bbbf: 86 ae       ..             ; Set buffer pointer low byte
+    ldx #1                                                            ; bbc1: a2 01       ..             ; Buffer is on stack in page 1
+    stx l00af                                                         ; bbc3: 86 af       ..             ; Set buffer pointer high byte
+    jsr parse_dump_range                                              ; bbc5: 20 55 bb     U.            ; Parse start offset from command line
+    bcs cbbe9                                                         ; bbc8: b0 1f       ..             ; Overflow: 'Outside file' error
+    tya                                                               ; bbca: 98          .              ; A = command line offset after parse
+    pha                                                               ; bbcb: 48          H              ; Save for later (past start addr)
     ldy ws_page                                                       ; bbcc: a4 a8       ..             ; Y=file handle
     ldx #&aa                                                          ; bbce: a2 aa       ..             ; X=zero page address for result
-    lda #2                                                            ; bbd0: a9 02       ..
+    lda #2                                                            ; bbd0: a9 02       ..             ; A=2: read file extent (length)
     jsr osargs                                                        ; bbd2: 20 da ff     ..            ; Get length of file into zero page address X (A=2)
-    ldy #3                                                            ; bbd5: a0 03       ..
+    ldy #3                                                            ; bbd5: a0 03       ..             ; Check from MSB down
 ; &bbd7 referenced 1 time by &bbdf
 .loop_cbbd7
-    lda osword_flag,y                                                 ; bbd7: b9 aa 00    ...
-    cmp (l00ae),y                                                     ; bbda: d1 ae       ..
-    bne cbbe3                                                         ; bbdc: d0 05       ..
-    dey                                                               ; bbde: 88          .
-    bpl loop_cbbd7                                                    ; bbdf: 10 f6       ..
-    bmi cbc03                                                         ; bbe1: 30 20       0              ; ALWAYS branch
+    lda osword_flag,y                                                 ; bbd7: b9 aa 00    ...            ; Load file length byte
+    cmp (l00ae),y                                                     ; bbda: d1 ae       ..             ; Compare with start offset byte
+    bne cbbe3                                                         ; bbdc: d0 05       ..             ; Mismatch: check which is larger
+    dey                                                               ; bbde: 88          .              ; Next byte down
+    bpl loop_cbbd7                                                    ; bbdf: 10 f6       ..             ; More bytes to compare
+    bmi cbc03                                                         ; bbe1: 30 20       0              ; All equal: start = length, within file; ALWAYS branch
 
 ; &bbe3 referenced 1 time by &bbdc
 .cbbe3
-    bcc cbbe9                                                         ; bbe3: 90 04       ..
-    ldy #&ff                                                          ; bbe5: a0 ff       ..
-    bne cbc03                                                         ; bbe7: d0 1a       ..             ; ALWAYS branch
+    bcc cbbe9                                                         ; bbe3: 90 04       ..             ; Length < start: outside file
+    ldy #&ff                                                          ; bbe5: a0 ff       ..             ; Y=&FF: length > start, flag for later
+    bne cbc03                                                         ; bbe7: d0 1a       ..             ; Continue to copy start address; ALWAYS branch
 
 ; &bbe9 referenced 2 times by &bbc8, &bbe3
 .cbbe9
-    jsr close_ws_file                                                 ; bbe9: 20 0c bb     ..
-    lda #&b7                                                          ; bbec: a9 b7       ..
-    jsr error_inline                                                  ; bbee: 20 be 96     ..
+    jsr close_ws_file                                                 ; bbe9: 20 0c bb     ..            ; Close file before error
+    lda #&b7                                                          ; bbec: a9 b7       ..             ; Error number &B7
+    jsr error_inline                                                  ; bbee: 20 be 96     ..            ; Generate 'Outside file' error
     equs "Outside file", 0                                            ; bbf1: 4f 75 74... Out
 
 ; &bbfe referenced 1 time by &bc06
 .loop_cbbfe
-    lda (l00ae),y                                                     ; bbfe: b1 ae       ..
-    sta osword_flag,y                                                 ; bc00: 99 aa 00    ...
+    lda (l00ae),y                                                     ; bbfe: b1 ae       ..             ; Load start address byte from buffer
+    sta osword_flag,y                                                 ; bc00: 99 aa 00    ...            ; Store to osword_flag (&AA-&AD)
 ; &bc03 referenced 2 times by &bbe1, &bbe7
 .cbc03
-    iny                                                               ; bc03: c8          .
-    cpy #4                                                            ; bc04: c0 04       ..
-    bne loop_cbbfe                                                    ; bc06: d0 f6       ..
+    iny                                                               ; bc03: c8          .              ; Next byte
+    cpy #4                                                            ; bc04: c0 04       ..             ; All 4 bytes copied?
+    bne loop_cbbfe                                                    ; bc06: d0 f6       ..             ; No: copy next byte
     ldx #&aa                                                          ; bc08: a2 aa       ..             ; X=zero page address to write from
     ldy ws_page                                                       ; bc0a: a4 a8       ..             ; Y=file handle
-    lda #1                                                            ; bc0c: a9 01       ..
-    jsr osargs                                                        ; bc0e: 20 da ff     ..            ; Write sequential file pointer from zero page address X (A=1)
-    pla                                                               ; bc11: 68          h
-    tay                                                               ; bc12: a8          .
-    lda (os_text_ptr),y                                               ; bc13: b1 f2       ..
-    cmp #&0d                                                          ; bc15: c9 0d       ..
-    bne cbc51                                                         ; bc17: d0 38       .8
-    ldy #1                                                            ; bc19: a0 01       ..
+    lda #1                                                            ; bc0c: a9 01       ..             ; A=1: write file pointer
+    jsr osargs                                                        ; bc0e: 20 da ff     ..            ; OSARGS: set file pointer; Write sequential file pointer from zero page address X (A=1)
+    pla                                                               ; bc11: 68          h              ; Restore saved command line offset
+    tay                                                               ; bc12: a8          .              ; Back to Y for command line indexing
+    lda (os_text_ptr),y                                               ; bc13: b1 f2       ..             ; Load next char from command line
+    cmp #&0d                                                          ; bc15: c9 0d       ..             ; End of command? (CR)
+    bne cbc51                                                         ; bc17: d0 38       .8             ; No: parse display base address
+    ldy #1                                                            ; bc19: a0 01       ..             ; Copy 2 bytes: os_text_ptr to buffer
 ; &bc1b referenced 1 time by &bc21
 .loop_cbc1b
-    lda os_text_ptr,y                                                 ; bc1b: b9 f2 00    ...
-    sta (l00ae),y                                                     ; bc1e: 91 ae       ..
-    dey                                                               ; bc20: 88          .
-    bpl loop_cbc1b                                                    ; bc21: 10 f8       ..
-    lda #osfile_read_catalogue_info                                   ; bc23: a9 05       ..
-    ldx l00ae                                                         ; bc25: a6 ae       ..
-    ldy l00af                                                         ; bc27: a4 af       ..
-    jsr osfile                                                        ; bc29: 20 dd ff     ..            ; Read catalogue information (A=5)
-    ldy #2                                                            ; bc2c: a0 02       ..
+    lda os_text_ptr,y                                                 ; bc1b: b9 f2 00    ...            ; Load os_text_ptr byte
+    sta (l00ae),y                                                     ; bc1e: 91 ae       ..             ; Store as filename pointer in OSFILE CB
+    dey                                                               ; bc20: 88          .              ; Next byte
+    bpl loop_cbc1b                                                    ; bc21: 10 f8       ..             ; Copy both low and high bytes
+    lda #osfile_read_catalogue_info                                   ; bc23: a9 05       ..             ; Read catalogue information
+    ldx l00ae                                                         ; bc25: a6 ae       ..             ; X = control block low
+    ldy l00af                                                         ; bc27: a4 af       ..             ; Y = control block high
+    jsr osfile                                                        ; bc29: 20 dd ff     ..            ; OSFILE: read file info; Read catalogue information (A=5)
+    ldy #2                                                            ; bc2c: a0 02       ..             ; Start at OSFILE +2 (load addr byte 0)
 ; &bc2e referenced 1 time by &bc39
 .loop_cbc2e
-    lda (l00ae),y                                                     ; bc2e: b1 ae       ..
-    dey                                                               ; bc30: 88          .
-    dey                                                               ; bc31: 88          .
-    sta (l00ae),y                                                     ; bc32: 91 ae       ..
-    iny                                                               ; bc34: c8          .
-    iny                                                               ; bc35: c8          .
-    iny                                                               ; bc36: c8          .
-    cpy #6                                                            ; bc37: c0 06       ..
-    bne loop_cbc2e                                                    ; bc39: d0 f3       ..
-    dey                                                               ; bc3b: 88          .
-    dey                                                               ; bc3c: 88          .
+    lda (l00ae),y                                                     ; bc2e: b1 ae       ..             ; Load from OSFILE result offset
+    dey                                                               ; bc30: 88          .              ; Y-2: destination is 2 bytes earlier
+    dey                                                               ; bc31: 88          .              ; Continue decrement
+    sta (l00ae),y                                                     ; bc32: 91 ae       ..             ; Store to buf[Y-2]
+    iny                                                               ; bc34: c8          .              ; Advance source index by 3
+    iny                                                               ; bc35: c8          .              ; (net +1 per iteration)
+    iny                                                               ; bc36: c8          .              ; Continue increment
+    cpy #6                                                            ; bc37: c0 06       ..             ; Copied all 4 load address bytes?
+    bne loop_cbc2e                                                    ; bc39: d0 f3       ..             ; No: copy next byte
+    dey                                                               ; bc3b: 88          .              ; Y=6 after loop exit
+    dey                                                               ; bc3c: 88          .              ; Y=4: check from buf[4] downward
 ; &bc3d referenced 1 time by &bc44
 .loop_cbc3d
-    lda (l00ae),y                                                     ; bc3d: b1 ae       ..
-    cmp #&ff                                                          ; bc3f: c9 ff       ..
-    bne cbc66                                                         ; bc41: d0 23       .#
-    dey                                                               ; bc43: 88          .
-    bpl loop_cbc3d                                                    ; bc44: 10 f7       ..
-    ldy #3                                                            ; bc46: a0 03       ..
-    lda #0                                                            ; bc48: a9 00       ..
+    lda (l00ae),y                                                     ; bc3d: b1 ae       ..             ; Load address byte
+    cmp #&ff                                                          ; bc3f: c9 ff       ..             ; Is it &FF?
+    bne cbc66                                                         ; bc41: d0 23       .#             ; No: valid load address, use it
+    dey                                                               ; bc43: 88          .              ; Check next byte down
+    bpl loop_cbc3d                                                    ; bc44: 10 f7       ..             ; More bytes to check
+    ldy #3                                                            ; bc46: a0 03       ..             ; Clear all 4 bytes
+    lda #0                                                            ; bc48: a9 00       ..             ; Zero value
 ; &bc4a referenced 1 time by &bc4d
 .loop_cbc4a
-    sta (l00ae),y                                                     ; bc4a: 91 ae       ..
-    dey                                                               ; bc4c: 88          .
-    bpl loop_cbc4a                                                    ; bc4d: 10 fb       ..
-    bmi cbc66                                                         ; bc4f: 30 15       0.             ; ALWAYS branch
+    sta (l00ae),y                                                     ; bc4a: 91 ae       ..             ; Clear byte
+    dey                                                               ; bc4c: 88          .              ; Next byte down
+    bpl loop_cbc4a                                                    ; bc4d: 10 fb       ..             ; Loop for all 4 bytes
+    bmi cbc66                                                         ; bc4f: 30 15       0.             ; Continue to compute display address; ALWAYS branch
 
 ; &bc51 referenced 1 time by &bc17
 .cbc51
-    jsr parse_dump_range                                              ; bc51: 20 55 bb     U.
-    bcc cbc66                                                         ; bc54: 90 10       ..
-    jsr close_ws_file                                                 ; bc56: 20 0c bb     ..
-    lda #&fc                                                          ; bc59: a9 fc       ..
-    jsr error_bad_inline                                              ; bc5b: 20 a2 96     ..
+    jsr parse_dump_range                                              ; bc51: 20 55 bb     U.            ; Parse second hex parameter
+    bcc cbc66                                                         ; bc54: 90 10       ..             ; Valid: use as display base
+    jsr close_ws_file                                                 ; bc56: 20 0c bb     ..            ; Invalid: close file before error
+    lda #&fc                                                          ; bc59: a9 fc       ..             ; Error number &FC
+    jsr error_bad_inline                                              ; bc5b: 20 a2 96     ..            ; Generate 'Bad address' error
     equs "address", 0                                                 ; bc5e: 61 64 64... add
 
 ; &bc66 referenced 3 times by &bc41, &bc4f, &bc54
 .cbc66
-    ldy #0                                                            ; bc66: a0 00       ..
-    ldx #4                                                            ; bc68: a2 04       ..
-    clc                                                               ; bc6a: 18          .
+    ldy #0                                                            ; bc66: a0 00       ..             ; Start from LSB
+    ldx #4                                                            ; bc68: a2 04       ..             ; 4 bytes to add
+    clc                                                               ; bc6a: 18          .              ; Clear carry for addition
 ; &bc6b referenced 1 time by &bc75
 .loop_cbc6b
-    lda (l00ae),y                                                     ; bc6b: b1 ae       ..
-    adc osword_flag,y                                                 ; bc6d: 79 aa 00    y..
-    sta osword_flag,y                                                 ; bc70: 99 aa 00    ...
-    iny                                                               ; bc73: c8          .
-    dex                                                               ; bc74: ca          .
-    bne loop_cbc6b                                                    ; bc75: d0 f4       ..
-    ldy #&14                                                          ; bc77: a0 14       ..
-    ldx #3                                                            ; bc79: a2 03       ..
+    lda (l00ae),y                                                     ; bc6b: b1 ae       ..             ; Load display base byte
+    adc osword_flag,y                                                 ; bc6d: 79 aa 00    y..            ; Add start offset byte
+    sta osword_flag,y                                                 ; bc70: 99 aa 00    ...            ; Store result in osword_flag
+    iny                                                               ; bc73: c8          .              ; Next byte
+    dex                                                               ; bc74: ca          .              ; Count down
+    bne loop_cbc6b                                                    ; bc75: d0 f4       ..             ; Loop for all 4 bytes
+    ldy #&14                                                          ; bc77: a0 14       ..             ; Point past end of address area
+    ldx #3                                                            ; bc79: a2 03       ..             ; Start from MSB (byte 3)
 ; &bc7b referenced 1 time by &bc81
 .loop_cbc7b
-    dey                                                               ; bc7b: 88          .
-    lda osword_flag,x                                                 ; bc7c: b5 aa       ..
-    sta (l00ae),y                                                     ; bc7e: 91 ae       ..
-    dex                                                               ; bc80: ca          .
-    bpl loop_cbc7b                                                    ; bc81: 10 f8       ..
-    rts                                                               ; bc83: 60          `
+    dey                                                               ; bc7b: 88          .              ; Pre-decrement Y
+    lda osword_flag,x                                                 ; bc7c: b5 aa       ..             ; Load computed display address byte
+    sta (l00ae),y                                                     ; bc7e: 91 ae       ..             ; Store to buf[&10-&13]
+    dex                                                               ; bc80: ca          .              ; Next byte down
+    bpl loop_cbc7b                                                    ; bc81: 10 f8       ..             ; Loop for all 4 bytes
+    rts                                                               ; bc83: 60          `              ; Return; Y=&10 (address low byte)
 
 ; &bc84 referenced 3 times by &9bde, &a8bb, &baa2
 .advance_x_by_8
-    jsr advance_x_by_4                                                ; bc84: 20 87 bc     ..
+    jsr advance_x_by_4                                                ; bc84: 20 87 bc     ..            ; JSR+fall-through: 8+8=16 INXs total
 ; &bc87 referenced 1 time by &bc84
 .advance_x_by_4
-    jsr inx4                                                          ; bc87: 20 8a bc     ..
+    jsr inx4                                                          ; bc87: 20 8a bc     ..            ; JSR+fall-through: 4+4=8 INXs
 ; &bc8a referenced 1 time by &bc87
 .inx4
-    inx                                                               ; bc8a: e8          .
-    inx                                                               ; bc8b: e8          .
-    inx                                                               ; bc8c: e8          .
-    inx                                                               ; bc8d: e8          .
-    rts                                                               ; bc8e: 60          `
+    inx                                                               ; bc8a: e8          .              ; X += 1
+    inx                                                               ; bc8b: e8          .              ; X += 2
+    inx                                                               ; bc8c: e8          .              ; X += 3
+    inx                                                               ; bc8d: e8          .              ; X += 4
+    rts                                                               ; bc8e: 60          `              ; Return
 
     equb &ff                                                          ; bc8f: ff          .
 ; &bc90 referenced 1 time by &bea0
