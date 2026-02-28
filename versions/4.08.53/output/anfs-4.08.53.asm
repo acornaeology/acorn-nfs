@@ -6781,197 +6781,197 @@ bad_prefix = bad_str_anchor+1
 ; Selects filing system by number.
 ; ***************************************************************************************
 .cmd_fs
-    lda l0e00                                                         ; a063: ad 00 0e    ...
-    sta fs_work_5                                                     ; a066: 85 b5       ..
-    lda l0e01                                                         ; a068: ad 01 0e    ...
-    sta l00b6                                                         ; a06b: 85 b6       ..
-    lda (fs_crc_lo),y                                                 ; a06d: b1 be       ..
-    cmp #&0d                                                          ; a06f: c9 0d       ..
-    beq ca083                                                         ; a071: f0 10       ..
-    jsr parse_fs_ps_args                                              ; a073: 20 8f a0     ..
-    lda #1                                                            ; a076: a9 01       ..
-    sta fs_work_4                                                     ; a078: 85 b4       ..
-    lda #&13                                                          ; a07a: a9 13       ..
-    ldx #<(fs_work_4)                                                 ; a07c: a2 b4       ..
-    ldy #>(fs_work_4)                                                 ; a07e: a0 00       ..
+    lda l0e00                                                         ; a063: ad 00 0e    ...            ; Load current FS station high
+    sta fs_work_5                                                     ; a066: 85 b5       ..             ; Save to fs_work_5
+    lda l0e01                                                         ; a068: ad 01 0e    ...            ; Load current FS station low
+    sta l00b6                                                         ; a06b: 85 b6       ..             ; Save to l00b6
+    lda (fs_crc_lo),y                                                 ; a06d: b1 be       ..             ; Get first character of argument
+    cmp #&0d                                                          ; a06f: c9 0d       ..             ; Is it CR (no argument)?
+    beq ca083                                                         ; a071: f0 10       ..             ; No arg: print current FS info
+    jsr parse_fs_ps_args                                              ; a073: 20 8f a0     ..            ; Parse FS/PS station arguments
+    lda #1                                                            ; a076: a9 01       ..             ; A=1: write NFS info
+    sta fs_work_4                                                     ; a078: 85 b4       ..             ; Store OSWORD sub-function
+    lda #&13                                                          ; a07a: a9 13       ..             ; OSWORD &13: NFS information
+    ldx #<(fs_work_4)                                                 ; a07c: a2 b4       ..             ; Parameter block low
+    ldy #>(fs_work_4)                                                 ; a07e: a0 00       ..             ; Parameter block high
     jmp osword                                                        ; a080: 4c f1 ff    L..            ; Read/Write NFS information (see https://beebwiki.mdfs.net/OSWORDs)
 
 ; &a083 referenced 1 time by &a071
 .ca083
-    jsr print_file_server_is                                          ; a083: 20 a1 b0     ..
+    jsr print_file_server_is                                          ; a083: 20 a1 b0     ..            ; Print 'File server '
 ; &a086 referenced 1 time by &b092
 .print_fs_info_newline
-    bit bit_test_ff_pad                                               ; a086: 2c 7d 94    ,}.
-    jsr print_station_addr                                            ; a089: 20 74 b1     t.
+    bit bit_test_ff_pad                                               ; a086: 2c 7d 94    ,}.            ; Set V (suppress padding)
+    jsr print_station_addr                                            ; a089: 20 74 b1     t.            ; Print station address
     jmp osnewl                                                        ; a08c: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &a08f referenced 3 times by &a073, &aff1, &b1c4
 .parse_fs_ps_args
-    txa                                                               ; a08f: 8a          .
-    pha                                                               ; a090: 48          H
-    lda #0                                                            ; a091: a9 00       ..
-    sta fs_work_4                                                     ; a093: 85 b4       ..
-    jsr parse_addr_arg                                                ; a095: 20 5a 91     Z.
-    bcs ca0ad                                                         ; a098: b0 13       ..
-    tya                                                               ; a09a: 98          .
-    pha                                                               ; a09b: 48          H
-    jsr init_bridge_poll                                              ; a09c: 20 68 a8     h.
-    eor fs_load_addr_2                                                ; a09f: 45 b2       E.
-    beq ca0a5                                                         ; a0a1: f0 02       ..
-    lda fs_load_addr_2                                                ; a0a3: a5 b2       ..
+    txa                                                               ; a08f: 8a          .              ; Save X on stack
+    pha                                                               ; a090: 48          H              ; Push X
+    lda #0                                                            ; a091: a9 00       ..             ; A=0: initialise dot-seen flag
+    sta fs_work_4                                                     ; a093: 85 b4       ..             ; Clear dot-seen flag
+    jsr parse_addr_arg                                                ; a095: 20 5a 91     Z.            ; Parse first number (network)
+    bcs ca0ad                                                         ; a098: b0 13       ..             ; C set: number found, check for dot
+    tya                                                               ; a09a: 98          .              ; Save Y (command line offset)
+    pha                                                               ; a09b: 48          H              ; Push Y
+    jsr init_bridge_poll                                              ; a09c: 20 68 a8     h.            ; Initialise bridge polling
+    eor fs_load_addr_2                                                ; a09f: 45 b2       E.             ; Compare bridge result with parsed value
+    beq ca0a5                                                         ; a0a1: f0 02       ..             ; Same: keep bridge result
+    lda fs_load_addr_2                                                ; a0a3: a5 b2       ..             ; Different: use parsed value
 ; &a0a5 referenced 1 time by &a0a1
 .ca0a5
-    sta l00b6                                                         ; a0a5: 85 b6       ..
-    pla                                                               ; a0a7: 68          h
-    tay                                                               ; a0a8: a8          .
-    iny                                                               ; a0a9: c8          .
-    jsr parse_addr_arg                                                ; a0aa: 20 5a 91     Z.
+    sta l00b6                                                         ; a0a5: 85 b6       ..             ; Store station low byte
+    pla                                                               ; a0a7: 68          h              ; Restore Y
+    tay                                                               ; a0a8: a8          .              ; Transfer back to Y
+    iny                                                               ; a0a9: c8          .              ; Skip dot separator
+    jsr parse_addr_arg                                                ; a0aa: 20 5a 91     Z.            ; Parse second number (station)
 ; &a0ad referenced 1 time by &a098
 .ca0ad
-    beq ca0b1                                                         ; a0ad: f0 02       ..
-    sta fs_work_5                                                     ; a0af: 85 b5       ..
+    beq ca0b1                                                         ; a0ad: f0 02       ..             ; Zero result: skip store
+    sta fs_work_5                                                     ; a0af: 85 b5       ..             ; Store station high byte
 ; &a0b1 referenced 1 time by &a0ad
 .ca0b1
-    pla                                                               ; a0b1: 68          h
-    tax                                                               ; a0b2: aa          .
-    rts                                                               ; a0b3: 60          `
+    pla                                                               ; a0b1: 68          h              ; Restore X
+    tax                                                               ; a0b2: aa          .              ; Transfer back to X
+    rts                                                               ; a0b3: 60          `              ; Return
 
 ; &a0b4 referenced 2 times by &a0d2, &a0e2
 .get_pb_ptr_as_index
-    lda osword_pb_ptr                                                 ; a0b4: a5 f0       ..
+    lda osword_pb_ptr                                                 ; a0b4: a5 f0       ..             ; Load parameter block pointer
 ; &a0b6 referenced 2 times by &8f13, &b0e4
 .byte_to_2bit_index
-    asl a                                                             ; a0b6: 0a          .
-    asl a                                                             ; a0b7: 0a          .
-    pha                                                               ; a0b8: 48          H
-    asl a                                                             ; a0b9: 0a          .
-    tsx                                                               ; a0ba: ba          .
-    php                                                               ; a0bb: 08          .
-    adc error_text,x                                                  ; a0bc: 7d 01 01    }..
-    ror a                                                             ; a0bf: 6a          j
-    plp                                                               ; a0c0: 28          (
-    asl a                                                             ; a0c1: 0a          .
-    tay                                                               ; a0c2: a8          .
-    pla                                                               ; a0c3: 68          h
-    cmp #&48 ; 'H'                                                    ; a0c4: c9 48       .H
-    bcc return_20                                                     ; a0c6: 90 03       ..
-    ldy #0                                                            ; a0c8: a0 00       ..
+    asl a                                                             ; a0b6: 0a          .              ; Shift left (A * 2)
+    asl a                                                             ; a0b7: 0a          .              ; Shift left (A * 4)
+    pha                                                               ; a0b8: 48          H              ; Save A * 4 on stack
+    asl a                                                             ; a0b9: 0a          .              ; Shift left (A * 8)
+    tsx                                                               ; a0ba: ba          .              ; Get stack pointer
+    php                                                               ; a0bb: 08          .              ; Save flags (carry from shift)
+    adc error_text,x                                                  ; a0bc: 7d 01 01    }..            ; A*8 + A*4 (from stack) = A*12
+    ror a                                                             ; a0bf: 6a          j              ; Divide by 2 with carry
+    plp                                                               ; a0c0: 28          (              ; Restore original flags
+    asl a                                                             ; a0c1: 0a          .              ; Shift left again
+    tay                                                               ; a0c2: a8          .              ; Result to Y as index
+    pla                                                               ; a0c3: 68          h              ; Pop saved A * 4
+    cmp #&48 ; 'H'                                                    ; a0c4: c9 48       .H             ; A * 4 >= &48 (out of range)?
+    bcc return_20                                                     ; a0c6: 90 03       ..             ; In range: return
+    ldy #0                                                            ; a0c8: a0 00       ..             ; Out of range: Y=0
     tya                                                               ; a0ca: 98          .              ; A=&00
 ; &a0cb referenced 1 time by &a0c6
 .return_20
     rts                                                               ; a0cb: 60          `
 
-    ldy #&6f ; 'o'                                                    ; a0cc: a0 6f       .o
-    lda (net_rx_ptr),y                                                ; a0ce: b1 9c       ..
-    bcc ca0df                                                         ; a0d0: 90 0d       ..
-    jsr get_pb_ptr_as_index                                           ; a0d2: 20 b4 a0     ..
-    bcs ca0dd                                                         ; a0d5: b0 06       ..
-    lda (nfs_workspace),y                                             ; a0d7: b1 9e       ..
-    cmp #&3f ; '?'                                                    ; a0d9: c9 3f       .?
-    bne ca0df                                                         ; a0db: d0 02       ..
+    ldy #&6f ; 'o'                                                    ; a0cc: a0 6f       .o             ; Y=&6F: source offset
+    lda (net_rx_ptr),y                                                ; a0ce: b1 9c       ..             ; Load byte from RX buffer
+    bcc ca0df                                                         ; a0d0: 90 0d       ..             ; C clear: store directly
+    jsr get_pb_ptr_as_index                                           ; a0d2: 20 b4 a0     ..            ; Get index from PB pointer
+    bcs ca0dd                                                         ; a0d5: b0 06       ..             ; C set (out of range): clear value
+    lda (nfs_workspace),y                                             ; a0d7: b1 9e       ..             ; Load workspace byte at index
+    cmp #&3f ; '?'                                                    ; a0d9: c9 3f       .?             ; Is it '?' (uninitialised)?
+    bne ca0df                                                         ; a0db: d0 02       ..             ; No: use value from RX buffer
 ; &a0dd referenced 1 time by &a0d5
 .ca0dd
-    lda #0                                                            ; a0dd: a9 00       ..
+    lda #0                                                            ; a0dd: a9 00       ..             ; A=0: return zero for uninitialised
 ; &a0df referenced 2 times by &a0d0, &a0db
 .ca0df
-    sta osword_pb_ptr                                                 ; a0df: 85 f0       ..
-    rts                                                               ; a0e1: 60          `
+    sta osword_pb_ptr                                                 ; a0df: 85 f0       ..             ; Store result to PB pointer
+    rts                                                               ; a0e1: 60          `              ; Return
 
-    jsr get_pb_ptr_as_index                                           ; a0e2: 20 b4 a0     ..
-    bcc ca0f1                                                         ; a0e5: 90 0a       ..
-    ror l0d6c                                                         ; a0e7: 6e 6c 0d    nl.
-    lda osword_pb_ptr                                                 ; a0ea: a5 f0       ..
-    rol a                                                             ; a0ec: 2a          *
-    rol l0d6c                                                         ; a0ed: 2e 6c 0d    .l.
-    rts                                                               ; a0f0: 60          `
+    jsr get_pb_ptr_as_index                                           ; a0e2: 20 b4 a0     ..            ; Get index from PB pointer
+    bcc ca0f1                                                         ; a0e5: 90 0a       ..             ; C clear: store to workspace
+    ror l0d6c                                                         ; a0e7: 6e 6c 0d    nl.            ; Save carry to l0d6c bit 7
+    lda osword_pb_ptr                                                 ; a0ea: a5 f0       ..             ; Load PB pointer value
+    rol a                                                             ; a0ec: 2a          *              ; Shift carry back in
+    rol l0d6c                                                         ; a0ed: 2e 6c 0d    .l.            ; Restore l0d6c bit 7
+    rts                                                               ; a0f0: 60          `              ; Return
 
 ; &a0f1 referenced 1 time by &a0e5
 .ca0f1
-    ror l0d61                                                         ; a0f1: 6e 61 0d    na.
-    lda #&3f ; '?'                                                    ; a0f4: a9 3f       .?
-    sta (nfs_workspace),y                                             ; a0f6: 91 9e       ..
-    rol l0d61                                                         ; a0f8: 2e 61 0d    .a.
-    rts                                                               ; a0fb: 60          `
+    ror l0d61                                                         ; a0f1: 6e 61 0d    na.            ; Save carry to l0d61 bit 7
+    lda #&3f ; '?'                                                    ; a0f4: a9 3f       .?             ; A='?': mark as uninitialised
+    sta (nfs_workspace),y                                             ; a0f6: 91 9e       ..             ; Store '?' to workspace
+    rol l0d61                                                         ; a0f8: 2e 61 0d    .a.            ; Restore l0d61 bit 7
+    rts                                                               ; a0fb: 60          `              ; Return
 
 ; &a0fc referenced 1 time by &8cee
 .cmd_fs_entry
-    jsr set_text_and_xfer_ptr                                         ; a0fc: 20 7d 92     }.
-    ldy #&ff                                                          ; a0ff: a0 ff       ..
-    sty fs_spool_handle                                               ; a101: 84 ba       ..
-    sty escapable                                                     ; a103: 84 97       ..
+    jsr set_text_and_xfer_ptr                                         ; a0fc: 20 7d 92     }.            ; Set text and transfer pointers
+    ldy #&ff                                                          ; a0ff: a0 ff       ..             ; Y=&FF: prepare for INY to 0
+    sty fs_spool_handle                                               ; a101: 84 ba       ..             ; Clear spool handle (no spool active)
+    sty escapable                                                     ; a103: 84 97       ..             ; Set escapable flag (&FF)
     iny                                                               ; a105: c8          .              ; Y=&00
-    ldx #&4a ; 'J'                                                    ; a106: a2 4a       .J
-    jsr match_fs_cmd                                                  ; a108: 20 28 a1     (.
-    bcs ca11b                                                         ; a10b: b0 0e       ..
+    ldx #&4a ; 'J'                                                    ; a106: a2 4a       .J             ; X=&4A: FS command table offset
+    jsr match_fs_cmd                                                  ; a108: 20 28 a1     (.            ; Match command in FS table
+    bcs ca11b                                                         ; a10b: b0 0e       ..             ; C set: command found
 ; &a10d referenced 1 time by &8c4f
 .cmd_fs_reentry
-    bvc ca11b                                                         ; a10d: 50 0c       P.
+    bvc ca11b                                                         ; a10d: 50 0c       P.             ; V clear: syntax error
 ; &a10f referenced 1 time by &af4f
 .error_syntax
-    lda #&dc                                                          ; a10f: a9 dc       ..
-    jsr error_inline                                                  ; a111: 20 be 96     ..
+    lda #&dc                                                          ; a10f: a9 dc       ..             ; Error code &DC
+    jsr error_inline                                                  ; a111: 20 be 96     ..            ; Generate 'Syntax' error
     equs "Syntax", 0                                                  ; a114: 53 79 6e... Syn
 
 ; &a11b referenced 2 times by &a10b, &a10d
 .ca11b
-    lda #0                                                            ; a11b: a9 00       ..
-    sta svc_state                                                     ; a11d: 85 a9       ..
-    lda cmd_table_fs_hi,x                                             ; a11f: bd da a3    ...
-    pha                                                               ; a122: 48          H
-    lda cmd_table_fs_lo,x                                             ; a123: bd d9 a3    ...
-    pha                                                               ; a126: 48          H
-    rts                                                               ; a127: 60          `
+    lda #0                                                            ; a11b: a9 00       ..             ; A=0: clear service state
+    sta svc_state                                                     ; a11d: 85 a9       ..             ; Store cleared service state
+    lda cmd_table_fs_hi,x                                             ; a11f: bd da a3    ...            ; Load command handler address high
+    pha                                                               ; a122: 48          H              ; Push high byte
+    lda cmd_table_fs_lo,x                                             ; a123: bd d9 a3    ...            ; Load command handler address low
+    pha                                                               ; a126: 48          H              ; Push low byte
+    rts                                                               ; a127: 60          `              ; RTS dispatches to command handler
 
 ; &a128 referenced 5 times by &8c4a, &8c78, &a108, &b304, &b331
 .match_fs_cmd
-    tya                                                               ; a128: 98          .
-    pha                                                               ; a129: 48          H
+    tya                                                               ; a128: 98          .              ; Save Y (command line offset)
+    pha                                                               ; a129: 48          H              ; Push on stack
 ; &a12a referenced 1 time by &a150
 .ca12a
-    pla                                                               ; a12a: 68          h
-    pha                                                               ; a12b: 48          H
-    tay                                                               ; a12c: a8          .
-    lda cmd_table_fs,x                                                ; a12d: bd d8 a3    ...
-    bmi ca191                                                         ; a130: 30 5f       0_
+    pla                                                               ; a12a: 68          h              ; Restore saved Y
+    pha                                                               ; a12b: 48          H              ; Push back (keep on stack)
+    tay                                                               ; a12c: a8          .              ; Transfer to Y
+    lda cmd_table_fs,x                                                ; a12d: bd d8 a3    ...            ; Load table entry byte
+    bmi ca191                                                         ; a130: 30 5f       0_             ; Bit 7 set: end of table names
 ; &a132 referenced 1 time by &a13f
 .loop_ca132
-    lda cmd_table_fs,x                                                ; a132: bd d8 a3    ...
-    bmi ca152                                                         ; a135: 30 1b       0.
-    eor (fs_crc_lo),y                                                 ; a137: 51 be       Q.
-    and #&df                                                          ; a139: 29 df       ).
-    bne ca141                                                         ; a13b: d0 04       ..
-    iny                                                               ; a13d: c8          .
-    inx                                                               ; a13e: e8          .
-    bne loop_ca132                                                    ; a13f: d0 f1       ..
+    lda cmd_table_fs,x                                                ; a132: bd d8 a3    ...            ; Load table byte
+    bmi ca152                                                         ; a135: 30 1b       0.             ; Bit 7 set: end of this name
+    eor (fs_crc_lo),y                                                 ; a137: 51 be       Q.             ; Compare with command line char
+    and #&df                                                          ; a139: 29 df       ).             ; Case-insensitive compare
+    bne ca141                                                         ; a13b: d0 04       ..             ; Mismatch: skip to next entry
+    iny                                                               ; a13d: c8          .              ; Match: advance command line
+    inx                                                               ; a13e: e8          .              ; Advance table pointer
+    bne loop_ca132                                                    ; a13f: d0 f1       ..             ; Loop for next character
 ; &a141 referenced 2 times by &a13b, &a145
 .ca141
-    inx                                                               ; a141: e8          .
-    lda cmd_table_fs,x                                                ; a142: bd d8 a3    ...
-    bpl ca141                                                         ; a145: 10 fa       ..
-    lda (fs_crc_lo),y                                                 ; a147: b1 be       ..
-    cmp #&2e ; '.'                                                    ; a149: c9 2e       ..
-    beq ca175                                                         ; a14b: f0 28       .(
+    inx                                                               ; a141: e8          .              ; Advance past remaining table chars
+    lda cmd_table_fs,x                                                ; a142: bd d8 a3    ...            ; Load next table byte
+    bpl ca141                                                         ; a145: 10 fa       ..             ; Bit 7 clear: more chars to skip
+    lda (fs_crc_lo),y                                                 ; a147: b1 be       ..             ; Check command line terminator
+    cmp #&2e ; '.'                                                    ; a149: c9 2e       ..             ; Is it '.' (abbreviation)?
+    beq ca175                                                         ; a14b: f0 28       .(             ; Yes: skip spaces after dot
 ; &a14d referenced 1 time by &a162
 .loop_ca14d
-    inx                                                               ; a14d: e8          .
-    inx                                                               ; a14e: e8          .
-    inx                                                               ; a14f: e8          .
-    bne ca12a                                                         ; a150: d0 d8       ..
+    inx                                                               ; a14d: e8          .              ; Skip 3 bytes (flags + address)
+    inx                                                               ; a14e: e8          .              ; (skip 2)
+    inx                                                               ; a14f: e8          .              ; (skip 3)
+    bne ca12a                                                         ; a150: d0 d8       ..             ; Try next table entry
 ; &a152 referenced 1 time by &a135
 .ca152
-    tya                                                               ; a152: 98          .
-    pha                                                               ; a153: 48          H
-    lda (fs_crc_lo),y                                                 ; a154: b1 be       ..
-    ldy #9                                                            ; a156: a0 09       ..
+    tya                                                               ; a152: 98          .              ; Save Y (end of matched name)
+    pha                                                               ; a153: 48          H              ; Push position
+    lda (fs_crc_lo),y                                                 ; a154: b1 be       ..             ; Load char after matched portion
+    ldy #9                                                            ; a156: a0 09       ..             ; Y=9: check 10 separator chars
 ; &a158 referenced 1 time by &a15e
 .loop_ca158
-    cmp ca164,y                                                       ; a158: d9 64 a1    .d.
-    beq ca16d                                                         ; a15b: f0 10       ..
-    dey                                                               ; a15d: 88          .
-    bpl loop_ca158                                                    ; a15e: 10 f8       ..
-    pla                                                               ; a160: 68          h
-    tay                                                               ; a161: a8          .
-    bne loop_ca14d                                                    ; a162: d0 e9       ..
+    cmp ca164,y                                                       ; a158: d9 64 a1    .d.            ; Compare with separator table
+    beq ca16d                                                         ; a15b: f0 10       ..             ; Match: valid command separator
+    dey                                                               ; a15d: 88          .              ; Try next separator
+    bpl loop_ca158                                                    ; a15e: 10 f8       ..             ; Loop through separator list
+    pla                                                               ; a160: 68          h              ; No separator match: restore Y
+    tay                                                               ; a161: a8          .              ; Transfer back to Y
+    bne loop_ca14d                                                    ; a162: d0 e9       ..             ; Try next table entry
 ; &a164 referenced 1 time by &a158
 .ca164
     jsr l2322                                                         ; a164: 20 22 23     "#
@@ -6981,187 +6981,187 @@ bad_prefix = bad_str_anchor+1
 
 ; &a16d referenced 1 time by &a15b
 .ca16d
-    pla                                                               ; a16d: 68          h
-    tay                                                               ; a16e: a8          .
+    pla                                                               ; a16d: 68          h              ; Restore saved Y
+    tay                                                               ; a16e: a8          .              ; Transfer to Y
 ; &a16f referenced 1 time by &a176
 .loop_ca16f
-    lda (fs_crc_lo),y                                                 ; a16f: b1 be       ..
-    cmp #&20 ; ' '                                                    ; a171: c9 20       .
-    bne ca179                                                         ; a173: d0 04       ..
+    lda (fs_crc_lo),y                                                 ; a16f: b1 be       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; a171: c9 20       .              ; Is it space?
+    bne ca179                                                         ; a173: d0 04       ..             ; No: done skipping
 ; &a175 referenced 1 time by &a14b
 .ca175
-    iny                                                               ; a175: c8          .
-    jmp loop_ca16f                                                    ; a176: 4c 6f a1    Lo.
+    iny                                                               ; a175: c8          .              ; Advance past space
+    jmp loop_ca16f                                                    ; a176: 4c 6f a1    Lo.            ; Loop for more spaces
 
 ; &a179 referenced 1 time by &a173
 .ca179
-    lda cmd_table_fs,x                                                ; a179: bd d8 a3    ...
-    asl a                                                             ; a17c: 0a          .
-    bpl ca18a                                                         ; a17d: 10 0b       ..
-    lda (fs_crc_lo),y                                                 ; a17f: b1 be       ..
-    cmp #&0d                                                          ; a181: c9 0d       ..
-    bne ca18a                                                         ; a183: d0 05       ..
-    bit bit_test_ff_pad                                               ; a185: 2c 7d 94    ,}.
-    bvs ca18b                                                         ; a188: 70 01       p.
+    lda cmd_table_fs,x                                                ; a179: bd d8 a3    ...            ; Load command flags byte
+    asl a                                                             ; a17c: 0a          .              ; Shift: check 'no-arg' bit
+    bpl ca18a                                                         ; a17d: 10 0b       ..             ; Bit clear: allow arguments
+    lda (fs_crc_lo),y                                                 ; a17f: b1 be       ..             ; Check if line ends here
+    cmp #&0d                                                          ; a181: c9 0d       ..             ; Is it CR?
+    bne ca18a                                                         ; a183: d0 05       ..             ; No: argument present, V clear
+    bit bit_test_ff_pad                                               ; a185: 2c 7d 94    ,}.            ; CR found: set V (no argument)
+    bvs ca18b                                                         ; a188: 70 01       p.             ; V set: command is valid
 ; &a18a referenced 2 times by &a17d, &a183
 .ca18a
-    clv                                                               ; a18a: b8          .
+    clv                                                               ; a18a: b8          .              ; Clear V (argument present)
 ; &a18b referenced 1 time by &a188
 .ca18b
-    clc                                                               ; a18b: 18          .
+    clc                                                               ; a18b: 18          .              ; C=0: command not found
 ; &a18c referenced 1 time by &a1a7
 .loop_ca18c
-    pla                                                               ; a18c: 68          h
-    lda (fs_crc_lo),y                                                 ; a18d: b1 be       ..
-    rts                                                               ; a18f: 60          `
+    pla                                                               ; a18c: 68          h              ; Pop saved Y from stack
+    lda (fs_crc_lo),y                                                 ; a18d: b1 be       ..             ; Load command line char at Y
+    rts                                                               ; a18f: 60          `              ; Return (C and V set per result)
 
 ; &a190 referenced 1 time by &a19d
 .loop_ca190
-    iny                                                               ; a190: c8          .
+    iny                                                               ; a190: c8          .              ; Advance past character
 ; &a191 referenced 1 time by &a130
 .ca191
-    lda (fs_crc_lo),y                                                 ; a191: b1 be       ..
-    cmp #&0d                                                          ; a193: c9 0d       ..
-    beq ca1a6                                                         ; a195: f0 0f       ..
-    cmp #&2e ; '.'                                                    ; a197: c9 2e       ..
-    beq ca19f                                                         ; a199: f0 04       ..
-    cmp #&20 ; ' '                                                    ; a19b: c9 20       .
-    bne loop_ca190                                                    ; a19d: d0 f1       ..
+    lda (fs_crc_lo),y                                                 ; a191: b1 be       ..             ; Load current char
+    cmp #&0d                                                          ; a193: c9 0d       ..             ; Is it CR (end of line)?
+    beq ca1a6                                                         ; a195: f0 0f       ..             ; Yes: end of input
+    cmp #&2e ; '.'                                                    ; a197: c9 2e       ..             ; Is it '.' (abbreviation dot)?
+    beq ca19f                                                         ; a199: f0 04       ..             ; Yes: skip to next word
+    cmp #&20 ; ' '                                                    ; a19b: c9 20       .              ; Is it space?
+    bne loop_ca190                                                    ; a19d: d0 f1       ..             ; No: keep scanning
 ; &a19f referenced 2 times by &a199, &a1a4
 .ca19f
-    iny                                                               ; a19f: c8          .
-    lda (fs_crc_lo),y                                                 ; a1a0: b1 be       ..
-    cmp #&20 ; ' '                                                    ; a1a2: c9 20       .
-    beq ca19f                                                         ; a1a4: f0 f9       ..
+    iny                                                               ; a19f: c8          .              ; Skip past separator
+    lda (fs_crc_lo),y                                                 ; a1a0: b1 be       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; a1a2: c9 20       .              ; Is it space?
+    beq ca19f                                                         ; a1a4: f0 f9       ..             ; Yes: skip consecutive spaces
 ; &a1a6 referenced 1 time by &a195
 .ca1a6
-    sec                                                               ; a1a6: 38          8
+    sec                                                               ; a1a6: 38          8              ; C=1: have more text to match
     bcs loop_ca18c                                                    ; a1a7: b0 e3       ..             ; ALWAYS branch
 
-    jsr save_ptr_to_os_text                                           ; a1a9: 20 95 af     ..
-    jsr mask_owner_access                                             ; a1ac: 20 12 af     ..
-    jsr parse_cmd_arg_y0                                              ; a1af: 20 80 ae     ..
+    jsr save_ptr_to_os_text                                           ; a1a9: 20 95 af     ..            ; Save text pointer
+    jsr mask_owner_access                                             ; a1ac: 20 12 af     ..            ; Set owner-only access mask
+    jsr parse_cmd_arg_y0                                              ; a1af: 20 80 ae     ..            ; Parse command argument (Y=0)
 ; &a1b2 referenced 1 time by &a229
 .ca1b2
-    ldx #1                                                            ; a1b2: a2 01       ..
-    jsr copy_arg_to_buf                                               ; a1b4: 20 f2 ae     ..
-    lda #2                                                            ; a1b7: a9 02       ..
-    sta l0f05                                                         ; a1b9: 8d 05 0f    ...
-    ldy #&12                                                          ; a1bc: a0 12       ..
-    jsr save_net_tx_cb                                                ; a1be: 20 99 94     ..
-    lda l0f05                                                         ; a1c1: ad 05 0f    ...
-    cmp #1                                                            ; a1c4: c9 01       ..
-    bne ca1f1                                                         ; a1c6: d0 29       .)
-    ldx #3                                                            ; a1c8: a2 03       ..
+    ldx #1                                                            ; a1b2: a2 01       ..             ; X=1: buffer index
+    jsr copy_arg_to_buf                                               ; a1b4: 20 f2 ae     ..            ; Copy argument to buffer
+    lda #2                                                            ; a1b7: a9 02       ..             ; A=2: open for update
+    sta l0f05                                                         ; a1b9: 8d 05 0f    ...            ; Store open mode
+    ldy #&12                                                          ; a1bc: a0 12       ..             ; Y=&12: open file command
+    jsr save_net_tx_cb                                                ; a1be: 20 99 94     ..            ; Send open request to server
+    lda l0f05                                                         ; a1c1: ad 05 0f    ...            ; Load reply status
+    cmp #1                                                            ; a1c4: c9 01       ..             ; Status 1 (success)?
+    bne ca1f1                                                         ; a1c6: d0 29       .)             ; No: file not found, try library
+    ldx #3                                                            ; a1c8: a2 03       ..             ; X=3: check 4 handle bytes
 ; &a1ca referenced 1 time by &a1d3
 .loop_ca1ca
-    inc l0f0a,x                                                       ; a1ca: fe 0a 0f    ...
-    beq ca1d2                                                         ; a1cd: f0 03       ..
-    jmp ca252                                                         ; a1cf: 4c 52 a2    LR.
+    inc l0f0a,x                                                       ; a1ca: fe 0a 0f    ...            ; Increment handle byte
+    beq ca1d2                                                         ; a1cd: f0 03       ..             ; Was &FF (overflow to 0): try next
+    jmp ca252                                                         ; a1cf: 4c 52 a2    LR.            ; Non-zero: handle valid, execute
 
 ; &a1d2 referenced 1 time by &a1cd
 .ca1d2
-    dex                                                               ; a1d2: ca          .
-    bpl loop_ca1ca                                                    ; a1d3: 10 f5       ..
-    jsr alloc_fcb_or_error                                            ; a1d5: 20 2e b5     ..
-    ldx #1                                                            ; a1d8: a2 01       ..
-    stx l0f05                                                         ; a1da: 8e 05 0f    ...
-    stx l0f06                                                         ; a1dd: 8e 06 0f    ...
-    inx                                                               ; a1e0: e8          .              ; X=&02
-    jsr copy_arg_to_buf                                               ; a1e1: 20 f2 ae     ..
-    ldy #6                                                            ; a1e4: a0 06       ..
-    jsr save_net_tx_cb                                                ; a1e6: 20 99 94     ..
-    bcs ca1ee                                                         ; a1e9: b0 03       ..
-    jmp ca265                                                         ; a1eb: 4c 65 a2    Le.
+    dex                                                               ; a1d2: ca          .              ; Try next handle byte
+    bpl loop_ca1ca                                                    ; a1d3: 10 f5       ..             ; Loop until all checked
+    jsr alloc_fcb_or_error                                            ; a1d5: 20 2e b5     ..            ; Allocate new FCB or raise error
+    ldx #1                                                            ; a1d8: a2 01       ..             ; X=1: open mode index
+    stx l0f05                                                         ; a1da: 8e 05 0f    ...            ; Store in l0f05
+    stx l0f06                                                         ; a1dd: 8e 06 0f    ...            ; Store in l0f06
+    inx                                                               ; a1e0: e8          .              ; X=2; X=&02
+    jsr copy_arg_to_buf                                               ; a1e1: 20 f2 ae     ..            ; Copy argument to buffer
+    ldy #6                                                            ; a1e4: a0 06       ..             ; Y=6: re-open command
+    jsr save_net_tx_cb                                                ; a1e6: 20 99 94     ..            ; Send re-open request
+    bcs ca1ee                                                         ; a1e9: b0 03       ..             ; C set: error on re-open
+    jmp ca265                                                         ; a1eb: 4c 65 a2    Le.            ; C clear: finalise file opening
 
 ; &a1ee referenced 1 time by &a1e9
 .ca1ee
-    jmp finalise_and_return                                           ; a1ee: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; a1ee: 4c bb 9c    L..            ; Jump to finalise and return
 
 ; &a1f1 referenced 1 time by &a1c6
 .ca1f1
-    lda l0e30                                                         ; a1f1: ad 30 0e    .0.
-    cmp #&24 ; '$'                                                    ; a1f4: c9 24       .$
-    beq error_bad_command                                             ; a1f6: f0 4d       .M
-    lda l1071                                                         ; a1f8: ad 71 10    .q.
-    bmi ca242                                                         ; a1fb: 30 45       0E
-    rol a                                                             ; a1fd: 2a          *
-    rol a                                                             ; a1fe: 2a          *
-    bmi ca22b                                                         ; a1ff: 30 2a       0*
-    bcs error_bad_command                                             ; a201: b0 42       .B
-    ldx #&ff                                                          ; a203: a2 ff       ..
+    lda l0e30                                                         ; a1f1: ad 30 0e    .0.            ; Load first char of filename
+    cmp #&24 ; '$'                                                    ; a1f4: c9 24       .$             ; Is it '$' (root dir)?
+    beq error_bad_command                                             ; a1f6: f0 4d       .M             ; Yes: no library search, error
+    lda l1071                                                         ; a1f8: ad 71 10    .q.            ; Load library flag byte
+    bmi ca242                                                         ; a1fb: 30 45       0E             ; Bit 7 set: library already tried
+    rol a                                                             ; a1fd: 2a          *              ; Rotate bits to check library state
+    rol a                                                             ; a1fe: 2a          *              ; Rotate again
+    bmi ca22b                                                         ; a1ff: 30 2a       0*             ; Bit 7 set: restore from backup
+    bcs error_bad_command                                             ; a201: b0 42       .B             ; Carry set: bad command
+    ldx #&ff                                                          ; a203: a2 ff       ..             ; X=&FF: pre-increment for loop
 ; &a205 referenced 1 time by &a20b
 .loop_ca205
-    inx                                                               ; a205: e8          .
-    lda l0e30,x                                                       ; a206: bd 30 0e    .0.
-    cmp #&0d                                                          ; a209: c9 0d       ..
-    bne loop_ca205                                                    ; a20b: d0 f8       ..
+    inx                                                               ; a205: e8          .              ; Find end of filename
+    lda l0e30,x                                                       ; a206: bd 30 0e    .0.            ; Load filename byte
+    cmp #&0d                                                          ; a209: c9 0d       ..             ; Is it CR (end)?
+    bne loop_ca205                                                    ; a20b: d0 f8       ..             ; No: continue scanning
 ; &a20d referenced 1 time by &a214
 .loop_ca20d
-    lda l0e30,x                                                       ; a20d: bd 30 0e    .0.
-    sta l0e38,x                                                       ; a210: 9d 38 0e    .8.
-    dex                                                               ; a213: ca          .
-    bpl loop_ca20d                                                    ; a214: 10 f7       ..
-    ldx #7                                                            ; a216: a2 07       ..
+    lda l0e30,x                                                       ; a20d: bd 30 0e    .0.            ; Shift filename right by 8 bytes
+    sta l0e38,x                                                       ; a210: 9d 38 0e    .8.            ; Store shifted byte
+    dex                                                               ; a213: ca          .              ; Previous byte
+    bpl loop_ca20d                                                    ; a214: 10 f7       ..             ; Loop until all shifted
+    ldx #7                                                            ; a216: a2 07       ..             ; X=7: 'Library.' is 8 bytes
 ; &a218 referenced 1 time by &a21f
 .loop_ca218
-    lda library_dir_prefix,x                                          ; a218: bd 79 a2    .y.
-    sta l0e30,x                                                       ; a21b: 9d 30 0e    .0.
-    dex                                                               ; a21e: ca          .
-    bpl loop_ca218                                                    ; a21f: 10 f7       ..
-    lda l1071                                                         ; a221: ad 71 10    .q.
-    ora #&60 ; '`'                                                    ; a224: 09 60       .`
-    sta l1071                                                         ; a226: 8d 71 10    .q.
+    lda library_dir_prefix,x                                          ; a218: bd 79 a2    .y.            ; Copy 'Library.' prefix
+    sta l0e30,x                                                       ; a21b: 9d 30 0e    .0.            ; Store prefix byte
+    dex                                                               ; a21e: ca          .              ; Previous byte
+    bpl loop_ca218                                                    ; a21f: 10 f7       ..             ; Loop until prefix copied
+    lda l1071                                                         ; a221: ad 71 10    .q.            ; Load library flag
+    ora #&60 ; '`'                                                    ; a224: 09 60       .`             ; Set bits 5-6: library path active
+    sta l1071                                                         ; a226: 8d 71 10    .q.            ; Store updated flag
 ; &a229 referenced 1 time by &a240
 .loop_ca229
-    bne ca1b2                                                         ; a229: d0 87       ..
+    bne ca1b2                                                         ; a229: d0 87       ..             ; Retry file open with library path
 ; &a22b referenced 1 time by &a1ff
 .ca22b
-    ldx #&ff                                                          ; a22b: a2 ff       ..
+    ldx #&ff                                                          ; a22b: a2 ff       ..             ; X=&FF: pre-increment for loop
 ; &a22d referenced 1 time by &a236
 .loop_ca22d
-    inx                                                               ; a22d: e8          .
-    lda l0e38,x                                                       ; a22e: bd 38 0e    .8.
-    sta l0e30,x                                                       ; a231: 9d 30 0e    .0.
-    eor #&0d                                                          ; a234: 49 0d       I.
-    bne loop_ca22d                                                    ; a236: d0 f5       ..
-    jsr mask_owner_access                                             ; a238: 20 12 af     ..
-    ora #&80                                                          ; a23b: 09 80       ..
-    sta l1071                                                         ; a23d: 8d 71 10    .q.
+    inx                                                               ; a22d: e8          .              ; Restore original filename
+    lda l0e38,x                                                       ; a22e: bd 38 0e    .8.            ; Load backup byte
+    sta l0e30,x                                                       ; a231: 9d 30 0e    .0.            ; Store to filename buffer
+    eor #&0d                                                          ; a234: 49 0d       I.             ; Is it CR (end)?
+    bne loop_ca22d                                                    ; a236: d0 f5       ..             ; No: continue restoring
+    jsr mask_owner_access                                             ; a238: 20 12 af     ..            ; Set owner-only access mask
+    ora #&80                                                          ; a23b: 09 80       ..             ; Set bit 7: library tried
+    sta l1071                                                         ; a23d: 8d 71 10    .q.            ; Store updated flag
     bne loop_ca229                                                    ; a240: d0 e7       ..             ; ALWAYS branch
 
 ; &a242 referenced 1 time by &a1fb
 .ca242
-    jsr mask_owner_access                                             ; a242: 20 12 af     ..
+    jsr mask_owner_access                                             ; a242: 20 12 af     ..            ; Set owner-only access mask
 ; &a245 referenced 3 times by &a1f6, &a201, &b316
 .error_bad_command
-    lda #&fe                                                          ; a245: a9 fe       ..
-    jsr error_bad_inline                                              ; a247: 20 a2 96     ..
+    lda #&fe                                                          ; a245: a9 fe       ..             ; Error code &FE
+    jsr error_bad_inline                                              ; a247: 20 a2 96     ..            ; Generate 'Bad command' error
     equs "command", 0                                                 ; a24a: 63 6f 6d... com
 
 ; &a252 referenced 1 time by &a1cf
 .ca252
-    ldx #3                                                            ; a252: a2 03       ..
+    ldx #3                                                            ; a252: a2 03       ..             ; X=3: check 4 execution bytes
 ; &a254 referenced 1 time by &a25a
 .loop_ca254
-    inc l0f06,x                                                       ; a254: fe 06 0f    ...
-    bne ca281                                                         ; a257: d0 28       .(
-    dex                                                               ; a259: ca          .
-    bne loop_ca254                                                    ; a25a: d0 f8       ..
-    lda #&93                                                          ; a25c: a9 93       ..
-    jsr error_inline_log                                              ; a25e: 20 bb 96     ..
+    inc l0f06,x                                                       ; a254: fe 06 0f    ...            ; Increment execution address byte
+    bne ca281                                                         ; a257: d0 28       .(             ; Non-zero: valid, go to OSCLI
+    dex                                                               ; a259: ca          .              ; Try next byte
+    bne loop_ca254                                                    ; a25a: d0 f8       ..             ; Loop until all checked
+    lda #&93                                                          ; a25c: a9 93       ..             ; Error code &93
+    jsr error_inline_log                                              ; a25e: 20 bb 96     ..            ; Generate 'No!' error
     equs "No!", 0                                                     ; a261: 4e 6f 21... No!
 
 ; &a265 referenced 1 time by &a1eb
 .ca265
-    lda l0f05                                                         ; a265: ad 05 0f    ...
-    jsr alloc_fcb_slot                                                ; a268: 20 fa b4     ..
-    tay                                                               ; a26b: a8          .
-    lda #0                                                            ; a26c: a9 00       ..
-    sta l1060,x                                                       ; a26e: 9d 60 10    .`.
-    sty l1070                                                         ; a271: 8c 70 10    .p.
-    ldy #3                                                            ; a274: a0 03       ..
-    jmp boot_cmd_oscli                                                ; a276: 4c d0 a3    L..
+    lda l0f05                                                         ; a265: ad 05 0f    ...            ; Load open mode result
+    jsr alloc_fcb_slot                                                ; a268: 20 fa b4     ..            ; Allocate FCB slot
+    tay                                                               ; a26b: a8          .              ; Transfer to Y
+    lda #0                                                            ; a26c: a9 00       ..             ; A=0: clear channel status
+    sta l1060,x                                                       ; a26e: 9d 60 10    .`.            ; Clear status in channel table
+    sty l1070                                                         ; a271: 8c 70 10    .p.            ; Store handle in l1070
+    ldy #3                                                            ; a274: a0 03       ..             ; Y=3: OSCLI execution
+    jmp boot_cmd_oscli                                                ; a276: 4c d0 a3    L..            ; Execute via boot/OSCLI path
 
 ; &a279 referenced 1 time by &a218
 .library_dir_prefix
@@ -7169,119 +7169,119 @@ bad_prefix = bad_str_anchor+1
 
 ; &a281 referenced 1 time by &a257
 .ca281
-    jsr copy_arg_to_buf_x0                                            ; a281: 20 f0 ae     ..
-    ldy #0                                                            ; a284: a0 00       ..
-    clc                                                               ; a286: 18          .
-    jsr gsinit                                                        ; a287: 20 c2 ff     ..
+    jsr copy_arg_to_buf_x0                                            ; a281: 20 f0 ae     ..            ; Copy argument to buffer (X=0)
+    ldy #0                                                            ; a284: a0 00       ..             ; Y=0
+    clc                                                               ; a286: 18          .              ; C=0 for GSINIT
+    jsr gsinit                                                        ; a287: 20 c2 ff     ..            ; Initialise GS string read
 ; &a28a referenced 1 time by &a28d
 .loop_ca28a
-    jsr gsread                                                        ; a28a: 20 c5 ff     ..
-    bcc loop_ca28a                                                    ; a28d: 90 fb       ..
-    dey                                                               ; a28f: 88          .
+    jsr gsread                                                        ; a28a: 20 c5 ff     ..            ; Read next GS character
+    bcc loop_ca28a                                                    ; a28d: 90 fb       ..             ; C clear: more chars
+    dey                                                               ; a28f: 88          .              ; Back up one position
 ; &a290 referenced 1 time by &a295
 .loop_ca290
-    iny                                                               ; a290: c8          .
-    lda (os_text_ptr),y                                               ; a291: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; a293: c9 20       .
-    beq loop_ca290                                                    ; a295: f0 f9       ..
-    eor #&0d                                                          ; a297: 49 0d       I.
-    clc                                                               ; a299: 18          .
-    tya                                                               ; a29a: 98          .
-    adc os_text_ptr                                                   ; a29b: 65 f2       e.
-    sta l0e0a                                                         ; a29d: 8d 0a 0e    ...
-    lda os_text_ptr_hi                                                ; a2a0: a5 f3       ..
-    adc #0                                                            ; a2a2: 69 00       i.
-    sta l0e0b                                                         ; a2a4: 8d 0b 0e    ...
-    jsr save_text_ptr                                                 ; a2a7: 20 fa 8a     ..
-    ldx #&0e                                                          ; a2aa: a2 0e       ..
-    stx fs_block_offset                                               ; a2ac: 86 bc       ..
-    lda #&10                                                          ; a2ae: a9 10       ..
-    sta fs_options                                                    ; a2b0: 85 bb       ..
-    sta l0e16                                                         ; a2b2: 8d 16 0e    ...
-    ldx #&4a ; 'J'                                                    ; a2b5: a2 4a       .J
-    ldy #5                                                            ; a2b7: a0 05       ..
-    jsr do_fs_cmd_iteration                                           ; a2b9: 20 3d 99     =.
-    lda l0d63                                                         ; a2bc: ad 63 0d    .c.
-    beq ca2d7                                                         ; a2bf: f0 16       ..
-    and l0f0b                                                         ; a2c1: 2d 0b 0f    -..
-    and l0f0c                                                         ; a2c4: 2d 0c 0f    -..
-    cmp #&ff                                                          ; a2c7: c9 ff       ..
-    beq ca2d7                                                         ; a2c9: f0 0c       ..
-    jsr tube_claim_c3                                                 ; a2cb: 20 5b a0     [.
-    ldx #9                                                            ; a2ce: a2 09       ..
-    ldy #&0f                                                          ; a2d0: a0 0f       ..
-    lda #4                                                            ; a2d2: a9 04       ..
-    jmp tube_addr_data_dispatch                                       ; a2d4: 4c 06 04    L..
+    iny                                                               ; a290: c8          .              ; Skip trailing spaces
+    lda (os_text_ptr),y                                               ; a291: b1 f2       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; a293: c9 20       .              ; Is it space?
+    beq loop_ca290                                                    ; a295: f0 f9       ..             ; Yes: skip it
+    eor #&0d                                                          ; a297: 49 0d       I.             ; Check for CR (end of line)
+    clc                                                               ; a299: 18          .              ; C=0 for addition
+    tya                                                               ; a29a: 98          .              ; Transfer Y offset to A
+    adc os_text_ptr                                                   ; a29b: 65 f2       e.             ; Add to text pointer low
+    sta l0e0a                                                         ; a29d: 8d 0a 0e    ...            ; Store as command tail pointer low
+    lda os_text_ptr_hi                                                ; a2a0: a5 f3       ..             ; Load text pointer high
+    adc #0                                                            ; a2a2: 69 00       i.             ; Add carry
+    sta l0e0b                                                         ; a2a4: 8d 0b 0e    ...            ; Store as command tail pointer high
+    jsr save_text_ptr                                                 ; a2a7: 20 fa 8a     ..            ; Save text pointer for later
+    ldx #&0e                                                          ; a2aa: a2 0e       ..             ; X=&0E: OSWORD parameter offset
+    stx fs_block_offset                                               ; a2ac: 86 bc       ..             ; Store as block offset high
+    lda #&10                                                          ; a2ae: a9 10       ..             ; A=&10: OSWORD parameter size
+    sta fs_options                                                    ; a2b0: 85 bb       ..             ; Store as options pointer
+    sta l0e16                                                         ; a2b2: 8d 16 0e    ...            ; Store to l0e16
+    ldx #&4a ; 'J'                                                    ; a2b5: a2 4a       .J             ; X=&4A: FS command table offset
+    ldy #5                                                            ; a2b7: a0 05       ..             ; Y=5
+    jsr do_fs_cmd_iteration                                           ; a2b9: 20 3d 99     =.            ; Execute FS command iteration
+    lda l0d63                                                         ; a2bc: ad 63 0d    .c.            ; Load tube flag
+    beq ca2d7                                                         ; a2bf: f0 16       ..             ; Zero: no tube transfer needed
+    and l0f0b                                                         ; a2c1: 2d 0b 0f    -..            ; AND with l0f0b
+    and l0f0c                                                         ; a2c4: 2d 0c 0f    -..            ; AND with l0f0c
+    cmp #&ff                                                          ; a2c7: c9 ff       ..             ; All &FF?
+    beq ca2d7                                                         ; a2c9: f0 0c       ..             ; Yes: no tube transfer needed
+    jsr tube_claim_c3                                                 ; a2cb: 20 5b a0     [.            ; Claim tube for data transfer
+    ldx #9                                                            ; a2ce: a2 09       ..             ; X=9: parameter count
+    ldy #&0f                                                          ; a2d0: a0 0f       ..             ; Y=&0F: parameter offset
+    lda #4                                                            ; a2d2: a9 04       ..             ; A=4: tube transfer type
+    jmp tube_addr_data_dispatch                                       ; a2d4: 4c 06 04    L..            ; Dispatch tube address/data
 
 ; &a2d7 referenced 2 times by &a2bf, &a2c9
 .ca2d7
-    lda #1                                                            ; a2d7: a9 01       ..
-    jmp (l0f09)                                                       ; a2d9: 6c 09 0f    l..
+    lda #1                                                            ; a2d7: a9 01       ..             ; A=1
+    jmp (l0f09)                                                       ; a2d9: 6c 09 0f    l..            ; Dispatch via indirect vector
 
 ; &a2dc referenced 1 time by &944b
 .find_fs_and_exit
-    jsr find_station_bit3                                             ; a2dc: 20 13 a3     ..
-    jmp return_with_last_flag                                         ; a2df: 4c b9 9c    L..
+    jsr find_station_bit3                                             ; a2dc: 20 13 a3     ..            ; Find station with bit 3 set
+    jmp return_with_last_flag                                         ; a2df: 4c b9 9c    L..            ; Return with last flag state
 
-    jsr flip_set_station_boot                                         ; a2e2: 20 4a a3     J.
-    jmp return_with_last_flag                                         ; a2e5: 4c b9 9c    L..
+    jsr flip_set_station_boot                                         ; a2e2: 20 4a a3     J.            ; Flip/set station boot config
+    jmp return_with_last_flag                                         ; a2e5: 4c b9 9c    L..            ; Return with last flag state
 
 ; &a2e8 referenced 1 time by &a387
 .find_station_bit2
-    ldx #&10                                                          ; a2e8: a2 10       ..
-    clv                                                               ; a2ea: b8          .
+    ldx #&10                                                          ; a2e8: a2 10       ..             ; X=&10: scan 16 slots (15 to 0)
+    clv                                                               ; a2ea: b8          .              ; Clear V
 ; &a2eb referenced 2 times by &a2f1, &a2f8
 .ca2eb
-    dex                                                               ; a2eb: ca          .
-    bmi ca301                                                         ; a2ec: 30 13       0.
-    jsr match_station_net                                             ; a2ee: 20 7a b5     z.
-    bne ca2eb                                                         ; a2f1: d0 f8       ..
-    lda l1060,x                                                       ; a2f3: bd 60 10    .`.
-    and #4                                                            ; a2f6: 29 04       ).
-    beq ca2eb                                                         ; a2f8: f0 f1       ..
-    tya                                                               ; a2fa: 98          .
-    sta l1030,x                                                       ; a2fb: 9d 30 10    .0.
-    bit bit_test_ff_pad                                               ; a2fe: 2c 7d 94    ,}.
+    dex                                                               ; a2eb: ca          .              ; Try next slot
+    bmi ca301                                                         ; a2ec: 30 13       0.             ; All slots checked: not found
+    jsr match_station_net                                             ; a2ee: 20 7a b5     z.            ; Compare station/network
+    bne ca2eb                                                         ; a2f1: d0 f8       ..             ; No match: try next
+    lda l1060,x                                                       ; a2f3: bd 60 10    .`.            ; Load slot status byte
+    and #4                                                            ; a2f6: 29 04       ).             ; Test bit 2 (PS active flag)?
+    beq ca2eb                                                         ; a2f8: f0 f1       ..             ; Not set: try next
+    tya                                                               ; a2fa: 98          .              ; Transfer Y to A
+    sta l1030,x                                                       ; a2fb: 9d 30 10    .0.            ; Store Y in slot data
+    bit bit_test_ff_pad                                               ; a2fe: 2c 7d 94    ,}.            ; Set V (found match)
 ; &a301 referenced 1 time by &a2ec
 .ca301
-    sty l0e02                                                         ; a301: 8c 02 0e    ...
-    bvs ca30f                                                         ; a304: 70 09       p.
-    tya                                                               ; a306: 98          .
-    jsr alloc_fcb_slot                                                ; a307: 20 fa b4     ..
-    sta l1072                                                         ; a30a: 8d 72 10    .r.
-    beq jmp_restore_fs_ctx                                            ; a30d: f0 67       .g
+    sty l0e02                                                         ; a301: 8c 02 0e    ...            ; Store Y to l0e02
+    bvs ca30f                                                         ; a304: 70 09       p.             ; V set: found, skip allocation
+    tya                                                               ; a306: 98          .              ; Transfer Y to A
+    jsr alloc_fcb_slot                                                ; a307: 20 fa b4     ..            ; Allocate FCB slot
+    sta l1072                                                         ; a30a: 8d 72 10    .r.            ; Store allocation result
+    beq jmp_restore_fs_ctx                                            ; a30d: f0 67       .g             ; Zero: failed, restore context
 ; &a30f referenced 1 time by &a304
 .ca30f
-    lda #&26 ; '&'                                                    ; a30f: a9 26       .&
+    lda #&26 ; '&'                                                    ; a30f: a9 26       .&             ; A=&26: station flags value
     bne store_stn_flags_restore                                       ; a311: d0 60       .`             ; ALWAYS branch
 
 ; &a313 referenced 3 times by &a2dc, &a345, &a38d
 .find_station_bit3
-    ldx #&10                                                          ; a313: a2 10       ..
-    clv                                                               ; a315: b8          .
+    ldx #&10                                                          ; a313: a2 10       ..             ; X=&10: scan 16 slots (15 to 0)
+    clv                                                               ; a315: b8          .              ; Clear V
 ; &a316 referenced 2 times by &a31c, &a323
 .ca316
-    dex                                                               ; a316: ca          .
-    bmi ca32c                                                         ; a317: 30 13       0.
-    jsr match_station_net                                             ; a319: 20 7a b5     z.
-    bne ca316                                                         ; a31c: d0 f8       ..
-    lda l1060,x                                                       ; a31e: bd 60 10    .`.
-    and #8                                                            ; a321: 29 08       ).
-    beq ca316                                                         ; a323: f0 f1       ..
-    tya                                                               ; a325: 98          .
-    sta l1030,x                                                       ; a326: 9d 30 10    .0.
-    bit bit_test_ff_pad                                               ; a329: 2c 7d 94    ,}.
+    dex                                                               ; a316: ca          .              ; Try next slot
+    bmi ca32c                                                         ; a317: 30 13       0.             ; All slots checked: not found
+    jsr match_station_net                                             ; a319: 20 7a b5     z.            ; Compare station/network
+    bne ca316                                                         ; a31c: d0 f8       ..             ; No match: try next
+    lda l1060,x                                                       ; a31e: bd 60 10    .`.            ; Load slot status byte
+    and #8                                                            ; a321: 29 08       ).             ; Test bit 3 (FS active flag)?
+    beq ca316                                                         ; a323: f0 f1       ..             ; Not set: try next
+    tya                                                               ; a325: 98          .              ; Transfer Y to A
+    sta l1030,x                                                       ; a326: 9d 30 10    .0.            ; Store Y in slot data
+    bit bit_test_ff_pad                                               ; a329: 2c 7d 94    ,}.            ; Set V (found match)
 ; &a32c referenced 1 time by &a317
 .ca32c
-    sty l0e03                                                         ; a32c: 8c 03 0e    ...
-    bvs ca33a                                                         ; a32f: 70 09       p.
-    tya                                                               ; a331: 98          .
-    jsr alloc_fcb_slot                                                ; a332: 20 fa b4     ..
-    sta l1073                                                         ; a335: 8d 73 10    .s.
-    beq jmp_restore_fs_ctx                                            ; a338: f0 3c       .<
+    sty l0e03                                                         ; a32c: 8c 03 0e    ...            ; Store Y to l0e03
+    bvs ca33a                                                         ; a32f: 70 09       p.             ; V set: found, skip allocation
+    tya                                                               ; a331: 98          .              ; Transfer Y to A
+    jsr alloc_fcb_slot                                                ; a332: 20 fa b4     ..            ; Allocate FCB slot
+    sta l1073                                                         ; a335: 8d 73 10    .s.            ; Store allocation result
+    beq jmp_restore_fs_ctx                                            ; a338: f0 3c       .<             ; Zero: failed, restore context
 ; &a33a referenced 1 time by &a32f
 .ca33a
-    lda #&2a ; '*'                                                    ; a33a: a9 2a       .*
+    lda #&2a ; '*'                                                    ; a33a: a9 2a       .*             ; A=&2A: station flags value
     bne store_stn_flags_restore                                       ; a33c: d0 35       .5             ; ALWAYS branch
 
 ; ***************************************************************************************
