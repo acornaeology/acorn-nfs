@@ -4446,114 +4446,114 @@ ws_init_data = loop_c8f29+2
 ; Command code distinguishes operation.
 ; ***************************************************************************************
 .cmd_fs_operation
-    jsr copy_fs_cmd_name                                              ; 92d2: 20 13 93     ..
-    txa                                                               ; 92d5: 8a          .
-    pha                                                               ; 92d6: 48          H
-    jsr parse_quoted_arg                                              ; 92d7: 20 35 93     5.
-    jsr parse_access_prefix                                           ; 92da: 20 85 ae     ..
-    pla                                                               ; 92dd: 68          h
-    tax                                                               ; 92de: aa          .
-    jsr check_not_ampersand                                           ; 92df: 20 f5 92     ..
-    cmp #&0d                                                          ; 92e2: c9 0d       ..
-    bne read_filename_char                                            ; 92e4: d0 17       ..
+    jsr copy_fs_cmd_name                                              ; 92d2: 20 13 93     ..            ; Copy command name to TX buffer
+    txa                                                               ; 92d5: 8a          .              ; Save buffer position
+    pha                                                               ; 92d6: 48          H              ; Push it
+    jsr parse_quoted_arg                                              ; 92d7: 20 35 93     5.            ; Parse filename (handles quoting)
+    jsr parse_access_prefix                                           ; 92da: 20 85 ae     ..            ; Parse owner/public access prefix
+    pla                                                               ; 92dd: 68          h              ; Restore buffer position
+    tax                                                               ; 92de: aa          .              ; Transfer to X
+    jsr check_not_ampersand                                           ; 92df: 20 f5 92     ..            ; Reject '&' character in filename
+    cmp #&0d                                                          ; 92e2: c9 0d       ..             ; End of line?
+    bne read_filename_char                                            ; 92e4: d0 17       ..             ; No: copy filename chars to buffer
 ; &92e6 referenced 4 times by &92fa, &93f5, &aecd, &af02
 .error_bad_filename
-    lda #&cc                                                          ; 92e6: a9 cc       ..
-    jsr error_bad_inline                                              ; 92e8: 20 a2 96     ..
+    lda #&cc                                                          ; 92e6: a9 cc       ..             ; Error number &CC
+    jsr error_bad_inline                                              ; 92e8: 20 a2 96     ..            ; Raise 'Bad file name' error
     equs "file name", 0                                               ; 92eb: 66 69 6c... fil
 
 ; &92f5 referenced 2 times by &92df, &92fd
 .check_not_ampersand
-    lda l0e30                                                         ; 92f5: ad 30 0e    .0.
-    cmp #&26 ; '&'                                                    ; 92f8: c9 26       .&
-    beq error_bad_filename                                            ; 92fa: f0 ea       ..
-    rts                                                               ; 92fc: 60          `
+    lda l0e30                                                         ; 92f5: ad 30 0e    .0.            ; Load first parsed character
+    cmp #&26 ; '&'                                                    ; 92f8: c9 26       .&             ; Is it '&'?
+    beq error_bad_filename                                            ; 92fa: f0 ea       ..             ; Yes: invalid filename
+    rts                                                               ; 92fc: 60          `              ; Return
 
 ; &92fd referenced 3 times by &92e4, &930b, &93c6
 .read_filename_char
-    jsr check_not_ampersand                                           ; 92fd: 20 f5 92     ..
-    sta l0f05,x                                                       ; 9300: 9d 05 0f    ...
-    inx                                                               ; 9303: e8          .
-    cmp #&0d                                                          ; 9304: c9 0d       ..
-    beq send_fs_request                                               ; 9306: f0 06       ..
-    jsr strip_token_prefix                                            ; 9308: 20 a5 ae     ..
-    jmp read_filename_char                                            ; 930b: 4c fd 92    L..
+    jsr check_not_ampersand                                           ; 92fd: 20 f5 92     ..            ; Reject '&' in current char
+    sta l0f05,x                                                       ; 9300: 9d 05 0f    ...            ; Store character in TX buffer
+    inx                                                               ; 9303: e8          .              ; Advance buffer pointer
+    cmp #&0d                                                          ; 9304: c9 0d       ..             ; End of line?
+    beq send_fs_request                                               ; 9306: f0 06       ..             ; Yes: send request to file server
+    jsr strip_token_prefix                                            ; 9308: 20 a5 ae     ..            ; Strip BASIC token prefix byte
+    jmp read_filename_char                                            ; 930b: 4c fd 92    L..            ; Continue reading filename chars
 
 ; &930e referenced 2 times by &9306, &93ee
 .send_fs_request
-    ldy #0                                                            ; 930e: a0 00       ..
-    jmp send_cmd_and_dispatch                                         ; 9310: 4c 0e 8e    L..
+    ldy #0                                                            ; 930e: a0 00       ..             ; Y=0: no extra dispatch offset
+    jmp send_cmd_and_dispatch                                         ; 9310: 4c 0e 8e    L..            ; Send command and dispatch reply
 
 ; &9313 referenced 2 times by &92d2, &9377
 .copy_fs_cmd_name
-    tya                                                               ; 9313: 98          .
-    pha                                                               ; 9314: 48          H
+    tya                                                               ; 9313: 98          .              ; Save command line offset
+    pha                                                               ; 9314: 48          H              ; Push it
 ; &9315 referenced 1 time by &9319
 .loop_c9315
-    dex                                                               ; 9315: ca          .
-    lda cmd_table_fs,x                                                ; 9316: bd d8 a3    ...
-    bpl loop_c9315                                                    ; 9319: 10 fa       ..
-    inx                                                               ; 931b: e8          .
-    ldy #0                                                            ; 931c: a0 00       ..
+    dex                                                               ; 9315: ca          .              ; Scan backwards in command table
+    lda cmd_table_fs,x                                                ; 9316: bd d8 a3    ...            ; Load table byte
+    bpl loop_c9315                                                    ; 9319: 10 fa       ..             ; Bit 7 clear: keep scanning
+    inx                                                               ; 931b: e8          .              ; Point past flag byte to name start
+    ldy #0                                                            ; 931c: a0 00       ..             ; Y=0: TX buffer offset
 ; &931e referenced 1 time by &9328
 .loop_c931e
-    lda cmd_table_fs,x                                                ; 931e: bd d8 a3    ...
-    bmi c932a                                                         ; 9321: 30 07       0.
-    sta l0f05,y                                                       ; 9323: 99 05 0f    ...
-    inx                                                               ; 9326: e8          .
-    iny                                                               ; 9327: c8          .
-    bne loop_c931e                                                    ; 9328: d0 f4       ..
+    lda cmd_table_fs,x                                                ; 931e: bd d8 a3    ...            ; Load command name character
+    bmi c932a                                                         ; 9321: 30 07       0.             ; Bit 7 set: end of name
+    sta l0f05,y                                                       ; 9323: 99 05 0f    ...            ; Store character in TX buffer
+    inx                                                               ; 9326: e8          .              ; Advance table pointer
+    iny                                                               ; 9327: c8          .              ; Advance buffer pointer
+    bne loop_c931e                                                    ; 9328: d0 f4       ..             ; Continue copying name
 ; &932a referenced 1 time by &9321
 .c932a
-    lda #&20 ; ' '                                                    ; 932a: a9 20       .
-    sta l0f05,y                                                       ; 932c: 99 05 0f    ...
-    iny                                                               ; 932f: c8          .
-    tya                                                               ; 9330: 98          .
-    tax                                                               ; 9331: aa          .
-    pla                                                               ; 9332: 68          h
-    tay                                                               ; 9333: a8          .
+    lda #&20 ; ' '                                                    ; 932a: a9 20       .              ; Space separator
+    sta l0f05,y                                                       ; 932c: 99 05 0f    ...            ; Append space after command name
+    iny                                                               ; 932f: c8          .              ; Advance buffer pointer
+    tya                                                               ; 9330: 98          .              ; Transfer length to A
+    tax                                                               ; 9331: aa          .              ; And to X (buffer position)
+    pla                                                               ; 9332: 68          h              ; Restore command line offset
+    tay                                                               ; 9333: a8          .              ; Transfer to Y
 ; &9334 referenced 1 time by &9369
 .return_14
-    rts                                                               ; 9334: 60          `
+    rts                                                               ; 9334: 60          `              ; Return
 
 ; &9335 referenced 2 times by &92d7, &937f
 .parse_quoted_arg
-    lda #0                                                            ; 9335: a9 00       ..
+    lda #0                                                            ; 9335: a9 00       ..             ; A=0: no quote mode
     tax                                                               ; 9337: aa          .              ; X=&00
-    sta l10d8                                                         ; 9338: 8d d8 10    ...
+    sta l10d8                                                         ; 9338: 8d d8 10    ...            ; Clear quote tracking flag
 ; &933b referenced 1 time by &9342
 .loop_c933b
-    lda (fs_crc_lo),y                                                 ; 933b: b1 be       ..
-    cmp #&20 ; ' '                                                    ; 933d: c9 20       .
-    bne c9344                                                         ; 933f: d0 03       ..
-    iny                                                               ; 9341: c8          .
-    bne loop_c933b                                                    ; 9342: d0 f7       ..
+    lda (fs_crc_lo),y                                                 ; 933b: b1 be       ..             ; Load char from command line
+    cmp #&20 ; ' '                                                    ; 933d: c9 20       .              ; Space?
+    bne c9344                                                         ; 933f: d0 03       ..             ; No: check for opening quote
+    iny                                                               ; 9341: c8          .              ; Skip leading space
+    bne loop_c933b                                                    ; 9342: d0 f7       ..             ; Continue skipping spaces
 ; &9344 referenced 1 time by &933f
 .c9344
-    cmp #&22 ; '"'                                                    ; 9344: c9 22       ."
-    bne c934f                                                         ; 9346: d0 07       ..
-    iny                                                               ; 9348: c8          .
-    eor l10d8                                                         ; 9349: 4d d8 10    M..
-    sta l10d8                                                         ; 934c: 8d d8 10    ...
+    cmp #&22 ; '"'                                                    ; 9344: c9 22       ."             ; Double-quote character?
+    bne c934f                                                         ; 9346: d0 07       ..             ; No: start reading filename
+    iny                                                               ; 9348: c8          .              ; Skip opening quote
+    eor l10d8                                                         ; 9349: 4d d8 10    M..            ; Toggle quote mode flag
+    sta l10d8                                                         ; 934c: 8d d8 10    ...            ; Store updated quote mode
 ; &934f referenced 2 times by &9346, &9364
 .c934f
-    lda (fs_crc_lo),y                                                 ; 934f: b1 be       ..
-    cmp #&22 ; '"'                                                    ; 9351: c9 22       ."
-    bne c935d                                                         ; 9353: d0 08       ..
-    eor l10d8                                                         ; 9355: 4d d8 10    M..
-    sta l10d8                                                         ; 9358: 8d d8 10    ...
-    lda #&20 ; ' '                                                    ; 935b: a9 20       .
+    lda (fs_crc_lo),y                                                 ; 934f: b1 be       ..             ; Load char from command line
+    cmp #&22 ; '"'                                                    ; 9351: c9 22       ."             ; Double-quote?
+    bne c935d                                                         ; 9353: d0 08       ..             ; No: store character as-is
+    eor l10d8                                                         ; 9355: 4d d8 10    M..            ; Toggle quote mode
+    sta l10d8                                                         ; 9358: 8d d8 10    ...            ; Store updated quote mode
+    lda #&20 ; ' '                                                    ; 935b: a9 20       .              ; Replace closing quote with space
 ; &935d referenced 1 time by &9353
 .c935d
-    sta l0e30,x                                                       ; 935d: 9d 30 0e    .0.
-    iny                                                               ; 9360: c8          .
-    inx                                                               ; 9361: e8          .
-    cmp #&0d                                                          ; 9362: c9 0d       ..
-    bne c934f                                                         ; 9364: d0 e9       ..
-    lda l10d8                                                         ; 9366: ad d8 10    ...
-    beq return_14                                                     ; 9369: f0 c9       ..
-    lda brk_ptr                                                       ; 936b: a5 fd       ..
-    jsr error_bad_inline                                              ; 936d: 20 a2 96     ..
+    sta l0e30,x                                                       ; 935d: 9d 30 0e    .0.            ; Store character in parse buffer
+    iny                                                               ; 9360: c8          .              ; Advance command line pointer
+    inx                                                               ; 9361: e8          .              ; Advance buffer pointer
+    cmp #&0d                                                          ; 9362: c9 0d       ..             ; End of line?
+    bne c934f                                                         ; 9364: d0 e9       ..             ; No: continue parsing
+    lda l10d8                                                         ; 9366: ad d8 10    ...            ; Check quote balance flag
+    beq return_14                                                     ; 9369: f0 c9       ..             ; Balanced: return OK
+    lda brk_ptr                                                       ; 936b: a5 fd       ..             ; Unbalanced: use BRK ptr for error
+    jsr error_bad_inline                                              ; 936d: 20 a2 96     ..            ; Raise 'Bad string' error
     equs "string", 0                                                  ; 9370: 73 74 72... str
 
 ; ***************************************************************************************
@@ -4561,52 +4561,52 @@ ws_init_data = loop_c8f29+2
 ; Renames a file on the file server.
 ; ***************************************************************************************
 .cmd_rename
-    jsr copy_fs_cmd_name                                              ; 9377: 20 13 93     ..
-    txa                                                               ; 937a: 8a          .
-    pha                                                               ; 937b: 48          H
-    jsr mask_owner_access                                             ; 937c: 20 12 af     ..
-    jsr parse_quoted_arg                                              ; 937f: 20 35 93     5.
-    jsr parse_access_prefix                                           ; 9382: 20 85 ae     ..
-    pla                                                               ; 9385: 68          h
-    tax                                                               ; 9386: aa          .
+    jsr copy_fs_cmd_name                                              ; 9377: 20 13 93     ..            ; Copy 'Rename ' to TX buffer
+    txa                                                               ; 937a: 8a          .              ; Save buffer position
+    pha                                                               ; 937b: 48          H              ; Push it
+    jsr mask_owner_access                                             ; 937c: 20 12 af     ..            ; Set owner-only access mask
+    jsr parse_quoted_arg                                              ; 937f: 20 35 93     5.            ; Parse first filename (quoted)
+    jsr parse_access_prefix                                           ; 9382: 20 85 ae     ..            ; Parse access prefix
+    pla                                                               ; 9385: 68          h              ; Restore buffer position
+    tax                                                               ; 9386: aa          .              ; Transfer to X
 ; &9387 referenced 1 time by &93a5
 .loop_c9387
-    lda l0e30                                                         ; 9387: ad 30 0e    .0.
-    cmp #&0d                                                          ; 938a: c9 0d       ..
-    bne c939a                                                         ; 938c: d0 0c       ..
+    lda l0e30                                                         ; 9387: ad 30 0e    .0.            ; Load next parsed character
+    cmp #&0d                                                          ; 938a: c9 0d       ..             ; End of line?
+    bne c939a                                                         ; 938c: d0 0c       ..             ; No: store character
 ; &938e referenced 1 time by &93c4
 .c938e
-    lda #&b0                                                          ; 938e: a9 b0       ..
-    jsr error_bad_inline                                              ; 9390: 20 a2 96     ..
+    lda #&b0                                                          ; 938e: a9 b0       ..             ; Error number &B0
+    jsr error_bad_inline                                              ; 9390: 20 a2 96     ..            ; Raise 'Bad rename' error
     equs "rename", 0                                                  ; 9393: 72 65 6e... ren
 
 ; &939a referenced 1 time by &938c
 .c939a
-    sta l0f05,x                                                       ; 939a: 9d 05 0f    ...
-    inx                                                               ; 939d: e8          .
-    cmp #&20 ; ' '                                                    ; 939e: c9 20       .
-    beq c93a8                                                         ; 93a0: f0 06       ..
-    jsr strip_token_prefix                                            ; 93a2: 20 a5 ae     ..
-    jmp loop_c9387                                                    ; 93a5: 4c 87 93    L..
+    sta l0f05,x                                                       ; 939a: 9d 05 0f    ...            ; Store character in TX buffer
+    inx                                                               ; 939d: e8          .              ; Advance buffer pointer
+    cmp #&20 ; ' '                                                    ; 939e: c9 20       .              ; Space (name separator)?
+    beq c93a8                                                         ; 93a0: f0 06       ..             ; Yes: first name complete
+    jsr strip_token_prefix                                            ; 93a2: 20 a5 ae     ..            ; Strip BASIC token prefix byte
+    jmp loop_c9387                                                    ; 93a5: 4c 87 93    L..            ; Continue copying first filename
 
 ; &93a8 referenced 2 times by &93a0, &93b0
 .c93a8
-    jsr strip_token_prefix                                            ; 93a8: 20 a5 ae     ..
-    lda l0e30                                                         ; 93ab: ad 30 0e    .0.
-    cmp #&20 ; ' '                                                    ; 93ae: c9 20       .
-    beq c93a8                                                         ; 93b0: f0 f6       ..
-    lda l1071                                                         ; 93b2: ad 71 10    .q.
-    pha                                                               ; 93b5: 48          H
-    jsr mask_owner_access                                             ; 93b6: 20 12 af     ..
-    txa                                                               ; 93b9: 8a          .
-    pha                                                               ; 93ba: 48          H
-    jsr parse_access_prefix                                           ; 93bb: 20 85 ae     ..
-    pla                                                               ; 93be: 68          h
-    tax                                                               ; 93bf: aa          .
-    pla                                                               ; 93c0: 68          h
-    cmp l1071                                                         ; 93c1: cd 71 10    .q.
-    bne c938e                                                         ; 93c4: d0 c8       ..
-    jmp read_filename_char                                            ; 93c6: 4c fd 92    L..
+    jsr strip_token_prefix                                            ; 93a8: 20 a5 ae     ..            ; Strip token from next char
+    lda l0e30                                                         ; 93ab: ad 30 0e    .0.            ; Load next parsed character
+    cmp #&20 ; ' '                                                    ; 93ae: c9 20       .              ; Still a space?
+    beq c93a8                                                         ; 93b0: f0 f6       ..             ; Yes: skip multiple spaces
+    lda l1071                                                         ; 93b2: ad 71 10    .q.            ; Save current FS options
+    pha                                                               ; 93b5: 48          H              ; Push them
+    jsr mask_owner_access                                             ; 93b6: 20 12 af     ..            ; Reset access mask for second name
+    txa                                                               ; 93b9: 8a          .              ; Save buffer position
+    pha                                                               ; 93ba: 48          H              ; Push it
+    jsr parse_access_prefix                                           ; 93bb: 20 85 ae     ..            ; Parse access prefix for second name
+    pla                                                               ; 93be: 68          h              ; Restore buffer position
+    tax                                                               ; 93bf: aa          .              ; Transfer to X
+    pla                                                               ; 93c0: 68          h              ; Restore original FS options
+    cmp l1071                                                         ; 93c1: cd 71 10    .q.            ; Options changed (cross-FS)?
+    bne c938e                                                         ; 93c4: d0 c8       ..             ; Yes: error (can't rename across FS)
+    jmp read_filename_char                                            ; 93c6: 4c fd 92    L..            ; Copy second filename and send
 
 ; ***************************************************************************************
 ; *Dir command.
@@ -4614,110 +4614,110 @@ ws_init_data = loop_c8f29+2
 ; file server.
 ; ***************************************************************************************
 .cmd_dir
-    lda (fs_crc_lo),y                                                 ; 93c9: b1 be       ..
-    cmp #&26 ; '&'                                                    ; 93cb: c9 26       .&
-    bne c944e                                                         ; 93cd: d0 7f       ..
-    iny                                                               ; 93cf: c8          .
-    lda (fs_crc_lo),y                                                 ; 93d0: b1 be       ..
-    cmp #&0d                                                          ; 93d2: c9 0d       ..
-    beq c93da                                                         ; 93d4: f0 04       ..
-    cmp #&20 ; ' '                                                    ; 93d6: c9 20       .
-    bne c93f1                                                         ; 93d8: d0 17       ..
+    lda (fs_crc_lo),y                                                 ; 93c9: b1 be       ..             ; Get first char of argument
+    cmp #&26 ; '&'                                                    ; 93cb: c9 26       .&             ; Is it '&' (FS selector prefix)?
+    bne c944e                                                         ; 93cd: d0 7f       ..             ; No: simple dir change
+    iny                                                               ; 93cf: c8          .              ; Skip '&'
+    lda (fs_crc_lo),y                                                 ; 93d0: b1 be       ..             ; Get char after '&'
+    cmp #&0d                                                          ; 93d2: c9 0d       ..             ; End of line?
+    beq c93da                                                         ; 93d4: f0 04       ..             ; Yes: '&' alone (root directory)
+    cmp #&20 ; ' '                                                    ; 93d6: c9 20       .              ; Space?
+    bne c93f1                                                         ; 93d8: d0 17       ..             ; No: check for '.' separator
 ; &93da referenced 1 time by &93d4
 .c93da
-    ldy #&ff                                                          ; 93da: a0 ff       ..
+    ldy #&ff                                                          ; 93da: a0 ff       ..             ; Y=&FF: pre-increment for loop
 ; &93dc referenced 1 time by &93e4
 .loop_c93dc
-    iny                                                               ; 93dc: c8          .
-    lda (fs_crc_lo),y                                                 ; 93dd: b1 be       ..
-    sta l0f05,y                                                       ; 93df: 99 05 0f    ...
-    cmp #&26 ; '&'                                                    ; 93e2: c9 26       .&
-    bne loop_c93dc                                                    ; 93e4: d0 f6       ..
-    lda #&0d                                                          ; 93e6: a9 0d       ..
-    sta l0f05,y                                                       ; 93e8: 99 05 0f    ...
-    iny                                                               ; 93eb: c8          .
-    tya                                                               ; 93ec: 98          .
-    tax                                                               ; 93ed: aa          .
-    jmp send_fs_request                                               ; 93ee: 4c 0e 93    L..
+    iny                                                               ; 93dc: c8          .              ; Advance index
+    lda (fs_crc_lo),y                                                 ; 93dd: b1 be       ..             ; Load char from command line
+    sta l0f05,y                                                       ; 93df: 99 05 0f    ...            ; Copy to TX buffer
+    cmp #&26 ; '&'                                                    ; 93e2: c9 26       .&             ; Is it '&' (end of FS path)?
+    bne loop_c93dc                                                    ; 93e4: d0 f6       ..             ; No: keep copying
+    lda #&0d                                                          ; 93e6: a9 0d       ..             ; Replace '&' with CR terminator
+    sta l0f05,y                                                       ; 93e8: 99 05 0f    ...            ; Store CR in buffer
+    iny                                                               ; 93eb: c8          .              ; Point past CR
+    tya                                                               ; 93ec: 98          .              ; Transfer length to A
+    tax                                                               ; 93ed: aa          .              ; And to X (byte count)
+    jmp send_fs_request                                               ; 93ee: 4c 0e 93    L..            ; Send directory request to server
 
 ; &93f1 referenced 1 time by &93d8
 .c93f1
-    cmp #&2e ; '.'                                                    ; 93f1: c9 2e       ..
-    beq c93f8                                                         ; 93f3: f0 03       ..
-    jmp error_bad_filename                                            ; 93f5: 4c e6 92    L..
+    cmp #&2e ; '.'                                                    ; 93f1: c9 2e       ..             ; Is char after '&' a dot?
+    beq c93f8                                                         ; 93f3: f0 03       ..             ; Yes: &FS.dir format
+    jmp error_bad_filename                                            ; 93f5: 4c e6 92    L..            ; No: invalid syntax
 
 ; &93f8 referenced 1 time by &93f3
 .c93f8
-    iny                                                               ; 93f8: c8          .
-    sty fs_load_addr                                                  ; 93f9: 84 b0       ..
-    lda #4                                                            ; 93fb: a9 04       ..
-    sta l0f05                                                         ; 93fd: 8d 05 0f    ...
-    lda l1071                                                         ; 9400: ad 71 10    .q.
-    ora #&40 ; '@'                                                    ; 9403: 09 40       .@
-    sta l1071                                                         ; 9405: 8d 71 10    .q.
-    ldx #1                                                            ; 9408: a2 01       ..
-    jsr copy_arg_validated                                            ; 940a: 20 f4 ae     ..
-    ldy #&12                                                          ; 940d: a0 12       ..
-    jsr save_net_tx_cb                                                ; 940f: 20 99 94     ..
-    lda l0f05                                                         ; 9412: ad 05 0f    ...
-    cmp #2                                                            ; 9415: c9 02       ..
-    beq c9428                                                         ; 9417: f0 0f       ..
-    lda #&d6                                                          ; 9419: a9 d6       ..
-    jsr error_inline_log                                              ; 941b: 20 bb 96     ..
+    iny                                                               ; 93f8: c8          .              ; Skip '.'
+    sty fs_load_addr                                                  ; 93f9: 84 b0       ..             ; Save dir path start position
+    lda #4                                                            ; 93fb: a9 04       ..             ; FS command 4: examine directory
+    sta l0f05                                                         ; 93fd: 8d 05 0f    ...            ; Store in TX buffer
+    lda l1071                                                         ; 9400: ad 71 10    .q.            ; Load FS flags
+    ora #&40 ; '@'                                                    ; 9403: 09 40       .@             ; Set bit 6 (FS selection active)
+    sta l1071                                                         ; 9405: 8d 71 10    .q.            ; Store updated flags
+    ldx #1                                                            ; 9408: a2 01       ..             ; X=1: buffer offset
+    jsr copy_arg_validated                                            ; 940a: 20 f4 ae     ..            ; Copy FS number to buffer
+    ldy #&12                                                          ; 940d: a0 12       ..             ; Y=&12: select FS command code
+    jsr save_net_tx_cb                                                ; 940f: 20 99 94     ..            ; Send FS selection command
+    lda l0f05                                                         ; 9412: ad 05 0f    ...            ; Load reply status
+    cmp #2                                                            ; 9415: c9 02       ..             ; Status 2 (found)?
+    beq c9428                                                         ; 9417: f0 0f       ..             ; Yes: proceed to dir change
+    lda #&d6                                                          ; 9419: a9 d6       ..             ; Error number &D6
+    jsr error_inline_log                                              ; 941b: 20 bb 96     ..            ; Raise 'Not found' error
     equs "Not found", 0                                               ; 941e: 4e 6f 74... Not
 
 ; &9428 referenced 1 time by &9417
 .c9428
-    lda l0e03                                                         ; 9428: ad 03 0e    ...
-    sta l0f05                                                         ; 942b: 8d 05 0f    ...
-    ldx #1                                                            ; 942e: a2 01       ..
-    ldy #7                                                            ; 9430: a0 07       ..
-    jsr save_net_tx_cb                                                ; 9432: 20 99 94     ..
-    ldx #1                                                            ; 9435: a2 01       ..
-    stx l0f05                                                         ; 9437: 8e 05 0f    ...
-    stx l0f06                                                         ; 943a: 8e 06 0f    ...
+    lda l0e03                                                         ; 9428: ad 03 0e    ...            ; Load current FS station byte
+    sta l0f05                                                         ; 942b: 8d 05 0f    ...            ; Store in TX buffer
+    ldx #1                                                            ; 942e: a2 01       ..             ; X=1: buffer offset
+    ldy #7                                                            ; 9430: a0 07       ..             ; Y=7: change directory command code
+    jsr save_net_tx_cb                                                ; 9432: 20 99 94     ..            ; Send directory change request
+    ldx #1                                                            ; 9435: a2 01       ..             ; X=1
+    stx l0f05                                                         ; 9437: 8e 05 0f    ...            ; Store start marker in buffer
+    stx l0f06                                                         ; 943a: 8e 06 0f    ...            ; Store start marker in buffer+1
     inx                                                               ; 943d: e8          .              ; X=&02
-    ldy fs_load_addr                                                  ; 943e: a4 b0       ..
-    jsr copy_arg_validated                                            ; 9440: 20 f4 ae     ..
-    ldy #6                                                            ; 9443: a0 06       ..
-    jsr save_net_tx_cb                                                ; 9445: 20 99 94     ..
-    ldy l0f05                                                         ; 9448: ac 05 0f    ...
-    jmp find_fs_and_exit                                              ; 944b: 4c dc a2    L..
+    ldy fs_load_addr                                                  ; 943e: a4 b0       ..             ; Restore dir path start position
+    jsr copy_arg_validated                                            ; 9440: 20 f4 ae     ..            ; Copy directory path to buffer
+    ldy #6                                                            ; 9443: a0 06       ..             ; Y=6: set directory command code
+    jsr save_net_tx_cb                                                ; 9445: 20 99 94     ..            ; Send set directory command
+    ldy l0f05                                                         ; 9448: ac 05 0f    ...            ; Load reply handle
+    jmp find_fs_and_exit                                              ; 944b: 4c dc a2    L..            ; Select FS and return
 
 ; &944e referenced 1 time by &93cd
 .c944e
-    jmp pass_send_cmd                                                 ; 944e: 4c 0a 8e    L..
+    jmp pass_send_cmd                                                 ; 944e: 4c 0a 8e    L..            ; Simple: pass command to FS
 
 ; &9451 referenced 1 time by &94dd
 .init_txcb_bye
-    lda #&90                                                          ; 9451: a9 90       ..
+    lda #&90                                                          ; 9451: a9 90       ..             ; A=&90: bye command port
 ; &9453 referenced 1 time by &9ace
 .init_txcb_port
-    jsr init_txcb                                                     ; 9453: 20 5f 94     _.
-    sta txcb_port                                                     ; 9456: 85 c1       ..
-    lda #3                                                            ; 9458: a9 03       ..
-    sta txcb_start                                                    ; 945a: 85 c4       ..
-    dec txcb_ctrl                                                     ; 945c: c6 c0       ..
-    rts                                                               ; 945e: 60          `
+    jsr init_txcb                                                     ; 9453: 20 5f 94     _.            ; Initialise TXCB from template
+    sta txcb_port                                                     ; 9456: 85 c1       ..             ; Set transmit port
+    lda #3                                                            ; 9458: a9 03       ..             ; A=3: data start offset
+    sta txcb_start                                                    ; 945a: 85 c4       ..             ; Set TXCB start offset
+    dec txcb_ctrl                                                     ; 945c: c6 c0       ..             ; Decrement control byte
+    rts                                                               ; 945e: 60          `              ; Return
 
 ; &945f referenced 5 times by &8df1, &9453, &94cc, &a8de, &b92f
 .init_txcb
-    pha                                                               ; 945f: 48          H
-    ldy #&0b                                                          ; 9460: a0 0b       ..
+    pha                                                               ; 945f: 48          H              ; Save A
+    ldy #&0b                                                          ; 9460: a0 0b       ..             ; Y=&0B: template size - 1
 ; &9462 referenced 1 time by &9473
 .loop_c9462
-    lda txcb_init_template,y                                          ; 9462: b9 77 94    .w.
-    sta txcb_ctrl,y                                                   ; 9465: 99 c0 00    ...
-    cpy #2                                                            ; 9468: c0 02       ..
-    bpl c9472                                                         ; 946a: 10 06       ..
-    lda l0e00,y                                                       ; 946c: b9 00 0e    ...
-    sta txcb_dest,y                                                   ; 946f: 99 c2 00    ...
+    lda txcb_init_template,y                                          ; 9462: b9 77 94    .w.            ; Load byte from TXCB template
+    sta txcb_ctrl,y                                                   ; 9465: 99 c0 00    ...            ; Store to TXCB workspace
+    cpy #2                                                            ; 9468: c0 02       ..             ; Index >= 2?
+    bpl c9472                                                         ; 946a: 10 06       ..             ; Yes: skip dest station copy
+    lda l0e00,y                                                       ; 946c: b9 00 0e    ...            ; Load dest station byte
+    sta txcb_dest,y                                                   ; 946f: 99 c2 00    ...            ; Store to TXCB destination
 ; &9472 referenced 1 time by &946a
 .c9472
-    dey                                                               ; 9472: 88          .
-    bpl loop_c9462                                                    ; 9473: 10 ed       ..
-    pla                                                               ; 9475: 68          h
-    rts                                                               ; 9476: 60          `
+    dey                                                               ; 9472: 88          .              ; Decrement index
+    bpl loop_c9462                                                    ; 9473: 10 ed       ..             ; More bytes: continue
+    pla                                                               ; 9475: 68          h              ; Restore A
+    rts                                                               ; 9476: 60          `              ; Return
 
 ; &9477 referenced 1 time by &9462
 .txcb_init_template
@@ -4728,13 +4728,13 @@ ws_init_data = loop_c8f29+2
 
 ; &9483 referenced 1 time by &9f02
 .send_request_nowrite
-    pha                                                               ; 9483: 48          H
-    sec                                                               ; 9484: 38          8
+    pha                                                               ; 9483: 48          H              ; Save A
+    sec                                                               ; 9484: 38          8              ; Set carry (read-only mode)
     bcs txcb_copy_carry_set                                           ; 9485: b0 1a       ..             ; ALWAYS branch
 
 ; &9487 referenced 2 times by &9944, &99f8
 .send_request_write
-    clv                                                               ; 9487: b8          .
+    clv                                                               ; 9487: b8          .              ; Clear V
     bvc txcb_copy_carry_clr                                           ; 9488: 50 16       P.             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -7290,80 +7290,80 @@ bad_prefix = bad_str_anchor+1
 ; setting.
 ; ***************************************************************************************
 .cmd_flip
-    lda l0e03                                                         ; a33e: ad 03 0e    ...
-    pha                                                               ; a341: 48          H
-    ldy l0e04                                                         ; a342: ac 04 0e    ...
-    jsr find_station_bit3                                             ; a345: 20 13 a3     ..
-    pla                                                               ; a348: 68          h
-    tay                                                               ; a349: a8          .
+    lda l0e03                                                         ; a33e: ad 03 0e    ...            ; Load FS station byte
+    pha                                                               ; a341: 48          H              ; Save it
+    ldy l0e04                                                         ; a342: ac 04 0e    ...            ; Load boot type flag
+    jsr find_station_bit3                                             ; a345: 20 13 a3     ..            ; Find station entry with bit 3 set
+    pla                                                               ; a348: 68          h              ; Restore FS station
+    tay                                                               ; a349: a8          .              ; Transfer to Y (boot type)
 ; &a34a referenced 2 times by &a2e2, &a393
 .flip_set_station_boot
-    ldx #&10                                                          ; a34a: a2 10       ..
-    clv                                                               ; a34c: b8          .
+    ldx #&10                                                          ; a34a: a2 10       ..             ; X=&10: max 16 station entries
+    clv                                                               ; a34c: b8          .              ; Clear V (no match found yet)
 ; &a34d referenced 2 times by &a353, &a35a
 .ca34d
-    dex                                                               ; a34d: ca          .
-    bmi ca363                                                         ; a34e: 30 13       0.
-    jsr match_station_net                                             ; a350: 20 7a b5     z.
-    bne ca34d                                                         ; a353: d0 f8       ..
-    lda l1060,x                                                       ; a355: bd 60 10    .`.
-    and #&10                                                          ; a358: 29 10       ).
-    beq ca34d                                                         ; a35a: f0 f1       ..
-    tya                                                               ; a35c: 98          .
-    sta l1030,x                                                       ; a35d: 9d 30 10    .0.
-    bit bit_test_ff_pad                                               ; a360: 2c 7d 94    ,}.
+    dex                                                               ; a34d: ca          .              ; Decrement station index
+    bmi ca363                                                         ; a34e: 30 13       0.             ; All searched: exit loop
+    jsr match_station_net                                             ; a350: 20 7a b5     z.            ; Check if station[X] matches
+    bne ca34d                                                         ; a353: d0 f8       ..             ; No match: try next station
+    lda l1060,x                                                       ; a355: bd 60 10    .`.            ; Load station flags byte
+    and #&10                                                          ; a358: 29 10       ).             ; Test bit 4 (active flag)
+    beq ca34d                                                         ; a35a: f0 f1       ..             ; Not active: try next station
+    tya                                                               ; a35c: 98          .              ; Transfer boot type to A
+    sta l1030,x                                                       ; a35d: 9d 30 10    .0.            ; Store boot setting for station
+    bit bit_test_ff_pad                                               ; a360: 2c 7d 94    ,}.            ; Set V flag (station match found)
 ; &a363 referenced 1 time by &a34e
 .ca363
-    sty l0e04                                                         ; a363: 8c 04 0e    ...
-    bvs ca371                                                         ; a366: 70 09       p.
-    tya                                                               ; a368: 98          .
-    jsr alloc_fcb_slot                                                ; a369: 20 fa b4     ..
-    sta l1074                                                         ; a36c: 8d 74 10    .t.
-    beq jmp_restore_fs_ctx                                            ; a36f: f0 05       ..
+    sty l0e04                                                         ; a363: 8c 04 0e    ...            ; Store boot type
+    bvs ca371                                                         ; a366: 70 09       p.             ; V set (matched): skip allocation
+    tya                                                               ; a368: 98          .              ; Boot type to A
+    jsr alloc_fcb_slot                                                ; a369: 20 fa b4     ..            ; Allocate FCB slot for new entry
+    sta l1074                                                         ; a36c: 8d 74 10    .t.            ; Store allocation result
+    beq jmp_restore_fs_ctx                                            ; a36f: f0 05       ..             ; Zero: allocation failed, exit
 ; &a371 referenced 1 time by &a366
 .ca371
-    lda #&32 ; '2'                                                    ; a371: a9 32       .2
+    lda #&32 ; '2'                                                    ; a371: a9 32       .2             ; A=&32: station flags (active+boot)
 ; &a373 referenced 2 times by &a311, &a33c
 .store_stn_flags_restore
-    sta l1060,x                                                       ; a373: 9d 60 10    .`.
+    sta l1060,x                                                       ; a373: 9d 60 10    .`.            ; Store station flags
 ; &a376 referenced 3 times by &a30d, &a338, &a36f
 .jmp_restore_fs_ctx
-    jmp restore_fs_context                                            ; a376: 4c 73 8f    Ls.
+    jmp restore_fs_context                                            ; a376: 4c 73 8f    Ls.            ; Restore FS context and return
 
-    jsr close_all_net_chans                                           ; a379: 20 4a b5     J.
-    sec                                                               ; a37c: 38          8
-    lda l0f08                                                         ; a37d: ad 08 0f    ...
-    sta l0e05                                                         ; a380: 8d 05 0e    ...
-    php                                                               ; a383: 08          .
-    ldy l0f05                                                         ; a384: ac 05 0f    ...
-    jsr find_station_bit2                                             ; a387: 20 e8 a2     ..
-    ldy l0f06                                                         ; a38a: ac 06 0f    ...
-    jsr find_station_bit3                                             ; a38d: 20 13 a3     ..
-    ldy l0f07                                                         ; a390: ac 07 0f    ...
-    jsr flip_set_station_boot                                         ; a393: 20 4a a3     J.
-    plp                                                               ; a396: 28          (
-    bcs ca39c                                                         ; a397: b0 03       ..
-    jmp return_with_last_flag                                         ; a399: 4c b9 9c    L..
+    jsr close_all_net_chans                                           ; a379: 20 4a b5     J.            ; Close all network channels
+    sec                                                               ; a37c: 38          8              ; Set carry flag
+    lda l0f08                                                         ; a37d: ad 08 0f    ...            ; Load reply boot type
+    sta l0e05                                                         ; a380: 8d 05 0e    ...            ; Store as current boot type
+    php                                                               ; a383: 08          .              ; Save processor status
+    ldy l0f05                                                         ; a384: ac 05 0f    ...            ; Load station number from reply
+    jsr find_station_bit2                                             ; a387: 20 e8 a2     ..            ; Find station entry with bit 2
+    ldy l0f06                                                         ; a38a: ac 06 0f    ...            ; Load network number from reply
+    jsr find_station_bit3                                             ; a38d: 20 13 a3     ..            ; Find station entry with bit 3
+    ldy l0f07                                                         ; a390: ac 07 0f    ...            ; Load boot type from reply
+    jsr flip_set_station_boot                                         ; a393: 20 4a a3     J.            ; Set boot config for station
+    plp                                                               ; a396: 28          (              ; Restore processor status
+    bcs ca39c                                                         ; a397: b0 03       ..             ; Carry set: proceed with boot
+    jmp return_with_last_flag                                         ; a399: 4c b9 9c    L..            ; Return with last flag
 
 ; &a39c referenced 1 time by &a397
 .ca39c
-    lda l1071                                                         ; a39c: ad 71 10    .q.
-    tax                                                               ; a39f: aa          .
-    and #4                                                            ; a3a0: 29 04       ).
-    php                                                               ; a3a2: 08          .
-    txa                                                               ; a3a3: 8a          .
-    and #&fb                                                          ; a3a4: 29 fb       ).
-    sta l1071                                                         ; a3a6: 8d 71 10    .q.
-    plp                                                               ; a3a9: 28          (
-    bne ca3cb                                                         ; a3aa: d0 1f       ..
-    lda #osbyte_scan_keyboard                                         ; a3ac: a9 79       .y
+    lda l1071                                                         ; a39c: ad 71 10    .q.            ; Load config flags
+    tax                                                               ; a39f: aa          .              ; Save copy in X
+    and #4                                                            ; a3a0: 29 04       ).             ; Test bit 2 (auto-boot flag)
+    php                                                               ; a3a2: 08          .              ; Save bit 2 test result
+    txa                                                               ; a3a3: 8a          .              ; Restore full flags
+    and #&fb                                                          ; a3a4: 29 fb       ).             ; Clear bit 2 (consume flag)
+    sta l1071                                                         ; a3a6: 8d 71 10    .q.            ; Store cleared flags
+    plp                                                               ; a3a9: 28          (              ; Restore bit 2 test result
+    bne ca3cb                                                         ; a3aa: d0 1f       ..             ; Bit 2 was set: skip to boot cmd
+    lda #osbyte_scan_keyboard                                         ; a3ac: a9 79       .y             ; OSBYTE &79: scan keyboard
     ldx #(255 - inkey_key_ctrl) EOR 128                               ; a3ae: a2 81       ..             ; X=internal key number EOR 128
     jsr osbyte                                                        ; a3b0: 20 f4 ff     ..            ; Test for 'CTRL' key pressed (X=129)
     txa                                                               ; a3b3: 8a          .              ; X has top bit set if 'CTRL' pressed
-    bpl ca3cb                                                         ; a3b4: 10 15       ..
+    bpl ca3cb                                                         ; a3b4: 10 15       ..             ; CTRL not pressed: proceed to boot
 ; &a3b6 referenced 1 time by &a3ce
 .boot_load_cmd
-    rts                                                               ; a3b6: 60          `
+    rts                                                               ; a3b6: 60          `              ; CTRL pressed: cancel boot, return
 
     equs "L.!BOOT"                                                    ; a3b7: 4c 2e 21... L.!
     equb &0d                                                          ; a3be: 0d          .
@@ -7376,13 +7376,13 @@ bad_prefix = bad_str_anchor+1
 
 ; &a3cb referenced 2 times by &a3aa, &a3b4
 .ca3cb
-    ldy l0e05                                                         ; a3cb: ac 05 0e    ...
-    beq boot_load_cmd                                                 ; a3ce: f0 e6       ..
+    ldy l0e05                                                         ; a3cb: ac 05 0e    ...            ; Load boot type
+    beq boot_load_cmd                                                 ; a3ce: f0 e6       ..             ; Type 0: no command, just return
 ; &a3d0 referenced 1 time by &a276
 .boot_cmd_oscli
-    ldx boot_oscli_lo_table,y                                         ; a3d0: be c7 a3    ...
-    ldy #&a3                                                          ; a3d3: a0 a3       ..
-    jmp oscli                                                         ; a3d5: 4c f7 ff    L..
+    ldx boot_oscli_lo_table,y                                         ; a3d0: be c7 a3    ...            ; Look up boot command address low
+    ldy #&a3                                                          ; a3d3: a0 a3       ..             ; Boot command address high (&A3xx)
+    jmp oscli                                                         ; a3d5: 4c f7 ff    L..            ; Execute boot command via OSCLI
 
 ; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
@@ -8441,39 +8441,39 @@ bad_prefix = bad_str_anchor+1
 ; server.
 ; ***************************************************************************************
 .cmd_cdir
-    tya                                                               ; acfe: 98          .
-    pha                                                               ; acff: 48          H
-    jsr mask_owner_access                                             ; ad00: 20 12 af     ..
-    jsr skip_to_next_arg                                              ; ad03: 20 a1 af     ..
-    cmp #&0d                                                          ; ad06: c9 0d       ..
-    bne cad0e                                                         ; ad08: d0 04       ..
-    ldx #2                                                            ; ad0a: a2 02       ..
+    tya                                                               ; acfe: 98          .              ; Save command line offset
+    pha                                                               ; acff: 48          H              ; Push onto stack
+    jsr mask_owner_access                                             ; ad00: 20 12 af     ..            ; Set owner-only access mask
+    jsr skip_to_next_arg                                              ; ad03: 20 a1 af     ..            ; Skip to optional size argument
+    cmp #&0d                                                          ; ad06: c9 0d       ..             ; End of line?
+    bne cad0e                                                         ; ad08: d0 04       ..             ; No: parse size argument
+    ldx #2                                                            ; ad0a: a2 02       ..             ; Default allocation size index = 2
     bne cad1d                                                         ; ad0c: d0 0f       ..             ; ALWAYS branch
 
 ; &ad0e referenced 1 time by &ad08
 .cad0e
-    lda #&ff                                                          ; ad0e: a9 ff       ..
-    sta fs_work_4                                                     ; ad10: 85 b4       ..
-    jsr parse_addr_arg                                                ; ad12: 20 5a 91     Z.
-    ldx #&1b                                                          ; ad15: a2 1b       ..
+    lda #&ff                                                          ; ad0e: a9 ff       ..             ; A=&FF: mark as decimal parse
+    sta fs_work_4                                                     ; ad10: 85 b4       ..             ; Store decimal parse flag
+    jsr parse_addr_arg                                                ; ad12: 20 5a 91     Z.            ; Parse numeric size argument
+    ldx #&1b                                                          ; ad15: a2 1b       ..             ; X=&1B: top of 27-entry size table
 ; &ad17 referenced 1 time by &ad1b
 .loop_cad17
-    dex                                                               ; ad17: ca          .
-    cmp cdir_alloc_size_table,x                                       ; ad18: dd 31 ad    .1.
-    bcc loop_cad17                                                    ; ad1b: 90 fa       ..
+    dex                                                               ; ad17: ca          .              ; Try next lower index
+    cmp cdir_alloc_size_table,x                                       ; ad18: dd 31 ad    .1.            ; Compare size with threshold
+    bcc loop_cad17                                                    ; ad1b: 90 fa       ..             ; A < threshold: keep searching
 ; &ad1d referenced 1 time by &ad0c
 .cad1d
-    stx l0f05                                                         ; ad1d: 8e 05 0f    ...
-    pla                                                               ; ad20: 68          h
-    tay                                                               ; ad21: a8          .
-    jsr save_ptr_to_os_text                                           ; ad22: 20 95 af     ..
-    jsr parse_filename_arg                                            ; ad25: 20 82 ae     ..
-    ldx #1                                                            ; ad28: a2 01       ..
-    jsr copy_arg_to_buf                                               ; ad2a: 20 f2 ae     ..
-    ldy #&1b                                                          ; ad2d: a0 1b       ..
+    stx l0f05                                                         ; ad1d: 8e 05 0f    ...            ; Store allocation size index
+    pla                                                               ; ad20: 68          h              ; Restore command line offset
+    tay                                                               ; ad21: a8          .              ; Transfer to Y
+    jsr save_ptr_to_os_text                                           ; ad22: 20 95 af     ..            ; Save text pointer for filename parse
+    jsr parse_filename_arg                                            ; ad25: 20 82 ae     ..            ; Parse directory name argument
+    ldx #1                                                            ; ad28: a2 01       ..             ; X=1: one argument to copy
+    jsr copy_arg_to_buf                                               ; ad2a: 20 f2 ae     ..            ; Copy directory name to TX buffer
+    ldy #&1b                                                          ; ad2d: a0 1b       ..             ; Y=&1B: *CDir FS command code
 .cdir_dispatch_col
 cdir_alloc_size_table = cdir_dispatch_col+2
-    jmp save_net_tx_cb                                                ; ad2f: 4c 99 94    L..
+    jmp save_net_tx_cb                                                ; ad2f: 4c 99 94    L..            ; Send command to file server
 
 ; &ad31 referenced 1 time by &ad18
     equb 0, &0a, &14, &1d                                             ; ad32: 00 0a 14... ...
@@ -8487,8 +8487,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; directory. Falls through to *Ex.
 ; ***************************************************************************************
 .cmd_lcat
-    ror l1071                                                         ; ad4d: 6e 71 10    nq.
-    sec                                                               ; ad50: 38          8
+    ror l1071                                                         ; ad4d: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
+    sec                                                               ; ad50: 38          8              ; Set carry (= library directory)
     bcs cat_set_lib_flag                                              ; ad51: b0 24       .$             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -8497,8 +8497,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; Falls through to *Ex.
 ; ***************************************************************************************
 .cmd_lex
-    ror l1071                                                         ; ad53: 6e 71 10    nq.
-    sec                                                               ; ad56: 38          8
+    ror l1071                                                         ; ad53: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
+    sec                                                               ; ad56: 38          8              ; Set carry (= library directory)
     bcs ex_set_lib_flag                                               ; ad57: b0 04       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -8824,117 +8824,117 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; Deletes a file from the file server.
 ; ***************************************************************************************
 .cmd_remove
-    tya                                                               ; af46: 98          .
-    pha                                                               ; af47: 48          H
-    jsr skip_to_next_arg                                              ; af48: 20 a1 af     ..
-    cmp #&0d                                                          ; af4b: c9 0d       ..
-    beq caf52                                                         ; af4d: f0 03       ..
-    jmp error_syntax                                                  ; af4f: 4c 0f a1    L..
+    tya                                                               ; af46: 98          .              ; Save command line offset
+    pha                                                               ; af47: 48          H              ; Push onto stack
+    jsr skip_to_next_arg                                              ; af48: 20 a1 af     ..            ; Skip to check for extra arguments
+    cmp #&0d                                                          ; af4b: c9 0d       ..             ; End of line?
+    beq caf52                                                         ; af4d: f0 03       ..             ; Yes: single arg, proceed
+    jmp error_syntax                                                  ; af4f: 4c 0f a1    L..            ; No: extra args, syntax error
 
 ; &af52 referenced 1 time by &af4d
 .caf52
-    pla                                                               ; af52: 68          h
-    tay                                                               ; af53: a8          .
-    jsr save_ptr_to_os_text                                           ; af54: 20 95 af     ..
-    jsr parse_filename_arg                                            ; af57: 20 82 ae     ..
-    jsr copy_arg_to_buf_x0                                            ; af5a: 20 f0 ae     ..
-    ldy #&14                                                          ; af5d: a0 14       ..
-    bit bit_test_ff_pad                                               ; af5f: 2c 7d 94    ,}.
-    jmp save_net_tx_cb_vset                                           ; af62: 4c 9a 94    L..
+    pla                                                               ; af52: 68          h              ; Restore command line offset
+    tay                                                               ; af53: a8          .              ; Transfer to Y
+    jsr save_ptr_to_os_text                                           ; af54: 20 95 af     ..            ; Save text pointer for parsing
+    jsr parse_filename_arg                                            ; af57: 20 82 ae     ..            ; Parse filename argument
+    jsr copy_arg_to_buf_x0                                            ; af5a: 20 f0 ae     ..            ; Copy filename to TX buffer
+    ldy #&14                                                          ; af5d: a0 14       ..             ; Y=&14: *Delete FS command code
+    bit bit_test_ff_pad                                               ; af5f: 2c 7d 94    ,}.            ; Set V flag (via BIT #&FF)
+    jmp save_net_tx_cb_vset                                           ; af62: 4c 9a 94    L..            ; Send to FS with V-flag dispatch
 
 ; &af65 referenced 1 time by &8ff3
 .print_num_no_leading
-    bit bit_test_ff_pad                                               ; af65: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; af65: 2c 7d 94    ,}.            ; Set V (suppress leading zeros)
 ; &af68 referenced 3 times by &adb5, &b179, &b190
 .print_decimal_3dig
-    tay                                                               ; af68: a8          .
-    lda #&64 ; 'd'                                                    ; af69: a9 64       .d
-    jsr print_decimal_digit                                           ; af6b: 20 76 af     v.
-    lda #&0a                                                          ; af6e: a9 0a       ..
-    jsr print_decimal_digit                                           ; af70: 20 76 af     v.
-    clv                                                               ; af73: b8          .
-    lda #1                                                            ; af74: a9 01       ..
+    tay                                                               ; af68: a8          .              ; Transfer value to Y (remainder)
+    lda #&64 ; 'd'                                                    ; af69: a9 64       .d             ; A=100: hundreds divisor
+    jsr print_decimal_digit                                           ; af6b: 20 76 af     v.            ; Print hundreds digit
+    lda #&0a                                                          ; af6e: a9 0a       ..             ; A=10: tens divisor
+    jsr print_decimal_digit                                           ; af70: 20 76 af     v.            ; Print tens digit
+    clv                                                               ; af73: b8          .              ; Clear V (always print units)
+    lda #1                                                            ; af74: a9 01       ..             ; A=1: units divisor
 ; &af76 referenced 2 times by &af6b, &af70
 .print_decimal_digit
-    sta fs_error_ptr                                                  ; af76: 85 b8       ..
-    tya                                                               ; af78: 98          .
-    ldx #&2f ; '/'                                                    ; af79: a2 2f       ./
-    sec                                                               ; af7b: 38          8
-    php                                                               ; af7c: 08          .
+    sta fs_error_ptr                                                  ; af76: 85 b8       ..             ; Store divisor
+    tya                                                               ; af78: 98          .              ; Get remaining value
+    ldx #&2f ; '/'                                                    ; af79: a2 2f       ./             ; X='0'-1: digit counter
+    sec                                                               ; af7b: 38          8              ; Set carry for subtraction
+    php                                                               ; af7c: 08          .              ; Save V flag for leading zero check
 ; &af7d referenced 1 time by &af80
 .loop_caf7d
-    inx                                                               ; af7d: e8          .
-    sbc fs_error_ptr                                                  ; af7e: e5 b8       ..
-    bcs loop_caf7d                                                    ; af80: b0 fb       ..
-    adc fs_error_ptr                                                  ; af82: 65 b8       e.
-    tay                                                               ; af84: a8          .
-    txa                                                               ; af85: 8a          .
-    plp                                                               ; af86: 28          (
-    bvc caf8d                                                         ; af87: 50 04       P.
-    cmp #&30 ; '0'                                                    ; af89: c9 30       .0
-    beq return_29                                                     ; af8b: f0 07       ..
+    inx                                                               ; af7d: e8          .              ; Count quotient digit
+    sbc fs_error_ptr                                                  ; af7e: e5 b8       ..             ; Subtract divisor
+    bcs loop_caf7d                                                    ; af80: b0 fb       ..             ; No underflow: continue dividing
+    adc fs_error_ptr                                                  ; af82: 65 b8       e.             ; Add back divisor (get remainder)
+    tay                                                               ; af84: a8          .              ; Remainder to Y for next digit
+    txa                                                               ; af85: 8a          .              ; Digit character to A
+    plp                                                               ; af86: 28          (              ; Restore V flag
+    bvc caf8d                                                         ; af87: 50 04       P.             ; V clear: always print digit
+    cmp #&30 ; '0'                                                    ; af89: c9 30       .0             ; V set: is digit '0'?
+    beq return_29                                                     ; af8b: f0 07       ..             ; Yes: suppress leading zero
 ; &af8d referenced 1 time by &af87
 .caf8d
-    ldx fs_error_ptr                                                  ; af8d: a6 b8       ..
+    ldx fs_error_ptr                                                  ; af8d: a6 b8       ..             ; Save divisor across OSASCI call
     jsr osasci                                                        ; af8f: 20 e3 ff     ..            ; Write character
-    stx fs_error_ptr                                                  ; af92: 86 b8       ..
+    stx fs_error_ptr                                                  ; af92: 86 b8       ..             ; Restore divisor
 ; &af94 referenced 1 time by &af8b
 .return_29
-    rts                                                               ; af94: 60          `
+    rts                                                               ; af94: 60          `              ; Return
 
 ; &af95 referenced 8 times by &9d4f, &a1a9, &ad22, &ad84, &af54, &b018, &b1f2, &b344
 .save_ptr_to_os_text
-    pha                                                               ; af95: 48          H
-    lda fs_crc_lo                                                     ; af96: a5 be       ..
-    sta os_text_ptr                                                   ; af98: 85 f2       ..
-    lda fs_crc_hi                                                     ; af9a: a5 bf       ..
-    sta os_text_ptr_hi                                                ; af9c: 85 f3       ..
-    pla                                                               ; af9e: 68          h
-    rts                                                               ; af9f: 60          `
+    pha                                                               ; af95: 48          H              ; Save A
+    lda fs_crc_lo                                                     ; af96: a5 be       ..             ; Copy text pointer low byte
+    sta os_text_ptr                                                   ; af98: 85 f2       ..             ; To OS text pointer low
+    lda fs_crc_hi                                                     ; af9a: a5 bf       ..             ; Copy text pointer high byte
+    sta os_text_ptr_hi                                                ; af9c: 85 f3       ..             ; To OS text pointer high
+    pla                                                               ; af9e: 68          h              ; Restore A
+    rts                                                               ; af9f: 60          `              ; Return
 
 ; &afa0 referenced 1 time by &afab
 .loop_cafa0
-    iny                                                               ; afa0: c8          .
+    iny                                                               ; afa0: c8          .              ; Advance past current character
 ; &afa1 referenced 2 times by &ad03, &af48
 .skip_to_next_arg
-    lda (fs_crc_lo),y                                                 ; afa1: b1 be       ..
-    cmp #&20 ; ' '                                                    ; afa3: c9 20       .
-    beq cafad                                                         ; afa5: f0 06       ..
-    cmp #&0d                                                          ; afa7: c9 0d       ..
-    beq return_30                                                     ; afa9: f0 09       ..
+    lda (fs_crc_lo),y                                                 ; afa1: b1 be       ..             ; Load char from command line
+    cmp #&20 ; ' '                                                    ; afa3: c9 20       .              ; Space?
+    beq cafad                                                         ; afa5: f0 06       ..             ; Yes: skip trailing spaces
+    cmp #&0d                                                          ; afa7: c9 0d       ..             ; CR (end of line)?
+    beq return_30                                                     ; afa9: f0 09       ..             ; Yes: return (at end)
     bne loop_cafa0                                                    ; afab: d0 f3       ..             ; ALWAYS branch
 
 ; &afad referenced 2 times by &afa5, &afb2
 .cafad
-    iny                                                               ; afad: c8          .
-    lda (fs_crc_lo),y                                                 ; afae: b1 be       ..
-    cmp #&20 ; ' '                                                    ; afb0: c9 20       .
-    beq cafad                                                         ; afb2: f0 f9       ..
+    iny                                                               ; afad: c8          .              ; Advance past space
+    lda (fs_crc_lo),y                                                 ; afae: b1 be       ..             ; Load next character
+    cmp #&20 ; ' '                                                    ; afb0: c9 20       .              ; Still a space?
+    beq cafad                                                         ; afb2: f0 f9       ..             ; Yes: skip multiple spaces
 ; &afb4 referenced 1 time by &afa9
 .return_30
-    rts                                                               ; afb4: 60          `
+    rts                                                               ; afb4: 60          `              ; Return (at next argument)
 
 ; &afb5 referenced 2 times by &afdb, &b1ae
 .save_ptr_to_spool_buf
-    pha                                                               ; afb5: 48          H
-    lda fs_crc_lo                                                     ; afb6: a5 be       ..
-    sta fs_options                                                    ; afb8: 85 bb       ..
-    lda fs_crc_hi                                                     ; afba: a5 bf       ..
-    sta fs_block_offset                                               ; afbc: 85 bc       ..
-    pla                                                               ; afbe: 68          h
-    rts                                                               ; afbf: 60          `
+    pha                                                               ; afb5: 48          H              ; Save A
+    lda fs_crc_lo                                                     ; afb6: a5 be       ..             ; Copy text pointer low byte
+    sta fs_options                                                    ; afb8: 85 bb       ..             ; To spool buffer pointer low
+    lda fs_crc_hi                                                     ; afba: a5 bf       ..             ; Copy text pointer high byte
+    sta fs_block_offset                                               ; afbc: 85 bc       ..             ; To spool buffer pointer high
+    pla                                                               ; afbe: 68          h              ; Restore A
+    rts                                                               ; afbf: 60          `              ; Return
 
 ; &afc0 referenced 2 times by &afd8, &b1a1
 .init_spool_drive
-    tya                                                               ; afc0: 98          .
-    pha                                                               ; afc1: 48          H
-    jsr get_ws_page                                                   ; afc2: 20 ae 8c     ..
-    sta l00af                                                         ; afc5: 85 af       ..
-    pla                                                               ; afc7: 68          h
-    tay                                                               ; afc8: a8          .
-    lda #0                                                            ; afc9: a9 00       ..
-    sta l00ae                                                         ; afcb: 85 ae       ..
-    rts                                                               ; afcd: 60          `
+    tya                                                               ; afc0: 98          .              ; Save Y
+    pha                                                               ; afc1: 48          H              ; Push it
+    jsr get_ws_page                                                   ; afc2: 20 ae 8c     ..            ; Get workspace page number
+    sta l00af                                                         ; afc5: 85 af       ..             ; Store as spool drive page high
+    pla                                                               ; afc7: 68          h              ; Restore Y
+    tay                                                               ; afc8: a8          .              ; Transfer to Y
+    lda #0                                                            ; afc9: a9 00       ..             ; A=0
+    sta l00ae                                                         ; afcb: 85 ae       ..             ; Clear spool drive page low
+    rts                                                               ; afcd: 60          `              ; Return
 
 ; ***************************************************************************************
 ; *PS command.
@@ -9483,42 +9483,42 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; to prevent accidental deletion.
 ; ***************************************************************************************
 .cmd_prot
-    lda (fs_crc_lo),y                                                 ; b2f0: b1 be       ..
-    eor #&0d                                                          ; b2f2: 49 0d       I.
-    bne cb2fa                                                         ; b2f4: d0 04       ..
-    lda #&ff                                                          ; b2f6: a9 ff       ..
+    lda (fs_crc_lo),y                                                 ; b2f0: b1 be       ..             ; Get next char from command line
+    eor #&0d                                                          ; b2f2: 49 0d       I.             ; Compare with CR (end of line)
+    bne cb2fa                                                         ; b2f4: d0 04       ..             ; Not CR: attribute keywords follow
+    lda #&ff                                                          ; b2f6: a9 ff       ..             ; A=&FF: protect all attributes
     bne store_prot_mask                                               ; b2f8: d0 20       .              ; ALWAYS branch
 
 ; &b2fa referenced 1 time by &b2f4
 .cb2fa
-    lda ws_0d68                                                       ; b2fa: ad 68 0d    .h.
-    pha                                                               ; b2fd: 48          H
+    lda ws_0d68                                                       ; b2fa: ad 68 0d    .h.            ; Load current protection mask
+    pha                                                               ; b2fd: 48          H              ; Save as starting value
 ; &b2fe referenced 1 time by &b30e
 .loop_cb2fe
-    ldx #&d3                                                          ; b2fe: a2 d3       ..
-    lda (fs_crc_lo),y                                                 ; b300: b1 be       ..
-    sta ws_page                                                       ; b302: 85 a8       ..
-    jsr match_fs_cmd                                                  ; b304: 20 28 a1     (.
-    bcs prot_check_arg_end                                            ; b307: b0 07       ..
-    pla                                                               ; b309: 68          h
-    ora cmd_table_fs_lo,x                                             ; b30a: 1d d9 a3    ...
-    pha                                                               ; b30d: 48          H
-    bne loop_cb2fe                                                    ; b30e: d0 ee       ..
+    ldx #&d3                                                          ; b2fe: a2 d3       ..             ; X=&D3: attribute keyword table offset
+    lda (fs_crc_lo),y                                                 ; b300: b1 be       ..             ; Get next char from command line
+    sta ws_page                                                       ; b302: 85 a8       ..             ; Save for end-of-args check
+    jsr match_fs_cmd                                                  ; b304: 20 28 a1     (.            ; Match attribute keyword in table
+    bcs prot_check_arg_end                                            ; b307: b0 07       ..             ; No match: check if end of arguments
+    pla                                                               ; b309: 68          h              ; Retrieve accumulated mask
+    ora cmd_table_fs_lo,x                                             ; b30a: 1d d9 a3    ...            ; OR in attribute bit for keyword
+    pha                                                               ; b30d: 48          H              ; Save updated mask
+    bne loop_cb2fe                                                    ; b30e: d0 ee       ..             ; Always non-zero after ORA: loop
 ; &b310 referenced 2 times by &b307, &b334
 .prot_check_arg_end
-    lda ws_page                                                       ; b310: a5 a8       ..
-    eor #&0d                                                          ; b312: 49 0d       I.
-    beq cb319                                                         ; b314: f0 03       ..
-    jmp error_bad_command                                             ; b316: 4c 45 a2    LE.
+    lda ws_page                                                       ; b310: a5 a8       ..             ; Get the unmatched character
+    eor #&0d                                                          ; b312: 49 0d       I.             ; Is it CR?
+    beq cb319                                                         ; b314: f0 03       ..             ; Yes: arguments ended correctly
+    jmp error_bad_command                                             ; b316: 4c 45 a2    LE.            ; No: invalid attribute keyword
 
 ; &b319 referenced 1 time by &b314
 .cb319
-    pla                                                               ; b319: 68          h
+    pla                                                               ; b319: 68          h              ; Retrieve final protection mask
 ; &b31a referenced 2 times by &b2f8, &b325
 .store_prot_mask
-    sta ws_0d68                                                       ; b31a: 8d 68 0d    .h.
-    sta ws_0d69                                                       ; b31d: 8d 69 0d    .i.
-    rts                                                               ; b320: 60          `
+    sta ws_0d68                                                       ; b31a: 8d 68 0d    .h.            ; Store protection mask
+    sta ws_0d69                                                       ; b31d: 8d 69 0d    .i.            ; Store protection mask copy
+    rts                                                               ; b320: 60          `              ; Return
 
 ; ***************************************************************************************
 ; *Unprot command.
@@ -9526,21 +9526,21 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; a file.
 ; ***************************************************************************************
 .cmd_unprot
-    lda (fs_crc_lo),y                                                 ; b321: b1 be       ..
-    eor #&0d                                                          ; b323: 49 0d       I.
-    beq store_prot_mask                                               ; b325: f0 f3       ..
-    lda ws_0d68                                                       ; b327: ad 68 0d    .h.
-    pha                                                               ; b32a: 48          H
+    lda (fs_crc_lo),y                                                 ; b321: b1 be       ..             ; Get next char from command line
+    eor #&0d                                                          ; b323: 49 0d       I.             ; Compare with CR (end of line)
+    beq store_prot_mask                                               ; b325: f0 f3       ..             ; No args: A=0 clears all protection
+    lda ws_0d68                                                       ; b327: ad 68 0d    .h.            ; Load current protection mask
+    pha                                                               ; b32a: 48          H              ; Save as starting value
 ; &b32b referenced 1 time by &b33b
 .loop_cb32b
-    ldx #&d3                                                          ; b32b: a2 d3       ..
-    lda (fs_crc_lo),y                                                 ; b32d: b1 be       ..
-    sta ws_page                                                       ; b32f: 85 a8       ..
-    jsr match_fs_cmd                                                  ; b331: 20 28 a1     (.
-    bcs prot_check_arg_end                                            ; b334: b0 da       ..
-    pla                                                               ; b336: 68          h
-    and cmd_table_fs_hi,x                                             ; b337: 3d da a3    =..
-    pha                                                               ; b33a: 48          H
+    ldx #&d3                                                          ; b32b: a2 d3       ..             ; X=&D3: attribute keyword table offset
+    lda (fs_crc_lo),y                                                 ; b32d: b1 be       ..             ; Get next char from command line
+    sta ws_page                                                       ; b32f: 85 a8       ..             ; Save for end-of-args check
+    jsr match_fs_cmd                                                  ; b331: 20 28 a1     (.            ; Match attribute keyword in table
+    bcs prot_check_arg_end                                            ; b334: b0 da       ..             ; No match: check if end of arguments
+    pla                                                               ; b336: 68          h              ; Retrieve accumulated mask
+    and cmd_table_fs_hi,x                                             ; b337: 3d da a3    =..            ; AND to clear matched attribute bit
+    pha                                                               ; b33a: 48          H              ; Save updated mask
     bcc loop_cb32b                                                    ; b33b: 90 ee       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -10517,7 +10517,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; Closes all open files via OSFIND #0.
 ; ***************************************************************************************
 .cmd_close
-    lda #osfind_close                                                 ; b97f: a9 00       ..
+    lda #osfind_close                                                 ; b97f: a9 00       ..             ; A=0: close all open files
     tay                                                               ; b981: a8          .              ; Y=&00
     jmp osfind                                                        ; b982: 4c ce ff    L..            ; Close all files (Y=0)
 
@@ -10526,7 +10526,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; Displays file contents to screen.
 ; ***************************************************************************************
 .cmd_type
-    clv                                                               ; b985: b8          .
+    clv                                                               ; b985: b8          .              ; Clear V for unconditional BVC
     bvc open_and_read_file                                            ; b986: 50 03       P.             ; ALWAYS branch
 
 ; ***************************************************************************************
