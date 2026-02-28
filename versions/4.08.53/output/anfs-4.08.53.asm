@@ -6195,207 +6195,207 @@ bad_prefix = bad_str_anchor+1
 
 ; &9cc8 referenced 1 time by &9bf1
 .c9cc8
-    cmp #2                                                            ; 9cc8: c9 02       ..
-    bcs c9cdf                                                         ; 9cca: b0 13       ..
-    tay                                                               ; 9ccc: a8          .
-    bne c9cd3                                                         ; 9ccd: d0 04       ..
-    lda #5                                                            ; 9ccf: a9 05       ..
-    bne finalise_and_return                                           ; 9cd1: d0 e8       ..             ; ALWAYS branch
+    cmp #2                                                            ; 9cc8: c9 02       ..             ; Compare with 2 (open for output)
+    bcs c9cdf                                                         ; 9cca: b0 13       ..             ; 2 or above: handle file open
+    tay                                                               ; 9ccc: a8          .              ; Transfer to Y (Y=0 or 1)
+    bne c9cd3                                                         ; 9ccd: d0 04       ..             ; Non-zero (1 = read pointer): copy data
+    lda #5                                                            ; 9ccf: a9 05       ..             ; A=5: return code for close-all
+    bne finalise_and_return                                           ; 9cd1: d0 e8       ..             ; ALWAYS branch to finalise; ALWAYS branch
 
 ; &9cd3 referenced 2 times by &9ccd, &9cd9
 .c9cd3
-    lda l0e0a,y                                                       ; 9cd3: b9 0a 0e    ...
-    sta (fs_options),y                                                ; 9cd6: 91 bb       ..
-    dey                                                               ; 9cd8: 88          .
-    bpl c9cd3                                                         ; 9cd9: 10 f8       ..
-    sty zp_work_2,x                                                   ; 9cdb: 94 02       ..
-    sty zp_work_3,x                                                   ; 9cdd: 94 03       ..
+    lda l0e0a,y                                                       ; 9cd3: b9 0a 0e    ...            ; Load reply data byte at Y
+    sta (fs_options),y                                                ; 9cd6: 91 bb       ..             ; Store in FS options
+    dey                                                               ; 9cd8: 88          .              ; Decrement index
+    bpl c9cd3                                                         ; 9cd9: 10 f8       ..             ; Loop until all bytes copied
+    sty zp_work_2,x                                                   ; 9cdb: 94 02       ..             ; Clear zero page work low
+    sty zp_work_3,x                                                   ; 9cdd: 94 03       ..             ; Clear zero page work high
 ; &9cdf referenced 1 time by &9cca
 .c9cdf
-    beq c9ce3                                                         ; 9cdf: f0 02       ..
+    beq c9ce3                                                         ; 9cdf: f0 02       ..             ; Z set: jump to clear A and return
 ; &9ce1 referenced 2 times by &9ce8, &9ff4
 .c9ce1
-    lda #0                                                            ; 9ce1: a9 00       ..
+    lda #0                                                            ; 9ce1: a9 00       ..             ; A=0: clear result
 ; &9ce3 referenced 1 time by &9cdf
 .c9ce3
-    lsr a                                                             ; 9ce3: 4a          J
-    bpl finalise_and_return                                           ; 9ce4: 10 d5       ..
+    lsr a                                                             ; 9ce3: 4a          J              ; Shift right (always positive)
+    bpl finalise_and_return                                           ; 9ce4: 10 d5       ..             ; Positive: jump to finalise
 ; &9ce6 referenced 1 time by &9d55
 .c9ce6
-    and #&3f ; '?'                                                    ; 9ce6: 29 3f       )?
-    bne c9ce1                                                         ; 9ce8: d0 f7       ..
-    txa                                                               ; 9cea: 8a          .
-    jsr alloc_fcb_or_error                                            ; 9ceb: 20 2e b5     ..
-    eor #&80                                                          ; 9cee: 49 80       I.
-    asl a                                                             ; 9cf0: 0a          .
-    sta l0f05                                                         ; 9cf1: 8d 05 0f    ...
-    rol a                                                             ; 9cf4: 2a          *
-    sta l0f06                                                         ; 9cf5: 8d 06 0f    ...
-    jsr parse_cmd_arg_y0                                              ; 9cf8: 20 80 ae     ..
-    ldx #2                                                            ; 9cfb: a2 02       ..
-    jsr copy_arg_to_buf                                               ; 9cfd: 20 f2 ae     ..
-    ldy #6                                                            ; 9d00: a0 06       ..
-    bit bit_test_ff_pad                                               ; 9d02: 2c 7d 94    ,}.
-    sec                                                               ; 9d05: 38          8
-    ror escapable                                                     ; 9d06: 66 97       f.
-    jsr save_net_tx_cb_vset                                           ; 9d08: 20 9a 94     ..
-    bcs c9d7b                                                         ; 9d0b: b0 6e       .n
-    lda #&ff                                                          ; 9d0d: a9 ff       ..
-    ldy #&0e                                                          ; 9d0f: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; 9d11: 91 9c       ..
-    lda l0f05                                                         ; 9d13: ad 05 0f    ...
-    pha                                                               ; 9d16: 48          H
-    lda #4                                                            ; 9d17: a9 04       ..
-    sta l0f05                                                         ; 9d19: 8d 05 0f    ...
-    ldx #1                                                            ; 9d1c: a2 01       ..
+    and #&3f ; '?'                                                    ; 9ce6: 29 3f       )?             ; Mask to 6-bit access value
+    bne c9ce1                                                         ; 9ce8: d0 f7       ..             ; Non-zero: clear A and finalise
+    txa                                                               ; 9cea: 8a          .              ; Transfer X to A (options pointer)
+    jsr alloc_fcb_or_error                                            ; 9ceb: 20 2e b5     ..            ; Allocate FCB slot or raise error
+    eor #&80                                                          ; 9cee: 49 80       I.             ; Toggle bit 7
+    asl a                                                             ; 9cf0: 0a          .              ; Shift left: build open mode
+    sta l0f05                                                         ; 9cf1: 8d 05 0f    ...            ; Store open mode in l0f05
+    rol a                                                             ; 9cf4: 2a          *              ; Rotate to complete mode byte
+    sta l0f06                                                         ; 9cf5: 8d 06 0f    ...            ; Store in l0f06
+    jsr parse_cmd_arg_y0                                              ; 9cf8: 20 80 ae     ..            ; Parse command argument (Y=0)
+    ldx #2                                                            ; 9cfb: a2 02       ..             ; X=2: buffer offset
+    jsr copy_arg_to_buf                                               ; 9cfd: 20 f2 ae     ..            ; Copy argument to TX buffer
+    ldy #6                                                            ; 9d00: a0 06       ..             ; Y=6: open file command
+    bit bit_test_ff_pad                                               ; 9d02: 2c 7d 94    ,}.            ; Set V flag (skip directory check)
+    sec                                                               ; 9d05: 38          8              ; Set carry
+    ror escapable                                                     ; 9d06: 66 97       f.             ; Rotate carry into escapable flag bit 7
+    jsr save_net_tx_cb_vset                                           ; 9d08: 20 9a 94     ..            ; Send open request with V set
+    bcs c9d7b                                                         ; 9d0b: b0 6e       .n             ; Carry set (error): jump to finalise
+    lda #&ff                                                          ; 9d0d: a9 ff       ..             ; A=&FF: mark as newly opened
+    ldy #&0e                                                          ; 9d0f: a0 0e       ..             ; Y=&0E: error code offset
+    sta (net_rx_ptr),y                                                ; 9d11: 91 9c       ..             ; Store &FF as error flag in RX buffer
+    lda l0f05                                                         ; 9d13: ad 05 0f    ...            ; Load handle from l0f05
+    pha                                                               ; 9d16: 48          H              ; Push handle
+    lda #4                                                            ; 9d17: a9 04       ..             ; A=4: file info sub-command
+    sta l0f05                                                         ; 9d19: 8d 05 0f    ...            ; Store sub-command
+    ldx #1                                                            ; 9d1c: a2 01       ..             ; X=1: shift filename
 ; &9d1e referenced 1 time by &9d27
 .loop_c9d1e
-    lda l0f06,x                                                       ; 9d1e: bd 06 0f    ...
-    sta l0f05,x                                                       ; 9d21: 9d 05 0f    ...
-    inx                                                               ; 9d24: e8          .
-    cmp #&0d                                                          ; 9d25: c9 0d       ..
-    bne loop_c9d1e                                                    ; 9d27: d0 f5       ..
-    ldy #&12                                                          ; 9d29: a0 12       ..
-    jsr save_net_tx_cb                                                ; 9d2b: 20 99 94     ..
-    lda fs_last_byte_flag                                             ; 9d2e: a5 bd       ..
-    and #&bf                                                          ; 9d30: 29 bf       ).
-    ora l0f05                                                         ; 9d32: 0d 05 0f    ...
-    ora #1                                                            ; 9d35: 09 01       ..
-    tay                                                               ; 9d37: a8          .
-    and #2                                                            ; 9d38: 29 02       ).
-    beq c9d5f                                                         ; 9d3a: f0 23       .#
-    pla                                                               ; 9d3c: 68          h
-    jsr alloc_fcb_slot                                                ; 9d3d: 20 fa b4     ..
-    bne c9d75                                                         ; 9d40: d0 33       .3
-    jsr verify_ws_checksum                                            ; 9d42: 20 b2 8f     ..
-    jsr set_xfer_params                                               ; 9d45: 20 81 92     ..
-    tax                                                               ; 9d48: aa          .
-    jsr mask_owner_access                                             ; 9d49: 20 12 af     ..
-    txa                                                               ; 9d4c: 8a          .
-    beq c9d7e                                                         ; 9d4d: f0 2f       ./
-    jsr save_ptr_to_os_text                                           ; 9d4f: 20 95 af     ..
-    ldy l1070                                                         ; 9d52: ac 70 10    .p.
-    beq c9ce6                                                         ; 9d55: f0 8f       ..
-    tya                                                               ; 9d57: 98          .
-    ldx #0                                                            ; 9d58: a2 00       ..
-    stx l1070                                                         ; 9d5a: 8e 70 10    .p.
-    beq c9d7b                                                         ; 9d5d: f0 1c       ..             ; ALWAYS branch
+    lda l0f06,x                                                       ; 9d1e: bd 06 0f    ...            ; Load filename byte from l0f06+X
+    sta l0f05,x                                                       ; 9d21: 9d 05 0f    ...            ; Shift down to l0f05+X
+    inx                                                               ; 9d24: e8          .              ; Advance source index
+    cmp #&0d                                                          ; 9d25: c9 0d       ..             ; Is it CR (end of filename)?
+    bne loop_c9d1e                                                    ; 9d27: d0 f5       ..             ; No: continue shifting
+    ldy #&12                                                          ; 9d29: a0 12       ..             ; Y=&12: file info request
+    jsr save_net_tx_cb                                                ; 9d2b: 20 99 94     ..            ; Send file info request
+    lda fs_last_byte_flag                                             ; 9d2e: a5 bd       ..             ; Load last byte flag
+    and #&bf                                                          ; 9d30: 29 bf       ).             ; Clear bit 6 (read/write bits)
+    ora l0f05                                                         ; 9d32: 0d 05 0f    ...            ; OR with reply access byte
+    ora #1                                                            ; 9d35: 09 01       ..             ; Set bit 0 (file is open)
+    tay                                                               ; 9d37: a8          .              ; Transfer to Y (access flags)
+    and #2                                                            ; 9d38: 29 02       ).             ; Check bit 1 (write access)
+    beq c9d5f                                                         ; 9d3a: f0 23       .#             ; No write access: check read-only
+    pla                                                               ; 9d3c: 68          h              ; Pull handle from stack
+    jsr alloc_fcb_slot                                                ; 9d3d: 20 fa b4     ..            ; Allocate FCB slot for channel
+    bne c9d75                                                         ; 9d40: d0 33       .3             ; Non-zero: FCB allocated, store flags
+    jsr verify_ws_checksum                                            ; 9d42: 20 b2 8f     ..            ; Verify workspace checksum
+    jsr set_xfer_params                                               ; 9d45: 20 81 92     ..            ; Set up transfer parameters
+    tax                                                               ; 9d48: aa          .              ; Transfer A to X
+    jsr mask_owner_access                                             ; 9d49: 20 12 af     ..            ; Set owner-only access mask
+    txa                                                               ; 9d4c: 8a          .              ; Transfer X back to A
+    beq c9d7e                                                         ; 9d4d: f0 2f       ./             ; Zero: close file, process FCBs
+    jsr save_ptr_to_os_text                                           ; 9d4f: 20 95 af     ..            ; Save text pointer for OS
+    ldy l1070                                                         ; 9d52: ac 70 10    .p.            ; Load current directory handle
+    beq c9ce6                                                         ; 9d55: f0 8f       ..             ; Zero: allocate new FCB
+    tya                                                               ; 9d57: 98          .              ; Transfer Y to A
+    ldx #0                                                            ; 9d58: a2 00       ..             ; X=0: clear directory handle
+    stx l1070                                                         ; 9d5a: 8e 70 10    .p.            ; Store zero (clear handle)
+    beq c9d7b                                                         ; 9d5d: f0 1c       ..             ; ALWAYS branch to finalise; ALWAYS branch
 
 ; &9d5f referenced 1 time by &9d3a
 .c9d5f
-    lda l0f06                                                         ; 9d5f: ad 06 0f    ...
-    ror a                                                             ; 9d62: 6a          j
-    bcs c9d71                                                         ; 9d63: b0 0c       ..
-    ror a                                                             ; 9d65: 6a          j
-    bcc c9d71                                                         ; 9d66: 90 09       ..
-    bit l0f07                                                         ; 9d68: 2c 07 0f    ,..
-    bpl c9d71                                                         ; 9d6b: 10 04       ..
-    tya                                                               ; 9d6d: 98          .
-    ora #&20 ; ' '                                                    ; 9d6e: 09 20       .
-    tay                                                               ; 9d70: a8          .
+    lda l0f06                                                         ; 9d5f: ad 06 0f    ...            ; Load access/open mode byte
+    ror a                                                             ; 9d62: 6a          j              ; Rotate right: check bit 0
+    bcs c9d71                                                         ; 9d63: b0 0c       ..             ; Carry set (bit 0): check read permission
+    ror a                                                             ; 9d65: 6a          j              ; Rotate right: check bit 1
+    bcc c9d71                                                         ; 9d66: 90 09       ..             ; Carry clear (no write): skip
+    bit l0f07                                                         ; 9d68: 2c 07 0f    ,..            ; Test bit 7 of l0f07 (lock flag)
+    bpl c9d71                                                         ; 9d6b: 10 04       ..             ; Not locked: skip
+    tya                                                               ; 9d6d: 98          .              ; Transfer Y to A (flags)
+    ora #&20 ; ' '                                                    ; 9d6e: 09 20       .              ; Set bit 5 (locked file flag)
+    tay                                                               ; 9d70: a8          .              ; Transfer back to Y
 ; &9d71 referenced 3 times by &9d63, &9d66, &9d6b
 .c9d71
-    pla                                                               ; 9d71: 68          h
-    jsr alloc_fcb_slot                                                ; 9d72: 20 fa b4     ..
+    pla                                                               ; 9d71: 68          h              ; Pull handle from stack
+    jsr alloc_fcb_slot                                                ; 9d72: 20 fa b4     ..            ; Allocate FCB slot for channel
 ; &9d75 referenced 1 time by &9d40
 .c9d75
-    tax                                                               ; 9d75: aa          .
-    tya                                                               ; 9d76: 98          .
-    sta l1040,x                                                       ; 9d77: 9d 40 10    .@.
-    txa                                                               ; 9d7a: 8a          .
+    tax                                                               ; 9d75: aa          .              ; Transfer to X
+    tya                                                               ; 9d76: 98          .              ; Transfer Y to A (flags)
+    sta l1040,x                                                       ; 9d77: 9d 40 10    .@.            ; Store flags in FCB table l1040
+    txa                                                               ; 9d7a: 8a          .              ; Transfer X back to A (handle)
 ; &9d7b referenced 2 times by &9d0b, &9d5d
 .c9d7b
-    jmp finalise_and_return                                           ; 9d7b: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; 9d7b: 4c bb 9c    L..            ; Jump to finalise and return
 
 ; &9d7e referenced 1 time by &9d4d
 .c9d7e
-    jsr process_all_fcbs                                              ; 9d7e: 20 9f b7     ..
-    tya                                                               ; 9d81: 98          .
-    bne c9d97                                                         ; 9d82: d0 13       ..
-    lda fs_options                                                    ; 9d84: a5 bb       ..
-    pha                                                               ; 9d86: 48          H
-    lda #osbyte_close_spool_exec                                      ; 9d87: a9 77       .w
+    jsr process_all_fcbs                                              ; 9d7e: 20 9f b7     ..            ; Process all matching FCBs
+    tya                                                               ; 9d81: 98          .              ; Transfer Y to A
+    bne c9d97                                                         ; 9d82: d0 13       ..             ; Non-zero channel: close specific
+    lda fs_options                                                    ; 9d84: a5 bb       ..             ; Load FS options pointer low
+    pha                                                               ; 9d86: 48          H              ; Push (save for restore)
+    lda #osbyte_close_spool_exec                                      ; 9d87: a9 77       .w             ; A=&77: OSBYTE close spool/exec files
     jsr osbyte                                                        ; 9d89: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    pla                                                               ; 9d8c: 68          h
-    sta fs_options                                                    ; 9d8d: 85 bb       ..
-    lda #0                                                            ; 9d8f: a9 00       ..
-    sta fs_last_byte_flag                                             ; 9d91: 85 bd       ..
-    sta fs_block_offset                                               ; 9d93: 85 bc       ..
-    beq c9d9d                                                         ; 9d95: f0 06       ..             ; ALWAYS branch
+    pla                                                               ; 9d8c: 68          h              ; Pull saved options pointer
+    sta fs_options                                                    ; 9d8d: 85 bb       ..             ; Restore FS options pointer
+    lda #0                                                            ; 9d8f: a9 00       ..             ; A=0: clear flags
+    sta fs_last_byte_flag                                             ; 9d91: 85 bd       ..             ; Clear last byte flag
+    sta fs_block_offset                                               ; 9d93: 85 bc       ..             ; Clear block offset
+    beq c9d9d                                                         ; 9d95: f0 06       ..             ; ALWAYS branch to send close request; ALWAYS branch
 
 ; &9d97 referenced 1 time by &9d82
 .c9d97
-    jsr check_chan_char                                               ; 9d97: 20 6a b4     j.
-    lda l1030,x                                                       ; 9d9a: bd 30 10    .0.
+    jsr check_chan_char                                               ; 9d97: 20 6a b4     j.            ; Validate channel character
+    lda l1030,x                                                       ; 9d9a: bd 30 10    .0.            ; Load FCB flag byte from l1030
 ; &9d9d referenced 1 time by &9d95
 .c9d9d
-    sta l0f05                                                         ; 9d9d: 8d 05 0f    ...
-    ldx #1                                                            ; 9da0: a2 01       ..
-    ldy #7                                                            ; 9da2: a0 07       ..
-    jsr save_net_tx_cb                                                ; 9da4: 20 99 94     ..
-    ldy fs_block_offset                                               ; 9da7: a4 bc       ..
-    bne c9db2                                                         ; 9da9: d0 07       ..
-    clv                                                               ; 9dab: b8          .
-    jsr scan_fcb_flags                                                ; 9dac: 20 51 b5     Q.
+    sta l0f05                                                         ; 9d9d: 8d 05 0f    ...            ; Store as l0f05 (file handle)
+    ldx #1                                                            ; 9da0: a2 01       ..             ; X=1: argument size
+    ldy #7                                                            ; 9da2: a0 07       ..             ; Y=7: close file command
+    jsr save_net_tx_cb                                                ; 9da4: 20 99 94     ..            ; Send close file request
+    ldy fs_block_offset                                               ; 9da7: a4 bc       ..             ; Load block offset
+    bne c9db2                                                         ; 9da9: d0 07       ..             ; Non-zero: clear single FCB
+    clv                                                               ; 9dab: b8          .              ; Clear V flag
+    jsr scan_fcb_flags                                                ; 9dac: 20 51 b5     Q.            ; Scan and clear all FCB flags
 ; &9daf referenced 3 times by &9dba, &9dcc, &9de0
 .c9daf
-    jmp return_with_last_flag                                         ; 9daf: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9daf: 4c b9 9c    L..            ; Return with last flag
 
 ; &9db2 referenced 1 time by &9da9
 .c9db2
-    lda #0                                                            ; 9db2: a9 00       ..
-    sta l1010,y                                                       ; 9db4: 99 10 10    ...
-    sta l1040,y                                                       ; 9db7: 99 40 10    .@.
-    beq c9daf                                                         ; 9dba: f0 f3       ..             ; ALWAYS branch
+    lda #0                                                            ; 9db2: a9 00       ..             ; A=0: clear FCB entry
+    sta l1010,y                                                       ; 9db4: 99 10 10    ...            ; Clear l1010 (FCB high byte)
+    sta l1040,y                                                       ; 9db7: 99 40 10    .@.            ; Clear l1040 (FCB flags)
+    beq c9daf                                                         ; 9dba: f0 f3       ..             ; ALWAYS branch to return; ALWAYS branch
 
-    beq c9dc9                                                         ; 9dbc: f0 0b       ..
-    cpx #4                                                            ; 9dbe: e0 04       ..
-    bne c9dc6                                                         ; 9dc0: d0 04       ..
-    cpy #4                                                            ; 9dc2: c0 04       ..
-    bcc c9dd3                                                         ; 9dc4: 90 0d       ..
+    beq c9dc9                                                         ; 9dbc: f0 0b       ..             ; Z set: handle OSARGS 0
+    cpx #4                                                            ; 9dbe: e0 04       ..             ; Compare X with 4 (number of args)
+    bne c9dc6                                                         ; 9dc0: d0 04       ..             ; Not 4: check for error
+    cpy #4                                                            ; 9dc2: c0 04       ..             ; Compare Y with 4
+    bcc c9dd3                                                         ; 9dc4: 90 0d       ..             ; Below 4: handle special OSARGS
 ; &9dc6 referenced 1 time by &9dc0
 .c9dc6
-    dex                                                               ; 9dc6: ca          .
-    bne c9dce                                                         ; 9dc7: d0 05       ..
+    dex                                                               ; 9dc6: ca          .              ; Decrement X
+    bne c9dce                                                         ; 9dc7: d0 05       ..             ; X was 1: store display flag
 ; &9dc9 referenced 1 time by &9dbc
 .c9dc9
-    sty l0e06                                                         ; 9dc9: 8c 06 0e    ...
-    bcc c9daf                                                         ; 9dcc: 90 e1       ..
+    sty l0e06                                                         ; 9dc9: 8c 06 0e    ...            ; Store Y in display control flag l0e06
+    bcc c9daf                                                         ; 9dcc: 90 e1       ..             ; Carry clear: return with flag
 ; &9dce referenced 1 time by &9dc7
 .c9dce
-    lda #7                                                            ; 9dce: a9 07       ..
-    jmp classify_reply_error                                          ; 9dd0: 4c 38 96    L8.
+    lda #7                                                            ; 9dce: a9 07       ..             ; A=7: error code
+    jmp classify_reply_error                                          ; 9dd0: 4c 38 96    L8.            ; Jump to classify reply error
 
 ; &9dd3 referenced 1 time by &9dc4
 .c9dd3
-    sty l0f05                                                         ; 9dd3: 8c 05 0f    ...
-    ldy #&16                                                          ; 9dd6: a0 16       ..
-    jsr save_net_tx_cb                                                ; 9dd8: 20 99 94     ..
-    ldy fs_block_offset                                               ; 9ddb: a4 bc       ..
-    sty l0e05                                                         ; 9ddd: 8c 05 0e    ...
-    bpl c9daf                                                         ; 9de0: 10 cd       ..
-    jsr verify_ws_checksum                                            ; 9de2: 20 b2 8f     ..
-    pha                                                               ; 9de5: 48          H
-    lda fs_block_offset                                               ; 9de6: a5 bc       ..
-    pha                                                               ; 9de8: 48          H
-    stx l10c9                                                         ; 9de9: 8e c9 10    ...
-    jsr find_matching_fcb                                             ; 9dec: 20 38 b7     8.
-    beq c9dfd                                                         ; 9def: f0 0c       ..
-    lda l1000,y                                                       ; 9df1: b9 00 10    ...
-    cmp l1098,x                                                       ; 9df4: dd 98 10    ...
-    bcc c9dfd                                                         ; 9df7: 90 04       ..
-    ldx #&ff                                                          ; 9df9: a2 ff       ..
-    bmi c9dff                                                         ; 9dfb: 30 02       0.             ; ALWAYS branch
+    sty l0f05                                                         ; 9dd3: 8c 05 0f    ...            ; Store Y in l0f05
+    ldy #&16                                                          ; 9dd6: a0 16       ..             ; Y=&16: OSARGS save command
+    jsr save_net_tx_cb                                                ; 9dd8: 20 99 94     ..            ; Send OSARGS request
+    ldy fs_block_offset                                               ; 9ddb: a4 bc       ..             ; Reload block offset
+    sty l0e05                                                         ; 9ddd: 8c 05 0e    ...            ; Store in l0e05
+    bpl c9daf                                                         ; 9de0: 10 cd       ..             ; Positive: return with flag
+    jsr verify_ws_checksum                                            ; 9de2: 20 b2 8f     ..            ; Verify workspace checksum
+    pha                                                               ; 9de5: 48          H              ; Push result on stack
+    lda fs_block_offset                                               ; 9de6: a5 bc       ..             ; Load block offset
+    pha                                                               ; 9de8: 48          H              ; Push block offset
+    stx l10c9                                                         ; 9de9: 8e c9 10    ...            ; Store X in l10c9
+    jsr find_matching_fcb                                             ; 9dec: 20 38 b7     8.            ; Find matching FCB entry
+    beq c9dfd                                                         ; 9def: f0 0c       ..             ; Zero: no match found
+    lda l1000,y                                                       ; 9df1: b9 00 10    ...            ; Load FCB low byte from l1000
+    cmp l1098,x                                                       ; 9df4: dd 98 10    ...            ; Compare with stored offset l1098
+    bcc c9dfd                                                         ; 9df7: 90 04       ..             ; Below stored: no match
+    ldx #&ff                                                          ; 9df9: a2 ff       ..             ; X=&FF: mark as found (all bits set)
+    bmi c9dff                                                         ; 9dfb: 30 02       0.             ; ALWAYS branch (negative); ALWAYS branch
 
 ; &9dfd referenced 2 times by &9def, &9df7
 .c9dfd
-    ldx #0                                                            ; 9dfd: a2 00       ..
+    ldx #0                                                            ; 9dfd: a2 00       ..             ; X=0: mark as not found
 ; &9dff referenced 1 time by &9dfb
 .c9dff
-    pla                                                               ; 9dff: 68          h
-    tay                                                               ; 9e00: a8          .
-    pla                                                               ; 9e01: 68          h
-    rts                                                               ; 9e02: 60          `
+    pla                                                               ; 9dff: 68          h              ; Restore block offset from stack
+    tay                                                               ; 9e00: a8          .              ; Transfer to Y
+    pla                                                               ; 9e01: 68          h              ; Restore result from stack
+    rts                                                               ; 9e02: 60          `              ; Return
 
 ; &9e03 referenced 1 time by &9f48
 .update_addr_from_offset9
