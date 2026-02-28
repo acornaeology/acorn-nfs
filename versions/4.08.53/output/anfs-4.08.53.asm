@@ -1067,9 +1067,9 @@ service_handler_lo = service_entry+1
 ; &802d referenced 1 time by &8028
 .c802d
     txa                                                               ; 802d: 8a          .              ; Save X on stack
-    pha                                                               ; 802e: 48          H
+    pha                                                               ; 802e: 48          H              ; Push saved X
     tya                                                               ; 802f: 98          .              ; Save Y on stack
-    pha                                                               ; 8030: 48          H
+    pha                                                               ; 8030: 48          H              ; Push saved Y
     lda system_via_acr                                                ; 8031: ad 4b fe    .K.            ; Read ACR for shift register restore
     and #&e3                                                          ; 8034: 29 e3       ).             ; Clear SR mode bits (2-4)
     ora ws_0d64                                                       ; 8036: 0d 64 0d    .d.            ; Restore saved SR mode from ws_0d64
@@ -1117,14 +1117,14 @@ service_handler_lo = service_entry+1
     stx ws_0d62                                                       ; 8073: 8e 62 0d    .b.            ; Clear Econet init flag before setup
     jsr osbyte_x0                                                     ; 8076: 20 6d 8e     m.            ; OSBYTE with X=0, Y=&FF.
 ; Called from dispatch table for specific OSBYTE calls.
-    stx l0d63                                                         ; 8079: 8e 63 0d    .c.
+    stx l0d63                                                         ; 8079: 8e 63 0d    .c.            ; Store Tube presence flag from OSBYTE &EA
     lda #&8f                                                          ; 807c: a9 8f       ..             ; OSBYTE &8F: issue service request
     ldx #&0c                                                          ; 807e: a2 0c       ..             ; X=&0C: NMI claim service
     jsr osbyte_yff                                                    ; 8080: 20 6f 8e     o.            ; OSBYTE with Y=&FF.
 ; Entry with X already set by caller.
-    ldy #5                                                            ; 8083: a0 05       ..             ; Y=&FF: pass to adlc_init_workspace
-    cpy #5                                                            ; 8085: c0 05       ..
-    bne return_1                                                      ; 8087: d0 29       .)
+    ldy #5                                                            ; 8083: a0 05       ..             ; Y=5: NMI claim service number
+    cpy #5                                                            ; 8085: c0 05       ..             ; Check if NMI service was claimed (Y changed)
+    bne return_1                                                      ; 8087: d0 29       .)             ; Service claimed by other ROM: skip init
 ; ***************************************************************************************
 ; Copy NMI shim code from ROM to &0D00 and
 ; initialise Econet NMI workspace variables.
@@ -1139,11 +1139,11 @@ service_handler_lo = service_entry+1
     bne copy_nmi_shim                                                 ; 8092: d0 f7       ..             ; Loop until all 32 bytes copied
     lda romsel_copy                                                   ; 8094: a5 f4       ..             ; Patch current ROM bank into NMI shim
     sta l0d07                                                         ; 8096: 8d 07 0d    ...            ; Self-modifying code: ROM bank at &0D07
-    sty tx_src_net                                                    ; 8099: 8c 23 0d    .#.
-    sty need_release_tube                                             ; 809c: 84 98       ..
-    sty ws_0d65                                                       ; 809e: 8c 65 0d    .e.
-    ldy station_id_disable_net_nmis                                   ; 80a1: ac 18 fe    ...
-    sty tx_src_stn                                                    ; 80a4: 8c 22 0d    .".
+    sty tx_src_net                                                    ; 8099: 8c 23 0d    .#.            ; Clear source network (Y=0 from copy loop)
+    sty need_release_tube                                             ; 809c: 84 98       ..             ; Clear Tube release flag
+    sty ws_0d65                                                       ; 809e: 8c 65 0d    .e.            ; Clear TX completion handler index
+    ldy station_id_disable_net_nmis                                   ; 80a1: ac 18 fe    ...            ; Read station ID (and disable NMIs)
+    sty tx_src_stn                                                    ; 80a4: 8c 22 0d    .".            ; Set own station as TX source
     lda #&80                                                          ; 80a7: a9 80       ..             ; &80 = Econet initialised
     sta ws_0d60                                                       ; 80a9: 8d 60 0d    .`.            ; Mark TX as complete (ready)
     sta ws_0d62                                                       ; 80ac: 8d 62 0d    .b.            ; Mark Econet as initialised
@@ -1319,7 +1319,7 @@ service_handler_lo = service_entry+1
 .scout_port_match
     iny                                                               ; 818a: c8          .              ; Y=3: advance to network byte
     lda (port_ws_offset),y                                            ; 818b: b1 a6       ..             ; Read network filter from slot (offset 3)
-    beq port_match_found                                              ; 818d: f0 20       .
+    beq port_match_found                                              ; 818d: f0 20       .              ; Zero = accept any network
     cmp l0d2f                                                         ; 818f: cd 2f 0d    ./.            ; Check if source network matches
     beq port_match_found                                              ; 8192: f0 1b       ..             ; Network matches or zero = accept
 ; &8194 referenced 3 times by &8174, &817e, &8188
@@ -1551,12 +1551,18 @@ service_handler_lo = service_entry+1
 .rx_tube_data
     bpl data_rx_tube_complete                                         ; 8299: 10 1e       ..             ; RDA clear: no more data, frame complete
     lda econet_data_continue_frame                                    ; 829b: ad a2 fe    ...            ; Read data byte from ADLC RX FIFO
-    jsr sub_c8525                                                     ; 829e: 20 25 85     %.            ; Check buffer limits and transfer size
+    jsr advance_buffer_ptr                                            ; 829e: 20 25 85     %.            ; Check buffer limits and transfer size; Increment the 4-byte buffer pointer at
+; port_buf_len/open_port_buf (&A2-&A5)
+; by one. Used to advance the RX data
+; write position after storing a byte.
     beq read_last_rx_byte                                             ; 82a1: f0 e1       ..             ; Zero: buffer full, handle as error
     sta tube_data_register_3                                          ; 82a3: 8d e5 fe    ...            ; Send byte to Tube data register 3
     lda econet_data_continue_frame                                    ; 82a6: ad a2 fe    ...            ; Read second data byte (paired transfer)
     sta tube_data_register_3                                          ; 82a9: 8d e5 fe    ...            ; Send second byte to Tube
-    jsr sub_c8525                                                     ; 82ac: 20 25 85     %.            ; Check limits after byte pair
+    jsr advance_buffer_ptr                                            ; 82ac: 20 25 85     %.            ; Check limits after byte pair; Increment the 4-byte buffer pointer at
+; port_buf_len/open_port_buf (&A2-&A5)
+; by one. Used to advance the RX data
+; write position after storing a byte.
     beq data_rx_tube_complete                                         ; 82af: f0 08       ..             ; Zero: Tube transfer complete
     lda econet_control23_or_status2                                   ; 82b1: ad a1 fe    ...            ; Re-read SR2 for next byte pair
     bne rx_tube_data                                                  ; 82b4: d0 e3       ..             ; More data available: continue loop
@@ -1772,23 +1778,23 @@ service_handler_lo = service_entry+1
     lda l0d30                                                         ; 83ca: ad 30 0d    .0.            ; Load control byte from scout
     ora #&80                                                          ; 83cd: 09 80       ..             ; Set bit7 = reception complete flag
     sta (port_ws_offset),y                                            ; 83cf: 91 a6       ..             ; Store to RXCB (marks CB as complete)
-    lda l0d6c                                                         ; 83d1: ad 6c 0d    .l.
-    ror a                                                             ; 83d4: 6a          j
-    bcc c83eb                                                         ; 83d5: 90 14       ..
-    sec                                                               ; 83d7: 38          8
-    lda port_ws_offset                                                ; 83d8: a5 a6       ..
+    lda l0d6c                                                         ; 83d1: ad 6c 0d    .l.            ; Load callback event flags
+    ror a                                                             ; 83d4: 6a          j              ; Shift bit 0 into carry
+    bcc c83eb                                                         ; 83d5: 90 14       ..             ; Bit 0 clear: no callback, skip to reset
+    sec                                                               ; 83d7: 38          8              ; Set carry for subtraction
+    lda port_ws_offset                                                ; 83d8: a5 a6       ..             ; Load RXCB workspace pointer low byte
 ; &83da referenced 1 time by &83dd
 .loop_c83da
-    iny                                                               ; 83da: c8          .
-    sbc #&0c                                                          ; 83db: e9 0c       ..
-    bcs loop_c83da                                                    ; 83dd: b0 fb       ..
-    dey                                                               ; 83df: 88          .
-    cpy #3                                                            ; 83e0: c0 03       ..
-    bcc c83eb                                                         ; 83e2: 90 07       ..
+    iny                                                               ; 83da: c8          .              ; Count slots
+    sbc #&0c                                                          ; 83db: e9 0c       ..             ; Subtract 12 bytes per RXCB slot
+    bcs loop_c83da                                                    ; 83dd: b0 fb       ..             ; Loop until pointer exhausted
+    dey                                                               ; 83df: 88          .              ; Adjust for off-by-one
+    cpy #3                                                            ; 83e0: c0 03       ..             ; Check slot index >= 3
+    bcc c83eb                                                         ; 83e2: 90 07       ..             ; Slot < 3: no callback, skip to reset
     jsr discard_reset_listen                                          ; 83e4: 20 f8 83     ..            ; Discard current frame. Reset ADLC
 ; to listen mode and return.
-    tya                                                               ; 83e7: 98          .
-    jmp c8505                                                         ; 83e8: 4c 05 85    L..
+    tya                                                               ; 83e7: 98          .              ; Pass slot index as callback parameter
+    jmp c8505                                                         ; 83e8: 4c 05 85    L..            ; Jump to TX completion with slot index
 
 ; &83eb referenced 6 times by &8236, &83b4, &83d5, &83e2, &886b, &88d5
 .c83eb
@@ -1801,9 +1807,9 @@ service_handler_lo = service_entry+1
 ; status flags cleared.
 ; &83f1 referenced 2 times by &80e3, &80fc
 .c83f1
-    lda #&b3                                                          ; 83f1: a9 b3       ..
-    ldy #&80                                                          ; 83f3: a0 80       ..
-    jmp set_nmi_vector                                                ; 83f5: 4c 0e 0d    L..
+    lda #&b3                                                          ; 83f1: a9 b3       ..             ; A=&B3: low byte of nmi_rx_scout
+    ldy #&80                                                          ; 83f3: a0 80       ..             ; Y=&80: high byte of nmi_rx_scout
+    jmp set_nmi_vector                                                ; 83f5: 4c 0e 0d    L..            ; Install nmi_rx_scout as NMI handler
 
 ; ***************************************************************************************
 ; Discard current frame. Reset ADLC
@@ -1821,7 +1827,7 @@ service_handler_lo = service_entry+1
 ; held. Clear the release-needed flag.
 ; &8405 referenced 1 time by &8400
 .return_2
-    rts                                                               ; 8405: 60          `
+    rts                                                               ; 8405: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Copy received scout data into the RXCB
@@ -1865,7 +1871,10 @@ service_handler_lo = service_entry+1
 .copy_scout_via_tube
     lda l0d2e,x                                                       ; 842d: bd 2e 0d    ...            ; Tube path: load scout data byte
     sta tube_data_register_3                                          ; 8430: 8d e5 fe    ...            ; Send byte to Tube via R3
-    jsr sub_c8525                                                     ; 8433: 20 25 85     %.            ; Increment buffer position counters
+    jsr advance_buffer_ptr                                            ; 8433: 20 25 85     %.            ; Increment buffer position counters; Increment the 4-byte buffer pointer at
+; port_buf_len/open_port_buf (&A2-&A5)
+; by one. Used to advance the RX data
+; write position after storing a byte.
     beq check_scout_done                                              ; 8436: f0 3d       .=             ; Counter overflow: handle end of buffer
     inx                                                               ; 8438: e8          .              ; Next scout data byte
     cpx #&0c                                                          ; 8439: e0 0c       ..             ; Done all scout data?
@@ -2025,18 +2034,24 @@ service_handler_lo = service_entry+1
 .imm_op_discard
     jmp c83ee                                                         ; 8522: 4c ee 83    L..            ; Return to idle listen mode
 
+; ***************************************************************************************
+; Increment the 4-byte buffer pointer at
+; port_buf_len/open_port_buf (&A2-&A5)
+; by one. Used to advance the RX data
+; write position after storing a byte.
+; ***************************************************************************************
 ; &8525 referenced 3 times by &829e, &82ac, &8433
-.sub_c8525
-    inc port_buf_len                                                  ; 8525: e6 a2       ..
-    bne return_3                                                      ; 8527: d0 0a       ..
-    inc port_buf_len_hi                                               ; 8529: e6 a3       ..
-    bne return_3                                                      ; 852b: d0 06       ..
-    inc open_port_buf                                                 ; 852d: e6 a4       ..
-    bne return_3                                                      ; 852f: d0 02       ..
-    inc open_port_buf_hi                                              ; 8531: e6 a5       ..
+.advance_buffer_ptr
+    inc port_buf_len                                                  ; 8525: e6 a2       ..             ; Increment buffer length low byte
+    bne return_3                                                      ; 8527: d0 0a       ..             ; No overflow: done
+    inc port_buf_len_hi                                               ; 8529: e6 a3       ..             ; Increment buffer length high byte
+    bne return_3                                                      ; 852b: d0 06       ..             ; No overflow: done
+    inc open_port_buf                                                 ; 852d: e6 a4       ..             ; Increment buffer pointer low byte
+    bne return_3                                                      ; 852f: d0 02       ..             ; No overflow: done
+    inc open_port_buf_hi                                              ; 8531: e6 a5       ..             ; Increment buffer pointer high byte
 ; &8533 referenced 3 times by &8527, &852b, &852f
 .return_3
-    rts                                                               ; 8533: 60          `
+    rts                                                               ; 8533: 60          `              ; Return
 
     equs "8AO[r"                                                      ; 8534: 38 41 4f... 8AO
 .tx_done_jsr
@@ -2158,7 +2173,7 @@ service_handler_lo = service_entry+1
     ldy #&e7                                                          ; 85ef: a0 e7       ..             ; Y=&E7: CR2 value for TX prep (RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
 ; &85f1 referenced 3 times by &8617, &861c, &8621
 .c85f1
-    lda #4                                                            ; 85f1: a9 04       ..
+    lda #4                                                            ; 85f1: a9 04       ..             ; A=&04: INACTIVE bit mask for SR2 test
 .test_inactive_retry
     php                                                               ; 85f3: 08          .              ; Save interrupt state
     sei                                                               ; 85f4: 78          x              ; Disable interrupts for ADLC access
@@ -2169,9 +2184,9 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 .intoff_test_inactive
 l85f6 = intoff_test_inactive+1
-    bit station_id_disable_net_nmis                                   ; 85f5: 2c 18 fe    ,..            ; INTOFF -- disable NMIs; INTOFF again (belt-and-braces)
+    bit station_id_disable_net_nmis                                   ; 85f5: 2c 18 fe    ,..            ; INTOFF -- disable NMIs
 ; &85f6 referenced 1 time by &8672
-    bit station_id_disable_net_nmis                                   ; 85f8: 2c 18 fe    ,..
+    bit station_id_disable_net_nmis                                   ; 85f8: 2c 18 fe    ,..            ; INTOFF again (belt-and-braces)
 .test_line_idle
     bit econet_control23_or_status2                                   ; 85fb: 2c a1 fe    ,..            ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 85fe: f0 0f       ..             ; INACTIVE not set -- re-enable NMIs and loop
@@ -2759,14 +2774,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; &88e8 referenced 3 times by &81b4, &84ce, &86d6
 .tx_calc_transfer
-    ldy #7                                                            ; 88e8: a0 07       ..             ; Load RXCB[6] (buffer addr byte 2)
-    lda (port_ws_offset),y                                            ; 88ea: b1 a6       ..
-    cmp #&ff                                                          ; 88ec: c9 ff       ..             ; Both &FF = no buffer?
-    bne c88f7                                                         ; 88ee: d0 07       ..
+    ldy #7                                                            ; 88e8: a0 07       ..             ; Y=7: offset to RXCB buffer addr byte 3
+    lda (port_ws_offset),y                                            ; 88ea: b1 a6       ..             ; Read RXCB[7] (buffer addr high byte)
+    cmp #&ff                                                          ; 88ec: c9 ff       ..             ; Compare to &FF
+    bne c88f7                                                         ; 88ee: d0 07       ..             ; Not &FF: normal buffer, skip Tube check
     dey                                                               ; 88f0: 88          .              ; Y=&06
-    lda (port_ws_offset),y                                            ; 88f1: b1 a6       ..
-    cmp #&fe                                                          ; 88f3: c9 fe       ..
-    bcs fallback_calc_transfer                                        ; 88f5: b0 44       .D
+    lda (port_ws_offset),y                                            ; 88f1: b1 a6       ..             ; Read RXCB[6] (buffer addr byte 2)
+    cmp #&fe                                                          ; 88f3: c9 fe       ..             ; Check if addr byte 2 >= &FE (Tube range)
+    bcs fallback_calc_transfer                                        ; 88f5: b0 44       .D             ; Tube/IO address: use fallback path
 ; &88f7 referenced 1 time by &88ee
 .c88f7
     lda l0d63                                                         ; 88f7: ad 63 0d    .c.            ; Transmit in progress?
@@ -2888,7 +2903,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 .save_econet_state
     bit station_id_disable_net_nmis                                   ; 898c: 2c 18 fe    ,..            ; INTOFF: disable NMIs
-    bit station_id_disable_net_nmis                                   ; 898f: 2c 18 fe    ,..
+    bit station_id_disable_net_nmis                                   ; 898f: 2c 18 fe    ,..            ; INTOFF again (belt-and-braces)
     sta ws_0d60                                                       ; 8992: 8d 60 0d    .`.            ; TX not in progress
     sta ws_0d62                                                       ; 8995: 8d 62 0d    .b.            ; Econet not initialised
     ldy #5                                                            ; 8998: a0 05       ..             ; Y=5: service call workspace page
@@ -11239,6 +11254,7 @@ save pydis_start, pydis_end
 ;     ws_0d62:                                  4
 ;     zp_work_2:                                4
 ;     adlc_full_reset:                          3
+;     advance_buffer_ptr:                       3
 ;     brk_ptr:                                  3
 ;     c83ee:                                    3
 ;     c85f1:                                    3
@@ -11295,7 +11311,6 @@ save pydis_start, pydis_end
 ;     return_9:                                 3
 ;     rx_complete_update_rxcb:                  3
 ;     rx_remote_addr:                           3
-;     sub_c8525:                                3
 ;     sub_c8afa:                                3
 ;     sub_c9244:                                3
 ;     sub_ca08f:                                3
@@ -13306,7 +13321,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     return_9
 ;     sub_c0421
-;     sub_c8525
 ;     sub_c8ae2
 ;     sub_c8afa
 ;     sub_c8c28
