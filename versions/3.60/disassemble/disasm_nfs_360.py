@@ -8006,7 +8006,7 @@ comment(0x9EB0, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x9EB2, "&80: completion flag for &0D3A", inline=True)
 comment(0x9EB4, "Signal TX complete", inline=True)
 comment(0x9EB7, "Full ADLC reset and return to idle listen", inline=True)
-comment(0x9EBA, "No RDA -- error", inline=True)
+comment(0x9EBA, "Unreferenced data", inline=True)
 
 
 # ============================================================

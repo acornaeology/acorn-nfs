@@ -7972,7 +7972,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp discard_reset_listen                                          ; 9eb7: 4c db 99    L..            ; Full ADLC reset and return to idle listen
 
 ; Unreferenced data block (purpose unknown)
-    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9eba: 0e 0e 0a... ...            ; No RDA -- error
+    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1    ; 9eba: 0e 0e 0a... ...            ; Unreferenced data
     equb &81                                                          ; 9ec9: 81          .
 
 ; ***************************************************************************************
