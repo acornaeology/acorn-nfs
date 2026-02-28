@@ -4744,368 +4744,368 @@ ws_init_data = loop_c8f29+2
 ; resets workspace state.
 ; ***************************************************************************************
 .cmd_bye
-    ldy #0                                                            ; 948a: a0 00       ..
-    jsr process_all_fcbs                                              ; 948c: 20 9f b7     ..
-    lda #osbyte_close_spool_exec                                      ; 948f: a9 77       .w
+    ldy #0                                                            ; 948a: a0 00       ..             ; Y=0: close all files
+    jsr process_all_fcbs                                              ; 948c: 20 9f b7     ..            ; Process all file control blocks
+    lda #osbyte_close_spool_exec                                      ; 948f: a9 77       .w             ; OSBYTE &77: close spool/exec
     jsr osbyte                                                        ; 9491: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    jsr close_all_net_chans                                           ; 9494: 20 4a b5     J.
-    ldy #&17                                                          ; 9497: a0 17       ..
+    jsr close_all_net_chans                                           ; 9494: 20 4a b5     J.            ; Close all network channels
+    ldy #&17                                                          ; 9497: a0 17       ..             ; Y=&17: *Bye function code
 ; &9499 referenced 26 times by &8e0e, &940f, &9432, &9445, &9b4b, &9c34, &9c44, &9c92, &9d2b, &9da4, &9dd8, &9e70, &9e93, &9f57, &a012, &a1be, &a1e6, &a52a, &ad2f, &ada6, &ade4, &ae53, &b365, &b406, &b6c9, &b8c8
 .save_net_tx_cb
-    clv                                                               ; 9499: b8          .
+    clv                                                               ; 9499: b8          .              ; Clear V (standard mode)
 ; &949a referenced 3 times by &9b32, &9d08, &af62
 .save_net_tx_cb_vset
-    lda l0e02                                                         ; 949a: ad 02 0e    ...
-    sta l0f02                                                         ; 949d: 8d 02 0f    ...
+    lda l0e02                                                         ; 949a: ad 02 0e    ...            ; Copy FS station to TX control block
+    sta l0f02                                                         ; 949d: 8d 02 0f    ...            ; Store in TXCB
 ; &94a0 referenced 1 time by &9488
 .txcb_copy_carry_clr
-    clc                                                               ; 94a0: 18          .
+    clc                                                               ; 94a0: 18          .              ; Clear carry
 ; &94a1 referenced 1 time by &9485
 .txcb_copy_carry_set
-    php                                                               ; 94a1: 08          .
-    sty l0f01                                                         ; 94a2: 8c 01 0f    ...
-    ldy #1                                                            ; 94a5: a0 01       ..
+    php                                                               ; 94a1: 08          .              ; Save flags (carry = mode)
+    sty l0f01                                                         ; 94a2: 8c 01 0f    ...            ; Store function code in TXCB
+    ldy #1                                                            ; 94a5: a0 01       ..             ; Copy 2 bytes (indices 0-1)
 ; &94a7 referenced 1 time by &94ae
 .loop_c94a7
-    lda l0e03,y                                                       ; 94a7: b9 03 0e    ...
-    sta l0f03,y                                                       ; 94aa: 99 03 0f    ...
-    dey                                                               ; 94ad: 88          .
-    bpl loop_c94a7                                                    ; 94ae: 10 f7       ..
-    bit l1071                                                         ; 94b0: 2c 71 10    ,q.
-    bvs c94bf                                                         ; 94b3: 70 0a       p.
-    bpl c94c5                                                         ; 94b5: 10 0e       ..
-    lda l0e04                                                         ; 94b7: ad 04 0e    ...
-    sta l0f03                                                         ; 94ba: 8d 03 0f    ...
+    lda l0e03,y                                                       ; 94a7: b9 03 0e    ...            ; Load source byte
+    sta l0f03,y                                                       ; 94aa: 99 03 0f    ...            ; Store to TXCB
+    dey                                                               ; 94ad: 88          .              ; Next byte
+    bpl loop_c94a7                                                    ; 94ae: 10 f7       ..             ; Loop until all copied
+    bit l1071                                                         ; 94b0: 2c 71 10    ,q.            ; Test library flag bits 6-7
+    bvs c94bf                                                         ; 94b3: 70 0a       p.             ; Bit 6 set: use station as port
+    bpl c94c5                                                         ; 94b5: 10 0e       ..             ; Bit 7 clear: skip port override
+    lda l0e04                                                         ; 94b7: ad 04 0e    ...            ; Bit 7 set: load alternative port
+    sta l0f03                                                         ; 94ba: 8d 03 0f    ...            ; Override TXCB port byte
     bvc c94c5                                                         ; 94bd: 50 06       P.             ; ALWAYS branch
 
 ; &94bf referenced 1 time by &94b3
 .c94bf
-    lda l0e02                                                         ; 94bf: ad 02 0e    ...
-    sta l0f03                                                         ; 94c2: 8d 03 0f    ...
+    lda l0e02                                                         ; 94bf: ad 02 0e    ...            ; Bit 6: load station byte
+    sta l0f03                                                         ; 94c2: 8d 03 0f    ...            ; Use station as TXCB port
 ; &94c5 referenced 2 times by &94b5, &94bd
 .c94c5
-    plp                                                               ; 94c5: 28          (
+    plp                                                               ; 94c5: 28          (              ; Restore flags (carry = mode)
 ; &94c6 referenced 1 time by &9fb0
 .prep_send_tx_cb
-    php                                                               ; 94c6: 08          .
-    lda #&90                                                          ; 94c7: a9 90       ..
-    sta l0f00                                                         ; 94c9: 8d 00 0f    ...
-    jsr init_txcb                                                     ; 94cc: 20 5f 94     _.
-    txa                                                               ; 94cf: 8a          .
-    adc #5                                                            ; 94d0: 69 05       i.
-    sta txcb_end                                                      ; 94d2: 85 c8       ..
-    plp                                                               ; 94d4: 28          (
-    bcs c94f1                                                         ; 94d5: b0 1a       ..
-    php                                                               ; 94d7: 08          .
-    jsr init_tx_ptr_and_send                                          ; 94d8: 20 22 98     ".
-    plp                                                               ; 94db: 28          (
+    php                                                               ; 94c6: 08          .              ; Save flags
+    lda #&90                                                          ; 94c7: a9 90       ..             ; Port &90: FS command port
+    sta l0f00                                                         ; 94c9: 8d 00 0f    ...            ; Set reply port in TXCB
+    jsr init_txcb                                                     ; 94cc: 20 5f 94     _.            ; Initialise TXCB workspace
+    txa                                                               ; 94cf: 8a          .              ; Get TXCB data end offset
+    adc #5                                                            ; 94d0: 69 05       i.             ; Add 5 for header size
+    sta txcb_end                                                      ; 94d2: 85 c8       ..             ; Set TXCB end pointer
+    plp                                                               ; 94d4: 28          (              ; Restore flags
+    bcs c94f1                                                         ; 94d5: b0 1a       ..             ; C set: send disconnect instead
+    php                                                               ; 94d7: 08          .              ; Save flags
+    jsr init_tx_ptr_and_send                                          ; 94d8: 20 22 98     ".            ; Initialise TX pointer and send
+    plp                                                               ; 94db: 28          (              ; Restore flags
 ; &94dc referenced 2 times by &9a0b, &9f43
 .recv_and_process_reply
-    php                                                               ; 94dc: 08          .
-    jsr init_txcb_bye                                                 ; 94dd: 20 51 94     Q.
-    jsr wait_net_tx_ack                                               ; 94e0: 20 c7 95     ..
-    plp                                                               ; 94e3: 28          (
+    php                                                               ; 94dc: 08          .              ; Save flags
+    jsr init_txcb_bye                                                 ; 94dd: 20 51 94     Q.            ; Set up receive TXCB
+    jsr wait_net_tx_ack                                               ; 94e0: 20 c7 95     ..            ; Wait for TX acknowledgment
+    plp                                                               ; 94e3: 28          (              ; Restore flags
 ; &94e4 referenced 1 time by &94f8
 .loop_c94e4
-    iny                                                               ; 94e4: c8          .
-    lda (txcb_start),y                                                ; 94e5: b1 c4       ..
-    tax                                                               ; 94e7: aa          .
-    beq return_15                                                     ; 94e8: f0 06       ..
-    bvc c94ee                                                         ; 94ea: 50 02       P.
-    adc #&2a ; '*'                                                    ; 94ec: 69 2a       i*
+    iny                                                               ; 94e4: c8          .              ; Advance to next reply byte
+    lda (txcb_start),y                                                ; 94e5: b1 c4       ..             ; Load reply byte
+    tax                                                               ; 94e7: aa          .              ; Save in X
+    beq return_15                                                     ; 94e8: f0 06       ..             ; Zero: no more replies, return
+    bvc c94ee                                                         ; 94ea: 50 02       P.             ; V clear: use code directly
+    adc #&2a ; '*'                                                    ; 94ec: 69 2a       i*             ; V set: adjust reply code (+&2B)
 ; &94ee referenced 1 time by &94ea
 .c94ee
-    bne c94fa                                                         ; 94ee: d0 0a       ..
+    bne c94fa                                                         ; 94ee: d0 0a       ..             ; Non-zero: process reply
 ; &94f0 referenced 2 times by &94e8, &955e
 .return_15
-    rts                                                               ; 94f0: 60          `
+    rts                                                               ; 94f0: 60          `              ; Return
 
 ; &94f1 referenced 1 time by &94d5
 .c94f1
-    pla                                                               ; 94f1: 68          h
-    ldx #&c0                                                          ; 94f2: a2 c0       ..
-    iny                                                               ; 94f4: c8          .
-    jsr send_disconnect_reply                                         ; 94f5: 20 12 ac     ..
-    bcc loop_c94e4                                                    ; 94f8: 90 ea       ..
+    pla                                                               ; 94f1: 68          h              ; Discard saved flags
+    ldx #&c0                                                          ; 94f2: a2 c0       ..             ; X=&C0: disconnect command
+    iny                                                               ; 94f4: c8          .              ; Advance reply offset
+    jsr send_disconnect_reply                                         ; 94f5: 20 12 ac     ..            ; Send disconnect reply
+    bcc loop_c94e4                                                    ; 94f8: 90 ea       ..             ; Successful: process next reply
 ; &94fa referenced 1 time by &94ee
 .c94fa
-    stx l0e09                                                         ; 94fa: 8e 09 0e    ...
-    lda l0e07                                                         ; 94fd: ad 07 0e    ...
-    bne c9506                                                         ; 9500: d0 04       ..
-    cpx #&bf                                                          ; 9502: e0 bf       ..
-    bne c953b                                                         ; 9504: d0 35       .5
+    stx l0e09                                                         ; 94fa: 8e 09 0e    ...            ; Store reply status code
+    lda l0e07                                                         ; 94fd: ad 07 0e    ...            ; Load pending operation marker
+    bne c9506                                                         ; 9500: d0 04       ..             ; Pending: go to data loss check
+    cpx #&bf                                                          ; 9502: e0 bf       ..             ; Reply &BF (normal bye response)?
+    bne c953b                                                         ; 9504: d0 35       .5             ; No: build error from reply
 ; &9506 referenced 1 time by &9500
 .c9506
-    lda #&40 ; '@'                                                    ; 9506: a9 40       .@
-    pha                                                               ; 9508: 48          H
-    ldx #&0f                                                          ; 9509: a2 0f       ..
+    lda #&40 ; '@'                                                    ; 9506: a9 40       .@             ; A=&40: initial data-loss flag
+    pha                                                               ; 9508: 48          H              ; Push data-loss accumulator
+    ldx #&0f                                                          ; 9509: a2 0f       ..             ; Scan 16 channel entries (15 to 0)
 ; &950b referenced 1 time by &9519
 .loop_c950b
-    pla                                                               ; 950b: 68          h
-    ora l10b8,x                                                       ; 950c: 1d b8 10    ...
-    pha                                                               ; 950f: 48          H
-    lda l10b8,x                                                       ; 9510: bd b8 10    ...
-    and #&c0                                                          ; 9513: 29 c0       ).
-    sta l10b8,x                                                       ; 9515: 9d b8 10    ...
-    dex                                                               ; 9518: ca          .
-    bpl loop_c950b                                                    ; 9519: 10 f0       ..
-    jsr close_all_net_chans                                           ; 951b: 20 4a b5     J.
-    pla                                                               ; 951e: 68          h
-    ror a                                                             ; 951f: 6a          j
-    bcc c952f                                                         ; 9520: 90 0d       ..
-    jsr print_inline                                                  ; 9522: 20 31 91     1.
+    pla                                                               ; 950b: 68          h              ; Pop accumulator
+    ora l10b8,x                                                       ; 950c: 1d b8 10    ...            ; OR in channel status bits
+    pha                                                               ; 950f: 48          H              ; Push updated accumulator
+    lda l10b8,x                                                       ; 9510: bd b8 10    ...            ; Load channel status
+    and #&c0                                                          ; 9513: 29 c0       ).             ; Keep only bits 6-7 (close flags)
+    sta l10b8,x                                                       ; 9515: 9d b8 10    ...            ; Clear data bits, keep state flags
+    dex                                                               ; 9518: ca          .              ; Next channel
+    bpl loop_c950b                                                    ; 9519: 10 f0       ..             ; Loop all 16 channels
+    jsr close_all_net_chans                                           ; 951b: 20 4a b5     J.            ; Close all network channels
+    pla                                                               ; 951e: 68          h              ; Pop data-loss accumulator
+    ror a                                                             ; 951f: 6a          j              ; Bit 0 to carry (data lost?)
+    bcc c952f                                                         ; 9520: 90 0d       ..             ; No data lost: skip message
+    jsr print_inline                                                  ; 9522: 20 31 91     1.            ; Print 'Data Lost' + CR
     equs "Data Lost", &0d                                             ; 9525: 44 61 74... Dat
 
 ; &952f referenced 1 time by &9520
 .c952f
-    ldx l0e09                                                         ; 952f: ae 09 0e    ...
-    lda l0e07                                                         ; 9532: ad 07 0e    ...
-    beq c953b                                                         ; 9535: f0 04       ..
-    pla                                                               ; 9537: 68          h
-    pla                                                               ; 9538: 68          h
-    pla                                                               ; 9539: 68          h
-    rts                                                               ; 953a: 60          `
+    ldx l0e09                                                         ; 952f: ae 09 0e    ...            ; Reload reply status code
+    lda l0e07                                                         ; 9532: ad 07 0e    ...            ; Check pending operation
+    beq c953b                                                         ; 9535: f0 04       ..             ; No pending: build error from reply
+    pla                                                               ; 9537: 68          h              ; Pending: clean up stack (3 bytes)
+    pla                                                               ; 9538: 68          h              ; (second byte)
+    pla                                                               ; 9539: 68          h              ; (third byte)
+    rts                                                               ; 953a: 60          `              ; Return to pending operation caller
 
 ; &953b referenced 2 times by &9504, &9535
 .c953b
-    ldy #1                                                            ; 953b: a0 01       ..
-    cpx #&a8                                                          ; 953d: e0 a8       ..
-    bcs c9545                                                         ; 953f: b0 04       ..
-    lda #&a8                                                          ; 9541: a9 a8       ..
-    sta (txcb_start),y                                                ; 9543: 91 c4       ..
+    ldy #1                                                            ; 953b: a0 01       ..             ; Y=1: error code offset in reply
+    cpx #&a8                                                          ; 953d: e0 a8       ..             ; Reply code >= &A8?
+    bcs c9545                                                         ; 953f: b0 04       ..             ; Yes: keep server error code
+    lda #&a8                                                          ; 9541: a9 a8       ..             ; No: use minimum error code &A8
+    sta (txcb_start),y                                                ; 9543: 91 c4       ..             ; Overwrite error code in reply
 ; &9545 referenced 1 time by &953f
 .c9545
-    ldy #&ff                                                          ; 9545: a0 ff       ..
+    ldy #&ff                                                          ; 9545: a0 ff       ..             ; Y=&FF: pre-increment index
 ; &9547 referenced 1 time by &954f
 .loop_c9547
-    iny                                                               ; 9547: c8          .
-    lda (txcb_start),y                                                ; 9548: b1 c4       ..
-    sta error_block,y                                                 ; 954a: 99 00 01    ...
-    eor #&0d                                                          ; 954d: 49 0d       I.
-    bne loop_c9547                                                    ; 954f: d0 f6       ..
-    sta error_block,y                                                 ; 9551: 99 00 01    ...
-    dey                                                               ; 9554: 88          .
-    tya                                                               ; 9555: 98          .
-    tax                                                               ; 9556: aa          .
-    jmp check_net_error_code                                          ; 9557: 4c da 96    L..
+    iny                                                               ; 9547: c8          .              ; Advance to next byte
+    lda (txcb_start),y                                                ; 9548: b1 c4       ..             ; Load reply byte
+    sta error_block,y                                                 ; 954a: 99 00 01    ...            ; Copy to error block
+    eor #&0d                                                          ; 954d: 49 0d       I.             ; Is it CR (end of message)?
+    bne loop_c9547                                                    ; 954f: d0 f6       ..             ; No: copy next byte
+    sta error_block,y                                                 ; 9551: 99 00 01    ...            ; Store null terminator (A=0 from EOR)
+    dey                                                               ; 9554: 88          .              ; Get message length
+    tya                                                               ; 9555: 98          .              ; Transfer to A
+    tax                                                               ; 9556: aa          .              ; Length in X
+    jmp check_net_error_code                                          ; 9557: 4c da 96    L..            ; Go to error dispatch
 
 ; &955a referenced 2 times by &8dcb, &9846
 .check_escape
-    lda escape_flag                                                   ; 955a: a5 ff       ..
-    and escapable                                                     ; 955c: 25 97       %.
-    bpl return_15                                                     ; 955e: 10 90       ..
+    lda escape_flag                                                   ; 955a: a5 ff       ..             ; Load MOS escape flag
+    and escapable                                                     ; 955c: 25 97       %.             ; Mask with escape-enabled flag
+    bpl return_15                                                     ; 955e: 10 90       ..             ; No escape: return
 ; &9560 referenced 1 time by &b42b
 .raise_escape_error
-    lda #osbyte_acknowledge_escape                                    ; 9560: a9 7e       .~
+    lda #osbyte_acknowledge_escape                                    ; 9560: a9 7e       .~             ; OSBYTE &7E: acknowledge escape
     jsr osbyte                                                        ; 9562: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
-    lda #6                                                            ; 9565: a9 06       ..
-    jmp classify_reply_error                                          ; 9567: 4c 38 96    L8.
+    lda #6                                                            ; 9565: a9 06       ..             ; Error class 6: Escape
+    jmp classify_reply_error                                          ; 9567: 4c 38 96    L8.            ; Classify as network error
 
-    ldy #4                                                            ; 956a: a0 04       ..
-    lda (net_rx_ptr),y                                                ; 956c: b1 9c       ..
-    beq c9573                                                         ; 956e: f0 03       ..
+    ldy #4                                                            ; 956a: a0 04       ..             ; Offset 4: remote state byte
+    lda (net_rx_ptr),y                                                ; 956c: b1 9c       ..             ; Load remote state
+    beq c9573                                                         ; 956e: f0 03       ..             ; Zero: initialise remote session
 ; &9570 referenced 1 time by &95b6
 .c9570
-    jmp commit_state_byte                                             ; 9570: 4c cb ac    L..
+    jmp commit_state_byte                                             ; 9570: 4c cb ac    L..            ; Non-zero: commit state and return
 
 ; &9573 referenced 2 times by &956e, &95ac
 .c9573
-    ora #9                                                            ; 9573: 09 09       ..
-    sta (net_rx_ptr),y                                                ; 9575: 91 9c       ..
-    ldx #&80                                                          ; 9577: a2 80       ..
-    ldy #&80                                                          ; 9579: a0 80       ..
-    lda (net_rx_ptr),y                                                ; 957b: b1 9c       ..
-    pha                                                               ; 957d: 48          H
+    ora #9                                                            ; 9573: 09 09       ..             ; Set bits 0,3: remote active flags
+    sta (net_rx_ptr),y                                                ; 9575: 91 9c       ..             ; Store updated remote state
+    ldx #&80                                                          ; 9577: a2 80       ..             ; X=&80: flag for vector setup
+    ldy #&80                                                          ; 9579: a0 80       ..             ; Offset &80 in RX buffer
+    lda (net_rx_ptr),y                                                ; 957b: b1 9c       ..             ; Load remote station low
+    pha                                                               ; 957d: 48          H              ; Save on stack
     iny                                                               ; 957e: c8          .              ; Y=&81
-    lda (net_rx_ptr),y                                                ; 957f: b1 9c       ..
-    ldy #&0f                                                          ; 9581: a0 0f       ..
-    sta (nfs_workspace),y                                             ; 9583: 91 9e       ..
-    dey                                                               ; 9585: 88          .              ; Y=&0e
-    pla                                                               ; 9586: 68          h
-    sta (nfs_workspace),y                                             ; 9587: 91 9e       ..
-    jsr scan_remote_keys                                              ; 9589: 20 e2 8a     ..
-    jsr init_ws_copy_narrow                                           ; 958c: 20 73 aa     s.
-    ldx #1                                                            ; 958f: a2 01       ..
-    ldy #0                                                            ; 9591: a0 00       ..
-    lda #osbyte_read_write_econet_keyboard_disable                    ; 9593: a9 c9       ..
+    lda (net_rx_ptr),y                                                ; 957f: b1 9c       ..             ; Load remote station high
+    ldy #&0f                                                          ; 9581: a0 0f       ..             ; Workspace offset &0F
+    sta (nfs_workspace),y                                             ; 9583: 91 9e       ..             ; Store remote station high
+    dey                                                               ; 9585: 88          .              ; Y=&0E; Y=&0e
+    pla                                                               ; 9586: 68          h              ; Restore remote station low
+    sta (nfs_workspace),y                                             ; 9587: 91 9e       ..             ; Store remote station low
+    jsr scan_remote_keys                                              ; 9589: 20 e2 8a     ..            ; Set up remote keyboard scanning
+    jsr init_ws_copy_narrow                                           ; 958c: 20 73 aa     s.            ; Initialise workspace copy
+    ldx #1                                                            ; 958f: a2 01       ..             ; X=1: disable keyboard
+    ldy #0                                                            ; 9591: a0 00       ..             ; Y=0
+    lda #osbyte_read_write_econet_keyboard_disable                    ; 9593: a9 c9       ..             ; OSBYTE &C9: Econet keyboard disable
     jsr osbyte                                                        ; 9595: 20 f4 ff     ..            ; Disable keyboard (for Econet)
-    jsr commit_state_byte                                             ; 9598: 20 cb ac     ..
-    lda #0                                                            ; 959b: a9 00       ..
-    jsr error_inline_log                                              ; 959d: 20 bb 96     ..
+    jsr commit_state_byte                                             ; 9598: 20 cb ac     ..            ; Commit state change
+    lda #0                                                            ; 959b: a9 00       ..             ; Error code 0
+    jsr error_inline_log                                              ; 959d: 20 bb 96     ..            ; Generate 'Remoted' error
     equs "Remoted", 0                                                 ; 95a0: 52 65 6d... Rem
 
-    ldy #4                                                            ; 95a8: a0 04       ..
-    lda (net_rx_ptr),y                                                ; 95aa: b1 9c       ..
-    beq c9573                                                         ; 95ac: f0 c5       ..
-    ldy #&80                                                          ; 95ae: a0 80       ..
-    lda (net_rx_ptr),y                                                ; 95b0: b1 9c       ..
-    ldy #&0e                                                          ; 95b2: a0 0e       ..
-    cmp (nfs_workspace),y                                             ; 95b4: d1 9e       ..
-    bne c9570                                                         ; 95b6: d0 b8       ..
-    ldy #&82                                                          ; 95b8: a0 82       ..
-    lda (net_rx_ptr),y                                                ; 95ba: b1 9c       ..
-    tay                                                               ; 95bc: a8          .
-    ldx #0                                                            ; 95bd: a2 00       ..
-    jsr commit_state_byte                                             ; 95bf: 20 cb ac     ..
-    lda #osbyte_insert_input_buffer                                   ; 95c2: a9 99       ..
+    ldy #4                                                            ; 95a8: a0 04       ..             ; Offset 4: remote state byte
+    lda (net_rx_ptr),y                                                ; 95aa: b1 9c       ..             ; Load remote state
+    beq c9573                                                         ; 95ac: f0 c5       ..             ; Zero: reinitialise session
+    ldy #&80                                                          ; 95ae: a0 80       ..             ; Offset &80: station low
+    lda (net_rx_ptr),y                                                ; 95b0: b1 9c       ..             ; Load station low from RX
+    ldy #&0e                                                          ; 95b2: a0 0e       ..             ; Workspace offset &0E
+    cmp (nfs_workspace),y                                             ; 95b4: d1 9e       ..             ; Compare with stored station
+    bne c9570                                                         ; 95b6: d0 b8       ..             ; Different station: commit state
+    ldy #&82                                                          ; 95b8: a0 82       ..             ; Offset &82: keypress byte
+    lda (net_rx_ptr),y                                                ; 95ba: b1 9c       ..             ; Load remote keypress
+    tay                                                               ; 95bc: a8          .              ; Key code to Y
+    ldx #0                                                            ; 95bd: a2 00       ..             ; X=0: keyboard buffer
+    jsr commit_state_byte                                             ; 95bf: 20 cb ac     ..            ; Commit state change
+    lda #osbyte_insert_input_buffer                                   ; 95c2: a9 99       ..             ; OSBYTE &99: insert into buffer
     jmp osbyte                                                        ; 95c4: 4c f4 ff    L..            ; Insert character Y into input buffer X
 
 ; &95c7 referenced 6 times by &94e0, &999e, &9ad8, &a923, &abbf, &ac61
 .wait_net_tx_ack
-    lda l0d6f                                                         ; 95c7: ad 6f 0d    .o.
-    pha                                                               ; 95ca: 48          H
-    lda l0d61                                                         ; 95cb: ad 61 0d    .a.
-    pha                                                               ; 95ce: 48          H
-    lda net_tx_ptr_hi                                                 ; 95cf: a5 9b       ..
-    bne c95d8                                                         ; 95d1: d0 05       ..
-    ora #&80                                                          ; 95d3: 09 80       ..
-    sta l0d61                                                         ; 95d5: 8d 61 0d    .a.
+    lda l0d6f                                                         ; 95c7: ad 6f 0d    .o.            ; Save TX timeout counter
+    pha                                                               ; 95ca: 48          H              ; Push (used as outer loop counter)
+    lda l0d61                                                         ; 95cb: ad 61 0d    .a.            ; Save TX control state
+    pha                                                               ; 95ce: 48          H              ; Push (preserved during wait)
+    lda net_tx_ptr_hi                                                 ; 95cf: a5 9b       ..             ; Check if TX in progress
+    bne c95d8                                                         ; 95d1: d0 05       ..             ; Non-zero: skip force-wait
+    ora #&80                                                          ; 95d3: 09 80       ..             ; Set bit 7 to force wait mode
+    sta l0d61                                                         ; 95d5: 8d 61 0d    .a.            ; Store updated control state
 ; &95d8 referenced 1 time by &95d1
 .c95d8
-    lda #0                                                            ; 95d8: a9 00       ..
-    pha                                                               ; 95da: 48          H
-    pha                                                               ; 95db: 48          H
+    lda #0                                                            ; 95d8: a9 00       ..             ; A=0: initial counter values
+    pha                                                               ; 95da: 48          H              ; Push inner loop counter
+    pha                                                               ; 95db: 48          H              ; Push middle loop counter
     tay                                                               ; 95dc: a8          .              ; Y=&00
-    tsx                                                               ; 95dd: ba          .
+    tsx                                                               ; 95dd: ba          .              ; X=SP for stack-relative DECs
 ; &95de referenced 3 times by &95e5, &95ea, &95ef
 .c95de
-    lda (net_tx_ptr),y                                                ; 95de: b1 9a       ..
-    bmi c95f1                                                         ; 95e0: 30 0f       0.
-    dec error_text,x                                                  ; 95e2: de 01 01    ...
-    bne c95de                                                         ; 95e5: d0 f7       ..
-    dec l0102,x                                                       ; 95e7: de 02 01    ...
-    bne c95de                                                         ; 95ea: d0 f2       ..
-    dec l0104,x                                                       ; 95ec: de 04 01    ...
-    bne c95de                                                         ; 95ef: d0 ed       ..
+    lda (net_tx_ptr),y                                                ; 95de: b1 9a       ..             ; Poll TX completion status
+    bmi c95f1                                                         ; 95e0: 30 0f       0.             ; Bit 7 set: TX complete
+    dec error_text,x                                                  ; 95e2: de 01 01    ...            ; Decrement inner counter
+    bne c95de                                                         ; 95e5: d0 f7       ..             ; Not zero: keep polling
+    dec l0102,x                                                       ; 95e7: de 02 01    ...            ; Decrement middle counter
+    bne c95de                                                         ; 95ea: d0 f2       ..             ; Not zero: keep polling
+    dec l0104,x                                                       ; 95ec: de 04 01    ...            ; Decrement outer counter
+    bne c95de                                                         ; 95ef: d0 ed       ..             ; Not zero: keep polling
 ; &95f1 referenced 1 time by &95e0
 .c95f1
-    pla                                                               ; 95f1: 68          h
-    pla                                                               ; 95f2: 68          h
-    pla                                                               ; 95f3: 68          h
-    sta l0d61                                                         ; 95f4: 8d 61 0d    .a.
-    pla                                                               ; 95f7: 68          h
-    beq c9604                                                         ; 95f8: f0 0a       ..
-    rts                                                               ; 95fa: 60          `
+    pla                                                               ; 95f1: 68          h              ; Discard inner counter
+    pla                                                               ; 95f2: 68          h              ; Discard middle counter
+    pla                                                               ; 95f3: 68          h              ; Restore l0d61 control state
+    sta l0d61                                                         ; 95f4: 8d 61 0d    .a.            ; Write back TX control state
+    pla                                                               ; 95f7: 68          h              ; Pop outer counter (0 if timed out)
+    beq c9604                                                         ; 95f8: f0 0a       ..             ; Zero: TX timed out
+    rts                                                               ; 95fa: 60          `              ; Return (TX acknowledged)
 
 ; &95fb referenced 6 times by &9611, &964a, &9666, &9690, &96a2, &96bb
 .cond_save_error_code
-    bit l0d6c                                                         ; 95fb: 2c 6c 0d    ,l.
-    bpl return_16                                                     ; 95fe: 10 03       ..
-    sta l0e09                                                         ; 9600: 8d 09 0e    ...
+    bit l0d6c                                                         ; 95fb: 2c 6c 0d    ,l.            ; Test error logging flag
+    bpl return_16                                                     ; 95fe: 10 03       ..             ; Bit 7 clear: skip save
+    sta l0e09                                                         ; 9600: 8d 09 0e    ...            ; Save error code to workspace
 ; &9603 referenced 1 time by &95fe
 .return_16
-    rts                                                               ; 9603: 60          `
+    rts                                                               ; 9603: 60          `              ; Return
 
 ; &9604 referenced 1 time by &95f8
 .c9604
-    ldx #8                                                            ; 9604: a2 08       ..
-    ldy net_error_lookup_data,x                                       ; 9606: bc 98 97    ...
-    ldx #0                                                            ; 9609: a2 00       ..
-    stx error_block                                                   ; 960b: 8e 00 01    ...
-    lda error_msg_table,y                                             ; 960e: b9 a4 97    ...
-    jsr cond_save_error_code                                          ; 9611: 20 fb 95     ..
+    ldx #8                                                            ; 9604: a2 08       ..             ; X=8: 'No reply' error index
+    ldy net_error_lookup_data,x                                       ; 9606: bc 98 97    ...            ; Look up message table offset
+    ldx #0                                                            ; 9609: a2 00       ..             ; X=0: error text start
+    stx error_block                                                   ; 960b: 8e 00 01    ...            ; Clear BRK byte in error block
+    lda error_msg_table,y                                             ; 960e: b9 a4 97    ...            ; Load error number from table
+    jsr cond_save_error_code                                          ; 9611: 20 fb 95     ..            ; Conditionally save error code
 ; &9614 referenced 1 time by &961e
 .loop_c9614
-    lda error_msg_table,y                                             ; 9614: b9 a4 97    ...
-    sta error_text,x                                                  ; 9617: 9d 01 01    ...
-    beq c9620                                                         ; 961a: f0 04       ..
-    inx                                                               ; 961c: e8          .
-    iny                                                               ; 961d: c8          .
-    bne loop_c9614                                                    ; 961e: d0 f4       ..
+    lda error_msg_table,y                                             ; 9614: b9 a4 97    ...            ; Load message byte
+    sta error_text,x                                                  ; 9617: 9d 01 01    ...            ; Store in error text buffer
+    beq c9620                                                         ; 961a: f0 04       ..             ; Null terminator?
+    inx                                                               ; 961c: e8          .              ; Advance destination
+    iny                                                               ; 961d: c8          .              ; Advance source
+    bne loop_c9614                                                    ; 961e: d0 f4       ..             ; Loop until end of message
 ; &9620 referenced 1 time by &961a
 .c9620
-    jsr append_drv_dot_num                                            ; 9620: 20 38 97     8.
-    lda #0                                                            ; 9623: a9 00       ..
-    sta error_text,x                                                  ; 9625: 9d 01 01    ...
-    jmp check_net_error_code                                          ; 9628: 4c da 96    L..
+    jsr append_drv_dot_num                                            ; 9620: 20 38 97     8.            ; Append ' net.station' to message
+    lda #0                                                            ; 9623: a9 00       ..             ; A=0: null terminator
+    sta error_text,x                                                  ; 9625: 9d 01 01    ...            ; Terminate error text
+    jmp check_net_error_code                                          ; 9628: 4c da 96    L..            ; Check and raise network error
 
 ; &962b referenced 1 time by &98b1
 .fixup_reply_status_a
-    lda (net_tx_ptr,x)                                                ; 962b: a1 9a       ..
-    cmp #&41 ; 'A'                                                    ; 962d: c9 41       .A
-    bne c9633                                                         ; 962f: d0 02       ..
-    lda #&42 ; 'B'                                                    ; 9631: a9 42       .B
+    lda (net_tx_ptr,x)                                                ; 962b: a1 9a       ..             ; Load first reply byte
+    cmp #&41 ; 'A'                                                    ; 962d: c9 41       .A             ; Is it 'A' (status &41)?
+    bne c9633                                                         ; 962f: d0 02       ..             ; No: keep original
+    lda #&42 ; 'B'                                                    ; 9631: a9 42       .B             ; Yes: change to 'B' (&42)
 ; &9633 referenced 1 time by &962f
 .c9633
-    clv                                                               ; 9633: b8          .
+    clv                                                               ; 9633: b8          .              ; Clear V flag
     bvc c963b                                                         ; 9634: 50 05       P.             ; ALWAYS branch
 
 ; &9636 referenced 1 time by &986a
 .load_reply_and_classify
-    lda (net_tx_ptr,x)                                                ; 9636: a1 9a       ..
+    lda (net_tx_ptr,x)                                                ; 9636: a1 9a       ..             ; Load first reply byte
 ; &9638 referenced 2 times by &9567, &9dd0
 .classify_reply_error
-    bit bit_test_ff_pad                                               ; 9638: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; 9638: 2c 7d 94    ,}.            ; Set V flag (via BIT &FF)
 ; &963b referenced 1 time by &9634
 .c963b
-    and #7                                                            ; 963b: 29 07       ).
-    pha                                                               ; 963d: 48          H
-    cmp #2                                                            ; 963e: c9 02       ..
-    bne c9684                                                         ; 9640: d0 42       .B
-    php                                                               ; 9642: 08          .
-    tax                                                               ; 9643: aa          .
-    ldy net_error_lookup_data,x                                       ; 9644: bc 98 97    ...
-    lda error_msg_table,y                                             ; 9647: b9 a4 97    ...
-    jsr cond_save_error_code                                          ; 964a: 20 fb 95     ..
-    ldx #0                                                            ; 964d: a2 00       ..
-    stx error_block                                                   ; 964f: 8e 00 01    ...
+    and #7                                                            ; 963b: 29 07       ).             ; Mask to error class (0-7)
+    pha                                                               ; 963d: 48          H              ; Save error class on stack
+    cmp #2                                                            ; 963e: c9 02       ..             ; Class 2 (station error)?
+    bne c9684                                                         ; 9640: d0 42       .B             ; No: build simple error message
+    php                                                               ; 9642: 08          .              ; Save flags (V state for suffix)
+    tax                                                               ; 9643: aa          .              ; Error class to X
+    ldy net_error_lookup_data,x                                       ; 9644: bc 98 97    ...            ; Look up message table offset
+    lda error_msg_table,y                                             ; 9647: b9 a4 97    ...            ; Load error number from table
+    jsr cond_save_error_code                                          ; 964a: 20 fb 95     ..            ; Conditionally save error code
+    ldx #0                                                            ; 964d: a2 00       ..             ; X=0: error text start
+    stx error_block                                                   ; 964f: 8e 00 01    ...            ; Clear BRK byte
 ; &9652 referenced 1 time by &965c
 .loop_c9652
-    lda error_msg_table,y                                             ; 9652: b9 a4 97    ...
-    sta error_text,x                                                  ; 9655: 9d 01 01    ...
-    beq c965e                                                         ; 9658: f0 04       ..
-    iny                                                               ; 965a: c8          .
-    inx                                                               ; 965b: e8          .
-    bne loop_c9652                                                    ; 965c: d0 f4       ..
+    lda error_msg_table,y                                             ; 9652: b9 a4 97    ...            ; Load message byte
+    sta error_text,x                                                  ; 9655: 9d 01 01    ...            ; Store in error text
+    beq c965e                                                         ; 9658: f0 04       ..             ; Null terminator?
+    iny                                                               ; 965a: c8          .              ; Advance source
+    inx                                                               ; 965b: e8          .              ; Advance destination
+    bne loop_c9652                                                    ; 965c: d0 f4       ..             ; Loop until end of message
 ; &965e referenced 1 time by &9658
 .c965e
-    jsr append_drv_dot_num                                            ; 965e: 20 38 97     8.
-    plp                                                               ; 9661: 28          (
-    bvs c9670                                                         ; 9662: 70 0c       p.
-    lda #&a4                                                          ; 9664: a9 a4       ..
-    jsr cond_save_error_code                                          ; 9666: 20 fb 95     ..
-    sta error_text                                                    ; 9669: 8d 01 01    ...
-    ldy #&0b                                                          ; 966c: a0 0b       ..
+    jsr append_drv_dot_num                                            ; 965e: 20 38 97     8.            ; Append ' net.station' suffix
+    plp                                                               ; 9661: 28          (              ; Restore flags
+    bvs c9670                                                         ; 9662: 70 0c       p.             ; V set: append 'not listening'
+    lda #&a4                                                          ; 9664: a9 a4       ..             ; Error code &A4
+    jsr cond_save_error_code                                          ; 9666: 20 fb 95     ..            ; Conditionally save error code
+    sta error_text                                                    ; 9669: 8d 01 01    ...            ; Replace error number in block
+    ldy #&0b                                                          ; 966c: a0 0b       ..             ; Y=&0B: 'not present' suffix index
     bne c9672                                                         ; 966e: d0 02       ..             ; ALWAYS branch
 
 ; &9670 referenced 1 time by &9662
 .c9670
-    ldy #9                                                            ; 9670: a0 09       ..
+    ldy #9                                                            ; 9670: a0 09       ..             ; Y=9: 'not listening' suffix index
 ; &9672 referenced 1 time by &966e
 .c9672
-    lda net_error_lookup_data,y                                       ; 9672: b9 98 97    ...
-    tay                                                               ; 9675: a8          .
+    lda net_error_lookup_data,y                                       ; 9672: b9 98 97    ...            ; Look up suffix table offset
+    tay                                                               ; 9675: a8          .              ; Offset to Y for indexing
 ; &9676 referenced 1 time by &9680
 .loop_c9676
-    lda error_msg_table,y                                             ; 9676: b9 a4 97    ...
-    sta error_text,x                                                  ; 9679: 9d 01 01    ...
-    beq c9682                                                         ; 967c: f0 04       ..
-    iny                                                               ; 967e: c8          .
-    inx                                                               ; 967f: e8          .
-    bne loop_c9676                                                    ; 9680: d0 f4       ..
+    lda error_msg_table,y                                             ; 9676: b9 a4 97    ...            ; Load suffix byte
+    sta error_text,x                                                  ; 9679: 9d 01 01    ...            ; Append to error text
+    beq c9682                                                         ; 967c: f0 04       ..             ; Null terminator?
+    iny                                                               ; 967e: c8          .              ; Advance source
+    inx                                                               ; 967f: e8          .              ; Advance destination
+    bne loop_c9676                                                    ; 9680: d0 f4       ..             ; Loop until end of suffix
 ; &9682 referenced 1 time by &967c
 .c9682
-    beq c9699                                                         ; 9682: f0 15       ..
+    beq c9699                                                         ; 9682: f0 15       ..             ; ALWAYS branch to error dispatch
 ; &9684 referenced 1 time by &9640
 .c9684
-    tax                                                               ; 9684: aa          .
-    ldy net_error_lookup_data,x                                       ; 9685: bc 98 97    ...
-    ldx #0                                                            ; 9688: a2 00       ..
-    stx error_block                                                   ; 968a: 8e 00 01    ...
-    lda error_msg_table,y                                             ; 968d: b9 a4 97    ...
-    jsr cond_save_error_code                                          ; 9690: 20 fb 95     ..
+    tax                                                               ; 9684: aa          .              ; Error class to X
+    ldy net_error_lookup_data,x                                       ; 9685: bc 98 97    ...            ; Look up message table offset
+    ldx #0                                                            ; 9688: a2 00       ..             ; X=0: error text start
+    stx error_block                                                   ; 968a: 8e 00 01    ...            ; Clear BRK byte
+    lda error_msg_table,y                                             ; 968d: b9 a4 97    ...            ; Load error number from table
+    jsr cond_save_error_code                                          ; 9690: 20 fb 95     ..            ; Conditionally save error code
 ; &9693 referenced 1 time by &969d
 .loop_c9693
-    lda error_msg_table,y                                             ; 9693: b9 a4 97    ...
-    sta error_text,x                                                  ; 9696: 9d 01 01    ...
+    lda error_msg_table,y                                             ; 9693: b9 a4 97    ...            ; Load message byte
+    sta error_text,x                                                  ; 9696: 9d 01 01    ...            ; Store in error text
 ; &9699 referenced 1 time by &9682
 .c9699
-    beq check_net_error_code                                          ; 9699: f0 3f       .?
-    iny                                                               ; 969b: c8          .
-    inx                                                               ; 969c: e8          .
+    beq check_net_error_code                                          ; 9699: f0 3f       .?             ; Null terminator? Go to error
+    iny                                                               ; 969b: c8          .              ; Advance source
+    inx                                                               ; 969c: e8          .              ; Advance destination
 .bad_str_anchor
 bad_prefix = bad_str_anchor+1
-    bne loop_c9693                                                    ; 969d: d0 f4       ..
+    bne loop_c9693                                                    ; 969d: d0 f4       ..             ; Loop until end of message
 ; &969e referenced 1 time by &96af
     equs "Bad"                                                        ; 969f: 42 61 64    Bad
 
