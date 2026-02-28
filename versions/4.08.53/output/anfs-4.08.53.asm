@@ -6718,63 +6718,63 @@ bad_prefix = bad_str_anchor+1
     lda (fs_options),y                                                ; 9ff9: b1 bb       ..             ; Load position from FS options
     sta l0f06                                                         ; 9ffb: 8d 06 0f    ...            ; Store in l0f06
     ldy #5                                                            ; 9ffe: a0 05       ..             ; Y=5: offset for extent byte
-    lda (fs_options),y                                                ; a000: b1 bb       ..
-    sta l0f07                                                         ; a002: 8d 07 0f    ...
-    ldx #&0d                                                          ; a005: a2 0d       ..
-    stx l0f08                                                         ; a007: 8e 08 0f    ...
-    ldy #2                                                            ; a00a: a0 02       ..
-    sty fs_load_addr                                                  ; a00c: 84 b0       ..
-    sty l0f05                                                         ; a00e: 8c 05 0f    ...
-    iny                                                               ; a011: c8          .              ; Y=&03
-    jsr save_net_tx_cb                                                ; a012: 20 99 94     ..
-    stx fs_load_addr_hi                                               ; a015: 86 b1       ..
-    lda l0f06                                                         ; a017: ad 06 0f    ...
-    sta (fs_options,x)                                                ; a01a: 81 bb       ..
-    lda l0f05                                                         ; a01c: ad 05 0f    ...
-    ldy #9                                                            ; a01f: a0 09       ..
-    adc (fs_options),y                                                ; a021: 71 bb       q.
-    sta (fs_options),y                                                ; a023: 91 bb       ..
-    lda txcb_end                                                      ; a025: a5 c8       ..
-    sbc #7                                                            ; a027: e9 07       ..
-    sta l0f06                                                         ; a029: 8d 06 0f    ...
-    sta fs_load_addr_2                                                ; a02c: 85 b2       ..
-    beq ca033                                                         ; a02e: f0 03       ..
-    jsr write_data_block                                              ; a030: 20 b8 9f     ..
+    lda (fs_options),y                                                ; a000: b1 bb       ..             ; Load extent byte from FS options
+    sta l0f07                                                         ; a002: 8d 07 0f    ...            ; Store in l0f07
+    ldx #&0d                                                          ; a005: a2 0d       ..             ; X=&0D: byte count
+    stx l0f08                                                         ; a007: 8e 08 0f    ...            ; Store in l0f08
+    ldy #2                                                            ; a00a: a0 02       ..             ; Y=2: command sub-type
+    sty fs_load_addr                                                  ; a00c: 84 b0       ..             ; Store in fs_load_addr
+    sty l0f05                                                         ; a00e: 8c 05 0f    ...            ; Store in l0f05
+    iny                                                               ; a011: c8          .              ; Y=3: TX buffer command byte; Y=&03
+    jsr save_net_tx_cb                                                ; a012: 20 99 94     ..            ; Send TX control block
+    stx fs_load_addr_hi                                               ; a015: 86 b1       ..             ; Store X (0) in fs_load_addr_hi
+    lda l0f06                                                         ; a017: ad 06 0f    ...            ; Load data offset from l0f06
+    sta (fs_options,x)                                                ; a01a: 81 bb       ..             ; Store as first byte of FS options
+    lda l0f05                                                         ; a01c: ad 05 0f    ...            ; Load data count from l0f05
+    ldy #9                                                            ; a01f: a0 09       ..             ; Y=9: position offset in FS options
+    adc (fs_options),y                                                ; a021: 71 bb       q.             ; Add to current position
+    sta (fs_options),y                                                ; a023: 91 bb       ..             ; Store updated position
+    lda txcb_end                                                      ; a025: a5 c8       ..             ; Load TXCB end byte
+    sbc #7                                                            ; a027: e9 07       ..             ; Subtract 7 (header overhead)
+    sta l0f06                                                         ; a029: 8d 06 0f    ...            ; Store remaining data size
+    sta fs_load_addr_2                                                ; a02c: 85 b2       ..             ; Store in fs_load_addr_2 (byte count)
+    beq ca033                                                         ; a02e: f0 03       ..             ; Zero bytes: skip write
+    jsr write_data_block                                              ; a030: 20 b8 9f     ..            ; Write data block to host/tube
 ; &a033 referenced 1 time by &a02e
 .ca033
-    ldx #2                                                            ; a033: a2 02       ..
+    ldx #2                                                            ; a033: a2 02       ..             ; X=2: clear 3 bytes (indices 0-2)
 ; &a035 referenced 1 time by &a039
 .loop_ca035
-    sta l0f07,x                                                       ; a035: 9d 07 0f    ...
-    dex                                                               ; a038: ca          .
-    bpl loop_ca035                                                    ; a039: 10 fa       ..
-    jsr update_addr_from_offset1                                      ; a03b: 20 08 9e     ..
-    sec                                                               ; a03e: 38          8
-    dec fs_load_addr_2                                                ; a03f: c6 b2       ..
-    lda l0f05                                                         ; a041: ad 05 0f    ...
-    sta l0f06                                                         ; a044: 8d 06 0f    ...
-    jsr adjust_fsopts_4bytes                                          ; a047: 20 0b 9e     ..
-    ldx #3                                                            ; a04a: a2 03       ..
-    ldy #5                                                            ; a04c: a0 05       ..
-    sec                                                               ; a04e: 38          8
+    sta l0f07,x                                                       ; a035: 9d 07 0f    ...            ; Clear l0f07+X
+    dex                                                               ; a038: ca          .              ; Decrement index
+    bpl loop_ca035                                                    ; a039: 10 fa       ..             ; Loop until all cleared
+    jsr update_addr_from_offset1                                      ; a03b: 20 08 9e     ..            ; Update addresses from offset 1
+    sec                                                               ; a03e: 38          8              ; Set carry for subtraction
+    dec fs_load_addr_2                                                ; a03f: c6 b2       ..             ; Decrement fs_load_addr_2
+    lda l0f05                                                         ; a041: ad 05 0f    ...            ; Load data count from l0f05
+    sta l0f06                                                         ; a044: 8d 06 0f    ...            ; Copy to l0f06
+    jsr adjust_fsopts_4bytes                                          ; a047: 20 0b 9e     ..            ; Adjust FS options by 4 bytes (subtract)
+    ldx #3                                                            ; a04a: a2 03       ..             ; X=3: check 4 bytes
+    ldy #5                                                            ; a04c: a0 05       ..             ; Y=5: starting offset
+    sec                                                               ; a04e: 38          8              ; Set carry for comparison
 ; &a04f referenced 1 time by &a055
 .loop_ca04f
-    lda (fs_options),y                                                ; a04f: b1 bb       ..
-    bne ca058                                                         ; a051: d0 05       ..
-    iny                                                               ; a053: c8          .
-    dex                                                               ; a054: ca          .
-    bpl loop_ca04f                                                    ; a055: 10 f8       ..
-    clc                                                               ; a057: 18          .
+    lda (fs_options),y                                                ; a04f: b1 bb       ..             ; Load FS options byte
+    bne ca058                                                         ; a051: d0 05       ..             ; Non-zero: more data remaining
+    iny                                                               ; a053: c8          .              ; Advance to next byte
+    dex                                                               ; a054: ca          .              ; Decrement counter
+    bpl loop_ca04f                                                    ; a055: 10 f8       ..             ; Loop until all bytes checked
+    clc                                                               ; a057: 18          .              ; All zero: clear carry (transfer complete)
 ; &a058 referenced 1 time by &a051
 .ca058
-    jmp tail_update_catalogue                                         ; a058: 4c f4 9f    L..
+    jmp tail_update_catalogue                                         ; a058: 4c f4 9f    L..            ; Jump to update catalogue and return
 
 ; &a05b referenced 3 times by &9fcd, &a060, &a2cb
 .tube_claim_c3
-    lda #&c3                                                          ; a05b: a9 c3       ..
-    jsr tube_addr_data_dispatch                                       ; a05d: 20 06 04     ..
-    bcc tube_claim_c3                                                 ; a060: 90 f9       ..
-    rts                                                               ; a062: 60          `
+    lda #&c3                                                          ; a05b: a9 c3       ..             ; A=&C3: tube claim protocol
+    jsr tube_addr_data_dispatch                                       ; a05d: 20 06 04     ..            ; Dispatch tube address/data claim
+    bcc tube_claim_c3                                                 ; a060: 90 f9       ..             ; Carry clear: claim failed, retry
+    rts                                                               ; a062: 60          `              ; Return (tube claimed)
 
 ; ***************************************************************************************
 ; *FS command.
