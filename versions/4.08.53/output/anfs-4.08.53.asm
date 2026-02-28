@@ -966,33 +966,33 @@ tube_cmd_lo = tube_dispatch_cmd+1
     lda tube_data_register_2                                          ; be5a: ad e3 fe    ... :06ca[4]   ; Read data byte from R2
     rts                                                               ; be5d: 60          `   :06cd[4]   ; Return with byte in A
 
-    cmp #&fe                                                          ; be5e: c9 fe       ..  :06ce[4]
-    bcc l072e                                                         ; be60: 90 5c       .\  :06d0[4]
-    bne c06ef                                                         ; be62: d0 1b       ..  :06d2[4]
-    cpy #0                                                            ; be64: c0 00       ..  :06d4[4]
-    beq l072e                                                         ; be66: f0 56       .V  :06d6[4]
-    ldx #6                                                            ; be68: a2 06       ..  :06d8[4]
-    lda #osbyte_explode_chars                                         ; be6a: a9 14       ..  :06da[4]
+    cmp #&fe                                                          ; be5e: c9 fe       ..  :06ce[4]   ; Is byte &FE (VDU stream start)?
+    bcc l072e                                                         ; be60: 90 5c       .\  :06d0[4]   ; Below &FE: normal byte
+    bne c06ef                                                         ; be62: d0 1b       ..  :06d2[4]   ; &FF: set up event/break vectors
+    cpy #0                                                            ; be64: c0 00       ..  :06d4[4]   ; &FE: check Y parameter
+    beq l072e                                                         ; be66: f0 56       .V  :06d6[4]   ; Y=0: treat as normal byte
+    ldx #6                                                            ; be68: a2 06       ..  :06d8[4]   ; X=6: six extra pages
+    lda #osbyte_explode_chars                                         ; be6a: a9 14       ..  :06da[4]   ; OSBYTE &14: explode char defs
     jsr osbyte                                                        ; be6c: 20 f4 ff     .. :06dc[4]   ; Explode character definition RAM (six extra pages), can redefine all characters 32-255 (X=6)
 ; &be6f referenced 1 time by &06e2[4]
 .loop_c06df
-    bit tube_status_1_and_tube_control                                ; be6f: 2c e0 fe    ,.. :06df[4]
-    bpl loop_c06df                                                    ; be72: 10 fb       ..  :06e2[4]
-    lda tube_data_register_1                                          ; be74: ad e1 fe    ... :06e4[4]
-    beq l072c                                                         ; be77: f0 43       .C  :06e7[4]
+    bit tube_status_1_and_tube_control                                ; be6f: 2c e0 fe    ,.. :06df[4]   ; Poll R1 status (bit 6 = ready)
+    bpl loop_c06df                                                    ; be72: 10 fb       ..  :06e2[4]   ; Not ready: keep polling
+    lda tube_data_register_1                                          ; be74: ad e1 fe    ... :06e4[4]   ; Read byte from Tube R1
+    beq l072c                                                         ; be77: f0 43       .C  :06e7[4]   ; Zero: end of VDU stream
     jsr oswrch                                                        ; be79: 20 ee ff     .. :06e9[4]   ; Write character
 .svc_11_nmi_claim
-    jmp cbe6f                                                         ; be7c: 4c 6f be    Lo. :06ec[4]   ; Trampoline: init NMI workspace
+    jmp cbe6f                                                         ; be7c: 4c 6f be    Lo. :06ec[4]   ; Loop back to read next R1 byte
 
 ; &be7f referenced 1 time by &06d2[4]
 .c06ef
-    lda #&ad                                                          ; be7f: a9 ad       ..  :06ef[4]   ; A=4: CB1 interrupt bit mask
-    sta evntv                                                         ; be81: 8d 20 02    . . :06f1[4]
-    lda #6                                                            ; be84: a9 06       ..  :06f4[4]   ; A=5: NMI not for us
-    sta evntv+1                                                       ; be86: 8d 21 02    .!. :06f6[4]
-    lda #&16                                                          ; be89: a9 16       ..  :06f9[4]
-    sta brkv                                                          ; be8b: 8d 02 02    ... :06fb[4]
-    lda #0                                                            ; be8e: a9 00       ..  :06fe[4]
+    lda #&ad                                                          ; be7f: a9 ad       ..  :06ef[4]   ; EVNTV low byte (&AD)
+    sta evntv                                                         ; be81: 8d 20 02    . . :06f1[4]   ; Store in EVNTV vector low
+    lda #6                                                            ; be84: a9 06       ..  :06f4[4]   ; EVNTV high byte (page 6)
+    sta evntv+1                                                       ; be86: 8d 21 02    .!. :06f6[4]   ; Store in EVNTV vector high
+    lda #&16                                                          ; be89: a9 16       ..  :06f9[4]   ; BRKV low byte (&16)
+    sta brkv                                                          ; be8b: 8d 02 02    ... :06fb[4]   ; Store in BRKV vector
+    lda #0                                                            ; be8e: a9 00       ..  :06fe[4]   ; A=0
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
