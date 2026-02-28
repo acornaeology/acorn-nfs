@@ -6399,325 +6399,325 @@ bad_prefix = bad_str_anchor+1
 
 ; &9e03 referenced 1 time by &9f48
 .update_addr_from_offset9
-    ldy #9                                                            ; 9e03: a0 09       ..
-    jsr add_workspace_to_fsopts                                       ; 9e05: 20 0a 9e     ..
+    ldy #9                                                            ; 9e03: a0 09       ..             ; Y=9: FS options offset for high address
+    jsr add_workspace_to_fsopts                                       ; 9e05: 20 0a 9e     ..            ; Add workspace values to FS options
 ; &9e08 referenced 1 time by &a03b
 .update_addr_from_offset1
-    ldy #1                                                            ; 9e08: a0 01       ..
+    ldy #1                                                            ; 9e08: a0 01       ..             ; Y=1: FS options offset for low address
 ; &9e0a referenced 1 time by &9e05
 .add_workspace_to_fsopts
-    clc                                                               ; 9e0a: 18          .
+    clc                                                               ; 9e0a: 18          .              ; Clear carry for addition
 ; &9e0b referenced 2 times by &9f4e, &a047
 .adjust_fsopts_4bytes
-    ldx #&fc                                                          ; 9e0b: a2 fc       ..
+    ldx #&fc                                                          ; 9e0b: a2 fc       ..             ; X=&FC: loop counter (-4 to -1)
 ; &9e0d referenced 1 time by &9e20
 .loop_c9e0d
-    lda (fs_options),y                                                ; 9e0d: b1 bb       ..
-    bit fs_load_addr_2                                                ; 9e0f: 24 b2       $.
-    bmi c9e19                                                         ; 9e11: 30 06       0.
-    adc l0e0a,x                                                       ; 9e13: 7d 0a 0e    }..
-    jmp c9e1c                                                         ; 9e16: 4c 1c 9e    L..
+    lda (fs_options),y                                                ; 9e0d: b1 bb       ..             ; Load FS options byte at offset Y
+    bit fs_load_addr_2                                                ; 9e0f: 24 b2       $.             ; Test fs_load_addr_2 bit 7 (add/subtract)
+    bmi c9e19                                                         ; 9e11: 30 06       0.             ; Bit 7 set: subtract instead
+    adc l0e0a,x                                                       ; 9e13: 7d 0a 0e    }..            ; Add workspace byte to FS options
+    jmp c9e1c                                                         ; 9e16: 4c 1c 9e    L..            ; Jump to store result
 
 ; &9e19 referenced 1 time by &9e11
 .c9e19
-    sbc l0e0a,x                                                       ; 9e19: fd 0a 0e    ...
+    sbc l0e0a,x                                                       ; 9e19: fd 0a 0e    ...            ; Subtract workspace byte from FS options
 ; &9e1c referenced 1 time by &9e16
 .c9e1c
-    sta (fs_options),y                                                ; 9e1c: 91 bb       ..
-    iny                                                               ; 9e1e: c8          .
-    inx                                                               ; 9e1f: e8          .
-    bne loop_c9e0d                                                    ; 9e20: d0 eb       ..
-    rts                                                               ; 9e22: 60          `
+    sta (fs_options),y                                                ; 9e1c: 91 bb       ..             ; Store result back to FS options
+    iny                                                               ; 9e1e: c8          .              ; Advance to next byte
+    inx                                                               ; 9e1f: e8          .              ; Advance counter
+    bne loop_c9e0d                                                    ; 9e20: d0 eb       ..             ; Loop until 4 bytes processed
+    rts                                                               ; 9e22: 60          `              ; Return
 
-    jsr verify_ws_checksum                                            ; 9e23: 20 b2 8f     ..
-    jsr set_xfer_params                                               ; 9e26: 20 81 92     ..
-    pha                                                               ; 9e29: 48          H
-    jsr mask_owner_access                                             ; 9e2a: 20 12 af     ..
-    pla                                                               ; 9e2d: 68          h
-    tax                                                               ; 9e2e: aa          .
-    beq c9e36                                                         ; 9e2f: f0 05       ..
-    dex                                                               ; 9e31: ca          .
-    cpx #8                                                            ; 9e32: e0 08       ..
-    bcc c9e39                                                         ; 9e34: 90 03       ..
+    jsr verify_ws_checksum                                            ; 9e23: 20 b2 8f     ..            ; Verify workspace checksum
+    jsr set_xfer_params                                               ; 9e26: 20 81 92     ..            ; Set up transfer parameters
+    pha                                                               ; 9e29: 48          H              ; Push transfer type on stack
+    jsr mask_owner_access                                             ; 9e2a: 20 12 af     ..            ; Set owner-only access mask
+    pla                                                               ; 9e2d: 68          h              ; Pull transfer type
+    tax                                                               ; 9e2e: aa          .              ; Transfer to X
+    beq c9e36                                                         ; 9e2f: f0 05       ..             ; Zero: no valid operation, return
+    dex                                                               ; 9e31: ca          .              ; Decrement (convert 1-based to 0-based)
+    cpx #8                                                            ; 9e32: e0 08       ..             ; Compare with 8 (max operation)
+    bcc c9e39                                                         ; 9e34: 90 03       ..             ; Below 8: valid operation
 ; &9e36 referenced 1 time by &9e2f
 .c9e36
-    jmp return_with_last_flag                                         ; 9e36: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9e36: 4c b9 9c    L..            ; Out of range: return with flag
 
 ; &9e39 referenced 1 time by &9e34
 .c9e39
-    txa                                                               ; 9e39: 8a          .
-    ldy #0                                                            ; 9e3a: a0 00       ..
-    pha                                                               ; 9e3c: 48          H
-    cmp #4                                                            ; 9e3d: c9 04       ..
-    bcc c9e44                                                         ; 9e3f: 90 03       ..
-    jmp c9f6a                                                         ; 9e41: 4c 6a 9f    Lj.
+    txa                                                               ; 9e39: 8a          .              ; Transfer operation code to A
+    ldy #0                                                            ; 9e3a: a0 00       ..             ; Y=0: buffer offset
+    pha                                                               ; 9e3c: 48          H              ; Push operation code
+    cmp #4                                                            ; 9e3d: c9 04       ..             ; Compare with 4 (write operations)
+    bcc c9e44                                                         ; 9e3f: 90 03       ..             ; Below 4: read operation
+    jmp c9f6a                                                         ; 9e41: 4c 6a 9f    Lj.            ; 4 or above: write data block
 
 ; &9e44 referenced 1 time by &9e3f
 .c9e44
-    lda (fs_options),y                                                ; 9e44: b1 bb       ..
-    pha                                                               ; 9e46: 48          H
-    jsr check_not_dir                                                 ; 9e47: 20 e3 b4     ..
-    pla                                                               ; 9e4a: 68          h
-    tay                                                               ; 9e4b: a8          .
-    jsr process_all_fcbs                                              ; 9e4c: 20 9f b7     ..
-    lda l1030,x                                                       ; 9e4f: bd 30 10    .0.
-    sta l0f05                                                         ; 9e52: 8d 05 0f    ...
-    lda #0                                                            ; 9e55: a9 00       ..
-    sta l0f06                                                         ; 9e57: 8d 06 0f    ...
-    lda l1000,x                                                       ; 9e5a: bd 00 10    ...
-    sta l0f07                                                         ; 9e5d: 8d 07 0f    ...
-    lda l1010,x                                                       ; 9e60: bd 10 10    ...
-    sta l0f08                                                         ; 9e63: 8d 08 0f    ...
-    lda l1020,x                                                       ; 9e66: bd 20 10    . .
-    sta l0f09                                                         ; 9e69: 8d 09 0f    ...
-    ldy #&0d                                                          ; 9e6c: a0 0d       ..
-    ldx #5                                                            ; 9e6e: a2 05       ..
-    jsr save_net_tx_cb                                                ; 9e70: 20 99 94     ..
-    pla                                                               ; 9e73: 68          h
-    jsr setup_transfer_workspace                                      ; 9e74: 20 cb 9e     ..
-    php                                                               ; 9e77: 08          .
-    ldy #0                                                            ; 9e78: a0 00       ..
-    lda (fs_options),y                                                ; 9e7a: b1 bb       ..
-    bcs c9e83                                                         ; 9e7c: b0 05       ..
-    jsr clear_conn_active                                             ; 9e7e: 20 b8 92     ..
-    bpl c9e86                                                         ; 9e81: 10 03       ..
+    lda (fs_options),y                                                ; 9e44: b1 bb       ..             ; Load channel handle from FS options
+    pha                                                               ; 9e46: 48          H              ; Push handle
+    jsr check_not_dir                                                 ; 9e47: 20 e3 b4     ..            ; Check file is not a directory
+    pla                                                               ; 9e4a: 68          h              ; Pull handle
+    tay                                                               ; 9e4b: a8          .              ; Transfer to Y
+    jsr process_all_fcbs                                              ; 9e4c: 20 9f b7     ..            ; Process all matching FCBs
+    lda l1030,x                                                       ; 9e4f: bd 30 10    .0.            ; Load FCB flag byte from l1030
+    sta l0f05                                                         ; 9e52: 8d 05 0f    ...            ; Store file handle in l0f05
+    lda #0                                                            ; 9e55: a9 00       ..             ; A=0: clear direction flag
+    sta l0f06                                                         ; 9e57: 8d 06 0f    ...            ; Store in l0f06
+    lda l1000,x                                                       ; 9e5a: bd 00 10    ...            ; Load FCB low byte (position)
+    sta l0f07                                                         ; 9e5d: 8d 07 0f    ...            ; Store in l0f07
+    lda l1010,x                                                       ; 9e60: bd 10 10    ...            ; Load FCB high byte
+    sta l0f08                                                         ; 9e63: 8d 08 0f    ...            ; Store in l0f08
+    lda l1020,x                                                       ; 9e66: bd 20 10    . .            ; Load FCB extent byte
+    sta l0f09                                                         ; 9e69: 8d 09 0f    ...            ; Store in l0f09
+    ldy #&0d                                                          ; 9e6c: a0 0d       ..             ; Y=&0D: TX buffer size
+    ldx #5                                                            ; 9e6e: a2 05       ..             ; X=5: argument count
+    jsr save_net_tx_cb                                                ; 9e70: 20 99 94     ..            ; Send TX control block to server
+    pla                                                               ; 9e73: 68          h              ; Pull operation code
+    jsr setup_transfer_workspace                                      ; 9e74: 20 cb 9e     ..            ; Set up transfer workspace
+    php                                                               ; 9e77: 08          .              ; Save flags (carry from setup)
+    ldy #0                                                            ; 9e78: a0 00       ..             ; Y=0: index for channel handle
+    lda (fs_options),y                                                ; 9e7a: b1 bb       ..             ; Load channel handle from FS options
+    bcs c9e83                                                         ; 9e7c: b0 05       ..             ; Carry set (write): set active
+    jsr clear_conn_active                                             ; 9e7e: 20 b8 92     ..            ; Read: clear connection active
+    bpl c9e86                                                         ; 9e81: 10 03       ..             ; Branch to continue (always positive)
 ; &9e83 referenced 1 time by &9e7c
 .c9e83
-    jsr set_conn_active                                               ; 9e83: 20 a1 92     ..
+    jsr set_conn_active                                               ; 9e83: 20 a1 92     ..            ; Write: set connection active
 ; &9e86 referenced 1 time by &9e81
 .c9e86
-    sty l0f06                                                         ; 9e86: 8c 06 0f    ...
-    jsr lookup_cat_slot_data                                          ; 9e89: 20 c4 9e     ..
-    sta l0f05                                                         ; 9e8c: 8d 05 0f    ...
-    ldy #&0c                                                          ; 9e8f: a0 0c       ..
-    ldx #2                                                            ; 9e91: a2 02       ..
-    jsr save_net_tx_cb                                                ; 9e93: 20 99 94     ..
-    jsr lookup_cat_entry_0                                            ; 9e96: 20 c0 9e     ..
-    ldy #9                                                            ; 9e99: a0 09       ..
-    lda l0f05                                                         ; 9e9b: ad 05 0f    ...
-    sta l1000,x                                                       ; 9e9e: 9d 00 10    ...
-    sta (fs_options),y                                                ; 9ea1: 91 bb       ..
-    iny                                                               ; 9ea3: c8          .              ; Y=&0a
-    lda l0f06                                                         ; 9ea4: ad 06 0f    ...
-    sta l1010,x                                                       ; 9ea7: 9d 10 10    ...
-    sta (fs_options),y                                                ; 9eaa: 91 bb       ..
-    iny                                                               ; 9eac: c8          .              ; Y=&0b
-    lda l0f07                                                         ; 9ead: ad 07 0f    ...
-    sta l1020,x                                                       ; 9eb0: 9d 20 10    . .
-    sta (fs_options),y                                                ; 9eb3: 91 bb       ..
-    lda #0                                                            ; 9eb5: a9 00       ..
-    iny                                                               ; 9eb7: c8          .              ; Y=&0c
-    sta (fs_options),y                                                ; 9eb8: 91 bb       ..
-    plp                                                               ; 9eba: 28          (
-    lda #0                                                            ; 9ebb: a9 00       ..
-    jmp finalise_and_return                                           ; 9ebd: 4c bb 9c    L..
+    sty l0f06                                                         ; 9e86: 8c 06 0f    ...            ; Clear l0f06 (Y=0)
+    jsr lookup_cat_slot_data                                          ; 9e89: 20 c4 9e     ..            ; Look up channel slot data
+    sta l0f05                                                         ; 9e8c: 8d 05 0f    ...            ; Store flag byte in l0f05
+    ldy #&0c                                                          ; 9e8f: a0 0c       ..             ; Y=&0C: TX buffer size (short)
+    ldx #2                                                            ; 9e91: a2 02       ..             ; X=2: argument count
+    jsr save_net_tx_cb                                                ; 9e93: 20 99 94     ..            ; Send TX control block
+    jsr lookup_cat_entry_0                                            ; 9e96: 20 c0 9e     ..            ; Look up channel entry at Y=0
+    ldy #9                                                            ; 9e99: a0 09       ..             ; Y=9: FS options offset for position
+    lda l0f05                                                         ; 9e9b: ad 05 0f    ...            ; Load new position low from l0f05
+    sta l1000,x                                                       ; 9e9e: 9d 00 10    ...            ; Update FCB low byte in l1000
+    sta (fs_options),y                                                ; 9ea1: 91 bb       ..             ; Store in FS options at Y=9
+    iny                                                               ; 9ea3: c8          .              ; Y=&0A; Y=&0a
+    lda l0f06                                                         ; 9ea4: ad 06 0f    ...            ; Load new position high from l0f06
+    sta l1010,x                                                       ; 9ea7: 9d 10 10    ...            ; Update FCB high byte in l1010
+    sta (fs_options),y                                                ; 9eaa: 91 bb       ..             ; Store in FS options at Y=&0A
+    iny                                                               ; 9eac: c8          .              ; Y=&0B; Y=&0b
+    lda l0f07                                                         ; 9ead: ad 07 0f    ...            ; Load new extent from l0f07
+    sta l1020,x                                                       ; 9eb0: 9d 20 10    . .            ; Update FCB extent in l1020
+    sta (fs_options),y                                                ; 9eb3: 91 bb       ..             ; Store in FS options at Y=&0B
+    lda #0                                                            ; 9eb5: a9 00       ..             ; A=0: clear high byte of extent
+    iny                                                               ; 9eb7: c8          .              ; Y=&0C; Y=&0c
+    sta (fs_options),y                                                ; 9eb8: 91 bb       ..             ; Store zero in FS options at Y=&0C
+    plp                                                               ; 9eba: 28          (              ; Restore flags
+    lda #0                                                            ; 9ebb: a9 00       ..             ; A=0: success
+    jmp finalise_and_return                                           ; 9ebd: 4c bb 9c    L..            ; Jump to finalise and return
 
 ; &9ec0 referenced 2 times by &9e96, &9ecc
 .lookup_cat_entry_0
-    ldy #0                                                            ; 9ec0: a0 00       ..
-    lda (fs_options),y                                                ; 9ec2: b1 bb       ..
+    ldy #0                                                            ; 9ec0: a0 00       ..             ; Y=0: offset for channel handle
+    lda (fs_options),y                                                ; 9ec2: b1 bb       ..             ; Load channel handle from FS options
 ; &9ec4 referenced 1 time by &9e89
 .lookup_cat_slot_data
-    jsr lookup_chan_by_char                                           ; 9ec4: 20 9d b4     ..
-    lda l1030,x                                                       ; 9ec7: bd 30 10    .0.
-    rts                                                               ; 9eca: 60          `
+    jsr lookup_chan_by_char                                           ; 9ec4: 20 9d b4     ..            ; Look up channel by character
+    lda l1030,x                                                       ; 9ec7: bd 30 10    .0.            ; Load FCB flag byte from l1030
+    rts                                                               ; 9eca: 60          `              ; Return with flag in A
 
 ; &9ecb referenced 2 times by &9e74, &b97c
 .setup_transfer_workspace
-    pha                                                               ; 9ecb: 48          H
-    jsr lookup_cat_entry_0                                            ; 9ecc: 20 c0 9e     ..
-    sta l0f05                                                         ; 9ecf: 8d 05 0f    ...
-    ldy #&0b                                                          ; 9ed2: a0 0b       ..
-    ldx #6                                                            ; 9ed4: a2 06       ..
+    pha                                                               ; 9ecb: 48          H              ; Push operation code on stack
+    jsr lookup_cat_entry_0                                            ; 9ecc: 20 c0 9e     ..            ; Look up channel entry at Y=0
+    sta l0f05                                                         ; 9ecf: 8d 05 0f    ...            ; Store flag byte in l0f05
+    ldy #&0b                                                          ; 9ed2: a0 0b       ..             ; Y=&0B: source offset in FS options
+    ldx #6                                                            ; 9ed4: a2 06       ..             ; X=6: copy 6 bytes
 ; &9ed6 referenced 1 time by &9ee2
 .loop_c9ed6
-    lda (fs_options),y                                                ; 9ed6: b1 bb       ..
-    sta l0f06,x                                                       ; 9ed8: 9d 06 0f    ...
-    dey                                                               ; 9edb: 88          .
-    cpy #8                                                            ; 9edc: c0 08       ..
-    bne c9ee1                                                         ; 9ede: d0 01       ..
-    dey                                                               ; 9ee0: 88          .
+    lda (fs_options),y                                                ; 9ed6: b1 bb       ..             ; Load FS options byte
+    sta l0f06,x                                                       ; 9ed8: 9d 06 0f    ...            ; Store in l0f06 buffer
+    dey                                                               ; 9edb: 88          .              ; Decrement source index
+    cpy #8                                                            ; 9edc: c0 08       ..             ; Skip offset 8?
+    bne c9ee1                                                         ; 9ede: d0 01       ..             ; No: continue copy
+    dey                                                               ; 9ee0: 88          .              ; Skip offset 8 (hole in structure)
 ; &9ee1 referenced 1 time by &9ede
 .c9ee1
-    dex                                                               ; 9ee1: ca          .
-    bne loop_c9ed6                                                    ; 9ee2: d0 f2       ..
-    pla                                                               ; 9ee4: 68          h
-    lsr a                                                             ; 9ee5: 4a          J
-    pha                                                               ; 9ee6: 48          H
-    bcc c9eea                                                         ; 9ee7: 90 01       ..
-    inx                                                               ; 9ee9: e8          .
+    dex                                                               ; 9ee1: ca          .              ; Decrement destination counter
+    bne loop_c9ed6                                                    ; 9ee2: d0 f2       ..             ; Loop until all 6 bytes copied
+    pla                                                               ; 9ee4: 68          h              ; Pull operation code
+    lsr a                                                             ; 9ee5: 4a          J              ; Shift right: check bit 0 (direction)
+    pha                                                               ; 9ee6: 48          H              ; Push updated code
+    bcc c9eea                                                         ; 9ee7: 90 01       ..             ; Carry clear: OSBGET (read)
+    inx                                                               ; 9ee9: e8          .              ; Carry set: OSBPUT (write), X=1
 ; &9eea referenced 1 time by &9ee7
 .c9eea
-    stx l0f06                                                         ; 9eea: 8e 06 0f    ...
-    ldy #&0b                                                          ; 9eed: a0 0b       ..
-    ldx #&91                                                          ; 9eef: a2 91       ..
-    pla                                                               ; 9ef1: 68          h
-    pha                                                               ; 9ef2: 48          H
-    beq c9ef8                                                         ; 9ef3: f0 03       ..
-    ldx #&92                                                          ; 9ef5: a2 92       ..
-    dey                                                               ; 9ef7: 88          .              ; Y=&0a
+    stx l0f06                                                         ; 9eea: 8e 06 0f    ...            ; Store direction flag in l0f06
+    ldy #&0b                                                          ; 9eed: a0 0b       ..             ; Y=&0B: TX buffer size
+    ldx #&91                                                          ; 9eef: a2 91       ..             ; X=&91: port for OSBGET
+    pla                                                               ; 9ef1: 68          h              ; Pull operation code
+    pha                                                               ; 9ef2: 48          H              ; Push back (keep on stack)
+    beq c9ef8                                                         ; 9ef3: f0 03       ..             ; Zero (OSBGET): keep port &91
+    ldx #&92                                                          ; 9ef5: a2 92       ..             ; X=&92: port for OSBPUT
+    dey                                                               ; 9ef7: 88          .              ; Y=&0A: adjusted buffer size; Y=&0a
 ; &9ef8 referenced 1 time by &9ef3
 .c9ef8
-    stx l0f02                                                         ; 9ef8: 8e 02 0f    ...
-    stx fs_error_ptr                                                  ; 9efb: 86 b8       ..
-    ldx #8                                                            ; 9efd: a2 08       ..
-    lda l0f05                                                         ; 9eff: ad 05 0f    ...
-    jsr send_request_nowrite                                          ; 9f02: 20 83 94     ..
-    ldx #0                                                            ; 9f05: a2 00       ..
-    lda (fs_options,x)                                                ; 9f07: a1 bb       ..
-    tax                                                               ; 9f09: aa          .
-    lda l1040,x                                                       ; 9f0a: bd 40 10    .@.
-    eor #1                                                            ; 9f0d: 49 01       I.
-    sta l1040,x                                                       ; 9f0f: 9d 40 10    .@.
-    clc                                                               ; 9f12: 18          .
-    ldx #4                                                            ; 9f13: a2 04       ..
+    stx l0f02                                                         ; 9ef8: 8e 02 0f    ...            ; Store port in l0f02
+    stx fs_error_ptr                                                  ; 9efb: 86 b8       ..             ; Store port in fs_error_ptr
+    ldx #8                                                            ; 9efd: a2 08       ..             ; X=8: argument count
+    lda l0f05                                                         ; 9eff: ad 05 0f    ...            ; Load file handle from l0f05
+    jsr send_request_nowrite                                          ; 9f02: 20 83 94     ..            ; Send request (no write data)
+    ldx #0                                                            ; 9f05: a2 00       ..             ; X=0: index
+    lda (fs_options,x)                                                ; 9f07: a1 bb       ..             ; Load channel handle from FS options
+    tax                                                               ; 9f09: aa          .              ; Transfer to X as index
+    lda l1040,x                                                       ; 9f0a: bd 40 10    .@.            ; Load FCB flags from l1040
+    eor #1                                                            ; 9f0d: 49 01       I.             ; Toggle bit 0 (transfer direction)
+    sta l1040,x                                                       ; 9f0f: 9d 40 10    .@.            ; Store updated flags
+    clc                                                               ; 9f12: 18          .              ; Clear carry for addition
+    ldx #4                                                            ; 9f13: a2 04       ..             ; X=4: process 4 address bytes
 ; &9f15 referenced 1 time by &9f29
 .loop_c9f15
-    lda (fs_options),y                                                ; 9f15: b1 bb       ..
-    sta l00af,y                                                       ; 9f17: 99 af 00    ...
-    sta txcb_pos,y                                                    ; 9f1a: 99 c7 00    ...
-    jsr advance_y_by_4                                                ; 9f1d: 20 6d 9a     m.
-    adc (fs_options),y                                                ; 9f20: 71 bb       q.
-    sta l00af,y                                                       ; 9f22: 99 af 00    ...
-    jsr retreat_y_by_3                                                ; 9f25: 20 80 9a     ..
-    dex                                                               ; 9f28: ca          .
-    bne loop_c9f15                                                    ; 9f29: d0 ea       ..
-    inx                                                               ; 9f2b: e8          .
+    lda (fs_options),y                                                ; 9f15: b1 bb       ..             ; Load FS options address byte
+    sta l00af,y                                                       ; 9f17: 99 af 00    ...            ; Store in zero page address area
+    sta txcb_pos,y                                                    ; 9f1a: 99 c7 00    ...            ; Store in TXCB position
+    jsr advance_y_by_4                                                ; 9f1d: 20 6d 9a     m.            ; Advance Y by 4
+    adc (fs_options),y                                                ; 9f20: 71 bb       q.             ; Add offset from FS options
+    sta l00af,y                                                       ; 9f22: 99 af 00    ...            ; Store computed end address
+    jsr retreat_y_by_3                                                ; 9f25: 20 80 9a     ..            ; Retreat Y by 3 for next pair
+    dex                                                               ; 9f28: ca          .              ; Decrement byte counter
+    bne loop_c9f15                                                    ; 9f29: d0 ea       ..             ; Loop for all 4 address bytes
+    inx                                                               ; 9f2b: e8          .              ; X=1 (INX from 0)
 ; &9f2c referenced 1 time by &9f33
 .loop_c9f2c
-    lda l0f03,x                                                       ; 9f2c: bd 03 0f    ...
-    sta l0f06,x                                                       ; 9f2f: 9d 06 0f    ...
-    dex                                                               ; 9f32: ca          .
-    bpl loop_c9f2c                                                    ; 9f33: 10 f7       ..
-    pla                                                               ; 9f35: 68          h
-    bne c9f40                                                         ; 9f36: d0 08       ..
-    lda l0f02                                                         ; 9f38: ad 02 0f    ...
-    jsr check_and_setup_txcb                                          ; 9f3b: 20 88 9a     ..
-    bcs c9f43                                                         ; 9f3e: b0 03       ..
+    lda l0f03,x                                                       ; 9f2c: bd 03 0f    ...            ; Load offset from l0f03
+    sta l0f06,x                                                       ; 9f2f: 9d 06 0f    ...            ; Copy to l0f06
+    dex                                                               ; 9f32: ca          .              ; Decrement counter
+    bpl loop_c9f2c                                                    ; 9f33: 10 f7       ..             ; Loop until both bytes copied
+    pla                                                               ; 9f35: 68          h              ; Pull operation code
+    bne c9f40                                                         ; 9f36: d0 08       ..             ; Non-zero (OSBPUT): swap addresses
+    lda l0f02                                                         ; 9f38: ad 02 0f    ...            ; Load port from l0f02
+    jsr check_and_setup_txcb                                          ; 9f3b: 20 88 9a     ..            ; Check and set up TXCB
+    bcs c9f43                                                         ; 9f3e: b0 03       ..             ; Carry set: skip swap
 ; &9f40 referenced 1 time by &9f36
 .c9f40
-    jsr send_txcb_swap_addrs                                          ; 9f40: 20 84 99     ..
+    jsr send_txcb_swap_addrs                                          ; 9f40: 20 84 99     ..            ; Send TXCB and swap start/end addresses
 ; &9f43 referenced 1 time by &9f3e
 .c9f43
-    jsr recv_and_process_reply                                        ; 9f43: 20 dc 94     ..
-    stx fs_load_addr_2                                                ; 9f46: 86 b2       ..
-    jsr update_addr_from_offset9                                      ; 9f48: 20 03 9e     ..
-    dec fs_load_addr_2                                                ; 9f4b: c6 b2       ..
-    sec                                                               ; 9f4d: 38          8
-    jsr adjust_fsopts_4bytes                                          ; 9f4e: 20 0b 9e     ..
-    asl l0f05                                                         ; 9f51: 0e 05 0f    ...
-    rts                                                               ; 9f54: 60          `
+    jsr recv_and_process_reply                                        ; 9f43: 20 dc 94     ..            ; Receive and process reply
+    stx fs_load_addr_2                                                ; 9f46: 86 b2       ..             ; Store result in fs_load_addr_2
+    jsr update_addr_from_offset9                                      ; 9f48: 20 03 9e     ..            ; Update addresses from offset 9
+    dec fs_load_addr_2                                                ; 9f4b: c6 b2       ..             ; Decrement fs_load_addr_2
+    sec                                                               ; 9f4d: 38          8              ; Set carry for subtraction
+    jsr adjust_fsopts_4bytes                                          ; 9f4e: 20 0b 9e     ..            ; Adjust FS options by 4 bytes
+    asl l0f05                                                         ; 9f51: 0e 05 0f    ...            ; Shift l0f05 left (update status)
+    rts                                                               ; 9f54: 60          `              ; Return
 
 ; &9f55 referenced 1 time by &9f85
 .c9f55
-    ldy #&15                                                          ; 9f55: a0 15       ..
-    jsr save_net_tx_cb                                                ; 9f57: 20 99 94     ..
-    lda l0e05                                                         ; 9f5a: ad 05 0e    ...
-    sta l0f16                                                         ; 9f5d: 8d 16 0f    ...
-    stx fs_load_addr                                                  ; 9f60: 86 b0       ..
-    stx fs_load_addr_hi                                               ; 9f62: 86 b1       ..
-    lda #&12                                                          ; 9f64: a9 12       ..
-    sta fs_load_addr_2                                                ; 9f66: 85 b2       ..
-    bne write_data_block                                              ; 9f68: d0 4e       .N             ; ALWAYS branch
+    ldy #&15                                                          ; 9f55: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
+    jsr save_net_tx_cb                                                ; 9f57: 20 99 94     ..            ; Send TX control block
+    lda l0e05                                                         ; 9f5a: ad 05 0e    ...            ; Load display flag from l0e05
+    sta l0f16                                                         ; 9f5d: 8d 16 0f    ...            ; Store in l0f16
+    stx fs_load_addr                                                  ; 9f60: 86 b0       ..             ; Clear fs_load_addr (X=0)
+    stx fs_load_addr_hi                                               ; 9f62: 86 b1       ..             ; Clear fs_load_addr_hi
+    lda #&12                                                          ; 9f64: a9 12       ..             ; A=&12: byte count for data block
+    sta fs_load_addr_2                                                ; 9f66: 85 b2       ..             ; Store in fs_load_addr_2
+    bne write_data_block                                              ; 9f68: d0 4e       .N             ; ALWAYS branch to write data block; ALWAYS branch
 
 ; &9f6a referenced 1 time by &9e41
 .c9f6a
-    ldy #4                                                            ; 9f6a: a0 04       ..
-    lda l0d63                                                         ; 9f6c: ad 63 0d    .c.
-    beq c9f78                                                         ; 9f6f: f0 07       ..
-    cmp (fs_options),y                                                ; 9f71: d1 bb       ..
-    bne c9f78                                                         ; 9f73: d0 03       ..
-    dey                                                               ; 9f75: 88          .              ; Y=&03
-    sbc (fs_options),y                                                ; 9f76: f1 bb       ..
+    ldy #4                                                            ; 9f6a: a0 04       ..             ; Y=4: offset for station comparison
+    lda l0d63                                                         ; 9f6c: ad 63 0d    .c.            ; Load stored station from l0d63
+    beq c9f78                                                         ; 9f6f: f0 07       ..             ; Zero: skip station check
+    cmp (fs_options),y                                                ; 9f71: d1 bb       ..             ; Compare with FS options station
+    bne c9f78                                                         ; 9f73: d0 03       ..             ; Mismatch: skip subtraction
+    dey                                                               ; 9f75: 88          .              ; Y=3; Y=&03
+    sbc (fs_options),y                                                ; 9f76: f1 bb       ..             ; Subtract FS options value
 ; &9f78 referenced 2 times by &9f6f, &9f73
 .c9f78
-    sta svc_state                                                     ; 9f78: 85 a9       ..
+    sta svc_state                                                     ; 9f78: 85 a9       ..             ; Store result in svc_state
 ; &9f7a referenced 1 time by &9f80
 .loop_c9f7a
-    lda (fs_options),y                                                ; 9f7a: b1 bb       ..
-    sta fs_last_byte_flag,y                                           ; 9f7c: 99 bd 00    ...
-    dey                                                               ; 9f7f: 88          .
-    bne loop_c9f7a                                                    ; 9f80: d0 f8       ..
-    pla                                                               ; 9f82: 68          h
-    and #3                                                            ; 9f83: 29 03       ).
-    beq c9f55                                                         ; 9f85: f0 ce       ..
-    lsr a                                                             ; 9f87: 4a          J
-    beq c9f8c                                                         ; 9f88: f0 02       ..
-    bcs c9ff7                                                         ; 9f8a: b0 6b       .k
+    lda (fs_options),y                                                ; 9f7a: b1 bb       ..             ; Load FS options byte at Y
+    sta fs_last_byte_flag,y                                           ; 9f7c: 99 bd 00    ...            ; Store in workspace at fs_last_byte_flag+Y
+    dey                                                               ; 9f7f: 88          .              ; Decrement index
+    bne loop_c9f7a                                                    ; 9f80: d0 f8       ..             ; Loop until all bytes copied
+    pla                                                               ; 9f82: 68          h              ; Pull operation code
+    and #3                                                            ; 9f83: 29 03       ).             ; Mask to 2-bit sub-operation
+    beq c9f55                                                         ; 9f85: f0 ce       ..             ; Zero: send OSBPUT data
+    lsr a                                                             ; 9f87: 4a          J              ; Shift right: check bit 0
+    beq c9f8c                                                         ; 9f88: f0 02       ..             ; Zero (bit 0 clear): handle read
+    bcs c9ff7                                                         ; 9f8a: b0 6b       .k             ; Carry set: handle catalogue update
 ; &9f8c referenced 1 time by &9f88
 .c9f8c
-    tay                                                               ; 9f8c: a8          .
-    lda l0e03,y                                                       ; 9f8d: b9 03 0e    ...
-    sta l0f03                                                         ; 9f90: 8d 03 0f    ...
-    lda l0e04                                                         ; 9f93: ad 04 0e    ...
-    sta l0f04                                                         ; 9f96: 8d 04 0f    ...
-    lda l0e02                                                         ; 9f99: ad 02 0e    ...
-    sta l0f02                                                         ; 9f9c: 8d 02 0f    ...
-    ldx #&12                                                          ; 9f9f: a2 12       ..
-    stx l0f01                                                         ; 9fa1: 8e 01 0f    ...
-    lda #&0d                                                          ; 9fa4: a9 0d       ..
-    sta l0f06                                                         ; 9fa6: 8d 06 0f    ...
-    sta fs_load_addr_2                                                ; 9fa9: 85 b2       ..
-    lsr a                                                             ; 9fab: 4a          J
-    sta l0f05                                                         ; 9fac: 8d 05 0f    ...
-    clc                                                               ; 9faf: 18          .
-    jsr prep_send_tx_cb                                               ; 9fb0: 20 c6 94     ..
-    stx fs_load_addr_hi                                               ; 9fb3: 86 b1       ..
-    inx                                                               ; 9fb5: e8          .
-    stx fs_load_addr                                                  ; 9fb6: 86 b0       ..
+    tay                                                               ; 9f8c: a8          .              ; Transfer to Y (Y=0)
+    lda l0e03,y                                                       ; 9f8d: b9 03 0e    ...            ; Load data byte from l0e03
+    sta l0f03                                                         ; 9f90: 8d 03 0f    ...            ; Store in l0f03
+    lda l0e04                                                         ; 9f93: ad 04 0e    ...            ; Load high data byte from l0e04
+    sta l0f04                                                         ; 9f96: 8d 04 0f    ...            ; Store in l0f04
+    lda l0e02                                                         ; 9f99: ad 02 0e    ...            ; Load port from l0e02
+    sta l0f02                                                         ; 9f9c: 8d 02 0f    ...            ; Store in l0f02
+    ldx #&12                                                          ; 9f9f: a2 12       ..             ; X=&12: buffer size marker
+    stx l0f01                                                         ; 9fa1: 8e 01 0f    ...            ; Store in l0f01
+    lda #&0d                                                          ; 9fa4: a9 0d       ..             ; A=&0D: count value
+    sta l0f06                                                         ; 9fa6: 8d 06 0f    ...            ; Store in l0f06
+    sta fs_load_addr_2                                                ; 9fa9: 85 b2       ..             ; Store in fs_load_addr_2
+    lsr a                                                             ; 9fab: 4a          J              ; Shift right (A=6)
+    sta l0f05                                                         ; 9fac: 8d 05 0f    ...            ; Store in l0f05
+    clc                                                               ; 9faf: 18          .              ; Clear carry for addition
+    jsr prep_send_tx_cb                                               ; 9fb0: 20 c6 94     ..            ; Prepare and send TX control block
+    stx fs_load_addr_hi                                               ; 9fb3: 86 b1       ..             ; Store X in fs_load_addr_hi (X=0)
+    inx                                                               ; 9fb5: e8          .              ; X=1 (INX)
+    stx fs_load_addr                                                  ; 9fb6: 86 b0       ..             ; Store X in fs_load_addr
 ; &9fb8 referenced 2 times by &9f68, &a030
 .write_data_block
-    lda svc_state                                                     ; 9fb8: a5 a9       ..
-    bne c9fcd                                                         ; 9fba: d0 11       ..
-    ldx fs_load_addr                                                  ; 9fbc: a6 b0       ..
-    ldy fs_load_addr_hi                                               ; 9fbe: a4 b1       ..
+    lda svc_state                                                     ; 9fb8: a5 a9       ..             ; Load svc_state (tube flag)
+    bne c9fcd                                                         ; 9fba: d0 11       ..             ; Non-zero: write via tube
+    ldx fs_load_addr                                                  ; 9fbc: a6 b0       ..             ; Load source index from fs_load_addr
+    ldy fs_load_addr_hi                                               ; 9fbe: a4 b1       ..             ; Load destination index from fs_load_addr_hi
 ; &9fc0 referenced 1 time by &9fc9
 .loop_c9fc0
-    lda l0f05,x                                                       ; 9fc0: bd 05 0f    ...
-    sta (fs_crc_lo),y                                                 ; 9fc3: 91 be       ..
-    inx                                                               ; 9fc5: e8          .
-    iny                                                               ; 9fc6: c8          .
-    dec fs_load_addr_2                                                ; 9fc7: c6 b2       ..
-    bne loop_c9fc0                                                    ; 9fc9: d0 f5       ..
-    beq tail_update_catalogue                                         ; 9fcb: f0 27       .'             ; ALWAYS branch
+    lda l0f05,x                                                       ; 9fc0: bd 05 0f    ...            ; Load data byte from l0f05 buffer
+    sta (fs_crc_lo),y                                                 ; 9fc3: 91 be       ..             ; Store to destination via fs_crc pointer
+    inx                                                               ; 9fc5: e8          .              ; Advance source index
+    iny                                                               ; 9fc6: c8          .              ; Advance destination index
+    dec fs_load_addr_2                                                ; 9fc7: c6 b2       ..             ; Decrement byte counter
+    bne loop_c9fc0                                                    ; 9fc9: d0 f5       ..             ; Loop until all bytes transferred
+    beq tail_update_catalogue                                         ; 9fcb: f0 27       .'             ; ALWAYS branch to update catalogue; ALWAYS branch
 
 ; &9fcd referenced 1 time by &9fba
 .c9fcd
-    jsr tube_claim_c3                                                 ; 9fcd: 20 5b a0     [.
-    lda #1                                                            ; 9fd0: a9 01       ..
-    ldx fs_options                                                    ; 9fd2: a6 bb       ..
-    ldy fs_block_offset                                               ; 9fd4: a4 bc       ..
-    inx                                                               ; 9fd6: e8          .
-    bne c9fda                                                         ; 9fd7: d0 01       ..
-    iny                                                               ; 9fd9: c8          .
+    jsr tube_claim_c3                                                 ; 9fcd: 20 5b a0     [.            ; Claim tube with call &C3
+    lda #1                                                            ; 9fd0: a9 01       ..             ; A=1: tube transfer type (write)
+    ldx fs_options                                                    ; 9fd2: a6 bb       ..             ; Load destination low from fs_options
+    ldy fs_block_offset                                               ; 9fd4: a4 bc       ..             ; Load destination high from fs_block_offset
+    inx                                                               ; 9fd6: e8          .              ; Increment low byte
+    bne c9fda                                                         ; 9fd7: d0 01       ..             ; No wrap: skip high increment
+    iny                                                               ; 9fd9: c8          .              ; Carry: increment high byte
 ; &9fda referenced 1 time by &9fd7
 .c9fda
-    jsr tube_addr_data_dispatch                                       ; 9fda: 20 06 04     ..
-    ldx fs_load_addr                                                  ; 9fdd: a6 b0       ..
+    jsr tube_addr_data_dispatch                                       ; 9fda: 20 06 04     ..            ; Set up tube transfer address
+    ldx fs_load_addr                                                  ; 9fdd: a6 b0       ..             ; Load source index
 ; &9fdf referenced 1 time by &9fed
 .loop_c9fdf
-    lda l0f05,x                                                       ; 9fdf: bd 05 0f    ...
-    sta tube_data_register_3                                          ; 9fe2: 8d e5 fe    ...
-    inx                                                               ; 9fe5: e8          .
-    ldy #6                                                            ; 9fe6: a0 06       ..
+    lda l0f05,x                                                       ; 9fdf: bd 05 0f    ...            ; Load data byte from buffer
+    sta tube_data_register_3                                          ; 9fe2: 8d e5 fe    ...            ; Write to tube data register 3
+    inx                                                               ; 9fe5: e8          .              ; Advance source index
+    ldy #6                                                            ; 9fe6: a0 06       ..             ; Y=6: tube write delay
 ; &9fe8 referenced 1 time by &9fe9
 .loop_c9fe8
-    dey                                                               ; 9fe8: 88          .
-    bne loop_c9fe8                                                    ; 9fe9: d0 fd       ..
-    dec fs_load_addr_2                                                ; 9feb: c6 b2       ..
-    bne loop_c9fdf                                                    ; 9fed: d0 f0       ..
-    lda #&83                                                          ; 9fef: a9 83       ..
-    jsr tube_addr_data_dispatch                                       ; 9ff1: 20 06 04     ..
+    dey                                                               ; 9fe8: 88          .              ; Delay loop: decrement Y
+    bne loop_c9fe8                                                    ; 9fe9: d0 fd       ..             ; Loop until delay complete
+    dec fs_load_addr_2                                                ; 9feb: c6 b2       ..             ; Decrement byte counter
+    bne loop_c9fdf                                                    ; 9fed: d0 f0       ..             ; Loop until all bytes written to tube
+    lda #&83                                                          ; 9fef: a9 83       ..             ; A=&83: release tube claim
+    jsr tube_addr_data_dispatch                                       ; 9ff1: 20 06 04     ..            ; Release tube
 ; &9ff4 referenced 2 times by &9fcb, &a058
 .tail_update_catalogue
-    jmp c9ce1                                                         ; 9ff4: 4c e1 9c    L..
+    jmp c9ce1                                                         ; 9ff4: 4c e1 9c    L..            ; Jump to clear A and finalise return
 
 ; &9ff7 referenced 1 time by &9f8a
 .c9ff7
-    ldy #9                                                            ; 9ff7: a0 09       ..
-    lda (fs_options),y                                                ; 9ff9: b1 bb       ..
-    sta l0f06                                                         ; 9ffb: 8d 06 0f    ...
-    ldy #5                                                            ; 9ffe: a0 05       ..
+    ldy #9                                                            ; 9ff7: a0 09       ..             ; Y=9: offset for position byte
+    lda (fs_options),y                                                ; 9ff9: b1 bb       ..             ; Load position from FS options
+    sta l0f06                                                         ; 9ffb: 8d 06 0f    ...            ; Store in l0f06
+    ldy #5                                                            ; 9ffe: a0 05       ..             ; Y=5: offset for extent byte
     lda (fs_options),y                                                ; a000: b1 bb       ..
     sta l0f07                                                         ; a002: 8d 07 0f    ...
     ldx #&0d                                                          ; a005: a2 0d       ..
