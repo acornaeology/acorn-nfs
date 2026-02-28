@@ -388,7 +388,8 @@ def format_depth(G):
 def cfg(version_dirpath, version, fmt="json", leaves=False, roots=False,
         sub=None, depth=False):
     """Main entry point. Returns exit code."""
-    json_filepath = version_dirpath / "output" / f"nfs-{version}.json"
+    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
 
     if not json_filepath.exists():
         print(f"Error: {json_filepath} not found (run disassemble first)",

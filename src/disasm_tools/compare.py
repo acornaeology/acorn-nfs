@@ -424,8 +424,10 @@ def compare(version_dirpath_a, version_a, version_dirpath_b, version_b):
 
     Returns 0 on success, 1 on error.
     """
-    rom_filepath_a = version_dirpath_a / "rom" / f"nfs-{version_a}.rom"
-    rom_filepath_b = version_dirpath_b / "rom" / f"nfs-{version_b}.rom"
+    pfx_a = "anfs" if (version_dirpath_a / "rom" / f"anfs-{version_a}.rom").exists() else "nfs"
+    pfx_b = "anfs" if (version_dirpath_b / "rom" / f"anfs-{version_b}.rom").exists() else "nfs"
+    rom_filepath_a = version_dirpath_a / "rom" / f"{pfx_a}-{version_a}.rom"
+    rom_filepath_b = version_dirpath_b / "rom" / f"{pfx_b}-{version_b}.rom"
 
     for filepath in (rom_filepath_a, rom_filepath_b):
         if not filepath.exists():

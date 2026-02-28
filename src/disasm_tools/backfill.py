@@ -201,8 +201,10 @@ def build_chained_map(repo_root, source_version, target_version):
     for i in chain_indices:
         v_a, v_b, reloc_blocks = VERSION_CHAIN[i]
         # Always load ROMs in VERSION_CHAIN order so reloc_blocks match
-        rom_a_filepath = repo_root / "versions" / v_a / "rom" / f"nfs-{v_a}.rom"
-        rom_b_filepath = repo_root / "versions" / v_b / "rom" / f"nfs-{v_b}.rom"
+        pfx_a = "anfs" if (repo_root / "versions" / v_a / "rom" / f"anfs-{v_a}.rom").exists() else "nfs"
+        pfx_b = "anfs" if (repo_root / "versions" / v_b / "rom" / f"anfs-{v_b}.rom").exists() else "nfs"
+        rom_a_filepath = repo_root / "versions" / v_a / "rom" / f"{pfx_a}-{v_a}.rom"
+        rom_b_filepath = repo_root / "versions" / v_b / "rom" / f"{pfx_b}-{v_b}.rom"
         data_a = rom_a_filepath.read_bytes()
         data_b = rom_b_filepath.read_bytes()
 

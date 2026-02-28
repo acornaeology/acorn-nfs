@@ -12,8 +12,9 @@ def verify(version_dirpath, version):
 
     Returns 0 on success, 1 on failure.
     """
-    rom_filepath = version_dirpath / "rom" / f"nfs-{version}.rom"
-    asm_filepath = version_dirpath / "output" / f"nfs-{version}.asm"
+    prefix = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    rom_filepath = version_dirpath / "rom" / f"{prefix}-{version}.rom"
+    asm_filepath = version_dirpath / "output" / f"{prefix}-{version}.asm"
 
     if not rom_filepath.exists():
         print(f"Error: ROM file not found: {rom_filepath}", file=sys.stderr)

@@ -108,8 +108,9 @@ def generate_context(version_dirpath, version, threshold=50,
 
     Returns exit code (0 success, 1 error).
     """
-    json_filepath = version_dirpath / "output" / f"nfs-{version}.json"
-    asm_filepath = version_dirpath / "output" / f"nfs-{version}.asm"
+    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
+    asm_filepath = version_dirpath / "output" / f"{pfx}-{version}.asm"
 
     if not json_filepath.exists():
         print(f"Error: {json_filepath} not found (run disassemble first)",

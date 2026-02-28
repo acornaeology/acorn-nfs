@@ -32,18 +32,35 @@ def get_version_dirpath(version):
     return version_dirpath
 
 
+def rom_prefix(version_dirpath, version):
+    """Return 'anfs' for ANFS versions, 'nfs' otherwise."""
+    if (version_dirpath / "rom" / f"anfs-{version}.rom").exists():
+        return "anfs"
+    return "nfs"
+
+
+
+
 def cmd_disassemble(args):
     """Run the disassembly for a given NFS version."""
     version_dirpath = get_version_dirpath(args.version)
-    script_filename = f"disasm_nfs_{args.version.replace('.', '').lower()}.py"
+    prefix = rom_prefix(version_dirpath, args.version)
+    script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
     script_filepath = version_dirpath / "disassemble" / script_filename
 
     if not script_filepath.exists():
-        print(f"Error: {script_filepath} not found", file=sys.stderr)
-        sys.exit(1)
+        # Fall back to nfs prefix for backwards compatibility
+        alt_filename = f"disasm_nfs_{args.version.replace('.', '').lower()}.py"
+        alt_filepath = version_dirpath / "disassemble" / alt_filename
+        if alt_filepath.exists():
+            script_filepath = alt_filepath
+        else:
+            print(f"Error: {script_filepath} not found", file=sys.stderr)
+            sys.exit(1)
 
     env = os.environ.copy()
-    env["ACORN_NFS_ROM"] = str(version_dirpath / "rom" / f"nfs-{args.version}.rom")
+    prefix = rom_prefix(version_dirpath, args.version)
+    env["ACORN_NFS_ROM"] = str(version_dirpath / "rom" / f"{prefix}-{args.version}.rom")
     env["ACORN_NFS_OUTPUT"] = str(version_dirpath / "output")
 
     result = subprocess.run(
@@ -100,7 +117,8 @@ def cmd_extract(args):
     from disasm_tools.asm_extract import extract
 
     version_dirpath = get_version_dirpath(args.version)
-    asm_filepath = version_dirpath / "output" / f"nfs-{args.version}.asm"
+    prefix = rom_prefix(version_dirpath, args.version)
+    asm_filepath = version_dirpath / "output" / f"{prefix}-{args.version}.asm"
 
     if not asm_filepath.exists():
         print(f"Error: {asm_filepath} not found (run disassemble first)", file=sys.stderr)

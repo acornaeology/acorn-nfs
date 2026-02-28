@@ -241,7 +241,9 @@ def lint_docs(version_dirpath, version):
 
     def get_ranges(ver):
         if ver not in ranges_cache:
-            json_fp = repo_root / "versions" / ver / "output" / f"nfs-{ver}.json"
+            ver_dirpath = repo_root / "versions" / ver
+            pfx = "anfs" if (ver_dirpath / "rom" / f"anfs-{ver}.rom").exists() else "nfs"
+            json_fp = ver_dirpath / "output" / f"{pfx}-{ver}.json"
             if json_fp.exists():
                 ranges_cache[ver] = load_address_ranges(json_fp)
             else:
@@ -433,9 +435,12 @@ def lint(version_dirpath, version):
 
     Returns 0 on success, 1 on failure.
     """
-    script_filename = f"disasm_nfs_{version.replace('.', '').lower()}.py"
+    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    script_filename = f"disasm_{pfx}_{version.replace('.', '').lower()}.py"
     driver_filepath = version_dirpath / "disassemble" / script_filename
-    json_filepath = version_dirpath / "output" / f"nfs-{version}.json"
+    if not driver_filepath.exists():
+        driver_filepath = version_dirpath / "disassemble" / f"disasm_nfs_{version.replace('.', '').lower()}.py"
+    json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
 
     if not driver_filepath.exists():
         print(f"Error: driver script not found: {driver_filepath}", file=sys.stderr)
@@ -475,7 +480,7 @@ def lint(version_dirpath, version):
     glossary_errors, glossary_link_count = lint_glossary_links(version_dirpath)
 
     # Lint assembly output for double-comment artefacts
-    asm_filepath = version_dirpath / "output" / f"nfs-{version}.asm"
+    asm_filepath = version_dirpath / "output" / f"{pfx}-{version}.asm"
     double_comment_errors = lint_double_comments(asm_filepath)
 
     failed = False

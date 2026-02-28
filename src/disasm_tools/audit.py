@@ -459,8 +459,9 @@ ALL_FLAGS = [
 
 def audit(version_dirpath, version, sub_target=None, summary=False, flag_filter=None):
     """Main entry point. Returns exit code 0 on success, 1 on error."""
-    json_filepath = version_dirpath / "output" / f"nfs-{version}.json"
-    asm_filepath = version_dirpath / "output" / f"nfs-{version}.asm"
+    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
+    asm_filepath = version_dirpath / "output" / f"{pfx}-{version}.asm"
 
     if not json_filepath.exists():
         print(f"Error: {json_filepath} not found (run disassemble first)",
