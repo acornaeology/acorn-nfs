@@ -9549,968 +9549,968 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; file confirmation prompt.
 ; ***************************************************************************************
 .cmd_wipe
-    jsr mask_owner_access                                             ; b33d: 20 12 af     ..
-    lda #0                                                            ; b340: a9 00       ..
-    sta fs_work_5                                                     ; b342: 85 b5       ..
-    jsr save_ptr_to_os_text                                           ; b344: 20 95 af     ..
-    jsr parse_filename_arg                                            ; b347: 20 82 ae     ..
-    inx                                                               ; b34a: e8          .
-    stx l00b6                                                         ; b34b: 86 b6       ..
+    jsr mask_owner_access                                             ; b33d: 20 12 af     ..            ; Mask owner access flags to 5 bits
+    lda #0                                                            ; b340: a9 00       ..             ; Initialise file index to 0
+    sta fs_work_5                                                     ; b342: 85 b5       ..             ; Store file counter
+    jsr save_ptr_to_os_text                                           ; b344: 20 95 af     ..            ; Save pointer to command text
+    jsr parse_filename_arg                                            ; b347: 20 82 ae     ..            ; Parse wildcard filename argument
+    inx                                                               ; b34a: e8          .              ; Advance past CR terminator
+    stx l00b6                                                         ; b34b: 86 b6       ..             ; Save end-of-argument buffer position
 ; &b34d referenced 1 time by &b389
 .cb34d
-    lda #1                                                            ; b34d: a9 01       ..
-    sta l0f05                                                         ; b34f: 8d 05 0f    ...
-    sta l0f07                                                         ; b352: 8d 07 0f    ...
-    ldx fs_work_5                                                     ; b355: a6 b5       ..
-    stx l0f06                                                         ; b357: 8e 06 0f    ...
-    ldx #3                                                            ; b35a: a2 03       ..
-    jsr copy_arg_to_buf                                               ; b35c: 20 f2 ae     ..
-    ldy #3                                                            ; b35f: a0 03       ..
-    lda #&80                                                          ; b361: a9 80       ..
-    sta escapable                                                     ; b363: 85 97       ..
-    jsr save_net_tx_cb                                                ; b365: 20 99 94     ..
-    lda l0f05                                                         ; b368: ad 05 0f    ...
-    bne cb380                                                         ; b36b: d0 13       ..
-    lda #osbyte_flush_buffer_class                                    ; b36d: a9 0f       ..
-    ldx #1                                                            ; b36f: a2 01       ..
-    jsr osbyte                                                        ; b371: 20 f4 ff     ..            ; Flush input buffers (X non-zero)
-    lda #osbyte_scan_keyboard_from_16                                 ; b374: a9 7a       .z
-    jsr osbyte                                                        ; b376: 20 f4 ff     ..            ; Keyboard scan starting from key 16
-    ldy #0                                                            ; b379: a0 00       ..             ; Y=key
-    lda #osbyte_write_keys_pressed                                    ; b37b: a9 78       .x
-    jmp osbyte                                                        ; b37d: 4c f4 ff    L..            ; Write current keys pressed (X and Y)
+    lda #1                                                            ; b34d: a9 01       ..             ; Command code 1 = examine directory
+    sta l0f05                                                         ; b34f: 8d 05 0f    ...            ; Store command in TX buffer byte 0
+    sta l0f07                                                         ; b352: 8d 07 0f    ...            ; Store flag in TX buffer byte 2
+    ldx fs_work_5                                                     ; b355: a6 b5       ..             ; Load current file index
+    stx l0f06                                                         ; b357: 8e 06 0f    ...            ; Store file index in TX buffer byte 1
+    ldx #3                                                            ; b35a: a2 03       ..             ; X=3: copy from TX buffer offset 3
+    jsr copy_arg_to_buf                                               ; b35c: 20 f2 ae     ..            ; Copy filename argument to TX buffer
+    ldy #3                                                            ; b35f: a0 03       ..             ; Function code 3 = examine
+    lda #&80                                                          ; b361: a9 80       ..             ; Flag &80 = escapable
+    sta escapable                                                     ; b363: 85 97       ..             ; Mark operation as escapable
+    jsr save_net_tx_cb                                                ; b365: 20 99 94     ..            ; Send examine request to file server
+    lda l0f05                                                         ; b368: ad 05 0f    ...            ; Get server response status
+    bne cb380                                                         ; b36b: d0 13       ..             ; Non-zero: file found, process it
+    lda #osbyte_flush_buffer_class                                    ; b36d: a9 0f       ..             ; OSBYTE &0F: flush buffer class
+    ldx #1                                                            ; b36f: a2 01       ..             ; X=1: flush input buffers
+    jsr osbyte                                                        ; b371: 20 f4 ff     ..            ; Flush keyboard buffer; Flush input buffers (X non-zero)
+    lda #osbyte_scan_keyboard_from_16                                 ; b374: a9 7a       .z             ; OSBYTE &7A: keyboard scan from 16
+    jsr osbyte                                                        ; b376: 20 f4 ff     ..            ; Scan keyboard to clear state; Keyboard scan starting from key 16
+    ldy #0                                                            ; b379: a0 00       ..             ; Y=0: no key pressed; Y=key
+    lda #osbyte_write_keys_pressed                                    ; b37b: a9 78       .x             ; OSBYTE &78: write keys pressed
+    jmp osbyte                                                        ; b37d: 4c f4 ff    L..            ; Clear keyboard state and return; Write current keys pressed (X and Y)
 
 ; &b380 referenced 1 time by &b36b
 .cb380
-    lda l0f2f                                                         ; b380: ad 2f 0f    ./.
+    lda l0f2f                                                         ; b380: ad 2f 0f    ./.            ; Load first attribute char of response
 ; &b383 referenced 1 time by &b393
 .loop_cb383
-    cmp #&4c ; 'L'                                                    ; b383: c9 4c       .L
-    bne cb38c                                                         ; b385: d0 05       ..
+    cmp #&4c ; 'L'                                                    ; b383: c9 4c       .L             ; Is file locked?
+    bne cb38c                                                         ; b385: d0 05       ..             ; No: check if directory
 ; &b387 referenced 1 time by &b40e
 .cb387
-    inc fs_work_5                                                     ; b387: e6 b5       ..
-    jmp cb34d                                                         ; b389: 4c 4d b3    LM.
+    inc fs_work_5                                                     ; b387: e6 b5       ..             ; Skip locked file, advance index
+    jmp cb34d                                                         ; b389: 4c 4d b3    LM.            ; Request next file from server
 
 ; &b38c referenced 1 time by &b385
 .cb38c
-    cmp #&44 ; 'D'                                                    ; b38c: c9 44       .D
-    bne cb395                                                         ; b38e: d0 05       ..
-    lda l0f30                                                         ; b390: ad 30 0f    .0.
-    bne loop_cb383                                                    ; b393: d0 ee       ..
+    cmp #&44 ; 'D'                                                    ; b38c: c9 44       .D             ; Is it a directory entry?
+    bne cb395                                                         ; b38e: d0 05       ..             ; No: regular file, show prompt
+    lda l0f30                                                         ; b390: ad 30 0f    .0.            ; Check directory contents flag
+    bne loop_cb383                                                    ; b393: d0 ee       ..             ; Non-empty dir: treat as locked, skip
 ; &b395 referenced 1 time by &b38e
 .cb395
-    ldx #1                                                            ; b395: a2 01       ..
-    ldy l00b6                                                         ; b397: a4 b6       ..
+    ldx #1                                                            ; b395: a2 01       ..             ; X=1: start from response byte 1
+    ldy l00b6                                                         ; b397: a4 b6       ..             ; Y = destination index in delete buffer
 ; &b399 referenced 1 time by &b3a6
 .loop_cb399
-    lda l0f06,x                                                       ; b399: bd 06 0f    ...
-    jsr osasci                                                        ; b39c: 20 e3 ff     ..            ; Write character
-    sta l0e30,y                                                       ; b39f: 99 30 0e    .0.
-    iny                                                               ; b3a2: c8          .
-    inx                                                               ; b3a3: e8          .
-    cpx #&0c                                                          ; b3a4: e0 0c       ..
-    bne loop_cb399                                                    ; b3a6: d0 f1       ..
-    jsr print_inline                                                  ; b3a8: 20 31 91     1.
+    lda l0f06,x                                                       ; b399: bd 06 0f    ...            ; Load filename char from response
+    jsr osasci                                                        ; b39c: 20 e3 ff     ..            ; Print filename character to screen; Write character
+    sta l0e30,y                                                       ; b39f: 99 30 0e    .0.            ; Store in delete command buffer too
+    iny                                                               ; b3a2: c8          .              ; Advance destination index
+    inx                                                               ; b3a3: e8          .              ; Advance source index
+    cpx #&0c                                                          ; b3a4: e0 0c       ..             ; Copied all 11 filename characters?
+    bne loop_cb399                                                    ; b3a6: d0 f1       ..             ; No: continue copying
+    jsr print_inline                                                  ; b3a8: 20 31 91     1.            ; Print '(Y/N/?) ' prompt
     equs "(Y/N/?) "                                                   ; b3ab: 28 59 2f... (Y/
 
-    nop                                                               ; b3b3: ea          .
-    jsr flush_and_read_char                                           ; b3b4: 20 1f b4     ..
-    cmp #&3f ; '?'                                                    ; b3b7: c9 3f       .?
-    bne cb3db                                                         ; b3b9: d0 20       .
-    lda #&0d                                                          ; b3bb: a9 0d       ..
-    jsr oswrch                                                        ; b3bd: 20 ee ff     ..            ; Write character 13
-    ldx #2                                                            ; b3c0: a2 02       ..
+    nop                                                               ; b3b3: ea          .              ; Inline string terminator (NOP)
+    jsr flush_and_read_char                                           ; b3b4: 20 1f b4     ..            ; Read user response character
+    cmp #&3f ; '?'                                                    ; b3b7: c9 3f       .?             ; User pressed '?'?
+    bne cb3db                                                         ; b3b9: d0 20       .              ; No: check for Y/N response
+    lda #&0d                                                          ; b3bb: a9 0d       ..             ; Carriage return before full info
+    jsr oswrch                                                        ; b3bd: 20 ee ff     ..            ; Print CR; Write character 13
+    ldx #2                                                            ; b3c0: a2 02       ..             ; X=2: start from response byte 2
 ; &b3c2 referenced 1 time by &b3cb
 .loop_cb3c2
-    lda l0f05,x                                                       ; b3c2: bd 05 0f    ...
-    jsr osasci                                                        ; b3c5: 20 e3 ff     ..            ; Write character
-    inx                                                               ; b3c8: e8          .
-    cpx #&3e ; '>'                                                    ; b3c9: e0 3e       .>
-    bne loop_cb3c2                                                    ; b3cb: d0 f5       ..
-    jsr print_inline                                                  ; b3cd: 20 31 91     1.
+    lda l0f05,x                                                       ; b3c2: bd 05 0f    ...            ; Load file info character
+    jsr osasci                                                        ; b3c5: 20 e3 ff     ..            ; Print file info character; Write character
+    inx                                                               ; b3c8: e8          .              ; Advance to next character
+    cpx #&3e ; '>'                                                    ; b3c9: e0 3e       .>             ; Printed all &3C info bytes?
+    bne loop_cb3c2                                                    ; b3cb: d0 f5       ..             ; No: continue printing
+    jsr print_inline                                                  ; b3cd: 20 31 91     1.            ; Print ' (Y/N) ' prompt (no '?')
     equs " (Y/N) "                                                    ; b3d0: 20 28 59...  (Y
 
-    nop                                                               ; b3d7: ea          .
-    jsr flush_and_read_char                                           ; b3d8: 20 1f b4     ..
+    nop                                                               ; b3d7: ea          .              ; Inline string terminator (NOP)
+    jsr flush_and_read_char                                           ; b3d8: 20 1f b4     ..            ; Read user response (Y/N only)
 ; &b3db referenced 1 time by &b3b9
 .cb3db
-    and #&df                                                          ; b3db: 29 df       ).
-    cmp #&59 ; 'Y'                                                    ; b3dd: c9 59       .Y
-    bne cb40b                                                         ; b3df: d0 2a       .*
-    jsr osasci                                                        ; b3e1: 20 e3 ff     ..            ; Write character
-    ldx #0                                                            ; b3e4: a2 00       ..
-    lda l0e30,x                                                       ; b3e6: bd 30 0e    .0.
-    cmp #&0d                                                          ; b3e9: c9 0d       ..
-    beq cb411                                                         ; b3eb: f0 24       .$
+    and #&df                                                          ; b3db: 29 df       ).             ; Force uppercase
+    cmp #&59 ; 'Y'                                                    ; b3dd: c9 59       .Y             ; User said 'Y' (yes)?
+    bne cb40b                                                         ; b3df: d0 2a       .*             ; No: print newline, skip to next file
+    jsr osasci                                                        ; b3e1: 20 e3 ff     ..            ; Echo 'Y' to screen; Write character
+    ldx #0                                                            ; b3e4: a2 00       ..             ; X=0: start of stored filename
+    lda l0e30,x                                                       ; b3e6: bd 30 0e    .0.            ; Check first byte of stored name
+    cmp #&0d                                                          ; b3e9: c9 0d       ..             ; Is first byte CR (empty first field)?
+    beq cb411                                                         ; b3eb: f0 24       .$             ; Yes: use second filename field
 ; &b3ed referenced 1 time by &b402
 .loop_cb3ed
-    lda l0e30,x                                                       ; b3ed: bd 30 0e    .0.
-    cmp #&0d                                                          ; b3f0: c9 0d       ..
-    bne cb3f6                                                         ; b3f2: d0 02       ..
-    lda #&2e ; '.'                                                    ; b3f4: a9 2e       ..
+    lda l0e30,x                                                       ; b3ed: bd 30 0e    .0.            ; Load byte from stored filename
+    cmp #&0d                                                          ; b3f0: c9 0d       ..             ; Is it CR (field separator)?
+    bne cb3f6                                                         ; b3f2: d0 02       ..             ; No: check for space
+    lda #&2e ; '.'                                                    ; b3f4: a9 2e       ..             ; Replace CR with '.' directory sep
 ; &b3f6 referenced 1 time by &b3f2
 .cb3f6
-    cmp #&20 ; ' '                                                    ; b3f6: c9 20       .
-    bne cb3fc                                                         ; b3f8: d0 02       ..
+    cmp #&20 ; ' '                                                    ; b3f6: c9 20       .              ; Is it a space (name terminator)?
+    bne cb3fc                                                         ; b3f8: d0 02       ..             ; No: keep character as-is
 ; &b3fa referenced 1 time by &b41d
 .cb3fa
-    lda #&0d                                                          ; b3fa: a9 0d       ..
+    lda #&0d                                                          ; b3fa: a9 0d       ..             ; Replace space with CR (end of name)
 ; &b3fc referenced 1 time by &b3f8
 .cb3fc
-    sta l0f05,x                                                       ; b3fc: 9d 05 0f    ...
-    inx                                                               ; b3ff: e8          .
-    cmp #&0d                                                          ; b400: c9 0d       ..
-    bne loop_cb3ed                                                    ; b402: d0 e9       ..
-    ldy #&14                                                          ; b404: a0 14       ..
-    jsr save_net_tx_cb                                                ; b406: 20 99 94     ..
-    dec fs_work_5                                                     ; b409: c6 b5       ..
+    sta l0f05,x                                                       ; b3fc: 9d 05 0f    ...            ; Store in delete command TX buffer
+    inx                                                               ; b3ff: e8          .              ; Advance to next character
+    cmp #&0d                                                          ; b400: c9 0d       ..             ; Was it the CR terminator?
+    bne loop_cb3ed                                                    ; b402: d0 e9       ..             ; No: continue building delete command
+    ldy #&14                                                          ; b404: a0 14       ..             ; Function code &14 = delete file
+    jsr save_net_tx_cb                                                ; b406: 20 99 94     ..            ; Send delete request to file server
+    dec fs_work_5                                                     ; b409: c6 b5       ..             ; Adjust file index after deletion
 ; &b40b referenced 1 time by &b3df
 .cb40b
-    jsr osnewl                                                        ; b40b: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    jmp cb387                                                         ; b40e: 4c 87 b3    L..
+    jsr osnewl                                                        ; b40b: 20 e7 ff     ..            ; Print newline after user response; Write newline (characters 10 and 13)
+    jmp cb387                                                         ; b40e: 4c 87 b3    L..            ; Advance index, process next file
 
 ; &b411 referenced 1 time by &b3eb
 .cb411
-    dex                                                               ; b411: ca          .
+    dex                                                               ; b411: ca          .              ; DEX to offset following INX
 ; &b412 referenced 1 time by &b41b
 .loop_cb412
-    inx                                                               ; b412: e8          .
-    lda l0e31,x                                                       ; b413: bd 31 0e    .1.
-    sta l0f05,x                                                       ; b416: 9d 05 0f    ...
-    cmp #&20 ; ' '                                                    ; b419: c9 20       .
-    bne loop_cb412                                                    ; b41b: d0 f5       ..
-    beq cb3fa                                                         ; b41d: f0 db       ..             ; ALWAYS branch
+    inx                                                               ; b412: e8          .              ; Advance to next byte
+    lda l0e31,x                                                       ; b413: bd 31 0e    .1.            ; Load byte from second field
+    sta l0f05,x                                                       ; b416: 9d 05 0f    ...            ; Store in delete command TX buffer
+    cmp #&20 ; ' '                                                    ; b419: c9 20       .              ; Is it a space (field terminator)?
+    bne loop_cb412                                                    ; b41b: d0 f5       ..             ; No: continue copying second field
+    beq cb3fa                                                         ; b41d: f0 db       ..             ; Space found: terminate with CR; ALWAYS branch
 
 ; &b41f referenced 2 times by &b3b4, &b3d8
 .flush_and_read_char
-    lda #osbyte_flush_buffer_class                                    ; b41f: a9 0f       ..
-    ldx #1                                                            ; b421: a2 01       ..
-    jsr osbyte                                                        ; b423: 20 f4 ff     ..            ; Flush input buffers (X non-zero)
-    jsr osrdch                                                        ; b426: 20 e0 ff     ..            ; Read a character from the current input stream
-    bcc return_32                                                     ; b429: 90 03       ..
-    jmp raise_escape_error                                            ; b42b: 4c 60 95    L`.
+    lda #osbyte_flush_buffer_class                                    ; b41f: a9 0f       ..             ; OSBYTE &0F: flush buffer class
+    ldx #1                                                            ; b421: a2 01       ..             ; X=1: flush input buffers
+    jsr osbyte                                                        ; b423: 20 f4 ff     ..            ; Flush keyboard buffer before read; Flush input buffers (X non-zero)
+    jsr osrdch                                                        ; b426: 20 e0 ff     ..            ; Read character from input stream; Read a character from the current input stream
+    bcc return_32                                                     ; b429: 90 03       ..             ; C clear: character read OK
+    jmp raise_escape_error                                            ; b42b: 4c 60 95    L`.            ; Escape pressed: raise error
 
 ; &b42e referenced 1 time by &b429
 .return_32
-    rts                                                               ; b42e: 60          `
+    rts                                                               ; b42e: 60          `              ; Return with character in A
 
     equb &a9, 0, &a0, &78, &88, &91, &cc, &d0, &fb, &60               ; b42f: a9 00 a0... ...
 
 ; &b439 referenced 1 time by &8b6a
 .init_channel_table
-    lda #0                                                            ; b439: a9 00       ..
-    tay                                                               ; b43b: a8          .              ; Y=&00
+    lda #0                                                            ; b439: a9 00       ..             ; A=0: clear value
+    tay                                                               ; b43b: a8          .              ; Y=0: start index; Y=&00
 ; &b43c referenced 1 time by &b440
 .loop_cb43c
-    sta l1000,y                                                       ; b43c: 99 00 10    ...
-    iny                                                               ; b43f: c8          .
-    bne loop_cb43c                                                    ; b440: d0 fa       ..
-    ldy #&0f                                                          ; b442: a0 0f       ..
-    lda (net_rx_ptr),y                                                ; b444: b1 9c       ..
-    sec                                                               ; b446: 38          8
-    sbc #&5a ; 'Z'                                                    ; b447: e9 5a       .Z
-    tay                                                               ; b449: a8          .
-    lda #&40 ; '@'                                                    ; b44a: a9 40       .@
+    sta l1000,y                                                       ; b43c: 99 00 10    ...            ; Clear channel table entry
+    iny                                                               ; b43f: c8          .              ; Next entry
+    bne loop_cb43c                                                    ; b440: d0 fa       ..             ; Loop until all 256 bytes cleared
+    ldy #&0f                                                          ; b442: a0 0f       ..             ; Offset &0F in receive buffer
+    lda (net_rx_ptr),y                                                ; b444: b1 9c       ..             ; Get number of available channels
+    sec                                                               ; b446: 38          8              ; Prepare subtraction
+    sbc #&5a ; 'Z'                                                    ; b447: e9 5a       .Z             ; Subtract 'Z' to get negative count
+    tay                                                               ; b449: a8          .              ; Y = negative channel count (index)
+    lda #&40 ; '@'                                                    ; b44a: a9 40       .@             ; Channel marker &40 (available)
 ; &b44c referenced 1 time by &b452
 .loop_cb44c
-    sta l1000,y                                                       ; b44c: 99 00 10    ...
-    dey                                                               ; b44f: 88          .
-    cpy #&b8                                                          ; b450: c0 b8       ..
-    bpl loop_cb44c                                                    ; b452: 10 f8       ..
-    iny                                                               ; b454: c8          .
-    lda #&c0                                                          ; b455: a9 c0       ..
-    sta l1000,y                                                       ; b457: 99 00 10    ...
-    rts                                                               ; b45a: 60          `
+    sta l1000,y                                                       ; b44c: 99 00 10    ...            ; Mark channel slot as available
+    dey                                                               ; b44f: 88          .              ; Previous channel slot
+    cpy #&b8                                                          ; b450: c0 b8       ..             ; Reached start of channel range?
+    bpl loop_cb44c                                                    ; b452: 10 f8       ..             ; No: continue marking channels
+    iny                                                               ; b454: c8          .              ; Point to first channel slot
+    lda #&c0                                                          ; b455: a9 c0       ..             ; Active channel marker &C0
+    sta l1000,y                                                       ; b457: 99 00 10    ...            ; Mark first channel as active
+    rts                                                               ; b45a: 60          `              ; Return
 
 ; &b45b referenced 5 times by &92a9, &92c0, &9c60, &9c9e, &b745
 .attr_to_chan_index
-    php                                                               ; b45b: 08          .
-    sec                                                               ; b45c: 38          8
-    sbc #&20 ; ' '                                                    ; b45d: e9 20       .
-    bmi cb465                                                         ; b45f: 30 04       0.
-    cmp #&10                                                          ; b461: c9 10       ..
-    bcc cb467                                                         ; b463: 90 02       ..
+    php                                                               ; b45b: 08          .              ; Save flags
+    sec                                                               ; b45c: 38          8              ; Prepare subtraction
+    sbc #&20 ; ' '                                                    ; b45d: e9 20       .              ; Subtract &20 to get table index
+    bmi cb465                                                         ; b45f: 30 04       0.             ; Negative: out of valid range
+    cmp #&10                                                          ; b461: c9 10       ..             ; Above maximum channel index &0F?
+    bcc cb467                                                         ; b463: 90 02       ..             ; In range: valid index
 ; &b465 referenced 1 time by &b45f
 .cb465
-    lda #&ff                                                          ; b465: a9 ff       ..
+    lda #&ff                                                          ; b465: a9 ff       ..             ; Out of range: return &FF (invalid)
 ; &b467 referenced 1 time by &b463
 .cb467
-    plp                                                               ; b467: 28          (
-    tax                                                               ; b468: aa          .
-    rts                                                               ; b469: 60          `
+    plp                                                               ; b467: 28          (              ; Restore flags
+    tax                                                               ; b468: aa          .              ; X = channel index (or &FF)
+    rts                                                               ; b469: 60          `              ; Return
 
 ; &b46a referenced 2 times by &9d97, &b4e3
 .check_chan_char
-    cmp #&20 ; ' '                                                    ; b46a: c9 20       .
-    bcc err_net_chan_invalid                                          ; b46c: 90 04       ..
-    cmp #&30 ; '0'                                                    ; b46e: c9 30       .0
-    bcc lookup_chan_by_char                                           ; b470: 90 2b       .+
+    cmp #&20 ; ' '                                                    ; b46a: c9 20       .              ; Below space?
+    bcc err_net_chan_invalid                                          ; b46c: 90 04       ..             ; Yes: invalid channel character
+    cmp #&30 ; '0'                                                    ; b46e: c9 30       .0             ; Below '0'?
+    bcc lookup_chan_by_char                                           ; b470: 90 2b       .+             ; In range &20-&2F: look up channel
 ; &b472 referenced 2 times by &9bc6, &b46c
 .err_net_chan_invalid
-    pha                                                               ; b472: 48          H
+    pha                                                               ; b472: 48          H              ; Save channel character
 ; &b473 referenced 1 time by &b4a5
 .cb473
-    lda #&de                                                          ; b473: a9 de       ..
+    lda #&de                                                          ; b473: a9 de       ..             ; Error code &DE
 .err_net_chan_not_found
 net_channel_err_string = err_net_chan_not_found+2
-    jsr error_inline_log                                              ; b475: 20 bb 96     ..
+    jsr error_inline_log                                              ; b475: 20 bb 96     ..            ; Generate 'Net channel' error
 ; &b477 referenced 2 times by &b4bd, &b4d1
     equs "Net channel", 0                                             ; b478: 4e 65 74... Net
 
-    jsr l6f6e                                                         ; b484: 20 6e 6f     no
+    jsr l6f6e                                                         ; b484: 20 6e 6f     no            ; Error string continuation (unreachable)
     equs "t on this file server"                                      ; b487: 74 20 6f... t o
     equb 0                                                            ; b49c: 00          .
 
 ; &b49d referenced 2 times by &9ec4, &b470
 .lookup_chan_by_char
-    pha                                                               ; b49d: 48          H
-    sec                                                               ; b49e: 38          8
-    sbc #&20 ; ' '                                                    ; b49f: e9 20       .
-    tax                                                               ; b4a1: aa          .
-    lda l1030,x                                                       ; b4a2: bd 30 10    .0.
-    beq cb473                                                         ; b4a5: f0 cc       ..
-    jsr match_station_net                                             ; b4a7: 20 7a b5     z.
-    bne cb4b1                                                         ; b4aa: d0 05       ..
-    pla                                                               ; b4ac: 68          h
-    lda l1060,x                                                       ; b4ad: bd 60 10    .`.
-    rts                                                               ; b4b0: 60          `
+    pha                                                               ; b49d: 48          H              ; Save channel character
+    sec                                                               ; b49e: 38          8              ; Prepare subtraction
+    sbc #&20 ; ' '                                                    ; b49f: e9 20       .              ; Convert char to table index
+    tax                                                               ; b4a1: aa          .              ; X = channel table index
+    lda l1030,x                                                       ; b4a2: bd 30 10    .0.            ; Look up network number for channel
+    beq cb473                                                         ; b4a5: f0 cc       ..             ; Zero: channel not found, raise error
+    jsr match_station_net                                             ; b4a7: 20 7a b5     z.            ; Check station/network matches current
+    bne cb4b1                                                         ; b4aa: d0 05       ..             ; No match: build detailed error msg
+    pla                                                               ; b4ac: 68          h              ; Discard saved channel character
+    lda l1060,x                                                       ; b4ad: bd 60 10    .`.            ; Load channel status flags
+    rts                                                               ; b4b0: 60          `              ; Return; A = channel flags
 
 ; &b4b1 referenced 1 time by &b4aa
 .cb4b1
-    lda #&de                                                          ; b4b1: a9 de       ..
-    sta error_text                                                    ; b4b3: 8d 01 01    ...
-    lda #0                                                            ; b4b6: a9 00       ..
-    sta error_block                                                   ; b4b8: 8d 00 01    ...
-    tax                                                               ; b4bb: aa          .              ; X=&00
+    lda #&de                                                          ; b4b1: a9 de       ..             ; Error code &DE
+    sta error_text                                                    ; b4b3: 8d 01 01    ...            ; Store error code in error block
+    lda #0                                                            ; b4b6: a9 00       ..             ; BRK opcode
+    sta error_block                                                   ; b4b8: 8d 00 01    ...            ; Store BRK at start of error block
+    tax                                                               ; b4bb: aa          .              ; X=0: copy index; X=&00
 ; &b4bc referenced 1 time by &b4c3
 .loop_cb4bc
-    inx                                                               ; b4bc: e8          .
-    lda net_channel_err_string,x                                      ; b4bd: bd 77 b4    .w.
-    sta error_text,x                                                  ; b4c0: 9d 01 01    ...
-    bne loop_cb4bc                                                    ; b4c3: d0 f7       ..
-    stx fs_load_addr_2                                                ; b4c5: 86 b2       ..
-    stx fs_work_4                                                     ; b4c7: 86 b4       ..
-    pla                                                               ; b4c9: 68          h
-    jsr append_space_and_num                                          ; b4ca: 20 5c 97     \.
-    ldy fs_work_4                                                     ; b4cd: a4 b4       ..
+    inx                                                               ; b4bc: e8          .              ; Advance copy position
+    lda net_channel_err_string,x                                      ; b4bd: bd 77 b4    .w.            ; Load 'Net channel' string byte
+    sta error_text,x                                                  ; b4c0: 9d 01 01    ...            ; Copy to error text
+    bne loop_cb4bc                                                    ; b4c3: d0 f7       ..             ; Continue until NUL terminator
+    stx fs_load_addr_2                                                ; b4c5: 86 b2       ..             ; Save end-of-string position
+    stx fs_work_4                                                     ; b4c7: 86 b4       ..             ; Save for suffix append
+    pla                                                               ; b4c9: 68          h              ; Retrieve channel character
+    jsr append_space_and_num                                          ; b4ca: 20 5c 97     \.            ; Append ' N' (channel number)
+    ldy fs_work_4                                                     ; b4cd: a4 b4       ..             ; Load 'Net channel' end position
 ; &b4cf referenced 1 time by &b4d7
 .loop_cb4cf
-    iny                                                               ; b4cf: c8          .
-    inx                                                               ; b4d0: e8          .
-    lda net_channel_err_string,y                                      ; b4d1: b9 77 b4    .w.
-    sta error_text,x                                                  ; b4d4: 9d 01 01    ...
-    bne loop_cb4cf                                                    ; b4d7: d0 f6       ..
-    jmp error_block                                                   ; b4d9: 4c 00 01    L..
+    iny                                                               ; b4cf: c8          .              ; Skip past NUL to suffix string
+    inx                                                               ; b4d0: e8          .              ; Advance destination position
+    lda net_channel_err_string,y                                      ; b4d1: b9 77 b4    .w.            ; Load ' not on this...' suffix byte
+    sta error_text,x                                                  ; b4d4: 9d 01 01    ...            ; Append to error message
+    bne loop_cb4cf                                                    ; b4d7: d0 f6       ..             ; Continue until NUL
+    jmp error_block                                                   ; b4d9: 4c 00 01    L..            ; Raise the constructed error
 
 ; &b4dc referenced 2 times by &b7d4, &b85c
 .store_result_check_dir
-    lda l10c9                                                         ; b4dc: ad c9 10    ...
-    ldy #&0e                                                          ; b4df: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b4e1: 91 9c       ..
+    lda l10c9                                                         ; b4dc: ad c9 10    ...            ; Load current channel attribute
+    ldy #&0e                                                          ; b4df: a0 0e       ..             ; Offset &0E in receive buffer
+    sta (net_rx_ptr),y                                                ; b4e1: 91 9c       ..             ; Store attribute in receive buffer
 ; &b4e3 referenced 2 times by &9bf9, &9e47
 .check_not_dir
-    jsr check_chan_char                                               ; b4e3: 20 6a b4     j.
-    and #2                                                            ; b4e6: 29 02       ).
-    beq return_33                                                     ; b4e8: f0 0f       ..
-    lda #&a8                                                          ; b4ea: a9 a8       ..
-    jsr error_inline_log                                              ; b4ec: 20 bb 96     ..
+    jsr check_chan_char                                               ; b4e3: 20 6a b4     j.            ; Validate and look up channel
+    and #2                                                            ; b4e6: 29 02       ).             ; Test directory flag (bit 1)
+    beq return_33                                                     ; b4e8: f0 0f       ..             ; Not a directory: return OK
+    lda #&a8                                                          ; b4ea: a9 a8       ..             ; Error code &A8
+    jsr error_inline_log                                              ; b4ec: 20 bb 96     ..            ; Generate 'Is a dir.' error
     equs "Is a dir.", 0                                               ; b4ef: 49 73 20... Is
 
 ; &b4f9 referenced 1 time by &b4e8
 .return_33
-    rts                                                               ; b4f9: 60          `
+    rts                                                               ; b4f9: 60          `              ; Return
 
 ; &b4fa referenced 7 times by &9d3d, &9d72, &a268, &a307, &a332, &a369, &b531
 .alloc_fcb_slot
-    pha                                                               ; b4fa: 48          H
-    ldx #&20 ; ' '                                                    ; b4fb: a2 20       .
+    pha                                                               ; b4fa: 48          H              ; Save channel attribute
+    ldx #&20 ; ' '                                                    ; b4fb: a2 20       .              ; Start scanning from FCB slot &20
 ; &b4fd referenced 1 time by &b505
 .loop_cb4fd
-    lda l1010,x                                                       ; b4fd: bd 10 10    ...
-    beq cb50b                                                         ; b500: f0 09       ..
-    inx                                                               ; b502: e8          .
-    cpx #&30 ; '0'                                                    ; b503: e0 30       .0
-    bne loop_cb4fd                                                    ; b505: d0 f6       ..
-    pla                                                               ; b507: 68          h
-    lda #0                                                            ; b508: a9 00       ..
-    rts                                                               ; b50a: 60          `
+    lda l1010,x                                                       ; b4fd: bd 10 10    ...            ; Load FCB station byte
+    beq cb50b                                                         ; b500: f0 09       ..             ; Zero: slot is free, use it
+    inx                                                               ; b502: e8          .              ; Try next slot
+    cpx #&30 ; '0'                                                    ; b503: e0 30       .0             ; Past last FCB slot &2F?
+    bne loop_cb4fd                                                    ; b505: d0 f6       ..             ; No: check next slot
+    pla                                                               ; b507: 68          h              ; No free slot: discard saved attribute
+    lda #0                                                            ; b508: a9 00       ..             ; A=0: return failure (Z set)
+    rts                                                               ; b50a: 60          `              ; Return
 
 ; &b50b referenced 1 time by &b500
 .cb50b
-    pla                                                               ; b50b: 68          h
-    sta l1010,x                                                       ; b50c: 9d 10 10    ...
-    lda #0                                                            ; b50f: a9 00       ..
-    sta l0fe0,x                                                       ; b511: 9d e0 0f    ...
-    sta l0ff0,x                                                       ; b514: 9d f0 0f    ...
-    sta l1000,x                                                       ; b517: 9d 00 10    ...
-    lda l0e00                                                         ; b51a: ad 00 0e    ...
-    sta l1020,x                                                       ; b51d: 9d 20 10    . .
-    lda l0e01                                                         ; b520: ad 01 0e    ...
-    sta l1030,x                                                       ; b523: 9d 30 10    .0.
-    txa                                                               ; b526: 8a          .
-    pha                                                               ; b527: 48          H
-    sec                                                               ; b528: 38          8
-    sbc #&20 ; ' '                                                    ; b529: e9 20       .
-    tax                                                               ; b52b: aa          .
-    pla                                                               ; b52c: 68          h
-    rts                                                               ; b52d: 60          `
+    pla                                                               ; b50b: 68          h              ; Restore channel attribute
+    sta l1010,x                                                       ; b50c: 9d 10 10    ...            ; Store attribute in FCB slot
+    lda #0                                                            ; b50f: a9 00       ..             ; A=0: clear value
+    sta l0fe0,x                                                       ; b511: 9d e0 0f    ...            ; Clear FCB transfer count low
+    sta l0ff0,x                                                       ; b514: 9d f0 0f    ...            ; Clear FCB transfer count mid
+    sta l1000,x                                                       ; b517: 9d 00 10    ...            ; Clear FCB transfer count high
+    lda l0e00                                                         ; b51a: ad 00 0e    ...            ; Load current station number
+    sta l1020,x                                                       ; b51d: 9d 20 10    . .            ; Store station in FCB
+    lda l0e01                                                         ; b520: ad 01 0e    ...            ; Load current network number
+    sta l1030,x                                                       ; b523: 9d 30 10    .0.            ; Store network in FCB
+    txa                                                               ; b526: 8a          .              ; Get FCB slot index
+    pha                                                               ; b527: 48          H              ; Save slot index
+    sec                                                               ; b528: 38          8              ; Prepare subtraction
+    sbc #&20 ; ' '                                                    ; b529: e9 20       .              ; Convert slot to channel index (0-&0F)
+    tax                                                               ; b52b: aa          .              ; X = channel index
+    pla                                                               ; b52c: 68          h              ; Restore A = FCB slot index
+    rts                                                               ; b52d: 60          `              ; Return; A=slot, X=channel, Z clear
 
 ; &b52e referenced 2 times by &9ceb, &a1d5
 .alloc_fcb_or_error
-    pha                                                               ; b52e: 48          H
-    lda #0                                                            ; b52f: a9 00       ..
-    jsr alloc_fcb_slot                                                ; b531: 20 fa b4     ..
-    bne cb548                                                         ; b534: d0 12       ..
-    lda #&c0                                                          ; b536: a9 c0       ..
-    jsr error_inline_log                                              ; b538: 20 bb 96     ..
+    pha                                                               ; b52e: 48          H              ; Save argument
+    lda #0                                                            ; b52f: a9 00       ..             ; A=0: allocate any available slot
+    jsr alloc_fcb_slot                                                ; b531: 20 fa b4     ..            ; Try to allocate an FCB slot
+    bne cb548                                                         ; b534: d0 12       ..             ; Success: slot allocated
+    lda #&c0                                                          ; b536: a9 c0       ..             ; Error code &C0
+    jsr error_inline_log                                              ; b538: 20 bb 96     ..            ; Generate 'No more FCBs' error
     equs "No more FCBs", 0                                            ; b53b: 4e 6f 20... No
 
 ; &b548 referenced 1 time by &b534
 .cb548
-    pla                                                               ; b548: 68          h
-    rts                                                               ; b549: 60          `
+    pla                                                               ; b548: 68          h              ; Restore argument
+    rts                                                               ; b549: 60          `              ; Return
 
 ; &b54a referenced 3 times by &9494, &951b, &a379
 .close_all_net_chans
-    clc                                                               ; b54a: 18          .
-    bcc cb54e                                                         ; b54b: 90 01       ..             ; ALWAYS branch
+    clc                                                               ; b54a: 18          .              ; C=0: close all matching channels
+    bcc cb54e                                                         ; b54b: 90 01       ..             ; Branch always to scan entry; ALWAYS branch
 
-    sec                                                               ; b54d: 38          8
+    sec                                                               ; b54d: 38          8              ; C=1: close with write-flush
 ; &b54e referenced 1 time by &b54b
 .cb54e
-    bit bit_test_ff_pad                                               ; b54e: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; b54e: 2c 7d 94    ,}.            ; Set V flag via BIT (alternate mode)
 ; &b551 referenced 1 time by &9dac
 .scan_fcb_flags
-    ldx #&10                                                          ; b551: a2 10       ..
+    ldx #&10                                                          ; b551: a2 10       ..             ; Start from FCB slot &10
 ; &b553 referenced 4 times by &b55f, &b569, &b56e, &b578
 .cb553
-    dex                                                               ; b553: ca          .
-    bpl cb557                                                         ; b554: 10 01       ..
-    rts                                                               ; b556: 60          `
+    dex                                                               ; b553: ca          .              ; Previous FCB slot
+    bpl cb557                                                         ; b554: 10 01       ..             ; More slots to check
+    rts                                                               ; b556: 60          `              ; All FCB slots processed, return
 
 ; &b557 referenced 1 time by &b554
 .cb557
-    lda l1060,x                                                       ; b557: bd 60 10    .`.
-    tay                                                               ; b55a: a8          .
-    and #2                                                            ; b55b: 29 02       ).
-    beq cb56b                                                         ; b55d: f0 0c       ..
-    bvc cb553                                                         ; b55f: 50 f2       P.
-    bcc cb56b                                                         ; b561: 90 08       ..
-    tya                                                               ; b563: 98          .
-    and #&df                                                          ; b564: 29 df       ).
-    sta l1060,x                                                       ; b566: 9d 60 10    .`.
-    bvs cb553                                                         ; b569: 70 e8       p.             ; ALWAYS branch
+    lda l1060,x                                                       ; b557: bd 60 10    .`.            ; Load channel flags for this slot
+    tay                                                               ; b55a: a8          .              ; Save flags in Y
+    and #2                                                            ; b55b: 29 02       ).             ; Test active flag (bit 1)
+    beq cb56b                                                         ; b55d: f0 0c       ..             ; Not active: check station match
+    bvc cb553                                                         ; b55f: 50 f2       P.             ; V clear (close all): next slot
+    bcc cb56b                                                         ; b561: 90 08       ..             ; C clear: check station match
+    tya                                                               ; b563: 98          .              ; Restore original flags
+    and #&df                                                          ; b564: 29 df       ).             ; Clear write-pending flag (bit 5)
+    sta l1060,x                                                       ; b566: 9d 60 10    .`.            ; Update channel flags
+    bvs cb553                                                         ; b569: 70 e8       p.             ; Next slot (V always set here); ALWAYS branch
 
 ; &b56b referenced 2 times by &b55d, &b561
 .cb56b
-    jsr match_station_net                                             ; b56b: 20 7a b5     z.
-    bne cb553                                                         ; b56e: d0 e3       ..
-    lda #0                                                            ; b570: a9 00       ..
-    sta l1060,x                                                       ; b572: 9d 60 10    .`.
-    sta l1030,x                                                       ; b575: 9d 30 10    .0.
-    beq cb553                                                         ; b578: f0 d9       ..             ; ALWAYS branch
+    jsr match_station_net                                             ; b56b: 20 7a b5     z.            ; Check if channel belongs to station
+    bne cb553                                                         ; b56e: d0 e3       ..             ; No match: skip to next slot
+    lda #0                                                            ; b570: a9 00       ..             ; A=0: clear channel
+    sta l1060,x                                                       ; b572: 9d 60 10    .`.            ; Clear channel flags (close it)
+    sta l1030,x                                                       ; b575: 9d 30 10    .0.            ; Clear network number
+    beq cb553                                                         ; b578: f0 d9       ..             ; Continue to next slot; ALWAYS branch
 
 ; &b57a referenced 6 times by &a2ee, &a319, &a350, &ac2e, &b4a7, &b56b
 .match_station_net
-    lda l1040,x                                                       ; b57a: bd 40 10    .@.
-    eor l0e00                                                         ; b57d: 4d 00 0e    M..
-    bne return_34                                                     ; b580: d0 06       ..
-    lda l1050,x                                                       ; b582: bd 50 10    .P.
-    eor l0e01                                                         ; b585: 4d 01 0e    M..
+    lda l1040,x                                                       ; b57a: bd 40 10    .@.            ; Load FCB station number
+    eor l0e00                                                         ; b57d: 4d 00 0e    M..            ; Compare with current station (EOR)
+    bne return_34                                                     ; b580: d0 06       ..             ; Different: Z=0, no match
+    lda l1050,x                                                       ; b582: bd 50 10    .P.            ; Load FCB network number
+    eor l0e01                                                         ; b585: 4d 01 0e    M..            ; Compare with current network (EOR)
 ; &b588 referenced 1 time by &b580
 .return_34
-    rts                                                               ; b588: 60          `
+    rts                                                               ; b588: 60          `              ; Return; Z=1 if match, Z=0 if not
 
 ; &b589 referenced 2 times by &b68a, &b788
 .find_open_fcb
-    ldx l10c8                                                         ; b589: ae c8 10    ...
-    bit bit_test_ff_pad                                               ; b58c: 2c 7d 94    ,}.
+    ldx l10c8                                                         ; b589: ae c8 10    ...            ; Load current FCB index
+    bit bit_test_ff_pad                                               ; b58c: 2c 7d 94    ,}.            ; Set V flag (first pass marker)
 ; &b58f referenced 4 times by &b59e, &b5a4, &b5c1, &b5c8
 .cb58f
-    inx                                                               ; b58f: e8          .
-    cpx #&10                                                          ; b590: e0 10       ..
-    bne cb596                                                         ; b592: d0 02       ..
-    ldx #0                                                            ; b594: a2 00       ..
+    inx                                                               ; b58f: e8          .              ; Next FCB slot
+    cpx #&10                                                          ; b590: e0 10       ..             ; Past end of table (&10)?
+    bne cb596                                                         ; b592: d0 02       ..             ; No: continue checking
+    ldx #0                                                            ; b594: a2 00       ..             ; Wrap around to slot 0
 ; &b596 referenced 1 time by &b592
 .cb596
-    cpx l10c8                                                         ; b596: ec c8 10    ...
-    bne cb5a0                                                         ; b599: d0 05       ..
-    bvc cb5ab                                                         ; b59b: 50 0e       P.
-    clv                                                               ; b59d: b8          .
-    bvc cb58f                                                         ; b59e: 50 ef       P.             ; ALWAYS branch
+    cpx l10c8                                                         ; b596: ec c8 10    ...            ; Back to starting slot?
+    bne cb5a0                                                         ; b599: d0 05       ..             ; No: check this slot
+    bvc cb5ab                                                         ; b59b: 50 0e       P.             ; V clear (second pass): scan empties
+    clv                                                               ; b59d: b8          .              ; Clear V for second pass
+    bvc cb58f                                                         ; b59e: 50 ef       P.             ; Continue scanning; ALWAYS branch
 
 ; &b5a0 referenced 1 time by &b599
 .cb5a0
-    lda l10b8,x                                                       ; b5a0: bd b8 10    ...
-    rol a                                                             ; b5a3: 2a          *
-    bpl cb58f                                                         ; b5a4: 10 e9       ..
-    and #4                                                            ; b5a6: 29 04       ).
-    bne cb5c1                                                         ; b5a8: d0 17       ..
+    lda l10b8,x                                                       ; b5a0: bd b8 10    ...            ; Load FCB status flags
+    rol a                                                             ; b5a3: 2a          *              ; Shift bit 7 (in-use) into carry
+    bpl cb58f                                                         ; b5a4: 10 e9       ..             ; Not in use: skip
+    and #4                                                            ; b5a6: 29 04       ).             ; Test bit 2 (modified flag)
+    bne cb5c1                                                         ; b5a8: d0 17       ..             ; Modified: check further conditions
 ; &b5aa referenced 1 time by &b5ca
 .cb5aa
-    dex                                                               ; b5aa: ca          .
+    dex                                                               ; b5aa: ca          .              ; Adjust for following INX
 ; &b5ab referenced 2 times by &b59b, &b5b6
 .cb5ab
-    inx                                                               ; b5ab: e8          .
-    cpx #&10                                                          ; b5ac: e0 10       ..
-    bne cb5b2                                                         ; b5ae: d0 02       ..
-    ldx #0                                                            ; b5b0: a2 00       ..
+    inx                                                               ; b5ab: e8          .              ; Next FCB slot
+    cpx #&10                                                          ; b5ac: e0 10       ..             ; Past end of table?
+    bne cb5b2                                                         ; b5ae: d0 02       ..             ; No: continue
+    ldx #0                                                            ; b5b0: a2 00       ..             ; Wrap around to slot 0
 ; &b5b2 referenced 1 time by &b5ae
 .cb5b2
-    lda l10b8,x                                                       ; b5b2: bd b8 10    ...
-    rol a                                                             ; b5b5: 2a          *
-    bpl cb5ab                                                         ; b5b6: 10 f3       ..
-    sec                                                               ; b5b8: 38          8
-    ror a                                                             ; b5b9: 6a          j
-    sta l10b8,x                                                       ; b5ba: 9d b8 10    ...
-    ldx l10c8                                                         ; b5bd: ae c8 10    ...
-    rts                                                               ; b5c0: 60          `
+    lda l10b8,x                                                       ; b5b2: bd b8 10    ...            ; Load FCB status flags
+    rol a                                                             ; b5b5: 2a          *              ; Shift bit 7 into carry
+    bpl cb5ab                                                         ; b5b6: 10 f3       ..             ; Not in use: continue scanning
+    sec                                                               ; b5b8: 38          8              ; Set carry for ROR restore
+    ror a                                                             ; b5b9: 6a          j              ; Restore original flags
+    sta l10b8,x                                                       ; b5ba: 9d b8 10    ...            ; Save flags back (mark as found)
+    ldx l10c8                                                         ; b5bd: ae c8 10    ...            ; Restore original FCB index
+    rts                                                               ; b5c0: 60          `              ; Return with found slot in X
 
 ; &b5c1 referenced 1 time by &b5a8
 .cb5c1
-    bvs cb58f                                                         ; b5c1: 70 cc       p.
-    lda l10b8,x                                                       ; b5c3: bd b8 10    ...
-    and #&20 ; ' '                                                    ; b5c6: 29 20       )
-    bne cb58f                                                         ; b5c8: d0 c5       ..
-    beq cb5aa                                                         ; b5ca: f0 de       ..             ; ALWAYS branch
+    bvs cb58f                                                         ; b5c1: 70 cc       p.             ; V set (first pass): skip modified
+    lda l10b8,x                                                       ; b5c3: bd b8 10    ...            ; Load FCB status flags
+    and #&20 ; ' '                                                    ; b5c6: 29 20       )              ; Test bit 5 (offset pending)
+    bne cb58f                                                         ; b5c8: d0 c5       ..             ; Bit 5 set: skip this slot
+    beq cb5aa                                                         ; b5ca: f0 de       ..             ; Use this slot; ALWAYS branch
 
 ; &b5cc referenced 2 times by &b60f, &b6cc
 .init_wipe_counters
-    ldy #1                                                            ; b5cc: a0 01       ..
-    sty l10d0                                                         ; b5ce: 8c d0 10    ...
-    dey                                                               ; b5d1: 88          .              ; Y=&00
-    sty l10cb                                                         ; b5d2: 8c cb 10    ...
-    sty l10cf                                                         ; b5d5: 8c cf 10    ...
-    sty l10d6                                                         ; b5d8: 8c d6 10    ...
-    tya                                                               ; b5db: 98          .              ; A=&00
-    ldx #2                                                            ; b5dc: a2 02       ..
+    ldy #1                                                            ; b5cc: a0 01       ..             ; Initial pass count = 1
+    sty l10d0                                                         ; b5ce: 8c d0 10    ...            ; Store pass counter
+    dey                                                               ; b5d1: 88          .              ; Y=0; Y=&00
+    sty l10cb                                                         ; b5d2: 8c cb 10    ...            ; Clear byte counter low
+    sty l10cf                                                         ; b5d5: 8c cf 10    ...            ; Clear offset counter
+    sty l10d6                                                         ; b5d8: 8c d6 10    ...            ; Clear transfer flag
+    tya                                                               ; b5db: 98          .              ; A=0; A=&00
+    ldx #2                                                            ; b5dc: a2 02       ..             ; Clear 3 counter bytes
 ; &b5de referenced 1 time by &b5e2
 .loop_cb5de
-    sta l10d1,x                                                       ; b5de: 9d d1 10    ...
-    dex                                                               ; b5e1: ca          .
-    bpl loop_cb5de                                                    ; b5e2: 10 fa       ..
-    stx l10cd                                                         ; b5e4: 8e cd 10    ...
-    stx l10ce                                                         ; b5e7: 8e ce 10    ...
-    ldx #&ca                                                          ; b5ea: a2 ca       ..
-    ldy #&10                                                          ; b5ec: a0 10       ..
-    rts                                                               ; b5ee: 60          `
+    sta l10d1,x                                                       ; b5de: 9d d1 10    ...            ; Clear counter byte
+    dex                                                               ; b5e1: ca          .              ; Next byte
+    bpl loop_cb5de                                                    ; b5e2: 10 fa       ..             ; Loop for indices 2, 1, 0
+    stx l10cd                                                         ; b5e4: 8e cd 10    ...            ; Store &FF as sentinel in l10cd
+    stx l10ce                                                         ; b5e7: 8e ce 10    ...            ; Store &FF as sentinel in l10ce
+    ldx #&ca                                                          ; b5ea: a2 ca       ..             ; X=&CA: workspace offset
+    ldy #&10                                                          ; b5ec: a0 10       ..             ; Y=&10: page &10
+    rts                                                               ; b5ee: 60          `              ; Return; X/Y point to &10CA
 
 ; &b5ef referenced 2 times by &b681, &b7ba
 .start_wipe_pass
-    jsr verify_ws_checksum                                            ; b5ef: 20 b2 8f     ..
-    stx l10c8                                                         ; b5f2: 8e c8 10    ...
-    lda l10b8,x                                                       ; b5f5: bd b8 10    ...
-    ror a                                                             ; b5f8: 6a          j
-    bcc cb657                                                         ; b5f9: 90 5c       .\
-    lda l10d4                                                         ; b5fb: ad d4 10    ...
-    pha                                                               ; b5fe: 48          H
-    lda l10d5                                                         ; b5ff: ad d5 10    ...
-    pha                                                               ; b602: 48          H
-    lda l1078,x                                                       ; b603: bd 78 10    .x.
-    sta l10d4                                                         ; b606: 8d d4 10    ...
-    lda l1088,x                                                       ; b609: bd 88 10    ...
-    sta l10d5                                                         ; b60c: 8d d5 10    ...
-    jsr init_wipe_counters                                            ; b60f: 20 cc b5     ..
-    dec l10cf                                                         ; b612: ce cf 10    ...
-    dec l10d0                                                         ; b615: ce d0 10    ...
-    ldx l10c8                                                         ; b618: ae c8 10    ...
-    txa                                                               ; b61b: 8a          .
-    clc                                                               ; b61c: 18          .
-    adc #&11                                                          ; b61d: 69 11       i.
-    sta l10cc                                                         ; b61f: 8d cc 10    ...
-    lda l10b8,x                                                       ; b622: bd b8 10    ...
-    and #&20 ; ' '                                                    ; b625: 29 20       )
-    beq cb62f                                                         ; b627: f0 06       ..
-    lda l1098,x                                                       ; b629: bd 98 10    ...
-    sta l10cf                                                         ; b62c: 8d cf 10    ...
+    jsr verify_ws_checksum                                            ; b5ef: 20 b2 8f     ..            ; Verify workspace checksum integrity
+    stx l10c8                                                         ; b5f2: 8e c8 10    ...            ; Save current FCB index
+    lda l10b8,x                                                       ; b5f5: bd b8 10    ...            ; Load FCB status flags
+    ror a                                                             ; b5f8: 6a          j              ; Shift bit 0 (active) into carry
+    bcc cb657                                                         ; b5f9: 90 5c       .\             ; Not active: clear status and return
+    lda l10d4                                                         ; b5fb: ad d4 10    ...            ; Save current station low to stack
+    pha                                                               ; b5fe: 48          H              ; Push station low
+    lda l10d5                                                         ; b5ff: ad d5 10    ...            ; Save current station high
+    pha                                                               ; b602: 48          H              ; Push station high
+    lda l1078,x                                                       ; b603: bd 78 10    .x.            ; Load FCB station low
+    sta l10d4                                                         ; b606: 8d d4 10    ...            ; Set as working station low
+    lda l1088,x                                                       ; b609: bd 88 10    ...            ; Load FCB station high
+    sta l10d5                                                         ; b60c: 8d d5 10    ...            ; Set as working station high
+    jsr init_wipe_counters                                            ; b60f: 20 cc b5     ..            ; Reset transfer counters
+    dec l10cf                                                         ; b612: ce cf 10    ...            ; Set offset to &FF (no data yet)
+    dec l10d0                                                         ; b615: ce d0 10    ...            ; Set pass counter to 0 (flush mode)
+    ldx l10c8                                                         ; b618: ae c8 10    ...            ; Reload FCB index
+    txa                                                               ; b61b: 8a          .              ; Transfer to A
+    clc                                                               ; b61c: 18          .              ; Prepare addition
+    adc #&11                                                          ; b61d: 69 11       i.             ; Add &11 for buffer page offset
+    sta l10cc                                                         ; b61f: 8d cc 10    ...            ; Store buffer address high byte
+    lda l10b8,x                                                       ; b622: bd b8 10    ...            ; Load FCB status flags
+    and #&20 ; ' '                                                    ; b625: 29 20       )              ; Test bit 5 (has saved offset)
+    beq cb62f                                                         ; b627: f0 06       ..             ; No offset: skip restore
+    lda l1098,x                                                       ; b629: bd 98 10    ...            ; Load saved byte offset
+    sta l10cf                                                         ; b62c: 8d cf 10    ...            ; Restore offset counter
 ; &b62f referenced 1 time by &b627
 .cb62f
-    lda l10a8,x                                                       ; b62f: bd a8 10    ...
-    sta l10ca                                                         ; b632: 8d ca 10    ...
-    tax                                                               ; b635: aa          .
-    ldy #&0e                                                          ; b636: a0 0e       ..
-    lda (net_rx_ptr),y                                                ; b638: b1 9c       ..
-    pha                                                               ; b63a: 48          H
-    txa                                                               ; b63b: 8a          .
-    sta (net_rx_ptr),y                                                ; b63c: 91 9c       ..
-    ldx #&ca                                                          ; b63e: a2 ca       ..
-    ldy #&10                                                          ; b640: a0 10       ..
-    lda #0                                                            ; b642: a9 00       ..
-    jsr send_and_receive                                              ; b644: 20 79 b9     y.
-    ldx l10c8                                                         ; b647: ae c8 10    ...
-    pla                                                               ; b64a: 68          h
-    ldy #&0e                                                          ; b64b: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b64d: 91 9c       ..
-    pla                                                               ; b64f: 68          h
-    sta l10d5                                                         ; b650: 8d d5 10    ...
-    pla                                                               ; b653: 68          h
-    sta l10d4                                                         ; b654: 8d d4 10    ...
+    lda l10a8,x                                                       ; b62f: bd a8 10    ...            ; Load FCB attribute reference
+    sta l10ca                                                         ; b632: 8d ca 10    ...            ; Store as current reference
+    tax                                                               ; b635: aa          .              ; Transfer to X
+    ldy #&0e                                                          ; b636: a0 0e       ..             ; Offset &0E in receive buffer
+    lda (net_rx_ptr),y                                                ; b638: b1 9c       ..             ; Save current receive attribute
+    pha                                                               ; b63a: 48          H              ; Push to stack
+    txa                                                               ; b63b: 8a          .              ; Restore attribute to A
+    sta (net_rx_ptr),y                                                ; b63c: 91 9c       ..             ; Set attribute in receive buffer
+    ldx #&ca                                                          ; b63e: a2 ca       ..             ; X=&CA: workspace offset
+    ldy #&10                                                          ; b640: a0 10       ..             ; Y=&10: page &10
+    lda #0                                                            ; b642: a9 00       ..             ; A=0: standard transfer mode
+    jsr send_and_receive                                              ; b644: 20 79 b9     y.            ; Send data and receive response
+    ldx l10c8                                                         ; b647: ae c8 10    ...            ; Reload FCB index
+    pla                                                               ; b64a: 68          h              ; Restore saved receive attribute
+    ldy #&0e                                                          ; b64b: a0 0e       ..             ; Offset &0E
+    sta (net_rx_ptr),y                                                ; b64d: 91 9c       ..             ; Restore receive attribute
+    pla                                                               ; b64f: 68          h              ; Restore station high
+    sta l10d5                                                         ; b650: 8d d5 10    ...            ; Store station high
+    pla                                                               ; b653: 68          h              ; Restore station low
+    sta l10d4                                                         ; b654: 8d d4 10    ...            ; Store station low
 ; &b657 referenced 1 time by &b5f9
 .cb657
-    lda #&dc                                                          ; b657: a9 dc       ..
-    and l10b8,x                                                       ; b659: 3d b8 10    =..
-    sta l10b8,x                                                       ; b65c: 9d b8 10    ...
-    rts                                                               ; b65f: 60          `
+    lda #&dc                                                          ; b657: a9 dc       ..             ; Mask &DC: clear bits 0, 1, 5
+    and l10b8,x                                                       ; b659: 3d b8 10    =..            ; Clear active and offset flags
+    sta l10b8,x                                                       ; b65c: 9d b8 10    ...            ; Update FCB status
+    rts                                                               ; b65f: 60          `              ; Return
 
 ; &b660 referenced 2 times by &b735, &b8a2
 .save_fcb_context
-    ldx #&0c                                                          ; b660: a2 0c       ..
+    ldx #&0c                                                          ; b660: a2 0c       ..             ; Copy 13 bytes (indices 0 to &0C)
 ; &b662 referenced 1 time by &b66c
 .loop_cb662
-    lda l0f00,x                                                       ; b662: bd 00 0f    ...
-    sta l10d9,x                                                       ; b665: 9d d9 10    ...
-    lda fs_load_addr,x                                                ; b668: b5 b0       ..
-    pha                                                               ; b66a: 48          H
-    dex                                                               ; b66b: ca          .
-    bpl loop_cb662                                                    ; b66c: 10 f4       ..
-    cpy #0                                                            ; b66e: c0 00       ..
-    bne cb675                                                         ; b670: d0 03       ..
-    jmp cb720                                                         ; b672: 4c 20 b7    L .
+    lda l0f00,x                                                       ; b662: bd 00 0f    ...            ; Load TX buffer byte
+    sta l10d9,x                                                       ; b665: 9d d9 10    ...            ; Save to context buffer at &10D9
+    lda fs_load_addr,x                                                ; b668: b5 b0       ..             ; Load workspace byte from fs_load_addr
+    pha                                                               ; b66a: 48          H              ; Save to stack
+    dex                                                               ; b66b: ca          .              ; Next byte down
+    bpl loop_cb662                                                    ; b66c: 10 f4       ..             ; Loop for all 13 bytes
+    cpy #0                                                            ; b66e: c0 00       ..             ; Y=0? (no FCB to process)
+    bne cb675                                                         ; b670: d0 03       ..             ; Non-zero: scan and process FCBs
+    jmp cb720                                                         ; b672: 4c 20 b7    L .            ; Y=0: skip to restore workspace
 
 ; &b675 referenced 1 time by &b670
 .cb675
-    php                                                               ; b675: 08          .
-    ldx #&ff                                                          ; b676: a2 ff       ..
+    php                                                               ; b675: 08          .              ; Save flags
+    ldx #&ff                                                          ; b676: a2 ff       ..             ; X=&FF: start scanning from -1
 ; &b678 referenced 2 times by &b67c, &b67f
 .cb678
-    inx                                                               ; b678: e8          .
-    lda l10b8,x                                                       ; b679: bd b8 10    ...
-    bpl cb678                                                         ; b67c: 10 fa       ..
-    asl a                                                             ; b67e: 0a          .
-    bpl cb678                                                         ; b67f: 10 f7       ..
-    jsr start_wipe_pass                                               ; b681: 20 ef b5     ..
-    lda #&40 ; '@'                                                    ; b684: a9 40       .@
-    sta l10b8,x                                                       ; b686: 9d b8 10    ...
-    php                                                               ; b689: 08          .
-    jsr find_open_fcb                                                 ; b68a: 20 89 b5     ..
-    plp                                                               ; b68d: 28          (
-    lda l10c9                                                         ; b68e: ad c9 10    ...
-    sta l10ca                                                         ; b691: 8d ca 10    ...
-    pha                                                               ; b694: 48          H
-    tay                                                               ; b695: a8          .
-    lda l1010,y                                                       ; b696: b9 10 10    ...
-    sta l0f05                                                         ; b699: 8d 05 0f    ...
-    pla                                                               ; b69c: 68          h
-    sta l10a8,x                                                       ; b69d: 9d a8 10    ...
-    lda l10d4                                                         ; b6a0: ad d4 10    ...
-    sta l0f08                                                         ; b6a3: 8d 08 0f    ...
-    sta l1078,x                                                       ; b6a6: 9d 78 10    .x.
-    lda l10d5                                                         ; b6a9: ad d5 10    ...
-    sta l0f09                                                         ; b6ac: 8d 09 0f    ...
-    sta l1088,x                                                       ; b6af: 9d 88 10    ...
-    txa                                                               ; b6b2: 8a          .
-    clc                                                               ; b6b3: 18          .
-    adc #&11                                                          ; b6b4: 69 11       i.
-    sta l10cc                                                         ; b6b6: 8d cc 10    ...
-    plp                                                               ; b6b9: 28          (
-    bvc cb6cc                                                         ; b6ba: 50 10       P.
-    ldx #0                                                            ; b6bc: a2 00       ..
-    stx l0f06                                                         ; b6be: 8e 06 0f    ...
-    inx                                                               ; b6c1: e8          .              ; X=&01
-    stx l0f07                                                         ; b6c2: 8e 07 0f    ...
-    ldy #&0d                                                          ; b6c5: a0 0d       ..
-    ldx #5                                                            ; b6c7: a2 05       ..
-    jsr save_net_tx_cb                                                ; b6c9: 20 99 94     ..
+    inx                                                               ; b678: e8          .              ; Next FCB slot
+    lda l10b8,x                                                       ; b679: bd b8 10    ...            ; Load FCB status flags
+    bpl cb678                                                         ; b67c: 10 fa       ..             ; Bit 7 clear: not pending, skip
+    asl a                                                             ; b67e: 0a          .              ; Shift bit 6 to bit 7
+    bpl cb678                                                         ; b67f: 10 f7       ..             ; Bit 6 clear: skip
+    jsr start_wipe_pass                                               ; b681: 20 ef b5     ..            ; Flush this FCB's pending data
+    lda #&40 ; '@'                                                    ; b684: a9 40       .@             ; Pending marker &40
+    sta l10b8,x                                                       ; b686: 9d b8 10    ...            ; Mark FCB as pending-only
+    php                                                               ; b689: 08          .              ; Save flags
+    jsr find_open_fcb                                                 ; b68a: 20 89 b5     ..            ; Find next available FCB slot
+    plp                                                               ; b68d: 28          (              ; Restore flags
+    lda l10c9                                                         ; b68e: ad c9 10    ...            ; Load current channel attribute
+    sta l10ca                                                         ; b691: 8d ca 10    ...            ; Store as current reference
+    pha                                                               ; b694: 48          H              ; Save attribute
+    tay                                                               ; b695: a8          .              ; Y = attribute index
+    lda l1010,y                                                       ; b696: b9 10 10    ...            ; Load station for this attribute
+    sta l0f05                                                         ; b699: 8d 05 0f    ...            ; Store station in TX buffer
+    pla                                                               ; b69c: 68          h              ; Restore attribute
+    sta l10a8,x                                                       ; b69d: 9d a8 10    ...            ; Store attribute in FCB slot
+    lda l10d4                                                         ; b6a0: ad d4 10    ...            ; Load working station low
+    sta l0f08                                                         ; b6a3: 8d 08 0f    ...            ; Store in TX buffer
+    sta l1078,x                                                       ; b6a6: 9d 78 10    .x.            ; Store station low in FCB
+    lda l10d5                                                         ; b6a9: ad d5 10    ...            ; Load working station high
+    sta l0f09                                                         ; b6ac: 8d 09 0f    ...            ; Store in TX buffer
+    sta l1088,x                                                       ; b6af: 9d 88 10    ...            ; Store station high in FCB
+    txa                                                               ; b6b2: 8a          .              ; Get FCB slot index
+    clc                                                               ; b6b3: 18          .              ; Prepare addition
+    adc #&11                                                          ; b6b4: 69 11       i.             ; Add &11 for buffer page offset
+    sta l10cc                                                         ; b6b6: 8d cc 10    ...            ; Store buffer address high byte
+    plp                                                               ; b6b9: 28          (              ; Restore flags
+    bvc cb6cc                                                         ; b6ba: 50 10       P.             ; V clear: skip directory request
+    ldx #0                                                            ; b6bc: a2 00       ..             ; Command byte = 0
+    stx l0f06                                                         ; b6be: 8e 06 0f    ...            ; Store in TX buffer
+    inx                                                               ; b6c1: e8          .              ; X=1: flag byte; X=&01
+    stx l0f07                                                         ; b6c2: 8e 07 0f    ...            ; Store in TX buffer
+    ldy #&0d                                                          ; b6c5: a0 0d       ..             ; Function code &0D
+    ldx #5                                                            ; b6c7: a2 05       ..             ; X=5: copy 5 bytes to TX
+    jsr save_net_tx_cb                                                ; b6c9: 20 99 94     ..            ; Send directory request to server
 ; &b6cc referenced 1 time by &b6ba
 .cb6cc
-    jsr init_wipe_counters                                            ; b6cc: 20 cc b5     ..
-    ldy #&0e                                                          ; b6cf: a0 0e       ..
-    lda (net_rx_ptr),y                                                ; b6d1: b1 9c       ..
-    pha                                                               ; b6d3: 48          H
-    lda l10ca                                                         ; b6d4: ad ca 10    ...
-    sta (net_rx_ptr),y                                                ; b6d7: 91 9c       ..
-    ldy #&10                                                          ; b6d9: a0 10       ..
-    lda #2                                                            ; b6db: a9 02       ..
-    jsr send_and_receive                                              ; b6dd: 20 79 b9     y.
-    pla                                                               ; b6e0: 68          h
-    ldy #&0e                                                          ; b6e1: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b6e3: 91 9c       ..
-    ldx l10c8                                                         ; b6e5: ae c8 10    ...
-    lda l10d0                                                         ; b6e8: ad d0 10    ...
-    bne cb6f2                                                         ; b6eb: d0 05       ..
-    lda l10cf                                                         ; b6ed: ad cf 10    ...
-    beq cb716                                                         ; b6f0: f0 24       .$
+    jsr init_wipe_counters                                            ; b6cc: 20 cc b5     ..            ; Reset transfer counters
+    ldy #&0e                                                          ; b6cf: a0 0e       ..             ; Offset &0E
+    lda (net_rx_ptr),y                                                ; b6d1: b1 9c       ..             ; Save current receive attribute
+    pha                                                               ; b6d3: 48          H              ; Push to stack
+    lda l10ca                                                         ; b6d4: ad ca 10    ...            ; Load current reference
+    sta (net_rx_ptr),y                                                ; b6d7: 91 9c       ..             ; Set in receive buffer
+    ldy #&10                                                          ; b6d9: a0 10       ..             ; Y=&10: page &10
+    lda #2                                                            ; b6db: a9 02       ..             ; A=2: transfer mode 2
+    jsr send_and_receive                                              ; b6dd: 20 79 b9     y.            ; Send and receive data
+    pla                                                               ; b6e0: 68          h              ; Restore receive attribute
+    ldy #&0e                                                          ; b6e1: a0 0e       ..             ; Offset &0E
+    sta (net_rx_ptr),y                                                ; b6e3: 91 9c       ..             ; Restore receive attribute
+    ldx l10c8                                                         ; b6e5: ae c8 10    ...            ; Reload FCB index
+    lda l10d0                                                         ; b6e8: ad d0 10    ...            ; Load pass counter
+    bne cb6f2                                                         ; b6eb: d0 05       ..             ; Non-zero: data received, calc offset
+    lda l10cf                                                         ; b6ed: ad cf 10    ...            ; Load offset counter
+    beq cb716                                                         ; b6f0: f0 24       .$             ; Zero: no data received at all
 ; &b6f2 referenced 1 time by &b6eb
 .cb6f2
-    lda l10cf                                                         ; b6f2: ad cf 10    ...
-    eor #&ff                                                          ; b6f5: 49 ff       I.
-    clc                                                               ; b6f7: 18          .
-    adc #1                                                            ; b6f8: 69 01       i.
-    sta l1098,x                                                       ; b6fa: 9d 98 10    ...
-    lda #&20 ; ' '                                                    ; b6fd: a9 20       .
-    ora l10b8,x                                                       ; b6ff: 1d b8 10    ...
-    sta l10b8,x                                                       ; b702: 9d b8 10    ...
-    lda l10cc                                                         ; b705: ad cc 10    ...
-    sta fs_load_addr_3                                                ; b708: 85 b3       ..
-    lda #0                                                            ; b70a: a9 00       ..
-    sta fs_load_addr_2                                                ; b70c: 85 b2       ..
-    ldy l1098,x                                                       ; b70e: bc 98 10    ...
+    lda l10cf                                                         ; b6f2: ad cf 10    ...            ; Load offset counter
+    eor #&ff                                                          ; b6f5: 49 ff       I.             ; Negate (ones complement)
+    clc                                                               ; b6f7: 18          .              ; Clear carry for add
+    adc #1                                                            ; b6f8: 69 01       i.             ; Complete twos complement negation
+    sta l1098,x                                                       ; b6fa: 9d 98 10    ...            ; Store negated offset in FCB
+    lda #&20 ; ' '                                                    ; b6fd: a9 20       .              ; Set bit 5 (has saved offset)
+    ora l10b8,x                                                       ; b6ff: 1d b8 10    ...            ; Add to FCB flags
+    sta l10b8,x                                                       ; b702: 9d b8 10    ...            ; Update FCB status
+    lda l10cc                                                         ; b705: ad cc 10    ...            ; Load buffer address high byte
+    sta fs_load_addr_3                                                ; b708: 85 b3       ..             ; Set pointer high byte
+    lda #0                                                            ; b70a: a9 00       ..             ; A=0: pointer low byte and clear val
+    sta fs_load_addr_2                                                ; b70c: 85 b2       ..             ; Set pointer low byte
+    ldy l1098,x                                                       ; b70e: bc 98 10    ...            ; Load negated offset (start of clear)
 ; &b711 referenced 1 time by &b714
 .loop_cb711
-    sta (fs_load_addr_2),y                                            ; b711: 91 b2       ..
-    iny                                                               ; b713: c8          .
-    bne loop_cb711                                                    ; b714: d0 fb       ..
+    sta (fs_load_addr_2),y                                            ; b711: 91 b2       ..             ; Clear buffer byte
+    iny                                                               ; b713: c8          .              ; Next byte
+    bne loop_cb711                                                    ; b714: d0 fb       ..             ; Loop until page boundary
 ; &b716 referenced 1 time by &b6f0
 .cb716
-    lda #2                                                            ; b716: a9 02       ..
-    ora l10b8,x                                                       ; b718: 1d b8 10    ...
-    sta l10b8,x                                                       ; b71b: 9d b8 10    ...
-    ldy #0                                                            ; b71e: a0 00       ..
+    lda #2                                                            ; b716: a9 02       ..             ; Set bit 1 (active flag)
+    ora l10b8,x                                                       ; b718: 1d b8 10    ...            ; Add active flag to status
+    sta l10b8,x                                                       ; b71b: 9d b8 10    ...            ; Update FCB status
+    ldy #0                                                            ; b71e: a0 00       ..             ; Y=0: start restoring workspace
 ; &b720 referenced 2 times by &b672, &b727
 .cb720
-    pla                                                               ; b720: 68          h
-    sta fs_load_addr,y                                                ; b721: 99 b0 00    ...
-    iny                                                               ; b724: c8          .
-    cpy #&0d                                                          ; b725: c0 0d       ..
-    bne cb720                                                         ; b727: d0 f7       ..
+    pla                                                               ; b720: 68          h              ; Restore workspace byte from stack
+    sta fs_load_addr,y                                                ; b721: 99 b0 00    ...            ; Store to fs_load_addr workspace
+    iny                                                               ; b724: c8          .              ; Next byte
+    cpy #&0d                                                          ; b725: c0 0d       ..             ; Restored all 13 bytes?
+    bne cb720                                                         ; b727: d0 f7       ..             ; No: continue restoring
 ; &b729 referenced 1 time by &b8d3
 .restore_catalog_entry
-    ldy #&0c                                                          ; b729: a0 0c       ..
+    ldy #&0c                                                          ; b729: a0 0c       ..             ; Copy 13 bytes (indices 0 to &0C)
 ; &b72b referenced 1 time by &b732
 .loop_cb72b
-    lda l10d9,y                                                       ; b72b: b9 d9 10    ...
-    sta l0f00,y                                                       ; b72e: 99 00 0f    ...
-    dey                                                               ; b731: 88          .
-    bpl loop_cb72b                                                    ; b732: 10 f7       ..
-    rts                                                               ; b734: 60          `
+    lda l10d9,y                                                       ; b72b: b9 d9 10    ...            ; Load saved catalog byte from &10D9
+    sta l0f00,y                                                       ; b72e: 99 00 0f    ...            ; Restore to TX buffer
+    dey                                                               ; b731: 88          .              ; Next byte down
+    bpl loop_cb72b                                                    ; b732: 10 f7       ..             ; Loop for all bytes
+    rts                                                               ; b734: 60          `              ; Return
 
 ; &b735 referenced 1 time by &b754
 .loop_cb735
-    jsr save_fcb_context                                              ; b735: 20 60 b6     `.
+    jsr save_fcb_context                                              ; b735: 20 60 b6     `.            ; Save current context first
 ; &b738 referenced 3 times by &9dec, &b7ef, &b88e
 .find_matching_fcb
-    ldx #&ff                                                          ; b738: a2 ff       ..
+    ldx #&ff                                                          ; b738: a2 ff       ..             ; X=&FF: start scanning from -1
 ; &b73a referenced 2 times by &b774, &b77c
 .cb73a
-    ldy l10c9                                                         ; b73a: ac c9 10    ...
+    ldy l10c9                                                         ; b73a: ac c9 10    ...            ; Load channel attribute to match
 ; &b73d referenced 2 times by &b75c, &b762
 .cb73d
-    inx                                                               ; b73d: e8          .
-    cpx #&10                                                          ; b73e: e0 10       ..
-    bne cb757                                                         ; b740: d0 15       ..
-    lda l10c9                                                         ; b742: ad c9 10    ...
-    jsr attr_to_chan_index                                            ; b745: 20 5b b4     [.
-    lda l1020,x                                                       ; b748: bd 20 10    . .
-    sta l10d5                                                         ; b74b: 8d d5 10    ...
-    lda l1010,x                                                       ; b74e: bd 10 10    ...
-    sta l10d4                                                         ; b751: 8d d4 10    ...
-    jmp loop_cb735                                                    ; b754: 4c 35 b7    L5.
+    inx                                                               ; b73d: e8          .              ; Next FCB slot
+    cpx #&10                                                          ; b73e: e0 10       ..             ; Past end of table (&10)?
+    bne cb757                                                         ; b740: d0 15       ..             ; No: check this slot
+    lda l10c9                                                         ; b742: ad c9 10    ...            ; Load channel attribute
+    jsr attr_to_chan_index                                            ; b745: 20 5b b4     [.            ; Convert to channel index
+    lda l1020,x                                                       ; b748: bd 20 10    . .            ; Load station for this channel
+    sta l10d5                                                         ; b74b: 8d d5 10    ...            ; Store as match target station high
+    lda l1010,x                                                       ; b74e: bd 10 10    ...            ; Load port for this channel
+    sta l10d4                                                         ; b751: 8d d4 10    ...            ; Store as match target station low
+    jmp loop_cb735                                                    ; b754: 4c 35 b7    L5.            ; Save context and rescan from start
 
 ; &b757 referenced 1 time by &b740
 .cb757
-    lda l10b8,x                                                       ; b757: bd b8 10    ...
-    and #2                                                            ; b75a: 29 02       ).
-    beq cb73d                                                         ; b75c: f0 df       ..
-    tya                                                               ; b75e: 98          .
-    cmp l10a8,x                                                       ; b75f: dd a8 10    ...
-    bne cb73d                                                         ; b762: d0 d9       ..
-    stx l10c8                                                         ; b764: 8e c8 10    ...
-    sec                                                               ; b767: 38          8
-    sbc #&20 ; ' '                                                    ; b768: e9 20       .
-    tay                                                               ; b76a: a8          .
-    ldx l10c8                                                         ; b76b: ae c8 10    ...
-    lda l1010,y                                                       ; b76e: b9 10 10    ...
-    cmp l1078,x                                                       ; b771: dd 78 10    .x.
-    bne cb73a                                                         ; b774: d0 c4       ..
-    lda l1020,y                                                       ; b776: b9 20 10    . .
-    cmp l1088,x                                                       ; b779: dd 88 10    ...
-    bne cb73a                                                         ; b77c: d0 bc       ..
-    lda l10b8,x                                                       ; b77e: bd b8 10    ...
-    bpl cb78e                                                         ; b781: 10 0b       ..
-    and #&7f                                                          ; b783: 29 7f       ).
-    sta l10b8,x                                                       ; b785: 9d b8 10    ...
-    jsr find_open_fcb                                                 ; b788: 20 89 b5     ..
-    lda l10b8,x                                                       ; b78b: bd b8 10    ...
+    lda l10b8,x                                                       ; b757: bd b8 10    ...            ; Load FCB status flags
+    and #2                                                            ; b75a: 29 02       ).             ; Test active flag (bit 1)
+    beq cb73d                                                         ; b75c: f0 df       ..             ; Not active: skip to next
+    tya                                                               ; b75e: 98          .              ; Get attribute to match
+    cmp l10a8,x                                                       ; b75f: dd a8 10    ...            ; Compare with FCB attribute ref
+    bne cb73d                                                         ; b762: d0 d9       ..             ; No attribute match: skip
+    stx l10c8                                                         ; b764: 8e c8 10    ...            ; Save matching FCB index
+    sec                                                               ; b767: 38          8              ; Prepare subtraction
+    sbc #&20 ; ' '                                                    ; b768: e9 20       .              ; Convert attribute to channel index
+    tay                                                               ; b76a: a8          .              ; Y = channel index
+    ldx l10c8                                                         ; b76b: ae c8 10    ...            ; Reload FCB index
+    lda l1010,y                                                       ; b76e: b9 10 10    ...            ; Load channel station byte
+    cmp l1078,x                                                       ; b771: dd 78 10    .x.            ; Compare with FCB station
+    bne cb73a                                                         ; b774: d0 c4       ..             ; Station mismatch: try next
+    lda l1020,y                                                       ; b776: b9 20 10    . .            ; Load channel network byte
+    cmp l1088,x                                                       ; b779: dd 88 10    ...            ; Compare with FCB network
+    bne cb73a                                                         ; b77c: d0 bc       ..             ; Network mismatch: try next
+    lda l10b8,x                                                       ; b77e: bd b8 10    ...            ; Load FCB flags
+    bpl cb78e                                                         ; b781: 10 0b       ..             ; Bit 7 clear: no pending flush
+    and #&7f                                                          ; b783: 29 7f       ).             ; Clear pending flag (bit 7)
+    sta l10b8,x                                                       ; b785: 9d b8 10    ...            ; Update FCB status
+    jsr find_open_fcb                                                 ; b788: 20 89 b5     ..            ; Find new open FCB slot
+    lda l10b8,x                                                       ; b78b: bd b8 10    ...            ; Reload FCB flags
 ; &b78e referenced 1 time by &b781
 .cb78e
-    and #&20 ; ' '                                                    ; b78e: 29 20       )
-    rts                                                               ; b790: 60          `
+    and #&20 ; ' '                                                    ; b78e: 29 20       )              ; Test bit 5 (has offset data)
+    rts                                                               ; b790: 60          `              ; Return; Z=1 no offset, Z=0 has data
 
 ; &b791 referenced 2 times by &b836, &b910
 .inc_fcb_byte_count
-    inc l1000,x                                                       ; b791: fe 00 10    ...
-    bne return_35                                                     ; b794: d0 08       ..
-    inc l1010,x                                                       ; b796: fe 10 10    ...
-    bne return_35                                                     ; b799: d0 03       ..
-    inc l1020,x                                                       ; b79b: fe 20 10    . .
+    inc l1000,x                                                       ; b791: fe 00 10    ...            ; Increment byte count low
+    bne return_35                                                     ; b794: d0 08       ..             ; No overflow: done
+    inc l1010,x                                                       ; b796: fe 10 10    ...            ; Increment byte count mid
+    bne return_35                                                     ; b799: d0 03       ..             ; No overflow: done
+    inc l1020,x                                                       ; b79b: fe 20 10    . .            ; Increment byte count high
 ; &b79e referenced 2 times by &b794, &b799
 .return_35
-    rts                                                               ; b79e: 60          `
+    rts                                                               ; b79e: 60          `              ; Return
 
 ; &b79f referenced 8 times by &8d7c, &8f87, &948c, &9bcd, &9c13, &9cb6, &9d7e, &9e4c
 .process_all_fcbs
-    txa                                                               ; b79f: 8a          .
-    pha                                                               ; b7a0: 48          H
-    tya                                                               ; b7a1: 98          .
-    pha                                                               ; b7a2: 48          H
-    lda fs_options                                                    ; b7a3: a5 bb       ..
-    pha                                                               ; b7a5: 48          H
-    lda fs_block_offset                                               ; b7a6: a5 bc       ..
-    pha                                                               ; b7a8: 48          H
-    ldx #&0f                                                          ; b7a9: a2 0f       ..
-    stx l10c8                                                         ; b7ab: 8e c8 10    ...
+    txa                                                               ; b79f: 8a          .              ; Save X
+    pha                                                               ; b7a0: 48          H              ; Push X to stack
+    tya                                                               ; b7a1: 98          .              ; Save Y
+    pha                                                               ; b7a2: 48          H              ; Push Y to stack
+    lda fs_options                                                    ; b7a3: a5 bb       ..             ; Save fs_options
+    pha                                                               ; b7a5: 48          H              ; Push fs_options
+    lda fs_block_offset                                               ; b7a6: a5 bc       ..             ; Save fs_block_offset
+    pha                                                               ; b7a8: 48          H              ; Push fs_block_offset
+    ldx #&0f                                                          ; b7a9: a2 0f       ..             ; Start from FCB slot &0F
+    stx l10c8                                                         ; b7ab: 8e c8 10    ...            ; Store as current FCB index
 ; &b7ae referenced 1 time by &b7c2
 .loop_cb7ae
-    ldx l10c8                                                         ; b7ae: ae c8 10    ...
-    tya                                                               ; b7b1: 98          .
-    beq cb7b9                                                         ; b7b2: f0 05       ..
-    cmp l10a8,x                                                       ; b7b4: dd a8 10    ...
-    bne cb7bf                                                         ; b7b7: d0 06       ..
+    ldx l10c8                                                         ; b7ae: ae c8 10    ...            ; Load current FCB index
+    tya                                                               ; b7b1: 98          .              ; Get filter attribute
+    beq cb7b9                                                         ; b7b2: f0 05       ..             ; Zero: process all FCBs
+    cmp l10a8,x                                                       ; b7b4: dd a8 10    ...            ; Compare with FCB attribute ref
+    bne cb7bf                                                         ; b7b7: d0 06       ..             ; No match: skip this FCB
 ; &b7b9 referenced 1 time by &b7b2
 .cb7b9
-    pha                                                               ; b7b9: 48          H
-    jsr start_wipe_pass                                               ; b7ba: 20 ef b5     ..
-    pla                                                               ; b7bd: 68          h
-    tay                                                               ; b7be: a8          .
+    pha                                                               ; b7b9: 48          H              ; Save filter attribute
+    jsr start_wipe_pass                                               ; b7ba: 20 ef b5     ..            ; Flush pending data for this FCB
+    pla                                                               ; b7bd: 68          h              ; Restore filter
+    tay                                                               ; b7be: a8          .              ; Y = filter attribute
 ; &b7bf referenced 1 time by &b7b7
 .cb7bf
-    dec l10c8                                                         ; b7bf: ce c8 10    ...
-    bpl loop_cb7ae                                                    ; b7c2: 10 ea       ..
-    pla                                                               ; b7c4: 68          h
-    sta fs_block_offset                                               ; b7c5: 85 bc       ..
-    pla                                                               ; b7c7: 68          h
-    sta fs_options                                                    ; b7c8: 85 bb       ..
-    pla                                                               ; b7ca: 68          h
-    tay                                                               ; b7cb: a8          .
-    pla                                                               ; b7cc: 68          h
-    tax                                                               ; b7cd: aa          .
-    rts                                                               ; b7ce: 60          `
+    dec l10c8                                                         ; b7bf: ce c8 10    ...            ; Previous FCB index
+    bpl loop_cb7ae                                                    ; b7c2: 10 ea       ..             ; More slots: continue loop
+    pla                                                               ; b7c4: 68          h              ; Restore fs_block_offset
+    sta fs_block_offset                                               ; b7c5: 85 bc       ..             ; Store fs_block_offset
+    pla                                                               ; b7c7: 68          h              ; Restore fs_options
+    sta fs_options                                                    ; b7c8: 85 bb       ..             ; Store fs_options
+    pla                                                               ; b7ca: 68          h              ; Restore Y
+    tay                                                               ; b7cb: a8          .              ; Y restored
+    pla                                                               ; b7cc: 68          h              ; Restore X
+    tax                                                               ; b7cd: aa          .              ; X restored
+    rts                                                               ; b7ce: 60          `              ; Return
 
-    sty l10c9                                                         ; b7cf: 8c c9 10    ...
-    txa                                                               ; b7d2: 8a          .
-    pha                                                               ; b7d3: 48          H
-    jsr store_result_check_dir                                        ; b7d4: 20 dc b4     ..
-    lda l1060,x                                                       ; b7d7: bd 60 10    .`.
-    and #&20 ; ' '                                                    ; b7da: 29 20       )
-    beq cb7ee                                                         ; b7dc: f0 10       ..
-    lda #&d4                                                          ; b7de: a9 d4       ..
-    jsr error_inline_log                                              ; b7e0: 20 bb 96     ..
+    sty l10c9                                                         ; b7cf: 8c c9 10    ...            ; Save channel attribute
+    txa                                                               ; b7d2: 8a          .              ; Save caller's X
+    pha                                                               ; b7d3: 48          H              ; Push X
+    jsr store_result_check_dir                                        ; b7d4: 20 dc b4     ..            ; Store result and check not directory
+    lda l1060,x                                                       ; b7d7: bd 60 10    .`.            ; Load channel flags
+    and #&20 ; ' '                                                    ; b7da: 29 20       )              ; Test write-only flag (bit 5)
+    beq cb7ee                                                         ; b7dc: f0 10       ..             ; Not write-only: proceed with read
+    lda #&d4                                                          ; b7de: a9 d4       ..             ; Error code &D4
+    jsr error_inline_log                                              ; b7e0: 20 bb 96     ..            ; Generate 'Write only' error
     equs "Write only", 0                                              ; b7e3: 57 72 69... Wri
 
 ; &b7ee referenced 1 time by &b7dc
 .cb7ee
-    clv                                                               ; b7ee: b8          .
-    jsr find_matching_fcb                                             ; b7ef: 20 38 b7     8.
-    beq cb82a                                                         ; b7f2: f0 36       .6
-    lda l1000,y                                                       ; b7f4: b9 00 10    ...
-    cmp l1098,x                                                       ; b7f7: dd 98 10    ...
-    bcc cb82a                                                         ; b7fa: 90 2e       ..
-    lda l1060,y                                                       ; b7fc: b9 60 10    .`.
-    tax                                                               ; b7ff: aa          .
-    and #&40 ; '@'                                                    ; b800: 29 40       )@
-    bne cb819                                                         ; b802: d0 15       ..
-    txa                                                               ; b804: 8a          .
-    ora #&40 ; '@'                                                    ; b805: 09 40       .@
-    sta l1060,y                                                       ; b807: 99 60 10    .`.
-    lda #0                                                            ; b80a: a9 00       ..
-    ldy #&0e                                                          ; b80c: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b80e: 91 9c       ..
-    pla                                                               ; b810: 68          h
-    tax                                                               ; b811: aa          .
-    lda #&fe                                                          ; b812: a9 fe       ..
-    ldy l10c9                                                         ; b814: ac c9 10    ...
-    sec                                                               ; b817: 38          8
-    rts                                                               ; b818: 60          `
+    clv                                                               ; b7ee: b8          .              ; Clear V (first-pass matching)
+    jsr find_matching_fcb                                             ; b7ef: 20 38 b7     8.            ; Find FCB matching this channel
+    beq cb82a                                                         ; b7f2: f0 36       .6             ; No offset: read byte from buffer
+    lda l1000,y                                                       ; b7f4: b9 00 10    ...            ; Load byte count for matching FCB
+    cmp l1098,x                                                       ; b7f7: dd 98 10    ...            ; Compare with buffer offset limit
+    bcc cb82a                                                         ; b7fa: 90 2e       ..             ; Below offset: data available
+    lda l1060,y                                                       ; b7fc: b9 60 10    .`.            ; Load channel flags for FCB
+    tax                                                               ; b7ff: aa          .              ; Transfer to X for testing
+    and #&40 ; '@'                                                    ; b800: 29 40       )@             ; Test bit 6 (EOF already signalled)
+    bne cb819                                                         ; b802: d0 15       ..             ; EOF already set: raise error
+    txa                                                               ; b804: 8a          .              ; Restore flags
+    ora #&40 ; '@'                                                    ; b805: 09 40       .@             ; Set EOF flag (bit 6)
+    sta l1060,y                                                       ; b807: 99 60 10    .`.            ; Update channel flags with EOF
+    lda #0                                                            ; b80a: a9 00       ..             ; A=0: clear receive attribute
+    ldy #&0e                                                          ; b80c: a0 0e       ..             ; Offset &0E
+    sta (net_rx_ptr),y                                                ; b80e: 91 9c       ..             ; Clear attribute in receive buffer
+    pla                                                               ; b810: 68          h              ; Restore caller's X
+    tax                                                               ; b811: aa          .              ; X restored
+    lda #&fe                                                          ; b812: a9 fe       ..             ; A=&FE: EOF marker byte
+    ldy l10c9                                                         ; b814: ac c9 10    ...            ; Restore channel attribute
+    sec                                                               ; b817: 38          8              ; C=1: end of file
+    rts                                                               ; b818: 60          `              ; Return
 
 ; &b819 referenced 1 time by &b802
 .cb819
-    lda #&df                                                          ; b819: a9 df       ..
-    jsr error_inline_log                                              ; b81b: 20 bb 96     ..
+    lda #&df                                                          ; b819: a9 df       ..             ; Error code &DF
+    jsr error_inline_log                                              ; b81b: 20 bb 96     ..            ; Generate 'End of file' error
     equs "End of file", 0                                             ; b81e: 45 6e 64... End
 
 ; &b82a referenced 2 times by &b7f2, &b7fa
 .cb82a
-    lda l1000,y                                                       ; b82a: b9 00 10    ...
-    pha                                                               ; b82d: 48          H
-    tya                                                               ; b82e: 98          .
-    tax                                                               ; b82f: aa          .
-    lda #0                                                            ; b830: a9 00       ..
-    ldy #&0e                                                          ; b832: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b834: 91 9c       ..
-    jsr inc_fcb_byte_count                                            ; b836: 20 91 b7     ..
-    pla                                                               ; b839: 68          h
-    tay                                                               ; b83a: a8          .
-    lda l10c8                                                         ; b83b: ad c8 10    ...
-    clc                                                               ; b83e: 18          .
-    adc #&11                                                          ; b83f: 69 11       i.
-    sta fs_load_addr_3                                                ; b841: 85 b3       ..
-    lda #0                                                            ; b843: a9 00       ..
-    sta fs_load_addr_2                                                ; b845: 85 b2       ..
-    pla                                                               ; b847: 68          h
-    tax                                                               ; b848: aa          .
-    lda (fs_load_addr_2),y                                            ; b849: b1 b2       ..
-    ldy l10c9                                                         ; b84b: ac c9 10    ...
-    clc                                                               ; b84e: 18          .
-    rts                                                               ; b84f: 60          `
+    lda l1000,y                                                       ; b82a: b9 00 10    ...            ; Load current byte count (= offset)
+    pha                                                               ; b82d: 48          H              ; Save byte count
+    tya                                                               ; b82e: 98          .              ; Get FCB slot index
+    tax                                                               ; b82f: aa          .              ; X = FCB slot for byte count inc
+    lda #0                                                            ; b830: a9 00       ..             ; A=0: clear receive attribute
+    ldy #&0e                                                          ; b832: a0 0e       ..             ; Offset &0E
+    sta (net_rx_ptr),y                                                ; b834: 91 9c       ..             ; Clear attribute in receive buffer
+    jsr inc_fcb_byte_count                                            ; b836: 20 91 b7     ..            ; Increment byte count for this FCB
+    pla                                                               ; b839: 68          h              ; Restore byte count (= buffer offset)
+    tay                                                               ; b83a: a8          .              ; Y = offset into data buffer
+    lda l10c8                                                         ; b83b: ad c8 10    ...            ; Load current FCB index
+    clc                                                               ; b83e: 18          .              ; Prepare addition
+    adc #&11                                                          ; b83f: 69 11       i.             ; Add &11 for buffer page offset
+    sta fs_load_addr_3                                                ; b841: 85 b3       ..             ; Set pointer high byte
+    lda #0                                                            ; b843: a9 00       ..             ; A=0: pointer low byte
+    sta fs_load_addr_2                                                ; b845: 85 b2       ..             ; Set pointer low byte
+    pla                                                               ; b847: 68          h              ; Restore caller's X
+    tax                                                               ; b848: aa          .              ; X restored
+    lda (fs_load_addr_2),y                                            ; b849: b1 b2       ..             ; Read data byte from buffer
+    ldy l10c9                                                         ; b84b: ac c9 10    ...            ; Restore channel attribute
+    clc                                                               ; b84e: 18          .              ; C=0: byte read successfully
+    rts                                                               ; b84f: 60          `              ; Return; A = data byte
 
-    sty l10c9                                                         ; b850: 8c c9 10    ...
-    pha                                                               ; b853: 48          H
-    tay                                                               ; b854: a8          .
-    txa                                                               ; b855: 8a          .
-    pha                                                               ; b856: 48          H
-    tya                                                               ; b857: 98          .
-    pha                                                               ; b858: 48          H
-    sta l10d7                                                         ; b859: 8d d7 10    ...
-    jsr store_result_check_dir                                        ; b85c: 20 dc b4     ..
-    lda l1060,x                                                       ; b85f: bd 60 10    .`.
-    bmi cb87d                                                         ; b862: 30 19       0.
+    sty l10c9                                                         ; b850: 8c c9 10    ...            ; Save channel attribute
+    pha                                                               ; b853: 48          H              ; Save data byte
+    tay                                                               ; b854: a8          .              ; Y = data byte
+    txa                                                               ; b855: 8a          .              ; Save caller's X
+    pha                                                               ; b856: 48          H              ; Push X
+    tya                                                               ; b857: 98          .              ; Restore data byte to A
+    pha                                                               ; b858: 48          H              ; Push data byte for later
+    sta l10d7                                                         ; b859: 8d d7 10    ...            ; Save data byte in workspace
+    jsr store_result_check_dir                                        ; b85c: 20 dc b4     ..            ; Store result and check not directory
+    lda l1060,x                                                       ; b85f: bd 60 10    .`.            ; Load channel flags
+    bmi cb87d                                                         ; b862: 30 19       0.             ; Bit 7 set: channel open, proceed
     equb &a9                                                          ; b864: a9          .
 
-    cmp (tube_send_zero_r2,x)                                         ; b865: c1 20       .
+    cmp (tube_send_zero_r2,x)                                         ; b865: c1 20       .              ; Misdecoded error path (equb data)
     equb &bb, &96                                                     ; b867: bb 96       ..
     equs "Not open for update", 0                                     ; b869: 4e 6f 74... Not
 
 ; &b87d referenced 1 time by &b862
 .cb87d
-    and #&20 ; ' '                                                    ; b87d: 29 20       )
-    beq cb88b                                                         ; b87f: f0 0a       ..
-    ldy l1030,x                                                       ; b881: bc 30 10    .0.
-    pla                                                               ; b884: 68          h
-    jsr send_wipe_request                                             ; b885: 20 20 b9      .
-    jmp cb910                                                         ; b888: 4c 10 b9    L..
+    and #&20 ; ' '                                                    ; b87d: 29 20       )              ; Test write flag (bit 5)
+    beq cb88b                                                         ; b87f: f0 0a       ..             ; Not write-capable: use buffer path
+    ldy l1030,x                                                       ; b881: bc 30 10    .0.            ; Load reply port for this channel
+    pla                                                               ; b884: 68          h              ; Restore data byte
+    jsr send_wipe_request                                             ; b885: 20 20 b9      .            ; Send byte directly to server
+    jmp cb910                                                         ; b888: 4c 10 b9    L..            ; Update byte count and return
 
 ; &b88b referenced 1 time by &b87f
 .cb88b
-    bit bit_test_ff_pad                                               ; b88b: 2c 7d 94    ,}.
-    jsr find_matching_fcb                                             ; b88e: 20 38 b7     8.
-    lda l1000,y                                                       ; b891: b9 00 10    ...
-    cmp #&ff                                                          ; b894: c9 ff       ..
-    bne cb8dd                                                         ; b896: d0 45       .E
-    txa                                                               ; b898: 8a          .
-    pha                                                               ; b899: 48          H
-    tya                                                               ; b89a: 98          .
-    pha                                                               ; b89b: 48          H
-    lda l1030,y                                                       ; b89c: b9 30 10    .0.
-    pha                                                               ; b89f: 48          H
-    ldy #0                                                            ; b8a0: a0 00       ..
-    jsr save_fcb_context                                              ; b8a2: 20 60 b6     `.
-    pla                                                               ; b8a5: 68          h
-    sta l0f05                                                         ; b8a6: 8d 05 0f    ...
-    tax                                                               ; b8a9: aa          .
-    pla                                                               ; b8aa: 68          h
-    tay                                                               ; b8ab: a8          .
-    pha                                                               ; b8ac: 48          H
-    txa                                                               ; b8ad: 8a          .
-    pha                                                               ; b8ae: 48          H
-    ldx #0                                                            ; b8af: a2 00       ..
-    stx l0f06                                                         ; b8b1: 8e 06 0f    ...
-    dex                                                               ; b8b4: ca          .              ; X=&ff
-    stx l0f07                                                         ; b8b5: 8e 07 0f    ...
-    lda l1010,y                                                       ; b8b8: b9 10 10    ...
-    sta l0f08                                                         ; b8bb: 8d 08 0f    ...
-    lda l1020,y                                                       ; b8be: b9 20 10    . .
-    sta l0f09                                                         ; b8c1: 8d 09 0f    ...
-    ldy #&0d                                                          ; b8c4: a0 0d       ..
-    ldx #5                                                            ; b8c6: a2 05       ..
-    jsr save_net_tx_cb                                                ; b8c8: 20 99 94     ..
-    pla                                                               ; b8cb: 68          h
-    tay                                                               ; b8cc: a8          .
-    lda l10d7                                                         ; b8cd: ad d7 10    ...
-    jsr send_wipe_request                                             ; b8d0: 20 20 b9      .
-    jsr restore_catalog_entry                                         ; b8d3: 20 29 b7     ).
-    pla                                                               ; b8d6: 68          h
-    tay                                                               ; b8d7: a8          .
-    pla                                                               ; b8d8: 68          h
-    tax                                                               ; b8d9: aa          .
-    lda l1000,y                                                       ; b8da: b9 00 10    ...
+    bit bit_test_ff_pad                                               ; b88b: 2c 7d 94    ,}.            ; Set V flag (alternate match mode)
+    jsr find_matching_fcb                                             ; b88e: 20 38 b7     8.            ; Find matching FCB for channel
+    lda l1000,y                                                       ; b891: b9 00 10    ...            ; Load byte count for FCB
+    cmp #&ff                                                          ; b894: c9 ff       ..             ; Buffer full (&FF bytes)?
+    bne cb8dd                                                         ; b896: d0 45       .E             ; No: store byte in buffer
+    txa                                                               ; b898: 8a          .              ; Save X
+    pha                                                               ; b899: 48          H              ; Push X
+    tya                                                               ; b89a: 98          .              ; Save Y (FCB slot)
+    pha                                                               ; b89b: 48          H              ; Push Y
+    lda l1030,y                                                       ; b89c: b9 30 10    .0.            ; Load reply port for FCB
+    pha                                                               ; b89f: 48          H              ; Save reply port
+    ldy #0                                                            ; b8a0: a0 00       ..             ; Y=0: no nested context
+    jsr save_fcb_context                                              ; b8a2: 20 60 b6     `.            ; Save context and flush FCB data
+    pla                                                               ; b8a5: 68          h              ; Restore reply port
+    sta l0f05                                                         ; b8a6: 8d 05 0f    ...            ; Store reply port in TX buffer
+    tax                                                               ; b8a9: aa          .              ; X = reply port
+    pla                                                               ; b8aa: 68          h              ; Restore Y (FCB slot)
+    tay                                                               ; b8ab: a8          .              ; Y restored
+    pha                                                               ; b8ac: 48          H              ; Save Y again for later restore
+    txa                                                               ; b8ad: 8a          .              ; A = reply port
+    pha                                                               ; b8ae: 48          H              ; Save reply port for send
+    ldx #0                                                            ; b8af: a2 00       ..             ; Command byte = 0
+    stx l0f06                                                         ; b8b1: 8e 06 0f    ...            ; Store in TX buffer
+    dex                                                               ; b8b4: ca          .              ; X=&FF: flag byte; X=&ff
+    stx l0f07                                                         ; b8b5: 8e 07 0f    ...            ; Store &FF in TX buffer
+    lda l1010,y                                                       ; b8b8: b9 10 10    ...            ; Load station for FCB
+    sta l0f08                                                         ; b8bb: 8d 08 0f    ...            ; Store in TX buffer
+    lda l1020,y                                                       ; b8be: b9 20 10    . .            ; Load network for FCB
+    sta l0f09                                                         ; b8c1: 8d 09 0f    ...            ; Store in TX buffer
+    ldy #&0d                                                          ; b8c4: a0 0d       ..             ; Function code &0D
+    ldx #5                                                            ; b8c6: a2 05       ..             ; X=5: copy 5 bytes to TX
+    jsr save_net_tx_cb                                                ; b8c8: 20 99 94     ..            ; Send flush request to server
+    pla                                                               ; b8cb: 68          h              ; Restore reply port
+    tay                                                               ; b8cc: a8          .              ; Y = reply port
+    lda l10d7                                                         ; b8cd: ad d7 10    ...            ; Load saved data byte
+    jsr send_wipe_request                                             ; b8d0: 20 20 b9      .            ; Send data byte to server
+    jsr restore_catalog_entry                                         ; b8d3: 20 29 b7     ).            ; Restore TX buffer from saved context
+    pla                                                               ; b8d6: 68          h              ; Restore Y (FCB slot)
+    tay                                                               ; b8d7: a8          .              ; Y restored
+    pla                                                               ; b8d8: 68          h              ; Restore X
+    tax                                                               ; b8d9: aa          .              ; X restored
+    lda l1000,y                                                       ; b8da: b9 00 10    ...            ; Reload byte count after flush
 ; &b8dd referenced 1 time by &b896
 .cb8dd
-    cmp l1098,x                                                       ; b8dd: dd 98 10    ...
-    bcc cb8f1                                                         ; b8e0: 90 0f       ..
-    adc #0                                                            ; b8e2: 69 00       i.
-    sta l1098,x                                                       ; b8e4: 9d 98 10    ...
-    bne cb8f1                                                         ; b8e7: d0 08       ..
-    lda #&df                                                          ; b8e9: a9 df       ..
-    and l10b8,x                                                       ; b8eb: 3d b8 10    =..
-    sta l10b8,x                                                       ; b8ee: 9d b8 10    ...
+    cmp l1098,x                                                       ; b8dd: dd 98 10    ...            ; Compare count with buffer offset
+    bcc cb8f1                                                         ; b8e0: 90 0f       ..             ; Below offset: skip offset update
+    adc #0                                                            ; b8e2: 69 00       i.             ; Add carry (count + 1)
+    sta l1098,x                                                       ; b8e4: 9d 98 10    ...            ; Update buffer offset in FCB
+    bne cb8f1                                                         ; b8e7: d0 08       ..             ; Non-zero: keep offset flag
+    lda #&df                                                          ; b8e9: a9 df       ..             ; Mask &DF: clear bit 5
+    and l10b8,x                                                       ; b8eb: 3d b8 10    =..            ; Clear offset flag
+    sta l10b8,x                                                       ; b8ee: 9d b8 10    ...            ; Update FCB status
 ; &b8f1 referenced 2 times by &b8e0, &b8e7
 .cb8f1
-    lda #1                                                            ; b8f1: a9 01       ..
-    ora l10b8,x                                                       ; b8f3: 1d b8 10    ...
-    sta l10b8,x                                                       ; b8f6: 9d b8 10    ...
-    lda l1000,y                                                       ; b8f9: b9 00 10    ...
-    pha                                                               ; b8fc: 48          H
-    tya                                                               ; b8fd: 98          .
-    tax                                                               ; b8fe: aa          .
-    pla                                                               ; b8ff: 68          h
-    tay                                                               ; b900: a8          .
-    lda l10c8                                                         ; b901: ad c8 10    ...
-    clc                                                               ; b904: 18          .
-    adc #&11                                                          ; b905: 69 11       i.
-    sta fs_load_addr_3                                                ; b907: 85 b3       ..
-    lda #0                                                            ; b909: a9 00       ..
-    sta fs_load_addr_2                                                ; b90b: 85 b2       ..
-    pla                                                               ; b90d: 68          h
-    sta (fs_load_addr_2),y                                            ; b90e: 91 b2       ..
+    lda #1                                                            ; b8f1: a9 01       ..             ; Set bit 0 (dirty/active)
+    ora l10b8,x                                                       ; b8f3: 1d b8 10    ...            ; Add to FCB flags
+    sta l10b8,x                                                       ; b8f6: 9d b8 10    ...            ; Update FCB status
+    lda l1000,y                                                       ; b8f9: b9 00 10    ...            ; Load byte count (= write position)
+    pha                                                               ; b8fc: 48          H              ; Save count
+    tya                                                               ; b8fd: 98          .              ; Get FCB slot index
+    tax                                                               ; b8fe: aa          .              ; X = FCB slot
+    pla                                                               ; b8ff: 68          h              ; Restore byte count
+    tay                                                               ; b900: a8          .              ; Y = buffer write offset
+    lda l10c8                                                         ; b901: ad c8 10    ...            ; Load current FCB index
+    clc                                                               ; b904: 18          .              ; Prepare addition
+    adc #&11                                                          ; b905: 69 11       i.             ; Add &11 for buffer page offset
+    sta fs_load_addr_3                                                ; b907: 85 b3       ..             ; Set pointer high byte
+    lda #0                                                            ; b909: a9 00       ..             ; A=0: pointer low byte
+    sta fs_load_addr_2                                                ; b90b: 85 b2       ..             ; Set pointer low byte
+    pla                                                               ; b90d: 68          h              ; Restore data byte
+    sta (fs_load_addr_2),y                                            ; b90e: 91 b2       ..             ; Write data byte to buffer
 ; &b910 referenced 1 time by &b888
 .cb910
-    jsr inc_fcb_byte_count                                            ; b910: 20 91 b7     ..
-    lda #0                                                            ; b913: a9 00       ..
-    ldy #&0e                                                          ; b915: a0 0e       ..
-    sta (net_rx_ptr),y                                                ; b917: 91 9c       ..
-    pla                                                               ; b919: 68          h
-    tax                                                               ; b91a: aa          .
-    pla                                                               ; b91b: 68          h
-    ldy l10c9                                                         ; b91c: ac c9 10    ...
-    rts                                                               ; b91f: 60          `
+    jsr inc_fcb_byte_count                                            ; b910: 20 91 b7     ..            ; Increment byte count for this FCB
+    lda #0                                                            ; b913: a9 00       ..             ; A=0: clear receive attribute
+    ldy #&0e                                                          ; b915: a0 0e       ..             ; Offset &0E
+    sta (net_rx_ptr),y                                                ; b917: 91 9c       ..             ; Clear attribute in receive buffer
+    pla                                                               ; b919: 68          h              ; Restore caller's X
+    tax                                                               ; b91a: aa          .              ; X restored
+    pla                                                               ; b91b: 68          h              ; Discard saved data byte
+    ldy l10c9                                                         ; b91c: ac c9 10    ...            ; Restore channel attribute
+    rts                                                               ; b91f: 60          `              ; Return
 
 ; &b920 referenced 2 times by &b885, &b8d0
 .send_wipe_request
-    sty l0fde                                                         ; b920: 8c de 0f    ...
-    sta l0fdf                                                         ; b923: 8d df 0f    ...
-    tya                                                               ; b926: 98          .
-    pha                                                               ; b927: 48          H
-    txa                                                               ; b928: 8a          .
-    pha                                                               ; b929: 48          H
-    lda #&90                                                          ; b92a: a9 90       ..
-    sta l0fdc                                                         ; b92c: 8d dc 0f    ...
-    jsr init_txcb                                                     ; b92f: 20 5f 94     _.
-    lda #&dc                                                          ; b932: a9 dc       ..
-    sta txcb_start                                                    ; b934: 85 c4       ..
-    lda #&e0                                                          ; b936: a9 e0       ..
-    sta txcb_end                                                      ; b938: 85 c8       ..
-    lda #9                                                            ; b93a: a9 09       ..
-    sta l0fdd                                                         ; b93c: 8d dd 0f    ...
-    ldx #&c0                                                          ; b93f: a2 c0       ..
-    ldy #0                                                            ; b941: a0 00       ..
-    lda l0fde                                                         ; b943: ad de 0f    ...
-    jsr send_disconnect_reply                                         ; b946: 20 12 ac     ..
-    lda l0fdd                                                         ; b949: ad dd 0f    ...
-    beq cb969                                                         ; b94c: f0 1b       ..
-    sta l0e09                                                         ; b94e: 8d 09 0e    ...
-    ldx #0                                                            ; b951: a2 00       ..
+    sty l0fde                                                         ; b920: 8c de 0f    ...            ; Store reply port
+    sta l0fdf                                                         ; b923: 8d df 0f    ...            ; Store data byte
+    tya                                                               ; b926: 98          .              ; Save Y
+    pha                                                               ; b927: 48          H              ; Push Y to stack
+    txa                                                               ; b928: 8a          .              ; Save X
+    pha                                                               ; b929: 48          H              ; Push X to stack
+    lda #&90                                                          ; b92a: a9 90       ..             ; Function code &90
+    sta l0fdc                                                         ; b92c: 8d dc 0f    ...            ; Store in send buffer
+    jsr init_txcb                                                     ; b92f: 20 5f 94     _.            ; Initialise TX control block
+    lda #&dc                                                          ; b932: a9 dc       ..             ; TX start address low = &DC
+    sta txcb_start                                                    ; b934: 85 c4       ..             ; Set TX start in control block
+    lda #&e0                                                          ; b936: a9 e0       ..             ; TX end address low = &E0
+    sta txcb_end                                                      ; b938: 85 c8       ..             ; Set TX end in control block
+    lda #9                                                            ; b93a: a9 09       ..             ; Expected reply port = 9
+    sta l0fdd                                                         ; b93c: 8d dd 0f    ...            ; Store reply port in buffer
+    ldx #&c0                                                          ; b93f: a2 c0       ..             ; TX control = &C0
+    ldy #0                                                            ; b941: a0 00       ..             ; Y=0: no timeout
+    lda l0fde                                                         ; b943: ad de 0f    ...            ; Load reply port for addressing
+    jsr send_disconnect_reply                                         ; b946: 20 12 ac     ..            ; Send packet to server
+    lda l0fdd                                                         ; b949: ad dd 0f    ...            ; Load reply status
+    beq cb969                                                         ; b94c: f0 1b       ..             ; Zero: success
+    sta l0e09                                                         ; b94e: 8d 09 0e    ...            ; Store error code
+    ldx #0                                                            ; b951: a2 00       ..             ; X=0: copy index
 ; &b953 referenced 1 time by &b95e
 .loop_cb953
-    lda l0fdc,x                                                       ; b953: bd dc 0f    ...
-    sta error_block,x                                                 ; b956: 9d 00 01    ...
-    cmp #&0d                                                          ; b959: c9 0d       ..
-    beq cb960                                                         ; b95b: f0 03       ..
-    inx                                                               ; b95d: e8          .
-    bne loop_cb953                                                    ; b95e: d0 f3       ..
+    lda l0fdc,x                                                       ; b953: bd dc 0f    ...            ; Load error message byte
+    sta error_block,x                                                 ; b956: 9d 00 01    ...            ; Copy to error block
+    cmp #&0d                                                          ; b959: c9 0d       ..             ; Is it CR (end of message)?
+    beq cb960                                                         ; b95b: f0 03       ..             ; Yes: terminate string
+    inx                                                               ; b95d: e8          .              ; Next byte
+    bne loop_cb953                                                    ; b95e: d0 f3       ..             ; Continue copying error message
 ; &b960 referenced 1 time by &b95b
 .cb960
-    lda #0                                                            ; b960: a9 00       ..
-    sta error_block,x                                                 ; b962: 9d 00 01    ...
-    dex                                                               ; b965: ca          .
-    jmp check_net_error_code                                          ; b966: 4c da 96    L..
+    lda #0                                                            ; b960: a9 00       ..             ; NUL terminator
+    sta error_block,x                                                 ; b962: 9d 00 01    ...            ; Terminate error string in block
+    dex                                                               ; b965: ca          .              ; Back up position for error check
+    jmp check_net_error_code                                          ; b966: 4c da 96    L..            ; Process and raise network error
 
 ; &b969 referenced 1 time by &b94c
 .cb969
-    ldx l10c9                                                         ; b969: ae c9 10    ...
-    lda l1040,x                                                       ; b96c: bd 40 10    .@.
-    eor #1                                                            ; b96f: 49 01       I.
-    sta l1040,x                                                       ; b971: 9d 40 10    .@.
-    pla                                                               ; b974: 68          h
-    tax                                                               ; b975: aa          .
-    pla                                                               ; b976: 68          h
-    tay                                                               ; b977: a8          .
-    rts                                                               ; b978: 60          `
+    ldx l10c9                                                         ; b969: ae c9 10    ...            ; Load channel attribute index
+    lda l1040,x                                                       ; b96c: bd 40 10    .@.            ; Load station number for channel
+    eor #1                                                            ; b96f: 49 01       I.             ; Toggle bit 0 (alternate station)
+    sta l1040,x                                                       ; b971: 9d 40 10    .@.            ; Update station number
+    pla                                                               ; b974: 68          h              ; Restore X
+    tax                                                               ; b975: aa          .              ; X restored
+    pla                                                               ; b976: 68          h              ; Restore Y
+    tay                                                               ; b977: a8          .              ; Y restored
+    rts                                                               ; b978: 60          `              ; Return
 
 ; &b979 referenced 2 times by &b644, &b6dd
 .send_and_receive
-    jsr set_options_ptr                                               ; b979: 20 87 92     ..
-    jmp setup_transfer_workspace                                      ; b97c: 4c cb 9e    L..
+    jsr set_options_ptr                                               ; b979: 20 87 92     ..            ; Set up FS options pointer
+    jmp setup_transfer_workspace                                      ; b97c: 4c cb 9e    L..            ; Set up transfer workspace and return
 
 ; ***************************************************************************************
 ; *Close command.
