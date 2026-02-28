@@ -413,7 +413,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[2]   ; JMP to tube_escape_check (&06A7)
 
 ; &bf06 referenced 10 times by &049a[2], &04cf[2], &8371, &8445, &8929, &8931, &9fda, &9ff1, &a05d, &a2d4
-.c0406
+.tube_addr_data_dispatch
     cmp #&80                                                          ; bf06: c9 80       ..  :0406[2]   ; A>=&80: address claim; A<&80: data transfer
     bcc tube_transfer_setup                                           ; bf08: 90 2b       .+  :0408[2]   ; A<&80: data transfer setup (SENDW)
     cmp #&c0                                                          ; bf0a: c9 c0       ..  :040a[2]   ; A>=&C0: new address claim from another host
@@ -437,7 +437,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_send_r4                                                  ; bf1d: 20 9e 06     .. :041d[2]   ; Send our address as release parameter
     plp                                                               ; bf20: 28          (   :0420[2]   ; Restore interrupt state
 ; &bf21 referenced 1 time by &beaf
-.sub_c0421
+.clear_tube_claim
     lda #&80                                                          ; bf21: a9 80       ..  :0421[2]   ; &80 sentinel: clear address claim
     sta tube_claimed_id                                               ; bf23: 85 15       ..  :0423[2]   ; &80 sentinel = no address currently claimed
     sta tube_claim_flag                                               ; bf25: 85 14       ..  :0425[2]   ; Store to claim-in-progress flag
@@ -540,7 +540,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &bf98 referenced 2 times by &0485[2], &049d[2]
 .claim_addr_ff
     lda #&ff                                                          ; bf98: a9 ff       ..  :0498[2]   ; Claim address &FF (startup = highest prio)
-    jsr c0406                                                         ; bf9a: 20 06 04     .. :049a[2]   ; Request address claim from Tube system
+    jsr tube_addr_data_dispatch                                       ; bf9a: 20 06 04     .. :049a[2]   ; Request address claim from Tube system
     bcc claim_addr_ff                                                 ; bf9d: 90 f9       ..  :049d[2]   ; C=0: claim failed, retry
     jsr tube_init_reloc                                               ; bf9f: 20 d2 04     .. :049f[2]   ; Init reloc pointers from ROM header; Relocate Tube host code from ROM to RAM
 ; and initialise transfer address defaults.
@@ -579,7 +579,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_claim_default
     ldy #0                                                            ; bfcb: a0 00       ..  :04cb[2]   ; Y=0: transfer address low byte
     ldx #&53 ; 'S'                                                    ; bfcd: a2 53       .S  :04cd[2]   ; X=&53: transfer address high byte (&0053)
-    jmp c0406                                                         ; bfcf: 4c 06 04    L.. :04cf[2]   ; Claim Tube address for transfer
+    jmp tube_addr_data_dispatch                                       ; bfcf: 4c 06 04    L.. :04cf[2]   ; Claim Tube address for transfer
 
 ; ***************************************************************************************
 ; Relocate Tube host code from ROM to RAM
@@ -1082,7 +1082,7 @@ service_handler_lo = service_entry+1
     tya                                                               ; 804a: 98          .              ; Copy to A for sign test
     bmi c8052                                                         ; 804b: 30 05       0.             ; Bit 7 set: dispatch via table
     ldy #&fe                                                          ; 804d: a0 fe       ..             ; Y=&FE: Econet event number
-    jmp c854a                                                         ; 804f: 4c 4a 85    LJ.            ; Generate event and exit
+    jmp tx_done_fire_event                                            ; 804f: 4c 4a 85    LJ.            ; Generate event and exit
 
 ; &8052 referenced 1 time by &804b
 .c8052
@@ -1192,7 +1192,7 @@ service_handler_lo = service_entry+1
 .scout_reject
     lda #&a2                                                          ; 80de: a9 a2       ..             ; Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE
     sta econet_control1_or_status1                                    ; 80e0: 8d a0 fe    ...            ; Write CR1 to discontinue RX
-    jmp c83f1                                                         ; 80e3: 4c f1 83    L..            ; Return to idle scout listening
+    jmp set_nmi_rx_scout                                              ; 80e3: 4c f1 83    L..            ; Return to idle scout listening
 
 ; &80e6 referenced 1 time by &80d8
 .accept_local_net
@@ -1216,11 +1216,11 @@ service_handler_lo = service_entry+1
     jsr adlc_full_reset                                               ; 80f9: 20 5f 89     _.            ; Unexpected data/status: full ADLC reset; Full MC6854 ADLC hardware reset. Set CR1
 ; with TX and RX in reset, then configure
 ; CR4 and CR3 via address control mode.
-    jmp c83f1                                                         ; 80fc: 4c f1 83    L..            ; Discard and return to idle
+    jmp set_nmi_rx_scout                                              ; 80fc: 4c f1 83    L..            ; Discard and return to idle
 
 ; &80ff referenced 1 time by &80f7
 .scout_discard
-    jmp c83ee                                                         ; 80ff: 4c ee 83    L..            ; Gentle discard: RX_DISCONTINUE
+    jmp reset_adlc_rx_listen                                          ; 80ff: 4c ee 83    L..            ; Gentle discard: RX_DISCONTINUE
 
     ldy port_buf_len                                                  ; 8102: a4 a2       ..             ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 8104: ad a1 fe    ...            ; Read SR2
@@ -1459,7 +1459,7 @@ service_handler_lo = service_entry+1
     jsr adlc_full_reset                                               ; 8233: 20 5f 89     _.            ; Full ADLC reset on RX error; Full MC6854 ADLC hardware reset. Set CR1
 ; with TX and RX in reset, then configure
 ; CR4 and CR3 via address control mode.
-    jmp c83eb                                                         ; 8236: 4c eb 83    L..            ; Discard and return to idle listen
+    jmp discard_reset_rx                                              ; 8236: 4c eb 83    L..            ; Discard and return to idle listen
 
 ; ***************************************************************************************
 ; NMI bulk data receive loop. Read byte
@@ -1699,7 +1699,7 @@ service_handler_lo = service_entry+1
     tax                                                               ; 836c: aa          .              ; X = address low for Tube claim
     ldy rx_buf_offset                                                 ; 836d: a4 a7       ..             ; Y = address high for Tube claim
     lda #1                                                            ; 836f: a9 01       ..             ; A=1: Tube claim type (read)
-    jsr c0406                                                         ; 8371: 20 06 04     ..            ; Claim Tube address for transfer
+    jsr tube_addr_data_dispatch                                       ; 8371: 20 06 04     ..            ; Claim Tube address for transfer
     lda l0d42                                                         ; 8374: ad 42 0d    .B.            ; Load extra RX data byte
     sta tube_data_register_3                                          ; 8377: 8d e5 fe    ...            ; Send to Tube via R3
     sec                                                               ; 837a: 38          8              ; SEC: init carry for increment
@@ -1764,7 +1764,7 @@ service_handler_lo = service_entry+1
 ; &83b1 referenced 1 time by &839d
 .skip_buf_ptr_update
     lda l0d31                                                         ; 83b1: ad 31 0d    .1.            ; Check port byte again
-    beq c83eb                                                         ; 83b4: f0 35       .5             ; Port=0: immediate op, discard+listen
+    beq discard_reset_rx                                              ; 83b4: f0 35       .5             ; Port=0: immediate op, discard+listen
     lda l0d2f                                                         ; 83b6: ad 2f 0d    ./.            ; Load source network from scout buffer
     ldy #3                                                            ; 83b9: a0 03       ..             ; Y=3: RXCB source network offset
     sta (port_ws_offset),y                                            ; 83bb: 91 a6       ..             ; Store source network to RXCB
@@ -1780,7 +1780,7 @@ service_handler_lo = service_entry+1
     sta (port_ws_offset),y                                            ; 83cf: 91 a6       ..             ; Store to RXCB (marks CB as complete)
     lda l0d6c                                                         ; 83d1: ad 6c 0d    .l.            ; Load callback event flags
     ror a                                                             ; 83d4: 6a          j              ; Shift bit 0 into carry
-    bcc c83eb                                                         ; 83d5: 90 14       ..             ; Bit 0 clear: no callback, skip to reset
+    bcc discard_reset_rx                                              ; 83d5: 90 14       ..             ; Bit 0 clear: no callback, skip to reset
     sec                                                               ; 83d7: 38          8              ; Set carry for subtraction
     lda port_ws_offset                                                ; 83d8: a5 a6       ..             ; Load RXCB workspace pointer low byte
 ; &83da referenced 1 time by &83dd
@@ -1790,23 +1790,23 @@ service_handler_lo = service_entry+1
     bcs loop_c83da                                                    ; 83dd: b0 fb       ..             ; Loop until pointer exhausted
     dey                                                               ; 83df: 88          .              ; Adjust for off-by-one
     cpy #3                                                            ; 83e0: c0 03       ..             ; Check slot index >= 3
-    bcc c83eb                                                         ; 83e2: 90 07       ..             ; Slot < 3: no callback, skip to reset
+    bcc discard_reset_rx                                              ; 83e2: 90 07       ..             ; Slot < 3: no callback, skip to reset
     jsr discard_reset_listen                                          ; 83e4: 20 f8 83     ..            ; Discard current frame. Reset ADLC
 ; to listen mode and return.
     tya                                                               ; 83e7: 98          .              ; Pass slot index as callback parameter
-    jmp c8505                                                         ; 83e8: 4c 05 85    L..            ; Jump to TX completion with slot index
+    jmp setup_cb1_sr_tx                                               ; 83e8: 4c 05 85    L..            ; Jump to TX completion with slot index
 
 ; &83eb referenced 6 times by &8236, &83b4, &83d5, &83e2, &886b, &88d5
-.c83eb
+.discard_reset_rx
     jsr discard_reset_listen                                          ; 83eb: 20 f8 83     ..            ; Discard current frame. Reset ADLC
 ; to listen mode and return.
 ; &83ee referenced 3 times by &80ff, &8466, &8522
-.c83ee
+.reset_adlc_rx_listen
     jsr adlc_rx_listen                                                ; 83ee: 20 6e 89     n.            ; Configure ADLC for receive/listen mode.
 ; TX held in reset, RX interrupts enabled,
 ; status flags cleared.
 ; &83f1 referenced 2 times by &80e3, &80fc
-.c83f1
+.set_nmi_rx_scout
     lda #&b3                                                          ; 83f1: a9 b3       ..             ; A=&B3: low byte of nmi_rx_scout
     ldy #&80                                                          ; 83f3: a0 80       ..             ; Y=&80: high byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 83f5: 4c 0e 0d    L..            ; Install nmi_rx_scout as NMI handler
@@ -1890,7 +1890,7 @@ service_handler_lo = service_entry+1
     bit need_release_tube                                             ; 843f: 24 98       $.             ; Check if Tube needs releasing
     bmi clear_release_flag                                            ; 8441: 30 05       0.             ; Bit7 set: already released
     lda #&82                                                          ; 8443: a9 82       ..             ; A=&82: Tube release claim type
-    jsr c0406                                                         ; 8445: 20 06 04     ..            ; Release Tube address claim
+    jsr tube_addr_data_dispatch                                       ; 8445: 20 06 04     ..            ; Release Tube address claim
 ; &8448 referenced 1 time by &8441
 .clear_release_flag
     lsr need_release_tube                                             ; 8448: 46 98       F.             ; Clear release flag (LSR clears bit7)
@@ -1920,7 +1920,7 @@ service_handler_lo = service_entry+1
     ror a                                                             ; 8462: 6a          j              ; Rotate mask right by control byte index
     dey                                                               ; 8463: 88          .              ; Decrement rotation counter
     bpl rotate_prot_mask                                              ; 8464: 10 fc       ..             ; Loop until bit aligned
-    bcs c83ee                                                         ; 8466: b0 86       ..             ; Bit set = operation disabled, discard
+    bcs reset_adlc_rx_listen                                          ; 8466: b0 86       ..             ; Bit set = operation disabled, discard
 ; &8468 referenced 1 time by &8458
 .dispatch_imm_op
     ldy l0d30                                                         ; 8468: ac 30 0d    .0.            ; Reload ctrl byte for dispatch table
@@ -2018,7 +2018,7 @@ service_handler_lo = service_entry+1
     sta (net_rx_ptr),y                                                ; 8500: 91 9c       ..             ; Store source network in reply header
     lda l0d30                                                         ; 8502: ad 30 0d    .0.            ; Load control byte from received frame
 ; &8505 referenced 1 time by &83e8
-.c8505
+.setup_cb1_sr_tx
     sta ws_0d65                                                       ; 8505: 8d 65 0d    .e.            ; Save ctrl byte for TX response
     lda #&84                                                          ; 8508: a9 84       ..             ; IER bit 2: disable CB1 interrupt
     sta system_via_ier                                                ; 850a: 8d 4e fe    .N.            ; Write IER to disable CB1
@@ -2032,7 +2032,7 @@ service_handler_lo = service_entry+1
     bit system_via_sr                                                 ; 851f: 2c 4a fe    ,J.            ; Read SR to clear pending interrupt
 ; &8522 referenced 1 time by &84d1
 .imm_op_discard
-    jmp c83ee                                                         ; 8522: 4c ee 83    L..            ; Return to idle listen mode
+    jmp reset_adlc_rx_listen                                          ; 8522: 4c ee 83    L..            ; Return to idle listen mode
 
 ; ***************************************************************************************
 ; Increment the 4-byte buffer pointer at
@@ -2060,7 +2060,7 @@ service_handler_lo = service_entry+1
     equb &0d, &ae, &66, &0d, &ad, &67, &0d, &a0, 8                    ; 8541: 0d ae 66... ..f            ; ORA opcode (dead code / data overlap); X = remote address lo; A = remote address hi
 
 ; &854a referenced 1 time by &804f
-.c854a
+.tx_done_fire_event
     jsr oseven                                                        ; 854a: 20 bf ff     ..            ; Generate event Y
     jmp tx_done_exit                                                  ; 854d: 4c 7b 85    L{.            ; Exit TX done handler
 
@@ -2649,7 +2649,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     lda rx_src_net                                                    ; 8866: ad 3e 0d    .>.            ; TX error: check flags for path
     bpl tx_result_fail                                                ; 8869: 10 5f       ._             ; Bit7 clear: TX result = not listening; Set transmit result to 'not listening'
 ; (A=&41) and fall through to tx_store_result.
-    jmp c83eb                                                         ; 886b: 4c eb 83    L..            ; Bit7 set: discard and return to listen
+    jmp discard_reset_rx                                              ; 886b: 4c eb 83    L..            ; Bit7 set: discard and return to listen
 
 ; ***************************************************************************************
 ; Switch ADLC from TX to RX mode and
@@ -2755,7 +2755,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     sta (nmi_tx_block),y                                              ; 88ce: 91 a0       ..             ; Store result/error code at (nmi_tx_block),0
     lda #&80                                                          ; 88d0: a9 80       ..             ; &80: completion flag for &0D3A
     sta ws_0d60                                                       ; 88d2: 8d 60 0d    .`.            ; Signal TX complete
-    jmp c83eb                                                         ; 88d5: 4c eb 83    L..            ; Full ADLC reset and return to idle listen
+    jmp discard_reset_rx                                              ; 88d5: 4c eb 83    L..            ; Full ADLC reset and return to idle listen
 
     asl l0a0e                                                         ; 88d8: 0e 0e 0a    ...            ; Unreferenced data block (purpose unknown)
     asl a                                                             ; 88db: 0a          .
@@ -2817,10 +2817,10 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     tax                                                               ; 8924: aa          .              ; X = low byte of RXCB+4
     ldy rx_buf_offset                                                 ; 8925: a4 a7       ..             ; Y = high byte of RXCB ptr
     lda #&c2                                                          ; 8927: a9 c2       ..             ; Tube claim type &C2
-    jsr c0406                                                         ; 8929: 20 06 04     ..            ; Claim Tube transfer address
+    jsr tube_addr_data_dispatch                                       ; 8929: 20 06 04     ..            ; Claim Tube transfer address
     bcc restore_x_and_return                                          ; 892c: 90 0a       ..             ; No Tube: skip reclaim
     lda rx_port                                                       ; 892e: ad 40 0d    .@.            ; Tube: reclaim with scout status
-    jsr c0406                                                         ; 8931: 20 06 04     ..            ; Reclaim with scout status type
+    jsr tube_addr_data_dispatch                                       ; 8931: 20 06 04     ..            ; Reclaim with scout status type
     jsr release_tube                                                  ; 8934: 20 3f 84     ?.            ; Release Tube claim after reclaim; Release the Tube address claim if one is
 ; held. Clear the release-needed flag.
     sec                                                               ; 8937: 38          8              ; C=1: Tube address claimed
@@ -3140,9 +3140,9 @@ listen_jmp_hi = reset_enter_listen+2
     lda #osbyte_read_write_econet_keyboard_disable                    ; 8ad8: a9 c9       ..             ; OSBYTE &C9: keyboard disable
     jsr osbyte                                                        ; 8ada: 20 f4 ff     ..            ; Enable keyboard (for Econet)
     lda #&0a                                                          ; 8add: a9 0a       ..             ; A=&0A: workspace init parameter
-    jsr sub_ca9ac                                                     ; 8adf: 20 ac a9     ..            ; Initialise workspace area
+    jsr tx_econet_abort                                               ; 8adf: 20 ac a9     ..            ; Initialise workspace area
 ; &8ae2 referenced 1 time by &9589
-.sub_c8ae2
+.scan_remote_keys
     stx nfs_workspace                                                 ; 8ae2: 86 9e       ..             ; Save X in workspace
     lda #&ce                                                          ; 8ae4: a9 ce       ..             ; A=&CE: start of key range
 ; &8ae6 referenced 1 time by &8af1
@@ -3161,7 +3161,7 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8af9: 60          `              ; Return
 
 ; &8afa referenced 3 times by &8c47, &8c72, &a2a7
-.sub_c8afa
+.save_text_ptr
     pha                                                               ; 8afa: 48          H              ; Save A
     lda os_text_ptr                                                   ; 8afb: a5 f2       ..             ; Copy OS text pointer low
     sta fs_crc_lo                                                     ; 8afd: 85 be       ..             ; to fs_crc_lo
@@ -3187,7 +3187,7 @@ listen_jmp_hi = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8b0e referenced 1 time by &8cd5
 .cmd_net_fs
-    jsr sub_c8cae                                                     ; 8b0e: 20 ae 8c     ..            ; Get workspace page for this ROM slot
+    jsr get_ws_page                                                   ; 8b0e: 20 ae 8c     ..            ; Get workspace page for this ROM slot
     sta fs_load_addr_hi                                               ; 8b11: 85 b1       ..             ; Store as high byte of load address
     lda #0                                                            ; 8b13: a9 00       ..             ; A=0
     sta fs_load_addr                                                  ; 8b15: 85 b0       ..             ; Clear low byte of load address
@@ -3201,11 +3201,11 @@ listen_jmp_hi = reset_enter_listen+2
     ldy #&77 ; 'w'                                                    ; 8b1f: a0 77       .w             ; Y=&77: checksum storage offset
     eor (fs_load_addr),y                                              ; 8b21: 51 b0       Q.             ; Compare with stored checksum
     beq c8b28                                                         ; 8b23: f0 03       ..             ; Match: checksum valid
-    jmp c8fcb                                                         ; 8b25: 4c cb 8f    L..            ; Mismatch: raise checksum error
+    jmp error_net_checksum                                            ; 8b25: 4c cb 8f    L..            ; Mismatch: raise checksum error
 
 ; &8b28 referenced 1 time by &8b23
 .c8b28
-    jsr sub_c8cf1                                                     ; 8b28: 20 f1 8c     ..            ; Call FSCV with A=6 (new FS)
+    jsr notify_new_fs                                                 ; 8b28: 20 f1 8c     ..            ; Call FSCV with A=6 (new FS)
     ldy #&0d                                                          ; 8b2b: a0 0d       ..             ; Y=&0D: end of FS context block
 ; &8b2d referenced 1 time by &8b35
 .loop_c8b2d
@@ -3224,10 +3224,10 @@ listen_jmp_hi = reset_enter_listen+2
     sta filev,y                                                       ; 8b43: 99 12 02    ...            ; Store into FILEV vector table
     dey                                                               ; 8b46: 88          .              ; Decrement index
     bpl loop_c8b40                                                    ; 8b47: 10 f7       ..             ; Loop until all vectors installed
-    jsr sub_c8f40                                                     ; 8b49: 20 40 8f     @.            ; Initialise ADLC and NMI workspace
+    jsr init_adlc_and_vectors                                         ; 8b49: 20 40 8f     @.            ; Initialise ADLC and NMI workspace
     ldy #&1b                                                          ; 8b4c: a0 1b       ..             ; Y=&1B: extended vector offset
     ldx #7                                                            ; 8b4e: a2 07       ..             ; X=7: two more vectors to set up
-    jsr c8f53                                                         ; 8b50: 20 53 8f     S.            ; Set up extended vectors
+    jsr write_vector_entry                                            ; 8b50: 20 53 8f     S.            ; Set up extended vectors
     lda #0                                                            ; 8b53: a9 00       ..             ; A=0
     sta l0e07                                                         ; 8b55: 8d 07 0e    ...            ; Clear FS state byte
     sta l10c9                                                         ; 8b58: 8d c9 10    ...            ; Clear workspace byte
@@ -3236,8 +3236,8 @@ listen_jmp_hi = reset_enter_listen+2
     ldy #&0e                                                          ; 8b60: a0 0e       ..             ; Offset &0E in receive block
     sta (net_rx_ptr),y                                                ; 8b62: 91 9c       ..             ; Clear receive block flag
     sta l0d6d                                                         ; 8b64: 8d 6d 0d    .m.            ; Clear workspace byte
-    jsr sub_c8cb5                                                     ; 8b67: 20 b5 8c     ..            ; Set up workspace pointers
-    jsr sub_cb439                                                     ; 8b6a: 20 39 b4     9.            ; Initialise FS state
+    jsr setup_ws_ptr                                                  ; 8b67: 20 b5 8c     ..            ; Set up workspace pointers
+    jsr init_channel_table                                            ; 8b6a: 20 39 b4     9.            ; Initialise FS state
     ldy #&77 ; 'w'                                                    ; 8b6d: a0 77       .w             ; Y=&77: workspace block size - 1
 ; &8b6f referenced 1 time by &8b75
 .loop_c8b6f
@@ -3248,19 +3248,19 @@ listen_jmp_hi = reset_enter_listen+2
     lda #&80                                                          ; 8b77: a9 80       ..             ; A=&80: FS selected flag
     ora l0d6c                                                         ; 8b79: 0d 6c 0d    .l.            ; Set bit 7 of FS flags
     sta l0d6c                                                         ; 8b7c: 8d 6c 0d    .l.            ; Store updated flags
-    jmp c8cfd                                                         ; 8b7f: 4c fd 8c    L..            ; Issue service 15 (FS initialised)
+    jmp issue_svc_15                                                  ; 8b7f: 4c fd 8c    L..            ; Issue service 15 (FS initialised)
 
 ; &8b82 referenced 1 time by &8c6f
-.c8b82
+.help_print_nfs_cmds
     ldx #&4a ; 'J'                                                    ; 8b82: a2 4a       .J             ; X=&4A: NFS command table offset
-    jsr c8b8d                                                         ; 8b84: 20 8d 8b     ..            ; Print help for NFS commands
+    jsr print_cmd_table                                               ; 8b84: 20 8d 8b     ..            ; Print help for NFS commands
 ; ***************************************************************************************
 ; *Utils command. Dispatches to
 ; command utility table at offset 0.
 ; ***************************************************************************************
 .cmd_utils
     ldx #0                                                            ; 8b87: a2 00       ..             ; X=0: FS command table offset
-    beq c8b8d                                                         ; 8b89: f0 02       ..             ; ALWAYS branch
+    beq print_cmd_table                                               ; 8b89: f0 02       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; *Net command (local variant).
@@ -3269,25 +3269,25 @@ listen_jmp_hi = reset_enter_listen+2
 .cmd_net_local
     ldx #&4a ; 'J'                                                    ; 8b8b: a2 4a       .J             ; X=&4A: NFS command table offset
 ; &8b8d referenced 2 times by &8b84, &8b89
-.c8b8d
+.print_cmd_table
     bvc c8b9d                                                         ; 8b8d: 50 0e       P.             ; V clear: need to print header first
     txa                                                               ; 8b8f: 8a          .              ; Save X (table offset)
     pha                                                               ; 8b90: 48          H              ; Push it
     tya                                                               ; 8b91: 98          .              ; Save Y
     pha                                                               ; 8b92: 48          H              ; Push it
-    jsr sub_c8c94                                                     ; 8b93: 20 94 8c     ..            ; Print version string header
+    jsr print_version_header                                          ; 8b93: 20 94 8c     ..            ; Print version string header
     pla                                                               ; 8b96: 68          h              ; Restore Y
     tay                                                               ; 8b97: a8          .              ; Transfer to Y
     pla                                                               ; 8b98: 68          h              ; Restore X
     tax                                                               ; 8b99: aa          .              ; Transfer to X
     clv                                                               ; 8b9a: b8          .              ; Clear overflow flag
-    bvc c8ba0                                                         ; 8b9b: 50 03       P.             ; ALWAYS branch
+    bvc print_cmd_table_loop                                          ; 8b9b: 50 03       P.             ; ALWAYS branch
 
 ; &8b9d referenced 1 time by &8b8d
 .c8b9d
     jsr osnewl                                                        ; 8b9d: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &8ba0 referenced 2 times by &8b9b, &8c62
-.c8ba0
+.print_cmd_table_loop
     tya                                                               ; 8ba0: 98          .              ; Save Y (command line offset)
     pha                                                               ; 8ba1: 48          H              ; Push it
     php                                                               ; 8ba2: 08          .              ; Save processor status
@@ -3331,7 +3331,7 @@ listen_jmp_hi = reset_enter_listen+2
     beq c8c1b                                                         ; 8bd9: f0 40       .@             ; Zero terminator: end of syntax
     cmp #&0d                                                          ; 8bdb: c9 0d       ..             ; Carriage return: line continuation
     bne c8be5                                                         ; 8bdd: d0 06       ..             ; No: print the character
-    jsr sub_c8c28                                                     ; 8bdf: 20 28 8c     (.            ; Handle line wrap in syntax output
+    jsr help_wrap_if_serial                                           ; 8bdf: 20 28 8c     (.            ; Handle line wrap in syntax output
     jmp c8bd5                                                         ; 8be2: 4c d5 8b    L..            ; Continue with next character
 
 ; &8be5 referenced 1 time by &8bdd
@@ -3368,7 +3368,7 @@ listen_jmp_hi = reset_enter_listen+2
     iny                                                               ; 8c0c: c8          .              ; Count this shared command
     cpy #4                                                            ; 8c0d: c0 04       ..             ; Printed 4 commands?
     bne c8c14                                                         ; 8c0f: d0 03       ..             ; No: continue on same line
-    jsr sub_c8c28                                                     ; 8c11: 20 28 8c     (.            ; Handle line wrap after 4 commands
+    jsr help_wrap_if_serial                                           ; 8c11: 20 28 8c     (.            ; Handle line wrap after 4 commands
 ; &8c14 referenced 1 time by &8c0f
 .c8c14
     inx                                                               ; 8c14: e8          .              ; Skip 3 bytes (syntax descriptor)
@@ -3395,7 +3395,7 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8c27: 60          `              ; Return
 
 ; &8c28 referenced 2 times by &8bdf, &8c11
-.sub_c8c28
+.help_wrap_if_serial
     lda l0355                                                         ; 8c28: ad 55 03    .U.            ; Read output stream type
     beq return_5                                                      ; 8c2b: f0 15       ..             ; Stream 0 (VDU): no wrapping
     cmp #3                                                            ; 8c2d: c9 03       ..             ; Stream 3 (printer)?
@@ -3423,24 +3423,24 @@ listen_jmp_hi = reset_enter_listen+2
 .svc_4_star_command
     ldx #0                                                            ; 8c43: a2 00       ..             ; X=0: start of FS command table
     ldy ws_page                                                       ; 8c45: a4 a8       ..             ; Get command line offset
-    jsr sub_c8afa                                                     ; 8c47: 20 fa 8a     ..            ; Save text pointer to fs_crc
-    jsr sub_ca128                                                     ; 8c4a: 20 28 a1     (.            ; Try to match command in table
+    jsr save_text_ptr                                                 ; 8c47: 20 fa 8a     ..            ; Save text pointer to fs_crc
+    jsr match_fs_cmd                                                  ; 8c4a: 20 28 a1     (.            ; Try to match command in table
     bcs c8c65                                                         ; 8c4d: b0 16       ..             ; No match: return to caller
-    jmp ca10d                                                         ; 8c4f: 4c 0d a1    L..            ; Match found: execute command
+    jmp cmd_fs_reentry                                                ; 8c4f: 4c 0d a1    L..            ; Match found: execute command
 
 ; ***************************************************************************************
 ; Service 9: *HELP.
 ; Prints NFS version and command list.
 ; ***************************************************************************************
 .svc_9_help
-    jsr sub_c8d0c                                                     ; 8c52: 20 0c 8d     ..            ; Check for credits Easter egg
+    jsr check_credits_easter_egg                                      ; 8c52: 20 0c 8d     ..            ; Check for credits Easter egg
     ldy ws_page                                                       ; 8c55: a4 a8       ..             ; Get command line offset
     lda (os_text_ptr),y                                               ; 8c57: b1 f2       ..             ; Load character at offset
     cmp #&0d                                                          ; 8c59: c9 0d       ..             ; Is it CR (bare *HELP)?
     bne c8c68                                                         ; 8c5b: d0 0b       ..             ; No: check for specific topic
-    jsr sub_c8c94                                                     ; 8c5d: 20 94 8c     ..            ; Print version string
+    jsr print_version_header                                          ; 8c5d: 20 94 8c     ..            ; Print version string
     ldx #&c4                                                          ; 8c60: a2 c4       ..             ; X=&C4: start of help command list
-    jsr c8ba0                                                         ; 8c62: 20 a0 8b     ..            ; Print command list from table
+    jsr print_cmd_table_loop                                          ; 8c62: 20 a0 8b     ..            ; Print command list from table
 ; &8c65 referenced 3 times by &8c4d, &8c92, &8ccd
 .c8c65
     ldy ws_page                                                       ; 8c65: a4 a8       ..             ; Restore Y (command line offset)
@@ -3451,16 +3451,16 @@ listen_jmp_hi = reset_enter_listen+2
     bit l947d                                                         ; 8c68: 2c 7d 94    ,}.            ; Test for topic match (sets flags)
     cmp #&2e ; '.'                                                    ; 8c6b: c9 2e       ..             ; Is first char '.' (abbreviation)?
     bne c8c72                                                         ; 8c6d: d0 03       ..             ; No: try topic-specific help
-    jmp c8b82                                                         ; 8c6f: 4c 82 8b    L..            ; '.' found: show full command list
+    jmp help_print_nfs_cmds                                           ; 8c6f: 4c 82 8b    L..            ; '.' found: show full command list
 
 ; &8c72 referenced 1 time by &8c6d
 .c8c72
-    jsr sub_c8afa                                                     ; 8c72: 20 fa 8a     ..            ; Save text pointer to fs_crc
+    jsr save_text_ptr                                                 ; 8c72: 20 fa 8a     ..            ; Save text pointer to fs_crc
 ; &8c75 referenced 1 time by &8c90
 .loop_c8c75
     php                                                               ; 8c75: 08          .              ; Save flags
     ldx #&c4                                                          ; 8c76: a2 c4       ..             ; X=&C4: help command table start
-    jsr sub_ca128                                                     ; 8c78: 20 28 a1     (.            ; Try to match help topic in table
+    jsr match_fs_cmd                                                  ; 8c78: 20 28 a1     (.            ; Try to match help topic in table
     bcs c8c8d                                                         ; 8c7b: b0 10       ..             ; No match: try next topic
     plp                                                               ; 8c7d: 28          (              ; Restore flags
     lda #&8c                                                          ; 8c7e: a9 8c       ..             ; Push return address high (&8C)
@@ -3481,25 +3481,25 @@ listen_jmp_hi = reset_enter_listen+2
     beq c8c65                                                         ; 8c92: f0 d1       ..             ; ALWAYS branch
 
 ; &8c94 referenced 2 times by &8b93, &8c5d
-.sub_c8c94
+.print_version_header
     jsr print_inline                                                  ; 8c94: 20 31 91     1.            ; Print version string via inline
 .l8c97
 version_string = l8c97+1
     equs &0d, "Advanced  4.08.53", &0d                                ; 8c97: 0d 41 64... .Ad
 
     nop                                                               ; 8caa: ea          .              ; NOP (string terminator)
-    jmp c8fdd                                                         ; 8cab: 4c dd 8f    L..            ; Print station number
+    jmp print_station_id                                              ; 8cab: 4c dd 8f    L..            ; Print station number
 
 ; &8cae referenced 4 times by &8b0e, &8cb5, &8f6e, &afc2
-.sub_c8cae
+.get_ws_page
     ldy romsel_copy                                                   ; 8cae: a4 f4       ..             ; Get current ROM slot number
     lda l0df0,y                                                       ; 8cb0: b9 f0 0d    ...            ; Load workspace page for this slot
     tay                                                               ; 8cb3: a8          .              ; Transfer to Y
     rts                                                               ; 8cb4: 60          `              ; Return with page in A and Y
 
 ; &8cb5 referenced 2 times by &8b67, &8ece
-.sub_c8cb5
-    jsr sub_c8cae                                                     ; 8cb5: 20 ae 8c     ..            ; Get workspace page for ROM slot
+.setup_ws_ptr
+    jsr get_ws_page                                                   ; 8cb5: 20 ae 8c     ..            ; Get workspace page for ROM slot
     sty nfs_temp                                                      ; 8cb8: 84 cd       ..             ; Store page in nfs_temp
     lda #0                                                            ; 8cba: a9 00       ..             ; A=0
     sta l00cc                                                         ; 8cbc: 85 cc       ..             ; Clear low byte of pointer
@@ -3529,7 +3529,7 @@ version_string = l8c97+1
 .c8cd5
     jsr cmd_net_fs                                                    ; 8cd5: 20 0e 8b     ..            ; *Net command (file server variant).
 ; Selects network filing system.
-    jsr c8fdd                                                         ; 8cd8: 20 dd 8f     ..            ; Print station number
+    jsr print_station_id                                              ; 8cd8: 20 dd 8f     ..            ; Print station number
     jsr osnewl                                                        ; 8cdb: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     ldx ws_page                                                       ; 8cde: a6 a8       ..             ; Get workspace page
     bne return_6                                                      ; 8ce0: d0 dc       ..             ; Non-zero: already initialised, return
@@ -3538,21 +3538,21 @@ version_string = l8c97+1
     sta l1071                                                         ; 8ce7: 8d 71 10    .q.            ; Store updated boot flags
     ldx #4                                                            ; 8cea: a2 04       ..             ; X=4: boot filename parameter
     ldy #&8d                                                          ; 8cec: a0 8d       ..             ; Y=&8D: boot filename address high
-    jmp ca0fc                                                         ; 8cee: 4c fc a0    L..            ; Execute boot file
+    jmp cmd_fs_entry                                                  ; 8cee: 4c fc a0    L..            ; Execute boot file
 
 ; &8cf1 referenced 1 time by &8b28
-.sub_c8cf1
+.notify_new_fs
     lda #6                                                            ; 8cf1: a9 06       ..             ; A=6: notify new filing system
-    jsr sub_c8cfa                                                     ; 8cf3: 20 fa 8c     ..            ; Call FSCV
+    jsr call_fscv                                                     ; 8cf3: 20 fa 8c     ..            ; Call FSCV
     ldx #&0a                                                          ; 8cf6: a2 0a       ..             ; X=&0A: service 10 parameter
     bne c8cff                                                         ; 8cf8: d0 05       ..             ; ALWAYS branch
 
 ; &8cfa referenced 1 time by &8cf3
-.sub_c8cfa
+.call_fscv
     jmp (fscv)                                                        ; 8cfa: 6c 1e 02    l..            ; Dispatch via FSCV
 
 ; &8cfd referenced 1 time by &8b7f
-.c8cfd
+.issue_svc_15
     ldx #&0f                                                          ; 8cfd: a2 0f       ..             ; X=&0F: service 15 parameter
 ; &8cff referenced 1 time by &8cf8
 .c8cff
@@ -3563,7 +3563,7 @@ version_string = l8c97+1
     equb &0d                                                          ; 8d0b: 0d          .
 
 ; &8d0c referenced 1 time by &8c52
-.sub_c8d0c
+.check_credits_easter_egg
     ldy ws_page                                                       ; 8d0c: a4 a8       ..             ; Get command line offset
     ldx #5                                                            ; 8d0e: a2 05       ..             ; X=5: start of credits keyword
 ; &8d10 referenced 1 time by &8d19
@@ -3620,21 +3620,21 @@ version_string = l8c97+1
     jsr osbyte                                                        ; 8d75: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
     ldy #0                                                            ; 8d78: a0 00       ..             ; Y=0
     sty fs_work_4                                                     ; 8d7a: 84 b4       ..             ; Clear password entry flag
-    jsr sub_cb79f                                                     ; 8d7c: 20 9f b7     ..            ; Reset FS connection state
+    jsr process_all_fcbs                                              ; 8d7c: 20 9f b7     ..            ; Reset FS connection state
     lda #0                                                            ; 8d7f: a9 00       ..             ; A=0
     sta l0e07                                                         ; 8d81: 8d 07 0e    ...            ; Clear pending operation marker
     pla                                                               ; 8d84: 68          h              ; Restore command line offset
     tay                                                               ; 8d85: a8          .              ; Transfer to Y
     lda (fs_options),y                                                ; 8d86: b1 bb       ..             ; Load first option byte
-    jsr sub_c9244                                                     ; 8d88: 20 44 92     D.            ; Parse station number if present
+    jsr is_decimal_digit                                              ; 8d88: 20 44 92     D.            ; Parse station number if present
     bcc cmd_pass                                                      ; 8d8b: 90 24       .$             ; *Pass command.
 ; Changes file server password.
-    jsr sub_c915a                                                     ; 8d8d: 20 5a 91     Z.            ; Parse user ID string
+    jsr parse_addr_arg                                                ; 8d8d: 20 5a 91     Z.            ; Parse user ID string
     bcs c8d9c                                                         ; 8d90: b0 0a       ..             ; No user ID: go to password
     sta l0e01                                                         ; 8d92: 8d 01 0e    ...            ; Store file server station low
-    jsr sub_c8dfe                                                     ; 8d95: 20 fe 8d     ..            ; Check and store FS network
+    jsr clear_if_station_match                                        ; 8d95: 20 fe 8d     ..            ; Check and store FS network
     iny                                                               ; 8d98: c8          .              ; Skip separator
-    jsr sub_c915a                                                     ; 8d99: 20 5a 91     Z.            ; Parse next argument
+    jsr parse_addr_arg                                                ; 8d99: 20 5a 91     Z.            ; Parse next argument
 ; &8d9c referenced 1 time by &8d90
 .c8d9c
     beq cmd_pass                                                      ; 8d9c: f0 13       ..             ; *Pass command.
@@ -3647,7 +3647,7 @@ version_string = l8c97+1
     lda la45f,x                                                       ; 8da4: bd 5f a4    ._.            ; Load logon command template byte
     sta l0f05,x                                                       ; 8da7: 9d 05 0f    ...            ; Store into transmit buffer
     bpl loop_c8da3                                                    ; 8daa: 10 f7       ..             ; Bit 7 clear: more bytes, loop
-    jsr sub_caef4                                                     ; 8dac: 20 f4 ae     ..            ; Send logon with file server lookup
+    jsr copy_arg_validated                                            ; 8dac: 20 f4 ae     ..            ; Send logon with file server lookup
     beq c8db4                                                         ; 8daf: f0 03       ..             ; Success: skip to password entry
 ; ***************************************************************************************
 ; *Pass command.
@@ -3655,7 +3655,7 @@ version_string = l8c97+1
 ; ***************************************************************************************
 ; &8db1 referenced 2 times by &8d8b, &8d9c
 .cmd_pass
-    jsr sub_caef0                                                     ; 8db1: 20 f0 ae     ..            ; Build FS command packet
+    jsr copy_arg_to_buf_x0                                            ; 8db1: 20 f0 ae     ..            ; Build FS command packet
 ; &8db4 referenced 1 time by &8daf
 .c8db4
     ldy #&ff                                                          ; 8db4: a0 ff       ..             ; Y=&FF: pre-increment for loop
@@ -3673,7 +3673,7 @@ version_string = l8c97+1
 .c8dc7
     lda #&ff                                                          ; 8dc7: a9 ff       ..             ; A=&FF: mark as escapable
     sta escapable                                                     ; 8dc9: 85 97       ..             ; Set escape flag
-    jsr sub_c955a                                                     ; 8dcb: 20 5a 95     Z.            ; Check for escape condition
+    jsr check_escape                                                  ; 8dcb: 20 5a 95     Z.            ; Check for escape condition
     jsr osrdch                                                        ; 8dce: 20 e0 ff     ..            ; Read a character from the current input stream
     cmp #&15                                                          ; 8dd1: c9 15       ..             ; A=character read
     bne c8de0                                                         ; 8dd3: d0 0b       ..             ; Not NAK (&15): check other chars
@@ -3698,17 +3698,17 @@ version_string = l8c97+1
 .c8def
     tya                                                               ; 8def: 98          .              ; Transfer string length to A
     pha                                                               ; 8df0: 48          H              ; Save string length
-    jsr c945f                                                         ; 8df1: 20 5f 94     _.            ; Set up transmit control block
-    jsr sub_c987f                                                     ; 8df4: 20 7f 98     ..            ; Send to file server and get reply
+    jsr init_txcb                                                     ; 8df1: 20 5f 94     _.            ; Set up transmit control block
+    jsr init_tx_ptr_for_pass                                          ; 8df4: 20 7f 98     ..            ; Send to file server and get reply
     pla                                                               ; 8df7: 68          h              ; Restore string length
     tax                                                               ; 8df8: aa          .              ; Transfer to X (byte count)
     inx                                                               ; 8df9: e8          .              ; Include terminator
     ldy #0                                                            ; 8dfa: a0 00       ..             ; Y=0
-    beq c8e0e                                                         ; 8dfc: f0 10       ..             ; ALWAYS branch
+    beq send_cmd_and_dispatch                                         ; 8dfc: f0 10       ..             ; ALWAYS branch
 
 ; &8dfe referenced 1 time by &8d95
-.sub_c8dfe
-    jsr sub_ca868                                                     ; 8dfe: 20 68 a8     h.            ; Parse station number from cmd line
+.clear_if_station_match
+    jsr init_bridge_poll                                              ; 8dfe: 20 68 a8     h.            ; Parse station number from cmd line
     eor l0e01                                                         ; 8e01: 4d 01 0e    M..            ; Compare with expected station
     bne return_8                                                      ; 8e04: d0 03       ..             ; Different: return without clearing
     sta l0e01                                                         ; 8e06: 8d 01 0e    ...            ; Same: clear station byte
@@ -3717,12 +3717,12 @@ version_string = l8c97+1
     rts                                                               ; 8e09: 60          `              ; Return
 
 ; &8e0a referenced 1 time by &944e
-.c8e0a
-    jsr sub_caef0                                                     ; 8e0a: 20 f0 ae     ..            ; Build FS command packet
+.pass_send_cmd
+    jsr copy_arg_to_buf_x0                                            ; 8e0a: 20 f0 ae     ..            ; Build FS command packet
     tay                                                               ; 8e0d: a8          .              ; Transfer result to Y
 ; &8e0e referenced 2 times by &8dfc, &9310
-.c8e0e
-    jsr c9499                                                         ; 8e0e: 20 99 94     ..            ; Set up command and send to FS
+.send_cmd_and_dispatch
+    jsr save_net_tx_cb                                                ; 8e0e: 20 99 94     ..            ; Set up command and send to FS
     ldx l0f03                                                         ; 8e11: ae 03 0f    ...            ; Load reply function code
     beq return_9                                                      ; 8e14: f0 2c       .,             ; Zero: no reply, return
     lda l0f05                                                         ; 8e16: ad 05 0f    ...            ; Load first reply byte
@@ -3731,11 +3731,11 @@ version_string = l8c97+1
 ; On entry: X=base index, Y=additional offset.
 ; Dispatches to svc_dispatch_lo/hi[X+Y+1].; ALWAYS branch
 
-    jsr sub_c9281                                                     ; 8e1d: 20 81 92     ..            ; Parse reply as decimal number
+    jsr set_xfer_params                                               ; 8e1d: 20 81 92     ..            ; Parse reply as decimal number
     cmp #8                                                            ; 8e20: c9 08       ..             ; Result >= 8?
     bcs return_9                                                      ; 8e22: b0 1e       ..             ; Yes: out of range, return
     tax                                                               ; 8e24: aa          .              ; Transfer handle to X
-    jsr sub_caf12                                                     ; 8e25: 20 12 af     ..            ; Look up in open files table
+    jsr mask_owner_access                                             ; 8e25: 20 12 af     ..            ; Look up in open files table
     tya                                                               ; 8e28: 98          .              ; Transfer result to A
     ldy #&13                                                          ; 8e29: a0 13       ..             ; Y=&13: handle dispatch offset
     bne svc_dispatch                                                  ; 8e2b: d0 06       ..             ; Service dispatch via PHA/PHA/RTS.
@@ -3760,8 +3760,8 @@ version_string = l8c97+1
     tay                                                               ; 8e37: a8          .              ; Y=&FF: will be ignored by caller
     lda svc_dispatch_hi,x                                             ; 8e38: bd e5 89    ...            ; Load dispatch address high byte
     pha                                                               ; 8e3b: 48          H              ; Push high byte for RTS dispatch
-.sub_c8e3c
-l8e3e = sub_c8e3c+2
+.push_dispatch_lo
+l8e3e = push_dispatch_lo+2
     lda svc_dispatch_lo,x                                             ; 8e3c: bd c0 89    ...            ; Load dispatch address low byte
 ; &8e3e referenced 2 times by &8f53, &8f59
     pha                                                               ; 8e3f: 48          H              ; Push low byte for RTS dispatch
@@ -3800,7 +3800,7 @@ l8e3e = sub_c8e3c+2
     equb &68, &a9                                                     ; 8e74: 68 a9       h.
 
 ; &8e76 referenced 1 time by &970d
-.sub_c8e76
+.osbyte_x0_y0
     ldx #0                                                            ; 8e76: a2 00       ..             ; X=0
     ldy #0                                                            ; 8e78: a0 00       ..             ; Y=0
     beq loop_c8e71                                                    ; 8e7a: f0 f5       ..             ; ALWAYS branch
@@ -3836,7 +3836,7 @@ l8e3e = sub_c8e3c+2
     rts                                                               ; 8e95: 60          `              ; Return
 
 ; &8e96 referenced 1 time by &8ec6
-.sub_c8e96
+.store_ws_page_count
     tya                                                               ; 8e96: 98          .              ; Transfer Y to A
     cmp #&21 ; '!'                                                    ; 8e97: c9 21       .!             ; Y >= &21?
     bcc c8e9d                                                         ; 8e99: 90 02       ..             ; No: use Y as-is
@@ -3870,10 +3870,10 @@ l8e3e = sub_c8e3c+2
     ldx #1                                                            ; 8ebf: a2 01       ..             ; X=1: workspace claim service
     ldy #&0e                                                          ; 8ec1: a0 0e       ..             ; Y=&0E: requested pages
     jsr osbyte                                                        ; 8ec3: 20 f4 ff     ..            ; Issue paged ROM service call, Reason X=1 - Absolute public workspace claim
-    jsr sub_c8e96                                                     ; 8ec6: 20 96 8e     ..            ; Record final workspace allocation
+    jsr store_ws_page_count                                           ; 8ec6: 20 96 8e     ..            ; Record final workspace allocation
     lda l028d                                                         ; 8ec9: ad 8d 02    ...            ; Load ROM present flag
     beq c8f23                                                         ; 8ecc: f0 55       .U             ; Zero: first ROM init, skip FS setup
-    jsr sub_c8cb5                                                     ; 8ece: 20 b5 8c     ..            ; Set up workspace pointers
+    jsr setup_ws_ptr                                                  ; 8ece: 20 b5 8c     ..            ; Set up workspace pointers
     sta l0d6c                                                         ; 8ed1: 8d 6c 0d    .l.            ; Clear FS flags
     tay                                                               ; 8ed4: a8          .              ; A=0, transfer to Y
 ; &8ed5 referenced 1 time by &8eda
@@ -3884,7 +3884,7 @@ l8e3e = sub_c8e3c+2
     bne loop_c8ed5                                                    ; 8eda: d0 f9       ..             ; Loop until full page zeroed
     ldy #&0c                                                          ; 8edc: a0 0c       ..             ; Offset &0C in receive block
     sta (net_rx_ptr),y                                                ; 8ede: 91 9c       ..             ; Clear protection flags
-    jsr sub_caff7                                                     ; 8ee0: 20 f7 af     ..            ; Initialise station identity block
+    jsr copy_ps_data_y1c                                              ; 8ee0: 20 f7 af     ..            ; Initialise station identity block
     ldy #6                                                            ; 8ee3: a0 06       ..             ; Offset 6 in receive block
     lda #&fe                                                          ; 8ee5: a9 fe       ..             ; A=&FE: default station ID marker
     sta l0e00                                                         ; 8ee7: 8d 00 0e    ...            ; Store default station low
@@ -3907,17 +3907,17 @@ l8e3e = sub_c8e3c+2
     bne loop_c8eff                                                    ; 8f06: d0 f7       ..             ; More bytes: loop
     stx ws_0d68                                                       ; 8f08: 8e 68 0d    .h.            ; Clear workspace flag
     stx l0e05                                                         ; 8f0b: 8e 05 0e    ...            ; Clear workspace byte
-    jsr caad0                                                         ; 8f0e: 20 d0 aa     ..            ; Initialise ADLC protection table
+    jsr reset_spool_buf_state                                         ; 8f0e: 20 d0 aa     ..            ; Initialise ADLC protection table
 ; &8f11 referenced 1 time by &8f1e
 .loop_c8f11
     lda ws_page                                                       ; 8f11: a5 a8       ..             ; Get current workspace page
-    jsr sub_ca0b6                                                     ; 8f13: 20 b6 a0     ..            ; Allocate FS handle page
+    jsr byte_to_2bit_index                                            ; 8f13: 20 b6 a0     ..            ; Allocate FS handle page
     bcs c8f23                                                         ; 8f16: b0 0b       ..             ; Allocation failed: finish init
     lda #&3f ; '?'                                                    ; 8f18: a9 3f       .?             ; A=&3F: default handle permissions
     sta (nfs_workspace),y                                             ; 8f1a: 91 9e       ..             ; Store handle permissions
     inc ws_page                                                       ; 8f1c: e6 a8       ..             ; Advance to next page
     bne loop_c8f11                                                    ; 8f1e: d0 f1       ..             ; Continue allocating: loop
-    jsr c8f73                                                         ; 8f20: 20 73 8f     s.            ; Restore FS context from saved state
+    jsr restore_fs_context                                            ; 8f20: 20 73 8f     s.            ; Restore FS context from saved state
 ; &8f23 referenced 2 times by &8ecc, &8f16
 .c8f23
     ldy station_id_disable_net_nmis                                   ; 8f23: ac 18 fe    ...            ; Read station ID from hardware
@@ -3926,7 +3926,7 @@ l8e3e = sub_c8e3c+2
 ; &8f29 referenced 1 time by &8f30
 .loop_c8f29
 l8f2b = loop_c8f29+2
-    jmp c9201                                                         ; 8f29: 4c 01 92    L..            ; Station 0: report error
+    jmp err_bad_station_num                                           ; 8f29: 4c 01 92    L..            ; Station 0: report error
 
 ; &8f2b referenced 1 time by &8eff
     equb &ff, &28, &0a                                                ; 8f2c: ff 28 0a    .(.
@@ -3940,9 +3940,9 @@ l8f2b = loop_c8f29+2
     ldx #&40 ; '@'                                                    ; 8f36: a2 40       .@             ; X=&40: Econet flag byte
     stx l0d61                                                         ; 8f38: 8e 61 0d    .a.            ; Store Econet control flag
     lda #3                                                            ; 8f3b: a9 03       ..             ; A=3: protection level
-    jsr cab09                                                         ; 8f3d: 20 09 ab     ..            ; Set up Econet protection
+    jsr handle_spool_ctrl_byte                                        ; 8f3d: 20 09 ab     ..            ; Set up Econet protection
 ; &8f40 referenced 1 time by &8b49
-.sub_c8f40
+.init_adlc_and_vectors
     jsr adlc_init                                                     ; 8f40: 20 69 80     i.            ; Initialise ADLC: full hardware reset then
 ; configure for receive/listen mode.
 ; Falls through to init_nmi_workspace.
@@ -3955,7 +3955,7 @@ l8f2b = loop_c8f29+2
     sty netv                                                          ; 8f4e: 8c 24 02    .$.            ; Set NETV address
     ldx #1                                                            ; 8f51: a2 01       ..             ; X=1: one more vector pair to set
 ; &8f53 referenced 2 times by &8b50, &8f65
-.c8f53
+.write_vector_entry
     lda l8e3e,y                                                       ; 8f53: b9 3e 8e    .>.            ; Load vector address low byte
     sta (fs_error_ptr),y                                              ; 8f56: 91 b8       ..             ; Store into extended vector table
     iny                                                               ; 8f58: c8          .              ; Advance to high byte
@@ -3966,16 +3966,16 @@ l8f2b = loop_c8f29+2
     sta (fs_error_ptr),y                                              ; 8f61: 91 b8       ..             ; Store ROM ID in extended vector
     iny                                                               ; 8f63: c8          .              ; Advance to next vector entry
     dex                                                               ; 8f64: ca          .              ; Decrement vector counter
-    bne c8f53                                                         ; 8f65: d0 ec       ..             ; More vectors to set: loop
+    bne write_vector_entry                                            ; 8f65: d0 ec       ..             ; More vectors to set: loop
     dex                                                               ; 8f67: ca          .              ; X=&FF
     stx l0d72                                                         ; 8f68: 8e 72 0d    .r.            ; Store &FF in workspace flag
-    jsr sub_c8f80                                                     ; 8f6b: 20 80 8f     ..            ; Restore FS state if previously active
-    jsr sub_c8cae                                                     ; 8f6e: 20 ae 8c     ..            ; Get workspace page for ROM slot
+    jsr deselect_fs_if_active                                         ; 8f6b: 20 80 8f     ..            ; Restore FS state if previously active
+    jsr get_ws_page                                                   ; 8f6e: 20 ae 8c     ..            ; Get workspace page for ROM slot
     iny                                                               ; 8f71: c8          .              ; Advance Y past workspace page
     rts                                                               ; 8f72: 60          `              ; Return
 
 ; &8f73 referenced 3 times by &8f20, &8f8f, &a376
-.c8f73
+.restore_fs_context
     ldy #&0d                                                          ; 8f73: a0 0d       ..             ; Y=&0D: end of FS context block
 ; &8f75 referenced 1 time by &8f7d
 .loop_c8f75
@@ -3987,14 +3987,14 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 8f7f: 60          `              ; Return
 
 ; &8f80 referenced 1 time by &8f6b
-.sub_c8f80
+.deselect_fs_if_active
     bit l0d6c                                                         ; 8f80: 2c 6c 0d    ,l.            ; FS currently selected?
     bpl return_11                                                     ; 8f83: 10 2c       .,             ; No (bit 7 clear): return
     ldy #0                                                            ; 8f85: a0 00       ..             ; Y=0
-    jsr sub_cb79f                                                     ; 8f87: 20 9f b7     ..            ; Reset FS connection state
+    jsr process_all_fcbs                                              ; 8f87: 20 9f b7     ..            ; Reset FS connection state
     lda #osbyte_close_spool_exec                                      ; 8f8a: a9 77       .w             ; OSBYTE &77: close SPOOL/EXEC
     jsr osbyte                                                        ; 8f8c: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    jsr c8f73                                                         ; 8f8f: 20 73 8f     s.            ; Restore FS context to receive block
+    jsr restore_fs_context                                            ; 8f8f: 20 73 8f     s.            ; Restore FS context to receive block
     ldy #&76 ; 'v'                                                    ; 8f92: a0 76       .v             ; Y=&76: checksum range end
     lda #0                                                            ; 8f94: a9 00       ..             ; A=0: checksum accumulator
     clc                                                               ; 8f96: 18          .              ; Clear carry for addition
@@ -4022,7 +4022,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 8fb1: 60          `              ; Return
 
 ; &8fb2 referenced 5 times by &9baf, &9d42, &9de2, &9e23, &b5ef
-.sub_c8fb2
+.verify_ws_checksum
     php                                                               ; 8fb2: 08          .              ; Save processor status
     pha                                                               ; 8fb3: 48          H              ; Save A
     tya                                                               ; 8fb4: 98          .              ; Transfer Y to A
@@ -4037,7 +4037,7 @@ l8f2b = loop_c8f29+2
     bpl loop_c8fbb                                                    ; 8fbe: 10 fb       ..             ; Loop until all bytes summed
     ldy #&77 ; 'w'                                                    ; 8fc0: a0 77       .w             ; Y=&77: checksum storage offset
     cmp (l00cc),y                                                     ; 8fc2: d1 cc       ..             ; Compare with stored checksum
-    bne c8fcb                                                         ; 8fc4: d0 05       ..             ; Mismatch: raise checksum error
+    bne error_net_checksum                                            ; 8fc4: d0 05       ..             ; Mismatch: raise checksum error
     pla                                                               ; 8fc6: 68          h              ; Restore Y
     tay                                                               ; 8fc7: a8          .              ; Transfer to Y
     pla                                                               ; 8fc8: 68          h              ; Restore A
@@ -4045,19 +4045,19 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 8fca: 60          `              ; Return (checksum valid)
 
 ; &8fcb referenced 2 times by &8b25, &8fc4
-.c8fcb
+.error_net_checksum
     lda #&aa                                                          ; 8fcb: a9 aa       ..             ; Error number &AA
     jsr error_bad_inline                                              ; 8fcd: 20 a2 96     ..            ; Raise 'net checksum' error
     equs "net checksum", 0                                            ; 8fd0: 6e 65 74... net
 
 ; &8fdd referenced 2 times by &8cab, &8cd8
-.c8fdd
+.print_station_id
     jsr print_inline                                                  ; 8fdd: 20 31 91     1.            ; Print 'Econet Station ' via inline
     equs "Econet Station "                                            ; 8fe0: 45 63 6f... Eco
 
     ldy #5                                                            ; 8fef: a0 05       ..             ; Offset 5: station ID
     lda (net_rx_ptr),y                                                ; 8ff1: b1 9c       ..             ; Load station ID from receive block
-    jsr sub_caf65                                                     ; 8ff3: 20 65 af     e.            ; Print station number as decimal
+    jsr print_num_no_leading                                          ; 8ff3: 20 65 af     e.            ; Print station number as decimal
     lda #&20 ; ' '                                                    ; 8ff6: a9 20       .              ; Space character
     bit econet_control23_or_status2                                   ; 8ff8: 2c a1 fe    ,..            ; Check ADLC status register 2
     beq c900a                                                         ; 8ffb: f0 0d       ..             ; Clock present: skip warning
@@ -4110,16 +4110,16 @@ l8f2b = loop_c8f29+2
     equb &9a, &b1, &cd, &e7, &f4                                      ; 9116: 9a b1 cd... ...
 
 ; &911b referenced 5 times by &9a54, &adff, &ba55, &ba7d, &bae5
-.sub_c911b
+.print_hex_byte
     pha                                                               ; 911b: 48          H              ; Save full byte
     lsr a                                                             ; 911c: 4a          J              ; Shift high nybble to low
     lsr a                                                             ; 911d: 4a          J              ; Continue shifting
     lsr a                                                             ; 911e: 4a          J              ; Continue shifting
     lsr a                                                             ; 911f: 4a          J              ; High nybble now in bits 0-3
-    jsr sub_c9124                                                     ; 9120: 20 24 91     $.            ; Print high nybble as hex digit
+    jsr print_hex_nybble                                              ; 9120: 20 24 91     $.            ; Print high nybble as hex digit
     pla                                                               ; 9123: 68          h              ; Restore full byte
 ; &9124 referenced 1 time by &9120
-.sub_c9124
+.print_hex_nybble
     and #&0f                                                          ; 9124: 29 0f       ).             ; Mask to low nybble
     cmp #&0a                                                          ; 9126: c9 0a       ..             ; Digit >= &0A?
     bcc c912c                                                         ; 9128: 90 02       ..             ; No: skip letter adjustment
@@ -4177,7 +4177,7 @@ l8f2b = loop_c8f29+2
     jmp (fs_error_ptr)                                                ; 9157: 6c b8 00    l..            ; Jump to address of high-bit byte (resumes code)
 
 ; &915a referenced 5 times by &8d8d, &8d99, &a095, &a0aa, &ad12
-.sub_c915a
+.parse_addr_arg
     lda #0                                                            ; 915a: a9 00       ..
     sta fs_load_addr_2                                                ; 915c: 85 b2       ..
     lda (fs_crc_lo),y                                                 ; 915e: b1 be       ..
@@ -4202,11 +4202,11 @@ l8f2b = loop_c8f29+2
     bcc c9186                                                         ; 917a: 90 0a       ..
     and #&5f ; '_'                                                    ; 917c: 29 5f       )_
     adc #&b8                                                          ; 917e: 69 b8       i.
-    bcs c91f4                                                         ; 9180: b0 72       .r
+    bcs err_bad_hex                                                   ; 9180: b0 72       .r
     cmp #&fa                                                          ; 9182: c9 fa       ..
 ; &9184 referenced 1 time by &9176
 .c9184
-    bcc c91f4                                                         ; 9184: 90 6e       .n
+    bcc err_bad_hex                                                   ; 9184: 90 6e       .n
 ; &9186 referenced 1 time by &917a
 .c9186
     and #&0f                                                          ; 9186: 29 0f       ).
@@ -4228,7 +4228,7 @@ l8f2b = loop_c8f29+2
     beq c91e7                                                         ; 919e: f0 47       .G
     cmp #&21 ; '!'                                                    ; 91a0: c9 21       .!
     bcc c91c6                                                         ; 91a2: 90 22       ."
-    jsr sub_c924c                                                     ; 91a4: 20 4c 92     L.
+    jsr is_dec_digit_only                                             ; 91a4: 20 4c 92     L.
     bcc c9215                                                         ; 91a7: 90 6c       .l
     and #&0f                                                          ; 91a9: 29 0f       ).
     sta fs_load_addr_3                                                ; 91ab: 85 b3       ..
@@ -4258,16 +4258,16 @@ l8f2b = loop_c8f29+2
 .c91cf
     lda fs_load_addr_2                                                ; 91cf: a5 b2       ..
     cmp #&ff                                                          ; 91d1: c9 ff       ..
-    beq c9201                                                         ; 91d3: f0 2c       .,
+    beq err_bad_station_num                                           ; 91d3: f0 2c       .,
     lda fs_load_addr_2                                                ; 91d5: a5 b2       ..
     bne c91e5                                                         ; 91d7: d0 0c       ..
     lda fs_work_4                                                     ; 91d9: a5 b4       ..
-    beq c9201                                                         ; 91db: f0 24       .$
+    beq err_bad_station_num                                           ; 91db: f0 24       .$
     dey                                                               ; 91dd: 88          .
     lda (fs_crc_lo),y                                                 ; 91de: b1 be       ..
     iny                                                               ; 91e0: c8          .
     eor #&2e ; '.'                                                    ; 91e1: 49 2e       I.
-    bne c9201                                                         ; 91e3: d0 1c       ..
+    bne err_bad_station_num                                           ; 91e3: d0 1c       ..
 ; &91e5 referenced 1 time by &91d7
 .c91e5
     sec                                                               ; 91e5: 38          8
@@ -4284,7 +4284,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 91f3: 60          `
 
 ; &91f4 referenced 3 times by &9180, &9184, &bbb2
-.c91f4
+.err_bad_hex
     lda #&f1                                                          ; 91f4: a9 f1       ..
     jsr error_bad_inline                                              ; 91f6: 20 a2 96     ..
     equs "hex", 0                                                     ; 91f9: 68 65 78... hex
@@ -4294,7 +4294,7 @@ l8f2b = loop_c8f29+2
     bit fs_work_4                                                     ; 91fd: 24 b4       $.
     bmi c9221                                                         ; 91ff: 30 20       0
 ; &9201 referenced 4 times by &8f29, &91d3, &91db, &91e3
-.c9201
+.err_bad_station_num
     lda #&d0                                                          ; 9201: a9 d0       ..
     jsr error_bad_inline                                              ; 9203: 20 a2 96     ..
     equs "station number", 0                                          ; 9206: 73 74 61... sta
@@ -4318,13 +4318,13 @@ l8f2b = loop_c8f29+2
     equs "network number", 0                                          ; 9235: 6e 65 74... net
 
 ; &9244 referenced 3 times by &8d88, &afe5, &b1b8
-.sub_c9244
+.is_decimal_digit
     cmp #&26 ; '&'                                                    ; 9244: c9 26       .&
     beq return_12                                                     ; 9246: f0 0a       ..
     cmp #&2e ; '.'                                                    ; 9248: c9 2e       ..
     beq return_12                                                     ; 924a: f0 06       ..
 ; &924c referenced 1 time by &91a4
-.sub_c924c
+.is_dec_digit_only
     cmp #&3a ; ':'                                                    ; 924c: c9 3a       .:
     bcs c9253                                                         ; 924e: b0 03       ..
     cmp #&30 ; '0'                                                    ; 9250: c9 30       .0
@@ -4338,7 +4338,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 9254: 60          `
 
 ; &9255 referenced 2 times by &9b0e, &9b3a
-.sub_c9255
+.get_access_bits
     ldy #&0e                                                          ; 9255: a0 0e       ..
     lda (fs_options),y                                                ; 9257: b1 bb       ..
     and #&3f ; '?'                                                    ; 9259: 29 3f       )?
@@ -4346,7 +4346,7 @@ l8f2b = loop_c8f29+2
     bne c9263                                                         ; 925d: d0 04       ..             ; ALWAYS branch
 
 ; &925f referenced 2 times by &9a16, &9b57
-.sub_c925f
+.get_prot_bits
     and #&1f                                                          ; 925f: 29 1f       ).
     ldx #&ff                                                          ; 9261: a2 ff       ..
 ; &9263 referenced 1 time by &925d
@@ -4369,27 +4369,27 @@ l8f2b = loop_c8f29+2
     equb &50, &20, 5, 2, &88, 4, 8, &80, &10, 1, 2                    ; 9272: 50 20 05... P .
 
 ; &927d referenced 1 time by &a0fc
-.sub_c927d
+.set_text_and_xfer_ptr
     stx os_text_ptr                                                   ; 927d: 86 f2       ..
     sty os_text_ptr_hi                                                ; 927f: 84 f3       ..
 ; &9281 referenced 5 times by &8e1d, &9921, &9d45, &9e26, &ad6e
-.sub_c9281
+.set_xfer_params
     sta fs_last_byte_flag                                             ; 9281: 85 bd       ..
     stx fs_crc_lo                                                     ; 9283: 86 be       ..
     sty fs_crc_hi                                                     ; 9285: 84 bf       ..
 ; &9287 referenced 2 times by &9bb4, &b979
-.sub_c9287
+.set_options_ptr
     stx fs_options                                                    ; 9287: 86 bb       ..
     sty fs_block_offset                                               ; 9289: 84 bc       ..
 ; &928b referenced 1 time by &9870
-.c928b
+.clear_escapable
     php                                                               ; 928b: 08          .
     lsr escapable                                                     ; 928c: 46 97       F.
     plp                                                               ; 928e: 28          (
     rts                                                               ; 928f: 60          `
 
 ; &9290 referenced 2 times by &9984, &9a89
-.sub_c9290
+.cmp_5byte_handle
     ldx #4                                                            ; 9290: a2 04       ..
 ; &9292 referenced 1 time by &9299
 .loop_c9292
@@ -4407,28 +4407,28 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 92a0: 60          `
 
 ; &92a1 referenced 2 times by &9c3a, &9e83
-.sub_c92a1
+.set_conn_active
     php                                                               ; 92a1: 08          .
     pha                                                               ; 92a2: 48          H
     txa                                                               ; 92a3: 8a          .
     pha                                                               ; 92a4: 48          H
     tsx                                                               ; 92a5: ba          .
     lda l0102,x                                                       ; 92a6: bd 02 01    ...
-    jsr sub_cb45b                                                     ; 92a9: 20 5b b4     [.
+    jsr attr_to_chan_index                                            ; 92a9: 20 5b b4     [.
     bmi c92cd                                                         ; 92ac: 30 1f       0.
     lda #&40 ; '@'                                                    ; 92ae: a9 40       .@
     ora l1060,x                                                       ; 92b0: 1d 60 10    .`.
     sta l1060,x                                                       ; 92b3: 9d 60 10    .`.
     bne c92cd                                                         ; 92b6: d0 15       ..
 ; &92b8 referenced 2 times by &9c9b, &9e7e
-.sub_c92b8
+.clear_conn_active
     php                                                               ; 92b8: 08          .
     pha                                                               ; 92b9: 48          H
     txa                                                               ; 92ba: 8a          .
     pha                                                               ; 92bb: 48          H
     tsx                                                               ; 92bc: ba          .
     lda l0102,x                                                       ; 92bd: bd 02 01    ...
-    jsr sub_cb45b                                                     ; 92c0: 20 5b b4     [.
+    jsr attr_to_chan_index                                            ; 92c0: 20 5b b4     [.
     bmi c92cd                                                         ; 92c3: 30 08       0.
     lda #&bf                                                          ; 92c5: a9 bf       ..
     and l1060,x                                                       ; 92c7: 3d 60 10    =`.
@@ -4446,46 +4446,46 @@ l8f2b = loop_c8f29+2
 ; Command code distinguishes operation.
 ; ***************************************************************************************
 .cmd_fs_operation
-    jsr sub_c9313                                                     ; 92d2: 20 13 93     ..
+    jsr copy_fs_cmd_name                                              ; 92d2: 20 13 93     ..
     txa                                                               ; 92d5: 8a          .
     pha                                                               ; 92d6: 48          H
-    jsr sub_c9335                                                     ; 92d7: 20 35 93     5.
-    jsr sub_cae85                                                     ; 92da: 20 85 ae     ..
+    jsr parse_quoted_arg                                              ; 92d7: 20 35 93     5.
+    jsr parse_access_prefix                                           ; 92da: 20 85 ae     ..
     pla                                                               ; 92dd: 68          h
     tax                                                               ; 92de: aa          .
-    jsr sub_c92f5                                                     ; 92df: 20 f5 92     ..
+    jsr check_not_ampersand                                           ; 92df: 20 f5 92     ..
     cmp #&0d                                                          ; 92e2: c9 0d       ..
-    bne c92fd                                                         ; 92e4: d0 17       ..
+    bne read_filename_char                                            ; 92e4: d0 17       ..
 ; &92e6 referenced 4 times by &92fa, &93f5, &aecd, &af02
-.c92e6
+.error_bad_filename
     lda #&cc                                                          ; 92e6: a9 cc       ..
     jsr error_bad_inline                                              ; 92e8: 20 a2 96     ..
     equs "file name", 0                                               ; 92eb: 66 69 6c... fil
 
 ; &92f5 referenced 2 times by &92df, &92fd
-.sub_c92f5
+.check_not_ampersand
     lda l0e30                                                         ; 92f5: ad 30 0e    .0.
     cmp #&26 ; '&'                                                    ; 92f8: c9 26       .&
-    beq c92e6                                                         ; 92fa: f0 ea       ..
+    beq error_bad_filename                                            ; 92fa: f0 ea       ..
     rts                                                               ; 92fc: 60          `
 
 ; &92fd referenced 3 times by &92e4, &930b, &93c6
-.c92fd
-    jsr sub_c92f5                                                     ; 92fd: 20 f5 92     ..
+.read_filename_char
+    jsr check_not_ampersand                                           ; 92fd: 20 f5 92     ..
     sta l0f05,x                                                       ; 9300: 9d 05 0f    ...
     inx                                                               ; 9303: e8          .
     cmp #&0d                                                          ; 9304: c9 0d       ..
-    beq c930e                                                         ; 9306: f0 06       ..
-    jsr caea5                                                         ; 9308: 20 a5 ae     ..
-    jmp c92fd                                                         ; 930b: 4c fd 92    L..
+    beq send_fs_request                                               ; 9306: f0 06       ..
+    jsr strip_token_prefix                                            ; 9308: 20 a5 ae     ..
+    jmp read_filename_char                                            ; 930b: 4c fd 92    L..
 
 ; &930e referenced 2 times by &9306, &93ee
-.c930e
+.send_fs_request
     ldy #0                                                            ; 930e: a0 00       ..
-    jmp c8e0e                                                         ; 9310: 4c 0e 8e    L..
+    jmp send_cmd_and_dispatch                                         ; 9310: 4c 0e 8e    L..
 
 ; &9313 referenced 2 times by &92d2, &9377
-.sub_c9313
+.copy_fs_cmd_name
     tya                                                               ; 9313: 98          .
     pha                                                               ; 9314: 48          H
 ; &9315 referenced 1 time by &9319
@@ -4517,7 +4517,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 9334: 60          `
 
 ; &9335 referenced 2 times by &92d7, &937f
-.sub_c9335
+.parse_quoted_arg
     lda #0                                                            ; 9335: a9 00       ..
     tax                                                               ; 9337: aa          .              ; X=&00
     sta l10d8                                                         ; 9338: 8d d8 10    ...
@@ -4561,12 +4561,12 @@ l8f2b = loop_c8f29+2
 ; Renames a file on the file server.
 ; ***************************************************************************************
 .cmd_rename
-    jsr sub_c9313                                                     ; 9377: 20 13 93     ..
+    jsr copy_fs_cmd_name                                              ; 9377: 20 13 93     ..
     txa                                                               ; 937a: 8a          .
     pha                                                               ; 937b: 48          H
-    jsr sub_caf12                                                     ; 937c: 20 12 af     ..
-    jsr sub_c9335                                                     ; 937f: 20 35 93     5.
-    jsr sub_cae85                                                     ; 9382: 20 85 ae     ..
+    jsr mask_owner_access                                             ; 937c: 20 12 af     ..
+    jsr parse_quoted_arg                                              ; 937f: 20 35 93     5.
+    jsr parse_access_prefix                                           ; 9382: 20 85 ae     ..
     pla                                                               ; 9385: 68          h
     tax                                                               ; 9386: aa          .
 ; &9387 referenced 1 time by &93a5
@@ -4586,27 +4586,27 @@ l8f2b = loop_c8f29+2
     inx                                                               ; 939d: e8          .
     cmp #&20 ; ' '                                                    ; 939e: c9 20       .
     beq c93a8                                                         ; 93a0: f0 06       ..
-    jsr caea5                                                         ; 93a2: 20 a5 ae     ..
+    jsr strip_token_prefix                                            ; 93a2: 20 a5 ae     ..
     jmp loop_c9387                                                    ; 93a5: 4c 87 93    L..
 
 ; &93a8 referenced 2 times by &93a0, &93b0
 .c93a8
-    jsr caea5                                                         ; 93a8: 20 a5 ae     ..
+    jsr strip_token_prefix                                            ; 93a8: 20 a5 ae     ..
     lda l0e30                                                         ; 93ab: ad 30 0e    .0.
     cmp #&20 ; ' '                                                    ; 93ae: c9 20       .
     beq c93a8                                                         ; 93b0: f0 f6       ..
     lda l1071                                                         ; 93b2: ad 71 10    .q.
     pha                                                               ; 93b5: 48          H
-    jsr sub_caf12                                                     ; 93b6: 20 12 af     ..
+    jsr mask_owner_access                                             ; 93b6: 20 12 af     ..
     txa                                                               ; 93b9: 8a          .
     pha                                                               ; 93ba: 48          H
-    jsr sub_cae85                                                     ; 93bb: 20 85 ae     ..
+    jsr parse_access_prefix                                           ; 93bb: 20 85 ae     ..
     pla                                                               ; 93be: 68          h
     tax                                                               ; 93bf: aa          .
     pla                                                               ; 93c0: 68          h
     cmp l1071                                                         ; 93c1: cd 71 10    .q.
     bne c938e                                                         ; 93c4: d0 c8       ..
-    jmp c92fd                                                         ; 93c6: 4c fd 92    L..
+    jmp read_filename_char                                            ; 93c6: 4c fd 92    L..
 
 ; ***************************************************************************************
 ; *Dir command.
@@ -4638,13 +4638,13 @@ l8f2b = loop_c8f29+2
     iny                                                               ; 93eb: c8          .
     tya                                                               ; 93ec: 98          .
     tax                                                               ; 93ed: aa          .
-    jmp c930e                                                         ; 93ee: 4c 0e 93    L..
+    jmp send_fs_request                                               ; 93ee: 4c 0e 93    L..
 
 ; &93f1 referenced 1 time by &93d8
 .c93f1
     cmp #&2e ; '.'                                                    ; 93f1: c9 2e       ..
     beq c93f8                                                         ; 93f3: f0 03       ..
-    jmp c92e6                                                         ; 93f5: 4c e6 92    L..
+    jmp error_bad_filename                                            ; 93f5: 4c e6 92    L..
 
 ; &93f8 referenced 1 time by &93f3
 .c93f8
@@ -4656,9 +4656,9 @@ l8f2b = loop_c8f29+2
     ora #&40 ; '@'                                                    ; 9403: 09 40       .@
     sta l1071                                                         ; 9405: 8d 71 10    .q.
     ldx #1                                                            ; 9408: a2 01       ..
-    jsr sub_caef4                                                     ; 940a: 20 f4 ae     ..
+    jsr copy_arg_validated                                            ; 940a: 20 f4 ae     ..
     ldy #&12                                                          ; 940d: a0 12       ..
-    jsr c9499                                                         ; 940f: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 940f: 20 99 94     ..
     lda l0f05                                                         ; 9412: ad 05 0f    ...
     cmp #2                                                            ; 9415: c9 02       ..
     beq c9428                                                         ; 9417: f0 0f       ..
@@ -4672,28 +4672,28 @@ l8f2b = loop_c8f29+2
     sta l0f05                                                         ; 942b: 8d 05 0f    ...
     ldx #1                                                            ; 942e: a2 01       ..
     ldy #7                                                            ; 9430: a0 07       ..
-    jsr c9499                                                         ; 9432: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9432: 20 99 94     ..
     ldx #1                                                            ; 9435: a2 01       ..
     stx l0f05                                                         ; 9437: 8e 05 0f    ...
     stx l0f06                                                         ; 943a: 8e 06 0f    ...
     inx                                                               ; 943d: e8          .              ; X=&02
     ldy fs_load_addr                                                  ; 943e: a4 b0       ..
-    jsr sub_caef4                                                     ; 9440: 20 f4 ae     ..
+    jsr copy_arg_validated                                            ; 9440: 20 f4 ae     ..
     ldy #6                                                            ; 9443: a0 06       ..
-    jsr c9499                                                         ; 9445: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9445: 20 99 94     ..
     ldy l0f05                                                         ; 9448: ac 05 0f    ...
-    jmp ca2dc                                                         ; 944b: 4c dc a2    L..
+    jmp find_fs_and_exit                                              ; 944b: 4c dc a2    L..
 
 ; &944e referenced 1 time by &93cd
 .c944e
-    jmp c8e0a                                                         ; 944e: 4c 0a 8e    L..
+    jmp pass_send_cmd                                                 ; 944e: 4c 0a 8e    L..
 
 ; &9451 referenced 1 time by &94dd
-.sub_c9451
+.init_txcb_bye
     lda #&90                                                          ; 9451: a9 90       ..
 ; &9453 referenced 1 time by &9ace
-.sub_c9453
-    jsr c945f                                                         ; 9453: 20 5f 94     _.
+.init_txcb_port
+    jsr init_txcb                                                     ; 9453: 20 5f 94     _.
     sta txcb_port                                                     ; 9456: 85 c1       ..
     lda #3                                                            ; 9458: a9 03       ..
     sta txcb_start                                                    ; 945a: 85 c4       ..
@@ -4701,7 +4701,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 945e: 60          `
 
 ; &945f referenced 5 times by &8df1, &9453, &94cc, &a8de, &b92f
-.c945f
+.init_txcb
     pha                                                               ; 945f: 48          H
     ldy #&0b                                                          ; 9460: a0 0b       ..
 ; &9462 referenced 1 time by &9473
@@ -4727,13 +4727,13 @@ l8f2b = loop_c8f29+2
     equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 947d: ff ff ff... ...            ; &FF padding (unused ROM space)
 
 ; &9483 referenced 1 time by &9f02
-.sub_c9483
+.send_request_nowrite
     pha                                                               ; 9483: 48          H
     sec                                                               ; 9484: 38          8
     bcs c94a1                                                         ; 9485: b0 1a       ..             ; ALWAYS branch
 
 ; &9487 referenced 2 times by &9944, &99f8
-.sub_c9487
+.send_request_write
     clv                                                               ; 9487: b8          .
     bvc c94a0                                                         ; 9488: 50 16       P.             ; ALWAYS branch
 
@@ -4745,16 +4745,16 @@ l8f2b = loop_c8f29+2
 ; ***************************************************************************************
 .cmd_bye
     ldy #0                                                            ; 948a: a0 00       ..
-    jsr sub_cb79f                                                     ; 948c: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 948c: 20 9f b7     ..
     lda #osbyte_close_spool_exec                                      ; 948f: a9 77       .w
     jsr osbyte                                                        ; 9491: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    jsr sub_cb54a                                                     ; 9494: 20 4a b5     J.
+    jsr close_all_net_chans                                           ; 9494: 20 4a b5     J.
     ldy #&17                                                          ; 9497: a0 17       ..
 ; &9499 referenced 26 times by &8e0e, &940f, &9432, &9445, &9b4b, &9c34, &9c44, &9c92, &9d2b, &9da4, &9dd8, &9e70, &9e93, &9f57, &a012, &a1be, &a1e6, &a52a, &ad2f, &ada6, &ade4, &ae53, &b365, &b406, &b6c9, &b8c8
-.c9499
+.save_net_tx_cb
     clv                                                               ; 9499: b8          .
 ; &949a referenced 3 times by &9b32, &9d08, &af62
-.c949a
+.save_net_tx_cb_vset
     lda l0e02                                                         ; 949a: ad 02 0e    ...
     sta l0f02                                                         ; 949d: 8d 02 0f    ...
 ; &94a0 referenced 1 time by &9488
@@ -4786,24 +4786,24 @@ l8f2b = loop_c8f29+2
 .c94c5
     plp                                                               ; 94c5: 28          (
 ; &94c6 referenced 1 time by &9fb0
-.sub_c94c6
+.prep_send_tx_cb
     php                                                               ; 94c6: 08          .
     lda #&90                                                          ; 94c7: a9 90       ..
     sta l0f00                                                         ; 94c9: 8d 00 0f    ...
-    jsr c945f                                                         ; 94cc: 20 5f 94     _.
+    jsr init_txcb                                                     ; 94cc: 20 5f 94     _.
     txa                                                               ; 94cf: 8a          .
     adc #5                                                            ; 94d0: 69 05       i.
     sta txcb_end                                                      ; 94d2: 85 c8       ..
     plp                                                               ; 94d4: 28          (
     bcs c94f1                                                         ; 94d5: b0 1a       ..
     php                                                               ; 94d7: 08          .
-    jsr sub_c9822                                                     ; 94d8: 20 22 98     ".
+    jsr init_tx_ptr_and_send                                          ; 94d8: 20 22 98     ".
     plp                                                               ; 94db: 28          (
 ; &94dc referenced 2 times by &9a0b, &9f43
-.sub_c94dc
+.recv_and_process_reply
     php                                                               ; 94dc: 08          .
-    jsr sub_c9451                                                     ; 94dd: 20 51 94     Q.
-    jsr c95c7                                                         ; 94e0: 20 c7 95     ..
+    jsr init_txcb_bye                                                 ; 94dd: 20 51 94     Q.
+    jsr wait_net_tx_ack                                               ; 94e0: 20 c7 95     ..
     plp                                                               ; 94e3: 28          (
 ; &94e4 referenced 1 time by &94f8
 .loop_c94e4
@@ -4825,7 +4825,7 @@ l8f2b = loop_c8f29+2
     pla                                                               ; 94f1: 68          h
     ldx #&c0                                                          ; 94f2: a2 c0       ..
     iny                                                               ; 94f4: c8          .
-    jsr sub_cac12                                                     ; 94f5: 20 12 ac     ..
+    jsr send_disconnect_reply                                         ; 94f5: 20 12 ac     ..
     bcc loop_c94e4                                                    ; 94f8: 90 ea       ..
 ; &94fa referenced 1 time by &94ee
 .c94fa
@@ -4849,7 +4849,7 @@ l8f2b = loop_c8f29+2
     sta l10b8,x                                                       ; 9515: 9d b8 10    ...
     dex                                                               ; 9518: ca          .
     bpl loop_c950b                                                    ; 9519: 10 f0       ..
-    jsr sub_cb54a                                                     ; 951b: 20 4a b5     J.
+    jsr close_all_net_chans                                           ; 951b: 20 4a b5     J.
     pla                                                               ; 951e: 68          h
     ror a                                                             ; 951f: 6a          j
     bcc c952f                                                         ; 9520: 90 0d       ..
@@ -4887,26 +4887,26 @@ l8f2b = loop_c8f29+2
     dey                                                               ; 9554: 88          .
     tya                                                               ; 9555: 98          .
     tax                                                               ; 9556: aa          .
-    jmp c96da                                                         ; 9557: 4c da 96    L..
+    jmp check_net_error_code                                          ; 9557: 4c da 96    L..
 
 ; &955a referenced 2 times by &8dcb, &9846
-.sub_c955a
+.check_escape
     lda escape_flag                                                   ; 955a: a5 ff       ..
     and escapable                                                     ; 955c: 25 97       %.
     bpl return_15                                                     ; 955e: 10 90       ..
 ; &9560 referenced 1 time by &b42b
-.c9560
+.raise_escape_error
     lda #osbyte_acknowledge_escape                                    ; 9560: a9 7e       .~
     jsr osbyte                                                        ; 9562: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
     lda #6                                                            ; 9565: a9 06       ..
-    jmp c9638                                                         ; 9567: 4c 38 96    L8.
+    jmp classify_reply_error                                          ; 9567: 4c 38 96    L8.
 
     ldy #4                                                            ; 956a: a0 04       ..
     lda (net_rx_ptr),y                                                ; 956c: b1 9c       ..
     beq c9573                                                         ; 956e: f0 03       ..
 ; &9570 referenced 1 time by &95b6
 .c9570
-    jmp caccb                                                         ; 9570: 4c cb ac    L..
+    jmp commit_state_byte                                             ; 9570: 4c cb ac    L..
 
 ; &9573 referenced 2 times by &956e, &95ac
 .c9573
@@ -4923,13 +4923,13 @@ l8f2b = loop_c8f29+2
     dey                                                               ; 9585: 88          .              ; Y=&0e
     pla                                                               ; 9586: 68          h
     sta (nfs_workspace),y                                             ; 9587: 91 9e       ..
-    jsr sub_c8ae2                                                     ; 9589: 20 e2 8a     ..
-    jsr sub_caa73                                                     ; 958c: 20 73 aa     s.
+    jsr scan_remote_keys                                              ; 9589: 20 e2 8a     ..
+    jsr init_ws_copy_narrow                                           ; 958c: 20 73 aa     s.
     ldx #1                                                            ; 958f: a2 01       ..
     ldy #0                                                            ; 9591: a0 00       ..
     lda #osbyte_read_write_econet_keyboard_disable                    ; 9593: a9 c9       ..
     jsr osbyte                                                        ; 9595: 20 f4 ff     ..            ; Disable keyboard (for Econet)
-    jsr caccb                                                         ; 9598: 20 cb ac     ..
+    jsr commit_state_byte                                             ; 9598: 20 cb ac     ..
     lda #0                                                            ; 959b: a9 00       ..
     jsr error_inline_log                                              ; 959d: 20 bb 96     ..
     equs "Remoted", 0                                                 ; 95a0: 52 65 6d... Rem
@@ -4946,12 +4946,12 @@ l8f2b = loop_c8f29+2
     lda (net_rx_ptr),y                                                ; 95ba: b1 9c       ..
     tay                                                               ; 95bc: a8          .
     ldx #0                                                            ; 95bd: a2 00       ..
-    jsr caccb                                                         ; 95bf: 20 cb ac     ..
+    jsr commit_state_byte                                             ; 95bf: 20 cb ac     ..
     lda #osbyte_insert_input_buffer                                   ; 95c2: a9 99       ..
     jmp osbyte                                                        ; 95c4: 4c f4 ff    L..            ; Insert character Y into input buffer X
 
 ; &95c7 referenced 6 times by &94e0, &999e, &9ad8, &a923, &abbf, &ac61
-.c95c7
+.wait_net_tx_ack
     lda l0d6f                                                         ; 95c7: ad 6f 0d    .o.
     pha                                                               ; 95ca: 48          H
     lda l0d61                                                         ; 95cb: ad 61 0d    .a.
@@ -4988,7 +4988,7 @@ l8f2b = loop_c8f29+2
     rts                                                               ; 95fa: 60          `
 
 ; &95fb referenced 6 times by &9611, &964a, &9666, &9690, &96a2, &96bb
-.sub_c95fb
+.cond_save_error_code
     bit l0d6c                                                         ; 95fb: 2c 6c 0d    ,l.
     bpl return_16                                                     ; 95fe: 10 03       ..
     sta l0e09                                                         ; 9600: 8d 09 0e    ...
@@ -5003,7 +5003,7 @@ l8f2b = loop_c8f29+2
     ldx #0                                                            ; 9609: a2 00       ..
     stx error_block                                                   ; 960b: 8e 00 01    ...
     lda error_msg_table,y                                             ; 960e: b9 a4 97    ...
-    jsr sub_c95fb                                                     ; 9611: 20 fb 95     ..
+    jsr cond_save_error_code                                          ; 9611: 20 fb 95     ..
 ; &9614 referenced 1 time by &961e
 .loop_c9614
     lda error_msg_table,y                                             ; 9614: b9 a4 97    ...
@@ -5014,13 +5014,13 @@ l8f2b = loop_c8f29+2
     bne loop_c9614                                                    ; 961e: d0 f4       ..
 ; &9620 referenced 1 time by &961a
 .c9620
-    jsr sub_c9738                                                     ; 9620: 20 38 97     8.
+    jsr append_drv_dot_num                                            ; 9620: 20 38 97     8.
     lda #0                                                            ; 9623: a9 00       ..
     sta error_text,x                                                  ; 9625: 9d 01 01    ...
-    jmp c96da                                                         ; 9628: 4c da 96    L..
+    jmp check_net_error_code                                          ; 9628: 4c da 96    L..
 
 ; &962b referenced 1 time by &98b1
-.c962b
+.fixup_reply_status_a
     lda (net_tx_ptr,x)                                                ; 962b: a1 9a       ..
     cmp #&41 ; 'A'                                                    ; 962d: c9 41       .A
     bne c9633                                                         ; 962f: d0 02       ..
@@ -5031,10 +5031,10 @@ l8f2b = loop_c8f29+2
     bvc c963b                                                         ; 9634: 50 05       P.             ; ALWAYS branch
 
 ; &9636 referenced 1 time by &986a
-.c9636
+.load_reply_and_classify
     lda (net_tx_ptr,x)                                                ; 9636: a1 9a       ..
 ; &9638 referenced 2 times by &9567, &9dd0
-.c9638
+.classify_reply_error
     bit l947d                                                         ; 9638: 2c 7d 94    ,}.
 ; &963b referenced 1 time by &9634
 .c963b
@@ -5046,7 +5046,7 @@ l8f2b = loop_c8f29+2
     tax                                                               ; 9643: aa          .
     ldy l9798,x                                                       ; 9644: bc 98 97    ...
     lda error_msg_table,y                                             ; 9647: b9 a4 97    ...
-    jsr sub_c95fb                                                     ; 964a: 20 fb 95     ..
+    jsr cond_save_error_code                                          ; 964a: 20 fb 95     ..
     ldx #0                                                            ; 964d: a2 00       ..
     stx error_block                                                   ; 964f: 8e 00 01    ...
 ; &9652 referenced 1 time by &965c
@@ -5059,11 +5059,11 @@ l8f2b = loop_c8f29+2
     bne loop_c9652                                                    ; 965c: d0 f4       ..
 ; &965e referenced 1 time by &9658
 .c965e
-    jsr sub_c9738                                                     ; 965e: 20 38 97     8.
+    jsr append_drv_dot_num                                            ; 965e: 20 38 97     8.
     plp                                                               ; 9661: 28          (
     bvs c9670                                                         ; 9662: 70 0c       p.
     lda #&a4                                                          ; 9664: a9 a4       ..
-    jsr sub_c95fb                                                     ; 9666: 20 fb 95     ..
+    jsr cond_save_error_code                                          ; 9666: 20 fb 95     ..
     sta error_text                                                    ; 9669: 8d 01 01    ...
     ldy #&0b                                                          ; 966c: a0 0b       ..
     bne c9672                                                         ; 966e: d0 02       ..             ; ALWAYS branch
@@ -5093,18 +5093,18 @@ l8f2b = loop_c8f29+2
     ldx #0                                                            ; 9688: a2 00       ..
     stx error_block                                                   ; 968a: 8e 00 01    ...
     lda error_msg_table,y                                             ; 968d: b9 a4 97    ...
-    jsr sub_c95fb                                                     ; 9690: 20 fb 95     ..
+    jsr cond_save_error_code                                          ; 9690: 20 fb 95     ..
 ; &9693 referenced 1 time by &969d
 .loop_c9693
     lda error_msg_table,y                                             ; 9693: b9 a4 97    ...
     sta error_text,x                                                  ; 9696: 9d 01 01    ...
 ; &9699 referenced 1 time by &9682
 .c9699
-    beq c96da                                                         ; 9699: f0 3f       .?
+    beq check_net_error_code                                          ; 9699: f0 3f       .?
     iny                                                               ; 969b: c8          .
     inx                                                               ; 969c: e8          .
-.sub_c969d
-bad_prefix = sub_c969d+1
+.bad_str_anchor
+bad_prefix = bad_str_anchor+1
     bne loop_c9693                                                    ; 969d: d0 f4       ..
 ; &969e referenced 1 time by &96af
     equs "Bad"                                                        ; 969f: 42 61 64    Bad
@@ -5121,7 +5121,7 @@ bad_prefix = sub_c969d+1
 ; ***************************************************************************************
 ; &96a2 referenced 11 times by &8fcd, &91f6, &9203, &9217, &9223, &9232, &92e8, &936d, &9390, &a247, &bc5b
 .error_bad_inline
-    jsr sub_c95fb                                                     ; 96a2: 20 fb 95     ..            ; Conditionally log error code to workspace
+    jsr cond_save_error_code                                          ; 96a2: 20 fb 95     ..            ; Conditionally log error code to workspace
     tay                                                               ; 96a5: a8          .              ; Save error number in Y
     pla                                                               ; 96a6: 68          h              ; Pop return address (low) — points to last byte of JSR
     sta fs_load_addr                                                  ; 96a7: 85 b0       ..
@@ -5148,7 +5148,7 @@ bad_prefix = sub_c969d+1
 ; ***************************************************************************************
 ; &96bb referenced 10 times by &941b, &959d, &a25e, &abee, &ac00, &b475, &b4ec, &b538, &b7e0, &b81b
 .error_inline_log
-    jsr sub_c95fb                                                     ; 96bb: 20 fb 95     ..            ; Conditionally log error code to workspace
+    jsr cond_save_error_code                                          ; 96bb: 20 fb 95     ..            ; Conditionally log error code to workspace
 ; ***************************************************************************************
 ; Generate BRK error from inline string
 ; 
@@ -5182,7 +5182,7 @@ bad_prefix = sub_c969d+1
     sta error_text,x                                                  ; 96d5: 9d 01 01    ...
     bne loop_c96d1                                                    ; 96d8: d0 f7       ..             ; Loop until null terminator
 ; &96da referenced 4 times by &9557, &9628, &9699, &b966
-.c96da
+.check_net_error_code
     ldy #&0e                                                          ; 96da: a0 0e       ..
     lda (net_rx_ptr),y                                                ; 96dc: b1 9c       ..
     bne c96e8                                                         ; 96de: d0 08       ..
@@ -5221,7 +5221,7 @@ bad_prefix = sub_c969d+1
     lda #&c7                                                          ; 970b: a9 c7       ..
 ; &970d referenced 1 time by &9708
 .c970d
-    jsr sub_c8e76                                                     ; 970d: 20 76 8e     v.
+    jsr osbyte_x0_y0                                                  ; 970d: 20 76 8e     v.
     pla                                                               ; 9710: 68          h
     tay                                                               ; 9711: a8          .
     lda #osfind_close                                                 ; 9712: a9 00       ..
@@ -5245,13 +5245,13 @@ bad_prefix = sub_c969d+1
 .c972b
     stx fs_load_addr_2                                                ; 972b: 86 b2       ..
     pla                                                               ; 972d: 68          h
-    jsr sub_c975c                                                     ; 972e: 20 5c 97     \.
+    jsr append_space_and_num                                          ; 972e: 20 5c 97     \.
     lda #0                                                            ; 9731: a9 00       ..
     sta l0102,x                                                       ; 9733: 9d 02 01    ...
     beq c96e5                                                         ; 9736: f0 ad       ..             ; ALWAYS branch
 
 ; &9738 referenced 2 times by &9620, &965e
-.sub_c9738
+.append_drv_dot_num
     lda #&20 ; ' '                                                    ; 9738: a9 20       .
     sta error_text,x                                                  ; 973a: 9d 01 01    ...
     inx                                                               ; 973d: e8          .
@@ -5259,7 +5259,7 @@ bad_prefix = sub_c969d+1
     ldy #3                                                            ; 9740: a0 03       ..
     lda (net_tx_ptr),y                                                ; 9742: b1 9a       ..
     beq c9752                                                         ; 9744: f0 0c       ..
-    jsr sub_c9767                                                     ; 9746: 20 67 97     g.
+    jsr append_decimal_num                                            ; 9746: 20 67 97     g.
     ldx fs_load_addr_2                                                ; 9749: a6 b2       ..
     lda #&2e ; '.'                                                    ; 974b: a9 2e       ..
     sta error_text,x                                                  ; 974d: 9d 01 01    ...
@@ -5268,12 +5268,12 @@ bad_prefix = sub_c969d+1
 .c9752
     ldy #2                                                            ; 9752: a0 02       ..
     lda (net_tx_ptr),y                                                ; 9754: b1 9a       ..
-    jsr sub_c9767                                                     ; 9756: 20 67 97     g.
+    jsr append_decimal_num                                            ; 9756: 20 67 97     g.
     ldx fs_load_addr_2                                                ; 9759: a6 b2       ..
     rts                                                               ; 975b: 60          `
 
 ; &975c referenced 2 times by &972e, &b4ca
-.sub_c975c
+.append_space_and_num
     tay                                                               ; 975c: a8          .
     lda #&20 ; ' '                                                    ; 975d: a9 20       .
     ldx fs_load_addr_2                                                ; 975f: a6 b2       ..
@@ -5281,17 +5281,17 @@ bad_prefix = sub_c969d+1
     inc fs_load_addr_2                                                ; 9764: e6 b2       ..
     tya                                                               ; 9766: 98          .
 ; &9767 referenced 2 times by &9746, &9756
-.sub_c9767
+.append_decimal_num
     tay                                                               ; 9767: a8          .
     bit l947d                                                         ; 9768: 2c 7d 94    ,}.
     lda #&64 ; 'd'                                                    ; 976b: a9 64       .d
-    jsr sub_c9778                                                     ; 976d: 20 78 97     x.
+    jsr append_decimal_digit                                          ; 976d: 20 78 97     x.
     lda #&0a                                                          ; 9770: a9 0a       ..
-    jsr sub_c9778                                                     ; 9772: 20 78 97     x.
+    jsr append_decimal_digit                                          ; 9772: 20 78 97     x.
     lda #1                                                            ; 9775: a9 01       ..
     clv                                                               ; 9777: b8          .
 ; &9778 referenced 2 times by &976d, &9772
-.sub_c9778
+.append_decimal_digit
     sta fs_load_addr_3                                                ; 9778: 85 b3       ..
     tya                                                               ; 977a: 98          .
     ldx #&2f ; '/'                                                    ; 977b: a2 2f       ./
@@ -5348,13 +5348,13 @@ bad_prefix = sub_c969d+1
     equb 0                                                            ; 9821: 00          .
 
 ; &9822 referenced 2 times by &94d8, &9ac9
-.sub_c9822
+.init_tx_ptr_and_send
     ldx #&c0                                                          ; 9822: a2 c0       ..
     stx net_tx_ptr                                                    ; 9824: 86 9a       ..
     ldx #0                                                            ; 9826: a2 00       ..
     stx net_tx_ptr_hi                                                 ; 9828: 86 9b       ..
 ; &982a referenced 7 times by &a90c, &a965, &a9c2, &abb4, &ac3f, &b03b, &b216
-.c982a
+.send_net_packet
     lda l0d6e                                                         ; 982a: ad 6e 0d    .n.
     bne c9831                                                         ; 982d: d0 02       ..
     lda #&ff                                                          ; 982f: a9 ff       ..
@@ -5375,7 +5375,7 @@ bad_prefix = sub_c969d+1
     bpl c986d                                                         ; 9841: 10 2a       .*
     asl a                                                             ; 9843: 0a          .
     beq c9869                                                         ; 9844: f0 23       .#
-    jsr sub_c955a                                                     ; 9846: 20 5a 95     Z.
+    jsr check_escape                                                  ; 9846: 20 5a 95     Z.
     pla                                                               ; 9849: 68          h
     tax                                                               ; 984a: aa          .
     pla                                                               ; 984b: 68          h
@@ -5408,27 +5408,27 @@ bad_prefix = sub_c969d+1
 ; &9869 referenced 2 times by &9844, &9861
 .c9869
     tax                                                               ; 9869: aa          .
-    jmp c9636                                                         ; 986a: 4c 36 96    L6.
+    jmp load_reply_and_classify                                       ; 986a: 4c 36 96    L6.
 
 ; &986d referenced 1 time by &9841
 .c986d
     pla                                                               ; 986d: 68          h
     pla                                                               ; 986e: 68          h
     pla                                                               ; 986f: 68          h
-    jmp c928b                                                         ; 9870: 4c 8b 92    L..
+    jmp clear_escapable                                               ; 9870: 4c 8b 92    L..
 
 ; &9873 referenced 2 times by &9889, &98e3
 .l9873
     equb &88, 0, &fd, &fd, &3a, &0d, &ff, &ff, &3e, &0d, &ff, &ff     ; 9873: 88 00 fd... ...
 
 ; &987f referenced 1 time by &8df4
-.sub_c987f
+.init_tx_ptr_for_pass
     ldy #&c0                                                          ; 987f: a0 c0       ..
     sty net_tx_ptr                                                    ; 9881: 84 9a       ..
     ldy #0                                                            ; 9883: a0 00       ..
     sty net_tx_ptr_hi                                                 ; 9885: 84 9b       ..
 ; &9887 referenced 1 time by &abb1
-.sub_c9887
+.setup_pass_txbuf
     ldy #&0b                                                          ; 9887: a0 0b       ..
 ; &9889 referenced 1 time by &9897
 .loop_c9889
@@ -5461,7 +5461,7 @@ bad_prefix = sub_c969d+1
 ; &98af referenced 1 time by &98ce
 .loop_c98af
     ldx #0                                                            ; 98af: a2 00       ..
-    jmp c962b                                                         ; 98b1: 4c 2b 96    L+.
+    jmp fixup_reply_status_a                                          ; 98b1: 4c 2b 96    L+.
 
 ; &98b4 referenced 3 times by &983d, &98a6, &98b7
 .c98b4
@@ -5523,7 +5523,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; 98f2: 60          `
 
 ; &98f3 referenced 1 time by &9924
-.sub_c98f3
+.load_text_ptr_and_parse
     ldy #1                                                            ; 98f3: a0 01       ..
 ; &98f5 referenced 1 time by &98fb
 .loop_c98f5
@@ -5533,7 +5533,7 @@ bad_prefix = sub_c969d+1
     bpl loop_c98f5                                                    ; 98fb: 10 f8       ..
     ldy #0                                                            ; 98fd: a0 00       ..
 ; &98ff referenced 1 time by &ae82
-.sub_c98ff
+.gsread_to_buf
     ldx #&ff                                                          ; 98ff: a2 ff       ..
     clc                                                               ; 9901: 18          .
     jsr gsinit                                                        ; 9902: 20 c2 ff     ..
@@ -5557,36 +5557,36 @@ bad_prefix = sub_c969d+1
     sta fs_crc_hi                                                     ; 991e: 85 bf       ..
     rts                                                               ; 9920: 60          `
 
-    jsr sub_c9281                                                     ; 9921: 20 81 92     ..
-    jsr sub_c98f3                                                     ; 9924: 20 f3 98     ..
-    jsr sub_caf12                                                     ; 9927: 20 12 af     ..
-    jsr sub_cae85                                                     ; 992a: 20 85 ae     ..
+    jsr set_xfer_params                                               ; 9921: 20 81 92     ..
+    jsr load_text_ptr_and_parse                                       ; 9924: 20 f3 98     ..
+    jsr mask_owner_access                                             ; 9927: 20 12 af     ..
+    jsr parse_access_prefix                                           ; 992a: 20 85 ae     ..
     lda fs_last_byte_flag                                             ; 992d: a5 bd       ..
     bpl c99af                                                         ; 992f: 10 7e       .~
     cmp #&ff                                                          ; 9931: c9 ff       ..
     beq c9938                                                         ; 9933: f0 03       ..
-    jmp c9cb9                                                         ; 9935: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9935: 4c b9 9c    L..
 
 ; &9938 referenced 1 time by &9933
 .c9938
-    jsr sub_caef0                                                     ; 9938: 20 f0 ae     ..
+    jsr copy_arg_to_buf_x0                                            ; 9938: 20 f0 ae     ..
     ldy #2                                                            ; 993b: a0 02       ..
 ; &993d referenced 1 time by &a2b9
-.sub_c993d
+.do_fs_cmd_iteration
     lda #&92                                                          ; 993d: a9 92       ..
     sta escapable                                                     ; 993f: 85 97       ..
     sta l0f02                                                         ; 9941: 8d 02 0f    ...
-    jsr sub_c9487                                                     ; 9944: 20 87 94     ..
+    jsr send_request_write                                            ; 9944: 20 87 94     ..
     ldy #6                                                            ; 9947: a0 06       ..
     lda (fs_options),y                                                ; 9949: b1 bb       ..
     bne c9955                                                         ; 994b: d0 08       ..
-    jsr sub_c9a60                                                     ; 994d: 20 60 9a     `.
-    jsr sub_c9a72                                                     ; 9950: 20 72 9a     r.
+    jsr copy_fsopts_to_zp                                             ; 994d: 20 60 9a     `.
+    jsr copy_workspace_to_fsopts                                      ; 9950: 20 72 9a     r.
     bcc c995b                                                         ; 9953: 90 06       ..
 ; &9955 referenced 1 time by &994b
 .c9955
-    jsr sub_c9a72                                                     ; 9955: 20 72 9a     r.
-    jsr sub_c9a60                                                     ; 9958: 20 60 9a     `.
+    jsr copy_workspace_to_fsopts                                      ; 9955: 20 72 9a     r.
+    jsr copy_fsopts_to_zp                                             ; 9958: 20 60 9a     `.
 ; &995b referenced 1 time by &9953
 .c995b
     ldy #4                                                            ; 995b: a0 04       ..
@@ -5602,8 +5602,8 @@ bad_prefix = sub_c969d+1
     sec                                                               ; 996a: 38          8
     sbc l0f10                                                         ; 996b: ed 10 0f    ...
     sta fs_work_7                                                     ; 996e: 85 b7       ..
-    jsr sub_c9b86                                                     ; 9970: 20 86 9b     ..
-    jsr sub_c9984                                                     ; 9973: 20 84 99     ..
+    jsr format_filename_field                                         ; 9970: 20 86 9b     ..
+    jsr send_txcb_swap_addrs                                          ; 9973: 20 84 99     ..
     ldx #2                                                            ; 9976: a2 02       ..
 ; &9978 referenced 1 time by &997f
 .loop_c9978
@@ -5614,8 +5614,8 @@ bad_prefix = sub_c969d+1
     jmp c9a0b                                                         ; 9981: 4c 0b 9a    L..
 
 ; &9984 referenced 2 times by &9973, &9f40
-.sub_c9984
-    jsr sub_c9290                                                     ; 9984: 20 90 92     ..
+.send_txcb_swap_addrs
+    jsr cmp_5byte_handle                                              ; 9984: 20 90 92     ..
     beq return_18                                                     ; 9987: f0 25       .%
     lda #&92                                                          ; 9989: a9 92       ..
     sta txcb_port                                                     ; 998b: 85 c1       ..
@@ -5632,7 +5632,7 @@ bad_prefix = sub_c969d+1
     bpl loop_c998f                                                    ; 9998: 10 f5       ..
     lda #&7f                                                          ; 999a: a9 7f       ..
     sta txcb_ctrl                                                     ; 999c: 85 c0       ..
-    jsr c95c7                                                         ; 999e: 20 c7 95     ..
+    jsr wait_net_tx_ack                                               ; 999e: 20 c7 95     ..
     ldy #3                                                            ; 99a1: a0 03       ..
 ; &99a3 referenced 1 time by &99ac
 .loop_c99a3
@@ -5659,7 +5659,7 @@ bad_prefix = sub_c969d+1
 .loop_c99b9
     lda (fs_options),y                                                ; 99b9: b1 bb       ..
     sta port_ws_offset,y                                              ; 99bb: 99 a6 00    ...
-    jsr sub_c9a7f                                                     ; 99be: 20 7f 9a     ..
+    jsr retreat_y_by_4                                                ; 99be: 20 7f 9a     ..
     sbc (fs_options),y                                                ; 99c1: f1 bb       ..
     sta l0f03,y                                                       ; 99c3: 99 03 0f    ...
     pha                                                               ; 99c6: 48          H
@@ -5667,7 +5667,7 @@ bad_prefix = sub_c969d+1
     sta port_ws_offset,y                                              ; 99c9: 99 a6 00    ...
     pla                                                               ; 99cc: 68          h
     sta (fs_options),y                                                ; 99cd: 91 bb       ..
-    jsr sub_c9a6c                                                     ; 99cf: 20 6c 9a     l.
+    jsr skip_one_and_advance5                                         ; 99cf: 20 6c 9a     l.
     dex                                                               ; 99d2: ca          .
     bne loop_c99b9                                                    ; 99d3: d0 e4       ..
     ldy #9                                                            ; 99d5: a0 09       ..
@@ -5682,7 +5682,7 @@ bad_prefix = sub_c969d+1
     sta l0f02                                                         ; 99e3: 8d 02 0f    ...
     sta fs_error_ptr                                                  ; 99e6: 85 b8       ..
     ldx #&0b                                                          ; 99e8: a2 0b       ..
-    jsr sub_caef2                                                     ; 99ea: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; 99ea: 20 f2 ae     ..
     ldy #1                                                            ; 99ed: a0 01       ..
     lda fs_last_byte_flag                                             ; 99ef: a5 bd       ..
     cmp #7                                                            ; 99f1: c9 07       ..
@@ -5691,8 +5691,8 @@ bad_prefix = sub_c969d+1
     ldy #&1d                                                          ; 99f6: a0 1d       ..
 ; &99f8 referenced 1 time by &99f4
 .c99f8
-    jsr sub_c9487                                                     ; 99f8: 20 87 94     ..
-    jsr sub_c9b86                                                     ; 99fb: 20 86 9b     ..
+    jsr send_request_write                                            ; 99f8: 20 87 94     ..
+    jsr format_filename_field                                         ; 99fb: 20 86 9b     ..
     plp                                                               ; 99fe: 28          (
     bne c9a05                                                         ; 99ff: d0 04       ..
     ldx #0                                                            ; 9a01: a2 00       ..
@@ -5701,16 +5701,16 @@ bad_prefix = sub_c969d+1
 ; &9a05 referenced 1 time by &99ff
 .c9a05
     lda l0f05                                                         ; 9a05: ad 05 0f    ...
-    jsr sub_c9a88                                                     ; 9a08: 20 88 9a     ..
+    jsr check_and_setup_txcb                                          ; 9a08: 20 88 9a     ..
 ; &9a0b referenced 1 time by &9981
 .c9a0b
-    jsr sub_c94dc                                                     ; 9a0b: 20 dc 94     ..
+    jsr recv_and_process_reply                                        ; 9a0b: 20 dc 94     ..
 ; &9a0e referenced 1 time by &9a03
 .c9a0e
     stx l0f08                                                         ; 9a0e: 8e 08 0f    ...
     ldy #&0e                                                          ; 9a11: a0 0e       ..
     lda l0f05                                                         ; 9a13: ad 05 0f    ...
-    jsr sub_c925f                                                     ; 9a16: 20 5f 92     _.
+    jsr get_prot_bits                                                 ; 9a16: 20 5f 92     _.
     beq c9a1e                                                         ; 9a19: f0 03       ..
 ; &9a1b referenced 1 time by &9a23
 .loop_c9a1b
@@ -5732,26 +5732,26 @@ bad_prefix = sub_c969d+1
     cpy #&0c                                                          ; 9a33: c0 0c       ..
     bne loop_c9a2c                                                    ; 9a35: d0 f5       ..
     ldy #5                                                            ; 9a37: a0 05       ..
-    jsr sub_c9a50                                                     ; 9a39: 20 50 9a     P.
-    jsr sub_c9a45                                                     ; 9a3c: 20 45 9a     E.
+    jsr print_5_hex_bytes                                             ; 9a39: 20 50 9a     P.
+    jsr print_load_exec_addrs                                         ; 9a3c: 20 45 9a     E.
     jsr osnewl                                                        ; 9a3f: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    jmp c9cb9                                                         ; 9a42: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9a42: 4c b9 9c    L..
 
 ; &9a45 referenced 1 time by &9a3c
-.sub_c9a45
+.print_load_exec_addrs
     ldy #9                                                            ; 9a45: a0 09       ..
-    jsr sub_c9a50                                                     ; 9a47: 20 50 9a     P.
+    jsr print_5_hex_bytes                                             ; 9a47: 20 50 9a     P.
     ldy #&0c                                                          ; 9a4a: a0 0c       ..
     ldx #3                                                            ; 9a4c: a2 03       ..
     bne c9a52                                                         ; 9a4e: d0 02       ..             ; ALWAYS branch
 
 ; &9a50 referenced 2 times by &9a39, &9a47
-.sub_c9a50
+.print_5_hex_bytes
     ldx #4                                                            ; 9a50: a2 04       ..
 ; &9a52 referenced 2 times by &9a4e, &9a59
 .c9a52
     lda (fs_options),y                                                ; 9a52: b1 bb       ..
-    jsr sub_c911b                                                     ; 9a54: 20 1b 91     ..
+    jsr print_hex_byte                                                ; 9a54: 20 1b 91     ..
     dey                                                               ; 9a57: 88          .
     dex                                                               ; 9a58: ca          .
     bne c9a52                                                         ; 9a59: d0 f7       ..
@@ -5759,7 +5759,7 @@ bad_prefix = sub_c969d+1
     jmp osasci                                                        ; 9a5d: 4c e3 ff    L..            ; Write character 32
 
 ; &9a60 referenced 2 times by &994d, &9958
-.sub_c9a60
+.copy_fsopts_to_zp
     ldy #5                                                            ; 9a60: a0 05       ..
 ; &9a62 referenced 1 time by &9a6a
 .loop_c9a62
@@ -5769,10 +5769,10 @@ bad_prefix = sub_c969d+1
     cpy #2                                                            ; 9a68: c0 02       ..
     bcs loop_c9a62                                                    ; 9a6a: b0 f6       ..
 ; &9a6c referenced 1 time by &99cf
-.sub_c9a6c
+.skip_one_and_advance5
     iny                                                               ; 9a6c: c8          .
 ; &9a6d referenced 2 times by &9f1d, &b054
-.sub_c9a6d
+.advance_y_by_4
     iny                                                               ; 9a6d: c8          .
     iny                                                               ; 9a6e: c8          .
     iny                                                               ; 9a6f: c8          .
@@ -5782,7 +5782,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; 9a71: 60          `
 
 ; &9a72 referenced 2 times by &9950, &9955
-.sub_c9a72
+.copy_workspace_to_fsopts
     ldy #&0d                                                          ; 9a72: a0 0d       ..
     txa                                                               ; 9a74: 8a          .
 ; &9a75 referenced 1 time by &9a7d
@@ -5793,10 +5793,10 @@ bad_prefix = sub_c969d+1
     cpy #2                                                            ; 9a7b: c0 02       ..
     bcs loop_c9a75                                                    ; 9a7d: b0 f6       ..
 ; &9a7f referenced 1 time by &99be
-.sub_c9a7f
+.retreat_y_by_4
     dey                                                               ; 9a7f: 88          .
 ; &9a80 referenced 2 times by &9afc, &9f25
-.sub_c9a80
+.retreat_y_by_3
     dey                                                               ; 9a80: 88          .
     dey                                                               ; 9a81: 88          .
     dey                                                               ; 9a82: 88          .
@@ -5809,9 +5809,9 @@ bad_prefix = sub_c969d+1
     rts                                                               ; 9a87: 60          `
 
 ; &9a88 referenced 2 times by &9a08, &9f3b
-.sub_c9a88
+.check_and_setup_txcb
     pha                                                               ; 9a88: 48          H
-    jsr sub_c9290                                                     ; 9a89: 20 90 92     ..
+    jsr cmp_5byte_handle                                              ; 9a89: 20 90 92     ..
     beq c9a84                                                         ; 9a8c: f0 f6       ..
 ; &9a8e referenced 1 time by &9adb
 .c9a8e
@@ -5857,14 +5857,14 @@ bad_prefix = sub_c969d+1
     sta txcb_port                                                     ; 9ac3: 85 c1       ..
     lda #&80                                                          ; 9ac5: a9 80       ..
     sta txcb_ctrl                                                     ; 9ac7: 85 c0       ..
-    jsr sub_c9822                                                     ; 9ac9: 20 22 98     ".
+    jsr init_tx_ptr_and_send                                          ; 9ac9: 20 22 98     ".
     lda fs_error_ptr                                                  ; 9acc: a5 b8       ..
-    jsr sub_c9453                                                     ; 9ace: 20 53 94     S.
+    jsr init_txcb_port                                                ; 9ace: 20 53 94     S.
     plp                                                               ; 9ad1: 28          (
     bcs c9a84                                                         ; 9ad2: b0 b0       ..
     lda #&91                                                          ; 9ad4: a9 91       ..
     sta txcb_port                                                     ; 9ad6: 85 c1       ..
-    jsr c95c7                                                         ; 9ad8: 20 c7 95     ..
+    jsr wait_net_tx_ack                                               ; 9ad8: 20 c7 95     ..
     bne c9a8e                                                         ; 9adb: d0 b1       ..
 ; &9add referenced 1 time by &99b1
 .c9add
@@ -5887,7 +5887,7 @@ bad_prefix = sub_c969d+1
     asl a                                                             ; 9af9: 0a          .
     asl a                                                             ; 9afa: 0a          .
     tay                                                               ; 9afb: a8          .
-    jsr sub_c9a80                                                     ; 9afc: 20 80 9a     ..
+    jsr retreat_y_by_3                                                ; 9afc: 20 80 9a     ..
     ldx #3                                                            ; 9aff: a2 03       ..
 ; &9b01 referenced 1 time by &9b08
 .loop_c9b01
@@ -5901,7 +5901,7 @@ bad_prefix = sub_c969d+1
 
 ; &9b0e referenced 1 time by &9af7
 .c9b0e
-    jsr sub_c9255                                                     ; 9b0e: 20 55 92     U.
+    jsr get_access_bits                                               ; 9b0e: 20 55 92     U.
     sta l0f0e                                                         ; 9b11: 8d 0e 0f    ...
     ldy #9                                                            ; 9b14: a0 09       ..
     ldx #8                                                            ; 9b16: a2 08       ..
@@ -5915,26 +5915,26 @@ bad_prefix = sub_c969d+1
     ldx #&0a                                                          ; 9b21: a2 0a       ..
 ; &9b23 referenced 2 times by &9b0c, &9b42
 .c9b23
-    jsr sub_caef2                                                     ; 9b23: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; 9b23: 20 f2 ae     ..
     ldy #&13                                                          ; 9b26: a0 13       ..
     bne c9b2f                                                         ; 9b28: d0 05       ..             ; ALWAYS branch
 
 ; &9b2a referenced 1 time by &9aeb
 .c9b2a
-    jsr sub_caef0                                                     ; 9b2a: 20 f0 ae     ..
+    jsr copy_arg_to_buf_x0                                            ; 9b2a: 20 f0 ae     ..
     ldy #&14                                                          ; 9b2d: a0 14       ..
 ; &9b2f referenced 1 time by &9b28
 .c9b2f
     bit l947d                                                         ; 9b2f: 2c 7d 94    ,}.
-    jsr c949a                                                         ; 9b32: 20 9a 94     ..
+    jsr save_net_tx_cb_vset                                           ; 9b32: 20 9a 94     ..
 ; &9b35 referenced 1 time by &9ae4
 .c9b35
     bcs c9b80                                                         ; 9b35: b0 49       .I
-    jmp c9cb9                                                         ; 9b37: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9b37: 4c b9 9c    L..
 
 ; &9b3a referenced 1 time by &9af3
 .c9b3a
-    jsr sub_c9255                                                     ; 9b3a: 20 55 92     U.
+    jsr get_access_bits                                               ; 9b3a: 20 55 92     U.
     sta l0f06                                                         ; 9b3d: 8d 06 0f    ...
     ldx #2                                                            ; 9b40: a2 02       ..
     bne c9b23                                                         ; 9b42: d0 df       ..             ; ALWAYS branch
@@ -5942,13 +5942,13 @@ bad_prefix = sub_c969d+1
 ; &9b44 referenced 1 time by &9aef
 .c9b44
     ldx #1                                                            ; 9b44: a2 01       ..
-    jsr sub_caef2                                                     ; 9b46: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; 9b46: 20 f2 ae     ..
     ldy #&12                                                          ; 9b49: a0 12       ..
-    jsr c9499                                                         ; 9b4b: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9b4b: 20 99 94     ..
     lda l0f11                                                         ; 9b4e: ad 11 0f    ...
     stx l0f11                                                         ; 9b51: 8e 11 0f    ...
     stx l0f14                                                         ; 9b54: 8e 14 0f    ...
-    jsr sub_c925f                                                     ; 9b57: 20 5f 92     _.
+    jsr get_prot_bits                                                 ; 9b57: 20 5f 92     _.
     ldx l0f05                                                         ; 9b5a: ae 05 0f    ...
     beq c9b7f                                                         ; 9b5d: f0 20       .
     ldy #&0e                                                          ; 9b5f: a0 0e       ..
@@ -5978,12 +5978,12 @@ bad_prefix = sub_c969d+1
     txa                                                               ; 9b7f: 8a          .
 ; &9b80 referenced 1 time by &9b35
 .c9b80
-    jmp c9cbb                                                         ; 9b80: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; 9b80: 4c bb 9c    L..
 
     equb &4c, &bb, &9c                                                ; 9b83: 4c bb 9c    L..
 
 ; &9b86 referenced 2 times by &9970, &99fb
-.sub_c9b86
+.format_filename_field
     ldy #0                                                            ; 9b86: a0 00       ..
     ldx l0f03                                                         ; 9b88: ae 03 0f    ...
     bne c9ba6                                                         ; 9b8b: d0 19       ..
@@ -6015,9 +6015,9 @@ bad_prefix = sub_c969d+1
     bpl loop_c9ba4                                                    ; 9bac: 10 f6       ..
     rts                                                               ; 9bae: 60          `
 
-    jsr sub_c8fb2                                                     ; 9baf: 20 b2 8f     ..
+    jsr verify_ws_checksum                                            ; 9baf: 20 b2 8f     ..
     sta fs_last_byte_flag                                             ; 9bb2: 85 bd       ..
-    jsr sub_c9287                                                     ; 9bb4: 20 87 92     ..
+    jsr set_options_ptr                                               ; 9bb4: 20 87 92     ..
     ora #0                                                            ; 9bb7: 09 00       ..
     bpl c9be9                                                         ; 9bb9: 10 2e       ..
     asl a                                                             ; 9bbb: 0a          .
@@ -6031,13 +6031,13 @@ bad_prefix = sub_c969d+1
     bcs c9bc9                                                         ; 9bc4: b0 03       ..
 ; &9bc6 referenced 1 time by &9bcb
 .loop_c9bc6
-    jmp cb472                                                         ; 9bc6: 4c 72 b4    Lr.
+    jmp err_net_chan_invalid                                          ; 9bc6: 4c 72 b4    Lr.
 
 ; &9bc9 referenced 1 time by &9bc4
 .c9bc9
     cmp #&30 ; '0'                                                    ; 9bc9: c9 30       .0
     bcs loop_c9bc6                                                    ; 9bcb: b0 f9       ..
-    jsr sub_cb79f                                                     ; 9bcd: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 9bcd: 20 9f b7     ..
     tya                                                               ; 9bd0: 98          .
     pha                                                               ; 9bd1: 48          H
     tax                                                               ; 9bd2: aa          .
@@ -6048,7 +6048,7 @@ bad_prefix = sub_c969d+1
 .loop_c9bd9
     lda l1010,x                                                       ; 9bd9: bd 10 10    ...
     sta (fs_options),y                                                ; 9bdc: 91 bb       ..
-    jsr sub_cbc84                                                     ; 9bde: 20 84 bc     ..
+    jsr advance_x_by_8                                                ; 9bde: 20 84 bc     ..
     iny                                                               ; 9be1: c8          .
     cpy #4                                                            ; 9be2: c0 04       ..
     bne loop_c9bd9                                                    ; 9be4: d0 f3       ..
@@ -6069,7 +6069,7 @@ bad_prefix = sub_c969d+1
     pha                                                               ; 9bf6: 48          H
     tya                                                               ; 9bf7: 98          .
     pha                                                               ; 9bf8: 48          H
-    jsr sub_cb4e3                                                     ; 9bf9: 20 e3 b4     ..
+    jsr check_not_dir                                                 ; 9bf9: 20 e3 b4     ..
     pla                                                               ; 9bfc: 68          h
     ldy #&0e                                                          ; 9bfd: a0 0e       ..
     sta (net_rx_ptr),y                                                ; 9bff: 91 9c       ..
@@ -6084,7 +6084,7 @@ bad_prefix = sub_c969d+1
     pha                                                               ; 9c0e: 48          H
     ldx fs_options                                                    ; 9c0f: a6 bb       ..
     ldy fs_block_offset                                               ; 9c11: a4 bc       ..
-    jsr sub_cb79f                                                     ; 9c13: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 9c13: 20 9f b7     ..
     lda l1010,y                                                       ; 9c16: b9 10 10    ...
     sta l0f05                                                         ; 9c19: 8d 05 0f    ...
     pla                                                               ; 9c1c: 68          h
@@ -6103,19 +6103,19 @@ bad_prefix = sub_c969d+1
     bpl loop_c9c27                                                    ; 9c2e: 10 f7       ..
     ldy #&0d                                                          ; 9c30: a0 0d       ..
     ldx #5                                                            ; 9c32: a2 05       ..
-    jsr c9499                                                         ; 9c34: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9c34: 20 99 94     ..
     stx fs_last_byte_flag                                             ; 9c37: 86 bd       ..
     pla                                                               ; 9c39: 68          h
-    jsr sub_c92a1                                                     ; 9c3a: 20 a1 92     ..
+    jsr set_conn_active                                               ; 9c3a: 20 a1 92     ..
 ; &9c3d referenced 1 time by &9beb
 .c9c3d
-    jmp c9cb9                                                         ; 9c3d: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9c3d: 4c b9 9c    L..
 
 ; &9c40 referenced 1 time by &9c23
 .c9c40
     ldy #&0c                                                          ; 9c40: a0 0c       ..
     ldx #2                                                            ; 9c42: a2 02       ..
-    jsr c9499                                                         ; 9c44: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9c44: 20 99 94     ..
     sta fs_last_byte_flag                                             ; 9c47: 85 bd       ..
     ldx fs_options                                                    ; 9c49: a6 bb       ..
     ldy #2                                                            ; 9c4b: a0 02       ..
@@ -6128,13 +6128,13 @@ bad_prefix = sub_c969d+1
     dey                                                               ; 9c55: 88          .
     bpl loop_c9c4f                                                    ; 9c56: 10 f7       ..
     pla                                                               ; 9c58: 68          h
-    jmp c9cb9                                                         ; 9c59: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9c59: 4c b9 9c    L..
 
 ; &9c5c referenced 1 time by &9c0b
 .c9c5c
     bcs c9c7e                                                         ; 9c5c: b0 20       .
     lda fs_block_offset                                               ; 9c5e: a5 bc       ..
-    jsr sub_cb45b                                                     ; 9c60: 20 5b b4     [.
+    jsr attr_to_chan_index                                            ; 9c60: 20 5b b4     [.
     ldy fs_options                                                    ; 9c63: a4 bb       ..
     lda l1000,x                                                       ; 9c65: bd 00 10    ...
     sta zp_ptr_lo,y                                                   ; 9c68: 99 00 00    ...
@@ -6144,7 +6144,7 @@ bad_prefix = sub_c969d+1
     sta zp_work_2,y                                                   ; 9c74: 99 02 00    ...
     lda #0                                                            ; 9c77: a9 00       ..
     sta zp_work_3,y                                                   ; 9c79: 99 03 00    ...
-    beq c9cb9                                                         ; 9c7c: f0 3b       .;             ; ALWAYS branch
+    beq return_with_last_flag                                         ; 9c7c: f0 3b       .;             ; ALWAYS branch
 
 ; &9c7e referenced 1 time by &9c5c
 .c9c7e
@@ -6161,29 +6161,29 @@ bad_prefix = sub_c969d+1
     bpl loop_c9c85                                                    ; 9c8c: 10 f7       ..
     ldy #&0d                                                          ; 9c8e: a0 0d       ..
     ldx #5                                                            ; 9c90: a2 05       ..
-    jsr c9499                                                         ; 9c92: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9c92: 20 99 94     ..
     stx fs_last_byte_flag                                             ; 9c95: 86 bd       ..
     pla                                                               ; 9c97: 68          h
     tay                                                               ; 9c98: a8          .
     lda fs_block_offset                                               ; 9c99: a5 bc       ..
-    jsr sub_c92b8                                                     ; 9c9b: 20 b8 92     ..
-    jsr sub_cb45b                                                     ; 9c9e: 20 5b b4     [.
+    jsr clear_conn_active                                             ; 9c9b: 20 b8 92     ..
+    jsr attr_to_chan_index                                            ; 9c9e: 20 5b b4     [.
     lda zp_ptr_lo,y                                                   ; 9ca1: b9 00 00    ...
     sta l1000,x                                                       ; 9ca4: 9d 00 10    ...
     lda zp_ptr_hi,y                                                   ; 9ca7: b9 01 00    ...
     sta l1010,x                                                       ; 9caa: 9d 10 10    ...
     lda zp_work_2,y                                                   ; 9cad: b9 02 00    ...
     sta l1020,x                                                       ; 9cb0: 9d 20 10    . .
-    jmp c9cb9                                                         ; 9cb3: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9cb3: 4c b9 9c    L..
 
 ; &9cb6 referenced 1 time by &9bbe
 .c9cb6
-    jsr sub_cb79f                                                     ; 9cb6: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 9cb6: 20 9f b7     ..
 ; &9cb9 referenced 12 times by &9935, &9a42, &9b37, &9c3d, &9c59, &9c7c, &9cb3, &9daf, &9e36, &a2df, &a2e5, &a399
-.c9cb9
+.return_with_last_flag
     lda fs_last_byte_flag                                             ; 9cb9: a5 bd       ..
 ; &9cbb referenced 6 times by &9b80, &9cd1, &9ce4, &9d7b, &9ebd, &a1ee
-.c9cbb
+.finalise_and_return
     pha                                                               ; 9cbb: 48          H
     lda #0                                                            ; 9cbc: a9 00       ..
     ldy #&0e                                                          ; 9cbe: a0 0e       ..
@@ -6200,7 +6200,7 @@ bad_prefix = sub_c969d+1
     tay                                                               ; 9ccc: a8          .
     bne c9cd3                                                         ; 9ccd: d0 04       ..
     lda #5                                                            ; 9ccf: a9 05       ..
-    bne c9cbb                                                         ; 9cd1: d0 e8       ..             ; ALWAYS branch
+    bne finalise_and_return                                           ; 9cd1: d0 e8       ..             ; ALWAYS branch
 
 ; &9cd3 referenced 2 times by &9ccd, &9cd9
 .c9cd3
@@ -6219,26 +6219,26 @@ bad_prefix = sub_c969d+1
 ; &9ce3 referenced 1 time by &9cdf
 .c9ce3
     lsr a                                                             ; 9ce3: 4a          J
-    bpl c9cbb                                                         ; 9ce4: 10 d5       ..
+    bpl finalise_and_return                                           ; 9ce4: 10 d5       ..
 ; &9ce6 referenced 1 time by &9d55
 .c9ce6
     and #&3f ; '?'                                                    ; 9ce6: 29 3f       )?
     bne c9ce1                                                         ; 9ce8: d0 f7       ..
     txa                                                               ; 9cea: 8a          .
-    jsr sub_cb52e                                                     ; 9ceb: 20 2e b5     ..
+    jsr alloc_fcb_or_error                                            ; 9ceb: 20 2e b5     ..
     eor #&80                                                          ; 9cee: 49 80       I.
     asl a                                                             ; 9cf0: 0a          .
     sta l0f05                                                         ; 9cf1: 8d 05 0f    ...
     rol a                                                             ; 9cf4: 2a          *
     sta l0f06                                                         ; 9cf5: 8d 06 0f    ...
-    jsr sub_cae80                                                     ; 9cf8: 20 80 ae     ..
+    jsr parse_cmd_arg_y0                                              ; 9cf8: 20 80 ae     ..
     ldx #2                                                            ; 9cfb: a2 02       ..
-    jsr sub_caef2                                                     ; 9cfd: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; 9cfd: 20 f2 ae     ..
     ldy #6                                                            ; 9d00: a0 06       ..
     bit l947d                                                         ; 9d02: 2c 7d 94    ,}.
     sec                                                               ; 9d05: 38          8
     ror escapable                                                     ; 9d06: 66 97       f.
-    jsr c949a                                                         ; 9d08: 20 9a 94     ..
+    jsr save_net_tx_cb_vset                                           ; 9d08: 20 9a 94     ..
     bcs c9d7b                                                         ; 9d0b: b0 6e       .n
     lda #&ff                                                          ; 9d0d: a9 ff       ..
     ldy #&0e                                                          ; 9d0f: a0 0e       ..
@@ -6256,7 +6256,7 @@ bad_prefix = sub_c969d+1
     cmp #&0d                                                          ; 9d25: c9 0d       ..
     bne loop_c9d1e                                                    ; 9d27: d0 f5       ..
     ldy #&12                                                          ; 9d29: a0 12       ..
-    jsr c9499                                                         ; 9d2b: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9d2b: 20 99 94     ..
     lda fs_last_byte_flag                                             ; 9d2e: a5 bd       ..
     and #&bf                                                          ; 9d30: 29 bf       ).
     ora l0f05                                                         ; 9d32: 0d 05 0f    ...
@@ -6265,15 +6265,15 @@ bad_prefix = sub_c969d+1
     and #2                                                            ; 9d38: 29 02       ).
     beq c9d5f                                                         ; 9d3a: f0 23       .#
     pla                                                               ; 9d3c: 68          h
-    jsr sub_cb4fa                                                     ; 9d3d: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; 9d3d: 20 fa b4     ..
     bne c9d75                                                         ; 9d40: d0 33       .3
-    jsr sub_c8fb2                                                     ; 9d42: 20 b2 8f     ..
-    jsr sub_c9281                                                     ; 9d45: 20 81 92     ..
+    jsr verify_ws_checksum                                            ; 9d42: 20 b2 8f     ..
+    jsr set_xfer_params                                               ; 9d45: 20 81 92     ..
     tax                                                               ; 9d48: aa          .
-    jsr sub_caf12                                                     ; 9d49: 20 12 af     ..
+    jsr mask_owner_access                                             ; 9d49: 20 12 af     ..
     txa                                                               ; 9d4c: 8a          .
     beq c9d7e                                                         ; 9d4d: f0 2f       ./
-    jsr sub_caf95                                                     ; 9d4f: 20 95 af     ..
+    jsr save_ptr_to_os_text                                           ; 9d4f: 20 95 af     ..
     ldy l1070                                                         ; 9d52: ac 70 10    .p.
     beq c9ce6                                                         ; 9d55: f0 8f       ..
     tya                                                               ; 9d57: 98          .
@@ -6296,7 +6296,7 @@ bad_prefix = sub_c969d+1
 ; &9d71 referenced 3 times by &9d63, &9d66, &9d6b
 .c9d71
     pla                                                               ; 9d71: 68          h
-    jsr sub_cb4fa                                                     ; 9d72: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; 9d72: 20 fa b4     ..
 ; &9d75 referenced 1 time by &9d40
 .c9d75
     tax                                                               ; 9d75: aa          .
@@ -6305,11 +6305,11 @@ bad_prefix = sub_c969d+1
     txa                                                               ; 9d7a: 8a          .
 ; &9d7b referenced 2 times by &9d0b, &9d5d
 .c9d7b
-    jmp c9cbb                                                         ; 9d7b: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; 9d7b: 4c bb 9c    L..
 
 ; &9d7e referenced 1 time by &9d4d
 .c9d7e
-    jsr sub_cb79f                                                     ; 9d7e: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 9d7e: 20 9f b7     ..
     tya                                                               ; 9d81: 98          .
     bne c9d97                                                         ; 9d82: d0 13       ..
     lda fs_options                                                    ; 9d84: a5 bb       ..
@@ -6325,21 +6325,21 @@ bad_prefix = sub_c969d+1
 
 ; &9d97 referenced 1 time by &9d82
 .c9d97
-    jsr sub_cb46a                                                     ; 9d97: 20 6a b4     j.
+    jsr check_chan_char                                               ; 9d97: 20 6a b4     j.
     lda l1030,x                                                       ; 9d9a: bd 30 10    .0.
 ; &9d9d referenced 1 time by &9d95
 .c9d9d
     sta l0f05                                                         ; 9d9d: 8d 05 0f    ...
     ldx #1                                                            ; 9da0: a2 01       ..
     ldy #7                                                            ; 9da2: a0 07       ..
-    jsr c9499                                                         ; 9da4: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9da4: 20 99 94     ..
     ldy fs_block_offset                                               ; 9da7: a4 bc       ..
     bne c9db2                                                         ; 9da9: d0 07       ..
     clv                                                               ; 9dab: b8          .
-    jsr sub_cb551                                                     ; 9dac: 20 51 b5     Q.
+    jsr scan_fcb_flags                                                ; 9dac: 20 51 b5     Q.
 ; &9daf referenced 3 times by &9dba, &9dcc, &9de0
 .c9daf
-    jmp c9cb9                                                         ; 9daf: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9daf: 4c b9 9c    L..
 
 ; &9db2 referenced 1 time by &9da9
 .c9db2
@@ -6364,22 +6364,22 @@ bad_prefix = sub_c969d+1
 ; &9dce referenced 1 time by &9dc7
 .c9dce
     lda #7                                                            ; 9dce: a9 07       ..
-    jmp c9638                                                         ; 9dd0: 4c 38 96    L8.
+    jmp classify_reply_error                                          ; 9dd0: 4c 38 96    L8.
 
 ; &9dd3 referenced 1 time by &9dc4
 .c9dd3
     sty l0f05                                                         ; 9dd3: 8c 05 0f    ...
     ldy #&16                                                          ; 9dd6: a0 16       ..
-    jsr c9499                                                         ; 9dd8: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9dd8: 20 99 94     ..
     ldy fs_block_offset                                               ; 9ddb: a4 bc       ..
     sty l0e05                                                         ; 9ddd: 8c 05 0e    ...
     bpl c9daf                                                         ; 9de0: 10 cd       ..
-    jsr sub_c8fb2                                                     ; 9de2: 20 b2 8f     ..
+    jsr verify_ws_checksum                                            ; 9de2: 20 b2 8f     ..
     pha                                                               ; 9de5: 48          H
     lda fs_block_offset                                               ; 9de6: a5 bc       ..
     pha                                                               ; 9de8: 48          H
     stx l10c9                                                         ; 9de9: 8e c9 10    ...
-    jsr sub_cb738                                                     ; 9dec: 20 38 b7     8.
+    jsr find_matching_fcb                                             ; 9dec: 20 38 b7     8.
     beq c9dfd                                                         ; 9def: f0 0c       ..
     lda l1000,y                                                       ; 9df1: b9 00 10    ...
     cmp l1098,x                                                       ; 9df4: dd 98 10    ...
@@ -6398,17 +6398,17 @@ bad_prefix = sub_c969d+1
     rts                                                               ; 9e02: 60          `
 
 ; &9e03 referenced 1 time by &9f48
-.sub_c9e03
+.update_addr_from_offset9
     ldy #9                                                            ; 9e03: a0 09       ..
-    jsr sub_c9e0a                                                     ; 9e05: 20 0a 9e     ..
+    jsr add_workspace_to_fsopts                                       ; 9e05: 20 0a 9e     ..
 ; &9e08 referenced 1 time by &a03b
-.sub_c9e08
+.update_addr_from_offset1
     ldy #1                                                            ; 9e08: a0 01       ..
 ; &9e0a referenced 1 time by &9e05
-.sub_c9e0a
+.add_workspace_to_fsopts
     clc                                                               ; 9e0a: 18          .
 ; &9e0b referenced 2 times by &9f4e, &a047
-.sub_c9e0b
+.adjust_fsopts_4bytes
     ldx #&fc                                                          ; 9e0b: a2 fc       ..
 ; &9e0d referenced 1 time by &9e20
 .loop_c9e0d
@@ -6429,10 +6429,10 @@ bad_prefix = sub_c969d+1
     bne loop_c9e0d                                                    ; 9e20: d0 eb       ..
     rts                                                               ; 9e22: 60          `
 
-    jsr sub_c8fb2                                                     ; 9e23: 20 b2 8f     ..
-    jsr sub_c9281                                                     ; 9e26: 20 81 92     ..
+    jsr verify_ws_checksum                                            ; 9e23: 20 b2 8f     ..
+    jsr set_xfer_params                                               ; 9e26: 20 81 92     ..
     pha                                                               ; 9e29: 48          H
-    jsr sub_caf12                                                     ; 9e2a: 20 12 af     ..
+    jsr mask_owner_access                                             ; 9e2a: 20 12 af     ..
     pla                                                               ; 9e2d: 68          h
     tax                                                               ; 9e2e: aa          .
     beq c9e36                                                         ; 9e2f: f0 05       ..
@@ -6441,7 +6441,7 @@ bad_prefix = sub_c969d+1
     bcc c9e39                                                         ; 9e34: 90 03       ..
 ; &9e36 referenced 1 time by &9e2f
 .c9e36
-    jmp c9cb9                                                         ; 9e36: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; 9e36: 4c b9 9c    L..
 
 ; &9e39 referenced 1 time by &9e34
 .c9e39
@@ -6456,10 +6456,10 @@ bad_prefix = sub_c969d+1
 .c9e44
     lda (fs_options),y                                                ; 9e44: b1 bb       ..
     pha                                                               ; 9e46: 48          H
-    jsr sub_cb4e3                                                     ; 9e47: 20 e3 b4     ..
+    jsr check_not_dir                                                 ; 9e47: 20 e3 b4     ..
     pla                                                               ; 9e4a: 68          h
     tay                                                               ; 9e4b: a8          .
-    jsr sub_cb79f                                                     ; 9e4c: 20 9f b7     ..
+    jsr process_all_fcbs                                              ; 9e4c: 20 9f b7     ..
     lda l1030,x                                                       ; 9e4f: bd 30 10    .0.
     sta l0f05                                                         ; 9e52: 8d 05 0f    ...
     lda #0                                                            ; 9e55: a9 00       ..
@@ -6472,27 +6472,27 @@ bad_prefix = sub_c969d+1
     sta l0f09                                                         ; 9e69: 8d 09 0f    ...
     ldy #&0d                                                          ; 9e6c: a0 0d       ..
     ldx #5                                                            ; 9e6e: a2 05       ..
-    jsr c9499                                                         ; 9e70: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9e70: 20 99 94     ..
     pla                                                               ; 9e73: 68          h
-    jsr c9ecb                                                         ; 9e74: 20 cb 9e     ..
+    jsr setup_transfer_workspace                                      ; 9e74: 20 cb 9e     ..
     php                                                               ; 9e77: 08          .
     ldy #0                                                            ; 9e78: a0 00       ..
     lda (fs_options),y                                                ; 9e7a: b1 bb       ..
     bcs c9e83                                                         ; 9e7c: b0 05       ..
-    jsr sub_c92b8                                                     ; 9e7e: 20 b8 92     ..
+    jsr clear_conn_active                                             ; 9e7e: 20 b8 92     ..
     bpl c9e86                                                         ; 9e81: 10 03       ..
 ; &9e83 referenced 1 time by &9e7c
 .c9e83
-    jsr sub_c92a1                                                     ; 9e83: 20 a1 92     ..
+    jsr set_conn_active                                               ; 9e83: 20 a1 92     ..
 ; &9e86 referenced 1 time by &9e81
 .c9e86
     sty l0f06                                                         ; 9e86: 8c 06 0f    ...
-    jsr sub_c9ec4                                                     ; 9e89: 20 c4 9e     ..
+    jsr lookup_cat_slot_data                                          ; 9e89: 20 c4 9e     ..
     sta l0f05                                                         ; 9e8c: 8d 05 0f    ...
     ldy #&0c                                                          ; 9e8f: a0 0c       ..
     ldx #2                                                            ; 9e91: a2 02       ..
-    jsr c9499                                                         ; 9e93: 20 99 94     ..
-    jsr sub_c9ec0                                                     ; 9e96: 20 c0 9e     ..
+    jsr save_net_tx_cb                                                ; 9e93: 20 99 94     ..
+    jsr lookup_cat_entry_0                                            ; 9e96: 20 c0 9e     ..
     ldy #9                                                            ; 9e99: a0 09       ..
     lda l0f05                                                         ; 9e9b: ad 05 0f    ...
     sta l1000,x                                                       ; 9e9e: 9d 00 10    ...
@@ -6510,22 +6510,22 @@ bad_prefix = sub_c969d+1
     sta (fs_options),y                                                ; 9eb8: 91 bb       ..
     plp                                                               ; 9eba: 28          (
     lda #0                                                            ; 9ebb: a9 00       ..
-    jmp c9cbb                                                         ; 9ebd: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; 9ebd: 4c bb 9c    L..
 
 ; &9ec0 referenced 2 times by &9e96, &9ecc
-.sub_c9ec0
+.lookup_cat_entry_0
     ldy #0                                                            ; 9ec0: a0 00       ..
     lda (fs_options),y                                                ; 9ec2: b1 bb       ..
 ; &9ec4 referenced 1 time by &9e89
-.sub_c9ec4
-    jsr cb49d                                                         ; 9ec4: 20 9d b4     ..
+.lookup_cat_slot_data
+    jsr lookup_chan_by_char                                           ; 9ec4: 20 9d b4     ..
     lda l1030,x                                                       ; 9ec7: bd 30 10    .0.
     rts                                                               ; 9eca: 60          `
 
 ; &9ecb referenced 2 times by &9e74, &b97c
-.c9ecb
+.setup_transfer_workspace
     pha                                                               ; 9ecb: 48          H
-    jsr sub_c9ec0                                                     ; 9ecc: 20 c0 9e     ..
+    jsr lookup_cat_entry_0                                            ; 9ecc: 20 c0 9e     ..
     sta l0f05                                                         ; 9ecf: 8d 05 0f    ...
     ldy #&0b                                                          ; 9ed2: a0 0b       ..
     ldx #6                                                            ; 9ed4: a2 06       ..
@@ -6562,7 +6562,7 @@ bad_prefix = sub_c969d+1
     stx fs_error_ptr                                                  ; 9efb: 86 b8       ..
     ldx #8                                                            ; 9efd: a2 08       ..
     lda l0f05                                                         ; 9eff: ad 05 0f    ...
-    jsr sub_c9483                                                     ; 9f02: 20 83 94     ..
+    jsr send_request_nowrite                                          ; 9f02: 20 83 94     ..
     ldx #0                                                            ; 9f05: a2 00       ..
     lda (fs_options,x)                                                ; 9f07: a1 bb       ..
     tax                                                               ; 9f09: aa          .
@@ -6576,10 +6576,10 @@ bad_prefix = sub_c969d+1
     lda (fs_options),y                                                ; 9f15: b1 bb       ..
     sta l00af,y                                                       ; 9f17: 99 af 00    ...
     sta txcb_pos,y                                                    ; 9f1a: 99 c7 00    ...
-    jsr sub_c9a6d                                                     ; 9f1d: 20 6d 9a     m.
+    jsr advance_y_by_4                                                ; 9f1d: 20 6d 9a     m.
     adc (fs_options),y                                                ; 9f20: 71 bb       q.
     sta l00af,y                                                       ; 9f22: 99 af 00    ...
-    jsr sub_c9a80                                                     ; 9f25: 20 80 9a     ..
+    jsr retreat_y_by_3                                                ; 9f25: 20 80 9a     ..
     dex                                                               ; 9f28: ca          .
     bne loop_c9f15                                                    ; 9f29: d0 ea       ..
     inx                                                               ; 9f2b: e8          .
@@ -6592,33 +6592,33 @@ bad_prefix = sub_c969d+1
     pla                                                               ; 9f35: 68          h
     bne c9f40                                                         ; 9f36: d0 08       ..
     lda l0f02                                                         ; 9f38: ad 02 0f    ...
-    jsr sub_c9a88                                                     ; 9f3b: 20 88 9a     ..
+    jsr check_and_setup_txcb                                          ; 9f3b: 20 88 9a     ..
     bcs c9f43                                                         ; 9f3e: b0 03       ..
 ; &9f40 referenced 1 time by &9f36
 .c9f40
-    jsr sub_c9984                                                     ; 9f40: 20 84 99     ..
+    jsr send_txcb_swap_addrs                                          ; 9f40: 20 84 99     ..
 ; &9f43 referenced 1 time by &9f3e
 .c9f43
-    jsr sub_c94dc                                                     ; 9f43: 20 dc 94     ..
+    jsr recv_and_process_reply                                        ; 9f43: 20 dc 94     ..
     stx fs_load_addr_2                                                ; 9f46: 86 b2       ..
-    jsr sub_c9e03                                                     ; 9f48: 20 03 9e     ..
+    jsr update_addr_from_offset9                                      ; 9f48: 20 03 9e     ..
     dec fs_load_addr_2                                                ; 9f4b: c6 b2       ..
     sec                                                               ; 9f4d: 38          8
-    jsr sub_c9e0b                                                     ; 9f4e: 20 0b 9e     ..
+    jsr adjust_fsopts_4bytes                                          ; 9f4e: 20 0b 9e     ..
     asl l0f05                                                         ; 9f51: 0e 05 0f    ...
     rts                                                               ; 9f54: 60          `
 
 ; &9f55 referenced 1 time by &9f85
 .c9f55
     ldy #&15                                                          ; 9f55: a0 15       ..
-    jsr c9499                                                         ; 9f57: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; 9f57: 20 99 94     ..
     lda l0e05                                                         ; 9f5a: ad 05 0e    ...
     sta l0f16                                                         ; 9f5d: 8d 16 0f    ...
     stx fs_load_addr                                                  ; 9f60: 86 b0       ..
     stx fs_load_addr_hi                                               ; 9f62: 86 b1       ..
     lda #&12                                                          ; 9f64: a9 12       ..
     sta fs_load_addr_2                                                ; 9f66: 85 b2       ..
-    bne c9fb8                                                         ; 9f68: d0 4e       .N             ; ALWAYS branch
+    bne write_data_block                                              ; 9f68: d0 4e       .N             ; ALWAYS branch
 
 ; &9f6a referenced 1 time by &9e41
 .c9f6a
@@ -6661,12 +6661,12 @@ bad_prefix = sub_c969d+1
     lsr a                                                             ; 9fab: 4a          J
     sta l0f05                                                         ; 9fac: 8d 05 0f    ...
     clc                                                               ; 9faf: 18          .
-    jsr sub_c94c6                                                     ; 9fb0: 20 c6 94     ..
+    jsr prep_send_tx_cb                                               ; 9fb0: 20 c6 94     ..
     stx fs_load_addr_hi                                               ; 9fb3: 86 b1       ..
     inx                                                               ; 9fb5: e8          .
     stx fs_load_addr                                                  ; 9fb6: 86 b0       ..
 ; &9fb8 referenced 2 times by &9f68, &a030
-.c9fb8
+.write_data_block
     lda svc_state                                                     ; 9fb8: a5 a9       ..
     bne c9fcd                                                         ; 9fba: d0 11       ..
     ldx fs_load_addr                                                  ; 9fbc: a6 b0       ..
@@ -6679,11 +6679,11 @@ bad_prefix = sub_c969d+1
     iny                                                               ; 9fc6: c8          .
     dec fs_load_addr_2                                                ; 9fc7: c6 b2       ..
     bne loop_c9fc0                                                    ; 9fc9: d0 f5       ..
-    beq c9ff4                                                         ; 9fcb: f0 27       .'             ; ALWAYS branch
+    beq tail_update_catalogue                                         ; 9fcb: f0 27       .'             ; ALWAYS branch
 
 ; &9fcd referenced 1 time by &9fba
 .c9fcd
-    jsr ca05b                                                         ; 9fcd: 20 5b a0     [.
+    jsr tube_claim_c3                                                 ; 9fcd: 20 5b a0     [.
     lda #1                                                            ; 9fd0: a9 01       ..
     ldx fs_options                                                    ; 9fd2: a6 bb       ..
     ldy fs_block_offset                                               ; 9fd4: a4 bc       ..
@@ -6692,7 +6692,7 @@ bad_prefix = sub_c969d+1
     iny                                                               ; 9fd9: c8          .
 ; &9fda referenced 1 time by &9fd7
 .c9fda
-    jsr c0406                                                         ; 9fda: 20 06 04     ..
+    jsr tube_addr_data_dispatch                                       ; 9fda: 20 06 04     ..
     ldx fs_load_addr                                                  ; 9fdd: a6 b0       ..
 ; &9fdf referenced 1 time by &9fed
 .loop_c9fdf
@@ -6707,9 +6707,9 @@ bad_prefix = sub_c969d+1
     dec fs_load_addr_2                                                ; 9feb: c6 b2       ..
     bne loop_c9fdf                                                    ; 9fed: d0 f0       ..
     lda #&83                                                          ; 9fef: a9 83       ..
-    jsr c0406                                                         ; 9ff1: 20 06 04     ..
+    jsr tube_addr_data_dispatch                                       ; 9ff1: 20 06 04     ..
 ; &9ff4 referenced 2 times by &9fcb, &a058
-.c9ff4
+.tail_update_catalogue
     jmp c9ce1                                                         ; 9ff4: 4c e1 9c    L..
 
 ; &9ff7 referenced 1 time by &9f8a
@@ -6726,7 +6726,7 @@ bad_prefix = sub_c969d+1
     sty fs_load_addr                                                  ; a00c: 84 b0       ..
     sty l0f05                                                         ; a00e: 8c 05 0f    ...
     iny                                                               ; a011: c8          .              ; Y=&03
-    jsr c9499                                                         ; a012: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; a012: 20 99 94     ..
     stx fs_load_addr_hi                                               ; a015: 86 b1       ..
     lda l0f06                                                         ; a017: ad 06 0f    ...
     sta (fs_options,x)                                                ; a01a: 81 bb       ..
@@ -6739,7 +6739,7 @@ bad_prefix = sub_c969d+1
     sta l0f06                                                         ; a029: 8d 06 0f    ...
     sta fs_load_addr_2                                                ; a02c: 85 b2       ..
     beq ca033                                                         ; a02e: f0 03       ..
-    jsr c9fb8                                                         ; a030: 20 b8 9f     ..
+    jsr write_data_block                                              ; a030: 20 b8 9f     ..
 ; &a033 referenced 1 time by &a02e
 .ca033
     ldx #2                                                            ; a033: a2 02       ..
@@ -6748,12 +6748,12 @@ bad_prefix = sub_c969d+1
     sta l0f07,x                                                       ; a035: 9d 07 0f    ...
     dex                                                               ; a038: ca          .
     bpl loop_ca035                                                    ; a039: 10 fa       ..
-    jsr sub_c9e08                                                     ; a03b: 20 08 9e     ..
+    jsr update_addr_from_offset1                                      ; a03b: 20 08 9e     ..
     sec                                                               ; a03e: 38          8
     dec fs_load_addr_2                                                ; a03f: c6 b2       ..
     lda l0f05                                                         ; a041: ad 05 0f    ...
     sta l0f06                                                         ; a044: 8d 06 0f    ...
-    jsr sub_c9e0b                                                     ; a047: 20 0b 9e     ..
+    jsr adjust_fsopts_4bytes                                          ; a047: 20 0b 9e     ..
     ldx #3                                                            ; a04a: a2 03       ..
     ldy #5                                                            ; a04c: a0 05       ..
     sec                                                               ; a04e: 38          8
@@ -6767,13 +6767,13 @@ bad_prefix = sub_c969d+1
     clc                                                               ; a057: 18          .
 ; &a058 referenced 1 time by &a051
 .ca058
-    jmp c9ff4                                                         ; a058: 4c f4 9f    L..
+    jmp tail_update_catalogue                                         ; a058: 4c f4 9f    L..
 
 ; &a05b referenced 3 times by &9fcd, &a060, &a2cb
-.ca05b
+.tube_claim_c3
     lda #&c3                                                          ; a05b: a9 c3       ..
-    jsr c0406                                                         ; a05d: 20 06 04     ..
-    bcc ca05b                                                         ; a060: 90 f9       ..
+    jsr tube_addr_data_dispatch                                       ; a05d: 20 06 04     ..
+    bcc tube_claim_c3                                                 ; a060: 90 f9       ..
     rts                                                               ; a062: 60          `
 
 ; ***************************************************************************************
@@ -6788,7 +6788,7 @@ bad_prefix = sub_c969d+1
     lda (fs_crc_lo),y                                                 ; a06d: b1 be       ..
     cmp #&0d                                                          ; a06f: c9 0d       ..
     beq ca083                                                         ; a071: f0 10       ..
-    jsr sub_ca08f                                                     ; a073: 20 8f a0     ..
+    jsr parse_fs_ps_args                                              ; a073: 20 8f a0     ..
     lda #1                                                            ; a076: a9 01       ..
     sta fs_work_4                                                     ; a078: 85 b4       ..
     lda #&13                                                          ; a07a: a9 13       ..
@@ -6798,24 +6798,24 @@ bad_prefix = sub_c969d+1
 
 ; &a083 referenced 1 time by &a071
 .ca083
-    jsr sub_cb0a1                                                     ; a083: 20 a1 b0     ..
+    jsr print_file_server_is                                          ; a083: 20 a1 b0     ..
 ; &a086 referenced 1 time by &b092
-.sub_ca086
+.print_fs_info_newline
     bit l947d                                                         ; a086: 2c 7d 94    ,}.
-    jsr sub_cb174                                                     ; a089: 20 74 b1     t.
+    jsr print_station_addr                                            ; a089: 20 74 b1     t.
     jmp osnewl                                                        ; a08c: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &a08f referenced 3 times by &a073, &aff1, &b1c4
-.sub_ca08f
+.parse_fs_ps_args
     txa                                                               ; a08f: 8a          .
     pha                                                               ; a090: 48          H
     lda #0                                                            ; a091: a9 00       ..
     sta fs_work_4                                                     ; a093: 85 b4       ..
-    jsr sub_c915a                                                     ; a095: 20 5a 91     Z.
+    jsr parse_addr_arg                                                ; a095: 20 5a 91     Z.
     bcs ca0ad                                                         ; a098: b0 13       ..
     tya                                                               ; a09a: 98          .
     pha                                                               ; a09b: 48          H
-    jsr sub_ca868                                                     ; a09c: 20 68 a8     h.
+    jsr init_bridge_poll                                              ; a09c: 20 68 a8     h.
     eor fs_load_addr_2                                                ; a09f: 45 b2       E.
     beq ca0a5                                                         ; a0a1: f0 02       ..
     lda fs_load_addr_2                                                ; a0a3: a5 b2       ..
@@ -6825,7 +6825,7 @@ bad_prefix = sub_c969d+1
     pla                                                               ; a0a7: 68          h
     tay                                                               ; a0a8: a8          .
     iny                                                               ; a0a9: c8          .
-    jsr sub_c915a                                                     ; a0aa: 20 5a 91     Z.
+    jsr parse_addr_arg                                                ; a0aa: 20 5a 91     Z.
 ; &a0ad referenced 1 time by &a098
 .ca0ad
     beq ca0b1                                                         ; a0ad: f0 02       ..
@@ -6837,10 +6837,10 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a0b3: 60          `
 
 ; &a0b4 referenced 2 times by &a0d2, &a0e2
-.sub_ca0b4
+.get_pb_ptr_as_index
     lda osword_pb_ptr                                                 ; a0b4: a5 f0       ..
 ; &a0b6 referenced 2 times by &8f13, &b0e4
-.sub_ca0b6
+.byte_to_2bit_index
     asl a                                                             ; a0b6: 0a          .
     asl a                                                             ; a0b7: 0a          .
     pha                                                               ; a0b8: 48          H
@@ -6864,7 +6864,7 @@ bad_prefix = sub_c969d+1
     ldy #&6f ; 'o'                                                    ; a0cc: a0 6f       .o
     lda (net_rx_ptr),y                                                ; a0ce: b1 9c       ..
     bcc ca0df                                                         ; a0d0: 90 0d       ..
-    jsr sub_ca0b4                                                     ; a0d2: 20 b4 a0     ..
+    jsr get_pb_ptr_as_index                                           ; a0d2: 20 b4 a0     ..
     bcs ca0dd                                                         ; a0d5: b0 06       ..
     lda (nfs_workspace),y                                             ; a0d7: b1 9e       ..
     cmp #&3f ; '?'                                                    ; a0d9: c9 3f       .?
@@ -6877,7 +6877,7 @@ bad_prefix = sub_c969d+1
     sta osword_pb_ptr                                                 ; a0df: 85 f0       ..
     rts                                                               ; a0e1: 60          `
 
-    jsr sub_ca0b4                                                     ; a0e2: 20 b4 a0     ..
+    jsr get_pb_ptr_as_index                                           ; a0e2: 20 b4 a0     ..
     bcc ca0f1                                                         ; a0e5: 90 0a       ..
     ror l0d6c                                                         ; a0e7: 6e 6c 0d    nl.
     lda osword_pb_ptr                                                 ; a0ea: a5 f0       ..
@@ -6894,20 +6894,20 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a0fb: 60          `
 
 ; &a0fc referenced 1 time by &8cee
-.ca0fc
-    jsr sub_c927d                                                     ; a0fc: 20 7d 92     }.
+.cmd_fs_entry
+    jsr set_text_and_xfer_ptr                                         ; a0fc: 20 7d 92     }.
     ldy #&ff                                                          ; a0ff: a0 ff       ..
     sty fs_spool_handle                                               ; a101: 84 ba       ..
     sty escapable                                                     ; a103: 84 97       ..
     iny                                                               ; a105: c8          .              ; Y=&00
     ldx #&4a ; 'J'                                                    ; a106: a2 4a       .J
-    jsr sub_ca128                                                     ; a108: 20 28 a1     (.
+    jsr match_fs_cmd                                                  ; a108: 20 28 a1     (.
     bcs ca11b                                                         ; a10b: b0 0e       ..
 ; &a10d referenced 1 time by &8c4f
-.ca10d
+.cmd_fs_reentry
     bvc ca11b                                                         ; a10d: 50 0c       P.
 ; &a10f referenced 1 time by &af4f
-.ca10f
+.error_syntax
     lda #&dc                                                          ; a10f: a9 dc       ..
     jsr error_inline                                                  ; a111: 20 be 96     ..
     equs "Syntax", 0                                                  ; a114: 53 79 6e... Syn
@@ -6923,7 +6923,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a127: 60          `
 
 ; &a128 referenced 5 times by &8c4a, &8c78, &a108, &b304, &b331
-.sub_ca128
+.match_fs_cmd
     tya                                                               ; a128: 98          .
     pha                                                               ; a129: 48          H
 ; &a12a referenced 1 time by &a150
@@ -7038,17 +7038,17 @@ bad_prefix = sub_c969d+1
     sec                                                               ; a1a6: 38          8
     bcs loop_ca18c                                                    ; a1a7: b0 e3       ..             ; ALWAYS branch
 
-    jsr sub_caf95                                                     ; a1a9: 20 95 af     ..
-    jsr sub_caf12                                                     ; a1ac: 20 12 af     ..
-    jsr sub_cae80                                                     ; a1af: 20 80 ae     ..
+    jsr save_ptr_to_os_text                                           ; a1a9: 20 95 af     ..
+    jsr mask_owner_access                                             ; a1ac: 20 12 af     ..
+    jsr parse_cmd_arg_y0                                              ; a1af: 20 80 ae     ..
 ; &a1b2 referenced 1 time by &a229
 .ca1b2
     ldx #1                                                            ; a1b2: a2 01       ..
-    jsr sub_caef2                                                     ; a1b4: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; a1b4: 20 f2 ae     ..
     lda #2                                                            ; a1b7: a9 02       ..
     sta l0f05                                                         ; a1b9: 8d 05 0f    ...
     ldy #&12                                                          ; a1bc: a0 12       ..
-    jsr c9499                                                         ; a1be: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; a1be: 20 99 94     ..
     lda l0f05                                                         ; a1c1: ad 05 0f    ...
     cmp #1                                                            ; a1c4: c9 01       ..
     bne ca1f1                                                         ; a1c6: d0 29       .)
@@ -7063,32 +7063,32 @@ bad_prefix = sub_c969d+1
 .ca1d2
     dex                                                               ; a1d2: ca          .
     bpl loop_ca1ca                                                    ; a1d3: 10 f5       ..
-    jsr sub_cb52e                                                     ; a1d5: 20 2e b5     ..
+    jsr alloc_fcb_or_error                                            ; a1d5: 20 2e b5     ..
     ldx #1                                                            ; a1d8: a2 01       ..
     stx l0f05                                                         ; a1da: 8e 05 0f    ...
     stx l0f06                                                         ; a1dd: 8e 06 0f    ...
     inx                                                               ; a1e0: e8          .              ; X=&02
-    jsr sub_caef2                                                     ; a1e1: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; a1e1: 20 f2 ae     ..
     ldy #6                                                            ; a1e4: a0 06       ..
-    jsr c9499                                                         ; a1e6: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; a1e6: 20 99 94     ..
     bcs ca1ee                                                         ; a1e9: b0 03       ..
     jmp ca265                                                         ; a1eb: 4c 65 a2    Le.
 
 ; &a1ee referenced 1 time by &a1e9
 .ca1ee
-    jmp c9cbb                                                         ; a1ee: 4c bb 9c    L..
+    jmp finalise_and_return                                           ; a1ee: 4c bb 9c    L..
 
 ; &a1f1 referenced 1 time by &a1c6
 .ca1f1
     lda l0e30                                                         ; a1f1: ad 30 0e    .0.
     cmp #&24 ; '$'                                                    ; a1f4: c9 24       .$
-    beq ca245                                                         ; a1f6: f0 4d       .M
+    beq error_bad_command                                             ; a1f6: f0 4d       .M
     lda l1071                                                         ; a1f8: ad 71 10    .q.
     bmi ca242                                                         ; a1fb: 30 45       0E
     rol a                                                             ; a1fd: 2a          *
     rol a                                                             ; a1fe: 2a          *
     bmi ca22b                                                         ; a1ff: 30 2a       0*
-    bcs ca245                                                         ; a201: b0 42       .B
+    bcs error_bad_command                                             ; a201: b0 42       .B
     ldx #&ff                                                          ; a203: a2 ff       ..
 ; &a205 referenced 1 time by &a20b
 .loop_ca205
@@ -7125,16 +7125,16 @@ bad_prefix = sub_c969d+1
     sta l0e30,x                                                       ; a231: 9d 30 0e    .0.
     eor #&0d                                                          ; a234: 49 0d       I.
     bne loop_ca22d                                                    ; a236: d0 f5       ..
-    jsr sub_caf12                                                     ; a238: 20 12 af     ..
+    jsr mask_owner_access                                             ; a238: 20 12 af     ..
     ora #&80                                                          ; a23b: 09 80       ..
     sta l1071                                                         ; a23d: 8d 71 10    .q.
     bne loop_ca229                                                    ; a240: d0 e7       ..             ; ALWAYS branch
 
 ; &a242 referenced 1 time by &a1fb
 .ca242
-    jsr sub_caf12                                                     ; a242: 20 12 af     ..
+    jsr mask_owner_access                                             ; a242: 20 12 af     ..
 ; &a245 referenced 3 times by &a1f6, &a201, &b316
-.ca245
+.error_bad_command
     lda #&fe                                                          ; a245: a9 fe       ..
     jsr error_bad_inline                                              ; a247: 20 a2 96     ..
     equs "command", 0                                                 ; a24a: 63 6f 6d... com
@@ -7155,13 +7155,13 @@ bad_prefix = sub_c969d+1
 ; &a265 referenced 1 time by &a1eb
 .ca265
     lda l0f05                                                         ; a265: ad 05 0f    ...
-    jsr sub_cb4fa                                                     ; a268: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; a268: 20 fa b4     ..
     tay                                                               ; a26b: a8          .
     lda #0                                                            ; a26c: a9 00       ..
     sta l1060,x                                                       ; a26e: 9d 60 10    .`.
     sty l1070                                                         ; a271: 8c 70 10    .p.
     ldy #3                                                            ; a274: a0 03       ..
-    jmp ca3d0                                                         ; a276: 4c d0 a3    L..
+    jmp boot_cmd_oscli                                                ; a276: 4c d0 a3    L..
 
 ; &a279 referenced 1 time by &a218
 .la279
@@ -7169,7 +7169,7 @@ bad_prefix = sub_c969d+1
 
 ; &a281 referenced 1 time by &a257
 .ca281
-    jsr sub_caef0                                                     ; a281: 20 f0 ae     ..
+    jsr copy_arg_to_buf_x0                                            ; a281: 20 f0 ae     ..
     ldy #0                                                            ; a284: a0 00       ..
     clc                                                               ; a286: 18          .
     jsr gsinit                                                        ; a287: 20 c2 ff     ..
@@ -7192,7 +7192,7 @@ bad_prefix = sub_c969d+1
     lda os_text_ptr_hi                                                ; a2a0: a5 f3       ..
     adc #0                                                            ; a2a2: 69 00       i.
     sta l0e0b                                                         ; a2a4: 8d 0b 0e    ...
-    jsr sub_c8afa                                                     ; a2a7: 20 fa 8a     ..
+    jsr save_text_ptr                                                 ; a2a7: 20 fa 8a     ..
     ldx #&0e                                                          ; a2aa: a2 0e       ..
     stx fs_block_offset                                               ; a2ac: 86 bc       ..
     lda #&10                                                          ; a2ae: a9 10       ..
@@ -7200,18 +7200,18 @@ bad_prefix = sub_c969d+1
     sta l0e16                                                         ; a2b2: 8d 16 0e    ...
     ldx #&4a ; 'J'                                                    ; a2b5: a2 4a       .J
     ldy #5                                                            ; a2b7: a0 05       ..
-    jsr sub_c993d                                                     ; a2b9: 20 3d 99     =.
+    jsr do_fs_cmd_iteration                                           ; a2b9: 20 3d 99     =.
     lda l0d63                                                         ; a2bc: ad 63 0d    .c.
     beq ca2d7                                                         ; a2bf: f0 16       ..
     and l0f0b                                                         ; a2c1: 2d 0b 0f    -..
     and l0f0c                                                         ; a2c4: 2d 0c 0f    -..
     cmp #&ff                                                          ; a2c7: c9 ff       ..
     beq ca2d7                                                         ; a2c9: f0 0c       ..
-    jsr ca05b                                                         ; a2cb: 20 5b a0     [.
+    jsr tube_claim_c3                                                 ; a2cb: 20 5b a0     [.
     ldx #9                                                            ; a2ce: a2 09       ..
     ldy #&0f                                                          ; a2d0: a0 0f       ..
     lda #4                                                            ; a2d2: a9 04       ..
-    jmp c0406                                                         ; a2d4: 4c 06 04    L..
+    jmp tube_addr_data_dispatch                                       ; a2d4: 4c 06 04    L..
 
 ; &a2d7 referenced 2 times by &a2bf, &a2c9
 .ca2d7
@@ -7219,22 +7219,22 @@ bad_prefix = sub_c969d+1
     jmp (l0f09)                                                       ; a2d9: 6c 09 0f    l..
 
 ; &a2dc referenced 1 time by &944b
-.ca2dc
-    jsr sub_ca313                                                     ; a2dc: 20 13 a3     ..
-    jmp c9cb9                                                         ; a2df: 4c b9 9c    L..
+.find_fs_and_exit
+    jsr find_station_bit3                                             ; a2dc: 20 13 a3     ..
+    jmp return_with_last_flag                                         ; a2df: 4c b9 9c    L..
 
-    jsr sub_ca34a                                                     ; a2e2: 20 4a a3     J.
-    jmp c9cb9                                                         ; a2e5: 4c b9 9c    L..
+    jsr flip_set_station_boot                                         ; a2e2: 20 4a a3     J.
+    jmp return_with_last_flag                                         ; a2e5: 4c b9 9c    L..
 
 ; &a2e8 referenced 1 time by &a387
-.sub_ca2e8
+.find_station_bit2
     ldx #&10                                                          ; a2e8: a2 10       ..
     clv                                                               ; a2ea: b8          .
 ; &a2eb referenced 2 times by &a2f1, &a2f8
 .ca2eb
     dex                                                               ; a2eb: ca          .
     bmi ca301                                                         ; a2ec: 30 13       0.
-    jsr sub_cb57a                                                     ; a2ee: 20 7a b5     z.
+    jsr match_station_net                                             ; a2ee: 20 7a b5     z.
     bne ca2eb                                                         ; a2f1: d0 f8       ..
     lda l1060,x                                                       ; a2f3: bd 60 10    .`.
     and #4                                                            ; a2f6: 29 04       ).
@@ -7247,7 +7247,7 @@ bad_prefix = sub_c969d+1
     sty l0e02                                                         ; a301: 8c 02 0e    ...
     bvs ca30f                                                         ; a304: 70 09       p.
     tya                                                               ; a306: 98          .
-    jsr sub_cb4fa                                                     ; a307: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; a307: 20 fa b4     ..
     sta l1072                                                         ; a30a: 8d 72 10    .r.
     beq ca376                                                         ; a30d: f0 67       .g
 ; &a30f referenced 1 time by &a304
@@ -7256,14 +7256,14 @@ bad_prefix = sub_c969d+1
     bne ca373                                                         ; a311: d0 60       .`             ; ALWAYS branch
 
 ; &a313 referenced 3 times by &a2dc, &a345, &a38d
-.sub_ca313
+.find_station_bit3
     ldx #&10                                                          ; a313: a2 10       ..
     clv                                                               ; a315: b8          .
 ; &a316 referenced 2 times by &a31c, &a323
 .ca316
     dex                                                               ; a316: ca          .
     bmi ca32c                                                         ; a317: 30 13       0.
-    jsr sub_cb57a                                                     ; a319: 20 7a b5     z.
+    jsr match_station_net                                             ; a319: 20 7a b5     z.
     bne ca316                                                         ; a31c: d0 f8       ..
     lda l1060,x                                                       ; a31e: bd 60 10    .`.
     and #8                                                            ; a321: 29 08       ).
@@ -7276,7 +7276,7 @@ bad_prefix = sub_c969d+1
     sty l0e03                                                         ; a32c: 8c 03 0e    ...
     bvs ca33a                                                         ; a32f: 70 09       p.
     tya                                                               ; a331: 98          .
-    jsr sub_cb4fa                                                     ; a332: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; a332: 20 fa b4     ..
     sta l1073                                                         ; a335: 8d 73 10    .s.
     beq ca376                                                         ; a338: f0 3c       .<
 ; &a33a referenced 1 time by &a32f
@@ -7293,18 +7293,18 @@ bad_prefix = sub_c969d+1
     lda l0e03                                                         ; a33e: ad 03 0e    ...
     pha                                                               ; a341: 48          H
     ldy l0e04                                                         ; a342: ac 04 0e    ...
-    jsr sub_ca313                                                     ; a345: 20 13 a3     ..
+    jsr find_station_bit3                                             ; a345: 20 13 a3     ..
     pla                                                               ; a348: 68          h
     tay                                                               ; a349: a8          .
 ; &a34a referenced 2 times by &a2e2, &a393
-.sub_ca34a
+.flip_set_station_boot
     ldx #&10                                                          ; a34a: a2 10       ..
     clv                                                               ; a34c: b8          .
 ; &a34d referenced 2 times by &a353, &a35a
 .ca34d
     dex                                                               ; a34d: ca          .
     bmi ca363                                                         ; a34e: 30 13       0.
-    jsr sub_cb57a                                                     ; a350: 20 7a b5     z.
+    jsr match_station_net                                             ; a350: 20 7a b5     z.
     bne ca34d                                                         ; a353: d0 f8       ..
     lda l1060,x                                                       ; a355: bd 60 10    .`.
     and #&10                                                          ; a358: 29 10       ).
@@ -7317,7 +7317,7 @@ bad_prefix = sub_c969d+1
     sty l0e04                                                         ; a363: 8c 04 0e    ...
     bvs ca371                                                         ; a366: 70 09       p.
     tya                                                               ; a368: 98          .
-    jsr sub_cb4fa                                                     ; a369: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; a369: 20 fa b4     ..
     sta l1074                                                         ; a36c: 8d 74 10    .t.
     beq ca376                                                         ; a36f: f0 05       ..
 ; &a371 referenced 1 time by &a366
@@ -7328,22 +7328,22 @@ bad_prefix = sub_c969d+1
     sta l1060,x                                                       ; a373: 9d 60 10    .`.
 ; &a376 referenced 3 times by &a30d, &a338, &a36f
 .ca376
-    jmp c8f73                                                         ; a376: 4c 73 8f    Ls.
+    jmp restore_fs_context                                            ; a376: 4c 73 8f    Ls.
 
-    jsr sub_cb54a                                                     ; a379: 20 4a b5     J.
+    jsr close_all_net_chans                                           ; a379: 20 4a b5     J.
     sec                                                               ; a37c: 38          8
     lda l0f08                                                         ; a37d: ad 08 0f    ...
     sta l0e05                                                         ; a380: 8d 05 0e    ...
     php                                                               ; a383: 08          .
     ldy l0f05                                                         ; a384: ac 05 0f    ...
-    jsr sub_ca2e8                                                     ; a387: 20 e8 a2     ..
+    jsr find_station_bit2                                             ; a387: 20 e8 a2     ..
     ldy l0f06                                                         ; a38a: ac 06 0f    ...
-    jsr sub_ca313                                                     ; a38d: 20 13 a3     ..
+    jsr find_station_bit3                                             ; a38d: 20 13 a3     ..
     ldy l0f07                                                         ; a390: ac 07 0f    ...
-    jsr sub_ca34a                                                     ; a393: 20 4a a3     J.
+    jsr flip_set_station_boot                                         ; a393: 20 4a a3     J.
     plp                                                               ; a396: 28          (
     bcs ca39c                                                         ; a397: b0 03       ..
-    jmp c9cb9                                                         ; a399: 4c b9 9c    L..
+    jmp return_with_last_flag                                         ; a399: 4c b9 9c    L..
 
 ; &a39c referenced 1 time by &a397
 .ca39c
@@ -7379,7 +7379,7 @@ bad_prefix = sub_c969d+1
     ldy l0e05                                                         ; a3cb: ac 05 0e    ...
     beq boot_load_cmd                                                 ; a3ce: f0 e6       ..
 ; &a3d0 referenced 1 time by &a276
-.ca3d0
+.boot_cmd_oscli
     ldx la3c7,y                                                       ; a3d0: be c7 a3    ...
     ldy #&a3                                                          ; a3d3: a0 a3       ..
     jmp oscli                                                         ; a3d5: 4c f7 ff    L..
@@ -7474,7 +7474,7 @@ bad_prefix = sub_c969d+1
     bmi return_21                                                     ; a4db: 30 2a       0*
     cmp #7                                                            ; a4dd: c9 07       ..
     bcs return_21                                                     ; a4df: b0 26       .&
-    jsr sub_ca4ef                                                     ; a4e1: 20 ef a4     ..
+    jsr osword_setup_handler                                          ; a4e1: 20 ef a4     ..
     ldy #2                                                            ; a4e4: a0 02       ..
 ; &a4e6 referenced 1 time by &a4ec
 .loop_ca4e6
@@ -7485,7 +7485,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a4ee: 60          `
 
 ; &a4ef referenced 1 time by &a4e1
-.sub_ca4ef
+.osword_setup_handler
     tax                                                               ; a4ef: aa          .
     lda ca50f,x                                                       ; a4f0: bd 0f a5    ...
     pha                                                               ; a4f3: 48          H
@@ -7531,27 +7531,27 @@ bad_prefix = sub_c969d+1
 .ca526
     ldx #0                                                            ; a526: a2 00       ..
     ldy #&10                                                          ; a528: a0 10       ..
-    jsr c9499                                                         ; a52a: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; a52a: 20 99 94     ..
     lda l0f09                                                         ; a52d: ad 09 0f    ...
-    jsr sub_ca57c                                                     ; a530: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a530: 20 7c a5     |.
     sta l0f0b                                                         ; a533: 8d 0b 0f    ...
     lda l0f08                                                         ; a536: ad 08 0f    ...
-    jsr sub_ca57c                                                     ; a539: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a539: 20 7c a5     |.
     sta l0f0a                                                         ; a53c: 8d 0a 0f    ...
     lda l0f07                                                         ; a53f: ad 07 0f    ...
-    jsr sub_ca57c                                                     ; a542: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a542: 20 7c a5     |.
     sta l0f09                                                         ; a545: 8d 09 0f    ...
     lda #0                                                            ; a548: a9 00       ..
     sta l0f08                                                         ; a54a: 8d 08 0f    ...
     lda l0f06                                                         ; a54d: ad 06 0f    ...
     pha                                                               ; a550: 48          H
     lda l0f05                                                         ; a551: ad 05 0f    ...
-    jsr sub_ca57c                                                     ; a554: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a554: 20 7c a5     |.
     sta l0f07                                                         ; a557: 8d 07 0f    ...
     pla                                                               ; a55a: 68          h
     pha                                                               ; a55b: 48          H
     and #&0f                                                          ; a55c: 29 0f       ).
-    jsr sub_ca57c                                                     ; a55e: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a55e: 20 7c a5     |.
     sta l0f06                                                         ; a561: 8d 06 0f    ...
     pla                                                               ; a564: 68          h
     lsr a                                                             ; a565: 4a          J
@@ -7559,7 +7559,7 @@ bad_prefix = sub_c969d+1
     lsr a                                                             ; a567: 4a          J
     lsr a                                                             ; a568: 4a          J
     adc #&51 ; 'Q'                                                    ; a569: 69 51       iQ
-    jsr sub_ca57c                                                     ; a56b: 20 7c a5     |.
+    jsr bin_to_bcd                                                    ; a56b: 20 7c a5     |.
     sta l0f05                                                         ; a56e: 8d 05 0f    ...
     ldy #6                                                            ; a571: a0 06       ..
 ; &a573 referenced 1 time by &a579
@@ -7571,7 +7571,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a57b: 60          `
 
 ; &a57c referenced 6 times by &a530, &a539, &a542, &a554, &a55e, &a56b
-.sub_ca57c
+.bin_to_bcd
     php                                                               ; a57c: 08          .
     tax                                                               ; a57d: aa          .
     beq ca589                                                         ; a57e: f0 09       ..
@@ -7620,17 +7620,17 @@ bad_prefix = sub_c969d+1
     equb &f0, &2e, &61, &0d, &60                                      ; a5fc: f0 2e 61... ..a
 
 ; &a601 referenced 1 time by &a8f0
-.sub_ca601
+.store_osword_pb_ptr
     ldy #&1c                                                          ; a601: a0 1c       ..
     lda osword_pb_ptr                                                 ; a603: a5 f0       ..
     adc #1                                                            ; a605: 69 01       i.
-    jsr sub_ca612                                                     ; a607: 20 12 a6     ..
+    jsr store_ptr_at_ws_y                                             ; a607: 20 12 a6     ..
     ldy #1                                                            ; a60a: a0 01       ..
     lda (osword_pb_ptr),y                                             ; a60c: b1 f0       ..
     ldy #&20 ; ' '                                                    ; a60e: a0 20       .
     adc osword_pb_ptr                                                 ; a610: 65 f0       e.
 ; &a612 referenced 1 time by &a607
-.sub_ca612
+.store_ptr_at_ws_y
     sta (nfs_workspace),y                                             ; a612: 91 9e       ..
     iny                                                               ; a614: c8          .
     lda osword_pb_ptr_hi                                              ; a615: a5 f1       ..
@@ -7648,7 +7648,7 @@ bad_prefix = sub_c969d+1
     dex                                                               ; a628: ca          .
     ldy #0                                                            ; a629: a0 00       ..
     jsr ca6fb                                                         ; a62b: 20 fb a6     ..
-    jmp caccb                                                         ; a62e: 4c cb ac    L..
+    jmp commit_state_byte                                             ; a62e: 4c cb ac    L..
 
     equb &aa, &c9, &13, &b0, 8, &bd, &51, &a6, &48, &bd, &3f, &a6     ; a631: aa c9 13... ...
     equs "H`bu"                                                       ; a63d: 48 60 62... H`b
@@ -7724,7 +7724,7 @@ bad_prefix = sub_c969d+1
     equb &ff                                                          ; a867: ff          .
 
 ; &a868 referenced 2 times by &8dfe, &a09c
-.sub_ca868
+.init_bridge_poll
     lda l0d72                                                         ; a868: ad 72 0d    .r.
     cmp #&ff                                                          ; a86b: c9 ff       ..
     bne return_23                                                     ; a86d: d0 60       .`
@@ -7776,7 +7776,7 @@ bad_prefix = sub_c969d+1
     ldy #&18                                                          ; a8b5: a0 18       ..
     lda (nfs_workspace),y                                             ; a8b7: b1 9e       ..
     bmi ca8c0                                                         ; a8b9: 30 05       0.
-    jsr sub_cbc84                                                     ; a8bb: 20 84 bc     ..
+    jsr advance_x_by_8                                                ; a8bb: 20 84 bc     ..
     bpl ca88c                                                         ; a8be: 10 cc       ..
 ; &a8c0 referenced 1 time by &a8b9
 .ca8c0
@@ -7798,10 +7798,10 @@ bad_prefix = sub_c969d+1
     bit l0d6c                                                         ; a8d4: 2c 6c 0d    ,l.
     bpl return_23                                                     ; a8d7: 10 f6       ..
     ldy #&23 ; '#'                                                    ; a8d9: a0 23       .#
-    jsr sub_caf12                                                     ; a8db: 20 12 af     ..
+    jsr mask_owner_access                                             ; a8db: 20 12 af     ..
 ; &a8de referenced 1 time by &a8eb
 .loop_ca8de
-    lda c945f,y                                                       ; a8de: b9 5f 94    ._.
+    lda init_txcb,y                                                   ; a8de: b9 5f 94    ._.
     bne ca8e6                                                         ; a8e1: d0 03       ..
     lda l0de6,y                                                       ; a8e3: b9 e6 0d    ...
 ; &a8e6 referenced 1 time by &a8e1
@@ -7812,7 +7812,7 @@ bad_prefix = sub_c969d+1
     bne loop_ca8de                                                    ; a8eb: d0 f1       ..
     iny                                                               ; a8ed: c8          .
     sty net_tx_ptr                                                    ; a8ee: 84 9a       ..
-    jsr sub_ca601                                                     ; a8f0: 20 01 a6     ..
+    jsr store_osword_pb_ptr                                           ; a8f0: 20 01 a6     ..
     ldy #2                                                            ; a8f3: a0 02       ..
     lda #&90                                                          ; a8f5: a9 90       ..
     sta escapable                                                     ; a8f7: 85 97       ..
@@ -7829,7 +7829,7 @@ bad_prefix = sub_c969d+1
     lda nfs_workspace_hi                                              ; a907: a5 9f       ..
     sta net_tx_ptr_hi                                                 ; a909: 85 9b       ..
     cli                                                               ; a90b: 58          X
-    jsr c982a                                                         ; a90c: 20 2a 98     *.
+    jsr send_net_packet                                               ; a90c: 20 2a 98     *.
     ldy #&20 ; ' '                                                    ; a90f: a0 20       .
     lda #&ff                                                          ; a911: a9 ff       ..
     sta (nfs_workspace),y                                             ; a913: 91 9e       ..
@@ -7841,7 +7841,7 @@ bad_prefix = sub_c969d+1
     dey                                                               ; a91e: 88          .              ; Y=&18
     lda #&7f                                                          ; a91f: a9 7f       ..
     sta (nfs_workspace),y                                             ; a921: 91 9e       ..
-    jmp c95c7                                                         ; a923: 4c c7 95    L..
+    jmp wait_net_tx_ack                                               ; a923: 4c c7 95    L..
 
 ; &a926 referenced 1 time by &a8d2
 .ca926
@@ -7869,8 +7869,8 @@ bad_prefix = sub_c969d+1
     ldy #&7d ; '}'                                                    ; a945: a0 7d       .}
     sta (net_rx_ptr),y                                                ; a947: 91 9c       ..
     pha                                                               ; a949: 48          H
-    jsr sub_caa6a                                                     ; a94a: 20 6a aa     j.
-    jsr sub_ca964                                                     ; a94d: 20 64 a9     d.
+    jsr init_ws_copy_wide                                             ; a94a: 20 6a aa     j.
+    jsr enable_irq_and_poll                                           ; a94d: 20 64 a9     d.
 ; &a950 referenced 1 time by &a951
 .loop_ca950
     dex                                                               ; a950: ca          .
@@ -7882,15 +7882,15 @@ bad_prefix = sub_c969d+1
 
 ; &a959 referenced 1 time by &a93b
 .ca959
-    jsr sub_caa6a                                                     ; a959: 20 6a aa     j.
+    jsr init_ws_copy_wide                                             ; a959: 20 6a aa     j.
     ldy #&7b ; '{'                                                    ; a95c: a0 7b       .{
     lda (net_rx_ptr),y                                                ; a95e: b1 9c       ..
     adc #3                                                            ; a960: 69 03       i.
     sta (net_rx_ptr),y                                                ; a962: 91 9c       ..
 ; &a964 referenced 1 time by &a94d
-.sub_ca964
+.enable_irq_and_poll
     cli                                                               ; a964: 58          X
-    jmp c982a                                                         ; a965: 4c 2a 98    L*.
+    jmp send_net_packet                                               ; a965: 4c 2a 98    L*.
 
     php                                                               ; a968: 08          .
     pha                                                               ; a969: 48          H
@@ -7903,7 +7903,7 @@ bad_prefix = sub_c969d+1
     cmp #9                                                            ; a972: c9 09       ..
     bcs ca97a                                                         ; a974: b0 04       ..
     tax                                                               ; a976: aa          .
-    jsr sub_ca981                                                     ; a977: 20 81 a9     ..
+    jsr push_osword_handler_addr                                      ; a977: 20 81 a9     ..
 ; &a97a referenced 1 time by &a974
 .ca97a
     pla                                                               ; a97a: 68          h
@@ -7915,7 +7915,7 @@ bad_prefix = sub_c969d+1
     rts                                                               ; a980: 60          `
 
 ; &a981 referenced 1 time by &a977
-.sub_ca981
+.push_osword_handler_addr
     lda la995,x                                                       ; a981: bd 95 a9    ...
     pha                                                               ; a984: 48          H
     lda la98c,x                                                       ; a985: bd 8c a9    ...
@@ -7932,7 +7932,7 @@ bad_prefix = sub_c969d+1
     equb &1e,   6,   1, &98, &a0, &da, &91, &9e, &a9,   0             ; a9a2: 1e 06 01... ...
 
 ; &a9ac referenced 2 times by &8adf, &a9ff
-.sub_ca9ac
+.tx_econet_abort
     ldy #&d9                                                          ; a9ac: a0 d9       ..
     sta (nfs_workspace),y                                             ; a9ae: 91 9e       ..
     lda #&80                                                          ; a9b0: a9 80       ..
@@ -7945,7 +7945,7 @@ bad_prefix = sub_c969d+1
     sty net_tx_ptr                                                    ; a9bc: 84 9a       ..
     ldx nfs_workspace_hi                                              ; a9be: a6 9f       ..
     stx net_tx_ptr_hi                                                 ; a9c0: 86 9b       ..
-    jsr c982a                                                         ; a9c2: 20 2a 98     *.
+    jsr send_net_packet                                               ; a9c2: 20 2a 98     *.
     lda #&3f ; '?'                                                    ; a9c5: a9 3f       .?
     sta (net_tx_ptr,x)                                                ; a9c7: 81 9a       ..
     pla                                                               ; a9c9: 68          h
@@ -7986,7 +7986,7 @@ bad_prefix = sub_c969d+1
     cpy #&da                                                          ; a9fa: c0 da       ..
     bpl loop_ca9f4                                                    ; a9fc: 10 f6       ..
     txa                                                               ; a9fe: 8a          .
-    jsr sub_ca9ac                                                     ; a9ff: 20 ac a9     ..
+    jsr tx_econet_abort                                               ; a9ff: 20 ac a9     ..
     plp                                                               ; aa02: 28          (
     bpl return_24                                                     ; aa03: 10 1e       ..
     lda #&7f                                                          ; aa05: a9 7f       ..
@@ -8036,17 +8036,17 @@ bad_prefix = sub_c969d+1
     equb &9e                                                          ; aa69: 9e          .
 
 ; &aa6a referenced 2 times by &a94a, &a959
-.sub_caa6a
+.init_ws_copy_wide
     ldx #&0d                                                          ; aa6a: a2 0d       ..
     ldy #&7c ; '|'                                                    ; aa6c: a0 7c       .|
     bit l947d                                                         ; aa6e: 2c 7d 94    ,}.
     bvs caa78                                                         ; aa71: 70 05       p.
 ; &aa73 referenced 1 time by &958c
-.sub_caa73
+.init_ws_copy_narrow
     ldy #&17                                                          ; aa73: a0 17       ..
     ldx #&1a                                                          ; aa75: a2 1a       ..
 ; &aa77 referenced 1 time by &ab38
-.sub_caa77
+.ws_copy_vclr_entry
     clv                                                               ; aa77: b8          .
 ; &aa78 referenced 2 times by &aa71, &aa99
 .caa78
@@ -8093,7 +8093,7 @@ bad_prefix = sub_c969d+1
     equb &f0, &d0, &0f, &a5, &d0, &6a, &b0, &0a                       ; aac8: f0 d0 0f... ...
 
 ; &aad0 referenced 2 times by &8f0e, &ab21
-.caad0
+.reset_spool_buf_state
     lda #&25 ; '%'                                                    ; aad0: a9 25       .%
     sta l0d6b                                                         ; aad2: 8d 6b 0d    .k.
     lda #&41 ; 'A'                                                    ; aad5: a9 41       .A
@@ -8106,7 +8106,7 @@ bad_prefix = sub_c969d+1
     bne return_26                                                     ; aadd: d0 fb       ..
     txa                                                               ; aadf: 8a          .
     dex                                                               ; aae0: ca          .
-    bne cab09                                                         ; aae1: d0 26       .&
+    bne handle_spool_ctrl_byte                                        ; aae1: d0 26       .&
     tsx                                                               ; aae3: ba          .
     ora l0106,x                                                       ; aae4: 1d 06 01    ...
     sta l0106,x                                                       ; aae7: 9d 06 01    ...
@@ -8117,20 +8117,20 @@ bad_prefix = sub_c969d+1
     jsr osbyte                                                        ; aaee: 20 f4 ff     ..            ; Get character from input buffer (C is set if the buffer is empty, otherwise Y=extracted character)
     bcs return_26                                                     ; aaf1: b0 e7       ..
     tya                                                               ; aaf3: 98          .              ; Y is the character extracted from the buffer
-    jsr sub_cab00                                                     ; aaf4: 20 00 ab     ..
+    jsr append_byte_to_rxbuf                                          ; aaf4: 20 00 ab     ..
     cpy #&6e ; 'n'                                                    ; aaf7: c0 6e       .n
     bcc caaea                                                         ; aaf9: 90 ef       ..
     jsr cab24                                                         ; aafb: 20 24 ab     $.
     bcc caaea                                                         ; aafe: 90 ea       ..
 ; &ab00 referenced 3 times by &aaf4, &ab1b, &abd2
-.sub_cab00
+.append_byte_to_rxbuf
     ldy l0d6b                                                         ; ab00: ac 6b 0d    .k.
     sta (net_rx_ptr),y                                                ; ab03: 91 9c       ..
     inc l0d6b                                                         ; ab05: ee 6b 0d    .k.
     rts                                                               ; ab08: 60          `
 
 ; &ab09 referenced 2 times by &8f3d, &aae1
-.cab09
+.handle_spool_ctrl_byte
     ror a                                                             ; ab09: 6a          j
     bcc cab63                                                         ; ab0a: 90 57       .W
     lda ws_0d6a                                                       ; ab0c: ad 6a 0d    .j.
@@ -8141,11 +8141,11 @@ bad_prefix = sub_c969d+1
     ora #3                                                            ; ab14: 09 03       ..
     sta ws_0d6a                                                       ; ab16: 8d 6a 0d    .j.
     lda #3                                                            ; ab19: a9 03       ..
-    jsr sub_cab00                                                     ; ab1b: 20 00 ab     ..
+    jsr append_byte_to_rxbuf                                          ; ab1b: 20 00 ab     ..
     jsr cab24                                                         ; ab1e: 20 24 ab     $.
 ; &ab21 referenced 1 time by &ab12
 .cab21
-    jmp caad0                                                         ; ab21: 4c d0 aa    L..
+    jmp reset_spool_buf_state                                         ; ab21: 4c d0 aa    L..
 
 ; &ab24 referenced 4 times by &aafb, &ab1e, &ab67, &abd5
 .cab24
@@ -8159,7 +8159,7 @@ bad_prefix = sub_c969d+1
     sta (nfs_workspace),y                                             ; ab32: 91 9e       ..
     ldy #&0b                                                          ; ab34: a0 0b       ..
     ldx #&26 ; '&'                                                    ; ab36: a2 26       .&
-    jsr sub_caa77                                                     ; ab38: 20 77 aa     w.
+    jsr ws_copy_vclr_entry                                            ; ab38: 20 77 aa     w.
     dey                                                               ; ab3b: 88          .
     lda ws_0d6a                                                       ; ab3c: ad 6a 0d    .j.
     pha                                                               ; ab3f: 48          H
@@ -8179,7 +8179,7 @@ bad_prefix = sub_c969d+1
     tax                                                               ; ab58: aa          .              ; X=&00
     ldy nfs_workspace_hi                                              ; ab59: a4 9f       ..
     cli                                                               ; ab5b: 58          X
-    jsr sub_cac12                                                     ; ab5c: 20 12 ac     ..
+    jsr send_disconnect_reply                                         ; ab5c: 20 12 ac     ..
     pla                                                               ; ab5f: 68          h
     sta l00d0                                                         ; ab60: 85 d0       ..
     rts                                                               ; ab62: 60          `
@@ -8239,13 +8239,13 @@ bad_prefix = sub_c969d+1
     sta net_tx_ptr                                                    ; abab: 85 9a       ..
     lda net_rx_ptr_hi                                                 ; abad: a5 9d       ..
     sta net_tx_ptr_hi                                                 ; abaf: 85 9b       ..
-    jsr sub_c9887                                                     ; abb1: 20 87 98     ..
-    jsr c982a                                                         ; abb4: 20 2a 98     *.
+    jsr setup_pass_txbuf                                              ; abb1: 20 87 98     ..
+    jsr send_net_packet                                               ; abb4: 20 2a 98     *.
     lda #0                                                            ; abb7: a9 00       ..
     sta net_tx_ptr                                                    ; abb9: 85 9a       ..
     lda nfs_workspace_hi                                              ; abbb: a5 9f       ..
     sta net_tx_ptr_hi                                                 ; abbd: 85 9b       ..
-    jsr c95c7                                                         ; abbf: 20 c7 95     ..
+    jsr wait_net_tx_ack                                               ; abbf: 20 c7 95     ..
     ldy #&31 ; '1'                                                    ; abc2: a0 31       .1
     lda (net_rx_ptr),y                                                ; abc4: b1 9c       ..
     beq cabcc                                                         ; abc6: f0 04       ..
@@ -8257,7 +8257,7 @@ bad_prefix = sub_c969d+1
     pla                                                               ; abcd: 68          h
     sta l00d0                                                         ; abce: 85 d0       ..
     lda #0                                                            ; abd0: a9 00       ..
-    jsr sub_cab00                                                     ; abd2: 20 00 ab     ..
+    jsr append_byte_to_rxbuf                                          ; abd2: 20 00 ab     ..
     jsr cab24                                                         ; abd5: 20 24 ab     $.
     lda ws_0d6a                                                       ; abd8: ad 6a 0d    .j.
     and #&f0                                                          ; abdb: 29 f0       ).
@@ -8274,7 +8274,7 @@ bad_prefix = sub_c969d+1
     cpx #1                                                            ; abe8: e0 01       ..
     bne cabfe                                                         ; abea: d0 12       ..
 ; &abec referenced 1 time by &afd5
-.cabec
+.err_printer_busy
     lda #&a6                                                          ; abec: a9 a6       ..
     jsr error_inline_log                                              ; abee: 20 bb 96     ..
     equs "Printer busy", 0                                            ; abf1: 50 72 69... Pri
@@ -8286,7 +8286,7 @@ bad_prefix = sub_c969d+1
     equs "Printer jammed", 0                                          ; ac03: 50 72 69... Pri
 
 ; &ac12 referenced 3 times by &94f5, &ab5c, &b946
-.sub_cac12
+.send_disconnect_reply
     stx net_tx_ptr                                                    ; ac12: 86 9a       ..
     sty net_tx_ptr_hi                                                 ; ac14: 84 9b       ..
     pha                                                               ; ac16: 48          H
@@ -8308,7 +8308,7 @@ bad_prefix = sub_c969d+1
 ; &ac2d referenced 1 time by &ac23
 .cac2d
     tay                                                               ; ac2d: a8          .
-    jsr sub_cb57a                                                     ; ac2e: 20 7a b5     z.
+    jsr match_station_net                                             ; ac2e: 20 7a b5     z.
     bne cac1e                                                         ; ac31: d0 eb       ..
     lda l1060,x                                                       ; ac33: bd 60 10    .`.
     and #1                                                            ; ac36: 29 01       ).
@@ -8318,7 +8318,7 @@ bad_prefix = sub_c969d+1
     ora (net_tx_ptr),y                                                ; ac3a: 11 9a       ..
     pha                                                               ; ac3c: 48          H
     sta (net_tx_ptr),y                                                ; ac3d: 91 9a       ..
-    jsr c982a                                                         ; ac3f: 20 2a 98     *.
+    jsr send_net_packet                                               ; ac3f: 20 2a 98     *.
     lda #&ff                                                          ; ac42: a9 ff       ..
     ldy #8                                                            ; ac44: a0 08       ..
     sta (net_tx_ptr),y                                                ; ac46: 91 9a       ..
@@ -8343,7 +8343,7 @@ bad_prefix = sub_c969d+1
 .loop_cac5d
     lda #&7f                                                          ; ac5d: a9 7f       ..
     sta (net_tx_ptr),y                                                ; ac5f: 91 9a       ..
-    jsr c95c7                                                         ; ac61: 20 c7 95     ..
+    jsr wait_net_tx_ack                                               ; ac61: 20 c7 95     ..
     pla                                                               ; ac64: 68          h
     pha                                                               ; ac65: 48          H
     eor (net_tx_ptr),y                                                ; ac66: 51 9a       Q.
@@ -8395,31 +8395,31 @@ bad_prefix = sub_c969d+1
     pla                                                               ; acbe: 68          h
     sty l00ad                                                         ; acbf: 84 ad       ..
     inc nfs_workspace                                                 ; acc1: e6 9e       ..
-    jsr sub_cacd2                                                     ; acc3: 20 d2 ac     ..
+    jsr serialise_palette_entry                                       ; acc3: 20 d2 ac     ..
     inc nfs_workspace                                                 ; acc6: e6 9e       ..
     pla                                                               ; acc8: 68          h
     sta l00ad                                                         ; acc9: 85 ad       ..
 ; &accb referenced 4 times by &9570, &9598, &95bf, &a62e
-.caccb
+.commit_state_byte
     lda ws_0d69                                                       ; accb: ad 69 0d    .i.
     sta ws_0d68                                                       ; acce: 8d 68 0d    .h.
     rts                                                               ; acd1: 60          `
 
 ; &acd2 referenced 1 time by &acc3
-.sub_cacd2
+.serialise_palette_entry
     lda l0355                                                         ; acd2: ad 55 03    .U.
     sta (nfs_workspace),y                                             ; acd5: 91 9e       ..
     ldx l0355                                                         ; acd7: ae 55 03    .U.
-    jsr sub_cace7                                                     ; acda: 20 e7 ac     ..
+    jsr read_osbyte_to_ws                                             ; acda: 20 e7 ac     ..
     inc nfs_workspace                                                 ; acdd: e6 9e       ..
     tya                                                               ; acdf: 98          .
     sta (nfs_workspace,x)                                             ; ace0: 81 9e       ..
-    jsr sub_cace5                                                     ; ace2: 20 e5 ac     ..
+    jsr read_osbyte_to_ws_x0                                          ; ace2: 20 e5 ac     ..
 ; &ace5 referenced 1 time by &ace2
-.sub_cace5
+.read_osbyte_to_ws_x0
     ldx #0                                                            ; ace5: a2 00       ..
 ; &ace7 referenced 1 time by &acda
-.sub_cace7
+.read_osbyte_to_ws
     ldy l00ad                                                         ; ace7: a4 ad       ..
     inc l00ad                                                         ; ace9: e6 ad       ..
     inc nfs_workspace                                                 ; aceb: e6 9e       ..
@@ -8443,8 +8443,8 @@ bad_prefix = sub_c969d+1
 .cmd_cdir
     tya                                                               ; acfe: 98          .
     pha                                                               ; acff: 48          H
-    jsr sub_caf12                                                     ; ad00: 20 12 af     ..
-    jsr sub_cafa1                                                     ; ad03: 20 a1 af     ..
+    jsr mask_owner_access                                             ; ad00: 20 12 af     ..
+    jsr skip_to_next_arg                                              ; ad03: 20 a1 af     ..
     cmp #&0d                                                          ; ad06: c9 0d       ..
     bne cad0e                                                         ; ad08: d0 04       ..
     ldx #2                                                            ; ad0a: a2 02       ..
@@ -8454,7 +8454,7 @@ bad_prefix = sub_c969d+1
 .cad0e
     lda #&ff                                                          ; ad0e: a9 ff       ..
     sta fs_work_4                                                     ; ad10: 85 b4       ..
-    jsr sub_c915a                                                     ; ad12: 20 5a 91     Z.
+    jsr parse_addr_arg                                                ; ad12: 20 5a 91     Z.
     ldx #&1b                                                          ; ad15: a2 1b       ..
 ; &ad17 referenced 1 time by &ad1b
 .loop_cad17
@@ -8466,14 +8466,14 @@ bad_prefix = sub_c969d+1
     stx l0f05                                                         ; ad1d: 8e 05 0f    ...
     pla                                                               ; ad20: 68          h
     tay                                                               ; ad21: a8          .
-    jsr sub_caf95                                                     ; ad22: 20 95 af     ..
-    jsr sub_cae82                                                     ; ad25: 20 82 ae     ..
+    jsr save_ptr_to_os_text                                           ; ad22: 20 95 af     ..
+    jsr parse_filename_arg                                            ; ad25: 20 82 ae     ..
     ldx #1                                                            ; ad28: a2 01       ..
-    jsr sub_caef2                                                     ; ad2a: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; ad2a: 20 f2 ae     ..
     ldy #&1b                                                          ; ad2d: a0 1b       ..
-.sub_cad2f
-lad31 = sub_cad2f+2
-    jmp c9499                                                         ; ad2f: 4c 99 94    L..
+.cdir_dispatch_col
+lad31 = cdir_dispatch_col+2
+    jmp save_net_tx_cb                                                ; ad2f: 4c 99 94    L..
 
 ; &ad31 referenced 1 time by &ad18
     equb 0, &0a, &14, &1d                                             ; ad32: 00 0a 14... ...
@@ -8521,7 +8521,7 @@ lad31 = sub_cad2f+2
     sta fs_work_5                                                     ; ad6a: 85 b5       ..
     bne cad84                                                         ; ad6c: d0 16       ..             ; ALWAYS branch
 
-    jsr sub_c9281                                                     ; ad6e: 20 81 92     ..
+    jsr set_xfer_params                                               ; ad6e: 20 81 92     ..
     ldy #0                                                            ; ad71: a0 00       ..
     ror l1071                                                         ; ad73: 6e 71 10    nq.
     clc                                                               ; ad76: 18          .
@@ -8535,14 +8535,14 @@ lad31 = sub_cad2f+2
     sta fs_work_5                                                     ; ad82: 85 b5       ..
 ; &ad84 referenced 1 time by &ad6c
 .cad84
-    jsr sub_caf95                                                     ; ad84: 20 95 af     ..
+    jsr save_ptr_to_os_text                                           ; ad84: 20 95 af     ..
     lda #&ff                                                          ; ad87: a9 ff       ..
     sta escapable                                                     ; ad89: 85 97       ..
     lda #6                                                            ; ad8b: a9 06       ..
     sta l0f05                                                         ; ad8d: 8d 05 0f    ...
-    jsr sub_cae82                                                     ; ad90: 20 82 ae     ..
+    jsr parse_filename_arg                                            ; ad90: 20 82 ae     ..
     ldx #1                                                            ; ad93: a2 01       ..
-    jsr sub_caef2                                                     ; ad95: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; ad95: 20 f2 ae     ..
     lda l1071                                                         ; ad98: ad 71 10    .q.
     lsr a                                                             ; ad9b: 4a          J
     bcc cada0                                                         ; ad9c: 90 02       ..
@@ -8552,14 +8552,14 @@ lad31 = sub_cad2f+2
     rol a                                                             ; ada0: 2a          *
     sta l1071                                                         ; ada1: 8d 71 10    .q.
     ldy #&12                                                          ; ada4: a0 12       ..
-    jsr c9499                                                         ; ada6: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; ada6: 20 99 94     ..
     ldx #3                                                            ; ada9: a2 03       ..
-    jsr sub_cae70                                                     ; adab: 20 70 ae     p.
+    jsr print_10_chars                                                ; adab: 20 70 ae     p.
     jsr print_inline                                                  ; adae: 20 31 91     1.
     equs "("                                                          ; adb1: 28          (
 
     lda l0f13                                                         ; adb2: ad 13 0f    ...
-    jsr caf68                                                         ; adb5: 20 68 af     h.
+    jsr print_decimal_3dig                                            ; adb5: 20 68 af     h.
     jsr print_inline                                                  ; adb8: 20 31 91     1.
     equs ")     "                                                     ; adbb: 29 20 20... )
 
@@ -8578,9 +8578,9 @@ lad31 = sub_cad2f+2
 .caddb
     lda l1071                                                         ; addb: ad 71 10    .q.
     pha                                                               ; adde: 48          H
-    jsr sub_caf12                                                     ; addf: 20 12 af     ..
+    jsr mask_owner_access                                             ; addf: 20 12 af     ..
     ldy #&15                                                          ; ade2: a0 15       ..
-    jsr c9499                                                         ; ade4: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; ade4: 20 99 94     ..
     inx                                                               ; ade7: e8          .
     ldy #&10                                                          ; ade8: a0 10       ..
     jsr cae72                                                         ; adea: 20 72 ae     r.
@@ -8589,7 +8589,7 @@ lad31 = sub_cad2f+2
 
     lda l0e05                                                         ; adfb: ad 05 0e    ...
     tax                                                               ; adfe: aa          .
-    jsr sub_c911b                                                     ; adff: 20 1b 91     ..
+    jsr print_hex_byte                                                ; adff: 20 1b 91     ..
     jsr print_inline                                                  ; ae02: 20 31 91     1.
     equs " ("                                                         ; ae05: 20 28        (
 
@@ -8607,12 +8607,12 @@ lad31 = sub_cad2f+2
     equs ")", &0d, "Dir. "                                            ; ae18: 29 0d 44... ).D
 
     ldx #&11                                                          ; ae1f: a2 11       ..
-    jsr sub_cae70                                                     ; ae21: 20 70 ae     p.
+    jsr print_10_chars                                                ; ae21: 20 70 ae     p.
     jsr print_inline                                                  ; ae24: 20 31 91     1.
     equs "     Lib. "                                                 ; ae27: 20 20 20...
 
     ldx #&1b                                                          ; ae31: a2 1b       ..
-    jsr sub_cae70                                                     ; ae33: 20 70 ae     p.
+    jsr print_10_chars                                                ; ae33: 20 70 ae     p.
     jsr osnewl                                                        ; ae36: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     pla                                                               ; ae39: 68          h
     sta l1071                                                         ; ae3a: 8d 71 10    .q.
@@ -8625,9 +8625,9 @@ lad31 = sub_cad2f+2
     ldx fs_work_7                                                     ; ae47: a6 b7       ..
     stx l0f05                                                         ; ae49: 8e 05 0f    ...
     ldx #3                                                            ; ae4c: a2 03       ..
-    jsr sub_caef2                                                     ; ae4e: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; ae4e: 20 f2 ae     ..
     ldy #3                                                            ; ae51: a0 03       ..
-    jsr c9499                                                         ; ae53: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; ae53: 20 99 94     ..
     inx                                                               ; ae56: e8          .
     lda l0f05                                                         ; ae57: ad 05 0f    ...
     beq cae7d                                                         ; ae5a: f0 21       .!
@@ -8638,14 +8638,14 @@ lad31 = sub_cad2f+2
     lda l0f05,y                                                       ; ae5e: b9 05 0f    ...
     bpl loop_cae5d                                                    ; ae61: 10 fa       ..
     sta l0f04,y                                                       ; ae63: 99 04 0f    ...
-    jsr sub_caf27                                                     ; ae66: 20 27 af     '.
+    jsr ex_print_col_sep                                              ; ae66: 20 27 af     '.
     pla                                                               ; ae69: 68          h
     clc                                                               ; ae6a: 18          .
     adc fs_work_4                                                     ; ae6b: 65 b4       e.
     tay                                                               ; ae6d: a8          .
     bne cae3d                                                         ; ae6e: d0 cd       ..
 ; &ae70 referenced 3 times by &adab, &ae21, &ae33
-.sub_cae70
+.print_10_chars
     ldy #&0a                                                          ; ae70: a0 0a       ..
 ; &ae72 referenced 2 times by &adea, &ae7a
 .cae72
@@ -8661,20 +8661,20 @@ lad31 = sub_cad2f+2
     jmp osnewl                                                        ; ae7d: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &ae80 referenced 2 times by &9cf8, &a1af
-.sub_cae80
+.parse_cmd_arg_y0
     ldy #0                                                            ; ae80: a0 00       ..
 ; &ae82 referenced 4 times by &ad25, &ad90, &af57, &b347
-.sub_cae82
-    jsr sub_c98ff                                                     ; ae82: 20 ff 98     ..
+.parse_filename_arg
+    jsr gsread_to_buf                                                 ; ae82: 20 ff 98     ..
 ; &ae85 referenced 4 times by &92da, &9382, &93bb, &992a
-.sub_cae85
+.parse_access_prefix
     lda l0e30                                                         ; ae85: ad 30 0e    .0.
     eor #&26 ; '&'                                                    ; ae88: 49 26       I&
     bne caed0                                                         ; ae8a: d0 44       .D
     lda l1071                                                         ; ae8c: ad 71 10    .q.
     ora #&40 ; '@'                                                    ; ae8f: 09 40       .@
     sta l1071                                                         ; ae91: 8d 71 10    .q.
-    jsr caea5                                                         ; ae94: 20 a5 ae     ..
+    jsr strip_token_prefix                                            ; ae94: 20 a5 ae     ..
     lda l0e30                                                         ; ae97: ad 30 0e    .0.
     eor #&2e ; '.'                                                    ; ae9a: 49 2e       I.
     bne caec9                                                         ; ae9c: d0 2b       .+
@@ -8682,7 +8682,7 @@ lad31 = sub_cad2f+2
     eor #&0d                                                          ; aea1: 49 0d       I.
     beq caecd                                                         ; aea3: f0 28       .(
 ; &aea5 referenced 5 times by &9308, &93a2, &93a8, &ae94, &aee7
-.caea5
+.strip_token_prefix
     txa                                                               ; aea5: 8a          .
     pha                                                               ; aea6: 48          H
     ldx #&ff                                                          ; aea7: a2 ff       ..
@@ -8718,7 +8718,7 @@ lad31 = sub_cad2f+2
     beq return_27                                                     ; aecb: f0 fb       ..
 ; &aecd referenced 1 time by &aea3
 .caecd
-    jmp c92e6                                                         ; aecd: 4c e6 92    L..
+    jmp error_bad_filename                                            ; aecd: 4c e6 92    L..
 
 ; &aed0 referenced 1 time by &ae8a
 .caed0
@@ -8734,7 +8734,7 @@ lad31 = sub_cad2f+2
     lda l1071                                                         ; aedf: ad 71 10    .q.
     ora #&40 ; '@'                                                    ; aee2: 09 40       .@
     sta l1071                                                         ; aee4: 8d 71 10    .q.
-    bne caea5                                                         ; aee7: d0 bc       ..             ; ALWAYS branch
+    bne strip_token_prefix                                            ; aee7: d0 bc       ..             ; ALWAYS branch
 
 ; &aee9 referenced 1 time by &ae07
 .caee9
@@ -8746,13 +8746,13 @@ lad31 = sub_cad2f+2
     equs "Off"                                                        ; aeed: 4f 66 66    Off
 
 ; &aef0 referenced 6 times by &8db1, &8e0a, &9938, &9b2a, &a281, &af5a
-.sub_caef0
+.copy_arg_to_buf_x0
     ldx #0                                                            ; aef0: a2 00       ..
 ; &aef2 referenced 10 times by &99ea, &9b23, &9b46, &9cfd, &a1b4, &a1e1, &ad2a, &ad95, &ae4e, &b35c
-.sub_caef2
+.copy_arg_to_buf
     ldy #0                                                            ; aef2: a0 00       ..
 ; &aef4 referenced 3 times by &8dac, &940a, &9440
-.sub_caef4
+.copy_arg_validated
     sec                                                               ; aef4: 38          8
 ; &aef5 referenced 1 time by &af0b
 .loop_caef5
@@ -8762,7 +8762,7 @@ lad31 = sub_cad2f+2
     cmp #&21 ; '!'                                                    ; aefc: c9 21       .!
     eor #&26 ; '&'                                                    ; aefe: 49 26       I&
     bne caf05                                                         ; af00: d0 03       ..
-    jmp c92e6                                                         ; af02: 4c e6 92    L..
+    jmp error_bad_filename                                            ; af02: 4c e6 92    L..
 
 ; &af05 referenced 1 time by &af00
 .caf05
@@ -8780,7 +8780,7 @@ lad31 = sub_cad2f+2
     equs "Load"                                                       ; af0e: 4c 6f 61... Loa
 
 ; &af12 referenced 13 times by &8e25, &937c, &93b6, &9927, &9d49, &9e2a, &a1ac, &a238, &a242, &a8db, &ad00, &addf, &b33d
-.sub_caf12
+.mask_owner_access
     lda l1071                                                         ; af12: ad 71 10    .q.
     and #&1f                                                          ; af15: 29 1f       ).
     sta l1071                                                         ; af17: 8d 71 10    .q.
@@ -8795,7 +8795,7 @@ lad31 = sub_cad2f+2
     bmi return_28                                                     ; af23: 30 e8       0.
     bne caf3c                                                         ; af25: d0 15       ..
 ; &af27 referenced 1 time by &ae66
-.sub_caf27
+.ex_print_col_sep
     ldy fs_spool_handle                                               ; af27: a4 ba       ..
     bmi caf3a                                                         ; af29: 30 0f       0.
     iny                                                               ; af2b: c8          .
@@ -8826,36 +8826,36 @@ lad31 = sub_cad2f+2
 .cmd_remove
     tya                                                               ; af46: 98          .
     pha                                                               ; af47: 48          H
-    jsr sub_cafa1                                                     ; af48: 20 a1 af     ..
+    jsr skip_to_next_arg                                              ; af48: 20 a1 af     ..
     cmp #&0d                                                          ; af4b: c9 0d       ..
     beq caf52                                                         ; af4d: f0 03       ..
-    jmp ca10f                                                         ; af4f: 4c 0f a1    L..
+    jmp error_syntax                                                  ; af4f: 4c 0f a1    L..
 
 ; &af52 referenced 1 time by &af4d
 .caf52
     pla                                                               ; af52: 68          h
     tay                                                               ; af53: a8          .
-    jsr sub_caf95                                                     ; af54: 20 95 af     ..
-    jsr sub_cae82                                                     ; af57: 20 82 ae     ..
-    jsr sub_caef0                                                     ; af5a: 20 f0 ae     ..
+    jsr save_ptr_to_os_text                                           ; af54: 20 95 af     ..
+    jsr parse_filename_arg                                            ; af57: 20 82 ae     ..
+    jsr copy_arg_to_buf_x0                                            ; af5a: 20 f0 ae     ..
     ldy #&14                                                          ; af5d: a0 14       ..
     bit l947d                                                         ; af5f: 2c 7d 94    ,}.
-    jmp c949a                                                         ; af62: 4c 9a 94    L..
+    jmp save_net_tx_cb_vset                                           ; af62: 4c 9a 94    L..
 
 ; &af65 referenced 1 time by &8ff3
-.sub_caf65
+.print_num_no_leading
     bit l947d                                                         ; af65: 2c 7d 94    ,}.
 ; &af68 referenced 3 times by &adb5, &b179, &b190
-.caf68
+.print_decimal_3dig
     tay                                                               ; af68: a8          .
     lda #&64 ; 'd'                                                    ; af69: a9 64       .d
-    jsr sub_caf76                                                     ; af6b: 20 76 af     v.
+    jsr print_decimal_digit                                           ; af6b: 20 76 af     v.
     lda #&0a                                                          ; af6e: a9 0a       ..
-    jsr sub_caf76                                                     ; af70: 20 76 af     v.
+    jsr print_decimal_digit                                           ; af70: 20 76 af     v.
     clv                                                               ; af73: b8          .
     lda #1                                                            ; af74: a9 01       ..
 ; &af76 referenced 2 times by &af6b, &af70
-.sub_caf76
+.print_decimal_digit
     sta fs_error_ptr                                                  ; af76: 85 b8       ..
     tya                                                               ; af78: 98          .
     ldx #&2f ; '/'                                                    ; af79: a2 2f       ./
@@ -8883,7 +8883,7 @@ lad31 = sub_cad2f+2
     rts                                                               ; af94: 60          `
 
 ; &af95 referenced 8 times by &9d4f, &a1a9, &ad22, &ad84, &af54, &b018, &b1f2, &b344
-.sub_caf95
+.save_ptr_to_os_text
     pha                                                               ; af95: 48          H
     lda fs_crc_lo                                                     ; af96: a5 be       ..
     sta os_text_ptr                                                   ; af98: 85 f2       ..
@@ -8896,7 +8896,7 @@ lad31 = sub_cad2f+2
 .loop_cafa0
     iny                                                               ; afa0: c8          .
 ; &afa1 referenced 2 times by &ad03, &af48
-.sub_cafa1
+.skip_to_next_arg
     lda (fs_crc_lo),y                                                 ; afa1: b1 be       ..
     cmp #&20 ; ' '                                                    ; afa3: c9 20       .
     beq cafad                                                         ; afa5: f0 06       ..
@@ -8915,7 +8915,7 @@ lad31 = sub_cad2f+2
     rts                                                               ; afb4: 60          `
 
 ; &afb5 referenced 2 times by &afdb, &b1ae
-.sub_cafb5
+.save_ptr_to_spool_buf
     pha                                                               ; afb5: 48          H
     lda fs_crc_lo                                                     ; afb6: a5 be       ..
     sta fs_options                                                    ; afb8: 85 bb       ..
@@ -8925,10 +8925,10 @@ lad31 = sub_cad2f+2
     rts                                                               ; afbf: 60          `
 
 ; &afc0 referenced 2 times by &afd8, &b1a1
-.sub_cafc0
+.init_spool_drive
     tya                                                               ; afc0: 98          .
     pha                                                               ; afc1: 48          H
-    jsr sub_c8cae                                                     ; afc2: 20 ae 8c     ..
+    jsr get_ws_page                                                   ; afc2: 20 ae 8c     ..
     sta l00af                                                         ; afc5: 85 af       ..
     pla                                                               ; afc7: 68          h
     tay                                                               ; afc8: a8          .
@@ -8944,31 +8944,31 @@ lad31 = sub_cad2f+2
     lda #1                                                            ; afce: a9 01       ..
     bit ws_0d6a                                                       ; afd0: 2c 6a 0d    ,j.
     bne cafd8                                                         ; afd3: d0 03       ..
-    jmp cabec                                                         ; afd5: 4c ec ab    L..
+    jmp err_printer_busy                                              ; afd5: 4c ec ab    L..
 
 ; &afd8 referenced 1 time by &afd3
 .cafd8
-    jsr sub_cafc0                                                     ; afd8: 20 c0 af     ..
-    jsr sub_cafb5                                                     ; afdb: 20 b5 af     ..
+    jsr init_spool_drive                                              ; afd8: 20 c0 af     ..
+    jsr save_ptr_to_spool_buf                                         ; afdb: 20 b5 af     ..
     lda (fs_options),y                                                ; afde: b1 bb       ..
     cmp #&0d                                                          ; afe0: c9 0d       ..
     beq cb005                                                         ; afe2: f0 21       .!
     clv                                                               ; afe4: b8          .
-    jsr sub_c9244                                                     ; afe5: 20 44 92     D.
+    jsr is_decimal_digit                                              ; afe5: 20 44 92     D.
     bcc cb008                                                         ; afe8: 90 1e       ..
     tya                                                               ; afea: 98          .
     pha                                                               ; afeb: 48          H
-    jsr sub_cb0c6                                                     ; afec: 20 c6 b0     ..
+    jsr load_ps_server_addr                                           ; afec: 20 c6 b0     ..
     pla                                                               ; afef: 68          h
     tay                                                               ; aff0: a8          .
-    jsr sub_ca08f                                                     ; aff1: 20 8f a0     ..
+    jsr parse_fs_ps_args                                              ; aff1: 20 8f a0     ..
     jmp cb095                                                         ; aff4: 4c 95 b0    L..
 
 ; &aff7 referenced 1 time by &8ee0
-.sub_caff7
+.copy_ps_data_y1c
     ldy #&1c                                                          ; aff7: a0 1c       ..
 ; &aff9 referenced 1 time by &b1d4
-.sub_caff9
+.copy_ps_data
     ldx #&f8                                                          ; aff9: a2 f8       ..
 ; &affb referenced 1 time by &b002
 .loop_caffb
@@ -8995,7 +8995,7 @@ lad31 = sub_cad2f+2
     iny                                                               ; b014: c8          .
     dex                                                               ; b015: ca          .
     bne loop_cb012                                                    ; b016: d0 fa       ..
-    jsr sub_caf95                                                     ; b018: 20 95 af     ..
+    jsr save_ptr_to_os_text                                           ; b018: 20 95 af     ..
     ldy ws_ptr_hi                                                     ; b01b: a4 ac       ..
     jsr gsinit                                                        ; b01d: 20 c2 ff     ..
     beq cb038                                                         ; b020: f0 16       ..
@@ -9009,14 +9009,14 @@ lad31 = sub_cad2f+2
     jsr gsread                                                        ; b02c: 20 c5 ff     ..
     sty ws_ptr_hi                                                     ; b02f: 84 ac       ..
     bcs cb038                                                         ; b031: b0 05       ..
-    jsr sub_cb2db                                                     ; b033: 20 db b2     ..
+    jsr store_char_uppercase                                          ; b033: 20 db b2     ..
     bne loop_cb02a                                                    ; b036: d0 f2       ..
 ; &b038 referenced 3 times by &b00a, &b020, &b031
 .cb038
-    jsr sub_cb149                                                     ; b038: 20 49 b1     I.
-    jsr c982a                                                         ; b03b: 20 2a 98     *.
-    jsr sub_cb0d2                                                     ; b03e: 20 d2 b0     ..
-    jsr sub_cb0c6                                                     ; b041: 20 c6 b0     ..
+    jsr reverse_ps_name_to_tx                                         ; b038: 20 49 b1     I.
+    jsr send_net_packet                                               ; b03b: 20 2a 98     *.
+    jsr pop_requeue_ps_scan                                           ; b03e: 20 d2 b0     ..
+    jsr load_ps_server_addr                                           ; b041: 20 c6 b0     ..
     lda #0                                                            ; b044: a9 00       ..
     tax                                                               ; b046: aa          .              ; X=&00
     ldy #&24 ; '$'                                                    ; b047: a0 24       .$
@@ -9029,7 +9029,7 @@ lad31 = sub_cad2f+2
     tay                                                               ; b04f: a8          .
     lda (nfs_workspace),y                                             ; b050: b1 9e       ..
     bpl cb06d                                                         ; b052: 10 19       ..
-    jsr sub_c9a6d                                                     ; b054: 20 6d 9a     m.
+    jsr advance_y_by_4                                                ; b054: 20 6d 9a     m.
     lda (nfs_workspace),y                                             ; b057: b1 9e       ..
     sta l00ae                                                         ; b059: 85 ae       ..
     lda (l00ae,x)                                                     ; b05b: a1 ae       ..
@@ -9052,7 +9052,7 @@ lad31 = sub_cad2f+2
 
 ; &b075 referenced 1 time by &b04c
 .cb075
-    jsr sub_cb0ab                                                     ; b075: 20 ab b0     ..
+    jsr print_printer_server_is                                       ; b075: 20 ab b0     ..
     ldy #&24 ; '$'                                                    ; b078: a0 24       .$
     lda (net_rx_ptr),y                                                ; b07a: b1 9c       ..
     bne cb08a                                                         ; b07c: d0 0c       ..
@@ -9070,7 +9070,7 @@ lad31 = sub_cad2f+2
     nop                                                               ; b091: ea          .
 ; &b092 referenced 1 time by &b088
 .cb092
-    jsr sub_ca086                                                     ; b092: 20 86 a0     ..
+    jsr print_fs_info_newline                                         ; b092: 20 86 a0     ..
 ; &b095 referenced 1 time by &aff4
 .cb095
     ldy #2                                                            ; b095: a0 02       ..
@@ -9082,7 +9082,7 @@ lad31 = sub_cad2f+2
     rts                                                               ; b0a0: 60          `
 
 ; &b0a1 referenced 1 time by &a083
-.sub_cb0a1
+.print_file_server_is
     jsr print_inline                                                  ; b0a1: 20 31 91     1.
     equs "File"                                                       ; b0a4: 46 69 6c... Fil
 
@@ -9090,7 +9090,7 @@ lad31 = sub_cad2f+2
     bvc cb0b6                                                         ; b0a9: 50 0b       P.             ; ALWAYS branch
 
 ; &b0ab referenced 2 times by &b075, &b21c
-.sub_cb0ab
+.print_printer_server_is
     jsr print_inline                                                  ; b0ab: 20 31 91     1.
     equs "Printer"                                                    ; b0ae: 50 72 69... Pri
 
@@ -9104,7 +9104,7 @@ lad31 = sub_cad2f+2
     rts                                                               ; b0c5: 60          `
 
 ; &b0c6 referenced 4 times by &afec, &b041, &b1bf, &b21f
-.sub_cb0c6
+.load_ps_server_addr
     ldy #2                                                            ; b0c6: a0 02       ..
     lda (nfs_workspace),y                                             ; b0c8: b1 9e       ..
     sta fs_work_5                                                     ; b0ca: 85 b5       ..
@@ -9114,7 +9114,7 @@ lad31 = sub_cad2f+2
     rts                                                               ; b0d1: 60          `
 
 ; &b0d2 referenced 2 times by &b03e, &b219
-.sub_cb0d2
+.pop_requeue_ps_scan
     pla                                                               ; b0d2: 68          h
     sta osword_flag                                                   ; b0d3: 85 aa       ..
     pla                                                               ; b0d5: 68          h
@@ -9127,7 +9127,7 @@ lad31 = sub_cad2f+2
     lda #3                                                            ; b0e2: a9 03       ..
 ; &b0e4 referenced 1 time by &b0f6
 .loop_cb0e4
-    jsr sub_ca0b6                                                     ; b0e4: 20 b6 a0     ..
+    jsr byte_to_2bit_index                                            ; b0e4: 20 b6 a0     ..
     bcs cb120                                                         ; b0e7: b0 37       .7
     lsr a                                                             ; b0e9: 4a          J
     lsr a                                                             ; b0ea: 4a          J
@@ -9151,7 +9151,7 @@ lad31 = sub_cad2f+2
     lda #&9e                                                          ; b0ff: a9 9e       ..
     sta (nfs_workspace),y                                             ; b101: 91 9e       ..
     lda #0                                                            ; b103: a9 00       ..
-    jsr sub_cb141                                                     ; b105: 20 41 b1     A.
+    jsr write_two_bytes_inc_y                                         ; b105: 20 41 b1     A.
     lda ws_ptr_hi                                                     ; b108: a5 ac       ..
     sta (nfs_workspace),y                                             ; b10a: 91 9e       ..
     clc                                                               ; b10c: 18          .
@@ -9159,12 +9159,12 @@ lad31 = sub_cad2f+2
     adc #3                                                            ; b10e: 69 03       i.
     plp                                                               ; b110: 28          (
     sta ws_ptr_hi                                                     ; b111: 85 ac       ..
-    jsr sub_cb13a                                                     ; b113: 20 3a b1     :.
+    jsr write_ps_slot_byte_ff                                         ; b113: 20 3a b1     :.
     lda ws_ptr_hi                                                     ; b116: a5 ac       ..
     sta (nfs_workspace),y                                             ; b118: 91 9e       ..
-.sub_cb11a
-lb11b = sub_cb11a+1
-    jsr sub_cb13a                                                     ; b11a: 20 3a b1     :.
+.write_ps_slot_hi_link
+lb11b = write_ps_slot_hi_link+1
+    jsr write_ps_slot_byte_ff                                         ; b11a: 20 3a b1     :.
 ; &b11b referenced 1 time by &b2c6
     jmp cb0f4                                                         ; b11d: 4c f4 b0    L..
 
@@ -9190,13 +9190,13 @@ lb11b = sub_cb11a+1
     rts                                                               ; b139: 60          `
 
 ; &b13a referenced 2 times by &b113, &b11a
-.sub_cb13a
+.write_ps_slot_byte_ff
     iny                                                               ; b13a: c8          .
     lda l00af                                                         ; b13b: a5 af       ..
     sta (nfs_workspace),y                                             ; b13d: 91 9e       ..
     lda #&ff                                                          ; b13f: a9 ff       ..
 ; &b141 referenced 1 time by &b105
-.sub_cb141
+.write_two_bytes_inc_y
     iny                                                               ; b141: c8          .
     sta (nfs_workspace),y                                             ; b142: 91 9e       ..
     iny                                                               ; b144: c8          .
@@ -9205,7 +9205,7 @@ lb11b = sub_cb11a+1
     rts                                                               ; b148: 60          `
 
 ; &b149 referenced 2 times by &b038, &b1a6
-.sub_cb149
+.reverse_ps_name_to_tx
     ldy #&1c                                                          ; b149: a0 1c       ..
 ; &b14b referenced 1 time by &b151
 .loop_cb14b
@@ -9240,11 +9240,11 @@ lb11b = sub_cb11a+1
     equb &80, &9f, &ff, &ff                                           ; b170: 80 9f ff... ...
 
 ; &b174 referenced 4 times by &a089, &b225, &b25d, &b2b5
-.sub_cb174
+.print_station_addr
     php                                                               ; b174: 08          .
     lda l00b6                                                         ; b175: a5 b6       ..
     beq cb184                                                         ; b177: f0 0b       ..
-    jsr caf68                                                         ; b179: 20 68 af     h.
+    jsr print_decimal_3dig                                            ; b179: 20 68 af     h.
     lda #&2e ; '.'                                                    ; b17c: a9 2e       ..
     jsr osasci                                                        ; b17e: 20 e3 ff     ..            ; Write character 46
     bit l947d                                                         ; b181: 2c 7d 94    ,}.
@@ -9258,7 +9258,7 @@ lb11b = sub_cb11a+1
 .cb18d
     lda fs_work_5                                                     ; b18d: a5 b5       ..
     plp                                                               ; b18f: 28          (
-    jmp caf68                                                         ; b190: 4c 68 af    Lh.
+    jmp print_decimal_3dig                                            ; b190: 4c 68 af    Lh.
 
     equb &80, &9f, 0, 0, &14, 0, &ff, &ff, &1c, 0, &ff, &ff           ; b193: 80 9f 00... ...
 
@@ -9269,24 +9269,24 @@ lb11b = sub_cb11a+1
 ; ***************************************************************************************
 .cmd_pollps
     sty ws_ptr_hi                                                     ; b19f: 84 ac       ..
-    jsr sub_cafc0                                                     ; b1a1: 20 c0 af     ..
+    jsr init_spool_drive                                              ; b1a1: 20 c0 af     ..
     sta fs_work_4                                                     ; b1a4: 85 b4       ..
-    jsr sub_cb149                                                     ; b1a6: 20 49 b1     I.
-    jsr sub_cb2c4                                                     ; b1a9: 20 c4 b2     ..
+    jsr reverse_ps_name_to_tx                                         ; b1a6: 20 49 b1     I.
+    jsr init_ps_slot_from_rx                                          ; b1a9: 20 c4 b2     ..
     ldy ws_ptr_hi                                                     ; b1ac: a4 ac       ..
-    jsr sub_cafb5                                                     ; b1ae: 20 b5 af     ..
+    jsr save_ptr_to_spool_buf                                         ; b1ae: 20 b5 af     ..
     lda (fs_options),y                                                ; b1b1: b1 bb       ..
     cmp #&0d                                                          ; b1b3: c9 0d       ..
     beq cb1e1                                                         ; b1b5: f0 2a       .*
     clv                                                               ; b1b7: b8          .
-    jsr sub_c9244                                                     ; b1b8: 20 44 92     D.
+    jsr is_decimal_digit                                              ; b1b8: 20 44 92     D.
     bcc cb1e4                                                         ; b1bb: 90 27       .'
     tya                                                               ; b1bd: 98          .
     pha                                                               ; b1be: 48          H
-    jsr sub_cb0c6                                                     ; b1bf: 20 c6 b0     ..
+    jsr load_ps_server_addr                                           ; b1bf: 20 c6 b0     ..
     pla                                                               ; b1c2: 68          h
     tay                                                               ; b1c3: a8          .
-    jsr sub_ca08f                                                     ; b1c4: 20 8f a0     ..
+    jsr parse_fs_ps_args                                              ; b1c4: 20 8f a0     ..
     ldy #&7a ; 'z'                                                    ; b1c7: a0 7a       .z
     lda fs_work_5                                                     ; b1c9: a5 b5       ..
     sta (l00ae),y                                                     ; b1cb: 91 ae       ..
@@ -9294,7 +9294,7 @@ lb11b = sub_cb11a+1
     lda l00b6                                                         ; b1ce: a5 b6       ..
     sta (l00ae),y                                                     ; b1d0: 91 ae       ..
     ldy #&14                                                          ; b1d2: a0 14       ..
-    jsr sub_caff9                                                     ; b1d4: 20 f9 af     ..
+    jsr copy_ps_data                                                  ; b1d4: 20 f9 af     ..
     lda l00af                                                         ; b1d7: a5 af       ..
     sta net_tx_ptr_hi                                                 ; b1d9: 85 9b       ..
     lda #&78 ; 'x'                                                    ; b1db: a9 78       .x
@@ -9316,7 +9316,7 @@ lb11b = sub_cb11a+1
     iny                                                               ; b1ee: c8          .
     dex                                                               ; b1ef: ca          .
     bne loop_cb1ec                                                    ; b1f0: d0 fa       ..
-    jsr sub_caf95                                                     ; b1f2: 20 95 af     ..
+    jsr save_ptr_to_os_text                                           ; b1f2: 20 95 af     ..
     ldy ws_ptr_hi                                                     ; b1f5: a4 ac       ..
     jsr gsinit                                                        ; b1f7: 20 c2 ff     ..
     beq cb212                                                         ; b1fa: f0 16       ..
@@ -9330,18 +9330,18 @@ lb11b = sub_cb11a+1
     jsr gsread                                                        ; b206: 20 c5 ff     ..
     sty ws_ptr_hi                                                     ; b209: 84 ac       ..
     bcs cb212                                                         ; b20b: b0 05       ..
-    jsr sub_cb2db                                                     ; b20d: 20 db b2     ..
+    jsr store_char_uppercase                                          ; b20d: 20 db b2     ..
     bne loop_cb204                                                    ; b210: d0 f2       ..
 ; &b212 referenced 4 times by &b1df, &b1e4, &b1fa, &b20b
 .cb212
     lda #&80                                                          ; b212: a9 80       ..
     sta escapable                                                     ; b214: 85 97       ..
-    jsr c982a                                                         ; b216: 20 2a 98     *.
-    jsr sub_cb0d2                                                     ; b219: 20 d2 b0     ..
-    jsr sub_cb0ab                                                     ; b21c: 20 ab b0     ..
-    jsr sub_cb0c6                                                     ; b21f: 20 c6 b0     ..
+    jsr send_net_packet                                               ; b216: 20 2a 98     *.
+    jsr pop_requeue_ps_scan                                           ; b219: 20 d2 b0     ..
+    jsr print_printer_server_is                                       ; b21c: 20 ab b0     ..
+    jsr load_ps_server_addr                                           ; b21f: 20 c6 b0     ..
     bit l947d                                                         ; b222: 2c 7d 94    ,}.
-    jsr sub_cb174                                                     ; b225: 20 74 b1     t.
+    jsr print_station_addr                                            ; b225: 20 74 b1     t.
     jsr print_inline                                                  ; b228: 20 31 91     1.
     equs " ", '"'                                                     ; b22b: 20 22        "
 
@@ -9380,7 +9380,7 @@ lb11b = sub_cb11a+1
     lda (nfs_workspace),y                                             ; b258: b1 9e       ..
     sta l00ae                                                         ; b25a: 85 ae       ..
     clv                                                               ; b25c: b8          .
-    jsr sub_cb174                                                     ; b25d: 20 74 b1     t.
+    jsr print_station_addr                                            ; b25d: 20 74 b1     t.
     jsr print_inline                                                  ; b260: 20 31 91     1.
     equs " is "                                                       ; b263: 20 69 73...  is
 
@@ -9423,7 +9423,7 @@ lb11b = sub_cb11a+1
     lda (l00ae,x)                                                     ; b2ae: a1 ae       ..
     sta l00b6                                                         ; b2b0: 85 b6       ..
     bit l947d                                                         ; b2b2: 2c 7d 94    ,}.
-    jsr sub_cb174                                                     ; b2b5: 20 74 b1     t.
+    jsr print_station_addr                                            ; b2b5: 20 74 b1     t.
 ; &b2b8 referenced 3 times by &b276, &b286, &b299
 .cb2b8
     jsr osnewl                                                        ; b2b8: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
@@ -9440,7 +9440,7 @@ lb11b = sub_cb11a+1
     rts                                                               ; b2c3: 60          `
 
 ; &b2c4 referenced 1 time by &b1a9
-.sub_cb2c4
+.init_ps_slot_from_rx
     ldy #&78 ; 'x'                                                    ; b2c4: a0 78       .x
 ; &b2c6 referenced 1 time by &b2d8
 .loop_cb2c6
@@ -9461,7 +9461,7 @@ lb11b = sub_cb11a+1
     rts                                                               ; b2da: 60          `
 
 ; &b2db referenced 2 times by &b033, &b20d
-.sub_cb2db
+.store_char_uppercase
     ldy l00ad                                                         ; b2db: a4 ad       ..
     and #&7f                                                          ; b2dd: 29 7f       ).
     cmp #&61 ; 'a'                                                    ; b2df: c9 61       .a
@@ -9498,7 +9498,7 @@ lb11b = sub_cb11a+1
     ldx #&d3                                                          ; b2fe: a2 d3       ..
     lda (fs_crc_lo),y                                                 ; b300: b1 be       ..
     sta ws_page                                                       ; b302: 85 a8       ..
-    jsr sub_ca128                                                     ; b304: 20 28 a1     (.
+    jsr match_fs_cmd                                                  ; b304: 20 28 a1     (.
     bcs cb310                                                         ; b307: b0 07       ..
     pla                                                               ; b309: 68          h
     ora la3d9,x                                                       ; b30a: 1d d9 a3    ...
@@ -9509,7 +9509,7 @@ lb11b = sub_cb11a+1
     lda ws_page                                                       ; b310: a5 a8       ..
     eor #&0d                                                          ; b312: 49 0d       I.
     beq cb319                                                         ; b314: f0 03       ..
-    jmp ca245                                                         ; b316: 4c 45 a2    LE.
+    jmp error_bad_command                                             ; b316: 4c 45 a2    LE.
 
 ; &b319 referenced 1 time by &b314
 .cb319
@@ -9536,7 +9536,7 @@ lb11b = sub_cb11a+1
     ldx #&d3                                                          ; b32b: a2 d3       ..
     lda (fs_crc_lo),y                                                 ; b32d: b1 be       ..
     sta ws_page                                                       ; b32f: 85 a8       ..
-    jsr sub_ca128                                                     ; b331: 20 28 a1     (.
+    jsr match_fs_cmd                                                  ; b331: 20 28 a1     (.
     bcs cb310                                                         ; b334: b0 da       ..
     pla                                                               ; b336: 68          h
     and la3da,x                                                       ; b337: 3d da a3    =..
@@ -9549,11 +9549,11 @@ lb11b = sub_cb11a+1
 ; file confirmation prompt.
 ; ***************************************************************************************
 .cmd_wipe
-    jsr sub_caf12                                                     ; b33d: 20 12 af     ..
+    jsr mask_owner_access                                             ; b33d: 20 12 af     ..
     lda #0                                                            ; b340: a9 00       ..
     sta fs_work_5                                                     ; b342: 85 b5       ..
-    jsr sub_caf95                                                     ; b344: 20 95 af     ..
-    jsr sub_cae82                                                     ; b347: 20 82 ae     ..
+    jsr save_ptr_to_os_text                                           ; b344: 20 95 af     ..
+    jsr parse_filename_arg                                            ; b347: 20 82 ae     ..
     inx                                                               ; b34a: e8          .
     stx l00b6                                                         ; b34b: 86 b6       ..
 ; &b34d referenced 1 time by &b389
@@ -9564,11 +9564,11 @@ lb11b = sub_cb11a+1
     ldx fs_work_5                                                     ; b355: a6 b5       ..
     stx l0f06                                                         ; b357: 8e 06 0f    ...
     ldx #3                                                            ; b35a: a2 03       ..
-    jsr sub_caef2                                                     ; b35c: 20 f2 ae     ..
+    jsr copy_arg_to_buf                                               ; b35c: 20 f2 ae     ..
     ldy #3                                                            ; b35f: a0 03       ..
     lda #&80                                                          ; b361: a9 80       ..
     sta escapable                                                     ; b363: 85 97       ..
-    jsr c9499                                                         ; b365: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; b365: 20 99 94     ..
     lda l0f05                                                         ; b368: ad 05 0f    ...
     bne cb380                                                         ; b36b: d0 13       ..
     lda #osbyte_flush_buffer_class                                    ; b36d: a9 0f       ..
@@ -9615,7 +9615,7 @@ lb11b = sub_cb11a+1
     equs "(Y/N/?) "                                                   ; b3ab: 28 59 2f... (Y/
 
     nop                                                               ; b3b3: ea          .
-    jsr sub_cb41f                                                     ; b3b4: 20 1f b4     ..
+    jsr flush_and_read_char                                           ; b3b4: 20 1f b4     ..
     cmp #&3f ; '?'                                                    ; b3b7: c9 3f       .?
     bne cb3db                                                         ; b3b9: d0 20       .
     lda #&0d                                                          ; b3bb: a9 0d       ..
@@ -9632,7 +9632,7 @@ lb11b = sub_cb11a+1
     equs " (Y/N) "                                                    ; b3d0: 20 28 59...  (Y
 
     nop                                                               ; b3d7: ea          .
-    jsr sub_cb41f                                                     ; b3d8: 20 1f b4     ..
+    jsr flush_and_read_char                                           ; b3d8: 20 1f b4     ..
 ; &b3db referenced 1 time by &b3b9
 .cb3db
     and #&df                                                          ; b3db: 29 df       ).
@@ -9663,7 +9663,7 @@ lb11b = sub_cb11a+1
     cmp #&0d                                                          ; b400: c9 0d       ..
     bne loop_cb3ed                                                    ; b402: d0 e9       ..
     ldy #&14                                                          ; b404: a0 14       ..
-    jsr c9499                                                         ; b406: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; b406: 20 99 94     ..
     dec fs_work_5                                                     ; b409: c6 b5       ..
 ; &b40b referenced 1 time by &b3df
 .cb40b
@@ -9683,13 +9683,13 @@ lb11b = sub_cb11a+1
     beq cb3fa                                                         ; b41d: f0 db       ..             ; ALWAYS branch
 
 ; &b41f referenced 2 times by &b3b4, &b3d8
-.sub_cb41f
+.flush_and_read_char
     lda #osbyte_flush_buffer_class                                    ; b41f: a9 0f       ..
     ldx #1                                                            ; b421: a2 01       ..
     jsr osbyte                                                        ; b423: 20 f4 ff     ..            ; Flush input buffers (X non-zero)
     jsr osrdch                                                        ; b426: 20 e0 ff     ..            ; Read a character from the current input stream
     bcc return_32                                                     ; b429: 90 03       ..
-    jmp c9560                                                         ; b42b: 4c 60 95    L`.
+    jmp raise_escape_error                                            ; b42b: 4c 60 95    L`.
 
 ; &b42e referenced 1 time by &b429
 .return_32
@@ -9698,7 +9698,7 @@ lb11b = sub_cb11a+1
     equb &a9, 0, &a0, &78, &88, &91, &cc, &d0, &fb, &60               ; b42f: a9 00 a0... ...
 
 ; &b439 referenced 1 time by &8b6a
-.sub_cb439
+.init_channel_table
     lda #0                                                            ; b439: a9 00       ..
     tay                                                               ; b43b: a8          .              ; Y=&00
 ; &b43c referenced 1 time by &b440
@@ -9724,7 +9724,7 @@ lb11b = sub_cb11a+1
     rts                                                               ; b45a: 60          `
 
 ; &b45b referenced 5 times by &92a9, &92c0, &9c60, &9c9e, &b745
-.sub_cb45b
+.attr_to_chan_index
     php                                                               ; b45b: 08          .
     sec                                                               ; b45c: 38          8
     sbc #&20 ; ' '                                                    ; b45d: e9 20       .
@@ -9741,19 +9741,19 @@ lb11b = sub_cb11a+1
     rts                                                               ; b469: 60          `
 
 ; &b46a referenced 2 times by &9d97, &b4e3
-.sub_cb46a
+.check_chan_char
     cmp #&20 ; ' '                                                    ; b46a: c9 20       .
-    bcc cb472                                                         ; b46c: 90 04       ..
+    bcc err_net_chan_invalid                                          ; b46c: 90 04       ..
     cmp #&30 ; '0'                                                    ; b46e: c9 30       .0
-    bcc cb49d                                                         ; b470: 90 2b       .+
+    bcc lookup_chan_by_char                                           ; b470: 90 2b       .+
 ; &b472 referenced 2 times by &9bc6, &b46c
-.cb472
+.err_net_chan_invalid
     pha                                                               ; b472: 48          H
 ; &b473 referenced 1 time by &b4a5
 .cb473
     lda #&de                                                          ; b473: a9 de       ..
-.sub_cb475
-lb477 = sub_cb475+2
+.err_net_chan_not_found
+lb477 = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b475: 20 bb 96     ..
 ; &b477 referenced 2 times by &b4bd, &b4d1
     equs "Net channel", 0                                             ; b478: 4e 65 74... Net
@@ -9763,14 +9763,14 @@ lb477 = sub_cb475+2
     equb 0                                                            ; b49c: 00          .
 
 ; &b49d referenced 2 times by &9ec4, &b470
-.cb49d
+.lookup_chan_by_char
     pha                                                               ; b49d: 48          H
     sec                                                               ; b49e: 38          8
     sbc #&20 ; ' '                                                    ; b49f: e9 20       .
     tax                                                               ; b4a1: aa          .
     lda l1030,x                                                       ; b4a2: bd 30 10    .0.
     beq cb473                                                         ; b4a5: f0 cc       ..
-    jsr sub_cb57a                                                     ; b4a7: 20 7a b5     z.
+    jsr match_station_net                                             ; b4a7: 20 7a b5     z.
     bne cb4b1                                                         ; b4aa: d0 05       ..
     pla                                                               ; b4ac: 68          h
     lda l1060,x                                                       ; b4ad: bd 60 10    .`.
@@ -9792,7 +9792,7 @@ lb477 = sub_cb475+2
     stx fs_load_addr_2                                                ; b4c5: 86 b2       ..
     stx fs_work_4                                                     ; b4c7: 86 b4       ..
     pla                                                               ; b4c9: 68          h
-    jsr sub_c975c                                                     ; b4ca: 20 5c 97     \.
+    jsr append_space_and_num                                          ; b4ca: 20 5c 97     \.
     ldy fs_work_4                                                     ; b4cd: a4 b4       ..
 ; &b4cf referenced 1 time by &b4d7
 .loop_cb4cf
@@ -9804,13 +9804,13 @@ lb477 = sub_cb475+2
     jmp error_block                                                   ; b4d9: 4c 00 01    L..
 
 ; &b4dc referenced 2 times by &b7d4, &b85c
-.sub_cb4dc
+.store_result_check_dir
     lda l10c9                                                         ; b4dc: ad c9 10    ...
     ldy #&0e                                                          ; b4df: a0 0e       ..
     sta (net_rx_ptr),y                                                ; b4e1: 91 9c       ..
 ; &b4e3 referenced 2 times by &9bf9, &9e47
-.sub_cb4e3
-    jsr sub_cb46a                                                     ; b4e3: 20 6a b4     j.
+.check_not_dir
+    jsr check_chan_char                                               ; b4e3: 20 6a b4     j.
     and #2                                                            ; b4e6: 29 02       ).
     beq return_33                                                     ; b4e8: f0 0f       ..
     lda #&a8                                                          ; b4ea: a9 a8       ..
@@ -9822,7 +9822,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b4f9: 60          `
 
 ; &b4fa referenced 7 times by &9d3d, &9d72, &a268, &a307, &a332, &a369, &b531
-.sub_cb4fa
+.alloc_fcb_slot
     pha                                                               ; b4fa: 48          H
     ldx #&20 ; ' '                                                    ; b4fb: a2 20       .
 ; &b4fd referenced 1 time by &b505
@@ -9857,10 +9857,10 @@ lb477 = sub_cb475+2
     rts                                                               ; b52d: 60          `
 
 ; &b52e referenced 2 times by &9ceb, &a1d5
-.sub_cb52e
+.alloc_fcb_or_error
     pha                                                               ; b52e: 48          H
     lda #0                                                            ; b52f: a9 00       ..
-    jsr sub_cb4fa                                                     ; b531: 20 fa b4     ..
+    jsr alloc_fcb_slot                                                ; b531: 20 fa b4     ..
     bne cb548                                                         ; b534: d0 12       ..
     lda #&c0                                                          ; b536: a9 c0       ..
     jsr error_inline_log                                              ; b538: 20 bb 96     ..
@@ -9872,7 +9872,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b549: 60          `
 
 ; &b54a referenced 3 times by &9494, &951b, &a379
-.sub_cb54a
+.close_all_net_chans
     clc                                                               ; b54a: 18          .
     bcc cb54e                                                         ; b54b: 90 01       ..             ; ALWAYS branch
 
@@ -9881,7 +9881,7 @@ lb477 = sub_cb475+2
 .cb54e
     bit l947d                                                         ; b54e: 2c 7d 94    ,}.
 ; &b551 referenced 1 time by &9dac
-.sub_cb551
+.scan_fcb_flags
     ldx #&10                                                          ; b551: a2 10       ..
 ; &b553 referenced 4 times by &b55f, &b569, &b56e, &b578
 .cb553
@@ -9904,7 +9904,7 @@ lb477 = sub_cb475+2
 
 ; &b56b referenced 2 times by &b55d, &b561
 .cb56b
-    jsr sub_cb57a                                                     ; b56b: 20 7a b5     z.
+    jsr match_station_net                                             ; b56b: 20 7a b5     z.
     bne cb553                                                         ; b56e: d0 e3       ..
     lda #0                                                            ; b570: a9 00       ..
     sta l1060,x                                                       ; b572: 9d 60 10    .`.
@@ -9912,7 +9912,7 @@ lb477 = sub_cb475+2
     beq cb553                                                         ; b578: f0 d9       ..             ; ALWAYS branch
 
 ; &b57a referenced 6 times by &a2ee, &a319, &a350, &ac2e, &b4a7, &b56b
-.sub_cb57a
+.match_station_net
     lda l1040,x                                                       ; b57a: bd 40 10    .@.
     eor l0e00                                                         ; b57d: 4d 00 0e    M..
     bne return_34                                                     ; b580: d0 06       ..
@@ -9923,7 +9923,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b588: 60          `
 
 ; &b589 referenced 2 times by &b68a, &b788
-.sub_cb589
+.find_open_fcb
     ldx l10c8                                                         ; b589: ae c8 10    ...
     bit l947d                                                         ; b58c: 2c 7d 94    ,}.
 ; &b58f referenced 4 times by &b59e, &b5a4, &b5c1, &b5c8
@@ -9976,7 +9976,7 @@ lb477 = sub_cb475+2
     beq cb5aa                                                         ; b5ca: f0 de       ..             ; ALWAYS branch
 
 ; &b5cc referenced 2 times by &b60f, &b6cc
-.sub_cb5cc
+.init_wipe_counters
     ldy #1                                                            ; b5cc: a0 01       ..
     sty l10d0                                                         ; b5ce: 8c d0 10    ...
     dey                                                               ; b5d1: 88          .              ; Y=&00
@@ -9997,8 +9997,8 @@ lb477 = sub_cb475+2
     rts                                                               ; b5ee: 60          `
 
 ; &b5ef referenced 2 times by &b681, &b7ba
-.sub_cb5ef
-    jsr sub_c8fb2                                                     ; b5ef: 20 b2 8f     ..
+.start_wipe_pass
+    jsr verify_ws_checksum                                            ; b5ef: 20 b2 8f     ..
     stx l10c8                                                         ; b5f2: 8e c8 10    ...
     lda l10b8,x                                                       ; b5f5: bd b8 10    ...
     ror a                                                             ; b5f8: 6a          j
@@ -10011,7 +10011,7 @@ lb477 = sub_cb475+2
     sta l10d4                                                         ; b606: 8d d4 10    ...
     lda l1088,x                                                       ; b609: bd 88 10    ...
     sta l10d5                                                         ; b60c: 8d d5 10    ...
-    jsr sub_cb5cc                                                     ; b60f: 20 cc b5     ..
+    jsr init_wipe_counters                                            ; b60f: 20 cc b5     ..
     dec l10cf                                                         ; b612: ce cf 10    ...
     dec l10d0                                                         ; b615: ce d0 10    ...
     ldx l10c8                                                         ; b618: ae c8 10    ...
@@ -10037,7 +10037,7 @@ lb477 = sub_cb475+2
     ldx #&ca                                                          ; b63e: a2 ca       ..
     ldy #&10                                                          ; b640: a0 10       ..
     lda #0                                                            ; b642: a9 00       ..
-    jsr sub_cb979                                                     ; b644: 20 79 b9     y.
+    jsr send_and_receive                                              ; b644: 20 79 b9     y.
     ldx l10c8                                                         ; b647: ae c8 10    ...
     pla                                                               ; b64a: 68          h
     ldy #&0e                                                          ; b64b: a0 0e       ..
@@ -10054,7 +10054,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b65f: 60          `
 
 ; &b660 referenced 2 times by &b735, &b8a2
-.sub_cb660
+.save_fcb_context
     ldx #&0c                                                          ; b660: a2 0c       ..
 ; &b662 referenced 1 time by &b66c
 .loop_cb662
@@ -10079,11 +10079,11 @@ lb477 = sub_cb475+2
     bpl cb678                                                         ; b67c: 10 fa       ..
     asl a                                                             ; b67e: 0a          .
     bpl cb678                                                         ; b67f: 10 f7       ..
-    jsr sub_cb5ef                                                     ; b681: 20 ef b5     ..
+    jsr start_wipe_pass                                               ; b681: 20 ef b5     ..
     lda #&40 ; '@'                                                    ; b684: a9 40       .@
     sta l10b8,x                                                       ; b686: 9d b8 10    ...
     php                                                               ; b689: 08          .
-    jsr sub_cb589                                                     ; b68a: 20 89 b5     ..
+    jsr find_open_fcb                                                 ; b68a: 20 89 b5     ..
     plp                                                               ; b68d: 28          (
     lda l10c9                                                         ; b68e: ad c9 10    ...
     sta l10ca                                                         ; b691: 8d ca 10    ...
@@ -10111,10 +10111,10 @@ lb477 = sub_cb475+2
     stx l0f07                                                         ; b6c2: 8e 07 0f    ...
     ldy #&0d                                                          ; b6c5: a0 0d       ..
     ldx #5                                                            ; b6c7: a2 05       ..
-    jsr c9499                                                         ; b6c9: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; b6c9: 20 99 94     ..
 ; &b6cc referenced 1 time by &b6ba
 .cb6cc
-    jsr sub_cb5cc                                                     ; b6cc: 20 cc b5     ..
+    jsr init_wipe_counters                                            ; b6cc: 20 cc b5     ..
     ldy #&0e                                                          ; b6cf: a0 0e       ..
     lda (net_rx_ptr),y                                                ; b6d1: b1 9c       ..
     pha                                                               ; b6d3: 48          H
@@ -10122,7 +10122,7 @@ lb477 = sub_cb475+2
     sta (net_rx_ptr),y                                                ; b6d7: 91 9c       ..
     ldy #&10                                                          ; b6d9: a0 10       ..
     lda #2                                                            ; b6db: a9 02       ..
-    jsr sub_cb979                                                     ; b6dd: 20 79 b9     y.
+    jsr send_and_receive                                              ; b6dd: 20 79 b9     y.
     pla                                                               ; b6e0: 68          h
     ldy #&0e                                                          ; b6e1: a0 0e       ..
     sta (net_rx_ptr),y                                                ; b6e3: 91 9c       ..
@@ -10165,7 +10165,7 @@ lb477 = sub_cb475+2
     cpy #&0d                                                          ; b725: c0 0d       ..
     bne cb720                                                         ; b727: d0 f7       ..
 ; &b729 referenced 1 time by &b8d3
-.sub_cb729
+.restore_catalog_entry
     ldy #&0c                                                          ; b729: a0 0c       ..
 ; &b72b referenced 1 time by &b732
 .loop_cb72b
@@ -10177,9 +10177,9 @@ lb477 = sub_cb475+2
 
 ; &b735 referenced 1 time by &b754
 .loop_cb735
-    jsr sub_cb660                                                     ; b735: 20 60 b6     `.
+    jsr save_fcb_context                                              ; b735: 20 60 b6     `.
 ; &b738 referenced 3 times by &9dec, &b7ef, &b88e
-.sub_cb738
+.find_matching_fcb
     ldx #&ff                                                          ; b738: a2 ff       ..
 ; &b73a referenced 2 times by &b774, &b77c
 .cb73a
@@ -10190,7 +10190,7 @@ lb477 = sub_cb475+2
     cpx #&10                                                          ; b73e: e0 10       ..
     bne cb757                                                         ; b740: d0 15       ..
     lda l10c9                                                         ; b742: ad c9 10    ...
-    jsr sub_cb45b                                                     ; b745: 20 5b b4     [.
+    jsr attr_to_chan_index                                            ; b745: 20 5b b4     [.
     lda l1020,x                                                       ; b748: bd 20 10    . .
     sta l10d5                                                         ; b74b: 8d d5 10    ...
     lda l1010,x                                                       ; b74e: bd 10 10    ...
@@ -10220,7 +10220,7 @@ lb477 = sub_cb475+2
     bpl cb78e                                                         ; b781: 10 0b       ..
     and #&7f                                                          ; b783: 29 7f       ).
     sta l10b8,x                                                       ; b785: 9d b8 10    ...
-    jsr sub_cb589                                                     ; b788: 20 89 b5     ..
+    jsr find_open_fcb                                                 ; b788: 20 89 b5     ..
     lda l10b8,x                                                       ; b78b: bd b8 10    ...
 ; &b78e referenced 1 time by &b781
 .cb78e
@@ -10228,7 +10228,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b790: 60          `
 
 ; &b791 referenced 2 times by &b836, &b910
-.sub_cb791
+.inc_fcb_byte_count
     inc l1000,x                                                       ; b791: fe 00 10    ...
     bne return_35                                                     ; b794: d0 08       ..
     inc l1010,x                                                       ; b796: fe 10 10    ...
@@ -10239,7 +10239,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b79e: 60          `
 
 ; &b79f referenced 8 times by &8d7c, &8f87, &948c, &9bcd, &9c13, &9cb6, &9d7e, &9e4c
-.sub_cb79f
+.process_all_fcbs
     txa                                                               ; b79f: 8a          .
     pha                                                               ; b7a0: 48          H
     tya                                                               ; b7a1: 98          .
@@ -10260,7 +10260,7 @@ lb477 = sub_cb475+2
 ; &b7b9 referenced 1 time by &b7b2
 .cb7b9
     pha                                                               ; b7b9: 48          H
-    jsr sub_cb5ef                                                     ; b7ba: 20 ef b5     ..
+    jsr start_wipe_pass                                               ; b7ba: 20 ef b5     ..
     pla                                                               ; b7bd: 68          h
     tay                                                               ; b7be: a8          .
 ; &b7bf referenced 1 time by &b7b7
@@ -10280,7 +10280,7 @@ lb477 = sub_cb475+2
     sty l10c9                                                         ; b7cf: 8c c9 10    ...
     txa                                                               ; b7d2: 8a          .
     pha                                                               ; b7d3: 48          H
-    jsr sub_cb4dc                                                     ; b7d4: 20 dc b4     ..
+    jsr store_result_check_dir                                        ; b7d4: 20 dc b4     ..
     lda l1060,x                                                       ; b7d7: bd 60 10    .`.
     and #&20 ; ' '                                                    ; b7da: 29 20       )
     beq cb7ee                                                         ; b7dc: f0 10       ..
@@ -10291,7 +10291,7 @@ lb477 = sub_cb475+2
 ; &b7ee referenced 1 time by &b7dc
 .cb7ee
     clv                                                               ; b7ee: b8          .
-    jsr sub_cb738                                                     ; b7ef: 20 38 b7     8.
+    jsr find_matching_fcb                                             ; b7ef: 20 38 b7     8.
     beq cb82a                                                         ; b7f2: f0 36       .6
     lda l1000,y                                                       ; b7f4: b9 00 10    ...
     cmp l1098,x                                                       ; b7f7: dd 98 10    ...
@@ -10328,7 +10328,7 @@ lb477 = sub_cb475+2
     lda #0                                                            ; b830: a9 00       ..
     ldy #&0e                                                          ; b832: a0 0e       ..
     sta (net_rx_ptr),y                                                ; b834: 91 9c       ..
-    jsr sub_cb791                                                     ; b836: 20 91 b7     ..
+    jsr inc_fcb_byte_count                                            ; b836: 20 91 b7     ..
     pla                                                               ; b839: 68          h
     tay                                                               ; b83a: a8          .
     lda l10c8                                                         ; b83b: ad c8 10    ...
@@ -10352,7 +10352,7 @@ lb477 = sub_cb475+2
     tya                                                               ; b857: 98          .
     pha                                                               ; b858: 48          H
     sta l10d7                                                         ; b859: 8d d7 10    ...
-    jsr sub_cb4dc                                                     ; b85c: 20 dc b4     ..
+    jsr store_result_check_dir                                        ; b85c: 20 dc b4     ..
     lda l1060,x                                                       ; b85f: bd 60 10    .`.
     bmi cb87d                                                         ; b862: 30 19       0.
     equb &a9                                                          ; b864: a9          .
@@ -10367,13 +10367,13 @@ lb477 = sub_cb475+2
     beq cb88b                                                         ; b87f: f0 0a       ..
     ldy l1030,x                                                       ; b881: bc 30 10    .0.
     pla                                                               ; b884: 68          h
-    jsr sub_cb920                                                     ; b885: 20 20 b9      .
+    jsr send_wipe_request                                             ; b885: 20 20 b9      .
     jmp cb910                                                         ; b888: 4c 10 b9    L..
 
 ; &b88b referenced 1 time by &b87f
 .cb88b
     bit l947d                                                         ; b88b: 2c 7d 94    ,}.
-    jsr sub_cb738                                                     ; b88e: 20 38 b7     8.
+    jsr find_matching_fcb                                             ; b88e: 20 38 b7     8.
     lda l1000,y                                                       ; b891: b9 00 10    ...
     cmp #&ff                                                          ; b894: c9 ff       ..
     bne cb8dd                                                         ; b896: d0 45       .E
@@ -10384,7 +10384,7 @@ lb477 = sub_cb475+2
     lda l1030,y                                                       ; b89c: b9 30 10    .0.
     pha                                                               ; b89f: 48          H
     ldy #0                                                            ; b8a0: a0 00       ..
-    jsr sub_cb660                                                     ; b8a2: 20 60 b6     `.
+    jsr save_fcb_context                                              ; b8a2: 20 60 b6     `.
     pla                                                               ; b8a5: 68          h
     sta l0f05                                                         ; b8a6: 8d 05 0f    ...
     tax                                                               ; b8a9: aa          .
@@ -10403,12 +10403,12 @@ lb477 = sub_cb475+2
     sta l0f09                                                         ; b8c1: 8d 09 0f    ...
     ldy #&0d                                                          ; b8c4: a0 0d       ..
     ldx #5                                                            ; b8c6: a2 05       ..
-    jsr c9499                                                         ; b8c8: 20 99 94     ..
+    jsr save_net_tx_cb                                                ; b8c8: 20 99 94     ..
     pla                                                               ; b8cb: 68          h
     tay                                                               ; b8cc: a8          .
     lda l10d7                                                         ; b8cd: ad d7 10    ...
-    jsr sub_cb920                                                     ; b8d0: 20 20 b9      .
-    jsr sub_cb729                                                     ; b8d3: 20 29 b7     ).
+    jsr send_wipe_request                                             ; b8d0: 20 20 b9      .
+    jsr restore_catalog_entry                                         ; b8d3: 20 29 b7     ).
     pla                                                               ; b8d6: 68          h
     tay                                                               ; b8d7: a8          .
     pla                                                               ; b8d8: 68          h
@@ -10445,7 +10445,7 @@ lb477 = sub_cb475+2
     sta (fs_load_addr_2),y                                            ; b90e: 91 b2       ..
 ; &b910 referenced 1 time by &b888
 .cb910
-    jsr sub_cb791                                                     ; b910: 20 91 b7     ..
+    jsr inc_fcb_byte_count                                            ; b910: 20 91 b7     ..
     lda #0                                                            ; b913: a9 00       ..
     ldy #&0e                                                          ; b915: a0 0e       ..
     sta (net_rx_ptr),y                                                ; b917: 91 9c       ..
@@ -10456,7 +10456,7 @@ lb477 = sub_cb475+2
     rts                                                               ; b91f: 60          `
 
 ; &b920 referenced 2 times by &b885, &b8d0
-.sub_cb920
+.send_wipe_request
     sty l0fde                                                         ; b920: 8c de 0f    ...
     sta l0fdf                                                         ; b923: 8d df 0f    ...
     tya                                                               ; b926: 98          .
@@ -10465,7 +10465,7 @@ lb477 = sub_cb475+2
     pha                                                               ; b929: 48          H
     lda #&90                                                          ; b92a: a9 90       ..
     sta l0fdc                                                         ; b92c: 8d dc 0f    ...
-    jsr c945f                                                         ; b92f: 20 5f 94     _.
+    jsr init_txcb                                                     ; b92f: 20 5f 94     _.
     lda #&dc                                                          ; b932: a9 dc       ..
     sta txcb_start                                                    ; b934: 85 c4       ..
     lda #&e0                                                          ; b936: a9 e0       ..
@@ -10475,7 +10475,7 @@ lb477 = sub_cb475+2
     ldx #&c0                                                          ; b93f: a2 c0       ..
     ldy #0                                                            ; b941: a0 00       ..
     lda l0fde                                                         ; b943: ad de 0f    ...
-    jsr sub_cac12                                                     ; b946: 20 12 ac     ..
+    jsr send_disconnect_reply                                         ; b946: 20 12 ac     ..
     lda l0fdd                                                         ; b949: ad dd 0f    ...
     beq cb969                                                         ; b94c: f0 1b       ..
     sta l0e09                                                         ; b94e: 8d 09 0e    ...
@@ -10493,7 +10493,7 @@ lb477 = sub_cb475+2
     lda #0                                                            ; b960: a9 00       ..
     sta error_block,x                                                 ; b962: 9d 00 01    ...
     dex                                                               ; b965: ca          .
-    jmp c96da                                                         ; b966: 4c da 96    L..
+    jmp check_net_error_code                                          ; b966: 4c da 96    L..
 
 ; &b969 referenced 1 time by &b94c
 .cb969
@@ -10508,9 +10508,9 @@ lb477 = sub_cb475+2
     rts                                                               ; b978: 60          `
 
 ; &b979 referenced 2 times by &b644, &b6dd
-.sub_cb979
-    jsr sub_c9287                                                     ; b979: 20 87 92     ..
-    jmp c9ecb                                                         ; b97c: 4c cb 9e    L..
+.send_and_receive
+    jsr set_options_ptr                                               ; b979: 20 87 92     ..
+    jmp setup_transfer_workspace                                      ; b97c: 4c cb 9e    L..
 
 ; ***************************************************************************************
 ; *Close command.
@@ -10538,7 +10538,7 @@ lb477 = sub_cb475+2
     bit l947d                                                         ; b988: 2c 7d 94    ,}.
 ; &b98b referenced 1 time by &b986
 .cb98b
-    jsr sub_cbb13                                                     ; b98b: 20 13 bb     ..
+    jsr open_file_for_read                                            ; b98b: 20 13 bb     ..
     ldy ws_page                                                       ; b98e: a4 a8       ..             ; Y=file handle
     lda #0                                                            ; b990: a9 00       ..
     sta l00ad                                                         ; b992: 85 ad       ..
@@ -10548,12 +10548,12 @@ lb477 = sub_cb475+2
     jsr osbget                                                        ; b995: 20 d7 ff     ..            ; Read a single byte from an open file Y
     bcc cb9a1                                                         ; b998: 90 07       ..
     plp                                                               ; b99a: 28          (
-    jsr cbb0c                                                         ; b99b: 20 0c bb     ..
+    jsr close_ws_file                                                 ; b99b: 20 0c bb     ..
     jmp osnewl                                                        ; b99e: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &b9a1 referenced 1 time by &b998
 .cb9a1
-    jsr sub_cb9ea                                                     ; b9a1: 20 ea b9     ..
+    jsr abort_if_escape                                               ; b9a1: 20 ea b9     ..
     plp                                                               ; b9a4: 28          (
     php                                                               ; b9a5: 08          .
     bvs cb9b0                                                         ; b9a6: 70 08       p.
@@ -10611,14 +10611,14 @@ lb477 = sub_cb475+2
     beq cb995                                                         ; b9e8: f0 ab       ..             ; ALWAYS branch
 
 ; &b9ea referenced 2 times by &b9a1, &ba1e
-.sub_cb9ea
+.abort_if_escape
     bit escape_flag                                                   ; b9ea: 24 ff       $.
     bmi cb9ef                                                         ; b9ec: 30 01       0.
     rts                                                               ; b9ee: 60          `
 
 ; &b9ef referenced 1 time by &b9ec
 .cb9ef
-    jsr cbb0c                                                         ; b9ef: 20 0c bb     ..
+    jsr close_ws_file                                                 ; b9ef: 20 0c bb     ..
     jsr osnewl                                                        ; b9f2: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     lda #osbyte_acknowledge_escape                                    ; b9f5: a9 7e       .~
     jsr osbyte                                                        ; b9f7: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
@@ -10632,7 +10632,7 @@ lb477 = sub_cb475+2
 ; ASCII format, 8 bytes per line.
 ; ***************************************************************************************
 .cmd_dump
-    jsr sub_cbb13                                                     ; ba06: 20 13 bb     ..
+    jsr open_file_for_read                                            ; ba06: 20 13 bb     ..
     ldx #&14                                                          ; ba09: a2 14       ..
     lda #0                                                            ; ba0b: a9 00       ..
 ; &ba0d referenced 1 time by &ba0f
@@ -10641,14 +10641,14 @@ lb477 = sub_cb475+2
     dex                                                               ; ba0e: ca          .
     bpl loop_cba0d                                                    ; ba0f: 10 fc       ..
     tsx                                                               ; ba11: ba          .
-    jsr sub_cbbbe                                                     ; ba12: 20 be bb     ..
+    jsr init_dump_buffer                                              ; ba12: 20 be bb     ..
     lda (l00ae),y                                                     ; ba15: b1 ae       ..
     and #&f0                                                          ; ba17: 29 f0       ).
     beq cba1e                                                         ; ba19: f0 03       ..
-    jsr sub_cbace                                                     ; ba1b: 20 ce ba     ..
+    jsr print_dump_header                                             ; ba1b: 20 ce ba     ..
 ; &ba1e referenced 2 times by &ba19, &bac6
 .cba1e
-    jsr sub_cb9ea                                                     ; ba1e: 20 ea b9     ..
+    jsr abort_if_escape                                               ; ba1e: 20 ea b9     ..
     lda #&ff                                                          ; ba21: a9 ff       ..
     sta osword_flag                                                   ; ba23: 85 aa       ..
 ; &ba25 referenced 1 time by &ba34
@@ -10673,7 +10673,7 @@ lb477 = sub_cb475+2
     pla                                                               ; ba3e: 68          h
     dex                                                               ; ba3f: ca          .
     bpl cba3e                                                         ; ba40: 10 fc       ..
-    jmp cbb0c                                                         ; ba42: 4c 0c bb    L..
+    jmp close_ws_file                                                 ; ba42: 4c 0c bb    L..
 
 ; &ba45 referenced 1 time by &ba3a
 .cba45
@@ -10681,7 +10681,7 @@ lb477 = sub_cb475+2
     lda (l00ae),y                                                     ; ba47: b1 ae       ..
     and #&f0                                                          ; ba49: 29 f0       ).
     bne cba50                                                         ; ba4b: d0 03       ..
-    jsr sub_cbace                                                     ; ba4d: 20 ce ba     ..
+    jsr print_dump_header                                             ; ba4d: 20 ce ba     ..
 ; &ba50 referenced 1 time by &ba4b
 .cba50
     ldy #&13                                                          ; ba50: a0 13       ..
@@ -10689,7 +10689,7 @@ lb477 = sub_cb475+2
 .loop_cba52
     lda (l00ae),y                                                     ; ba52: b1 ae       ..
     pha                                                               ; ba54: 48          H
-    jsr sub_c911b                                                     ; ba55: 20 1b 91     ..
+    jsr print_hex_byte                                                ; ba55: 20 1b 91     ..
     pla                                                               ; ba58: 68          h
     dey                                                               ; ba59: 88          .
     cpy #&0f                                                          ; ba5a: c0 0f       ..
@@ -10717,7 +10717,7 @@ lb477 = sub_cb475+2
 ; &ba7b referenced 1 time by &ba8b
 .loop_cba7b
     lda (l00ae),y                                                     ; ba7b: b1 ae       ..
-    jsr sub_c911b                                                     ; ba7d: 20 1b 91     ..
+    jsr print_hex_byte                                                ; ba7d: 20 1b 91     ..
     lda #&20 ; ' '                                                    ; ba80: a9 20       .
     jsr osasci                                                        ; ba82: 20 e3 ff     ..            ; Write character 32
 ; &ba85 referenced 1 time by &ba98
@@ -10744,7 +10744,7 @@ lb477 = sub_cb475+2
     equs ": "                                                         ; ba9f: 3a 20       :
 
     nop                                                               ; baa1: ea          .
-    jsr sub_cbc84                                                     ; baa2: 20 84 bc     ..
+    jsr advance_x_by_8                                                ; baa2: 20 84 bc     ..
     ldy #0                                                            ; baa5: a0 00       ..
 ; &baa7 referenced 1 time by &babe
 .loop_cbaa7
@@ -10778,7 +10778,7 @@ lb477 = sub_cb475+2
     jmp cba3e                                                         ; bacb: 4c 3e ba    L>.
 
 ; &bace referenced 2 times by &ba1b, &ba4d
-.sub_cbace
+.print_dump_header
     lda (l00ae),y                                                     ; bace: b1 ae       ..
     pha                                                               ; bad0: 48          H
     jsr print_inline                                                  ; bad1: 20 31 91     1.
@@ -10790,7 +10790,7 @@ lb477 = sub_cb475+2
 ; &bae4 referenced 1 time by &baf4
 .loop_cbae4
     pha                                                               ; bae4: 48          H
-    jsr sub_c911b                                                     ; bae5: 20 1b 91     ..
+    jsr print_hex_byte                                                ; bae5: 20 1b 91     ..
     lda #&20 ; ' '                                                    ; bae8: a9 20       .
     jsr osasci                                                        ; baea: 20 e3 ff     ..            ; Write character 32
     pla                                                               ; baed: 68          h
@@ -10806,13 +10806,13 @@ lb477 = sub_cb475+2
     rts                                                               ; bb0b: 60          `
 
 ; &bb0c referenced 6 times by &b99b, &b9ef, &ba42, &bbaf, &bbe9, &bc56
-.cbb0c
+.close_ws_file
     ldy ws_page                                                       ; bb0c: a4 a8       ..
     lda #osfind_close                                                 ; bb0e: a9 00       ..
     jmp osfind                                                        ; bb10: 4c ce ff    L..            ; Close one or all files
 
 ; &bb13 referenced 2 times by &b98b, &ba06
-.sub_cbb13
+.open_file_for_read
     php                                                               ; bb13: 08          .
     tya                                                               ; bb14: 98          .
     clc                                                               ; bb15: 18          .
@@ -10859,7 +10859,7 @@ lb477 = sub_cb475+2
     rts                                                               ; bb54: 60          `
 
 ; &bb55 referenced 2 times by &bbc5, &bc51
-.sub_cbb55
+.parse_dump_range
     tya                                                               ; bb55: 98          .
     tax                                                               ; bb56: aa          .
     lda #0                                                            ; bb57: a9 00       ..
@@ -10934,8 +10934,8 @@ lb477 = sub_cb475+2
 
 ; &bbaf referenced 3 times by &bb70, &bb7a, &bb7e
 .cbbaf
-    jsr cbb0c                                                         ; bbaf: 20 0c bb     ..
-    jmp c91f4                                                         ; bbb2: 4c f4 91    L..
+    jsr close_ws_file                                                 ; bbaf: 20 0c bb     ..
+    jmp err_bad_hex                                                   ; bbb2: 4c f4 91    L..
 
 ; &bbb5 referenced 1 time by &bbba
 .loop_cbbb5
@@ -10949,12 +10949,12 @@ lb477 = sub_cb475+2
     rts                                                               ; bbbd: 60          `
 
 ; &bbbe referenced 1 time by &ba12
-.sub_cbbbe
+.init_dump_buffer
     inx                                                               ; bbbe: e8          .
     stx l00ae                                                         ; bbbf: 86 ae       ..
     ldx #1                                                            ; bbc1: a2 01       ..
     stx l00af                                                         ; bbc3: 86 af       ..
-    jsr sub_cbb55                                                     ; bbc5: 20 55 bb     U.
+    jsr parse_dump_range                                              ; bbc5: 20 55 bb     U.
     bcs cbbe9                                                         ; bbc8: b0 1f       ..
     tya                                                               ; bbca: 98          .
     pha                                                               ; bbcb: 48          H
@@ -10980,7 +10980,7 @@ lb477 = sub_cb475+2
 
 ; &bbe9 referenced 2 times by &bbc8, &bbe3
 .cbbe9
-    jsr cbb0c                                                         ; bbe9: 20 0c bb     ..
+    jsr close_ws_file                                                 ; bbe9: 20 0c bb     ..
     lda #&b7                                                          ; bbec: a9 b7       ..
     jsr error_inline                                                  ; bbee: 20 be 96     ..
     equs "Outside file", 0                                            ; bbf1: 4f 75 74... Out
@@ -11046,9 +11046,9 @@ lb477 = sub_cb475+2
 
 ; &bc51 referenced 1 time by &bc17
 .cbc51
-    jsr sub_cbb55                                                     ; bc51: 20 55 bb     U.
+    jsr parse_dump_range                                              ; bc51: 20 55 bb     U.
     bcc cbc66                                                         ; bc54: 90 10       ..
-    jsr cbb0c                                                         ; bc56: 20 0c bb     ..
+    jsr close_ws_file                                                 ; bc56: 20 0c bb     ..
     lda #&fc                                                          ; bc59: a9 fc       ..
     jsr error_bad_inline                                              ; bc5b: 20 a2 96     ..
     equs "address", 0                                                 ; bc5e: 61 64 64... add
@@ -11078,13 +11078,13 @@ lb477 = sub_cb475+2
     rts                                                               ; bc83: 60          `
 
 ; &bc84 referenced 3 times by &9bde, &a8bb, &baa2
-.sub_cbc84
-    jsr sub_cbc87                                                     ; bc84: 20 87 bc     ..
+.advance_x_by_8
+    jsr advance_x_by_4                                                ; bc84: 20 87 bc     ..
 ; &bc87 referenced 1 time by &bc84
-.sub_cbc87
-    jsr sub_cbc8a                                                     ; bc87: 20 8a bc     ..
+.advance_x_by_4
+    jsr inx4                                                          ; bc87: 20 8a bc     ..
 ; &bc8a referenced 1 time by &bc87
-.sub_cbc8a
+.inx4
     inx                                                               ; bc8a: e8          .
     inx                                                               ; bc8b: e8          .
     inx                                                               ; bc8c: e8          .
@@ -11110,7 +11110,7 @@ lb477 = sub_cb475+2
     sta l0600,y                                                       ; bea9: 99 00 06    ...
     dey                                                               ; beac: 88          .
     bne loop_cbe9a                                                    ; bead: d0 eb       ..
-    jsr sub_c0421                                                     ; beaf: 20 21 04     !.
+    jsr clear_tube_claim                                              ; beaf: 20 21 04     !.
     ldx #&41 ; 'A'                                                    ; beb2: a2 41       .A
 ; &beb4 referenced 1 time by &beba
 .loop_cbeb4
@@ -11150,7 +11150,7 @@ save pydis_start, pydis_end
 ;     l1071:                                   30
 ;     osbyte:                                  27
 ;     rx_src_net:                              27
-;     c9499:                                   26
+;     save_net_tx_cb:                          26
 ;     l10b8:                                   25
 ;     fs_work_4:                               24
 ;     osasci:                                  23
@@ -11184,25 +11184,25 @@ save pydis_start, pydis_end
 ;     set_nmi_vector:                          14
 ;     escapable:                               13
 ;     l1030:                                   13
+;     mask_owner_access:                       13
 ;     open_port_buf:                           13
 ;     port_buf_len_hi:                         13
-;     sub_caf12:                               13
 ;     tube_send_r2:                            13
-;     c9cb9:                                   12
 ;     cmd_table_fs:                            12
 ;     fs_last_byte_flag:                       12
 ;     l0d61:                                   12
 ;     l10c9:                                   12
 ;     nmi_error_dispatch:                      12
+;     return_with_last_flag:                   12
 ;     svc_state:                               12
 ;     error_bad_inline:                        11
 ;     fs_load_addr_3:                          11
 ;     l00b6:                                   11
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
-;     c0406:                                   10
+;     copy_arg_to_buf:                         10
 ;     error_inline_log:                        10
-;     sub_caef2:                               10
+;     tube_addr_data_dispatch:                 10
 ;     tube_data_register_3:                    10
 ;     tube_status_register_2:                  10
 ;     ws_0d6a:                                 10
@@ -11218,15 +11218,15 @@ save pydis_start, pydis_end
 ;     install_nmi_handler:                      8
 ;     l00af:                                    8
 ;     nfs_workspace_hi:                         8
+;     process_all_fcbs:                         8
 ;     romsel_copy:                              8
-;     sub_caf95:                                8
-;     sub_cb79f:                                8
+;     save_ptr_to_os_text:                      8
 ;     tube_send_r4:                             8
 ;     tube_status_1_and_tube_control:           8
 ;     ws_0d60:                                  8
 ;     ws_0d68:                                  8
 ;     zp_ptr_hi:                                8
-;     c982a:                                    7
+;     alloc_fcb_slot:                           7
 ;     fs_load_addr_hi:                          7
 ;     l0df0:                                    7
 ;     l0e01:                                    7
@@ -11235,37 +11235,37 @@ save pydis_start, pydis_end
 ;     l1040:                                    7
 ;     l1098:                                    7
 ;     reject_reply:                             7
-;     sub_cb4fa:                                7
+;     send_net_packet:                          7
 ;     tube_claimed_id:                          7
 ;     tx_dst_stn:                               7
 ;     txcb_ctrl:                                7
 ;     txcb_start:                               7
-;     c83eb:                                    6
+;     bin_to_bcd:                               6
 ;     c91fd:                                    6
-;     c95c7:                                    6
-;     c9cbb:                                    6
-;     cbb0c:                                    6
+;     close_ws_file:                            6
+;     cond_save_error_code:                     6
+;     copy_arg_to_buf_x0:                       6
+;     discard_reset_rx:                         6
+;     finalise_and_return:                      6
 ;     l00cc:                                    6
 ;     l00d0:                                    6
 ;     l0e00:                                    6
 ;     l0e05:                                    6
 ;     l10d8:                                    6
+;     match_station_net:                        6
 ;     nmi_rti:                                  6
 ;     os_text_ptr_hi:                           6
 ;     osfind:                                   6
 ;     rx_buf_offset:                            6
-;     sub_c95fb:                                6
-;     sub_ca57c:                                6
-;     sub_caef0:                                6
-;     sub_cb57a:                                6
 ;     tube_main_loop:                           6
-;     c945f:                                    5
-;     caea5:                                    5
+;     wait_net_tx_ack:                          6
+;     attr_to_chan_index:                       5
 ;     data_tx_last:                             5
 ;     escape_flag:                              5
 ;     fs_crc_hi:                                5
 ;     fs_crflag:                                5
 ;     fs_spool_handle:                          5
+;     init_txcb:                                5
 ;     l0102:                                    5
 ;     l0d30:                                    5
 ;     l0d31:                                    5
@@ -11277,31 +11277,32 @@ save pydis_start, pydis_end
 ;     l10d4:                                    5
 ;     l10d5:                                    5
 ;     l9798:                                    5
+;     match_fs_cmd:                             5
 ;     need_release_tube:                        5
 ;     oswrch:                                   5
+;     parse_addr_arg:                           5
+;     print_hex_byte:                           5
 ;     scout_error:                              5
-;     sub_c8fb2:                                5
-;     sub_c911b:                                5
-;     sub_c915a:                                5
-;     sub_c9281:                                5
-;     sub_ca128:                                5
-;     sub_cb45b:                                5
+;     set_xfer_params:                          5
+;     strip_token_prefix:                       5
 ;     svc_dispatch:                             5
 ;     system_via_acr:                           5
 ;     tube_send_r1:                             5
 ;     tx_dst_net:                               5
+;     verify_ws_checksum:                       5
 ;     zp_work_3:                                5
 ;     c8dc7:                                    4
-;     c9201:                                    4
-;     c92e6:                                    4
-;     c96da:                                    4
 ;     cab24:                                    4
-;     caccb:                                    4
 ;     cb212:                                    4
 ;     cb553:                                    4
 ;     cb58f:                                    4
+;     check_net_error_code:                     4
+;     commit_state_byte:                        4
+;     err_bad_station_num:                      4
+;     error_bad_filename:                       4
 ;     error_inline:                             4
 ;     fs_work_7:                                4
+;     get_ws_page:                              4
 ;     gsinit:                                   4
 ;     gsread:                                   4
 ;     l0d2f:                                    4
@@ -11314,17 +11315,16 @@ save pydis_start, pydis_end
 ;     l0e0a:                                    4
 ;     l10a8:                                    4
 ;     l10f3:                                    4
+;     load_ps_server_addr:                      4
 ;     nmi_tx_block_hi:                          4
 ;     osword:                                   4
 ;     osword_pb_ptr_hi:                         4
+;     parse_access_prefix:                      4
+;     parse_filename_arg:                       4
+;     print_station_addr:                       4
 ;     return_23:                                4
 ;     rx_ctrl:                                  4
 ;     rx_port:                                  4
-;     sub_c8cae:                                4
-;     sub_cae82:                                4
-;     sub_cae85:                                4
-;     sub_cb0c6:                                4
-;     sub_cb174:                                4
 ;     tube_reply_byte:                          4
 ;     txcb_port:                                4
 ;     video_ula_control:                        4
@@ -11332,27 +11332,21 @@ save pydis_start, pydis_end
 ;     zp_work_2:                                4
 ;     adlc_full_reset:                          3
 ;     advance_buffer_ptr:                       3
+;     advance_x_by_8:                           3
+;     append_byte_to_rxbuf:                     3
 ;     brk_ptr:                                  3
-;     c83ee:                                    3
 ;     c85f1:                                    3
 ;     c8a90:                                    3
 ;     c8c65:                                    3
-;     c8f73:                                    3
-;     c91f4:                                    3
 ;     c92cd:                                    3
-;     c92fd:                                    3
-;     c949a:                                    3
 ;     c95de:                                    3
 ;     c98b4:                                    3
 ;     c9d71:                                    3
 ;     c9daf:                                    3
-;     ca05b:                                    3
-;     ca245:                                    3
 ;     ca376:                                    3
 ;     ca6fb:                                    3
 ;     ca9e9:                                    3
 ;     caa24:                                    3
-;     caf68:                                    3
 ;     cb038:                                    3
 ;     cb12f:                                    3
 ;     cb2b8:                                    3
@@ -11360,7 +11354,14 @@ save pydis_start, pydis_end
 ;     cbbaf:                                    3
 ;     cbc66:                                    3
 ;     check_tube_irq_loop:                      3
+;     close_all_net_chans:                      3
+;     copy_arg_validated:                       3
 ;     data_rx_complete:                         3
+;     err_bad_hex:                              3
+;     error_bad_command:                        3
+;     find_matching_fcb:                        3
+;     find_station_bit3:                        3
+;     is_decimal_digit:                         3
 ;     l0106:                                    3
 ;     l0355:                                    3
 ;     l0d6d:                                    3
@@ -11380,25 +11381,24 @@ save pydis_start, pydis_end
 ;     osargs:                                   3
 ;     osbyte_a_copy:                            3
 ;     osbyte_x0:                                3
+;     parse_fs_ps_args:                         3
 ;     port_match_found:                         3
+;     print_10_chars:                           3
+;     print_decimal_3dig:                       3
+;     read_filename_char:                       3
 ;     read_last_rx_byte:                        3
 ;     read_paged_rom:                           3
+;     reset_adlc_rx_listen:                     3
+;     restore_fs_context:                       3
 ;     return_27:                                3
 ;     return_3:                                 3
 ;     return_9:                                 3
 ;     rx_complete_update_rxcb:                  3
 ;     rx_remote_addr:                           3
-;     sub_c8afa:                                3
-;     sub_c9244:                                3
-;     sub_ca08f:                                3
-;     sub_ca313:                                3
-;     sub_cab00:                                3
-;     sub_cac12:                                3
-;     sub_cae70:                                3
-;     sub_caef4:                                3
-;     sub_cb54a:                                3
-;     sub_cb738:                                3
-;     sub_cbc84:                                3
+;     save_net_tx_cb_vset:                      3
+;     save_text_ptr:                            3
+;     send_disconnect_reply:                    3
+;     tube_claim_c3:                            3
 ;     tube_data_register_1:                     3
 ;     tube_xfer_page:                           3
 ;     tx_active_start:                          3
@@ -11407,34 +11407,34 @@ save pydis_start, pydis_end
 ;     write_second_tube_byte:                   3
 ;     ws_0d65:                                  3
 ;     ws_0d69:                                  3
+;     abort_if_escape:                          2
 ;     ack_tx:                                   2
 ;     ack_tx_write_dest:                        2
+;     adjust_fsopts_4bytes:                     2
 ;     adlc_rx_listen:                           2
 ;     advance_rx_buffer_ptr:                    2
-;     c83f1:                                    2
+;     advance_y_by_4:                           2
+;     alloc_fcb_or_error:                       2
+;     append_decimal_digit:                     2
+;     append_decimal_num:                       2
+;     append_drv_dot_num:                       2
+;     append_space_and_num:                     2
+;     byte_to_2bit_index:                       2
 ;     c8a2e:                                    2
 ;     c8a50:                                    2
 ;     c8ab2:                                    2
-;     c8b8d:                                    2
-;     c8ba0:                                    2
 ;     c8bd5:                                    2
-;     c8e0e:                                    2
 ;     c8f23:                                    2
-;     c8f53:                                    2
-;     c8fcb:                                    2
-;     c8fdd:                                    2
 ;     c919a:                                    2
 ;     c91c6:                                    2
 ;     c91e7:                                    2
 ;     c9215:                                    2
 ;     c9221:                                    2
-;     c930e:                                    2
 ;     c934f:                                    2
 ;     c93a8:                                    2
 ;     c94c5:                                    2
 ;     c953b:                                    2
 ;     c9573:                                    2
-;     c9638:                                    2
 ;     c972b:                                    2
 ;     c9856:                                    2
 ;     c9869:                                    2
@@ -11449,10 +11449,7 @@ save pydis_start, pydis_end
 ;     c9ce1:                                    2
 ;     c9d7b:                                    2
 ;     c9dfd:                                    2
-;     c9ecb:                                    2
 ;     c9f78:                                    2
-;     c9fb8:                                    2
-;     c9ff4:                                    2
 ;     ca0df:                                    2
 ;     ca11b:                                    2
 ;     ca141:                                    2
@@ -11467,9 +11464,7 @@ save pydis_start, pydis_end
 ;     ca88c:                                    2
 ;     caa78:                                    2
 ;     caa97:                                    2
-;     caad0:                                    2
 ;     caaea:                                    2
-;     cab09:                                    2
 ;     cac1e:                                    2
 ;     cac38:                                    2
 ;     cae72:                                    2
@@ -11481,8 +11476,6 @@ save pydis_start, pydis_end
 ;     cb2e9:                                    2
 ;     cb310:                                    2
 ;     cb31a:                                    2
-;     cb472:                                    2
-;     cb49d:                                    2
 ;     cb56b:                                    2
 ;     cb5ab:                                    2
 ;     cb678:                                    2
@@ -11498,16 +11491,44 @@ save pydis_start, pydis_end
 ;     cbbb6:                                    2
 ;     cbbe9:                                    2
 ;     cbc03:                                    2
+;     check_and_setup_txcb:                     2
+;     check_chan_char:                          2
+;     check_escape:                             2
+;     check_not_ampersand:                      2
+;     check_not_dir:                            2
 ;     claim_addr_ff:                            2
+;     classify_reply_error:                     2
+;     clear_conn_active:                        2
 ;     cmd_pass:                                 2
+;     cmp_5byte_handle:                         2
+;     copy_fs_cmd_name:                         2
+;     copy_fsopts_to_zp:                        2
 ;     copy_scout_via_tube:                      2
+;     copy_workspace_to_fsopts:                 2
 ;     data_rx_tube_complete:                    2
 ;     data_tx_check_fifo:                       2
 ;     discard_no_match:                         2
 ;     discard_reset_listen:                     2
 ;     dispatch_nmi_error:                       2
+;     err_net_chan_invalid:                     2
+;     error_net_checksum:                       2
 ;     fallback_calc_transfer:                   2
+;     find_open_fcb:                            2
+;     flip_set_station_boot:                    2
+;     flush_and_read_char:                      2
+;     format_filename_field:                    2
+;     get_access_bits:                          2
+;     get_pb_ptr_as_index:                      2
+;     get_prot_bits:                            2
+;     handle_spool_ctrl_byte:                   2
+;     help_wrap_if_serial:                      2
 ;     imm_op_out_of_range:                      2
+;     inc_fcb_byte_count:                       2
+;     init_bridge_poll:                         2
+;     init_spool_drive:                         2
+;     init_tx_ptr_and_send:                     2
+;     init_wipe_counters:                       2
+;     init_ws_copy_wide:                        2
 ;     l0103:                                    2
 ;     l0128:                                    2
 ;     l028d:                                    2
@@ -11535,12 +11556,30 @@ save pydis_start, pydis_end
 ;     l8e3e:                                    2
 ;     l9873:                                    2
 ;     lb477:                                    2
+;     lookup_cat_entry_0:                       2
+;     lookup_chan_by_char:                      2
+;     open_file_for_read:                       2
 ;     osbget:                                   2
 ;     osfile:                                   2
 ;     osrdch:                                   2
 ;     osrdsc_ptr:                               2
+;     parse_cmd_arg_y0:                         2
+;     parse_dump_range:                         2
+;     parse_quoted_arg:                         2
 ;     poll_nmi_idle:                            2
+;     pop_requeue_ps_scan:                      2
+;     print_5_hex_bytes:                        2
+;     print_cmd_table:                          2
+;     print_cmd_table_loop:                     2
+;     print_decimal_digit:                      2
+;     print_dump_header:                        2
+;     print_printer_server_is:                  2
+;     print_station_id:                         2
+;     print_version_header:                     2
+;     recv_and_process_reply:                   2
 ;     release_tube:                             2
+;     reset_spool_buf_state:                    2
+;     retreat_y_by_3:                           2
 ;     return_10:                                2
 ;     return_12:                                2
 ;     return_15:                                2
@@ -11552,79 +11591,36 @@ save pydis_start, pydis_end
 ;     return_5:                                 2
 ;     return_7:                                 2
 ;     return_tube_init:                         2
+;     reverse_ps_name_to_tx:                    2
 ;     romsel:                                   2
+;     save_fcb_context:                         2
+;     save_ptr_to_spool_buf:                    2
 ;     scout_complete:                           2
 ;     scout_copy_done:                          2
 ;     send_ack:                                 2
+;     send_and_receive:                         2
+;     send_cmd_and_dispatch:                    2
+;     send_fs_request:                          2
+;     send_request_write:                       2
+;     send_txcb_swap_addrs:                     2
+;     send_wipe_request:                        2
+;     set_conn_active:                          2
+;     set_nmi_rx_scout:                         2
+;     set_options_ptr:                          2
+;     setup_transfer_workspace:                 2
+;     setup_ws_ptr:                             2
 ;     skip_addr_carry:                          2
 ;     skip_nmi_release:                         2
+;     skip_to_next_arg:                         2
+;     start_wipe_pass:                          2
+;     store_char_uppercase:                     2
+;     store_result_check_dir:                   2
 ;     store_tx_error:                           2
 ;     string_buf:                               2
-;     sub_c8c28:                                2
-;     sub_c8c94:                                2
-;     sub_c8cb5:                                2
-;     sub_c9255:                                2
-;     sub_c925f:                                2
-;     sub_c9287:                                2
-;     sub_c9290:                                2
-;     sub_c92a1:                                2
-;     sub_c92b8:                                2
-;     sub_c92f5:                                2
-;     sub_c9313:                                2
-;     sub_c9335:                                2
-;     sub_c9487:                                2
-;     sub_c94dc:                                2
-;     sub_c955a:                                2
-;     sub_c9738:                                2
-;     sub_c975c:                                2
-;     sub_c9767:                                2
-;     sub_c9778:                                2
-;     sub_c9822:                                2
-;     sub_c9984:                                2
-;     sub_c9a50:                                2
-;     sub_c9a60:                                2
-;     sub_c9a6d:                                2
-;     sub_c9a72:                                2
-;     sub_c9a80:                                2
-;     sub_c9a88:                                2
-;     sub_c9b86:                                2
-;     sub_c9e0b:                                2
-;     sub_c9ec0:                                2
-;     sub_ca0b4:                                2
-;     sub_ca0b6:                                2
-;     sub_ca34a:                                2
-;     sub_ca868:                                2
-;     sub_ca9ac:                                2
-;     sub_caa6a:                                2
-;     sub_cae80:                                2
-;     sub_caf76:                                2
-;     sub_cafa1:                                2
-;     sub_cafb5:                                2
-;     sub_cafc0:                                2
-;     sub_cb0ab:                                2
-;     sub_cb0d2:                                2
-;     sub_cb13a:                                2
-;     sub_cb149:                                2
-;     sub_cb2db:                                2
-;     sub_cb41f:                                2
-;     sub_cb46a:                                2
-;     sub_cb4dc:                                2
-;     sub_cb4e3:                                2
-;     sub_cb52e:                                2
-;     sub_cb589:                                2
-;     sub_cb5cc:                                2
-;     sub_cb5ef:                                2
-;     sub_cb660:                                2
-;     sub_cb791:                                2
-;     sub_cb920:                                2
-;     sub_cb979:                                2
-;     sub_cb9ea:                                2
-;     sub_cbace:                                2
-;     sub_cbb13:                                2
-;     sub_cbb55:                                2
 ;     system_via_ier:                           2
 ;     system_via_ifr:                           2
 ;     system_via_sr:                            2
+;     tail_update_catalogue:                    2
 ;     try_nfs_port_list:                        2
 ;     tube_claim_flag:                          2
 ;     tube_data_ptr:                            2
@@ -11639,10 +11635,14 @@ save pydis_start, pydis_end
 ;     tube_xfer_addr_2:                         2
 ;     tube_xfer_addr_3:                         2
 ;     tx_ctrl_byte:                             2
+;     tx_econet_abort:                          2
 ;     tx_port:                                  2
 ;     tx_result_ok:                             2
 ;     tx_src_stn:                               2
 ;     tx_store_result:                          2
+;     write_data_block:                         2
+;     write_ps_slot_byte_ff:                    2
+;     write_vector_entry:                       2
 ;     ws_0d64:                                  2
 ;     accept_frame:                             1
 ;     accept_local_net:                         1
@@ -11650,10 +11650,13 @@ save pydis_start, pydis_end
 ;     accept_scout_net:                         1
 ;     ack_tx_configure:                         1
 ;     add_rxcb_ptr:                             1
+;     add_workspace_to_fsopts:                  1
 ;     addr_claim_external:                      1
 ;     adlc_init:                                1
+;     advance_x_by_4:                           1
 ;     argsw:                                    1
 ;     bad_prefix:                               1
+;     boot_cmd_oscli:                           1
 ;     boot_load_cmd:                            1
 ;     brkv:                                     1
 ;     bytex:                                    1
@@ -11664,8 +11667,6 @@ save pydis_start, pydis_end
 ;     c8052:                                    1
 ;     c83fd:                                    1
 ;     c84b1:                                    1
-;     c8505:                                    1
-;     c854a:                                    1
 ;     c87bd:                                    1
 ;     c87e8:                                    1
 ;     c88f7:                                    1
@@ -11680,7 +11681,6 @@ save pydis_start, pydis_end
 ;     c8ac9:                                    1
 ;     c8af3:                                    1
 ;     c8b28:                                    1
-;     c8b82:                                    1
 ;     c8b9d:                                    1
 ;     c8ba3:                                    1
 ;     c8bab:                                    1
@@ -11697,14 +11697,12 @@ save pydis_start, pydis_end
 ;     c8c8d:                                    1
 ;     c8ccf:                                    1
 ;     c8cd5:                                    1
-;     c8cfd:                                    1
 ;     c8cff:                                    1
 ;     c8d1b:                                    1
 ;     c8d9c:                                    1
 ;     c8db4:                                    1
 ;     c8de0:                                    1
 ;     c8def:                                    1
-;     c8e0a:                                    1
 ;     c8e9d:                                    1
 ;     c8f2f:                                    1
 ;     c8fa4:                                    1
@@ -11722,7 +11720,6 @@ save pydis_start, pydis_end
 ;     c9253:                                    1
 ;     c9263:                                    1
 ;     c926f:                                    1
-;     c928b:                                    1
 ;     c932a:                                    1
 ;     c9344:                                    1
 ;     c935d:                                    1
@@ -11743,15 +11740,12 @@ save pydis_start, pydis_end
 ;     c9506:                                    1
 ;     c952f:                                    1
 ;     c9545:                                    1
-;     c9560:                                    1
 ;     c9570:                                    1
 ;     c95d8:                                    1
 ;     c95f1:                                    1
 ;     c9604:                                    1
 ;     c9620:                                    1
-;     c962b:                                    1
 ;     c9633:                                    1
-;     c9636:                                    1
 ;     c963b:                                    1
 ;     c965e:                                    1
 ;     c9670:                                    1
@@ -11849,9 +11843,6 @@ save pydis_start, pydis_end
 ;     ca0b1:                                    1
 ;     ca0dd:                                    1
 ;     ca0f1:                                    1
-;     ca0fc:                                    1
-;     ca10d:                                    1
-;     ca10f:                                    1
 ;     ca12a:                                    1
 ;     ca152:                                    1
 ;     ca164:                                    1
@@ -11870,7 +11861,6 @@ save pydis_start, pydis_end
 ;     ca252:                                    1
 ;     ca265:                                    1
 ;     ca281:                                    1
-;     ca2dc:                                    1
 ;     ca301:                                    1
 ;     ca30f:                                    1
 ;     ca32c:                                    1
@@ -11878,7 +11868,6 @@ save pydis_start, pydis_end
 ;     ca363:                                    1
 ;     ca371:                                    1
 ;     ca39c:                                    1
-;     ca3d0:                                    1
 ;     ca50f:                                    1
 ;     ca526:                                    1
 ;     ca589:                                    1
@@ -11903,7 +11892,6 @@ save pydis_start, pydis_end
 ;     caba5:                                    1
 ;     cabcc:                                    1
 ;     cabe1:                                    1
-;     cabec:                                    1
 ;     cabfe:                                    1
 ;     cac2d:                                    1
 ;     cac55:                                    1
@@ -11933,6 +11921,7 @@ save pydis_start, pydis_end
 ;     cafd8:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
+;     call_fscv:                                1
 ;     cb005:                                    1
 ;     cb008:                                    1
 ;     cb04b:                                    1
@@ -12022,6 +12011,7 @@ save pydis_start, pydis_end
 ;     cbc51:                                    1
 ;     cbe6f:                                    1
 ;     check_break_type:                         1
+;     check_credits_easter_egg:                 1
 ;     check_fv_final_ack:                       1
 ;     check_handshake_bit:                      1
 ;     check_irq_loop:                           1
@@ -12029,36 +12019,65 @@ save pydis_start, pydis_end
 ;     check_scout_done:                         1
 ;     check_sr2_loop_again:                     1
 ;     check_station_filter:                     1
+;     clear_escapable:                          1
+;     clear_if_station_match:                   1
 ;     clear_release_flag:                       1
+;     clear_tube_claim:                         1
+;     cmd_fs_entry:                             1
+;     cmd_fs_reentry:                           1
 ;     cmd_net_fs:                               1
 ;     copro_ack_nmi_check:                      1
 ;     copy_bcast_addr:                          1
 ;     copy_imm_params:                          1
 ;     copy_nmi_shim:                            1
+;     copy_ps_data:                             1
+;     copy_ps_data_y1c:                         1
 ;     copy_scout_bytes:                         1
 ;     copy_scout_to_buffer:                     1
 ;     copyright_offset:                         1
 ;     data_rx_loop:                             1
 ;     data_tx_begin:                            1
 ;     delay_nmi_disable:                        1
+;     deselect_fs_if_active:                    1
 ;     discard_after_reset:                      1
 ;     dispatch_imm_op:                          1
 ;     dispatch_svc5:                            1
+;     do_fs_cmd_iteration:                      1
 ;     econet_data_terminate_frame:              1
+;     enable_irq_and_poll:                      1
+;     err_printer_busy:                         1
+;     error_syntax:                             1
 ;     evntv:                                    1
+;     ex_print_col_sep:                         1
 ;     filev:                                    1
+;     find_fs_and_exit:                         1
+;     find_station_bit2:                        1
+;     fixup_reply_status_a:                     1
 ;     fs_vector_table:                          1
 ;     fscv:                                     1
+;     gsread_to_buf:                            1
 ;     handshake_await_ack:                      1
+;     help_print_nfs_cmds:                      1
 ;     imm_op_build_reply:                       1
 ;     imm_op_discard:                           1
 ;     inactive_retry:                           1
 ;     inc_rxcb_ptr:                             1
+;     init_adlc_and_vectors:                    1
+;     init_channel_table:                       1
+;     init_dump_buffer:                         1
+;     init_ps_slot_from_rx:                     1
+;     init_tx_ptr_for_pass:                     1
+;     init_txcb_bye:                            1
+;     init_txcb_port:                           1
+;     init_ws_copy_narrow:                      1
 ;     install_data_rx_handler:                  1
 ;     install_imm_data_nmi:                     1
 ;     install_reply_scout:                      1
 ;     install_saved_handler:                    1
 ;     install_tube_rx:                          1
+;     inx4:                                     1
+;     is_dec_digit_only:                        1
+;     issue_svc_15:                             1
 ;     l0006:                                    1
 ;     l0063:                                    1
 ;     l0078:                                    1
@@ -12131,6 +12150,9 @@ save pydis_start, pydis_end
 ;     lb11b:                                    1
 ;     lb170:                                    1
 ;     listen_jmp_hi:                            1
+;     load_reply_and_classify:                  1
+;     load_text_ptr_and_parse:                  1
+;     lookup_cat_slot_data:                     1
 ;     loop_c06df:                               1
 ;     loop_c83da:                               1
 ;     loop_c8ae6:                               1
@@ -12331,16 +12353,30 @@ save pydis_start, pydis_end
 ;     nmi_reply_validate:                       1
 ;     nmi_rx_scout:                             1
 ;     nmi_workspace_start:                      1
+;     notify_new_fs:                            1
+;     osbyte_x0_y0:                             1
 ;     osbyte_yff:                               1
 ;     oscli:                                    1
 ;     oseven:                                   1
 ;     osgbpb:                                   1
 ;     osrdsc:                                   1
 ;     osrdsc_ptr_hi:                            1
+;     osword_setup_handler:                     1
+;     pass_send_cmd:                            1
 ;     poll_r2_osword_result:                    1
 ;     poll_r4_copro_ack:                        1
+;     prep_send_tx_cb:                          1
+;     print_file_server_is:                     1
+;     print_fs_info_newline:                    1
+;     print_hex_nybble:                         1
+;     print_load_exec_addrs:                    1
+;     print_num_no_leading:                     1
+;     push_osword_handler_addr:                 1
 ;     pydis_start:                              1
+;     raise_escape_error:                       1
 ;     read_osargs_params:                       1
+;     read_osbyte_to_ws:                        1
+;     read_osbyte_to_ws_x0:                     1
 ;     read_osgbpb_ctrl_blk:                     1
 ;     read_rdln_ctrl_block:                     1
 ;     read_second_rx_byte:                      1
@@ -12350,7 +12386,9 @@ save pydis_start, pydis_end
 ;     reloc_p6_src:                             1
 ;     reloc_zp_src:                             1
 ;     reset_enter_listen:                       1
+;     restore_catalog_entry:                    1
 ;     restore_x_and_return:                     1
+;     retreat_y_by_4:                           1
 ;     return_1:                                 1
 ;     return_11:                                1
 ;     return_13:                                1
@@ -12379,8 +12417,10 @@ save pydis_start, pydis_end
 ;     rx_error_reset:                           1
 ;     rx_tube_data:                             1
 ;     scan_copyright_end:                       1
+;     scan_fcb_flags:                           1
 ;     scan_nfs_port_list:                       1
 ;     scan_port_list:                           1
+;     scan_remote_keys:                         1
 ;     scout_discard:                            1
 ;     scout_loop_rda:                           1
 ;     scout_loop_second:                        1
@@ -12391,77 +12431,32 @@ save pydis_start, pydis_end
 ;     send_osargs_result:                       1
 ;     send_osfile_ctrl_blk:                     1
 ;     send_osgbpb_result:                       1
+;     send_request_nowrite:                     1
 ;     send_rom_page_bytes:                      1
 ;     send_xfer_addr_bytes:                     1
+;     serialise_palette_entry:                  1
 ;     service_entry:                            1
 ;     service_handler:                          1
 ;     service_handler_lo:                       1
+;     set_text_and_xfer_ptr:                    1
 ;     set_tx_reply_flag:                        1
+;     setup_cb1_sr_tx:                          1
 ;     setup_data_xfer:                          1
+;     setup_pass_txbuf:                         1
 ;     setup_unicast_xfer:                       1
 ;     skip_buf_ptr_update:                      1
+;     skip_one_and_advance5:                    1
 ;     skip_param_read:                          1
 ;     skip_r3_flush:                            1
 ;     skip_tube_update:                         1
 ;     start_data_tx:                            1
 ;     store_buf_ptr_lo:                         1
+;     store_osword_pb_ptr:                      1
+;     store_ptr_at_ws_y:                        1
+;     store_ws_page_count:                      1
 ;     store_xfer_end_addr:                      1
 ;     string_buf_done:                          1
 ;     strnh:                                    1
-;     sub_c0421:                                1
-;     sub_c8ae2:                                1
-;     sub_c8cf1:                                1
-;     sub_c8cfa:                                1
-;     sub_c8d0c:                                1
-;     sub_c8dfe:                                1
-;     sub_c8e76:                                1
-;     sub_c8e96:                                1
-;     sub_c8f40:                                1
-;     sub_c8f80:                                1
-;     sub_c9124:                                1
-;     sub_c924c:                                1
-;     sub_c927d:                                1
-;     sub_c9451:                                1
-;     sub_c9453:                                1
-;     sub_c9483:                                1
-;     sub_c94c6:                                1
-;     sub_c987f:                                1
-;     sub_c9887:                                1
-;     sub_c98f3:                                1
-;     sub_c98ff:                                1
-;     sub_c993d:                                1
-;     sub_c9a45:                                1
-;     sub_c9a6c:                                1
-;     sub_c9a7f:                                1
-;     sub_c9e03:                                1
-;     sub_c9e08:                                1
-;     sub_c9e0a:                                1
-;     sub_c9ec4:                                1
-;     sub_ca086:                                1
-;     sub_ca2e8:                                1
-;     sub_ca4ef:                                1
-;     sub_ca601:                                1
-;     sub_ca612:                                1
-;     sub_ca964:                                1
-;     sub_ca981:                                1
-;     sub_caa73:                                1
-;     sub_caa77:                                1
-;     sub_cacd2:                                1
-;     sub_cace5:                                1
-;     sub_cace7:                                1
-;     sub_caf27:                                1
-;     sub_caf65:                                1
-;     sub_caff7:                                1
-;     sub_caff9:                                1
-;     sub_cb0a1:                                1
-;     sub_cb141:                                1
-;     sub_cb2c4:                                1
-;     sub_cb439:                                1
-;     sub_cb551:                                1
-;     sub_cb729:                                1
-;     sub_cbbbe:                                1
-;     sub_cbc87:                                1
-;     sub_cbc8a:                                1
 ;     sub_cbe5e:                                1
 ;     svc_dispatch_hi:                          1
 ;     svc_dispatch_lo:                          1
@@ -12496,6 +12491,7 @@ save pydis_start, pydis_end
 ;     tx_ctrl_range_check:                      1
 ;     tx_data_start:                            1
 ;     tx_done_exit:                             1
+;     tx_done_fire_event:                       1
 ;     tx_error:                                 1
 ;     tx_fifo_not_ready:                        1
 ;     tx_fifo_write:                            1
@@ -12510,23 +12506,21 @@ save pydis_start, pydis_end
 ;     tx_tdra_error:                            1
 ;     txcb_dest:                                1
 ;     txcb_pos:                                 1
+;     update_addr_from_offset1:                 1
+;     update_addr_from_offset9:                 1
 ;     vdu_screen_mode:                          1
 ;     write_second_tx_byte:                     1
+;     write_two_bytes_inc_y:                    1
+;     ws_copy_vclr_entry:                       1
 
 ; Automatically generated labels:
 ;     c0026
 ;     c0400
-;     c0406
 ;     c06ef
 ;     c802d
 ;     c8052
-;     c83eb
-;     c83ee
-;     c83f1
 ;     c83fd
 ;     c84b1
-;     c8505
-;     c854a
 ;     c85f1
 ;     c87bd
 ;     c87e8
@@ -12546,10 +12540,7 @@ save pydis_start, pydis_end
 ;     c8ac9
 ;     c8af3
 ;     c8b28
-;     c8b82
-;     c8b8d
 ;     c8b9d
-;     c8ba0
 ;     c8ba3
 ;     c8bab
 ;     c8bd5
@@ -12567,7 +12558,6 @@ save pydis_start, pydis_end
 ;     c8c8d
 ;     c8ccf
 ;     c8cd5
-;     c8cfd
 ;     c8cff
 ;     c8d1b
 ;     c8d9c
@@ -12575,16 +12565,10 @@ save pydis_start, pydis_end
 ;     c8dc7
 ;     c8de0
 ;     c8def
-;     c8e0a
-;     c8e0e
 ;     c8e9d
 ;     c8f23
 ;     c8f2f
-;     c8f53
-;     c8f73
 ;     c8fa4
-;     c8fcb
-;     c8fdd
 ;     c900a
 ;     c912c
 ;     c913f
@@ -12598,20 +12582,14 @@ save pydis_start, pydis_end
 ;     c91cf
 ;     c91e5
 ;     c91e7
-;     c91f4
 ;     c91fd
-;     c9201
 ;     c9215
 ;     c9221
 ;     c9230
 ;     c9253
 ;     c9263
 ;     c926f
-;     c928b
 ;     c92cd
-;     c92e6
-;     c92fd
-;     c930e
 ;     c932a
 ;     c9344
 ;     c934f
@@ -12624,10 +12602,7 @@ save pydis_start, pydis_end
 ;     c93f8
 ;     c9428
 ;     c944e
-;     c945f
 ;     c9472
-;     c9499
-;     c949a
 ;     c94a0
 ;     c94a1
 ;     c94bf
@@ -12639,19 +12614,14 @@ save pydis_start, pydis_end
 ;     c952f
 ;     c953b
 ;     c9545
-;     c9560
 ;     c9570
 ;     c9573
-;     c95c7
 ;     c95d8
 ;     c95de
 ;     c95f1
 ;     c9604
 ;     c9620
-;     c962b
 ;     c9633
-;     c9636
-;     c9638
 ;     c963b
 ;     c965e
 ;     c9670
@@ -12660,7 +12630,6 @@ save pydis_start, pydis_end
 ;     c9684
 ;     c9699
 ;     c96c7
-;     c96da
 ;     c96e5
 ;     c96e8
 ;     c970a
@@ -12669,7 +12638,6 @@ save pydis_start, pydis_end
 ;     c972b
 ;     c9752
 ;     c978f
-;     c982a
 ;     c9831
 ;     c983a
 ;     c9856
@@ -12721,8 +12689,6 @@ save pydis_start, pydis_end
 ;     c9c5c
 ;     c9c7e
 ;     c9cb6
-;     c9cb9
-;     c9cbb
 ;     c9cc8
 ;     c9cd3
 ;     c9cdf
@@ -12751,7 +12717,6 @@ save pydis_start, pydis_end
 ;     c9e44
 ;     c9e83
 ;     c9e86
-;     c9ecb
 ;     c9ee1
 ;     c9eea
 ;     c9ef8
@@ -12761,14 +12726,11 @@ save pydis_start, pydis_end
 ;     c9f6a
 ;     c9f78
 ;     c9f8c
-;     c9fb8
 ;     c9fcd
 ;     c9fda
-;     c9ff4
 ;     c9ff7
 ;     ca033
 ;     ca058
-;     ca05b
 ;     ca083
 ;     ca0a5
 ;     ca0ad
@@ -12776,9 +12738,6 @@ save pydis_start, pydis_end
 ;     ca0dd
 ;     ca0df
 ;     ca0f1
-;     ca0fc
-;     ca10d
-;     ca10f
 ;     ca11b
 ;     ca12a
 ;     ca141
@@ -12798,12 +12757,10 @@ save pydis_start, pydis_end
 ;     ca1f1
 ;     ca22b
 ;     ca242
-;     ca245
 ;     ca252
 ;     ca265
 ;     ca281
 ;     ca2d7
-;     ca2dc
 ;     ca2eb
 ;     ca301
 ;     ca30f
@@ -12817,7 +12774,6 @@ save pydis_start, pydis_end
 ;     ca376
 ;     ca39c
 ;     ca3cb
-;     ca3d0
 ;     ca50f
 ;     ca526
 ;     ca589
@@ -12841,9 +12797,7 @@ save pydis_start, pydis_end
 ;     caa97
 ;     caa9b
 ;     caa9f
-;     caad0
 ;     caaea
-;     cab09
 ;     cab21
 ;     cab24
 ;     cab63
@@ -12852,13 +12806,11 @@ save pydis_start, pydis_end
 ;     caba5
 ;     cabcc
 ;     cabe1
-;     cabec
 ;     cabfe
 ;     cac1e
 ;     cac2d
 ;     cac38
 ;     cac55
-;     caccb
 ;     cad0e
 ;     cad1d
 ;     cad5d
@@ -12871,7 +12823,6 @@ save pydis_start, pydis_end
 ;     cae3d
 ;     cae72
 ;     cae7d
-;     caea5
 ;     caec6
 ;     caec9
 ;     caecd
@@ -12885,7 +12836,6 @@ save pydis_start, pydis_end
 ;     caf3c
 ;     caf3f
 ;     caf52
-;     caf68
 ;     caf8d
 ;     cafad
 ;     cafd8
@@ -12934,9 +12884,7 @@ save pydis_start, pydis_end
 ;     cb411
 ;     cb465
 ;     cb467
-;     cb472
 ;     cb473
-;     cb49d
 ;     cb4b1
 ;     cb50b
 ;     cb548
@@ -12995,7 +12943,6 @@ save pydis_start, pydis_end
 ;     cbab1
 ;     cbac0
 ;     cbac9
-;     cbb0c
 ;     cbb39
 ;     cbb53
 ;     cbb61
@@ -13397,158 +13344,6 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     return_9
-;     sub_c0421
-;     sub_c8ae2
-;     sub_c8afa
-;     sub_c8c28
-;     sub_c8c94
-;     sub_c8cae
-;     sub_c8cb5
-;     sub_c8cf1
-;     sub_c8cfa
-;     sub_c8d0c
-;     sub_c8dfe
-;     sub_c8e3c
-;     sub_c8e76
-;     sub_c8e96
-;     sub_c8f40
-;     sub_c8f80
-;     sub_c8fb2
-;     sub_c911b
-;     sub_c9124
-;     sub_c915a
-;     sub_c9244
-;     sub_c924c
-;     sub_c9255
-;     sub_c925f
-;     sub_c927d
-;     sub_c9281
-;     sub_c9287
-;     sub_c9290
-;     sub_c92a1
-;     sub_c92b8
-;     sub_c92f5
-;     sub_c9313
-;     sub_c9335
-;     sub_c9451
-;     sub_c9453
-;     sub_c9483
-;     sub_c9487
-;     sub_c94c6
-;     sub_c94dc
-;     sub_c955a
-;     sub_c95fb
-;     sub_c969d
-;     sub_c9738
-;     sub_c975c
-;     sub_c9767
-;     sub_c9778
-;     sub_c9822
-;     sub_c987f
-;     sub_c9887
-;     sub_c98f3
-;     sub_c98ff
-;     sub_c993d
-;     sub_c9984
-;     sub_c9a45
-;     sub_c9a50
-;     sub_c9a60
-;     sub_c9a6c
-;     sub_c9a6d
-;     sub_c9a72
-;     sub_c9a7f
-;     sub_c9a80
-;     sub_c9a88
-;     sub_c9b86
-;     sub_c9e03
-;     sub_c9e08
-;     sub_c9e0a
-;     sub_c9e0b
-;     sub_c9ec0
-;     sub_c9ec4
-;     sub_ca086
-;     sub_ca08f
-;     sub_ca0b4
-;     sub_ca0b6
-;     sub_ca128
-;     sub_ca2e8
-;     sub_ca313
-;     sub_ca34a
-;     sub_ca4ef
-;     sub_ca57c
-;     sub_ca601
-;     sub_ca612
-;     sub_ca868
-;     sub_ca964
-;     sub_ca981
-;     sub_ca9ac
-;     sub_caa6a
-;     sub_caa73
-;     sub_caa77
-;     sub_cab00
-;     sub_cac12
-;     sub_cacd2
-;     sub_cace5
-;     sub_cace7
-;     sub_cad2f
-;     sub_cae70
-;     sub_cae80
-;     sub_cae82
-;     sub_cae85
-;     sub_caef0
-;     sub_caef2
-;     sub_caef4
-;     sub_caf12
-;     sub_caf27
-;     sub_caf65
-;     sub_caf76
-;     sub_caf95
-;     sub_cafa1
-;     sub_cafb5
-;     sub_cafc0
-;     sub_caff7
-;     sub_caff9
-;     sub_cb0a1
-;     sub_cb0ab
-;     sub_cb0c6
-;     sub_cb0d2
-;     sub_cb11a
-;     sub_cb13a
-;     sub_cb141
-;     sub_cb149
-;     sub_cb174
-;     sub_cb2c4
-;     sub_cb2db
-;     sub_cb41f
-;     sub_cb439
-;     sub_cb45b
-;     sub_cb46a
-;     sub_cb475
-;     sub_cb4dc
-;     sub_cb4e3
-;     sub_cb4fa
-;     sub_cb52e
-;     sub_cb54a
-;     sub_cb551
-;     sub_cb57a
-;     sub_cb589
-;     sub_cb5cc
-;     sub_cb5ef
-;     sub_cb660
-;     sub_cb729
-;     sub_cb738
-;     sub_cb791
-;     sub_cb79f
-;     sub_cb920
-;     sub_cb979
-;     sub_cb9ea
-;     sub_cbace
-;     sub_cbb13
-;     sub_cbb55
-;     sub_cbbbe
-;     sub_cbc84
-;     sub_cbc87
-;     sub_cbc8a
 ;     sub_cbe5e
 
 ; Stats:
