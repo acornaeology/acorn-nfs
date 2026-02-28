@@ -8508,153 +8508,153 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; fall through to this handler.
 ; ***************************************************************************************
 .cmd_ex
-    ror l1071                                                         ; ad59: 6e 71 10    nq.
-    clc                                                               ; ad5c: 18          .
+    ror l1071                                                         ; ad59: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
+    clc                                                               ; ad5c: 18          .              ; Clear carry (= current directory)
 ; &ad5d referenced 1 time by &ad57
 .ex_set_lib_flag
-    rol l1071                                                         ; ad5d: 2e 71 10    .q.
-    lda #&ff                                                          ; ad60: a9 ff       ..
-    sta fs_spool_handle                                               ; ad62: 85 ba       ..
-    lda #1                                                            ; ad64: a9 01       ..
-    sta fs_work_7                                                     ; ad66: 85 b7       ..
-    lda #3                                                            ; ad68: a9 03       ..
-    sta fs_work_5                                                     ; ad6a: 85 b5       ..
+    rol l1071                                                         ; ad5d: 2e 71 10    .q.            ; Rotate carry back, clearing bit 7
+    lda #&ff                                                          ; ad60: a9 ff       ..             ; A=&FF: initial column counter
+    sta fs_spool_handle                                               ; ad62: 85 ba       ..             ; Store column counter
+    lda #1                                                            ; ad64: a9 01       ..             ; One entry per line (Ex format)
+    sta fs_work_7                                                     ; ad66: 85 b7       ..             ; Store entries per page
+    lda #3                                                            ; ad68: a9 03       ..             ; FS command code 3: Examine
+    sta fs_work_5                                                     ; ad6a: 85 b5       ..             ; Store command code
     bne cad84                                                         ; ad6c: d0 16       ..             ; ALWAYS branch
 
-    jsr set_xfer_params                                               ; ad6e: 20 81 92     ..
-    ldy #0                                                            ; ad71: a0 00       ..
-    ror l1071                                                         ; ad73: 6e 71 10    nq.
-    clc                                                               ; ad76: 18          .
+    jsr set_xfer_params                                               ; ad6e: 20 81 92     ..            ; Set transfer parameters
+    ldy #0                                                            ; ad71: a0 00       ..             ; Y=0: start from entry 0
+    ror l1071                                                         ; ad73: 6e 71 10    nq.            ; Rotate carry into lib flag
+    clc                                                               ; ad76: 18          .              ; Clear carry (= current directory)
 ; &ad77 referenced 1 time by &ad51
 .cat_set_lib_flag
-    rol l1071                                                         ; ad77: 2e 71 10    .q.
-    lda #3                                                            ; ad7a: a9 03       ..
-    sta fs_spool_handle                                               ; ad7c: 85 ba       ..
-    sta fs_work_7                                                     ; ad7e: 85 b7       ..
-    lda #&0b                                                          ; ad80: a9 0b       ..
-    sta fs_work_5                                                     ; ad82: 85 b5       ..
+    rol l1071                                                         ; ad77: 2e 71 10    .q.            ; Rotate carry back, clearing bit 7
+    lda #3                                                            ; ad7a: a9 03       ..             ; Three entries per column (Cat)
+    sta fs_spool_handle                                               ; ad7c: 85 ba       ..             ; Store column counter
+    sta fs_work_7                                                     ; ad7e: 85 b7       ..             ; Store entries per page
+    lda #&0b                                                          ; ad80: a9 0b       ..             ; FS command code &0B: Catalogue
+    sta fs_work_5                                                     ; ad82: 85 b5       ..             ; Store command code
 ; &ad84 referenced 1 time by &ad6c
 .cad84
-    jsr save_ptr_to_os_text                                           ; ad84: 20 95 af     ..
-    lda #&ff                                                          ; ad87: a9 ff       ..
-    sta escapable                                                     ; ad89: 85 97       ..
-    lda #6                                                            ; ad8b: a9 06       ..
-    sta l0f05                                                         ; ad8d: 8d 05 0f    ...
-    jsr parse_filename_arg                                            ; ad90: 20 82 ae     ..
-    ldx #1                                                            ; ad93: a2 01       ..
-    jsr copy_arg_to_buf                                               ; ad95: 20 f2 ae     ..
-    lda l1071                                                         ; ad98: ad 71 10    .q.
-    lsr a                                                             ; ad9b: 4a          J
-    bcc cada0                                                         ; ad9c: 90 02       ..
-    ora #&40 ; '@'                                                    ; ad9e: 09 40       .@
+    jsr save_ptr_to_os_text                                           ; ad84: 20 95 af     ..            ; Save text pointer
+    lda #&ff                                                          ; ad87: a9 ff       ..             ; A=&FF: enable escape checking
+    sta escapable                                                     ; ad89: 85 97       ..             ; Set escapable flag
+    lda #6                                                            ; ad8b: a9 06       ..             ; Command code 6
+    sta l0f05                                                         ; ad8d: 8d 05 0f    ...            ; Store in TX buffer
+    jsr parse_filename_arg                                            ; ad90: 20 82 ae     ..            ; Parse directory argument
+    ldx #1                                                            ; ad93: a2 01       ..             ; X=1: offset in buffer
+    jsr copy_arg_to_buf                                               ; ad95: 20 f2 ae     ..            ; Copy argument to TX buffer
+    lda l1071                                                         ; ad98: ad 71 10    .q.            ; Get library/FS flags
+    lsr a                                                             ; ad9b: 4a          J              ; Shift bit 0 to carry
+    bcc cada0                                                         ; ad9c: 90 02       ..             ; Bit 0 clear: skip
+    ora #&40 ; '@'                                                    ; ad9e: 09 40       .@             ; Set bit 6 (owner access flag)
 ; &ada0 referenced 1 time by &ad9c
 .cada0
-    rol a                                                             ; ada0: 2a          *
-    sta l1071                                                         ; ada1: 8d 71 10    .q.
-    ldy #&12                                                          ; ada4: a0 12       ..
-    jsr save_net_tx_cb                                                ; ada6: 20 99 94     ..
-    ldx #3                                                            ; ada9: a2 03       ..
-    jsr print_10_chars                                                ; adab: 20 70 ae     p.
-    jsr print_inline                                                  ; adae: 20 31 91     1.
+    rol a                                                             ; ada0: 2a          *              ; Rotate back
+    sta l1071                                                         ; ada1: 8d 71 10    .q.            ; Store modified flags
+    ldy #&12                                                          ; ada4: a0 12       ..             ; Y=&12: FS command for examine
+    jsr save_net_tx_cb                                                ; ada6: 20 99 94     ..            ; Send request to file server
+    ldx #3                                                            ; ada9: a2 03       ..             ; X=3: offset to directory title
+    jsr print_10_chars                                                ; adab: 20 70 ae     p.            ; Print directory title (10 chars)
+    jsr print_inline                                                  ; adae: 20 31 91     1.            ; Print '('
     equs "("                                                          ; adb1: 28          (
 
-    lda l0f13                                                         ; adb2: ad 13 0f    ...
-    jsr print_decimal_3dig                                            ; adb5: 20 68 af     h.
-    jsr print_inline                                                  ; adb8: 20 31 91     1.
+    lda l0f13                                                         ; adb2: ad 13 0f    ...            ; Get cycle number
+    jsr print_decimal_3dig                                            ; adb5: 20 68 af     h.            ; Print as 3-digit decimal
+    jsr print_inline                                                  ; adb8: 20 31 91     1.            ; Print ')     '
     equs ")     "                                                     ; adbb: 29 20 20... )
 
-    ldy l0f12                                                         ; adc1: ac 12 0f    ...
-    bne cadd1                                                         ; adc4: d0 0b       ..
-    jsr print_inline                                                  ; adc6: 20 31 91     1.
+    ldy l0f12                                                         ; adc1: ac 12 0f    ...            ; Get owner/public flag
+    bne cadd1                                                         ; adc4: d0 0b       ..             ; Non-zero: public access
+    jsr print_inline                                                  ; adc6: 20 31 91     1.            ; Print 'Owner' + CR
     equs "Owner", &0d                                                 ; adc9: 4f 77 6e... Own
 
-    bne caddb                                                         ; adcf: d0 0a       ..
+    bne caddb                                                         ; adcf: d0 0a       ..             ; Skip public; ALWAYS branch
 ; &add1 referenced 1 time by &adc4
 .cadd1
-    jsr print_inline                                                  ; add1: 20 31 91     1.
+    jsr print_inline                                                  ; add1: 20 31 91     1.            ; Print 'Public' + CR
     equs "Public", &0d                                                ; add4: 50 75 62... Pub
 
 ; &addb referenced 1 time by &adcf
 .caddb
-    lda l1071                                                         ; addb: ad 71 10    .q.
-    pha                                                               ; adde: 48          H
-    jsr mask_owner_access                                             ; addf: 20 12 af     ..
-    ldy #&15                                                          ; ade2: a0 15       ..
-    jsr save_net_tx_cb                                                ; ade4: 20 99 94     ..
-    inx                                                               ; ade7: e8          .
-    ldy #&10                                                          ; ade8: a0 10       ..
-    jsr cae72                                                         ; adea: 20 72 ae     r.
-    jsr print_inline                                                  ; aded: 20 31 91     1.
+    lda l1071                                                         ; addb: ad 71 10    .q.            ; Get flags
+    pha                                                               ; adde: 48          H              ; Save flags
+    jsr mask_owner_access                                             ; addf: 20 12 af     ..            ; Mask owner access bits
+    ldy #&15                                                          ; ade2: a0 15       ..             ; Y=&15: FS command for dir info
+    jsr save_net_tx_cb                                                ; ade4: 20 99 94     ..            ; Send request to file server
+    inx                                                               ; ade7: e8          .              ; Advance X past header
+    ldy #&10                                                          ; ade8: a0 10       ..             ; Y=&10: print 16 chars
+    jsr cae72                                                         ; adea: 20 72 ae     r.            ; Print file entry
+    jsr print_inline                                                  ; aded: 20 31 91     1.            ; Print '    Option '
     equs "    Option "                                                ; adf0: 20 20 20...
 
-    lda l0e05                                                         ; adfb: ad 05 0e    ...
-    tax                                                               ; adfe: aa          .
-    jsr print_hex_byte                                                ; adff: 20 1b 91     ..
-    jsr print_inline                                                  ; ae02: 20 31 91     1.
+    lda l0e05                                                         ; adfb: ad 05 0e    ...            ; Get option byte
+    tax                                                               ; adfe: aa          .              ; Transfer to X for table lookup
+    jsr print_hex_byte                                                ; adff: 20 1b 91     ..            ; Print option as hex
+    jsr print_inline                                                  ; ae02: 20 31 91     1.            ; Print ' ('
     equs " ("                                                         ; ae05: 20 28        (
 
-    ldy caee9,x                                                       ; ae07: bc e9 ae    ...
+    ldy caee9,x                                                       ; ae07: bc e9 ae    ...            ; Index into option string table
 ; &ae0a referenced 1 time by &ae13
 .loop_cae0a
-    lda roff_off_string,y                                             ; ae0a: b9 ed ae    ...
-    bmi cae15                                                         ; ae0d: 30 06       0.
+    lda roff_off_string,y                                             ; ae0a: b9 ed ae    ...            ; Get option name character
+    bmi cae15                                                         ; ae0d: 30 06       0.             ; High bit set: end of string
     jsr osasci                                                        ; ae0f: 20 e3 ff     ..            ; Write character
-    iny                                                               ; ae12: c8          .
-    bne loop_cae0a                                                    ; ae13: d0 f5       ..
+    iny                                                               ; ae12: c8          .              ; Next character
+    bne loop_cae0a                                                    ; ae13: d0 f5       ..             ; Loop; ALWAYS branch
 ; &ae15 referenced 1 time by &ae0d
 .cae15
-    jsr print_inline                                                  ; ae15: 20 31 91     1.
+    jsr print_inline                                                  ; ae15: 20 31 91     1.            ; Print ')' + CR + 'Dir. '
     equs ")", &0d, "Dir. "                                            ; ae18: 29 0d 44... ).D
 
-    ldx #&11                                                          ; ae1f: a2 11       ..
-    jsr print_10_chars                                                ; ae21: 20 70 ae     p.
-    jsr print_inline                                                  ; ae24: 20 31 91     1.
+    ldx #&11                                                          ; ae1f: a2 11       ..             ; Offset &11: directory name
+    jsr print_10_chars                                                ; ae21: 20 70 ae     p.            ; Print directory name (10 chars)
+    jsr print_inline                                                  ; ae24: 20 31 91     1.            ; Print '     Lib. '
     equs "     Lib. "                                                 ; ae27: 20 20 20...
 
-    ldx #&1b                                                          ; ae31: a2 1b       ..
-    jsr print_10_chars                                                ; ae33: 20 70 ae     p.
+    ldx #&1b                                                          ; ae31: a2 1b       ..             ; Offset &1B: library name
+    jsr print_10_chars                                                ; ae33: 20 70 ae     p.            ; Print library name (10 chars)
     jsr osnewl                                                        ; ae36: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    pla                                                               ; ae39: 68          h
-    sta l1071                                                         ; ae3a: 8d 71 10    .q.
+    pla                                                               ; ae39: 68          h              ; Restore flags
+    sta l1071                                                         ; ae3a: 8d 71 10    .q.            ; Store restored flags
 ; &ae3d referenced 1 time by &ae6e
 .cae3d
-    sty l0f06                                                         ; ae3d: 8c 06 0f    ...
-    sty fs_work_4                                                     ; ae40: 84 b4       ..
-    ldx fs_work_5                                                     ; ae42: a6 b5       ..
-    stx l0f07                                                         ; ae44: 8e 07 0f    ...
-    ldx fs_work_7                                                     ; ae47: a6 b7       ..
-    stx l0f05                                                         ; ae49: 8e 05 0f    ...
-    ldx #3                                                            ; ae4c: a2 03       ..
-    jsr copy_arg_to_buf                                               ; ae4e: 20 f2 ae     ..
-    ldy #3                                                            ; ae51: a0 03       ..
-    jsr save_net_tx_cb                                                ; ae53: 20 99 94     ..
-    inx                                                               ; ae56: e8          .
-    lda l0f05                                                         ; ae57: ad 05 0f    ...
-    beq cae7d                                                         ; ae5a: f0 21       .!
-    pha                                                               ; ae5c: 48          H
+    sty l0f06                                                         ; ae3d: 8c 06 0f    ...            ; Store entry count
+    sty fs_work_4                                                     ; ae40: 84 b4       ..             ; Also store in work_4
+    ldx fs_work_5                                                     ; ae42: a6 b5       ..             ; Get command code
+    stx l0f07                                                         ; ae44: 8e 07 0f    ...            ; Store in buffer
+    ldx fs_work_7                                                     ; ae47: a6 b7       ..             ; Get entries per page
+    stx l0f05                                                         ; ae49: 8e 05 0f    ...            ; Store in buffer
+    ldx #3                                                            ; ae4c: a2 03       ..             ; X=3: buffer offset
+    jsr copy_arg_to_buf                                               ; ae4e: 20 f2 ae     ..            ; Copy argument to buffer
+    ldy #3                                                            ; ae51: a0 03       ..             ; Y=3: FS command for examine/cat
+    jsr save_net_tx_cb                                                ; ae53: 20 99 94     ..            ; Send request to file server
+    inx                                                               ; ae56: e8          .              ; Advance past header
+    lda l0f05                                                         ; ae57: ad 05 0f    ...            ; Get number of entries returned
+    beq cae7d                                                         ; ae5a: f0 21       .!             ; Zero: no more entries
+    pha                                                               ; ae5c: 48          H              ; Save entry count
 ; &ae5d referenced 1 time by &ae61
 .loop_cae5d
-    iny                                                               ; ae5d: c8          .
-    lda l0f05,y                                                       ; ae5e: b9 05 0f    ...
-    bpl loop_cae5d                                                    ; ae61: 10 fa       ..
-    sta l0f04,y                                                       ; ae63: 99 04 0f    ...
-    jsr ex_print_col_sep                                              ; ae66: 20 27 af     '.
-    pla                                                               ; ae69: 68          h
-    clc                                                               ; ae6a: 18          .
-    adc fs_work_4                                                     ; ae6b: 65 b4       e.
-    tay                                                               ; ae6d: a8          .
-    bne cae3d                                                         ; ae6e: d0 cd       ..
+    iny                                                               ; ae5d: c8          .              ; Advance Y
+    lda l0f05,y                                                       ; ae5e: b9 05 0f    ...            ; Get entry data byte
+    bpl loop_cae5d                                                    ; ae61: 10 fa       ..             ; Bit 7 clear: more data
+    sta l0f04,y                                                       ; ae63: 99 04 0f    ...            ; Store terminator byte
+    jsr ex_print_col_sep                                              ; ae66: 20 27 af     '.            ; Print entry with column separator
+    pla                                                               ; ae69: 68          h              ; Restore entry count
+    clc                                                               ; ae6a: 18          .              ; Clear carry for addition
+    adc fs_work_4                                                     ; ae6b: 65 b4       e.             ; Add entries processed
+    tay                                                               ; ae6d: a8          .              ; Transfer to Y
+    bne cae3d                                                         ; ae6e: d0 cd       ..             ; More entries: loop
 ; &ae70 referenced 3 times by &adab, &ae21, &ae33
 .print_10_chars
-    ldy #&0a                                                          ; ae70: a0 0a       ..
+    ldy #&0a                                                          ; ae70: a0 0a       ..             ; Y=10: characters to print
 ; &ae72 referenced 2 times by &adea, &ae7a
 .cae72
-    lda l0f05,x                                                       ; ae72: bd 05 0f    ...
+    lda l0f05,x                                                       ; ae72: bd 05 0f    ...            ; Get character from buffer
     jsr osasci                                                        ; ae75: 20 e3 ff     ..            ; Write character
-    inx                                                               ; ae78: e8          .
-    dey                                                               ; ae79: 88          .
-    bne cae72                                                         ; ae7a: d0 f6       ..
-    rts                                                               ; ae7c: 60          `
+    inx                                                               ; ae78: e8          .              ; Next buffer position
+    dey                                                               ; ae79: 88          .              ; Decrement count
+    bne cae72                                                         ; ae7a: d0 f6       ..             ; Loop until 10 printed
+    rts                                                               ; ae7c: 60          `              ; Return
 
 ; &ae7d referenced 1 time by &ae5a
 .cae7d
@@ -8662,78 +8662,78 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 
 ; &ae80 referenced 2 times by &9cf8, &a1af
 .parse_cmd_arg_y0
-    ldy #0                                                            ; ae80: a0 00       ..
+    ldy #0                                                            ; ae80: a0 00       ..             ; Y=0: start of command line
 ; &ae82 referenced 4 times by &ad25, &ad90, &af57, &b347
 .parse_filename_arg
-    jsr gsread_to_buf                                                 ; ae82: 20 ff 98     ..
+    jsr gsread_to_buf                                                 ; ae82: 20 ff 98     ..            ; Read string to buffer via GSREAD
 ; &ae85 referenced 4 times by &92da, &9382, &93bb, &992a
 .parse_access_prefix
-    lda l0e30                                                         ; ae85: ad 30 0e    .0.
-    eor #&26 ; '&'                                                    ; ae88: 49 26       I&
-    bne caed0                                                         ; ae8a: d0 44       .D
-    lda l1071                                                         ; ae8c: ad 71 10    .q.
-    ora #&40 ; '@'                                                    ; ae8f: 09 40       .@
-    sta l1071                                                         ; ae91: 8d 71 10    .q.
-    jsr strip_token_prefix                                            ; ae94: 20 a5 ae     ..
-    lda l0e30                                                         ; ae97: ad 30 0e    .0.
-    eor #&2e ; '.'                                                    ; ae9a: 49 2e       I.
-    bne caec9                                                         ; ae9c: d0 2b       .+
-    lda l0e31                                                         ; ae9e: ad 31 0e    .1.
-    eor #&0d                                                          ; aea1: 49 0d       I.
-    beq caecd                                                         ; aea3: f0 28       .(
+    lda l0e30                                                         ; ae85: ad 30 0e    .0.            ; Get first parsed character
+    eor #&26 ; '&'                                                    ; ae88: 49 26       I&             ; Is it '&'?
+    bne caed0                                                         ; ae8a: d0 44       .D             ; No: check for ':' prefix
+    lda l1071                                                         ; ae8c: ad 71 10    .q.            ; Get flags
+    ora #&40 ; '@'                                                    ; ae8f: 09 40       .@             ; Set FS selection flag (bit 6)
+    sta l1071                                                         ; ae91: 8d 71 10    .q.            ; Store updated flags
+    jsr strip_token_prefix                                            ; ae94: 20 a5 ae     ..            ; Remove '&' prefix character
+    lda l0e30                                                         ; ae97: ad 30 0e    .0.            ; Get next character
+    eor #&2e ; '.'                                                    ; ae9a: 49 2e       I.             ; Is it '.'?
+    bne caec9                                                         ; ae9c: d0 2b       .+             ; No: check for '#'
+    lda l0e31                                                         ; ae9e: ad 31 0e    .1.            ; Get char after '.'
+    eor #&0d                                                          ; aea1: 49 0d       I.             ; Is it CR (end of line)?
+    beq caecd                                                         ; aea3: f0 28       .(             ; Yes: '&.' + CR only = bad filename
 ; &aea5 referenced 5 times by &9308, &93a2, &93a8, &ae94, &aee7
 .strip_token_prefix
-    txa                                                               ; aea5: 8a          .
-    pha                                                               ; aea6: 48          H
-    ldx #&ff                                                          ; aea7: a2 ff       ..
+    txa                                                               ; aea5: 8a          .              ; Save X
+    pha                                                               ; aea6: 48          H              ; Push X
+    ldx #&ff                                                          ; aea7: a2 ff       ..             ; X=&FF, will increment to 0
 ; &aea9 referenced 1 time by &aeb2
 .loop_caea9
-    inx                                                               ; aea9: e8          .
-    lda l0e31,x                                                       ; aeaa: bd 31 0e    .1.
-    sta l0e30,x                                                       ; aead: 9d 30 0e    .0.
-    eor #&0d                                                          ; aeb0: 49 0d       I.
-    bne loop_caea9                                                    ; aeb2: d0 f5       ..
-    txa                                                               ; aeb4: 8a          .
-    beq caec6                                                         ; aeb5: f0 0f       ..
+    inx                                                               ; aea9: e8          .              ; Increment X
+    lda l0e31,x                                                       ; aeaa: bd 31 0e    .1.            ; Get character at offset+1
+    sta l0e30,x                                                       ; aead: 9d 30 0e    .0.            ; Store at offset (shift left)
+    eor #&0d                                                          ; aeb0: 49 0d       I.             ; Is it CR (end of line)?
+    bne loop_caea9                                                    ; aeb2: d0 f5       ..             ; No: continue shifting
+    txa                                                               ; aeb4: 8a          .              ; Get shifted string length
+    beq caec6                                                         ; aeb5: f0 0f       ..             ; Zero length: skip trailing trim
 ; &aeb7 referenced 1 time by &aec4
 .loop_caeb7
-    lda l0e2f,x                                                       ; aeb7: bd 2f 0e    ./.
-    eor #&20 ; ' '                                                    ; aeba: 49 20       I
-    bne caec6                                                         ; aebc: d0 08       ..
-    lda #&0d                                                          ; aebe: a9 0d       ..
-    sta l0e2f,x                                                       ; aec0: 9d 2f 0e    ./.
-    dex                                                               ; aec3: ca          .
-    bne loop_caeb7                                                    ; aec4: d0 f1       ..
+    lda l0e2f,x                                                       ; aeb7: bd 2f 0e    ./.            ; Get character at end of string
+    eor #&20 ; ' '                                                    ; aeba: 49 20       I              ; Is it a space?
+    bne caec6                                                         ; aebc: d0 08       ..             ; No: done trimming
+    lda #&0d                                                          ; aebe: a9 0d       ..             ; Replace trailing space with CR
+    sta l0e2f,x                                                       ; aec0: 9d 2f 0e    ./.            ; Store CR
+    dex                                                               ; aec3: ca          .              ; Move back
+    bne loop_caeb7                                                    ; aec4: d0 f1       ..             ; Loop while more trailing spaces
 ; &aec6 referenced 2 times by &aeb5, &aebc
 .caec6
-    pla                                                               ; aec6: 68          h
-    tax                                                               ; aec7: aa          .
+    pla                                                               ; aec6: 68          h              ; Restore X
+    tax                                                               ; aec7: aa          .              ; Transfer back to X
 ; &aec8 referenced 3 times by &aecb, &aed2, &aedd
 .return_27
-    rts                                                               ; aec8: 60          `
+    rts                                                               ; aec8: 60          `              ; Return
 
 ; &aec9 referenced 1 time by &ae9c
 .caec9
-    eor #&23 ; '#'                                                    ; aec9: 49 23       I#
-    beq return_27                                                     ; aecb: f0 fb       ..
+    eor #&23 ; '#'                                                    ; aec9: 49 23       I#             ; Is it '#'?
+    beq return_27                                                     ; aecb: f0 fb       ..             ; Yes: '#' prefix accepted
 ; &aecd referenced 1 time by &aea3
 .caecd
-    jmp error_bad_filename                                            ; aecd: 4c e6 92    L..
+    jmp error_bad_filename                                            ; aecd: 4c e6 92    L..            ; Bad filename error
 
 ; &aed0 referenced 1 time by &ae8a
 .caed0
-    eor #&1c                                                          ; aed0: 49 1c       I.
-    bne return_27                                                     ; aed2: d0 f4       ..
-    lda l0e32                                                         ; aed4: ad 32 0e    .2.
-    eor #&2e ; '.'                                                    ; aed7: 49 2e       I.
-    beq caedf                                                         ; aed9: f0 04       ..
-    eor #&23 ; '#'                                                    ; aedb: 49 23       I#
-    bne return_27                                                     ; aedd: d0 e9       ..
+    eor #&1c                                                          ; aed0: 49 1c       I.             ; Check for ':' prefix
+    bne return_27                                                     ; aed2: d0 f4       ..             ; Neither '&' nor ':': no prefix
+    lda l0e32                                                         ; aed4: ad 32 0e    .2.            ; Get character after ':'
+    eor #&2e ; '.'                                                    ; aed7: 49 2e       I.             ; Is it '.'?
+    beq caedf                                                         ; aed9: f0 04       ..             ; Yes: ':.' qualified prefix
+    eor #&23 ; '#'                                                    ; aedb: 49 23       I#             ; Is it CR (end of line)?
+    bne return_27                                                     ; aedd: d0 e9       ..             ; No: no FS prefix, return
 ; &aedf referenced 1 time by &aed9
 .caedf
-    lda l1071                                                         ; aedf: ad 71 10    .q.
-    ora #&40 ; '@'                                                    ; aee2: 09 40       .@
-    sta l1071                                                         ; aee4: 8d 71 10    .q.
+    lda l1071                                                         ; aedf: ad 71 10    .q.            ; Get flags
+    ora #&40 ; '@'                                                    ; aee2: 09 40       .@             ; Set FS selection flag (bit 6)
+    sta l1071                                                         ; aee4: 8d 71 10    .q.            ; Store updated flags
     bne strip_token_prefix                                            ; aee7: d0 bc       ..             ; ALWAYS branch
 
 ; &aee9 referenced 1 time by &ae07
@@ -8747,78 +8747,78 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 
 ; &aef0 referenced 6 times by &8db1, &8e0a, &9938, &9b2a, &a281, &af5a
 .copy_arg_to_buf_x0
-    ldx #0                                                            ; aef0: a2 00       ..
+    ldx #0                                                            ; aef0: a2 00       ..             ; X=0: start of buffer
 ; &aef2 referenced 10 times by &99ea, &9b23, &9b46, &9cfd, &a1b4, &a1e1, &ad2a, &ad95, &ae4e, &b35c
 .copy_arg_to_buf
-    ldy #0                                                            ; aef2: a0 00       ..
+    ldy #0                                                            ; aef2: a0 00       ..             ; Y=0: start of argument
 ; &aef4 referenced 3 times by &8dac, &940a, &9440
 .copy_arg_validated
-    sec                                                               ; aef4: 38          8
+    sec                                                               ; aef4: 38          8              ; Set carry: enable '&' validation
 ; &aef5 referenced 1 time by &af0b
 .loop_caef5
-    lda (fs_crc_lo),y                                                 ; aef5: b1 be       ..
-    sta l0f05,x                                                       ; aef7: 9d 05 0f    ...
-    bcc caf07                                                         ; aefa: 90 0b       ..
-    cmp #&21 ; '!'                                                    ; aefc: c9 21       .!
-    eor #&26 ; '&'                                                    ; aefe: 49 26       I&
-    bne caf05                                                         ; af00: d0 03       ..
-    jmp error_bad_filename                                            ; af02: 4c e6 92    L..
+    lda (fs_crc_lo),y                                                 ; aef5: b1 be       ..             ; Get character from command line
+    sta l0f05,x                                                       ; aef7: 9d 05 0f    ...            ; Store in TX buffer
+    bcc caf07                                                         ; aefa: 90 0b       ..             ; Carry clear: skip validation
+    cmp #&21 ; '!'                                                    ; aefc: c9 21       .!             ; Is it '!' or above?
+    eor #&26 ; '&'                                                    ; aefe: 49 26       I&             ; Is it '&'?
+    bne caf05                                                         ; af00: d0 03       ..             ; No: continue copying
+    jmp error_bad_filename                                            ; af02: 4c e6 92    L..            ; '&' in filename: bad filename
 
 ; &af05 referenced 1 time by &af00
 .caf05
-    eor #&26 ; '&'                                                    ; af05: 49 26       I&
+    eor #&26 ; '&'                                                    ; af05: 49 26       I&             ; Restore A (undo '&' EOR)
 ; &af07 referenced 1 time by &aefa
 .caf07
-    inx                                                               ; af07: e8          .
-    iny                                                               ; af08: c8          .
-    eor #&0d                                                          ; af09: 49 0d       I.
-    bne loop_caef5                                                    ; af0b: d0 e8       ..
+    inx                                                               ; af07: e8          .              ; Advance buffer position
+    iny                                                               ; af08: c8          .              ; Advance source position
+    eor #&0d                                                          ; af09: 49 0d       I.             ; Is it CR (end of line)?
+    bne loop_caef5                                                    ; af0b: d0 e8       ..             ; No: continue copying
 ; &af0d referenced 1 time by &af23
 .return_28
-    rts                                                               ; af0d: 60          `
+    rts                                                               ; af0d: 60          `              ; Return
 
     equs "Load"                                                       ; af0e: 4c 6f 61... Loa
 
 ; &af12 referenced 13 times by &8e25, &937c, &93b6, &9927, &9d49, &9e2a, &a1ac, &a238, &a242, &a8db, &ad00, &addf, &b33d
 .mask_owner_access
-    lda l1071                                                         ; af12: ad 71 10    .q.
-    and #&1f                                                          ; af15: 29 1f       ).
-    sta l1071                                                         ; af17: 8d 71 10    .q.
-    rts                                                               ; af1a: 60          `
+    lda l1071                                                         ; af12: ad 71 10    .q.            ; Get flags
+    and #&1f                                                          ; af15: 29 1f       ).             ; Mask to low 5 bits only
+    sta l1071                                                         ; af17: 8d 71 10    .q.            ; Store masked flags
+    rts                                                               ; af1a: 60          `              ; Return
 
     equs "Run"                                                        ; af1b: 52 75 6e    Run
 
-    ldx #0                                                            ; af1e: a2 00       ..
+    ldx #0                                                            ; af1e: a2 00       ..             ; X=0: start from first entry
 ; &af20 referenced 1 time by &af40
 .caf20
-    lda l0f05,x                                                       ; af20: bd 05 0f    ...
-    bmi return_28                                                     ; af23: 30 e8       0.
-    bne caf3c                                                         ; af25: d0 15       ..
+    lda l0f05,x                                                       ; af20: bd 05 0f    ...            ; Get entry byte from buffer
+    bmi return_28                                                     ; af23: 30 e8       0.             ; High bit set: end of entries
+    bne caf3c                                                         ; af25: d0 15       ..             ; Non-zero: printable character
 ; &af27 referenced 1 time by &ae66
 .ex_print_col_sep
-    ldy fs_spool_handle                                               ; af27: a4 ba       ..
-    bmi caf3a                                                         ; af29: 30 0f       0.
-    iny                                                               ; af2b: c8          .
-    tya                                                               ; af2c: 98          .
-    and #3                                                            ; af2d: 29 03       ).
-    sta fs_spool_handle                                               ; af2f: 85 ba       ..
-    beq caf3a                                                         ; af31: f0 07       ..
-    jsr print_inline                                                  ; af33: 20 31 91     1.
+    ldy fs_spool_handle                                               ; af27: a4 ba       ..             ; Get column counter
+    bmi caf3a                                                         ; af29: 30 0f       0.             ; Negative: newline mode (Ex)
+    iny                                                               ; af2b: c8          .              ; Increment column counter
+    tya                                                               ; af2c: 98          .              ; Transfer to A
+    and #3                                                            ; af2d: 29 03       ).             ; Modulo 4 (Cat: 3 per row)
+    sta fs_spool_handle                                               ; af2f: 85 ba       ..             ; Store updated counter
+    beq caf3a                                                         ; af31: f0 07       ..             ; Zero: row full, print newline
+    jsr print_inline                                                  ; af33: 20 31 91     1.            ; Print '  ' column separator
     equs "  "                                                         ; af36: 20 20
 
-    bne caf3f                                                         ; af38: d0 05       ..
+    bne caf3f                                                         ; af38: d0 05       ..             ; Skip newline; ALWAYS branch
 ; &af3a referenced 2 times by &af29, &af31
 .caf3a
-    lda #&0d                                                          ; af3a: a9 0d       ..
+    lda #&0d                                                          ; af3a: a9 0d       ..             ; CR character for newline
 ; &af3c referenced 1 time by &af25
 .caf3c
     jsr osasci                                                        ; af3c: 20 e3 ff     ..            ; Write character 13
 ; &af3f referenced 1 time by &af38
 .caf3f
-    inx                                                               ; af3f: e8          .
-    bne caf20                                                         ; af40: d0 de       ..
-    eor l0078                                                         ; af42: 45 78       Ex
-    adc l0063                                                         ; af44: 65 63       ec
+    inx                                                               ; af3f: e8          .              ; Advance to next entry
+    bne caf20                                                         ; af40: d0 de       ..             ; Loop for more entries
+    eor l0078                                                         ; af42: 45 78       Ex             ; Embedded string data 'Exec'
+    adc l0063                                                         ; af44: 65 63       ec             ; Embedded string data (contd)
 ; ***************************************************************************************
 ; *Remove command.
 ; Deletes a file from the file server.
@@ -8941,299 +8941,299 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; Lists printer server queue status.
 ; ***************************************************************************************
 .cmd_ps
-    lda #1                                                            ; afce: a9 01       ..
-    bit ws_0d6a                                                       ; afd0: 2c 6a 0d    ,j.
-    bne cafd8                                                         ; afd3: d0 03       ..
-    jmp err_printer_busy                                              ; afd5: 4c ec ab    L..
+    lda #1                                                            ; afce: a9 01       ..             ; A=1: check printer ready
+    bit ws_0d6a                                                       ; afd0: 2c 6a 0d    ,j.            ; Test printer server workspace flag
+    bne cafd8                                                         ; afd3: d0 03       ..             ; Non-zero: printer available
+    jmp err_printer_busy                                              ; afd5: 4c ec ab    L..            ; Printer not available: error
 
 ; &afd8 referenced 1 time by &afd3
 .cafd8
-    jsr init_spool_drive                                              ; afd8: 20 c0 af     ..
-    jsr save_ptr_to_spool_buf                                         ; afdb: 20 b5 af     ..
-    lda (fs_options),y                                                ; afde: b1 bb       ..
-    cmp #&0d                                                          ; afe0: c9 0d       ..
-    beq cb005                                                         ; afe2: f0 21       .!
-    clv                                                               ; afe4: b8          .
-    jsr is_decimal_digit                                              ; afe5: 20 44 92     D.
-    bcc cb008                                                         ; afe8: 90 1e       ..
-    tya                                                               ; afea: 98          .
-    pha                                                               ; afeb: 48          H
-    jsr load_ps_server_addr                                           ; afec: 20 c6 b0     ..
-    pla                                                               ; afef: 68          h
-    tay                                                               ; aff0: a8          .
-    jsr parse_fs_ps_args                                              ; aff1: 20 8f a0     ..
-    jmp cb095                                                         ; aff4: 4c 95 b0    L..
+    jsr init_spool_drive                                              ; afd8: 20 c0 af     ..            ; Initialise spool drive
+    jsr save_ptr_to_spool_buf                                         ; afdb: 20 b5 af     ..            ; Save pointer to spool buffer
+    lda (fs_options),y                                                ; afde: b1 bb       ..             ; Get first argument character
+    cmp #&0d                                                          ; afe0: c9 0d       ..             ; End of command line?
+    beq cb005                                                         ; afe2: f0 21       .!             ; Yes: no argument given
+    clv                                                               ; afe4: b8          .              ; Clear V (= explicit PS name given)
+    jsr is_decimal_digit                                              ; afe5: 20 44 92     D.            ; Is first char a decimal digit?
+    bcc cb008                                                         ; afe8: 90 1e       ..             ; Yes: station number, skip PS name
+    tya                                                               ; afea: 98          .              ; PS name follows
+    pha                                                               ; afeb: 48          H              ; Save Y
+    jsr load_ps_server_addr                                           ; afec: 20 c6 b0     ..            ; Load PS server address
+    pla                                                               ; afef: 68          h              ; Restore Y
+    tay                                                               ; aff0: a8          .              ; Back to Y register
+    jsr parse_fs_ps_args                                              ; aff1: 20 8f a0     ..            ; Parse FS/PS arguments
+    jmp cb095                                                         ; aff4: 4c 95 b0    L..            ; Jump to store station address
 
 ; &aff7 referenced 1 time by &8ee0
 .copy_ps_data_y1c
-    ldy #&1c                                                          ; aff7: a0 1c       ..
+    ldy #&1c                                                          ; aff7: a0 1c       ..             ; Start at offset &1C
 ; &aff9 referenced 1 time by &b1d4
 .copy_ps_data
-    ldx #&f8                                                          ; aff9: a2 f8       ..
+    ldx #&f8                                                          ; aff9: a2 f8       ..             ; X=&F8: offset into template
 ; &affb referenced 1 time by &b002
 .loop_caffb
-    lda credits_string_mid,x                                          ; affb: bd 4b 8d    .K.
-    sta (net_rx_ptr),y                                                ; affe: 91 9c       ..
-    iny                                                               ; b000: c8          .
-    inx                                                               ; b001: e8          .
-    bne loop_caffb                                                    ; b002: d0 f7       ..
-    rts                                                               ; b004: 60          `
+    lda credits_string_mid,x                                          ; affb: bd 4b 8d    .K.            ; Get template byte
+    sta (net_rx_ptr),y                                                ; affe: 91 9c       ..             ; Store in RX buffer
+    iny                                                               ; b000: c8          .              ; Next destination offset
+    inx                                                               ; b001: e8          .              ; Next source offset
+    bne loop_caffb                                                    ; b002: d0 f7       ..             ; Loop until X wraps to 0
+    rts                                                               ; b004: 60          `              ; Return
 
 ; &b005 referenced 1 time by &afe2
 .cb005
-    bit bit_test_ff_pad                                               ; b005: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; b005: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
 ; &b008 referenced 1 time by &afe8
 .cb008
-    sty ws_ptr_hi                                                     ; b008: 84 ac       ..
-    bvs cb038                                                         ; b00a: 70 2c       p,
-    ldx #6                                                            ; b00c: a2 06       ..
-    ldy #&1c                                                          ; b00e: a0 1c       ..
-    lda #&20 ; ' '                                                    ; b010: a9 20       .
+    sty ws_ptr_hi                                                     ; b008: 84 ac       ..             ; Save command line pointer
+    bvs cb038                                                         ; b00a: 70 2c       p,             ; V set: skip PS name parsing
+    ldx #6                                                            ; b00c: a2 06       ..             ; Max 6 characters for PS name
+    ldy #&1c                                                          ; b00e: a0 1c       ..             ; Buffer offset &1C for PS name
+    lda #&20 ; ' '                                                    ; b010: a9 20       .              ; Space character
 ; &b012 referenced 1 time by &b016
 .loop_cb012
-    sta (net_rx_ptr),y                                                ; b012: 91 9c       ..
-    iny                                                               ; b014: c8          .
-    dex                                                               ; b015: ca          .
-    bne loop_cb012                                                    ; b016: d0 fa       ..
-    jsr save_ptr_to_os_text                                           ; b018: 20 95 af     ..
-    ldy ws_ptr_hi                                                     ; b01b: a4 ac       ..
-    jsr gsinit                                                        ; b01d: 20 c2 ff     ..
-    beq cb038                                                         ; b020: f0 16       ..
-    ldx #6                                                            ; b022: a2 06       ..
-    sty ws_ptr_hi                                                     ; b024: 84 ac       ..
-    ldy #&1c                                                          ; b026: a0 1c       ..
-    sty l00ad                                                         ; b028: 84 ad       ..
+    sta (net_rx_ptr),y                                                ; b012: 91 9c       ..             ; Fill buffer with space
+    iny                                                               ; b014: c8          .              ; Next position
+    dex                                                               ; b015: ca          .              ; Count down
+    bne loop_cb012                                                    ; b016: d0 fa       ..             ; Loop until 6 spaces filled
+    jsr save_ptr_to_os_text                                           ; b018: 20 95 af     ..            ; Save text pointer
+    ldy ws_ptr_hi                                                     ; b01b: a4 ac       ..             ; Restore command line pointer
+    jsr gsinit                                                        ; b01d: 20 c2 ff     ..            ; Initialise string reading
+    beq cb038                                                         ; b020: f0 16       ..             ; Empty string: skip to send
+    ldx #6                                                            ; b022: a2 06       ..             ; Max 6 characters
+    sty ws_ptr_hi                                                     ; b024: 84 ac       ..             ; Save updated string pointer
+    ldy #&1c                                                          ; b026: a0 1c       ..             ; Buffer offset for PS name
+    sty l00ad                                                         ; b028: 84 ad       ..             ; Save buffer position
 ; &b02a referenced 1 time by &b036
 .loop_cb02a
-    ldy ws_ptr_hi                                                     ; b02a: a4 ac       ..
-    jsr gsread                                                        ; b02c: 20 c5 ff     ..
-    sty ws_ptr_hi                                                     ; b02f: 84 ac       ..
-    bcs cb038                                                         ; b031: b0 05       ..
-    jsr store_char_uppercase                                          ; b033: 20 db b2     ..
-    bne loop_cb02a                                                    ; b036: d0 f2       ..
+    ldy ws_ptr_hi                                                     ; b02a: a4 ac       ..             ; Restore string pointer
+    jsr gsread                                                        ; b02c: 20 c5 ff     ..            ; Read next character
+    sty ws_ptr_hi                                                     ; b02f: 84 ac       ..             ; Save updated pointer
+    bcs cb038                                                         ; b031: b0 05       ..             ; End of string: go to send
+    jsr store_char_uppercase                                          ; b033: 20 db b2     ..            ; Store char uppercased in buffer
+    bne loop_cb02a                                                    ; b036: d0 f2       ..             ; Loop for more characters
 ; &b038 referenced 3 times by &b00a, &b020, &b031
 .cb038
-    jsr reverse_ps_name_to_tx                                         ; b038: 20 49 b1     I.
-    jsr send_net_packet                                               ; b03b: 20 2a 98     *.
-    jsr pop_requeue_ps_scan                                           ; b03e: 20 d2 b0     ..
-    jsr load_ps_server_addr                                           ; b041: 20 c6 b0     ..
-    lda #0                                                            ; b044: a9 00       ..
+    jsr reverse_ps_name_to_tx                                         ; b038: 20 49 b1     I.            ; Copy reversed PS name to TX
+    jsr send_net_packet                                               ; b03b: 20 2a 98     *.            ; Send PS status request
+    jsr pop_requeue_ps_scan                                           ; b03e: 20 d2 b0     ..            ; Pop and requeue PS scan
+    jsr load_ps_server_addr                                           ; b041: 20 c6 b0     ..            ; Load PS server address
+    lda #0                                                            ; b044: a9 00       ..             ; A=0
     tax                                                               ; b046: aa          .              ; X=&00
-    ldy #&24 ; '$'                                                    ; b047: a0 24       .$
-    sta (net_rx_ptr),y                                                ; b049: 91 9c       ..
+    ldy #&24 ; '$'                                                    ; b047: a0 24       .$             ; Offset &24 in buffer
+    sta (net_rx_ptr),y                                                ; b049: 91 9c       ..             ; Clear PS status byte
 ; &b04b referenced 1 time by &b073
 .cb04b
-    pla                                                               ; b04b: 68          h
-    beq cb075                                                         ; b04c: f0 27       .'
-    pha                                                               ; b04e: 48          H
-    tay                                                               ; b04f: a8          .
-    lda (nfs_workspace),y                                             ; b050: b1 9e       ..
-    bpl cb06d                                                         ; b052: 10 19       ..
-    jsr advance_y_by_4                                                ; b054: 20 6d 9a     m.
-    lda (nfs_workspace),y                                             ; b057: b1 9e       ..
-    sta l00ae                                                         ; b059: 85 ae       ..
-    lda (l00ae,x)                                                     ; b05b: a1 ae       ..
-    bne cb06d                                                         ; b05d: d0 0e       ..
-    dey                                                               ; b05f: 88          .
-    lda (nfs_workspace),y                                             ; b060: b1 9e       ..
-    sta l00b6                                                         ; b062: 85 b6       ..
-    dey                                                               ; b064: 88          .
-    lda (nfs_workspace),y                                             ; b065: b1 9e       ..
-    sta fs_work_5                                                     ; b067: 85 b5       ..
-    ldy #&24 ; '$'                                                    ; b069: a0 24       .$
-    sta (net_rx_ptr),y                                                ; b06b: 91 9c       ..
+    pla                                                               ; b04b: 68          h              ; Get slot offset from stack
+    beq cb075                                                         ; b04c: f0 27       .'             ; Zero: all slots done
+    pha                                                               ; b04e: 48          H              ; Save slot offset
+    tay                                                               ; b04f: a8          .              ; Transfer to Y
+    lda (nfs_workspace),y                                             ; b050: b1 9e       ..             ; Read slot status
+    bpl cb06d                                                         ; b052: 10 19       ..             ; Bit 7 clear: slot inactive
+    jsr advance_y_by_4                                                ; b054: 20 6d 9a     m.            ; Advance Y by 4 (to status page)
+    lda (nfs_workspace),y                                             ; b057: b1 9e       ..             ; Read status page pointer
+    sta l00ae                                                         ; b059: 85 ae       ..             ; Store pointer low
+    lda (l00ae,x)                                                     ; b05b: a1 ae       ..             ; Read printer status byte
+    bne cb06d                                                         ; b05d: d0 0e       ..             ; Non-zero (busy): skip
+    dey                                                               ; b05f: 88          .              ; Back to network number
+    lda (nfs_workspace),y                                             ; b060: b1 9e       ..             ; Read network number
+    sta l00b6                                                         ; b062: 85 b6       ..             ; Store network number
+    dey                                                               ; b064: 88          .              ; Back to station number
+    lda (nfs_workspace),y                                             ; b065: b1 9e       ..             ; Read station number
+    sta fs_work_5                                                     ; b067: 85 b5       ..             ; Store station low
+    ldy #&24 ; '$'                                                    ; b069: a0 24       .$             ; Offset &24 in buffer
+    sta (net_rx_ptr),y                                                ; b06b: 91 9c       ..             ; Store ready station in buffer
 ; &b06d referenced 2 times by &b052, &b05d
 .cb06d
-    pla                                                               ; b06d: 68          h
-    tay                                                               ; b06e: a8          .
-    lda #&3f ; '?'                                                    ; b06f: a9 3f       .?
-    sta (nfs_workspace),y                                             ; b071: 91 9e       ..
+    pla                                                               ; b06d: 68          h              ; Retrieve slot offset
+    tay                                                               ; b06e: a8          .              ; Transfer to Y
+    lda #&3f ; '?'                                                    ; b06f: a9 3f       .?             ; Mark slot as processed (&3F)
+    sta (nfs_workspace),y                                             ; b071: 91 9e       ..             ; Write marker to workspace
     bne cb04b                                                         ; b073: d0 d6       ..             ; ALWAYS branch
 
 ; &b075 referenced 1 time by &b04c
 .cb075
-    jsr print_printer_server_is                                       ; b075: 20 ab b0     ..
-    ldy #&24 ; '$'                                                    ; b078: a0 24       .$
-    lda (net_rx_ptr),y                                                ; b07a: b1 9c       ..
-    bne cb08a                                                         ; b07c: d0 0c       ..
-    jsr print_inline                                                  ; b07e: 20 31 91     1.
+    jsr print_printer_server_is                                       ; b075: 20 ab b0     ..            ; Print 'Printer server is '
+    ldy #&24 ; '$'                                                    ; b078: a0 24       .$             ; Offset &24: PS station number
+    lda (net_rx_ptr),y                                                ; b07a: b1 9c       ..             ; Get stored station number
+    bne cb08a                                                         ; b07c: d0 0c       ..             ; Non-zero: server changed
+    jsr print_inline                                                  ; b07e: 20 31 91     1.            ; Print 'still '
     equs "still "                                                     ; b081: 73 74 69... sti
 
-    clv                                                               ; b087: b8          .
+    clv                                                               ; b087: b8          .              ; Clear V
     bvc cb092                                                         ; b088: 50 08       P.             ; ALWAYS branch
 
 ; &b08a referenced 1 time by &b07c
 .cb08a
-    jsr print_inline                                                  ; b08a: 20 31 91     1.
+    jsr print_inline                                                  ; b08a: 20 31 91     1.            ; Print 'now '
     equs "now "                                                       ; b08d: 6e 6f 77... now
 
-    nop                                                               ; b091: ea          .
+    nop                                                               ; b091: ea          .              ; Padding
 ; &b092 referenced 1 time by &b088
 .cb092
-    jsr print_fs_info_newline                                         ; b092: 20 86 a0     ..
+    jsr print_fs_info_newline                                         ; b092: 20 86 a0     ..            ; Print FS info and newline
 ; &b095 referenced 1 time by &aff4
 .cb095
-    ldy #2                                                            ; b095: a0 02       ..
-    lda fs_work_5                                                     ; b097: a5 b5       ..
-    sta (nfs_workspace),y                                             ; b099: 91 9e       ..
+    ldy #2                                                            ; b095: a0 02       ..             ; Workspace offset 2
+    lda fs_work_5                                                     ; b097: a5 b5       ..             ; Get station low
+    sta (nfs_workspace),y                                             ; b099: 91 9e       ..             ; Store in workspace
     iny                                                               ; b09b: c8          .              ; Y=&03
-    lda l00b6                                                         ; b09c: a5 b6       ..
-    sta (nfs_workspace),y                                             ; b09e: 91 9e       ..
-    rts                                                               ; b0a0: 60          `
+    lda l00b6                                                         ; b09c: a5 b6       ..             ; Get network number
+    sta (nfs_workspace),y                                             ; b09e: 91 9e       ..             ; Store in workspace
+    rts                                                               ; b0a0: 60          `              ; Return
 
 ; &b0a1 referenced 1 time by &a083
 .print_file_server_is
-    jsr print_inline                                                  ; b0a1: 20 31 91     1.
+    jsr print_inline                                                  ; b0a1: 20 31 91     1.            ; Print 'File'
     equs "File"                                                       ; b0a4: 46 69 6c... Fil
 
-    clv                                                               ; b0a8: b8          .
+    clv                                                               ; b0a8: b8          .              ; Clear V
     bvc cb0b6                                                         ; b0a9: 50 0b       P.             ; ALWAYS branch
 
 ; &b0ab referenced 2 times by &b075, &b21c
 .print_printer_server_is
-    jsr print_inline                                                  ; b0ab: 20 31 91     1.
+    jsr print_inline                                                  ; b0ab: 20 31 91     1.            ; Print 'Printer'
     equs "Printer"                                                    ; b0ae: 50 72 69... Pri
 
-    nop                                                               ; b0b5: ea          .
+    nop                                                               ; b0b5: ea          .              ; Padding
 ; &b0b6 referenced 1 time by &b0a9
 .cb0b6
-    jsr print_inline                                                  ; b0b6: 20 31 91     1.
+    jsr print_inline                                                  ; b0b6: 20 31 91     1.            ; Print ' server is '
     equs " server is "                                                ; b0b9: 20 73 65...  se
 
-    nop                                                               ; b0c4: ea          .
-    rts                                                               ; b0c5: 60          `
+    nop                                                               ; b0c4: ea          .              ; Padding
+    rts                                                               ; b0c5: 60          `              ; Return
 
 ; &b0c6 referenced 4 times by &afec, &b041, &b1bf, &b21f
 .load_ps_server_addr
-    ldy #2                                                            ; b0c6: a0 02       ..
-    lda (nfs_workspace),y                                             ; b0c8: b1 9e       ..
-    sta fs_work_5                                                     ; b0ca: 85 b5       ..
+    ldy #2                                                            ; b0c6: a0 02       ..             ; Workspace offset 2
+    lda (nfs_workspace),y                                             ; b0c8: b1 9e       ..             ; Read station low
+    sta fs_work_5                                                     ; b0ca: 85 b5       ..             ; Store station low
     iny                                                               ; b0cc: c8          .              ; Y=&03
-    lda (nfs_workspace),y                                             ; b0cd: b1 9e       ..
-    sta l00b6                                                         ; b0cf: 85 b6       ..
-    rts                                                               ; b0d1: 60          `
+    lda (nfs_workspace),y                                             ; b0cd: b1 9e       ..             ; Read network number
+    sta l00b6                                                         ; b0cf: 85 b6       ..             ; Store network number
+    rts                                                               ; b0d1: 60          `              ; Return
 
 ; &b0d2 referenced 2 times by &b03e, &b219
 .pop_requeue_ps_scan
-    pla                                                               ; b0d2: 68          h
-    sta osword_flag                                                   ; b0d3: 85 aa       ..
-    pla                                                               ; b0d5: 68          h
-    sta ws_ptr_lo                                                     ; b0d6: 85 ab       ..
-    lda #0                                                            ; b0d8: a9 00       ..
-    pha                                                               ; b0da: 48          H
-    lda #&84                                                          ; b0db: a9 84       ..
-    sta ws_ptr_hi                                                     ; b0dd: 85 ac       ..
-    lsr l0d61                                                         ; b0df: 4e 61 0d    Na.
-    lda #3                                                            ; b0e2: a9 03       ..
+    pla                                                               ; b0d2: 68          h              ; Pop return address low
+    sta osword_flag                                                   ; b0d3: 85 aa       ..             ; Save return address low
+    pla                                                               ; b0d5: 68          h              ; Pop return address high
+    sta ws_ptr_lo                                                     ; b0d6: 85 ab       ..             ; Save return address high
+    lda #0                                                            ; b0d8: a9 00       ..             ; Push 0 as end-of-list marker
+    pha                                                               ; b0da: 48          H              ; Push it
+    lda #&84                                                          ; b0db: a9 84       ..             ; Start scanning from offset &84
+    sta ws_ptr_hi                                                     ; b0dd: 85 ac       ..             ; Store scan position
+    lsr l0d61                                                         ; b0df: 4e 61 0d    Na.            ; Shift PS slot flags right
+    lda #3                                                            ; b0e2: a9 03       ..             ; Counter: 3 PS slots
 ; &b0e4 referenced 1 time by &b0f6
 .loop_cb0e4
-    jsr byte_to_2bit_index                                            ; b0e4: 20 b6 a0     ..
-    bcs cb120                                                         ; b0e7: b0 37       .7
-    lsr a                                                             ; b0e9: 4a          J
-    lsr a                                                             ; b0ea: 4a          J
-    tax                                                               ; b0eb: aa          .
-    lda (nfs_workspace),y                                             ; b0ec: b1 9e       ..
-    beq cb120                                                         ; b0ee: f0 30       .0
-    cmp #&3f ; '?'                                                    ; b0f0: c9 3f       .?
-    beq cb0f8                                                         ; b0f2: f0 04       ..
+    jsr byte_to_2bit_index                                            ; b0e4: 20 b6 a0     ..            ; Convert to 2-bit workspace index
+    bcs cb120                                                         ; b0e7: b0 37       .7             ; Carry set: no more slots
+    lsr a                                                             ; b0e9: 4a          J              ; Shift right twice
+    lsr a                                                             ; b0ea: 4a          J              ; To get slot offset
+    tax                                                               ; b0eb: aa          .              ; Transfer to X
+    lda (nfs_workspace),y                                             ; b0ec: b1 9e       ..             ; Read slot status byte
+    beq cb120                                                         ; b0ee: f0 30       .0             ; Zero: empty slot, done
+    cmp #&3f ; '?'                                                    ; b0f0: c9 3f       .?             ; Is it processed marker (&3F)?
+    beq cb0f8                                                         ; b0f2: f0 04       ..             ; Yes: re-initialise this slot
 ; &b0f4 referenced 1 time by &b11d
 .cb0f4
-    inx                                                               ; b0f4: e8          .
-    txa                                                               ; b0f5: 8a          .
-    bne loop_cb0e4                                                    ; b0f6: d0 ec       ..
+    inx                                                               ; b0f4: e8          .              ; Try next slot
+    txa                                                               ; b0f5: 8a          .              ; Transfer slot index to A
+    bne loop_cb0e4                                                    ; b0f6: d0 ec       ..             ; Loop for more slots
 ; &b0f8 referenced 1 time by &b0f2
 .cb0f8
-    tya                                                               ; b0f8: 98          .
-    pha                                                               ; b0f9: 48          H
-    lda #&7f                                                          ; b0fa: a9 7f       ..
-    sta (nfs_workspace),y                                             ; b0fc: 91 9e       ..
-    iny                                                               ; b0fe: c8          .
-    lda #&9e                                                          ; b0ff: a9 9e       ..
-    sta (nfs_workspace),y                                             ; b101: 91 9e       ..
-    lda #0                                                            ; b103: a9 00       ..
-    jsr write_two_bytes_inc_y                                         ; b105: 20 41 b1     A.
-    lda ws_ptr_hi                                                     ; b108: a5 ac       ..
-    sta (nfs_workspace),y                                             ; b10a: 91 9e       ..
-    clc                                                               ; b10c: 18          .
-    php                                                               ; b10d: 08          .
-    adc #3                                                            ; b10e: 69 03       i.
-    plp                                                               ; b110: 28          (
-    sta ws_ptr_hi                                                     ; b111: 85 ac       ..
-    jsr write_ps_slot_byte_ff                                         ; b113: 20 3a b1     :.
-    lda ws_ptr_hi                                                     ; b116: a5 ac       ..
-    sta (nfs_workspace),y                                             ; b118: 91 9e       ..
+    tya                                                               ; b0f8: 98          .              ; Y = workspace offset of slot
+    pha                                                               ; b0f9: 48          H              ; Push slot offset for scan list
+    lda #&7f                                                          ; b0fa: a9 7f       ..             ; Set active status (&7F)
+    sta (nfs_workspace),y                                             ; b0fc: 91 9e       ..             ; Write status byte
+    iny                                                               ; b0fe: c8          .              ; Next byte
+    lda #&9e                                                          ; b0ff: a9 9e       ..             ; Low byte: workspace page
+    sta (nfs_workspace),y                                             ; b101: 91 9e       ..             ; Write workspace pointer low
+    lda #0                                                            ; b103: a9 00       ..             ; A=0
+    jsr write_two_bytes_inc_y                                         ; b105: 20 41 b1     A.            ; Write two zero bytes + advance Y
+    lda ws_ptr_hi                                                     ; b108: a5 ac       ..             ; Get current scan page
+    sta (nfs_workspace),y                                             ; b10a: 91 9e       ..             ; Write RX buffer page low
+    clc                                                               ; b10c: 18          .              ; Clear carry for addition
+    php                                                               ; b10d: 08          .              ; Save processor status
+    adc #3                                                            ; b10e: 69 03       i.             ; Advance by 3 pages
+    plp                                                               ; b110: 28          (              ; Restore processor status
+    sta ws_ptr_hi                                                     ; b111: 85 ac       ..             ; Update scan position
+    jsr write_ps_slot_byte_ff                                         ; b113: 20 3a b1     :.            ; Write buffer page + &FF bytes
+    lda ws_ptr_hi                                                     ; b116: a5 ac       ..             ; Get updated scan position
+    sta (nfs_workspace),y                                             ; b118: 91 9e       ..             ; Write RX buffer page high
 .write_ps_slot_hi_link
 write_ps_slot_link_addr = write_ps_slot_hi_link+1
-    jsr write_ps_slot_byte_ff                                         ; b11a: 20 3a b1     :.
+    jsr write_ps_slot_byte_ff                                         ; b11a: 20 3a b1     :.            ; Write another page + &FF bytes
 ; &b11b referenced 1 time by &b2c6
-    jmp cb0f4                                                         ; b11d: 4c f4 b0    L..
+    jmp cb0f4                                                         ; b11d: 4c f4 b0    L..            ; Continue scanning slots
 
 ; &b120 referenced 2 times by &b0e7, &b0ee
 .cb120
-    asl l0d61                                                         ; b120: 0e 61 0d    .a.
-    lda ws_ptr_lo                                                     ; b123: a5 ab       ..
-    pha                                                               ; b125: 48          H
-    lda osword_flag                                                   ; b126: a5 aa       ..
-    pha                                                               ; b128: 48          H
-    lda #&0a                                                          ; b129: a9 0a       ..
+    asl l0d61                                                         ; b120: 0e 61 0d    .a.            ; Shift PS slot flags back
+    lda ws_ptr_lo                                                     ; b123: a5 ab       ..             ; Restore return address high
+    pha                                                               ; b125: 48          H              ; Push onto stack
+    lda osword_flag                                                   ; b126: a5 aa       ..             ; Restore return address low
+    pha                                                               ; b128: 48          H              ; Push onto stack
+    lda #&0a                                                          ; b129: a9 0a       ..             ; Delay counter: 10
     tay                                                               ; b12b: a8          .              ; Y=&0a
     tax                                                               ; b12c: aa          .              ; X=&0a
-    sta fs_work_4                                                     ; b12d: 85 b4       ..
+    sta fs_work_4                                                     ; b12d: 85 b4       ..             ; Outer loop counter = 10
 ; &b12f referenced 3 times by &b130, &b133, &b137
 .cb12f
-    dey                                                               ; b12f: 88          .
-    bne cb12f                                                         ; b130: d0 fd       ..
-    dex                                                               ; b132: ca          .
-    bne cb12f                                                         ; b133: d0 fa       ..
-    dec fs_work_4                                                     ; b135: c6 b4       ..
-    bne cb12f                                                         ; b137: d0 f6       ..
-    rts                                                               ; b139: 60          `
+    dey                                                               ; b12f: 88          .              ; Decrement Y (inner loop)
+    bne cb12f                                                         ; b130: d0 fd       ..             ; Inner loop: 10 iterations
+    dex                                                               ; b132: ca          .              ; Decrement X (middle loop)
+    bne cb12f                                                         ; b133: d0 fa       ..             ; Middle loop: 10 iterations
+    dec fs_work_4                                                     ; b135: c6 b4       ..             ; Decrement outer counter
+    bne cb12f                                                         ; b137: d0 f6       ..             ; Outer loop: ~1000 delay cycles
+    rts                                                               ; b139: 60          `              ; Return
 
 ; &b13a referenced 2 times by &b113, &b11a
 .write_ps_slot_byte_ff
-    iny                                                               ; b13a: c8          .
-    lda l00af                                                         ; b13b: a5 af       ..
-    sta (nfs_workspace),y                                             ; b13d: 91 9e       ..
-    lda #&ff                                                          ; b13f: a9 ff       ..
+    iny                                                               ; b13a: c8          .              ; Advance Y
+    lda l00af                                                         ; b13b: a5 af       ..             ; Get buffer page
+    sta (nfs_workspace),y                                             ; b13d: 91 9e       ..             ; Store in workspace
+    lda #&ff                                                          ; b13f: a9 ff       ..             ; A=&FF
 ; &b141 referenced 1 time by &b105
 .write_two_bytes_inc_y
-    iny                                                               ; b141: c8          .
-    sta (nfs_workspace),y                                             ; b142: 91 9e       ..
-    iny                                                               ; b144: c8          .
-    sta (nfs_workspace),y                                             ; b145: 91 9e       ..
-    iny                                                               ; b147: c8          .
-    rts                                                               ; b148: 60          `
+    iny                                                               ; b141: c8          .              ; Advance Y
+    sta (nfs_workspace),y                                             ; b142: 91 9e       ..             ; Write byte to workspace
+    iny                                                               ; b144: c8          .              ; Advance Y
+    sta (nfs_workspace),y                                             ; b145: 91 9e       ..             ; Write byte to workspace
+    iny                                                               ; b147: c8          .              ; Advance Y
+    rts                                                               ; b148: 60          `              ; Return
 
 ; &b149 referenced 2 times by &b038, &b1a6
 .reverse_ps_name_to_tx
-    ldy #&1c                                                          ; b149: a0 1c       ..
+    ldy #&1c                                                          ; b149: a0 1c       ..             ; Start of PS name at offset &1C
 ; &b14b referenced 1 time by &b151
 .loop_cb14b
-    lda (net_rx_ptr),y                                                ; b14b: b1 9c       ..
-    pha                                                               ; b14d: 48          H
-    iny                                                               ; b14e: c8          .
-    cpy #&24 ; '$'                                                    ; b14f: c0 24       .$
-    bne loop_cb14b                                                    ; b151: d0 f8       ..
-    ldy #&1b                                                          ; b153: a0 1b       ..
+    lda (net_rx_ptr),y                                                ; b14b: b1 9c       ..             ; Load byte from RX buffer
+    pha                                                               ; b14d: 48          H              ; Push to stack (for reversal)
+    iny                                                               ; b14e: c8          .              ; Next source byte
+    cpy #&24 ; '$'                                                    ; b14f: c0 24       .$             ; End of PS name field (&24)?
+    bne loop_cb14b                                                    ; b151: d0 f8       ..             ; No: continue pushing
+    ldy #&1b                                                          ; b153: a0 1b       ..             ; End of TX name field at &1B
 ; &b155 referenced 1 time by &b15b
 .loop_cb155
-    pla                                                               ; b155: 68          h
-    sta (net_rx_ptr),y                                                ; b156: 91 9c       ..
-    dey                                                               ; b158: 88          .
-    cpy #&13                                                          ; b159: c0 13       ..
-    bne loop_cb155                                                    ; b15b: d0 f8       ..
-    lda net_rx_ptr_hi                                                 ; b15d: a5 9d       ..
-    sta net_tx_ptr_hi                                                 ; b15f: 85 9b       ..
-    lda #&10                                                          ; b161: a9 10       ..
-    sta net_tx_ptr                                                    ; b163: 85 9a       ..
-    ldy #3                                                            ; b165: a0 03       ..
+    pla                                                               ; b155: 68          h              ; Pop byte (reversed order)
+    sta (net_rx_ptr),y                                                ; b156: 91 9c       ..             ; Store in RX buffer
+    dey                                                               ; b158: 88          .              ; Previous position
+    cpy #&13                                                          ; b159: c0 13       ..             ; Start of TX field (&13)?
+    bne loop_cb155                                                    ; b15b: d0 f8       ..             ; No: continue popping
+    lda net_rx_ptr_hi                                                 ; b15d: a5 9d       ..             ; Copy RX page to TX
+    sta net_tx_ptr_hi                                                 ; b15f: 85 9b       ..             ; Set TX pointer high
+    lda #&10                                                          ; b161: a9 10       ..             ; TX offset &10
+    sta net_tx_ptr                                                    ; b163: 85 9a       ..             ; Set TX pointer low
+    ldy #3                                                            ; b165: a0 03       ..             ; Copy 4 header bytes
 ; &b167 referenced 1 time by &b16d
 .loop_cb167
-    lda ps_tx_header_template,y                                       ; b167: b9 70 b1    .p.
-    sta (net_tx_ptr),y                                                ; b16a: 91 9a       ..
-    dey                                                               ; b16c: 88          .
-    bpl loop_cb167                                                    ; b16d: 10 f8       ..
-    rts                                                               ; b16f: 60          `
+    lda ps_tx_header_template,y                                       ; b167: b9 70 b1    .p.            ; Get header template byte
+    sta (net_tx_ptr),y                                                ; b16a: 91 9a       ..             ; Store in TX buffer
+    dey                                                               ; b16c: 88          .              ; Previous byte
+    bpl loop_cb167                                                    ; b16d: 10 f8       ..             ; Loop until all 4 copied
+    rts                                                               ; b16f: 60          `              ; Return
 
 ; &b170 referenced 1 time by &b167
 .ps_tx_header_template
@@ -9241,24 +9241,24 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 
 ; &b174 referenced 4 times by &a089, &b225, &b25d, &b2b5
 .print_station_addr
-    php                                                               ; b174: 08          .
-    lda l00b6                                                         ; b175: a5 b6       ..
-    beq cb184                                                         ; b177: f0 0b       ..
-    jsr print_decimal_3dig                                            ; b179: 20 68 af     h.
-    lda #&2e ; '.'                                                    ; b17c: a9 2e       ..
+    php                                                               ; b174: 08          .              ; Save V flag (controls padding)
+    lda l00b6                                                         ; b175: a5 b6       ..             ; Get network number
+    beq cb184                                                         ; b177: f0 0b       ..             ; Zero: no network prefix
+    jsr print_decimal_3dig                                            ; b179: 20 68 af     h.            ; Print network as 3 digits
+    lda #&2e ; '.'                                                    ; b17c: a9 2e       ..             ; '.' separator
     jsr osasci                                                        ; b17e: 20 e3 ff     ..            ; Write character 46
-    bit bit_test_ff_pad                                               ; b181: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; b181: 2c 7d 94    ,}.            ; Set V (suppress station padding)
 ; &b184 referenced 1 time by &b177
 .cb184
-    bvs cb18d                                                         ; b184: 70 07       p.
-    jsr print_inline                                                  ; b186: 20 31 91     1.
+    bvs cb18d                                                         ; b184: 70 07       p.             ; V set: skip padding spaces
+    jsr print_inline                                                  ; b186: 20 31 91     1.            ; Print 4 spaces (padding)
     equs "    "                                                       ; b189: 20 20 20...
 
 ; &b18d referenced 1 time by &b184
 .cb18d
-    lda fs_work_5                                                     ; b18d: a5 b5       ..
-    plp                                                               ; b18f: 28          (
-    jmp print_decimal_3dig                                            ; b190: 4c 68 af    Lh.
+    lda fs_work_5                                                     ; b18d: a5 b5       ..             ; Get station number
+    plp                                                               ; b18f: 28          (              ; Restore flags
+    jmp print_decimal_3dig                                            ; b190: 4c 68 af    Lh.            ; Print station as 3 digits
 
     equb &80, &9f, 0, 0, &14, 0, &ff, &ff, &1c, 0, &ff, &ff           ; b193: 80 9f 00... ...
 
@@ -9268,214 +9268,214 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; print job, displaying progress.
 ; ***************************************************************************************
 .cmd_pollps
-    sty ws_ptr_hi                                                     ; b19f: 84 ac       ..
-    jsr init_spool_drive                                              ; b1a1: 20 c0 af     ..
-    sta fs_work_4                                                     ; b1a4: 85 b4       ..
-    jsr reverse_ps_name_to_tx                                         ; b1a6: 20 49 b1     I.
-    jsr init_ps_slot_from_rx                                          ; b1a9: 20 c4 b2     ..
-    ldy ws_ptr_hi                                                     ; b1ac: a4 ac       ..
-    jsr save_ptr_to_spool_buf                                         ; b1ae: 20 b5 af     ..
-    lda (fs_options),y                                                ; b1b1: b1 bb       ..
-    cmp #&0d                                                          ; b1b3: c9 0d       ..
-    beq cb1e1                                                         ; b1b5: f0 2a       .*
-    clv                                                               ; b1b7: b8          .
-    jsr is_decimal_digit                                              ; b1b8: 20 44 92     D.
-    bcc cb1e4                                                         ; b1bb: 90 27       .'
-    tya                                                               ; b1bd: 98          .
-    pha                                                               ; b1be: 48          H
-    jsr load_ps_server_addr                                           ; b1bf: 20 c6 b0     ..
-    pla                                                               ; b1c2: 68          h
-    tay                                                               ; b1c3: a8          .
-    jsr parse_fs_ps_args                                              ; b1c4: 20 8f a0     ..
-    ldy #&7a ; 'z'                                                    ; b1c7: a0 7a       .z
-    lda fs_work_5                                                     ; b1c9: a5 b5       ..
-    sta (l00ae),y                                                     ; b1cb: 91 ae       ..
+    sty ws_ptr_hi                                                     ; b19f: 84 ac       ..             ; Save command line pointer high
+    jsr init_spool_drive                                              ; b1a1: 20 c0 af     ..            ; Initialise spool/print drive
+    sta fs_work_4                                                     ; b1a4: 85 b4       ..             ; Save spool drive number
+    jsr reverse_ps_name_to_tx                                         ; b1a6: 20 49 b1     I.            ; Copy PS name to TX buffer
+    jsr init_ps_slot_from_rx                                          ; b1a9: 20 c4 b2     ..            ; Init PS slot from RX data
+    ldy ws_ptr_hi                                                     ; b1ac: a4 ac       ..             ; Restore command line pointer
+    jsr save_ptr_to_spool_buf                                         ; b1ae: 20 b5 af     ..            ; Save pointer to spool buffer
+    lda (fs_options),y                                                ; b1b1: b1 bb       ..             ; Get first argument character
+    cmp #&0d                                                          ; b1b3: c9 0d       ..             ; End of command line?
+    beq cb1e1                                                         ; b1b5: f0 2a       .*             ; Yes: no argument given
+    clv                                                               ; b1b7: b8          .              ; Clear V (= explicit PS name given)
+    jsr is_decimal_digit                                              ; b1b8: 20 44 92     D.            ; Is first char a decimal digit?
+    bcc cb1e4                                                         ; b1bb: 90 27       .'             ; Yes: station number, skip PS name
+    tya                                                               ; b1bd: 98          .              ; PS name follows
+    pha                                                               ; b1be: 48          H              ; Save Y
+    jsr load_ps_server_addr                                           ; b1bf: 20 c6 b0     ..            ; Load PS server address
+    pla                                                               ; b1c2: 68          h              ; Restore Y
+    tay                                                               ; b1c3: a8          .              ; Back to Y register
+    jsr parse_fs_ps_args                                              ; b1c4: 20 8f a0     ..            ; Parse FS/PS arguments
+    ldy #&7a ; 'z'                                                    ; b1c7: a0 7a       .z             ; Offset &7A in slot buffer
+    lda fs_work_5                                                     ; b1c9: a5 b5       ..             ; Get parsed station low
+    sta (l00ae),y                                                     ; b1cb: 91 ae       ..             ; Store station number low
     iny                                                               ; b1cd: c8          .              ; Y=&7b
-    lda l00b6                                                         ; b1ce: a5 b6       ..
-    sta (l00ae),y                                                     ; b1d0: 91 ae       ..
-    ldy #&14                                                          ; b1d2: a0 14       ..
-    jsr copy_ps_data                                                  ; b1d4: 20 f9 af     ..
-    lda l00af                                                         ; b1d7: a5 af       ..
-    sta net_tx_ptr_hi                                                 ; b1d9: 85 9b       ..
-    lda #&78 ; 'x'                                                    ; b1db: a9 78       .x
-    sta net_tx_ptr                                                    ; b1dd: 85 9a       ..
+    lda l00b6                                                         ; b1ce: a5 b6       ..             ; Get parsed network number
+    sta (l00ae),y                                                     ; b1d0: 91 ae       ..             ; Store station number high
+    ldy #&14                                                          ; b1d2: a0 14       ..             ; Offset &14 in TX buffer
+    jsr copy_ps_data                                                  ; b1d4: 20 f9 af     ..            ; Copy PS data to TX buffer
+    lda l00af                                                         ; b1d7: a5 af       ..             ; Get buffer page high
+    sta net_tx_ptr_hi                                                 ; b1d9: 85 9b       ..             ; Set TX pointer high byte
+    lda #&78 ; 'x'                                                    ; b1db: a9 78       .x             ; Offset &78 in buffer
+    sta net_tx_ptr                                                    ; b1dd: 85 9a       ..             ; Set TX pointer low byte
     bne cb212                                                         ; b1df: d0 31       .1             ; ALWAYS branch
 
 ; &b1e1 referenced 1 time by &b1b5
 .cb1e1
-    bit bit_test_ff_pad                                               ; b1e1: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; b1e1: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
 ; &b1e4 referenced 1 time by &b1bb
 .cb1e4
-    bvs cb212                                                         ; b1e4: 70 2c       p,
-    ldx #6                                                            ; b1e6: a2 06       ..
-    ldy #&14                                                          ; b1e8: a0 14       ..
-    lda #&20 ; ' '                                                    ; b1ea: a9 20       .
+    bvs cb212                                                         ; b1e4: 70 2c       p,             ; V set (no arg): skip to send
+    ldx #6                                                            ; b1e6: a2 06       ..             ; Max 6 characters for PS name
+    ldy #&14                                                          ; b1e8: a0 14       ..             ; Buffer offset for PS name
+    lda #&20 ; ' '                                                    ; b1ea: a9 20       .              ; Space character
 ; &b1ec referenced 1 time by &b1f0
 .loop_cb1ec
-    sta (net_rx_ptr),y                                                ; b1ec: 91 9c       ..
-    iny                                                               ; b1ee: c8          .
-    dex                                                               ; b1ef: ca          .
-    bne loop_cb1ec                                                    ; b1f0: d0 fa       ..
-    jsr save_ptr_to_os_text                                           ; b1f2: 20 95 af     ..
-    ldy ws_ptr_hi                                                     ; b1f5: a4 ac       ..
-    jsr gsinit                                                        ; b1f7: 20 c2 ff     ..
-    beq cb212                                                         ; b1fa: f0 16       ..
-    ldx #6                                                            ; b1fc: a2 06       ..
-    sty ws_ptr_hi                                                     ; b1fe: 84 ac       ..
-    ldy #&14                                                          ; b200: a0 14       ..
-    sty l00ad                                                         ; b202: 84 ad       ..
+    sta (net_rx_ptr),y                                                ; b1ec: 91 9c       ..             ; Fill buffer position with space
+    iny                                                               ; b1ee: c8          .              ; Next position
+    dex                                                               ; b1ef: ca          .              ; Count down
+    bne loop_cb1ec                                                    ; b1f0: d0 fa       ..             ; Loop until 6 spaces filled
+    jsr save_ptr_to_os_text                                           ; b1f2: 20 95 af     ..            ; Save pointer to OS text
+    ldy ws_ptr_hi                                                     ; b1f5: a4 ac       ..             ; Restore command line pointer
+    jsr gsinit                                                        ; b1f7: 20 c2 ff     ..            ; Initialise string reading
+    beq cb212                                                         ; b1fa: f0 16       ..             ; Empty string: skip to send
+    ldx #6                                                            ; b1fc: a2 06       ..             ; Max 6 characters
+    sty ws_ptr_hi                                                     ; b1fe: 84 ac       ..             ; Save updated string pointer
+    ldy #&14                                                          ; b200: a0 14       ..             ; Buffer offset for PS name
+    sty l00ad                                                         ; b202: 84 ad       ..             ; Save buffer position
 ; &b204 referenced 1 time by &b210
 .loop_cb204
-    ldy ws_ptr_hi                                                     ; b204: a4 ac       ..
-    jsr gsread                                                        ; b206: 20 c5 ff     ..
-    sty ws_ptr_hi                                                     ; b209: 84 ac       ..
-    bcs cb212                                                         ; b20b: b0 05       ..
-    jsr store_char_uppercase                                          ; b20d: 20 db b2     ..
-    bne loop_cb204                                                    ; b210: d0 f2       ..
+    ldy ws_ptr_hi                                                     ; b204: a4 ac       ..             ; Restore string pointer
+    jsr gsread                                                        ; b206: 20 c5 ff     ..            ; Read next char from string
+    sty ws_ptr_hi                                                     ; b209: 84 ac       ..             ; Save updated string pointer
+    bcs cb212                                                         ; b20b: b0 05       ..             ; End of string: go to send
+    jsr store_char_uppercase                                          ; b20d: 20 db b2     ..            ; Store char uppercased in buffer
+    bne loop_cb204                                                    ; b210: d0 f2       ..             ; Loop if more chars to copy
 ; &b212 referenced 4 times by &b1df, &b1e4, &b1fa, &b20b
 .cb212
-    lda #&80                                                          ; b212: a9 80       ..
-    sta escapable                                                     ; b214: 85 97       ..
-    jsr send_net_packet                                               ; b216: 20 2a 98     *.
-    jsr pop_requeue_ps_scan                                           ; b219: 20 d2 b0     ..
-    jsr print_printer_server_is                                       ; b21c: 20 ab b0     ..
-    jsr load_ps_server_addr                                           ; b21f: 20 c6 b0     ..
-    bit bit_test_ff_pad                                               ; b222: 2c 7d 94    ,}.
-    jsr print_station_addr                                            ; b225: 20 74 b1     t.
-    jsr print_inline                                                  ; b228: 20 31 91     1.
+    lda #&80                                                          ; b212: a9 80       ..             ; Enable escape checking
+    sta escapable                                                     ; b214: 85 97       ..             ; Set escapable flag
+    jsr send_net_packet                                               ; b216: 20 2a 98     *.            ; Send the poll request packet
+    jsr pop_requeue_ps_scan                                           ; b219: 20 d2 b0     ..            ; Pop and requeue PS scan
+    jsr print_printer_server_is                                       ; b21c: 20 ab b0     ..            ; Print 'Printer server '
+    jsr load_ps_server_addr                                           ; b21f: 20 c6 b0     ..            ; Load PS server address
+    bit bit_test_ff_pad                                               ; b222: 2c 7d 94    ,}.            ; Set V and N flags
+    jsr print_station_addr                                            ; b225: 20 74 b1     t.            ; Print station address
+    jsr print_inline                                                  ; b228: 20 31 91     1.            ; Print ' "'
     equs " ", '"'                                                     ; b22b: 20 22        "
 
-    ldy #&1c                                                          ; b22d: a0 1c       ..
+    ldy #&1c                                                          ; b22d: a0 1c       ..             ; Start of PS name in buffer
 ; &b22f referenced 1 time by &b23b
 .loop_cb22f
-    lda (net_rx_ptr),y                                                ; b22f: b1 9c       ..
-    cmp #&20 ; ' '                                                    ; b231: c9 20       .
-    beq cb23d                                                         ; b233: f0 08       ..
+    lda (net_rx_ptr),y                                                ; b22f: b1 9c       ..             ; Get character from name field
+    cmp #&20 ; ' '                                                    ; b231: c9 20       .              ; Is it a space?
+    beq cb23d                                                         ; b233: f0 08       ..             ; Yes: end of name
     jsr osasci                                                        ; b235: 20 e3 ff     ..            ; Write character
-    iny                                                               ; b238: c8          .
-    cpy #&22 ; '"'                                                    ; b239: c0 22       ."
-    bne loop_cb22f                                                    ; b23b: d0 f2       ..
+    iny                                                               ; b238: c8          .              ; Next character
+    cpy #&22 ; '"'                                                    ; b239: c0 22       ."             ; Past end of name field?
+    bne loop_cb22f                                                    ; b23b: d0 f2       ..             ; No: continue printing name
 ; &b23d referenced 1 time by &b233
 .cb23d
-    jsr print_inline                                                  ; b23d: 20 31 91     1.
+    jsr print_inline                                                  ; b23d: 20 31 91     1.            ; Print '"' + CR
     equs '"', &0d                                                     ; b240: 22 0d       ".
 
-    nop                                                               ; b242: ea          .
+    nop                                                               ; b242: ea          .              ; Padding byte
 ; &b243 referenced 1 time by &b2c1
 .cb243
-    pla                                                               ; b243: 68          h
-    beq return_31                                                     ; b244: f0 7d       .}
-    pha                                                               ; b246: 48          H
-    tay                                                               ; b247: a8          .
-    lda (nfs_workspace),y                                             ; b248: b1 9e       ..
-    bpl cb2bb                                                         ; b24a: 10 6f       .o
-    iny                                                               ; b24c: c8          .
-    iny                                                               ; b24d: c8          .
-    lda (nfs_workspace),y                                             ; b24e: b1 9e       ..
-    sta fs_work_5                                                     ; b250: 85 b5       ..
-    iny                                                               ; b252: c8          .
-    lda (nfs_workspace),y                                             ; b253: b1 9e       ..
-    sta l00b6                                                         ; b255: 85 b6       ..
-    iny                                                               ; b257: c8          .
-    lda (nfs_workspace),y                                             ; b258: b1 9e       ..
-    sta l00ae                                                         ; b25a: 85 ae       ..
-    clv                                                               ; b25c: b8          .
-    jsr print_station_addr                                            ; b25d: 20 74 b1     t.
-    jsr print_inline                                                  ; b260: 20 31 91     1.
+    pla                                                               ; b243: 68          h              ; Get slot offset from stack
+    beq return_31                                                     ; b244: f0 7d       .}             ; Zero: all slots done, return
+    pha                                                               ; b246: 48          H              ; Save slot offset
+    tay                                                               ; b247: a8          .              ; Transfer to Y
+    lda (nfs_workspace),y                                             ; b248: b1 9e       ..             ; Read slot status byte
+    bpl cb2bb                                                         ; b24a: 10 6f       .o             ; Bit 7 clear: slot inactive
+    iny                                                               ; b24c: c8          .              ; Advance to station number
+    iny                                                               ; b24d: c8          .              ; Offset+2 in slot
+    lda (nfs_workspace),y                                             ; b24e: b1 9e       ..             ; Read station number low
+    sta fs_work_5                                                     ; b250: 85 b5       ..             ; Store station low
+    iny                                                               ; b252: c8          .              ; Next byte (offset+3)
+    lda (nfs_workspace),y                                             ; b253: b1 9e       ..             ; Read network number
+    sta l00b6                                                         ; b255: 85 b6       ..             ; Store network number
+    iny                                                               ; b257: c8          .              ; Next byte (offset+4)
+    lda (nfs_workspace),y                                             ; b258: b1 9e       ..             ; Read status page pointer
+    sta l00ae                                                         ; b25a: 85 ae       ..             ; Store pointer low
+    clv                                                               ; b25c: b8          .              ; Clear V flag
+    jsr print_station_addr                                            ; b25d: 20 74 b1     t.            ; Print station address (V=0)
+    jsr print_inline                                                  ; b260: 20 31 91     1.            ; Print ' is '
     equs " is "                                                       ; b263: 20 69 73...  is
 
-    ldx #0                                                            ; b267: a2 00       ..
-    lda (l00ae,x)                                                     ; b269: a1 ae       ..
-    bne cb278                                                         ; b26b: d0 0b       ..
-    jsr print_inline                                                  ; b26d: 20 31 91     1.
+    ldx #0                                                            ; b267: a2 00       ..             ; X=0 for indirect indexed access
+    lda (l00ae,x)                                                     ; b269: a1 ae       ..             ; Read printer status byte
+    bne cb278                                                         ; b26b: d0 0b       ..             ; Non-zero: not ready
+    jsr print_inline                                                  ; b26d: 20 31 91     1.            ; Print 'ready'
     equs "ready"                                                      ; b270: 72 65 61... rea
 
-    clv                                                               ; b275: b8          .
+    clv                                                               ; b275: b8          .              ; Clear V
     bvc cb2b8                                                         ; b276: 50 40       P@             ; ALWAYS branch
 
 ; &b278 referenced 1 time by &b26b
 .cb278
-    cmp #2                                                            ; b278: c9 02       ..
-    bne cb288                                                         ; b27a: d0 0c       ..
+    cmp #2                                                            ; b278: c9 02       ..             ; Status = 2?
+    bne cb288                                                         ; b27a: d0 0c       ..             ; No: check for busy
 ; &b27c referenced 1 time by &b28a
 .loop_cb27c
-    jsr print_inline                                                  ; b27c: 20 31 91     1.
+    jsr print_inline                                                  ; b27c: 20 31 91     1.            ; Print 'jammed'
     equs "jammed"                                                     ; b27f: 6a 61 6d... jam
 
-    clv                                                               ; b285: b8          .
+    clv                                                               ; b285: b8          .              ; Clear V
     bvc cb2b8                                                         ; b286: 50 30       P0             ; ALWAYS branch
 
 ; &b288 referenced 1 time by &b27a
 .cb288
-    cmp #1                                                            ; b288: c9 01       ..
-    bne loop_cb27c                                                    ; b28a: d0 f0       ..
-    jsr print_inline                                                  ; b28c: 20 31 91     1.
+    cmp #1                                                            ; b288: c9 01       ..             ; Status = 1?
+    bne loop_cb27c                                                    ; b28a: d0 f0       ..             ; Not 1 or 2: default to jammed
+    jsr print_inline                                                  ; b28c: 20 31 91     1.            ; Print 'busy'
     equs "busy"                                                       ; b28f: 62 75 73... bus
 
-    inc l00ae                                                         ; b293: e6 ae       ..
-    lda (l00ae,x)                                                     ; b295: a1 ae       ..
-    sta fs_work_5                                                     ; b297: 85 b5       ..
-    beq cb2b8                                                         ; b299: f0 1d       ..
-    jsr print_inline                                                  ; b29b: 20 31 91     1.
+    inc l00ae                                                         ; b293: e6 ae       ..             ; Advance past status byte
+    lda (l00ae,x)                                                     ; b295: a1 ae       ..             ; Read client station number
+    sta fs_work_5                                                     ; b297: 85 b5       ..             ; Store station low
+    beq cb2b8                                                         ; b299: f0 1d       ..             ; Zero: no client info, skip
+    jsr print_inline                                                  ; b29b: 20 31 91     1.            ; Print ' with station '
     equs " with station "                                             ; b29e: 20 77 69...  wi
 
-    inc l00ae                                                         ; b2ac: e6 ae       ..
-    lda (l00ae,x)                                                     ; b2ae: a1 ae       ..
-    sta l00b6                                                         ; b2b0: 85 b6       ..
-    bit bit_test_ff_pad                                               ; b2b2: 2c 7d 94    ,}.
-    jsr print_station_addr                                            ; b2b5: 20 74 b1     t.
+    inc l00ae                                                         ; b2ac: e6 ae       ..             ; Advance past station low
+    lda (l00ae,x)                                                     ; b2ae: a1 ae       ..             ; Read client network number
+    sta l00b6                                                         ; b2b0: 85 b6       ..             ; Store network number
+    bit bit_test_ff_pad                                               ; b2b2: 2c 7d 94    ,}.            ; Set V flag
+    jsr print_station_addr                                            ; b2b5: 20 74 b1     t.            ; Print client station address
 ; &b2b8 referenced 3 times by &b276, &b286, &b299
 .cb2b8
     jsr osnewl                                                        ; b2b8: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &b2bb referenced 1 time by &b24a
 .cb2bb
-    pla                                                               ; b2bb: 68          h
-    tay                                                               ; b2bc: a8          .
-    lda #&3f ; '?'                                                    ; b2bd: a9 3f       .?
-    sta (nfs_workspace),y                                             ; b2bf: 91 9e       ..
+    pla                                                               ; b2bb: 68          h              ; Retrieve slot offset
+    tay                                                               ; b2bc: a8          .              ; Transfer to Y
+    lda #&3f ; '?'                                                    ; b2bd: a9 3f       .?             ; Mark slot as processed (&3F)
+    sta (nfs_workspace),y                                             ; b2bf: 91 9e       ..             ; Write marker to workspace
     bne cb243                                                         ; b2c1: d0 80       ..             ; ALWAYS branch
 
 ; &b2c3 referenced 1 time by &b244
 .return_31
-    rts                                                               ; b2c3: 60          `
+    rts                                                               ; b2c3: 60          `              ; Return
 
 ; &b2c4 referenced 1 time by &b1a9
 .init_ps_slot_from_rx
-    ldy #&78 ; 'x'                                                    ; b2c4: a0 78       .x
+    ldy #&78 ; 'x'                                                    ; b2c4: a0 78       .x             ; Start at offset &78
 ; &b2c6 referenced 1 time by &b2d8
 .loop_cb2c6
-    lda write_ps_slot_link_addr,y                                     ; b2c6: b9 1b b1    ...
-    cpy #&7d ; '}'                                                    ; b2c9: c0 7d       .}
-    beq cb2d1                                                         ; b2cb: f0 04       ..
-    cpy #&81                                                          ; b2cd: c0 81       ..
-    bne cb2d3                                                         ; b2cf: d0 02       ..
+    lda write_ps_slot_link_addr,y                                     ; b2c6: b9 1b b1    ...            ; Load template byte
+    cpy #&7d ; '}'                                                    ; b2c9: c0 7d       .}             ; At offset &7D?
+    beq cb2d1                                                         ; b2cb: f0 04       ..             ; Yes: substitute RX page
+    cpy #&81                                                          ; b2cd: c0 81       ..             ; At offset &81?
+    bne cb2d3                                                         ; b2cf: d0 02       ..             ; No: use template byte
 ; &b2d1 referenced 1 time by &b2cb
 .cb2d1
-    lda net_rx_ptr_hi                                                 ; b2d1: a5 9d       ..
+    lda net_rx_ptr_hi                                                 ; b2d1: a5 9d       ..             ; Use RX buffer page instead
 ; &b2d3 referenced 1 time by &b2cf
 .cb2d3
-    sta (l00ae),y                                                     ; b2d3: 91 ae       ..
-    iny                                                               ; b2d5: c8          .
-    cpy #&84                                                          ; b2d6: c0 84       ..
-    bne loop_cb2c6                                                    ; b2d8: d0 ec       ..
-    rts                                                               ; b2da: 60          `
+    sta (l00ae),y                                                     ; b2d3: 91 ae       ..             ; Store byte in slot buffer
+    iny                                                               ; b2d5: c8          .              ; Next offset
+    cpy #&84                                                          ; b2d6: c0 84       ..             ; Past end of slot (&84)?
+    bne loop_cb2c6                                                    ; b2d8: d0 ec       ..             ; No: continue copying
+    rts                                                               ; b2da: 60          `              ; Return
 
 ; &b2db referenced 2 times by &b033, &b20d
 .store_char_uppercase
-    ldy l00ad                                                         ; b2db: a4 ad       ..
-    and #&7f                                                          ; b2dd: 29 7f       ).
-    cmp #&61 ; 'a'                                                    ; b2df: c9 61       .a
-    bcc cb2e9                                                         ; b2e1: 90 06       ..
-    cmp #&7b ; '{'                                                    ; b2e3: c9 7b       .{
-    bcs cb2e9                                                         ; b2e5: b0 02       ..
-    and #&5f ; '_'                                                    ; b2e7: 29 5f       )_
+    ldy l00ad                                                         ; b2db: a4 ad       ..             ; Y = current buffer position
+    and #&7f                                                          ; b2dd: 29 7f       ).             ; Strip high bit
+    cmp #&61 ; 'a'                                                    ; b2df: c9 61       .a             ; Is it lowercase 'a' or above?
+    bcc cb2e9                                                         ; b2e1: 90 06       ..             ; Below 'a': not lowercase
+    cmp #&7b ; '{'                                                    ; b2e3: c9 7b       .{             ; Above 'z'?
+    bcs cb2e9                                                         ; b2e5: b0 02       ..             ; Yes: not lowercase
+    and #&5f ; '_'                                                    ; b2e7: 29 5f       )_             ; Convert to uppercase
 ; &b2e9 referenced 2 times by &b2e1, &b2e5
 .cb2e9
-    sta (net_rx_ptr),y                                                ; b2e9: 91 9c       ..
-    iny                                                               ; b2eb: c8          .
-    sty l00ad                                                         ; b2ec: 84 ad       ..
-    dex                                                               ; b2ee: ca          .
-    rts                                                               ; b2ef: 60          `
+    sta (net_rx_ptr),y                                                ; b2e9: 91 9c       ..             ; Store in RX buffer
+    iny                                                               ; b2eb: c8          .              ; Next buffer position
+    sty l00ad                                                         ; b2ec: 84 ad       ..             ; Update buffer position
+    dex                                                               ; b2ee: ca          .              ; Decrement character count
+    rts                                                               ; b2ef: 60          `              ; Return (Z set if count=0)
 
 ; ***************************************************************************************
 ; *Prot command.
@@ -10535,95 +10535,95 @@ net_channel_err_string = err_net_chan_not_found+2
 ; optional page formatting.
 ; ***************************************************************************************
 .cmd_print
-    bit bit_test_ff_pad                                               ; b988: 2c 7d 94    ,}.
+    bit bit_test_ff_pad                                               ; b988: 2c 7d 94    ,}.            ; Set V flag (= print mode)
 ; &b98b referenced 1 time by &b986
 .open_and_read_file
-    jsr open_file_for_read                                            ; b98b: 20 13 bb     ..
+    jsr open_file_for_read                                            ; b98b: 20 13 bb     ..            ; Open file for reading
     ldy ws_page                                                       ; b98e: a4 a8       ..             ; Y=file handle
-    lda #0                                                            ; b990: a9 00       ..
-    sta l00ad                                                         ; b992: 85 ad       ..
-    php                                                               ; b994: 08          .
+    lda #0                                                            ; b990: a9 00       ..             ; A = 0
+    sta l00ad                                                         ; b992: 85 ad       ..             ; Clear previous-character tracker
+    php                                                               ; b994: 08          .              ; Save V flag (print/type mode)
 ; &b995 referenced 3 times by &b9b5, &b9d5, &b9e8
 .cb995
     jsr osbget                                                        ; b995: 20 d7 ff     ..            ; Read a single byte from an open file Y
-    bcc cb9a1                                                         ; b998: 90 07       ..
-    plp                                                               ; b99a: 28          (
-    jsr close_ws_file                                                 ; b99b: 20 0c bb     ..
+    bcc cb9a1                                                         ; b998: 90 07       ..             ; Branch if not end of file
+    plp                                                               ; b99a: 28          (              ; EOF: restore processor status
+    jsr close_ws_file                                                 ; b99b: 20 0c bb     ..            ; Close the file
     jmp osnewl                                                        ; b99e: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; &b9a1 referenced 1 time by &b998
 .cb9a1
-    jsr abort_if_escape                                               ; b9a1: 20 ea b9     ..
-    plp                                                               ; b9a4: 28          (
-    php                                                               ; b9a5: 08          .
-    bvs cb9b0                                                         ; b9a6: 70 08       p.
-    cmp #&0d                                                          ; b9a8: c9 0d       ..
-    beq cb9b8                                                         ; b9aa: f0 0c       ..
-    cmp #&0a                                                          ; b9ac: c9 0a       ..
-    beq cb9b8                                                         ; b9ae: f0 08       ..
+    jsr abort_if_escape                                               ; b9a1: 20 ea b9     ..            ; Check for escape key pressed
+    plp                                                               ; b9a4: 28          (              ; Restore V (print/type mode)
+    php                                                               ; b9a5: 08          .              ; Re-save for next iteration
+    bvs cb9b0                                                         ; b9a6: 70 08       p.             ; Print mode: skip CR/LF handling
+    cmp #&0d                                                          ; b9a8: c9 0d       ..             ; Is it a carriage return?
+    beq cb9b8                                                         ; b9aa: f0 0c       ..             ; Yes: handle line ending
+    cmp #&0a                                                          ; b9ac: c9 0a       ..             ; Is it a line feed?
+    beq cb9b8                                                         ; b9ae: f0 08       ..             ; Yes: handle line ending
 ; &b9b0 referenced 1 time by &b9a6
 .cb9b0
-    sta l00ad                                                         ; b9b0: 85 ad       ..
+    sta l00ad                                                         ; b9b0: 85 ad       ..             ; Save as previous character
 ; &b9b2 referenced 1 time by &b9c3
 .loop_cb9b2
     jsr oswrch                                                        ; b9b2: 20 ee ff     ..            ; Write character
-    jmp cb995                                                         ; b9b5: 4c 95 b9    L..
+    jmp cb995                                                         ; b9b5: 4c 95 b9    L..            ; Loop for next byte
 
 ; &b9b8 referenced 2 times by &b9aa, &b9ae
 .cb9b8
-    pha                                                               ; b9b8: 48          H
-    ldx l026a                                                         ; b9b9: ae 6a 02    .j.
-    beq cb9c5                                                         ; b9bc: f0 07       ..
-    lda #0                                                            ; b9be: a9 00       ..
-    sta l00ad                                                         ; b9c0: 85 ad       ..
-    pla                                                               ; b9c2: 68          h
-    bne loop_cb9b2                                                    ; b9c3: d0 ed       ..
+    pha                                                               ; b9b8: 48          H              ; Save the CR or LF character
+    ldx l026a                                                         ; b9b9: ae 6a 02    .j.            ; Check output destination flag
+    beq cb9c5                                                         ; b9bc: f0 07       ..             ; Zero: normalise line endings
+    lda #0                                                            ; b9be: a9 00       ..             ; Non-zero: output raw
+    sta l00ad                                                         ; b9c0: 85 ad       ..             ; Clear previous-character tracker
+    pla                                                               ; b9c2: 68          h              ; Retrieve CR/LF
+    bne loop_cb9b2                                                    ; b9c3: d0 ed       ..             ; Output it directly; ALWAYS branch
 ; &b9c5 referenced 1 time by &b9bc
 .cb9c5
-    lda l00ad                                                         ; b9c5: a5 ad       ..
-    cmp #&0d                                                          ; b9c7: c9 0d       ..
-    beq cb9d8                                                         ; b9c9: f0 0d       ..
-    cmp #&0a                                                          ; b9cb: c9 0a       ..
-    beq cb9df                                                         ; b9cd: f0 10       ..
-    pla                                                               ; b9cf: 68          h
-    sta l00ad                                                         ; b9d0: 85 ad       ..
+    lda l00ad                                                         ; b9c5: a5 ad       ..             ; Get previous character
+    cmp #&0d                                                          ; b9c7: c9 0d       ..             ; Was previous a CR?
+    beq cb9d8                                                         ; b9c9: f0 0d       ..             ; Yes: check for CR+LF pair
+    cmp #&0a                                                          ; b9cb: c9 0a       ..             ; Was previous a LF?
+    beq cb9df                                                         ; b9cd: f0 10       ..             ; Yes: check for LF+CR pair
+    pla                                                               ; b9cf: 68          h              ; Retrieve CR/LF from stack
+    sta l00ad                                                         ; b9d0: 85 ad       ..             ; Save as previous character
 ; &b9d2 referenced 2 times by &b9dd, &b9e2
 .cb9d2
     jsr osnewl                                                        ; b9d2: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    jmp cb995                                                         ; b9d5: 4c 95 b9    L..
+    jmp cb995                                                         ; b9d5: 4c 95 b9    L..            ; Loop for next byte
 
 ; &b9d8 referenced 1 time by &b9c9
 .cb9d8
-    pla                                                               ; b9d8: 68          h
-    cmp #&0a                                                          ; b9d9: c9 0a       ..
-    beq cb9e4                                                         ; b9db: f0 07       ..
-    bne cb9d2                                                         ; b9dd: d0 f3       ..             ; ALWAYS branch
+    pla                                                               ; b9d8: 68          h              ; Retrieve current character
+    cmp #&0a                                                          ; b9d9: c9 0a       ..             ; Is it LF? (CR+LF pair)
+    beq cb9e4                                                         ; b9db: f0 07       ..             ; Yes: consume LF, no extra newline
+    bne cb9d2                                                         ; b9dd: d0 f3       ..             ; No: output extra newline; ALWAYS branch
 
 ; &b9df referenced 1 time by &b9cd
 .cb9df
-    pla                                                               ; b9df: 68          h
-    cmp #&0d                                                          ; b9e0: c9 0d       ..
-    bne cb9d2                                                         ; b9e2: d0 ee       ..
+    pla                                                               ; b9df: 68          h              ; Retrieve current character
+    cmp #&0d                                                          ; b9e0: c9 0d       ..             ; Is it CR? (LF+CR pair)
+    bne cb9d2                                                         ; b9e2: d0 ee       ..             ; No: output extra newline
 ; &b9e4 referenced 1 time by &b9db
 .cb9e4
-    lda #0                                                            ; b9e4: a9 00       ..
-    sta l00ad                                                         ; b9e6: 85 ad       ..
-    beq cb995                                                         ; b9e8: f0 ab       ..             ; ALWAYS branch
+    lda #0                                                            ; b9e4: a9 00       ..             ; Pair consumed: A = 0
+    sta l00ad                                                         ; b9e6: 85 ad       ..             ; Clear previous-character tracker
+    beq cb995                                                         ; b9e8: f0 ab       ..             ; Loop for next byte; ALWAYS branch; ALWAYS branch
 
 ; &b9ea referenced 2 times by &b9a1, &ba1e
 .abort_if_escape
-    bit escape_flag                                                   ; b9ea: 24 ff       $.
-    bmi cb9ef                                                         ; b9ec: 30 01       0.
-    rts                                                               ; b9ee: 60          `
+    bit escape_flag                                                   ; b9ea: 24 ff       $.             ; Test bit 7 of escape flag
+    bmi cb9ef                                                         ; b9ec: 30 01       0.             ; Escape pressed: handle abort
+    rts                                                               ; b9ee: 60          `              ; No escape: return
 
 ; &b9ef referenced 1 time by &b9ec
 .cb9ef
-    jsr close_ws_file                                                 ; b9ef: 20 0c bb     ..
+    jsr close_ws_file                                                 ; b9ef: 20 0c bb     ..            ; Close the open file
     jsr osnewl                                                        ; b9f2: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    lda #osbyte_acknowledge_escape                                    ; b9f5: a9 7e       .~
+    lda #osbyte_acknowledge_escape                                    ; b9f5: a9 7e       .~             ; Acknowledge escape condition
     jsr osbyte                                                        ; b9f7: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
-    lda #&11                                                          ; b9fa: a9 11       ..
-    jsr error_inline                                                  ; b9fc: 20 be 96     ..
+    lda #&11                                                          ; b9fa: a9 11       ..             ; Error number &11
+    jsr error_inline                                                  ; b9fc: 20 be 96     ..            ; Generate 'Escape' BRK error
     equs "Escape", 0                                                  ; b9ff: 45 73 63... Esc
 
 ; ***************************************************************************************
