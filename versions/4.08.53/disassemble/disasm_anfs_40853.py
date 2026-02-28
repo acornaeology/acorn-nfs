@@ -59,6 +59,26 @@ label(0xBD90, "reloc_p6_src")        # ROM source of page 6 code
 acorn.bbc()
 acorn.is_sideways_rom()
 
+# ============================================================
+# Inline string subroutine hooks
+# ============================================================
+# print_inline (&9131) prints an inline string following the JSR, terminated
+# by a byte with bit 7 set. The high-bit byte is the opcode of the next
+# instruction — the routine jumps there via JMP (fs_error_ptr).
+hook_subroutine(0x9131, "print_inline", stringhi_hook)
+
+# error_inline (&96BE) builds a BRK error block from a null-terminated inline
+# string following the JSR. The error number is passed in A. Never returns.
+hook_subroutine(0x96BE, "error_inline", stringz_hook)
+
+# error_inline_log (&96BB) is identical to error_inline but first logs the
+# error code via sub_c95fb. Never returns.
+hook_subroutine(0x96BB, "error_inline_log", stringz_hook)
+
+# error_bad_inline (&96A2) prepends "Bad " to the inline string before
+# building the BRK error block. The error number is passed in A. Never returns.
+hook_subroutine(0x96A2, "error_bad_inline", stringz_hook)
+
 
 # ============================================================
 # Hardware registers
@@ -2245,6 +2265,77 @@ subroutine(0x8E6F, "osbyte_yff",
     "Entry with X already set by caller.")
 label(0x8E6D, "osbyte_x0")
 label(0x8E6F, "osbyte_yff")
+
+
+# ============================================================
+# Inline string subroutines — descriptions and comments
+# ============================================================
+# Label and code-tracing hooks created by hook_subroutine() above.
+
+subroutine(0x9131, hook=None,
+    title="Print inline string, high-bit terminated",
+    description="""\
+Pops the return address from the stack, prints each byte via OSASCI
+until a byte with bit 7 set is found, then jumps to that address.
+The high-bit byte serves as both the string terminator and the opcode
+of the first instruction after the string. Common terminators are
+&EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
+unconditional forward branch.""",
+    on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
+             "x": "corrupted (by OSASCI)",
+             "y": "0"})
+
+comment(0x9131, "Pop return address (low) — points to last byte of JSR", inline=True)
+comment(0x9134, "Pop return address (high)", inline=True)
+comment(0x9139, "Advance pointer to next character", inline=True)
+comment(0x913F, "Load next byte from inline string", inline=True)
+comment(0x9141, "Bit 7 set? Done — this byte is the next opcode", inline=True)
+comment(0x9149, "Reload character (pointer may have been clobbered)", inline=True)
+comment(0x914B, "Print character via OSASCI", inline=True)
+comment(0x9157, "Jump to address of high-bit byte (resumes code)", inline=True)
+
+subroutine(0x96BE, hook=None,
+    title="Generate BRK error from inline string",
+    description="""\
+Pops the return address from the stack and copies the null-terminated
+inline string into the error block at &0100. The error number is
+passed in A. Never returns — triggers the error via JMP error_block.""",
+    on_entry={"a": "error number"})
+
+comment(0x96BE, "Save error number in Y", inline=True)
+comment(0x96BF, "Pop return address (low) — points to last byte of JSR", inline=True)
+comment(0x96C2, "Pop return address (high)", inline=True)
+
+subroutine(0x96BB, hook=None,
+    title="Generate BRK error from inline string (with logging)",
+    description="""\
+Like error_inline, but first conditionally logs the error code to
+workspace via sub_c95fb before building the error block.""",
+    on_entry={"a": "error number"})
+
+comment(0x96BB, "Conditionally log error code to workspace", inline=True)
+
+subroutine(0x96A2, hook=None,
+    title="Generate 'Bad ...' BRK error from inline string",
+    description="""\
+Like error_inline, but prepends 'Bad ' to the error message. Copies
+the prefix from a lookup table, then appends the null-terminated
+inline string. The error number is passed in A. Never returns.""",
+    on_entry={"a": "error number"})
+
+comment(0x96A2, "Conditionally log error code to workspace", inline=True)
+comment(0x96A5, "Save error number in Y", inline=True)
+comment(0x96A6, "Pop return address (low) — points to last byte of JSR", inline=True)
+comment(0x96A9, "Pop return address (high)", inline=True)
+comment(0x96AE, "Copy 'Bad ' prefix from lookup table", inline=True)
+comment(0x96C7, "Store error number in error block", inline=True)
+comment(0x96CE, "Zero the BRK byte at &0100", inline=True)
+comment(0x96D1, "Copy inline string into error block", inline=True)
+comment(0x96D3, "Read next byte from inline string", inline=True)
+comment(0x96D8, "Loop until null terminator", inline=True)
+
+# "Bad " prefix table
+label(0x969E, "bad_prefix")
 
 
 # ============================================================
