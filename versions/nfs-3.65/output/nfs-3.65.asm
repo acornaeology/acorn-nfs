@@ -1114,16 +1114,6 @@ service_handler_lo = service_entry+1
     equb &65                                                          ; 801f: 65          e              ; Purpose unknown
 ; &8020 referenced 1 time by &80ec
     equb 3                                                            ; 8020: 03          .              ; Purpose unknown
-.dispatch_0_lo
-    equb <(return_1-1)                                                ; 8021: f1          .              ; lo - Svc 0: null handler (RTS)
-    equb <(svc_1_abs_workspace-1)                                     ; 8022: a9          .              ; lo - Svc 1: claim absolute workspace
-    equb <(svc_2_private_workspace-1)                                 ; 8023: b2          .              ; lo - Svc 2: claim private workspace
-    equb <(svc_3_autoboot-1)                                          ; 8024: 0a          .              ; lo - Svc 3: auto-boot
-    equb <(svc_4_star_command-1)                                      ; 8025: a2          .              ; lo - Svc 4: unrecognised * command
-    equb <(svc5_irq_check-1)                                          ; 8026: 5b          [              ; lo - Svc 5: IRQ check
-    equb <(return_1-1)                                                ; 8027: f1          .              ; lo - Svc 6: null handler (RTS)
-    equb <(dispatch_net_cmd-1)                                        ; 8028: 6a          j              ; lo - Svc 7: unrecognised OSBYTE/OSWORD
-    equb <(svc_8_osword-1)                                            ; 8029: 89          .              ; lo - Svc 8: OSWORD filter
 ; Dispatch table: low bytes of (handler_address - 1)
 ; Each entry stores the low byte of a handler address minus 1,
 ; for use with the PHA/PHA/RTS dispatch trick at &80E7.
@@ -1139,6 +1129,16 @@ service_handler_lo = service_entry+1
 ; Lo bytes for the last 6 entries (indices 31-36) occupy
 ; &8044-&8049, immediately before the hi bytes. Their hi
 ; bytes are at &8069-&806E, after dispatch_0_hi.
+.dispatch_0_lo
+    equb <(return_1-1)                                                ; 8021: f1          .              ; lo - Svc 0: null handler (RTS)
+    equb <(svc_1_abs_workspace-1)                                     ; 8022: a9          .              ; lo - Svc 1: claim absolute workspace
+    equb <(svc_2_private_workspace-1)                                 ; 8023: b2          .              ; lo - Svc 2: claim private workspace
+    equb <(svc_3_autoboot-1)                                          ; 8024: 0a          .              ; lo - Svc 3: auto-boot
+    equb <(svc_4_star_command-1)                                      ; 8025: a2          .              ; lo - Svc 4: unrecognised * command
+    equb <(svc5_irq_check-1)                                          ; 8026: 5b          [              ; lo - Svc 5: IRQ check
+    equb <(return_1-1)                                                ; 8027: f1          .              ; lo - Svc 6: null handler (RTS)
+    equb <(dispatch_net_cmd-1)                                        ; 8028: 6a          j              ; lo - Svc 7: unrecognised OSBYTE/OSWORD
+    equb <(svc_8_osword-1)                                            ; 8029: 89          .              ; lo - Svc 8: OSWORD filter
     equb <(svc_9_help-1)                                              ; 802a: f5          .              ; lo - Svc 0: already claimed (no-op)
     equb <(return_1-1)                                                ; 802b: f1          .              ; lo - Svc 1: absolute workspace
     equb <(econet_restore-1)                                          ; 802c: 58          X              ; lo - Svc 2: private workspace

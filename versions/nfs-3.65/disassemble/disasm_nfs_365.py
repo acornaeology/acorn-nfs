@@ -2678,7 +2678,7 @@ comment(0x8662, "Jump to address of high-bit byte (resumes code after string)", 
 # ============================================================
 # Dispatch table comments (&8025-&8068)
 # ============================================================
-comment(0x802A, """\
+comment(0x8021, """\
 Dispatch table: low bytes of (handler_address - 1)
 Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80E7.
