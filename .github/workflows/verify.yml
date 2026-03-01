@@ -28,7 +28,7 @@ jobs:
         id: beebasm-cache
         with:
           path: /usr/local/bin/beebasm
-          key: beebasm-v1.11
+          key: beebasm-v1.11-rebuild
 
       - name: Build beebasm from source
         if: steps.beebasm-cache.outputs.cache-hit != 'true'
