@@ -1173,9 +1173,18 @@ label(0xBEB4, "loop_copy_zp_workspace")
 
 subroutine(0x8023, "nmi_handler",
     description="Service 5 handler: unrecognised interrupt.\n"
-    "Checks for CB1 (shift register complete),\n"
-    "restores VIA state, and dispatches the TX\n"
-    "completion callback via ws_0d65 index.")
+    "Tests IFR bit 2 (CB1 active edge) to check for a\n"
+    "shift register transfer complete. If CB1 is not set,\n"
+    "returns A=5 to pass the service call on. If CB1 is\n"
+    "set, saves registers, reads the VIA ACR, clears and\n"
+    "restores the SR mode bits from ws_0d64, then dispatches\n"
+    "the TX completion callback via the handler index stored\n"
+    "in ws_0d65. The indexed handler performs the completion\n"
+    "action (e.g. resuming background print spooling) before\n"
+    "returning with A=0 to claim the service call.",
+    on_entry={"a": "5 (service call number)",
+              "x": "ROM slot",
+              "y": "parameter"})
 
 subroutine(0x8A0B, "service_handler",
     description="Service call handler.\n"
@@ -1492,19 +1501,34 @@ entry(0x89AB)
 # ============================================================
 
 subroutine(0x0406, "tube_addr_data_dispatch",
-    description="Tube address/data dispatch. Routes Tube\n"
-    "requests by A: A<&80 sets up data transfer,\n"
-    "&80-&BF releases if we own the address,\n"
-    "&C0+ is an external address claim.")
+    description="Main Tube address/data dispatch point, called by 10\n"
+    "sites across the Tube host and Econet code. Routes\n"
+    "requests based on the value of A:\n"
+    "  A < &80: data transfer setup (SENDW) at &0435\n"
+    "  &80 <= A < &C0: release -- maps A via ORA #&40\n"
+    "    and compares with tube_claimed_id; if we own\n"
+    "    this address, falls through to tube_release_claim\n"
+    "  A >= &C0: external address claim from another host\n"
+    "Falls through to tube_release_claim when releasing our\n"
+    "current claim.",
+    on_entry={"a": "request type (<&80 data, &80-&BF release, &C0+ claim)",
+              "x": "transfer address low (data transfer only)",
+              "y": "transfer address high (data transfer only)"})
 subroutine(0x0414, "tube_release_claim",
     title="Release Tube address claim via R4 command 5",
-    description="Release or claim Tube processor.\n"
-    "A>=&C0: external claim from another host.\n"
-    "A>=&80: release our current claim.\n"
-    "A<&80: set up data transfer.")
+    description="Saves interrupt state (PHP/SEI) to protect the R4\n"
+    "protocol sequence, sends R4 command 5 (release) followed\n"
+    "by the currently-claimed address from tube_claimed_id\n"
+    "(&15), then restores interrupts (PLP). Falls through to\n"
+    "clear_tube_claim to reset the claimed-address state to\n"
+    "the &80 sentinel.")
 subroutine(0x0421, "clear_tube_claim",
-    description="Clear Tube address claim. Sets claimed-ID\n"
-    "and claim-in-progress flag to &80 sentinel.")
+    description="Resets Tube address claim state by storing &80 into\n"
+    "both tube_claimed_id (&15) and tube_claim_flag (&14).\n"
+    "The &80 sentinel indicates no address is currently\n"
+    "claimed and no claim is in progress. Called after\n"
+    "tube_release_claim (via fall-through) and during\n"
+    "initial workspace setup.")
 subroutine(0x0484, "tube_begin",
     title="Tube host startup entry (BEGIN)",
     description="Entry point via JMP from &0400. Enables interrupts, checks\n"
@@ -1520,34 +1544,84 @@ subroutine(0x04CB, "tube_claim_default",
     "page transfer loop completes.")
 subroutine(0x04D2, "tube_init_reloc",
     title="Initialise relocation address for ROM transfer",
-    description="Relocate Tube host code from ROM to RAM\n"
-    "and initialise transfer address defaults.")
+    description="Sets the Tube transfer source page to &8000\n"
+    "(tube_xfer_page = &80) and the page counter to &80.\n"
+    "Checks ROM type bit 5 for a relocation address in the\n"
+    "ROM header. If set, scans past the null-terminated\n"
+    "copyright string and extracts the 4-byte relocation\n"
+    "address into tube_transfer_addr (&53), tube_xfer_page\n"
+    "(&54), tube_xfer_addr_2 (&55), and tube_xfer_addr_3\n"
+    "(&56). If clear, uses the default &8000 start address.\n"
+    "Called twice during tube_begin: once for initial setup\n"
+    "and once after each page transfer completes.")
 subroutine(0x0582, "tube_read_string",
-    description="Read a CR-terminated string from Tube R2\n"
-    "into the string buffer at &0700. Returns\n"
-    "with XY=&0700 for OSCLI/OSFIND.")
+    description="Reads a CR-terminated string from the Tube\n"
+    "co-processor via R2 into the string buffer at &0700.\n"
+    "Loops reading bytes from tube_read_r2, storing at\n"
+    "string_buf+Y. Terminates on CR (&0D) or when Y wraps\n"
+    "to zero (256-byte overflow). Returns with X=0, Y=7\n"
+    "so that XY = &0700, ready for OSCLI or OSFIND dispatch.\n"
+    "Called by the Tube OSCLI and OSFIND handlers.",
+    on_exit={"x": "0 (low byte of &0700)",
+             "y": "7 (high byte of &0700)"})
 subroutine(0x0695, "tube_send_r2",
-    description="Poll Tube R2 status until ready, then\n"
-    "write A to the R2 data register.")
+    description="Polls Tube status register 2 until bit 6 (TDRA)\n"
+    "is set, then writes A to Tube data register 2.\n"
+    "Uses a tight BIT/BVC polling loop. Called by 12\n"
+    "sites across the Tube host code for all R2 data\n"
+    "transmission: command responses, file data, OSBYTE\n"
+    "results, and control block bytes.",
+    on_entry={"a": "byte to send"},
+    on_exit={"a": "preserved (value written)"})
 subroutine(0x069E, "tube_send_r4",
-    description="Poll Tube R4 status until ready, then\n"
-    "write A to the R4 data register.")
+    description="Polls Tube status register 4 until bit 6 is set,\n"
+    "then writes A to Tube data register 4. Uses a tight\n"
+    "BIT/BVC polling loop. R4 is the command/control\n"
+    "channel used for address claims (ADRR), data transfer\n"
+    "setup (SENDW), and release commands. Called by 7\n"
+    "sites, primarily during tube_release_claim and\n"
+    "tube_transfer_setup sequences.",
+    on_entry={"a": "byte to send"},
+    on_exit={"a": "preserved (value written)"})
 subroutine(0x06BC, "tube_send_r1",
-    description="Poll Tube R1 status until ready, then\n"
-    "write A to the R1 data register.")
+    description="Polls Tube status register 1 until bit 6 is set,\n"
+    "then writes A to Tube data register 1. Uses a tight\n"
+    "BIT/BVC polling loop. R1 is used for asynchronous\n"
+    "event and escape notification to the co-processor.\n"
+    "Called by tube_event_handler to forward event type,\n"
+    "Y, and X parameters, and reached via BMI from\n"
+    "tube_escape_check when the escape flag is set.",
+    on_entry={"a": "byte to send"},
+    on_exit={"a": "preserved (value written)"})
 subroutine(0x06C5, "tube_read_r2",
     title="Read a byte from Tube data register R2",
-    description="Poll Tube R2 status until data is ready,\n"
-    "then read and return the data byte.")
+    description="Polls Tube status register 2 until bit 7 (RDA)\n"
+    "is set, then loads and returns the byte from Tube\n"
+    "data register 2. Uses a BIT/BPL polling loop (testing\n"
+    "the N flag). R2 is the primary data channel from the\n"
+    "co-processor. Called by 14 sites across the Tube host\n"
+    "code for command dispatch, OSFILE/OSGBPB control block\n"
+    "reads, string reads, and OSBYTE parameter reception.",
+    on_exit={"a": "byte read from R2"})
 subroutine(0x8069, "adlc_init",
     title="ADLC initialisation",
-    description="Initialise ADLC: full hardware reset then\n"
-    "configure for receive/listen mode.\n"
-    "Falls through to init_nmi_workspace.")
+    description="Initialise ADLC hardware and Econet workspace.\n"
+    "Reads station ID via &FE18 (INTOFF side effect),\n"
+    "performs a full ADLC reset (adlc_full_reset), then\n"
+    "checks for Tube co-processor via OSBYTE &EA and\n"
+    "stores the result in l0d63. Issues NMI claim service\n"
+    "request (OSBYTE &8F, X=&0C). Falls through to\n"
+    "init_nmi_workspace to copy the NMI shim to RAM.")
 subroutine(0x8089, "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
-    description="Copy NMI shim code from ROM to &0D00 and\n"
-    "initialise Econet NMI workspace variables.")
+    description="Copies 32 bytes of NMI shim code from ROM\n"
+    "(listen_jmp_hi) to &0D00, then patches the current\n"
+    "ROM bank number into the self-modifying code at\n"
+    "&0D07. Clears tx_src_net, need_release_tube, and\n"
+    "ws_0d65 to zero. Reads station ID into tx_src_stn\n"
+    "(&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark\n"
+    "TX complete and Econet initialised. Finally re-enables\n"
+    "NMIs via INTON (&FE20 read).")
 subroutine(0x80B3, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
     description="Default NMI handler for incoming scout frames. Checks if the frame\n"
@@ -1565,13 +1639,26 @@ subroutine(0x80D0, "nmi_rx_scout_net",
     "Installs the scout data reading loop handler at &970E.")
 subroutine(0x80F2, "scout_error",
     title="Scout error/discard handler",
-    description="Handle scout reception error. Read SR2 to\n"
-    "determine error type and discard the frame.")
+    description="Handles scout reception errors and end-of-frame\n"
+    "conditions. Reads SR2 and tests AP|RDA (bits 0|7):\n"
+    "if neither set, the frame ended cleanly and is\n"
+    "simply discarded. If unexpected data is present,\n"
+    "performs a full ADLC reset. Also serves as the\n"
+    "common discard path for address/network mismatches\n"
+    "from nmi_rx_scout and scout_complete -- reached by\n"
+    "5 branch sites across the scout reception chain.")
 subroutine(0x812C, "scout_complete",
     title="Scout completion handler",
-    description="Process completed scout frame. Match port\n"
-    "against open receive control blocks, set up\n"
-    "data phase handler, and send acknowledge.")
+    description="Processes a completed scout frame. Writes CR1=&00\n"
+    "and CR2=&84 to disable PSE and suppress FV, then\n"
+    "tests SR2 for FV (frame valid). If FV is set with\n"
+    "RDA, reads the remaining scout data bytes in pairs\n"
+    "into the buffer at &0D3D. Matches the port byte\n"
+    "(&0D40) against open receive control blocks to find\n"
+    "a listener. On match, calculates the transfer size\n"
+    "via tx_calc_transfer, sets up the data RX handler\n"
+    "chain, and sends a scout ACK. On no match or error,\n"
+    "discards the frame via scout_error.")
 subroutine(0x81DC, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="Receives the data frame after the scout ACK has been sent.\n"
@@ -1584,9 +1671,13 @@ subroutine(0x81DC, "nmi_data_rx",
     "&9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)")
 subroutine(0x8211, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
-    description="Selects either the normal bulk RX handler (&9843) or the Tube\n"
-    "RX handler (&98A0) based on the Tube transfer flag in tx_flags,\n"
-    "and installs the appropriate NMI handler.")
+    description="Selects between the normal bulk RX handler (&8239)\n"
+    "and the Tube RX handler based on bit 1 of rx_src_net\n"
+    "(tx_flags). If normal mode, loads the handler address\n"
+    "&8239 and checks SR1 bit 7: if IRQ is already asserted\n"
+    "(more data waiting), jumps directly to nmi_data_rx_bulk\n"
+    "to avoid NMI re-entry overhead. Otherwise installs the\n"
+    "handler via set_nmi_vector and returns via RTI.")
 subroutine(0x822B, "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="Common error/abort entry used by 12 call sites. Checks\n"
@@ -1620,8 +1711,14 @@ subroutine(0x82E4, "ack_tx",
     "and sends TX_LAST_DATA (CR2=&3F) to close the frame.")
 subroutine(0x831B, "nmi_ack_tx_src",
     title="ACK TX continuation",
-    description="Writes source station and network to TX FIFO, completing the 4-byte\n"
-    "ACK frame. Then sends TX_LAST_DATA (CR2=&3F) to close the frame.")
+    description="Continuation of ACK frame transmission. Reads our\n"
+    "station ID from &FE18 (INTOFF side effect), tests\n"
+    "TDRA via SR1, and writes station + network=0 to the\n"
+    "TX FIFO, completing the 4-byte ACK address header.\n"
+    "Then checks rx_src_net bit 7: if set, branches to\n"
+    "start_data_tx to begin the data phase. Otherwise\n"
+    "writes CR2=&3F (TX_LAST_DATA) and falls through to\n"
+    "post_ack_scout for scout processing.")
 subroutine(0x8332, "post_ack_scout",
     title="Post-ACK scout processing",
     description="Called after the scout ACK has been transmitted. Processes the\n"
@@ -1638,33 +1735,63 @@ subroutine(0x8344, "advance_rx_buffer_ptr",
     "Tube pointer by 1.")
 subroutine(0x839A, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
-    description="Mark receive control block as complete.\n"
-    "Update buffer pointer and remaining\n"
-    "length, clear flag byte.")
+    description="Finalises a received data transfer. Calls\n"
+    "advance_rx_buffer_ptr to update the 4-byte buffer\n"
+    "pointer with the transfer count (and handle Tube\n"
+    "re-claim if needed). Adds the buffer bytes remaining\n"
+    "to the base address, then subtracts 8 from the RXCB\n"
+    "buffer length to account for the scout overhead.\n"
+    "Clears the RXCB flag byte and sends the final ACK\n"
+    "via ack_tx. On Tube transfers, releases the Tube\n"
+    "claim before resetting to idle listen.")
 subroutine(0x83F8, "discard_reset_listen",
     title="Discard with Tube release",
-    description="Discard current frame. Reset ADLC\n"
-    "to listen mode and return.")
+    description="Checks whether a Tube transfer is active by\n"
+    "ANDing bit 1 of l0d63 with rx_src_net (tx_flags).\n"
+    "If a Tube claim is held, calls release_tube to\n"
+    "free it before returning. Used as the clean-up\n"
+    "path after RXCB completion and after ADLC reset\n"
+    "to ensure no stale Tube claims persist.")
 subroutine(0x8406, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
-    description="Copies scout data bytes (offsets 4-11) from the RX scout\n"
-    "buffer into the open port buffer, handling both direct memory\n"
-    "and Tube R3 write paths.")
+    description="Copies scout data bytes (offsets 4-11) from the\n"
+    "RX scout buffer at &0D3D into the open port buffer.\n"
+    "Checks bit 1 of rx_src_net (tx_flags) to select the\n"
+    "write path: direct memory store via (open_port_buf),Y\n"
+    "for normal transfers, or Tube data register 3 write\n"
+    "for Tube transfers. Calls advance_buffer_ptr after\n"
+    "each byte. Falls through to release_tube on\n"
+    "completion. Handles page overflow (Y wrap) by\n"
+    "branching to scout_page_overflow.")
 subroutine(0x843F, "release_tube",
     title="Release Tube co-processor claim",
-    description="If need_release_tube bit 7 is clear (Tube is claimed), calls\n"
-    "tube_addr_claim with A=&82 to release it, then clears the\n"
-    "release flag via LSR.")
+    description="Tests need_release_tube (&98) bit 7: if set, the\n"
+    "Tube has already been released and the subroutine\n"
+    "just clears the flag. If clear (Tube claim held),\n"
+    "calls tube_addr_data_dispatch with A=&82 to release\n"
+    "the claim, then clears the release flag via LSR\n"
+    "(which shifts bit 7 to 0). Called after completed\n"
+    "RX transfers and during discard paths to ensure no\n"
+    "stale Tube claims persist.")
 subroutine(0x844B, "discard_after_reset",
     title="Discard with immediate operation dispatch",
-    description="Discard frame after ADLC reset. Wait for\n"
-    "idle line, then restore listen mode and\n"
-    "dispatch any pending immediate operations.")
+    description="Checks the control byte at l0d30 for immediate\n"
+    "operation codes (&81-&88). Codes below &81 or above\n"
+    "&88 are out of range and discarded. Codes &87-&88\n"
+    "(HALT/CONTINUE) bypass the protection mask check.\n"
+    "For &81-&86, converts to a 0-based index and tests\n"
+    "against the immediate operation mask at &0D61 to\n"
+    "determine if this station accepts the operation.\n"
+    "If accepted, dispatches via the immediate operation\n"
+    "table. Builds the reply by storing data length,\n"
+    "station/network, and control byte into the RX buffer.")
 subroutine(0x8525, "advance_buffer_ptr",
-    description="Increment the 4-byte buffer pointer at\n"
-    "port_buf_len/open_port_buf (&A2-&A5)\n"
-    "by one. Used to advance the RX data\n"
-    "write position after storing a byte.")
+    description="Increments the 4-byte counter at &A2-&A5\n"
+    "(port_buf_len low/high, open_port_buf low/high)\n"
+    "by one, cascading overflow through all four bytes.\n"
+    "Called after each byte is stored during scout data\n"
+    "copy and data frame reception to track the current\n"
+    "write position in the receive buffer.")
 subroutine(0x84EC, "imm_op_build_reply",
     title="Build immediate operation reply header",
     description="Stores data length, source station/network, and control byte\n"
@@ -1681,26 +1808,43 @@ subroutine(0x8582, "tx_begin",
     "then enters the INACTIVE polling loop.")
 subroutine(0x85EA, "inactive_poll",
     title="INACTIVE polling loop",
-    description="Init 3-byte timeout counter on the stack\n"
-    "and begin polling ADLC for line inactive\n"
-    "before starting transmission.")
+    description="Entry point for the Econet line idle detection\n"
+    "loop. Saves the TX index in rx_remote_addr, pushes\n"
+    "two timeout counter bytes onto the stack, and loads\n"
+    "Y=&E7 (CR2 value for TX preparation). Loads the\n"
+    "INACTIVE bit mask (&04) into A and falls through to\n"
+    "intoff_test_inactive to begin polling SR2 with\n"
+    "interrupts disabled.")
 subroutine(0x85F5, "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
-    description="Test Econet line for inactive state with\n"
-    "interrupts disabled. Poll SR2 INACTIVE bit\n"
-    "with 3-byte timeout counter on the stack.")
+    description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
+    "then polls SR2 for the INACTIVE bit (bit 2). If\n"
+    "INACTIVE is detected, reads SR1 and writes CR2=&67\n"
+    "to clear status, then tests CTS (SR1 bit 4): if\n"
+    "CTS is present, branches to tx_prepare to begin\n"
+    "transmission. If INACTIVE is not set, re-enables\n"
+    "NMIs via &FE20 (INTON) and decrements the 3-byte\n"
+    "timeout counter on the stack. On timeout, falls\n"
+    "through to tx_line_jammed.")
 subroutine(0x8629, "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
-    description="Handle line jammed error. Abort TX by\n"
-    "writing CR2, clean timeout state from\n"
-    "the stack, and store error &40 in the\n"
-    "TX control block.")
+    description="Reached when the INACTIVE polling loop times\n"
+    "out without detecting a quiet line. Writes\n"
+    "CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX\n"
+    "attempt, pulls the 3-byte timeout state from the\n"
+    "stack, and stores error code &40 ('Line Jammed')\n"
+    "in the TX control block via store_tx_error.")
 subroutine(0x8643, "tx_prepare",
     title="TX preparation",
-    description="Prepare ADLC for transmission. Configure\n"
-    "CR2 for TX mode, write destination address\n"
-    "bytes to TX FIFO, and install TX data NMI\n"
-    "handler.")
+    description="Configures the ADLC for frame transmission.\n"
+    "Writes CR2=Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|\n"
+    "2_1_BYTE|PSE) and CR1=&44 (RX_RESET|TIE) to enable\n"
+    "TX with interrupts. Installs the nmi_tx_data handler\n"
+    "at &86E0. Sets need_release_tube flag via SEC/ROR.\n"
+    "Writes the 4-byte destination address (dst_stn,\n"
+    "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
+    "Tube transfers, claims the Tube address; for direct\n"
+    "transfers, sets up the buffer pointer from the TXCB.")
 subroutine(0x86E0, "nmi_tx_data",
     title="NMI TX data handler",
     description="Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the\n"
@@ -1757,19 +1901,34 @@ subroutine(0x876F, "nmi_reply_validate",
     "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).")
 subroutine(0x87B7, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
-    description="Writes our station ID and network=0 to TX FIFO, completing the\n"
-    "4-byte scout ACK frame. Then proceeds to send the data frame.")
+    description="Continuation of the TX-side scout ACK. Reads our\n"
+    "station ID from &FE18 (INTOFF), tests TDRA via SR1,\n"
+    "and writes station + network=0 to the TX FIFO. Then\n"
+    "checks bit 1 of rx_src_net to select between the\n"
+    "immediate-op data NMI handler and the normal\n"
+    "nmi_data_tx handler at &87E4. Installs the chosen\n"
+    "handler via set_nmi_vector. Shares the tx_check_tdra\n"
+    "entry at &87BD with ack_tx.")
 subroutine(0x87DC, "nmi_data_tx",
     title="TX data phase: send payload",
-    description="NMI handler: transmit data phase of a\n"
-    "four-way handshake. Send byte pairs from\n"
-    "the buffer at (open_port_buf) or from Tube\n"
-    "R3. Loop while IRQ is asserted. Signal\n"
-    "TX_LAST_DATA when buffer is exhausted.")
+    description="Transmits the data payload of a four-way\n"
+    "handshake. Loads bytes from (open_port_buf),Y or\n"
+    "from Tube R3 depending on the transfer mode, writing\n"
+    "pairs to the TX FIFO. After each pair, decrements\n"
+    "the byte count (port_buf_len). If the count reaches\n"
+    "zero, branches to tx_last_data to signal end of\n"
+    "frame. Otherwise tests SR1 bit 7 (IRQ): if still\n"
+    "asserted, writes another pair without returning from\n"
+    "NMI (tight loop optimisation). If IRQ clears, returns\n"
+    "via RTI.")
 subroutine(0x886E, "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
-    description="After the data frame TX completes, switches to RX mode (CR1=&82)\n"
-    "and installs &9EF8 to receive the final ACK from the remote station.")
+    description="Called via JMP from nmi_tx_complete when bit 0 of\n"
+    "&0D4A is set (four-way handshake in progress). Writes\n"
+    "CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX\n"
+    "mode to RX mode, listening for the final ACK from the\n"
+    "remote station. Installs the nmi_final_ack handler at\n"
+    "&887A via set_nmi_vector.")
 subroutine(0x887A, "nmi_final_ack",
     title="RX final ACK handler",
     description="Receives the final ACK in a four-way handshake. Same validation\n"
@@ -1781,13 +1940,23 @@ subroutine(0x887A, "nmi_final_ack",
     "On success, stores result=0 at tx_result_ok. On failure, error &41.")
 subroutine(0x88A2, "nmi_final_ack_validate",
     title="Final ACK validation",
-    description="Reads and validates src_stn and src_net against original TX dest.\n"
-    "Then checks FV for frame completion.")
+    description="Continuation of nmi_final_ack. Tests SR2 for RDA,\n"
+    "then reads the source station and source network\n"
+    "bytes from the RX FIFO, comparing each against the\n"
+    "original TX destination at tx_dst_stn (&0D20) and\n"
+    "tx_dst_net (&0D21). Finally tests SR2 bit 1 (FV)\n"
+    "for frame completion. Any mismatch or missing FV\n"
+    "branches to tx_result_fail. On success, falls\n"
+    "through to tx_result_ok.")
 subroutine(0x88C6, "tx_result_ok",
     title="TX completion handler",
-    description="Stores result code 0 (success) into the first byte of the TX control\n"
-    "block (nmi_tx_block),Y=0. Then sets &0D3A bit7 to signal completion\n"
-    "and calls discard_reset_listen to return to idle.")
+    description="Loads A=0 (success) and branches unconditionally to\n"
+    "tx_store_result (BEQ is always taken since A=0). This\n"
+    "two-instruction entry point exists so that JMP sites\n"
+    "can target the success path without needing to set A.\n"
+    "Called from ack_tx (&82EC) for final-ACK completion\n"
+    "and from nmi_tx_complete (&8732) for immediate-op\n"
+    "completion where no ACK is expected.")
 subroutine(0x88CA, "tx_result_fail",
     title="TX failure: not listening",
     description="Loads error code &41 (not listening) and falls through to\n"
@@ -1796,30 +1965,63 @@ subroutine(0x88CA, "tx_result_fail",
     "station doesn't respond or the frame is malformed.")
 subroutine(0x88CC, "tx_store_result",
     title="TX result store and completion",
-    description="Store TX result code in control block,\n"
-    "signal completion, and reset ADLC to\n"
-    "idle listen mode.")
+    description="Stores the TX result code (in A) at offset 0 of\n"
+    "the TX control block via (nmi_tx_block),Y=0. Sets\n"
+    "ws_0d60 to &80 to signal TX completion to the\n"
+    "foreground polling loop. Then jumps to\n"
+    "discard_reset_rx for a full ADLC reset and return\n"
+    "to idle RX listen mode.",
+    on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"})
 subroutine(0x88E8, "tx_calc_transfer",
     title="Calculate transfer size",
-    description="Calculate transfer size for data phase.\n"
-    "Compute byte count from buffer start/end\n"
-    "pointers in the TX control block.")
+    description="Computes the data transfer byte count from the\n"
+    "RXCB buffer pointers. Reads the 4-byte buffer end\n"
+    "address from (port_ws_offset) and checks for Tube\n"
+    "addresses (&FExx/&FFxx). For Tube transfers, claims\n"
+    "the Tube address and sets the transfer flag in\n"
+    "rx_src_net. Subtracts the buffer start from the\n"
+    "buffer end to compute the byte count, storing it in\n"
+    "port_buf_len/port_buf_len_hi. Also copies the buffer\n"
+    "start address to open_port_buf for the RX/TX handlers\n"
+    "to use as their working pointer.")
 subroutine(0x895F, "adlc_full_reset",
     title="ADLC full reset",
-    description="Aborts all activity and returns to idle RX listen mode.")
+    description="Performs a full ADLC hardware reset. Writes\n"
+    "CR1=&C1 (TX_RESET|RX_RESET|AC) to put both TX and\n"
+    "RX sections in reset with address control enabled.\n"
+    "Then configures CR4=&1E (8-bit RX word, abort extend,\n"
+    "NRZ encoding) and CR3=&00 (no loopback, no AEX, NRZ,\n"
+    "no DTR). Falls through to adlc_rx_listen to re-enter\n"
+    "RX listen mode.")
 subroutine(0x896E, "adlc_rx_listen",
     title="Enter RX listen mode",
-    description="TX held in reset, RX active with interrupts. Clears all status.")
+    description="Configures the ADLC for passive RX listen mode.\n"
+    "Writes CR1=&82 (TX_RESET|RIE): TX section held in\n"
+    "reset, RX interrupts enabled. Writes CR2=&67\n"
+    "(CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE) to clear\n"
+    "all pending status and enable prioritised status.\n"
+    "This is the idle state where the ADLC listens for\n"
+    "incoming scout frames via NMI.")
 subroutine(0x8979, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
-    description="Wait for NMI handler to return to idle\n"
-    "state (nmi_rx_scout), then reset ADLC\n"
-    "to listen mode. Service 12 handler.")
+    description="Service 12 handler: NMI release. Checks ws_0d62\n"
+    "to see if Econet has been initialised; if not, skips\n"
+    "straight to adlc_rx_listen. Otherwise spins in a\n"
+    "tight loop comparing the NMI handler vector at\n"
+    "&0D0C/&0D0D against the address of nmi_rx_scout\n"
+    "(&80B3). When the NMI handler returns to idle, falls\n"
+    "through to save_econet_state to clear the initialised\n"
+    "flags and re-enter RX listen mode.")
 subroutine(0x898C, "save_econet_state",
     title="Reset Econet flags and enter RX listen",
-    description="Save Econet state for ROM bank switch.\n"
-    "Store current NMI handler address and\n"
-    "prepare for NMI shim installation.")
+    description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
+    "then clears ws_0d60 (TX complete) and ws_0d62\n"
+    "(Econet initialised) by storing the current A value.\n"
+    "Sets Y=5 (service call workspace page) and jumps to\n"
+    "adlc_rx_listen to configure the ADLC for passive\n"
+    "listening. Used during NMI release (service 12) to\n"
+    "safely tear down the Econet state before another\n"
+    "ROM can claim the NMI workspace.")
 subroutine(0x899D, "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="An alternate NMI handler that lives in the ROM itself rather than\n"

@@ -411,10 +411,21 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[2]   ; JMP to tube_escape_check (&06A7)
 
 ; ***************************************************************************************
-; Tube address/data dispatch. Routes Tube
-; requests by A: A<&80 sets up data transfer,
-; &80-&BF releases if we own the address,
-; &C0+ is an external address claim.
+; Main Tube address/data dispatch point, called by 10
+; sites across the Tube host and Econet code. Routes
+; requests based on the value of A:
+;   A < &80: data transfer setup (SENDW) at &0435
+;   &80 <= A < &C0: release -- maps A via ORA #&40
+;     and compares with tube_claimed_id; if we own
+;     this address, falls through to tube_release_claim
+;   A >= &C0: external address claim from another host
+; Falls through to tube_release_claim when releasing our
+; current claim.
+; 
+; On Entry:
+;     A: request type (<&80 data, &80-&BF release, &C0+ claim)
+;     X: transfer address low (data transfer only)
+;     Y: transfer address high (data transfer only)
 ; ***************************************************************************************
 ; &bf06 referenced 10 times by &049a[2], &04cf[2], &8371, &8445, &8929, &8931, &9fda, &9ff1, &a05d, &a2d4
 .tube_addr_data_dispatch
@@ -428,10 +439,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Release Tube address claim via R4 command 5
 ; 
-; Release or claim Tube processor.
-; A>=&C0: external claim from another host.
-; A>=&80: release our current claim.
-; A<&80: set up data transfer.
+; Saves interrupt state (PHP/SEI) to protect the R4
+; protocol sequence, sends R4 command 5 (release) followed
+; by the currently-claimed address from tube_claimed_id
+; (&15), then restores interrupts (PLP). Falls through to
+; clear_tube_claim to reset the claimed-address state to
+; the &80 sentinel.
 ; ***************************************************************************************
 ; &bf14 referenced 1 time by &0471[2]
 .tube_release_claim
@@ -443,8 +456,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_send_r4                                                  ; bf1d: 20 9e 06     .. :041d[2]   ; Send our address as release parameter
     plp                                                               ; bf20: 28          (   :0420[2]   ; Restore interrupt state
 ; ***************************************************************************************
-; Clear Tube address claim. Sets claimed-ID
-; and claim-in-progress flag to &80 sentinel.
+; Resets Tube address claim state by storing &80 into
+; both tube_claimed_id (&15) and tube_claim_flag (&14).
+; The &80 sentinel indicates no address is currently
+; claimed and no claim is in progress. Called after
+; tube_release_claim (via fall-through) and during
+; initial workspace setup.
 ; ***************************************************************************************
 ; &bf21 referenced 1 time by &beaf
 .clear_tube_claim
@@ -598,8 +615,16 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Initialise relocation address for ROM transfer
 ; 
-; Relocate Tube host code from ROM to RAM
-; and initialise transfer address defaults.
+; Sets the Tube transfer source page to &8000
+; (tube_xfer_page = &80) and the page counter to &80.
+; Checks ROM type bit 5 for a relocation address in the
+; ROM header. If set, scans past the null-terminated
+; copyright string and extracts the 4-byte relocation
+; address into tube_transfer_addr (&53), tube_xfer_page
+; (&54), tube_xfer_addr_2 (&55), and tube_xfer_addr_3
+; (&56). If clear, uses the default &8000 start address.
+; Called twice during tube_begin: once for initial setup
+; and once after each page transfer completes.
 ; ***************************************************************************************
 ; &bfd2 referenced 2 times by &049f[2], &04c6[2]
 .tube_init_reloc
@@ -716,9 +741,17 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; bd0f: 4c 36 00    L6. :057f[3]   ; Return to Tube main loop
 
 ; ***************************************************************************************
-; Read a CR-terminated string from Tube R2
-; into the string buffer at &0700. Returns
-; with XY=&0700 for OSCLI/OSFIND.
+; Reads a CR-terminated string from the Tube
+; co-processor via R2 into the string buffer at &0700.
+; Loops reading bytes from tube_read_r2, storing at
+; string_buf+Y. Terminates on CR (&0D) or when Y wraps
+; to zero (256-byte overflow). Returns with X=0, Y=7
+; so that XY = &0700, ready for OSCLI or OSFIND dispatch.
+; Called by the Tube OSCLI and OSFIND handlers.
+; 
+; On Exit:
+;     X: 0 (low byte of &0700)
+;     Y: 7 (high byte of &0700)
 ; ***************************************************************************************
 ; &bd12 referenced 2 times by &0548[3], &05b3[3]
 .tube_read_string
@@ -926,8 +959,18 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; be22: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
 ; ***************************************************************************************
-; Poll Tube R2 status until ready, then
-; write A to the R2 data register.
+; Polls Tube status register 2 until bit 6 (TDRA)
+; is set, then writes A to Tube data register 2.
+; Uses a tight BIT/BVC polling loop. Called by 12
+; sites across the Tube host code for all R2 data
+; transmission: command responses, file data, OSBYTE
+; results, and control block bytes.
+; 
+; On Entry:
+;     A: byte to send
+; 
+; On Exit:
+;     A: preserved (value written)
 ; ***************************************************************************************
 ; &be25 referenced 13 times by &0020[1], &0026[1], &002c[1], &0474[2], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]
 .tube_send_r2
@@ -937,8 +980,19 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rts                                                               ; be2d: 60          `   :069d[4]   ; Return to caller
 
 ; ***************************************************************************************
-; Poll Tube R4 status until ready, then
-; write A to the R4 data register.
+; Polls Tube status register 4 until bit 6 is set,
+; then writes A to Tube data register 4. Uses a tight
+; BIT/BVC polling loop. R4 is the command/control
+; channel used for address claims (ADRR), data transfer
+; setup (SENDW), and release commands. Called by 7
+; sites, primarily during tube_release_claim and
+; tube_transfer_setup sequences.
+; 
+; On Entry:
+;     A: byte to send
+; 
+; On Exit:
+;     A: preserved (value written)
 ; ***************************************************************************************
 ; &be2e referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[4]
 .tube_send_r4
@@ -963,8 +1017,19 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_send_r1                                                  ; be48: 20 bc 06     .. :06b8[4]   ; Send X via R1
     pla                                                               ; be4b: 68          h   :06bb[4]   ; Restore A (event type)
 ; ***************************************************************************************
-; Poll Tube R1 status until ready, then
-; write A to the R1 data register.
+; Polls Tube status register 1 until bit 6 is set,
+; then writes A to Tube data register 1. Uses a tight
+; BIT/BVC polling loop. R1 is used for asynchronous
+; event and escape notification to the co-processor.
+; Called by tube_event_handler to forward event type,
+; Y, and X parameters, and reached via BMI from
+; tube_escape_check when the escape flag is set.
+; 
+; On Entry:
+;     A: byte to send
+; 
+; On Exit:
+;     A: preserved (value written)
 ; ***************************************************************************************
 ; &be4c referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]
 .tube_send_r1
@@ -976,8 +1041,16 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Read a byte from Tube data register R2
 ; 
-; Poll Tube R2 status until data is ready,
-; then read and return the data byte.
+; Polls Tube status register 2 until bit 7 (RDA)
+; is set, then loads and returns the byte from Tube
+; data register 2. Uses a BIT/BPL polling loop (testing
+; the N flag). R2 is the primary data channel from the
+; co-processor. Called by 14 sites across the Tube host
+; code for command dispatch, OSFILE/OSGBPB control block
+; reads, string reads, and OSBYTE parameter reception.
+; 
+; On Exit:
+;     A: byte read from R2
 ; ***************************************************************************************
 ; &be55 referenced 15 times by &0542[3], &0552[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]
 .tube_read_r2
@@ -1065,9 +1138,20 @@ service_handler_lo = service_entry+1
 
 ; ***************************************************************************************
 ; Service 5 handler: unrecognised interrupt.
-; Checks for CB1 (shift register complete),
-; restores VIA state, and dispatches the TX
-; completion callback via ws_0d65 index.
+; Tests IFR bit 2 (CB1 active edge) to check for a
+; shift register transfer complete. If CB1 is not set,
+; returns A=5 to pass the service call on. If CB1 is
+; set, saves registers, reads the VIA ACR, clears and
+; restores the SR mode bits from ws_0d64, then dispatches
+; the TX completion callback via the handler index stored
+; in ws_0d65. The indexed handler performs the completion
+; action (e.g. resuming background print spooling) before
+; returning with A=0 to claim the service call.
+; 
+; On Entry:
+;     A: 5 (service call number)
+;     X: ROM slot
+;     Y: parameter
 ; ***************************************************************************************
 .nmi_handler
     lda #4                                                            ; 8023: a9 04       ..             ; A=4: CB1 bit mask for IFR test
@@ -1116,9 +1200,13 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; ADLC initialisation
 ; 
-; Initialise ADLC: full hardware reset then
-; configure for receive/listen mode.
-; Falls through to init_nmi_workspace.
+; Initialise ADLC hardware and Econet workspace.
+; Reads station ID via &FE18 (INTOFF side effect),
+; performs a full ADLC reset (adlc_full_reset), then
+; checks for Tube co-processor via OSBYTE &EA and
+; stores the result in l0d63. Issues NMI claim service
+; request (OSBYTE &8F, X=&0C). Falls through to
+; init_nmi_workspace to copy the NMI shim to RAM.
 ; ***************************************************************************************
 ; &8069 referenced 1 time by &8f40
 .adlc_init
@@ -1138,8 +1226,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Initialise NMI workspace (skip service request)
 ; 
-; Copy NMI shim code from ROM to &0D00 and
-; initialise Econet NMI workspace variables.
+; Copies 32 bytes of NMI shim code from ROM
+; (listen_jmp_hi) to &0D00, then patches the current
+; ROM bank number into the self-modifying code at
+; &0D07. Clears tx_src_net, need_release_tube, and
+; ws_0d65 to zero. Reads station ID into tx_src_stn
+; (&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark
+; TX complete and Econet initialised. Finally re-enables
+; NMIs via INTON (&FE20 read).
 ; ***************************************************************************************
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8089: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
@@ -1226,8 +1320,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Scout error/discard handler
 ; 
-; Handle scout reception error. Read SR2 to
-; determine error type and discard the frame.
+; Handles scout reception errors and end-of-frame
+; conditions. Reads SR2 and tests AP|RDA (bits 0|7):
+; if neither set, the frame ended cleanly and is
+; simply discarded. If unexpected data is present,
+; performs a full ADLC reset. Also serves as the
+; common discard path for address/network mismatches
+; from nmi_rx_scout and scout_complete -- reached by
+; 5 branch sites across the scout reception chain.
 ; ***************************************************************************************
 ; &80f2 referenced 5 times by &80b8, &80d3, &8107, &813b, &813d
 .scout_error
@@ -1267,9 +1367,16 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Scout completion handler
 ; 
-; Process completed scout frame. Match port
-; against open receive control blocks, set up
-; data phase handler, and send acknowledge.
+; Processes a completed scout frame. Writes CR1=&00
+; and CR2=&84 to disable PSE and suppress FV, then
+; tests SR2 for FV (frame valid). If FV is set with
+; RDA, reads the remaining scout data bytes in pairs
+; into the buffer at &0D3D. Matches the port byte
+; (&0D40) against open receive control blocks to find
+; a listener. On match, calculates the transfer size
+; via tx_calc_transfer, sets up the data RX handler
+; chain, and sends a scout ACK. On no match or error,
+; discards the frame via scout_error.
 ; ***************************************************************************************
 ; &812c referenced 2 times by &8115, &8120
 .scout_complete
@@ -1422,9 +1529,13 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ; 
-; Selects either the normal bulk RX handler (&9843) or the Tube
-; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
-; and installs the appropriate NMI handler.
+; Selects between the normal bulk RX handler (&8239)
+; and the Tube RX handler based on bit 1 of rx_src_net
+; (tx_flags). If normal mode, loads the handler address
+; &8239 and checks SR1 bit 7: if IRQ is already asserted
+; (more data waiting), jumps directly to nmi_data_rx_bulk
+; to avoid NMI re-entry overhead. Otherwise installs the
+; handler via set_nmi_vector and returns via RTI.
 ; ***************************************************************************************
 ; &8211 referenced 1 time by &88bc
 .install_data_rx_handler
@@ -1623,8 +1734,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; ACK TX continuation
 ; 
-; Writes source station and network to TX FIFO, completing the 4-byte
-; ACK frame. Then sends TX_LAST_DATA (CR2=&3F) to close the frame.
+; Continuation of ACK frame transmission. Reads our
+; station ID from &FE18 (INTOFF side effect), tests
+; TDRA via SR1, and writes station + network=0 to the
+; TX FIFO, completing the 4-byte ACK address header.
+; Then checks rx_src_net bit 7: if set, branches to
+; start_data_tx to begin the data phase. Otherwise
+; writes CR2=&3F (TX_LAST_DATA) and falls through to
+; post_ack_scout for scout processing.
 ; ***************************************************************************************
 .nmi_ack_tx_src
     lda station_id_disable_net_nmis                                   ; 831b: ad 18 fe    ...            ; Load our station ID (also INTOFF)
@@ -1729,9 +1846,15 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Complete RX and update RXCB
 ; 
-; Mark receive control block as complete.
-; Update buffer pointer and remaining
-; length, clear flag byte.
+; Finalises a received data transfer. Calls
+; advance_rx_buffer_ptr to update the 4-byte buffer
+; pointer with the transfer count (and handle Tube
+; re-claim if needed). Adds the buffer bytes remaining
+; to the base address, then subtracts 8 from the RXCB
+; buffer length to account for the scout overhead.
+; Clears the RXCB flag byte and sends the final ACK
+; via ack_tx. On Tube transfers, releases the Tube
+; claim before resetting to idle listen.
 ; ***************************************************************************************
 ; &839a referenced 3 times by &838e, &8395, &842a
 .rx_complete_update_rxcb
@@ -1802,8 +1925,12 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Discard with Tube release
 ; 
-; Discard current frame. Reset ADLC
-; to listen mode and return.
+; Checks whether a Tube transfer is active by
+; ANDing bit 1 of l0d63 with rx_src_net (tx_flags).
+; If a Tube claim is held, calls release_tube to
+; free it before returning. Used as the clean-up
+; path after RXCB completion and after ADLC reset
+; to ensure no stale Tube claims persist.
 ; ***************************************************************************************
 ; &83f8 referenced 2 times by &83e4, &83eb
 .discard_reset_listen
@@ -1821,9 +1948,15 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Copy scout data to port buffer
 ; 
-; Copies scout data bytes (offsets 4-11) from the RX scout
-; buffer into the open port buffer, handling both direct memory
-; and Tube R3 write paths.
+; Copies scout data bytes (offsets 4-11) from the
+; RX scout buffer at &0D3D into the open port buffer.
+; Checks bit 1 of rx_src_net (tx_flags) to select the
+; write path: direct memory store via (open_port_buf),Y
+; for normal transfers, or Tube data register 3 write
+; for Tube transfers. Calls advance_buffer_ptr after
+; each byte. Falls through to release_tube on
+; completion. Handles page overflow (Y wrap) by
+; branching to scout_page_overflow.
 ; ***************************************************************************************
 ; &8406 referenced 1 time by &81be
 .copy_scout_to_buffer
@@ -1870,9 +2003,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Release Tube co-processor claim
 ; 
-; If need_release_tube bit 7 is clear (Tube is claimed), calls
-; tube_addr_claim with A=&82 to release it, then clears the
-; release flag via LSR.
+; Tests need_release_tube (&98) bit 7: if set, the
+; Tube has already been released and the subroutine
+; just clears the flag. If clear (Tube claim held),
+; calls tube_addr_data_dispatch with A=&82 to release
+; the claim, then clears the release flag via LSR
+; (which shifts bit 7 to 0). Called after completed
+; RX transfers and during discard paths to ensure no
+; stale Tube claims persist.
 ; ***************************************************************************************
 ; &843f referenced 2 times by &8402, &8934
 .release_tube
@@ -1888,9 +2026,16 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Discard with immediate operation dispatch
 ; 
-; Discard frame after ADLC reset. Wait for
-; idle line, then restore listen mode and
-; dispatch any pending immediate operations.
+; Checks the control byte at l0d30 for immediate
+; operation codes (&81-&88). Codes below &81 or above
+; &88 are out of range and discarded. Codes &87-&88
+; (HALT/CONTINUE) bypass the protection mask check.
+; For &81-&86, converts to a 0-based index and tests
+; against the immediate operation mask at &0D61 to
+; determine if this station accepts the operation.
+; If accepted, dispatches via the immediate operation
+; table. Builds the reply by storing data length,
+; station/network, and control byte into the RX buffer.
 ; ***************************************************************************************
 ; &844b referenced 1 time by &8152
 .discard_after_reset
@@ -2025,10 +2170,12 @@ service_handler_lo = service_entry+1
     jmp reset_adlc_rx_listen                                          ; 8522: 4c ee 83    L..            ; Return to idle listen mode
 
 ; ***************************************************************************************
-; Increment the 4-byte buffer pointer at
-; port_buf_len/open_port_buf (&A2-&A5)
-; by one. Used to advance the RX data
-; write position after storing a byte.
+; Increments the 4-byte counter at &A2-&A5
+; (port_buf_len low/high, open_port_buf low/high)
+; by one, cascading overflow through all four bytes.
+; Called after each byte is stored during scout data
+; copy and data frame reception to track the current
+; write position in the receive buffer.
 ; ***************************************************************************************
 ; &8525 referenced 3 times by &829e, &82ac, &8433
 .advance_buffer_ptr
@@ -2157,9 +2304,13 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; INACTIVE polling loop
 ; 
-; Init 3-byte timeout counter on the stack
-; and begin polling ADLC for line inactive
-; before starting transmission.
+; Entry point for the Econet line idle detection
+; loop. Saves the TX index in rx_remote_addr, pushes
+; two timeout counter bytes onto the stack, and loads
+; Y=&E7 (CR2 value for TX preparation). Loads the
+; INACTIVE bit mask (&04) into A and falls through to
+; intoff_test_inactive to begin polling SR2 with
+; interrupts disabled.
 ; ***************************************************************************************
 .inactive_poll
     sta rx_remote_addr                                                ; 85ea: 8d 41 0d    .A.            ; Save TX index
@@ -2175,9 +2326,15 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ; 
-; Test Econet line for inactive state with
-; interrupts disabled. Poll SR2 INACTIVE bit
-; with 3-byte timeout counter on the stack.
+; Disables NMIs via two reads of &FE18 (INTOFF),
+; then polls SR2 for the INACTIVE bit (bit 2). If
+; INACTIVE is detected, reads SR1 and writes CR2=&67
+; to clear status, then tests CTS (SR1 bit 4): if
+; CTS is present, branches to tx_prepare to begin
+; transmission. If INACTIVE is not set, re-enables
+; NMIs via &FE20 (INTON) and decrements the 3-byte
+; timeout counter on the stack. On timeout, falls
+; through to tx_line_jammed.
 ; ***************************************************************************************
 .intoff_test_inactive
 intoff_disable_nmi_op = intoff_test_inactive+1
@@ -2214,10 +2371,12 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX timeout error handler (Line Jammed)
 ; 
-; Handle line jammed error. Abort TX by
-; writing CR2, clean timeout state from
-; the stack, and store error &40 in the
-; TX control block.
+; Reached when the INACTIVE polling loop times
+; out without detecting a quiet line. Writes
+; CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX
+; attempt, pulls the 3-byte timeout state from the
+; stack, and stores error code &40 ('Line Jammed')
+; in the TX control block via store_tx_error.
 ; ***************************************************************************************
 ; &8629 referenced 1 time by &8623
 .tx_line_jammed
@@ -2245,10 +2404,15 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX preparation
 ; 
-; Prepare ADLC for transmission. Configure
-; CR2 for TX mode, write destination address
-; bytes to TX FIFO, and install TX data NMI
-; handler.
+; Configures the ADLC for frame transmission.
+; Writes CR2=Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|
+; 2_1_BYTE|PSE) and CR1=&44 (RX_RESET|TIE) to enable
+; TX with interrupts. Installs the nmi_tx_data handler
+; at &86E0. Sets need_release_tube flag via SEC/ROR.
+; Writes the 4-byte destination address (dst_stn,
+; dst_net, src_stn, src_net=0) to the TX FIFO. For
+; Tube transfers, claims the Tube address; for direct
+; transfers, sets up the buffer pointer from the TXCB.
 ; ***************************************************************************************
 ; &8643 referenced 1 time by &860d
 .tx_prepare
@@ -2522,8 +2686,14 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX scout ACK: write source address
 ; 
-; Writes our station ID and network=0 to TX FIFO, completing the
-; 4-byte scout ACK frame. Then proceeds to send the data frame.
+; Continuation of the TX-side scout ACK. Reads our
+; station ID from &FE18 (INTOFF), tests TDRA via SR1,
+; and writes station + network=0 to the TX FIFO. Then
+; checks bit 1 of rx_src_net to select between the
+; immediate-op data NMI handler and the normal
+; nmi_data_tx handler at &87E4. Installs the chosen
+; handler via set_nmi_vector. Shares the tx_check_tdra
+; entry at &87BD with ack_tx.
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda station_id_disable_net_nmis                                   ; 87b7: ad 18 fe    ...            ; Load our station ID (also INTOFF)
@@ -2552,11 +2722,16 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX data phase: send payload
 ; 
-; NMI handler: transmit data phase of a
-; four-way handshake. Send byte pairs from
-; the buffer at (open_port_buf) or from Tube
-; R3. Loop while IRQ is asserted. Signal
-; TX_LAST_DATA when buffer is exhausted.
+; Transmits the data payload of a four-way
+; handshake. Loads bytes from (open_port_buf),Y or
+; from Tube R3 depending on the transfer mode, writing
+; pairs to the TX FIFO. After each pair, decrements
+; the byte count (port_buf_len). If the count reaches
+; zero, branches to tx_last_data to signal end of
+; frame. Otherwise tests SR1 bit 7 (IRQ): if still
+; asserted, writes another pair without returning from
+; NMI (tight loop optimisation). If IRQ clears, returns
+; via RTI.
 ; ***************************************************************************************
 ; &87dc referenced 1 time by &87e6
 .nmi_data_tx
@@ -2660,8 +2835,12 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Four-way handshake: switch to RX for final ACK
 ; 
-; After the data frame TX completes, switches to RX mode (CR1=&82)
-; and installs &9EF8 to receive the final ACK from the remote station.
+; Called via JMP from nmi_tx_complete when bit 0 of
+; &0D4A is set (four-way handshake in progress). Writes
+; CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX
+; mode to RX mode, listening for the final ACK from the
+; remote station. Installs the nmi_final_ack handler at
+; &887A via set_nmi_vector.
 ; ***************************************************************************************
 ; &886e referenced 1 time by &873c
 .handshake_await_ack
@@ -2705,8 +2884,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Final ACK validation
 ; 
-; Reads and validates src_stn and src_net against original TX dest.
-; Then checks FV for frame completion.
+; Continuation of nmi_final_ack. Tests SR2 for RDA,
+; then reads the source station and source network
+; bytes from the RX FIFO, comparing each against the
+; original TX destination at tx_dst_stn (&0D20) and
+; tx_dst_net (&0D21). Finally tests SR2 bit 1 (FV)
+; for frame completion. Any mismatch or missing FV
+; branches to tx_result_fail. On success, falls
+; through to tx_result_ok.
 ; ***************************************************************************************
 ; &88a2 referenced 1 time by &889d
 .nmi_final_ack_validate
@@ -2730,9 +2915,13 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX completion handler
 ; 
-; Stores result code 0 (success) into the first byte of the TX control
-; block (nmi_tx_block),Y=0. Then sets &0D3A bit7 to signal completion
-; and calls discard_reset_listen to return to idle.
+; Loads A=0 (success) and branches unconditionally to
+; tx_store_result (BEQ is always taken since A=0). This
+; two-instruction entry point exists so that JMP sites
+; can target the success path without needing to set A.
+; Called from ack_tx (&82EC) for final-ACK completion
+; and from nmi_tx_complete (&8732) for immediate-op
+; completion where no ACK is expected.
 ; ***************************************************************************************
 ; &88c6 referenced 2 times by &82ec, &8732
 .tx_result_ok
@@ -2753,9 +2942,15 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX result store and completion
 ; 
-; Store TX result code in control block,
-; signal completion, and reset ADLC to
-; idle listen mode.
+; Stores the TX result code (in A) at offset 0 of
+; the TX control block via (nmi_tx_block),Y=0. Sets
+; ws_0d60 to &80 to signal TX completion to the
+; foreground polling loop. Then jumps to
+; discard_reset_rx for a full ADLC reset and return
+; to idle RX listen mode.
+; 
+; On Entry:
+;     A: result code (0=success, &40=jammed, &41=not listening)
 ; ***************************************************************************************
 ; &88cc referenced 2 times by &8719, &88c8
 .tx_store_result
@@ -2778,9 +2973,16 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Calculate transfer size
 ; 
-; Calculate transfer size for data phase.
-; Compute byte count from buffer start/end
-; pointers in the TX control block.
+; Computes the data transfer byte count from the
+; RXCB buffer pointers. Reads the 4-byte buffer end
+; address from (port_ws_offset) and checks for Tube
+; addresses (&FExx/&FFxx). For Tube transfers, claims
+; the Tube address and sets the transfer flag in
+; rx_src_net. Subtracts the buffer start from the
+; buffer end to compute the byte count, storing it in
+; port_buf_len/port_buf_len_hi. Also copies the buffer
+; start address to open_port_buf for the RX/TX handlers
+; to use as their working pointer.
 ; ***************************************************************************************
 ; &88e8 referenced 3 times by &81b4, &84ce, &86d6
 .tx_calc_transfer
@@ -2866,7 +3068,13 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; ADLC full reset
 ; 
-; Aborts all activity and returns to idle RX listen mode.
+; Performs a full ADLC hardware reset. Writes
+; CR1=&C1 (TX_RESET|RX_RESET|AC) to put both TX and
+; RX sections in reset with address control enabled.
+; Then configures CR4=&1E (8-bit RX word, abort extend,
+; NRZ encoding) and CR3=&00 (no loopback, no AEX, NRZ,
+; no DTR). Falls through to adlc_rx_listen to re-enter
+; RX listen mode.
 ; ***************************************************************************************
 ; &895f referenced 3 times by &806c, &80f9, &8233
 .adlc_full_reset
@@ -2879,7 +3087,13 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Enter RX listen mode
 ; 
-; TX held in reset, RX active with interrupts. Clears all status.
+; Configures the ADLC for passive RX listen mode.
+; Writes CR1=&82 (TX_RESET|RIE): TX section held in
+; reset, RX interrupts enabled. Writes CR2=&67
+; (CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE) to clear
+; all pending status and enable prioritised status.
+; This is the idle state where the ADLC listens for
+; incoming scout frames via NMI.
 ; ***************************************************************************************
 ; &896e referenced 2 times by &83ee, &899a
 .adlc_rx_listen
@@ -2892,9 +3106,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Wait for idle NMI state and reset Econet
 ; 
-; Wait for NMI handler to return to idle
-; state (nmi_rx_scout), then reset ADLC
-; to listen mode. Service 12 handler.
+; Service 12 handler: NMI release. Checks ws_0d62
+; to see if Econet has been initialised; if not, skips
+; straight to adlc_rx_listen. Otherwise spins in a
+; tight loop comparing the NMI handler vector at
+; &0D0C/&0D0D against the address of nmi_rx_scout
+; (&80B3). When the NMI handler returns to idle, falls
+; through to save_econet_state to clear the initialised
+; flags and re-enter RX listen mode.
 ; ***************************************************************************************
 .wait_idle_and_reset
     bit ws_0d62                                                       ; 8979: 2c 62 0d    ,b.            ; Check if Econet has been initialised
@@ -2910,9 +3129,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX listen
 ; 
-; Save Econet state for ROM bank switch.
-; Store current NMI handler address and
-; prepare for NMI shim installation.
+; Disables NMIs via two reads of &FE18 (INTOFF),
+; then clears ws_0d60 (TX complete) and ws_0d62
+; (Econet initialised) by storing the current A value.
+; Sets Y=5 (service call workspace page) and jumps to
+; adlc_rx_listen to configure the ADLC for passive
+; listening. Used during NMI release (service 12) to
+; safely tear down the Econet state before another
+; ROM can claim the NMI workspace.
 ; ***************************************************************************************
 .save_econet_state
     bit station_id_disable_net_nmis                                   ; 898c: 2c 18 fe    ,..            ; INTOFF: disable NMIs
