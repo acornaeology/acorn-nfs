@@ -297,6 +297,8 @@ entry(0x0537)   # tube_osrdch
 entry(0x053A)   # tube_rdch_reply
 entry(0x055E)   # tube_osargs
 entry(0x0562)   # tube_read_params
+entry(0x05D1)   # tube_osgbpb
+entry(0x05F2)   # tube_osbyte_2param
 
 # Page 6 entry points
 entry(0x0600)
@@ -1304,8 +1306,10 @@ label(0x05A6, "mj")
 label(0x05A9, "tube_osfile")
 label(0x05AB, "argsw")
 label(0x05C7, "send_osfile_ctrl_blk")
+label(0x05D1, "tube_osgbpb")
 label(0x05D3, "read_osgbpb_ctrl_blk")
 label(0x05E6, "send_osgbpb_result")
+label(0x05F2, "tube_osbyte_2param")
 label(0x05FC, "tube_poll_r2_result")
 label(0x0604, "bytex")
 label(0x0607, "tube_osbyte_long")
@@ -3554,8 +3558,26 @@ comment(0x04F8, "Load reloc addr byte 4 (highest)", inline=True)
 comment(0x04FB, "Store high byte of end address", inline=True)
 comment(0x04FD, "Store byte 3 of end address", inline=True)
 comment(0x04FF, "Return with pointers initialised", inline=True)
-comment(0x0500, "12-entry Tube R2 command dispatch table", inline=True)
-word(0x0500, 12)
+# Tube R2 command dispatch table: 12 entries mapping R2 command
+# codes 0-11 to handler addresses in pages 5-6.
+_tube_r2_entries = [
+    (0x0500, "tube_osrdch",        "R2 cmd 0: OSRDCH"),
+    (0x0502, "tube_oscli",         "R2 cmd 1: OSCLI"),
+    (0x0504, "tube_osbyte_2param", "R2 cmd 2: OSBYTE (2-param)"),
+    (0x0506, "tube_osbyte_long",   "R2 cmd 3: OSBYTE (3-param)"),
+    (0x0508, "tube_osword",        "R2 cmd 4: OSWORD"),
+    (0x050A, "tube_osword_rdln",   "R2 cmd 5: OSWORD 0 (read line)"),
+    (0x050C, "tube_osargs",        "R2 cmd 6: OSARGS"),
+    (0x050E, "tube_osbget",        "R2 cmd 7: OSBGET"),
+    (0x0510, "tube_osbput",        "R2 cmd 8: OSBPUT"),
+    (0x0512, "tube_osfind",        "R2 cmd 9: OSFIND"),
+    (0x0514, "tube_osfile",        "R2 cmd 10: OSFILE"),
+    (0x0516, "tube_osgbpb",        "R2 cmd 11: OSGBPB"),
+]
+for addr, target_label, desc in _tube_r2_entries:
+    word(addr)
+    expr(addr, target_label)
+    comment(addr, desc, inline=True)
 comment(0x0518, "Tube control register value table (8 bytes)", inline=True)
 comment(0x0520, "Read channel handle from R2 for BPUT", inline=True)
 comment(0x052D, "Read channel handle from R2 for BGET", inline=True)
