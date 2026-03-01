@@ -3,6 +3,7 @@ from pathlib import Path
 
 from py8dis.commands import *
 import py8dis.acorn as acorn
+import py8dis.trace as trace
 
 init(assembler_name="beebasm", lower_case=True)
 
@@ -27,6 +28,7 @@ _output_dirpath = Path(os.environ.get(
 ))
 
 load(0x8000, _rom_filepath, "6502")
+trace.cpu.default_subroutine_hook = None
 
 # ============================================================
 # Relocated code blocks
@@ -4375,7 +4377,7 @@ label(0x8E6F, "osbyte_yff")
 # ============================================================
 # Label and code-tracing hooks created by hook_subroutine() above.
 
-subroutine(0x9131, hook=None,
+subroutine(0x9131,
     title="Print inline string, high-bit terminated",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -4397,7 +4399,7 @@ comment(0x9149, "Reload character (pointer may have been clobbered)", inline=Tru
 comment(0x914B, "Print character via OSASCI", inline=True)
 comment(0x9157, "Jump to address of high-bit byte (resumes code)", inline=True)
 
-subroutine(0x96BE, hook=None,
+subroutine(0x96BE,
     title="Generate BRK error from inline string",
     description="""\
 Pops the return address from the stack and copies the null-terminated
@@ -4409,7 +4411,7 @@ comment(0x96BE, "Save error number in Y", inline=True)
 comment(0x96BF, "Pop return address (low) — points to last byte of JSR", inline=True)
 comment(0x96C2, "Pop return address (high)", inline=True)
 
-subroutine(0x96BB, hook=None,
+subroutine(0x96BB,
     title="Generate BRK error from inline string (with logging)",
     description="""\
 Like error_inline, but first conditionally logs the error code to
@@ -4418,7 +4420,7 @@ workspace via sub_c95fb before building the error block.""",
 
 comment(0x96BB, "Conditionally log error code to workspace", inline=True)
 
-subroutine(0x96A2, hook=None,
+subroutine(0x96A2,
     title="Generate 'Bad ...' BRK error from inline string",
     description="""\
 Like error_inline, but prepends 'Bad ' to the error message. Copies
