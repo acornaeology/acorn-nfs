@@ -323,7 +323,7 @@ label(0x802D, "save_registers")
 label(0x8052, "set_jsr_protection")
 label(0x8085, "econet_restore")
 label(0x83DA, "loop_count_rxcb_slot")
-label(0x83FD, "test_tube_release")
+expr_label(0x83FD, "imm_op_dispatch_lo-&81")  # = &847E - &81
 label(0x84B1, "set_rx_buf_len_hi")
 label(0x85F1, "reload_inactive_mask")
 label(0x85F6, "intoff_disable_nmi_op")
@@ -1417,20 +1417,13 @@ label(0x8475, "check_scout_done")
 label(0x847B, "imm_op_out_of_range")
 label(0x8498, "copy_addr_loop")
 label(0x84A2, "svc5_dispatch_lo")
-label(0x84A4, "rx_imm_poke")
-label(0x84AF, "rx_imm_machine_type")
-label(0x84C1, "rx_imm_peek")
 label(0x84D3, "set_tx_reply_flag")
 label(0x84DB, "rx_imm_halt_cont")
 label(0x84E0, "tx_cr2_setup")
 label(0x84E5, "tx_nmi_setup")
 label(0x84EC, "imm_op_build_reply")
 label(0x8522, "imm_op_discard")
-label(0x8539, "tx_done_jsr")
-label(0x8550, "tx_done_os_proc")
-label(0x855C, "tx_done_halt")
 label(0x856C, "halt_spin_loop")
-label(0x8573, "tx_done_continue")
 label(0x857B, "tx_done_exit")
 label(0x8582, "tx_begin")
 label(0x859A, "tx_imm_op_setup")
@@ -1446,11 +1439,8 @@ label(0x860F, "inactive_retry")
 label(0x8625, "tx_active_start")
 label(0x8635, "tx_no_clock_error")
 label(0x8637, "store_tx_error")
-label(0x8683, "tx_ctrl_peek")
-label(0x8687, "tx_ctrl_poke")
 label(0x8689, "store_status_add4")
 label(0x8690, "add_bytes_loop")
-label(0x869B, "tx_ctrl_proc")
 label(0x86A2, "setup_data_xfer")
 label(0x86B8, "copy_bcast_addr")
 label(0x86C4, "setup_unicast_xfer")
@@ -1897,8 +1887,8 @@ subroutine(0x843F, "release_tube",
     "(which shifts bit 7 to 0). Called after completed\n"
     "RX transfers and during discard paths to ensure no\n"
     "stale Tube claims persist.")
-subroutine(0x844B, "discard_after_reset",
-    title="Discard with immediate operation dispatch",
+subroutine(0x844B, "immediate_op",
+    title="Immediate operation handler (port = 0)",
     description="Checks the control byte at l0d30 for immediate\n"
     "operation codes (&81-&88). Codes below &81 or above\n"
     "&88 are out of range and discarded. Codes &87-&88\n"
@@ -1909,6 +1899,54 @@ subroutine(0x844B, "discard_after_reset",
     "If accepted, dispatches via the immediate operation\n"
     "table. Builds the reply by storing data length,\n"
     "station/network, and control byte into the RX buffer.")
+
+label(0x847E, "imm_op_dispatch_lo")  # Immediate op dispatch lo-byte table
+
+# Immediate operation dispatch lo-byte table (&847E-&8485)
+# Indexed by ctrl byte Y=&81-&88 via LDA imm_op_dispatch_lo-&81,Y
+for addr in range(0x847E, 0x8486):
+    byte(addr)
+expr(0x847E, "<(rx_imm_peek-1)")
+expr(0x847F, "<(rx_imm_poke-1)")
+expr(0x8480, "<(rx_imm_exec-1)")
+expr(0x8481, "<(rx_imm_exec-1)")
+expr(0x8482, "<(rx_imm_exec-1)")
+expr(0x8483, "<(rx_imm_halt_cont-1)")
+expr(0x8484, "<(rx_imm_halt_cont-1)")
+expr(0x8485, "<(rx_imm_machine_type-1)")
+comment(0x847E, "Ctrl &81: PEEK", inline=True)
+comment(0x847F, "Ctrl &82: POKE", inline=True)
+comment(0x8480, "Ctrl &83: JSR", inline=True)
+comment(0x8481, "Ctrl &84: UserProc", inline=True)
+comment(0x8482, "Ctrl &85: OSProc", inline=True)
+comment(0x8483, "Ctrl &86: HALT", inline=True)
+comment(0x8484, "Ctrl &87: CONTINUE", inline=True)
+comment(0x8485, "Ctrl &88: machine type query", inline=True)
+
+subroutine(0x8486, "rx_imm_exec",
+    title="RX immediate: JSR/UserProc/OSProc setup",
+    description="Sets up the port buffer to receive remote procedure\n"
+    "data. Copies the 2-byte remote address from &0D32\n"
+    "into the execution address workspace at &0D66, then\n"
+    "jumps to the common receive path at c81c1. Used for\n"
+    "operation types &83 (JSR), &84 (UserProc), and\n"
+    "&85 (OSProc).")
+subroutine(0x84A4, "rx_imm_poke",
+    title="RX immediate: POKE setup",
+    description="Sets up workspace offsets for receiving POKE data.\n"
+    "port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\n"
+    "the common data-receive path at c81af.")
+subroutine(0x84AF, "rx_imm_machine_type",
+    title="RX immediate: machine type query",
+    description="Sets up a buffer at &88C1 (length #&01FC) for the\n"
+    "machine type query response. Falls through to\n"
+    "set_rx_buf_len_hi to configure buffer dimensions,\n"
+    "then branches to set_tx_reply_flag.")
+subroutine(0x84C1, "rx_imm_peek",
+    title="RX immediate: PEEK setup",
+    description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
+    "scout_status=2, then calls tx_calc_transfer to send\n"
+    "the PEEK response data back to the requesting station.")
 subroutine(0x8525, "advance_buffer_ptr",
     title="Increment 4-byte receive buffer pointer",
     description="Adds one to the counter at &A2-&A5 (port_buf_len\n"
@@ -1924,6 +1962,28 @@ subroutine(0x84EC, "imm_op_build_reply",
     "Then disables CB1 interrupts and configures the VIA shift\n"
     "register for outgoing shift-out mode before returning to\n"
     "idle listen.")
+subroutine(0x8539, "tx_done_jsr",
+    title="TX done: remote JSR execution",
+    description="Pushes address &857A on the stack (so RTS returns to\n"
+    "tx_done_exit), then does JMP (l0d66) to call the remote\n"
+    "JSR target routine. When that routine returns via RTS,\n"
+    "control resumes at tx_done_exit.")
+subroutine(0x8550, "tx_done_os_proc",
+    title="TX done: OSProc call",
+    description="Calls the ROM service entry point with X=l0d66,\n"
+    "Y=l0d67. This invokes an OS-level procedure on\n"
+    "behalf of the remote station, then exits via\n"
+    "tx_done_exit.")
+subroutine(0x855C, "tx_done_halt",
+    title="TX done: HALT",
+    description="Sets bit 2 of rx_flags (&0D61), enables interrupts,\n"
+    "and spin-waits until bit 2 is cleared (by a CONTINUE\n"
+    "from the remote station). If bit 2 is already set,\n"
+    "skips to exit.")
+subroutine(0x8573, "tx_done_continue",
+    title="TX done: CONTINUE",
+    description="Clears bit 2 of rx_flags (&0D61), releasing any\n"
+    "station that is halted and spinning in tx_done_halt.")
 subroutine(0x8582, "tx_begin",
     title="Begin TX operation",
     description="Main TX initiation entry point (called via trampoline at &06CE).\n"
@@ -1970,6 +2030,22 @@ subroutine(0x8643, "tx_prepare",
     "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
     "Tube transfers, claims the Tube address; for direct\n"
     "transfers, sets up the buffer pointer from the TXCB.")
+subroutine(0x8683, "tx_ctrl_peek",
+    title="TX ctrl: PEEK transfer setup",
+    description="Sets scout_status=3, then performs a 4-byte addition\n"
+    "of bytes from the TX block into the transfer parameter\n"
+    "workspace at &0D1E-&0D21 (with carry propagation).\n"
+    "Calls tx_calc_transfer to finalise, then exits via\n"
+    "tx_ctrl_exit.")
+subroutine(0x8687, "tx_ctrl_poke",
+    title="TX ctrl: POKE transfer setup",
+    description="Sets scout_status=2 and shares the 4-byte addition\n"
+    "and transfer calculation path with tx_ctrl_peek.")
+subroutine(0x869B, "tx_ctrl_proc",
+    title="TX ctrl: JSR/UserProc/OSProc setup",
+    description="Sets scout_status=2 and calls tx_calc_transfer\n"
+    "directly (no 4-byte address addition needed for\n"
+    "procedure calls). Shared by operation types &83-&85.")
 subroutine(0x86E0, "nmi_tx_data",
     title="NMI TX data handler",
     description="Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the\n"
@@ -4348,8 +4424,8 @@ comment(0x8463, "Decrement rotation counter", inline=True)
 comment(0x8464, "Loop until bit aligned", inline=True)
 comment(0x8466, "Bit set = operation disabled, discard", inline=True)
 comment(0x8468, "Reload ctrl byte for dispatch table", inline=True)
-comment(0x846B, "PHA hi byte / PHA lo byte / RTS dispatch", inline=True)
-comment(0x846D, "Push &9A as dispatch high byte", inline=True)
+comment(0x846B, "Hi byte: all handlers are in page &84", inline=True)
+comment(0x846D, "Push hi byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x846E, "Load handler low byte from jump table", inline=True)
 comment(0x8471, "Push handler low byte", inline=True)
 comment(0x8472, "RTS dispatches to handler", inline=True)
@@ -4359,9 +4435,6 @@ comment(0x8477, "Yes: loop back to continue reading", inline=True)
 comment(0x8479, "Restore A from stack", inline=True)
 comment(0x847A, "Transfer to X", inline=True)
 comment(0x847B, "Jump to discard handler", inline=True)
-comment(0x847E, "Unreachable: data decoded as CPY #&A3", inline=True)
-comment(0x8480, "Unreachable: data decoded as STA &85", inline=True)
-comment(0x8482, "Unreachable: data decoded as STA &DA", inline=True)
 comment(0x8488, "Set port buffer lo", inline=True)
 comment(0x848A, "Buffer length lo = &82", inline=True)
 comment(0x848C, "Set buffer length lo", inline=True)
@@ -6160,7 +6233,6 @@ subroutine(0x8B87, "cmd_utils",
 # data) and start with valid 6502 opcodes. Adding entry points
 # causes py8dis to trace execution from these addresses.
 
-entry(0x847E)   # After imm_op_out_of_range
 entry(0x8C28)   # After svc_9_help return
 entry(0x92A1)   # After cmd_fs_operation utility code
 entry(0x9921)   # Referenced from FS option handler table

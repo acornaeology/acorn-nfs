@@ -6975,7 +6975,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; Discard with full ADLC reset
 ; 
 ; Performs adlc_full_reset (CR1=&C1, reset both TX and RX sections),
-; then falls through to discard_after_reset. Used when the ADLC is
+; then falls through to install_rx_scout_handler. Used when the ADLC is
 ; in an unexpected state and needs a hard reset before returning
 ; to idle listen mode. 5 references — the main error recovery path.
 ; ***************************************************************************************
@@ -6992,8 +6992,8 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; 
 ; Sends RX_DISCONTINUE (CR1=&A2: RIE|RX_DISCONTINUE) to abort the
 ; current frame reception without a full reset, then falls through
-; to discard_after_reset. Used for clean rejection of frames that
-; are correctly formatted but not for us (wrong station/network).
+; to install_rx_scout_handler. Used for clean rejection of frames
+; that are correctly formatted but not for us (wrong station/network).
 ; ***************************************************************************************
 ; &9a3d referenced 3 times by &9740, &9a36, &9b32
 .discard_listen
@@ -7041,15 +7041,8 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; If the operation is not permitted by the mask, it is silently
 ; ignored. LSTAT can be read/set via OSWORD &12 sub-functions 4/5.
 ; ***************************************************************************************
-; Return to idle listen after reset/discard
-; 
-; Just calls adlc_rx_listen (CR1=&82, CR2=&67) to re-enter idle
-; RX mode, then RTI. The simplest of the three discard paths —
-; used as the tail of both discard_reset_listen and discard_listen.
-; ***************************************************************************************
 ; &9a56 referenced 1 time by &9790
 .immediate_op
-.discard_after_reset
     ldy rx_ctrl                                                       ; 9a56: ac 3f 0d    .?.            ; Control byte &81-&88 range check
     cpy #&81                                                          ; 9a59: c0 81       ..             ; Below &81: not an immediate op
     bcc imm_op_out_of_range                                           ; 9a5b: 90 25       .%             ; Out of range low: jump to discard
@@ -8863,7 +8856,6 @@ save pydis_start, pydis_end
 ;     delay_nmi_disable:                        1
 ;     dir_print_char:                           1
 ;     direct_attr_copy:                         1
-;     discard_after_reset:                      1
 ;     dispatch_0_hi-1:                          1
 ;     dispatch_0_lo-1:                          1
 ;     dispatch_cmd:                             1

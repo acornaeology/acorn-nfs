@@ -1451,7 +1451,7 @@ label(0x99C6, "rx_complete_update_rxcb") # Complete RX and update RXCB
 label(0x9A0D, "install_rx_scout_handler") # Install RX scout NMI handler
 label(0x9A14, "copy_scout_to_buffer")  # Copy scout data to port buffer
 label(0x9A21, "copy_scout_bytes")     # Copy scout data bytes (offsets 4-11) to port buffer
-label(0x9A1A, "copy_scout_select")   # Select direct or Tube scout copy path
+expr_label(0x9A1A, "imm_op_dispatch_lo-&81")  # = &9A9B - &81
 label(0x9A4D, "release_tube")          # Release Tube co-processor claim
 label(0x9A2F, "next_scout_byte")       # After page boundary, advance X and loop
 label(0x9A36, "scout_copy_done")       # Finish scout copy, jump to RX completion
@@ -2034,9 +2034,33 @@ for i in range(9):
 
 label(0x9A67, "return_inc_port_buf")
 
-label(0x9AA3, "rx_imm_exec")
+label(0x9AB5, "copy_addr_loop")       # Copy 4-byte remote address loop
 label(0x9ABF, "svc5_dispatch_lo")    # Service 5 (unknown IRQ) dispatch low bytes
-subroutine(0x9AA3, hook=None,
+
+label(0x9A9B, "imm_op_dispatch_lo")  # Immediate op dispatch lo-byte table
+
+# Immediate operation dispatch lo-byte table (&9A9B-&9AA2)
+# Indexed by ctrl byte Y=&81-&88 via LDA imm_op_dispatch_lo-&81,Y
+for addr in range(0x9A9B, 0x9AA3):
+    byte(addr)
+expr(0x9A9B, "<(rx_imm_peek-1)")
+expr(0x9A9C, "<(rx_imm_poke-1)")
+expr(0x9A9D, "<(rx_imm_exec-1)")
+expr(0x9A9E, "<(rx_imm_exec-1)")
+expr(0x9A9F, "<(rx_imm_exec-1)")
+expr(0x9AA0, "<(rx_imm_halt_cont-1)")
+expr(0x9AA1, "<(rx_imm_halt_cont-1)")
+expr(0x9AA2, "<(rx_imm_machine_type-1)")
+comment(0x9A9B, "Ctrl &81: PEEK", inline=True)
+comment(0x9A9C, "Ctrl &82: POKE", inline=True)
+comment(0x9A9D, "Ctrl &83: JSR", inline=True)
+comment(0x9A9E, "Ctrl &84: UserProc", inline=True)
+comment(0x9A9F, "Ctrl &85: OSProc", inline=True)
+comment(0x9AA0, "Ctrl &86: HALT", inline=True)
+comment(0x9AA1, "Ctrl &87: CONTINUE", inline=True)
+comment(0x9AA2, "Ctrl &88: machine type query", inline=True)
+
+subroutine(0x9AA3, "rx_imm_exec", hook=None,
     title="RX immediate: JSR/UserProc/OSProc setup",
     description="""\
 Sets up the port buffer to receive remote procedure data.
@@ -2045,16 +2069,14 @@ the execution address workspace at &0D58, then jumps to
 the common receive path at c9826. Used for operation types
 &83 (JSR), &84 (UserProc), and &85 (OSProc).""")
 
-label(0x9AC1, "rx_imm_poke")
-subroutine(0x9AC1, hook=None,
+subroutine(0x9AC1, "rx_imm_poke", hook=None,
     title="RX immediate: POKE setup",
     description="""\
 Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
 the common data-receive path at c9805.""")
 
-label(0x9ACC, "rx_imm_machine_type")
-subroutine(0x9ACC, hook=None,
+subroutine(0x9ACC, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
 Sets up a buffer at &7F21 (length #&01FC) for the machine
@@ -2062,8 +2084,7 @@ type query response, then jumps to the query handler at
 c9b0f. Returns system identification data to the remote
 station.""")
 
-label(0x9ADE, "rx_imm_peek")
-subroutine(0x9ADE, hook=None,
+subroutine(0x9ADE, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
@@ -2077,8 +2098,7 @@ Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 # Targets of dispatch table 2 at &9B1D/&9B22.
 # Called when an outbound immediate operation TX completes.
 
-label(0x9B47, "tx_done_jsr")
-subroutine(0x9B47, hook=None,
+subroutine(0x9B47, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
 Pushes address &9C0D on the stack (so RTS returns to
@@ -2086,32 +2106,28 @@ tx_done_exit), then does JMP (l0d58) to call the remote
 JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
 
-label(0x9B50, "tx_done_user_proc")
-subroutine(0x9B50, hook=None,
+subroutine(0x9B50, "tx_done_user_proc", hook=None,
     title="TX done: UserProc event",
     description="""\
 Generates a network event (event 8) via OSEVEN with
 X=l0d58, A=l0d59 (the remote address). This notifies
 the user program that a UserProc operation has completed.""")
 
-label(0x9B5E, "tx_done_os_proc")
-subroutine(0x9B5E, hook=None,
+subroutine(0x9B5E, "tx_done_os_proc", hook=None,
     title="TX done: OSProc call",
     description="""\
 Calls the ROM entry point at &8000 (rom_header) with
 X=l0d58, Y=l0d59. This invokes an OS-level procedure
 on behalf of the remote station.""")
 
-label(0x9B6A, "tx_done_halt")
-subroutine(0x9B6A, hook=None,
+subroutine(0x9B6A, "tx_done_halt", hook=None,
     title="TX done: HALT",
     description="""\
 Sets bit 2 of rx_flags (&0D64), enables interrupts, and
 spin-waits until bit 2 is cleared (by a CONTINUE from the
 remote station). If bit 2 is already set, skips to exit.""")
 
-label(0x9B81, "tx_done_continue")
-subroutine(0x9B81, hook=None,
+subroutine(0x9B81, "tx_done_continue", hook=None,
     title="TX done: CONTINUE",
     description="""\
 Clears bit 2 of rx_flags (&0D64), releasing any station
@@ -2175,8 +2191,7 @@ label(0x9B89, "tx_done_exit")
 # Called to set up the scout control byte and transfer
 # parameters for outbound immediate operations.
 
-label(0x9CA2, "tx_ctrl_peek")
-subroutine(0x9CA2, hook=None,
+subroutine(0x9CA2, "tx_ctrl_peek", hook=None,
     title="TX ctrl: PEEK transfer setup",
     description="""\
 Sets scout_status=3, then performs a 4-byte addition of
@@ -2185,15 +2200,13 @@ workspace at &0D1E-&0D21 (with carry propagation).
 Calls tx_calc_transfer to finalise, then exits via
 tx_ctrl_exit.""")
 
-label(0x9CA6, "tx_ctrl_poke")
-subroutine(0x9CA6, hook=None,
+subroutine(0x9CA6, "tx_ctrl_poke", hook=None,
     title="TX ctrl: POKE transfer setup",
     description="""\
 Sets scout_status=2 and shares the 4-byte addition and
 transfer calculation path with tx_ctrl_peek.""")
 
-label(0x9CBA, "tx_ctrl_proc")
-subroutine(0x9CBA, hook=None,
+subroutine(0x9CBA, "tx_ctrl_proc", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -6953,7 +6966,7 @@ Increments a 4-byte counter across port_buf_len / port_buf_len_hi
 Returns Z=1 if the counter wraps to zero.""")
 
 # ============================================================
-# Discard paths (&99DB / &99E8 / &9A46)
+# Discard paths (&99FD / &9A0A)
 # ============================================================
 subroutine(0x99FD, "discard_reset_listen", hook=None,
     title="Discard with Tube release",
@@ -7022,13 +7035,6 @@ comment(0x9A63, "No further carry: done", inline=True)
 comment(0x9A65, "Carry into fourth byte", inline=True)
 comment(0x9A67, "Return", inline=True)
 
-subroutine(0x9A68, "discard_after_reset", hook=None,
-    title="Discard with immediate operation dispatch",
-    description="""\
-Co-located with immediate_op. After the scout ACK is sent for a
-port-0 frame, this entry dispatches on the control byte via the
-jump table at c99f8. Also reached as a discard path when the
-immediate operation is not permitted by the protection mask.""")
 comment(0x9A68, "Control byte &81-&88 range check", inline=True)
 comment(0x9A6B, "Below &81: not an immediate op", inline=True)
 comment(0x9A6D, "Out of range low: jump to discard", inline=True)
@@ -7046,8 +7052,8 @@ comment(0x9A80, "Decrement rotation counter", inline=True)
 comment(0x9A81, "Loop until bit aligned", inline=True)
 comment(0x9A83, "Bit set = operation disabled, discard", inline=True)
 comment(0x9A85, "Reload ctrl byte for dispatch table", inline=True)
-comment(0x9A88, "PHA hi byte / PHA lo byte / RTS dispatch", inline=True)
-comment(0x9A8A, "Push &9A as dispatch high byte", inline=True)
+comment(0x9A88, "Hi byte: all handlers are in page &9A", inline=True)
+comment(0x9A8A, "Push hi byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x9A8B, "Load handler low byte from jump table", inline=True)
 comment(0x9A8E, "Push handler low byte", inline=True)
 comment(0x9A8F, "RTS dispatches to handler", inline=True)
@@ -7057,7 +7063,6 @@ comment(0x9A94, "Yes: loop back to continue reading", inline=True)
 comment(0x9A96, "Restore A from stack", inline=True)
 comment(0x9A97, "Transfer to X", inline=True)
 comment(0x9A98, "Jump to discard handler", inline=True)
-comment(0x9A9B, "Unreferenced data (scout tail bytes)", inline=True)
 
 subroutine(0x9B09, "imm_op_build_reply", hook=None,
     title="Build immediate operation reply header",
@@ -8449,7 +8454,6 @@ comment(0x9AAD, "Set buffer length hi", inline=True)
 comment(0x9AAF, "Load RX page hi for buffer", inline=True)
 comment(0x9AB1, "Set port buffer hi", inline=True)
 comment(0x9AB3, "Y=3: copy 4 bytes (3 down to 0)", inline=True)
-label(0x9AB5, "copy_addr_loop")       # Copy 4-byte remote address loop
 comment(0x9AB5, "Load remote address byte", inline=True)
 comment(0x9AB8, "Store to exec address workspace", inline=True)
 comment(0x9ABB, "Next byte (descending)", inline=True)

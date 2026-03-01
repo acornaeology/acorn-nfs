@@ -3701,13 +3701,13 @@ If the operation is not permitted by the mask, it is silently
 ignored. LSTAT can be read/set via OSWORD &12 sub-functions 4/5.""")
 
 # ============================================================
-# Discard paths (&9A4A / &9A56 / &9A6F)
+# Discard paths (&9A4A / &9A56)
 # ============================================================
 subroutine(0x9A4A, "discard_reset_listen", hook=None,
     title="Discard with full ADLC reset",
     description="""\
 Performs adlc_full_reset (CR1=&C1, reset both TX and RX sections),
-then falls through to discard_after_reset. Used when the ADLC is
+then falls through to install_rx_scout_handler. Used when the ADLC is
 in an unexpected state and needs a hard reset before returning
 to idle listen mode. 5 references — the main error recovery path.""")
 
@@ -3716,15 +3716,8 @@ subroutine(0x9A56, "discard_listen", hook=None,
     description="""\
 Sends RX_DISCONTINUE (CR1=&A2: RIE|RX_DISCONTINUE) to abort the
 current frame reception without a full reset, then falls through
-to discard_after_reset. Used for clean rejection of frames that
-are correctly formatted but not for us (wrong station/network).""")
-
-subroutine(0x9A6F, "discard_after_reset", hook=None,
-    title="Return to idle listen after reset/discard",
-    description="""\
-Just calls adlc_rx_listen (CR1=&82, CR2=&67) to re-enter idle
-RX mode, then RTI. The simplest of the three discard paths —
-used as the tail of both discard_reset_listen and discard_listen.""")
+to install_rx_scout_handler. Used for clean rejection of frames
+that are correctly formatted but not for us (wrong station/network).""")
 
 # ============================================================
 # Unreferenced data block (&9F5A-&9F69)
@@ -8262,7 +8255,7 @@ comment(0x9DB5, "bit0 clear: install reply handler", inline=True)
 comment(0x9DBC, "High byte of nmi_reply_scout addr", inline=True)
 comment(0x9DBE, "Install handler and RTI", inline=True)
 
-# --- discard_after_reset (&9A6F): immediate op dispatch ---
+# --- immediate_op (&9A6F): immediate op dispatch ---
 comment(0x9A7E, "Load source station number", inline=True)
 comment(0x9A81, "Station >= &F0? (privileged)", inline=True)
 comment(0x9A83, "Privileged: skip protection check", inline=True)
