@@ -18,20 +18,27 @@ TERMINATING_MNEMONICS = {"rts", "jmp", "brk", "rti"}
 # Branch mnemonics (conditional)
 BRANCH_MNEMONICS = {"bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs"}
 
-# Memory regions: subroutines only extend within their region
-MEMORY_REGIONS = [
+# Memory regions: subroutines only extend within their region.
+# The ROM region is added dynamically by build_memory_regions() based on JSON metadata.
+BASE_MEMORY_REGIONS = [
     (0x0016, 0x0076),   # zero page workspace
     (0x0400, 0x04FF),   # relocated page 4
     (0x0500, 0x05FF),   # relocated page 5
     (0x0600, 0x06FF),   # relocated page 6
     (0x0D00, 0x0DFF),   # NMI workspace
-    (0x8000, 0x9FFF),   # ROM
 ]
 
 
-def region_for_addr(addr):
+def build_memory_regions(meta):
+    """Build MEMORY_REGIONS list with ROM range from JSON metadata."""
+    load_addr = meta["load_addr"]
+    end_addr = meta["end_addr"] - 1
+    return BASE_MEMORY_REGIONS + [(load_addr, end_addr)]
+
+
+def region_for_addr(addr, memory_regions):
     """Return the memory region (start, end) containing addr, or None."""
-    for start, end in MEMORY_REGIONS:
+    for start, end in memory_regions:
         if start <= addr <= end:
             return (start, end)
     return None
@@ -58,6 +65,7 @@ def load_subroutines(json_filepath):
     data = json.loads(Path(json_filepath).read_text())
     items = data["items"]
     raw_subs = data.get("subroutines", [])
+    memory_regions = build_memory_regions(data.get("meta", {}))
 
     # Filter out OS entry points (addr >= 0xFF00) — these are stubs
     rom_subs = [s for s in raw_subs if s["addr"] < 0xFF00]
@@ -80,14 +88,14 @@ def load_subroutines(json_filepath):
 
     for idx, sub in enumerate(rom_subs):
         sub_addr = sub["addr"]
-        sub_region = region_for_addr(sub_addr)
+        sub_region = region_for_addr(sub_addr, memory_regions)
 
         # Find extent end: next sub in same region, or region end
         extent_end = None
         next_sub_info = None
         for j in range(idx + 1, len(rom_subs)):
             candidate = rom_subs[j]
-            if region_for_addr(candidate["addr"]) == sub_region:
+            if region_for_addr(candidate["addr"], memory_regions) == sub_region:
                 extent_end = candidate["addr"]
                 next_sub_info = {
                     "addr": candidate["addr"],
@@ -103,7 +111,7 @@ def load_subroutines(json_filepath):
             if extent_end is not None and item["addr"] >= extent_end:
                 break
             # Must be in same region
-            if sub_region and region_for_addr(item["addr"]) == sub_region:
+            if sub_region and region_for_addr(item["addr"], memory_regions) == sub_region:
                 sub_items.append(item)
             elif sub_region is None:
                 if extent_end is None or item["addr"] < extent_end:
@@ -457,7 +465,120 @@ ALL_FLAGS = [
 ]
 
 
-def audit(version_dirpath, version, sub_target=None, summary=False, flag_filter=None):
+def find_undeclared_subs(json_filepath):
+    """Find JSR targets that lack subroutine() declarations.
+
+    Returns a list of dicts with: addr, name, range_start, range_end,
+    range_str, code_count, data_count, caller_count, container.
+    """
+    data = json.loads(Path(json_filepath).read_text())
+    items = data["items"]
+    raw_subs = data.get("subroutines", [])
+
+    declared_addrs = {s["addr"] for s in raw_subs}
+    rom_subs = sorted(
+        [s for s in raw_subs if s["addr"] < 0xFF00],
+        key=lambda s: s["addr"],
+    )
+
+    items_by_addr = {item["addr"]: item for item in items}
+    sorted_addrs = sorted(items_by_addr.keys())
+
+    # Collect all JSR targets and their caller counts
+    jsr_caller_counts = {}
+    for item in items:
+        if item.get("mnemonic") == "jsr":
+            t = item["target"]
+            jsr_caller_counts[t] = jsr_caller_counts.get(t, 0) + 1
+
+    # Undeclared = JSR targets not in the declared set, with a corresponding item
+    undeclared_addrs = sorted(
+        t for t in jsr_caller_counts
+        if t not in declared_addrs and t in items_by_addr
+    )
+
+    results = []
+    for addr in undeclared_addrs:
+        item = items_by_addr[addr]
+        labels = item.get("labels", [])
+        name = labels[0] if labels else f"&{addr:04X}"
+
+        # Scan forward from entry to find the end of the routine
+        range_start = addr
+        range_end = None
+        falls_through = False
+        addr_idx = sorted_addrs.index(addr) if addr in sorted_addrs else None
+        code_count = 0
+        data_count = 0
+
+        if addr_idx is not None:
+            for i in range(addr_idx, len(sorted_addrs)):
+                a = sorted_addrs[i]
+                scan_item = items_by_addr[a]
+                if scan_item.get("type") == "code":
+                    code_count += 1
+                else:
+                    data_count += 1
+                mnemonic = scan_item.get("mnemonic")
+                if mnemonic in TERMINATING_MNEMONICS:
+                    range_end = a
+                    break
+            else:
+                falls_through = True
+
+            if range_end is None and not falls_through:
+                falls_through = True
+
+        if falls_through:
+            range_str = f"&{range_start:04X}-FALL\u2192"
+        elif range_end is not None:
+            range_str = f"&{range_start:04X}-&{range_end:04X}"
+        else:
+            range_str = f"&{range_start:04X}-?"
+
+        container = find_containing_sub(addr, rom_subs)
+        container_name = (
+            container.get("name", f"&{container['addr']:04X}")
+            if container else "?"
+        )
+
+        results.append({
+            "addr": addr,
+            "name": name,
+            "range_str": range_str,
+            "code_count": code_count,
+            "data_count": data_count,
+            "caller_count": jsr_caller_counts[addr],
+            "container": container_name,
+        })
+
+    return results
+
+
+def format_undeclared_summary(candidates):
+    """Print summary table of undeclared subroutine candidates."""
+    if not candidates:
+        print("No undeclared subroutine candidates found.")
+        return
+
+    print(f"{'ADDR':<7s} {'NAME':<33s} {'RANGE':<17s} {'ITEMS':>7s} "
+          f"{'CALLS':>5s}  CONTAINER")
+    print(f"{'----':<7s} {'----':<33s} {'-----':<17s} {'-----':>7s} "
+          f"{'-----':>5s}  ---------")
+
+    for c in candidates:
+        addr_str = f"&{c['addr']:04X}"
+        name = c["name"][:32]
+        items_str = f"{c['code_count']}/{c['data_count']}"
+        print(f"{addr_str:<7s} {name:<33s} {c['range_str']:<17s} "
+              f"{items_str:>7s} {c['caller_count']:>5d}  {c['container']}")
+
+    total_callers = sum(c["caller_count"] for c in candidates)
+    print(f"\n{len(candidates)} undeclared routines ({total_callers} JSR callers total)")
+
+
+def audit(version_dirpath, version, sub_target=None, summary=False,
+          flag_filter=None, undeclared=False):
     """Main entry point. Returns exit code 0 on success, 1 on error."""
     pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
     json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
@@ -467,6 +588,11 @@ def audit(version_dirpath, version, sub_target=None, summary=False, flag_filter=
         print(f"Error: {json_filepath} not found (run disassemble first)",
               file=sys.stderr)
         return 1
+
+    if undeclared:
+        candidates = find_undeclared_subs(json_filepath)
+        format_undeclared_summary(candidates)
+        return 0
 
     subs = load_subroutines(json_filepath)
 

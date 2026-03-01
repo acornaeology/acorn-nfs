@@ -134,7 +134,7 @@ def cmd_audit(args):
     version_dirpath = get_version_dirpath(args.version)
     sys.exit(audit(version_dirpath, args.version,
                    sub_target=args.sub, summary=args.summary,
-                   flag_filter=args.flag))
+                   flag_filter=args.flag, undeclared=args.undeclared))
 
 
 def cmd_cfg(args):
@@ -240,6 +240,8 @@ def main():
     audit_parser.add_argument("--summary", action="store_true",
                               help="Show summary table (default if no --sub)")
     audit_parser.add_argument("--flag", help="Filter summary by flag")
+    audit_parser.add_argument("--undeclared", action="store_true",
+                              help="List JSR targets without subroutine() declarations")
     audit_parser.set_defaults(func=cmd_audit)
 
     cfg_parser = subparsers.add_parser(
