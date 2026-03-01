@@ -689,7 +689,11 @@ label(0xA45F, "cmd_table_nfs_iam")
 label(0xA4E6, "loop_copy_osword_data")
 label(0xA4FA, "loop_copy_osword_flag")
 label(0xA508, "osword_dispatch_lo_table")
-label(0xA50F, "osword_dispatch_hi_data")
+label(0xA50F, "osword_dispatch_hi_table")
+
+# Mark OSWORD dispatch table entries as symbolic address pairs.
+for i in range(7):
+    rts_code_ptr(0xA508 + i, 0xA50F + i)
 label(0xA526, "save_txcb_and_convert")
 label(0xA573, "loop_copy_bcd_to_pb")
 label(0xA583, "loop_bcd_add")
@@ -5436,17 +5440,23 @@ comment(0x947D, "&FF padding (unused ROM space)", inline=True)
 # ============================================================
 # Service dispatch table (&89C0/&89E5)
 # ============================================================
-# 15-entry PHA/PHA/RTS dispatch table used by c8e33.
-# Index = mapped service code + 1 (Y=0 on entry adds 1 to X).
+# 37-entry PHA/PHA/RTS dispatch table used by svc_dispatch.
+# Indices 0-14: service dispatch (index = mapped service code + 1).
+# Indices 15-36: extended dispatch for FS commands and OSWORD routing.
 # Service codes 1-12 map directly; 18 maps to index 14 via SBC #5.
 # Indices 1, 7, 11 point to &8E42 (RTS = no-op).
 
 label(0x89C0, "svc_dispatch_lo")
 label(0x89E5, "svc_dispatch_hi")
 
+# Mark dispatch table entries as symbolic address pairs.
+# Skip index 0 (&CB05 — outside ROM range, unused dispatch slot).
+for i in range(1, 37):
+    rts_code_ptr(0x89C0 + i, 0x89E5 + i)
+
 # Service dispatch targets — already labelled
 # Index 6 (svc 5): &8023 = nmi_handler (unrecognised interrupt)
-# Index 12 (svc 11): &8085 (NMI claim)
+# Index 12 (svc 11): &8085 = svc_11_nmi_claim (NMI claim)
 # Index 13 (svc 12): &8979 = wait_idle_and_reset (NMI release)
 
 # Service dispatch targets — new entry points
@@ -5599,6 +5609,49 @@ entry(0xAFCE)   # *PS
 entry(0xB985)   # *Type
 entry(0xB321)   # *Unprot
 entry(0x8ACC)   # *Roff
+
+# Mark lo/hi dispatch bytes as symbolic label expressions.
+# Each entry: (lo_addr, hi_addr, target_label).
+_cmd_entries = [
+    # Sub-table 1: FS commands
+    (0xA3DE, 0xA3DF, "cmd_close"),
+    (0xA3E5, 0xA3E6, "cmd_dump"),
+    (0xA3EB, 0xA3EC, "cmd_net_fs"),
+    (0xA3F4, 0xA3F5, "cmd_pollps"),
+    (0xA3FC, 0xA3FD, "cmd_print"),
+    (0xA403, 0xA404, "cmd_prot"),
+    (0xA408, 0xA409, "cmd_ps"),
+    (0xA40F, 0xA410, "cmd_roff"),
+    (0xA416, 0xA417, "cmd_type"),
+    (0xA41F, 0xA420, "cmd_unprot"),
+    # Sub-table 2: NFS commands
+    (0xA429, 0xA42A, "cmd_fs_operation"),   # *Access
+    (0xA42F, 0xA430, "cmd_bye"),
+    (0xA436, 0xA437, "cmd_cdir"),
+    (0xA43F, 0xA440, "cmd_fs_operation"),   # *Delete
+    (0xA445, 0xA446, "cmd_dir"),
+    (0xA44A, 0xA44B, "cmd_ex"),
+    (0xA451, 0xA452, "cmd_flip"),
+    (0xA456, 0xA457, "cmd_fs"),
+    (0xA45D, 0xA45E, "cmd_fs_operation"),   # *Info
+    (0xA464, 0xA465, "cmd_iam"),
+    (0xA46B, 0xA46C, "cmd_lcat"),
+    (0xA471, 0xA472, "cmd_lex"),
+    (0xA477, 0xA478, "cmd_fs_operation"),   # *Lib
+    (0xA47E, 0xA47F, "cmd_pass"),
+    (0xA487, 0xA488, "cmd_remove"),
+    (0xA490, 0xA491, "cmd_rename"),
+    (0xA497, 0xA498, "cmd_wipe"),
+    # Sub-table 3: Net/Utils commands
+    (0xA4A0, 0xA4A1, "cmd_net_local"),
+    (0xA4A8, 0xA4A9, "cmd_utils"),
+    # Sub-table 4 (copro) skipped — targets outside ROM range
+]
+for lo_addr, hi_addr, target_label in _cmd_entries:
+    byte(lo_addr)
+    expr(lo_addr, make_lo(target_label + "-1"))
+    byte(hi_addr)
+    expr(hi_addr, make_hi(target_label + "-1"))
 
 label(0xB97F, "cmd_close")
 label(0xBA06, "cmd_dump")
@@ -5895,7 +5948,6 @@ entry(0x9BAF)   # Large undecoded block (266 bytes)
 entry(0x9CC8)   # After &9CB8 block
 entry(0x9E23)   # Large undecoded block (157 bytes)
 entry(0x9F55)   # Large undecoded block (203 bytes)
-entry(0xA50F)   # Large undecoded block (821 bytes)
 entry(0xA8D0)   # Large undecoded block (220 bytes)
 entry(0xA9D0)   # After &A9CF code
 entry(0xAADB)   # After &AACF data table
@@ -8170,11 +8222,8 @@ comment(0xA503, "Load PB byte 0 (OSWORD sub-code)", inline=True)
 comment(0xA505, "Clear service state", inline=True)
 comment(0xA507, "RTS dispatches to pushed handler", inline=True)
 
-# Dispatch tables are at &A508 (lo) and &A50F (hi)
-comment(0xA50F, "Data: OSWORD dispatch hi table (&A5)", inline=True)
-comment(0xA511, "Data: OSWORD dispatch hi (&A5)", inline=True)
-comment(0xA513, "Data: OSWORD dispatch hi (&A6)", inline=True)
-comment(0xA515, "Data: OSWORD dispatch hi (&A8)", inline=True)
+# Dispatch tables at &A508 (lo) and &A50F (hi) are handled by
+# rts_code_ptr() calls which produce symbolic label expressions.
 
 # OSWORD &0E handler (&A516): read clock
 # Copies clock data and converts binary to BCD
