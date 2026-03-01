@@ -433,7 +433,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     jsr tube_send_r4                                                  ; 93a6: 20 9e 06     .. :0449[2]   ; Send claimed address via R4
     ldy #&18                                                          ; 93a9: a0 18       ..  :044c[2]   ; Y=&18: enable Tube control register
     sty tube_status_1_and_tube_control                                ; 93ab: 8c e0 fe    ... :044e[2]   ; Enable Tube interrupt generation
-    lda r2_cmd_table,x                                                ; 93ae: bd 18 05    ... :0451[2]   ; Look up Tube control bits for this xfer type
+    lda tube_ctrl_values,x                                            ; 93ae: bd 18 05    ... :0451[2]   ; Look up Tube control bits for this xfer type
     sta tube_status_1_and_tube_control                                ; 93b1: 8d e0 fe    ... :0454[2]   ; Apply transfer-specific control bits
     lsr a                                                             ; 93b4: 4a          J   :0457[2]   ; LSR: check bit 2 (2-byte flush needed?)
     lsr a                                                             ; 93b5: 4a          J   :0458[2]   ; LSR: shift bit 2 to carry
@@ -604,9 +604,22 @@ tube_jmp_target = tube_dispatch_cmd+1
     equw tube_osfind                                                  ; 9468: 42 05       B.  :0512[3]   ; R2 cmd 9: OSFIND
     equw tube_osfile                                                  ; 946a: a9 05       ..  :0514[3]   ; R2 cmd 10: OSFILE
     equw tube_osgbpb                                                  ; 946c: d1 05       ..  :0516[3]   ; R2 cmd 11: OSGBPB
+; Tube ULA control register values, indexed by transfer
+; type (0-7). Written to &FEE0 after clearing V+M with
+; &18. Bit layout: S=set/clear, T=reset regs, P=PRST,
+; V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
+; Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
+; value to set or clear.
 ; &946e referenced 1 time by &0451[2]
-.r2_cmd_table
-    equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 946e: 86 88 96... ... :0518[3]
+.tube_ctrl_values
+    equb &86                                                          ; 946e: 86          .   :0518[3]   ; Type 0: set I+J (1-byte R3, parasite to host)
+    equb &88                                                          ; 946f: 88          .   :0519[3]   ; Type 1: set M (1-byte R3, host to parasite)
+    equb &96                                                          ; 9470: 96          .   :051a[3]   ; Type 2: set V+I+J (2-byte R3, parasite to host)
+    equb &98                                                          ; 9471: 98          .   :051b[3]   ; Type 3: set V+M (2-byte R3, host to parasite)
+    equb &18                                                          ; 9472: 18          .   :051c[3]   ; Type 4: clear V+M (execute code at address)
+    equb &18                                                          ; 9473: 18          .   :051d[3]   ; Type 5: clear V+M (release address claim)
+    equb &82                                                          ; 9474: 82          .   :051e[3]   ; Type 6: set I (define event handler)
+    equb &18                                                          ; 9475: 18          .   :051f[3]   ; Type 7: clear V+M (transfer and release)
 
 .tube_osbput
     jsr tube_read_r2                                                  ; 9476: 20 c5 06     .. :0520[3]   ; Read channel handle from R2
@@ -8889,7 +8902,6 @@ save pydis_start, pydis_end
 ;     print_space:                              1
 ;     print_station_info:                       1
 ;     quote1:                                   1
-;     r2_cmd_table:                             1
 ;     rchex:                                    1
 ;     read_args_size:                           1
 ;     read_fs_handle:                           1
@@ -9015,6 +9027,7 @@ save pydis_start, pydis_end
 ;     tube_chars_done:                          1
 ;     tube_claim_default:                       1
 ;     tube_code_page4:                          1
+;     tube_ctrl_values:                         1
 ;     tube_data_ptr_hi:                         1
 ;     tube_data_register_4:                     1
 ;     tube_escape_check:                        1

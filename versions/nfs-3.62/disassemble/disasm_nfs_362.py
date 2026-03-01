@@ -577,7 +577,26 @@ comment(0x04FB, "Store high byte of end address", inline=True)
 comment(0x04FD, "Store byte 3 of end address", inline=True)
 comment(0x04FF, "Return with pointers initialised", inline=True)
 comment(0x0500, "12-entry Tube R2 command dispatch table", inline=True)
-comment(0x0518, "Tube control register value table (8 bytes)", inline=True)
+comment(0x0518, """\
+Tube ULA control register values, indexed by transfer
+type (0-7). Written to &FEE0 after clearing V+M with
+&18. Bit layout: S=set/clear, T=reset regs, P=PRST,
+V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
+Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
+value to set or clear.""")
+_tube_ctrl_entries = [
+    (0x0518, "Type 0: set I+J (1-byte R3, parasite to host)"),
+    (0x0519, "Type 1: set M (1-byte R3, host to parasite)"),
+    (0x051A, "Type 2: set V+I+J (2-byte R3, parasite to host)"),
+    (0x051B, "Type 3: set V+M (2-byte R3, host to parasite)"),
+    (0x051C, "Type 4: clear V+M (execute code at address)"),
+    (0x051D, "Type 5: clear V+M (release address claim)"),
+    (0x051E, "Type 6: set I (define event handler)"),
+    (0x051F, "Type 7: clear V+M (transfer and release)"),
+]
+for addr, desc in _tube_ctrl_entries:
+    byte(addr)
+    comment(addr, desc, inline=True)
 
 # Relocated code — page 5 (Tube dispatch table, WRCH, file I/O handlers)
 # Reference: NFS13 (TASKS table, BPUT, BGET, RDCHZ, FIND, ARGS, STRNG, CLI, FILE)

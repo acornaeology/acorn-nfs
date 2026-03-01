@@ -7490,7 +7490,7 @@ label(0x8001, "lang_entry_lo")        # ROM language entry address low byte
 label(0x8002, "lang_entry_hi")        # ROM language entry address high byte
 label(0x8004, "svc_entry_lo")         # ROM service entry address low byte
 label(0x0051, "tube_jmp_target")      # Self-modifying JMP operand
-label(0x0518, "r2_cmd_table")         # R2 command byte table (8 entries)
+label(0x0518, "tube_ctrl_values")     # Tube ULA control register lookup table
 label(0x86AD, "tx_poll_status")       # BIT target for poll loop (bit7 busy)
 label(0x8C06, "fs_cmd_dispatch_hi")   # FS command dispatch address high byte
 label(0x8D08, "boot_option_text")     # Boot option name/offset table
@@ -8171,6 +8171,26 @@ comment(0x043E, "Send transfer address byte", inline=True)
 comment(0x04A9, "Load ROM header byte for TX", inline=True)
 
 # tube_dispatch_table (&0500)
+comment(0x0518, """\
+Tube ULA control register values, indexed by transfer
+type (0-7). Written to &FEE0 after clearing V+M with
+&18. Bit layout: S=set/clear, T=reset regs, P=PRST,
+V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
+Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
+value to set or clear.""")
+_tube_ctrl_entries = [
+    (0x0518, "Type 0: set I+J (1-byte R3, parasite to host)"),
+    (0x0519, "Type 1: set M (1-byte R3, host to parasite)"),
+    (0x051A, "Type 2: set V+I+J (2-byte R3, parasite to host)"),
+    (0x051B, "Type 3: set V+M (2-byte R3, host to parasite)"),
+    (0x051C, "Type 4: clear V+M (execute code at address)"),
+    (0x051D, "Type 5: clear V+M (release address claim)"),
+    (0x051E, "Type 6: set I (define event handler)"),
+    (0x051F, "Type 7: clear V+M (transfer and release)"),
+]
+for addr, desc in _tube_ctrl_entries:
+    byte(addr)
+    comment(addr, desc, inline=True)
 comment(0x0520, "Read channel handle from R2", inline=True)
 comment(0x052D, "Read channel handle from R2", inline=True)
 comment(0x053B, "Send carry+data byte to Tube R2", inline=True)

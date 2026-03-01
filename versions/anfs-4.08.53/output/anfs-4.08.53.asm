@@ -691,9 +691,22 @@ tube_cmd_lo = tube_dispatch_cmd+1
     equw tube_osfind                                                  ; bca2: 42 05       B.  :0512[3]   ; R2 cmd 9: OSFIND
     equw tube_osfile                                                  ; bca4: a9 05       ..  :0514[3]   ; R2 cmd 10: OSFILE
     equw tube_osgbpb                                                  ; bca6: d1 05       ..  :0516[3]   ; R2 cmd 11: OSGBPB
+; Tube ULA control register values, indexed by transfer
+; type (0-7). Written to &FEE0 after clearing V+M with
+; &18. Bit layout: S=set/clear, T=reset regs, P=PRST,
+; V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
+; Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
+; value to set or clear.
 ; &bca8 referenced 1 time by &0453[2]
 .tube_ctrl_values
-    equb &86, &88, &96, &98, &18, &18, &82, &18                       ; bca8: 86 88 96... ... :0518[3]   ; Tube control register value table (8 bytes)
+    equb &86                                                          ; bca8: 86          .   :0518[3]   ; Type 0: set I+J (1-byte R3, parasite to host)
+    equb &88                                                          ; bca9: 88          .   :0519[3]   ; Type 1: set M (1-byte R3, host to parasite)
+    equb &96                                                          ; bcaa: 96          .   :051a[3]   ; Type 2: set V+I+J (2-byte R3, parasite to host)
+    equb &98                                                          ; bcab: 98          .   :051b[3]   ; Type 3: set V+M (2-byte R3, host to parasite)
+    equb &18                                                          ; bcac: 18          .   :051c[3]   ; Type 4: clear V+M (execute code at address)
+    equb &18                                                          ; bcad: 18          .   :051d[3]   ; Type 5: clear V+M (release address claim)
+    equb &82                                                          ; bcae: 82          .   :051e[3]   ; Type 6: set I (define event handler)
+    equb &18                                                          ; bcaf: 18          .   :051f[3]   ; Type 7: clear V+M (transfer and release)
 
 .tube_osbput
     jsr tube_read_r2                                                  ; bcb0: 20 c5 06     .. :0520[3]   ; Read channel handle from R2 for BPUT
