@@ -3204,6 +3204,11 @@ listen_jmp_hi = reset_enter_listen+2
     rti                                                               ; 89bc: 40          @              ; Return from interrupt
 
     equb 1, 0, 8                                                      ; 89bd: 01 00 08    ...
+; Service dispatch table (37 entries, split lo/hi).
+; PHA/PHA/RTS dispatch used by svc_dispatch.
+; Indices 0-14: service calls (index = service + 1).
+; Indices 15-36: FS command and OSWORD routing.
+; Indices 1, 7, 11 point to return_4 (no-op RTS).
 ; &89c0 referenced 1 time by &8e3c
 .svc_dispatch_lo
     equb 4                                                            ; 89c0: 04          .
@@ -8918,6 +8923,12 @@ bad_prefix = bad_str_anchor+1
     ldy #&a3                                                          ; a3d3: a0 a3       ..             ; Boot command address high (&A3xx)
     jmp oscli                                                         ; a3d5: 4c f7 ff    L..            ; Execute boot command via OSCLI
 
+; Star command table (4 interleaved sub-tables).
+; Each entry: ASCII name + flag byte (&80+) +
+; lo/hi dispatch address (PHA/PHA/RTS, address-1).
+; Sub-tables separated by &80 sentinel bytes.
+; 1: FS commands  2: NFS commands
+; 3: Net/Utils    4: Copro commands
 ; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
     equb &43                                                          ; a3d8: 43          C
@@ -9123,6 +9134,9 @@ bad_prefix = bad_str_anchor+1
 .return_21
     rts                                                               ; a507: 60          `              ; RTS dispatches to pushed handler
 
+; OSWORD dispatch table (7 entries, split lo/hi).
+; PHA/PHA/RTS dispatch used by svc_8_osword.
+; Maps OSWORD codes &0E-&14 to handler routines.
 ; &a508 referenced 1 time by &a4f4
 .osword_dispatch_lo_table
     equb <(sub_ca516-1)                                               ; a508: 15          .

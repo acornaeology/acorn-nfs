@@ -688,6 +688,11 @@ label(0xA3DA, "cmd_table_fs_hi")
 label(0xA45F, "cmd_table_nfs_iam")
 label(0xA4E6, "loop_copy_osword_data")
 label(0xA4FA, "loop_copy_osword_flag")
+comment(0xA508, """\
+OSWORD dispatch table (7 entries, split lo/hi).
+PHA/PHA/RTS dispatch used by svc_8_osword.
+Maps OSWORD codes &0E-&14 to handler routines.""")
+
 label(0xA508, "osword_dispatch_lo_table")
 label(0xA50F, "osword_dispatch_hi_table")
 
@@ -5446,6 +5451,13 @@ comment(0x947D, "&FF padding (unused ROM space)", inline=True)
 # Service codes 1-12 map directly; 18 maps to index 14 via SBC #5.
 # Indices 1, 7, 11 point to &8E42 (RTS = no-op).
 
+comment(0x89C0, """\
+Service dispatch table (37 entries, split lo/hi).
+PHA/PHA/RTS dispatch used by svc_dispatch.
+Indices 0-14: service calls (index = service + 1).
+Indices 15-36: FS command and OSWORD routing.
+Indices 1, 7, 11 point to return_4 (no-op RTS).""")
+
 label(0x89C0, "svc_dispatch_lo")
 label(0x89E5, "svc_dispatch_hi")
 
@@ -5591,6 +5603,14 @@ entry(0xA0E2)
 # Four sub-tables of star command entries. Each entry:
 # ASCII command name + flag byte (>= &80) + lo byte + hi byte.
 # Tables separated by &80 sentinel bytes.
+
+comment(0xA3D8, """\
+Star command table (4 interleaved sub-tables).
+Each entry: ASCII name + flag byte (&80+) +
+lo/hi dispatch address (PHA/PHA/RTS, address-1).
+Sub-tables separated by &80 sentinel bytes.
+1: FS commands  2: NFS commands
+3: Net/Utils    4: Copro commands""")
 
 label(0xA3D8, "cmd_table_fs")
 label(0xA422, "cmd_table_nfs")
