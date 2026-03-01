@@ -1172,13 +1172,13 @@ label(0xBEB4, "loop_copy_zp_workspace")
 # ============================================================
 
 subroutine(0x8023, "nmi_handler",
-    "Service 5 handler: unrecognised interrupt.\n"
+    description="Service 5 handler: unrecognised interrupt.\n"
     "Checks for CB1 (shift register complete),\n"
     "restores VIA state, and dispatches the TX\n"
     "completion callback via ws_0d65 index.")
 
 subroutine(0x8A0B, "service_handler",
-    "Service call handler.\n"
+    description="Service call handler.\n"
     "On entry: A=service call number, X=ROM slot, Y=parameter.\n"
     "Service 1: absolute workspace claim.\n"
     "Service 4: unrecognised star command.\n"
@@ -1492,802 +1492,856 @@ entry(0x89AB)
 # ============================================================
 
 subroutine(0x0406, "tube_addr_data_dispatch",
-    "Tube address/data dispatch. Routes Tube\n"
+    description="Tube address/data dispatch. Routes Tube\n"
     "requests by A: A<&80 sets up data transfer,\n"
     "&80-&BF releases if we own the address,\n"
     "&C0+ is an external address claim.")
 subroutine(0x0414, "tube_release_claim",
-    "Release or claim Tube processor.\n"
+    title="Release Tube address claim via R4 command 5",
+    description="Release or claim Tube processor.\n"
     "A>=&C0: external claim from another host.\n"
     "A>=&80: release our current claim.\n"
     "A<&80: set up data transfer.")
 subroutine(0x0421, "clear_tube_claim",
-    "Clear Tube address claim. Sets claimed-ID\n"
+    description="Clear Tube address claim. Sets claimed-ID\n"
     "and claim-in-progress flag to &80 sentinel.")
 subroutine(0x0484, "tube_begin",
-    "Tube host startup. Claim address &FF,\n"
+    title="Tube host startup entry (BEGIN)",
+    description="Tube host startup. Claim address &FF,\n"
     "relocate ROM code, and enter the main\n"
     "command polling loop.")
 subroutine(0x04CB, "tube_claim_default",
-    "Claim Tube for this ROM's default address.")
+    title="Claim default Tube transfer address",
+    description="Claim Tube for this ROM's default address.")
 subroutine(0x04D2, "tube_init_reloc",
-    "Relocate Tube host code from ROM to RAM\n"
+    title="Initialise relocation address for ROM transfer",
+    description="Relocate Tube host code from ROM to RAM\n"
     "and initialise transfer address defaults.")
 subroutine(0x0582, "tube_read_string",
-    "Read a CR-terminated string from Tube R2\n"
+    description="Read a CR-terminated string from Tube R2\n"
     "into the string buffer at &0700. Returns\n"
     "with XY=&0700 for OSCLI/OSFIND.")
 subroutine(0x0695, "tube_send_r2",
-    "Poll Tube R2 status until ready, then\n"
+    description="Poll Tube R2 status until ready, then\n"
     "write A to the R2 data register.")
 subroutine(0x069E, "tube_send_r4",
-    "Poll Tube R4 status until ready, then\n"
+    description="Poll Tube R4 status until ready, then\n"
     "write A to the R4 data register.")
 subroutine(0x06BC, "tube_send_r1",
-    "Poll Tube R1 status until ready, then\n"
+    description="Poll Tube R1 status until ready, then\n"
     "write A to the R1 data register.")
 subroutine(0x06C5, "tube_read_r2",
-    "Poll Tube R2 status until data is ready,\n"
+    title="Read a byte from Tube data register R2",
+    description="Poll Tube R2 status until data is ready,\n"
     "then read and return the data byte.")
 subroutine(0x8069, "adlc_init",
-    "Initialise ADLC: full hardware reset then\n"
+    title="ADLC initialisation",
+    description="Initialise ADLC: full hardware reset then\n"
     "configure for receive/listen mode.\n"
     "Falls through to init_nmi_workspace.")
 subroutine(0x8089, "init_nmi_workspace",
-    "Copy NMI shim code from ROM to &0D00 and\n"
+    title="Initialise NMI workspace (skip service request)",
+    description="Copy NMI shim code from ROM to &0D00 and\n"
     "initialise Econet NMI workspace variables.")
 subroutine(0x80B3, "nmi_rx_scout",
-    "NMI handler for incoming scout frames.\n"
+    title="NMI RX scout handler (initial byte)",
+    description="NMI handler for incoming scout frames.\n"
     "Check destination station; accept if it\n"
     "matches our ID or is broadcast (&FF).")
 subroutine(0x80D0, "nmi_rx_scout_net",
-    "NMI handler for scout frame network byte.\n"
+    title="RX scout second byte handler",
+    description="NMI handler for scout frame network byte.\n"
     "Accept local network (0) or broadcast\n"
     "(&FF); reject frames for other networks.")
 subroutine(0x80F2, "scout_error",
-    "Handle scout reception error. Read SR2 to\n"
+    title="Scout error/discard handler",
+    description="Handle scout reception error. Read SR2 to\n"
     "determine error type and discard the frame.")
 subroutine(0x812C, "scout_complete",
-    "Process completed scout frame. Match port\n"
+    title="Scout completion handler",
+    description="Process completed scout frame. Match port\n"
     "against open receive control blocks, set up\n"
     "data phase handler, and send acknowledge.")
 subroutine(0x81DC, "nmi_data_rx",
-    "NMI handler for data frame reception.\n"
+    title="Data frame RX handler (four-way handshake)",
+    description="NMI handler for data frame reception.\n"
     "Verify dest station/network, then skip\n"
     "control and port bytes known from scout.")
 subroutine(0x8211, "install_data_rx_handler",
-    "Install NMI handler for data reception:\n"
+    title="Install data RX bulk or Tube handler",
+    description="Install NMI handler for data reception:\n"
     "bulk RAM path or Tube transfer path.\n"
     "Enter bulk read directly if data waiting.")
 subroutine(0x822B, "nmi_error_dispatch",
-    "NMI error handler dispatch. Route to\n"
+    title="NMI error handler dispatch",
+    description="NMI error handler dispatch. Route to\n"
     "receive error or transmit error based on\n"
     "SR1 flags.")
 subroutine(0x8239, "nmi_data_rx_bulk",
-    "NMI bulk data receive loop. Read byte\n"
+    title="Data frame bulk read loop",
+    description="NMI bulk data receive loop. Read byte\n"
     "pairs from ADLC RX FIFO into the port\n"
     "receive buffer, handling page boundaries.")
 subroutine(0x826D, "data_rx_complete",
-    "Complete data frame reception. Verify\n"
+    title="Data frame completion",
+    description="Complete data frame reception. Verify\n"
     "frame valid (FV) flag, update buffer\n"
     "pointers, and begin ACK transmission.")
 subroutine(0x82E4, "ack_tx",
-    "Begin transmitting ACK frame. Write\n"
+    title="ACK transmission",
+    description="Begin transmitting ACK frame. Write\n"
     "destination station and network bytes\n"
     "to ADLC TX FIFO.")
 subroutine(0x831B, "nmi_ack_tx_src",
-    "NMI handler: transmit source address in\n"
+    title="ACK TX continuation",
+    description="NMI handler: transmit source address in\n"
     "ACK frame. Write our station ID and\n"
     "network=0 to TX FIFO.")
 subroutine(0x8332, "post_ack_scout",
-    "NMI handler after ACK frame sent.\n"
+    title="Post-ACK scout processing",
+    description="NMI handler after ACK frame sent.\n"
     "Reset ADLC and copy scout data to the\n"
     "receive control block buffer.")
 subroutine(0x8344, "advance_rx_buffer_ptr",
-    "Update RXCB buffer pointer and length\n"
+    title="Advance RX buffer pointer after transfer",
+    description="Update RXCB buffer pointer and length\n"
     "after data reception. Handle page\n"
     "boundary crossings and Tube transfers.")
 subroutine(0x839A, "rx_complete_update_rxcb",
-    "Mark receive control block as complete.\n"
+    title="Complete RX and update RXCB",
+    description="Mark receive control block as complete.\n"
     "Update buffer pointer and remaining\n"
     "length, clear flag byte.")
 subroutine(0x83F8, "discard_reset_listen",
-    "Discard current frame. Reset ADLC\n"
+    title="Discard with Tube release",
+    description="Discard current frame. Reset ADLC\n"
     "to listen mode and return.")
 subroutine(0x8406, "copy_scout_to_buffer",
-    "Copy received scout data into the RXCB\n"
+    title="Copy scout data to port buffer",
+    description="Copy received scout data into the RXCB\n"
     "buffer. Handle both direct RAM and Tube\n"
     "transfer paths.")
 subroutine(0x843F, "release_tube",
-    "Release the Tube address claim if one is\n"
+    title="Release Tube co-processor claim",
+    description="Release the Tube address claim if one is\n"
     "held. Clear the release-needed flag.")
 subroutine(0x844B, "discard_after_reset",
-    "Discard frame after ADLC reset. Wait for\n"
+    title="Discard with immediate operation dispatch",
+    description="Discard frame after ADLC reset. Wait for\n"
     "idle line, then restore listen mode and\n"
     "dispatch any pending immediate operations.")
 subroutine(0x8525, "advance_buffer_ptr",
-    "Increment the 4-byte buffer pointer at\n"
+    description="Increment the 4-byte buffer pointer at\n"
     "port_buf_len/open_port_buf (&A2-&A5)\n"
     "by one. Used to advance the RX data\n"
     "write position after storing a byte.")
 subroutine(0x84EC, "imm_op_build_reply",
-    "Build reply header for immediate operation.\n"
+    title="Build immediate operation reply header",
+    description="Build reply header for immediate operation.\n"
     "Store data offset, source station/network\n"
     "in RX buffer, then configure shift register\n"
     "for CB1-driven TX completion callback.")
 subroutine(0x8582, "tx_begin",
-    "Begin Econet transmission. Copy dest\n"
+    title="Begin TX operation",
+    description="Begin Econet transmission. Copy dest\n"
     "station/network from TX control block,\n"
     "set up immediate op params, poll for idle\n"
     "line before starting frame.")
 subroutine(0x85EA, "inactive_poll",
-    "Init 3-byte timeout counter on the stack\n"
+    title="INACTIVE polling loop",
+    description="Init 3-byte timeout counter on the stack\n"
     "and begin polling ADLC for line inactive\n"
     "before starting transmission.")
 subroutine(0x85F5, "intoff_test_inactive",
-    "Test Econet line for inactive state with\n"
+    title="Disable NMIs and test INACTIVE",
+    description="Test Econet line for inactive state with\n"
     "interrupts disabled. Poll SR2 INACTIVE bit\n"
     "with 3-byte timeout counter on the stack.")
 subroutine(0x8629, "tx_line_jammed",
-    "Handle line jammed error. Abort TX by\n"
+    title="TX timeout error handler (Line Jammed)",
+    description="Handle line jammed error. Abort TX by\n"
     "writing CR2, clean timeout state from\n"
     "the stack, and store error &40 in the\n"
     "TX control block.")
 subroutine(0x8643, "tx_prepare",
-    "Prepare ADLC for transmission. Configure\n"
+    title="TX preparation",
+    description="Prepare ADLC for transmission. Configure\n"
     "CR2 for TX mode, write destination address\n"
     "bytes to TX FIFO, and install TX data NMI\n"
     "handler.")
 subroutine(0x86E0, "nmi_tx_data",
-    "NMI handler: transmit data frame bytes.\n"
+    title="NMI TX data handler",
+    description="NMI handler: transmit data frame bytes.\n"
     "Write byte pairs from TX buffer at &0D20\n"
     "to ADLC TX FIFO in a tight loop while\n"
     "IRQ is asserted. Branch to tx_last_data\n"
     "when buffer index reaches frame length.")
 subroutine(0x871C, "tx_last_data",
-    "Signal last data byte of TX frame.\n"
+    title="TX_LAST_DATA and frame completion",
+    description="Signal last data byte of TX frame.\n"
     "Write TX_LAST_DATA to CR2 and install\n"
     "nmi_tx_complete as the next NMI handler.")
 subroutine(0x8728, "nmi_tx_complete",
-    "NMI handler: TX frame completed. Reset\n"
+    title="TX completion: switch to RX mode",
+    description="NMI handler: TX frame completed. Reset\n"
     "ADLC from TX to RX mode. Route to\n"
     "tx_result_ok (broadcast), reply scout\n"
     "handler (two-way), or handshake_await_ack\n"
     "(four-way) based on tx_flags.")
 subroutine(0x8744, "nmi_reply_scout",
-    "NMI handler: receive reply scout frame.\n"
+    title="RX reply scout handler",
+    description="NMI handler: receive reply scout frame.\n"
     "Check SR2 for AP, read destination station\n"
     "byte, verify it matches our ID. Install\n"
     "nmi_reply_cont on match.")
 subroutine(0x8758, "nmi_reply_cont",
-    "NMI handler: continue reply scout frame\n"
+    title="RX reply continuation handler",
+    description="NMI handler: continue reply scout frame\n"
     "reception. Read remaining scout bytes\n"
     "and install validation handler.")
 subroutine(0x876F, "nmi_reply_validate",
-    "NMI handler: validate reply scout frame.\n"
+    title="RX reply validation (Path 2 for FV/PSE interaction)",
+    description="NMI handler: validate reply scout frame.\n"
     "Verify source station/network match the\n"
     "original TX destination, check FV for\n"
     "frame completion, then begin scout ACK\n"
     "transmission.")
 subroutine(0x87B7, "nmi_scout_ack_src",
-    "NMI handler: write source address bytes\n"
+    title="TX scout ACK: write source address",
+    description="NMI handler: write source address bytes\n"
     "for scout ACK frame. Write our station\n"
     "ID and network 0 to TX FIFO, then install\n"
     "nmi_data_tx or nmi_imm_data handler.")
 subroutine(0x87DC, "nmi_data_tx",
-    "NMI handler: transmit data phase of a\n"
+    title="TX data phase: send payload",
+    description="NMI handler: transmit data phase of a\n"
     "four-way handshake. Send byte pairs from\n"
     "the buffer at (open_port_buf) or from Tube\n"
     "R3. Loop while IRQ is asserted. Signal\n"
     "TX_LAST_DATA when buffer is exhausted.")
 subroutine(0x886E, "handshake_await_ack",
-    "Switch ADLC from TX to RX mode and\n"
+    title="Four-way handshake: switch to RX for final ACK",
+    description="Switch ADLC from TX to RX mode and\n"
     "install nmi_final_ack as the NMI handler\n"
     "to await the final acknowledge frame of a\n"
     "four-way handshake.")
 subroutine(0x887A, "nmi_final_ack",
-    "NMI handler: receive final ACK frame.\n"
+    title="RX final ACK handler",
+    description="NMI handler: receive final ACK frame.\n"
     "Validate AP flag and destination station,\n"
     "then install continuation handler.")
 subroutine(0x88A2, "nmi_final_ack_validate",
-    "NMI handler: validate final ACK frame.\n"
+    title="Final ACK validation",
+    description="NMI handler: validate final ACK frame.\n"
     "Check source station/network, verify\n"
     "frame valid, and store success result.")
 subroutine(0x88C6, "tx_result_ok",
-    "Set transmit result to success (A=0)\n"
+    title="TX completion handler",
+    description="Set transmit result to success (A=0)\n"
     "and fall through to tx_store_result.")
 subroutine(0x88CA, "tx_result_fail",
-    "Set transmit result to 'not listening'\n"
+    title="TX failure: not listening",
+    description="Set transmit result to 'not listening'\n"
     "(A=&41) and fall through to tx_store_result.")
 subroutine(0x88CC, "tx_store_result",
-    "Store TX result code in control block,\n"
+    title="TX result store and completion",
+    description="Store TX result code in control block,\n"
     "signal completion, and reset ADLC to\n"
     "idle listen mode.")
 subroutine(0x88E8, "tx_calc_transfer",
-    "Calculate transfer size for data phase.\n"
+    title="Calculate transfer size",
+    description="Calculate transfer size for data phase.\n"
     "Compute byte count from buffer start/end\n"
     "pointers in the TX control block.")
 subroutine(0x895F, "adlc_full_reset",
-    "Full MC6854 ADLC hardware reset. Set CR1\n"
+    title="ADLC full reset",
+    description="Full MC6854 ADLC hardware reset. Set CR1\n"
     "with TX and RX in reset, then configure\n"
     "CR4 and CR3 via address control mode.")
 subroutine(0x896E, "adlc_rx_listen",
-    "Configure ADLC for receive/listen mode.\n"
+    title="Enter RX listen mode",
+    description="Configure ADLC for receive/listen mode.\n"
     "TX held in reset, RX interrupts enabled,\n"
     "status flags cleared.")
 subroutine(0x8979, "wait_idle_and_reset",
-    "Wait for NMI handler to return to idle\n"
+    title="Wait for idle NMI state and reset Econet",
+    description="Wait for NMI handler to return to idle\n"
     "state (nmi_rx_scout), then reset ADLC\n"
     "to listen mode. Service 12 handler.")
 subroutine(0x898C, "save_econet_state",
-    "Save Econet state for ROM bank switch.\n"
+    title="Reset Econet flags and enter RX listen",
+    description="Save Econet state for ROM bank switch.\n"
     "Store current NMI handler address and\n"
     "prepare for NMI shim installation.")
 subroutine(0x899D, "nmi_bootstrap_entry",
-    "NMI bootstrap entry point. Install\n"
+    title="Bootstrap NMI entry point (in ROM)",
+    description="NMI bootstrap entry point. Install\n"
     "ROM-based scout handler and set NMI\n"
     "vector to dispatch through the shim.")
 subroutine(0x89AB, "rom_set_nmi_vector",
-    "Write NMI handler address, restore ROM\n"
+    title="ROM copy of set_nmi_vector + nmi_rti",
+    description="Write NMI handler address, restore ROM\n"
     "bank and registers, re-enable NMIs,\n"
     "and return from interrupt.")
 subroutine(0x8AE2, "scan_remote_keys",
-    "Scan keyboard for remote operation keys\n"
+    description="Scan keyboard for remote operation keys\n"
     "(&CE-&CF). Clears service state and\n"
     "workspace byte if no key pressed.")
 subroutine(0x8AFA, "save_text_ptr",
-    "Copy the OS text pointer (GSINIT XY)\n"
+    description="Copy the OS text pointer (GSINIT XY)\n"
     "to fs_crc_lo/hi for later retrieval.")
 subroutine(0x8B8D, "print_cmd_table",
-    "Print *HELP header then list commands\n"
+    description="Print *HELP header then list commands\n"
     "from a command table. Prints version\n"
     "header first if V flag is clear.\n"
     "X=command table offset on entry.")
 subroutine(0x8BA0, "print_cmd_table_loop",
-    "Inner loop of command table printing.\n"
+    description="Inner loop of command table printing.\n"
     "Reads entries from the table and prints\n"
     "each command name until end-of-table.\n"
     "X=command table offset on entry.")
 subroutine(0x8C28, "help_wrap_if_serial",
-    "Output newline and indent if the current\n"
+    description="Output newline and indent if the current\n"
     "output destination is a serial stream.\n"
     "No-op for VDU or printer streams.")
 subroutine(0x8C94, "print_version_header",
-    "Print the ANFS ROM version string and\n"
+    description="Print the ANFS ROM version string and\n"
     "station number via inline string.")
 subroutine(0x8CAE, "get_ws_page",
-    "Get the workspace page number for the\n"
+    description="Get the workspace page number for the\n"
     "current ROM slot. Returns page in A and Y.")
 subroutine(0x8CB5, "setup_ws_ptr",
-    "Set up nfs_temp as a pointer to the\n"
+    description="Set up nfs_temp as a pointer to the\n"
     "workspace page for the current ROM slot.")
 subroutine(0x8CF1, "notify_new_fs",
-    "Notify the OS of a new filing system via\n"
+    description="Notify the OS of a new filing system via\n"
     "FSCV call 6, then dispatch service 10.")
 subroutine(0x8CFA, "call_fscv",
-    "Dispatch to the filing system control\n"
+    description="Dispatch to the filing system control\n"
     "vector (FSCV) via indirect JMP.\n"
     "A=reason code on entry.")
 subroutine(0x8D0C, "check_credits_easter_egg",
-    "Check if *HELP argument matches the\n"
+    description="Check if *HELP argument matches the\n"
     "credits keyword. If matched, print the\n"
     "author credits string character by\n"
     "character.")
 subroutine(0x8DFE, "clear_if_station_match",
-    "Parse a station number from the command\n"
+    description="Parse a station number from the command\n"
     "line and clear the station byte if it\n"
     "matches the expected value.")
 subroutine(0x8E76, "osbyte_x0_y0",
-    "OSBYTE dispatch with X=0, Y=0.\n"
+    description="OSBYTE dispatch with X=0, Y=0.\n"
     "Normalises OSBYTE codes &32-&35 to\n"
     "indices 0-3 for Econet OSBYTE handling.")
 subroutine(0x8E96, "store_ws_page_count",
-    "Store workspace page count in receive\n"
+    description="Store workspace page count in receive\n"
     "block, capping at &21. Y=page count.")
 subroutine(0x8F40, "init_adlc_and_vectors",
-    "Initialise ADLC hardware and install\n"
+    description="Initialise ADLC hardware and install\n"
     "extended vector entries for NETV and one\n"
     "additional vector. Reads ROM pointer table\n"
     "via OSBYTE &A8, writes vector addresses\n"
     "and ROM ID into the extended vector table,\n"
     "then restores any previous FS context.")
 subroutine(0x8F53, "write_vector_entry",
-    "Write one extended vector table entry.\n"
+    description="Write one extended vector table entry.\n"
     "Copies vector address (low, high) and ROM\n"
     "ID from the dispatch table into the MOS\n"
     "extended vector table at offset Y. X is\n"
     "the remaining vector count.")
 subroutine(0x8F73, "restore_fs_context",
-    "Copy FS context bytes from workspace at\n"
+    description="Copy FS context bytes from workspace at\n"
     "&0DFA back into the receive control block.\n"
     "Copies offsets 6 to &0D (8 bytes).")
 subroutine(0x8F80, "deselect_fs_if_active",
-    "If the filing system is currently selected\n"
+    description="If the filing system is currently selected\n"
     "(bit 7 of &0D6C set), close all open FCBs,\n"
     "close SPOOL/EXEC files via OSBYTE &77,\n"
     "save the FS workspace to page &10 shadow\n"
     "with checksum, and clear the selected flag.")
 subroutine(0x8FB2, "verify_ws_checksum",
-    "Verify the FS workspace checksum. Sums\n"
+    description="Verify the FS workspace checksum. Sums\n"
     "bytes 0-&76 of the workspace via (CC),Y\n"
     "and compares with the stored checksum at\n"
     "offset &77. Raises a checksum error on\n"
     "mismatch. Preserves A, Y, and flags.")
 subroutine(0x8FDD, "print_station_id",
-    "Print 'Econet Station ' followed by the\n"
+    description="Print 'Econet Station ' followed by the\n"
     "station number from offset 5 of the\n"
     "receive block. If no Econet clock is\n"
     "detected (ADLC status register 2), also\n"
     "prints ' No Clock'. Ends with newline.")
 subroutine(0x911B, "print_hex_byte",
-    "Print A as two hexadecimal digits via\n"
+    title="Print A as two hexadecimal digits",
+    description="Print A as two hexadecimal digits via\n"
     "OSASCI. Shifts out the high nybble first,\n"
     "then falls through to print the low nybble.")
 subroutine(0x9124, "print_hex_nybble",
-    "Print the low nybble of A as a single hex\n"
+    description="Print the low nybble of A as a single hex\n"
     "digit (0-9, A-F) via OSASCI.")
 subroutine(0x915A, "parse_addr_arg",
-    "Parse a decimal or hexadecimal number from\n"
+    description="Parse a decimal or hexadecimal number from\n"
     "the command argument at (BE),Y. Supports\n"
     "'&' prefix for hex, '.' separator for\n"
     "net.station addresses, and plain decimal.\n"
     "Returns result in A. Raises errors for\n"
     "bad digits, overflow, or zero values.")
 subroutine(0x9244, "is_decimal_digit",
-    "Test whether A is a decimal digit, '&', or\n"
+    description="Test whether A is a decimal digit, '&', or\n"
     "'.' separator. Returns C set if A is '&',\n"
     "'.', or '0'-'9'; C clear otherwise.")
 subroutine(0x924C, "is_dec_digit_only",
-    "Test whether A is a decimal digit ('0'-'9').\n"
+    description="Test whether A is a decimal digit ('0'-'9').\n"
     "Returns C set if digit, C clear otherwise.")
 subroutine(0x9255, "get_access_bits",
-    "Read the access byte at offset &0E of a\n"
+    description="Read the access byte at offset &0E of a\n"
     "directory entry via (BB),Y, mask to 6 bits,\n"
     "and encode via the protection bit table.\n"
     "Returns encoded access flags in A.")
 subroutine(0x925F, "get_prot_bits",
-    "Encode the low 5 bits of A as protection\n"
+    description="Encode the low 5 bits of A as protection\n"
     "flags using the protection bit encode table.\n"
     "Returns encoded flags in A.")
 subroutine(0x927D, "set_text_and_xfer_ptr",
-    "Set the OS text pointer (F2/F3) from X/Y,\n"
+    description="Set the OS text pointer (F2/F3) from X/Y,\n"
     "then fall through to set transfer params\n"
     "and options pointer.")
 subroutine(0x9281, "set_xfer_params",
-    "Set FS transfer parameters: A to byte count\n"
+    description="Set FS transfer parameters: A to byte count\n"
     "(BD), X/Y to source pointer (BE/BF). Falls\n"
     "through to set options pointer and clear\n"
     "the escapable flag.")
 subroutine(0x9287, "set_options_ptr",
-    "Set FS options pointer (BB/BC) from X/Y and\n"
+    description="Set FS options pointer (BB/BC) from X/Y and\n"
     "clear bit 0 of the escapable flag. Preserves\n"
     "processor flags.")
 subroutine(0x9290, "cmp_5byte_handle",
-    "Compare 5 bytes at &00AF-&00B3 with the\n"
+    description="Compare 5 bytes at &00AF-&00B3 with the\n"
     "channel handle at &00B3-&00B7. Returns Z=1\n"
     "if all 5 bytes match, Z=0 on mismatch.")
 subroutine(0x92A1, "set_conn_active",
-    "Set bit 6 (connection active) in the channel\n"
+    description="Set bit 6 (connection active) in the channel\n"
     "table entry for the channel identified by A.\n"
     "Looks up the channel index, sets the flag.\n"
     "Preserves A, X, and processor flags.")
 subroutine(0x92B8, "clear_conn_active",
-    "Clear bit 6 (connection active) in the\n"
+    description="Clear bit 6 (connection active) in the\n"
     "channel table entry for the channel\n"
     "identified by A. Preserves A, X, and\n"
     "processor flags.")
 subroutine(0x92F5, "check_not_ampersand",
-    "Check that the first character in the parse\n"
+    description="Check that the first character in the parse\n"
     "buffer (&0E30) is not '&'. Raises a 'Bad\n"
     "filename' error if it is.")
 subroutine(0x9313, "copy_fs_cmd_name",
-    "Copy the matched FS command name from the\n"
+    description="Copy the matched FS command name from the\n"
     "command table into the TX buffer at &0F05,\n"
     "followed by a space. Returns X=buffer\n"
     "offset past name, Y=command line offset.")
 subroutine(0x9335, "parse_quoted_arg",
-    "Parse a possibly-quoted filename argument\n"
+    description="Parse a possibly-quoted filename argument\n"
     "from the command line at (BE),Y. Handles\n"
     "double-quote delimiters and stores the\n"
     "result in the parse buffer at &0E30.\n"
     "Raises 'Bad string' on unbalanced quotes.")
 subroutine(0x9451, "init_txcb_bye",
-    "Initialise TXCB for a bye/receive command.\n"
+    description="Initialise TXCB for a bye/receive command.\n"
     "Sets port &90, data start offset 3, and\n"
     "decrements the control byte.")
 subroutine(0x9453, "init_txcb_port",
-    "Initialise TXCB with port A. Sets the port,\n"
+    description="Initialise TXCB with port A. Sets the port,\n"
     "data start offset 3, and decrements the\n"
     "control byte. Falls through from\n"
     "init_txcb_bye.")
 subroutine(0x945F, "init_txcb",
-    "Initialise the TX control block from the\n"
+    description="Initialise the TX control block from the\n"
     "template at &9477. Copies 12 bytes into\n"
     "the TXCB workspace at &00C0, and copies\n"
     "the destination station address from &0E00.")
 subroutine(0x9483, "send_request_nowrite",
-    "Send a read-only FS request. Sets carry\n"
+    description="Send a read-only FS request. Sets carry\n"
     "(no-write mode) then falls through to the\n"
     "common TXCB copy and send path. Processes\n"
     "the reply, dispatching on reply codes.")
 subroutine(0x9487, "send_request_write",
-    "Send a read-write FS request. Clears V then\n"
+    description="Send a read-write FS request. Clears V then\n"
     "falls through to the common TXCB copy and\n"
     "send path. Processes the reply, dispatching\n"
     "on reply codes.")
 subroutine(0x9499, "save_net_tx_cb",
-    "Save FS state and send a command to the file\n"
+    description="Save FS state and send a command to the file\n"
     "server. Copies station address and function\n"
     "code (Y) to the TX buffer, builds the TXCB,\n"
     "sends the packet, and waits for the reply.\n"
     "V is clear for standard mode.")
 subroutine(0x949A, "save_net_tx_cb_vset",
-    "As save_net_tx_cb but enters with V already\n"
+    description="As save_net_tx_cb but enters with V already\n"
     "set from caller. Copies station address\n"
     "before falling through to the common path.")
 subroutine(0x94C6, "prep_send_tx_cb",
-    "Prepare, send, and receive a TX control\n"
+    description="Prepare, send, and receive a TX control\n"
     "block. Sets reply port &90, initialises\n"
     "the TXCB, computes the end offset, sends\n"
     "the packet, and processes the reply.")
 subroutine(0x94DC, "recv_and_process_reply",
-    "Set up a receive TXCB, wait for the TX\n"
+    description="Set up a receive TXCB, wait for the TX\n"
     "acknowledgment, then process the reply\n"
     "bytes. Dispatches on each non-zero reply\n"
     "code, optionally adjusting by +&2B if V set.")
 subroutine(0x955A, "check_escape",
-    "Check for an escape condition. If the MOS\n"
+    title="Check for pending escape condition",
+    description="Check for an escape condition. If the MOS\n"
     "escape flag is set and escape handling is\n"
     "enabled, acknowledges the escape via OSBYTE\n"
     "&7E and raises an Escape error.")
 subroutine(0x95C7, "wait_net_tx_ack",
-    "Wait for the current Econet TX operation to\n"
+    description="Wait for the current Econet TX operation to\n"
     "complete. Uses a three-level nested loop\n"
     "with a configurable timeout. On timeout,\n"
     "raises a 'Net error' via error dispatch.")
 subroutine(0x95FB, "cond_save_error_code",
-    "Conditionally save the error code in A to\n"
+    description="Conditionally save the error code in A to\n"
     "workspace (&0E09). Only saves if bit 7 of\n"
     "&0D6C is set (FS selected).")
 subroutine(0x9738, "append_drv_dot_num",
-    "Append a space followed by 'net.station' in\n"
+    description="Append a space followed by 'net.station' in\n"
     "decimal to the error text buffer. Reads\n"
     "network and station numbers from the TX\n"
     "control block at offsets 3 and 2. Skips\n"
     "the network part if zero (local network).")
 subroutine(0x975C, "append_space_and_num",
-    "Append a space followed by A as a decimal\n"
+    description="Append a space followed by A as a decimal\n"
     "number (up to 255) to the error text buffer.\n"
     "Suppresses leading zeros.")
 subroutine(0x9767, "append_decimal_num",
-    "Append A as a decimal number (up to 255)\n"
+    description="Append A as a decimal number (up to 255)\n"
     "to the error text buffer at the position\n"
     "held in fs_load_addr_2. Suppresses leading\n"
     "zeros for hundreds and tens digits.")
 subroutine(0x9778, "append_decimal_digit",
-    "Divide Y by A using repeated subtraction\n"
+    description="Divide Y by A using repeated subtraction\n"
     "and append the quotient as an ASCII digit\n"
     "to the error text buffer. Suppresses the\n"
     "digit if V is set and quotient is zero.")
 subroutine(0x9822, "init_tx_ptr_and_send",
-    "Set the TX pointer to &00C0 (the TXCB in\n"
+    description="Set the TX pointer to &00C0 (the TXCB in\n"
     "zero page) and fall through to send the\n"
     "Econet packet with retry logic.")
 subroutine(0x982A, "send_net_packet",
-    "Send an Econet packet via the ADLC with\n"
+    description="Send an Econet packet via the ADLC with\n"
     "retry logic. Polls for line idle, starts\n"
     "transmission, and retries on failure with\n"
     "a configurable count and delay. Enables\n"
     "escape handling after the first retry\n"
     "phase exhausts its count.")
 subroutine(0x987F, "init_tx_ptr_for_pass",
-    "Set up the TX pointer and send a pass-\n"
+    description="Set up the TX pointer and send a pass-\n"
     "through Econet packet. Copies the template\n"
     "into the TX buffer (skipping &FD markers),\n"
     "saves original values on stack, then polls\n"
     "the ADLC and retries until complete.")
 subroutine(0x9887, "setup_pass_txbuf",
-    "Initialise the TX buffer from the pass-\n"
+    description="Initialise the TX buffer from the pass-\n"
     "through template table, preserving original\n"
     "values on stack. Starts transmission and\n"
     "polls for completion with retry logic.")
 subroutine(0x98B4, "poll_adlc_tx_status",
-    "Poll the ADLC by shifting the workspace\n"
+    description="Poll the ADLC by shifting the workspace\n"
     "status byte left in a loop, then copy the\n"
     "TX pointer into the NMI TX block and call\n"
     "tx_begin to start frame transmission.\n"
     "Returns the TX completion status in A.")
 subroutine(0x98F3, "load_text_ptr_and_parse",
-    "Copy a 2-byte pointer from (fs_options)\n"
+    description="Copy a 2-byte pointer from (fs_options)\n"
     "into os_text_ptr, then use GSINIT/GSREAD\n"
     "to parse the string into the buffer at\n"
     "&0E30. Sets fs_crc_lo/hi to point at the\n"
     "parsed buffer.")
 subroutine(0x98FF, "gsread_to_buf",
-    "Parse the current command line string via\n"
+    description="Parse the current command line string via\n"
     "GSINIT/GSREAD into the buffer at &0E30,\n"
     "CR-terminated. Sets fs_crc_lo/hi to &0E30.")
 subroutine(0x993D, "do_fs_cmd_iteration",
-    "Perform one iteration of a multi-step FS\n"
+    description="Perform one iteration of a multi-step FS\n"
     "command. Sets port &92, sends the request,\n"
     "copies FS options and workspace state,\n"
     "formats the filename field, sends the TXCB,\n"
     "and processes the reply.")
 subroutine(0x9984, "send_txcb_swap_addrs",
-    "Send the TXCB and swap start/end addresses.\n"
+    description="Send the TXCB and swap start/end addresses.\n"
     "If the 5-byte handle matches, returns\n"
     "immediately. Otherwise sets port &92, copies\n"
     "addresses, sends, waits for acknowledgment,\n"
     "and retries on address mismatch.")
 subroutine(0x9A45, "print_load_exec_addrs",
-    "Print the exec address (5 hex bytes from\n"
+    description="Print the exec address (5 hex bytes from\n"
     "offset 9 of fs_options) and the file length\n"
     "(3 bytes from offset &0C), each followed by\n"
     "a space separator.")
 subroutine(0x9A50, "print_5_hex_bytes",
-    "Print X+1 bytes from (fs_options) at offset\n"
+    description="Print X+1 bytes from (fs_options) at offset\n"
     "Y as hexadecimal, decrementing Y for each\n"
     "byte. Prints a trailing space via OSASCI.\n"
     "Entry with X=4 prints 5 bytes.")
 subroutine(0x9A60, "copy_fsopts_to_zp",
-    "Copy 4 bytes from (fs_options) at offsets\n"
+    description="Copy 4 bytes from (fs_options) at offsets\n"
     "2-5 into zero page at &00AE+Y. Falls\n"
     "through to advance Y by 5.")
 subroutine(0x9A6C, "skip_one_and_advance5",
-    "Increment Y by 5. Entry point above\n"
+    description="Increment Y by 5. Entry point above\n"
     "advance_y_by_4 with one extra INY.")
 subroutine(0x9A6D, "advance_y_by_4",
-    "Increment Y by 4.")
+    description="Increment Y by 4.")
 subroutine(0x9A72, "copy_workspace_to_fsopts",
-    "Copy bytes from &0F02+Y into (fs_options)\n"
+    description="Copy bytes from &0F02+Y into (fs_options)\n"
     "at offsets &0D down to 2. Falls through to\n"
     "retreat_y_by_4.")
 subroutine(0x9A7F, "retreat_y_by_4",
-    "Decrement Y by 4.")
+    description="Decrement Y by 4.")
 subroutine(0x9A80, "retreat_y_by_3",
-    "Decrement Y by 3.")
+    description="Decrement Y by 3.")
 subroutine(0x9A88, "check_and_setup_txcb",
-    "Set up a data transfer TXCB. Compares the\n"
+    description="Set up a data transfer TXCB. Compares the\n"
     "5-byte handle; if unchanged, returns. Else\n"
     "computes start/end addresses with overflow\n"
     "clamping, sets the port and control byte,\n"
     "sends the packet, and dispatches on the\n"
     "reply sub-operation code.")
 subroutine(0x9B86, "format_filename_field",
-    "Format a filename into a 12-character field\n"
+    description="Format a filename into a 12-character field\n"
     "at &10F3, padding with spaces. Copies from\n"
     "the command line or the l0f05 buffer\n"
     "depending on l0f03.")
 subroutine(0x9E03, "update_addr_from_offset9",
-    "Add workspace values to FS options starting\n"
+    description="Add workspace values to FS options starting\n"
     "at offset 9 (high address), then fall\n"
     "through to process offset 1 (low address).")
 subroutine(0x9E08, "update_addr_from_offset1",
-    "Add workspace values to FS options at\n"
+    description="Add workspace values to FS options at\n"
     "offset 1 (low address). Falls through\n"
     "to add_workspace_to_fsopts.")
 subroutine(0x9E0A, "add_workspace_to_fsopts",
-    "Clear carry and add 4 workspace bytes\n"
+    description="Clear carry and add 4 workspace bytes\n"
     "(&0E0A-&0E0D) to FS options at offset Y.\n"
     "Direction controlled by bit 7 of B2.")
 subroutine(0x9E0B, "adjust_fsopts_4bytes",
-    "Add or subtract 4 workspace bytes from FS\n"
+    description="Add or subtract 4 workspace bytes from FS\n"
     "options at offset Y. If bit 7 of B2 is set,\n"
     "subtracts; otherwise adds. Carry must be\n"
     "preset by caller.")
 subroutine(0x9EC0, "lookup_cat_entry_0",
-    "Load the channel handle from (fs_options)\n"
+    description="Load the channel handle from (fs_options)\n"
     "at offset 0, look it up in the channel\n"
     "table, and return the FCB flag byte in A.")
 subroutine(0x9EC4, "lookup_cat_slot_data",
-    "Look up channel A in the channel table and\n"
+    description="Look up channel A in the channel table and\n"
     "return the FCB flag byte from &1030+X.")
 subroutine(0x9ECB, "setup_transfer_workspace",
-    "Set up workspace for a data transfer\n"
+    description="Set up workspace for a data transfer\n"
     "operation (OSBGET/OSBPUT). Looks up the\n"
     "channel, copies address structure, sends\n"
     "the FS request, and configures the TXCB\n"
     "for the actual data transfer phase.")
 subroutine(0x9FB8, "write_data_block",
-    "Write a block of data to the destination.\n"
+    description="Write a block of data to the destination.\n"
     "If no Tube present, copies directly from\n"
     "the l0f05 buffer via (fs_crc_lo). If Tube\n"
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.")
 subroutine(0xA05B, "tube_claim_c3",
-    "Claim the Tube using protocol &C3. Retries\n"
+    description="Claim the Tube using protocol &C3. Retries\n"
     "in a loop until the claim succeeds (carry\n"
     "set on return from tube_addr_data_dispatch).")
 subroutine(0xA086, "print_fs_info_newline",
-    "Print a station address with V set (no\n"
+    description="Print a station address with V set (no\n"
     "padding) followed by a newline.")
 subroutine(0xA08F, "parse_fs_ps_args",
-    "Parse FS/PS command arguments as a station\n"
+    description="Parse FS/PS command arguments as a station\n"
     "address. Handles 'net.station' format with\n"
     "optional network number. Initialises bridge\n"
     "polling and validates the parsed address.")
 subroutine(0xA0B4, "get_pb_ptr_as_index",
-    "Convert the parameter block pointer byte\n"
+    description="Convert the parameter block pointer byte\n"
     "into a 12-byte-aligned table index in Y.\n"
     "Clamps to zero if out of range (>= &48).\n"
     "Loads the initial value from PB pointer.")
 subroutine(0xA0B6, "byte_to_2bit_index",
-    "Convert A to a 12-byte-aligned table index\n"
+    description="Convert A to a 12-byte-aligned table index\n"
     "in Y. Computes A*12/2 with overflow check.\n"
     "Clamps to zero if out of range (>= &48).")
 subroutine(0xA128, "match_fs_cmd",
-    "Match a command name against an FS command\n"
+    description="Match a command name against an FS command\n"
     "table. Case-insensitive compare of the\n"
     "command line against table entries with\n"
     "bit-7-terminated names. Returns with the\n"
     "matched entry address on success.")
 subroutine(0xA2E8, "find_station_bit2",
-    "Search the station table for an entry\n"
+    description="Search the station table for an entry\n"
     "matching the current station/network with\n"
     "bit 2 set (PS active). Scans up to 16\n"
     "slots. Sets V if found. Falls through to\n"
     "allocate or update the slot.")
 subroutine(0xA313, "find_station_bit3",
-    "Search the station table for an entry\n"
+    description="Search the station table for an entry\n"
     "matching the current station/network with\n"
     "bit 3 set (FS active). Scans up to 16\n"
     "slots. Sets V if found. Falls through to\n"
     "allocate or update the slot.")
 subroutine(0xA34A, "flip_set_station_boot",
-    "Set the boot option for a station in the\n"
+    description="Set the boot option for a station in the\n"
     "station table. Scans up to 16 entries for\n"
     "a match with bit 4 set (active). Stores\n"
     "the boot type and restores FS context.")
 subroutine(0xA4EF, "osword_setup_handler",
-    "Set up an OSWORD handler by pushing its\n"
+    description="Set up an OSWORD handler by pushing its\n"
     "dispatch address from the handler table\n"
     "onto the stack for RTS dispatch. Copies\n"
     "3 bytes from osword_flag workspace.")
 subroutine(0xA57C, "bin_to_bcd",
-    "Convert a binary byte in A to BCD. Uses\n"
+    description="Convert a binary byte in A to BCD. Uses\n"
     "decimal mode (SED) to count up from zero\n"
     "in BCD, decrementing the binary value.\n"
     "Returns BCD result in A.")
 subroutine(0xA601, "store_osword_pb_ptr",
-    "Store the OSWORD parameter block pointer\n"
+    description="Store the OSWORD parameter block pointer\n"
     "+1 into workspace at offset &1C. Also\n"
     "reads the transfer length from the PB.")
 subroutine(0xA612, "store_ptr_at_ws_y",
-    "Store a 16-bit pointer (low in A, high\n"
+    description="Store a 16-bit pointer (low in A, high\n"
     "from PB pointer high byte + carry) into\n"
     "workspace at offset Y and Y+1.")
 subroutine(0xA6FB, "copy_pb_byte_to_ws",
-    "Conditionally copy a byte from the OSWORD\n"
+    description="Conditionally copy a byte from the OSWORD\n"
     "parameter block to workspace. If carry set,\n"
     "loads from PB; always stores to workspace\n"
     "at the current offset.")
 subroutine(0xA868, "init_bridge_poll",
-    "Initialise bridge polling for network\n"
+    description="Initialise bridge polling for network\n"
     "station discovery. If bridge status is\n"
     "uninitialised (&FF), broadcasts a bridge\n"
     "query and polls for replies to build the\n"
     "network routing table.")
 subroutine(0xA964, "enable_irq_and_poll",
-    "Enable interrupts (CLI) then send an\n"
+    description="Enable interrupts (CLI) then send an\n"
     "Econet packet via send_net_packet.")
 subroutine(0xA981, "push_osword_handler_addr",
-    "Push an OSWORD handler address from the\n"
+    description="Push an OSWORD handler address from the\n"
     "dispatch table onto the stack for RTS\n"
     "dispatch. Reloads the OSWORD number for\n"
     "the handler to use.")
 subroutine(0xA9AC, "tx_econet_abort",
-    "Send an Econet abort command. Stores the\n"
+    description="Send an Econet abort command. Stores the\n"
     "abort code in workspace, sets up the TX\n"
     "control block with control byte &80, and\n"
     "transmits the abort packet.")
 subroutine(0xAA24, "match_rx_code",
-    "Search for A in a table of receive codes\n"
+    description="Search for A in a table of receive codes\n"
     "indexed by X. Returns Z set if a match is\n"
     "found, Z clear if end of table reached.")
 subroutine(0xAA6A, "init_ws_copy_wide",
-    "Initialise workspace copy in wide mode.\n"
+    description="Initialise workspace copy in wide mode.\n"
     "Copies 14 bytes to workspace offset &7C.\n"
     "Falls through to the template-driven copy\n"
     "loop which handles &FD (skip), &FE (end),\n"
     "and &FC (page pointer) markers.")
 subroutine(0xAA73, "init_ws_copy_narrow",
-    "Initialise workspace copy in narrow mode.\n"
+    description="Initialise workspace copy in narrow mode.\n"
     "Copies 27 bytes to workspace offset &17.\n"
     "Falls through to the template-driven copy\n"
     "loop.")
 subroutine(0xAA77, "ws_copy_vclr_entry",
-    "Template-driven workspace copy with V clear.\n"
+    description="Template-driven workspace copy with V clear.\n"
     "Processes template bytes: &FE=end, &FD=skip,\n"
     "&FC=page pointer substitution. Other values\n"
     "are stored directly to workspace.")
 subroutine(0xAAD0, "reset_spool_buf_state",
-    "Reset the spool buffer state. Sets buffer\n"
+    description="Reset the spool buffer state. Sets buffer\n"
     "pointer to &25 and control state to &41.")
 subroutine(0xAB00, "append_byte_to_rxbuf",
-    "Append byte A to the receive buffer at the\n"
+    description="Append byte A to the receive buffer at the\n"
     "current buffer index, then advance the\n"
     "index.")
 subroutine(0xAB09, "handle_spool_ctrl_byte",
-    "Handle a spool control byte. Rotates bit 0\n"
+    description="Handle a spool control byte. Rotates bit 0\n"
     "into carry for mode selection, appends the\n"
     "byte to the buffer, processes the spool\n"
     "data, and resets the buffer state.")
 subroutine(0xAB24, "process_spool_data",
-    "Process accumulated spool buffer data.\n"
+    description="Process accumulated spool buffer data.\n"
     "Copies workspace to the TX control block,\n"
     "sends a disconnect reply if needed, and\n"
     "handles the spool output sequence.")
 subroutine(0xAC12, "send_disconnect_reply",
-    "Send a disconnect reply packet on the\n"
+    description="Send a disconnect reply packet on the\n"
     "Econet. Sets up the TX pointer, copies\n"
     "station addresses, matches the station\n"
     "in the table, and sends the response.\n"
     "Waits for acknowledgment before returning.")
 subroutine(0xACCB, "commit_state_byte",
-    "Copy the current state byte to the\n"
+    description="Copy the current state byte to the\n"
     "committed state location in workspace.")
 subroutine(0xACD2, "serialise_palette_entry",
-    "Serialise a palette register entry into\n"
+    description="Serialise a palette register entry into\n"
     "workspace. Reads the current palette value\n"
     "via OSBYTE and stores it alongside the\n"
     "display mode information.")
 subroutine(0xACE5, "read_osbyte_to_ws_x0",
-    "Read an OSBYTE value with X=0 and store\n"
+    description="Read an OSBYTE value with X=0 and store\n"
     "the result in workspace. Falls through to\n"
     "read_osbyte_to_ws.")
 subroutine(0xACE7, "read_osbyte_to_ws",
-    "Read an OSBYTE value using the code from\n"
+    description="Read an OSBYTE value using the code from\n"
     "the OSBYTE table and store the result (Y)\n"
     "in workspace at the current offset.")
 
 # --- cmd_ex subroutines ---
 
 subroutine(0xAE70, "print_10_chars",
-    "Print 10 characters from buffer at offset X\n"
+    description="Print 10 characters from buffer at offset X\n"
     "via OSASCI. Sets Y=10 then falls through to\n"
     "the character print loop.")
 subroutine(0xAE72, "print_chars_from_buf",
-    "Print Y characters from buffer at offset X\n"
+    description="Print Y characters from buffer at offset X\n"
     "via OSASCI. Loops until Y reaches zero,\n"
     "advancing X after each character.")
 subroutine(0xAE80, "parse_cmd_arg_y0",
-    "Parse command argument starting at Y=0.\n"
+    description="Parse command argument starting at Y=0.\n"
     "Sets Y then falls through to parse_filename_arg\n"
     "for GSREAD parsing and prefix handling.")
 subroutine(0xAE82, "parse_filename_arg",
-    "Parse a filename argument from the command\n"
+    description="Parse a filename argument from the command\n"
     "line via GSREAD. Checks for '&', ':', '.',\n"
     "and '#' prefix characters and sets flags\n"
     "accordingly in the parsed argument buffer.")
 subroutine(0xAE85, "parse_access_prefix",
-    "Parse access prefix characters from a parsed\n"
+    description="Parse access prefix characters from a parsed\n"
     "argument. Handles '&' (FS selection), ':'/'.',\n"
     "'#' (channel), and '*' (wildcard) prefixes,\n"
     "stripping tokens and setting flags.")
 subroutine(0xAEA5, "strip_token_prefix",
-    "Strip the first character from the parsed\n"
+    description="Strip the first character from the parsed\n"
     "token buffer, shifting remaining bytes left\n"
     "by one position. Trims trailing spaces from\n"
     "the shortened string.")
 subroutine(0xAEF0, "copy_arg_to_buf_x0",
-    "Copy argument to TX buffer starting at X=0.\n"
+    description="Copy argument to TX buffer starting at X=0.\n"
     "Sets X=0, Y=0, then falls through to the\n"
     "validated copy loop.")
 subroutine(0xAEF2, "copy_arg_to_buf",
-    "Copy argument to TX buffer starting at Y=0.\n"
+    description="Copy argument to TX buffer starting at Y=0.\n"
     "Sets Y=0 then falls through to copy_arg_validated\n"
     "with '&' validation enabled.")
 subroutine(0xAEF4, "copy_arg_validated",
-    "Copy argument characters from the command line\n"
+    description="Copy argument characters from the command line\n"
     "to the TX buffer. With carry set, validates\n"
     "that '&' does not appear in the filename,\n"
     "raising 'Bad filename' if found.")
 subroutine(0xAF12, "mask_owner_access",
-    "Mask the flags byte to low 5 bits, removing\n"
+    description="Mask the flags byte to low 5 bits, removing\n"
     "the FS selection and other high-bit flags\n"
     "to retain only the owner access bits.")
 subroutine(0xAF27, "ex_print_col_sep",
-    "Print column separator or newline for Ex/Cat\n"
+    description="Print column separator or newline for Ex/Cat\n"
     "listings. In Cat mode, prints column separator\n"
     "every 4 entries. In Ex mode, prints a newline\n"
     "after each entry. Skips to next argument on\n"
@@ -2296,34 +2350,35 @@ subroutine(0xAF27, "ex_print_col_sep",
 # --- cmd_remove subroutines ---
 
 subroutine(0xAF65, "print_num_no_leading",
-    "Print A as a decimal number with leading zero\n"
+    description="Print A as a decimal number with leading zero\n"
     "suppression. Sets V flag to skip leading zeros\n"
     "then falls through to print_decimal_3dig.")
 subroutine(0xAF68, "print_decimal_3dig",
-    "Print A as a 3-digit decimal number (hundreds,\n"
+    description="Print A as a 3-digit decimal number (hundreds,\n"
     "tens, units). Divides by 100, 10, and 1 using\n"
     "repeated subtraction. V flag controls whether\n"
     "leading zeros are printed or suppressed.")
 subroutine(0xAF76, "print_decimal_digit",
-    "Print a single decimal digit by repeated\n"
+    title="Print one decimal digit by repeated subtraction",
+    description="Print a single decimal digit by repeated\n"
     "subtraction of the divisor. Increments the\n"
     "digit character from '0' while subtracting.\n"
     "If V is set, suppresses printing of '0'.")
 subroutine(0xAF95, "save_ptr_to_os_text",
-    "Copy the current text pointer (fs_crc_lo/hi)\n"
+    description="Copy the current text pointer (fs_crc_lo/hi)\n"
     "to the OS text pointer workspace locations.\n"
     "Preserves A.")
 subroutine(0xAFA1, "skip_to_next_arg",
-    "Skip spaces in the command line to advance\n"
+    description="Skip spaces in the command line to advance\n"
     "to the next argument. Returns with A holding\n"
     "the first non-space character, or CR if at\n"
     "end of line.")
 subroutine(0xAFB5, "save_ptr_to_spool_buf",
-    "Copy the current text pointer (fs_crc_lo/hi)\n"
+    description="Copy the current text pointer (fs_crc_lo/hi)\n"
     "to the spool buffer pointer workspace\n"
     "locations. Preserves A.")
 subroutine(0xAFC0, "init_spool_drive",
-    "Initialise the spool drive page pointers.\n"
+    description="Initialise the spool drive page pointers.\n"
     "Gets the workspace page number and stores\n"
     "it as the spool drive page high byte, with\n"
     "the low byte cleared to zero.")
@@ -2331,45 +2386,45 @@ subroutine(0xAFC0, "init_spool_drive",
 # --- cmd_ps subroutines ---
 
 subroutine(0xAFF7, "copy_ps_data_y1c",
-    "Copy printer server template data starting\n"
+    description="Copy printer server template data starting\n"
     "at destination offset Y=&1C. Falls through\n"
     "to copy_ps_data for the copy loop.")
 subroutine(0xAFF9, "copy_ps_data",
-    "Copy 8 bytes of printer server template data\n"
+    description="Copy 8 bytes of printer server template data\n"
     "from the credits string area to the RX buffer\n"
     "at the current Y offset. X starts at &F8 and\n"
     "wraps to 0 to complete the copy.")
 subroutine(0xB0A1, "print_file_server_is",
-    "Print 'File server is ' header text using\n"
+    description="Print 'File server is ' header text using\n"
     "inline string printing. Falls through to\n"
     "the shared ' server is ' suffix.")
 subroutine(0xB0AB, "print_printer_server_is",
-    "Print 'Printer server is ' header text using\n"
+    description="Print 'Printer server is ' header text using\n"
     "inline string printing.")
 subroutine(0xB0C6, "load_ps_server_addr",
-    "Load the printer server station and network\n"
+    description="Load the printer server station and network\n"
     "addresses from workspace at offsets 2 and 3\n"
     "into the station/network variables.")
 subroutine(0xB0D2, "pop_requeue_ps_scan",
-    "Pop the return address and requeue the PS\n"
+    description="Pop the return address and requeue the PS\n"
     "slot scan. Converts the PS slot flags to a\n"
     "workspace index, writes slot data, and jumps\n"
     "back into the PS scan loop.")
 subroutine(0xB13A, "write_ps_slot_byte_ff",
-    "Write the buffer page byte followed by two\n"
+    description="Write the buffer page byte followed by two\n"
     "&FF marker bytes to the PS slot workspace\n"
     "at the current Y offset, advancing Y.")
 subroutine(0xB141, "write_two_bytes_inc_y",
-    "Write A to two consecutive workspace bytes\n"
+    description="Write A to two consecutive workspace bytes\n"
     "at the current Y offset, advancing Y after\n"
     "each write.")
 subroutine(0xB149, "reverse_ps_name_to_tx",
-    "Reverse-copy the printer server name from\n"
+    description="Reverse-copy the printer server name from\n"
     "the RX buffer (offsets &1C-&23) to the TX\n"
     "buffer (offsets &13-&1B) in reversed byte\n"
     "order using the stack.")
 subroutine(0xB174, "print_station_addr",
-    "Print a station address as net.station in\n"
+    description="Print a station address as net.station in\n"
     "decimal. If the network number is zero,\n"
     "prints only the station number. V flag\n"
     "controls padding with leading spaces.")
@@ -2377,11 +2432,11 @@ subroutine(0xB174, "print_station_addr",
 # --- cmd_pollps subroutines ---
 
 subroutine(0xB2C4, "init_ps_slot_from_rx",
-    "Initialise a PS slot buffer from the template\n"
+    description="Initialise a PS slot buffer from the template\n"
     "data at offsets &78-&83. Substitutes the RX\n"
     "buffer page at offsets &7D and &81.")
 subroutine(0xB2DB, "store_char_uppercase",
-    "Convert character to uppercase if lowercase\n"
+    description="Convert character to uppercase if lowercase\n"
     "and store in the RX buffer at the current\n"
     "position. Advances the buffer position and\n"
     "decrements the character count.")
@@ -2389,111 +2444,111 @@ subroutine(0xB2DB, "store_char_uppercase",
 # --- cmd_wipe subroutines ---
 
 subroutine(0xB41F, "flush_and_read_char",
-    "Flush the keyboard input buffer and read a\n"
+    description="Flush the keyboard input buffer and read a\n"
     "single character. Raises an escape error if\n"
     "escape was pressed instead.")
 subroutine(0xB439, "init_channel_table",
-    "Initialise the channel allocation table.\n"
+    description="Initialise the channel allocation table.\n"
     "Clears all 256 bytes, then marks the available\n"
     "channel slots based on the count from the\n"
     "receive buffer. Marks the first slot as the\n"
     "active channel (&C0).")
 subroutine(0xB45B, "attr_to_chan_index",
-    "Convert a channel attribute byte to a channel\n"
+    description="Convert a channel attribute byte to a channel\n"
     "table index. Subtracts &20 and clamps to the\n"
     "range 0-&0F, returning &FF if out of range.\n"
     "Preserves processor flags.")
 subroutine(0xB46A, "check_chan_char",
-    "Validate a channel character and look up its\n"
+    description="Validate a channel character and look up its\n"
     "entry. Characters below '0' are looked up in\n"
     "the channel table. Characters '0' and above\n"
     "are converted to a table index. Raises a\n"
     "'Net channel' error if invalid.")
 subroutine(0xB49D, "lookup_chan_by_char",
-    "Look up a channel by its character code.\n"
+    description="Look up a channel by its character code.\n"
     "Converts the character to a table index,\n"
     "checks the station/network match, and\n"
     "returns the channel flags in A.")
 subroutine(0xB4DC, "store_result_check_dir",
-    "Store the current channel attribute in the\n"
+    description="Store the current channel attribute in the\n"
     "receive buffer and check it is not a\n"
     "directory. Raises 'Is a dir.' error if the\n"
     "directory flag (bit 1) is set.")
 subroutine(0xB4E3, "check_not_dir",
-    "Validate the channel via check_chan_char and\n"
+    description="Validate the channel via check_chan_char and\n"
     "test the directory flag (bit 1). Raises\n"
     "'Is a dir.' error if the channel refers to\n"
     "a directory.")
 subroutine(0xB4FA, "alloc_fcb_slot",
-    "Allocate a free FCB (file control block) slot.\n"
+    description="Allocate a free FCB (file control block) slot.\n"
     "Scans slots &20-&2F for an empty entry.\n"
     "Returns Z=0 with X=slot index on success,\n"
     "or Z=1 with A=0 on failure.")
 subroutine(0xB52E, "alloc_fcb_or_error",
-    "Allocate an FCB slot, raising 'No more FCBs'\n"
+    description="Allocate an FCB slot, raising 'No more FCBs'\n"
     "error if none are available. Preserves the\n"
     "argument on the stack.")
 subroutine(0xB54A, "close_all_net_chans",
-    "Close all network channels matching the\n"
+    description="Close all network channels matching the\n"
     "current station. C=0 closes all matching,\n"
     "C=1 closes with write-flush. Scans FCB\n"
     "slots &0F down to 0.")
 subroutine(0xB551, "scan_fcb_flags",
-    "Scan FCB slots from &10 downward, checking\n"
+    description="Scan FCB slots from &10 downward, checking\n"
     "each slot's flags. Returns when all slots\n"
     "have been processed.")
 subroutine(0xB57A, "match_station_net",
-    "Check whether the FCB at slot X matches the\n"
+    description="Check whether the FCB at slot X matches the\n"
     "current station and network numbers. Returns\n"
     "Z=1 if both match, Z=0 if either differs.\n"
     "Uses EOR comparison.")
 subroutine(0xB589, "find_open_fcb",
-    "Find the next open FCB slot for the current\n"
+    description="Find the next open FCB slot for the current\n"
     "connection. Scans from the current index,\n"
     "wrapping around. On the first pass finds\n"
     "active entries; on the second pass finds\n"
     "empty slots.")
 subroutine(0xB5CC, "init_wipe_counters",
-    "Initialise the byte counters, pass counter,\n"
+    description="Initialise the byte counters, pass counter,\n"
     "and sentinel values for a wipe/transfer\n"
     "operation. Sets X/Y to point at workspace\n"
     "offset &10CA.")
 subroutine(0xB5EF, "start_wipe_pass",
-    "Start a wipe pass for the current FCB.\n"
+    description="Start a wipe pass for the current FCB.\n"
     "Verifies the workspace checksum, saves\n"
     "station context, initialises counters, and\n"
     "sends the initial request packet.")
 subroutine(0xB660, "save_fcb_context",
-    "Save 13 bytes of FCB context from the TX\n"
+    description="Save 13 bytes of FCB context from the TX\n"
     "buffer and workspace to temporary storage\n"
     "at &10D9. Jumps to the workspace restore\n"
     "routine if Y=0 (no FCB to process).")
 subroutine(0xB729, "restore_catalog_entry",
-    "Restore 13 bytes of saved catalog entry\n"
+    description="Restore 13 bytes of saved catalog entry\n"
     "data from &10D9 back to the TX buffer at\n"
     "&0F00.")
 subroutine(0xB738, "find_matching_fcb",
-    "Find an FCB slot matching the given channel\n"
+    description="Find an FCB slot matching the given channel\n"
     "attribute. Scans slots 0-&0F, converting\n"
     "the attribute to a channel index and storing\n"
     "the station address for matching.")
 subroutine(0xB791, "inc_fcb_byte_count",
-    "Increment the 3-byte transfer byte count\n"
+    description="Increment the 3-byte transfer byte count\n"
     "for FCB slot X. Cascades overflow from low\n"
     "to mid to high byte.")
 subroutine(0xB79F, "process_all_fcbs",
-    "Process all active FCB slots. Saves current\n"
+    description="Process all active FCB slots. Saves current\n"
     "context, scans slots &0F down to 0, calling\n"
     "start_wipe_pass for each active entry.\n"
     "Restores context on completion.")
 subroutine(0xB920, "send_wipe_request",
-    "Send a wipe/close request packet via the\n"
+    description="Send a wipe/close request packet via the\n"
     "Econet. Sets up the TX control block with\n"
     "function code &90, the reply port, and\n"
     "data byte, then sends a disconnect reply\n"
     "and checks the error code.")
 subroutine(0xB979, "send_and_receive",
-    "Set up the FS options pointer and transfer\n"
+    description="Set up the FS options pointer and transfer\n"
     "workspace for a send/receive operation.\n"
     "Calls set_options_ptr then jumps to\n"
     "setup_transfer_workspace.")
@@ -2501,48 +2556,48 @@ subroutine(0xB979, "send_and_receive",
 # --- cmd_print subroutines ---
 
 subroutine(0xB9EA, "abort_if_escape",
-    "Test the escape flag and return if not set.\n"
+    description="Test the escape flag and return if not set.\n"
     "If escape has been pressed (bit 7 set),\n"
     "falls through to the escape abort handler.")
 
 # --- cmd_dump subroutines ---
 
 subroutine(0xBACE, "print_dump_header",
-    "Print the hex dump column header line.\n"
+    description="Print the hex dump column header line.\n"
     "Shows the starting address followed by\n"
     "16 hex column numbers, each separated\n"
     "by a space.")
 subroutine(0xBB0C, "close_ws_file",
-    "Close the file whose handle is stored in\n"
+    description="Close the file whose handle is stored in\n"
     "ws_page. Calls OSFIND with A=0 to close.")
 subroutine(0xBB13, "open_file_for_read",
-    "Open a file for reading. Computes the\n"
+    description="Open a file for reading. Computes the\n"
     "filename address from the command text\n"
     "pointer plus offset, calls OSFIND to open,\n"
     "and raises a 'Not found' error if the\n"
     "handle is zero.")
 subroutine(0xBB55, "parse_dump_range",
-    "Parse a hex address from the command line\n"
+    description="Parse a hex address from the command line\n"
     "for dump range parameters. Reads up to 4\n"
     "hex digits into a 4-byte accumulator,\n"
     "stopping at CR or space.")
 subroutine(0xBBBE, "init_dump_buffer",
-    "Initialise the dump buffer and parse the\n"
+    description="Initialise the dump buffer and parse the\n"
     "start/end address range from the command\n"
     "line. Validates addresses against the file\n"
     "extent, raising 'Outside file' if out of\n"
     "range.")
 subroutine(0xBC84, "advance_x_by_8",
-    "Advance X by 8 using nested JSR calls.\n"
+    description="Advance X by 8 using nested JSR calls.\n"
     "Calls advance_x_by_4 then falls through\n"
     "to inx4 for a total of 8 INX operations.")
 subroutine(0xBC87, "advance_x_by_4",
-    "Advance X by 4 using a JSR to inx4 then\n"
+    description="Advance X by 4 using a JSR to inx4 then\n"
     "falling through to inx4 again, for a total\n"
     "of 4+4=8 INX operations when called from\n"
     "advance_x_by_8, or 4 when called directly.")
 subroutine(0xBC8A, "inx4",
-    "Increment X four times. Used as a building\n"
+    description="Increment X four times. Used as a building\n"
     "block by advance_x_by_4 and advance_x_by_8\n"
     "via the JSR/fall-through chaining pattern.")
 
@@ -4657,28 +4712,31 @@ label(0x8C52, "svc_9_help")
 label(0x8B05, "svc_18_fs_select")
 
 subroutine(0x8E8F, "svc_1_workspace_claim",
-    "Service 1: absolute workspace claim.\n"
+    description="Service 1: absolute workspace claim.\n"
     "Claims workspace pages for NFS use.")
 subroutine(0x8EA2, "svc_2_private_workspace",
-    "Service 2: private workspace claim.\n"
+    title="Service 2: claim private workspace and initialise NFS",
+    description="Service 2: private workspace claim.\n"
     "Allocates private workspace page and initialises FS state.")
 subroutine(0x8CBF, "svc_3_auto_boot",
-    "Service 3: auto-boot.\n"
+    description="Service 3: auto-boot.\n"
     "Handles boot from network on power-up/reset.")
 subroutine(0x8C43, "svc_4_star_command",
-    "Service 4: unrecognised star command.\n"
+    description="Service 4: unrecognised star command.\n"
     "Parses and dispatches NFS/ANFS star commands.")
 subroutine(0x8E7C, "svc_7_osbyte",
-    "Service 7: unrecognised OSBYTE.\n"
+    description="Service 7: unrecognised OSBYTE.\n"
     "Handles Econet-specific OSBYTE calls.")
 subroutine(0xA4D6, "svc_8_osword",
-    "Service 8: unrecognised OSWORD.\n"
+    title="Filing system OSWORD entry",
+    description="Service 8: unrecognised OSWORD.\n"
     "Handles Econet OSWORD calls (transmit, receive, etc.).")
 subroutine(0x8C52, "svc_9_help",
-    "Service 9: *HELP.\n"
+    title="Service 9: *HELP",
+    description="Service 9: *HELP.\n"
     "Prints NFS version and command list.")
 subroutine(0x8B05, "svc_18_fs_select",
-    "Service 18: filing system selection.\n"
+    description="Service 18: filing system selection.\n"
     "Selects Econet as the active filing system.")
 
 # Extended dispatch table entries (indices 15-36).
@@ -4743,39 +4801,39 @@ label(0xB321, "cmd_unprot")
 label(0x8ACC, "cmd_roff")
 
 subroutine(0xB97F, "cmd_close",
-    "*Close command.\n"
+    description="*Close command.\n"
     "Closes all open files via OSFIND #0.")
 subroutine(0xBA06, "cmd_dump",
-    "*Dump command.\n"
+    description="*Dump command.\n"
     "Displays file contents in hex and\n"
     "ASCII format, 8 bytes per line.")
 subroutine(0x8B0E, "cmd_net_fs",
-    "*Net command (file server variant).\n"
+    description="*Net command (file server variant).\n"
     "Selects network filing system.")
 subroutine(0xB19F, "cmd_pollps",
-    "Poll printer server status.\n"
+    description="Poll printer server status.\n"
     "Waits for completion of the current\n"
     "print job, displaying progress.")
 subroutine(0xB988, "cmd_print",
-    "*Print command.\n"
+    description="*Print command.\n"
     "Sends file to printer server with\n"
     "optional page formatting.")
 subroutine(0xB2F0, "cmd_prot",
-    "*Prot command.\n"
+    description="*Prot command.\n"
     "Sets protection attribute on a file\n"
     "to prevent accidental deletion.")
 subroutine(0xAFCE, "cmd_ps",
-    "*PS command.\n"
+    description="*PS command.\n"
     "Lists printer server queue status.")
 subroutine(0xB985, "cmd_type",
-    "*Type command.\n"
+    description="*Type command.\n"
     "Displays file contents to screen.")
 subroutine(0xB321, "cmd_unprot",
-    "*Unprot command.\n"
+    description="*Unprot command.\n"
     "Removes protection attribute from\n"
     "a file.")
 subroutine(0x8ACC, "cmd_roff",
-    "*ROFF command. Disables remote\n"
+    description="*ROFF command. Disables remote\n"
     "operation. Clears the receive buffer,\n"
     "re-enables the keyboard, and resets\n"
     "service state.")
@@ -4812,55 +4870,55 @@ label(0x9377, "cmd_rename")
 label(0xB33D, "cmd_wipe")
 
 subroutine(0x92D2, "cmd_fs_operation",
-    "Shared handler for *Access, *Delete, *Info, *Lib.\n"
+    description="Shared handler for *Access, *Delete, *Info, *Lib.\n"
     "Command code distinguishes operation.")
 subroutine(0x948A, "cmd_bye",
-    "*Bye command.\n"
+    description="*Bye command.\n"
     "Logs off from the file server. Closes\n"
     "open files, clears FS context, and\n"
     "resets workspace state.")
 subroutine(0xACFE, "cmd_cdir",
-    "*CDir command.\n"
+    description="*CDir command.\n"
     "Creates a new directory on the file\n"
     "server.")
 subroutine(0x93C9, "cmd_dir",
-    "*Dir command.\n"
+    description="*Dir command.\n"
     "Sets the current directory on the\n"
     "file server.")
 subroutine(0xAD59, "cmd_ex",
-    "*Ex command.\n"
+    description="*Ex command.\n"
     "Examines a directory, listing files\n"
     "with attributes. *LCat and *LEx\n"
     "fall through to this handler.")
 subroutine(0xA33E, "cmd_flip",
-    "*Flip command.\n"
+    description="*Flip command.\n"
     "Toggles auto-boot configuration\n"
     "setting.")
 subroutine(0xA063, "cmd_fs",
-    "*FS command.\n"
+    description="*FS command.\n"
     "Selects filing system by number.")
 subroutine(0x8D6E, "cmd_iam",
-    "*I am command.\n"
+    description="*I am command.\n"
     "Logs onto the file server with user credentials.")
 subroutine(0xAD4D, "cmd_lcat",
-    "*LCat command.\n"
+    description="*LCat command.\n"
     "Lists catalogue from the library\n"
     "directory. Falls through to *Ex.")
 subroutine(0xAD53, "cmd_lex",
-    "*LEx command.\n"
+    description="*LEx command.\n"
     "Examines the library directory.\n"
     "Falls through to *Ex.")
 subroutine(0x8DB1, "cmd_pass",
-    "*Pass command.\n"
+    description="*Pass command.\n"
     "Changes file server password.")
 subroutine(0xAF46, "cmd_remove",
-    "*Remove command.\n"
+    description="*Remove command.\n"
     "Deletes a file from the file server.")
 subroutine(0x9377, "cmd_rename",
-    "*Rename command.\n"
+    description="*Rename command.\n"
     "Renames a file on the file server.")
 subroutine(0xB33D, "cmd_wipe",
-    "*Wipe command.\n"
+    description="*Wipe command.\n"
     "Deletes files with interactive per-\n"
     "file confirmation prompt.")
 
@@ -4872,10 +4930,10 @@ label(0x8B8B, "cmd_net_local")
 label(0x8B87, "cmd_utils")
 
 subroutine(0x8B8B, "cmd_net_local",
-    "*Net command (local variant).\n"
+    description="*Net command (local variant).\n"
     "Selects Econet as active network.")
 subroutine(0x8B87, "cmd_utils",
-    "*Utils command. Dispatches to\n"
+    description="*Utils command. Dispatches to\n"
     "command utility table at offset 0.")
 
 
@@ -4953,23 +5011,23 @@ label(0xA3BF, "boot_exec_cmd")
 # Subroutine at &8E33: PHA/PHA/RTS dispatch via svc_dispatch tables.
 # On entry: X=base index, Y=offset. Dispatches to table[X+Y+1].
 subroutine(0x8E33, "svc_dispatch",
-    "Service dispatch via PHA/PHA/RTS.\n"
+    description="Service dispatch via PHA/PHA/RTS.\n"
     "On entry: X=base index, Y=additional offset.\n"
     "Dispatches to svc_dispatch_lo/hi[X+Y+1].")
 label(0x8E33, "svc_dispatch")
 
 # sub_c8a97: read byte from paged ROM via OSRDSC
 subroutine(0x8A97, "read_paged_rom",
-    "Read byte from paged ROM via OSRDSC.\n"
+    description="Read byte from paged ROM via OSRDSC.\n"
     "Increments osrdsc_ptr and reads from ROM Y.")
 label(0x8A97, "read_paged_rom")
 
 # sub_c8e6d / sub_c8e6f: OSBYTE with X=0 / OSBYTE with Y=&FF
 subroutine(0x8E6D, "osbyte_x0",
-    "OSBYTE with X=0, Y=&FF.\n"
+    description="OSBYTE with X=0, Y=&FF.\n"
     "Called from dispatch table for specific OSBYTE calls.")
 subroutine(0x8E6F, "osbyte_yff",
-    "OSBYTE with Y=&FF.\n"
+    description="OSBYTE with Y=&FF.\n"
     "Entry with X already set by caller.")
 label(0x8E6D, "osbyte_x0")
 label(0x8E6F, "osbyte_yff")

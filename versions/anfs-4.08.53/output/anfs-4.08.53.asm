@@ -426,6 +426,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     cmp tube_claimed_id                                               ; bf10: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
     bne return_tube_init                                              ; bf12: d0 20       .   :0412[2]   ; Match: we own it, return (no release)
 ; ***************************************************************************************
+; Release Tube address claim via R4 command 5
+; 
 ; Release or claim Tube processor.
 ; A>=&C0: external claim from another host.
 ; A>=&80: release our current claim.
@@ -523,6 +525,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rts                                                               ; bf83: 60          `   :0483[2]   ; Return from transfer setup
 
 ; ***************************************************************************************
+; Tube host startup entry (BEGIN)
+; 
 ; Tube host startup. Claim address &FF,
 ; relocate ROM code, and enter the main
 ; command polling loop.
@@ -576,6 +580,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_init_reloc                                               ; bfc6: 20 d2 04     .. :04c6[2]   ; Re-init reloc pointers for final claim
     lda #4                                                            ; bfc9: a9 04       ..  :04c9[2]   ; A=4: transfer type for final address claim
 ; ***************************************************************************************
+; Claim default Tube transfer address
+; 
 ; Claim Tube for this ROM's default address.
 ; ***************************************************************************************
 ; &bfcb referenced 1 time by &04a4[2]
@@ -585,6 +591,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_addr_data_dispatch                                       ; bfcf: 4c 06 04    L.. :04cf[2]   ; Claim Tube address for transfer
 
 ; ***************************************************************************************
+; Initialise relocation address for ROM transfer
+; 
 ; Relocate Tube host code from ROM to RAM
 ; and initialise transfer address defaults.
 ; ***************************************************************************************
@@ -961,6 +969,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rts                                                               ; be54: 60          `   :06c4[4]   ; Return to caller
 
 ; ***************************************************************************************
+; Read a byte from Tube data register R2
+; 
 ; Poll Tube R2 status until data is ready,
 ; then read and return the data byte.
 ; ***************************************************************************************
@@ -1099,6 +1109,8 @@ service_handler_lo = service_entry+1
     rts                                                               ; 8068: 60          `              ; RTS = dispatch to PHA'd address
 
 ; ***************************************************************************************
+; ADLC initialisation
+; 
 ; Initialise ADLC: full hardware reset then
 ; configure for receive/listen mode.
 ; Falls through to init_nmi_workspace.
@@ -1119,6 +1131,8 @@ service_handler_lo = service_entry+1
     cpy #5                                                            ; 8085: c0 05       ..             ; Check if NMI service was claimed (Y changed)
     bne return_1                                                      ; 8087: d0 29       .)             ; Service claimed by other ROM: skip init
 ; ***************************************************************************************
+; Initialise NMI workspace (skip service request)
+; 
 ; Copy NMI shim code from ROM to &0D00 and
 ; initialise Econet NMI workspace variables.
 ; ***************************************************************************************
@@ -1146,6 +1160,8 @@ service_handler_lo = service_entry+1
     rts                                                               ; 80b2: 60          `              ; Return
 
 ; ***************************************************************************************
+; NMI RX scout handler (initial byte)
+; 
 ; NMI handler for incoming scout frames.
 ; Check destination station; accept if it
 ; matches our ID or is broadcast (&FF).
@@ -1168,6 +1184,8 @@ service_handler_lo = service_entry+1
     jmp install_nmi_handler                                           ; 80cd: 4c 11 0d    L..            ; Install next handler and RTI
 
 ; ***************************************************************************************
+; RX scout second byte handler
+; 
 ; NMI handler for scout frame network byte.
 ; Accept local network (0) or broadcast
 ; (&FF); reject frames for other networks.
@@ -1196,6 +1214,8 @@ service_handler_lo = service_entry+1
     jmp set_nmi_vector                                                ; 80ef: 4c 0e 0d    L..            ; Install scout data loop and RTI
 
 ; ***************************************************************************************
+; Scout error/discard handler
+; 
 ; Handle scout reception error. Read SR2 to
 ; determine error type and discard the frame.
 ; ***************************************************************************************
@@ -1235,6 +1255,8 @@ service_handler_lo = service_entry+1
     jmp nmi_rti                                                       ; 8129: 4c 14 0d    L..            ; SR2 = 0 -- RTI, wait for next NMI
 
 ; ***************************************************************************************
+; Scout completion handler
+; 
 ; Process completed scout frame. Match port
 ; against open receive control blocks, set up
 ; data phase handler, and send acknowledge.
@@ -1349,6 +1371,8 @@ service_handler_lo = service_entry+1
     jmp install_nmi_handler                                           ; 81d9: 4c 11 0d    L..            ; Install nmi_data_rx and return from NMI
 
 ; ***************************************************************************************
+; Data frame RX handler (four-way handshake)
+; 
 ; NMI handler for data frame reception.
 ; Verify dest station/network, then skip
 ; control and port bytes known from scout.
@@ -1381,6 +1405,8 @@ service_handler_lo = service_entry+1
     lda econet_data_continue_frame                                    ; 820b: ad a2 fe    ...            ; Discard control byte
     lda econet_data_continue_frame                                    ; 820e: ad a2 fe    ...            ; Discard port byte
 ; ***************************************************************************************
+; Install data RX bulk or Tube handler
+; 
 ; Install NMI handler for data reception:
 ; bulk RAM path or Tube transfer path.
 ; Enter bulk read directly if data waiting.
@@ -1403,6 +1429,8 @@ service_handler_lo = service_entry+1
     jmp set_nmi_vector                                                ; 8228: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
 ; ***************************************************************************************
+; NMI error handler dispatch
+; 
 ; NMI error handler dispatch. Route to
 ; receive error or transmit error based on
 ; SR1 flags.
@@ -1419,6 +1447,8 @@ service_handler_lo = service_entry+1
     jmp discard_reset_rx                                              ; 8236: 4c eb 83    L..            ; Discard and return to idle listen
 
 ; ***************************************************************************************
+; Data frame bulk read loop
+; 
 ; NMI bulk data receive loop. Read byte
 ; pairs from ADLC RX FIFO into the port
 ; receive buffer, handling page boundaries.
@@ -1459,6 +1489,8 @@ service_handler_lo = service_entry+1
     jmp nmi_rti                                                       ; 826a: 4c 14 0d    L..            ; SR2=0: no more data yet, wait for NMI
 
 ; ***************************************************************************************
+; Data frame completion
+; 
 ; Complete data frame reception. Verify
 ; frame valid (FV) flag, update buffer
 ; pointers, and begin ACK transmission.
@@ -1527,6 +1559,8 @@ service_handler_lo = service_entry+1
     ora rx_src_net                                                    ; 82de: 0d 3e 0d    .>.            ; Set extra byte flag in tx_flags
     sta rx_src_net                                                    ; 82e1: 8d 3e 0d    .>.            ; Store updated flags
 ; ***************************************************************************************
+; ACK transmission
+; 
 ; Begin transmitting ACK frame. Write
 ; destination station and network bytes
 ; to ADLC TX FIFO.
@@ -1561,6 +1595,8 @@ service_handler_lo = service_entry+1
     jmp set_nmi_vector                                                ; 8318: 4c 0e 0d    L..            ; Set NMI vector to ack_tx_src handler
 
 ; ***************************************************************************************
+; ACK TX continuation
+; 
 ; NMI handler: transmit source address in
 ; ACK frame. Write our station ID and
 ; network=0 to TX FIFO.
@@ -1576,6 +1612,8 @@ service_handler_lo = service_entry+1
     bmi start_data_tx                                                 ; 832e: 30 0e       0.             ; bit7 set: start data TX phase
     lda #&3f ; '?'                                                    ; 8330: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
 ; ***************************************************************************************
+; Post-ACK scout processing
+; 
 ; NMI handler after ACK frame sent.
 ; Reset ADLC and copy scout data to the
 ; receive control block buffer.
@@ -1595,6 +1633,8 @@ service_handler_lo = service_entry+1
     jmp nmi_error_dispatch                                            ; 8341: 4c 2b 82    L+.            ; Jump to error handler
 
 ; ***************************************************************************************
+; Advance RX buffer pointer after transfer
+; 
 ; Update RXCB buffer pointer and length
 ; after data reception. Handle page
 ; boundary crossings and Tube transfers.
@@ -1658,6 +1698,8 @@ service_handler_lo = service_entry+1
     jmp imm_op_build_reply                                            ; 8397: 4c ec 84    L..            ; Other port-0 ops: immediate dispatch
 
 ; ***************************************************************************************
+; Complete RX and update RXCB
+; 
 ; Mark receive control block as complete.
 ; Update buffer pointer and remaining
 ; length, clear flag byte.
@@ -1729,6 +1771,8 @@ service_handler_lo = service_entry+1
     jmp set_nmi_vector                                                ; 83f5: 4c 0e 0d    L..            ; Install nmi_rx_scout as NMI handler
 
 ; ***************************************************************************************
+; Discard with Tube release
+; 
 ; Discard current frame. Reset ADLC
 ; to listen mode and return.
 ; ***************************************************************************************
@@ -1746,6 +1790,8 @@ service_handler_lo = service_entry+1
     rts                                                               ; 8405: 60          `              ; Return
 
 ; ***************************************************************************************
+; Copy scout data to port buffer
+; 
 ; Copy received scout data into the RXCB
 ; buffer. Handle both direct RAM and Tube
 ; transfer paths.
@@ -1793,6 +1839,8 @@ service_handler_lo = service_entry+1
     beq scout_copy_done                                               ; 843d: f0 e9       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
+; Release Tube co-processor claim
+; 
 ; Release the Tube address claim if one is
 ; held. Clear the release-needed flag.
 ; ***************************************************************************************
@@ -1808,6 +1856,8 @@ service_handler_lo = service_entry+1
     rts                                                               ; 844a: 60          `              ; Return
 
 ; ***************************************************************************************
+; Discard with immediate operation dispatch
+; 
 ; Discard frame after ADLC reset. Wait for
 ; idle line, then restore listen mode and
 ; dispatch any pending immediate operations.
@@ -1905,6 +1955,8 @@ service_handler_lo = service_entry+1
     jmp ack_tx_write_dest                                             ; 84e9: 4c fd 82    L..            ; Acknowledge and write TX dest
 
 ; ***************************************************************************************
+; Build immediate operation reply header
+; 
 ; Build reply header for immediate operation.
 ; Store data offset, source station/network
 ; in RX buffer, then configure shift register
@@ -1991,6 +2043,8 @@ service_handler_lo = service_entry+1
     rts                                                               ; 8581: 60          `              ; Return with A=0 (success)
 
 ; ***************************************************************************************
+; Begin TX operation
+; 
 ; Begin Econet transmission. Copy dest
 ; station/network from TX control block,
 ; set up immediate op params, poll for idle
@@ -2069,6 +2123,8 @@ service_handler_lo = service_entry+1
     sta rx_ctrl                                                       ; 85e5: 8d 3f 0d    .?.            ; Store scout frame length
     lda #0                                                            ; 85e8: a9 00       ..             ; A=0: init low byte of timeout counter
 ; ***************************************************************************************
+; INACTIVE polling loop
+; 
 ; Init 3-byte timeout counter on the stack
 ; and begin polling ADLC for line inactive
 ; before starting transmission.
@@ -2085,6 +2141,8 @@ service_handler_lo = service_entry+1
     php                                                               ; 85f3: 08          .              ; Save interrupt state
     sei                                                               ; 85f4: 78          x              ; Disable interrupts for ADLC access
 ; ***************************************************************************************
+; Disable NMIs and test INACTIVE
+; 
 ; Test Econet line for inactive state with
 ; interrupts disabled. Poll SR2 INACTIVE bit
 ; with 3-byte timeout counter on the stack.
@@ -2122,6 +2180,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     bne store_tx_error                                                ; 8627: d0 0e       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
+; TX timeout error handler (Line Jammed)
+; 
 ; Handle line jammed error. Abort TX by
 ; writing CR2, clean timeout state from
 ; the stack, and store error &40 in the
@@ -2151,6 +2211,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     rts                                                               ; 8642: 60          `              ; Return to TX caller
 
 ; ***************************************************************************************
+; TX preparation
+; 
 ; Prepare ADLC for transmission. Configure
 ; CR2 for TX mode, write destination address
 ; bytes to TX FIFO, and install TX data NMI
@@ -2238,6 +2300,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     rts                                                               ; 86df: 60          `              ; Return to caller
 
 ; ***************************************************************************************
+; NMI TX data handler
+; 
 ; NMI handler: transmit data frame bytes.
 ; Write byte pairs from TX buffer at &0D20
 ; to ADLC TX FIFO in a tight loop while
@@ -2285,6 +2349,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp tx_store_result                                               ; 8719: 4c cc 88    L..            ; Store error and return to idle
 
 ; ***************************************************************************************
+; TX_LAST_DATA and frame completion
+; 
 ; Signal last data byte of TX frame.
 ; Write TX_LAST_DATA to CR2 and install
 ; nmi_tx_complete as the next NMI handler.
@@ -2298,6 +2364,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp set_nmi_vector                                                ; 8725: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; ***************************************************************************************
+; TX completion: switch to RX mode
+; 
 ; NMI handler: TX frame completed. Reset
 ; ADLC from TX to RX mode. Route to
 ; tx_result_ok (broadcast), reply scout
@@ -2324,6 +2392,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp install_nmi_handler                                           ; 8741: 4c 11 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
+; RX reply scout handler
+; 
 ; NMI handler: receive reply scout frame.
 ; Check SR2 for AP, read destination station
 ; byte, verify it matches our ID. Install
@@ -2340,6 +2410,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp install_nmi_handler                                           ; 8755: 4c 11 0d    L..            ; Install continuation handler
 
 ; ***************************************************************************************
+; RX reply continuation handler
+; 
 ; NMI handler: continue reply scout frame
 ; reception. Read remaining scout bytes
 ; and install validation handler.
@@ -2359,6 +2431,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp tx_result_fail                                                ; 876c: 4c ca 88    L..            ; Store error and return to idle
 
 ; ***************************************************************************************
+; RX reply validation (Path 2 for FV/PSE interaction)
+; 
 ; NMI handler: validate reply scout frame.
 ; Verify source station/network match the
 ; original TX destination, check FV for
@@ -2397,6 +2471,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp set_nmi_vector                                                ; 87b4: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; ***************************************************************************************
+; TX scout ACK: write source address
+; 
 ; NMI handler: write source address bytes
 ; for scout ACK frame. Write our station
 ; ID and network 0 to TX FIFO, then install
@@ -2427,6 +2503,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp set_nmi_vector                                                ; 87d9: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; ***************************************************************************************
+; TX data phase: send payload
+; 
 ; NMI handler: transmit data phase of a
 ; four-way handshake. Send byte pairs from
 ; the buffer at (open_port_buf) or from Tube
@@ -2533,6 +2611,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp discard_reset_rx                                              ; 886b: 4c eb 83    L..            ; Bit7 set: discard and return to listen
 
 ; ***************************************************************************************
+; Four-way handshake: switch to RX for final ACK
+; 
 ; Switch ADLC from TX to RX mode and
 ; install nmi_final_ack as the NMI handler
 ; to await the final acknowledge frame of a
@@ -2547,6 +2627,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp set_nmi_vector                                                ; 8877: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; ***************************************************************************************
+; RX final ACK handler
+; 
 ; NMI handler: receive final ACK frame.
 ; Validate AP flag and destination station,
 ; then install continuation handler.
@@ -2572,6 +2654,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp install_nmi_handler                                           ; 889f: 4c 11 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
+; Final ACK validation
+; 
 ; NMI handler: validate final ACK frame.
 ; Check source station/network, verify
 ; frame valid, and store success result.
@@ -2596,6 +2680,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     bit econet_control23_or_status2                                   ; 88c1: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
     beq tx_result_fail                                                ; 88c4: f0 04       ..             ; No FV -- error
 ; ***************************************************************************************
+; TX completion handler
+; 
 ; Set transmit result to success (A=0)
 ; and fall through to tx_store_result.
 ; ***************************************************************************************
@@ -2605,6 +2691,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     beq tx_store_result                                               ; 88c8: f0 02       ..             ; BEQ: always taken (A=0); ALWAYS branch
 
 ; ***************************************************************************************
+; TX failure: not listening
+; 
 ; Set transmit result to 'not listening'
 ; (A=&41) and fall through to tx_store_result.
 ; ***************************************************************************************
@@ -2612,6 +2700,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .tx_result_fail
     lda #&41 ; 'A'                                                    ; 88ca: a9 41       .A             ; A=&41: not listening error code
 ; ***************************************************************************************
+; TX result store and completion
+; 
 ; Store TX result code in control block,
 ; signal completion, and reset ADLC to
 ; idle listen mode.
@@ -2635,6 +2725,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     equb 0, 0, 1, 1, &81                                              ; 88e3: 00 00 01... ...
 
 ; ***************************************************************************************
+; Calculate transfer size
+; 
 ; Calculate transfer size for data phase.
 ; Compute byte count from buffer start/end
 ; pointers in the TX control block.
@@ -2721,6 +2813,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     rts                                                               ; 895e: 60          `              ; Return with C=1 (success)
 
 ; ***************************************************************************************
+; ADLC full reset
+; 
 ; Full MC6854 ADLC hardware reset. Set CR1
 ; with TX and RX in reset, then configure
 ; CR4 and CR3 via address control mode.
@@ -2734,6 +2828,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     lda #0                                                            ; 8969: a9 00       ..             ; CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR
     sta econet_control23_or_status2                                   ; 896b: 8d a1 fe    ...            ; Write CR3 to ADLC register 1
 ; ***************************************************************************************
+; Enter RX listen mode
+; 
 ; Configure ADLC for receive/listen mode.
 ; TX held in reset, RX interrupts enabled,
 ; status flags cleared.
@@ -2747,6 +2843,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     rts                                                               ; 8978: 60          `              ; Return; ADLC now in RX listen mode
 
 ; ***************************************************************************************
+; Wait for idle NMI state and reset Econet
+; 
 ; Wait for NMI handler to return to idle
 ; state (nmi_rx_scout), then reset ADLC
 ; to listen mode. Service 12 handler.
@@ -2763,6 +2861,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     eor #&80                                                          ; 8988: 49 80       I.             ; Test if high byte = &80 (page of nmi_rx_scout)
     bne poll_nmi_idle                                                 ; 898a: d0 f2       ..             ; Not idle: spin and wait
 ; ***************************************************************************************
+; Reset Econet flags and enter RX listen
+; 
 ; Save Econet state for ROM bank switch.
 ; Store current NMI handler address and
 ; prepare for NMI shim installation.
@@ -2780,6 +2880,8 @@ listen_jmp_hi = reset_enter_listen+2
 
 ; &899c referenced 1 time by &808b
 ; ***************************************************************************************
+; Bootstrap NMI entry point (in ROM)
+; 
 ; NMI bootstrap entry point. Install
 ; ROM-based scout handler and set NMI
 ; vector to dispatch through the shim.
@@ -2794,6 +2896,8 @@ listen_jmp_hi = reset_enter_listen+2
     jmp nmi_rx_scout                                                  ; 89a8: 4c b3 80    L..            ; Jump to scout handler in ROM
 
 ; ***************************************************************************************
+; ROM copy of set_nmi_vector + nmi_rti
+; 
 ; Write NMI handler address, restore ROM
 ; bank and registers, re-enable NMIs,
 ; and return from interrupt.
@@ -3312,6 +3416,8 @@ listen_jmp_hi = reset_enter_listen+2
     jmp cmd_fs_reentry                                                ; 8c4f: 4c 0d a1    L..            ; Match found: execute command
 
 ; ***************************************************************************************
+; Service 9: *HELP
+; 
 ; Service 9: *HELP.
 ; Prints NFS version and command list.
 ; ***************************************************************************************
@@ -3761,6 +3867,8 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     rts                                                               ; 8ea1: 60          `              ; Return
 
 ; ***************************************************************************************
+; Service 2: claim private workspace and initialise NFS
+; 
 ; Service 2: private workspace claim.
 ; Allocates private workspace page and initialises FS state.
 ; ***************************************************************************************
@@ -4061,6 +4169,8 @@ ws_init_data = error_bad_station+2
     equb &9a, &b1, &cd, &e7, &f4                                      ; 9116: 9a b1 cd... ...
 
 ; ***************************************************************************************
+; Print A as two hexadecimal digits
+; 
 ; Print A as two hexadecimal digits via
 ; OSASCI. Shifts out the high nybble first,
 ; then falls through to print the low nybble.
@@ -4982,6 +5092,8 @@ ws_init_data = error_bad_station+2
     jmp check_net_error_code                                          ; 9557: 4c da 96    L..            ; Go to error dispatch
 
 ; ***************************************************************************************
+; Check for pending escape condition
+; 
 ; Check for an escape condition. If the MOS
 ; escape flag is set and escape handling is
 ; enabled, acknowledges the escape via OSBYTE
@@ -7798,6 +7910,8 @@ bad_prefix = bad_str_anchor+1
     equb &a9, &10, &ef, &80                                           ; a4d2: a9 10 ef... ...
 
 ; ***************************************************************************************
+; Filing system OSWORD entry
+; 
 ; Service 8: unrecognised OSWORD.
 ; Handles Econet OSWORD calls (transmit, receive, etc.).
 ; ***************************************************************************************
@@ -9378,6 +9492,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     clv                                                               ; af73: b8          .              ; Clear V (always print units)
     lda #1                                                            ; af74: a9 01       ..             ; A=1: units divisor
 ; ***************************************************************************************
+; Print one decimal digit by repeated subtraction
+; 
 ; Print a single decimal digit by repeated
 ; subtraction of the divisor. Increments the
 ; digit character from '0' while subtracting.
