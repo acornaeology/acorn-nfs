@@ -1788,17 +1788,6 @@ comment(0x801F, "Purpose unknown", inline=True)
 comment(0x8020, "Purpose unknown", inline=True)
 
 # Null handler and service call handlers (indices 0-13)
-# Inline comments for the first 9 lo-byte entries (before the
-# generated dispatch_comments loop covers the rest from &802A).
-comment(0x8021, "lo - Svc 0: null handler (RTS)", inline=True)
-comment(0x8022, "lo - Svc 1: claim absolute workspace", inline=True)
-comment(0x8023, "lo - Svc 2: claim private workspace", inline=True)
-comment(0x8024, "lo - Svc 3: auto-boot", inline=True)
-comment(0x8025, "lo - Svc 4: unrecognised * command", inline=True)
-comment(0x8026, "lo - Svc 5: IRQ check", inline=True)
-comment(0x8027, "lo - Svc 6: null handler (RTS)", inline=True)
-comment(0x8028, "lo - Svc 7: unrecognised OSBYTE/OSWORD", inline=True)
-comment(0x8029, "lo - Svc 8: OSWORD filter", inline=True)
 for i in range(0, 14):
     rts_code_ptr(0x8021 + i, 0x8046 + i)
 
@@ -2744,7 +2733,7 @@ dispatch_comments = [
     "*NET4: resume remote",
 ]
 for i, body in enumerate(dispatch_comments):
-    comment(0x802A + i, f"lo - {body}", inline=True)
+    comment(0x8021 + i, f"lo - {body}", inline=True)
     comment(0x8046 + i, f"hi - {body}", inline=True)
 
 # ============================================================
