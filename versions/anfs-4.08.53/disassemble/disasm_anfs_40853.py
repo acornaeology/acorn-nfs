@@ -270,7 +270,7 @@ label(0x0D50, "tx_length")
 label(0x0D60, "ws_0d60")
 label(0x0D62, "ws_0d62")
 label(0x0D64, "ws_0d64")
-label(0x0D65, "ws_0d65")
+label(0x0D65, "tx_op_type")
 label(0x0D68, "ws_0d68")
 label(0x0D69, "ws_0d69")
 label(0x0D6A, "ws_0d6a")
@@ -1215,15 +1215,15 @@ label(0xBEB4, "loop_copy_zp_workspace")
 # ROM entry points and subroutines
 # ============================================================
 
-subroutine(0x8023, "nmi_handler",
+subroutine(0x8023, "svc5_irq_check",
     title="Service 5: unrecognised interrupt (CB1 dispatch)",
     description="Tests IFR bit 2 (CB1 active edge) to check for a\n"
     "shift register transfer complete. If CB1 is not set,\n"
     "returns A=5 to pass the service call on. If CB1 is\n"
     "set, saves registers, reads the VIA ACR, clears and\n"
     "restores the SR mode bits from ws_0d64, then dispatches\n"
-    "the TX completion callback via the handler index stored\n"
-    "in ws_0d65. The indexed handler performs the completion\n"
+    "the TX completion callback via the operation type stored\n"
+    "in tx_op_type. The indexed handler performs the completion\n"
     "action (e.g. resuming background print spooling) before\n"
     "returning with A=0 to claim the service call.",
     on_entry={"a": "5 (service call number)",
@@ -1732,7 +1732,7 @@ subroutine(0x8089, "init_nmi_workspace",
     "(listen_jmp_hi) to &0D00, then patches the current\n"
     "ROM bank number into the self-modifying code at\n"
     "&0D07. Clears tx_src_net, need_release_tube, and\n"
-    "ws_0d65 to zero. Reads station ID into tx_src_stn\n"
+    "tx_op_type to zero. Reads station ID into tx_src_stn\n"
     "(&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark\n"
     "TX complete and Econet initialised. Finally re-enables\n"
     "NMIs via INTON (&FE20 read).")
@@ -3960,7 +3960,7 @@ comment(0x803C, "Read SR to clear shift register IRQ", inline=True)
 comment(0x803F, "A=4: CB1 bit mask", inline=True)
 comment(0x8041, "Clear CB1 interrupt flag in IFR", inline=True)
 comment(0x8044, "Disable CB1 interrupt in IER", inline=True)
-comment(0x8047, "Load TX completion handler index", inline=True)
+comment(0x8047, "Load TX operation type for dispatch", inline=True)
 comment(0x804A, "Copy to A for sign test", inline=True)
 comment(0x804B, "Bit 7 set: dispatch via table", inline=True)
 comment(0x804D, "Y=&FE: Econet event number", inline=True)
@@ -3996,7 +3996,7 @@ comment(0x8094, "Patch current ROM bank into NMI shim", inline=True)
 comment(0x8096, "Self-modifying code: ROM bank at &0D07", inline=True)
 comment(0x8099, "Clear source network (Y=0 from copy loop)", inline=True)
 comment(0x809C, "Clear Tube release flag", inline=True)
-comment(0x809E, "Clear TX completion handler index", inline=True)
+comment(0x809E, "Clear TX operation type", inline=True)
 comment(0x80A1, "Read station ID (and disable NMIs)", inline=True)
 comment(0x80A4, "Set own station as TX source", inline=True)
 comment(0x80A7, "&80 = Econet initialised", inline=True)
@@ -4491,7 +4491,7 @@ comment(0x84FA, "Store source station in reply header", inline=True)
 comment(0x84FD, "Load requesting network number", inline=True)
 comment(0x8500, "Store source network in reply header", inline=True)
 comment(0x8502, "Load control byte from received frame", inline=True)
-comment(0x8505, "Save ctrl byte for TX response", inline=True)
+comment(0x8505, "Save TX operation type for CB1 dispatch", inline=True)
 comment(0x8508, "IER bit 2: disable CB1 interrupt", inline=True)
 comment(0x850A, "Write IER to disable CB1", inline=True)
 comment(0x850D, "Read ACR for shift register config", inline=True)
@@ -5740,7 +5740,7 @@ for i, body in enumerate(svc_dispatch_comments):
     comment(0x89E5 + i, f"hi - {body}", inline=True)
 
 # Service dispatch targets — already labelled
-# Index 6 (svc 5): &8023 = nmi_handler (unrecognised interrupt)
+# Index 6 (svc 5): &8023 = svc5_irq_check (unrecognised interrupt)
 # Index 12 (svc 11): &8085 = svc_11_nmi_claim (NMI claim)
 # Index 13 (svc 12): &8979 = wait_idle_and_reset (NMI release)
 

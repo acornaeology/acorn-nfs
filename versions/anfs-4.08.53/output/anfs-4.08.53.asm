@@ -184,7 +184,7 @@ l0d61                                   = &0d61
 ws_0d62                                 = &0d62
 l0d63                                   = &0d63
 ws_0d64                                 = &0d64
-ws_0d65                                 = &0d65
+tx_op_type                              = &0d65
 l0d66                                   = &0d66
 l0d67                                   = &0d67
 ws_0d68                                 = &0d68
@@ -1287,8 +1287,8 @@ service_handler_lo = service_entry+1
 ; returns A=5 to pass the service call on. If CB1 is
 ; set, saves registers, reads the VIA ACR, clears and
 ; restores the SR mode bits from ws_0d64, then dispatches
-; the TX completion callback via the handler index stored
-; in ws_0d65. The indexed handler performs the completion
+; the TX completion callback via the operation type stored
+; in tx_op_type. The indexed handler performs the completion
 ; action (e.g. resuming background print spooling) before
 ; returning with A=0 to claim the service call.
 ; 
@@ -1297,7 +1297,7 @@ service_handler_lo = service_entry+1
 ;     X: ROM slot
 ;     Y: parameter
 ; ***************************************************************************************
-.nmi_handler
+.svc5_irq_check
     lda #4                                                            ; 8023: a9 04       ..             ; A=4: CB1 bit mask for IFR test
     bit system_via_ifr                                                ; 8025: 2c 4d fe    ,M.            ; Test IFR bit 2: CB1 active edge
     bne save_registers                                                ; 8028: d0 03       ..             ; CB1 set: shift register complete
@@ -1318,7 +1318,7 @@ service_handler_lo = service_entry+1
     lda #4                                                            ; 803f: a9 04       ..             ; A=4: CB1 bit mask
     sta system_via_ifr                                                ; 8041: 8d 4d fe    .M.            ; Clear CB1 interrupt flag in IFR
     sta system_via_ier                                                ; 8044: 8d 4e fe    .N.            ; Disable CB1 interrupt in IER
-    ldy ws_0d65                                                       ; 8047: ac 65 0d    .e.            ; Load TX completion handler index
+    ldy tx_op_type                                                    ; 8047: ac 65 0d    .e.            ; Load TX operation type for dispatch
     tya                                                               ; 804a: 98          .              ; Copy to A for sign test
     bmi set_jsr_protection                                            ; 804b: 30 05       0.             ; Bit 7 set: dispatch via table
     ldy #&fe                                                          ; 804d: a0 fe       ..             ; Y=&FE: Econet event number
@@ -1375,7 +1375,7 @@ service_handler_lo = service_entry+1
 ; (listen_jmp_hi) to &0D00, then patches the current
 ; ROM bank number into the self-modifying code at
 ; &0D07. Clears tx_src_net, need_release_tube, and
-; ws_0d65 to zero. Reads station ID into tx_src_stn
+; tx_op_type to zero. Reads station ID into tx_src_stn
 ; (&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark
 ; TX complete and Econet initialised. Finally re-enables
 ; NMIs via INTON (&FE20 read).
@@ -1392,7 +1392,7 @@ service_handler_lo = service_entry+1
     sta l0d07                                                         ; 8096: 8d 07 0d    ...            ; Self-modifying code: ROM bank at &0D07
     sty tx_src_net                                                    ; 8099: 8c 23 0d    .#.            ; Clear source network (Y=0 from copy loop)
     sty need_release_tube                                             ; 809c: 84 98       ..             ; Clear Tube release flag
-    sty ws_0d65                                                       ; 809e: 8c 65 0d    .e.            ; Clear TX completion handler index
+    sty tx_op_type                                                    ; 809e: 8c 65 0d    .e.            ; Clear TX operation type
     ldy station_id_disable_net_nmis                                   ; 80a1: ac 18 fe    ...            ; Read station ID (and disable NMIs)
     sty tx_src_stn                                                    ; 80a4: 8c 22 0d    .".            ; Set own station as TX source
     lda #&80                                                          ; 80a7: a9 80       ..             ; &80 = Econet initialised
@@ -2355,7 +2355,7 @@ svc5_dispatch_lo = sub_c84a1+1
     lda l0d30                                                         ; 8502: ad 30 0d    .0.            ; Load control byte from received frame
 ; &8505 referenced 1 time by &83e8
 .setup_cb1_sr_tx
-    sta ws_0d65                                                       ; 8505: 8d 65 0d    .e.            ; Save ctrl byte for TX response
+    sta tx_op_type                                                    ; 8505: 8d 65 0d    .e.            ; Save TX operation type for CB1 dispatch
     lda #&84                                                          ; 8508: a9 84       ..             ; IER bit 2: disable CB1 interrupt
     sta system_via_ier                                                ; 850a: 8d 4e fe    .N.            ; Write IER to disable CB1
     lda system_via_acr                                                ; 850d: ad 4b fe    .K.            ; Read ACR for shift register config
@@ -3494,7 +3494,7 @@ listen_jmp_hi = reset_enter_listen+2
     equb <(svc_2_private_workspace-1)                                 ; 89c3: a1          .              ; lo - Svc 2: private workspace
     equb <(svc_3_autoboot-1)                                          ; 89c4: be          .              ; lo - Svc 3: auto-boot
     equb <(svc_4_star_command-1)                                      ; 89c5: 42          B              ; lo - Svc 4: unrecognised star command
-    equb <(nmi_handler-1)                                             ; 89c6: 22          "              ; lo - Svc 5: unrecognised interrupt
+    equb <(svc5_irq_check-1)                                          ; 89c6: 22          "              ; lo - Svc 5: unrecognised interrupt
     equb <(return_4-1)                                                ; 89c7: 41          A              ; lo - Svc 6: BRK (no-op)
     equb <(svc_7_osbyte-1)                                            ; 89c8: 7b          {              ; lo - Svc 7: unrecognised OSBYTE
     equb <(svc_8_osword-1)                                            ; 89c9: d5          .              ; lo - Svc 8: unrecognised OSWORD
@@ -3533,7 +3533,7 @@ listen_jmp_hi = reset_enter_listen+2
     equb >(svc_2_private_workspace-1)                                 ; 89e8: 8e          .              ; hi - Svc 2: private workspace
     equb >(svc_3_autoboot-1)                                          ; 89e9: 8c          .              ; hi - Svc 3: auto-boot
     equb >(svc_4_star_command-1)                                      ; 89ea: 8c          .              ; hi - Svc 4: unrecognised star command
-    equb >(nmi_handler-1)                                             ; 89eb: 80          .              ; hi - Svc 5: unrecognised interrupt
+    equb >(svc5_irq_check-1)                                          ; 89eb: 80          .              ; hi - Svc 5: unrecognised interrupt
     equb >(return_4-1)                                                ; 89ec: 8e          .              ; hi - Svc 6: BRK (no-op)
     equb >(svc_7_osbyte-1)                                            ; 89ed: 8e          .              ; hi - Svc 7: unrecognised OSBYTE
     equb >(svc_8_osword-1)                                            ; 89ee: a4          .              ; hi - Svc 8: unrecognised OSWORD
@@ -14096,7 +14096,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(net_1_read_handle-1) == &cb
     assert <(net_2_read_handle_entry-1) == &d1
     assert <(net_3_close_handle-1) == &e1
-    assert <(nmi_handler-1) == &22
     assert <(osword_0e_handler-1) == &15
     assert <(osword_10_handler-1) == &8a
     assert <(osword_11_handler-1) == &a7
@@ -14110,6 +14109,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &ae
     assert <(rx_imm_peek-1) == &c0
     assert <(rx_imm_poke-1) == &a3
+    assert <(svc5_irq_check-1) == &22
     assert <(svc_18_fs_select-1) == &04
     assert <(svc_1_abs_workspace-1) == &8e
     assert <(svc_2_private_workspace-1) == &a1
@@ -14168,7 +14168,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(net_1_read_handle-1) == &a0
     assert >(net_2_read_handle_entry-1) == &a0
     assert >(net_3_close_handle-1) == &a0
-    assert >(nmi_handler-1) == &80
     assert >(osword_0e_handler-1) == &a5
     assert >(osword_10_handler-1) == &a5
     assert >(osword_11_handler-1) == &a5
@@ -14177,6 +14176,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(osword_14_handler-1) == &a8
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
+    assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
     assert >(svc_1_abs_workspace-1) == &8e
     assert >(svc_2_private_workspace-1) == &8e
@@ -14482,8 +14482,8 @@ save pydis_start, pydis_end
 ;     tx_active_start:                          3
 ;     tx_begin:                                 3
 ;     tx_calc_transfer:                         3
+;     tx_op_type:                               3
 ;     write_second_tube_byte:                   3
-;     ws_0d65:                                  3
 ;     ws_0d69:                                  3
 ;     abort_if_escape:                          2
 ;     ack_tx:                                   2
