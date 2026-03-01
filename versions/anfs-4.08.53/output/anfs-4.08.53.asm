@@ -344,7 +344,6 @@ oscli                                   = &fff7
 ; &bed2 referenced 1 time by &0030[1]
 .tube_brk_send_loop
     iny                                                               ; bed2: c8          .   :0029[1]   ; Advance to next error string byte
-; &bed3 referenced 1 time by &053d[3]
 .tube_send_error_byte
     lda (brk_ptr),y                                                   ; bed3: b1 fd       ..  :002a[1]   ; Load next error string byte
     jsr tube_send_r2                                                  ; bed5: 20 95 06     .. :002c[1]   ; Send error string byte via R2
@@ -715,16 +714,9 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &bcca referenced 2 times by &0534[3], &05ef[3]
 .tube_rdch_reply
     ror a                                                             ; bcca: 6a          j   :053a[3]   ; ROR A: encode carry (error flag) into bit 7
-; Overlapping code: bytes &053B-&053D (&20 &95 &06) form
-; JSR tube_send_r2 when falling through from ROR A above.
-; The &06 byte doubles as the ASL opcode at &053D.
-    equb &20, &95                                                     ; bccb: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
-
-; Nothing references tube_release_return so this path is
-; dead code.
-.tube_release_return
-    asl tube_send_error_byte                                          ; bccd: 06 2a       .*  :053d[3]   ; ASL: shift carry out of &002A (dead code)
-    jmp tube_reply_byte                                               ; bccf: 4c 9e 05    L.. :053f[3]   ; JMP tube_reply_byte (dead code path)
+    jsr tube_send_r2                                                  ; bccb: 20 95 06     .. :053b[3]   ; Send carry+data byte to Tube R2
+    rol a                                                             ; bcce: 2a          *   :053e[3]   ; ROL A: restore carry flag
+    jmp tube_reply_byte                                               ; bccf: 4c 9e 05    L.. :053f[3]
 
 .tube_osfind
     jsr tube_read_r2                                                  ; bcd2: 20 c5 06     .. :0542[3]   ; Read open mode from R2 for OSFIND
@@ -1005,7 +997,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; On Exit:
 ;     A: preserved (value written)
 ; ***************************************************************************************
-; &be25 referenced 13 times by &0020[1], &0026[1], &002c[1], &0474[2], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]
+; &be25 referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]
 .tube_send_r2
     bit tube_status_register_2                                        ; be25: 2c e2 fe    ,.. :0695[4]   ; Poll R2 status (bit 6 = ready)
     bvc tube_send_r2                                                  ; be28: 50 fb       P.  :0698[4]   ; Not ready: keep polling
@@ -13966,13 +13958,13 @@ save pydis_start, pydis_end
 ;     net_tx_ptr_hi:                           14
 ;     nmi_tx_block:                            14
 ;     set_nmi_vector:                          14
+;     tube_send_r2:                            14
 ;     ws_ptr_lo:                               14
 ;     escapable:                               13
 ;     l1030:                                   13
 ;     mask_owner_access:                       13
 ;     open_port_buf:                           13
 ;     port_buf_len_hi:                         13
-;     tube_send_r2:                            13
 ;     cmd_table_fs:                            12
 ;     fs_last_byte_flag:                       12
 ;     l10c9:                                   12
@@ -15255,7 +15247,6 @@ save pydis_start, pydis_end
 ;     tube_release_claim:                       1
 ;     tube_reset_stack:                         1
 ;     tube_return_main:                         1
-;     tube_send_error_byte:                     1
 ;     tube_send_error_num:                      1
 ;     tube_send_zero_r2:                        1
 ;     tube_sendw_complete:                      1
@@ -15490,11 +15481,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13905 bytes (85%)
-;     Data                     = 2479 bytes (15%)
+;     Code                     = 13907 bytes (85%)
+;     Data                     = 2477 bytes (15%)
 ;
-;     Number of instructions   = 6809
-;     Number of data bytes     = 1263 bytes
+;     Number of instructions   = 6810
+;     Number of data bytes     = 1261 bytes
 ;     Number of data words     = 24 bytes
 ;     Number of string bytes   = 1192 bytes
 ;     Number of strings        = 147

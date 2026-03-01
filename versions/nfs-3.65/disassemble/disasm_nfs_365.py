@@ -595,19 +595,10 @@ comment(0x04FF, "Return with pointers initialised", inline=True)
 # 3.35K labels tube_wrch_handler ($051C), tube_send_and_poll ($051F) — Tube code rewritten
 label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
 # 3.35K label tube_resume_poll ($0532) — Tube code rewritten
-label(0x053D, "tube_release_return")  # Dead code (unreferenced)
 label(0x0520, "tube_osbput")          # OSBPUT: read channel+byte from R2, call &FFD4
 label(0x052D, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
 label(0x0537, "tube_osrdch")          # OSRDCH: call &FFC8, send carry+byte reply
 label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
-comment(0x053B, """\
-Overlapping code: bytes &053B-&053D (&20 &95 &06) form
-JSR tube_send_r2 when falling through from ROR A above.
-The &06 byte doubles as the ASL opcode at &053D.""")
-comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
-comment(0x053D, """\
-Nothing references tube_release_return so this path is
-dead code.""")
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
 label(0x0552, "tube_osfind_close")    # OSFIND close: read handle, call &FFCE with A=0
 label(0x055E, "tube_osargs")          # OSARGS: read handle+4 bytes+reason, call &FFDA
@@ -625,7 +616,6 @@ for addr in [0x0537, 0x0596, 0x05F2, 0x0607, 0x0627, 0x0668,
              0x055E, 0x052D, 0x0520, 0x0542, 0x05A9, 0x05D1]:
     entry(addr)
 # Additional entry points within page 5 (not dispatch entries)
-entry(0x053D)  # tube_release_return (dead code, but structurally present)
 # Tube R2 command dispatch table: 12 entries mapping R2 command
 # codes 0-11 to handler addresses in pages 5-6.
 _tube_r2_entries = [
@@ -656,8 +646,8 @@ comment(0x052D, "Read channel handle from R2 for BGET", inline=True)
 comment(0x0530, "Y=channel handle for OSBGET", inline=True)
 comment(0x0534, "Send carry+byte reply (BGET result)", inline=True)
 comment(0x053A, "ROR A: encode carry (error flag) into bit 7", inline=True)
-comment(0x053D, "ASL: shift carry out of &002A (dead code)", inline=True)
-comment(0x053F, "JMP tube_reply_byte (dead code path)", inline=True)
+comment(0x053B, "Send carry+data byte to Tube R2", inline=True)
+comment(0x053E, "ROL A: restore carry flag", inline=True)
 comment(0x0542, "Read open mode from R2 for OSFIND", inline=True)
 comment(0x0545, "A=0: close file, else open with filename", inline=True)
 comment(0x0547, "Save open mode while reading filename", inline=True)

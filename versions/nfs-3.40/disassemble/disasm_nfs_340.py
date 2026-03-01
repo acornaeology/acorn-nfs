@@ -362,19 +362,10 @@ entry(0x041E)
 # 3.35K labels tube_wrch_handler ($051C), tube_send_and_poll ($051F) — Tube code rewritten
 label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
 # 3.35K label tube_resume_poll ($0532) — Tube code rewritten
-label(0x053D, "tube_release_return")  # Restore X,Y from &10/&11, PLA, RTS
 label(0x0520, "tube_osbput")          # OSBPUT: read channel+byte from R2, call &FFD4
 label(0x052D, "tube_osbget")          # OSBGET: read channel from R2, call &FFD7
 label(0x0537, "tube_osrdch")          # OSRDCH: call &FFC8, send carry+byte reply
 label(0x053A, "tube_rdch_reply")      # Send carry in bit 7 + data byte as reply
-comment(0x053B, """\
-Overlapping code: bytes &053B-&053D (&20 &95 &06) form
-JSR tube_send_r2 when falling through from ROR A above.
-The &06 byte doubles as the ASL opcode at &053D.""")
-comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
-comment(0x053D, """\
-Nothing references tube_release_return so this path is
-dead code.""")
 label(0x0542, "tube_osfind")          # OSFIND open: read arg+filename, call &FFCE
 label(0x0552, "tube_osfind_close")    # OSFIND close: read handle, call &FFCE with A=0
 label(0x055E, "tube_osargs")          # OSARGS: read handle+4 bytes+reason, call &FFDA
@@ -388,7 +379,7 @@ label(0x05D1, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call &FFD
 label(0x05F2, "tube_osbyte_2param")   # OSBYTE 2-param: read X+A from R2, call &FFF4
 # Dispatch table entry points (3.40 addresses)
 for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
-             0x04EF, 0x053D, 0x0602,
+             0x04EF, 0x0602,
              0x0520, 0x052D, 0x0542, 0x055E, 0x05A9, 0x05F2]:
     entry(addr)
 
@@ -8182,7 +8173,8 @@ comment(0x04A9, "Load ROM header byte for TX", inline=True)
 # tube_dispatch_table (&0500)
 comment(0x0520, "Read channel handle from R2", inline=True)
 comment(0x052D, "Read channel handle from R2", inline=True)
-comment(0x053D, "Shift error flag for test", inline=True)
+comment(0x053B, "Send carry+data byte to Tube R2", inline=True)
+comment(0x053E, "ROL A: restore carry flag", inline=True)
 comment(0x0542, "Read open mode from R2", inline=True)
 comment(0x055E, "Read file handle from R2", inline=True)
 comment(0x0596, "Read command string from R2", inline=True)
