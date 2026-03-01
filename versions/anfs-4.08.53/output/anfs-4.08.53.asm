@@ -1231,7 +1231,7 @@ service_handler_lo = service_entry+1
     ldx #&0c                                                          ; 807e: a2 0c       ..             ; X=&0C: NMI claim service
     jsr osbyte_yff                                                    ; 8080: 20 6f 8e     o.
     ldy #5                                                            ; 8083: a0 05       ..             ; Y=5: NMI claim service number
-.sub_c8085
+.econet_restore
     cpy #5                                                            ; 8085: c0 05       ..             ; Check if NMI service was claimed (Y changed)
     bne return_1                                                      ; 8087: d0 29       .)             ; Service claimed by other ROM: skip init
 ; ***************************************************************************************
@@ -3211,82 +3211,82 @@ listen_jmp_hi = reset_enter_listen+2
 ; Indices 1, 7, 11 point to return_4 (no-op RTS).
 ; &89c0 referenced 1 time by &8e3c
 .svc_dispatch_lo
-    equb 4                                                            ; 89c0: 04          .
-    equb <(return_4-1)                                                ; 89c1: 41          A
-    equb <(svc_1_workspace_claim-1)                                   ; 89c2: 8e          .
-    equb <(svc_2_private_workspace-1)                                 ; 89c3: a1          .
-    equb <(svc_3_auto_boot-1)                                         ; 89c4: be          .
-    equb <(svc_4_star_command-1)                                      ; 89c5: 42          B
-    equb <(nmi_handler-1)                                             ; 89c6: 22          "
-    equb <(return_4-1)                                                ; 89c7: 41          A
-    equb <(svc_7_osbyte-1)                                            ; 89c8: 7b          {
-    equb <(svc_8_osword-1)                                            ; 89c9: d5          .
-    equb <(svc_9_help-1)                                              ; 89ca: 51          Q
-    equb <(return_4-1)                                                ; 89cb: 41          A
-    equb <(sub_c8085-1)                                               ; 89cc: 84          .
-    equb <(wait_idle_and_reset-1)                                     ; 89cd: 78          x
-    equb <(svc_18_fs_select-1)                                        ; 89ce: 04          .
-    equb <(sub_c95b8-1)                                               ; 89cf: b7          .
-    equb <(sub_c956a-1)                                               ; 89d0: 69          i
-    equb <(sub_cac86-1)                                               ; 89d1: 85          .
-    equb <(sub_c9598-1)                                               ; 89d2: 97          .
-    equb <(sub_c95a8-1)                                               ; 89d3: a7          .
-    equb <(sub_c9dbc-1)                                               ; 89d4: bb          .
-    equb <(sub_c9de2-1)                                               ; 89d5: e1          .
-    equb <(sub_ca1a9-1)                                               ; 89d6: a8          .
-    equb <(cmd_fs_entry-1)                                            ; 89d7: fb          .
-    equb <(sub_ca1a9-1)                                               ; 89d8: a8          .
-    equb <(sub_cad6e-1)                                               ; 89d9: 6d          m
-    equb <(deselect_fs_if_active-1)                                   ; 89da: 7f          .
-    equb <(sub_c929c-1)                                               ; 89db: 9b          .
-    equb <(sub_caf1e-1)                                               ; 89dc: 1d          .
-    equb <(sub_ca379-1)                                               ; 89dd: 78          x
-    equb <(sub_ca383-1)                                               ; 89de: 82          .
-    equb <(find_fs_and_exit-1)                                        ; 89df: db          .
-    equb <(sub_ca1a9-1)                                               ; 89e0: a8          .
-    equb <(sub_ca2e2-1)                                               ; 89e1: e1          .
-    equb <(sub_ca0cc-1)                                               ; 89e2: cb          .
-    equb <(sub_ca0d2-1)                                               ; 89e3: d1          .
-    equb <(sub_ca0e2-1)                                               ; 89e4: e1          .
+    equb 4                                                            ; 89c0: 04          .              ; lo - dummy entry (outside ROM range)
+    equb <(return_4-1)                                                ; 89c1: 41          A              ; lo - Svc 0: already claimed (no-op)
+    equb <(svc_1_abs_workspace-1)                                     ; 89c2: 8e          .              ; lo - Svc 1: absolute workspace
+    equb <(svc_2_private_workspace-1)                                 ; 89c3: a1          .              ; lo - Svc 2: private workspace
+    equb <(svc_3_autoboot-1)                                          ; 89c4: be          .              ; lo - Svc 3: auto-boot
+    equb <(svc_4_star_command-1)                                      ; 89c5: 42          B              ; lo - Svc 4: unrecognised star command
+    equb <(nmi_handler-1)                                             ; 89c6: 22          "              ; lo - Svc 5: unrecognised interrupt
+    equb <(return_4-1)                                                ; 89c7: 41          A              ; lo - Svc 6: BRK (no-op)
+    equb <(svc_7_osbyte-1)                                            ; 89c8: 7b          {              ; lo - Svc 7: unrecognised OSBYTE
+    equb <(svc_8_osword-1)                                            ; 89c9: d5          .              ; lo - Svc 8: unrecognised OSWORD
+    equb <(svc_9_help-1)                                              ; 89ca: 51          Q              ; lo - Svc 9: *HELP
+    equb <(return_4-1)                                                ; 89cb: 41          A              ; lo - Svc 10: static workspace (no-op)
+    equb <(econet_restore-1)                                          ; 89cc: 84          .              ; lo - Svc 11: NMI release (reclaim NMIs)
+    equb <(wait_idle_and_reset-1)                                     ; 89cd: 78          x              ; lo - Svc 12: NMI claim (save NMI state)
+    equb <(svc_18_fs_select-1)                                        ; 89ce: 04          .              ; lo - Svc 18: filing system selection
+    equb <(lang_0_insert_remote_key-1)                                ; 89cf: b7          .              ; lo - Lang 0: no language / Tube
+    equb <(lang_1_remote_boot-1)                                      ; 89d0: 69          i              ; lo - Lang 1: normal startup
+    equb <(lang_2_save_palette_vdu-1)                                 ; 89d1: 85          .              ; lo - Lang 2: softkey byte (Electron)
+    equb <(lang_3_execute_at_0100-1)                                  ; 89d2: 97          .              ; lo - Lang 3: softkey length (Electron)
+    equb <(lang_4_remote_validated-1)                                 ; 89d3: a7          .              ; lo - Lang 4: remote validated
+    equb <(fscv_0_opt_entry-1)                                        ; 89d4: bb          .              ; lo - FSCV 0: *OPT
+    equb <(fscv_1_eof-1)                                              ; 89d5: e1          .              ; lo - FSCV 1: EOF check
+    equb <(fscv_2_star_run-1)                                         ; 89d6: a8          .              ; lo - FSCV 2: */ (run)
+    equb <(fscv_3_star_cmd-1)                                         ; 89d7: fb          .              ; lo - FSCV 3: unrecognised star command
+    equb <(fscv_2_star_run-1)                                         ; 89d8: a8          .              ; lo - FSCV 4: *RUN
+    equb <(fscv_5_cat-1)                                              ; 89d9: 6d          m              ; lo - FSCV 5: *CAT
+    equb <(fscv_6_shutdown-1)                                         ; 89da: 7f          .              ; lo - FSCV 6: shutdown
+    equb <(fscv_7_read_handles-1)                                     ; 89db: 9b          .              ; lo - FSCV 7: read handle range
+    equb <(fsreply_0_print_dir-1)                                     ; 89dc: 1d          .              ; lo - FS reply: print directory name
+    equb <(fsreply_1_copy_handles_boot-1)                             ; 89dd: 78          x              ; lo - FS reply: copy handles + boot
+    equb <(fsreply_2_copy_handles-1)                                  ; 89de: 82          .              ; lo - FS reply: copy handles
+    equb <(fsreply_3_set_csd-1)                                       ; 89df: db          .              ; lo - FS reply: set CSD handle
+    equb <(fscv_2_star_run-1)                                         ; 89e0: a8          .              ; lo - FS reply: notify + execute
+    equb <(fsreply_5_set_lib-1)                                       ; 89e1: e1          .              ; lo - FS reply: set library handle
+    equb <(net_1_read_handle-1)                                       ; 89e2: cb          .              ; lo - *NET1: read handle from packet
+    equb <(net_2_read_handle_entry-1)                                 ; 89e3: d1          .              ; lo - *NET2: read handle from workspace
+    equb <(net_3_close_handle-1)                                      ; 89e4: e1          .              ; lo - *NET3: close handle
 ; &89e5 referenced 1 time by &8e38
 .svc_dispatch_hi
-    equb &cb                                                          ; 89e5: cb          .
-    equb >(return_4-1)                                                ; 89e6: 8e          .
-    equb >(svc_1_workspace_claim-1)                                   ; 89e7: 8e          .
-    equb >(svc_2_private_workspace-1)                                 ; 89e8: 8e          .
-    equb >(svc_3_auto_boot-1)                                         ; 89e9: 8c          .
-    equb >(svc_4_star_command-1)                                      ; 89ea: 8c          .
-    equb >(nmi_handler-1)                                             ; 89eb: 80          .
-    equb >(return_4-1)                                                ; 89ec: 8e          .
-    equb >(svc_7_osbyte-1)                                            ; 89ed: 8e          .
-    equb >(svc_8_osword-1)                                            ; 89ee: a4          .
-    equb >(svc_9_help-1)                                              ; 89ef: 8c          .
-    equb >(return_4-1)                                                ; 89f0: 8e          .
-    equb >(sub_c8085-1)                                               ; 89f1: 80          .
-    equb >(wait_idle_and_reset-1)                                     ; 89f2: 89          .
-    equb >(svc_18_fs_select-1)                                        ; 89f3: 8b          .
-    equb >(sub_c95b8-1)                                               ; 89f4: 95          .
-    equb >(sub_c956a-1)                                               ; 89f5: 95          .
-    equb >(sub_cac86-1)                                               ; 89f6: ac          .
-    equb >(sub_c9598-1)                                               ; 89f7: 95          .
-    equb >(sub_c95a8-1)                                               ; 89f8: 95          .
-    equb >(sub_c9dbc-1)                                               ; 89f9: 9d          .
-    equb >(sub_c9de2-1)                                               ; 89fa: 9d          .
-    equb >(sub_ca1a9-1)                                               ; 89fb: a1          .
-    equb >(cmd_fs_entry-1)                                            ; 89fc: a0          .
-    equb >(sub_ca1a9-1)                                               ; 89fd: a1          .
-    equb >(sub_cad6e-1)                                               ; 89fe: ad          .
-    equb >(deselect_fs_if_active-1)                                   ; 89ff: 8f          .
-    equb >(sub_c929c-1)                                               ; 8a00: 92          .
-    equb >(sub_caf1e-1)                                               ; 8a01: af          .
-    equb >(sub_ca379-1)                                               ; 8a02: a3          .
-    equb >(sub_ca383-1)                                               ; 8a03: a3          .
-    equb >(find_fs_and_exit-1)                                        ; 8a04: a2          .
-    equb >(sub_ca1a9-1)                                               ; 8a05: a1          .
-    equb >(sub_ca2e2-1)                                               ; 8a06: a2          .
-    equb >(sub_ca0cc-1)                                               ; 8a07: a0          .
-    equb >(sub_ca0d2-1)                                               ; 8a08: a0          .
-    equb >(sub_ca0e2-1)                                               ; 8a09: a0          .
+    equb &cb                                                          ; 89e5: cb          .              ; hi - dummy entry (outside ROM range)
+    equb >(return_4-1)                                                ; 89e6: 8e          .              ; hi - Svc 0: already claimed (no-op)
+    equb >(svc_1_abs_workspace-1)                                     ; 89e7: 8e          .              ; hi - Svc 1: absolute workspace
+    equb >(svc_2_private_workspace-1)                                 ; 89e8: 8e          .              ; hi - Svc 2: private workspace
+    equb >(svc_3_autoboot-1)                                          ; 89e9: 8c          .              ; hi - Svc 3: auto-boot
+    equb >(svc_4_star_command-1)                                      ; 89ea: 8c          .              ; hi - Svc 4: unrecognised star command
+    equb >(nmi_handler-1)                                             ; 89eb: 80          .              ; hi - Svc 5: unrecognised interrupt
+    equb >(return_4-1)                                                ; 89ec: 8e          .              ; hi - Svc 6: BRK (no-op)
+    equb >(svc_7_osbyte-1)                                            ; 89ed: 8e          .              ; hi - Svc 7: unrecognised OSBYTE
+    equb >(svc_8_osword-1)                                            ; 89ee: a4          .              ; hi - Svc 8: unrecognised OSWORD
+    equb >(svc_9_help-1)                                              ; 89ef: 8c          .              ; hi - Svc 9: *HELP
+    equb >(return_4-1)                                                ; 89f0: 8e          .              ; hi - Svc 10: static workspace (no-op)
+    equb >(econet_restore-1)                                          ; 89f1: 80          .              ; hi - Svc 11: NMI release (reclaim NMIs)
+    equb >(wait_idle_and_reset-1)                                     ; 89f2: 89          .              ; hi - Svc 12: NMI claim (save NMI state)
+    equb >(svc_18_fs_select-1)                                        ; 89f3: 8b          .              ; hi - Svc 18: filing system selection
+    equb >(lang_0_insert_remote_key-1)                                ; 89f4: 95          .              ; hi - Lang 0: no language / Tube
+    equb >(lang_1_remote_boot-1)                                      ; 89f5: 95          .              ; hi - Lang 1: normal startup
+    equb >(lang_2_save_palette_vdu-1)                                 ; 89f6: ac          .              ; hi - Lang 2: softkey byte (Electron)
+    equb >(lang_3_execute_at_0100-1)                                  ; 89f7: 95          .              ; hi - Lang 3: softkey length (Electron)
+    equb >(lang_4_remote_validated-1)                                 ; 89f8: 95          .              ; hi - Lang 4: remote validated
+    equb >(fscv_0_opt_entry-1)                                        ; 89f9: 9d          .              ; hi - FSCV 0: *OPT
+    equb >(fscv_1_eof-1)                                              ; 89fa: 9d          .              ; hi - FSCV 1: EOF check
+    equb >(fscv_2_star_run-1)                                         ; 89fb: a1          .              ; hi - FSCV 2: */ (run)
+    equb >(fscv_3_star_cmd-1)                                         ; 89fc: a0          .              ; hi - FSCV 3: unrecognised star command
+    equb >(fscv_2_star_run-1)                                         ; 89fd: a1          .              ; hi - FSCV 4: *RUN
+    equb >(fscv_5_cat-1)                                              ; 89fe: ad          .              ; hi - FSCV 5: *CAT
+    equb >(fscv_6_shutdown-1)                                         ; 89ff: 8f          .              ; hi - FSCV 6: shutdown
+    equb >(fscv_7_read_handles-1)                                     ; 8a00: 92          .              ; hi - FSCV 7: read handle range
+    equb >(fsreply_0_print_dir-1)                                     ; 8a01: af          .              ; hi - FS reply: print directory name
+    equb >(fsreply_1_copy_handles_boot-1)                             ; 8a02: a3          .              ; hi - FS reply: copy handles + boot
+    equb >(fsreply_2_copy_handles-1)                                  ; 8a03: a3          .              ; hi - FS reply: copy handles
+    equb >(fsreply_3_set_csd-1)                                       ; 8a04: a2          .              ; hi - FS reply: set CSD handle
+    equb >(fscv_2_star_run-1)                                         ; 8a05: a1          .              ; hi - FS reply: notify + execute
+    equb >(fsreply_5_set_lib-1)                                       ; 8a06: a2          .              ; hi - FS reply: set library handle
+    equb >(net_1_read_handle-1)                                       ; 8a07: a0          .              ; hi - *NET1: read handle from packet
+    equb >(net_2_read_handle_entry-1)                                 ; 8a08: a0          .              ; hi - *NET2: read handle from workspace
+    equb >(net_3_close_handle-1)                                      ; 8a09: a0          .              ; hi - *NET3: close handle
     equb &8a                                                          ; 8a0a: 8a          .
 
 ; ***************************************************************************************
@@ -4005,7 +4005,7 @@ version_string = version_string_cr+1
 ; &1071 and JMPs to cmd_fs_entry to execute the boot
 ; file.
 ; ***************************************************************************************
-.svc_3_auto_boot
+.svc_3_autoboot
     lda #osbyte_scan_keyboard_from_16                                 ; 8cbf: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16
     jsr osbyte                                                        ; 8cc1: 20 f4 ff     ..            ; Keyboard scan starting from key 16
     txa                                                               ; 8cc4: 8a          .              ; X is key number if key is pressed, or &ff otherwise
@@ -4031,7 +4031,7 @@ version_string = version_string_cr+1
     sta l1071                                                         ; 8ce7: 8d 71 10    .q.            ; Store updated boot flags
     ldx #4                                                            ; 8cea: a2 04       ..             ; X=4: boot filename parameter
     ldy #&8d                                                          ; 8cec: a0 8d       ..             ; Y=&8D: boot filename address high
-    jmp cmd_fs_entry                                                  ; 8cee: 4c fc a0    L..            ; Execute boot file
+    jmp fscv_3_star_cmd                                               ; 8cee: 4c fc a0    L..            ; Execute boot file
 
 ; ***************************************************************************************
 ; Notify OS of filing system selection
@@ -4450,7 +4450,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; On Exit:
 ;     Y: >= &16 (NFS minimum requirement)
 ; ***************************************************************************************
-.svc_1_workspace_claim
+.svc_1_abs_workspace
     cpy #&16                                                          ; 8e8f: c0 16       ..             ; Need at least &16 pages?
     bcs return_10                                                     ; 8e91: b0 02       ..             ; Already enough: return
     ldy #&16                                                          ; 8e93: a0 16       ..             ; Request &16 pages of workspace
@@ -4642,7 +4642,7 @@ ws_init_data = error_bad_station+2
     bne write_vector_entry                                            ; 8f65: d0 ec       ..             ; More vectors to set: loop
     dex                                                               ; 8f67: ca          .              ; X=&FF
     stx l0d72                                                         ; 8f68: 8e 72 0d    .r.            ; Store &FF in workspace flag
-    jsr deselect_fs_if_active                                         ; 8f6b: 20 80 8f     ..            ; Restore FS state if previously active
+    jsr fscv_6_shutdown                                               ; 8f6b: 20 80 8f     ..            ; Restore FS state if previously active
     jsr get_ws_page                                                   ; 8f6e: 20 ae 8c     ..            ; Get workspace page for ROM slot
     iny                                                               ; 8f71: c8          .              ; Advance Y past workspace page
     rts                                                               ; 8f72: 60          `              ; Return
@@ -4681,7 +4681,7 @@ ws_init_data = error_bad_station+2
 ; with checksum, and clears the selected flag.
 ; ***************************************************************************************
 ; &8f80 referenced 1 time by &8f6b
-.deselect_fs_if_active
+.fscv_6_shutdown
     bit l0d6c                                                         ; 8f80: 2c 6c 0d    ,l.            ; FS currently selected?
     bpl return_11                                                     ; 8f83: 10 2c       .,             ; No (bit 7 clear): return
     ldy #0                                                            ; 8f85: a0 00       ..             ; Y=0
@@ -5275,7 +5275,7 @@ ws_init_data = error_bad_station+2
 .return_13
     rts                                                               ; 929b: 60          `              ; Return: Z=1 if all 5 matched
 
-.sub_c929c
+.fscv_7_read_handles
     ldx #&20 ; ' '                                                    ; 929c: a2 20       .              ; Unreachable code
     ldy #&2f ; '/'                                                    ; 929e: a0 2f       ./             ; (dead)
     rts                                                               ; 92a0: 60          `              ; (dead)
@@ -5640,7 +5640,7 @@ ws_init_data = error_bad_station+2
     ldy #6                                                            ; 9443: a0 06       ..             ; Y=6: set directory command code
     jsr save_net_tx_cb                                                ; 9445: 20 99 94     ..            ; Send set directory command
     ldy l0f05                                                         ; 9448: ac 05 0f    ...            ; Load reply handle
-    jmp find_fs_and_exit                                              ; 944b: 4c dc a2    L..            ; Select FS and return
+    jmp fsreply_3_set_csd                                             ; 944b: 4c dc a2    L..            ; Select FS and return
 
 ; &944e referenced 1 time by &93cd
 .dir_pass_simple
@@ -5971,7 +5971,7 @@ ws_init_data = error_bad_station+2
     lda #6                                                            ; 9565: a9 06       ..             ; Error class 6: Escape
     jmp classify_reply_error                                          ; 9567: 4c 38 96    L8.            ; Classify as network error
 
-.sub_c956a
+.lang_1_remote_boot
     ldy #4                                                            ; 956a: a0 04       ..             ; Offset 4: remote state byte
     lda (net_rx_ptr),y                                                ; 956c: b1 9c       ..             ; Load remote state
     beq init_remote_session                                           ; 956e: f0 03       ..             ; Zero: initialise remote session
@@ -6000,13 +6000,13 @@ ws_init_data = error_bad_station+2
     ldy #0                                                            ; 9591: a0 00       ..             ; Y=0
     lda #osbyte_read_write_econet_keyboard_disable                    ; 9593: a9 c9       ..             ; OSBYTE &C9: Econet keyboard disable
     jsr osbyte                                                        ; 9595: 20 f4 ff     ..            ; Disable keyboard (for Econet)
-.sub_c9598
+.lang_3_execute_at_0100
     jsr commit_state_byte                                             ; 9598: 20 cb ac     ..            ; Commit state change
     lda #0                                                            ; 959b: a9 00       ..             ; Error code 0
     jsr error_inline_log                                              ; 959d: 20 bb 96     ..            ; Generate 'Remoted' error
     equs "Remoted", 0                                                 ; 95a0: 52 65 6d... Rem
 
-.sub_c95a8
+.lang_4_remote_validated
     ldy #4                                                            ; 95a8: a0 04       ..             ; Offset 4: remote state byte
     lda (net_rx_ptr),y                                                ; 95aa: b1 9c       ..             ; Load remote state
     beq init_remote_session                                           ; 95ac: f0 c5       ..             ; Zero: reinitialise session
@@ -6015,7 +6015,7 @@ ws_init_data = error_bad_station+2
     ldy #&0e                                                          ; 95b2: a0 0e       ..             ; Workspace offset &0E
     cmp (nfs_workspace),y                                             ; 95b4: d1 9e       ..             ; Compare with stored station
     bne done_commit_state                                             ; 95b6: d0 b8       ..             ; Different station: commit state
-.sub_c95b8
+.lang_0_insert_remote_key
     ldy #&82                                                          ; 95b8: a0 82       ..             ; Offset &82: keypress byte
     lda (net_rx_ptr),y                                                ; 95ba: b1 9c       ..             ; Load remote keypress
     tay                                                               ; 95bc: a8          .              ; Key code to Y
@@ -7685,7 +7685,7 @@ bad_prefix = bad_str_anchor+1
     sta l1040,y                                                       ; 9db7: 99 40 10    .@.            ; Clear l1040 (FCB flags)
     beq done_close                                                    ; 9dba: f0 f3       ..             ; ALWAYS branch to return; ALWAYS branch
 
-.sub_c9dbc
+.fscv_0_opt_entry
     beq store_display_flag                                            ; 9dbc: f0 0b       ..             ; Z set: handle OSARGS 0
     cpx #4                                                            ; 9dbe: e0 04       ..             ; Compare X with 4 (number of args)
     bne osargs_dispatch                                               ; 9dc0: d0 04       ..             ; Not 4: check for error
@@ -7712,7 +7712,7 @@ bad_prefix = bad_str_anchor+1
     ldy fs_block_offset                                               ; 9ddb: a4 bc       ..             ; Reload block offset
     sty l0e05                                                         ; 9ddd: 8c 05 0e    ...            ; Store in l0e05
     bpl done_close                                                    ; 9de0: 10 cd       ..             ; Positive: return with flag
-.sub_c9de2
+.fscv_1_eof
     jsr verify_ws_checksum                                            ; 9de2: 20 b2 8f     ..            ; Verify workspace checksum
     pha                                                               ; 9de5: 48          H              ; Push result on stack
     lda fs_block_offset                                               ; 9de6: a5 bc       ..             ; Load block offset
@@ -8348,11 +8348,11 @@ bad_prefix = bad_str_anchor+1
 .return_20
     rts                                                               ; a0cb: 60          `              ; Return with A=index, Y=index
 
-.sub_ca0cc
+.net_1_read_handle
     ldy #&6f ; 'o'                                                    ; a0cc: a0 6f       .o             ; Y=&6F: source offset
     lda (net_rx_ptr),y                                                ; a0ce: b1 9c       ..             ; Load byte from RX buffer
     bcc store_pb_result                                               ; a0d0: 90 0d       ..             ; C clear: store directly
-.sub_ca0d2
+.net_2_read_handle_entry
     jsr get_pb_ptr_as_index                                           ; a0d2: 20 b4 a0     ..            ; Get index from PB pointer
     bcs return_zero_uninit                                            ; a0d5: b0 06       ..             ; C set (out of range): clear value
     lda (nfs_workspace),y                                             ; a0d7: b1 9e       ..             ; Load workspace byte at index
@@ -8366,7 +8366,7 @@ bad_prefix = bad_str_anchor+1
     sta osword_pb_ptr                                                 ; a0df: 85 f0       ..             ; Store result to PB pointer
     rts                                                               ; a0e1: 60          `              ; Return
 
-.sub_ca0e2
+.net_3_close_handle
     jsr get_pb_ptr_as_index                                           ; a0e2: 20 b4 a0     ..            ; Get index from PB pointer
     bcc mark_ws_uninit                                                ; a0e5: 90 0a       ..             ; C clear: store to workspace
     ror l0d6c                                                         ; a0e7: 6e 6c 0d    nl.            ; Save carry to l0d6c bit 7
@@ -8384,7 +8384,7 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a0fb: 60          `              ; Return
 
 ; &a0fc referenced 1 time by &8cee
-.cmd_fs_entry
+.fscv_3_star_cmd
     jsr set_text_and_xfer_ptr                                         ; a0fc: 20 7d 92     }.            ; Set text and transfer pointers
     ldy #&ff                                                          ; a0ff: a0 ff       ..             ; Y=&FF: prepare for INY to 0
     sty fs_spool_handle                                               ; a101: 84 ba       ..             ; Clear spool handle (no spool active)
@@ -8536,7 +8536,7 @@ bad_prefix = bad_str_anchor+1
     sec                                                               ; a1a6: 38          8              ; C=1: have more text to match
     bcs return_with_result                                            ; a1a7: b0 e3       ..             ; ALWAYS branch
 
-.sub_ca1a9
+.fscv_2_star_run
     jsr save_ptr_to_os_text                                           ; a1a9: 20 95 af     ..            ; Save text pointer
     jsr mask_owner_access                                             ; a1ac: 20 12 af     ..            ; Set owner-only access mask
     jsr parse_cmd_arg_y0                                              ; a1af: 20 80 ae     ..            ; Parse command argument (Y=0)
@@ -8718,11 +8718,11 @@ bad_prefix = bad_str_anchor+1
     jmp (l0f09)                                                       ; a2d9: 6c 09 0f    l..            ; Dispatch via indirect vector
 
 ; &a2dc referenced 1 time by &944b
-.find_fs_and_exit
+.fsreply_3_set_csd
     jsr find_station_bit3                                             ; a2dc: 20 13 a3     ..            ; Find station with bit 3 set
     jmp return_with_last_flag                                         ; a2df: 4c b9 9c    L..            ; Return with last flag state
 
-.sub_ca2e2
+.fsreply_5_set_lib
     jsr flip_set_station_boot                                         ; a2e2: 20 4a a3     J.            ; Flip/set station boot config
     jmp return_with_last_flag                                         ; a2e5: 4c b9 9c    L..            ; Return with last flag state
 
@@ -8867,12 +8867,12 @@ bad_prefix = bad_str_anchor+1
 .jmp_restore_fs_ctx
     jmp restore_fs_context                                            ; a376: 4c 73 8f    Ls.            ; Restore FS context and return
 
-.sub_ca379
+.fsreply_1_copy_handles_boot
     jsr close_all_net_chans                                           ; a379: 20 4a b5     J.            ; Close all network channels
     sec                                                               ; a37c: 38          8              ; Set carry flag
     lda l0f08                                                         ; a37d: ad 08 0f    ...            ; Load reply boot type
     sta l0e05                                                         ; a380: 8d 05 0e    ...            ; Store as current boot type
-.sub_ca383
+.fsreply_2_copy_handles
     php                                                               ; a383: 08          .              ; Save processor status
     ldy l0f05                                                         ; a384: ac 05 0f    ...            ; Load station number from reply
     jsr find_station_bit2                                             ; a387: 20 e8 a2     ..            ; Find station entry with bit 2
@@ -10249,7 +10249,7 @@ bad_prefix = bad_str_anchor+1
 .rx_palette_txcb_template
     equb &7f, &9e, &fd, &fd, &31, &fc, &ff, &ff, &34, &fc, &ff, &ff   ; ac7a: 7f 9e fd... ...
 
-.sub_cac86
+.lang_2_save_palette_vdu
     lda l00ad                                                         ; ac86: a5 ad       ..             ; Save l00ad counter
     pha                                                               ; ac88: 48          H              ; Push for later restore
     lda #&e9                                                          ; ac89: a9 e9       ..             ; Set workspace low to &E9
@@ -10473,7 +10473,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     sta fs_work_5                                                     ; ad6a: 85 b5       ..             ; Store command code
     bne setup_ex_request                                              ; ad6c: d0 16       ..             ; ALWAYS branch
 
-.sub_cad6e
+.fscv_5_cat
     jsr set_xfer_params                                               ; ad6e: 20 81 92     ..            ; Set transfer parameters
     ldy #0                                                            ; ad71: a0 00       ..             ; Y=0: start from entry 0
     ror l1071                                                         ; ad73: 6e 71 10    nq.            ; Rotate carry into lib flag
@@ -10838,7 +10838,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 
     equs "Run"                                                        ; af1b: 52 75 6e    Run
 
-.sub_caf1e
+.fsreply_0_print_dir
     ldx #0                                                            ; af1e: a2 00       ..             ; X=0: start from first entry
 ; &af20 referenced 1 time by &af40
 .loop_scan_entries
@@ -13745,7 +13745,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(cmd_ex-1) == &58
     assert <(cmd_flip-1) == &3d
     assert <(cmd_fs-1) == &62
-    assert <(cmd_fs_entry-1) == &fb
     assert <(cmd_fs_operation-1) == &d1
     assert <(cmd_iam-1) == &6d
     assert <(cmd_lcat-1) == &4c
@@ -13764,41 +13763,42 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(cmd_unprot-1) == &20
     assert <(cmd_utils-1) == &86
     assert <(cmd_wipe-1) == &3c
-    assert <(deselect_fs_if_active-1) == &7f
-    assert <(find_fs_and_exit-1) == &db
+    assert <(econet_restore-1) == &84
     assert <(fs_work_4) == &b4
+    assert <(fscv_0_opt_entry-1) == &bb
+    assert <(fscv_1_eof-1) == &e1
+    assert <(fscv_2_star_run-1) == &a8
+    assert <(fscv_3_star_cmd-1) == &fb
+    assert <(fscv_5_cat-1) == &6d
+    assert <(fscv_6_shutdown-1) == &7f
+    assert <(fscv_7_read_handles-1) == &9b
+    assert <(fsreply_0_print_dir-1) == &1d
+    assert <(fsreply_1_copy_handles_boot-1) == &78
+    assert <(fsreply_2_copy_handles-1) == &82
+    assert <(fsreply_3_set_csd-1) == &db
+    assert <(fsreply_5_set_lib-1) == &e1
     assert <(l0128) == &28
+    assert <(lang_0_insert_remote_key-1) == &b7
+    assert <(lang_1_remote_boot-1) == &69
+    assert <(lang_2_save_palette_vdu-1) == &85
+    assert <(lang_3_execute_at_0100-1) == &97
+    assert <(lang_4_remote_validated-1) == &a7
+    assert <(net_1_read_handle-1) == &cb
+    assert <(net_2_read_handle_entry-1) == &d1
+    assert <(net_3_close_handle-1) == &e1
     assert <(nmi_handler-1) == &22
     assert <(return_21-1) == &06
     assert <(return_4-1) == &41
-    assert <(sub_c8085-1) == &84
-    assert <(sub_c929c-1) == &9b
-    assert <(sub_c956a-1) == &69
-    assert <(sub_c9598-1) == &97
-    assert <(sub_c95a8-1) == &a7
-    assert <(sub_c95b8-1) == &b7
-    assert <(sub_c9dbc-1) == &bb
-    assert <(sub_c9de2-1) == &e1
-    assert <(sub_ca0cc-1) == &cb
-    assert <(sub_ca0d2-1) == &d1
-    assert <(sub_ca0e2-1) == &e1
-    assert <(sub_ca1a9-1) == &a8
-    assert <(sub_ca2e2-1) == &e1
-    assert <(sub_ca379-1) == &78
-    assert <(sub_ca383-1) == &82
     assert <(sub_ca516-1) == &15
     assert <(sub_ca58b-1) == &8a
     assert <(sub_ca5a8-1) == &a7
     assert <(sub_ca61c-1) == &1b
     assert <(sub_ca631-1) == &30
     assert <(sub_ca8d0-1) == &cf
-    assert <(sub_cac86-1) == &85
-    assert <(sub_cad6e-1) == &6d
-    assert <(sub_caf1e-1) == &1d
     assert <(svc_18_fs_select-1) == &04
-    assert <(svc_1_workspace_claim-1) == &8e
+    assert <(svc_1_abs_workspace-1) == &8e
     assert <(svc_2_private_workspace-1) == &a1
-    assert <(svc_3_auto_boot-1) == &be
+    assert <(svc_3_autoboot-1) == &be
     assert <(svc_4_star_command-1) == &42
     assert <(svc_7_osbyte-1) == &7b
     assert <(svc_8_osword-1) == &d5
@@ -13812,7 +13812,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(cmd_ex-1) == &ad
     assert >(cmd_flip-1) == &a3
     assert >(cmd_fs-1) == &a0
-    assert >(cmd_fs_entry-1) == &a0
     assert >(cmd_fs_operation-1) == &92
     assert >(cmd_iam-1) == &8d
     assert >(cmd_lcat-1) == &ad
@@ -13831,41 +13830,42 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(cmd_unprot-1) == &b3
     assert >(cmd_utils-1) == &8b
     assert >(cmd_wipe-1) == &b3
-    assert >(deselect_fs_if_active-1) == &8f
-    assert >(find_fs_and_exit-1) == &a2
+    assert >(econet_restore-1) == &80
     assert >(fs_work_4) == &00
+    assert >(fscv_0_opt_entry-1) == &9d
+    assert >(fscv_1_eof-1) == &9d
+    assert >(fscv_2_star_run-1) == &a1
+    assert >(fscv_3_star_cmd-1) == &a0
+    assert >(fscv_5_cat-1) == &ad
+    assert >(fscv_6_shutdown-1) == &8f
+    assert >(fscv_7_read_handles-1) == &92
+    assert >(fsreply_0_print_dir-1) == &af
+    assert >(fsreply_1_copy_handles_boot-1) == &a3
+    assert >(fsreply_2_copy_handles-1) == &a3
+    assert >(fsreply_3_set_csd-1) == &a2
+    assert >(fsreply_5_set_lib-1) == &a2
     assert >(l0128) == &01
+    assert >(lang_0_insert_remote_key-1) == &95
+    assert >(lang_1_remote_boot-1) == &95
+    assert >(lang_2_save_palette_vdu-1) == &ac
+    assert >(lang_3_execute_at_0100-1) == &95
+    assert >(lang_4_remote_validated-1) == &95
+    assert >(net_1_read_handle-1) == &a0
+    assert >(net_2_read_handle_entry-1) == &a0
+    assert >(net_3_close_handle-1) == &a0
     assert >(nmi_handler-1) == &80
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
-    assert >(sub_c8085-1) == &80
-    assert >(sub_c929c-1) == &92
-    assert >(sub_c956a-1) == &95
-    assert >(sub_c9598-1) == &95
-    assert >(sub_c95a8-1) == &95
-    assert >(sub_c95b8-1) == &95
-    assert >(sub_c9dbc-1) == &9d
-    assert >(sub_c9de2-1) == &9d
-    assert >(sub_ca0cc-1) == &a0
-    assert >(sub_ca0d2-1) == &a0
-    assert >(sub_ca0e2-1) == &a0
-    assert >(sub_ca1a9-1) == &a1
-    assert >(sub_ca2e2-1) == &a2
-    assert >(sub_ca379-1) == &a3
-    assert >(sub_ca383-1) == &a3
     assert >(sub_ca516-1) == &a5
     assert >(sub_ca58b-1) == &a5
     assert >(sub_ca5a8-1) == &a5
     assert >(sub_ca61c-1) == &a6
     assert >(sub_ca631-1) == &a6
     assert >(sub_ca8d0-1) == &a8
-    assert >(sub_cac86-1) == &ac
-    assert >(sub_cad6e-1) == &ad
-    assert >(sub_caf1e-1) == &af
     assert >(svc_18_fs_select-1) == &8b
-    assert >(svc_1_workspace_claim-1) == &8e
+    assert >(svc_1_abs_workspace-1) == &8e
     assert >(svc_2_private_workspace-1) == &8e
-    assert >(svc_3_auto_boot-1) == &8c
+    assert >(svc_3_autoboot-1) == &8c
     assert >(svc_4_star_command-1) == &8c
     assert >(svc_7_osbyte-1) == &8e
     assert >(svc_8_osword-1) == &a4
@@ -14479,7 +14479,6 @@ save pydis_start, pydis_end
 ;     close_exec_file:                          1
 ;     close_specific_chan:                      1
 ;     close_spool_exec:                         1
-;     cmd_fs_entry:                             1
 ;     cmd_fs_reentry:                           1
 ;     cmd_net_fs:                               1
 ;     cmd_syntax_strings:                       1
@@ -14502,7 +14501,6 @@ save pydis_start, pydis_end
 ;     data_rx_loop:                             1
 ;     data_tx_begin:                            1
 ;     delay_nmi_disable:                        1
-;     deselect_fs_if_active:                    1
 ;     dir_found_send:                           1
 ;     dir_pass_simple:                          1
 ;     discard_after_reset:                      1
@@ -14607,11 +14605,13 @@ save pydis_start, pydis_end
 ;     ex_set_lib_flag:                          1
 ;     extract_digit_value:                      1
 ;     filev:                                    1
-;     find_fs_and_exit:                         1
 ;     find_station_bit2:                        1
 ;     fixup_reply_status_a:                     1
 ;     fs_vector_table:                          1
 ;     fscv:                                     1
+;     fscv_3_star_cmd:                          1
+;     fscv_6_shutdown:                          1
+;     fsreply_3_set_csd:                        1
 ;     gsread_to_buf:                            1
 ;     handle_burst_xfer:                        1
 ;     handle_cat_update:                        1
@@ -15445,30 +15445,12 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     return_9
-;     sub_c8085
-;     sub_c929c
-;     sub_c956a
-;     sub_c9598
-;     sub_c95a8
-;     sub_c95b8
-;     sub_c9dbc
-;     sub_c9de2
-;     sub_ca0cc
-;     sub_ca0d2
-;     sub_ca0e2
-;     sub_ca1a9
-;     sub_ca2e2
-;     sub_ca379
-;     sub_ca383
 ;     sub_ca516
 ;     sub_ca58b
 ;     sub_ca5a8
 ;     sub_ca61c
 ;     sub_ca631
 ;     sub_ca8d0
-;     sub_cac86
-;     sub_cad6e
-;     sub_caf1e
 ;     sub_cbe5e
 
 ; Stats:

@@ -310,6 +310,7 @@ label(0x8001, "rom_header_byte1")
 label(0x8002, "rom_header_byte2")
 label(0x802D, "save_registers")
 label(0x8052, "set_jsr_protection")
+label(0x8085, "econet_restore")
 label(0x83DA, "loop_count_rxcb_slot")
 label(0x83FD, "test_tube_release")
 label(0x84B1, "set_rx_buf_len_hi")
@@ -417,6 +418,7 @@ label(0x9267, "loop_encode_prot")
 label(0x926F, "skip_clear_prot")
 label(0x9272, "prot_bit_encode_table")
 label(0x9292, "loop_cmp_handle")
+label(0x929C, "fscv_7_read_handles")
 label(0x92CD, "done_conn_flag")
 label(0x9315, "loop_scan_flag")
 label(0x931E, "loop_copy_name")
@@ -454,8 +456,12 @@ label(0x952F, "reload_reply_status")
 label(0x953B, "build_error_block")
 label(0x9545, "setup_error_copy")
 label(0x9547, "loop_copy_error")
+label(0x956A, "lang_1_remote_boot")
 label(0x9570, "done_commit_state")
 label(0x9573, "init_remote_session")
+label(0x9598, "lang_3_execute_at_0100")
+label(0x95A8, "lang_4_remote_validated")
+label(0x95B8, "lang_0_insert_remote_key")
 label(0x95D8, "init_poll_counters")
 label(0x95DE, "loop_poll_tx")
 label(0x95F1, "done_poll_tx")
@@ -586,10 +592,12 @@ label(0x9D97, "close_specific_chan")
 label(0x9D9D, "send_close_request")
 label(0x9DAF, "done_close")
 label(0x9DB2, "clear_single_fcb")
+label(0x9DBC, "fscv_0_opt_entry")
 label(0x9DC6, "osargs_dispatch")
 label(0x9DC9, "store_display_flag")
 label(0x9DCE, "error_osargs")
 label(0x9DD3, "send_osargs_request")
+label(0x9DE2, "fscv_1_eof")
 label(0x9DFD, "mark_not_found")
 label(0x9DFF, "restore_and_return")
 label(0x9E0D, "loop_adjust_byte")
@@ -627,8 +635,11 @@ label(0xA083, "print_current_fs")
 label(0xA0A5, "store_station_lo")
 label(0xA0AD, "skip_if_no_station")
 label(0xA0B1, "done_parse_fs_ps")
+label(0xA0CC, "net_1_read_handle")
+label(0xA0D2, "net_2_read_handle_entry")
 label(0xA0DD, "return_zero_uninit")
 label(0xA0DF, "store_pb_result")
+label(0xA0E2, "net_3_close_handle")
 label(0xA0F1, "mark_ws_uninit")
 label(0xA11B, "dispatch_fs_cmd")
 label(0xA12A, "restart_table_scan")
@@ -649,6 +660,7 @@ label(0xA190, "loop_scan_past_word")
 label(0xA191, "check_char_type")
 label(0xA19F, "skip_sep_spaces")
 label(0xA1A6, "set_c_and_return")
+label(0xA1A9, "fscv_2_star_run")
 label(0xA1B2, "open_file_for_run")
 label(0xA1CA, "loop_check_handles")
 label(0xA1D2, "alloc_run_fcb")
@@ -669,6 +681,7 @@ label(0xA281, "setup_oscli_arg")
 label(0xA28A, "loop_read_gs_string")
 label(0xA290, "loop_skip_trailing")
 label(0xA2D7, "dispatch_via_vector")
+label(0xA2E2, "fsreply_5_set_lib")
 label(0xA2EB, "loop_search_stn_bit2")
 label(0xA301, "done_search_bit2")
 label(0xA30F, "set_flags_bit2")
@@ -680,6 +693,8 @@ label(0xA363, "done_search_boot")
 label(0xA371, "set_flags_boot")
 label(0xA373, "store_stn_flags_restore")
 label(0xA376, "jmp_restore_fs_ctx")
+label(0xA379, "fsreply_1_copy_handles_boot")
+label(0xA383, "fsreply_2_copy_handles")
 label(0xA39C, "check_auto_boot_flag")
 label(0xA3C7, "boot_oscli_lo_table")
 label(0xA3CB, "load_boot_type")
@@ -753,6 +768,7 @@ label(0xAC55, "store_tx_ctrl_byte")
 label(0xAC5D, "loop_wait_disc_tx_ack")
 label(0xAC6E, "tx_econet_txcb_template")
 label(0xAC7A, "rx_palette_txcb_template")
+label(0xAC86, "lang_2_save_palette_vdu")
 label(0xAC9D, "loop_read_palette")
 label(0xACFB, "osbyte_mode_read_codes")
 label(0xAD0E, "parse_cdir_size")
@@ -760,6 +776,7 @@ label(0xAD17, "loop_find_alloc_size")
 label(0xAD1D, "done_cdir_size")
 label(0xAD31, "cdir_alloc_size_table")
 label(0xAD5D, "ex_set_lib_flag")
+label(0xAD6E, "fscv_5_cat")
 label(0xAD77, "cat_set_lib_flag")
 label(0xAD84, "setup_ex_request")
 label(0xADA0, "store_owner_flags")
@@ -782,6 +799,7 @@ label(0xAEED, "roff_off_string")
 label(0xAEF5, "loop_copy_char")
 label(0xAF05, "restore_after_check")
 label(0xAF07, "advance_positions")
+label(0xAF1E, "fsreply_0_print_dir")
 label(0xAF20, "loop_scan_entries")
 label(0xAF3A, "print_col_newline")
 label(0xAF3C, "print_entry_char")
@@ -942,7 +960,7 @@ label(0x8E96, "store_ws_page_count")
 label(0x8F40, "init_adlc_and_vectors")
 label(0x8F53, "write_vector_entry")
 label(0x8F73, "restore_fs_context")
-label(0x8F80, "deselect_fs_if_active")
+label(0x8F80, "fscv_6_shutdown")
 label(0x8FB2, "verify_ws_checksum")
 label(0x8FCB, "error_net_checksum")
 label(0x8FDD, "print_station_id")
@@ -1024,12 +1042,12 @@ label(0xA086, "print_fs_info_newline")
 label(0xA08F, "parse_fs_ps_args")
 label(0xA0B4, "get_pb_ptr_as_index")
 label(0xA0B6, "byte_to_2bit_index")
-label(0xA0FC, "cmd_fs_entry")
+label(0xA0FC, "fscv_3_star_cmd")
 label(0xA10D, "cmd_fs_reentry")
 label(0xA10F, "error_syntax")
 label(0xA128, "match_fs_cmd")
 label(0xA245, "error_bad_command")
-label(0xA2DC, "find_fs_and_exit")
+label(0xA2DC, "fsreply_3_set_csd")
 label(0xA2E8, "find_station_bit2")
 label(0xA313, "find_station_bit3")
 label(0xA34A, "flip_set_station_boot")
@@ -2203,7 +2221,7 @@ subroutine(0x8F73, "restore_fs_context",
     "svc_2_private_workspace during init,\n"
     "deselect_fs_if_active during FS teardown, and\n"
     "flip_set_station_boot.")
-subroutine(0x8F80, "deselect_fs_if_active",
+subroutine(0x8F80, "fscv_6_shutdown",
     title="Deselect filing system and save workspace",
     description="If the filing system is currently selected\n"
     "(bit 7 of &0D6C set), closes all open FCBs,\n"
@@ -5466,6 +5484,57 @@ label(0x89E5, "svc_dispatch_hi")
 for i in range(1, 37):
     rts_code_ptr(0x89C0 + i, 0x89E5 + i)
 
+# Inline comments describing each dispatch slot's purpose.
+# Applied to both lo and hi byte entries with "lo - " / "hi - " prefix.
+svc_dispatch_comments = [
+    # Index 0: dummy entry
+    "dummy entry (outside ROM range)",
+    # Service calls (Y=&00, indices 1-14)
+    "Svc 0: already claimed (no-op)",
+    "Svc 1: absolute workspace",
+    "Svc 2: private workspace",
+    "Svc 3: auto-boot",
+    "Svc 4: unrecognised star command",
+    "Svc 5: unrecognised interrupt",
+    "Svc 6: BRK (no-op)",
+    "Svc 7: unrecognised OSBYTE",
+    "Svc 8: unrecognised OSWORD",
+    "Svc 9: *HELP",
+    "Svc 10: static workspace (no-op)",
+    "Svc 11: NMI release (reclaim NMIs)",
+    "Svc 12: NMI claim (save NMI state)",
+    "Svc 18: filing system selection",
+    # Language entry handlers (Y=&0E, indices 15-19)
+    "Lang 0: no language / Tube",
+    "Lang 1: normal startup",
+    "Lang 2: softkey byte (Electron)",
+    "Lang 3: softkey length (Electron)",
+    "Lang 4: remote validated",
+    # FSCV handlers (Y=&13, indices 20-27)
+    "FSCV 0: *OPT",
+    "FSCV 1: EOF check",
+    "FSCV 2: */ (run)",
+    "FSCV 3: unrecognised star command",
+    "FSCV 4: *RUN",
+    "FSCV 5: *CAT",
+    "FSCV 6: shutdown",
+    "FSCV 7: read handle range",
+    # FS reply handlers (Y=&17, indices 28-33)
+    "FS reply: print directory name",
+    "FS reply: copy handles + boot",
+    "FS reply: copy handles",
+    "FS reply: set CSD handle",
+    "FS reply: notify + execute",
+    "FS reply: set library handle",
+    # *NET sub-command handlers (Y=&21, indices 34-36)
+    "*NET1: read handle from packet",
+    "*NET2: read handle from workspace",
+    "*NET3: close handle",
+]
+for i, body in enumerate(svc_dispatch_comments):
+    comment(0x89C0 + i, f"lo - {body}", inline=True)
+    comment(0x89E5 + i, f"hi - {body}", inline=True)
+
 # Service dispatch targets — already labelled
 # Index 6 (svc 5): &8023 = nmi_handler (unrecognised interrupt)
 # Index 12 (svc 11): &8085 = svc_11_nmi_claim (NMI claim)
@@ -5481,16 +5550,16 @@ entry(0xA4D6)   # Index 9 (svc 8): unrecognised OSWORD
 entry(0x8C52)   # Index 10 (svc 9): *HELP
 entry(0x8B05)   # Index 14 (svc 18): filing system selection
 
-label(0x8E8F, "svc_1_workspace_claim")
+label(0x8E8F, "svc_1_abs_workspace")
 label(0x8EA2, "svc_2_private_workspace")
-label(0x8CBF, "svc_3_auto_boot")
+label(0x8CBF, "svc_3_autoboot")
 label(0x8C43, "svc_4_star_command")
 label(0x8E7C, "svc_7_osbyte")
 label(0xA4D6, "svc_8_osword")
 label(0x8C52, "svc_9_help")
 label(0x8B05, "svc_18_fs_select")
 
-subroutine(0x8E8F, "svc_1_workspace_claim",
+subroutine(0x8E8F, "svc_1_abs_workspace",
     title="Service 1: absolute workspace claim",
     description="Ensures the NFS workspace allocation is at least\n"
     "&16 pages by checking Y on entry. If Y < &16,\n"
@@ -5513,7 +5582,7 @@ subroutine(0x8EA2, "svc_2_private_workspace",
     "to page &10, and falls through to\n"
     "init_adlc_and_vectors.",
     on_entry={"y": "first available private workspace page"})
-subroutine(0x8CBF, "svc_3_auto_boot",
+subroutine(0x8CBF, "svc_3_autoboot",
     title="Service 3: auto-boot on reset",
     description="Scans the keyboard via OSBYTE &7A for the 'N' key\n"
     "(&19 or &55 EOR'd with &55). If pressed, records\n"
