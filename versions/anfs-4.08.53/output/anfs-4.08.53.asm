@@ -6408,9 +6408,12 @@ bad_prefix = bad_str_anchor+1
     equb 0                                                            ; 9821: 00          .
 
 ; ***************************************************************************************
-; Set the TX pointer to &00C0 (the TXCB in
-; zero page) and fall through to send the
-; Econet packet with retry logic.
+; Point TX at zero-page TXCB and send
+; 
+; Sets net_tx_ptr/net_tx_ptr_hi to &00C0 (the
+; standard TXCB location in zero page), then falls
+; through to send_net_packet for transmission with
+; retry logic.
 ; ***************************************************************************************
 ; &9822 referenced 2 times by &94d8, &9ac9
 .init_tx_ptr_and_send
@@ -6508,10 +6511,14 @@ bad_prefix = bad_str_anchor+1
     ldy #0                                                            ; 9883: a0 00       ..             ; Y=0: TX control block base (high)
     sty net_tx_ptr_hi                                                 ; 9885: 84 9b       ..             ; Set TX pointer high byte
 ; ***************************************************************************************
-; Initialise the TX buffer from the pass-
-; through template table, preserving original
-; values on stack. Starts transmission and
-; polls for completion with retry logic.
+; Initialise TX buffer from pass-through template
+; 
+; Copies 12 bytes from pass_txbuf_init_table into the
+; TX control block, pushing the original values on the
+; stack for later restoration. Skips offsets marked &FD
+; in the template. Starts transmission via
+; poll_adlc_tx_status and retries on failure, restoring
+; the original TX buffer contents when done.
 ; ***************************************************************************************
 ; &9887 referenced 1 time by &abb1
 .setup_pass_txbuf
@@ -6613,11 +6620,12 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 98f2: 60          `              ; Return with TX buffer restored
 
 ; ***************************************************************************************
-; Copy a 2-byte pointer from (fs_options)
-; into os_text_ptr, then use GSINIT/GSREAD
-; to parse the string into the buffer at
-; &0E30. Sets fs_crc_lo/hi to point at the
-; parsed buffer.
+; Copy text pointer from FS options and parse string
+; 
+; Reads a 2-byte address from (fs_options)+0/1 into
+; os_text_ptr (&00F2), resets Y to zero, then falls
+; through to gsread_to_buf to parse the string at that
+; address into the &0E30 buffer.
 ; ***************************************************************************************
 ; &98f3 referenced 1 time by &9924
 .load_text_ptr_and_parse
@@ -6630,9 +6638,13 @@ bad_prefix = bad_str_anchor+1
     bpl loop_copy_text_ptr                                            ; 98fb: 10 f8       ..             ; Loop until both bytes copied
     ldy #0                                                            ; 98fd: a0 00       ..             ; Y=0: reset command line offset
 ; ***************************************************************************************
-; Parse the current command line string via
-; GSINIT/GSREAD into the buffer at &0E30,
-; CR-terminated. Sets fs_crc_lo/hi to &0E30.
+; Parse command line via GSINIT/GSREAD into &0E30
+; 
+; Calls GSINIT to initialise string reading, then
+; loops calling GSREAD to copy characters into the
+; l0e30 buffer until end-of-string. Appends a CR
+; terminator and sets fs_crc_lo/hi to point at &0E30
+; for subsequent parsing routines.
 ; ***************************************************************************************
 ; &98ff referenced 1 time by &ae82
 .gsread_to_buf
@@ -6674,11 +6686,15 @@ bad_prefix = bad_str_anchor+1
     jsr copy_arg_to_buf_x0                                            ; 9938: 20 f0 ae     ..            ; Copy argument to buffer at X=0
     ldy #2                                                            ; 993b: a0 02       ..             ; Y=2: enumerate directory command
 ; ***************************************************************************************
-; Perform one iteration of a multi-step FS
-; command. Sets port &92, sends the request,
-; copies FS options and workspace state,
-; formats the filename field, sends the TXCB,
-; and processes the reply.
+; Execute one iteration of a multi-step FS command
+; 
+; Called by match_fs_cmd for commands that enumerate
+; directory entries. Sets port &92, sends the initial
+; request via send_request_write, then synchronises the
+; FS options and workspace state (order depends on the
+; cycle flag at offset 6). Copies 4 address bytes,
+; formats the filename field, sends via
+; send_txcb_swap_addrs, and receives the reply.
 ; ***************************************************************************************
 ; &993d referenced 1 time by &a2b9
 .do_fs_cmd_iteration
@@ -6854,10 +6870,12 @@ bad_prefix = bad_str_anchor+1
     jmp return_with_last_flag                                         ; 9a42: 4c b9 9c    L..            ; Jump to return with last flag
 
 ; ***************************************************************************************
-; Print the exec address (5 hex bytes from
-; offset 9 of fs_options) and the file length
-; (3 bytes from offset &0C), each followed by
-; a space separator.
+; Print exec address and file length in hex
+; 
+; Prints the exec address as 5 hex bytes from
+; (fs_options) offset 9 downwards, then the file
+; length as 3 hex bytes from offset &0C. Each group
+; is followed by a space separator via OSASCI.
 ; ***************************************************************************************
 ; &9a45 referenced 1 time by &9a3c
 .print_load_exec_addrs
@@ -6868,10 +6886,18 @@ bad_prefix = bad_str_anchor+1
     bne loop_print_hex_byte                                           ; 9a4e: d0 02       ..             ; ALWAYS branch to print routine; ALWAYS branch
 
 ; ***************************************************************************************
-; Print X+1 bytes from (fs_options) at offset
-; Y as hexadecimal, decrementing Y for each
-; byte. Prints a trailing space via OSASCI.
-; Entry with X=4 prints 5 bytes.
+; Print hex byte sequence from FS options
+; 
+; Outputs X+1 bytes from (fs_options) starting at
+; offset Y, decrementing Y for each byte (big-endian
+; display order). Each byte is printed as two hex
+; digits via print_hex_byte. Finishes with a trailing
+; space via OSASCI. The default entry with X=4 prints
+; 5 bytes (a full 32-bit address plus extent).
+; 
+; On Entry:
+;     X: byte count minus 1 (default 4 for 5 bytes)
+;     Y: starting offset in (fs_options)
 ; ***************************************************************************************
 ; &9a50 referenced 2 times by &9a39, &9a47
 .print_5_hex_bytes
@@ -6887,9 +6913,13 @@ bad_prefix = bad_str_anchor+1
     jmp osasci                                                        ; 9a5d: 4c e3 ff    L..            ; Print space via OSASCI and return; Write character 32
 
 ; ***************************************************************************************
-; Copy 4 bytes from (fs_options) at offsets
-; 2-5 into zero page at &00AE+Y. Falls
-; through to advance Y by 5.
+; Copy FS options address bytes to zero page
+; 
+; Copies 4 bytes from (fs_options) at offsets 2-5
+; into zero page at &00AE+Y. Used by
+; do_fs_cmd_iteration to preserve the current address
+; state. Falls through to skip_one_and_advance5 to
+; advance Y past the copied region.
 ; ***************************************************************************************
 ; &9a60 referenced 2 times by &994d, &9958
 .copy_fsopts_to_zp
@@ -6902,14 +6932,28 @@ bad_prefix = bad_str_anchor+1
     cpy #2                                                            ; 9a68: c0 02       ..             ; Below offset 2?
     bcs loop_copy_fsopts_byte                                         ; 9a6a: b0 f6       ..             ; No: copy next byte
 ; ***************************************************************************************
-; Increment Y by 5. Entry point above
-; advance_y_by_4 with one extra INY.
+; Advance Y by 5
+; 
+; Entry point one INY before advance_y_by_4, giving
+; a total Y increment of 5. Used to skip past a
+; 5-byte address/length structure in the FS options
+; block.
 ; ***************************************************************************************
 ; &9a6c referenced 1 time by &99cf
 .skip_one_and_advance5
     iny                                                               ; 9a6c: c8          .              ; Skip one (INY for skip_one_and_advance5)
 ; ***************************************************************************************
-; Increment Y by 4.
+; Advance Y by 4
+; 
+; Four consecutive INY instructions. Used as a
+; subroutine to step Y past a 4-byte address field
+; in the FS options or workspace structure.
+; 
+; On Entry:
+;     Y: current offset
+; 
+; On Exit:
+;     Y: offset + 4
 ; ***************************************************************************************
 ; &9a6d referenced 2 times by &9f1d, &b054
 .advance_y_by_4
@@ -6922,8 +6966,12 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 9a71: 60          `              ; Return
 
 ; ***************************************************************************************
-; Copy bytes from &0F02+Y into (fs_options)
-; at offsets &0D down to 2. Falls through to
+; Copy workspace reply data to FS options
+; 
+; Copies bytes from the reply buffer at &0F02+Y
+; into (fs_options) at offsets &0D down to 2. Used
+; to update the FS options block with data returned
+; from the file server. Falls through to
 ; retreat_y_by_4.
 ; ***************************************************************************************
 ; &9a72 referenced 2 times by &9950, &9955
@@ -6938,13 +6986,33 @@ bad_prefix = bad_str_anchor+1
     cpy #2                                                            ; 9a7b: c0 02       ..             ; Below offset 2?
     bcs loop_copy_ws_byte                                             ; 9a7d: b0 f6       ..             ; No: copy next byte
 ; ***************************************************************************************
-; Decrement Y by 4.
+; Retreat Y by 4
+; 
+; Four consecutive DEY instructions. Companion to
+; advance_y_by_4 for reverse traversal of address
+; structures.
+; 
+; On Entry:
+;     Y: current offset
+; 
+; On Exit:
+;     Y: offset - 4
 ; ***************************************************************************************
 ; &9a7f referenced 1 time by &99be
 .retreat_y_by_4
     dey                                                               ; 9a7f: 88          .              ; DEY (retreat_y_by_4 entry)
 ; ***************************************************************************************
-; Decrement Y by 3.
+; Retreat Y by 3
+; 
+; Three consecutive DEY instructions. Used by
+; setup_transfer_workspace to step back through
+; interleaved address pairs in the FS options block.
+; 
+; On Entry:
+;     Y: current offset
+; 
+; On Exit:
+;     Y: offset - 3
 ; ***************************************************************************************
 ; &9a80 referenced 2 times by &9afc, &9f25
 .retreat_y_by_3
@@ -7142,10 +7210,13 @@ bad_prefix = bad_str_anchor+1
     equb &4c, &bb, &9c                                                ; 9b83: 4c bb 9c    L..
 
 ; ***************************************************************************************
-; Format a filename into a 12-character field
-; at &10F3, padding with spaces. Copies from
-; the command line or the l0f05 buffer
-; depending on l0f03.
+; Format filename into fixed-width display field
+; 
+; Builds a 12-character space-padded filename at
+; &10F3 for directory listing output. Sources the
+; name from either the command line or the l0f05
+; reply buffer depending on the value in l0f03.
+; Truncates or pads to exactly 12 characters.
 ; ***************************************************************************************
 ; &9b86 referenced 2 times by &9970, &99fb
 .format_filename_field
@@ -7563,35 +7634,58 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 9e02: 60          `              ; Return
 
 ; ***************************************************************************************
-; Add workspace values to FS options starting
-; at offset 9 (high address), then fall
-; through to process offset 1 (low address).
+; Update both address fields in FS options
+; 
+; Calls add_workspace_to_fsopts for offset 9 (the
+; high address / exec address field), then falls
+; through to update_addr_from_offset1 to process
+; offset 1 (the low address / load address field).
 ; ***************************************************************************************
 ; &9e03 referenced 1 time by &9f48
 .update_addr_from_offset9
     ldy #9                                                            ; 9e03: a0 09       ..             ; Y=9: FS options offset for high address
     jsr add_workspace_to_fsopts                                       ; 9e05: 20 0a 9e     ..            ; Add workspace values to FS options
 ; ***************************************************************************************
-; Add workspace values to FS options at
-; offset 1 (low address). Falls through
-; to add_workspace_to_fsopts.
+; Update low address field in FS options
+; 
+; Sets Y=1 and falls through to
+; add_workspace_to_fsopts to add the workspace
+; adjustment bytes to the load address field at
+; offset 1 in the FS options block.
+; 
+; On Entry:
+;     C: carry state passed to add_workspace_to_fsopts
 ; ***************************************************************************************
 ; &9e08 referenced 1 time by &a03b
 .update_addr_from_offset1
     ldy #1                                                            ; 9e08: a0 01       ..             ; Y=1: FS options offset for low address
 ; ***************************************************************************************
-; Clear carry and add 4 workspace bytes
-; (&0E0A-&0E0D) to FS options at offset Y.
-; Direction controlled by bit 7 of B2.
+; Add workspace bytes to FS options with clear carry
+; 
+; Clears carry and falls through to
+; adjust_fsopts_4bytes. Provides a convenient entry
+; point when the caller needs addition without a
+; preset carry.
+; 
+; On Entry:
+;     Y: FS options offset for first byte
 ; ***************************************************************************************
 ; &9e0a referenced 1 time by &9e05
 .add_workspace_to_fsopts
     clc                                                               ; 9e0a: 18          .              ; Clear carry for addition
 ; ***************************************************************************************
-; Add or subtract 4 workspace bytes from FS
-; options at offset Y. If bit 7 of B2 is set,
-; subtracts; otherwise adds. Carry must be
-; preset by caller.
+; Add or subtract 4 workspace bytes from FS options
+; 
+; Processes 4 consecutive bytes at (fs_options)+Y,
+; adding or subtracting the corresponding workspace
+; bytes from &0E0A-&0E0D. The direction is controlled
+; by bit 7 of fs_load_addr_2: set for subtraction,
+; clear for addition. Carry propagates across all 4
+; bytes for correct multi-byte arithmetic.
+; 
+; On Entry:
+;     Y: FS options offset for first byte
+;     C: carry input for first byte
 ; ***************************************************************************************
 ; &9e0b referenced 2 times by &9f4e, &a047
 .adjust_fsopts_4bytes
@@ -7699,17 +7793,33 @@ bad_prefix = bad_str_anchor+1
     jmp finalise_and_return                                           ; 9ebd: 4c bb 9c    L..            ; Jump to finalise and return
 
 ; ***************************************************************************************
-; Load the channel handle from (fs_options)
-; at offset 0, look it up in the channel
-; table, and return the FCB flag byte in A.
+; Look up channel from FS options offset 0
+; 
+; Loads the channel handle from (fs_options) at
+; offset 0, then falls through to lookup_cat_slot_data
+; to find the corresponding FCB entry.
+; 
+; On Exit:
+;     A: FCB flag byte from &1030+X
+;     X: channel slot index
 ; ***************************************************************************************
 ; &9ec0 referenced 2 times by &9e96, &9ecc
 .lookup_cat_entry_0
     ldy #0                                                            ; 9ec0: a0 00       ..             ; Y=0: offset for channel handle
     lda (fs_options),y                                                ; 9ec2: b1 bb       ..             ; Load channel handle from FS options
 ; ***************************************************************************************
-; Look up channel A in the channel table and
-; return the FCB flag byte from &1030+X.
+; Look up channel and return FCB flag byte
+; 
+; Calls lookup_chan_by_char to find the channel
+; slot for handle A in the channel table, then
+; loads the FCB flag byte from &1030+X.
+; 
+; On Entry:
+;     A: channel handle
+; 
+; On Exit:
+;     A: FCB flag byte
+;     X: channel slot index
 ; ***************************************************************************************
 ; &9ec4 referenced 1 time by &9e89
 .lookup_cat_slot_data
@@ -7718,11 +7828,17 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 9eca: 60          `              ; Return with flag in A
 
 ; ***************************************************************************************
-; Set up workspace for a data transfer
-; operation (OSBGET/OSBPUT). Looks up the
-; channel, copies address structure, sends
-; the FS request, and configures the TXCB
-; for the actual data transfer phase.
+; Prepare workspace for OSGBPB data transfer
+; 
+; Orchestrates the setup for OSGBPB (get/put
+; multiple bytes) operations. Looks up the channel,
+; copies the 6-byte address structure from FS options
+; (skipping the hole at offset 8), determines transfer
+; direction from the operation code (even=read,
+; odd=write), selects port &91 or &92 accordingly,
+; and sends the FS request. Then configures the TXCB
+; address pairs for the actual data transfer phase
+; and dispatches to the appropriate handler.
 ; ***************************************************************************************
 ; &9ecb referenced 2 times by &9e74, &b97c
 .setup_transfer_workspace

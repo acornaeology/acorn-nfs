@@ -2510,9 +2510,11 @@ subroutine(0x9778, "append_decimal_digit",
     on_exit={"y": "remainder after division",
              "v": "clear once a non-zero digit is emitted"})
 subroutine(0x9822, "init_tx_ptr_and_send",
-    description="Set the TX pointer to &00C0 (the TXCB in\n"
-    "zero page) and fall through to send the\n"
-    "Econet packet with retry logic.")
+    title="Point TX at zero-page TXCB and send",
+    description="Sets net_tx_ptr/net_tx_ptr_hi to &00C0 (the\n"
+    "standard TXCB location in zero page), then falls\n"
+    "through to send_net_packet for transmission with\n"
+    "retry logic.")
 subroutine(0x982A, "send_net_packet",
     description="Send an Econet packet via the ADLC with\n"
     "retry logic. Polls for line idle, starts\n"
@@ -2527,10 +2529,13 @@ subroutine(0x987F, "init_tx_ptr_for_pass",
     "saves original values on stack, then polls\n"
     "the ADLC and retries until complete.")
 subroutine(0x9887, "setup_pass_txbuf",
-    description="Initialise the TX buffer from the pass-\n"
-    "through template table, preserving original\n"
-    "values on stack. Starts transmission and\n"
-    "polls for completion with retry logic.")
+    title="Initialise TX buffer from pass-through template",
+    description="Copies 12 bytes from pass_txbuf_init_table into the\n"
+    "TX control block, pushing the original values on the\n"
+    "stack for later restoration. Skips offsets marked &FD\n"
+    "in the template. Starts transmission via\n"
+    "poll_adlc_tx_status and retries on failure, restoring\n"
+    "the original TX buffer contents when done.")
 subroutine(0x98B4, "poll_adlc_tx_status",
     description="Poll the ADLC by shifting the workspace\n"
     "status byte left in a loop, then copy the\n"
@@ -2538,21 +2543,27 @@ subroutine(0x98B4, "poll_adlc_tx_status",
     "tx_begin to start frame transmission.\n"
     "Returns the TX completion status in A.")
 subroutine(0x98F3, "load_text_ptr_and_parse",
-    description="Copy a 2-byte pointer from (fs_options)\n"
-    "into os_text_ptr, then use GSINIT/GSREAD\n"
-    "to parse the string into the buffer at\n"
-    "&0E30. Sets fs_crc_lo/hi to point at the\n"
-    "parsed buffer.")
+    title="Copy text pointer from FS options and parse string",
+    description="Reads a 2-byte address from (fs_options)+0/1 into\n"
+    "os_text_ptr (&00F2), resets Y to zero, then falls\n"
+    "through to gsread_to_buf to parse the string at that\n"
+    "address into the &0E30 buffer.")
 subroutine(0x98FF, "gsread_to_buf",
-    description="Parse the current command line string via\n"
-    "GSINIT/GSREAD into the buffer at &0E30,\n"
-    "CR-terminated. Sets fs_crc_lo/hi to &0E30.")
+    title="Parse command line via GSINIT/GSREAD into &0E30",
+    description="Calls GSINIT to initialise string reading, then\n"
+    "loops calling GSREAD to copy characters into the\n"
+    "l0e30 buffer until end-of-string. Appends a CR\n"
+    "terminator and sets fs_crc_lo/hi to point at &0E30\n"
+    "for subsequent parsing routines.")
 subroutine(0x993D, "do_fs_cmd_iteration",
-    description="Perform one iteration of a multi-step FS\n"
-    "command. Sets port &92, sends the request,\n"
-    "copies FS options and workspace state,\n"
-    "formats the filename field, sends the TXCB,\n"
-    "and processes the reply.")
+    title="Execute one iteration of a multi-step FS command",
+    description="Called by match_fs_cmd for commands that enumerate\n"
+    "directory entries. Sets port &92, sends the initial\n"
+    "request via send_request_write, then synchronises the\n"
+    "FS options and workspace state (order depends on the\n"
+    "cycle flag at offset 6). Copies 4 address bytes,\n"
+    "formats the filename field, sends via\n"
+    "send_txcb_swap_addrs, and receives the reply.")
 subroutine(0x9984, "send_txcb_swap_addrs",
     description="Send the TXCB and swap start/end addresses.\n"
     "If the 5-byte handle matches, returns\n"
@@ -2560,32 +2571,62 @@ subroutine(0x9984, "send_txcb_swap_addrs",
     "addresses, sends, waits for acknowledgment,\n"
     "and retries on address mismatch.")
 subroutine(0x9A45, "print_load_exec_addrs",
-    description="Print the exec address (5 hex bytes from\n"
-    "offset 9 of fs_options) and the file length\n"
-    "(3 bytes from offset &0C), each followed by\n"
-    "a space separator.")
+    title="Print exec address and file length in hex",
+    description="Prints the exec address as 5 hex bytes from\n"
+    "(fs_options) offset 9 downwards, then the file\n"
+    "length as 3 hex bytes from offset &0C. Each group\n"
+    "is followed by a space separator via OSASCI.")
 subroutine(0x9A50, "print_5_hex_bytes",
-    description="Print X+1 bytes from (fs_options) at offset\n"
-    "Y as hexadecimal, decrementing Y for each\n"
-    "byte. Prints a trailing space via OSASCI.\n"
-    "Entry with X=4 prints 5 bytes.")
+    title="Print hex byte sequence from FS options",
+    description="Outputs X+1 bytes from (fs_options) starting at\n"
+    "offset Y, decrementing Y for each byte (big-endian\n"
+    "display order). Each byte is printed as two hex\n"
+    "digits via print_hex_byte. Finishes with a trailing\n"
+    "space via OSASCI. The default entry with X=4 prints\n"
+    "5 bytes (a full 32-bit address plus extent).",
+    on_entry={"x": "byte count minus 1 (default 4 for 5 bytes)",
+              "y": "starting offset in (fs_options)"})
 subroutine(0x9A60, "copy_fsopts_to_zp",
-    description="Copy 4 bytes from (fs_options) at offsets\n"
-    "2-5 into zero page at &00AE+Y. Falls\n"
-    "through to advance Y by 5.")
+    title="Copy FS options address bytes to zero page",
+    description="Copies 4 bytes from (fs_options) at offsets 2-5\n"
+    "into zero page at &00AE+Y. Used by\n"
+    "do_fs_cmd_iteration to preserve the current address\n"
+    "state. Falls through to skip_one_and_advance5 to\n"
+    "advance Y past the copied region.")
 subroutine(0x9A6C, "skip_one_and_advance5",
-    description="Increment Y by 5. Entry point above\n"
-    "advance_y_by_4 with one extra INY.")
+    title="Advance Y by 5",
+    description="Entry point one INY before advance_y_by_4, giving\n"
+    "a total Y increment of 5. Used to skip past a\n"
+    "5-byte address/length structure in the FS options\n"
+    "block.")
 subroutine(0x9A6D, "advance_y_by_4",
-    description="Increment Y by 4.")
+    title="Advance Y by 4",
+    description="Four consecutive INY instructions. Used as a\n"
+    "subroutine to step Y past a 4-byte address field\n"
+    "in the FS options or workspace structure.",
+    on_entry={"y": "current offset"},
+    on_exit={"y": "offset + 4"})
 subroutine(0x9A72, "copy_workspace_to_fsopts",
-    description="Copy bytes from &0F02+Y into (fs_options)\n"
-    "at offsets &0D down to 2. Falls through to\n"
+    title="Copy workspace reply data to FS options",
+    description="Copies bytes from the reply buffer at &0F02+Y\n"
+    "into (fs_options) at offsets &0D down to 2. Used\n"
+    "to update the FS options block with data returned\n"
+    "from the file server. Falls through to\n"
     "retreat_y_by_4.")
 subroutine(0x9A7F, "retreat_y_by_4",
-    description="Decrement Y by 4.")
+    title="Retreat Y by 4",
+    description="Four consecutive DEY instructions. Companion to\n"
+    "advance_y_by_4 for reverse traversal of address\n"
+    "structures.",
+    on_entry={"y": "current offset"},
+    on_exit={"y": "offset - 4"})
 subroutine(0x9A80, "retreat_y_by_3",
-    description="Decrement Y by 3.")
+    title="Retreat Y by 3",
+    description="Three consecutive DEY instructions. Used by\n"
+    "setup_transfer_workspace to step back through\n"
+    "interleaved address pairs in the FS options block.",
+    on_entry={"y": "current offset"},
+    on_exit={"y": "offset - 3"})
 subroutine(0x9A88, "check_and_setup_txcb",
     description="Set up a data transfer TXCB. Compares the\n"
     "5-byte handle; if unchanged, returns. Else\n"
@@ -2594,40 +2635,68 @@ subroutine(0x9A88, "check_and_setup_txcb",
     "sends the packet, and dispatches on the\n"
     "reply sub-operation code.")
 subroutine(0x9B86, "format_filename_field",
-    description="Format a filename into a 12-character field\n"
-    "at &10F3, padding with spaces. Copies from\n"
-    "the command line or the l0f05 buffer\n"
-    "depending on l0f03.")
+    title="Format filename into fixed-width display field",
+    description="Builds a 12-character space-padded filename at\n"
+    "&10F3 for directory listing output. Sources the\n"
+    "name from either the command line or the l0f05\n"
+    "reply buffer depending on the value in l0f03.\n"
+    "Truncates or pads to exactly 12 characters.")
 subroutine(0x9E03, "update_addr_from_offset9",
-    description="Add workspace values to FS options starting\n"
-    "at offset 9 (high address), then fall\n"
-    "through to process offset 1 (low address).")
+    title="Update both address fields in FS options",
+    description="Calls add_workspace_to_fsopts for offset 9 (the\n"
+    "high address / exec address field), then falls\n"
+    "through to update_addr_from_offset1 to process\n"
+    "offset 1 (the low address / load address field).")
 subroutine(0x9E08, "update_addr_from_offset1",
-    description="Add workspace values to FS options at\n"
-    "offset 1 (low address). Falls through\n"
-    "to add_workspace_to_fsopts.")
+    title="Update low address field in FS options",
+    description="Sets Y=1 and falls through to\n"
+    "add_workspace_to_fsopts to add the workspace\n"
+    "adjustment bytes to the load address field at\n"
+    "offset 1 in the FS options block.",
+    on_entry={"c": "carry state passed to add_workspace_to_fsopts"})
 subroutine(0x9E0A, "add_workspace_to_fsopts",
-    description="Clear carry and add 4 workspace bytes\n"
-    "(&0E0A-&0E0D) to FS options at offset Y.\n"
-    "Direction controlled by bit 7 of B2.")
+    title="Add workspace bytes to FS options with clear carry",
+    description="Clears carry and falls through to\n"
+    "adjust_fsopts_4bytes. Provides a convenient entry\n"
+    "point when the caller needs addition without a\n"
+    "preset carry.",
+    on_entry={"y": "FS options offset for first byte"})
 subroutine(0x9E0B, "adjust_fsopts_4bytes",
-    description="Add or subtract 4 workspace bytes from FS\n"
-    "options at offset Y. If bit 7 of B2 is set,\n"
-    "subtracts; otherwise adds. Carry must be\n"
-    "preset by caller.")
+    title="Add or subtract 4 workspace bytes from FS options",
+    description="Processes 4 consecutive bytes at (fs_options)+Y,\n"
+    "adding or subtracting the corresponding workspace\n"
+    "bytes from &0E0A-&0E0D. The direction is controlled\n"
+    "by bit 7 of fs_load_addr_2: set for subtraction,\n"
+    "clear for addition. Carry propagates across all 4\n"
+    "bytes for correct multi-byte arithmetic.",
+    on_entry={"y": "FS options offset for first byte",
+              "c": "carry input for first byte"})
 subroutine(0x9EC0, "lookup_cat_entry_0",
-    description="Load the channel handle from (fs_options)\n"
-    "at offset 0, look it up in the channel\n"
-    "table, and return the FCB flag byte in A.")
+    title="Look up channel from FS options offset 0",
+    description="Loads the channel handle from (fs_options) at\n"
+    "offset 0, then falls through to lookup_cat_slot_data\n"
+    "to find the corresponding FCB entry.",
+    on_exit={"a": "FCB flag byte from &1030+X",
+             "x": "channel slot index"})
 subroutine(0x9EC4, "lookup_cat_slot_data",
-    description="Look up channel A in the channel table and\n"
-    "return the FCB flag byte from &1030+X.")
+    title="Look up channel and return FCB flag byte",
+    description="Calls lookup_chan_by_char to find the channel\n"
+    "slot for handle A in the channel table, then\n"
+    "loads the FCB flag byte from &1030+X.",
+    on_entry={"a": "channel handle"},
+    on_exit={"a": "FCB flag byte",
+             "x": "channel slot index"})
 subroutine(0x9ECB, "setup_transfer_workspace",
-    description="Set up workspace for a data transfer\n"
-    "operation (OSBGET/OSBPUT). Looks up the\n"
-    "channel, copies address structure, sends\n"
-    "the FS request, and configures the TXCB\n"
-    "for the actual data transfer phase.")
+    title="Prepare workspace for OSGBPB data transfer",
+    description="Orchestrates the setup for OSGBPB (get/put\n"
+    "multiple bytes) operations. Looks up the channel,\n"
+    "copies the 6-byte address structure from FS options\n"
+    "(skipping the hole at offset 8), determines transfer\n"
+    "direction from the operation code (even=read,\n"
+    "odd=write), selects port &91 or &92 accordingly,\n"
+    "and sends the FS request. Then configures the TXCB\n"
+    "address pairs for the actual data transfer phase\n"
+    "and dispatches to the appropriate handler.")
 subroutine(0x9FB8, "write_data_block",
     description="Write a block of data to the destination.\n"
     "If no Tube present, copies directly from\n"
