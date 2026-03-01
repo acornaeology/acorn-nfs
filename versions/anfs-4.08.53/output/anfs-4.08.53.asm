@@ -411,9 +411,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[2]   ; JMP to tube_escape_check (&06A7)
 
 ; ***************************************************************************************
-; Main Tube address/data dispatch point, called by 10
-; sites across the Tube host and Econet code. Routes
-; requests based on the value of A:
+; Tube address/data dispatch
+; 
+; Called by 10 sites across the Tube host and Econet
+; code. Routes requests based on the value of A:
 ;   A < &80: data transfer setup (SENDW) at &0435
 ;   &80 <= A < &C0: release -- maps A via ORA #&40
 ;     and compares with tube_claimed_id; if we own
@@ -456,12 +457,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_send_r4                                                  ; bf1d: 20 9e 06     .. :041d[2]   ; Send our address as release parameter
     plp                                                               ; bf20: 28          (   :0420[2]   ; Restore interrupt state
 ; ***************************************************************************************
-; Resets Tube address claim state by storing &80 into
-; both tube_claimed_id (&15) and tube_claim_flag (&14).
-; The &80 sentinel indicates no address is currently
-; claimed and no claim is in progress. Called after
-; tube_release_claim (via fall-through) and during
-; initial workspace setup.
+; Reset Tube address claim state
+; 
+; Stores &80 into both tube_claimed_id (&15) and
+; tube_claim_flag (&14). The &80 sentinel indicates no
+; address is currently claimed and no claim is in
+; progress. Called after tube_release_claim (via
+; fall-through) and during initial workspace setup.
 ; ***************************************************************************************
 ; &bf21 referenced 1 time by &beaf
 .clear_tube_claim
@@ -741,12 +743,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; bd0f: 4c 36 00    L6. :057f[3]   ; Return to Tube main loop
 
 ; ***************************************************************************************
-; Reads a CR-terminated string from the Tube
-; co-processor via R2 into the string buffer at &0700.
-; Loops reading bytes from tube_read_r2, storing at
-; string_buf+Y. Terminates on CR (&0D) or when Y wraps
-; to zero (256-byte overflow). Returns with X=0, Y=7
-; so that XY = &0700, ready for OSCLI or OSFIND dispatch.
+; Read string from Tube R2 into buffer
+; 
+; Loops reading bytes from tube_read_r2 into the
+; string buffer at &0700, storing at string_buf+Y.
+; Terminates on CR (&0D) or when Y wraps to zero
+; (256-byte overflow). Returns with X=0, Y=7 so that
+; XY = &0700, ready for OSCLI or OSFIND dispatch.
 ; Called by the Tube OSCLI and OSFIND handlers.
 ; 
 ; On Exit:
@@ -959,10 +962,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; be22: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
 ; ***************************************************************************************
+; Send byte to Tube data register R2
+; 
 ; Polls Tube status register 2 until bit 6 (TDRA)
-; is set, then writes A to Tube data register 2.
-; Uses a tight BIT/BVC polling loop. Called by 12
-; sites across the Tube host code for all R2 data
+; is set, then writes A to the data register. Uses a
+; tight BIT/BVC polling loop. Called by 12 sites
+; across the Tube host code for all R2 data
 ; transmission: command responses, file data, OSBYTE
 ; results, and control block bytes.
 ; 
@@ -980,8 +985,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rts                                                               ; be2d: 60          `   :069d[4]   ; Return to caller
 
 ; ***************************************************************************************
+; Send byte to Tube data register R4
+; 
 ; Polls Tube status register 4 until bit 6 is set,
-; then writes A to Tube data register 4. Uses a tight
+; then writes A to the data register. Uses a tight
 ; BIT/BVC polling loop. R4 is the command/control
 ; channel used for address claims (ADRR), data transfer
 ; setup (SENDW), and release commands. Called by 7
@@ -1017,8 +1024,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr tube_send_r1                                                  ; be48: 20 bc 06     .. :06b8[4]   ; Send X via R1
     pla                                                               ; be4b: 68          h   :06bb[4]   ; Restore A (event type)
 ; ***************************************************************************************
+; Send byte to Tube data register R1
+; 
 ; Polls Tube status register 1 until bit 6 is set,
-; then writes A to Tube data register 1. Uses a tight
+; then writes A to the data register. Uses a tight
 ; BIT/BVC polling loop. R1 is used for asynchronous
 ; event and escape notification to the co-processor.
 ; Called by tube_event_handler to forward event type,
@@ -1137,7 +1146,8 @@ service_handler_lo = service_entry+1
     equs "(C)1985 Acorn", 0                                           ; 8015: 28 43 29... (C)
 
 ; ***************************************************************************************
-; Service 5 handler: unrecognised interrupt.
+; Service 5: unrecognised interrupt (CB1 dispatch)
+; 
 ; Tests IFR bit 2 (CB1 active edge) to check for a
 ; shift register transfer complete. If CB1 is not set,
 ; returns A=5 to pass the service call on. If CB1 is
@@ -2170,12 +2180,14 @@ service_handler_lo = service_entry+1
     jmp reset_adlc_rx_listen                                          ; 8522: 4c ee 83    L..            ; Return to idle listen mode
 
 ; ***************************************************************************************
-; Increments the 4-byte counter at &A2-&A5
-; (port_buf_len low/high, open_port_buf low/high)
-; by one, cascading overflow through all four bytes.
-; Called after each byte is stored during scout data
-; copy and data frame reception to track the current
-; write position in the receive buffer.
+; Increment 4-byte receive buffer pointer
+; 
+; Adds one to the counter at &A2-&A5 (port_buf_len
+; low/high, open_port_buf low/high), cascading
+; overflow through all four bytes. Called after each
+; byte is stored during scout data copy and data
+; frame reception to track the current write position
+; in the receive buffer.
 ; ***************************************************************************************
 ; &8525 referenced 3 times by &829e, &82ac, &8433
 .advance_buffer_ptr
@@ -3316,13 +3328,14 @@ listen_jmp_hi = reset_enter_listen+2
     bmi restore_romsel_rts                                            ; 8a95: 30 32       02             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Reads the next byte from a paged ROM via the MOS
-; OSRDSC call (&FFB9). Increments the read pointer
-; at osrdsc_ptr (&F6) first, then uses the ROM
-; number stored at error_block (&0100) as the Y
-; parameter to OSRDSC. Called three times by
-; service_handler during ROM identification to
-; read the copyright string and ROM type byte.
+; Read next byte from paged ROM via OSRDSC
+; 
+; Increments the read pointer at osrdsc_ptr (&F6)
+; first, then calls OSRDSC (&FFB9) with the ROM
+; number from error_block (&0100) in Y. Called
+; three times by service_handler during ROM
+; identification to read the copyright string and
+; ROM type byte.
 ; 
 ; On Exit:
 ;     A: byte read from ROM
@@ -3370,14 +3383,15 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8acb: 60          `              ; Return to MOS
 
 ; ***************************************************************************************
-; *ROFF command handler. Disables remote operation
-; by clearing the flag at offset 4 in the receive
-; block. If remote operation was active, re-enables
-; the keyboard via OSBYTE &C9 (with X=0, Y=0) and
-; calls tx_econet_abort with A=&0A to reinitialise
-; the workspace area. Falls through to
-; scan_remote_keys which clears svc_state and
-; nfs_workspace.
+; *ROFF command handler
+; 
+; Disables remote operation by clearing the flag at
+; offset 4 in the receive block. If remote operation
+; was active, re-enables the keyboard via OSBYTE &C9
+; (with X=0, Y=0) and calls tx_econet_abort with
+; A=&0A to reinitialise the workspace area. Falls
+; through to scan_remote_keys which clears svc_state
+; and nfs_workspace.
 ; ***************************************************************************************
 .cmd_roff
     ldy #4                                                            ; 8acc: a0 04       ..             ; Offset 4 in receive block
@@ -3392,13 +3406,14 @@ listen_jmp_hi = reset_enter_listen+2
     lda #&0a                                                          ; 8add: a9 0a       ..             ; A=&0A: workspace init parameter
     jsr tx_econet_abort                                               ; 8adf: 20 ac a9     ..            ; Initialise workspace area
 ; ***************************************************************************************
-; Called by check_escape to detect whether remote
-; operation keys (&CE-&CF) are currently pressed.
-; Uses OSBYTE &7A with Y=&7F to scan the keyboard
-; for each key in the range. If neither key is
-; pressed, clears svc_state and nfs_workspace to
-; zero via the clear_svc_and_ws entry point, which
-; is also used directly by cmd_roff.
+; Scan keyboard for remote operation keys
+; 
+; Uses OSBYTE &7A with Y=&7F to check whether
+; remote operation keys (&CE-&CF) are currently
+; pressed. If neither key is detected, clears
+; svc_state and nfs_workspace to zero via the
+; clear_svc_and_ws entry point, which is also used
+; directly by cmd_roff. Called by check_escape.
 ; ***************************************************************************************
 ; &8ae2 referenced 1 time by &9589
 .scan_remote_keys
@@ -3420,12 +3435,13 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8af9: 60          `              ; Return
 
 ; ***************************************************************************************
-; Saves the current OS text pointer (&F2/&F3) into
-; fs_crc_lo/fs_crc_hi for later retrieval. Called
-; by svc_4_star_command and svc_9_help before
-; attempting command matches, and by match_fs_cmd
-; during iterative help topic matching. Preserves
-; A via PHA/PLA.
+; Save OS text pointer for later retrieval
+; 
+; Copies &F2/&F3 into fs_crc_lo/fs_crc_hi. Called by
+; svc_4_star_command and svc_9_help before attempting
+; command matches, and by match_fs_cmd during
+; iterative help topic matching. Preserves A via
+; PHA/PLA.
 ; 
 ; On Exit:
 ;     A: preserved
@@ -3443,13 +3459,14 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8b04: 60          `              ; Return
 
 ; ***************************************************************************************
-; Handles MOS service call 18 (filing system
-; selection request). Checks if Y=5 (Econet filing
-; system number); returns unclaimed if not. Also
-; returns if bit 7 of &0D6C is already set,
-; indicating the FS is already selected. Otherwise
-; falls through to cmd_net_fs to perform the full
-; network filing system selection sequence.
+; Service 18: filing system selection request
+; 
+; Checks if Y=5 (Econet filing system number);
+; returns unclaimed if not. Also returns if bit 7
+; of &0D6C is already set, indicating the FS is
+; already selected. Otherwise falls through to
+; cmd_net_fs to perform the full network filing
+; system selection sequence.
 ; 
 ; On Entry:
 ;     Y: filing system number requested
@@ -3460,9 +3477,10 @@ listen_jmp_hi = reset_enter_listen+2
     bit l0d6c                                                         ; 8b09: 2c 6c 0d    ,l.            ; Already selected?
     bmi return_4                                                      ; 8b0c: 30 f6       0.             ; Yes (bit 7 set): return unclaimed
 ; ***************************************************************************************
-; Selects the Econet network filing system. Computes
-; a checksum over the first &77 bytes of the
-; workspace page and verifies it against a stored
+; Select Econet network filing system
+; 
+; Computes a checksum over the first &77 bytes of
+; the workspace page and verifies against the stored
 ; value; raises an error on mismatch. On success,
 ; notifies the OS via FSCV reason 6, copies the FS
 ; context block from the receive block to &0DFA,
@@ -3543,26 +3561,29 @@ listen_jmp_hi = reset_enter_listen+2
     ldx #&4a ; 'J'                                                    ; 8b82: a2 4a       .J             ; X=&4A: NFS command table offset
     jsr print_cmd_table                                               ; 8b84: 20 8d 8b     ..            ; Print help for NFS commands
 ; ***************************************************************************************
-; *Utils command handler. Sets X=0 to select the
-; first (FS) command sub-table and branches to
-; print_cmd_table to display the command list.
-; This prints the version header followed by all
-; FS utility commands.
+; *Utils command handler
+; 
+; Sets X=0 to select the first (FS) command
+; sub-table and branches to print_cmd_table to
+; display the command list. Prints the version
+; header followed by all FS utility commands.
 ; ***************************************************************************************
 .cmd_utils
     ldx #0                                                            ; 8b87: a2 00       ..             ; X=0: FS command table offset
     beq print_cmd_table                                               ; 8b89: f0 02       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Net command (local/utility variant). Sets X to
-; &4A (the NFS command sub-table offset) and falls
-; through to print_cmd_table to display the NFS
-; command list with version header.
+; *Net command (local variant)
+; 
+; Sets X to &4A (the NFS command sub-table offset)
+; and falls through to print_cmd_table to display
+; the NFS command list with version header.
 ; ***************************************************************************************
 .cmd_net_local
     ldx #&4a ; 'J'                                                    ; 8b8b: a2 4a       .J             ; X=&4A: NFS command table offset
 ; ***************************************************************************************
-; Entry point for printing a *HELP command listing.
+; Print *HELP command listing with optional header
+; 
 ; If V flag is set, saves X/Y, calls
 ; print_version_header to show the ROM version
 ; string and station number, then restores X/Y.
@@ -3593,16 +3614,17 @@ listen_jmp_hi = reset_enter_listen+2
 .print_table_newline
     jsr osnewl                                                        ; 8b9d: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; ***************************************************************************************
-; Iterates through the ANFS command table starting
-; at offset X, printing each command name padded to
-; 9 characters followed by its syntax description.
-; Entries with bit 7 set mark end-of-table. The
-; syntax descriptor byte's low 5 bits index into
-; cmd_syntax_table; index &0E triggers special
-; handling that lists shared command names in
-; parentheses. Calls help_wrap_if_serial to handle
-; line continuation on serial output streams.
-; Preserves Y across the full enumeration.
+; Enumerate and print command table entries
+; 
+; Walks the ANFS command table from offset X,
+; printing each command name padded to 9 characters
+; followed by its syntax description. Entries with
+; bit 7 set mark end-of-table. The syntax descriptor
+; byte's low 5 bits index into cmd_syntax_table;
+; index &0E triggers special handling that lists
+; shared command names in parentheses. Calls
+; help_wrap_if_serial to handle line continuation
+; on serial output streams. Preserves Y.
 ; 
 ; On Entry:
 ;     X: offset into cmd_table_fs
@@ -3716,8 +3738,9 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8c27: 60          `              ; Return
 
 ; ***************************************************************************************
-; Checks the output destination via &0355 and wraps
-; syntax lines for serial streams. Returns
+; Wrap *HELP syntax lines for serial output
+; 
+; Checks the output destination via &0355. Returns
 ; immediately for VDU (stream 0) or printer
 ; (stream 3) output. For serial streams, outputs a
 ; newline followed by 12 spaces of indentation to
@@ -3750,14 +3773,15 @@ listen_jmp_hi = reset_enter_listen+2
     rts                                                               ; 8c42: 60          `              ; Return
 
 ; ***************************************************************************************
-; Handles MOS service call 4 (unrecognised star
-; command). Saves the OS text pointer, then calls
-; match_fs_cmd to search the command table starting
-; at offset 0 (all FS commands). If no match is
-; found (carry set), returns with the service call
-; unclaimed. On a match, JMPs to cmd_fs_reentry
-; to execute the matched command handler via the
-; PHA/PHA/RTS dispatch mechanism.
+; Service 4: unrecognised star command
+; 
+; Saves the OS text pointer, then calls match_fs_cmd
+; to search the command table starting at offset 0
+; (all FS commands). If no match is found (carry
+; set), returns with the service call unclaimed. On
+; a match, JMPs to cmd_fs_reentry to execute the
+; matched command handler via the PHA/PHA/RTS
+; dispatch mechanism.
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -3832,8 +3856,9 @@ listen_jmp_hi = reset_enter_listen+2
     beq svc_return_unclaimed                                          ; 8c92: f0 d1       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Prints the ANFS ROM identification string using
-; an inline string after the JSR to print_inline:
+; Print ANFS version string and station number
+; 
+; Uses an inline string after JSR print_inline:
 ; CR + "Advanced  4.08.53" + CR. After the inline
 ; string, JMPs to print_station_id to append the
 ; local Econet station number.
@@ -3849,11 +3874,12 @@ version_string = version_string_cr+1
     jmp print_station_id                                              ; 8cab: 4c dd 8f    L..            ; Print station number
 
 ; ***************************************************************************************
-; Reads the workspace page number allocated to this
-; ROM slot from the MOS page &0D table. Uses
-; romsel_copy (&F4) to index into the per-ROM
-; workspace allocation at &0DF0. Returns the page
-; number in both A and Y for caller convenience.
+; Read workspace page number for current ROM slot
+; 
+; Indexes into the MOS per-ROM workspace table at
+; &0DF0 using romsel_copy (&F4) as the ROM slot.
+; Returns the allocated page number in both A and Y
+; for caller convenience.
 ; 
 ; On Exit:
 ;     A: workspace page number
@@ -3867,13 +3893,13 @@ version_string = version_string_cr+1
     rts                                                               ; 8cb4: 60          `              ; Return with page in A and Y
 
 ; ***************************************************************************************
-; Sets up a zero-page pointer at &CC/&CD to address
-; the workspace page for this ROM slot. Calls
-; get_ws_page to read the page number, stores it as
-; the high byte in nfs_temp (&CD), and clears the
-; low byte at &CC to zero. This gives a page-aligned
-; pointer used by FS initialisation and cmd_net_fs
-; to access the private workspace.
+; Set up zero-page pointer to workspace page
+; 
+; Calls get_ws_page to read the page number, stores
+; it as the high byte in nfs_temp (&CD), and clears
+; the low byte at &CC to zero. This gives a
+; page-aligned pointer used by FS initialisation and
+; cmd_net_fs to access the private workspace.
 ; 
 ; On Exit:
 ;     A: 0
@@ -3890,15 +3916,16 @@ version_string = version_string_cr+1
     rts                                                               ; 8cbe: 60          `              ; Return
 
 ; ***************************************************************************************
-; Handles MOS service call 3 (auto-boot on reset).
-; Scans the keyboard via OSBYTE &7A for the 'N'
-; key (&19 or &55 EOR'd with &55). If pressed,
-; records the key state via OSBYTE &78. Selects
-; the network filing system by calling cmd_net_fs,
-; prints the station ID, then checks if this is
-; the first boot (ws_page = 0). If so, sets the
-; auto-boot flag in &1071 and JMPs to cmd_fs_entry
-; to execute the boot file.
+; Service 3: auto-boot on reset
+; 
+; Scans the keyboard via OSBYTE &7A for the 'N' key
+; (&19 or &55 EOR'd with &55). If pressed, records
+; the key state via OSBYTE &78. Selects the network
+; filing system by calling cmd_net_fs, prints the
+; station ID, then checks if this is the first boot
+; (ws_page = 0). If so, sets the auto-boot flag in
+; &1071 and JMPs to cmd_fs_entry to execute the boot
+; file.
 ; ***************************************************************************************
 .svc_3_auto_boot
     lda #osbyte_scan_keyboard_from_16                                 ; 8cbf: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16
@@ -3929,12 +3956,13 @@ version_string = version_string_cr+1
     jmp cmd_fs_entry                                                  ; 8cee: 4c fc a0    L..            ; Execute boot file
 
 ; ***************************************************************************************
-; Notifies the OS that a new filing system is being
-; selected by calling FSCV with A=6, then issues
-; paged ROM service call 10 via OSBYTE &8F to
-; inform other ROMs of the FS change. Sets X=&0A
-; and branches to issue_svc_osbyte which falls
-; through from the call_fscv subroutine.
+; Notify OS of filing system selection
+; 
+; Calls FSCV with A=6 to announce the FS change,
+; then issues paged ROM service call 10 via OSBYTE
+; &8F to inform other ROMs. Sets X=&0A and branches
+; to issue_svc_osbyte which falls through from the
+; call_fscv subroutine.
 ; ***************************************************************************************
 ; &8cf1 referenced 1 time by &8b28
 .notify_new_fs
@@ -3944,13 +3972,14 @@ version_string = version_string_cr+1
     bne issue_svc_osbyte                                              ; 8cf8: d0 05       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Dispatches to the filing system control vector
-; (FSCV at &021E) via an indirect JMP. The FSCV
-; provides OS-level filing system services such as
-; notification of FS selection (A=6) and *RUN
-; handling. Also contains issue_svc_15 and
-; issue_svc_osbyte entry points that issue paged
-; ROM service requests via OSBYTE &8F.
+; Dispatch to filing system control vector (FSCV)
+; 
+; Indirect JMP through FSCV at &021E, providing
+; OS-level filing system services such as FS
+; selection notification (A=6) and *RUN handling.
+; Also contains issue_svc_15 and issue_svc_osbyte
+; entry points that issue paged ROM service requests
+; via OSBYTE &8F.
 ; 
 ; On Entry:
 ;     A: FSCV reason code
@@ -3971,15 +4000,16 @@ version_string = version_string_cr+1
     equb &0d                                                          ; 8d0b: 0d          .
 
 ; ***************************************************************************************
-; Easter egg handler called by svc_9_help. Matches
-; the *HELP argument against a keyword embedded in
-; the credits data at credits_keyword_start. Starts
-; matching from offset 5 in the data (X=5) and
-; checks each byte against the command line text
-; until a mismatch or X reaches &0D. On a full
-; match, prints the ANFS author credits string:
-; B Cockburn, J Dunn, B Robertson, and J Wills,
-; each terminated by CR.
+; Easter egg: match *HELP keyword to author credits
+; 
+; Matches the *HELP argument against a keyword
+; embedded in the credits data at
+; credits_keyword_start. Starts matching from offset
+; 5 in the data (X=5) and checks each byte against
+; the command line text until a mismatch or X reaches
+; &0D. On a full match, prints the ANFS author
+; credits string: B Cockburn, J Dunn, B Robertson,
+; and J Wills, each terminated by CR.
 ; ***************************************************************************************
 ; &8d0c referenced 1 time by &8c52
 .check_credits_easter_egg
@@ -4028,7 +4058,8 @@ version_string = version_string_cr+1
     equb &0d, 0                                                       ; 8d6c: 0d 00       ..
 
 ; ***************************************************************************************
-; *I AM command handler. Logs onto the file server.
+; *I AM command handler (file server logon)
+; 
 ; Closes any *SPOOL/*EXEC files via OSBYTE &77,
 ; resets all file control blocks via
 ; process_all_fcbs, then parses the command line
@@ -4076,16 +4107,16 @@ version_string = version_string_cr+1
     jsr copy_arg_validated                                            ; 8dac: 20 f4 ae     ..            ; Send logon with file server lookup
     beq scan_pass_prompt                                              ; 8daf: f0 03       ..             ; Success: skip to password entry
 ; ***************************************************************************************
-; *PASS command handler. Changes the file server
-; password. Builds the FS command packet via
-; copy_arg_to_buf_x0, then scans the reply buffer
-; for a ':' separator indicating a password prompt.
-; If found, reads characters from the keyboard
-; without echo, handling Delete (&7F) for backspace
-; and NAK (&15) to restart from the colon position.
-; Sends the completed password to the file server
-; via save_net_tx_cb and branches to
-; send_cmd_and_dispatch for the reply.
+; *PASS command handler (change password)
+; 
+; Builds the FS command packet via copy_arg_to_buf_x0,
+; then scans the reply buffer for a ':' separator
+; indicating a password prompt. If found, reads
+; characters from the keyboard without echo, handling
+; Delete (&7F) for backspace and NAK (&15) to restart
+; from the colon position. Sends the completed
+; password to the file server via save_net_tx_cb and
+; branches to send_cmd_and_dispatch for the reply.
 ; ***************************************************************************************
 ; &8db1 referenced 2 times by &8d8b, &8d9c
 .cmd_pass
@@ -4141,12 +4172,14 @@ version_string = version_string_cr+1
     beq send_cmd_and_dispatch                                         ; 8dfc: f0 10       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Parses a station number argument from the command
-; line via init_bridge_poll and compares it with the
-; expected station stored at &0E01 using EOR. If the
-; parsed value matches (EOR result is zero), clears
-; &0E01. Called by cmd_iam when processing a file
-; server address in the logon command.
+; Clear stored station if parsed argument matches
+; 
+; Parses a station number from the command line via
+; init_bridge_poll and compares it with the expected
+; station at &0E01 using EOR. If the parsed value
+; matches (EOR result is zero), clears &0E01. Called
+; by cmd_iam when processing a file server address
+; in the logon command.
 ; 
 ; On Exit:
 ;     A: 0 if matched, non-zero if different
@@ -4187,15 +4220,16 @@ version_string = version_string_cr+1
     bcs return_9                                                      ; 8e2f: b0 11       ..             ; Yes: out of range, return
     ldy #&0e                                                          ; 8e31: a0 0e       ..             ; Y=&0E: directory dispatch offset
 ; ***************************************************************************************
-; PHA/PHA/RTS dispatch routine. Computes a target
-; index by incrementing X and decrementing Y until
-; Y goes negative, effectively calculating X+Y+1.
-; Pushes the target address (high then low byte)
-; from svc_dispatch_lo/hi tables onto the stack,
-; loads fs_options into X, then returns via RTS to
-; dispatch to the target subroutine. Used for all
-; service dispatch, FS command execution, and
-; OSBYTE handler routing.
+; PHA/PHA/RTS table dispatch
+; 
+; Computes a target index by incrementing X and
+; decrementing Y until Y goes negative, effectively
+; calculating X+Y+1. Pushes the target address
+; (high then low byte) from svc_dispatch_lo/hi
+; tables onto the stack, loads fs_options into X,
+; then returns via RTS to dispatch to the target
+; subroutine. Used for all service dispatch, FS
+; command execution, and OSBYTE handler routing.
 ; 
 ; On Entry:
 ;     X: base dispatch index
@@ -4232,10 +4266,11 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     equb &b8, &42, &23, &9e, &41, &42, &9d, &52, &1d, &8e             ; 8e63: b8 42 23... .B#
 
 ; ***************************************************************************************
-; OSBYTE wrapper that sets X=0 and falls through to
-; osbyte_yff to also set Y=&FF. Provides a single
-; call to execute OSBYTE with A as the function
-; code and both X=0, Y=&FF as parameters. Used by
+; OSBYTE wrapper with X=0, Y=&FF
+; 
+; Sets X=0 and falls through to osbyte_yff to also
+; set Y=&FF. Provides a single call to execute
+; OSBYTE with A as the function code. Used by
 ; adlc_init, init_adlc_and_vectors, and Econet
 ; OSBYTE handling.
 ; 
@@ -4250,10 +4285,12 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 .osbyte_x0
     ldx #0                                                            ; 8e6d: a2 00       ..             ; X=0
 ; ***************************************************************************************
-; OSBYTE wrapper that sets Y=&FF and JMPs to the
-; MOS OSBYTE entry point. X must already be set by
-; the caller. The osbyte_x0 entry point above falls
-; through to here after setting X=0.
+; OSBYTE wrapper with Y=&FF
+; 
+; Sets Y=&FF and JMPs to the MOS OSBYTE entry
+; point. X must already be set by the caller. The
+; osbyte_x0 entry point falls through to here after
+; setting X=0.
 ; 
 ; On Entry:
 ;     A: OSBYTE function code
@@ -4272,12 +4309,13 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     equb &68, &a9                                                     ; 8e74: 68 a9       h.
 
 ; ***************************************************************************************
-; Sets X=0 and Y=0 then branches to jmp_osbyte to
-; execute the OSBYTE call. Called from the Econet
-; OSBYTE dispatch chain to handle OSBYTEs that
-; require both X and Y cleared. The unconditional
-; BEQ (after LDY #0 sets Z) reaches the JMP osbyte
-; instruction at &8E71.
+; OSBYTE wrapper with X=0, Y=0
+; 
+; Sets X=0 and Y=0 then branches to jmp_osbyte.
+; Called from the Econet OSBYTE dispatch chain to
+; handle OSBYTEs that require both X and Y cleared.
+; The unconditional BEQ (after LDY #0 sets Z)
+; reaches the JMP osbyte instruction at &8E71.
 ; 
 ; On Entry:
 ;     A: OSBYTE number
@@ -4293,7 +4331,8 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     beq jmp_osbyte                                                    ; 8e7a: f0 f5       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Handles MOS service call 7 (unrecognised OSBYTE).
+; Service 7: unrecognised OSBYTE
+; 
 ; Maps Econet OSBYTE codes &32-&35 to dispatch
 ; indices 0-3 by subtracting &31 (with carry from
 ; a preceding SBC). Returns unclaimed if the OSBYTE
@@ -4318,13 +4357,14 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     jmp svc_dispatch                                                  ; 8e8c: 4c 33 8e    L3.
 
 ; ***************************************************************************************
-; Handles MOS service call 1 (absolute workspace
-; claim). Ensures the NFS workspace allocation is
-; at least &16 pages by checking Y on entry. If
-; Y < &16, sets Y = &16 to claim the required
-; pages; otherwise returns Y unchanged. This is a
-; passive claim — NFS only raises the allocation,
-; never lowers it.
+; Service 1: absolute workspace claim
+; 
+; Ensures the NFS workspace allocation is at least
+; &16 pages by checking Y on entry. If Y < &16,
+; sets Y = &16 to claim the required pages;
+; otherwise returns Y unchanged. This is a passive
+; claim — NFS only raises the allocation, never
+; lowers it.
 ; 
 ; On Entry:
 ;     Y: current highest workspace page claim
@@ -4341,10 +4381,12 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     rts                                                               ; 8e95: 60          `              ; Return
 
 ; ***************************************************************************************
-; Records the workspace page count from the service
-; 1 workspace claim into offset &0F of the receive
-; control block. Caps the value at &21 to prevent
-; overflow into adjacent workspace areas. Called by
+; Record workspace page count (capped at &21)
+; 
+; Stores the workspace allocation from service 1
+; into offset &0F of the receive control block,
+; capping the value at &21 to prevent overflow into
+; adjacent workspace areas. Called by
 ; svc_2_private_workspace after issuing the absolute
 ; workspace claim service call.
 ; 
@@ -4489,11 +4531,23 @@ ws_init_data = error_bad_station+2
     sty netv                                                          ; 8f4e: 8c 24 02    .$.            ; Set NETV address
     ldx #1                                                            ; 8f51: a2 01       ..             ; X=1: one more vector pair to set
 ; ***************************************************************************************
-; Write one extended vector table entry.
-; Copies vector address (low, high) and ROM
-; ID from the dispatch table into the MOS
-; extended vector table at offset Y. X is
-; the remaining vector count.
+; Install extended vector table entries
+; 
+; Copies vector addresses from the dispatch table at
+; svc_dispatch_lo_offset+Y into the MOS extended
+; vector table pointed to by fs_error_ptr. For each
+; entry, writes address low, high, then the current
+; ROM ID from romsel_copy (&F4). Loops X times.
+; After the loop, stores &FF at &0D72 as an
+; installed flag, calls deselect_fs_if_active and
+; get_ws_page to restore FS state.
+; 
+; On Entry:
+;     X: number of vectors to install
+;     Y: starting offset in extended vector table
+; 
+; On Exit:
+;     Y: workspace page number + 1
 ; ***************************************************************************************
 ; &8f53 referenced 2 times by &8b50, &8f65
 .write_vector_entry
@@ -4516,9 +4570,16 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 8f72: 60          `              ; Return
 
 ; ***************************************************************************************
-; Copy FS context bytes from workspace at
-; &0DFA back into the receive control block.
-; Copies offsets 6 to &0D (8 bytes).
+; Restore FS context from saved workspace
+; 
+; Copies 8 bytes (offsets 6 to &0D) from the saved
+; workspace at &0DFA back into the receive control
+; block via (net_rx_ptr). This restores the station
+; identity, directory handles, and library path after
+; a filing system reselection. Called by
+; svc_2_private_workspace during init,
+; deselect_fs_if_active during FS teardown, and
+; flip_set_station_boot.
 ; ***************************************************************************************
 ; &8f73 referenced 3 times by &8f20, &8f8f, &a376
 .restore_fs_context
@@ -4575,11 +4636,20 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 8fb1: 60          `              ; Return
 
 ; ***************************************************************************************
-; Verify the FS workspace checksum. Sums
-; bytes 0-&76 of the workspace via (CC),Y
-; and compares with the stored checksum at
-; offset &77. Raises a checksum error on
-; mismatch. Preserves A, Y, and flags.
+; Verify workspace checksum integrity
+; 
+; Sums bytes 0 to &76 of the workspace page via the
+; zero-page pointer at &CC/&CD and compares with the
+; stored value at offset &77. On mismatch, raises a
+; 'net checksum' error via error_bad_inline.
+; Preserves A, Y, and processor flags using PHP/PHA.
+; Called by 5 sites across format_filename_field,
+; adjust_fsopts_4bytes, and start_wipe_pass before
+; workspace access.
+; 
+; On Exit:
+;     A: preserved
+;     Y: preserved
 ; ***************************************************************************************
 ; &8fb2 referenced 5 times by &9baf, &9d42, &9de2, &9e23, &b5ef
 .verify_ws_checksum
