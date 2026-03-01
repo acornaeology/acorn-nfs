@@ -1,10 +1,11 @@
 """Audit subroutine annotations in NFS ROM disassembly output.
 
 Analyses the JSON output to compute subroutine extents, detect fall-throughs,
-find entry references, and flag potential annotation issues. Three output modes:
+find entry references, and flag potential annotation issues. Output modes:
   --summary:      Table of all subroutines with computed flags
-  --sub <target>: Full audit report for one subroutine
+  --sub <target>: Full audit report for one subroutine (declared or undeclared)
   --flag <FLAG>:  Summary filtered to one flag category
+  --undeclared:   List JSR targets without subroutine() declarations
 """
 
 import json
@@ -53,6 +54,34 @@ def find_containing_sub(addr, rom_subs):
         else:
             break
     return result
+
+
+def scan_routine_range(addr, items_by_addr, sorted_addrs):
+    """Scan forward from addr to find the routine's terminating instruction.
+
+    Returns (range_end, code_count, data_count, falls_through).
+    range_end is the address of the terminating instruction, or None if
+    the routine falls through without terminating.
+    """
+    try:
+        addr_idx = sorted_addrs.index(addr)
+    except ValueError:
+        return None, 0, 0, True
+
+    code_count = 0
+    data_count = 0
+
+    for i in range(addr_idx, len(sorted_addrs)):
+        a = sorted_addrs[i]
+        scan_item = items_by_addr[a]
+        if scan_item.get("type") == "code":
+            code_count += 1
+        else:
+            data_count += 1
+        if scan_item.get("mnemonic") in TERMINATING_MNEMONICS:
+            return a, code_count, data_count, False
+
+    return None, code_count, data_count, True
 
 
 def load_subroutines(json_filepath):
@@ -428,7 +457,7 @@ def format_detail(sub, asm_filepath):
                 print()
 
 
-def find_sub(subs, target):
+def find_sub(subs, target, quiet=False):
     """Find a subroutine by address (hex) or name."""
     # Try as hex address
     addr_str = target.strip().lstrip("$&").removeprefix("0x")
@@ -455,7 +484,8 @@ def find_sub(subs, target):
             print(f"  &{m['addr']:04X} {m['name']}", file=sys.stderr)
         return None
 
-    print(f"Subroutine '{target}' not found", file=sys.stderr)
+    if not quiet:
+        print(f"Subroutine '{target}' not found", file=sys.stderr)
     return None
 
 
@@ -503,31 +533,9 @@ def find_undeclared_subs(json_filepath):
         labels = item.get("labels", [])
         name = labels[0] if labels else f"&{addr:04X}"
 
-        # Scan forward from entry to find the end of the routine
         range_start = addr
-        range_end = None
-        falls_through = False
-        addr_idx = sorted_addrs.index(addr) if addr in sorted_addrs else None
-        code_count = 0
-        data_count = 0
-
-        if addr_idx is not None:
-            for i in range(addr_idx, len(sorted_addrs)):
-                a = sorted_addrs[i]
-                scan_item = items_by_addr[a]
-                if scan_item.get("type") == "code":
-                    code_count += 1
-                else:
-                    data_count += 1
-                mnemonic = scan_item.get("mnemonic")
-                if mnemonic in TERMINATING_MNEMONICS:
-                    range_end = a
-                    break
-            else:
-                falls_through = True
-
-            if range_end is None and not falls_through:
-                falls_through = True
+        range_end, code_count, data_count, falls_through = \
+            scan_routine_range(addr, items_by_addr, sorted_addrs)
 
         if falls_through:
             range_str = f"&{range_start:04X}-FALL\u2192"
@@ -577,6 +585,209 @@ def format_undeclared_summary(candidates):
     print(f"\n{len(candidates)} undeclared routines ({total_callers} JSR callers total)")
 
 
+def _parse_addr(target):
+    """Parse a target string as a hex address. Returns int or None."""
+    addr_str = target.strip().lstrip("$&").removeprefix("0x")
+    try:
+        return int(addr_str, 16)
+    except ValueError:
+        return None
+
+
+def format_undeclared_detail(target, json_filepath, asm_filepath):
+    """Print detailed context report for an undeclared JSR target.
+
+    Returns 0 on success, 1 if the address is not a valid undeclared target.
+    """
+    from disasm_tools.asm_extract import build_index, find_line_for_target
+
+    addr = _parse_addr(target)
+    if addr is None:
+        print(f"Error: '{target}' is not a valid hex address", file=sys.stderr)
+        return 1
+
+    data = json.loads(Path(json_filepath).read_text())
+    items = data["items"]
+    raw_subs = data.get("subroutines", [])
+    declared_addrs = {s["addr"] for s in raw_subs}
+
+    items_by_addr = {item["addr"]: item for item in items}
+    sorted_addrs = sorted(items_by_addr.keys())
+
+    # Validate: must be a JSR target and not already declared
+    jsr_targets = set()
+    for item in items:
+        if item.get("mnemonic") == "jsr":
+            jsr_targets.add(item["target"])
+
+    if addr in declared_addrs:
+        print(f"Error: &{addr:04X} is already a declared subroutine",
+              file=sys.stderr)
+        return 1
+    if addr not in jsr_targets:
+        print(f"Error: &{addr:04X} is not a JSR target", file=sys.stderr)
+        return 1
+    if addr not in items_by_addr:
+        print(f"Error: &{addr:04X} has no corresponding item in output",
+              file=sys.stderr)
+        return 1
+
+    item = items_by_addr[addr]
+    labels = item.get("labels", [])
+    name = labels[0] if labels else f"&{addr:04X}"
+
+    # Routine range
+    range_end, code_count, data_count, falls_through = \
+        scan_routine_range(addr, items_by_addr, sorted_addrs)
+
+    # Container
+    rom_subs = sorted(
+        [s for s in raw_subs if s["addr"] < 0xFF00],
+        key=lambda s: s["addr"],
+    )
+    container = find_containing_sub(addr, rom_subs)
+
+    # Callers
+    callers = []
+    for it in items:
+        if it.get("mnemonic") == "jsr" and it.get("target") == addr:
+            c = find_containing_sub(it["addr"], rom_subs)
+            c_name = c.get("name", f"&{c['addr']:04X}") if c else "?"
+            callers.append({"addr": it["addr"], "mnemonic": "jsr",
+                            "in_sub": c_name})
+    # Branch callers
+    for it in items:
+        if it.get("mnemonic") in BRANCH_MNEMONICS and it.get("target") == addr:
+            c = find_containing_sub(it["addr"], rom_subs)
+            c_name = c.get("name", f"&{c['addr']:04X}") if c else "?"
+            callers.append({"addr": it["addr"], "mnemonic": it["mnemonic"],
+                            "in_sub": c_name})
+
+    # Callees: JSR/JMP within the routine's range
+    end_scan = range_end if range_end is not None else sorted_addrs[-1]
+    callees = []
+    for a in sorted_addrs:
+        if a < addr:
+            continue
+        if a > end_scan:
+            break
+        it = items_by_addr[a]
+        if it.get("mnemonic") in ("jsr", "jmp"):
+            t = it.get("target")
+            t_label = it.get("target_label", f"&{t:04X}" if t else "?")
+            # Mark as external if target >= 0xFF00
+            external = t is not None and t >= 0xFF00
+            callees.append({"addr": a, "mnemonic": it["mnemonic"],
+                            "target": t, "target_label": t_label,
+                            "external": external})
+
+    # Collect inline comments from items in range
+    inline_comments = []
+    for a in sorted_addrs:
+        if a < addr:
+            continue
+        if a > end_scan:
+            break
+        it = items_by_addr[a]
+        comment = it.get("comment_inline")
+        if comment:
+            # Take first line only for summary
+            first_line = comment.split("\n")[0]
+            inline_comments.append((a, first_line))
+
+    # Print report
+    print(f"## {name} (&{addr:04X}) [UNDECLARED]")
+    if container:
+        c_name = container.get("name", f"&{container['addr']:04X}")
+        print(f"Container: {c_name} (&{container['addr']:04X})")
+
+    # Extent
+    print(f"\n### Extent")
+    if range_end is not None:
+        print(f"Address range: &{addr:04X}-&{range_end:04X} "
+              f"({code_count} code, {data_count} data items)")
+        term_item = items_by_addr[range_end]
+        operand = term_item.get("operand", "")
+        print(f"Ends: {term_item['mnemonic'].upper()} {operand}")
+    elif falls_through:
+        print(f"Address range: &{addr:04X}-FALL\u2192 "
+              f"({code_count} code, {data_count} data items)")
+        print("Ends: falls through (no terminating instruction)")
+
+    # Callers
+    jsr_callers = [c for c in callers if c["mnemonic"] == "jsr"]
+    branch_callers = [c for c in callers if c["mnemonic"] != "jsr"]
+
+    if jsr_callers:
+        print(f"\n### Called by ({len(jsr_callers)} JSR references)")
+        for ref in sorted(jsr_callers, key=lambda r: r["addr"]):
+            print(f"  &{ref['addr']:04X} JSR  (in {ref['in_sub']})")
+    else:
+        print(f"\n### Called by (0 JSR references)")
+
+    if branch_callers:
+        print(f"\n### Branch entries ({len(branch_callers)} references)")
+        for ref in sorted(branch_callers, key=lambda r: r["addr"]):
+            print(f"  &{ref['addr']:04X} {ref['mnemonic'].upper():<4s} "
+                  f"(in {ref['in_sub']})")
+
+    # Callees
+    if callees:
+        print(f"\n### Callees ({len(callees)} calls)")
+        for ce in callees:
+            ext = " [external]" if ce["external"] else ""
+            print(f"  &{ce['addr']:04X} {ce['mnemonic'].upper():<4s} "
+                  f"{ce['target_label']}{ext}")
+    else:
+        print(f"\n### Callees (leaf — no calls)")
+
+    # Inline comments
+    if inline_comments:
+        print(f"\n### Inline comments ({len(inline_comments)} present)")
+        for a, comment in inline_comments:
+            print(f"  &{a:04X}: {comment}")
+
+    # Assembly listing
+    if asm_filepath and Path(asm_filepath).exists():
+        asm_lines = Path(asm_filepath).read_text().splitlines(keepends=True)
+        addr_to_line, label_to_line = build_index(asm_lines)
+
+        start_target = f"0x{addr:04X}"
+        start_line = find_line_for_target(
+            start_target, asm_lines, addr_to_line, label_to_line)
+
+        if start_line is not None:
+            # Back up to include preceding comment/label lines
+            while start_line > 0 and not re.search(
+                    r";\s*[0-9a-f]{4}:", asm_lines[start_line - 1]):
+                stripped = asm_lines[start_line - 1].strip()
+                if (stripped == "" or stripped.startswith(";")
+                        or stripped.startswith(".")):
+                    start_line -= 1
+                else:
+                    break
+
+            # Find end: use range_end addr + 1 line, or fixed window
+            if range_end is not None:
+                end_target = f"0x{range_end:04X}"
+                end_line = find_line_for_target(
+                    end_target, asm_lines, addr_to_line, label_to_line)
+                if end_line is not None:
+                    end_line += 1  # Include the terminating instruction
+                else:
+                    end_line = min(start_line + 80, len(asm_lines))
+            else:
+                end_line = min(start_line + 80, len(asm_lines))
+
+            print(f"\n### Assembly")
+            for i in range(start_line, end_line):
+                print(f"{i+1:5d}  {asm_lines[i]}", end="")
+            if asm_lines[end_line - 1] and not asm_lines[end_line - 1].endswith("\n"):
+                print()
+
+    return 0
+
+
 def audit(version_dirpath, version, sub_target=None, summary=False,
           flag_filter=None, undeclared=False):
     """Main entry point. Returns exit code 0 on success, 1 on error."""
@@ -597,10 +808,12 @@ def audit(version_dirpath, version, sub_target=None, summary=False,
     subs = load_subroutines(json_filepath)
 
     if sub_target:
-        sub = find_sub(subs, sub_target)
-        if sub is None:
-            return 1
-        format_detail(sub, asm_filepath)
+        sub = find_sub(subs, sub_target, quiet=True)
+        if sub is not None:
+            format_detail(sub, asm_filepath)
+        else:
+            return format_undeclared_detail(sub_target, json_filepath,
+                                           asm_filepath)
     elif flag_filter:
         if flag_filter.upper() not in ALL_FLAGS:
             print(f"Unknown flag '{flag_filter}'. Available: {', '.join(ALL_FLAGS)}",

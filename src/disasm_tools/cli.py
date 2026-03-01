@@ -137,6 +137,29 @@ def cmd_audit(args):
                    flag_filter=args.flag, undeclared=args.undeclared))
 
 
+def cmd_insert_point(args):
+    """Find insertion point for a new subroutine() declaration."""
+    from disasm_tools.insert_point import find_insert_point
+
+    version_dirpath = get_version_dirpath(args.version)
+    prefix = rom_prefix(version_dirpath, args.version)
+    script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
+    driver_filepath = version_dirpath / "disassemble" / script_filename
+
+    if not driver_filepath.exists():
+        print(f"Error: {driver_filepath} not found", file=sys.stderr)
+        sys.exit(1)
+
+    addr_str = args.address.strip().lstrip("$&").removeprefix("0x")
+    try:
+        target_addr = int(addr_str, 16)
+    except ValueError:
+        print(f"Error: invalid address '{args.address}'", file=sys.stderr)
+        sys.exit(1)
+
+    sys.exit(find_insert_point(driver_filepath, target_addr))
+
+
 def cmd_cfg(args):
     """Build and query the inter-procedural call graph."""
     from disasm_tools.cfg import cfg
@@ -243,6 +266,14 @@ def main():
     audit_parser.add_argument("--undeclared", action="store_true",
                               help="List JSR targets without subroutine() declarations")
     audit_parser.set_defaults(func=cmd_audit)
+
+    insert_parser = subparsers.add_parser(
+        "insert-point",
+        help="Find insertion point for new subroutine() declaration",
+    )
+    insert_parser.add_argument("version", help="NFS version (e.g. 4.08.53)")
+    insert_parser.add_argument("address", help="Subroutine address (hex)")
+    insert_parser.set_defaults(func=cmd_insert_point)
 
     cfg_parser = subparsers.add_parser(
         "cfg", help="Build and query inter-procedural call graph"
