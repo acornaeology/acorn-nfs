@@ -8095,9 +8095,13 @@ bad_prefix = bad_str_anchor+1
     jmp tail_update_catalogue                                         ; a058: 4c f4 9f    L..            ; Jump to update catalogue and return
 
 ; ***************************************************************************************
-; Claim the Tube using protocol &C3. Retries
-; in a loop until the claim succeeds (carry
-; set on return from tube_addr_data_dispatch).
+; Claim the Tube via protocol &C3
+; 
+; Loops calling tube_addr_data_dispatch with
+; protocol byte &C3 until the claim succeeds
+; (carry set on return). Used before Tube data
+; transfers to ensure exclusive access to the
+; Tube co-processor interface.
 ; ***************************************************************************************
 ; &a05b referenced 3 times by &9fcd, &a060, &a2cb
 .tube_claim_c3
@@ -8107,8 +8111,17 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a062: 60          `              ; Return (tube claimed)
 
 ; ***************************************************************************************
-; *FS command.
-; Selects filing system by number.
+; *FS command handler
+; 
+; Saves the current file server station address, then
+; checks for a command-line argument. With no argument,
+; falls through to print_current_fs to display the active
+; server. With an argument, parses the station number via
+; parse_fs_ps_args and issues OSWORD &13 (sub-function 1)
+; to select the new file server.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_fs
     lda l0e00                                                         ; a063: ad 00 0e    ...            ; Load current FS station high
@@ -8130,8 +8143,12 @@ bad_prefix = bad_str_anchor+1
 .print_current_fs
     jsr print_file_server_is                                          ; a083: 20 a1 b0     ..            ; Print 'File server '
 ; ***************************************************************************************
-; Print a station address with V set (no
-; padding) followed by a newline.
+; Print station address and newline
+; 
+; Sets V (suppressing leading-zero padding on
+; the network number) then prints the station
+; address followed by a newline via OSNEWL.
+; Used by *FS and *PS output formatting.
 ; ***************************************************************************************
 ; &a086 referenced 1 time by &b092
 .print_fs_info_newline
@@ -8140,10 +8157,14 @@ bad_prefix = bad_str_anchor+1
     jmp osnewl                                                        ; a08c: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; ***************************************************************************************
-; Parse FS/PS command arguments as a station
-; address. Handles 'net.station' format with
-; optional network number. Initialises bridge
-; polling and validates the parsed address.
+; Parse station address from *FS/*PS arguments
+; 
+; Reads a station address in 'net.station' format
+; from the command line, with the network number
+; optional (defaults to local network). Calls
+; init_bridge_poll to ensure the bridge routing
+; table is populated, then validates the parsed
+; address against known stations.
 ; ***************************************************************************************
 ; &a08f referenced 3 times by &a073, &aff1, &b1c4
 .parse_fs_ps_args
@@ -8177,18 +8198,29 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a0b3: 60          `              ; Return
 
 ; ***************************************************************************************
-; Convert the parameter block pointer byte
-; into a 12-byte-aligned table index in Y.
-; Clamps to zero if out of range (>= &48).
-; Loads the initial value from PB pointer.
+; Convert parameter block pointer to table index
+; 
+; Reads the first byte from the OSWORD parameter
+; block pointer and falls through to
+; byte_to_2bit_index to produce a 12-byte-aligned
+; table index in Y.
 ; ***************************************************************************************
 ; &a0b4 referenced 2 times by &a0d2, &a0e2
 .get_pb_ptr_as_index
     lda osword_pb_ptr                                                 ; a0b4: a5 f0       ..             ; Load parameter block pointer
 ; ***************************************************************************************
-; Convert A to a 12-byte-aligned table index
-; in Y. Computes A*12/2 with overflow check.
-; Clamps to zero if out of range (>= &48).
+; Convert byte to 12-byte-aligned table index
+; 
+; Computes Y = A * 6 (via A*12/2) for indexing
+; into the OSWORD handler workspace tables.
+; Clamps Y to zero if the result exceeds &48,
+; preventing out-of-bounds access.
+; 
+; On Entry:
+;     A: table entry number
+; 
+; On Exit:
+;     Y: byte offset (0, 6, 12, ... up to &42)
 ; ***************************************************************************************
 ; &a0b6 referenced 2 times by &8f13, &b0e4
 .byte_to_2bit_index
@@ -8585,11 +8617,14 @@ bad_prefix = bad_str_anchor+1
     jmp return_with_last_flag                                         ; a2e5: 4c b9 9c    L..            ; Return with last flag state
 
 ; ***************************************************************************************
-; Search the station table for an entry
-; matching the current station/network with
-; bit 2 set (PS active). Scans up to 16
-; slots. Sets V if found. Falls through to
-; allocate or update the slot.
+; Find printer server station in table (bit 2)
+; 
+; Scans the 16-entry station table for a slot
+; matching the current station/network address
+; with bit 2 set (printer server active). Sets V
+; if found, clears V if not. Falls through to
+; allocate or update the matching slot with the
+; new station address and status flags.
 ; ***************************************************************************************
 ; &a2e8 referenced 1 time by &a387
 .find_station_bit2
@@ -8621,11 +8656,14 @@ bad_prefix = bad_str_anchor+1
     bne store_stn_flags_restore                                       ; a311: d0 60       .`             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Search the station table for an entry
-; matching the current station/network with
-; bit 3 set (FS active). Scans up to 16
-; slots. Sets V if found. Falls through to
-; allocate or update the slot.
+; Find file server station in table (bit 3)
+; 
+; Scans the 16-entry station table for a slot
+; matching the current station/network address
+; with bit 3 set (file server active). Sets V
+; if found, clears V if not. Falls through to
+; allocate or update the matching slot with the
+; new station address and status flags.
 ; ***************************************************************************************
 ; &a313 referenced 3 times by &a2dc, &a345, &a38d
 .find_station_bit3
@@ -8657,9 +8695,16 @@ bad_prefix = bad_str_anchor+1
     bne store_stn_flags_restore                                       ; a33c: d0 35       .5             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Flip command.
-; Toggles auto-boot configuration
-; setting.
+; *Flip command handler
+; 
+; Saves the file server station byte (&0E03), loads the
+; boot type flag from &0E04, and calls find_station_bit3
+; to locate the station table entry. Restores the station
+; byte to Y and falls through to flip_set_station_boot
+; to toggle the auto-boot setting.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_flip
     lda l0e03                                                         ; a33e: ad 03 0e    ...            ; Load FS station byte
@@ -8669,10 +8714,14 @@ bad_prefix = bad_str_anchor+1
     pla                                                               ; a348: 68          h              ; Restore FS station
     tay                                                               ; a349: a8          .              ; Transfer to Y (boot type)
 ; ***************************************************************************************
-; Set the boot option for a station in the
-; station table. Scans up to 16 entries for
-; a match with bit 4 set (active). Stores
-; the boot type and restores FS context.
+; Set boot option for a station in the table
+; 
+; Scans up to 16 station table entries for one
+; matching the current address with bit 4 set
+; (boot-eligible). Stores the requested boot type
+; in the matching entry and calls
+; restore_fs_context to re-establish the filing
+; system state.
 ; ***************************************************************************************
 ; &a34a referenced 2 times by &a2e2, &a393
 .flip_set_station_boot
@@ -8844,8 +8893,12 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; Filing system OSWORD entry
 ; 
-; Service 8: unrecognised OSWORD.
-; Handles Econet OSWORD calls (transmit, receive, etc.).
+; Handles MOS service call 8 (unrecognised OSWORD).
+; Filters OSWORD codes &0E-&14 by subtracting &0E (via
+; CLC/SBC &0D) and rejecting values outside 0-6. For
+; valid codes, calls osword_setup_handler to push the
+; dispatch address, then copies 3 bytes from the RX
+; buffer to osword_flag workspace.
 ; ***************************************************************************************
 .svc_8_osword
     clc                                                               ; a4d6: 18          .              ; CLC so SBC subtracts value+1
@@ -8865,10 +8918,18 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a4ee: 60          `              ; Return from svc_8_osword
 
 ; ***************************************************************************************
-; Set up an OSWORD handler by pushing its
-; dispatch address from the handler table
-; onto the stack for RTS dispatch. Copies
-; 3 bytes from osword_flag workspace.
+; Push OSWORD handler address for RTS dispatch
+; 
+; Indexes the OSWORD dispatch table by X to
+; push a handler address (hi then lo) onto the
+; stack. Copies 3 bytes from the osword_flag
+; workspace into the RX buffer, loads PB byte 0
+; (the OSWORD sub-code), and clears svc_state.
+; The subsequent RTS dispatches to the pushed
+; handler address.
+; 
+; On Entry:
+;     X: OSWORD handler index (0-6)
 ; ***************************************************************************************
 ; &a4ef referenced 1 time by &a4e1
 .osword_setup_handler
@@ -8957,10 +9018,21 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a57b: 60          `              ; Return
 
 ; ***************************************************************************************
-; Convert a binary byte in A to BCD. Uses
-; decimal mode (SED) to count up from zero
-; in BCD, decrementing the binary value.
-; Returns BCD result in A.
+; Convert binary byte to BCD
+; 
+; Uses decimal mode (SED) with a count-up loop:
+; starts at BCD 0 and adds 1 in decimal mode for
+; each decrement of the binary input. Saves and
+; restores the processor flags to avoid leaving
+; decimal mode active. Called 6 times by
+; save_txcb_and_convert for clock date/time
+; conversion.
+; 
+; On Entry:
+;     A: binary value (0-99)
+; 
+; On Exit:
+;     A: BCD equivalent
 ; ***************************************************************************************
 ; &a57c referenced 6 times by &a530, &a539, &a542, &a554, &a55e, &a56b
 .bin_to_bcd
@@ -9009,9 +9081,14 @@ bad_prefix = bad_str_anchor+1
     equb &f0, &2e, &61, &0d, &60                                      ; a5fc: f0 2e 61... ..a
 
 ; ***************************************************************************************
-; Store the OSWORD parameter block pointer
-; +1 into workspace at offset &1C. Also
-; reads the transfer length from the PB.
+; Store OSWORD parameter block pointer+1 to workspace
+; 
+; Computes PB pointer + 1 and stores the resulting
+; 16-bit address at workspace offset &1C via
+; store_ptr_at_ws_y. Then reads PB byte 1 (the
+; transfer length) and adds the PB low byte to
+; compute the buffer end pointer, stored at
+; workspace offset &20.
 ; ***************************************************************************************
 ; &a601 referenced 1 time by &a8f0
 .store_osword_pb_ptr
@@ -9024,9 +9101,18 @@ bad_prefix = bad_str_anchor+1
     ldy #&20 ; ' '                                                    ; a60e: a0 20       .              ; Y=&20: second workspace offset
     adc osword_pb_ptr                                                 ; a610: 65 f0       e.             ; Add PB low byte to get end ptr
 ; ***************************************************************************************
-; Store a 16-bit pointer (low in A, high
-; from PB pointer high byte + carry) into
-; workspace at offset Y and Y+1.
+; Store 16-bit pointer at workspace offset Y
+; 
+; Writes a 16-bit address to (nfs_workspace)+Y.
+; The low byte comes from A; the high byte is
+; computed from osword_pb_ptr_hi plus carry,
+; supporting pointer arithmetic across page
+; boundaries.
+; 
+; On Entry:
+;     A: pointer low byte
+;     Y: workspace offset
+;     C: carry for high byte addition
 ; ***************************************************************************************
 ; &a612 referenced 1 time by &a607
 .store_ptr_at_ws_y
@@ -9071,10 +9157,19 @@ bad_prefix = bad_str_anchor+1
     equb &1b, &85, &ab, &a5, &9d, &85, &ac, &a0,   1, &a2,   5        ; a6f0: 1b 85 ab... ...
 
 ; ***************************************************************************************
-; Conditionally copy a byte from the OSWORD
-; parameter block to workspace. If carry set,
-; loads from PB; always stores to workspace
-; at the current offset.
+; Conditionally copy parameter block byte to workspace
+; 
+; If carry is set, loads a byte from the OSWORD
+; parameter block at offset Y; if clear, uses
+; the value already in A. Stores the result to
+; workspace at the current offset. Decrements X
+; and loops until the requested byte count is
+; transferred.
+; 
+; On Entry:
+;     C: set to load from PB, clear to use A
+;     X: byte count
+;     Y: PB source offset
 ; ***************************************************************************************
 ; &a6fb referenced 3 times by &a5a2, &a62b, &a707
 .copy_pb_byte_to_ws
@@ -9129,11 +9224,14 @@ bad_prefix = bad_str_anchor+1
     equb &ff                                                          ; a867: ff          .
 
 ; ***************************************************************************************
-; Initialise bridge polling for network
-; station discovery. If bridge status is
-; uninitialised (&FF), broadcasts a bridge
-; query and polls for replies to build the
-; network routing table.
+; Initialise Econet bridge routing table
+; 
+; Checks the bridge status byte: if &FF
+; (uninitialised), broadcasts a bridge query
+; packet and polls for replies. Each reply
+; adds a network routing entry to the bridge
+; table. Skips the broadcast if the table has
+; already been populated from a previous call.
 ; ***************************************************************************************
 ; &a868 referenced 2 times by &8dfe, &a09c
 .init_bridge_poll
@@ -9297,8 +9395,13 @@ bad_prefix = bad_str_anchor+1
     adc #3                                                            ; a960: 69 03       i.             ; Add 3 for header
     sta (net_rx_ptr),y                                                ; a962: 91 9c       ..             ; Store adjusted size
 ; ***************************************************************************************
-; Enable interrupts (CLI) then send an
-; Econet packet via send_net_packet.
+; Enable interrupts and send Econet packet
+; 
+; Executes CLI to re-enable interrupts, then
+; falls through to send_net_packet. Used after
+; a sequence that ran with interrupts disabled
+; to ensure the packet is sent with normal
+; interrupt handling active.
 ; ***************************************************************************************
 ; &a964 referenced 1 time by &a94d
 .enable_irq_and_poll
@@ -9328,10 +9431,14 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a980: 60          `              ; RTS dispatches via pushed address
 
 ; ***************************************************************************************
-; Push an OSWORD handler address from the
-; dispatch table onto the stack for RTS
-; dispatch. Reloads the OSWORD number for
-; the handler to use.
+; Push OSWORD handler address for RTS dispatch
+; 
+; Indexes the OSWORD handler dispatch table
+; using the current OSWORD number to push the
+; handler's address (hi/lo) onto the stack.
+; Reloads the OSWORD number from osbyte_a_copy
+; so the dispatched handler can identify the
+; specific call.
 ; ***************************************************************************************
 ; &a981 referenced 1 time by &a977
 .push_osword_handler_addr
@@ -9351,10 +9458,13 @@ bad_prefix = bad_str_anchor+1
     equb &1e,   6,   1, &98, &a0, &da, &91, &9e, &a9,   0             ; a9a2: 1e 06 01... ...
 
 ; ***************************************************************************************
-; Send an Econet abort command. Stores the
-; abort code in workspace, sets up the TX
-; control block with control byte &80, and
-; transmits the abort packet.
+; Send Econet abort/disconnect packet
+; 
+; Stores the abort code in workspace, configures
+; the TX control block with control byte &80
+; (immediate operation flag), and transmits the
+; abort packet. Used to cleanly disconnect from
+; a remote station during error recovery.
 ; ***************************************************************************************
 ; &a9ac referenced 2 times by &8adf, &a9ff
 .tx_econet_abort
@@ -9442,9 +9552,19 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; aa23: 60          `              ; Return
 
 ; ***************************************************************************************
-; Search for A in a table of receive codes
-; indexed by X. Returns Z set if a match is
-; found, Z clear if end of table reached.
+; Search receive code table for match
+; 
+; Scans a table of receive operation codes
+; starting at index X, comparing each against A.
+; Returns with Z set if a match is found, Z clear
+; if the end-of-table marker is reached.
+; 
+; On Entry:
+;     A: receive code to match
+;     X: starting table index
+; 
+; On Exit:
+;     Z: set if match found
 ; ***************************************************************************************
 ; &aa24 referenced 3 times by &a9da, &a9e3, &aa2a
 .match_rx_code
@@ -9479,20 +9599,26 @@ bad_prefix = bad_str_anchor+1
     bit bit_test_ff_pad                                               ; aa6e: 2c 7d 94    ,}.            ; Test bit 6 via BIT (V flag check)
     bvs loop_copy_ws_template                                         ; aa71: 70 05       p.             ; V=1: skip to wide mode copy
 ; ***************************************************************************************
-; Initialise workspace copy in narrow mode.
-; Copies 27 bytes to workspace offset &17.
-; Falls through to the template-driven copy
-; loop.
+; Initialise workspace copy in narrow mode (27 bytes)
+; 
+; Sets up a 27-byte copy to workspace offset &17,
+; then falls through to ws_copy_vclr_entry for
+; the template-driven copy loop. Used for the
+; compact workspace initialisation variant.
 ; ***************************************************************************************
 ; &aa73 referenced 1 time by &958c
 .init_ws_copy_narrow
     ldy #&17                                                          ; aa73: a0 17       ..             ; Y=&17: narrow mode dest offset
     ldx #&1a                                                          ; aa75: a2 1a       ..             ; X=&1A: 27 bytes to copy
 ; ***************************************************************************************
-; Template-driven workspace copy with V clear.
-; Processes template bytes: &FE=end, &FD=skip,
-; &FC=page pointer substitution. Other values
-; are stored directly to workspace.
+; Template-driven workspace copy with V clear
+; 
+; Processes a template byte array to initialise
+; workspace. Special marker bytes: &FE terminates
+; the copy, &FD skips the current offset, and &FC
+; substitutes the workspace page pointer. All
+; other values are stored directly to the
+; workspace at the current offset.
 ; ***************************************************************************************
 ; &aa77 referenced 1 time by &ab38
 .ws_copy_vclr_entry
@@ -9542,8 +9668,12 @@ bad_prefix = bad_str_anchor+1
     equb &f0, &d0, &0f, &a5, &d0, &6a, &b0, &0a                       ; aac8: f0 d0 0f... ...
 
 ; ***************************************************************************************
-; Reset the spool buffer state. Sets buffer
-; pointer to &25 and control state to &41.
+; Reset spool buffer to initial state
+; 
+; Sets the spool buffer pointer to &25 (first
+; available data position) and the control state
+; byte to &41 (ready for new data). Called after
+; processing a complete spool data block.
 ; ***************************************************************************************
 ; &aad0 referenced 2 times by &8f0e, &ab21
 .reset_spool_buf_state
@@ -9576,9 +9706,15 @@ bad_prefix = bad_str_anchor+1
     jsr process_spool_data                                            ; aafb: 20 24 ab     $.            ; Buffer full: send packet
     bcc loop_drain_printer_buf                                        ; aafe: 90 ea       ..             ; More room: continue reading
 ; ***************************************************************************************
-; Append byte A to the receive buffer at the
-; current buffer index, then advance the
-; index.
+; Append byte to receive buffer
+; 
+; Stores A in the receive buffer at the current
+; buffer index (ws_ptr_lo), then increments the
+; index. Used to accumulate incoming spool data
+; bytes before processing.
+; 
+; On Entry:
+;     A: byte to append
 ; ***************************************************************************************
 ; &ab00 referenced 3 times by &aaf4, &ab1b, &abd2
 .append_byte_to_rxbuf
@@ -9588,10 +9724,13 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; ab08: 60          `              ; Return
 
 ; ***************************************************************************************
-; Handle a spool control byte. Rotates bit 0
-; into carry for mode selection, appends the
-; byte to the buffer, processes the spool
-; data, and resets the buffer state.
+; Handle spool control byte and flush buffer
+; 
+; Rotates bit 0 of the control byte into carry
+; for mode selection (print vs spool), appends
+; the byte to the buffer, calls process_spool_data
+; to transmit the accumulated data, and resets
+; the buffer state ready for the next block.
 ; ***************************************************************************************
 ; &ab09 referenced 2 times by &8f3d, &aae1
 .handle_spool_ctrl_byte
@@ -9612,10 +9751,13 @@ bad_prefix = bad_str_anchor+1
     jmp reset_spool_buf_state                                         ; ab21: 4c d0 aa    L..            ; Reset spool buffer state
 
 ; ***************************************************************************************
-; Process accumulated spool buffer data.
-; Copies workspace to the TX control block,
-; sends a disconnect reply if needed, and
-; handles the spool output sequence.
+; Transmit accumulated spool buffer data
+; 
+; Copies the workspace state to the TX control
+; block, sends a disconnect reply if the previous
+; transfer requires acknowledgment, then handles
+; the spool output sequence by setting up and
+; sending the pass-through TX buffer.
 ; ***************************************************************************************
 ; &ab24 referenced 4 times by &aafb, &ab1e, &ab67, &abd5
 .process_spool_data
@@ -9877,8 +10019,12 @@ bad_prefix = bad_str_anchor+1
     pla                                                               ; acc8: 68          h              ; Restore original l00ad
     sta l00ad                                                         ; acc9: 85 ad       ..             ; Store restored counter
 ; ***************************************************************************************
-; Copy the current state byte to the
-; committed state location in workspace.
+; Copy current state byte to committed state
+; 
+; Reads the working state byte from workspace and
+; stores it to the committed state location. Used
+; to finalise a state transition after all related
+; workspace fields have been updated.
 ; ***************************************************************************************
 ; &accb referenced 4 times by &9570, &9598, &95bf, &a62e
 .commit_state_byte
@@ -9887,10 +10033,13 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; acd1: 60          `              ; Return
 
 ; ***************************************************************************************
-; Serialise a palette register entry into
-; workspace. Reads the current palette value
-; via OSBYTE and stores it alongside the
-; display mode information.
+; Serialise palette register to workspace
+; 
+; Reads the current logical colour for a palette
+; register via OSBYTE &0B and stores both the
+; palette value and the display mode information
+; in the workspace block. Used during remote
+; screen state capture.
 ; ***************************************************************************************
 ; &acd2 referenced 1 time by &acc3
 .serialise_palette_entry
@@ -9903,17 +10052,23 @@ bad_prefix = bad_str_anchor+1
     sta (nfs_workspace,x)                                             ; ace0: 81 9e       ..             ; Store zero to workspace
     jsr read_osbyte_to_ws_x0                                          ; ace2: 20 e5 ac     ..            ; Read OSBYTE with X=0
 ; ***************************************************************************************
-; Read an OSBYTE value with X=0 and store
-; the result in workspace. Falls through to
-; read_osbyte_to_ws.
+; Read OSBYTE with X=0 and store to workspace
+; 
+; Sets X=0 then falls through to read_osbyte_to_ws
+; to issue the OSBYTE call and store the result.
+; Used when the OSBYTE parameter X must be zero.
 ; ***************************************************************************************
 ; &ace5 referenced 1 time by &ace2
 .read_osbyte_to_ws_x0
     ldx #0                                                            ; ace5: a2 00       ..             ; X=0: read mode info
 ; ***************************************************************************************
-; Read an OSBYTE value using the code from
-; the OSBYTE table and store the result (Y)
-; in workspace at the current offset.
+; Issue OSBYTE from table and store result
+; 
+; Loads the OSBYTE function code from the next
+; entry in the OSBYTE table, issues the call, and
+; stores the Y result in workspace at the current
+; offset. Advances the table pointer for the next
+; call.
 ; ***************************************************************************************
 ; &ace7 referenced 1 time by &acda
 .read_osbyte_to_ws
@@ -9933,9 +10088,17 @@ bad_prefix = bad_str_anchor+1
     equb &85, &c2, &c3                                                ; acfb: 85 c2 c3    ...
 
 ; ***************************************************************************************
-; *CDir command.
-; Creates a new directory on the file
-; server.
+; *CDir command handler
+; 
+; Parses an optional allocation size argument: if absent,
+; defaults to index 2; if present, parses the decimal value
+; and searches a 27-entry threshold table to find the
+; matching allocation size index. Parses the directory name
+; via parse_filename_arg, copies it to the TX buffer, and
+; sends FS command code &1B to create the directory.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_cdir
     tya                                                               ; acfe: 98          .              ; Save command line offset
@@ -9979,9 +10142,15 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     equb &f6, &ff                                                     ; ad4b: f6 ff       ..
 
 ; ***************************************************************************************
-; *LCat command.
-; Lists catalogue from the library
-; directory. Falls through to *Ex.
+; *LCat command handler
+; 
+; Sets the library flag by rotating SEC into bit 7 of
+; l1071, then branches to cat_set_lib_flag inside cmd_ex
+; to catalogue the library directory with three entries
+; per column.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_lcat
     ror l1071                                                         ; ad4d: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
@@ -9989,9 +10158,14 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     bcs cat_set_lib_flag                                              ; ad51: b0 24       .$             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *LEx command.
-; Examines the library directory.
-; Falls through to *Ex.
+; *LEx command handler
+; 
+; Sets the library flag by rotating SEC into bit 7 of
+; l1071, then branches to ex_set_lib_flag inside cmd_ex
+; to examine the library directory with one entry per line.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_lex
     ror l1071                                                         ; ad53: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
@@ -9999,10 +10173,20 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     bcs ex_set_lib_flag                                               ; ad57: b0 04       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Ex command.
-; Examines a directory, listing files
-; with attributes. *LCat and *LEx
-; fall through to this handler.
+; *Ex command handler
+; 
+; Unified handler for *Ex, *LCat, and *LEx. Sets the
+; library flag from carry (CLC for current, SEC for library).
+; Configures column format: 1 entry per line for Ex
+; (command 3), 3 per column for Cat (command &0B). Sends the
+; examine request (code &12), then prints the directory
+; header: title, cycle number, Owner/Public label, option
+; name, Dir. and Lib. paths. Paginates through entries,
+; printing each via ex_print_col_sep until the server
+; returns zero entries.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_ex
     ror l1071                                                         ; ad59: 6e 71 10    nq.            ; Rotate carry into lib flag bit 7
@@ -10142,17 +10326,30 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     tay                                                               ; ae6d: a8          .              ; Transfer to Y
     bne setup_ex_pagination                                           ; ae6e: d0 cd       ..             ; More entries: loop
 ; ***************************************************************************************
-; Print 10 characters from buffer at offset X
-; via OSASCI. Sets Y=10 then falls through to
-; the character print loop.
+; Print 10 characters from reply buffer
+; 
+; Sets Y=10 and falls through to
+; print_chars_from_buf. Used by cmd_ex to print
+; fixed-width directory title, directory name, and
+; library name fields.
+; 
+; On Entry:
+;     X: buffer offset to start printing from
 ; ***************************************************************************************
 ; &ae70 referenced 3 times by &adab, &ae21, &ae33
 .print_10_chars
     ldy #&0a                                                          ; ae70: a0 0a       ..             ; Y=10: characters to print
 ; ***************************************************************************************
-; Print Y characters from buffer at offset X
-; via OSASCI. Loops until Y reaches zero,
-; advancing X after each character.
+; Print Y characters from buffer via OSASCI
+; 
+; Loops Y times, loading each byte from l0f05+X
+; and printing it via OSASCI. Advances X after
+; each character, leaving X pointing past the
+; last printed byte.
+; 
+; On Entry:
+;     X: buffer offset
+;     Y: character count
 ; ***************************************************************************************
 ; &ae72 referenced 2 times by &adea, &ae7a
 .print_chars_from_buf
@@ -10168,27 +10365,36 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jmp osnewl                                                        ; ae7d: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
 ; ***************************************************************************************
-; Parse command argument starting at Y=0.
-; Sets Y then falls through to parse_filename_arg
-; for GSREAD parsing and prefix handling.
+; Parse command argument from offset zero
+; 
+; Sets Y=0 and falls through to parse_filename_arg
+; for GSREAD-based filename parsing with prefix
+; character handling.
 ; ***************************************************************************************
 ; &ae80 referenced 2 times by &9cf8, &a1af
 .parse_cmd_arg_y0
     ldy #0                                                            ; ae80: a0 00       ..             ; Y=0: start of command line
 ; ***************************************************************************************
-; Parse a filename argument from the command
-; line via GSREAD. Checks for '&', ':', '.',
-; and '#' prefix characters and sets flags
-; accordingly in the parsed argument buffer.
+; Parse filename via GSREAD with prefix handling
+; 
+; Calls gsread_to_buf to read the command line
+; string into the &0E30 buffer, then falls through
+; to parse_access_prefix to process '&', ':', '.',
+; and '#' prefix characters.
 ; ***************************************************************************************
 ; &ae82 referenced 4 times by &ad25, &ad90, &af57, &b347
 .parse_filename_arg
     jsr gsread_to_buf                                                 ; ae82: 20 ff 98     ..            ; Read string to buffer via GSREAD
 ; ***************************************************************************************
-; Parse access prefix characters from a parsed
-; argument. Handles '&' (FS selection), ':'/'.',
-; '#' (channel), and '*' (wildcard) prefixes,
-; stripping tokens and setting flags.
+; Parse access and FS selection prefix characters
+; 
+; Examines the first character(s) of the parsed
+; buffer at &0E30 for prefix characters: '&' sets
+; the FS selection flag (bit 6 of l1071) and strips
+; the prefix, ':' with '.' also triggers FS
+; selection, '#' is accepted as a channel prefix.
+; Raises 'Bad file name' for invalid combinations
+; like '&.' followed by CR.
 ; ***************************************************************************************
 ; &ae85 referenced 4 times by &92da, &9382, &93bb, &992a
 .parse_access_prefix
@@ -10206,10 +10412,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     eor #&0d                                                          ; aea1: 49 0d       I.             ; Is it CR (end of line)?
     beq error_bad_prefix                                              ; aea3: f0 28       .(             ; Yes: '&.' + CR only = bad filename
 ; ***************************************************************************************
-; Strip the first character from the parsed
-; token buffer, shifting remaining bytes left
-; by one position. Trims trailing spaces from
-; the shortened string.
+; Strip first character from parsed token buffer
+; 
+; Shifts all bytes in the &0E30 buffer left by
+; one position (removing the first character),
+; then trims any trailing spaces by replacing
+; them with CR terminators. Used after consuming
+; a prefix character like '&' or ':'.
 ; ***************************************************************************************
 ; &aea5 referenced 5 times by &9308, &93a2, &93a8, &ae94, &aee7
 .strip_token_prefix
@@ -10276,26 +10485,40 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     equs "Off"                                                        ; aeed: 4f 66 66    Off
 
 ; ***************************************************************************************
-; Copy argument to TX buffer starting at X=0.
-; Sets X=0, Y=0, then falls through to the
-; validated copy loop.
+; Copy argument to TX buffer from offset zero
+; 
+; Sets X=0 and falls through to copy_arg_to_buf
+; then copy_arg_validated. Provides the simplest
+; entry point for copying a single parsed argument
+; into the TX buffer at position zero.
 ; ***************************************************************************************
 ; &aef0 referenced 6 times by &8db1, &8e0a, &9938, &9b2a, &a281, &af5a
 .copy_arg_to_buf_x0
     ldx #0                                                            ; aef0: a2 00       ..             ; X=0: start of buffer
 ; ***************************************************************************************
-; Copy argument to TX buffer starting at Y=0.
-; Sets Y=0 then falls through to copy_arg_validated
-; with '&' validation enabled.
+; Copy argument to TX buffer with Y=0
+; 
+; Sets Y=0 and falls through to copy_arg_validated
+; with carry set, enabling '&' character validation.
+; X must already contain the destination offset
+; within the TX buffer.
 ; ***************************************************************************************
 ; &aef2 referenced 10 times by &99ea, &9b23, &9b46, &9cfd, &a1b4, &a1e1, &ad2a, &ad95, &ae4e, &b35c
 .copy_arg_to_buf
     ldy #0                                                            ; aef2: a0 00       ..             ; Y=0: start of argument
 ; ***************************************************************************************
-; Copy argument characters from the command line
-; to the TX buffer. With carry set, validates
-; that '&' does not appear in the filename,
-; raising 'Bad filename' if found.
+; Copy command line characters to TX buffer
+; 
+; Copies characters from (fs_crc_lo)+Y to l0f05+X
+; until a CR terminator is reached. With carry set,
+; validates each character against '&' — raising
+; 'Bad file name' if found — to prevent FS selector
+; characters from being embedded in filenames.
+; 
+; On Entry:
+;     X: TX buffer destination offset
+;     Y: command line source offset
+;     C: set to enable '&' validation
 ; ***************************************************************************************
 ; &aef4 referenced 3 times by &8dac, &940a, &9440
 .copy_arg_validated
@@ -10326,9 +10549,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     equs "Load"                                                       ; af0e: 4c 6f 61... Loa
 
 ; ***************************************************************************************
-; Mask the flags byte to low 5 bits, removing
-; the FS selection and other high-bit flags
-; to retain only the owner access bits.
+; Clear FS selection flags from options word
+; 
+; ANDs the l1071 flags byte with &1F, clearing
+; the FS selection flag (bit 6) and other high
+; bits to retain only the 5-bit owner access
+; mask. Called before parsing to reset the prefix
+; state from a previous command.
 ; ***************************************************************************************
 ; &af12 referenced 13 times by &8e25, &937c, &93b6, &9927, &9d49, &9e2a, &a1ac, &a238, &a242, &a8db, &ad00, &addf, &b33d
 .mask_owner_access
@@ -10346,11 +10573,14 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     bmi return_28                                                     ; af23: 30 e8       0.             ; High bit set: end of entries
     bne print_entry_char                                              ; af25: d0 15       ..             ; Non-zero: printable character
 ; ***************************************************************************************
-; Print column separator or newline for Ex/Cat
-; listings. In Cat mode, prints column separator
-; every 4 entries. In Ex mode, prints a newline
-; after each entry. Skips to next argument on
-; completion.
+; Print column separator or newline for *Ex/*Cat
+; 
+; In *Cat mode, increments a column counter modulo 4
+; and prints a two-space separator between entries,
+; with a newline at the end of each row. In *Ex
+; mode (fs_spool_handle negative), prints a newline
+; after every entry. Scans the entry data and loops
+; back to print the next entry's characters.
 ; ***************************************************************************************
 ; &af27 referenced 1 time by &ae66
 .ex_print_col_sep
@@ -10378,8 +10608,16 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     eor l0078                                                         ; af42: 45 78       Ex             ; Embedded string data 'Exec'
     adc l0063                                                         ; af44: 65 63       ec             ; Embedded string data (contd)
 ; ***************************************************************************************
-; *Remove command.
-; Deletes a file from the file server.
+; *Remove command handler
+; 
+; Validates that exactly one argument is present — raises
+; 'Syntax' if extra arguments follow. Parses the filename
+; via parse_filename_arg, copies it to the TX buffer, and
+; sends FS command code &14 (*Delete) with the V flag set
+; via BIT for save_net_tx_cb_vset dispatch.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_remove
     tya                                                               ; af46: 98          .              ; Save command line offset
@@ -10401,18 +10639,32 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jmp save_net_tx_cb_vset                                           ; af62: 4c 9a 94    L..            ; Send to FS with V-flag dispatch
 
 ; ***************************************************************************************
-; Print A as a decimal number with leading zero
-; suppression. Sets V flag to skip leading zeros
-; then falls through to print_decimal_3dig.
+; Print decimal number with leading zero suppression
+; 
+; Sets V via BIT bit_test_ff_pad to enable leading
+; zero suppression, then falls through to
+; print_decimal_3dig. Used by print_station_id
+; for compact station number display.
+; 
+; On Entry:
+;     A: number to print (0-255)
 ; ***************************************************************************************
 ; &af65 referenced 1 time by &8ff3
 .print_num_no_leading
     bit bit_test_ff_pad                                               ; af65: 2c 7d 94    ,}.            ; Set V (suppress leading zeros)
 ; ***************************************************************************************
-; Print A as a 3-digit decimal number (hundreds,
-; tens, units). Divides by 100, 10, and 1 using
-; repeated subtraction. V flag controls whether
-; leading zeros are printed or suppressed.
+; Print byte as 3-digit decimal via OSASCI
+; 
+; Extracts hundreds, tens and units digits by
+; successive calls to print_decimal_digit. The V
+; flag controls leading zero suppression: if set,
+; zero digits are skipped until a non-zero digit
+; appears. V is always cleared before the units
+; digit to ensure at least one digit is printed.
+; 
+; On Entry:
+;     A: number to print (0-255)
+;     V: set to suppress leading zeros
 ; ***************************************************************************************
 ; &af68 referenced 3 times by &adb5, &b179, &b190
 .print_decimal_3dig
@@ -10426,10 +10678,18 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Print one decimal digit by repeated subtraction
 ; 
-; Print a single decimal digit by repeated
-; subtraction of the divisor. Increments the
-; digit character from '0' while subtracting.
-; If V is set, suppresses printing of '0'.
+; Initialises X to '0'-1 and loops, incrementing X
+; while subtracting the divisor from Y. On underflow,
+; adds back the divisor to get the remainder in Y.
+; If V is set, suppresses leading zeros by skipping
+; the OSASCI call when the digit is '0'.
+; 
+; On Entry:
+;     A: divisor
+;     Y: value to divide
+; 
+; On Exit:
+;     Y: remainder after division
 ; ***************************************************************************************
 ; &af76 referenced 2 times by &af6b, &af70
 .print_decimal_digit
@@ -10460,9 +10720,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; af94: 60          `              ; Return
 
 ; ***************************************************************************************
-; Copy the current text pointer (fs_crc_lo/hi)
-; to the OS text pointer workspace locations.
-; Preserves A.
+; Copy text pointer to OS text pointer workspace
+; 
+; Saves fs_crc_lo/hi into the MOS text pointer
+; locations at &00F2/&00F3. Preserves A on the
+; stack. Called before GSINIT/GSREAD sequences
+; that need to parse from the current command
+; line position.
 ; ***************************************************************************************
 ; &af95 referenced 8 times by &9d4f, &a1a9, &ad22, &ad84, &af54, &b018, &b1f2, &b344
 .save_ptr_to_os_text
@@ -10478,10 +10742,17 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 .loop_advance_char
     iny                                                               ; afa0: c8          .              ; Advance past current character
 ; ***************************************************************************************
-; Skip spaces in the command line to advance
-; to the next argument. Returns with A holding
-; the first non-space character, or CR if at
-; end of line.
+; Advance past spaces to the next command argument
+; 
+; Scans (fs_crc_lo)+Y for space characters,
+; advancing Y past each one. Returns with A
+; holding the first non-space character, or CR
+; if the end of line is reached. Used by *CDir
+; and *Remove to detect extra arguments.
+; 
+; On Exit:
+;     A: first non-space character or CR
+;     Y: offset of that character
 ; ***************************************************************************************
 ; &afa1 referenced 2 times by &ad03, &af48
 .skip_to_next_arg
@@ -10503,9 +10774,12 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; afb4: 60          `              ; Return (at next argument)
 
 ; ***************************************************************************************
-; Copy the current text pointer (fs_crc_lo/hi)
-; to the spool buffer pointer workspace
-; locations. Preserves A.
+; Copy text pointer to spool buffer pointer
+; 
+; Saves fs_crc_lo/hi into fs_options/fs_block_offset
+; for use as the spool buffer pointer. Preserves A
+; on the stack. Called by *PS and *PollPS before
+; parsing their arguments.
 ; ***************************************************************************************
 ; &afb5 referenced 2 times by &afdb, &b1ae
 .save_ptr_to_spool_buf
@@ -10518,10 +10792,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; afbf: 60          `              ; Return
 
 ; ***************************************************************************************
-; Initialise the spool drive page pointers.
-; Gets the workspace page number and stores
-; it as the spool drive page high byte, with
-; the low byte cleared to zero.
+; Initialise spool drive page pointers
+; 
+; Calls get_ws_page to read the workspace page
+; number for the current ROM slot, stores it as
+; the spool drive page high byte (l00af), and
+; clears the low byte (l00ae) to zero. Preserves
+; Y on the stack.
 ; ***************************************************************************************
 ; &afc0 referenced 2 times by &afd8, &b1a1
 .init_spool_drive
@@ -10536,8 +10813,18 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; afcd: 60          `              ; Return
 
 ; ***************************************************************************************
-; *PS command.
-; Lists printer server queue status.
+; *PS command handler
+; 
+; Checks the printer server availability flag; raises
+; 'Printer busy' if unavailable. Initialises the spool
+; drive and buffer pointer, then dispatches on argument
+; type: no argument branches to no_ps_name_given, a
+; leading digit branches to save_ps_cmd_ptr as a station
+; number, otherwise parses a named PS address via
+; load_ps_server_addr and parse_fs_ps_args.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_ps
     lda #1                                                            ; afce: a9 01       ..             ; A=1: check printer ready
@@ -10564,18 +10851,25 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jmp store_ps_station                                              ; aff4: 4c 95 b0    L..            ; Jump to store station address
 
 ; ***************************************************************************************
-; Copy printer server template data starting
-; at destination offset Y=&1C. Falls through
-; to copy_ps_data for the copy loop.
+; Copy printer server template at offset &1C
+; 
+; Sets Y=&1C and falls through to copy_ps_data.
+; Called during workspace initialisation
+; (svc_2_private_workspace) to set up the printer
+; server template at the standard offset.
 ; ***************************************************************************************
 ; &aff7 referenced 1 time by &8ee0
 .copy_ps_data_y1c
     ldy #&1c                                                          ; aff7: a0 1c       ..             ; Start at offset &1C
 ; ***************************************************************************************
-; Copy 8 bytes of printer server template data
-; from the credits string area to the RX buffer
-; at the current Y offset. X starts at &F8 and
-; wraps to 0 to complete the copy.
+; Copy 8-byte printer server template to RX buffer
+; 
+; Copies 8 bytes from the credits_string_mid area
+; (using X starting at &F8, wrapping to 0) into
+; the RX buffer at the current Y offset. The
+; template contains default printer server
+; configuration data used when initialising a new
+; printer server slot.
 ; ***************************************************************************************
 ; &aff9 referenced 1 time by &b1d4
 .copy_ps_data

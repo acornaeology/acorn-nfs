@@ -2704,26 +2704,40 @@ subroutine(0x9FB8, "write_data_block",
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.")
 subroutine(0xA05B, "tube_claim_c3",
-    description="Claim the Tube using protocol &C3. Retries\n"
-    "in a loop until the claim succeeds (carry\n"
-    "set on return from tube_addr_data_dispatch).")
+    title="Claim the Tube via protocol &C3",
+    description="Loops calling tube_addr_data_dispatch with\n"
+    "protocol byte &C3 until the claim succeeds\n"
+    "(carry set on return). Used before Tube data\n"
+    "transfers to ensure exclusive access to the\n"
+    "Tube co-processor interface.")
 subroutine(0xA086, "print_fs_info_newline",
-    description="Print a station address with V set (no\n"
-    "padding) followed by a newline.")
+    title="Print station address and newline",
+    description="Sets V (suppressing leading-zero padding on\n"
+    "the network number) then prints the station\n"
+    "address followed by a newline via OSNEWL.\n"
+    "Used by *FS and *PS output formatting.")
 subroutine(0xA08F, "parse_fs_ps_args",
-    description="Parse FS/PS command arguments as a station\n"
-    "address. Handles 'net.station' format with\n"
-    "optional network number. Initialises bridge\n"
-    "polling and validates the parsed address.")
+    title="Parse station address from *FS/*PS arguments",
+    description="Reads a station address in 'net.station' format\n"
+    "from the command line, with the network number\n"
+    "optional (defaults to local network). Calls\n"
+    "init_bridge_poll to ensure the bridge routing\n"
+    "table is populated, then validates the parsed\n"
+    "address against known stations.")
 subroutine(0xA0B4, "get_pb_ptr_as_index",
-    description="Convert the parameter block pointer byte\n"
-    "into a 12-byte-aligned table index in Y.\n"
-    "Clamps to zero if out of range (>= &48).\n"
-    "Loads the initial value from PB pointer.")
+    title="Convert parameter block pointer to table index",
+    description="Reads the first byte from the OSWORD parameter\n"
+    "block pointer and falls through to\n"
+    "byte_to_2bit_index to produce a 12-byte-aligned\n"
+    "table index in Y.")
 subroutine(0xA0B6, "byte_to_2bit_index",
-    description="Convert A to a 12-byte-aligned table index\n"
-    "in Y. Computes A*12/2 with overflow check.\n"
-    "Clamps to zero if out of range (>= &48).")
+    title="Convert byte to 12-byte-aligned table index",
+    description="Computes Y = A * 6 (via A*12/2) for indexing\n"
+    "into the OSWORD handler workspace tables.\n"
+    "Clamps Y to zero if the result exceeds &48,\n"
+    "preventing out-of-bounds access.",
+    on_entry={"a": "table entry number"},
+    on_exit={"y": "byte offset (0, 6, 12, ... up to &42)"})
 subroutine(0xA128, "match_fs_cmd",
     description="Match a command name against an FS command\n"
     "table. Case-insensitive compare of the\n"
@@ -2731,68 +2745,118 @@ subroutine(0xA128, "match_fs_cmd",
     "bit-7-terminated names. Returns with the\n"
     "matched entry address on success.")
 subroutine(0xA2E8, "find_station_bit2",
-    description="Search the station table for an entry\n"
-    "matching the current station/network with\n"
-    "bit 2 set (PS active). Scans up to 16\n"
-    "slots. Sets V if found. Falls through to\n"
-    "allocate or update the slot.")
+    title="Find printer server station in table (bit 2)",
+    description="Scans the 16-entry station table for a slot\n"
+    "matching the current station/network address\n"
+    "with bit 2 set (printer server active). Sets V\n"
+    "if found, clears V if not. Falls through to\n"
+    "allocate or update the matching slot with the\n"
+    "new station address and status flags.")
 subroutine(0xA313, "find_station_bit3",
-    description="Search the station table for an entry\n"
-    "matching the current station/network with\n"
-    "bit 3 set (FS active). Scans up to 16\n"
-    "slots. Sets V if found. Falls through to\n"
-    "allocate or update the slot.")
+    title="Find file server station in table (bit 3)",
+    description="Scans the 16-entry station table for a slot\n"
+    "matching the current station/network address\n"
+    "with bit 3 set (file server active). Sets V\n"
+    "if found, clears V if not. Falls through to\n"
+    "allocate or update the matching slot with the\n"
+    "new station address and status flags.")
 subroutine(0xA34A, "flip_set_station_boot",
-    description="Set the boot option for a station in the\n"
-    "station table. Scans up to 16 entries for\n"
-    "a match with bit 4 set (active). Stores\n"
-    "the boot type and restores FS context.")
+    title="Set boot option for a station in the table",
+    description="Scans up to 16 station table entries for one\n"
+    "matching the current address with bit 4 set\n"
+    "(boot-eligible). Stores the requested boot type\n"
+    "in the matching entry and calls\n"
+    "restore_fs_context to re-establish the filing\n"
+    "system state.")
 subroutine(0xA4EF, "osword_setup_handler",
-    description="Set up an OSWORD handler by pushing its\n"
-    "dispatch address from the handler table\n"
-    "onto the stack for RTS dispatch. Copies\n"
-    "3 bytes from osword_flag workspace.")
+    title="Push OSWORD handler address for RTS dispatch",
+    description="Indexes the OSWORD dispatch table by X to\n"
+    "push a handler address (hi then lo) onto the\n"
+    "stack. Copies 3 bytes from the osword_flag\n"
+    "workspace into the RX buffer, loads PB byte 0\n"
+    "(the OSWORD sub-code), and clears svc_state.\n"
+    "The subsequent RTS dispatches to the pushed\n"
+    "handler address.",
+    on_entry={"x": "OSWORD handler index (0-6)"})
 subroutine(0xA57C, "bin_to_bcd",
-    description="Convert a binary byte in A to BCD. Uses\n"
-    "decimal mode (SED) to count up from zero\n"
-    "in BCD, decrementing the binary value.\n"
-    "Returns BCD result in A.")
+    title="Convert binary byte to BCD",
+    description="Uses decimal mode (SED) with a count-up loop:\n"
+    "starts at BCD 0 and adds 1 in decimal mode for\n"
+    "each decrement of the binary input. Saves and\n"
+    "restores the processor flags to avoid leaving\n"
+    "decimal mode active. Called 6 times by\n"
+    "save_txcb_and_convert for clock date/time\n"
+    "conversion.",
+    on_entry={"a": "binary value (0-99)"},
+    on_exit={"a": "BCD equivalent"})
 subroutine(0xA601, "store_osword_pb_ptr",
-    description="Store the OSWORD parameter block pointer\n"
-    "+1 into workspace at offset &1C. Also\n"
-    "reads the transfer length from the PB.")
+    title="Store OSWORD parameter block pointer+1 to workspace",
+    description="Computes PB pointer + 1 and stores the resulting\n"
+    "16-bit address at workspace offset &1C via\n"
+    "store_ptr_at_ws_y. Then reads PB byte 1 (the\n"
+    "transfer length) and adds the PB low byte to\n"
+    "compute the buffer end pointer, stored at\n"
+    "workspace offset &20.")
 subroutine(0xA612, "store_ptr_at_ws_y",
-    description="Store a 16-bit pointer (low in A, high\n"
-    "from PB pointer high byte + carry) into\n"
-    "workspace at offset Y and Y+1.")
+    title="Store 16-bit pointer at workspace offset Y",
+    description="Writes a 16-bit address to (nfs_workspace)+Y.\n"
+    "The low byte comes from A; the high byte is\n"
+    "computed from osword_pb_ptr_hi plus carry,\n"
+    "supporting pointer arithmetic across page\n"
+    "boundaries.",
+    on_entry={"a": "pointer low byte",
+              "y": "workspace offset",
+              "c": "carry for high byte addition"})
 subroutine(0xA6FB, "copy_pb_byte_to_ws",
-    description="Conditionally copy a byte from the OSWORD\n"
-    "parameter block to workspace. If carry set,\n"
-    "loads from PB; always stores to workspace\n"
-    "at the current offset.")
+    title="Conditionally copy parameter block byte to workspace",
+    description="If carry is set, loads a byte from the OSWORD\n"
+    "parameter block at offset Y; if clear, uses\n"
+    "the value already in A. Stores the result to\n"
+    "workspace at the current offset. Decrements X\n"
+    "and loops until the requested byte count is\n"
+    "transferred.",
+    on_entry={"c": "set to load from PB, clear to use A",
+              "x": "byte count",
+              "y": "PB source offset"})
 subroutine(0xA868, "init_bridge_poll",
-    description="Initialise bridge polling for network\n"
-    "station discovery. If bridge status is\n"
-    "uninitialised (&FF), broadcasts a bridge\n"
-    "query and polls for replies to build the\n"
-    "network routing table.")
+    title="Initialise Econet bridge routing table",
+    description="Checks the bridge status byte: if &FF\n"
+    "(uninitialised), broadcasts a bridge query\n"
+    "packet and polls for replies. Each reply\n"
+    "adds a network routing entry to the bridge\n"
+    "table. Skips the broadcast if the table has\n"
+    "already been populated from a previous call.")
 subroutine(0xA964, "enable_irq_and_poll",
-    description="Enable interrupts (CLI) then send an\n"
-    "Econet packet via send_net_packet.")
+    title="Enable interrupts and send Econet packet",
+    description="Executes CLI to re-enable interrupts, then\n"
+    "falls through to send_net_packet. Used after\n"
+    "a sequence that ran with interrupts disabled\n"
+    "to ensure the packet is sent with normal\n"
+    "interrupt handling active.")
 subroutine(0xA981, "push_osword_handler_addr",
-    description="Push an OSWORD handler address from the\n"
-    "dispatch table onto the stack for RTS\n"
-    "dispatch. Reloads the OSWORD number for\n"
-    "the handler to use.")
+    title="Push OSWORD handler address for RTS dispatch",
+    description="Indexes the OSWORD handler dispatch table\n"
+    "using the current OSWORD number to push the\n"
+    "handler's address (hi/lo) onto the stack.\n"
+    "Reloads the OSWORD number from osbyte_a_copy\n"
+    "so the dispatched handler can identify the\n"
+    "specific call.")
 subroutine(0xA9AC, "tx_econet_abort",
-    description="Send an Econet abort command. Stores the\n"
-    "abort code in workspace, sets up the TX\n"
-    "control block with control byte &80, and\n"
-    "transmits the abort packet.")
+    title="Send Econet abort/disconnect packet",
+    description="Stores the abort code in workspace, configures\n"
+    "the TX control block with control byte &80\n"
+    "(immediate operation flag), and transmits the\n"
+    "abort packet. Used to cleanly disconnect from\n"
+    "a remote station during error recovery.")
 subroutine(0xAA24, "match_rx_code",
-    description="Search for A in a table of receive codes\n"
-    "indexed by X. Returns Z set if a match is\n"
-    "found, Z clear if end of table reached.")
+    title="Search receive code table for match",
+    description="Scans a table of receive operation codes\n"
+    "starting at index X, comparing each against A.\n"
+    "Returns with Z set if a match is found, Z clear\n"
+    "if the end-of-table marker is reached.",
+    on_entry={"a": "receive code to match",
+              "x": "starting table index"},
+    on_exit={"z": "set if match found"})
 subroutine(0xAA6A, "init_ws_copy_wide",
     description="Initialise workspace copy in wide mode.\n"
     "Copies 14 bytes to workspace offset &7C.\n"
@@ -2800,32 +2864,46 @@ subroutine(0xAA6A, "init_ws_copy_wide",
     "loop which handles &FD (skip), &FE (end),\n"
     "and &FC (page pointer) markers.")
 subroutine(0xAA73, "init_ws_copy_narrow",
-    description="Initialise workspace copy in narrow mode.\n"
-    "Copies 27 bytes to workspace offset &17.\n"
-    "Falls through to the template-driven copy\n"
-    "loop.")
+    title="Initialise workspace copy in narrow mode (27 bytes)",
+    description="Sets up a 27-byte copy to workspace offset &17,\n"
+    "then falls through to ws_copy_vclr_entry for\n"
+    "the template-driven copy loop. Used for the\n"
+    "compact workspace initialisation variant.")
 subroutine(0xAA77, "ws_copy_vclr_entry",
-    description="Template-driven workspace copy with V clear.\n"
-    "Processes template bytes: &FE=end, &FD=skip,\n"
-    "&FC=page pointer substitution. Other values\n"
-    "are stored directly to workspace.")
+    title="Template-driven workspace copy with V clear",
+    description="Processes a template byte array to initialise\n"
+    "workspace. Special marker bytes: &FE terminates\n"
+    "the copy, &FD skips the current offset, and &FC\n"
+    "substitutes the workspace page pointer. All\n"
+    "other values are stored directly to the\n"
+    "workspace at the current offset.")
 subroutine(0xAAD0, "reset_spool_buf_state",
-    description="Reset the spool buffer state. Sets buffer\n"
-    "pointer to &25 and control state to &41.")
+    title="Reset spool buffer to initial state",
+    description="Sets the spool buffer pointer to &25 (first\n"
+    "available data position) and the control state\n"
+    "byte to &41 (ready for new data). Called after\n"
+    "processing a complete spool data block.")
 subroutine(0xAB00, "append_byte_to_rxbuf",
-    description="Append byte A to the receive buffer at the\n"
-    "current buffer index, then advance the\n"
-    "index.")
+    title="Append byte to receive buffer",
+    description="Stores A in the receive buffer at the current\n"
+    "buffer index (ws_ptr_lo), then increments the\n"
+    "index. Used to accumulate incoming spool data\n"
+    "bytes before processing.",
+    on_entry={"a": "byte to append"})
 subroutine(0xAB09, "handle_spool_ctrl_byte",
-    description="Handle a spool control byte. Rotates bit 0\n"
-    "into carry for mode selection, appends the\n"
-    "byte to the buffer, processes the spool\n"
-    "data, and resets the buffer state.")
+    title="Handle spool control byte and flush buffer",
+    description="Rotates bit 0 of the control byte into carry\n"
+    "for mode selection (print vs spool), appends\n"
+    "the byte to the buffer, calls process_spool_data\n"
+    "to transmit the accumulated data, and resets\n"
+    "the buffer state ready for the next block.")
 subroutine(0xAB24, "process_spool_data",
-    description="Process accumulated spool buffer data.\n"
-    "Copies workspace to the TX control block,\n"
-    "sends a disconnect reply if needed, and\n"
-    "handles the spool output sequence.")
+    title="Transmit accumulated spool buffer data",
+    description="Copies the workspace state to the TX control\n"
+    "block, sends a disconnect reply if the previous\n"
+    "transfer requires acknowledgment, then handles\n"
+    "the spool output sequence by setting up and\n"
+    "sending the pass-through TX buffer.")
 subroutine(0xAC12, "send_disconnect_reply",
     description="Send a disconnect reply packet on the\n"
     "Econet. Sets up the TX pointer, copies\n"
@@ -2833,122 +2911,186 @@ subroutine(0xAC12, "send_disconnect_reply",
     "in the table, and sends the response.\n"
     "Waits for acknowledgment before returning.")
 subroutine(0xACCB, "commit_state_byte",
-    description="Copy the current state byte to the\n"
-    "committed state location in workspace.")
+    title="Copy current state byte to committed state",
+    description="Reads the working state byte from workspace and\n"
+    "stores it to the committed state location. Used\n"
+    "to finalise a state transition after all related\n"
+    "workspace fields have been updated.")
 subroutine(0xACD2, "serialise_palette_entry",
-    description="Serialise a palette register entry into\n"
-    "workspace. Reads the current palette value\n"
-    "via OSBYTE and stores it alongside the\n"
-    "display mode information.")
+    title="Serialise palette register to workspace",
+    description="Reads the current logical colour for a palette\n"
+    "register via OSBYTE &0B and stores both the\n"
+    "palette value and the display mode information\n"
+    "in the workspace block. Used during remote\n"
+    "screen state capture.")
 subroutine(0xACE5, "read_osbyte_to_ws_x0",
-    description="Read an OSBYTE value with X=0 and store\n"
-    "the result in workspace. Falls through to\n"
-    "read_osbyte_to_ws.")
+    title="Read OSBYTE with X=0 and store to workspace",
+    description="Sets X=0 then falls through to read_osbyte_to_ws\n"
+    "to issue the OSBYTE call and store the result.\n"
+    "Used when the OSBYTE parameter X must be zero.")
 subroutine(0xACE7, "read_osbyte_to_ws",
-    description="Read an OSBYTE value using the code from\n"
-    "the OSBYTE table and store the result (Y)\n"
-    "in workspace at the current offset.")
+    title="Issue OSBYTE from table and store result",
+    description="Loads the OSBYTE function code from the next\n"
+    "entry in the OSBYTE table, issues the call, and\n"
+    "stores the Y result in workspace at the current\n"
+    "offset. Advances the table pointer for the next\n"
+    "call.")
 
 # --- cmd_ex subroutines ---
 
 subroutine(0xAE70, "print_10_chars",
-    description="Print 10 characters from buffer at offset X\n"
-    "via OSASCI. Sets Y=10 then falls through to\n"
-    "the character print loop.")
+    title="Print 10 characters from reply buffer",
+    description="Sets Y=10 and falls through to\n"
+    "print_chars_from_buf. Used by cmd_ex to print\n"
+    "fixed-width directory title, directory name, and\n"
+    "library name fields.",
+    on_entry={"x": "buffer offset to start printing from"})
 subroutine(0xAE72, "print_chars_from_buf",
-    description="Print Y characters from buffer at offset X\n"
-    "via OSASCI. Loops until Y reaches zero,\n"
-    "advancing X after each character.")
+    title="Print Y characters from buffer via OSASCI",
+    description="Loops Y times, loading each byte from l0f05+X\n"
+    "and printing it via OSASCI. Advances X after\n"
+    "each character, leaving X pointing past the\n"
+    "last printed byte.",
+    on_entry={"x": "buffer offset", "y": "character count"})
 subroutine(0xAE80, "parse_cmd_arg_y0",
-    description="Parse command argument starting at Y=0.\n"
-    "Sets Y then falls through to parse_filename_arg\n"
-    "for GSREAD parsing and prefix handling.")
+    title="Parse command argument from offset zero",
+    description="Sets Y=0 and falls through to parse_filename_arg\n"
+    "for GSREAD-based filename parsing with prefix\n"
+    "character handling.")
 subroutine(0xAE82, "parse_filename_arg",
-    description="Parse a filename argument from the command\n"
-    "line via GSREAD. Checks for '&', ':', '.',\n"
-    "and '#' prefix characters and sets flags\n"
-    "accordingly in the parsed argument buffer.")
+    title="Parse filename via GSREAD with prefix handling",
+    description="Calls gsread_to_buf to read the command line\n"
+    "string into the &0E30 buffer, then falls through\n"
+    "to parse_access_prefix to process '&', ':', '.',\n"
+    "and '#' prefix characters.")
 subroutine(0xAE85, "parse_access_prefix",
-    description="Parse access prefix characters from a parsed\n"
-    "argument. Handles '&' (FS selection), ':'/'.',\n"
-    "'#' (channel), and '*' (wildcard) prefixes,\n"
-    "stripping tokens and setting flags.")
+    title="Parse access and FS selection prefix characters",
+    description="Examines the first character(s) of the parsed\n"
+    "buffer at &0E30 for prefix characters: '&' sets\n"
+    "the FS selection flag (bit 6 of l1071) and strips\n"
+    "the prefix, ':' with '.' also triggers FS\n"
+    "selection, '#' is accepted as a channel prefix.\n"
+    "Raises 'Bad file name' for invalid combinations\n"
+    "like '&.' followed by CR.")
 subroutine(0xAEA5, "strip_token_prefix",
-    description="Strip the first character from the parsed\n"
-    "token buffer, shifting remaining bytes left\n"
-    "by one position. Trims trailing spaces from\n"
-    "the shortened string.")
+    title="Strip first character from parsed token buffer",
+    description="Shifts all bytes in the &0E30 buffer left by\n"
+    "one position (removing the first character),\n"
+    "then trims any trailing spaces by replacing\n"
+    "them with CR terminators. Used after consuming\n"
+    "a prefix character like '&' or ':'.")
 subroutine(0xAEF0, "copy_arg_to_buf_x0",
-    description="Copy argument to TX buffer starting at X=0.\n"
-    "Sets X=0, Y=0, then falls through to the\n"
-    "validated copy loop.")
+    title="Copy argument to TX buffer from offset zero",
+    description="Sets X=0 and falls through to copy_arg_to_buf\n"
+    "then copy_arg_validated. Provides the simplest\n"
+    "entry point for copying a single parsed argument\n"
+    "into the TX buffer at position zero.")
 subroutine(0xAEF2, "copy_arg_to_buf",
-    description="Copy argument to TX buffer starting at Y=0.\n"
-    "Sets Y=0 then falls through to copy_arg_validated\n"
-    "with '&' validation enabled.")
+    title="Copy argument to TX buffer with Y=0",
+    description="Sets Y=0 and falls through to copy_arg_validated\n"
+    "with carry set, enabling '&' character validation.\n"
+    "X must already contain the destination offset\n"
+    "within the TX buffer.")
 subroutine(0xAEF4, "copy_arg_validated",
-    description="Copy argument characters from the command line\n"
-    "to the TX buffer. With carry set, validates\n"
-    "that '&' does not appear in the filename,\n"
-    "raising 'Bad filename' if found.")
+    title="Copy command line characters to TX buffer",
+    description="Copies characters from (fs_crc_lo)+Y to l0f05+X\n"
+    "until a CR terminator is reached. With carry set,\n"
+    "validates each character against '&' — raising\n"
+    "'Bad file name' if found — to prevent FS selector\n"
+    "characters from being embedded in filenames.",
+    on_entry={"x": "TX buffer destination offset",
+              "y": "command line source offset",
+              "c": "set to enable '&' validation"})
 subroutine(0xAF12, "mask_owner_access",
-    description="Mask the flags byte to low 5 bits, removing\n"
-    "the FS selection and other high-bit flags\n"
-    "to retain only the owner access bits.")
+    title="Clear FS selection flags from options word",
+    description="ANDs the l1071 flags byte with &1F, clearing\n"
+    "the FS selection flag (bit 6) and other high\n"
+    "bits to retain only the 5-bit owner access\n"
+    "mask. Called before parsing to reset the prefix\n"
+    "state from a previous command.")
 subroutine(0xAF27, "ex_print_col_sep",
-    description="Print column separator or newline for Ex/Cat\n"
-    "listings. In Cat mode, prints column separator\n"
-    "every 4 entries. In Ex mode, prints a newline\n"
-    "after each entry. Skips to next argument on\n"
-    "completion.")
+    title="Print column separator or newline for *Ex/*Cat",
+    description="In *Cat mode, increments a column counter modulo 4\n"
+    "and prints a two-space separator between entries,\n"
+    "with a newline at the end of each row. In *Ex\n"
+    "mode (fs_spool_handle negative), prints a newline\n"
+    "after every entry. Scans the entry data and loops\n"
+    "back to print the next entry's characters.")
 
 # --- cmd_remove subroutines ---
 
 subroutine(0xAF65, "print_num_no_leading",
-    description="Print A as a decimal number with leading zero\n"
-    "suppression. Sets V flag to skip leading zeros\n"
-    "then falls through to print_decimal_3dig.")
+    title="Print decimal number with leading zero suppression",
+    description="Sets V via BIT bit_test_ff_pad to enable leading\n"
+    "zero suppression, then falls through to\n"
+    "print_decimal_3dig. Used by print_station_id\n"
+    "for compact station number display.",
+    on_entry={"a": "number to print (0-255)"})
 subroutine(0xAF68, "print_decimal_3dig",
-    description="Print A as a 3-digit decimal number (hundreds,\n"
-    "tens, units). Divides by 100, 10, and 1 using\n"
-    "repeated subtraction. V flag controls whether\n"
-    "leading zeros are printed or suppressed.")
+    title="Print byte as 3-digit decimal via OSASCI",
+    description="Extracts hundreds, tens and units digits by\n"
+    "successive calls to print_decimal_digit. The V\n"
+    "flag controls leading zero suppression: if set,\n"
+    "zero digits are skipped until a non-zero digit\n"
+    "appears. V is always cleared before the units\n"
+    "digit to ensure at least one digit is printed.",
+    on_entry={"a": "number to print (0-255)",
+              "v": "set to suppress leading zeros"})
 subroutine(0xAF76, "print_decimal_digit",
     title="Print one decimal digit by repeated subtraction",
-    description="Print a single decimal digit by repeated\n"
-    "subtraction of the divisor. Increments the\n"
-    "digit character from '0' while subtracting.\n"
-    "If V is set, suppresses printing of '0'.")
+    description="Initialises X to '0'-1 and loops, incrementing X\n"
+    "while subtracting the divisor from Y. On underflow,\n"
+    "adds back the divisor to get the remainder in Y.\n"
+    "If V is set, suppresses leading zeros by skipping\n"
+    "the OSASCI call when the digit is '0'.",
+    on_entry={"a": "divisor", "y": "value to divide"},
+    on_exit={"y": "remainder after division"})
 subroutine(0xAF95, "save_ptr_to_os_text",
-    description="Copy the current text pointer (fs_crc_lo/hi)\n"
-    "to the OS text pointer workspace locations.\n"
-    "Preserves A.")
+    title="Copy text pointer to OS text pointer workspace",
+    description="Saves fs_crc_lo/hi into the MOS text pointer\n"
+    "locations at &00F2/&00F3. Preserves A on the\n"
+    "stack. Called before GSINIT/GSREAD sequences\n"
+    "that need to parse from the current command\n"
+    "line position.")
 subroutine(0xAFA1, "skip_to_next_arg",
-    description="Skip spaces in the command line to advance\n"
-    "to the next argument. Returns with A holding\n"
-    "the first non-space character, or CR if at\n"
-    "end of line.")
+    title="Advance past spaces to the next command argument",
+    description="Scans (fs_crc_lo)+Y for space characters,\n"
+    "advancing Y past each one. Returns with A\n"
+    "holding the first non-space character, or CR\n"
+    "if the end of line is reached. Used by *CDir\n"
+    "and *Remove to detect extra arguments.",
+    on_exit={"a": "first non-space character or CR",
+             "y": "offset of that character"})
 subroutine(0xAFB5, "save_ptr_to_spool_buf",
-    description="Copy the current text pointer (fs_crc_lo/hi)\n"
-    "to the spool buffer pointer workspace\n"
-    "locations. Preserves A.")
+    title="Copy text pointer to spool buffer pointer",
+    description="Saves fs_crc_lo/hi into fs_options/fs_block_offset\n"
+    "for use as the spool buffer pointer. Preserves A\n"
+    "on the stack. Called by *PS and *PollPS before\n"
+    "parsing their arguments.")
 subroutine(0xAFC0, "init_spool_drive",
-    description="Initialise the spool drive page pointers.\n"
-    "Gets the workspace page number and stores\n"
-    "it as the spool drive page high byte, with\n"
-    "the low byte cleared to zero.")
+    title="Initialise spool drive page pointers",
+    description="Calls get_ws_page to read the workspace page\n"
+    "number for the current ROM slot, stores it as\n"
+    "the spool drive page high byte (l00af), and\n"
+    "clears the low byte (l00ae) to zero. Preserves\n"
+    "Y on the stack.")
 
 # --- cmd_ps subroutines ---
 
 subroutine(0xAFF7, "copy_ps_data_y1c",
-    description="Copy printer server template data starting\n"
-    "at destination offset Y=&1C. Falls through\n"
-    "to copy_ps_data for the copy loop.")
+    title="Copy printer server template at offset &1C",
+    description="Sets Y=&1C and falls through to copy_ps_data.\n"
+    "Called during workspace initialisation\n"
+    "(svc_2_private_workspace) to set up the printer\n"
+    "server template at the standard offset.")
 subroutine(0xAFF9, "copy_ps_data",
-    description="Copy 8 bytes of printer server template data\n"
-    "from the credits string area to the RX buffer\n"
-    "at the current Y offset. X starts at &F8 and\n"
-    "wraps to 0 to complete the copy.")
+    title="Copy 8-byte printer server template to RX buffer",
+    description="Copies 8 bytes from the credits_string_mid area\n"
+    "(using X starting at &F8, wrapping to 0) into\n"
+    "the RX buffer at the current Y offset. The\n"
+    "template contains default printer server\n"
+    "configuration data used when initialising a new\n"
+    "printer server slot.")
 subroutine(0xB0A1, "print_file_server_is",
     description="Print 'File server is ' header text using\n"
     "inline string printing. Falls through to\n"
@@ -5321,8 +5463,12 @@ subroutine(0x8E7C, "svc_7_osbyte",
     on_entry={"a": "OSBYTE number (from osbyte_a_copy at &EF)"})
 subroutine(0xA4D6, "svc_8_osword",
     title="Filing system OSWORD entry",
-    description="Service 8: unrecognised OSWORD.\n"
-    "Handles Econet OSWORD calls (transmit, receive, etc.).")
+    description="Handles MOS service call 8 (unrecognised OSWORD).\n"
+    "Filters OSWORD codes &0E-&14 by subtracting &0E (via\n"
+    "CLC/SBC &0D) and rejecting values outside 0-6. For\n"
+    "valid codes, calls osword_setup_handler to push the\n"
+    "dispatch address, then copies 3 bytes from the RX\n"
+    "buffer to osword_flag workspace.")
 subroutine(0x8C52, "svc_9_help",
     title="Service 9: *HELP",
     description="Handles MOS service call 9 (*HELP). First checks\n"
@@ -5438,8 +5584,15 @@ subroutine(0xB2F0, "cmd_prot",
     "Sets protection attribute on a file\n"
     "to prevent accidental deletion.")
 subroutine(0xAFCE, "cmd_ps",
-    description="*PS command.\n"
-    "Lists printer server queue status.")
+    title="*PS command handler",
+    description="Checks the printer server availability flag; raises\n"
+    "'Printer busy' if unavailable. Initialises the spool\n"
+    "drive and buffer pointer, then dispatches on argument\n"
+    "type: no argument branches to no_ps_name_given, a\n"
+    "leading digit branches to save_ps_cmd_ptr as a station\n"
+    "number, otherwise parses a named PS address via\n"
+    "load_ps_server_addr and parse_fs_ps_args.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB985, "cmd_type",
     description="*Type command.\n"
     "Displays file contents to screen.")
@@ -5505,9 +5658,14 @@ subroutine(0x948A, "cmd_bye",
     "Falls through to save_net_tx_cb with function code\n"
     "&17 to send the bye request to the file server.")
 subroutine(0xACFE, "cmd_cdir",
-    description="*CDir command.\n"
-    "Creates a new directory on the file\n"
-    "server.")
+    title="*CDir command handler",
+    description="Parses an optional allocation size argument: if absent,\n"
+    "defaults to index 2; if present, parses the decimal value\n"
+    "and searches a 27-entry threshold table to find the\n"
+    "matching allocation size index. Parses the directory name\n"
+    "via parse_filename_arg, copies it to the TX buffer, and\n"
+    "sends FS command code &1B to create the directory.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x93C9, "cmd_dir",
     title="*Dir command handler",
     description="Handles three argument syntaxes: a plain path\n"
@@ -5519,17 +5677,34 @@ subroutine(0x93C9, "cmd_dir",
     "the directory change (code 6) and calls\n"
     "find_fs_and_exit to update the active FS context.")
 subroutine(0xAD59, "cmd_ex",
-    description="*Ex command.\n"
-    "Examines a directory, listing files\n"
-    "with attributes. *LCat and *LEx\n"
-    "fall through to this handler.")
+    title="*Ex command handler",
+    description="Unified handler for *Ex, *LCat, and *LEx. Sets the\n"
+    "library flag from carry (CLC for current, SEC for library).\n"
+    "Configures column format: 1 entry per line for Ex\n"
+    "(command 3), 3 per column for Cat (command &0B). Sends the\n"
+    "examine request (code &12), then prints the directory\n"
+    "header: title, cycle number, Owner/Public label, option\n"
+    "name, Dir. and Lib. paths. Paginates through entries,\n"
+    "printing each via ex_print_col_sep until the server\n"
+    "returns zero entries.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA33E, "cmd_flip",
-    description="*Flip command.\n"
-    "Toggles auto-boot configuration\n"
-    "setting.")
+    title="*Flip command handler",
+    description="Saves the file server station byte (&0E03), loads the\n"
+    "boot type flag from &0E04, and calls find_station_bit3\n"
+    "to locate the station table entry. Restores the station\n"
+    "byte to Y and falls through to flip_set_station_boot\n"
+    "to toggle the auto-boot setting.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA063, "cmd_fs",
-    description="*FS command.\n"
-    "Selects filing system by number.")
+    title="*FS command handler",
+    description="Saves the current file server station address, then\n"
+    "checks for a command-line argument. With no argument,\n"
+    "falls through to print_current_fs to display the active\n"
+    "server. With an argument, parses the station number via\n"
+    "parse_fs_ps_args and issues OSWORD &13 (sub-function 1)\n"
+    "to select the new file server.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8D6E, "cmd_iam",
     title="*I AM command handler (file server logon)",
     description="Closes any *SPOOL/*EXEC files via OSBYTE &77,\n"
@@ -5543,13 +5718,18 @@ subroutine(0x8D6E, "cmd_iam",
     "sends via copy_arg_validated. Falls through to\n"
     "cmd_pass for password entry.")
 subroutine(0xAD4D, "cmd_lcat",
-    description="*LCat command.\n"
-    "Lists catalogue from the library\n"
-    "directory. Falls through to *Ex.")
+    title="*LCat command handler",
+    description="Sets the library flag by rotating SEC into bit 7 of\n"
+    "l1071, then branches to cat_set_lib_flag inside cmd_ex\n"
+    "to catalogue the library directory with three entries\n"
+    "per column.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xAD53, "cmd_lex",
-    description="*LEx command.\n"
-    "Examines the library directory.\n"
-    "Falls through to *Ex.")
+    title="*LEx command handler",
+    description="Sets the library flag by rotating SEC into bit 7 of\n"
+    "l1071, then branches to ex_set_lib_flag inside cmd_ex\n"
+    "to examine the library directory with one entry per line.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8DB1, "cmd_pass",
     title="*PASS command handler (change password)",
     description="Builds the FS command packet via copy_arg_to_buf_x0,\n"
@@ -5561,8 +5741,13 @@ subroutine(0x8DB1, "cmd_pass",
     "password to the file server via save_net_tx_cb and\n"
     "branches to send_cmd_and_dispatch for the reply.")
 subroutine(0xAF46, "cmd_remove",
-    description="*Remove command.\n"
-    "Deletes a file from the file server.")
+    title="*Remove command handler",
+    description="Validates that exactly one argument is present — raises\n"
+    "'Syntax' if extra arguments follow. Parses the filename\n"
+    "via parse_filename_arg, copies it to the TX buffer, and\n"
+    "sends FS command code &14 (*Delete) with the V flag set\n"
+    "via BIT for save_net_tx_cb_vset dispatch.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9377, "cmd_rename",
     title="*Rename command handler",
     description="Parses two space-separated filenames from the\n"
