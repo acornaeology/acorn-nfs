@@ -527,9 +527,11 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host startup entry (BEGIN)
 ; 
-; Tube host startup. Claim address &FF,
-; relocate ROM code, and enter the main
-; command polling loop.
+; Entry point via JMP from &0400. Enables interrupts, checks
+; break type via OSBYTE &FD: soft break re-initialises Tube and
+; restarts, hard break claims address &FF. Sends ROM contents
+; to co-processor page by page via SENDW, then claims the final
+; transfer address.
 ; ***************************************************************************************
 ; &bf84 referenced 1 time by &0400[2]
 .tube_begin
@@ -582,7 +584,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Claim default Tube transfer address
 ; 
-; Claim Tube for this ROM's default address.
+; Sets Y=0, X=&53 (address &0053), then JMP tube_addr_claim
+; to initiate a Tube address claim for the default transfer
+; address. Called from the BEGIN startup path and after the
+; page transfer loop completes.
 ; ***************************************************************************************
 ; &bfcb referenced 1 time by &04a4[2]
 .tube_claim_default
@@ -1162,9 +1167,13 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; NMI RX scout handler (initial byte)
 ; 
-; NMI handler for incoming scout frames.
-; Check destination station; accept if it
-; matches our ID or is broadcast (&FF).
+; Default NMI handler for incoming scout frames. Checks if the frame
+; is addressed to us or is a broadcast. Installed as the NMI target
+; during idle RX listen mode.
+; Tests SR2 bit0 (AP = Address Present) to detect incoming data.
+; Reads the first byte (destination station) from the RX FIFO and
+; compares against our station ID. Reading &FE18 also disables NMIs
+; (INTOFF side effect).
 ; ***************************************************************************************
 ; &80b3 referenced 1 time by &89a8
 .nmi_rx_scout
@@ -1186,9 +1195,10 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; RX scout second byte handler
 ; 
-; NMI handler for scout frame network byte.
-; Accept local network (0) or broadcast
-; (&FF); reject frames for other networks.
+; Reads the second byte of an incoming scout (destination network).
+; Checks for network match: 0 = local network (accept), &FF = broadcast
+; (accept and flag), anything else = reject.
+; Installs the scout data reading loop handler at &970E.
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 80d0: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -1373,9 +1383,14 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Data frame RX handler (four-way handshake)
 ; 
-; NMI handler for data frame reception.
-; Verify dest station/network, then skip
-; control and port bytes known from scout.
+; Receives the data frame after the scout ACK has been sent.
+; First checks AP (Address Present) for the start of the data frame.
+; Reads and validates the first two address bytes (dest_stn, dest_net)
+; against our station address, then installs continuation handlers
+; to read the remaining data payload into the open port buffer.
+; 
+; Handler chain: &97E6 (AP+addr check) -> &97FA (net=0 check) ->
+; &9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 81dc: a9 01       ..             ; Read SR2 for AP check
@@ -1407,9 +1422,9 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ; 
-; Install NMI handler for data reception:
-; bulk RAM path or Tube transfer path.
-; Enter bulk read directly if data waiting.
+; Selects either the normal bulk RX handler (&9843) or the Tube
+; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+; and installs the appropriate NMI handler.
 ; ***************************************************************************************
 ; &8211 referenced 1 time by &88bc
 .install_data_rx_handler
@@ -1431,9 +1446,10 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; NMI error handler dispatch
 ; 
-; NMI error handler dispatch. Route to
-; receive error or transmit error based on
-; SR1 flags.
+; Common error/abort entry used by 12 call sites. Checks
+; tx_flags bit 7: if clear, does a full ADLC reset and returns
+; to idle listen (RX error path); if set, jumps to tx_result_fail
+; (TX not-listening path).
 ; ***************************************************************************************
 ; &822b referenced 12 times by &81a1, &81b7, &81e1, &81e9, &81f3, &81f8, &8209, &824c, &827e, &8284, &8341, &847b
 .nmi_error_dispatch
@@ -1449,9 +1465,11 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Data frame bulk read loop
 ; 
-; NMI bulk data receive loop. Read byte
-; pairs from ADLC RX FIFO into the port
-; receive buffer, handling page boundaries.
+; Reads data payload bytes from the RX FIFO and stores them into
+; the open port buffer at (open_port_buf),Y. Reads bytes in pairs
+; (like the scout data loop), checking SR2 between each pair.
+; SR2 non-zero (FV or other) -> frame completion at &9877.
+; SR2 = 0 -> RTI, wait for next NMI to continue.
 ; ***************************************************************************************
 ; &8239 referenced 1 time by &821f
 .nmi_data_rx_bulk
@@ -1491,9 +1509,11 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Data frame completion
 ; 
-; Complete data frame reception. Verify
-; frame valid (FV) flag, update buffer
-; pointers, and begin ACK transmission.
+; Reached when SR2 non-zero during data RX (FV detected).
+; Same pattern as scout completion (&9738): disables PSE (CR2=&84,
+; CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
+; If extra data available and buffer space remains, stores it.
+; Proceeds to send the final ACK via &98EE.
 ; ***************************************************************************************
 ; &826d referenced 3 times by &823e, &8253, &8263
 .data_rx_complete
@@ -1561,9 +1581,15 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; ACK transmission
 ; 
-; Begin transmitting ACK frame. Write
-; destination station and network bytes
-; to ADLC TX FIFO.
+; Sends a scout ACK or final ACK frame as part of the four-way handshake.
+; If bit7 of &0D4A is set, this is a final ACK -> completion (&9EA8).
+; Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK
+; frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).
+; The ACK frame has no data payload -- just address bytes.
+; 
+; After writing the address bytes to the TX FIFO, installs the next
+; NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)
+; and sends TX_LAST_DATA (CR2=&3F) to close the frame.
 ; ***************************************************************************************
 ; &82e4 referenced 2 times by &8293, &82ca
 .ack_tx
@@ -1597,9 +1623,8 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; ACK TX continuation
 ; 
-; NMI handler: transmit source address in
-; ACK frame. Write our station ID and
-; network=0 to TX FIFO.
+; Writes source station and network to TX FIFO, completing the 4-byte
+; ACK frame. Then sends TX_LAST_DATA (CR2=&3F) to close the frame.
 ; ***************************************************************************************
 .nmi_ack_tx_src
     lda station_id_disable_net_nmis                                   ; 831b: ad 18 fe    ...            ; Load our station ID (also INTOFF)
@@ -1614,9 +1639,12 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Post-ACK scout processing
 ; 
-; NMI handler after ACK frame sent.
-; Reset ADLC and copy scout data to the
-; receive control block buffer.
+; Called after the scout ACK has been transmitted. Processes the
+; received scout data stored in the buffer at &0D3D-&0D48.
+; Checks the port byte (&0D40) against open receive blocks to
+; find a matching listener. If a match is found, sets up the
+; data RX handler chain for the four-way handshake data phase.
+; If no match, discards the frame.
 ; ***************************************************************************************
 .post_ack_scout
     sta econet_control23_or_status2                                   ; 8332: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
@@ -1635,9 +1663,10 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Advance RX buffer pointer after transfer
 ; 
-; Update RXCB buffer pointer and length
-; after data reception. Handle page
-; boundary crossings and Tube transfers.
+; Adds the transfer count to the RXCB buffer pointer (4-byte
+; addition). If a Tube transfer is active, re-claims the Tube
+; address and sends the extra RX byte via R3, incrementing the
+; Tube pointer by 1.
 ; ***************************************************************************************
 ; &8344 referenced 2 times by &82e9, &839a
 .advance_rx_buffer_ptr
@@ -1792,9 +1821,9 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Copy scout data to port buffer
 ; 
-; Copy received scout data into the RXCB
-; buffer. Handle both direct RAM and Tube
-; transfer paths.
+; Copies scout data bytes (offsets 4-11) from the RX scout
+; buffer into the open port buffer, handling both direct memory
+; and Tube R3 write paths.
 ; ***************************************************************************************
 ; &8406 referenced 1 time by &81be
 .copy_scout_to_buffer
@@ -1841,8 +1870,9 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Release Tube co-processor claim
 ; 
-; Release the Tube address claim if one is
-; held. Clear the release-needed flag.
+; If need_release_tube bit 7 is clear (Tube is claimed), calls
+; tube_addr_claim with A=&82 to release it, then clears the
+; release flag via LSR.
 ; ***************************************************************************************
 ; &843f referenced 2 times by &8402, &8934
 .release_tube
@@ -1957,10 +1987,11 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Build immediate operation reply header
 ; 
-; Build reply header for immediate operation.
-; Store data offset, source station/network
-; in RX buffer, then configure shift register
-; for CB1-driven TX completion callback.
+; Stores data length, source station/network, and control byte
+; into the RX buffer header area for port-0 immediate operations.
+; Then disables CB1 interrupts and configures the VIA shift
+; register for outgoing shift-out mode before returning to
+; idle listen.
 ; ***************************************************************************************
 ; &84ec referenced 1 time by &8397
 .imm_op_build_reply
@@ -2045,10 +2076,11 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Begin TX operation
 ; 
-; Begin Econet transmission. Copy dest
-; station/network from TX control block,
-; set up immediate op params, poll for idle
-; line before starting frame.
+; Main TX initiation entry point (called via trampoline at &06CE).
+; Copies dest station/network from the TXCB to the scout buffer,
+; dispatches to immediate op setup (ctrl >= &81) or normal data
+; transfer, calculates transfer sizes, copies extra parameters,
+; then enters the INACTIVE polling loop.
 ; ***************************************************************************************
 ; &8582 referenced 3 times by &98c1, &a5a5, &a89d
 .tx_begin
@@ -2302,11 +2334,11 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; NMI TX data handler
 ; 
-; NMI handler: transmit data frame bytes.
-; Write byte pairs from TX buffer at &0D20
-; to ADLC TX FIFO in a tight loop while
-; IRQ is asserted. Branch to tx_last_data
-; when buffer index reaches frame length.
+; Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the
+; BIT instruction on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7).
+; After writing 2 bytes, checks if the frame is complete. If more data,
+; tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes
+; without returning from NMI (tight loop). Otherwise returns via RTI.
 ; ***************************************************************************************
 .nmi_tx_data
     ldy rx_remote_addr                                                ; 86e0: ac 41 0d    .A.            ; Load TX buffer index
@@ -2351,9 +2383,16 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX_LAST_DATA and frame completion
 ; 
-; Signal last data byte of TX frame.
-; Write TX_LAST_DATA to CR2 and install
-; nmi_tx_complete as the next NMI handler.
+; Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs
+; the TX completion NMI handler at &9D14 (nmi_tx_complete).
+; CR2=&3F = 0011_1111:
+;   bit5: CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply)
+;   bit4: TX_LAST_DATA -- tells ADLC this is the final data byte
+;   bit3: FLAG_IDLE -- send flags/idle after frame
+;   bit2: FC_TDRA -- force clear TDRA
+;   bit1: 2_1_BYTE -- two-byte transfer mode
+;   bit0: PSE -- prioritised status enable
+; Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)
 ; ***************************************************************************************
 ; &871c referenced 1 time by &86fc
 .tx_last_data
@@ -2366,11 +2405,13 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
 ; 
-; NMI handler: TX frame completed. Reset
-; ADLC from TX to RX mode. Route to
-; tx_result_ok (broadcast), reply scout
-; handler (two-way), or handshake_await_ack
-; (four-way) based on tx_flags.
+; Called via NMI after the frame (including CRC and closing flag) has been
+; fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.
+; CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).
+; Checks workspace flags to decide next action:
+;   - bit6 set at &0D4A -> tx_result_ok at &9EA8
+;   - bit0 set at &0D4A -> handshake_await_ack at &9E50
+;   - Otherwise -> install nmi_reply_scout at &9D30
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 8728: a9 82       ..             ; Jump to error handler
@@ -2394,10 +2435,10 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; RX reply scout handler
 ; 
-; NMI handler: receive reply scout frame.
-; Check SR2 for AP, read destination station
-; byte, verify it matches our ID. Install
-; nmi_reply_cont on match.
+; Handles reception of the reply scout frame after transmission.
+; Checks SR2 bit0 (AP) for incoming data, reads the first byte
+; (destination station) and compares to our station ID via &FE18
+; (which also disables NMIs as a side effect).
 ; ***************************************************************************************
 .nmi_reply_scout
     lda #1                                                            ; 8744: a9 01       ..             ; A=&01: AP mask for SR2
@@ -2412,9 +2453,13 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; RX reply continuation handler
 ; 
-; NMI handler: continue reply scout frame
-; reception. Read remaining scout bytes
-; and install validation handler.
+; Reads the second byte of the reply scout (destination network) and
+; validates it is zero (local network). Installs nmi_reply_validate
+; (&9D5B) for the remaining two bytes (source station and network).
+; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9D53.
+; If IRQ is still set, falls through directly to &9D5B without an RTI,
+; avoiding NMI re-entry overhead for short frames where all bytes arrive
+; in quick succession.
 ; ***************************************************************************************
 .nmi_reply_cont
     bit econet_control23_or_status2                                   ; 8758: 2c a1 fe    ,..            ; Read RX byte (destination station)
@@ -2433,11 +2478,15 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; RX reply validation (Path 2 for FV/PSE interaction)
 ; 
-; NMI handler: validate reply scout frame.
-; Verify source station/network match the
-; original TX destination, check FV for
-; frame completion, then begin scout ACK
-; transmission.
+; Reads the source station and source network from the reply scout and
+; validates them against the original TX destination (&0D20/&0D21).
+; Sequence:
+;   1. Check SR2 bit7 (RDA) at &9D5B -- must see data available
+;   2. Read source station at &9D60, compare to &0D20 (tx_dst_stn)
+;   3. Read source network at &9D68, compare to &0D21 (tx_dst_net)
+;   4. Check SR2 bit1 (FV) at &9D72 -- must see frame complete
+; If all checks pass, the reply scout is valid and the ROM proceeds
+; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
 ; ***************************************************************************************
 ; &876f referenced 1 time by &8767
 .nmi_reply_validate
@@ -2473,10 +2522,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX scout ACK: write source address
 ; 
-; NMI handler: write source address bytes
-; for scout ACK frame. Write our station
-; ID and network 0 to TX FIFO, then install
-; nmi_data_tx or nmi_imm_data handler.
+; Writes our station ID and network=0 to TX FIFO, completing the
+; 4-byte scout ACK frame. Then proceeds to send the data frame.
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda station_id_disable_net_nmis                                   ; 87b7: ad 18 fe    ...            ; Load our station ID (also INTOFF)
@@ -2613,10 +2660,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Four-way handshake: switch to RX for final ACK
 ; 
-; Switch ADLC from TX to RX mode and
-; install nmi_final_ack as the NMI handler
-; to await the final acknowledge frame of a
-; four-way handshake.
+; After the data frame TX completes, switches to RX mode (CR1=&82)
+; and installs &9EF8 to receive the final ACK from the remote station.
 ; ***************************************************************************************
 ; &886e referenced 1 time by &873c
 .handshake_await_ack
@@ -2629,9 +2674,13 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; RX final ACK handler
 ; 
-; NMI handler: receive final ACK frame.
-; Validate AP flag and destination station,
-; then install continuation handler.
+; Receives the final ACK in a four-way handshake. Same validation
+; pattern as the reply scout handler (&9D30-&9D5B):
+;   &9E5C: Check AP, read dest_stn, compare to our station
+;   &9E70: Check RDA, read dest_net, validate = 0
+;   &9E84: Check RDA, read src_stn/net, compare to TX dest
+;   &9EA3: Check FV for frame completion
+; On success, stores result=0 at tx_result_ok. On failure, error &41.
 ; ***************************************************************************************
 .nmi_final_ack
     lda #1                                                            ; 887a: a9 01       ..             ; A=&01: AP mask
@@ -2656,9 +2705,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Final ACK validation
 ; 
-; NMI handler: validate final ACK frame.
-; Check source station/network, verify
-; frame valid, and store success result.
+; Reads and validates src_stn and src_net against original TX dest.
+; Then checks FV for frame completion.
 ; ***************************************************************************************
 ; &88a2 referenced 1 time by &889d
 .nmi_final_ack_validate
@@ -2682,8 +2730,9 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX completion handler
 ; 
-; Set transmit result to success (A=0)
-; and fall through to tx_store_result.
+; Stores result code 0 (success) into the first byte of the TX control
+; block (nmi_tx_block),Y=0. Then sets &0D3A bit7 to signal completion
+; and calls discard_reset_listen to return to idle.
 ; ***************************************************************************************
 ; &88c6 referenced 2 times by &82ec, &8732
 .tx_result_ok
@@ -2693,8 +2742,10 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX failure: not listening
 ; 
-; Set transmit result to 'not listening'
-; (A=&41) and fall through to tx_store_result.
+; Loads error code &41 (not listening) and falls through to
+; tx_store_result. The most common TX error path — reached from
+; 11 sites across the final-ACK validation chain when the remote
+; station doesn't respond or the frame is malformed.
 ; ***************************************************************************************
 ; &88ca referenced 11 times by &8230, &876c, &8869, &887f, &8887, &8891, &8896, &88a5, &88ad, &88b5, &88c4
 .tx_result_fail
@@ -2815,9 +2866,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; ADLC full reset
 ; 
-; Full MC6854 ADLC hardware reset. Set CR1
-; with TX and RX in reset, then configure
-; CR4 and CR3 via address control mode.
+; Aborts all activity and returns to idle RX listen mode.
 ; ***************************************************************************************
 ; &895f referenced 3 times by &806c, &80f9, &8233
 .adlc_full_reset
@@ -2830,9 +2879,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Enter RX listen mode
 ; 
-; Configure ADLC for receive/listen mode.
-; TX held in reset, RX interrupts enabled,
-; status flags cleared.
+; TX held in reset, RX active with interrupts. Clears all status.
 ; ***************************************************************************************
 ; &896e referenced 2 times by &83ee, &899a
 .adlc_rx_listen
@@ -2882,9 +2929,13 @@ listen_jmp_hi = reset_enter_listen+2
 ; ***************************************************************************************
 ; Bootstrap NMI entry point (in ROM)
 ; 
-; NMI bootstrap entry point. Install
-; ROM-based scout handler and set NMI
-; vector to dispatch through the shim.
+; An alternate NMI handler that lives in the ROM itself rather than
+; in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
+; self-modifying JMP to dispatch to different handlers), this one
+; hardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler
+; before the workspace has been properly set up during initialisation.
+; Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
+; LDA romsel, STA &FE30, JMP &96BF.
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit station_id_disable_net_nmis                                   ; 899d: 2c 18 fe    ,..            ; INTOFF: disable NMIs while switching ROM
@@ -2898,9 +2949,11 @@ listen_jmp_hi = reset_enter_listen+2
 ; ***************************************************************************************
 ; ROM copy of set_nmi_vector + nmi_rti
 ; 
-; Write NMI handler address, restore ROM
-; bank and registers, re-enable NMIs,
-; and return from interrupt.
+; A version of the NMI vector-setting subroutine and RTI sequence
+; that lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the
+; one normally used at runtime; this ROM copy is used during early
+; initialisation before the RAM workspace has been set up, and as
+; the source for the initial copy to RAM.
 ; ***************************************************************************************
 .rom_set_nmi_vector
     sty nmi_jmp_hi                                                    ; 89ab: 8c 0d 0d    ...            ; Store handler high byte at &0D0D
