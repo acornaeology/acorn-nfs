@@ -616,8 +616,20 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; &944d referenced 2 times by &0054[1], &8102
 .tube_dispatch_table
-    equb &5b, 5, &c5, 5, &26, 6, &3b, 6, &5d, 6, &a3, 6, &ef, 4       ; 944d: 5b 05 c5... [.. :0500[3]
-    equb &3d, 5, &8c, 5, &50, 5, &43, 5, &69, 5, &d8, 5,   2, 6       ; 945b: 3d 05 8c... =.. :050e[3]
+    equw tube_osrdch                                                  ; 944d: 5b 05       [.  :0500[3]   ; cmd 0: OSRDCH
+    equw tube_oscli                                                   ; 944f: c5 05       ..  :0502[3]   ; cmd 1: OSCLI
+    equw tube_osbyte_short                                            ; 9451: 26 06       &.  :0504[3]   ; cmd 2: OSBYTE (2-param)
+    equw tube_osbyte_long                                             ; 9453: 3b 06       ;.  :0506[3]   ; cmd 3: OSBYTE (3-param)
+    equw tube_osword                                                  ; 9455: 5d 06       ].  :0508[3]   ; cmd 4: OSWORD
+    equw tube_osword_rdln                                             ; 9457: a3 06       ..  :050a[3]   ; cmd 5: OSWORD 0 (read line)
+    equw tube_restore_regs                                            ; 9459: ef 04       ..  :050c[3]   ; cmd 6: release/restore regs
+    equw tube_release_return                                          ; 945b: 3d 05       =.  :050e[3]   ; cmd 7: restore regs, RTS
+    equw tube_osargs                                                  ; 945d: 8c 05       ..  :0510[3]   ; cmd 8: OSARGS
+    equw tube_osbget                                                  ; 945f: 50 05       P.  :0512[3]   ; cmd 9: OSBGET
+    equw tube_osbput                                                  ; 9461: 43 05       C.  :0514[3]   ; cmd 10: OSBPUT
+    equw tube_osfind                                                  ; 9463: 69 05       i.  :0516[3]   ; cmd 11: OSFIND
+    equw tube_osfile                                                  ; 9465: d8 05       ..  :0518[3]   ; cmd 12: OSFILE
+    equw tube_osgbpb                                                  ; 9467: 02 06       ..  :051a[3]   ; cmd 13: OSGBPB
 
 .tube_wrch_handler
     pha                                                               ; 9469: 48          H   :051c[3]   ; Save character for WRCH echo
@@ -8394,6 +8406,20 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
     assert >(tx_done_os_proc-1) == &9b
     assert >(tx_done_user_proc-1) == &9b
     assert copyright - rom_header == &0c
+    assert tube_osargs == &058c
+    assert tube_osbget == &0550
+    assert tube_osbput == &0543
+    assert tube_osbyte_long == &063b
+    assert tube_osbyte_short == &0626
+    assert tube_oscli == &05c5
+    assert tube_osfile == &05d8
+    assert tube_osfind == &0569
+    assert tube_osgbpb == &0602
+    assert tube_osrdch == &055b
+    assert tube_osword == &065d
+    assert tube_osword_rdln == &06a3
+    assert tube_release_return == &053d
+    assert tube_restore_regs == &04ef
 
 save pydis_start, pydis_end
 
@@ -9227,7 +9253,7 @@ save pydis_start, pydis_end
 ;     Data                     = 593 bytes (7%)
 ;
 ;     Number of instructions   = 3662
-;     Number of data bytes     = 380 bytes
-;     Number of data words     = 0 bytes
+;     Number of data bytes     = 352 bytes
+;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 213 bytes
 ;     Number of strings        = 34

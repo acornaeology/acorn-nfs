@@ -373,6 +373,29 @@ for addr in [0x055B, 0x05C5, 0x0626, 0x063B, 0x065D, 0x06A3,
              0x05D8, 0x0602]:
     entry(addr)
 
+# Tube R2 command dispatch table: 14 entries mapping Tube command
+# codes 0-13 to handler addresses in pages 4-6.
+_tube_r2_entries = [
+    (0x0500, "tube_osrdch",        "cmd 0: OSRDCH"),
+    (0x0502, "tube_oscli",         "cmd 1: OSCLI"),
+    (0x0504, "tube_osbyte_short",  "cmd 2: OSBYTE (2-param)"),
+    (0x0506, "tube_osbyte_long",   "cmd 3: OSBYTE (3-param)"),
+    (0x0508, "tube_osword",        "cmd 4: OSWORD"),
+    (0x050A, "tube_osword_rdln",   "cmd 5: OSWORD 0 (read line)"),
+    (0x050C, "tube_restore_regs",  "cmd 6: release/restore regs"),
+    (0x050E, "tube_release_return", "cmd 7: restore regs, RTS"),
+    (0x0510, "tube_osargs",        "cmd 8: OSARGS"),
+    (0x0512, "tube_osbget",        "cmd 9: OSBGET"),
+    (0x0514, "tube_osbput",        "cmd 10: OSBPUT"),
+    (0x0516, "tube_osfind",        "cmd 11: OSFIND"),
+    (0x0518, "tube_osfile",        "cmd 12: OSFILE"),
+    (0x051A, "tube_osgbpb",        "cmd 13: OSGBPB"),
+]
+for addr, target_label, desc in _tube_r2_entries:
+    word(addr)
+    expr(addr, target_label)
+    comment(addr, desc, inline=True)
+
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)
 label(0x0602, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call &FFD1

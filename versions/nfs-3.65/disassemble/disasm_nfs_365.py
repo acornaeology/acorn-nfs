@@ -618,14 +618,35 @@ label(0x059C, "tube_reply_ack")       # Send &7F acknowledge, return to main loo
 label(0x059E, "tube_reply_byte")      # Poll R2, send byte in A, return to main loop
 label(0x0518, "tube_ctrl_values")     # 8-byte Tube control register lookup table
 label(0x05A9, "tube_osfile")          # OSFILE: read 16 params+filename+reason, call &FFDD
+label(0x05D1, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call &FFD1
+label(0x05F2, "tube_osbyte_2param")   # OSBYTE 2-param: read X+A from R2, call &FFF4
 # Dispatch table entry points (12 entries in 3.60, see table above)
 for addr in [0x0537, 0x0596, 0x05F2, 0x0607, 0x0627, 0x0668,
              0x055E, 0x052D, 0x0520, 0x0542, 0x05A9, 0x05D1]:
     entry(addr)
 # Additional entry points within page 5 (not dispatch entries)
 entry(0x053D)  # tube_release_return (dead code, but structurally present)
+# Tube R2 command dispatch table: 12 entries mapping R2 command
+# codes 0-11 to handler addresses in pages 5-6.
+_tube_r2_entries = [
+    (0x0500, "tube_osrdch",        "R2 cmd 0: OSRDCH"),
+    (0x0502, "tube_oscli",         "R2 cmd 1: OSCLI"),
+    (0x0504, "tube_osbyte_2param", "R2 cmd 2: OSBYTE (2-param)"),
+    (0x0506, "tube_osbyte_long",   "R2 cmd 3: OSBYTE (3-param)"),
+    (0x0508, "tube_osword",        "R2 cmd 4: OSWORD"),
+    (0x050A, "tube_osword_rdln",   "R2 cmd 5: OSWORD 0 (read line)"),
+    (0x050C, "tube_osargs",        "R2 cmd 6: OSARGS"),
+    (0x050E, "tube_osbget",        "R2 cmd 7: OSBGET"),
+    (0x0510, "tube_osbput",        "R2 cmd 8: OSBPUT"),
+    (0x0512, "tube_osfind",        "R2 cmd 9: OSFIND"),
+    (0x0514, "tube_osfile",        "R2 cmd 10: OSFILE"),
+    (0x0516, "tube_osgbpb",        "R2 cmd 11: OSGBPB"),
+]
+for addr, target_label, desc in _tube_r2_entries:
+    word(addr)
+    expr(addr, target_label)
+    comment(addr, desc, inline=True)
 # Page 5 inline comments
-comment(0x0500, "12-entry Tube R2 command dispatch table", inline=True)
 comment(0x0518, "Tube control register value table (8 bytes)", inline=True)
 comment(0x0520, "Read channel handle from R2 for BPUT", inline=True)
 comment(0x0523, "Y=channel handle from R2", inline=True)

@@ -341,26 +341,24 @@ entry(0x041E)
 # Relocated code — page 5 (Tube dispatch table, WRCH, file I/O handlers)
 # Reference: NFS13 (TASKS table, BPUT, BGET, RDCHZ, FIND, ARGS, STRNG, CLI, FILE)
 #
-# &0500-&051B: 12-entry dispatch table of word addresses.
-# JMP (&0500) at &0054 dispatches Tube commands; the address claim
-# protocol at &0406 patches &0500-&0501 with the target handler address.
+# &0500-&0517: 12-entry dispatch table of word addresses.
+# The R2 command byte is stored directly as the JMP (&0050) operand low byte,
+# so even-numbered R2 commands index pairs of bytes in this table.
 #
-# Tube cmd  Entry  Addr   Handler
-# ────────  ─────  ─────  ─────────────────────────────
-#   &00       0    &055B  tube_osrdch (OSRDCH)
-#   &01       1    &05C5  tube_oscli (OSCLI)
-#   &02       2    &0626  tube_osbyte_short (2-param, X result)
-#   &03       3    &063B  tube_osbyte_long (3-param, X+Y results)
-#   &04       4    &065D  tube_osword (variable-length)
-#   &05       5    &06A3  tube_osword_rdln (OSWORD 0, read line)
-#   &06       6    &04EF  tube_restore_regs (release/no-op)
-#   &07       7    &053D  tube_release_return (restore regs, RTS)
-#   &08       8    &058C  tube_osargs (OSARGS)
-#   &09       9    &0550  tube_osbget (OSBGET)
-#   &0A      10    &0543  tube_osbput (OSBPUT)
-#   &0B      11    &0569  tube_osfind (OSFIND open)
-#   &0C      12    &05D8  tube_osfile (OSFILE)
-#   &0D      13    &0602  tube_osgbpb (OSGBPB)
+# R2 cmd  Entry  Addr   Handler
+# ──────  ─────  ─────  ─────────────────────────────
+#   &00      0   &0537  tube_osrdch (OSRDCH)
+#   &02      1   &0596  tube_oscli (OSCLI)
+#   &04      2   &05F2  tube_osbyte_2param (2-param, X result)
+#   &06      3   &0607  tube_osbyte_long (3-param, X+Y results)
+#   &08      4   &0627  tube_osword (overlapping code entry)
+#   &0A      5   &0668  tube_osword_rdln (OSWORD 0, read line)
+#   &0C      6   &055E  tube_osargs (OSARGS)
+#   &0E      7   &052D  tube_osbget (OSBGET)
+#   &10      8   &0520  tube_osbput (OSBPUT)
+#   &12      9   &0542  tube_osfind (OSFIND)
+#   &14     10   &05A9  tube_osfile (OSFILE)
+#   &16     11   &05D1  tube_osgbpb (OSGBPB)
 # 3.35K labels tube_wrch_handler ($051C), tube_send_and_poll ($051F) — Tube code rewritten
 label(0x0527, "tube_poll_r1_wrch")    # Service R1 WRCH requests while waiting for R2
 # 3.35K label tube_resume_poll ($0532) — Tube code rewritten
@@ -386,11 +384,34 @@ label(0x0596, "tube_oscli")           # OSCLI: read command string, call &FFF7
 label(0x059C, "tube_reply_ack")       # Send &7F acknowledge, return to main loop
 label(0x059E, "tube_reply_byte")      # Poll R2, send byte in A, return to main loop
 label(0x05A9, "tube_osfile")          # OSFILE: read 16 params+filename+reason, call &FFDD
+label(0x05D1, "tube_osgbpb")          # OSGBPB: read 13 params+reason, call &FFD1
+label(0x05F2, "tube_osbyte_2param")   # OSBYTE 2-param: read X+A from R2, call &FFF4
 # Dispatch table entry points (3.40 addresses)
 for addr in [0x0537, 0x0596, 0x0626, 0x0607, 0x0627, 0x0668,
              0x04EF, 0x053D, 0x0602,
              0x0520, 0x052D, 0x0542, 0x055E, 0x05A9, 0x05F2]:
     entry(addr)
+
+# Tube R2 command dispatch table: 12 entries mapping R2 command
+# codes 0-11 to handler addresses in pages 5-6.
+_tube_r2_entries = [
+    (0x0500, "tube_osrdch",        "R2 cmd 0: OSRDCH"),
+    (0x0502, "tube_oscli",         "R2 cmd 1: OSCLI"),
+    (0x0504, "tube_osbyte_2param", "R2 cmd 2: OSBYTE (2-param)"),
+    (0x0506, "tube_osbyte_long",   "R2 cmd 3: OSBYTE (3-param)"),
+    (0x0508, "tube_osword",        "R2 cmd 4: OSWORD"),
+    (0x050A, "tube_osword_rdln",   "R2 cmd 5: OSWORD 0 (read line)"),
+    (0x050C, "tube_osargs",        "R2 cmd 6: OSARGS"),
+    (0x050E, "tube_osbget",        "R2 cmd 7: OSBGET"),
+    (0x0510, "tube_osbput",        "R2 cmd 8: OSBPUT"),
+    (0x0512, "tube_osfind",        "R2 cmd 9: OSFIND"),
+    (0x0514, "tube_osfile",        "R2 cmd 10: OSFILE"),
+    (0x0516, "tube_osgbpb",        "R2 cmd 11: OSGBPB"),
+]
+for addr, target_label, desc in _tube_r2_entries:
+    word(addr)
+    expr(addr, target_label)
+    comment(addr, desc, inline=True)
 
 # Relocated code — page 6 (OSGBPB, OSBYTE, OSWORD, RDLN, event handler)
 # Reference: NFS13 (GBPB, SBYTE, BYTE, WORD, RDLN, RDCHA, WRIFOR, ESCAPE, EVENT, ESCA)

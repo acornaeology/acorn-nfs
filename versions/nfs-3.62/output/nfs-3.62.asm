@@ -624,8 +624,18 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; &9462 referenced 2 times by &0050[1], &8168
 .tube_dispatch_table
-    equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; 9462: 37 05 96... 7.. :0500[3]   ; 12-entry Tube R2 command dispatch table
-    equb &2d, 5, &20, 5, &42, 5, &a9, 5, &d1, 5                       ; 9470: 2d 05 20... -.  :050e[3]
+    equw tube_osrdch                                                  ; 9462: 37 05       7.  :0500[3]   ; 12-entry Tube R2 command dispatch table; R2 cmd 0: OSRDCH
+    equw tube_oscli                                                   ; 9464: 96 05       ..  :0502[3]   ; R2 cmd 1: OSCLI
+    equw tube_osbyte_2param                                           ; 9466: f2 05       ..  :0504[3]   ; R2 cmd 2: OSBYTE (2-param)
+    equw tube_osbyte_long                                             ; 9468: 07 06       ..  :0506[3]   ; R2 cmd 3: OSBYTE (3-param)
+    equw tube_osword                                                  ; 946a: 27 06       '.  :0508[3]   ; R2 cmd 4: OSWORD
+    equw tube_osword_rdln                                             ; 946c: 68 06       h.  :050a[3]   ; R2 cmd 5: OSWORD 0 (read line)
+    equw tube_osargs                                                  ; 946e: 5e 05       ^.  :050c[3]   ; R2 cmd 6: OSARGS
+    equw tube_osbget                                                  ; 9470: 2d 05       -.  :050e[3]   ; R2 cmd 7: OSBGET
+    equw tube_osbput                                                  ; 9472: 20 05        .  :0510[3]   ; R2 cmd 8: OSBPUT
+    equw tube_osfind                                                  ; 9474: 42 05       B.  :0512[3]   ; R2 cmd 9: OSFIND
+    equw tube_osfile                                                  ; 9476: a9 05       ..  :0514[3]   ; R2 cmd 10: OSFILE
+    equw tube_osgbpb                                                  ; 9478: d1 05       ..  :0516[3]   ; R2 cmd 11: OSGBPB
 ; &947a referenced 1 time by &0453[2]
 .tube_ctrl_values
     equb &86, &88, &96, &98, &18, &18, &82, &18                       ; 947a: 86 88 96... ... :0518[3]   ; Tube control register value table (8 bytes)
@@ -756,6 +766,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bne send_osfile_ctrl_blk                                          ; 952f: d0 f8       ..  :05cd[3]   ; Loop for all 16 bytes
     beq mj                                                            ; 9531: f0 d5       ..  :05cf[3]   ; ALWAYS branch to main loop; ALWAYS branch
 
+.tube_osgbpb
     ldx #&0d                                                          ; 9533: a2 0d       ..  :05d1[3]   ; Read 13-byte OSGBPB control block from R2
 ; &9535 referenced 1 time by &05d9[3]
 .read_osgbpb_ctrl_blk
@@ -777,6 +788,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     pla                                                               ; 9550: 68          h   :05ee[3]   ; Recover completion status from stack
     jmp tube_rdch_reply                                               ; 9551: 4c 3a 05    L:. :05ef[3]   ; Send carry+status as RDCH-style reply
 
+.tube_osbyte_2param
     jsr tube_read_r2                                                  ; 9554: 20 c5 06     .. :05f2[3]   ; Read X param from R2 for 2-param OSBYTE
     tax                                                               ; 9557: aa          .   :05f5[3]   ; X = first parameter
     jsr tube_read_r2                                                  ; 9558: 20 c5 06     .. :05f6[3]   ; Read A (OSBYTE number) from R2
@@ -8326,6 +8338,18 @@ listen_jmp_hi = reset_enter_listen+2
     assert >(svc_9_help-1) == &82
     assert >(tube_osword_pb) == &01
     assert copyright - rom_header == &10
+    assert tube_osargs == &055e
+    assert tube_osbget == &052d
+    assert tube_osbput == &0520
+    assert tube_osbyte_2param == &05f2
+    assert tube_osbyte_long == &0607
+    assert tube_oscli == &0596
+    assert tube_osfile == &05a9
+    assert tube_osfind == &0542
+    assert tube_osgbpb == &05d1
+    assert tube_osrdch == &0537
+    assert tube_osword == &0627
+    assert tube_osword_rdln == &0668
 
 save pydis_start, pydis_end
 
@@ -9133,7 +9157,7 @@ save pydis_start, pydis_end
 ;     Data                     = 880 bytes (11%)
 ;
 ;     Number of instructions   = 3549
-;     Number of data bytes     = 639 bytes
-;     Number of data words     = 0 bytes
+;     Number of data bytes     = 615 bytes
+;     Number of data words     = 24 bytes
 ;     Number of string bytes   = 241 bytes
 ;     Number of strings        = 37
