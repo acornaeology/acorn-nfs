@@ -4681,11 +4681,16 @@ ws_init_data = error_bad_station+2
     equs "net checksum", 0                                            ; 8fd0: 6e 65 74... net
 
 ; ***************************************************************************************
-; Print 'Econet Station ' followed by the
-; station number from offset 5 of the
-; receive block. If no Econet clock is
-; detected (ADLC status register 2), also
-; prints ' No Clock'. Ends with newline.
+; Print Econet station number and clock status
+; 
+; Uses print_inline to output 'Econet Station ',
+; then reads the station ID from offset 5 of the
+; receive control block and prints it as a decimal
+; number via print_num_no_leading. Tests ADLC
+; status register 2 (&FEA1) to detect the Econet
+; clock; if absent, appends ' No Clock' via a
+; second inline string. Finishes with OSNEWL.
+; Called by print_version_header and svc_3_auto_boot.
 ; ***************************************************************************************
 ; &8fdd referenced 2 times by &8cab, &8cd8
 .print_station_id
@@ -4749,9 +4754,19 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Print A as two hexadecimal digits
 ; 
-; Print A as two hexadecimal digits via
-; OSASCI. Shifts out the high nybble first,
-; then falls through to print the low nybble.
+; Saves A on the stack, shifts right four times
+; to isolate the high nybble, calls
+; print_hex_nybble to print it, then restores
+; the full byte and falls through to
+; print_hex_nybble for the low nybble. Called by
+; print_5_hex_bytes, cmd_ex, cmd_dump, and
+; print_dump_header.
+; 
+; On Entry:
+;     A: byte to print
+; 
+; On Exit:
+;     A: original byte value
 ; ***************************************************************************************
 ; &911b referenced 5 times by &9a54, &adff, &ba55, &ba7d, &bae5
 .print_hex_byte
@@ -4763,8 +4778,15 @@ ws_init_data = error_bad_station+2
     jsr print_hex_nybble                                              ; 9120: 20 24 91     $.            ; Print high nybble as hex digit
     pla                                                               ; 9123: 68          h              ; Restore full byte
 ; ***************************************************************************************
-; Print the low nybble of A as a single hex
-; digit (0-9, A-F) via OSASCI.
+; Print low nybble of A as hex digit
+; 
+; Masks A to the low 4 bits, then converts to
+; ASCII: adds 7 for letters A-F (via ADC #6 with
+; carry set from the CMP), then ADC #&30 for the
+; final '0'-'F' character. Outputs via JMP OSASCI.
+; 
+; On Entry:
+;     A: value (low nybble used)
 ; ***************************************************************************************
 ; &9124 referenced 1 time by &9120
 .print_hex_nybble
@@ -4974,9 +4996,20 @@ ws_init_data = error_bad_station+2
     equs "network number", 0                                          ; 9235: 6e 65 74... net
 
 ; ***************************************************************************************
-; Test whether A is a decimal digit, '&', or
-; '.' separator. Returns C set if A is '&',
-; '.', or '0'-'9'; C clear otherwise.
+; Test for digit, '&', or '.' separator
+; 
+; Compares A against '&' and '.' first; if
+; either matches, returns with carry set via the
+; shared return_12 exit. Otherwise falls through
+; to is_dec_digit_only for the '0'-'9' range
+; test. Called by cmd_iam, cmd_ps, and
+; cmd_pollps when parsing station addresses.
+; 
+; On Entry:
+;     A: character to test
+; 
+; On Exit:
+;     C: set if digit/&/., clear otherwise
 ; ***************************************************************************************
 ; &9244 referenced 3 times by &8d88, &afe5, &b1b8
 .is_decimal_digit
@@ -4985,8 +5018,19 @@ ws_init_data = error_bad_station+2
     cmp #&2e ; '.'                                                    ; 9248: c9 2e       ..             ; Is it '.' (separator)?
     beq return_12                                                     ; 924a: f0 06       ..             ; Yes: return C set (not decimal)
 ; ***************************************************************************************
-; Test whether A is a decimal digit ('0'-'9').
-; Returns C set if digit, C clear otherwise.
+; Test for decimal digit '0'-'9'
+; 
+; Uses two CMPs to bracket-test A against the
+; range &30-&39. CMP #&3A sets carry if A >= ':'
+; (above digits), then CMP #&30 sets carry if
+; A >= '0'. The net effect: carry set only for
+; '0'-'9'. Called by parse_addr_arg.
+; 
+; On Entry:
+;     A: character to test
+; 
+; On Exit:
+;     C: set if '0'-'9', clear otherwise
 ; ***************************************************************************************
 ; &924c referenced 1 time by &91a4
 .is_dec_digit_only
@@ -5003,10 +5047,17 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 9254: 60          `              ; Return
 
 ; ***************************************************************************************
-; Read the access byte at offset &0E of a
-; directory entry via (BB),Y, mask to 6 bits,
-; and encode via the protection bit table.
-; Returns encoded access flags in A.
+; Read and encode directory entry access byte
+; 
+; Loads the access byte from offset &0E of the
+; directory entry via (fs_options),Y, masks to 6
+; bits (AND #&3F), then sets X=4 and branches to
+; begin_prot_encode to map through the protection
+; bit encode table at &9272. Called by
+; check_and_setup_txcb for owner and public access.
+; 
+; On Exit:
+;     A: encoded access flags
 ; ***************************************************************************************
 ; &9255 referenced 2 times by &9b0e, &9b3a
 .get_access_bits
@@ -5017,9 +5068,20 @@ ws_init_data = error_bad_station+2
     bne begin_prot_encode                                             ; 925d: d0 04       ..             ; ALWAYS branch to encoder; ALWAYS branch
 
 ; ***************************************************************************************
-; Encode the low 5 bits of A as protection
-; flags using the protection bit encode table.
-; Returns encoded flags in A.
+; Encode protection bits via lookup table
+; 
+; Masks A to 5 bits (AND #&1F), sets X=&FF to
+; start at table index 0, then enters the shared
+; encoding loop at begin_prot_encode. Shifts out
+; each source bit and ORs in the corresponding
+; value from prot_bit_encode_table (&9272). Called
+; by send_txcb_swap_addrs and check_and_setup_txcb.
+; 
+; On Entry:
+;     A: raw protection bits (low 5 used)
+; 
+; On Exit:
+;     A: encoded protection flags
 ; ***************************************************************************************
 ; &925f referenced 2 times by &9a16, &9b57
 .get_prot_bits
@@ -5045,19 +5107,35 @@ ws_init_data = error_bad_station+2
     equb &50, &20, 5, 2, &88, 4, 8, &80, &10, 1, 2                    ; 9272: 50 20 05... P .
 
 ; ***************************************************************************************
-; Set the OS text pointer (F2/F3) from X/Y,
-; then fall through to set transfer params
-; and options pointer.
+; Set OS text pointer then transfer parameters
+; 
+; Stores X/Y into the MOS text pointer at
+; &F2/&F3, then falls through to set_xfer_params
+; and set_options_ptr to configure the full FS
+; transfer context. Called by byte_to_2bit_index.
+; 
+; On Entry:
+;     X: text pointer low byte
+;     Y: text pointer high byte
 ; ***************************************************************************************
 ; &927d referenced 1 time by &a0fc
 .set_text_and_xfer_ptr
     stx os_text_ptr                                                   ; 927d: 86 f2       ..             ; Set text pointer low
     sty os_text_ptr_hi                                                ; 927f: 84 f3       ..             ; Set text pointer high
 ; ***************************************************************************************
-; Set FS transfer parameters: A to byte count
-; (BD), X/Y to source pointer (BE/BF). Falls
-; through to set options pointer and clear
-; the escapable flag.
+; Set FS transfer byte count and source pointer
+; 
+; Stores A into fs_last_byte_flag (&BD) as the
+; transfer byte count, and X/Y into fs_crc_lo/hi
+; (&BE/&BF) as the source data pointer. Falls
+; through to set_options_ptr to complete the
+; transfer context setup. Called by 5 sites across
+; cmd_ex, format_filename_field, and gsread_to_buf.
+; 
+; On Entry:
+;     A: transfer byte count
+;     X: source pointer low
+;     Y: source pointer high
 ; ***************************************************************************************
 ; &9281 referenced 5 times by &8e1d, &9921, &9d45, &9e26, &ad6e
 .set_xfer_params
@@ -5065,9 +5143,18 @@ ws_init_data = error_bad_station+2
     stx fs_crc_lo                                                     ; 9283: 86 be       ..             ; Store source pointer low
     sty fs_crc_hi                                                     ; 9285: 84 bf       ..             ; Store source pointer high
 ; ***************************************************************************************
-; Set FS options pointer (BB/BC) from X/Y and
-; clear bit 0 of the escapable flag. Preserves
-; processor flags.
+; Set FS options pointer and clear escape flag
+; 
+; Stores X/Y into fs_options/fs_block_offset
+; (&BB/&BC) as the options block pointer. Then
+; enters clear_escapable which uses PHP/LSR/PLP
+; to clear bit 0 of the escape flag at &97 without
+; disturbing processor flags. Called by
+; format_filename_field and send_and_receive.
+; 
+; On Entry:
+;     X: options pointer low
+;     Y: options pointer high
 ; ***************************************************************************************
 ; &9287 referenced 2 times by &9bb4, &b979
 .set_options_ptr
@@ -5081,9 +5168,17 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 928f: 60          `              ; Return
 
 ; ***************************************************************************************
-; Compare 5 bytes at &00AF-&00B3 with the
-; channel handle at &00B3-&00B7. Returns Z=1
-; if all 5 bytes match, Z=0 on mismatch.
+; Compare 5-byte handle buffers for equality
+; 
+; Loops X from 4 down to 1, comparing each byte
+; of l00af+X with fs_load_addr_3+X using EOR.
+; Returns on the first mismatch (Z=0) or after
+; all 5 bytes match (Z=1). Called by
+; send_txcb_swap_addrs and check_and_setup_txcb
+; to verify station/handle identity.
+; 
+; On Exit:
+;     Z: set if all 5 bytes match
 ; ***************************************************************************************
 ; &9290 referenced 2 times by &9984, &9a89
 .cmp_5byte_handle
@@ -5104,10 +5199,18 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 92a0: 60          `              ; (dead)
 
 ; ***************************************************************************************
-; Set bit 6 (connection active) in the channel
-; table entry for the channel identified by A.
-; Looks up the channel index, sets the flag.
-; Preserves A, X, and processor flags.
+; Set connection-active flag in channel table
+; 
+; Saves registers on the stack, recovers the
+; original A from the stack via TSX/LDA &0102,X,
+; then calls attr_to_chan_index to find the channel
+; slot. ORs bit 6 (&40) into the channel status
+; byte at &1060+X. Preserves A, X, and processor
+; flags via PHP/PHA/PLA/PLP. Called by
+; format_filename_field and adjust_fsopts_4bytes.
+; 
+; On Entry:
+;     A: channel attribute byte
 ; ***************************************************************************************
 ; &92a1 referenced 2 times by &9c3a, &9e83
 .set_conn_active
@@ -5124,10 +5227,17 @@ ws_init_data = error_bad_station+2
     sta l1060,x                                                       ; 92b3: 9d 60 10    .`.            ; Store updated status
     bne done_conn_flag                                                ; 92b6: d0 15       ..             ; ALWAYS branch to exit
 ; ***************************************************************************************
-; Clear bit 6 (connection active) in the
-; channel table entry for the channel
-; identified by A. Preserves A, X, and
-; processor flags.
+; Clear connection-active flag in channel table
+; 
+; Mirror of set_conn_active but ANDs the channel
+; status byte with &BF (bit 6 clear mask) instead
+; of ORing. Uses the same register-preservation
+; pattern: PHP/PHA/TSX to recover A, then
+; attr_to_chan_index to find the slot. Shares the
+; done_conn_flag exit with set_conn_active.
+; 
+; On Entry:
+;     A: channel attribute byte
 ; ***************************************************************************************
 ; &92b8 referenced 2 times by &9c9b, &9e7e
 .clear_conn_active
@@ -5151,8 +5261,15 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 92d1: 60          `              ; Return
 
 ; ***************************************************************************************
-; Shared handler for *Access, *Delete, *Info, *Lib.
-; Command code distinguishes operation.
+; Shared *Access/*Delete/*Info/*Lib command handler
+; 
+; Copies the command name to the TX buffer, parses a
+; quoted filename argument via parse_quoted_arg, and
+; checks the access prefix. Validates the filename
+; does not start with '&', then falls through to
+; read_filename_char to copy remaining characters and
+; send the request. Raises 'Bad file name' if a bare
+; CR is found where a filename was expected.
 ; ***************************************************************************************
 .cmd_fs_operation
     jsr copy_fs_cmd_name                                              ; 92d2: 20 13 93     ..            ; Copy command name to TX buffer
@@ -5172,9 +5289,16 @@ ws_init_data = error_bad_station+2
     equs "file name", 0                                               ; 92eb: 66 69 6c... fil
 
 ; ***************************************************************************************
-; Check that the first character in the parse
-; buffer (&0E30) is not '&'. Raises a 'Bad
-; filename' error if it is.
+; Reject '&' as filename character
+; 
+; Loads the first character from the parse buffer
+; at &0E30 and compares with '&' (&26). Branches
+; to error_bad_filename if matched, otherwise
+; returns. Also contains read_filename_char which
+; loops reading characters from the command line
+; into the TX buffer at &0F05, calling
+; strip_token_prefix on each byte and terminating
+; on CR. Used by cmd_fs_operation and cmd_rename.
 ; ***************************************************************************************
 ; &92f5 referenced 2 times by &92df, &92fd
 .check_not_ampersand
@@ -5199,10 +5323,19 @@ ws_init_data = error_bad_station+2
     jmp send_cmd_and_dispatch                                         ; 9310: 4c 0e 8e    L..            ; Send command and dispatch reply
 
 ; ***************************************************************************************
-; Copy the matched FS command name from the
-; command table into the TX buffer at &0F05,
-; followed by a space. Returns X=buffer
-; offset past name, Y=command line offset.
+; Copy matched command name to TX buffer
+; 
+; Scans backwards in cmd_table_fs from the
+; current position to find the bit-7 flag byte
+; marking the start of the command name. Copies
+; each character forward into the TX buffer at
+; &0F05 until the next bit-7 byte (end of name),
+; then appends a space separator. Called by
+; cmd_fs_operation and cmd_rename.
+; 
+; On Exit:
+;     X: TX buffer offset past name+space
+;     Y: command line offset (restored)
 ; ***************************************************************************************
 ; &9313 referenced 2 times by &92d2, &9377
 .copy_fs_cmd_name
@@ -5284,8 +5417,16 @@ ws_init_data = error_bad_station+2
     equs "string", 0                                                  ; 9370: 73 74 72... str
 
 ; ***************************************************************************************
-; *Rename command.
-; Renames a file on the file server.
+; *Rename command handler
+; 
+; Parses two space-separated filenames from the
+; command line, each with its own access prefix.
+; Sets the owner-only access mask before parsing each
+; name. Validates that both names resolve to the same
+; file server by comparing the FS options word —
+; raises 'Bad rename' if they differ. Falls through
+; to read_filename_char to copy the second filename
+; into the TX buffer and send the request.
 ; ***************************************************************************************
 .cmd_rename
     jsr copy_fs_cmd_name                                              ; 9377: 20 13 93     ..            ; Copy 'Rename ' to TX buffer
@@ -5336,9 +5477,16 @@ ws_init_data = error_bad_station+2
     jmp read_filename_char                                            ; 93c6: 4c fd 92    L..            ; Copy second filename and send
 
 ; ***************************************************************************************
-; *Dir command.
-; Sets the current directory on the
-; file server.
+; *Dir command handler
+; 
+; Handles three argument syntaxes: a plain path
+; (delegates to pass_send_cmd), '&' alone for the root
+; directory, and '&N.dir' for cross-filesystem directory
+; changes. The cross-FS form sends a file server
+; selection command (code &12) to locate the target
+; server, raising 'Not found' on failure, then sends
+; the directory change (code 6) and calls
+; find_fs_and_exit to update the active FS context.
 ; ***************************************************************************************
 .cmd_dir
     lda (fs_crc_lo),y                                                 ; 93c9: b1 be       ..             ; Get first char of argument
@@ -5416,18 +5564,29 @@ ws_init_data = error_bad_station+2
     jmp pass_send_cmd                                                 ; 944e: 4c 0a 8e    L..            ; Simple: pass command to FS
 
 ; ***************************************************************************************
-; Initialise TXCB for a bye/receive command.
-; Sets port &90, data start offset 3, and
-; decrements the control byte.
+; Initialise TXCB for bye/receive on port &90
+; 
+; Loads A=&90 (the FS command port) and falls
+; through to init_txcb_port, which initialises
+; the TXCB from the template, sets the port,
+; data start offset to 3, and decrements the
+; control byte. Called by recv_and_process_reply.
 ; ***************************************************************************************
 ; &9451 referenced 1 time by &94dd
 .init_txcb_bye
     lda #&90                                                          ; 9451: a9 90       ..             ; A=&90: bye command port
 ; ***************************************************************************************
-; Initialise TXCB with port A. Sets the port,
-; data start offset 3, and decrements the
-; control byte. Falls through from
-; init_txcb_bye.
+; Initialise TXCB with specified port number
+; 
+; Calls init_txcb to copy the 12-byte template
+; into the TXCB workspace at &00C0, then stores A
+; as the transmit port (txcb_port at &C1), sets
+; txcb_start to 3 (data begins at offset 3 in the
+; packet), and decrements txcb_ctrl. Called by
+; check_and_setup_txcb.
+; 
+; On Entry:
+;     A: port number
 ; ***************************************************************************************
 ; &9453 referenced 1 time by &9ace
 .init_txcb_port
@@ -5439,10 +5598,15 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 945e: 60          `              ; Return
 
 ; ***************************************************************************************
-; Initialise the TX control block from the
-; template at &9477. Copies 12 bytes into
-; the TXCB workspace at &00C0, and copies
-; the destination station address from &0E00.
+; Initialise TX control block from ROM template
+; 
+; Copies 12 bytes from txcb_init_template (&9477)
+; into the TXCB workspace at &00C0. For the first
+; two bytes (Y=0,1), also copies the destination
+; station/network from &0E00 into txcb_dest (&C2).
+; Preserves A via PHA/PLA. Called by 4 sites
+; including cmd_pass, init_txcb_port,
+; prep_send_tx_cb, and send_wipe_request.
 ; ***************************************************************************************
 ; &945f referenced 5 times by &8df1, &9453, &94cc, &a8de, &b92f
 .init_txcb
@@ -5471,10 +5635,14 @@ ws_init_data = error_bad_station+2
     equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 947d: ff ff ff... ...            ; &FF padding (unused ROM space)
 
 ; ***************************************************************************************
-; Send a read-only FS request. Sets carry
-; (no-write mode) then falls through to the
-; common TXCB copy and send path. Processes
-; the reply, dispatching on reply codes.
+; Send read-only FS request (carry set)
+; 
+; Pushes A and sets carry to indicate no-write
+; mode, then branches to txcb_copy_carry_set to
+; enter the common TXCB copy, send, and reply
+; processing path. The carry flag controls whether
+; a disconnect is sent on certain reply codes.
+; Called by setup_transfer_workspace.
 ; ***************************************************************************************
 ; &9483 referenced 1 time by &9f02
 .send_request_nowrite
@@ -5483,10 +5651,14 @@ ws_init_data = error_bad_station+2
     bcs txcb_copy_carry_set                                           ; 9485: b0 1a       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Send a read-write FS request. Clears V then
-; falls through to the common TXCB copy and
-; send path. Processes the reply, dispatching
-; on reply codes.
+; Send read-write FS request (V clear)
+; 
+; Clears V flag and branches unconditionally to
+; txcb_copy_carry_clr (via BVC, always taken after
+; CLV) to enter the common TXCB copy, send, and
+; reply processing path with carry clear (write
+; mode). Called by do_fs_cmd_iteration and
+; send_txcb_swap_addrs.
 ; ***************************************************************************************
 ; &9487 referenced 2 times by &9944, &99f8
 .send_request_write
@@ -5494,10 +5666,13 @@ ws_init_data = error_bad_station+2
     bvc txcb_copy_carry_clr                                           ; 9488: 50 16       P.             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Bye command.
-; Logs off from the file server. Closes
-; open files, clears FS context, and
-; resets workspace state.
+; *Bye command handler
+; 
+; Closes all open file control blocks via
+; process_all_fcbs, shuts down any *SPOOL/*EXEC files
+; with OSBYTE &77, and closes all network channels.
+; Falls through to save_net_tx_cb with function code
+; &17 to send the bye request to the file server.
 ; ***************************************************************************************
 .cmd_bye
     ldy #0                                                            ; 948a: a0 00       ..             ; Y=0: close all files
@@ -5517,9 +5692,15 @@ ws_init_data = error_bad_station+2
 .save_net_tx_cb
     clv                                                               ; 9499: b8          .              ; Clear V (standard mode)
 ; ***************************************************************************************
-; As save_net_tx_cb but enters with V already
-; set from caller. Copies station address
-; before falling through to the common path.
+; Save and send TXCB with V flag set
+; 
+; Variant of save_net_tx_cb for callers that have
+; already set V. Copies the FS station address
+; from &0E02 to &0F02, then falls through to
+; txcb_copy_carry_clr which clears carry and enters
+; the common TXCB copy, send, and reply path.
+; Called by check_and_setup_txcb,
+; format_filename_field, and cmd_remove.
 ; ***************************************************************************************
 ; &949a referenced 3 times by &9b32, &9d08, &af62
 .save_net_tx_cb_vset
@@ -5554,10 +5735,16 @@ ws_init_data = error_bad_station+2
 .done_vset_station
     plp                                                               ; 94c5: 28          (              ; Restore flags (carry = mode)
 ; ***************************************************************************************
-; Prepare, send, and receive a TX control
-; block. Sets reply port &90, initialises
-; the TXCB, computes the end offset, sends
-; the packet, and processes the reply.
+; Build TXCB from scratch, send, and receive reply
+; 
+; Full send/receive cycle: saves flags, sets
+; reply port &90, calls init_txcb to load the
+; template, computes txcb_end from X+5, then
+; dispatches based on carry: C set sends a
+; disconnect via handle_disconnect, C clear calls
+; init_tx_ptr_and_send and falls through to
+; recv_and_process_reply. Called by
+; setup_transfer_workspace.
 ; ***************************************************************************************
 ; &94c6 referenced 1 time by &9fb0
 .prep_send_tx_cb
@@ -5574,10 +5761,17 @@ ws_init_data = error_bad_station+2
     jsr init_tx_ptr_and_send                                          ; 94d8: 20 22 98     ".            ; Initialise TX pointer and send
     plp                                                               ; 94db: 28          (              ; Restore flags
 ; ***************************************************************************************
-; Set up a receive TXCB, wait for the TX
-; acknowledgment, then process the reply
-; bytes. Dispatches on each non-zero reply
-; code, optionally adjusting by +&2B if V set.
+; Receive FS reply and dispatch on status codes
+; 
+; Calls init_txcb_bye to set up a receive TXCB
+; on port &90, then wait_net_tx_ack to wait for
+; the acknowledgment. Iterates over reply bytes:
+; zero terminates, V-set codes are adjusted by
+; +&2B, and non-zero codes dispatch to
+; store_reply_status. Handles disconnect requests
+; (C set from prep_send_tx_cb) and 'Data Lost'
+; warnings when channel status bits indicate
+; pending writes were interrupted.
 ; ***************************************************************************************
 ; &94dc referenced 2 times by &9a0b, &9f43
 .recv_and_process_reply
@@ -5672,10 +5866,14 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Check for pending escape condition
 ; 
-; Check for an escape condition. If the MOS
-; escape flag is set and escape handling is
-; enabled, acknowledges the escape via OSBYTE
-; &7E and raises an Escape error.
+; ANDs the MOS escape flag (&FF) with the
+; escapable flag at &97. If bit 7 of the result
+; is clear (no escape or escape disabled), returns
+; immediately. Otherwise enters raise_escape_error:
+; acknowledges the escape via OSBYTE &7E, then
+; jumps to classify_reply_error with A=6 to raise
+; the Escape error. Called by cmd_pass and
+; send_net_packet.
 ; ***************************************************************************************
 ; &955a referenced 2 times by &8dcb, &9846
 .check_escape
@@ -5739,10 +5937,17 @@ ws_init_data = error_bad_station+2
     jmp osbyte                                                        ; 95c4: 4c f4 ff    L..            ; Insert character Y into input buffer X
 
 ; ***************************************************************************************
-; Wait for the current Econet TX operation to
-; complete. Uses a three-level nested loop
-; with a configurable timeout. On timeout,
-; raises a 'Net error' via error dispatch.
+; Wait for Econet TX completion with timeout
+; 
+; Saves the timeout counter from &0D6F and the
+; TX control state from &0D61, then polls
+; net_tx_ptr_hi (&9B) for completion. Uses a
+; three-level nested loop: the outer counter
+; comes from the configured timeout at &0D6F.
+; On completion, restores both saved values.
+; On timeout (all loops exhausted), branches to
+; build_no_reply_error to raise 'No reply'.
+; Called by 6 sites across the protocol stack.
 ; ***************************************************************************************
 ; &95c7 referenced 6 times by &94e0, &999e, &9ad8, &a923, &abbf, &ac61
 .wait_net_tx_ack
@@ -5782,9 +5987,17 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 95fa: 60          `              ; Return (TX acknowledged)
 
 ; ***************************************************************************************
-; Conditionally save the error code in A to
-; workspace (&0E09). Only saves if bit 7 of
-; &0D6C is set (FS selected).
+; Conditionally store error code to workspace
+; 
+; Tests bit 7 of &0D6C (FS selected flag). If
+; clear, returns immediately. If set, stores A
+; into &0E09 as the last error code. This guards
+; against writing error state when no filing system
+; is active. Called internally by the error
+; classification chain and by error_inline_log.
+; 
+; On Entry:
+;     A: error code to store
 ; ***************************************************************************************
 ; &95fb referenced 6 times by &9611, &964a, &9666, &9690, &96a2, &96bb
 .cond_save_error_code
@@ -6078,9 +6291,15 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 975b: 60          `              ; Return
 
 ; ***************************************************************************************
-; Append a space followed by A as a decimal
-; number (up to 255) to the error text buffer.
-; Suppresses leading zeros.
+; Append space and decimal number to error text
+; 
+; Writes a space character to the error text buffer
+; at the current position (fs_load_addr_2), then falls
+; through to append_decimal_num to convert the value
+; in A to decimal digits with leading zero suppression.
+; 
+; On Entry:
+;     A: number to append (0-255)
 ; ***************************************************************************************
 ; &975c referenced 2 times by &972e, &b4ca
 .append_space_and_num
@@ -6091,10 +6310,16 @@ bad_prefix = bad_str_anchor+1
     inc fs_load_addr_2                                                ; 9764: e6 b2       ..             ; Advance position past space
     tya                                                               ; 9766: 98          .              ; Restore number to A
 ; ***************************************************************************************
-; Append A as a decimal number (up to 255)
-; to the error text buffer at the position
-; held in fs_load_addr_2. Suppresses leading
-; zeros for hundreds and tens digits.
+; Convert byte to decimal and append to error text
+; 
+; Extracts hundreds, tens and units digits by three
+; successive calls to append_decimal_digit. Uses the
+; V flag to suppress leading zeros — hundreds and tens
+; are skipped when zero, but the units digit is always
+; emitted.
+; 
+; On Entry:
+;     A: number to convert (0-255)
 ; ***************************************************************************************
 ; &9767 referenced 2 times by &9746, &9756
 .append_decimal_num
@@ -6107,10 +6332,23 @@ bad_prefix = bad_str_anchor+1
     lda #1                                                            ; 9775: a9 01       ..             ; A=1: units digit (remainder)
     clv                                                               ; 9777: b8          .              ; Clear V: always print units digit
 ; ***************************************************************************************
-; Divide Y by A using repeated subtraction
-; and append the quotient as an ASCII digit
-; to the error text buffer. Suppresses the
-; digit if V is set and quotient is zero.
+; Extract and append one decimal digit
+; 
+; Divides Y by A using repeated subtraction to extract
+; a single decimal digit. Stores the ASCII digit in the
+; error text buffer at fs_load_addr_2 unless V is set
+; and the quotient is zero (leading zero suppression).
+; Returns the remainder in Y for subsequent digit
+; extraction.
+; 
+; On Entry:
+;     A: divisor (100, 10, or 1)
+;     Y: number to divide
+;     V: set to suppress leading zero
+; 
+; On Exit:
+;     Y: remainder after division
+;     V: clear once a non-zero digit is emitted
 ; ***************************************************************************************
 ; &9778 referenced 2 times by &976d, &9772
 .append_decimal_digit

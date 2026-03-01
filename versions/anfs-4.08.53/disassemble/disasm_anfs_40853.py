@@ -2212,19 +2212,33 @@ subroutine(0x8FB2, "verify_ws_checksum",
     "workspace access.",
     on_exit={"a": "preserved", "y": "preserved"})
 subroutine(0x8FDD, "print_station_id",
-    description="Print 'Econet Station ' followed by the\n"
-    "station number from offset 5 of the\n"
-    "receive block. If no Econet clock is\n"
-    "detected (ADLC status register 2), also\n"
-    "prints ' No Clock'. Ends with newline.")
+    title="Print Econet station number and clock status",
+    description="Uses print_inline to output 'Econet Station ',\n"
+    "then reads the station ID from offset 5 of the\n"
+    "receive control block and prints it as a decimal\n"
+    "number via print_num_no_leading. Tests ADLC\n"
+    "status register 2 (&FEA1) to detect the Econet\n"
+    "clock; if absent, appends ' No Clock' via a\n"
+    "second inline string. Finishes with OSNEWL.\n"
+    "Called by print_version_header and svc_3_auto_boot.")
 subroutine(0x911B, "print_hex_byte",
     title="Print A as two hexadecimal digits",
-    description="Print A as two hexadecimal digits via\n"
-    "OSASCI. Shifts out the high nybble first,\n"
-    "then falls through to print the low nybble.")
+    description="Saves A on the stack, shifts right four times\n"
+    "to isolate the high nybble, calls\n"
+    "print_hex_nybble to print it, then restores\n"
+    "the full byte and falls through to\n"
+    "print_hex_nybble for the low nybble. Called by\n"
+    "print_5_hex_bytes, cmd_ex, cmd_dump, and\n"
+    "print_dump_header.",
+    on_entry={"a": "byte to print"},
+    on_exit={"a": "original byte value"})
 subroutine(0x9124, "print_hex_nybble",
-    description="Print the low nybble of A as a single hex\n"
-    "digit (0-9, A-F) via OSASCI.")
+    title="Print low nybble of A as hex digit",
+    description="Masks A to the low 4 bits, then converts to\n"
+    "ASCII: adds 7 for letters A-F (via ADC #6 with\n"
+    "carry set from the CMP), then ADC #&30 for the\n"
+    "final '0'-'F' character. Outputs via JMP OSASCI.",
+    on_entry={"a": "value (low nybble used)"})
 subroutine(0x915A, "parse_addr_arg",
     description="Parse a decimal or hexadecimal number from\n"
     "the command argument at (BE),Y. Supports\n"
@@ -2233,57 +2247,121 @@ subroutine(0x915A, "parse_addr_arg",
     "Returns result in A. Raises errors for\n"
     "bad digits, overflow, or zero values.")
 subroutine(0x9244, "is_decimal_digit",
-    description="Test whether A is a decimal digit, '&', or\n"
-    "'.' separator. Returns C set if A is '&',\n"
-    "'.', or '0'-'9'; C clear otherwise.")
+    title="Test for digit, '&', or '.' separator",
+    description="Compares A against '&' and '.' first; if\n"
+    "either matches, returns with carry set via the\n"
+    "shared return_12 exit. Otherwise falls through\n"
+    "to is_dec_digit_only for the '0'-'9' range\n"
+    "test. Called by cmd_iam, cmd_ps, and\n"
+    "cmd_pollps when parsing station addresses.",
+    on_entry={"a": "character to test"},
+    on_exit={"c": "set if digit/&/., clear otherwise"})
 subroutine(0x924C, "is_dec_digit_only",
-    description="Test whether A is a decimal digit ('0'-'9').\n"
-    "Returns C set if digit, C clear otherwise.")
+    title="Test for decimal digit '0'-'9'",
+    description="Uses two CMPs to bracket-test A against the\n"
+    "range &30-&39. CMP #&3A sets carry if A >= ':'\n"
+    "(above digits), then CMP #&30 sets carry if\n"
+    "A >= '0'. The net effect: carry set only for\n"
+    "'0'-'9'. Called by parse_addr_arg.",
+    on_entry={"a": "character to test"},
+    on_exit={"c": "set if '0'-'9', clear otherwise"})
 subroutine(0x9255, "get_access_bits",
-    description="Read the access byte at offset &0E of a\n"
-    "directory entry via (BB),Y, mask to 6 bits,\n"
-    "and encode via the protection bit table.\n"
-    "Returns encoded access flags in A.")
+    title="Read and encode directory entry access byte",
+    description="Loads the access byte from offset &0E of the\n"
+    "directory entry via (fs_options),Y, masks to 6\n"
+    "bits (AND #&3F), then sets X=4 and branches to\n"
+    "begin_prot_encode to map through the protection\n"
+    "bit encode table at &9272. Called by\n"
+    "check_and_setup_txcb for owner and public access.",
+    on_exit={"a": "encoded access flags"})
 subroutine(0x925F, "get_prot_bits",
-    description="Encode the low 5 bits of A as protection\n"
-    "flags using the protection bit encode table.\n"
-    "Returns encoded flags in A.")
+    title="Encode protection bits via lookup table",
+    description="Masks A to 5 bits (AND #&1F), sets X=&FF to\n"
+    "start at table index 0, then enters the shared\n"
+    "encoding loop at begin_prot_encode. Shifts out\n"
+    "each source bit and ORs in the corresponding\n"
+    "value from prot_bit_encode_table (&9272). Called\n"
+    "by send_txcb_swap_addrs and check_and_setup_txcb.",
+    on_entry={"a": "raw protection bits (low 5 used)"},
+    on_exit={"a": "encoded protection flags"})
 subroutine(0x927D, "set_text_and_xfer_ptr",
-    description="Set the OS text pointer (F2/F3) from X/Y,\n"
-    "then fall through to set transfer params\n"
-    "and options pointer.")
+    title="Set OS text pointer then transfer parameters",
+    description="Stores X/Y into the MOS text pointer at\n"
+    "&F2/&F3, then falls through to set_xfer_params\n"
+    "and set_options_ptr to configure the full FS\n"
+    "transfer context. Called by byte_to_2bit_index.",
+    on_entry={"x": "text pointer low byte",
+              "y": "text pointer high byte"})
 subroutine(0x9281, "set_xfer_params",
-    description="Set FS transfer parameters: A to byte count\n"
-    "(BD), X/Y to source pointer (BE/BF). Falls\n"
-    "through to set options pointer and clear\n"
-    "the escapable flag.")
+    title="Set FS transfer byte count and source pointer",
+    description="Stores A into fs_last_byte_flag (&BD) as the\n"
+    "transfer byte count, and X/Y into fs_crc_lo/hi\n"
+    "(&BE/&BF) as the source data pointer. Falls\n"
+    "through to set_options_ptr to complete the\n"
+    "transfer context setup. Called by 5 sites across\n"
+    "cmd_ex, format_filename_field, and gsread_to_buf.",
+    on_entry={"a": "transfer byte count",
+              "x": "source pointer low",
+              "y": "source pointer high"})
 subroutine(0x9287, "set_options_ptr",
-    description="Set FS options pointer (BB/BC) from X/Y and\n"
-    "clear bit 0 of the escapable flag. Preserves\n"
-    "processor flags.")
+    title="Set FS options pointer and clear escape flag",
+    description="Stores X/Y into fs_options/fs_block_offset\n"
+    "(&BB/&BC) as the options block pointer. Then\n"
+    "enters clear_escapable which uses PHP/LSR/PLP\n"
+    "to clear bit 0 of the escape flag at &97 without\n"
+    "disturbing processor flags. Called by\n"
+    "format_filename_field and send_and_receive.",
+    on_entry={"x": "options pointer low",
+              "y": "options pointer high"})
 subroutine(0x9290, "cmp_5byte_handle",
-    description="Compare 5 bytes at &00AF-&00B3 with the\n"
-    "channel handle at &00B3-&00B7. Returns Z=1\n"
-    "if all 5 bytes match, Z=0 on mismatch.")
+    title="Compare 5-byte handle buffers for equality",
+    description="Loops X from 4 down to 1, comparing each byte\n"
+    "of l00af+X with fs_load_addr_3+X using EOR.\n"
+    "Returns on the first mismatch (Z=0) or after\n"
+    "all 5 bytes match (Z=1). Called by\n"
+    "send_txcb_swap_addrs and check_and_setup_txcb\n"
+    "to verify station/handle identity.",
+    on_exit={"z": "set if all 5 bytes match"})
 subroutine(0x92A1, "set_conn_active",
-    description="Set bit 6 (connection active) in the channel\n"
-    "table entry for the channel identified by A.\n"
-    "Looks up the channel index, sets the flag.\n"
-    "Preserves A, X, and processor flags.")
+    title="Set connection-active flag in channel table",
+    description="Saves registers on the stack, recovers the\n"
+    "original A from the stack via TSX/LDA &0102,X,\n"
+    "then calls attr_to_chan_index to find the channel\n"
+    "slot. ORs bit 6 (&40) into the channel status\n"
+    "byte at &1060+X. Preserves A, X, and processor\n"
+    "flags via PHP/PHA/PLA/PLP. Called by\n"
+    "format_filename_field and adjust_fsopts_4bytes.",
+    on_entry={"a": "channel attribute byte"})
 subroutine(0x92B8, "clear_conn_active",
-    description="Clear bit 6 (connection active) in the\n"
-    "channel table entry for the channel\n"
-    "identified by A. Preserves A, X, and\n"
-    "processor flags.")
+    title="Clear connection-active flag in channel table",
+    description="Mirror of set_conn_active but ANDs the channel\n"
+    "status byte with &BF (bit 6 clear mask) instead\n"
+    "of ORing. Uses the same register-preservation\n"
+    "pattern: PHP/PHA/TSX to recover A, then\n"
+    "attr_to_chan_index to find the slot. Shares the\n"
+    "done_conn_flag exit with set_conn_active.",
+    on_entry={"a": "channel attribute byte"})
 subroutine(0x92F5, "check_not_ampersand",
-    description="Check that the first character in the parse\n"
-    "buffer (&0E30) is not '&'. Raises a 'Bad\n"
-    "filename' error if it is.")
+    title="Reject '&' as filename character",
+    description="Loads the first character from the parse buffer\n"
+    "at &0E30 and compares with '&' (&26). Branches\n"
+    "to error_bad_filename if matched, otherwise\n"
+    "returns. Also contains read_filename_char which\n"
+    "loops reading characters from the command line\n"
+    "into the TX buffer at &0F05, calling\n"
+    "strip_token_prefix on each byte and terminating\n"
+    "on CR. Used by cmd_fs_operation and cmd_rename.")
 subroutine(0x9313, "copy_fs_cmd_name",
-    description="Copy the matched FS command name from the\n"
-    "command table into the TX buffer at &0F05,\n"
-    "followed by a space. Returns X=buffer\n"
-    "offset past name, Y=command line offset.")
+    title="Copy matched command name to TX buffer",
+    description="Scans backwards in cmd_table_fs from the\n"
+    "current position to find the bit-7 flag byte\n"
+    "marking the start of the command name. Copies\n"
+    "each character forward into the TX buffer at\n"
+    "&0F05 until the next bit-7 byte (end of name),\n"
+    "then appends a space separator. Called by\n"
+    "cmd_fs_operation and cmd_rename.",
+    on_exit={"x": "TX buffer offset past name+space",
+             "y": "command line offset (restored)"})
 subroutine(0x9335, "parse_quoted_arg",
     description="Parse a possibly-quoted filename argument\n"
     "from the command line at (BE),Y. Handles\n"
@@ -2291,29 +2369,46 @@ subroutine(0x9335, "parse_quoted_arg",
     "result in the parse buffer at &0E30.\n"
     "Raises 'Bad string' on unbalanced quotes.")
 subroutine(0x9451, "init_txcb_bye",
-    description="Initialise TXCB for a bye/receive command.\n"
-    "Sets port &90, data start offset 3, and\n"
-    "decrements the control byte.")
+    title="Initialise TXCB for bye/receive on port &90",
+    description="Loads A=&90 (the FS command port) and falls\n"
+    "through to init_txcb_port, which initialises\n"
+    "the TXCB from the template, sets the port,\n"
+    "data start offset to 3, and decrements the\n"
+    "control byte. Called by recv_and_process_reply.")
 subroutine(0x9453, "init_txcb_port",
-    description="Initialise TXCB with port A. Sets the port,\n"
-    "data start offset 3, and decrements the\n"
-    "control byte. Falls through from\n"
-    "init_txcb_bye.")
+    title="Initialise TXCB with specified port number",
+    description="Calls init_txcb to copy the 12-byte template\n"
+    "into the TXCB workspace at &00C0, then stores A\n"
+    "as the transmit port (txcb_port at &C1), sets\n"
+    "txcb_start to 3 (data begins at offset 3 in the\n"
+    "packet), and decrements txcb_ctrl. Called by\n"
+    "check_and_setup_txcb.",
+    on_entry={"a": "port number"})
 subroutine(0x945F, "init_txcb",
-    description="Initialise the TX control block from the\n"
-    "template at &9477. Copies 12 bytes into\n"
-    "the TXCB workspace at &00C0, and copies\n"
-    "the destination station address from &0E00.")
+    title="Initialise TX control block from ROM template",
+    description="Copies 12 bytes from txcb_init_template (&9477)\n"
+    "into the TXCB workspace at &00C0. For the first\n"
+    "two bytes (Y=0,1), also copies the destination\n"
+    "station/network from &0E00 into txcb_dest (&C2).\n"
+    "Preserves A via PHA/PLA. Called by 4 sites\n"
+    "including cmd_pass, init_txcb_port,\n"
+    "prep_send_tx_cb, and send_wipe_request.")
 subroutine(0x9483, "send_request_nowrite",
-    description="Send a read-only FS request. Sets carry\n"
-    "(no-write mode) then falls through to the\n"
-    "common TXCB copy and send path. Processes\n"
-    "the reply, dispatching on reply codes.")
+    title="Send read-only FS request (carry set)",
+    description="Pushes A and sets carry to indicate no-write\n"
+    "mode, then branches to txcb_copy_carry_set to\n"
+    "enter the common TXCB copy, send, and reply\n"
+    "processing path. The carry flag controls whether\n"
+    "a disconnect is sent on certain reply codes.\n"
+    "Called by setup_transfer_workspace.")
 subroutine(0x9487, "send_request_write",
-    description="Send a read-write FS request. Clears V then\n"
-    "falls through to the common TXCB copy and\n"
-    "send path. Processes the reply, dispatching\n"
-    "on reply codes.")
+    title="Send read-write FS request (V clear)",
+    description="Clears V flag and branches unconditionally to\n"
+    "txcb_copy_carry_clr (via BVC, always taken after\n"
+    "CLV) to enter the common TXCB copy, send, and\n"
+    "reply processing path with carry clear (write\n"
+    "mode). Called by do_fs_cmd_iteration and\n"
+    "send_txcb_swap_addrs.")
 subroutine(0x9499, "save_net_tx_cb",
     description="Save FS state and send a command to the file\n"
     "server. Copies station address and function\n"
@@ -2321,34 +2416,65 @@ subroutine(0x9499, "save_net_tx_cb",
     "sends the packet, and waits for the reply.\n"
     "V is clear for standard mode.")
 subroutine(0x949A, "save_net_tx_cb_vset",
-    description="As save_net_tx_cb but enters with V already\n"
-    "set from caller. Copies station address\n"
-    "before falling through to the common path.")
+    title="Save and send TXCB with V flag set",
+    description="Variant of save_net_tx_cb for callers that have\n"
+    "already set V. Copies the FS station address\n"
+    "from &0E02 to &0F02, then falls through to\n"
+    "txcb_copy_carry_clr which clears carry and enters\n"
+    "the common TXCB copy, send, and reply path.\n"
+    "Called by check_and_setup_txcb,\n"
+    "format_filename_field, and cmd_remove.")
 subroutine(0x94C6, "prep_send_tx_cb",
-    description="Prepare, send, and receive a TX control\n"
-    "block. Sets reply port &90, initialises\n"
-    "the TXCB, computes the end offset, sends\n"
-    "the packet, and processes the reply.")
+    title="Build TXCB from scratch, send, and receive reply",
+    description="Full send/receive cycle: saves flags, sets\n"
+    "reply port &90, calls init_txcb to load the\n"
+    "template, computes txcb_end from X+5, then\n"
+    "dispatches based on carry: C set sends a\n"
+    "disconnect via handle_disconnect, C clear calls\n"
+    "init_tx_ptr_and_send and falls through to\n"
+    "recv_and_process_reply. Called by\n"
+    "setup_transfer_workspace.")
 subroutine(0x94DC, "recv_and_process_reply",
-    description="Set up a receive TXCB, wait for the TX\n"
-    "acknowledgment, then process the reply\n"
-    "bytes. Dispatches on each non-zero reply\n"
-    "code, optionally adjusting by +&2B if V set.")
+    title="Receive FS reply and dispatch on status codes",
+    description="Calls init_txcb_bye to set up a receive TXCB\n"
+    "on port &90, then wait_net_tx_ack to wait for\n"
+    "the acknowledgment. Iterates over reply bytes:\n"
+    "zero terminates, V-set codes are adjusted by\n"
+    "+&2B, and non-zero codes dispatch to\n"
+    "store_reply_status. Handles disconnect requests\n"
+    "(C set from prep_send_tx_cb) and 'Data Lost'\n"
+    "warnings when channel status bits indicate\n"
+    "pending writes were interrupted.")
 subroutine(0x955A, "check_escape",
     title="Check for pending escape condition",
-    description="Check for an escape condition. If the MOS\n"
-    "escape flag is set and escape handling is\n"
-    "enabled, acknowledges the escape via OSBYTE\n"
-    "&7E and raises an Escape error.")
+    description="ANDs the MOS escape flag (&FF) with the\n"
+    "escapable flag at &97. If bit 7 of the result\n"
+    "is clear (no escape or escape disabled), returns\n"
+    "immediately. Otherwise enters raise_escape_error:\n"
+    "acknowledges the escape via OSBYTE &7E, then\n"
+    "jumps to classify_reply_error with A=6 to raise\n"
+    "the Escape error. Called by cmd_pass and\n"
+    "send_net_packet.")
 subroutine(0x95C7, "wait_net_tx_ack",
-    description="Wait for the current Econet TX operation to\n"
-    "complete. Uses a three-level nested loop\n"
-    "with a configurable timeout. On timeout,\n"
-    "raises a 'Net error' via error dispatch.")
+    title="Wait for Econet TX completion with timeout",
+    description="Saves the timeout counter from &0D6F and the\n"
+    "TX control state from &0D61, then polls\n"
+    "net_tx_ptr_hi (&9B) for completion. Uses a\n"
+    "three-level nested loop: the outer counter\n"
+    "comes from the configured timeout at &0D6F.\n"
+    "On completion, restores both saved values.\n"
+    "On timeout (all loops exhausted), branches to\n"
+    "build_no_reply_error to raise 'No reply'.\n"
+    "Called by 6 sites across the protocol stack.")
 subroutine(0x95FB, "cond_save_error_code",
-    description="Conditionally save the error code in A to\n"
-    "workspace (&0E09). Only saves if bit 7 of\n"
-    "&0D6C is set (FS selected).")
+    title="Conditionally store error code to workspace",
+    description="Tests bit 7 of &0D6C (FS selected flag). If\n"
+    "clear, returns immediately. If set, stores A\n"
+    "into &0E09 as the last error code. This guards\n"
+    "against writing error state when no filing system\n"
+    "is active. Called internally by the error\n"
+    "classification chain and by error_inline_log.",
+    on_entry={"a": "error code to store"})
 subroutine(0x9738, "append_drv_dot_num",
     description="Append a space followed by 'net.station' in\n"
     "decimal to the error text buffer. Reads\n"
@@ -2356,19 +2482,33 @@ subroutine(0x9738, "append_drv_dot_num",
     "control block at offsets 3 and 2. Skips\n"
     "the network part if zero (local network).")
 subroutine(0x975C, "append_space_and_num",
-    description="Append a space followed by A as a decimal\n"
-    "number (up to 255) to the error text buffer.\n"
-    "Suppresses leading zeros.")
+    title="Append space and decimal number to error text",
+    description="Writes a space character to the error text buffer\n"
+    "at the current position (fs_load_addr_2), then falls\n"
+    "through to append_decimal_num to convert the value\n"
+    "in A to decimal digits with leading zero suppression.",
+    on_entry={"a": "number to append (0-255)"})
 subroutine(0x9767, "append_decimal_num",
-    description="Append A as a decimal number (up to 255)\n"
-    "to the error text buffer at the position\n"
-    "held in fs_load_addr_2. Suppresses leading\n"
-    "zeros for hundreds and tens digits.")
+    title="Convert byte to decimal and append to error text",
+    description="Extracts hundreds, tens and units digits by three\n"
+    "successive calls to append_decimal_digit. Uses the\n"
+    "V flag to suppress leading zeros — hundreds and tens\n"
+    "are skipped when zero, but the units digit is always\n"
+    "emitted.",
+    on_entry={"a": "number to convert (0-255)"})
 subroutine(0x9778, "append_decimal_digit",
-    description="Divide Y by A using repeated subtraction\n"
-    "and append the quotient as an ASCII digit\n"
-    "to the error text buffer. Suppresses the\n"
-    "digit if V is set and quotient is zero.")
+    title="Extract and append one decimal digit",
+    description="Divides Y by A using repeated subtraction to extract\n"
+    "a single decimal digit. Stores the ASCII digit in the\n"
+    "error text buffer at fs_load_addr_2 unless V is set\n"
+    "and the quotient is zero (leading zero suppression).\n"
+    "Returns the remainder in Y for subsequent digit\n"
+    "extraction.",
+    on_entry={"a": "divisor (100, 10, or 1)",
+              "y": "number to divide",
+              "v": "set to suppress leading zero"},
+    on_exit={"y": "remainder after division",
+             "v": "clear once a non-zero digit is emitted"})
 subroutine(0x9822, "init_tx_ptr_and_send",
     description="Set the TX pointer to &00C0 (the TXCB in\n"
     "zero page) and fall through to send the\n"
@@ -5280,21 +5420,35 @@ label(0x9377, "cmd_rename")
 label(0xB33D, "cmd_wipe")
 
 subroutine(0x92D2, "cmd_fs_operation",
-    description="Shared handler for *Access, *Delete, *Info, *Lib.\n"
-    "Command code distinguishes operation.")
+    title="Shared *Access/*Delete/*Info/*Lib command handler",
+    description="Copies the command name to the TX buffer, parses a\n"
+    "quoted filename argument via parse_quoted_arg, and\n"
+    "checks the access prefix. Validates the filename\n"
+    "does not start with '&', then falls through to\n"
+    "read_filename_char to copy remaining characters and\n"
+    "send the request. Raises 'Bad file name' if a bare\n"
+    "CR is found where a filename was expected.")
 subroutine(0x948A, "cmd_bye",
-    description="*Bye command.\n"
-    "Logs off from the file server. Closes\n"
-    "open files, clears FS context, and\n"
-    "resets workspace state.")
+    title="*Bye command handler",
+    description="Closes all open file control blocks via\n"
+    "process_all_fcbs, shuts down any *SPOOL/*EXEC files\n"
+    "with OSBYTE &77, and closes all network channels.\n"
+    "Falls through to save_net_tx_cb with function code\n"
+    "&17 to send the bye request to the file server.")
 subroutine(0xACFE, "cmd_cdir",
     description="*CDir command.\n"
     "Creates a new directory on the file\n"
     "server.")
 subroutine(0x93C9, "cmd_dir",
-    description="*Dir command.\n"
-    "Sets the current directory on the\n"
-    "file server.")
+    title="*Dir command handler",
+    description="Handles three argument syntaxes: a plain path\n"
+    "(delegates to pass_send_cmd), '&' alone for the root\n"
+    "directory, and '&N.dir' for cross-filesystem directory\n"
+    "changes. The cross-FS form sends a file server\n"
+    "selection command (code &12) to locate the target\n"
+    "server, raising 'Not found' on failure, then sends\n"
+    "the directory change (code 6) and calls\n"
+    "find_fs_and_exit to update the active FS context.")
 subroutine(0xAD59, "cmd_ex",
     description="*Ex command.\n"
     "Examines a directory, listing files\n"
@@ -5341,8 +5495,15 @@ subroutine(0xAF46, "cmd_remove",
     description="*Remove command.\n"
     "Deletes a file from the file server.")
 subroutine(0x9377, "cmd_rename",
-    description="*Rename command.\n"
-    "Renames a file on the file server.")
+    title="*Rename command handler",
+    description="Parses two space-separated filenames from the\n"
+    "command line, each with its own access prefix.\n"
+    "Sets the owner-only access mask before parsing each\n"
+    "name. Validates that both names resolve to the same\n"
+    "file server by comparing the FS options word —\n"
+    "raises 'Bad rename' if they differ. Falls through\n"
+    "to read_filename_char to copy the second filename\n"
+    "into the TX buffer and send the request.")
 subroutine(0xB33D, "cmd_wipe",
     description="*Wipe command.\n"
     "Deletes files with interactive per-\n"
