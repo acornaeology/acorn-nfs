@@ -9139,24 +9139,24 @@ bad_prefix = bad_str_anchor+1
 ; Maps OSWORD codes &0E-&14 to handler routines.
 ; &a508 referenced 1 time by &a4f4
 .osword_dispatch_lo_table
-    equb <(sub_ca516-1)                                               ; a508: 15          .
+    equb <(osword_0e_handler-1)                                       ; a508: 15          .
     equb <(return_21-1)                                               ; a509: 06          .
-    equb <(sub_ca58b-1)                                               ; a50a: 8a          .
-    equb <(sub_ca5a8-1)                                               ; a50b: a7          .
-    equb <(sub_ca61c-1)                                               ; a50c: 1b          .
-    equb <(sub_ca631-1)                                               ; a50d: 30          0
-    equb <(sub_ca8d0-1)                                               ; a50e: cf          .
+    equb <(osword_10_handler-1)                                       ; a50a: 8a          .
+    equb <(osword_11_handler-1)                                       ; a50b: a7          .
+    equb <(osword_12_handler-1)                                       ; a50c: 1b          .
+    equb <(osword_13_dispatch-1)                                      ; a50d: 30          0
+    equb <(osword_14_handler-1)                                       ; a50e: cf          .
 ; &a50f referenced 1 time by &a4f0
 .osword_dispatch_hi_table
-    equb >(sub_ca516-1)                                               ; a50f: a5          .
+    equb >(osword_0e_handler-1)                                       ; a50f: a5          .
     equb >(return_21-1)                                               ; a510: a5          .
-    equb >(sub_ca58b-1)                                               ; a511: a5          .
-    equb >(sub_ca5a8-1)                                               ; a512: a5          .
-    equb >(sub_ca61c-1)                                               ; a513: a6          .
-    equb >(sub_ca631-1)                                               ; a514: a6          .
-    equb >(sub_ca8d0-1)                                               ; a515: a8          .
+    equb >(osword_10_handler-1)                                       ; a511: a5          .
+    equb >(osword_11_handler-1)                                       ; a512: a5          .
+    equb >(osword_12_handler-1)                                       ; a513: a6          .
+    equb >(osword_13_dispatch-1)                                      ; a514: a6          .
+    equb >(osword_14_handler-1)                                       ; a515: a8          .
 
-.sub_ca516
+.osword_0e_handler
     pha                                                               ; a516: 48          H              ; Save A for later test
     bit l0d6c                                                         ; a517: 2c 6c 0d    ,l.            ; Test station active flag
     bpl return_22                                                     ; a51a: 10 09       ..             ; Not active: just return
@@ -9247,7 +9247,7 @@ bad_prefix = bad_str_anchor+1
     plp                                                               ; a589: 28          (              ; Restore flags (clears decimal mode)
     rts                                                               ; a58a: 60          `              ; Return with BCD result in A
 
-.sub_ca58b
+.osword_10_handler
     asl ws_0d60                                                       ; a58b: 0e 60 0d    .`.            ; Shift ws_0d60 left (status flag)
     tya                                                               ; a58e: 98          .              ; A = Y (saved index)
     bcs setup_ws_rx_ptrs                                              ; a58f: b0 03       ..             ; C=1: transmit active path
@@ -9266,7 +9266,7 @@ bad_prefix = bad_str_anchor+1
     jsr copy_pb_byte_to_ws                                            ; a5a2: 20 fb a6     ..            ; Copy data and begin transmission
     jmp tx_begin                                                      ; a5a5: 4c 82 85    L..            ; Jump to begin Econet transmission
 
-.sub_ca5a8
+.osword_11_handler
     ldx nfs_workspace_hi                                              ; a5a8: a6 9f       ..
     stx ws_ptr_hi                                                     ; a5aa: 86 ac       ..
     sty ws_ptr_lo                                                     ; a5ac: 84 ab       ..
@@ -9375,7 +9375,7 @@ bad_prefix = bad_str_anchor+1
     sta (nfs_workspace),y                                             ; a619: 91 9e       ..             ; Store high byte to workspace+Y+1
     rts                                                               ; a61b: 60          `              ; Return
 
-.sub_ca61c
+.osword_12_handler
     lda net_rx_ptr_hi                                                 ; a61c: a5 9d       ..             ; Set workspace from RX ptr high
     sta ws_ptr_hi                                                     ; a61e: 85 ac       ..             ; Store to ws_ptr_hi
     ldy #&7f                                                          ; a620: a0 7f       ..             ; Y=&7F: last byte of RX buffer
@@ -9388,7 +9388,7 @@ bad_prefix = bad_str_anchor+1
     jsr copy_pb_byte_to_ws                                            ; a62b: 20 fb a6     ..            ; Copy workspace data
     jmp commit_state_byte                                             ; a62e: 4c cb ac    L..            ; Update state and return
 
-.sub_ca631
+.osword_13_dispatch
     tax                                                               ; a631: aa          .
     cmp #&13                                                          ; a632: c9 13       ..
     bcs return_23                                                     ; a634: b0 08       ..
@@ -9567,7 +9567,7 @@ bad_prefix = bad_str_anchor+1
 .return_24
     rts                                                               ; a8cf: 60          `              ; Return
 
-.sub_ca8d0
+.osword_14_handler
     cmp #1                                                            ; a8d0: c9 01       ..             ; Compare sub-code with 1
     bcs handle_tx_request                                             ; a8d2: b0 52       .R             ; Sub-code >= 1: handle TX request
     bit l0d6c                                                         ; a8d4: 2c 6c 0d    ,l.            ; Test station active flag
@@ -13787,14 +13787,14 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(net_2_read_handle_entry-1) == &d1
     assert <(net_3_close_handle-1) == &e1
     assert <(nmi_handler-1) == &22
+    assert <(osword_0e_handler-1) == &15
+    assert <(osword_10_handler-1) == &8a
+    assert <(osword_11_handler-1) == &a7
+    assert <(osword_12_handler-1) == &1b
+    assert <(osword_13_dispatch-1) == &30
+    assert <(osword_14_handler-1) == &cf
     assert <(return_21-1) == &06
     assert <(return_4-1) == &41
-    assert <(sub_ca516-1) == &15
-    assert <(sub_ca58b-1) == &8a
-    assert <(sub_ca5a8-1) == &a7
-    assert <(sub_ca61c-1) == &1b
-    assert <(sub_ca631-1) == &30
-    assert <(sub_ca8d0-1) == &cf
     assert <(svc_18_fs_select-1) == &04
     assert <(svc_1_abs_workspace-1) == &8e
     assert <(svc_2_private_workspace-1) == &a1
@@ -13854,14 +13854,14 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(net_2_read_handle_entry-1) == &a0
     assert >(net_3_close_handle-1) == &a0
     assert >(nmi_handler-1) == &80
+    assert >(osword_0e_handler-1) == &a5
+    assert >(osword_10_handler-1) == &a5
+    assert >(osword_11_handler-1) == &a5
+    assert >(osword_12_handler-1) == &a6
+    assert >(osword_13_dispatch-1) == &a6
+    assert >(osword_14_handler-1) == &a8
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
-    assert >(sub_ca516-1) == &a5
-    assert >(sub_ca58b-1) == &a5
-    assert >(sub_ca5a8-1) == &a5
-    assert >(sub_ca61c-1) == &a6
-    assert >(sub_ca631-1) == &a6
-    assert >(sub_ca8d0-1) == &a8
     assert >(svc_18_fs_select-1) == &8b
     assert >(svc_1_abs_workspace-1) == &8e
     assert >(svc_2_private_workspace-1) == &8e
@@ -15445,12 +15445,6 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     return_9
-;     sub_ca516
-;     sub_ca58b
-;     sub_ca5a8
-;     sub_ca61c
-;     sub_ca631
-;     sub_ca8d0
 ;     sub_cbe5e
 
 ; Stats:
