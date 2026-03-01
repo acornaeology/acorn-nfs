@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Annotated disassembly of Acorn NFS (Network Filing System) ROMs for BBC Micro. Python scripts drive py8dis (a programmable 6502 disassembler) to produce readable, verified assembly output from the original 8KB ROM binaries. Versions covered: 3.34, 3.34B, and 3.35D.
+Annotated disassembly of Acorn NFS and ANFS (Network Filing System / Advanced Network Filing System) ROMs for BBC Micro. Python scripts drive py8dis (a programmable 6502 disassembler) to produce readable, verified assembly output from the original ROM binaries. Versions covered: NFS 3.34, 3.34B, 3.35D, 3.35K, 3.40, 3.60, 3.62, 3.65; ANFS 4.08.53.
 
 ## Build commands
 
@@ -23,11 +23,11 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### CLI entry point
 
-`src/disasm_tools/cli.py` — subcommands: `disassemble`, `correlate`, `verify`, `lint`, `compare`. Sets env vars `ACORN_NFS_ROM` and `ACORN_NFS_OUTPUT` before invoking version-specific scripts.
+`src/disasm_tools/cli.py` — subcommands: `disassemble`, `correlate`, `verify`, `lint`, `compare`, `extract`, `audit`, `cfg`, `context`, `backfill`, `labels`, `rename-labels`, `insert-point`. Sets env vars `ACORN_NFS_ROM` and `ACORN_NFS_OUTPUT` before invoking version-specific scripts.
 
 ### Disassembly driver
 
-`versions/3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
+`versions/nfs-3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
 
 ### Lint
 
@@ -39,14 +39,16 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### Correlation tools
 
-`versions/3.34/disassemble/correlate_nfs.py` and `label_correspondence.py` — cross-reference auto-generated labels against DNFS 3.60 reference source using opcode fingerprinting. Used to find meaningful label names for auto-generated ones.
+`versions/nfs-3.34/disassemble/correlate_nfs.py` and `label_correspondence.py` — cross-reference auto-generated labels against DNFS 3.60 reference source using opcode fingerprinting. Used to find meaningful label names for auto-generated ones.
 
 ### Version layout
 
-Each ROM version lives under `versions/<version>/` with subdirectories:
+Each ROM version lives under `versions/<prefix>-<version>/` where prefix is `nfs` or `anfs` (e.g. `versions/nfs-3.34/`, `versions/anfs-4.08.53/`). Subdirectories:
 - `rom/` — original ROM binary and metadata (`rom.json` with hashes)
 - `disassemble/` — py8dis driver script and correlation tools
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
+
+Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`3.34`, `4.08.53`). The `resolve_version_dirpath()` helper in `src/disasm_tools/paths.py` maps them to the prefixed directory by probing for `anfs-{id}` then `nfs-{id}`. The `rom_prefix()` helper extracts the prefix from the directory name.
 
 ### Glossary
 
@@ -77,7 +79,8 @@ Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": 
 
 ## Key technical context
 
-- ROM base address: 0x8000, size: 8192 bytes (standard BBC Micro sideways ROM)
+- NFS ROM base address: 0x8000, size: 8192 bytes (standard BBC Micro sideways ROM)
+- ANFS ROM base address: 0x8000, size: 16384 bytes (16KB sideways ROM)
 - The ROM contains relocated code blocks (copied to pages 0x04-0x06 and zero page at runtime), handled via py8dis `move()` calls
 - py8dis dependency is a custom fork at `github.com/acornaeology/py8dis`
 - Assembly output targets beebasm syntax
