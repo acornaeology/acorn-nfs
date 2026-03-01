@@ -785,7 +785,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ;     X: 0 (low byte of &0700)
 ;     Y: 7 (high byte of &0700)
 ; ***************************************************************************************
-; &bd12 referenced 2 times by &0548[3], &05b3[3]
+; &bd12 referenced 3 times by &0548[3], &0596[3], &05b3[3]
 .tube_read_string
     ldx #0                                                            ; bd12: a2 00       ..  :0582[3]   ; X=0: initialise string buffer index
     ldy #0                                                            ; bd14: a0 00       ..  :0584[3]   ; Y=0: initialise string offset
@@ -803,8 +803,8 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rts                                                               ; bd25: 60          `   :0595[3]   ; Return with XY pointing to string buffer
 
 .tube_oscli
-    equb &20, &82, 5, &20, &f7, &ff                                   ; bd26: 20 82 05...  .. :0596[3]   ; Read command string from R2 into &0700
-
+    jsr tube_read_string                                              ; bd26: 20 82 05     .. :0596[3]   ; Read command string from R2 into &0700
+    jsr oscli                                                         ; bd29: 20 f7 ff     .. :0599[3]
 ; &bd2c referenced 3 times by &0489[2], &052a[3], &055b[3]
 .tube_reply_ack
     lda #&7f                                                          ; bd2c: a9 7f       ..  :059c[3]   ; &7F = success acknowledgement
@@ -818,8 +818,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_main_loop                                                ; bd36: 4c 36 00    L6. :05a6[3]   ; Return to Tube main loop
 
 .tube_osfile
-    equb &a2, &10                                                     ; bd39: a2 10       ..  :05a9[3]   ; Read 16-byte OSFILE control block from R2
-
+    ldx #&10                                                          ; bd39: a2 10       ..  :05a9[3]   ; Read 16-byte OSFILE control block from R2
 ; &bd3b referenced 1 time by &05b1[3]
 .argsw
     jsr tube_read_r2                                                  ; bd3b: 20 c5 06     .. :05ab[3]   ; Read next control block byte from R2
@@ -14192,6 +14191,7 @@ save pydis_start, pydis_end
 ;     svc_return_unclaimed:                     3
 ;     tube_claim_c3:                            3
 ;     tube_data_register_1:                     3
+;     tube_read_string:                         3
 ;     tube_reply_ack:                           3
 ;     tube_xfer_page:                           3
 ;     tx_active_start:                          3
@@ -14331,6 +14331,7 @@ save pydis_start, pydis_end
 ;     net_channel_err_string:                   2
 ;     next_dec_char:                            2
 ;     open_file_for_read:                       2
+;     oscli:                                    2
 ;     osfile:                                   2
 ;     osrdsc_ptr:                               2
 ;     pad_with_spaces:                          2
@@ -14418,7 +14419,6 @@ save pydis_start, pydis_end
 ;     tube_poll_r2_result:                      2
 ;     tube_r2_dispatch_table:                   2
 ;     tube_rdch_reply:                          2
-;     tube_read_string:                         2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
 ;     tube_tx_fifo_write:                       2
@@ -14971,7 +14971,6 @@ save pydis_start, pydis_end
 ;     osbyte_mode_read_codes:                   1
 ;     osbyte_x0_y0:                             1
 ;     osbyte_yff:                               1
-;     oscli:                                    1
 ;     oseven:                                   1
 ;     osfind_close_or_open:                     1
 ;     osfind_with_channel:                      1
@@ -15494,11 +15493,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13907 bytes (85%)
-;     Data                     = 2477 bytes (15%)
+;     Code                     = 13915 bytes (85%)
+;     Data                     = 2469 bytes (15%)
 ;
-;     Number of instructions   = 6810
-;     Number of data bytes     = 1261 bytes
+;     Number of instructions   = 6813
+;     Number of data bytes     = 1253 bytes
 ;     Number of data words     = 24 bytes
 ;     Number of string bytes   = 1192 bytes
 ;     Number of strings        = 147

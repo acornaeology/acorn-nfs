@@ -297,6 +297,8 @@ entry(0x0537)   # tube_osrdch
 entry(0x053A)   # tube_rdch_reply
 entry(0x055E)   # tube_osargs
 entry(0x0562)   # tube_read_params
+entry(0x0596)   # tube_oscli
+entry(0x05A9)   # tube_osfile
 entry(0x05D1)   # tube_osgbpb
 entry(0x05F2)   # tube_osbyte_2param
 
