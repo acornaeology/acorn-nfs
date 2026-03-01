@@ -208,6 +208,59 @@ def cmd_labels(args):
                              summary_only=args.summary))
 
 
+def cmd_rename_labels(args):
+    """Batch rename auto-generated labels in a driver script."""
+    from disasm_tools.rename_labels import rename_labels, show_sub_labels
+
+    version_dirpath = get_version_dirpath(args.version)
+
+    if args.sub:
+        sys.exit(show_sub_labels(version_dirpath, args.version, args.sub))
+
+    if not args.file:
+        print("Error: --file or --sub required", file=sys.stderr)
+        sys.exit(1)
+
+    # Parse the renames file
+    renames_filepath = Path(args.file)
+    if not renames_filepath.exists():
+        print(f"Error: {renames_filepath} not found", file=sys.stderr)
+        sys.exit(1)
+
+    renames = []
+    for line_num, line in enumerate(renames_filepath.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(None, 1)
+        if len(parts) != 2:
+            print(f"Error: bad format at line {line_num}: {line!r}",
+                  file=sys.stderr)
+            sys.exit(1)
+        addr_str, name = parts
+        try:
+            addr = int(addr_str.lstrip("$&").removeprefix("0x"), 16)
+        except ValueError:
+            print(f"Error: bad address at line {line_num}: {addr_str!r}",
+                  file=sys.stderr)
+            sys.exit(1)
+        renames.append((addr, name))
+
+    if not renames:
+        print("No renames found in file")
+        sys.exit(0)
+
+    prefix = rom_prefix(version_dirpath, args.version)
+    script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
+    driver_filepath = version_dirpath / "disassemble" / script_filename
+
+    if not driver_filepath.exists():
+        print(f"Error: {driver_filepath} not found", file=sys.stderr)
+        sys.exit(1)
+
+    sys.exit(rename_labels(driver_filepath, renames))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="acorn-nfs-disasm-tool",
@@ -339,6 +392,15 @@ def main():
     labels_parser.add_argument("--summary", action="store_true",
                                help="Print summary stats only, no files")
     labels_parser.set_defaults(func=cmd_labels)
+
+    rename_parser = subparsers.add_parser(
+        "rename-labels", help="Batch rename auto-generated labels"
+    )
+    rename_parser.add_argument("version", help="NFS version (e.g. 4.08.53)")
+    rename_parser.add_argument("--file", help="Renames file (addr name per line)")
+    rename_parser.add_argument("--sub",
+                               help="Show auto-generated labels in a subroutine")
+    rename_parser.set_defaults(func=cmd_rename_labels)
 
     args = parser.parse_args()
     args.func(args)

@@ -19,8 +19,9 @@ import sys
 from pathlib import Path
 
 from disasm_tools.audit import (
+    BASE_MEMORY_REGIONS,
     BRANCH_MNEMONICS,
-    MEMORY_REGIONS,
+    build_memory_regions,
     load_subroutines,
     region_for_addr,
 )
@@ -63,7 +64,7 @@ def _build_target_refs(items):
     return refs
 
 
-def _find_containing_sub_for_addr(addr, sorted_subs):
+def _find_containing_sub_for_addr(addr, sorted_subs, memory_regions):
     """Find the subroutine whose extent contains addr.
 
     Uses the sorted subroutine list from load_subroutines(). A sub's
@@ -72,10 +73,10 @@ def _find_containing_sub_for_addr(addr, sorted_subs):
     """
     result = None
     result_region = None
-    addr_region = region_for_addr(addr)
+    addr_region = region_for_addr(addr, memory_regions)
 
     for sub in sorted_subs:
-        sub_region = region_for_addr(sub["addr"])
+        sub_region = region_for_addr(sub["addr"], memory_regions)
         if sub_region != addr_region:
             continue
         if sub["addr"] <= addr:
@@ -86,7 +87,8 @@ def _find_containing_sub_for_addr(addr, sorted_subs):
     return result
 
 
-def _classify_labels(auto_labels, items, target_refs, audit_subs):
+def _classify_labels(auto_labels, items, target_refs, audit_subs,
+                     memory_regions):
     """Classify each auto-generated label into a category.
 
     Returns list of dicts with keys: name, addr, category, parent_sub,
@@ -97,7 +99,8 @@ def _classify_labels(auto_labels, items, target_refs, audit_subs):
 
     results = []
     for label_name, label_addr in auto_labels:
-        parent_sub = _find_containing_sub_for_addr(label_addr, sorted_subs)
+        parent_sub = _find_containing_sub_for_addr(
+            label_addr, sorted_subs, memory_regions)
         parent_name = parent_sub["name"] if parent_sub else None
         parent_addr = parent_sub["addr"] if parent_sub else None
 
@@ -105,7 +108,7 @@ def _classify_labels(auto_labels, items, target_refs, audit_subs):
         inbound = []
         for ref_item in target_refs.get(label_addr, []):
             ref_sub = _find_containing_sub_for_addr(
-                ref_item["addr"], sorted_subs)
+                ref_item["addr"], sorted_subs, memory_regions)
             ref_sub_name = ref_sub["name"] if ref_sub else "?"
             ref_sub_addr = ref_sub["addr"] if ref_sub else None
             cross = ref_sub_addr != parent_addr
@@ -127,7 +130,7 @@ def _classify_labels(auto_labels, items, target_refs, audit_subs):
                     ref_item = items_by_addr.get(ref_addr)
                     if ref_item:
                         ref_sub = _find_containing_sub_for_addr(
-                            ref_addr, sorted_subs)
+                            ref_addr, sorted_subs, memory_regions)
                         ref_sub_name = ref_sub["name"] if ref_sub else "?"
                         ref_sub_addr = ref_sub["addr"] if ref_sub else None
                         cross = ref_sub_addr != parent_addr
@@ -411,6 +414,7 @@ def generate_labels(version_dirpath, version, output_dirpath=None,
     # Load data
     data = json.loads(json_filepath.read_text())
     items = data["items"]
+    memory_regions = build_memory_regions(data.get("meta", {}))
 
     # Collect auto-generated labels
     auto_labels = _collect_auto_labels(items)
@@ -426,7 +430,8 @@ def generate_labels(version_dirpath, version, output_dirpath=None,
     audit_by_addr = {s["addr"]: s for s in audit_subs}
 
     # Classify labels
-    classified = _classify_labels(auto_labels, items, target_refs, audit_subs)
+    classified = _classify_labels(
+        auto_labels, items, target_refs, audit_subs, memory_regions)
 
     # Sort
     classified = _sort_labels(classified)
