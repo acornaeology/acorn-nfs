@@ -3106,7 +3106,7 @@ comment(0x8298, "Auto-boot string tail / NETV handler data", inline=True)
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
                            "GBPBV", "FINDV", "FSCV"]):
     addr = 0x829A + i * 2
-    byte(addr, 2)
+    word(addr)
     comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
@@ -3123,10 +3123,8 @@ handler_names = [
 ]
 for i, (name, handler_addr) in enumerate(handler_names):
     base_addr = 0x82A8 + i * 3
-    byte(base_addr, 1)
-    comment(base_addr, f"{name} handler lo (&{handler_addr:04X})", inline=True)
-    byte(base_addr + 1, 1)
-    comment(base_addr + 1, f"{name} handler hi", inline=True)
+    word(base_addr)
+    comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
     if i < 6:  # pad byte for all but last entry
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)

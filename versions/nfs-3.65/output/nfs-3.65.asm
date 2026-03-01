@@ -1946,7 +1946,7 @@ service_handler_lo = service_entry+1
 ; the .BOOT file.
     jmp fscv_3_star_cmd                                               ; 827d: 4c 09 8c    L..            ; Execute command string at (X, Y)
 
-    equs "I .BOO"                                                     ; 8280: 49 20 2e... I .            ; Auto-boot string tail / NETV handler data
+    equs "I .BOO"                                                     ; 8280: 49 20 2e... I .
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -1962,22 +1962,30 @@ service_handler_lo = service_entry+1
 ; padding byte.
 ; ***************************************************************************************
 .fs_vector_addrs
-    equb &54, &0d                                                     ; 8286: 54 0d       T.             ; Auto-boot string tail / NETV handler data
+    equb &54, &0d                                                     ; 8286: 54 0d       T.             ; Auto-boot string tail / vector table header
 ; &8288 referenced 1 time by &8254
 .fs_dispatch_addrs
-    equb &1b, &ff, &1e, &ff, &21, &ff                                 ; 8288: 1b ff 1e... ...            ; ARGSV dispatch lo; BGETV dispatch hi
-    equs "$", &ff, "'", &ff, "*", &ff, "-", &ff                       ; 828e: 24 ff 27... $.'            ; BPUTV dispatch lo; GBPBV dispatch lo; GBPBV dispatch hi; FINDV dispatch lo; FINDV dispatch hi; FSCV dispatch lo
-    equb &fa, &86                                                     ; 8296: fa 86       ..             ; FILEV handler lo (&86FA)
-    equb &4a, &56                                                     ; 8298: 4a 56       JV             ; ARGSV handler lo (&8956)
-    equb &89, &44                                                     ; 829a: 89 44       .D             ; FILEV dispatch (&FF1B)
-    equb &51, &85                                                     ; 829c: 51 85       Q.             ; ARGSV dispatch (&FF1E)
-    equb &57, 1                                                       ; 829e: 57 01       W.             ; BGETV dispatch (&FF21)
-    equb &84, &42                                                     ; 82a0: 84 42       .B             ; BPUTV dispatch (&FF24)
-    equb &60, &8a                                                     ; 82a2: 60 8a       `.             ; GBPBV dispatch (&FF27)
-    equb &41, &c6                                                     ; 82a4: 41 c6       A.             ; FINDV dispatch (&FF2A)
-    equb &89, &52                                                     ; 82a6: 89 52       .R             ; FSCV dispatch (&FF2D)
-    equb &d0                                                          ; 82a8: d0          .              ; FILEV handler lo (&870C)
-    equb &80                                                          ; 82a9: 80          .              ; FILEV handler hi; FSCV handler hi
+    equw &ff1b                                                        ; 8288: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equw &ff1e                                                        ; 828a: 1e ff       ..             ; ARGSV dispatch (&FF1E)
+    equw &ff21                                                        ; 828c: 21 ff       !.             ; BGETV dispatch (&FF21)
+    equw &ff24                                                        ; 828e: 24 ff       $.             ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 8290: 27 ff       '.             ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 8292: 2a ff       *.             ; FINDV dispatch (&FF2A)
+    equw &ff2d                                                        ; 8294: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equw &86fa                                                        ; 8296: fa 86       ..             ; FILEV handler (&86FA)
+    equb &4a                                                          ; 8298: 4a          J              ; (ROM bank — not read)
+    equw &8956                                                        ; 8299: 56 89       V.             ; ARGSV handler (&8956)
+    equb &44                                                          ; 829b: 44          D              ; (ROM bank — not read)
+    equw &8551                                                        ; 829c: 51 85       Q.             ; BGETV handler (&8551)
+    equb &57                                                          ; 829e: 57          W              ; (ROM bank — not read)
+    equw &8401                                                        ; 829f: 01 84       ..             ; BPUTV handler (&8401)
+    equb &42                                                          ; 82a1: 42          B              ; (ROM bank — not read)
+    equw &8a60                                                        ; 82a2: 60 8a       `.             ; GBPBV handler (&8A60)
+    equb &41                                                          ; 82a4: 41          A              ; (ROM bank — not read)
+    equw &89c6                                                        ; 82a5: c6 89       ..             ; FINDV handler (&89C6)
+    equb &52                                                          ; 82a7: 52          R              ; (ROM bank — not read)
+    equw &80d0                                                        ; 82a8: d0 80       ..             ; FSCV handler (&80D0)
+
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
 ; 
@@ -1986,17 +1994,15 @@ service_handler_lo = service_entry+1
 ; allocated — returns unchanged.
 ; ***************************************************************************************
 .svc_1_abs_workspace
-    equb &c0                                                          ; 82aa: c0          .              ; (ROM bank — not read); Already at page &10 or above?
-    equb &10                                                          ; 82ab: 10          .              ; ARGSV handler lo (&8968)
-    equb &b0                                                          ; 82ac: b0          .              ; ARGSV handler hi; Yes: nothing to claim
-    equb 2                                                            ; 82ad: 02          .              ; (ROM bank — not read)
-    equb &a0                                                          ; 82ae: a0          .              ; BGETV handler lo (&8563); Claim pages &0D-&0F (3 pages)
-    equb &10                                                          ; 82af: 10          .              ; BGETV handler hi
-; &82b0 referenced 1 time by &8277
+    cpy #&10                                                          ; 82aa: c0 10       ..             ; Already at page &10 or above?
+    bcs return_3                                                      ; 82ac: b0 02       ..             ; Yes: nothing to claim
+    ldy #&10                                                          ; 82ae: a0 10       ..             ; Claim pages &0D-&0F (3 pages)
+; &82b0 referenced 2 times by &8277, &82ac
 .return_3
-    equb &60                                                          ; 82b0: 60          `              ; (ROM bank — not read); Return (workspace claim done)
-    equb &83                                                          ; 82b1: 83          .              ; BPUTV handler lo (&8413)
-    equb &90                                                          ; 82b2: 90          .              ; BPUTV handler hi
+    rts                                                               ; 82b0: 60          `              ; Return (workspace claim done)
+
+    equb &83, &90                                                     ; 82b1: 83 90       ..
+
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ; 
@@ -2015,25 +2021,20 @@ service_handler_lo = service_entry+1
 ; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
 ; ***************************************************************************************
 .svc_2_private_workspace
-    equb &84                                                          ; 82b3: 84          .              ; (ROM bank — not read); RX buffer page = first claimed page
-    equb &9d                                                          ; 82b4: 9d          .              ; GBPBV handler lo (&8A72)
-    equb &c8                                                          ; 82b5: c8          .              ; GBPBV handler hi; Advance to next page
-    equb &84                                                          ; 82b6: 84          .              ; (ROM bank — not read); Workspace page = second claimed page
-    equb &9f                                                          ; 82b7: 9f          .              ; FINDV handler lo (&89D8)
-    equb &a9                                                          ; 82b8: a9          .              ; FINDV handler hi; A=0 for clearing workspace
-    equb 0                                                            ; 82b9: 00          .              ; (ROM bank — not read)
-    equb &a0                                                          ; 82ba: a0          .              ; FSCV handler lo (&80D4); Y=4: remote status offset
-    equb 4                                                            ; 82bb: 04          .              ; FSCV handler hi
-
+    sty net_rx_ptr_hi                                                 ; 82b3: 84 9d       ..             ; RX buffer page = first claimed page
+    iny                                                               ; 82b5: c8          .              ; Advance to next page
+    sty nfs_workspace_hi                                              ; 82b6: 84 9f       ..             ; Workspace page = second claimed page
+    lda #0                                                            ; 82b8: a9 00       ..             ; A=0 for clearing workspace
+    ldy #4                                                            ; 82ba: a0 04       ..             ; Y=4: remote status offset
     sta (net_rx_ptr),y                                                ; 82bc: 91 9c       ..             ; Clear status byte in net receive buffer
     ldy #&ff                                                          ; 82be: a0 ff       ..             ; Y=&FF: used for later iteration
     sta net_rx_ptr                                                    ; 82c0: 85 9c       ..             ; Clear RX ptr low byte
     sta nfs_workspace                                                 ; 82c2: 85 9e       ..             ; Clear workspace ptr low byte
     sta ws_page                                                       ; 82c4: 85 a8       ..             ; Clear RXCB iteration counter
     sta tx_clear_flag                                                 ; 82c6: 8d 62 0d    .b.            ; Clear TX semaphore (no TX in progress)
-    tax                                                               ; 82c9: aa          .              ; X=0 for OSBYTE
+    tax                                                               ; 82c9: aa          .              ; X=0 for OSBYTE; X=&00
     lda #osbyte_read_write_last_break_type                            ; 82ca: a9 fd       ..             ; OSBYTE &FD: read type of last reset
-    jsr osbyte                                                        ; 82cc: 20 f4 ff     ..            ; Read/Write type of last reset
+    jsr osbyte                                                        ; 82cc: 20 f4 ff     ..            ; Read type of last reset
     txa                                                               ; 82cf: 8a          .              ; X = break type from OSBYTE result; X=value of type of last reset
     beq read_station_id                                               ; 82d0: f0 32       .2             ; Soft break (X=0): skip FS init
     ldy #&15                                                          ; 82d2: a0 15       ..             ; Y=&15: printer station offset in RX buffer
@@ -8482,12 +8483,12 @@ save pydis_start, pydis_end
 ;     tube_addr_claim:                         10
 ;     tube_data_register_3:                    10
 ;     tube_status_register_2:                  10
+;     nfs_workspace_hi:                         9
 ;     rx_src_stn:                               9
 ;     txcb_end:                                 9
 ;     txcb_start:                               9
 ;     fs_error_ptr:                             8
 ;     net_tx_ptr_hi:                            8
-;     nfs_workspace_hi:                         8
 ;     rx_flags:                                 8
 ;     table_idx:                                8
 ;     tube_send_r4:                             8
@@ -8550,6 +8551,7 @@ save pydis_start, pydis_end
 ;     fs_server_net:                            4
 ;     init_tx_ctrl_block:                       4
 ;     l0d1c:                                    4
+;     net_rx_ptr_hi:                            4
 ;     nmi_next_hi:                              4
 ;     nmi_next_lo:                              4
 ;     osbyte_a_copy:                            4
@@ -8587,7 +8589,6 @@ save pydis_start, pydis_end
 ;     inc_buf_counter_32:                       3
 ;     incpx:                                    3
 ;     match_osbyte_code:                        3
-;     net_rx_ptr_hi:                            3
 ;     next_port_slot:                           3
 ;     nmi_jmp_hi:                               3
 ;     nmi_jmp_lo:                               3
@@ -8708,6 +8709,7 @@ save pydis_start, pydis_end
 ;     release_tube:                             2
 ;     remot1:                                   2
 ;     restore_ws_return:                        2
+;     return_3:                                 2
 ;     return_7:                                 2
 ;     return_match_osbyte:                      2
 ;     return_nbyte:                             2
@@ -9071,7 +9073,6 @@ save pydis_start, pydis_end
 ;     restore_x_and_return:                     1
 ;     return_10:                                1
 ;     return_2:                                 1
-;     return_3:                                 1
 ;     return_4:                                 1
 ;     return_5:                                 1
 ;     return_6:                                 1
@@ -9255,11 +9256,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7258 bytes (89%)
-;     Data                     = 934 bytes (11%)
+;     Code                     = 7274 bytes (89%)
+;     Data                     = 918 bytes (11%)
 ;
-;     Number of instructions   = 3513
-;     Number of data bytes     = 678 bytes
-;     Number of data words     = 24 bytes
-;     Number of string bytes   = 232 bytes
-;     Number of strings        = 38
+;     Number of instructions   = 3522
+;     Number of data bytes     = 642 bytes
+;     Number of data words     = 52 bytes
+;     Number of string bytes   = 224 bytes
+;     Number of strings        = 37

@@ -6196,10 +6196,49 @@ entry(0x05D3)   # read_osgbpb_ctrl_blk (ANFS variant)
 # Data tables in main ROM
 # ============================================================
 
-# FS vector initialisation table at &8E4B (14 bytes)
-# Copies to MOS vectors &0212-&021F (FILEV through FSCV).
-# All set to &FFxx (unimplemented MOS stubs) initially.
-label(0x8E4B, "fs_vector_table")
+# ============================================================
+# FS vector dispatch and handler addresses (&8E4B)
+# ============================================================
+subroutine(0x8E4B, "fs_vector_table",
+    title="FS vector dispatch and handler addresses (34 bytes)",
+    description="""\
+Bytes 0-13: extended vector dispatch addresses, copied to
+FILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is
+a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+the handler in the extended vector table.
+
+Bytes 14-33: handler address pairs read by write_vector_entry.
+Each entry has addr_lo, addr_hi, then a padding byte that is
+not read at runtime (write_vector_entry writes the current ROM
+bank number instead). The last entry (FSCV) has no padding
+byte.""")
+
+# Part 1: extended vector dispatch addresses (7 x 2 bytes)
+for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
+                           "GBPBV", "FINDV", "FSCV"]):
+    addr = 0x8E4B + i * 2
+    word(addr)
+    comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
+
+# Part 2: handler address entries (7 x {lo, hi, pad})
+# write_vector_entry reads lo/hi from svc_dispatch_lo_offset+Y.
+# With Y=&1B, that's &8E3E+&1B = &8E59.
+handler_names = [
+    ("FILEV",  0x9921),
+    ("ARGSV",  0x9BAF),
+    ("BGETV",  0xB7CF),
+    ("BPUTV",  0xB850),
+    ("GBPBV",  0x9E23),
+    ("FINDV",  0x9D42),
+    ("FSCV",   0x8E1D),
+]
+for i, (name, handler_addr) in enumerate(handler_names):
+    base_addr = 0x8E59 + i * 3
+    word(base_addr)
+    comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
+    if i < 6:  # pad byte for all but last entry
+        byte(base_addr + 2, 1)
+        comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
 # "PRINT " string at &8E43
 label(0x8E43, "print_string")

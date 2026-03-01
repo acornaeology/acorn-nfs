@@ -4469,11 +4469,42 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 .print_string
     equs "PRINT "                                                     ; 8e43: 50 52 49... PRI
     equb 1, 0                                                         ; 8e49: 01 00       ..
+; ***************************************************************************************
+; FS vector dispatch and handler addresses (34 bytes)
+; 
+; Bytes 0-13: extended vector dispatch addresses, copied to
+; FILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is
+; a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+; the handler in the extended vector table.
+; 
+; Bytes 14-33: handler address pairs read by write_vector_entry.
+; Each entry has addr_lo, addr_hi, then a padding byte that is
+; not read at runtime (write_vector_entry writes the current ROM
+; bank number instead). The last entry (FSCV) has no padding
+; byte.
+; ***************************************************************************************
 ; &8e4b referenced 1 time by &8b40
 .fs_vector_table
-    equb &1b, &ff, &1e, &ff, &21, &ff, &24, &ff, &27, &ff, &2a, &ff   ; 8e4b: 1b ff 1e... ...
-    equb &2d, &ff, &21, &99, &4a, &af, &9b, &44, &cf, &b7, &57, &50   ; 8e57: 2d ff 21... -.!
-    equb &b8, &42, &23, &9e, &41, &42, &9d, &52, &1d, &8e             ; 8e63: b8 42 23... .B#
+    equw &ff1b                                                        ; 8e4b: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equw &ff1e                                                        ; 8e4d: 1e ff       ..             ; ARGSV dispatch (&FF1E)
+    equw &ff21                                                        ; 8e4f: 21 ff       !.             ; BGETV dispatch (&FF21)
+    equw &ff24                                                        ; 8e51: 24 ff       $.             ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 8e53: 27 ff       '.             ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 8e55: 2a ff       *.             ; FINDV dispatch (&FF2A)
+    equw &ff2d                                                        ; 8e57: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equw &9921                                                        ; 8e59: 21 99       !.             ; FILEV handler (&9921)
+    equb &4a                                                          ; 8e5b: 4a          J              ; (ROM bank — not read)
+    equw &9baf                                                        ; 8e5c: af 9b       ..             ; ARGSV handler (&9BAF)
+    equb &44                                                          ; 8e5e: 44          D              ; (ROM bank — not read)
+    equw &b7cf                                                        ; 8e5f: cf b7       ..             ; BGETV handler (&B7CF)
+    equb &57                                                          ; 8e61: 57          W              ; (ROM bank — not read)
+    equw &b850                                                        ; 8e62: 50 b8       P.             ; BPUTV handler (&B850)
+    equb &42                                                          ; 8e64: 42          B              ; (ROM bank — not read)
+    equw &9e23                                                        ; 8e65: 23 9e       #.             ; GBPBV handler (&9E23)
+    equb &41                                                          ; 8e67: 41          A              ; (ROM bank — not read)
+    equw &9d42                                                        ; 8e68: 42 9d       B.             ; FINDV handler (&9D42)
+    equb &52                                                          ; 8e6a: 52          R              ; (ROM bank — not read)
+    equw &8e1d                                                        ; 8e6b: 1d 8e       ..             ; FSCV handler (&8E1D)
 
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=&FF
@@ -15597,7 +15628,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2469 bytes (15%)
 ;
 ;     Number of instructions   = 6813
-;     Number of data bytes     = 1253 bytes
-;     Number of data words     = 24 bytes
+;     Number of data bytes     = 1225 bytes
+;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 1192 bytes
 ;     Number of strings        = 147

@@ -3049,9 +3049,9 @@ comment(0x8264, "Install each 3-byte vector entry", inline=True)
 comment(0x8267, "X=0 after loop; store as workspace offset", inline=True)
 
 # ============================================================
-# Auto-boot command string (&828E)
+# Auto-boot command string (&8280)
 # ============================================================
-string(0x828E, 8)
+string(0x8280, 6)
 comment(0x827C, """\
 Synthetic auto-boot command string. "I " does not match any
 entry in NFS's local command table — "I." requires a dot, and
@@ -3060,7 +3060,7 @@ forwards the entire string to the fileserver, which executes
 the .BOOT file.""")
 
 # ============================================================
-# FS vector dispatch and handler addresses (&8288)
+# FS vector dispatch and handler addresses (&8286)
 # ============================================================
 subroutine(0x8286, "fs_vector_addrs", hook=None,
     title="FS vector dispatch and handler addresses (34 bytes)",
@@ -3076,41 +3076,37 @@ not read at runtime (store_rom_ptr_pair writes the current ROM
 bank number without reading). The last entry (FSCV) has no
 padding byte.""")
 
-# Bytes &8296-&8299 overlap: tail of auto-boot string "OOT\r"
-# and the first 4 bytes of fs_vector_addrs. Not copied by the
-# dispatch loop (which starts at l829a = &829A).
-byte(0x8296, 2)
-comment(0x8284, "Auto-boot string tail / NETV handler data", inline=True)
-byte(0x8298, 2)
-comment(0x8286, "Auto-boot string tail / NETV handler data", inline=True)
+# Bytes &8286-&8287 overlap: tail of auto-boot string "T\r"
+# and the first 2 bytes of fs_vector_addrs. Not copied by the
+# dispatch loop (which starts at fs_dispatch_addrs = &8288).
+byte(0x8286, 2)
+comment(0x8286, "Auto-boot string tail / vector table header", inline=True)
 
 # Part 1: extended vector dispatch addresses (7 x 2 bytes)
-# The copy loop reads from l829a (Y=0..&0D), so the dispatch table
-# starts at &829A, not at fs_vector_addrs (&8298).
+# The copy loop reads from fs_dispatch_addrs (Y=0..&0D), so the
+# dispatch table starts at &8288, not at fs_vector_addrs (&8286).
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
                            "GBPBV", "FINDV", "FSCV"]):
-    addr = 0x829A + i * 2
-    byte(addr, 2)
+    addr = 0x8288 + i * 2
+    word(addr)
     comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
 # store_rom_ptr_pair reads lo/hi from run_fscv_cmd+Y. With Y=&1B,
-# that's &828D+&1B = &82A8, so the handler table starts at &82A8.
+# that's &827B+&1B = &8296, so the handler table starts at &8296.
 handler_names = [
-    ("FILEV",  0x870C),
-    ("ARGSV",  0x8968),
-    ("BGETV",  0x8563),
-    ("BPUTV",  0x8413),
-    ("GBPBV",  0x8A72),
-    ("FINDV",  0x89D8),
-    ("FSCV",   0x80D4),
+    ("FILEV",  0x86FA),
+    ("ARGSV",  0x8956),
+    ("BGETV",  0x8551),
+    ("BPUTV",  0x8401),
+    ("GBPBV",  0x8A60),
+    ("FINDV",  0x89C6),
+    ("FSCV",   0x80D0),
 ]
 for i, (name, handler_addr) in enumerate(handler_names):
-    base_addr = 0x82A8 + i * 3
-    byte(base_addr, 1)
-    comment(base_addr, f"{name} handler lo (&{handler_addr:04X})", inline=True)
-    byte(base_addr + 1, 1)
-    comment(base_addr + 1, f"{name} handler hi", inline=True)
+    base_addr = 0x8296 + i * 3
+    word(base_addr)
+    comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
     if i < 6:  # pad byte for all but last entry
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
@@ -8289,17 +8285,6 @@ comment(0x8270, "X=&0A: service &0A", inline=True)
 comment(0x8277, "Non-zero: skip auto-boot", inline=True)
 comment(0x827B, "Y=&82: ROM page high byte", inline=True)
 comment(0x827D, "Execute command string at (X, Y)", inline=True)
-comment(0x828A, "ARGSV dispatch lo", inline=True)
-comment(0x828D, "BGETV dispatch hi", inline=True)
-comment(0x828E, "BPUTV dispatch lo", inline=True)
-comment(0x8290, "GBPBV dispatch lo", inline=True)
-comment(0x8291, "GBPBV dispatch hi", inline=True)
-comment(0x8292, "FINDV dispatch lo", inline=True)
-comment(0x8293, "FINDV dispatch hi", inline=True)
-comment(0x8294, "FSCV dispatch lo", inline=True)
-comment(0x8296, "FILEV handler lo (&86FA)", inline=True)
-comment(0x8298, "ARGSV handler lo (&8956)", inline=True)
-comment(0x82A9, "FSCV handler hi", inline=True)
 comment(0x82B0, "Return (workspace claim done)", inline=True)
 comment(0x8341, "Load FS state byte at offset Y", inline=True)
 comment(0x8344, "Store to workspace backup area", inline=True)

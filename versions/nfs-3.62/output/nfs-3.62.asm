@@ -1990,33 +1990,26 @@ service_handler_lo = service_entry+1
     equb &54, &0d                                                     ; 8298: 54 0d       T.             ; Auto-boot string tail / NETV handler data
 ; &829a referenced 1 time by &8266
 .fs_dispatch_addrs
-    equb &1b, &ff                                                     ; 829a: 1b ff       ..             ; FILEV dispatch (&FF1B)
-    equb &1e, &ff                                                     ; 829c: 1e ff       ..             ; ARGSV dispatch (&FF1E); ARGSV dispatch lo
-    equb &21, &ff                                                     ; 829e: 21 ff       !.             ; BGETV dispatch (&FF21); BGETV dispatch hi
-    equb &24, &ff                                                     ; 82a0: 24 ff       $.             ; BPUTV dispatch (&FF24); BPUTV dispatch lo
-    equb &27, &ff                                                     ; 82a2: 27 ff       '.             ; GBPBV dispatch (&FF27); GBPBV dispatch lo; GBPBV dispatch hi
-    equb &2a, &ff                                                     ; 82a4: 2a ff       *.             ; FINDV dispatch (&FF2A); FINDV dispatch lo; FINDV dispatch hi
-    equb &2d, &ff                                                     ; 82a6: 2d ff       -.             ; FSCV dispatch (&FF2D); FSCV dispatch lo
-    equb &0c                                                          ; 82a8: 0c          .              ; FILEV handler lo (&870C)
-    equb &87                                                          ; 82a9: 87          .              ; FILEV handler hi
+    equw &ff1b                                                        ; 829a: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equw &ff1e                                                        ; 829c: 1e ff       ..             ; ARGSV dispatch (&FF1E); ARGSV dispatch lo
+    equw &ff21                                                        ; 829e: 21 ff       !.             ; BGETV dispatch (&FF21); BGETV dispatch hi
+    equw &ff24                                                        ; 82a0: 24 ff       $.             ; BPUTV dispatch (&FF24); BPUTV dispatch lo
+    equw &ff27                                                        ; 82a2: 27 ff       '.             ; GBPBV dispatch (&FF27); GBPBV dispatch lo; GBPBV dispatch hi
+    equw &ff2a                                                        ; 82a4: 2a ff       *.             ; FINDV dispatch (&FF2A); FINDV dispatch lo; FINDV dispatch hi
+    equw &ff2d                                                        ; 82a6: 2d ff       -.             ; FSCV dispatch (&FF2D); FSCV dispatch lo
+    equw &870c                                                        ; 82a8: 0c 87       ..             ; FILEV handler (&870C)
     equb &4a                                                          ; 82aa: 4a          J              ; (ROM bank — not read)
-    equb &68                                                          ; 82ab: 68          h              ; ARGSV handler lo (&8968)
-    equb &89                                                          ; 82ac: 89          .              ; ARGSV handler hi
+    equw &8968                                                        ; 82ab: 68 89       h.             ; ARGSV handler (&8968)
     equb &44                                                          ; 82ad: 44          D              ; (ROM bank — not read)
-    equb &63                                                          ; 82ae: 63          c              ; BGETV handler lo (&8563)
-    equb &85                                                          ; 82af: 85          .              ; BGETV handler hi
+    equw &8563                                                        ; 82ae: 63 85       c.             ; BGETV handler (&8563)
     equb &57                                                          ; 82b0: 57          W              ; (ROM bank — not read)
-    equb &13                                                          ; 82b1: 13          .              ; BPUTV handler lo (&8413)
-    equb &84                                                          ; 82b2: 84          .              ; BPUTV handler hi
+    equw &8413                                                        ; 82b1: 13 84       ..             ; BPUTV handler (&8413)
     equb &42                                                          ; 82b3: 42          B              ; (ROM bank — not read)
-    equb &72                                                          ; 82b4: 72          r              ; GBPBV handler lo (&8A72)
-    equb &8a                                                          ; 82b5: 8a          .              ; GBPBV handler hi
+    equw &8a72                                                        ; 82b4: 72 8a       r.             ; GBPBV handler (&8A72)
     equb &41                                                          ; 82b6: 41          A              ; (ROM bank — not read)
-    equb &d8                                                          ; 82b7: d8          .              ; FINDV handler lo (&89D8)
-    equb &89                                                          ; 82b8: 89          .              ; FINDV handler hi
+    equw &89d8                                                        ; 82b7: d8 89       ..             ; FINDV handler (&89D8)
     equb &52                                                          ; 82b9: 52          R              ; (ROM bank — not read)
-    equb &d4                                                          ; 82ba: d4          .              ; FSCV handler lo (&80D4)
-    equb &80                                                          ; 82bb: 80          .              ; FSCV handler hi; FSCV handler hi
+    equw &80d4                                                        ; 82ba: d4 80       ..             ; FSCV handler (&80D4); FSCV handler hi
 
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
@@ -9303,7 +9296,7 @@ save pydis_start, pydis_end
 ;     Data                     = 878 bytes (11%)
 ;
 ;     Number of instructions   = 3550
-;     Number of data bytes     = 613 bytes
-;     Number of data words     = 24 bytes
+;     Number of data bytes     = 585 bytes
+;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 241 bytes
 ;     Number of strings        = 37
