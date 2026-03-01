@@ -19,24 +19,17 @@ def find_repo_root():
 
 def get_version_dirpath(version):
     """Return the path to a version directory, raising if it doesn't exist."""
+    from disasm_tools.paths import resolve_version_dirpath
+
     repo_root = find_repo_root()
-    version_dirpath = repo_root / "versions" / version
-    if not version_dirpath.is_dir():
-        available = sorted(
-            p.name for p in (repo_root / "versions").iterdir() if p.is_dir()
-        )
-        print(f"Error: version '{version}' not found.", file=sys.stderr)
-        if available:
-            print(f"Available versions: {', '.join(available)}", file=sys.stderr)
-        sys.exit(1)
-    return version_dirpath
+    return resolve_version_dirpath(repo_root / "versions", version)
 
 
-def rom_prefix(version_dirpath, version):
+def rom_prefix(version_dirpath):
     """Return 'anfs' for ANFS versions, 'nfs' otherwise."""
-    if (version_dirpath / "rom" / f"anfs-{version}.rom").exists():
-        return "anfs"
-    return "nfs"
+    from disasm_tools.paths import rom_prefix as _rom_prefix
+
+    return _rom_prefix(version_dirpath)
 
 
 
@@ -44,7 +37,7 @@ def rom_prefix(version_dirpath, version):
 def cmd_disassemble(args):
     """Run the disassembly for a given NFS version."""
     version_dirpath = get_version_dirpath(args.version)
-    prefix = rom_prefix(version_dirpath, args.version)
+    prefix = rom_prefix(version_dirpath)
     script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
     script_filepath = version_dirpath / "disassemble" / script_filename
 
@@ -59,7 +52,7 @@ def cmd_disassemble(args):
             sys.exit(1)
 
     env = os.environ.copy()
-    prefix = rom_prefix(version_dirpath, args.version)
+    prefix = rom_prefix(version_dirpath)
     env["ACORN_NFS_ROM"] = str(version_dirpath / "rom" / f"{prefix}-{args.version}.rom")
     env["ACORN_NFS_OUTPUT"] = str(version_dirpath / "output")
 
@@ -117,7 +110,7 @@ def cmd_extract(args):
     from disasm_tools.asm_extract import extract
 
     version_dirpath = get_version_dirpath(args.version)
-    prefix = rom_prefix(version_dirpath, args.version)
+    prefix = rom_prefix(version_dirpath)
     asm_filepath = version_dirpath / "output" / f"{prefix}-{args.version}.asm"
 
     if not asm_filepath.exists():
@@ -142,7 +135,7 @@ def cmd_insert_point(args):
     from disasm_tools.insert_point import find_insert_point
 
     version_dirpath = get_version_dirpath(args.version)
-    prefix = rom_prefix(version_dirpath, args.version)
+    prefix = rom_prefix(version_dirpath)
     script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
     driver_filepath = version_dirpath / "disassemble" / script_filename
 
@@ -250,7 +243,7 @@ def cmd_rename_labels(args):
         print("No renames found in file")
         sys.exit(0)
 
-    prefix = rom_prefix(version_dirpath, args.version)
+    prefix = rom_prefix(version_dirpath)
     script_filename = f"disasm_{prefix}_{args.version.replace('.', '').lower()}.py"
     driver_filepath = version_dirpath / "disassemble" / script_filename
 

@@ -388,7 +388,8 @@ def format_depth(G):
 def cfg(version_dirpath, version, fmt="json", leaves=False, roots=False,
         sub=None, depth=False):
     """Main entry point. Returns exit code."""
-    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    from disasm_tools.paths import rom_prefix
+    pfx = rom_prefix(version_dirpath)
     json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
 
     if not json_filepath.exists():

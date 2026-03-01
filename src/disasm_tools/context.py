@@ -108,7 +108,8 @@ def generate_context(version_dirpath, version, threshold=50,
 
     Returns exit code (0 success, 1 error).
     """
-    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    from disasm_tools.paths import rom_prefix
+    pfx = rom_prefix(version_dirpath)
     json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
     asm_filepath = version_dirpath / "output" / f"{pfx}-{version}.asm"
 

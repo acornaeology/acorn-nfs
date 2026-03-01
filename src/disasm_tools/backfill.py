@@ -201,10 +201,13 @@ def build_chained_map(repo_root, source_version, target_version):
     for i in chain_indices:
         v_a, v_b, reloc_blocks = VERSION_CHAIN[i]
         # Always load ROMs in VERSION_CHAIN order so reloc_blocks match
-        pfx_a = "anfs" if (repo_root / "versions" / v_a / "rom" / f"anfs-{v_a}.rom").exists() else "nfs"
-        pfx_b = "anfs" if (repo_root / "versions" / v_b / "rom" / f"anfs-{v_b}.rom").exists() else "nfs"
-        rom_a_filepath = repo_root / "versions" / v_a / "rom" / f"{pfx_a}-{v_a}.rom"
-        rom_b_filepath = repo_root / "versions" / v_b / "rom" / f"{pfx_b}-{v_b}.rom"
+        from disasm_tools.paths import resolve_version_dirpath, rom_prefix
+        ver_a_dirpath = resolve_version_dirpath(repo_root / "versions", v_a)
+        ver_b_dirpath = resolve_version_dirpath(repo_root / "versions", v_b)
+        pfx_a = rom_prefix(ver_a_dirpath)
+        pfx_b = rom_prefix(ver_b_dirpath)
+        rom_a_filepath = ver_a_dirpath / "rom" / f"{pfx_a}-{v_a}.rom"
+        rom_b_filepath = ver_b_dirpath / "rom" / f"{pfx_b}-{v_b}.rom"
         data_a = rom_a_filepath.read_bytes()
         data_b = rom_b_filepath.read_bytes()
 
@@ -394,12 +397,14 @@ def backfill(repo_root, source_version, target_version, threshold=5,
           file=sys.stderr)
 
     # Load source annotations
+    from disasm_tools.paths import resolve_version_dirpath, rom_prefix
+    source_dirpath = resolve_version_dirpath(repo_root / "versions", source_version)
+    source_pfx = rom_prefix(source_dirpath)
     source_script_filename = (
-        f"disasm_nfs_{source_version.replace('.', '').lower()}.py"
+        f"disasm_{source_pfx}_{source_version.replace('.', '').lower()}.py"
     )
     source_script_filepath = (
-        repo_root / "versions" / source_version / "disassemble"
-        / source_script_filename
+        source_dirpath / "disassemble" / source_script_filename
     )
     print(f"Parsing source annotations from {source_script_filepath.name}...",
           file=sys.stderr)
@@ -410,12 +415,13 @@ def backfill(repo_root, source_version, target_version, threshold=5,
           file=sys.stderr)
 
     # Load target annotations
+    target_dirpath = resolve_version_dirpath(repo_root / "versions", target_version)
+    target_pfx = rom_prefix(target_dirpath)
     target_script_filename = (
-        f"disasm_nfs_{target_version.replace('.', '').lower()}.py"
+        f"disasm_{target_pfx}_{target_version.replace('.', '').lower()}.py"
     )
     target_script_filepath = (
-        repo_root / "versions" / target_version / "disassemble"
-        / target_script_filename
+        target_dirpath / "disassemble" / target_script_filename
     )
     print(f"Parsing target annotations from {target_script_filepath.name}...",
           file=sys.stderr)

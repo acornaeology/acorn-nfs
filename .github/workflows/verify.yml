@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.34", "3.34B", "3.35D", "3.35K", "3.40", "3.60"]
+        version: ["3.34", "3.34B", "3.35D", "3.35K", "3.40", "3.60", "3.62", "3.65", "4.08.53"]
     steps:
       - uses: actions/checkout@v4
 

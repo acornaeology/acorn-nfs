@@ -791,7 +791,8 @@ def format_undeclared_detail(target, json_filepath, asm_filepath):
 def audit(version_dirpath, version, sub_target=None, summary=False,
           flag_filter=None, undeclared=False):
     """Main entry point. Returns exit code 0 on success, 1 on error."""
-    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    from disasm_tools.paths import rom_prefix
+    pfx = rom_prefix(version_dirpath)
     json_filepath = version_dirpath / "output" / f"{pfx}-{version}.json"
     asm_filepath = version_dirpath / "output" / f"{pfx}-{version}.asm"
 

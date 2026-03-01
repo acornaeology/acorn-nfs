@@ -241,8 +241,9 @@ def lint_docs(version_dirpath, version):
 
     def get_ranges(ver):
         if ver not in ranges_cache:
-            ver_dirpath = repo_root / "versions" / ver
-            pfx = "anfs" if (ver_dirpath / "rom" / f"anfs-{ver}.rom").exists() else "nfs"
+            from disasm_tools.paths import resolve_version_dirpath, rom_prefix
+            ver_dirpath = resolve_version_dirpath(repo_root / "versions", ver)
+            pfx = rom_prefix(ver_dirpath)
             json_fp = ver_dirpath / "output" / f"{pfx}-{ver}.json"
             if json_fp.exists():
                 ranges_cache[ver] = load_address_ranges(json_fp)
@@ -435,7 +436,8 @@ def lint(version_dirpath, version):
 
     Returns 0 on success, 1 on failure.
     """
-    pfx = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    from disasm_tools.paths import rom_prefix
+    pfx = rom_prefix(version_dirpath)
     script_filename = f"disasm_{pfx}_{version.replace('.', '').lower()}.py"
     driver_filepath = version_dirpath / "disassemble" / script_filename
     if not driver_filepath.exists():

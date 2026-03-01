@@ -12,7 +12,8 @@ def verify(version_dirpath, version):
 
     Returns 0 on success, 1 on failure.
     """
-    prefix = "anfs" if (version_dirpath / "rom" / f"anfs-{version}.rom").exists() else "nfs"
+    from disasm_tools.paths import rom_prefix
+    prefix = rom_prefix(version_dirpath)
     rom_filepath = version_dirpath / "rom" / f"{prefix}-{version}.rom"
     asm_filepath = version_dirpath / "output" / f"{prefix}-{version}.asm"
 
