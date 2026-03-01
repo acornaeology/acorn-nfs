@@ -3092,211 +3092,267 @@ subroutine(0xAFF9, "copy_ps_data",
     "configuration data used when initialising a new\n"
     "printer server slot.")
 subroutine(0xB0A1, "print_file_server_is",
-    description="Print 'File server is ' header text using\n"
-    "inline string printing. Falls through to\n"
-    "the shared ' server is ' suffix.")
+    title="Print 'File server ' prefix",
+    description="Uses print_inline to output 'File' then falls through\n"
+    "to the shared ' server is ' suffix at\n"
+    "print_printer_server_is.")
 subroutine(0xB0AB, "print_printer_server_is",
-    description="Print 'Printer server is ' header text using\n"
-    "inline string printing.")
+    title="Print 'Printer server is ' prefix",
+    description="Uses print_inline to output the full label\n"
+    "'Printer server is ' with trailing space.")
 subroutine(0xB0C6, "load_ps_server_addr",
-    description="Load the printer server station and network\n"
-    "addresses from workspace at offsets 2 and 3\n"
-    "into the station/network variables.")
+    title="Load printer server address from workspace",
+    description="Reads the station and network bytes from workspace\n"
+    "offsets 2 and 3 into the station/network variables.")
 subroutine(0xB0D2, "pop_requeue_ps_scan",
-    description="Pop the return address and requeue the PS\n"
-    "slot scan. Converts the PS slot flags to a\n"
-    "workspace index, writes slot data, and jumps\n"
-    "back into the PS scan loop.")
+    title="Pop return address and requeue PS slot scan",
+    description="Converts the PS slot flags to a workspace index,\n"
+    "writes slot data, and jumps back into the PS scan\n"
+    "loop to continue processing.")
 subroutine(0xB13A, "write_ps_slot_byte_ff",
-    description="Write the buffer page byte followed by two\n"
-    "&FF marker bytes to the PS slot workspace\n"
-    "at the current Y offset, advancing Y.")
+    title="Write buffer page byte and two &FF markers",
+    description="Stores the buffer page byte at the current Y offset\n"
+    "in workspace, followed by two &FF sentinel bytes.\n"
+    "Advances Y after each write.")
 subroutine(0xB141, "write_two_bytes_inc_y",
-    description="Write A to two consecutive workspace bytes\n"
-    "at the current Y offset, advancing Y after\n"
-    "each write.")
+    title="Write A to two consecutive workspace bytes",
+    description="Stores A at the current Y offset via (nfs_workspace),Y\n"
+    "then again at Y+1, advancing Y after each write.",
+    on_entry={"a": "byte to store", "y": "workspace offset"})
 subroutine(0xB149, "reverse_ps_name_to_tx",
-    description="Reverse-copy the printer server name from\n"
-    "the RX buffer (offsets &1C-&23) to the TX\n"
-    "buffer (offsets &13-&1B) in reversed byte\n"
-    "order using the stack.")
+    title="Reverse-copy printer server name to TX buffer",
+    description="Copies 8 bytes from the RX buffer (offsets &1C-&23)\n"
+    "to the TX buffer (offsets &13-&1B) in reversed byte\n"
+    "order, pushing onto the stack then popping back.")
 subroutine(0xB174, "print_station_addr",
-    description="Print a station address as net.station in\n"
-    "decimal. If the network number is zero,\n"
-    "prints only the station number. V flag\n"
-    "controls padding with leading spaces.")
+    title="Print station address as decimal net.station",
+    description="If the network number is zero, prints only the\n"
+    "station number. Otherwise prints network.station\n"
+    "separated by a dot. V flag controls padding with\n"
+    "leading spaces for column alignment.")
 
 # --- cmd_pollps subroutines ---
 
 subroutine(0xB2C4, "init_ps_slot_from_rx",
-    description="Initialise a PS slot buffer from the template\n"
-    "data at offsets &78-&83. Substitutes the RX\n"
-    "buffer page at offsets &7D and &81.")
+    title="Initialise PS slot buffer from template data",
+    description="Copies 12 bytes from the template at offsets &78-&83\n"
+    "into workspace, substituting the RX buffer page at\n"
+    "offsets &7D and &81.")
 subroutine(0xB2DB, "store_char_uppercase",
-    description="Convert character to uppercase if lowercase\n"
-    "and store in the RX buffer at the current\n"
-    "position. Advances the buffer position and\n"
-    "decrements the character count.")
+    title="Convert to uppercase and store in RX buffer",
+    description="If the character in A is lowercase (&61-&7A), converts\n"
+    "to uppercase by clearing bit 5. Stores the result in\n"
+    "the RX buffer at the current position, advances the\n"
+    "buffer pointer, and decrements the character count.",
+    on_entry={"a": "character to store"})
 
 # --- cmd_wipe subroutines ---
 
 subroutine(0xB41F, "flush_and_read_char",
-    description="Flush the keyboard input buffer and read a\n"
-    "single character. Raises an escape error if\n"
-    "escape was pressed instead.")
+    title="Flush keyboard buffer and read one character",
+    description="Calls OSBYTE &0F to flush the input buffer, then\n"
+    "OSRDCH to read a single character. Raises an escape\n"
+    "error if escape was pressed (carry set on return).")
 subroutine(0xB439, "init_channel_table",
-    description="Initialise the channel allocation table.\n"
-    "Clears all 256 bytes, then marks the available\n"
-    "channel slots based on the count from the\n"
-    "receive buffer. Marks the first slot as the\n"
-    "active channel (&C0).")
+    title="Initialise channel allocation table",
+    description="Clears all 256 bytes of the table, then marks\n"
+    "available channel slots based on the count from\n"
+    "the receive buffer. Sets the first slot to &C0\n"
+    "(active channel marker).")
 subroutine(0xB45B, "attr_to_chan_index",
-    description="Convert a channel attribute byte to a channel\n"
-    "table index. Subtracts &20 and clamps to the\n"
-    "range 0-&0F, returning &FF if out of range.\n"
-    "Preserves processor flags.")
+    title="Convert channel attribute to table index",
+    description="Subtracts &20 from the attribute byte and clamps\n"
+    "to the range 0-&0F. Returns &FF if out of range.\n"
+    "Preserves processor flags via PHP/PLP.",
+    on_entry={"a": "channel attribute byte"},
+    on_exit={"a": "table index (0-&0F) or &FF if invalid"})
 subroutine(0xB46A, "check_chan_char",
-    description="Validate a channel character and look up its\n"
-    "entry. Characters below '0' are looked up in\n"
-    "the channel table. Characters '0' and above\n"
-    "are converted to a table index. Raises a\n"
-    "'Net channel' error if invalid.")
+    title="Validate channel character and look up entry",
+    description="Characters below '0' are looked up directly in\n"
+    "the channel table. Characters '0' and above are\n"
+    "converted to a table index via attr_to_chan_index.\n"
+    "Raises 'Net channel' error if invalid.",
+    on_entry={"a": "channel character"})
 subroutine(0xB49D, "lookup_chan_by_char",
-    description="Look up a channel by its character code.\n"
-    "Converts the character to a table index,\n"
-    "checks the station/network match, and\n"
-    "returns the channel flags in A.")
+    title="Look up channel by character code",
+    description="Converts the character to a table index via\n"
+    "attr_to_chan_index, checks the station/network\n"
+    "match via match_station_net, and returns the\n"
+    "channel flags in A.",
+    on_entry={"a": "channel character"},
+    on_exit={"a": "channel flags"})
 subroutine(0xB4DC, "store_result_check_dir",
-    description="Store the current channel attribute in the\n"
-    "receive buffer and check it is not a\n"
-    "directory. Raises 'Is a dir.' error if the\n"
-    "directory flag (bit 1) is set.")
+    title="Store channel attribute and check not directory",
+    description="Writes the current channel attribute to the receive\n"
+    "buffer, then tests the directory flag (bit 1). Raises\n"
+    "'Is a dir.' error if the attribute refers to a\n"
+    "directory rather than a file.")
 subroutine(0xB4E3, "check_not_dir",
-    description="Validate the channel via check_chan_char and\n"
-    "test the directory flag (bit 1). Raises\n"
-    "'Is a dir.' error if the channel refers to\n"
-    "a directory.")
+    title="Validate channel is not a directory",
+    description="Calls check_chan_char to validate the channel, then\n"
+    "tests the directory flag (bit 1). Raises 'Is a dir.'\n"
+    "error if the channel refers to a directory.")
 subroutine(0xB4FA, "alloc_fcb_slot",
-    description="Allocate a free FCB (file control block) slot.\n"
-    "Scans slots &20-&2F for an empty entry.\n"
-    "Returns Z=0 with X=slot index on success,\n"
-    "or Z=1 with A=0 on failure.")
+    title="Allocate a free file control block slot",
+    description="Scans FCB slots &20-&2F for an empty entry.\n"
+    "Returns Z=0 with X=slot index on success, or\n"
+    "Z=1 with A=0 if all slots are occupied.",
+    on_exit={"x": "slot index (if Z=0)", "z": "0=success, 1=no free slot"})
 subroutine(0xB52E, "alloc_fcb_or_error",
-    description="Allocate an FCB slot, raising 'No more FCBs'\n"
-    "error if none are available. Preserves the\n"
-    "argument on the stack.")
+    title="Allocate FCB slot or raise error",
+    description="Calls alloc_fcb_slot and raises 'No more FCBs'\n"
+    "if no free slot is available. Preserves the\n"
+    "caller's argument on the stack.")
 subroutine(0xB54A, "close_all_net_chans",
-    description="Close all network channels matching the\n"
-    "current station. C=0 closes all matching,\n"
-    "C=1 closes with write-flush. Scans FCB\n"
-    "slots &0F down to 0.")
+    title="Close all network channels for current station",
+    description="Scans FCB slots &0F down to 0, closing those\n"
+    "matching the current station. C=0 closes all\n"
+    "matching entries; C=1 closes with write-flush.",
+    on_entry={"c": "0=close all, 1=close with write-flush"})
 subroutine(0xB551, "scan_fcb_flags",
-    description="Scan FCB slots from &10 downward, checking\n"
-    "each slot's flags. Returns when all slots\n"
-    "have been processed.")
+    title="Scan FCB slot flags from &10 downward",
+    description="Iterates through FCB slots starting at &10,\n"
+    "checking each slot's flags byte. Returns when\n"
+    "all slots have been processed.")
 subroutine(0xB57A, "match_station_net",
-    description="Check whether the FCB at slot X matches the\n"
-    "current station and network numbers. Returns\n"
-    "Z=1 if both match, Z=0 if either differs.\n"
-    "Uses EOR comparison.")
+    title="Check FCB slot matches current station/network",
+    description="Compares the station and network numbers in the\n"
+    "FCB at slot X against the current values using\n"
+    "EOR. Returns Z=1 if both match, Z=0 if either\n"
+    "differs.",
+    on_entry={"x": "FCB slot index"},
+    on_exit={"z": "1=match, 0=no match"})
 subroutine(0xB589, "find_open_fcb",
-    description="Find the next open FCB slot for the current\n"
-    "connection. Scans from the current index,\n"
-    "wrapping around. On the first pass finds\n"
-    "active entries; on the second pass finds\n"
-    "empty slots.")
+    title="Find next open FCB slot for current connection",
+    description="Scans from the current index, wrapping around at\n"
+    "the end. On the first pass finds active entries\n"
+    "matching the station; on the second pass finds\n"
+    "empty slots for new allocations.")
 subroutine(0xB5CC, "init_wipe_counters",
-    description="Initialise the byte counters, pass counter,\n"
-    "and sentinel values for a wipe/transfer\n"
-    "operation. Sets X/Y to point at workspace\n"
-    "offset &10CA.")
+    title="Initialise byte counters for wipe/transfer",
+    description="Clears the pass counter, byte counter, offset\n"
+    "counter, and transfer flag. Stores &FF sentinels\n"
+    "in l10cd/l10ce. Returns with X/Y pointing at\n"
+    "workspace offset &10CA.",
+    on_exit={"x": "&CA (workspace offset low)", "y": "&10 (workspace page)"})
 subroutine(0xB5EF, "start_wipe_pass",
-    description="Start a wipe pass for the current FCB.\n"
-    "Verifies the workspace checksum, saves\n"
-    "station context, initialises counters, and\n"
-    "sends the initial request packet.")
+    title="Start wipe pass for current FCB",
+    description="Verifies the workspace checksum, saves the station\n"
+    "context (pushing station low/high), initialises\n"
+    "transfer counters via init_wipe_counters, and sends\n"
+    "the initial request via send_and_receive. Clears the\n"
+    "active and offset flags on completion.",
+    on_entry={"x": "FCB slot index"})
 subroutine(0xB660, "save_fcb_context",
-    description="Save 13 bytes of FCB context from the TX\n"
-    "buffer and workspace to temporary storage\n"
-    "at &10D9. Jumps to the workspace restore\n"
-    "routine if Y=0 (no FCB to process).")
+    title="Save FCB context and process pending slots",
+    description="Copies 13 bytes from the TX buffer (&0F00) and\n"
+    "fs_load_addr workspace to temporary storage at\n"
+    "&10D9. If Y=0, skips to the restore loop. Otherwise\n"
+    "scans for pending FCB slots (bits 7+6 set), flushes\n"
+    "each via start_wipe_pass, allocates new slots via\n"
+    "find_open_fcb, and sends directory requests. Falls\n"
+    "through to restore_catalog_entry.",
+    on_entry={"y": "filter attribute (0=process all)"})
 subroutine(0xB729, "restore_catalog_entry",
-    description="Restore 13 bytes of saved catalog entry\n"
-    "data from &10D9 back to the TX buffer at\n"
-    "&0F00.")
+    title="Restore saved catalog entry to TX buffer",
+    description="Copies 13 bytes from the context buffer at &10D9\n"
+    "back to the TX buffer at &0F00. Falls through to\n"
+    "find_matching_fcb.")
 subroutine(0xB738, "find_matching_fcb",
-    description="Find an FCB slot matching the given channel\n"
-    "attribute. Scans slots 0-&0F, converting\n"
-    "the attribute to a channel index and storing\n"
-    "the station address for matching.")
+    title="Find FCB slot matching channel attribute",
+    description="Scans FCB slots 0-&0F for an active entry whose\n"
+    "attribute reference matches l10c9. Converts the\n"
+    "attribute to a channel index, then verifies the\n"
+    "station and network numbers. On the first scan\n"
+    "past slot &0F, saves context via save_fcb_context\n"
+    "and restarts. Returns Z=0 if the FCB has saved\n"
+    "offset data (bit 5 set).",
+    on_exit={"x": "matching FCB index", "z": "0=has offset data, 1=no offset"})
 subroutine(0xB791, "inc_fcb_byte_count",
-    description="Increment the 3-byte transfer byte count\n"
-    "for FCB slot X. Cascades overflow from low\n"
-    "to mid to high byte.")
+    title="Increment 3-byte FCB transfer count",
+    description="Increments l1000+X (low), cascading overflow to\n"
+    "l1010+X (mid) and l1020+X (high).",
+    on_entry={"x": "FCB slot index"})
 subroutine(0xB79F, "process_all_fcbs",
-    description="Process all active FCB slots. Saves current\n"
-    "context, scans slots &0F down to 0, calling\n"
-    "start_wipe_pass for each active entry.\n"
-    "Restores context on completion.")
+    title="Process all active FCB slots",
+    description="Saves fs_options, fs_block_offset, and X/Y on the\n"
+    "stack, then scans FCB slots &0F down to 0. Calls\n"
+    "start_wipe_pass for each active entry matching the\n"
+    "filter attribute in Y (0=match all). Restores all\n"
+    "saved context on completion. Also contains the\n"
+    "OSBGET/OSBPUT inline logic for reading and writing\n"
+    "bytes through file channels.",
+    on_entry={"y": "filter attribute (0=process all)"})
 subroutine(0xB920, "send_wipe_request",
-    description="Send a wipe/close request packet via the\n"
-    "Econet. Sets up the TX control block with\n"
-    "function code &90, the reply port, and\n"
-    "data byte, then sends a disconnect reply\n"
-    "and checks the error code.")
+    title="Send wipe/close request packet",
+    description="Sets up the TX control block with function code\n"
+    "&90, the reply port from Y, and the data byte from\n"
+    "A. Sends via send_disconnect_reply, then checks the\n"
+    "error code — raises the server error if non-zero.",
+    on_entry={"a": "data byte to send", "y": "reply port"})
 subroutine(0xB979, "send_and_receive",
-    description="Set up the FS options pointer and transfer\n"
-    "workspace for a send/receive operation.\n"
-    "Calls set_options_ptr then jumps to\n"
-    "setup_transfer_workspace.")
+    title="Set up FS options and transfer workspace",
+    description="Calls set_options_ptr to configure the FS options\n"
+    "pointer, then jumps to setup_transfer_workspace to\n"
+    "initialise the transfer and send the request.",
+    on_entry={"a": "transfer mode", "x": "workspace offset low", "y": "workspace page"})
 
 # --- cmd_print subroutines ---
 
 subroutine(0xB9EA, "abort_if_escape",
-    description="Test the escape flag and return if not set.\n"
-    "If escape has been pressed (bit 7 set),\n"
-    "falls through to the escape abort handler.")
+    title="Test escape flag and abort if pressed",
+    description="Checks the escape flag byte; returns immediately\n"
+    "if bit 7 is clear. If escape has been pressed,\n"
+    "falls through to the escape abort handler which\n"
+    "acknowledges the escape via OSBYTE &7E.")
 
 # --- cmd_dump subroutines ---
 
 subroutine(0xBACE, "print_dump_header",
-    description="Print the hex dump column header line.\n"
-    "Shows the starting address followed by\n"
-    "16 hex column numbers, each separated\n"
-    "by a space.")
+    title="Print hex dump column header line",
+    description="Outputs the starting address followed by 16 hex\n"
+    "column numbers (00-0F), each separated by a space.\n"
+    "Provides the column alignment header for *Dump\n"
+    "output.")
 subroutine(0xBB0C, "close_ws_file",
-    description="Close the file whose handle is stored in\n"
-    "ws_page. Calls OSFIND with A=0 to close.")
+    title="Close file handle stored in workspace",
+    description="Loads the file handle from ws_page and closes it\n"
+    "via OSFIND with A=0.")
 subroutine(0xBB13, "open_file_for_read",
-    description="Open a file for reading. Computes the\n"
-    "filename address from the command text\n"
-    "pointer plus offset, calls OSFIND to open,\n"
-    "and raises a 'Not found' error if the\n"
-    "handle is zero.")
+    title="Open file for reading via OSFIND",
+    description="Computes the filename address from the command text\n"
+    "pointer plus the Y offset, calls OSFIND with A=&40\n"
+    "(open for input). Stores the handle in ws_page.\n"
+    "Raises 'Not found' if the returned handle is zero.")
 subroutine(0xBB55, "parse_dump_range",
-    description="Parse a hex address from the command line\n"
-    "for dump range parameters. Reads up to 4\n"
-    "hex digits into a 4-byte accumulator,\n"
-    "stopping at CR or space.")
+    title="Parse hex address for dump range",
+    description="Reads up to 4 hex digits from the command line\n"
+    "into a 4-byte accumulator, stopping at CR or\n"
+    "space. Each digit shifts the accumulator left\n"
+    "by 4 bits before ORing in the new nybble.")
 subroutine(0xBBBE, "init_dump_buffer",
-    description="Initialise the dump buffer and parse the\n"
-    "start/end address range from the command\n"
-    "line. Validates addresses against the file\n"
-    "extent, raising 'Outside file' if out of\n"
-    "range.")
+    title="Initialise dump buffer and parse address range",
+    description="Parses the start and end addresses from the command\n"
+    "line via parse_dump_range. If no end address is given,\n"
+    "defaults to the file extent. Validates both addresses\n"
+    "against the file size, raising 'Outside file' if either\n"
+    "exceeds the extent.")
 subroutine(0xBC84, "advance_x_by_8",
-    description="Advance X by 8 using nested JSR calls.\n"
-    "Calls advance_x_by_4 then falls through\n"
-    "to inx4 for a total of 8 INX operations.")
+    title="Advance X by 8 via nested JSR chain",
+    description="Calls advance_x_by_4 (which itself JSRs inx4 then\n"
+    "falls through to inx4), then falls through to inx4\n"
+    "for a total of 4+4=8 INX operations.")
 subroutine(0xBC87, "advance_x_by_4",
-    description="Advance X by 4 using a JSR to inx4 then\n"
-    "falling through to inx4 again, for a total\n"
-    "of 4+4=8 INX operations when called from\n"
-    "advance_x_by_8, or 4 when called directly.")
+    title="Advance X by 4 via JSR and fall-through",
+    description="JSRs to inx4 for 4 INX operations, then falls\n"
+    "through to inx4 for another 4 — but when called\n"
+    "directly (not from advance_x_by_8), the caller\n"
+    "returns after the first inx4, yielding X+4.")
 subroutine(0xBC8A, "inx4",
-    description="Increment X four times. Used as a building\n"
-    "block by advance_x_by_4 and advance_x_by_8\n"
-    "via the JSR/fall-through chaining pattern.")
+    title="Increment X four times",
+    description="Four consecutive INX instructions. Used as a\n"
+    "building block by advance_x_by_4 and\n"
+    "advance_x_by_8 via JSR/fall-through chaining.")
 
 # ============================================================
 # Inline comments (from NFS 3.65 correspondence)
@@ -5552,12 +5608,19 @@ label(0xB321, "cmd_unprot")
 label(0x8ACC, "cmd_roff")
 
 subroutine(0xB97F, "cmd_close",
-    description="*Close command.\n"
-    "Closes all open files via OSFIND #0.")
+    title="*Close command handler",
+    description="Loads A=0 and Y=0, then jumps to OSFIND to close\n"
+    "all open files. Just 3 instructions.")
 subroutine(0xBA06, "cmd_dump",
-    description="*Dump command.\n"
-    "Displays file contents in hex and\n"
-    "ASCII format, 8 bytes per line.")
+    title="*Dump command handler",
+    description="Opens the file via open_file_for_read, allocates a\n"
+    "21-byte buffer on the stack, and parses the address\n"
+    "range via init_dump_buffer. Loops reading 16 bytes\n"
+    "per line, printing each as a 4-byte hex address,\n"
+    "16 hex bytes with spaces, and a 16-character ASCII\n"
+    "column (non-printable chars shown as '.'). Prints\n"
+    "a column header at every 256-byte boundary.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8B0E, "cmd_net_fs",
     title="Select Econet network filing system",
     description="Computes a checksum over the first &77 bytes of\n"
@@ -5572,17 +5635,33 @@ subroutine(0x8B0E, "cmd_net_fs",
     "Sets bit 7 of &0D6C to mark the FS as selected,\n"
     "then issues service call 15.")
 subroutine(0xB19F, "cmd_pollps",
-    description="Poll printer server status.\n"
-    "Waits for completion of the current\n"
-    "print job, displaying progress.")
+    title="*Pollps command handler",
+    description="Initialises the spool drive, copies the PS name to\n"
+    "the TX buffer, and parses an optional station number\n"
+    "or PS name argument. Sends a poll request, then\n"
+    "prints the server address and name. Iterates through\n"
+    "PS slots, displaying each station's status as\n"
+    "'ready', 'busy' (with client station), or 'jammed'.\n"
+    "Marks processed slots with &3F.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB988, "cmd_print",
-    description="*Print command.\n"
-    "Sends file to printer server with\n"
-    "optional page formatting.")
+    title="*Print command handler",
+    description="Sets V flag (distinguishing from *Type which clears V),\n"
+    "then opens the file for reading. Loops reading bytes\n"
+    "via OSBGET, checking for escape between each. In type\n"
+    "mode (V clear), normalises CR/LF pairs to single\n"
+    "newlines by tracking the previous character. In print\n"
+    "mode (V set), outputs all bytes raw via OSWRCH. Closes\n"
+    "the file and prints a final newline on EOF.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB2F0, "cmd_prot",
-    description="*Prot command.\n"
-    "Sets protection attribute on a file\n"
-    "to prevent accidental deletion.")
+    title="*Prot command handler",
+    description="With no arguments, sets all protection bits (&FF).\n"
+    "Otherwise parses attribute keywords via match_fs_cmd\n"
+    "with table offset &D3, accumulating bits via ORA.\n"
+    "Stores the final protection mask in ws_0d68 and\n"
+    "ws_0d69.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xAFCE, "cmd_ps",
     title="*PS command handler",
     description="Checks the printer server availability flag; raises\n"
@@ -5594,12 +5673,20 @@ subroutine(0xAFCE, "cmd_ps",
     "load_ps_server_addr and parse_fs_ps_args.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB985, "cmd_type",
-    description="*Type command.\n"
-    "Displays file contents to screen.")
+    title="*Type command handler",
+    description="Clears V and branches to the shared open_and_read_file\n"
+    "entry in cmd_print. The V-clear state selects line-\n"
+    "ending normalisation mode, converting CR/LF or LF/CR\n"
+    "pairs to single newlines.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB321, "cmd_unprot",
-    description="*Unprot command.\n"
-    "Removes protection attribute from\n"
-    "a file.")
+    title="*Unprot command handler",
+    description="With no arguments, clears all protection bits (EOR\n"
+    "yields 0). Otherwise parses attribute keywords, clearing\n"
+    "bits via AND with the complement. Shares the protection\n"
+    "mask storage path with cmd_prot. Falls through to\n"
+    "cmd_wipe.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8ACC, "cmd_roff",
     title="*ROFF command handler",
     description="Disables remote operation by clearing the flag at\n"
@@ -5759,9 +5846,15 @@ subroutine(0x9377, "cmd_rename",
     "to read_filename_char to copy the second filename\n"
     "into the TX buffer and send the request.")
 subroutine(0xB33D, "cmd_wipe",
-    description="*Wipe command.\n"
-    "Deletes files with interactive per-\n"
-    "file confirmation prompt.")
+    title="*Wipe command handler",
+    description="Masks owner access, parses a wildcard filename, and\n"
+    "loops sending examine requests to the file server.\n"
+    "Skips locked files and non-empty directories. Shows\n"
+    "each filename with a '(Y/N/?) ' prompt — '?' shows\n"
+    "full file info with a '(Y/N) ' reprompt, 'Y' builds\n"
+    "the delete command in the TX buffer. Falls through to\n"
+    "flush_and_read_char on completion.",
+    on_entry={"y": "command line offset in text pointer"})
 
 # Sub-table 3: Net/Utils commands
 entry(0x8B8B)   # *Net (second variant)

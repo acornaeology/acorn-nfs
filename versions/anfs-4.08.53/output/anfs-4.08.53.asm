@@ -10986,9 +10986,11 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; b0a0: 60          `              ; Return
 
 ; ***************************************************************************************
-; Print 'File server is ' header text using
-; inline string printing. Falls through to
-; the shared ' server is ' suffix.
+; Print 'File server ' prefix
+; 
+; Uses print_inline to output 'File' then falls through
+; to the shared ' server is ' suffix at
+; print_printer_server_is.
 ; ***************************************************************************************
 ; &b0a1 referenced 1 time by &a083
 .print_file_server_is
@@ -10999,8 +11001,10 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     bvc print_server_is_suffix                                        ; b0a9: 50 0b       P.             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Print 'Printer server is ' header text using
-; inline string printing.
+; Print 'Printer server is ' prefix
+; 
+; Uses print_inline to output the full label
+; 'Printer server is ' with trailing space.
 ; ***************************************************************************************
 ; &b0ab referenced 2 times by &b075, &b21c
 .print_printer_server_is
@@ -11017,9 +11021,10 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; b0c5: 60          `              ; Return
 
 ; ***************************************************************************************
-; Load the printer server station and network
-; addresses from workspace at offsets 2 and 3
-; into the station/network variables.
+; Load printer server address from workspace
+; 
+; Reads the station and network bytes from workspace
+; offsets 2 and 3 into the station/network variables.
 ; ***************************************************************************************
 ; &b0c6 referenced 4 times by &afec, &b041, &b1bf, &b21f
 .load_ps_server_addr
@@ -11032,10 +11037,11 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     rts                                                               ; b0d1: 60          `              ; Return
 
 ; ***************************************************************************************
-; Pop the return address and requeue the PS
-; slot scan. Converts the PS slot flags to a
-; workspace index, writes slot data, and jumps
-; back into the PS scan loop.
+; Pop return address and requeue PS slot scan
+; 
+; Converts the PS slot flags to a workspace index,
+; writes slot data, and jumps back into the PS scan
+; loop to continue processing.
 ; ***************************************************************************************
 ; &b0d2 referenced 2 times by &b03e, &b219
 .pop_requeue_ps_scan
@@ -11114,9 +11120,11 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b139: 60          `              ; Return
 
 ; ***************************************************************************************
-; Write the buffer page byte followed by two
-; &FF marker bytes to the PS slot workspace
-; at the current Y offset, advancing Y.
+; Write buffer page byte and two &FF markers
+; 
+; Stores the buffer page byte at the current Y offset
+; in workspace, followed by two &FF sentinel bytes.
+; Advances Y after each write.
 ; ***************************************************************************************
 ; &b13a referenced 2 times by &b113, &b11a
 .write_ps_slot_byte_ff
@@ -11126,8 +11134,13 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     lda #&ff                                                          ; b13f: a9 ff       ..             ; A=&FF
 ; ***************************************************************************************
 ; Write A to two consecutive workspace bytes
-; at the current Y offset, advancing Y after
-; each write.
+; 
+; Stores A at the current Y offset via (nfs_workspace),Y
+; then again at Y+1, advancing Y after each write.
+; 
+; On Entry:
+;     A: byte to store
+;     Y: workspace offset
 ; ***************************************************************************************
 ; &b141 referenced 1 time by &b105
 .write_two_bytes_inc_y
@@ -11139,10 +11152,11 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b148: 60          `              ; Return
 
 ; ***************************************************************************************
-; Reverse-copy the printer server name from
-; the RX buffer (offsets &1C-&23) to the TX
-; buffer (offsets &13-&1B) in reversed byte
-; order using the stack.
+; Reverse-copy printer server name to TX buffer
+; 
+; Copies 8 bytes from the RX buffer (offsets &1C-&23)
+; to the TX buffer (offsets &13-&1B) in reversed byte
+; order, pushing onto the stack then popping back.
 ; ***************************************************************************************
 ; &b149 referenced 2 times by &b038, &b1a6
 .reverse_ps_name_to_tx
@@ -11180,10 +11194,12 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     equb &80, &9f, &ff, &ff                                           ; b170: 80 9f ff... ...
 
 ; ***************************************************************************************
-; Print a station address as net.station in
-; decimal. If the network number is zero,
-; prints only the station number. V flag
-; controls padding with leading spaces.
+; Print station address as decimal net.station
+; 
+; If the network number is zero, prints only the
+; station number. Otherwise prints network.station
+; separated by a dot. V flag controls padding with
+; leading spaces for column alignment.
 ; ***************************************************************************************
 ; &b174 referenced 4 times by &a089, &b225, &b25d, &b2b5
 .print_station_addr
@@ -11209,9 +11225,18 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     equb &80, &9f, 0, 0, &14, 0, &ff, &ff, &1c, 0, &ff, &ff           ; b193: 80 9f 00... ...
 
 ; ***************************************************************************************
-; Poll printer server status.
-; Waits for completion of the current
-; print job, displaying progress.
+; *Pollps command handler
+; 
+; Initialises the spool drive, copies the PS name to
+; the TX buffer, and parses an optional station number
+; or PS name argument. Sends a poll request, then
+; prints the server address and name. Iterates through
+; PS slots, displaying each station's status as
+; 'ready', 'busy' (with client station), or 'jammed'.
+; Marks processed slots with &3F.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_pollps
     sty ws_ptr_hi                                                     ; b19f: 84 ac       ..             ; Save command line pointer high
@@ -11386,9 +11411,11 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b2c3: 60          `              ; Return
 
 ; ***************************************************************************************
-; Initialise a PS slot buffer from the template
-; data at offsets &78-&83. Substitutes the RX
-; buffer page at offsets &7D and &81.
+; Initialise PS slot buffer from template data
+; 
+; Copies 12 bytes from the template at offsets &78-&83
+; into workspace, substituting the RX buffer page at
+; offsets &7D and &81.
 ; ***************************************************************************************
 ; &b2c4 referenced 1 time by &b1a9
 .init_ps_slot_from_rx
@@ -11412,10 +11439,15 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b2da: 60          `              ; Return
 
 ; ***************************************************************************************
-; Convert character to uppercase if lowercase
-; and store in the RX buffer at the current
-; position. Advances the buffer position and
-; decrements the character count.
+; Convert to uppercase and store in RX buffer
+; 
+; If the character in A is lowercase (&61-&7A), converts
+; to uppercase by clearing bit 5. Stores the result in
+; the RX buffer at the current position, advances the
+; buffer pointer, and decrements the character count.
+; 
+; On Entry:
+;     A: character to store
 ; ***************************************************************************************
 ; &b2db referenced 2 times by &b033, &b20d
 .store_char_uppercase
@@ -11435,9 +11467,16 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b2ef: 60          `              ; Return (Z set if count=0)
 
 ; ***************************************************************************************
-; *Prot command.
-; Sets protection attribute on a file
-; to prevent accidental deletion.
+; *Prot command handler
+; 
+; With no arguments, sets all protection bits (&FF).
+; Otherwise parses attribute keywords via match_fs_cmd
+; with table offset &D3, accumulating bits via ORA.
+; Stores the final protection mask in ws_0d68 and
+; ws_0d69.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_prot
     lda (fs_crc_lo),y                                                 ; b2f0: b1 be       ..             ; Get next char from command line
@@ -11478,9 +11517,16 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b320: 60          `              ; Return
 
 ; ***************************************************************************************
-; *Unprot command.
-; Removes protection attribute from
-; a file.
+; *Unprot command handler
+; 
+; With no arguments, clears all protection bits (EOR
+; yields 0). Otherwise parses attribute keywords, clearing
+; bits via AND with the complement. Shares the protection
+; mask storage path with cmd_prot. Falls through to
+; cmd_wipe.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_unprot
     lda (fs_crc_lo),y                                                 ; b321: b1 be       ..             ; Get next char from command line
@@ -11501,9 +11547,18 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     bcc loop_match_unprot_attr                                        ; b33b: 90 ee       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Wipe command.
-; Deletes files with interactive per-
-; file confirmation prompt.
+; *Wipe command handler
+; 
+; Masks owner access, parses a wildcard filename, and
+; loops sending examine requests to the file server.
+; Skips locked files and non-empty directories. Shows
+; each filename with a '(Y/N/?) ' prompt — '?' shows
+; full file info with a '(Y/N) ' reprompt, 'Y' builds
+; the delete command in the TX buffer. Falls through to
+; flush_and_read_char on completion.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_wipe
     jsr mask_owner_access                                             ; b33d: 20 12 af     ..            ; Mask owner access flags to 5 bits
@@ -11640,9 +11695,11 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     beq set_wipe_cr_end                                               ; b41d: f0 db       ..             ; Space found: terminate with CR; ALWAYS branch
 
 ; ***************************************************************************************
-; Flush the keyboard input buffer and read a
-; single character. Raises an escape error if
-; escape was pressed instead.
+; Flush keyboard buffer and read one character
+; 
+; Calls OSBYTE &0F to flush the input buffer, then
+; OSRDCH to read a single character. Raises an escape
+; error if escape was pressed (carry set on return).
 ; ***************************************************************************************
 ; &b41f referenced 2 times by &b3b4, &b3d8
 .flush_and_read_char
@@ -11660,11 +11717,12 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     equb &a9, 0, &a0, &78, &88, &91, &cc, &d0, &fb, &60               ; b42f: a9 00 a0... ...
 
 ; ***************************************************************************************
-; Initialise the channel allocation table.
-; Clears all 256 bytes, then marks the available
-; channel slots based on the count from the
-; receive buffer. Marks the first slot as the
-; active channel (&C0).
+; Initialise channel allocation table
+; 
+; Clears all 256 bytes of the table, then marks
+; available channel slots based on the count from
+; the receive buffer. Sets the first slot to &C0
+; (active channel marker).
 ; ***************************************************************************************
 ; &b439 referenced 1 time by &8b6a
 .init_channel_table
@@ -11693,10 +11751,17 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b45a: 60          `              ; Return
 
 ; ***************************************************************************************
-; Convert a channel attribute byte to a channel
-; table index. Subtracts &20 and clamps to the
-; range 0-&0F, returning &FF if out of range.
-; Preserves processor flags.
+; Convert channel attribute to table index
+; 
+; Subtracts &20 from the attribute byte and clamps
+; to the range 0-&0F. Returns &FF if out of range.
+; Preserves processor flags via PHP/PLP.
+; 
+; On Entry:
+;     A: channel attribute byte
+; 
+; On Exit:
+;     A: table index (0-&0F) or &FF if invalid
 ; ***************************************************************************************
 ; &b45b referenced 5 times by &92a9, &92c0, &9c60, &9c9e, &b745
 .attr_to_chan_index
@@ -11716,11 +11781,15 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     rts                                                               ; b469: 60          `              ; Return
 
 ; ***************************************************************************************
-; Validate a channel character and look up its
-; entry. Characters below '0' are looked up in
-; the channel table. Characters '0' and above
-; are converted to a table index. Raises a
-; 'Net channel' error if invalid.
+; Validate channel character and look up entry
+; 
+; Characters below '0' are looked up directly in
+; the channel table. Characters '0' and above are
+; converted to a table index via attr_to_chan_index.
+; Raises 'Net channel' error if invalid.
+; 
+; On Entry:
+;     A: channel character
 ; ***************************************************************************************
 ; &b46a referenced 2 times by &9d97, &b4e3
 .check_chan_char
@@ -11745,10 +11814,18 @@ net_channel_err_string = err_net_chan_not_found+2
     equb 0                                                            ; b49c: 00          .
 
 ; ***************************************************************************************
-; Look up a channel by its character code.
-; Converts the character to a table index,
-; checks the station/network match, and
-; returns the channel flags in A.
+; Look up channel by character code
+; 
+; Converts the character to a table index via
+; attr_to_chan_index, checks the station/network
+; match via match_station_net, and returns the
+; channel flags in A.
+; 
+; On Entry:
+;     A: channel character
+; 
+; On Exit:
+;     A: channel flags
 ; ***************************************************************************************
 ; &b49d referenced 2 times by &9ec4, &b470
 .lookup_chan_by_char
@@ -11792,10 +11869,12 @@ net_channel_err_string = err_net_chan_not_found+2
     jmp error_block                                                   ; b4d9: 4c 00 01    L..            ; Raise the constructed error
 
 ; ***************************************************************************************
-; Store the current channel attribute in the
-; receive buffer and check it is not a
-; directory. Raises 'Is a dir.' error if the
-; directory flag (bit 1) is set.
+; Store channel attribute and check not directory
+; 
+; Writes the current channel attribute to the receive
+; buffer, then tests the directory flag (bit 1). Raises
+; 'Is a dir.' error if the attribute refers to a
+; directory rather than a file.
 ; ***************************************************************************************
 ; &b4dc referenced 2 times by &b7d4, &b85c
 .store_result_check_dir
@@ -11803,10 +11882,11 @@ net_channel_err_string = err_net_chan_not_found+2
     ldy #&0e                                                          ; b4df: a0 0e       ..             ; Offset &0E in receive buffer
     sta (net_rx_ptr),y                                                ; b4e1: 91 9c       ..             ; Store attribute in receive buffer
 ; ***************************************************************************************
-; Validate the channel via check_chan_char and
-; test the directory flag (bit 1). Raises
-; 'Is a dir.' error if the channel refers to
-; a directory.
+; Validate channel is not a directory
+; 
+; Calls check_chan_char to validate the channel, then
+; tests the directory flag (bit 1). Raises 'Is a dir.'
+; error if the channel refers to a directory.
 ; ***************************************************************************************
 ; &b4e3 referenced 2 times by &9bf9, &9e47
 .check_not_dir
@@ -11822,10 +11902,15 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b4f9: 60          `              ; Return
 
 ; ***************************************************************************************
-; Allocate a free FCB (file control block) slot.
-; Scans slots &20-&2F for an empty entry.
-; Returns Z=0 with X=slot index on success,
-; or Z=1 with A=0 on failure.
+; Allocate a free file control block slot
+; 
+; Scans FCB slots &20-&2F for an empty entry.
+; Returns Z=0 with X=slot index on success, or
+; Z=1 with A=0 if all slots are occupied.
+; 
+; On Exit:
+;     X: slot index (if Z=0)
+;     Z: 0=success, 1=no free slot
 ; ***************************************************************************************
 ; &b4fa referenced 7 times by &9d3d, &9d72, &a268, &a307, &a332, &a369, &b531
 .alloc_fcb_slot
@@ -11863,9 +11948,11 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b52d: 60          `              ; Return; A=slot, X=channel, Z clear
 
 ; ***************************************************************************************
-; Allocate an FCB slot, raising 'No more FCBs'
-; error if none are available. Preserves the
-; argument on the stack.
+; Allocate FCB slot or raise error
+; 
+; Calls alloc_fcb_slot and raises 'No more FCBs'
+; if no free slot is available. Preserves the
+; caller's argument on the stack.
 ; ***************************************************************************************
 ; &b52e referenced 2 times by &9ceb, &a1d5
 .alloc_fcb_or_error
@@ -11883,10 +11970,14 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b549: 60          `              ; Return
 
 ; ***************************************************************************************
-; Close all network channels matching the
-; current station. C=0 closes all matching,
-; C=1 closes with write-flush. Scans FCB
-; slots &0F down to 0.
+; Close all network channels for current station
+; 
+; Scans FCB slots &0F down to 0, closing those
+; matching the current station. C=0 closes all
+; matching entries; C=1 closes with write-flush.
+; 
+; On Entry:
+;     C: 0=close all, 1=close with write-flush
 ; ***************************************************************************************
 ; &b54a referenced 3 times by &9494, &951b, &a379
 .close_all_net_chans
@@ -11898,9 +11989,11 @@ net_channel_err_string = err_net_chan_not_found+2
 .skip_set_carry
     bit bit_test_ff_pad                                               ; b54e: 2c 7d 94    ,}.            ; Set V flag via BIT (alternate mode)
 ; ***************************************************************************************
-; Scan FCB slots from &10 downward, checking
-; each slot's flags. Returns when all slots
-; have been processed.
+; Scan FCB slot flags from &10 downward
+; 
+; Iterates through FCB slots starting at &10,
+; checking each slot's flags byte. Returns when
+; all slots have been processed.
 ; ***************************************************************************************
 ; &b551 referenced 1 time by &9dac
 .scan_fcb_flags
@@ -11934,10 +12027,18 @@ net_channel_err_string = err_net_chan_not_found+2
     beq loop_scan_fcb_down                                            ; b578: f0 d9       ..             ; Continue to next slot; ALWAYS branch
 
 ; ***************************************************************************************
-; Check whether the FCB at slot X matches the
-; current station and network numbers. Returns
-; Z=1 if both match, Z=0 if either differs.
-; Uses EOR comparison.
+; Check FCB slot matches current station/network
+; 
+; Compares the station and network numbers in the
+; FCB at slot X against the current values using
+; EOR. Returns Z=1 if both match, Z=0 if either
+; differs.
+; 
+; On Entry:
+;     X: FCB slot index
+; 
+; On Exit:
+;     Z: 1=match, 0=no match
 ; ***************************************************************************************
 ; &b57a referenced 6 times by &a2ee, &a319, &a350, &ac2e, &b4a7, &b56b
 .match_station_net
@@ -11951,11 +12052,12 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b588: 60          `              ; Return; Z=1 if match, Z=0 if not
 
 ; ***************************************************************************************
-; Find the next open FCB slot for the current
-; connection. Scans from the current index,
-; wrapping around. On the first pass finds
-; active entries; on the second pass finds
-; empty slots.
+; Find next open FCB slot for current connection
+; 
+; Scans from the current index, wrapping around at
+; the end. On the first pass finds active entries
+; matching the station; on the second pass finds
+; empty slots for new allocations.
 ; ***************************************************************************************
 ; &b589 referenced 2 times by &b68a, &b788
 .find_open_fcb
@@ -12011,10 +12113,16 @@ net_channel_err_string = err_net_chan_not_found+2
     beq done_select_fcb                                               ; b5ca: f0 de       ..             ; Use this slot; ALWAYS branch
 
 ; ***************************************************************************************
-; Initialise the byte counters, pass counter,
-; and sentinel values for a wipe/transfer
-; operation. Sets X/Y to point at workspace
-; offset &10CA.
+; Initialise byte counters for wipe/transfer
+; 
+; Clears the pass counter, byte counter, offset
+; counter, and transfer flag. Stores &FF sentinels
+; in l10cd/l10ce. Returns with X/Y pointing at
+; workspace offset &10CA.
+; 
+; On Exit:
+;     X: &CA (workspace offset low)
+;     Y: &10 (workspace page)
 ; ***************************************************************************************
 ; &b5cc referenced 2 times by &b60f, &b6cc
 .init_wipe_counters
@@ -12038,10 +12146,16 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b5ee: 60          `              ; Return; X/Y point to &10CA
 
 ; ***************************************************************************************
-; Start a wipe pass for the current FCB.
-; Verifies the workspace checksum, saves
-; station context, initialises counters, and
-; sends the initial request packet.
+; Start wipe pass for current FCB
+; 
+; Verifies the workspace checksum, saves the station
+; context (pushing station low/high), initialises
+; transfer counters via init_wipe_counters, and sends
+; the initial request via send_and_receive. Clears the
+; active and offset flags on completion.
+; 
+; On Entry:
+;     X: FCB slot index
 ; ***************************************************************************************
 ; &b5ef referenced 2 times by &b681, &b7ba
 .start_wipe_pass
@@ -12101,10 +12215,18 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b65f: 60          `              ; Return
 
 ; ***************************************************************************************
-; Save 13 bytes of FCB context from the TX
-; buffer and workspace to temporary storage
-; at &10D9. Jumps to the workspace restore
-; routine if Y=0 (no FCB to process).
+; Save FCB context and process pending slots
+; 
+; Copies 13 bytes from the TX buffer (&0F00) and
+; fs_load_addr workspace to temporary storage at
+; &10D9. If Y=0, skips to the restore loop. Otherwise
+; scans for pending FCB slots (bits 7+6 set), flushes
+; each via start_wipe_pass, allocates new slots via
+; find_open_fcb, and sends directory requests. Falls
+; through to restore_catalog_entry.
+; 
+; On Entry:
+;     Y: filter attribute (0=process all)
 ; ***************************************************************************************
 ; &b660 referenced 2 times by &b735, &b8a2
 .save_fcb_context
@@ -12218,9 +12340,11 @@ net_channel_err_string = err_net_chan_not_found+2
     cpy #&0d                                                          ; b725: c0 0d       ..             ; Restored all 13 bytes?
     bne loop_restore_workspace                                        ; b727: d0 f7       ..             ; No: continue restoring
 ; ***************************************************************************************
-; Restore 13 bytes of saved catalog entry
-; data from &10D9 back to the TX buffer at
-; &0F00.
+; Restore saved catalog entry to TX buffer
+; 
+; Copies 13 bytes from the context buffer at &10D9
+; back to the TX buffer at &0F00. Falls through to
+; find_matching_fcb.
 ; ***************************************************************************************
 ; &b729 referenced 1 time by &b8d3
 .restore_catalog_entry
@@ -12237,10 +12361,19 @@ net_channel_err_string = err_net_chan_not_found+2
 .loop_save_before_match
     jsr save_fcb_context                                              ; b735: 20 60 b6     `.            ; Save current context first
 ; ***************************************************************************************
-; Find an FCB slot matching the given channel
-; attribute. Scans slots 0-&0F, converting
-; the attribute to a channel index and storing
-; the station address for matching.
+; Find FCB slot matching channel attribute
+; 
+; Scans FCB slots 0-&0F for an active entry whose
+; attribute reference matches l10c9. Converts the
+; attribute to a channel index, then verifies the
+; station and network numbers. On the first scan
+; past slot &0F, saves context via save_fcb_context
+; and restarts. Returns Z=0 if the FCB has saved
+; offset data (bit 5 set).
+; 
+; On Exit:
+;     X: matching FCB index
+;     Z: 0=has offset data, 1=no offset
 ; ***************************************************************************************
 ; &b738 referenced 3 times by &9dec, &b7ef, &b88e
 .find_matching_fcb
@@ -12292,9 +12425,13 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b790: 60          `              ; Return; Z=1 no offset, Z=0 has data
 
 ; ***************************************************************************************
-; Increment the 3-byte transfer byte count
-; for FCB slot X. Cascades overflow from low
-; to mid to high byte.
+; Increment 3-byte FCB transfer count
+; 
+; Increments l1000+X (low), cascading overflow to
+; l1010+X (mid) and l1020+X (high).
+; 
+; On Entry:
+;     X: FCB slot index
 ; ***************************************************************************************
 ; &b791 referenced 2 times by &b836, &b910
 .inc_fcb_byte_count
@@ -12308,10 +12445,18 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b79e: 60          `              ; Return
 
 ; ***************************************************************************************
-; Process all active FCB slots. Saves current
-; context, scans slots &0F down to 0, calling
-; start_wipe_pass for each active entry.
-; Restores context on completion.
+; Process all active FCB slots
+; 
+; Saves fs_options, fs_block_offset, and X/Y on the
+; stack, then scans FCB slots &0F down to 0. Calls
+; start_wipe_pass for each active entry matching the
+; filter attribute in Y (0=match all). Restores all
+; saved context on completion. Also contains the
+; OSBGET/OSBPUT inline logic for reading and writing
+; bytes through file channels.
+; 
+; On Entry:
+;     Y: filter attribute (0=process all)
 ; ***************************************************************************************
 ; &b79f referenced 8 times by &8d7c, &8f87, &948c, &9bcd, &9c13, &9cb6, &9d7e, &9e4c
 .process_all_fcbs
@@ -12531,11 +12676,16 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b91f: 60          `              ; Return
 
 ; ***************************************************************************************
-; Send a wipe/close request packet via the
-; Econet. Sets up the TX control block with
-; function code &90, the reply port, and
-; data byte, then sends a disconnect reply
-; and checks the error code.
+; Send wipe/close request packet
+; 
+; Sets up the TX control block with function code
+; &90, the reply port from Y, and the data byte from
+; A. Sends via send_disconnect_reply, then checks the
+; error code — raises the server error if non-zero.
+; 
+; On Entry:
+;     A: data byte to send
+;     Y: reply port
 ; ***************************************************************************************
 ; &b920 referenced 2 times by &b885, &b8d0
 .send_wipe_request
@@ -12590,10 +12740,16 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; b978: 60          `              ; Return
 
 ; ***************************************************************************************
-; Set up the FS options pointer and transfer
-; workspace for a send/receive operation.
-; Calls set_options_ptr then jumps to
-; setup_transfer_workspace.
+; Set up FS options and transfer workspace
+; 
+; Calls set_options_ptr to configure the FS options
+; pointer, then jumps to setup_transfer_workspace to
+; initialise the transfer and send the request.
+; 
+; On Entry:
+;     A: transfer mode
+;     X: workspace offset low
+;     Y: workspace page
 ; ***************************************************************************************
 ; &b979 referenced 2 times by &b644, &b6dd
 .send_and_receive
@@ -12601,8 +12757,10 @@ net_channel_err_string = err_net_chan_not_found+2
     jmp setup_transfer_workspace                                      ; b97c: 4c cb 9e    L..            ; Set up transfer workspace and return
 
 ; ***************************************************************************************
-; *Close command.
-; Closes all open files via OSFIND #0.
+; *Close command handler
+; 
+; Loads A=0 and Y=0, then jumps to OSFIND to close
+; all open files. Just 3 instructions.
 ; ***************************************************************************************
 .cmd_close
     lda #osfind_close                                                 ; b97f: a9 00       ..             ; A=0: close all open files
@@ -12610,17 +12768,33 @@ net_channel_err_string = err_net_chan_not_found+2
     jmp osfind                                                        ; b982: 4c ce ff    L..            ; Close all files (Y=0)
 
 ; ***************************************************************************************
-; *Type command.
-; Displays file contents to screen.
+; *Type command handler
+; 
+; Clears V and branches to the shared open_and_read_file
+; entry in cmd_print. The V-clear state selects line-
+; ending normalisation mode, converting CR/LF or LF/CR
+; pairs to single newlines.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_type
     clv                                                               ; b985: b8          .              ; Clear V for unconditional BVC
     bvc open_and_read_file                                            ; b986: 50 03       P.             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Print command.
-; Sends file to printer server with
-; optional page formatting.
+; *Print command handler
+; 
+; Sets V flag (distinguishing from *Type which clears V),
+; then opens the file for reading. Loops reading bytes
+; via OSBGET, checking for escape between each. In type
+; mode (V clear), normalises CR/LF pairs to single
+; newlines by tracking the previous character. In print
+; mode (V set), outputs all bytes raw via OSWRCH. Closes
+; the file and prints a final newline on EOF.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_print
     bit bit_test_ff_pad                                               ; b988: 2c 7d 94    ,}.            ; Set V flag (= print mode)
@@ -12699,9 +12873,12 @@ net_channel_err_string = err_net_chan_not_found+2
     beq loop_read_print_byte                                          ; b9e8: f0 ab       ..             ; Loop for next byte; ALWAYS branch; ALWAYS branch
 
 ; ***************************************************************************************
-; Test the escape flag and return if not set.
-; If escape has been pressed (bit 7 set),
-; falls through to the escape abort handler.
+; Test escape flag and abort if pressed
+; 
+; Checks the escape flag byte; returns immediately
+; if bit 7 is clear. If escape has been pressed,
+; falls through to the escape abort handler which
+; acknowledges the escape via OSBYTE &7E.
 ; ***************************************************************************************
 ; &b9ea referenced 2 times by &b9a1, &ba1e
 .abort_if_escape
@@ -12720,9 +12897,18 @@ net_channel_err_string = err_net_chan_not_found+2
     equs "Escape", 0                                                  ; b9ff: 45 73 63... Esc
 
 ; ***************************************************************************************
-; *Dump command.
-; Displays file contents in hex and
-; ASCII format, 8 bytes per line.
+; *Dump command handler
+; 
+; Opens the file via open_file_for_read, allocates a
+; 21-byte buffer on the stack, and parses the address
+; range via init_dump_buffer. Loops reading 16 bytes
+; per line, printing each as a 4-byte hex address,
+; 16 hex bytes with spaces, and a 16-character ASCII
+; column (non-printable chars shown as '.'). Prints
+; a column header at every 256-byte boundary.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_dump
     jsr open_file_for_read                                            ; ba06: 20 13 bb     ..            ; Open file for reading, set ws_page
@@ -12871,10 +13057,12 @@ net_channel_err_string = err_net_chan_not_found+2
     jmp loop_pop_stack_buf                                            ; bacb: 4c 3e ba    L>.            ; Reuse stack cleanup loop
 
 ; ***************************************************************************************
-; Print the hex dump column header line.
-; Shows the starting address followed by
-; 16 hex column numbers, each separated
-; by a space.
+; Print hex dump column header line
+; 
+; Outputs the starting address followed by 16 hex
+; column numbers (00-0F), each separated by a space.
+; Provides the column alignment header for *Dump
+; output.
 ; ***************************************************************************************
 ; &bace referenced 2 times by &ba1b, &ba4d
 .print_dump_header
@@ -12905,8 +13093,10 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; bb0b: 60          `              ; Return
 
 ; ***************************************************************************************
-; Close the file whose handle is stored in
-; ws_page. Calls OSFIND with A=0 to close.
+; Close file handle stored in workspace
+; 
+; Loads the file handle from ws_page and closes it
+; via OSFIND with A=0.
 ; ***************************************************************************************
 ; &bb0c referenced 6 times by &b99b, &b9ef, &ba42, &bbaf, &bbe9, &bc56
 .close_ws_file
@@ -12915,11 +13105,12 @@ net_channel_err_string = err_net_chan_not_found+2
     jmp osfind                                                        ; bb10: 4c ce ff    L..            ; Close file and return; Close one or all files
 
 ; ***************************************************************************************
-; Open a file for reading. Computes the
-; filename address from the command text
-; pointer plus offset, calls OSFIND to open,
-; and raises a 'Not found' error if the
-; handle is zero.
+; Open file for reading via OSFIND
+; 
+; Computes the filename address from the command text
+; pointer plus the Y offset, calls OSFIND with A=&40
+; (open for input). Stores the handle in ws_page.
+; Raises 'Not found' if the returned handle is zero.
 ; ***************************************************************************************
 ; &bb13 referenced 2 times by &b98b, &ba06
 .open_file_for_read
@@ -12969,10 +13160,12 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; bb54: 60          `              ; Return; Y = offset to next argument
 
 ; ***************************************************************************************
-; Parse a hex address from the command line
-; for dump range parameters. Reads up to 4
-; hex digits into a 4-byte accumulator,
-; stopping at CR or space.
+; Parse hex address for dump range
+; 
+; Reads up to 4 hex digits from the command line
+; into a 4-byte accumulator, stopping at CR or
+; space. Each digit shifts the accumulator left
+; by 4 bits before ORing in the new nybble.
 ; ***************************************************************************************
 ; &bb55 referenced 2 times by &bbc5, &bc51
 .parse_dump_range
@@ -13065,11 +13258,13 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; bbbd: 60          `              ; Return; Y past trailing spaces
 
 ; ***************************************************************************************
-; Initialise the dump buffer and parse the
-; start/end address range from the command
-; line. Validates addresses against the file
-; extent, raising 'Outside file' if out of
-; range.
+; Initialise dump buffer and parse address range
+; 
+; Parses the start and end addresses from the command
+; line via parse_dump_range. If no end address is given,
+; defaults to the file extent. Validates both addresses
+; against the file size, raising 'Outside file' if either
+; exceeds the extent.
 ; ***************************************************************************************
 ; &bbbe referenced 1 time by &ba12
 .init_dump_buffer
@@ -13201,26 +13396,32 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; bc83: 60          `              ; Return; Y=&10 (address low byte)
 
 ; ***************************************************************************************
-; Advance X by 8 using nested JSR calls.
-; Calls advance_x_by_4 then falls through
-; to inx4 for a total of 8 INX operations.
+; Advance X by 8 via nested JSR chain
+; 
+; Calls advance_x_by_4 (which itself JSRs inx4 then
+; falls through to inx4), then falls through to inx4
+; for a total of 4+4=8 INX operations.
 ; ***************************************************************************************
 ; &bc84 referenced 3 times by &9bde, &a8bb, &baa2
 .advance_x_by_8
     jsr advance_x_by_4                                                ; bc84: 20 87 bc     ..            ; JSR+fall-through: 8+8=16 INXs total
 ; ***************************************************************************************
-; Advance X by 4 using a JSR to inx4 then
-; falling through to inx4 again, for a total
-; of 4+4=8 INX operations when called from
-; advance_x_by_8, or 4 when called directly.
+; Advance X by 4 via JSR and fall-through
+; 
+; JSRs to inx4 for 4 INX operations, then falls
+; through to inx4 for another 4 — but when called
+; directly (not from advance_x_by_8), the caller
+; returns after the first inx4, yielding X+4.
 ; ***************************************************************************************
 ; &bc87 referenced 1 time by &bc84
 .advance_x_by_4
     jsr inx4                                                          ; bc87: 20 8a bc     ..            ; JSR+fall-through: 4+4=8 INXs
 ; ***************************************************************************************
-; Increment X four times. Used as a building
-; block by advance_x_by_4 and advance_x_by_8
-; via the JSR/fall-through chaining pattern.
+; Increment X four times
+; 
+; Four consecutive INX instructions. Used as a
+; building block by advance_x_by_4 and
+; advance_x_by_8 via JSR/fall-through chaining.
 ; ***************************************************************************************
 ; &bc8a referenced 1 time by &bc87
 .inx4
