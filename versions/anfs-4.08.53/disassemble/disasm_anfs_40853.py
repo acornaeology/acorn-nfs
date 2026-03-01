@@ -1651,6 +1651,82 @@ subroutine(0x06C5, "tube_read_r2",
     "code for command dispatch, OSFILE/OSGBPB control block\n"
     "reads, string reads, and OSBYTE parameter reception.",
     on_exit={"a": "byte read from R2"})
+subroutine(0x0520, "tube_osbput",
+    title="Tube OSBPUT handler (R2 cmd 8)",
+    description="Reads file handle and data byte from R2, then\n"
+    "calls OSBPUT (&FFD4) to write the byte. Falls through\n"
+    "to tube_reply_ack to send &7F acknowledgement.")
+subroutine(0x052D, "tube_osbget",
+    title="Tube OSBGET handler (R2 cmd 7)",
+    description="Reads file handle from R2, calls OSBGET (&FFD7)\n"
+    "to read a byte, then falls through to tube_rdch_reply\n"
+    "which encodes the carry flag (error) into bit 7 and\n"
+    "sends the result byte via R2.")
+subroutine(0x0537, "tube_osrdch",
+    title="Tube OSRDCH handler (R2 cmd 0)",
+    description="Calls OSRDCH (&FFE0) to read a character from\n"
+    "the current input stream, then falls through to\n"
+    "tube_rdch_reply which encodes the carry flag (error)\n"
+    "into bit 7 and sends the result byte via R2.")
+subroutine(0x0542, "tube_osfind",
+    title="Tube OSFIND handler (R2 cmd 9)",
+    description="Reads open mode from R2. If zero, reads a file\n"
+    "handle and closes that file. Otherwise saves the mode,\n"
+    "reads a filename string into &0700 via tube_read_string,\n"
+    "then calls OSFIND (&FFCE) to open the file. Sends the\n"
+    "resulting file handle (or &00) via tube_reply_byte.")
+subroutine(0x055E, "tube_osargs",
+    title="Tube OSARGS handler (R2 cmd 6)",
+    description="Reads file handle from R2 into Y, then reads\n"
+    "a 4-byte argument and reason code into zero page.\n"
+    "Calls OSARGS (&FFDA), sends the result A and 4-byte\n"
+    "return value via R2, then returns to the main loop.")
+subroutine(0x0596, "tube_oscli",
+    title="Tube OSCLI handler (R2 cmd 1)",
+    description="Reads a command string from R2 into &0700 via\n"
+    "tube_read_string, then calls OSCLI (&FFF7) to execute\n"
+    "it. Falls through to tube_reply_ack to send &7F\n"
+    "acknowledgement.")
+subroutine(0x05A9, "tube_osfile",
+    title="Tube OSFILE handler (R2 cmd 10)",
+    description="Reads a 16-byte control block into zero page,\n"
+    "a filename string into &0700 via tube_read_string,\n"
+    "and a reason code from R2. Calls OSFILE (&FFDD),\n"
+    "then sends the result A and updated 16-byte control\n"
+    "block back via R2. Returns to the main loop via mj.")
+subroutine(0x05D1, "tube_osgbpb",
+    title="Tube OSGBPB handler (R2 cmd 11)",
+    description="Reads a 13-byte control block and reason code\n"
+    "from R2 into zero page. Calls OSGBPB (&FFD1), then\n"
+    "sends 12 result bytes and the carry+result byte\n"
+    "(via tube_rdch_reply) back via R2.")
+subroutine(0x05F2, "tube_osbyte_2param",
+    title="Tube OSBYTE 2-param handler (R2 cmd 2)",
+    description="Reads X and A from R2, calls OSBYTE (&FFF4)\n"
+    "with Y=0, then sends the result X via\n"
+    "tube_reply_byte. Used for OSBYTE calls that take\n"
+    "only A and X parameters.")
+subroutine(0x0607, "tube_osbyte_long",
+    title="Tube OSBYTE 3-param handler (R2 cmd 3)",
+    description="Reads X, Y, and A from R2, calls OSBYTE\n"
+    "(&FFF4), then sends carry+Y and X as result bytes\n"
+    "via R2. Used for OSBYTE calls needing all three\n"
+    "parameters and returning both X and Y results.")
+subroutine(0x0627, "tube_osword",
+    title="Tube OSWORD handler (R2 cmd 4)",
+    description="Reads OSWORD number A and in-length from R2,\n"
+    "then reads the parameter block into &0128. Calls\n"
+    "OSWORD (&FFF1), then sends the out-length result\n"
+    "bytes from the parameter block back via R2.\n"
+    "Returns to the main loop via tube_return_main.")
+subroutine(0x0668, "tube_osword_rdln",
+    title="Tube OSWORD 0 handler (R2 cmd 5)",
+    description="Handles OSWORD 0 (read line) specially. Reads\n"
+    "4 parameter bytes from R2 into &0128 (max length,\n"
+    "min char, max char, flags). Calls OSWORD 0 (&FFF1)\n"
+    "to read a line, then sends &7F+CR or the input line\n"
+    "byte-by-byte via R2, followed by &80 (error/escape)\n"
+    "or &7F (success).")
 subroutine(0x8069, "adlc_init",
     title="ADLC initialisation",
     description="Initialise ADLC hardware and Econet workspace.\n"

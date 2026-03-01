@@ -708,6 +708,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
     equb &82                                                          ; bcae: 82          .   :051e[3]   ; Type 6: set I (define event handler)
     equb &18                                                          ; bcaf: 18          .   :051f[3]   ; Type 7: clear V+M (transfer and release)
 
+; ***************************************************************************************
+; Tube OSBPUT handler (R2 cmd 8)
+; 
+; Reads file handle and data byte from R2, then
+; calls OSBPUT (&FFD4) to write the byte. Falls through
+; to tube_reply_ack to send &7F acknowledgement.
+; ***************************************************************************************
 .tube_osbput
     jsr tube_read_r2                                                  ; bcb0: 20 c5 06     .. :0520[3]   ; Read channel handle from R2 for BPUT
     tay                                                               ; bcb3: a8          .   :0523[3]
@@ -716,12 +723,28 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr osbput                                                        ; bcb7: 20 d4 ff     .. :0527[3]   ; Write a single byte A to an open file Y
     jmp tube_reply_ack                                                ; bcba: 4c 9c 05    L.. :052a[3]
 
+; ***************************************************************************************
+; Tube OSBGET handler (R2 cmd 7)
+; 
+; Reads file handle from R2, calls OSBGET (&FFD7)
+; to read a byte, then falls through to tube_rdch_reply
+; which encodes the carry flag (error) into bit 7 and
+; sends the result byte via R2.
+; ***************************************************************************************
 .tube_osbget
     jsr tube_read_r2                                                  ; bcbd: 20 c5 06     .. :052d[3]   ; Read channel handle from R2 for BGET
     tay                                                               ; bcc0: a8          .   :0530[3]   ; Y=file handle
     jsr osbget                                                        ; bcc1: 20 d7 ff     .. :0531[3]   ; Read a single byte from an open file Y
     jmp tube_rdch_reply                                               ; bcc4: 4c 3a 05    L:. :0534[3]
 
+; ***************************************************************************************
+; Tube OSRDCH handler (R2 cmd 0)
+; 
+; Calls OSRDCH (&FFE0) to read a character from
+; the current input stream, then falls through to
+; tube_rdch_reply which encodes the carry flag (error)
+; into bit 7 and sends the result byte via R2.
+; ***************************************************************************************
 .tube_osrdch
     jsr osrdch                                                        ; bcc7: 20 e0 ff     .. :0537[3]   ; Read a character from the current input stream
 ; &bcca referenced 2 times by &0534[3], &05ef[3]
@@ -731,6 +754,15 @@ tube_cmd_lo = tube_dispatch_cmd+1
     rol a                                                             ; bcce: 2a          *   :053e[3]   ; ROL A: restore carry flag
     jmp tube_reply_byte                                               ; bccf: 4c 9e 05    L.. :053f[3]
 
+; ***************************************************************************************
+; Tube OSFIND handler (R2 cmd 9)
+; 
+; Reads open mode from R2. If zero, reads a file
+; handle and closes that file. Otherwise saves the mode,
+; reads a filename string into &0700 via tube_read_string,
+; then calls OSFIND (&FFCE) to open the file. Sends the
+; resulting file handle (or &00) via tube_reply_byte.
+; ***************************************************************************************
 .tube_osfind
     jsr tube_read_r2                                                  ; bcd2: 20 c5 06     .. :0542[3]   ; Read open mode from R2 for OSFIND
     beq tube_osfind_close                                             ; bcd5: f0 0b       ..  :0545[3]   ; Mode=0: close file(s)
@@ -748,6 +780,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jsr osfind                                                        ; bce8: 20 ce ff     .. :0558[3]   ; Close one or all files
     jmp tube_reply_ack                                                ; bceb: 4c 9c 05    L.. :055b[3]   ; Reply with acknowledgement via R2
 
+; ***************************************************************************************
+; Tube OSARGS handler (R2 cmd 6)
+; 
+; Reads file handle from R2 into Y, then reads
+; a 4-byte argument and reason code into zero page.
+; Calls OSARGS (&FFDA), sends the result A and 4-byte
+; return value via R2, then returns to the main loop.
+; ***************************************************************************************
 .tube_osargs
     jsr tube_read_r2                                                  ; bcee: 20 c5 06     .. :055e[3]   ; Read file handle from R2 for OSARGS
     tay                                                               ; bcf1: a8          .   :0561[3]
@@ -802,6 +842,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
     ldy #7                                                            ; bd23: a0 07       ..  :0593[3]   ; Y=7: set XY=&0700 for OSCLI/OSFIND
     rts                                                               ; bd25: 60          `   :0595[3]   ; Return with XY pointing to string buffer
 
+; ***************************************************************************************
+; Tube OSCLI handler (R2 cmd 1)
+; 
+; Reads a command string from R2 into &0700 via
+; tube_read_string, then calls OSCLI (&FFF7) to execute
+; it. Falls through to tube_reply_ack to send &7F
+; acknowledgement.
+; ***************************************************************************************
 .tube_oscli
     jsr tube_read_string                                              ; bd26: 20 82 05     .. :0596[3]   ; Read command string from R2 into &0700
     jsr oscli                                                         ; bd29: 20 f7 ff     .. :0599[3]
@@ -817,6 +865,15 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .mj
     jmp tube_main_loop                                                ; bd36: 4c 36 00    L6. :05a6[3]   ; Return to Tube main loop
 
+; ***************************************************************************************
+; Tube OSFILE handler (R2 cmd 10)
+; 
+; Reads a 16-byte control block into zero page,
+; a filename string into &0700 via tube_read_string,
+; and a reason code from R2. Calls OSFILE (&FFDD),
+; then sends the result A and updated 16-byte control
+; block back via R2. Returns to the main loop via mj.
+; ***************************************************************************************
 .tube_osfile
     ldx #&10                                                          ; bd39: a2 10       ..  :05a9[3]   ; Read 16-byte OSFILE control block from R2
 ; &bd3b referenced 1 time by &05b1[3]
@@ -841,6 +898,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bne send_osfile_ctrl_blk                                          ; bd5d: d0 f8       ..  :05cd[3]   ; More bytes: continue sending
     beq mj                                                            ; bd5f: f0 d5       ..  :05cf[3]   ; ALWAYS branch
 
+; ***************************************************************************************
+; Tube OSGBPB handler (R2 cmd 11)
+; 
+; Reads a 13-byte control block and reason code
+; from R2 into zero page. Calls OSGBPB (&FFD1), then
+; sends 12 result bytes and the carry+result byte
+; (via tube_rdch_reply) back via R2.
+; ***************************************************************************************
 .tube_osgbpb
     ldx #&0d                                                          ; bd61: a2 0d       ..  :05d1[3]   ; X=&0D: read 13-byte OSGBPB ctrl block
 ; &bd63 referenced 1 time by &05d9[3]
@@ -863,6 +928,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
     pla                                                               ; bd7e: 68          h   :05ee[3]   ; Recover completion status from stack
     jmp tube_rdch_reply                                               ; bd7f: 4c 3a 05    L:. :05ef[3]   ; Reply with RDCH-style result
 
+; ***************************************************************************************
+; Tube OSBYTE 2-param handler (R2 cmd 2)
+; 
+; Reads X and A from R2, calls OSBYTE (&FFF4)
+; with Y=0, then sends the result X via
+; tube_reply_byte. Used for OSBYTE calls that take
+; only A and X parameters.
+; ***************************************************************************************
 .tube_osbyte_2param
     jsr tube_read_r2                                                  ; bd82: 20 c5 06     .. :05f2[3]
     tax                                                               ; bd85: aa          .   :05f5[3]
@@ -898,6 +971,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .bytex
     jmp tube_main_loop                                                ; bd94: 4c 36 00    L6. :0604[4]   ; Return to main event loop
 
+; ***************************************************************************************
+; Tube OSBYTE 3-param handler (R2 cmd 3)
+; 
+; Reads X, Y, and A from R2, calls OSBYTE
+; (&FFF4), then sends carry+Y and X as result bytes
+; via R2. Used for OSBYTE calls needing all three
+; parameters and returning both X and Y results.
+; ***************************************************************************************
 .tube_osbyte_long
     jsr tube_read_r2                                                  ; bd97: 20 c5 06     .. :0607[4]   ; Read X, Y, A from R2 for 3-param OSBYTE
     tax                                                               ; bd9a: aa          .   :060a[4]   ; Save in X
@@ -916,6 +997,15 @@ tube_cmd_lo = tube_dispatch_cmd+1
     sty tube_data_register_2                                          ; bdb2: 8c e3 fe    ... :0622[4]   ; Send Y result, then fall through to send X
 .tube_osbyte_short
     bvs tube_poll_r2_result                                           ; bdb5: 70 d5       p.  :0625[4]   ; BVS always: jump to send X via R2
+; ***************************************************************************************
+; Tube OSWORD handler (R2 cmd 4)
+; 
+; Reads OSWORD number A and in-length from R2,
+; then reads the parameter block into &0128. Calls
+; OSWORD (&FFF1), then sends the out-length result
+; bytes from the parameter block back via R2.
+; Returns to the main loop via tube_return_main.
+; ***************************************************************************************
 .tube_osword
     jsr tube_read_r2                                                  ; bdb7: 20 c5 06     .. :0627[4]   ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
     tay                                                               ; bdba: a8          .   :062a[4]   ; Save OSWORD number in Y
@@ -962,6 +1052,16 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_return_main
     jmp tube_main_loop                                                ; bdf5: 4c 36 00    L6. :0665[4]   ; Return to main event loop
 
+; ***************************************************************************************
+; Tube OSWORD 0 handler (R2 cmd 5)
+; 
+; Handles OSWORD 0 (read line) specially. Reads
+; 4 parameter bytes from R2 into &0128 (max length,
+; min char, max char, flags). Calls OSWORD 0 (&FFF1)
+; to read a line, then sends &7F+CR or the input line
+; byte-by-byte via R2, followed by &80 (error/escape)
+; or &7F (success).
+; ***************************************************************************************
 .tube_osword_rdln
     ldx #4                                                            ; bdf8: a2 04       ..  :0668[4]   ; Read 5-byte OSWORD 0 control block from R2
 ; &bdfa referenced 1 time by &0670[4]
