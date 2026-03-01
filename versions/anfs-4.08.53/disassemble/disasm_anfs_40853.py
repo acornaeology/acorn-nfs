@@ -2039,58 +2039,126 @@ subroutine(0x89AB, "rom_set_nmi_vector",
     "initialisation before the RAM workspace has been set up, and as\n"
     "the source for the initial copy to RAM.")
 subroutine(0x8AE2, "scan_remote_keys",
-    description="Scan keyboard for remote operation keys\n"
-    "(&CE-&CF). Clears service state and\n"
-    "workspace byte if no key pressed.")
+    description="Called by check_escape to detect whether remote\n"
+    "operation keys (&CE-&CF) are currently pressed.\n"
+    "Uses OSBYTE &7A with Y=&7F to scan the keyboard\n"
+    "for each key in the range. If neither key is\n"
+    "pressed, clears svc_state and nfs_workspace to\n"
+    "zero via the clear_svc_and_ws entry point, which\n"
+    "is also used directly by cmd_roff.")
 subroutine(0x8AFA, "save_text_ptr",
-    description="Copy the OS text pointer (GSINIT XY)\n"
-    "to fs_crc_lo/hi for later retrieval.")
+    description="Saves the current OS text pointer (&F2/&F3) into\n"
+    "fs_crc_lo/fs_crc_hi for later retrieval. Called\n"
+    "by svc_4_star_command and svc_9_help before\n"
+    "attempting command matches, and by match_fs_cmd\n"
+    "during iterative help topic matching. Preserves\n"
+    "A via PHA/PLA.",
+    on_exit={"a": "preserved"})
 subroutine(0x8B8D, "print_cmd_table",
-    description="Print *HELP header then list commands\n"
-    "from a command table. Prints version\n"
-    "header first if V flag is clear.\n"
-    "X=command table offset on entry.")
+    description="Entry point for printing a *HELP command listing.\n"
+    "If V flag is set, saves X/Y, calls\n"
+    "print_version_header to show the ROM version\n"
+    "string and station number, then restores X/Y.\n"
+    "If V flag is clear, outputs a newline only.\n"
+    "Either path then falls through to\n"
+    "print_cmd_table_loop to enumerate commands.",
+    on_entry={"x": "offset into cmd_table_fs",
+              "v": "set=print version header, clear=newline only"})
 subroutine(0x8BA0, "print_cmd_table_loop",
-    description="Inner loop of command table printing.\n"
-    "Reads entries from the table and prints\n"
-    "each command name until end-of-table.\n"
-    "X=command table offset on entry.")
+    description="Iterates through the ANFS command table starting\n"
+    "at offset X, printing each command name padded to\n"
+    "9 characters followed by its syntax description.\n"
+    "Entries with bit 7 set mark end-of-table. The\n"
+    "syntax descriptor byte's low 5 bits index into\n"
+    "cmd_syntax_table; index &0E triggers special\n"
+    "handling that lists shared command names in\n"
+    "parentheses. Calls help_wrap_if_serial to handle\n"
+    "line continuation on serial output streams.\n"
+    "Preserves Y across the full enumeration.",
+    on_entry={"x": "offset into cmd_table_fs"})
 subroutine(0x8C28, "help_wrap_if_serial",
-    description="Output newline and indent if the current\n"
-    "output destination is a serial stream.\n"
-    "No-op for VDU or printer streams.")
+    description="Checks the output destination via &0355 and wraps\n"
+    "syntax lines for serial streams. Returns\n"
+    "immediately for VDU (stream 0) or printer\n"
+    "(stream 3) output. For serial streams, outputs a\n"
+    "newline followed by 12 spaces of indentation to\n"
+    "align continuation lines with the syntax\n"
+    "description column.",
+    on_exit={"y": "preserved"})
 subroutine(0x8C94, "print_version_header",
-    description="Print the ANFS ROM version string and\n"
-    "station number via inline string.")
+    description="Prints the ANFS ROM identification string using\n"
+    "an inline string after the JSR to print_inline:\n"
+    "CR + \"Advanced  4.08.53\" + CR. After the inline\n"
+    "string, JMPs to print_station_id to append the\n"
+    "local Econet station number.")
 subroutine(0x8CAE, "get_ws_page",
-    description="Get the workspace page number for the\n"
-    "current ROM slot. Returns page in A and Y.")
+    description="Reads the workspace page number allocated to this\n"
+    "ROM slot from the MOS page &0D table. Uses\n"
+    "romsel_copy (&F4) to index into the per-ROM\n"
+    "workspace allocation at &0DF0. Returns the page\n"
+    "number in both A and Y for caller convenience.",
+    on_exit={"a": "workspace page number",
+             "y": "workspace page number (same as A)"})
 subroutine(0x8CB5, "setup_ws_ptr",
-    description="Set up nfs_temp as a pointer to the\n"
-    "workspace page for the current ROM slot.")
+    description="Sets up a zero-page pointer at &CC/&CD to address\n"
+    "the workspace page for this ROM slot. Calls\n"
+    "get_ws_page to read the page number, stores it as\n"
+    "the high byte in nfs_temp (&CD), and clears the\n"
+    "low byte at &CC to zero. This gives a page-aligned\n"
+    "pointer used by FS initialisation and cmd_net_fs\n"
+    "to access the private workspace.",
+    on_exit={"a": "0", "y": "workspace page number"})
 subroutine(0x8CF1, "notify_new_fs",
-    description="Notify the OS of a new filing system via\n"
-    "FSCV call 6, then dispatch service 10.")
+    description="Notifies the OS that a new filing system is being\n"
+    "selected by calling FSCV with A=6, then issues\n"
+    "paged ROM service call 10 via OSBYTE &8F to\n"
+    "inform other ROMs of the FS change. Sets X=&0A\n"
+    "and branches to issue_svc_osbyte which falls\n"
+    "through from the call_fscv subroutine.")
 subroutine(0x8CFA, "call_fscv",
-    description="Dispatch to the filing system control\n"
-    "vector (FSCV) via indirect JMP.\n"
-    "A=reason code on entry.")
+    description="Dispatches to the filing system control vector\n"
+    "(FSCV at &021E) via an indirect JMP. The FSCV\n"
+    "provides OS-level filing system services such as\n"
+    "notification of FS selection (A=6) and *RUN\n"
+    "handling. Also contains issue_svc_15 and\n"
+    "issue_svc_osbyte entry points that issue paged\n"
+    "ROM service requests via OSBYTE &8F.",
+    on_entry={"a": "FSCV reason code"})
 subroutine(0x8D0C, "check_credits_easter_egg",
-    description="Check if *HELP argument matches the\n"
-    "credits keyword. If matched, print the\n"
-    "author credits string character by\n"
-    "character.")
+    description="Easter egg handler called by svc_9_help. Matches\n"
+    "the *HELP argument against a keyword embedded in\n"
+    "the credits data at credits_keyword_start. Starts\n"
+    "matching from offset 5 in the data (X=5) and\n"
+    "checks each byte against the command line text\n"
+    "until a mismatch or X reaches &0D. On a full\n"
+    "match, prints the ANFS author credits string:\n"
+    "B Cockburn, J Dunn, B Robertson, and J Wills,\n"
+    "each terminated by CR.")
 subroutine(0x8DFE, "clear_if_station_match",
-    description="Parse a station number from the command\n"
-    "line and clear the station byte if it\n"
-    "matches the expected value.")
+    description="Parses a station number argument from the command\n"
+    "line via init_bridge_poll and compares it with the\n"
+    "expected station stored at &0E01 using EOR. If the\n"
+    "parsed value matches (EOR result is zero), clears\n"
+    "&0E01. Called by cmd_iam when processing a file\n"
+    "server address in the logon command.",
+    on_exit={"a": "0 if matched, non-zero if different"})
 subroutine(0x8E76, "osbyte_x0_y0",
-    description="OSBYTE dispatch with X=0, Y=0.\n"
-    "Normalises OSBYTE codes &32-&35 to\n"
-    "indices 0-3 for Econet OSBYTE handling.")
+    description="Sets X=0 and Y=0 then branches to jmp_osbyte to\n"
+    "execute the OSBYTE call. Called from the Econet\n"
+    "OSBYTE dispatch chain to handle OSBYTEs that\n"
+    "require both X and Y cleared. The unconditional\n"
+    "BEQ (after LDY #0 sets Z) reaches the JMP osbyte\n"
+    "instruction at &8E71.",
+    on_entry={"a": "OSBYTE number"},
+    on_exit={"x": "0", "y": "0"})
 subroutine(0x8E96, "store_ws_page_count",
-    description="Store workspace page count in receive\n"
-    "block, capping at &21. Y=page count.")
+    description="Records the workspace page count from the service\n"
+    "1 workspace claim into offset &0F of the receive\n"
+    "control block. Caps the value at &21 to prevent\n"
+    "overflow into adjacent workspace areas. Called by\n"
+    "svc_2_private_workspace after issuing the absolute\n"
+    "workspace claim service call.",
+    on_entry={"y": "workspace page count from service 1"})
 subroutine(0x8F40, "init_adlc_and_vectors",
     description="Initialise ADLC hardware and install\n"
     "extended vector entries for NETV and one\n"
@@ -4967,32 +5035,82 @@ label(0x8C52, "svc_9_help")
 label(0x8B05, "svc_18_fs_select")
 
 subroutine(0x8E8F, "svc_1_workspace_claim",
-    description="Service 1: absolute workspace claim.\n"
-    "Claims workspace pages for NFS use.")
+    description="Handles MOS service call 1 (absolute workspace\n"
+    "claim). Ensures the NFS workspace allocation is\n"
+    "at least &16 pages by checking Y on entry. If\n"
+    "Y < &16, sets Y = &16 to claim the required\n"
+    "pages; otherwise returns Y unchanged. This is a\n"
+    "passive claim — NFS only raises the allocation,\n"
+    "never lowers it.",
+    on_entry={"y": "current highest workspace page claim"},
+    on_exit={"y": ">= &16 (NFS minimum requirement)"})
 subroutine(0x8EA2, "svc_2_private_workspace",
     title="Service 2: claim private workspace and initialise NFS",
-    description="Service 2: private workspace claim.\n"
-    "Allocates private workspace page and initialises FS state.")
+    description="Handles MOS service call 2 (private workspace\n"
+    "claim). Allocates two workspace pages starting\n"
+    "at Y: the receive block page (net_rx_ptr_hi) and\n"
+    "NFS workspace page (nfs_workspace_hi), plus a\n"
+    "per-ROM workspace page stored at &0DF0+ROM slot.\n"
+    "Zeroes all workspace, initialises the station ID\n"
+    "from the Econet hardware register at &FE18,\n"
+    "allocates FS handle pages, copies initial state\n"
+    "to page &10, and falls through to\n"
+    "init_adlc_and_vectors.",
+    on_entry={"y": "first available private workspace page"})
 subroutine(0x8CBF, "svc_3_auto_boot",
-    description="Service 3: auto-boot.\n"
-    "Handles boot from network on power-up/reset.")
+    description="Handles MOS service call 3 (auto-boot on reset).\n"
+    "Scans the keyboard via OSBYTE &7A for the 'N'\n"
+    "key (&19 or &55 EOR'd with &55). If pressed,\n"
+    "records the key state via OSBYTE &78. Selects\n"
+    "the network filing system by calling cmd_net_fs,\n"
+    "prints the station ID, then checks if this is\n"
+    "the first boot (ws_page = 0). If so, sets the\n"
+    "auto-boot flag in &1071 and JMPs to cmd_fs_entry\n"
+    "to execute the boot file.")
 subroutine(0x8C43, "svc_4_star_command",
-    description="Service 4: unrecognised star command.\n"
-    "Parses and dispatches NFS/ANFS star commands.")
+    description="Handles MOS service call 4 (unrecognised star\n"
+    "command). Saves the OS text pointer, then calls\n"
+    "match_fs_cmd to search the command table starting\n"
+    "at offset 0 (all FS commands). If no match is\n"
+    "found (carry set), returns with the service call\n"
+    "unclaimed. On a match, JMPs to cmd_fs_reentry\n"
+    "to execute the matched command handler via the\n"
+    "PHA/PHA/RTS dispatch mechanism.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8E7C, "svc_7_osbyte",
-    description="Service 7: unrecognised OSBYTE.\n"
-    "Handles Econet-specific OSBYTE calls.")
+    description="Handles MOS service call 7 (unrecognised OSBYTE).\n"
+    "Maps Econet OSBYTE codes &32-&35 to dispatch\n"
+    "indices 0-3 by subtracting &31 (with carry from\n"
+    "a preceding SBC). Returns unclaimed if the OSBYTE\n"
+    "number is outside this range. For valid codes,\n"
+    "claims the service (sets svc_state to 0) and\n"
+    "JMPs to svc_dispatch with Y=&21 to reach the\n"
+    "Econet OSBYTE handler table.",
+    on_entry={"a": "OSBYTE number (from osbyte_a_copy at &EF)"})
 subroutine(0xA4D6, "svc_8_osword",
     title="Filing system OSWORD entry",
     description="Service 8: unrecognised OSWORD.\n"
     "Handles Econet OSWORD calls (transmit, receive, etc.).")
 subroutine(0x8C52, "svc_9_help",
     title="Service 9: *HELP",
-    description="Service 9: *HELP.\n"
-    "Prints NFS version and command list.")
+    description="Handles MOS service call 9 (*HELP). First checks\n"
+    "for the credits Easter egg. For bare *HELP (CR\n"
+    "at text pointer), prints the version header and\n"
+    "full command list starting at table offset &C4.\n"
+    "For *HELP with an argument, handles '.' as a\n"
+    "shortcut to list all NFS commands, otherwise\n"
+    "iterates through help topics using PHA/PHA/RTS\n"
+    "dispatch to print matching command groups.\n"
+    "Returns with Y = ws_page (unclaimed).")
 subroutine(0x8B05, "svc_18_fs_select",
-    description="Service 18: filing system selection.\n"
-    "Selects Econet as the active filing system.")
+    description="Handles MOS service call 18 (filing system\n"
+    "selection request). Checks if Y=5 (Econet filing\n"
+    "system number); returns unclaimed if not. Also\n"
+    "returns if bit 7 of &0D6C is already set,\n"
+    "indicating the FS is already selected. Otherwise\n"
+    "falls through to cmd_net_fs to perform the full\n"
+    "network filing system selection sequence.",
+    on_entry={"y": "filing system number requested"})
 
 # Extended dispatch table entries (indices 15-36).
 # These may be reached via FS command dispatch or OSWORD dispatch
@@ -5063,8 +5181,18 @@ subroutine(0xBA06, "cmd_dump",
     "Displays file contents in hex and\n"
     "ASCII format, 8 bytes per line.")
 subroutine(0x8B0E, "cmd_net_fs",
-    description="*Net command (file server variant).\n"
-    "Selects network filing system.")
+    description="Selects the Econet network filing system. Computes\n"
+    "a checksum over the first &77 bytes of the\n"
+    "workspace page and verifies it against a stored\n"
+    "value; raises an error on mismatch. On success,\n"
+    "notifies the OS via FSCV reason 6, copies the FS\n"
+    "context block from the receive block to &0DFA,\n"
+    "installs 7 filing system vectors (FILEV etc.)\n"
+    "from fs_vector_table, initialises the ADLC and\n"
+    "extended vectors, sets up the channel table, and\n"
+    "copies the workspace page to &1000 as a shadow.\n"
+    "Sets bit 7 of &0D6C to mark the FS as selected,\n"
+    "then issues service call 15.")
 subroutine(0xB19F, "cmd_pollps",
     description="Poll printer server status.\n"
     "Waits for completion of the current\n"
@@ -5088,10 +5216,14 @@ subroutine(0xB321, "cmd_unprot",
     "Removes protection attribute from\n"
     "a file.")
 subroutine(0x8ACC, "cmd_roff",
-    description="*ROFF command. Disables remote\n"
-    "operation. Clears the receive buffer,\n"
-    "re-enables the keyboard, and resets\n"
-    "service state.")
+    description="*ROFF command handler. Disables remote operation\n"
+    "by clearing the flag at offset 4 in the receive\n"
+    "block. If remote operation was active, re-enables\n"
+    "the keyboard via OSBYTE &C9 (with X=0, Y=0) and\n"
+    "calls tx_econet_abort with A=&0A to reinitialise\n"
+    "the workspace area. Falls through to\n"
+    "scan_remote_keys which clears svc_state and\n"
+    "nfs_workspace.")
 
 # Sub-table 2: NFS commands
 entry(0x92D2)   # *Access, *Delete, *Info, *Lib (shared entry)
@@ -5153,8 +5285,17 @@ subroutine(0xA063, "cmd_fs",
     description="*FS command.\n"
     "Selects filing system by number.")
 subroutine(0x8D6E, "cmd_iam",
-    description="*I am command.\n"
-    "Logs onto the file server with user credentials.")
+    description="*I AM command handler. Logs onto the file server.\n"
+    "Closes any *SPOOL/*EXEC files via OSBYTE &77,\n"
+    "resets all file control blocks via\n"
+    "process_all_fcbs, then parses the command line\n"
+    "for an optional station number and file server\n"
+    "address. If a station number is present, stores\n"
+    "it and calls clear_if_station_match to validate.\n"
+    "Copies the logon command template from\n"
+    "cmd_table_nfs_iam into the transmit buffer and\n"
+    "sends via copy_arg_validated. Falls through to\n"
+    "cmd_pass for password entry.")
 subroutine(0xAD4D, "cmd_lcat",
     description="*LCat command.\n"
     "Lists catalogue from the library\n"
@@ -5164,8 +5305,16 @@ subroutine(0xAD53, "cmd_lex",
     "Examines the library directory.\n"
     "Falls through to *Ex.")
 subroutine(0x8DB1, "cmd_pass",
-    description="*Pass command.\n"
-    "Changes file server password.")
+    description="*PASS command handler. Changes the file server\n"
+    "password. Builds the FS command packet via\n"
+    "copy_arg_to_buf_x0, then scans the reply buffer\n"
+    "for a ':' separator indicating a password prompt.\n"
+    "If found, reads characters from the keyboard\n"
+    "without echo, handling Delete (&7F) for backspace\n"
+    "and NAK (&15) to restart from the colon position.\n"
+    "Sends the completed password to the file server\n"
+    "via save_net_tx_cb and branches to\n"
+    "send_cmd_and_dispatch for the reply.")
 subroutine(0xAF46, "cmd_remove",
     description="*Remove command.\n"
     "Deletes a file from the file server.")
@@ -5185,11 +5334,16 @@ label(0x8B8B, "cmd_net_local")
 label(0x8B87, "cmd_utils")
 
 subroutine(0x8B8B, "cmd_net_local",
-    description="*Net command (local variant).\n"
-    "Selects Econet as active network.")
+    description="*Net command (local/utility variant). Sets X to\n"
+    "&4A (the NFS command sub-table offset) and falls\n"
+    "through to print_cmd_table to display the NFS\n"
+    "command list with version header.")
 subroutine(0x8B87, "cmd_utils",
-    description="*Utils command. Dispatches to\n"
-    "command utility table at offset 0.")
+    description="*Utils command handler. Sets X=0 to select the\n"
+    "first (FS) command sub-table and branches to\n"
+    "print_cmd_table to display the command list.\n"
+    "This prints the version header followed by all\n"
+    "FS utility commands.")
 
 
 # ============================================================
@@ -5266,24 +5420,50 @@ label(0xA3BF, "boot_exec_cmd")
 # Subroutine at &8E33: PHA/PHA/RTS dispatch via svc_dispatch tables.
 # On entry: X=base index, Y=offset. Dispatches to table[X+Y+1].
 subroutine(0x8E33, "svc_dispatch",
-    description="Service dispatch via PHA/PHA/RTS.\n"
-    "On entry: X=base index, Y=additional offset.\n"
-    "Dispatches to svc_dispatch_lo/hi[X+Y+1].")
+    description="PHA/PHA/RTS dispatch routine. Computes a target\n"
+    "index by incrementing X and decrementing Y until\n"
+    "Y goes negative, effectively calculating X+Y+1.\n"
+    "Pushes the target address (high then low byte)\n"
+    "from svc_dispatch_lo/hi tables onto the stack,\n"
+    "loads fs_options into X, then returns via RTS to\n"
+    "dispatch to the target subroutine. Used for all\n"
+    "service dispatch, FS command execution, and\n"
+    "OSBYTE handler routing.",
+    on_entry={"x": "base dispatch index",
+              "y": "additional offset"},
+    on_exit={"x": "fs_options value"})
 label(0x8E33, "svc_dispatch")
 
 # sub_c8a97: read byte from paged ROM via OSRDSC
 subroutine(0x8A97, "read_paged_rom",
-    description="Read byte from paged ROM via OSRDSC.\n"
-    "Increments osrdsc_ptr and reads from ROM Y.")
+    description="Reads the next byte from a paged ROM via the MOS\n"
+    "OSRDSC call (&FFB9). Increments the read pointer\n"
+    "at osrdsc_ptr (&F6) first, then uses the ROM\n"
+    "number stored at error_block (&0100) as the Y\n"
+    "parameter to OSRDSC. Called three times by\n"
+    "service_handler during ROM identification to\n"
+    "read the copyright string and ROM type byte.",
+    on_exit={"a": "byte read from ROM"})
 label(0x8A97, "read_paged_rom")
 
 # sub_c8e6d / sub_c8e6f: OSBYTE with X=0 / OSBYTE with Y=&FF
 subroutine(0x8E6D, "osbyte_x0",
-    description="OSBYTE with X=0, Y=&FF.\n"
-    "Called from dispatch table for specific OSBYTE calls.")
+    description="OSBYTE wrapper that sets X=0 and falls through to\n"
+    "osbyte_yff to also set Y=&FF. Provides a single\n"
+    "call to execute OSBYTE with A as the function\n"
+    "code and both X=0, Y=&FF as parameters. Used by\n"
+    "adlc_init, init_adlc_and_vectors, and Econet\n"
+    "OSBYTE handling.",
+    on_entry={"a": "OSBYTE function code"},
+    on_exit={"x": "0", "y": "&FF"})
 subroutine(0x8E6F, "osbyte_yff",
-    description="OSBYTE with Y=&FF.\n"
-    "Entry with X already set by caller.")
+    description="OSBYTE wrapper that sets Y=&FF and JMPs to the\n"
+    "MOS OSBYTE entry point. X must already be set by\n"
+    "the caller. The osbyte_x0 entry point above falls\n"
+    "through to here after setting X=0.",
+    on_entry={"a": "OSBYTE function code",
+              "x": "OSBYTE X parameter"},
+    on_exit={"y": "&FF"})
 label(0x8E6D, "osbyte_x0")
 label(0x8E6F, "osbyte_yff")
 
