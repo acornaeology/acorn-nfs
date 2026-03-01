@@ -309,6 +309,7 @@ gsinit                                  = &ffc2
 gsread                                  = &ffc5
 osfind                                  = &ffce
 osgbpb                                  = &ffd1
+osbput                                  = &ffd4
 osbget                                  = &ffd7
 osargs                                  = &ffda
 osfile                                  = &ffdd
@@ -679,25 +680,38 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &0500
 ; &bc90 referenced 2 times by &0050[1], &bea3
 .tube_r2_dispatch_table
-    equb &37, 5, &96, 5, &f2, 5,   7, 6, &27, 6, &68, 6, &5e, 5       ; bc90: 37 05 96... 7.. :0500[3]   ; 12-entry Tube R2 command dispatch table
-    equb &2d, 5, &20, 5, &42, 5, &a9, 5, &d1, 5                       ; bc9e: 2d 05 20... -.  :050e[3]
+    equw &0537, &0596, &05f2, &0607, &0627, &0668, &055e, &052d       ; bc90: 37 05 96... 7.. :0500[3]   ; 12-entry Tube R2 command dispatch table
+    equw &0520, &0542, &05a9, &05d1                                   ; bca0: 20 05 42...  .B :0510[3]
 ; &bca8 referenced 1 time by &0453[2]
 .tube_ctrl_values
     equb &86, &88, &96, &98, &18, &18, &82, &18                       ; bca8: 86 88 96... ... :0518[3]   ; Tube control register value table (8 bytes)
-.tube_osbput
-    equb &20, &c5, 6, &a8, &20, &c5, 6                                ; bcb0: 20 c5 06...  .. :0520[3]   ; Read channel handle from R2 for BPUT
-.tube_poll_r1_wrch
-    equb &20, &d4, &ff, &4c, &9c, 5                                   ; bcb7: 20 d4 ff...  .. :0527[3]
-.tube_osbget
-    equb &20, &c5, 6, &a8, &20, &d7, &ff, &4c, &3a, 5                 ; bcbd: 20 c5 06...  .. :052d[3]   ; Read channel handle from R2 for BGET
-.tube_osrdch
-    equb &20, &e0, &ff                                                ; bcc7: 20 e0 ff     .. :0537[3]
 
-; &bcca referenced 1 time by &05ef[3]
+.tube_osbput
+    jsr tube_read_r2                                                  ; bcb0: 20 c5 06     .. :0520[3]   ; Read channel handle from R2 for BPUT
+    tay                                                               ; bcb3: a8          .   :0523[3]
+    jsr tube_read_r2                                                  ; bcb4: 20 c5 06     .. :0524[3]
+.tube_poll_r1_wrch
+    jsr osbput                                                        ; bcb7: 20 d4 ff     .. :0527[3]   ; Write a single byte A to an open file Y
+    jmp tube_reply_ack                                                ; bcba: 4c 9c 05    L.. :052a[3]
+
+.tube_osbget
+    jsr tube_read_r2                                                  ; bcbd: 20 c5 06     .. :052d[3]   ; Read channel handle from R2 for BGET
+    tay                                                               ; bcc0: a8          .   :0530[3]   ; Y=file handle
+    jsr osbget                                                        ; bcc1: 20 d7 ff     .. :0531[3]   ; Read a single byte from an open file Y
+    jmp tube_rdch_reply                                               ; bcc4: 4c 3a 05    L:. :0534[3]
+
+.tube_osrdch
+    jsr osrdch                                                        ; bcc7: 20 e0 ff     .. :0537[3]   ; Read a character from the current input stream
+; &bcca referenced 2 times by &0534[3], &05ef[3]
 .tube_rdch_reply
     ror a                                                             ; bcca: 6a          j   :053a[3]   ; ROR A: encode carry (error flag) into bit 7
-    equb &20, &95                                                     ; bccb: 20 95        .  :053b[3]
+; Overlapping code: bytes &053B-&053D (&20 &95 &06) form
+; JSR tube_send_r2 when falling through from ROR A above.
+; The &06 byte doubles as the ASL opcode at &053D.
+    equb &20, &95                                                     ; bccb: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
+; Nothing references tube_release_return so this path is
+; dead code.
 .tube_release_return
     asl tube_send_error_byte                                          ; bccd: 06 2a       .*  :053d[3]   ; ASL: shift carry out of &002A (dead code)
     jmp tube_reply_byte                                               ; bccf: 4c 9e 05    L.. :053f[3]   ; JMP tube_reply_byte (dead code path)
@@ -720,10 +734,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
     jmp tube_reply_ack                                                ; bceb: 4c 9c 05    L.. :055b[3]   ; Reply with acknowledgement via R2
 
 .tube_osargs
-    equb &20, &c5, 6, &a8                                             ; bcee: 20 c5 06...  .. :055e[3]   ; Read file handle from R2 for OSARGS
+    jsr tube_read_r2                                                  ; bcee: 20 c5 06     .. :055e[3]   ; Read file handle from R2 for OSARGS
+    tay                                                               ; bcf1: a8          .   :0561[3]
 .tube_read_params
-    equb &a2, 4                                                       ; bcf2: a2 04       ..  :0562[3]   ; Read 4-byte arg + reason from R2 into ZP
-
+    ldx #4                                                            ; bcf2: a2 04       ..  :0562[3]   ; Read 4-byte arg + reason from R2 into ZP
 ; &bcf4 referenced 1 time by &056a[3]
 .read_osargs_params
     jsr tube_read_r2                                                  ; bcf4: 20 c5 06     .. :0564[3]   ; Read next param byte from R2
@@ -776,7 +790,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_oscli
     equb &20, &82, 5, &20, &f7, &ff                                   ; bd26: 20 82 05...  .. :0596[3]   ; Read command string from R2 into &0700
 
-; &bd2c referenced 2 times by &0489[2], &055b[3]
+; &bd2c referenced 3 times by &0489[2], &052a[3], &055b[3]
 .tube_reply_ack
     lda #&7f                                                          ; bd2c: a9 7f       ..  :059c[3]   ; &7F = success acknowledgement
 ; &bd2e referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]
@@ -1061,7 +1075,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; On Exit:
 ;     A: byte read from R2
 ; ***************************************************************************************
-; &be55 referenced 15 times by &0542[3], &0552[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]
+; &be55 referenced 19 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]
 .tube_read_r2
     bit tube_status_register_2                                        ; be55: 2c e2 fe    ,.. :06c5[4]   ; Poll R2 status (bit 7 = ready)
     bpl tube_read_r2                                                  ; be58: 10 fb       ..  :06c8[4]   ; Not ready: keep polling
@@ -13904,6 +13918,7 @@ save pydis_start, pydis_end
 ;     error_text:                              20
 ;     osword_pb_ptr:                           20
 ;     ws_page:                                 20
+;     tube_read_r2:                            19
 ;     l00ad:                                   18
 ;     l1000:                                   18
 ;     l1060:                                   18
@@ -13918,7 +13933,6 @@ save pydis_start, pydis_end
 ;     l0d6c:                                   15
 ;     open_port_buf_hi:                        15
 ;     station_id_disable_net_nmis:             15
-;     tube_read_r2:                            15
 ;     l0d61:                                   14
 ;     l0f07:                                   14
 ;     l1010:                                   14
@@ -14120,8 +14134,10 @@ save pydis_start, pydis_end
 ;     nmi_jmp_hi:                               3
 ;     nmi_jmp_lo:                               3
 ;     osargs:                                   3
+;     osbget:                                   3
 ;     osbyte_a_copy:                            3
 ;     osbyte_x0:                                3
+;     osrdch:                                   3
 ;     parse_fs_ps_args:                         3
 ;     poll_adlc_tx_status:                      3
 ;     port_match_found:                         3
@@ -14145,6 +14161,7 @@ save pydis_start, pydis_end
 ;     svc_return_unclaimed:                     3
 ;     tube_claim_c3:                            3
 ;     tube_data_register_1:                     3
+;     tube_reply_ack:                           3
 ;     tube_xfer_page:                           3
 ;     tx_active_start:                          3
 ;     tx_begin:                                 3
@@ -14283,9 +14300,7 @@ save pydis_start, pydis_end
 ;     net_channel_err_string:                   2
 ;     next_dec_char:                            2
 ;     open_file_for_read:                       2
-;     osbget:                                   2
 ;     osfile:                                   2
-;     osrdch:                                   2
 ;     osrdsc_ptr:                               2
 ;     pad_with_spaces:                          2
 ;     parse_cmd_arg_y0:                         2
@@ -14371,8 +14386,8 @@ save pydis_start, pydis_end
 ;     tube_osword_read_lp:                      2
 ;     tube_poll_r2_result:                      2
 ;     tube_r2_dispatch_table:                   2
+;     tube_rdch_reply:                          2
 ;     tube_read_string:                         2
-;     tube_reply_ack:                           2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
 ;     tube_tx_fifo_write:                       2
@@ -14921,6 +14936,7 @@ save pydis_start, pydis_end
 ;     osargs_ptr_dispatch:                      1
 ;     osargs_read_op:                           1
 ;     osargs_write_ptr:                         1
+;     osbput:                                   1
 ;     osbyte_mode_read_codes:                   1
 ;     osbyte_x0_y0:                             1
 ;     osbyte_yff:                               1
@@ -15208,7 +15224,6 @@ save pydis_start, pydis_end
 ;     tube_osword_write_lp:                     1
 ;     tube_page4_vectors:                       1
 ;     tube_poll_r2:                             1
-;     tube_rdch_reply:                          1
 ;     tube_rdln_send_line:                      1
 ;     tube_rdln_send_loop:                      1
 ;     tube_release_claim:                       1
@@ -15449,11 +15464,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13863 bytes (85%)
-;     Data                     = 2521 bytes (15%)
+;     Code                     = 13895 bytes (85%)
+;     Data                     = 2489 bytes (15%)
 ;
-;     Number of instructions   = 6792
-;     Number of data bytes     = 1329 bytes
-;     Number of data words     = 0 bytes
+;     Number of instructions   = 6805
+;     Number of data bytes     = 1273 bytes
+;     Number of data words     = 24 bytes
 ;     Number of string bytes   = 1192 bytes
 ;     Number of strings        = 147

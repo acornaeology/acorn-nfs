@@ -649,12 +649,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &949c referenced 2 times by &0534[3], &05ef[3]
 .tube_rdch_reply
     ror a                                                             ; 949c: 6a          j   :053a[3]   ; ROR A: encode carry (error flag) into bit 7
-; Overlapping code: bytes &053B-&053D (20 95 06) are
-; JSR tube_send_r2 when falling through from ROR A
-; above. tube_release_return at &053D is dead code
-; so tube_release_return is now dead code.
+; Overlapping code: bytes &053B-&053D (&20 &95 &06) form
+; JSR tube_send_r2 when falling through from ROR A above.
+; The &06 byte doubles as the ASL opcode at &053D.
     equb &20, &95                                                     ; 949d: 20 95        .  :053b[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
 
+; Nothing references tube_release_return so this path is
+; dead code.
 .tube_release_return
     asl tube_send_error_byte                                          ; 949f: 06 2a       .*  :053d[3]   ; ASL: shift carry out of &002A (dead code)
     jmp tube_reply_byte                                               ; 94a1: 4c 9e 05    L.. :053f[3]   ; JMP tube_reply_byte (dead code path)

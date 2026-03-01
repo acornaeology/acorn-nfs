@@ -290,6 +290,13 @@ entry(0x0421)
 
 # Page 5 entry points
 entry(0x0500)
+entry(0x0520)   # tube_osbput
+entry(0x0527)   # tube_poll_r1_wrch
+entry(0x052D)   # tube_osbget
+entry(0x0537)   # tube_osrdch
+entry(0x053A)   # tube_rdch_reply
+entry(0x055E)   # tube_osargs
+entry(0x0562)   # tube_read_params
 
 # Page 6 entry points
 entry(0x0600)
@@ -3548,10 +3555,19 @@ comment(0x04FB, "Store high byte of end address", inline=True)
 comment(0x04FD, "Store byte 3 of end address", inline=True)
 comment(0x04FF, "Return with pointers initialised", inline=True)
 comment(0x0500, "12-entry Tube R2 command dispatch table", inline=True)
+word(0x0500, 12)
 comment(0x0518, "Tube control register value table (8 bytes)", inline=True)
 comment(0x0520, "Read channel handle from R2 for BPUT", inline=True)
 comment(0x052D, "Read channel handle from R2 for BGET", inline=True)
 comment(0x053A, "ROR A: encode carry (error flag) into bit 7", inline=True)
+comment(0x053B, """\
+Overlapping code: bytes &053B-&053D (&20 &95 &06) form
+JSR tube_send_r2 when falling through from ROR A above.
+The &06 byte doubles as the ASL opcode at &053D.""")
+comment(0x053B, "= JSR tube_send_r2 (overlaps &053D entry)", inline=True)
+comment(0x053D, """\
+Nothing references tube_release_return so this path is
+dead code.""")
 comment(0x053D, "ASL: shift carry out of &002A (dead code)", inline=True)
 comment(0x053F, "JMP tube_reply_byte (dead code path)", inline=True)
 comment(0x0542, "Read open mode from R2 for OSFIND", inline=True)
