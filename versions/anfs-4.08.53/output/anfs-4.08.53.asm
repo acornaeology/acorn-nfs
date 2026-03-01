@@ -3218,8 +3218,9 @@ listen_jmp_hi = reset_enter_listen+2
     equb &a0, &8a                                                     ; 8a09: a0 8a       ..
 
 ; ***************************************************************************************
-; Service call handler.
-; On entry: A=service call number, X=ROM slot, Y=parameter.
+; Service call dispatch
+; 
+; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
 ; Service 1: absolute workspace claim.
 ; Service 4: unrecognised star command.
 ; Service 8: unrecognised OSWORD.
@@ -3227,6 +3228,11 @@ listen_jmp_hi = reset_enter_listen+2
 ; Service 13: ROM initialisation.
 ; Service 14: ROM initialisation complete.
 ; Service 15: vectors claimed.
+; 
+; On Entry:
+;     A: service call number
+;     X: ROM slot
+;     Y: parameter
 ; ***************************************************************************************
 ; &8a0b referenced 1 time by &8003
 .service_handler
@@ -4513,12 +4519,12 @@ ws_init_data = error_bad_station+2
     lda #3                                                            ; 8f3b: a9 03       ..             ; A=3: protection level
     jsr handle_spool_ctrl_byte                                        ; 8f3d: 20 09 ab     ..            ; Set up Econet protection
 ; ***************************************************************************************
-; Initialise ADLC hardware and install
-; extended vector entries for NETV and one
-; additional vector. Reads ROM pointer table
-; via OSBYTE &A8, writes vector addresses
-; and ROM ID into the extended vector table,
-; then restores any previous FS context.
+; Initialise ADLC and install extended vectors
+; 
+; Reads the ROM pointer table via OSBYTE &A8,
+; writes vector addresses and ROM ID into the
+; extended vector table for NETV and one additional
+; vector, then restores any previous FS context.
 ; ***************************************************************************************
 ; &8f40 referenced 1 time by &8b49
 .init_adlc_and_vectors
@@ -4594,11 +4600,13 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 8f7f: 60          `              ; Return
 
 ; ***************************************************************************************
+; Deselect filing system and save workspace
+; 
 ; If the filing system is currently selected
-; (bit 7 of &0D6C set), close all open FCBs,
-; close SPOOL/EXEC files via OSBYTE &77,
-; save the FS workspace to page &10 shadow
-; with checksum, and clear the selected flag.
+; (bit 7 of &0D6C set), closes all open FCBs,
+; closes SPOOL/EXEC files via OSBYTE &77,
+; saves the FS workspace to page &10 shadow
+; with checksum, and clears the selected flag.
 ; ***************************************************************************************
 ; &8f80 referenced 1 time by &8f6b
 .deselect_fs_if_active
@@ -4847,9 +4855,10 @@ ws_init_data = error_bad_station+2
     jmp (fs_error_ptr)                                                ; 9157: 6c b8 00    l..            ; Jump to address of high-bit byte (resumes code)
 
 ; ***************************************************************************************
-; Parse a decimal or hexadecimal number from
-; the command argument at (BE),Y. Supports
-; '&' prefix for hex, '.' separator for
+; Parse decimal or hex station address argument
+; 
+; Reads from the command argument at (&BE),Y.
+; Supports '&' prefix for hex, '.' separator for
 ; net.station addresses, and plain decimal.
 ; Returns result in A. Raises errors for
 ; bad digits, overflow, or zero values.
@@ -5370,11 +5379,12 @@ ws_init_data = error_bad_station+2
     rts                                                               ; 9334: 60          `              ; Return
 
 ; ***************************************************************************************
-; Parse a possibly-quoted filename argument
-; from the command line at (BE),Y. Handles
-; double-quote delimiters and stores the
-; result in the parse buffer at &0E30.
-; Raises 'Bad string' on unbalanced quotes.
+; Parse possibly-quoted filename argument
+; 
+; Reads from the command line at (&BE),Y. Handles
+; double-quote delimiters and stores the result
+; in the parse buffer at &0E30. Raises 'Bad string'
+; on unbalanced quotes.
 ; ***************************************************************************************
 ; &9335 referenced 2 times by &92d7, &937f
 .parse_quoted_arg
@@ -5682,11 +5692,12 @@ ws_init_data = error_bad_station+2
     jsr close_all_net_chans                                           ; 9494: 20 4a b5     J.            ; Close all network channels
     ldy #&17                                                          ; 9497: a0 17       ..             ; Y=&17: *Bye function code
 ; ***************************************************************************************
-; Save FS state and send a command to the file
-; server. Copies station address and function
-; code (Y) to the TX buffer, builds the TXCB,
-; sends the packet, and waits for the reply.
-; V is clear for standard mode.
+; Save FS state and send command to file server
+; 
+; Copies station address and function code (Y)
+; to the TX buffer, builds the TXCB, sends the
+; packet, and waits for the reply. V is clear
+; for standard mode.
 ; ***************************************************************************************
 ; &9499 referenced 26 times by &8e0e, &940f, &9432, &9445, &9b4b, &9c34, &9c44, &9c92, &9d2b, &9da4, &9dd8, &9e70, &9e93, &9f57, &a012, &a1be, &a1e6, &a52a, &ad2f, &ada6, &ade4, &ae53, &b365, &b406, &b6c9, &b8c8
 .save_net_tx_cb
@@ -6262,11 +6273,19 @@ bad_prefix = bad_str_anchor+1
     beq trigger_brk                                                   ; 9736: f0 ad       ..             ; ALWAYS branch to trigger BRK error; ALWAYS branch
 
 ; ***************************************************************************************
-; Append a space followed by 'net.station' in
-; decimal to the error text buffer. Reads
-; network and station numbers from the TX
-; control block at offsets 3 and 2. Skips
-; the network part if zero (local network).
+; Append 'net.station' decimal string to error text
+; 
+; Reads network and station numbers from the TX
+; control block at offsets 3 and 2. Writes a space
+; separator then the network number (if non-zero),
+; a dot, and the station number as decimal digits
+; into the error text buffer at the current position.
+; 
+; On Entry:
+;     X: error text buffer index
+; 
+; On Exit:
+;     X: updated buffer index past appended text
 ; ***************************************************************************************
 ; &9738 referenced 2 times by &9620, &965e
 .append_drv_dot_num
@@ -6422,12 +6441,13 @@ bad_prefix = bad_str_anchor+1
     ldx #0                                                            ; 9826: a2 00       ..             ; X=0: TX control block base (high)
     stx net_tx_ptr_hi                                                 ; 9828: 86 9b       ..             ; Set TX pointer high (page 0)
 ; ***************************************************************************************
-; Send an Econet packet via the ADLC with
-; retry logic. Polls for line idle, starts
-; transmission, and retries on failure with
-; a configurable count and delay. Enables
-; escape handling after the first retry
-; phase exhausts its count.
+; Transmit Econet packet with retry
+; 
+; Polls for line idle, starts transmission via
+; the ADLC, and retries on failure with a
+; configurable count and delay. Enables escape
+; handling after the first retry phase exhausts
+; its count.
 ; ***************************************************************************************
 ; &982a referenced 7 times by &a90c, &a965, &a9c2, &abb4, &ac3f, &b03b, &b216
 .send_net_packet
@@ -6498,11 +6518,11 @@ bad_prefix = bad_str_anchor+1
     equb &88, 0, &fd, &fd, &3a, &0d, &ff, &ff, &3e, &0d, &ff, &ff     ; 9873: 88 00 fd... ...
 
 ; ***************************************************************************************
-; Set up the TX pointer and send a pass-
-; through Econet packet. Copies the template
-; into the TX buffer (skipping &FD markers),
-; saves original values on stack, then polls
-; the ADLC and retries until complete.
+; Set up TX pointer and send pass-through packet
+; 
+; Copies the template into the TX buffer (skipping
+; &FD markers), saves original values on stack,
+; then polls the ADLC and retries until complete.
 ; ***************************************************************************************
 ; &987f referenced 1 time by &8df4
 .init_tx_ptr_for_pass
@@ -6557,11 +6577,13 @@ bad_prefix = bad_str_anchor+1
     jmp fixup_reply_status_a                                          ; 98b1: 4c 2b 96    L+.            ; Jump to fix up reply status
 
 ; ***************************************************************************************
-; Poll the ADLC by shifting the workspace
-; status byte left in a loop, then copy the
-; TX pointer into the NMI TX block and call
-; tx_begin to start frame transmission.
-; Returns the TX completion status in A.
+; Poll ADLC and start frame transmission
+; 
+; Shifts the workspace status byte left in a
+; loop, then copies the TX pointer into the NMI
+; TX block and calls tx_begin to start frame
+; transmission. Returns the TX completion status
+; in A.
 ; ***************************************************************************************
 ; &98b4 referenced 3 times by &983d, &98a6, &98b7
 .poll_adlc_tx_status
@@ -6739,7 +6761,8 @@ bad_prefix = bad_str_anchor+1
     jmp recv_reply                                                    ; 9981: 4c 0b 9a    L..            ; Jump to receive and process reply
 
 ; ***************************************************************************************
-; Send the TXCB and swap start/end addresses.
+; Send TXCB and swap start/end addresses
+; 
 ; If the 5-byte handle matches, returns
 ; immediately. Otherwise sets port &92, copies
 ; addresses, sends, waits for acknowledgment,
@@ -7028,11 +7051,12 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; 9a87: 60          `              ; Return (handle already matches)
 
 ; ***************************************************************************************
-; Set up a data transfer TXCB. Compares the
-; 5-byte handle; if unchanged, returns. Else
-; computes start/end addresses with overflow
-; clamping, sets the port and control byte,
-; sends the packet, and dispatches on the
+; Set up data transfer TXCB and dispatch reply
+; 
+; Compares the 5-byte handle; if unchanged,
+; returns. Otherwise computes start/end addresses
+; with overflow clamping, sets the port and control
+; byte, sends the packet, and dispatches on the
 ; reply sub-operation code.
 ; ***************************************************************************************
 ; &9a88 referenced 2 times by &9a08, &9f3b
@@ -7984,7 +8008,8 @@ bad_prefix = bad_str_anchor+1
     inx                                                               ; 9fb5: e8          .              ; X=1 (INX)
     stx fs_load_addr                                                  ; 9fb6: 86 b0       ..             ; Store X in fs_load_addr
 ; ***************************************************************************************
-; Write a block of data to the destination.
+; Write data block to destination or Tube
+; 
 ; If no Tube present, copies directly from
 ; the l0f05 buffer via (fs_crc_lo). If Tube
 ; is active, claims the Tube, sets up the
@@ -8306,11 +8331,12 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a127: 60          `              ; RTS dispatches to command handler
 
 ; ***************************************************************************************
-; Match a command name against an FS command
-; table. Case-insensitive compare of the
-; command line against table entries with
-; bit-7-terminated names. Returns with the
-; matched entry address on success.
+; Match command name against FS command table
+; 
+; Case-insensitive compare of the command line
+; against table entries with bit-7-terminated
+; names. Returns with the matched entry address
+; on success.
 ; ***************************************************************************************
 ; &a128 referenced 5 times by &8c4a, &8c78, &a108, &b304, &b331
 .match_fs_cmd
@@ -9586,7 +9612,8 @@ bad_prefix = bad_str_anchor+1
     equb &9e                                                          ; aa69: 9e          .
 
 ; ***************************************************************************************
-; Initialise workspace copy in wide mode.
+; Initialise workspace copy in wide mode (14 bytes)
+; 
 ; Copies 14 bytes to workspace offset &7C.
 ; Falls through to the template-driven copy
 ; loop which handles &FD (skip), &FE (end),
@@ -9898,11 +9925,12 @@ bad_prefix = bad_str_anchor+1
     equs "Printer jammed", 0                                          ; ac03: 50 72 69... Pri
 
 ; ***************************************************************************************
-; Send a disconnect reply packet on the
-; Econet. Sets up the TX pointer, copies
-; station addresses, matches the station
-; in the table, and sends the response.
-; Waits for acknowledgment before returning.
+; Send Econet disconnect reply packet
+; 
+; Sets up the TX pointer, copies station
+; addresses, matches the station in the table,
+; and sends the response. Waits for
+; acknowledgment before returning.
 ; ***************************************************************************************
 ; &ac12 referenced 3 times by &94f5, &ab5c, &b946
 .send_disconnect_reply

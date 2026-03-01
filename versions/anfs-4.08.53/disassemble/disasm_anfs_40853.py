@@ -1187,15 +1187,16 @@ subroutine(0x8023, "nmi_handler",
               "y": "parameter"})
 
 subroutine(0x8A0B, "service_handler",
-    description="Service call handler.\n"
-    "On entry: A=service call number, X=ROM slot, Y=parameter.\n"
+    title="Service call dispatch",
+    description="Handles service calls 1, 4, 8, 9, 13, 14, and 15.\n"
     "Service 1: absolute workspace claim.\n"
     "Service 4: unrecognised star command.\n"
     "Service 8: unrecognised OSWORD.\n"
     "Service 9: *HELP.\n"
     "Service 13: ROM initialisation.\n"
     "Service 14: ROM initialisation complete.\n"
-    "Service 15: vectors claimed.")
+    "Service 15: vectors claimed.",
+    on_entry={"a": "service call number", "x": "ROM slot", "y": "parameter"})
 
 
 # ============================================================
@@ -2165,12 +2166,11 @@ subroutine(0x8E96, "store_ws_page_count",
     "workspace claim service call.",
     on_entry={"y": "workspace page count from service 1"})
 subroutine(0x8F40, "init_adlc_and_vectors",
-    description="Initialise ADLC hardware and install\n"
-    "extended vector entries for NETV and one\n"
-    "additional vector. Reads ROM pointer table\n"
-    "via OSBYTE &A8, writes vector addresses\n"
-    "and ROM ID into the extended vector table,\n"
-    "then restores any previous FS context.")
+    title="Initialise ADLC and install extended vectors",
+    description="Reads the ROM pointer table via OSBYTE &A8,\n"
+    "writes vector addresses and ROM ID into the\n"
+    "extended vector table for NETV and one additional\n"
+    "vector, then restores any previous FS context.")
 subroutine(0x8F53, "write_vector_entry",
     title="Install extended vector table entries",
     description="Copies vector addresses from the dispatch table at\n"
@@ -2195,11 +2195,12 @@ subroutine(0x8F73, "restore_fs_context",
     "deselect_fs_if_active during FS teardown, and\n"
     "flip_set_station_boot.")
 subroutine(0x8F80, "deselect_fs_if_active",
+    title="Deselect filing system and save workspace",
     description="If the filing system is currently selected\n"
-    "(bit 7 of &0D6C set), close all open FCBs,\n"
-    "close SPOOL/EXEC files via OSBYTE &77,\n"
-    "save the FS workspace to page &10 shadow\n"
-    "with checksum, and clear the selected flag.")
+    "(bit 7 of &0D6C set), closes all open FCBs,\n"
+    "closes SPOOL/EXEC files via OSBYTE &77,\n"
+    "saves the FS workspace to page &10 shadow\n"
+    "with checksum, and clears the selected flag.")
 subroutine(0x8FB2, "verify_ws_checksum",
     title="Verify workspace checksum integrity",
     description="Sums bytes 0 to &76 of the workspace page via the\n"
@@ -2240,9 +2241,9 @@ subroutine(0x9124, "print_hex_nybble",
     "final '0'-'F' character. Outputs via JMP OSASCI.",
     on_entry={"a": "value (low nybble used)"})
 subroutine(0x915A, "parse_addr_arg",
-    description="Parse a decimal or hexadecimal number from\n"
-    "the command argument at (BE),Y. Supports\n"
-    "'&' prefix for hex, '.' separator for\n"
+    title="Parse decimal or hex station address argument",
+    description="Reads from the command argument at (&BE),Y.\n"
+    "Supports '&' prefix for hex, '.' separator for\n"
     "net.station addresses, and plain decimal.\n"
     "Returns result in A. Raises errors for\n"
     "bad digits, overflow, or zero values.")
@@ -2363,11 +2364,11 @@ subroutine(0x9313, "copy_fs_cmd_name",
     on_exit={"x": "TX buffer offset past name+space",
              "y": "command line offset (restored)"})
 subroutine(0x9335, "parse_quoted_arg",
-    description="Parse a possibly-quoted filename argument\n"
-    "from the command line at (BE),Y. Handles\n"
-    "double-quote delimiters and stores the\n"
-    "result in the parse buffer at &0E30.\n"
-    "Raises 'Bad string' on unbalanced quotes.")
+    title="Parse possibly-quoted filename argument",
+    description="Reads from the command line at (&BE),Y. Handles\n"
+    "double-quote delimiters and stores the result\n"
+    "in the parse buffer at &0E30. Raises 'Bad string'\n"
+    "on unbalanced quotes.")
 subroutine(0x9451, "init_txcb_bye",
     title="Initialise TXCB for bye/receive on port &90",
     description="Loads A=&90 (the FS command port) and falls\n"
@@ -2410,11 +2411,11 @@ subroutine(0x9487, "send_request_write",
     "mode). Called by do_fs_cmd_iteration and\n"
     "send_txcb_swap_addrs.")
 subroutine(0x9499, "save_net_tx_cb",
-    description="Save FS state and send a command to the file\n"
-    "server. Copies station address and function\n"
-    "code (Y) to the TX buffer, builds the TXCB,\n"
-    "sends the packet, and waits for the reply.\n"
-    "V is clear for standard mode.")
+    title="Save FS state and send command to file server",
+    description="Copies station address and function code (Y)\n"
+    "to the TX buffer, builds the TXCB, sends the\n"
+    "packet, and waits for the reply. V is clear\n"
+    "for standard mode.")
 subroutine(0x949A, "save_net_tx_cb_vset",
     title="Save and send TXCB with V flag set",
     description="Variant of save_net_tx_cb for callers that have\n"
@@ -2476,11 +2477,14 @@ subroutine(0x95FB, "cond_save_error_code",
     "classification chain and by error_inline_log.",
     on_entry={"a": "error code to store"})
 subroutine(0x9738, "append_drv_dot_num",
-    description="Append a space followed by 'net.station' in\n"
-    "decimal to the error text buffer. Reads\n"
-    "network and station numbers from the TX\n"
-    "control block at offsets 3 and 2. Skips\n"
-    "the network part if zero (local network).")
+    title="Append 'net.station' decimal string to error text",
+    description="Reads network and station numbers from the TX\n"
+    "control block at offsets 3 and 2. Writes a space\n"
+    "separator then the network number (if non-zero),\n"
+    "a dot, and the station number as decimal digits\n"
+    "into the error text buffer at the current position.",
+    on_entry={"x": "error text buffer index"},
+    on_exit={"x": "updated buffer index past appended text"})
 subroutine(0x975C, "append_space_and_num",
     title="Append space and decimal number to error text",
     description="Writes a space character to the error text buffer\n"
@@ -2516,18 +2520,17 @@ subroutine(0x9822, "init_tx_ptr_and_send",
     "through to send_net_packet for transmission with\n"
     "retry logic.")
 subroutine(0x982A, "send_net_packet",
-    description="Send an Econet packet via the ADLC with\n"
-    "retry logic. Polls for line idle, starts\n"
-    "transmission, and retries on failure with\n"
-    "a configurable count and delay. Enables\n"
-    "escape handling after the first retry\n"
-    "phase exhausts its count.")
+    title="Transmit Econet packet with retry",
+    description="Polls for line idle, starts transmission via\n"
+    "the ADLC, and retries on failure with a\n"
+    "configurable count and delay. Enables escape\n"
+    "handling after the first retry phase exhausts\n"
+    "its count.")
 subroutine(0x987F, "init_tx_ptr_for_pass",
-    description="Set up the TX pointer and send a pass-\n"
-    "through Econet packet. Copies the template\n"
-    "into the TX buffer (skipping &FD markers),\n"
-    "saves original values on stack, then polls\n"
-    "the ADLC and retries until complete.")
+    title="Set up TX pointer and send pass-through packet",
+    description="Copies the template into the TX buffer (skipping\n"
+    "&FD markers), saves original values on stack,\n"
+    "then polls the ADLC and retries until complete.")
 subroutine(0x9887, "setup_pass_txbuf",
     title="Initialise TX buffer from pass-through template",
     description="Copies 12 bytes from pass_txbuf_init_table into the\n"
@@ -2537,11 +2540,12 @@ subroutine(0x9887, "setup_pass_txbuf",
     "poll_adlc_tx_status and retries on failure, restoring\n"
     "the original TX buffer contents when done.")
 subroutine(0x98B4, "poll_adlc_tx_status",
-    description="Poll the ADLC by shifting the workspace\n"
-    "status byte left in a loop, then copy the\n"
-    "TX pointer into the NMI TX block and call\n"
-    "tx_begin to start frame transmission.\n"
-    "Returns the TX completion status in A.")
+    title="Poll ADLC and start frame transmission",
+    description="Shifts the workspace status byte left in a\n"
+    "loop, then copies the TX pointer into the NMI\n"
+    "TX block and calls tx_begin to start frame\n"
+    "transmission. Returns the TX completion status\n"
+    "in A.")
 subroutine(0x98F3, "load_text_ptr_and_parse",
     title="Copy text pointer from FS options and parse string",
     description="Reads a 2-byte address from (fs_options)+0/1 into\n"
@@ -2565,8 +2569,8 @@ subroutine(0x993D, "do_fs_cmd_iteration",
     "formats the filename field, sends via\n"
     "send_txcb_swap_addrs, and receives the reply.")
 subroutine(0x9984, "send_txcb_swap_addrs",
-    description="Send the TXCB and swap start/end addresses.\n"
-    "If the 5-byte handle matches, returns\n"
+    title="Send TXCB and swap start/end addresses",
+    description="If the 5-byte handle matches, returns\n"
     "immediately. Otherwise sets port &92, copies\n"
     "addresses, sends, waits for acknowledgment,\n"
     "and retries on address mismatch.")
@@ -2628,11 +2632,11 @@ subroutine(0x9A80, "retreat_y_by_3",
     on_entry={"y": "current offset"},
     on_exit={"y": "offset - 3"})
 subroutine(0x9A88, "check_and_setup_txcb",
-    description="Set up a data transfer TXCB. Compares the\n"
-    "5-byte handle; if unchanged, returns. Else\n"
-    "computes start/end addresses with overflow\n"
-    "clamping, sets the port and control byte,\n"
-    "sends the packet, and dispatches on the\n"
+    title="Set up data transfer TXCB and dispatch reply",
+    description="Compares the 5-byte handle; if unchanged,\n"
+    "returns. Otherwise computes start/end addresses\n"
+    "with overflow clamping, sets the port and control\n"
+    "byte, sends the packet, and dispatches on the\n"
     "reply sub-operation code.")
 subroutine(0x9B86, "format_filename_field",
     title="Format filename into fixed-width display field",
@@ -2698,8 +2702,8 @@ subroutine(0x9ECB, "setup_transfer_workspace",
     "address pairs for the actual data transfer phase\n"
     "and dispatches to the appropriate handler.")
 subroutine(0x9FB8, "write_data_block",
-    description="Write a block of data to the destination.\n"
-    "If no Tube present, copies directly from\n"
+    title="Write data block to destination or Tube",
+    description="If no Tube present, copies directly from\n"
     "the l0f05 buffer via (fs_crc_lo). If Tube\n"
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.")
@@ -2739,11 +2743,11 @@ subroutine(0xA0B6, "byte_to_2bit_index",
     on_entry={"a": "table entry number"},
     on_exit={"y": "byte offset (0, 6, 12, ... up to &42)"})
 subroutine(0xA128, "match_fs_cmd",
-    description="Match a command name against an FS command\n"
-    "table. Case-insensitive compare of the\n"
-    "command line against table entries with\n"
-    "bit-7-terminated names. Returns with the\n"
-    "matched entry address on success.")
+    title="Match command name against FS command table",
+    description="Case-insensitive compare of the command line\n"
+    "against table entries with bit-7-terminated\n"
+    "names. Returns with the matched entry address\n"
+    "on success.")
 subroutine(0xA2E8, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
@@ -2858,8 +2862,8 @@ subroutine(0xAA24, "match_rx_code",
               "x": "starting table index"},
     on_exit={"z": "set if match found"})
 subroutine(0xAA6A, "init_ws_copy_wide",
-    description="Initialise workspace copy in wide mode.\n"
-    "Copies 14 bytes to workspace offset &7C.\n"
+    title="Initialise workspace copy in wide mode (14 bytes)",
+    description="Copies 14 bytes to workspace offset &7C.\n"
     "Falls through to the template-driven copy\n"
     "loop which handles &FD (skip), &FE (end),\n"
     "and &FC (page pointer) markers.")
@@ -2905,11 +2909,11 @@ subroutine(0xAB24, "process_spool_data",
     "the spool output sequence by setting up and\n"
     "sending the pass-through TX buffer.")
 subroutine(0xAC12, "send_disconnect_reply",
-    description="Send a disconnect reply packet on the\n"
-    "Econet. Sets up the TX pointer, copies\n"
-    "station addresses, matches the station\n"
-    "in the table, and sends the response.\n"
-    "Waits for acknowledgment before returning.")
+    title="Send Econet disconnect reply packet",
+    description="Sets up the TX pointer, copies station\n"
+    "addresses, matches the station in the table,\n"
+    "and sends the response. Waits for\n"
+    "acknowledgment before returning.")
 subroutine(0xACCB, "commit_state_byte",
     title="Copy current state byte to committed state",
     description="Reads the working state byte from workspace and\n"
