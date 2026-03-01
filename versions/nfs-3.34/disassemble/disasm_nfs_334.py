@@ -950,65 +950,7 @@ label(0x9290, "return_bspsx")         # NFS09: return from broadcast search area
 # ============================================================
 comment(0x8000, """\
 NFS ROM 3.34 disassembly (Acorn Econet filing system)
-
-NMI handler architecture
-========================
-The NFS ROM uses self-modifying code to implement a state
-machine for ADLC communication. An NMI workspace shim is
-copied to &0D00 at init.
-
-NMI entry (&0D00):
-  BIT &FE18       ; INTOFF -- immediately disable further NMIs
-  PHA / TYA / PHA ; save A, Y
-  LDA #$nn        ; page in NFS ROM bank (self-modified)
-  STA &FE30
-  JMP $xxxx       ; self-modifying target at &0D0C/&0D0D
-
-set_nmi_vector (&0D0E): stores A->&0D0C (low), Y->&0D0D (high)
-  Falls through to nmi_rti.
-
-nmi_rti (&0D14):
-  LDA &F4         ; restore original ROM bank
-  STA &FE30
-  PLA / TAY / PLA ; restore Y, A
-  BIT &FE20       ; INTON -- re-enable NMIs
-  RTI
-
-NMI handler chain for outbound TX (four-way handshake):
-  &96F6: RX scout (idle listen, default handler)
-  &9C48: INACTIVE polling (pre-TX, waits for idle line)
-  &9D4C: TX data (2 bytes per NMI, tight loop if IRQ persists)
-  &9D88: TX_LAST_DATA (close frame)
-  &9D94: TX completion (switch to RX: CR1=&82)
-  &9DB2: RX reply scout (check AP, read dest_stn)
-  &9DC8: RX reply continuation (read dest_net, validate)
-  &9DE3: RX reply validation (read src_stn/net, check FV)
-  &9E24: TX scout ACK (write dest/src addr, TX_LAST_DATA)
-  &9EDD: Four-way handshake data phase
-
-NMI handler chain for inbound reception (scout -> data):
-  &96F6: RX scout (idle listen)
-  &9715: RX scout second byte (dest_net, install &9747)
-  &9747: Scout data loop (read body in pairs, detect FV)
-  &9771: Scout completion (disable PSE, read last byte)
-  &995E: TX scout ACK
-  &9839: RX data frame (AP check, validate dest_stn/net)
-  &984F: RX data frame (validate src_net=0)
-  &9865: RX data frame (skip ctrl/port bytes)
-  &989A: RX data bulk read (read payload into buffer)
-  &98CE: RX data completion (disable PSE, check FV, read last)
-  &995E: TX final ACK
-
-Key ADLC register values:
-  CR1=&C1: full reset (TX_RESET|RX_RESET|AC)
-  CR1=&82: RX listen (TX_RESET|RIE)
-  CR1=&44: TX active (RX_RESET|TIE)
-
-  CR2 values (all set FC_TDRA|2_1_BYTE|PSE):
-  &67: clear status  CLR_TX_ST|CLR_RX_ST
-  &E7: TX prepare    RTS|CLR_TX_ST|CLR_RX_ST
-  &3F: TX last data  CLR_RX_ST|TX_LAST_DATA|FLAG_IDLE
-  &A7: TX handshake  RTS|CLR_TX_ST""")
+====================================================""")
 
 # ============================================================
 # Dispatch table at &8020 (low bytes) / &8044 (high bytes)
