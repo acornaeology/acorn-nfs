@@ -562,6 +562,8 @@ label(0x985E, "try_alternate_phase")
 label(0x9869, "tx_send_error")
 label(0x986D, "tx_success")
 label(0x9873, "pass_txbuf_init_table")
+for i in range(12):
+    byte(0x9873 + i)
 label(0x9889, "loop_copy_template")
 label(0x9896, "skip_template_byte")
 label(0x98A3, "start_pass_tx")
@@ -12026,6 +12028,29 @@ comment(0x986D, "Pull control byte", inline=True)
 comment(0x986E, "Pull timeout", inline=True)
 comment(0x986F, "Pull retry count", inline=True)
 comment(0x9870, "Clear escapable flag and return", inline=True)
+
+# pass_txbuf_init_table (&9873) — pass-through TXCB template
+comment(0x9873, "Pass-through TX buffer template (12 bytes)\n"
+    "\n"
+    "Overlaid onto the TX control block by\n"
+    "setup_pass_txbuf for pass-through operations.\n"
+    "Offsets marked &FD are skipped, preserving the\n"
+    "existing destination station and network. Buffer\n"
+    "addresses point to &0D3A-&0D3E in NMI workspace.\n"
+    "Original TX buffer values are pushed on the stack\n"
+    "and restored after transmission.")
+comment(0x9873, "Offset 0: ctrl = &88 (immediate TX)", inline=True)
+comment(0x9874, "Offset 1: port = &00 (immediate op)", inline=True)
+comment(0x9875, "Offset 2: &FD skip (preserve dest stn)", inline=True)
+comment(0x9876, "Offset 3: &FD skip (preserve dest net)", inline=True)
+comment(0x9877, "Offset 4: buf start lo (&3A)", inline=True)
+comment(0x9878, "Offset 5: buf start hi (&0D) -> &0D3A", inline=True)
+comment(0x9879, "Offset 6: extended addr fill (&FF)", inline=True)
+comment(0x987A, "Offset 7: extended addr fill (&FF)", inline=True)
+comment(0x987B, "Offset 8: buf end lo (&3E)", inline=True)
+comment(0x987C, "Offset 9: buf end hi (&0D) -> &0D3E", inline=True)
+comment(0x987D, "Offset 10: extended addr fill (&FF)", inline=True)
+comment(0x987E, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # init_tx_ptr_for_pass: set up TX pointer for pass-through (&987F-&9886)
 comment(0x987F, "Y=&C0: TX control block base (low)", inline=True)
