@@ -751,6 +751,19 @@ label(0xA594, "setup_ws_rx_ptrs")
 label(0xA5A8, "osword_11_handler")
 label(0xA61C, "osword_12_handler")
 label(0xA631, "osword_13_dispatch")
+label(0xA63F, "osword_13_lo_table")
+label(0xA651, "osword_13_hi_table")
+
+# OSWORD &13 PHA/PHA/RTS dispatch table (18 entries, sub-codes 0-&11).
+for i in range(18):
+    rts_code_ptr(0xA63F + i, 0xA651 + i)
+
+# Entry points for handlers in the &A663-&A6EA region (currently data).
+entry(0xA663)   # Sub 0
+entry(0xA676)   # Sub 1
+entry(0xA6EB)   # Sub 12
+entry(0xA6EE)   # Sub 13
+
 label(0xA701, "copy_ws_byte_to_pb")
 label(0xA844, "bridge_ws_init_data")
 label(0xA850, "bridge_txcb_init_table")

@@ -201,6 +201,7 @@ l0de6                                   = &0de6
 l0df0                                   = &0df0
 l0dfa                                   = &0dfa
 l0dfe                                   = &0dfe
+l0dff                                   = &0dff
 l0e00                                   = &0e00
 l0e01                                   = &0e01
 l0e02                                   = &0e02
@@ -4541,7 +4542,7 @@ version_string = version_string_cr+1
 ; On Exit:
 ;     A: 0 if matched, non-zero if different
 ; ***************************************************************************************
-; &8dfe referenced 1 time by &8d95
+; &8dfe referenced 2 times by &8d95, &a68a
 .clear_if_station_match
     jsr init_bridge_poll                                              ; 8dfe: 20 68 a8     h.            ; Parse station number from cmd line
     eor l0e01                                                         ; 8e01: 4d 01 0e    M..            ; Compare with expected station
@@ -9698,37 +9699,161 @@ bad_prefix = bad_str_anchor+1
     tax                                                               ; a631: aa          .
     cmp #&13                                                          ; a632: c9 13       ..
     bcs return_23                                                     ; a634: b0 08       ..
-    lda la651,x                                                       ; a636: bd 51 a6    .Q.
+    lda osword_13_hi_table,x                                          ; a636: bd 51 a6    .Q.
     pha                                                               ; a639: 48          H
-    lda la63f,x                                                       ; a63a: bd 3f a6    .?.
+    lda osword_13_lo_table,x                                          ; a63a: bd 3f a6    .?.
     pha                                                               ; a63d: 48          H
 ; &a63e referenced 1 time by &a634
 .return_23
     rts                                                               ; a63e: 60          `
 
 ; &a63f referenced 1 time by &a63a
-.la63f
-    equb &62, &75, 9, &15                                             ; a63f: 62 75 09... bu.
-    equs "*06F"                                                       ; a643: 2a 30 36... *06
-    equb &e6, &ef, &fd, 3, &ea, &ed, 9, &13, &1e, &29                 ; a647: e6 ef fd... ...
+.osword_13_lo_table
+    equb <(sub_ca663-1)                                               ; a63f: 62          b
+    equb <(sub_ca676-1)                                               ; a640: 75          u
+    equb <(sub_ca70a-1)                                               ; a641: 09          .
+    equb <(sub_ca716-1)                                               ; a642: 15          .
+    equb <(sub_ca72b-1)                                               ; a643: 2a          *
+    equb <(sub_ca731-1)                                               ; a644: 30          0
+    equb <(sub_ca737-1)                                               ; a645: 36          6
+    equb <(sub_ca747-1)                                               ; a646: 46          F
+    equb <(sub_ca7e7-1)                                               ; a647: e6          .
+    equb <(sub_ca7f0-1)                                               ; a648: ef          .
+    equb <(sub_ca7fe-1)                                               ; a649: fd          .
+    equb <(sub_ca804-1)                                               ; a64a: 03          .
+    equb <(sub_ca6eb-1)                                               ; a64b: ea          .
+    equb <(sub_ca6ee-1)                                               ; a64c: ed          .
+    equb <(sub_ca80a-1)                                               ; a64d: 09          .
+    equb <(loop_ca814-1)                                              ; a64e: 13          .
+    equb <(loop_ca81f-1)                                              ; a64f: 1e          .
+    equb <(sub_ca82a-1)                                               ; a650: 29          )
 ; &a651 referenced 1 time by &a636
-.la651
-    equb &a6, &a6, &a7, &a7, &a7, &a7, &a7, &a7, &a7, &a7, &a7, &a8   ; a651: a6 a6 a7... ...
-    equb &a6, &a6, &a8, &a8, &a8, &a8, &2c, &6c, &0d, &30,   3, &4c   ; a65d: a6 a6 a8... ...
-    equb &4c, &a7, &a0,   2, &b9, &ff, &0d, &91, &f0, &88, &d0, &f8   ; a669: 4c a7 a0... L..
-    equs "`,l"                                                        ; a675: 60 2c 6c    `,l
-    equb &0d, &10, &ed, &a0,   0, &20, &9f, &b7, &a0,   2, &b1, &f0   ; a678: 0d 10 ed... ...
-    equb &99, &ff, &0d, &88, &d0, &f8, &20, &fe, &8d, &a2, &0f, &bd   ; a684: 99 ff 0d... ...
-    equb &60, &10, &a8, &29,   2, &f0, &50, &98, &29, &df, &9d, &60   ; a690: 60 10 a8... `..
-    equb &10, &a8, &20, &7a, &b5, &d0, &44, &18, &98, &29,   4, &f0   ; a69c: 10 a8 20... ..
-    equb &10, &98,   9, &20, &a8, &bd, &30, &10, &8d,   2, &0e, &8a   ; a6a8: 10 98 09... ...
-    equb &69, &20, &8d, &72, &10, &98, &29,   8, &f0, &10, &98,   9   ; a6b4: 69 20 8d... i .
-    equb &20, &a8, &bd, &30, &10, &8d,   3, &0e, &8a, &69, &20, &8d   ; a6c0: 20 a8 bd...  ..
-    equb &73, &10, &98, &29, &10, &f0, &10, &98,   9, &20, &a8, &bd   ; a6cc: 73 10 98... s..
-    equb &30, &10, &8d,   4, &0e, &8a, &69, &20, &8d, &74, &10, &98   ; a6d8: 30 10 8d... 0..
-    equb &9d, &60, &10, &ca, &10, &a5, &60, &18, &90,   1, &38, &a9   ; a6e4: 9d 60 10... .`.
-    equb &1b, &85, &ab, &a5, &9d, &85, &ac, &a0,   1, &a2,   5        ; a6f0: 1b 85 ab... ...
+.osword_13_hi_table
+    equb >(sub_ca663-1)                                               ; a651: a6          .
+    equb >(sub_ca676-1)                                               ; a652: a6          .
+    equb >(sub_ca70a-1)                                               ; a653: a7          .
+    equb >(sub_ca716-1)                                               ; a654: a7          .
+    equb >(sub_ca72b-1)                                               ; a655: a7          .
+    equb >(sub_ca731-1)                                               ; a656: a7          .
+    equb >(sub_ca737-1)                                               ; a657: a7          .
+    equb >(sub_ca747-1)                                               ; a658: a7          .
+    equb >(sub_ca7e7-1)                                               ; a659: a7          .
+    equb >(sub_ca7f0-1)                                               ; a65a: a7          .
+    equb >(sub_ca7fe-1)                                               ; a65b: a7          .
+    equb >(sub_ca804-1)                                               ; a65c: a8          .
+    equb >(sub_ca6eb-1)                                               ; a65d: a6          .
+    equb >(sub_ca6ee-1)                                               ; a65e: a6          .
+    equb >(sub_ca80a-1)                                               ; a65f: a8          .
+    equb >(loop_ca814-1)                                              ; a660: a8          .
+    equb >(loop_ca81f-1)                                              ; a661: a8          .
+    equb >(sub_ca82a-1)                                               ; a662: a8          .
 
+.sub_ca663
+    bit l0d6c                                                         ; a663: 2c 6c 0d    ,l.
+    bmi ca66b                                                         ; a666: 30 03       0.
+; &a668 referenced 1 time by &a679
+.loop_ca668
+    jmp ca74c                                                         ; a668: 4c 4c a7    LL.
+
+; &a66b referenced 1 time by &a666
+.ca66b
+    ldy #2                                                            ; a66b: a0 02       ..
+; &a66d referenced 1 time by &a673
+.loop_ca66d
+    lda l0dff,y                                                       ; a66d: b9 ff 0d    ...
+    sta (osword_pb_ptr),y                                             ; a670: 91 f0       ..
+    dey                                                               ; a672: 88          .
+    bne loop_ca66d                                                    ; a673: d0 f8       ..
+    rts                                                               ; a675: 60          `
+
+.sub_ca676
+    bit l0d6c                                                         ; a676: 2c 6c 0d    ,l.
+    bpl loop_ca668                                                    ; a679: 10 ed       ..
+    ldy #0                                                            ; a67b: a0 00       ..
+    jsr process_all_fcbs                                              ; a67d: 20 9f b7     ..
+    ldy #2                                                            ; a680: a0 02       ..
+; &a682 referenced 1 time by &a688
+.loop_ca682
+    lda (osword_pb_ptr),y                                             ; a682: b1 f0       ..
+    sta l0dff,y                                                       ; a684: 99 ff 0d    ...
+    dey                                                               ; a687: 88          .
+    bne loop_ca682                                                    ; a688: d0 f8       ..
+    jsr clear_if_station_match                                        ; a68a: 20 fe 8d     ..
+    ldx #&0f                                                          ; a68d: a2 0f       ..
+; &a68f referenced 1 time by &a6e8
+.ca68f
+    lda l1060,x                                                       ; a68f: bd 60 10    .`.
+    tay                                                               ; a692: a8          .
+    and #2                                                            ; a693: 29 02       ).
+    beq ca6e7                                                         ; a695: f0 50       .P
+    tya                                                               ; a697: 98          .
+    and #&df                                                          ; a698: 29 df       ).
+    sta l1060,x                                                       ; a69a: 9d 60 10    .`.
+    tay                                                               ; a69d: a8          .
+    jsr match_station_net                                             ; a69e: 20 7a b5     z.
+    bne ca6e7                                                         ; a6a1: d0 44       .D
+    clc                                                               ; a6a3: 18          .
+    tya                                                               ; a6a4: 98          .
+    and #4                                                            ; a6a5: 29 04       ).
+    beq ca6b9                                                         ; a6a7: f0 10       ..
+    tya                                                               ; a6a9: 98          .
+    ora #&20 ; ' '                                                    ; a6aa: 09 20       .
+    tay                                                               ; a6ac: a8          .
+    lda l1030,x                                                       ; a6ad: bd 30 10    .0.
+    sta l0e02                                                         ; a6b0: 8d 02 0e    ...
+    txa                                                               ; a6b3: 8a          .
+    adc #&20 ; ' '                                                    ; a6b4: 69 20       i
+    sta l1072                                                         ; a6b6: 8d 72 10    .r.
+; &a6b9 referenced 1 time by &a6a7
+.ca6b9
+    tya                                                               ; a6b9: 98          .
+    and #8                                                            ; a6ba: 29 08       ).
+    beq ca6ce                                                         ; a6bc: f0 10       ..
+    tya                                                               ; a6be: 98          .
+    ora #&20 ; ' '                                                    ; a6bf: 09 20       .
+    tay                                                               ; a6c1: a8          .
+    lda l1030,x                                                       ; a6c2: bd 30 10    .0.
+    sta l0e03                                                         ; a6c5: 8d 03 0e    ...
+    txa                                                               ; a6c8: 8a          .
+    adc #&20 ; ' '                                                    ; a6c9: 69 20       i
+    sta l1073                                                         ; a6cb: 8d 73 10    .s.
+; &a6ce referenced 1 time by &a6bc
+.ca6ce
+    tya                                                               ; a6ce: 98          .
+    and #&10                                                          ; a6cf: 29 10       ).
+    beq ca6e3                                                         ; a6d1: f0 10       ..
+    tya                                                               ; a6d3: 98          .
+    ora #&20 ; ' '                                                    ; a6d4: 09 20       .
+    tay                                                               ; a6d6: a8          .
+    lda l1030,x                                                       ; a6d7: bd 30 10    .0.
+    sta l0e04                                                         ; a6da: 8d 04 0e    ...
+    txa                                                               ; a6dd: 8a          .
+    adc #&20 ; ' '                                                    ; a6de: 69 20       i
+    sta l1074                                                         ; a6e0: 8d 74 10    .t.
+; &a6e3 referenced 1 time by &a6d1
+.ca6e3
+    tya                                                               ; a6e3: 98          .
+    sta l1060,x                                                       ; a6e4: 9d 60 10    .`.
+; &a6e7 referenced 2 times by &a695, &a6a1
+.ca6e7
+    dex                                                               ; a6e7: ca          .
+    bpl ca68f                                                         ; a6e8: 10 a5       ..
+    rts                                                               ; a6ea: 60          `
+
+.sub_ca6eb
+    clc                                                               ; a6eb: 18          .
+    bcc ca6ef                                                         ; a6ec: 90 01       ..             ; ALWAYS branch
+
+.sub_ca6ee
+    sec                                                               ; a6ee: 38          8
+; &a6ef referenced 1 time by &a6ec
+.ca6ef
+    lda #&1b                                                          ; a6ef: a9 1b       ..
+    sta ws_ptr_lo                                                     ; a6f1: 85 ab       ..
+    lda net_rx_ptr_hi                                                 ; a6f3: a5 9d       ..
+    sta ws_ptr_hi                                                     ; a6f5: 85 ac       ..
+    ldy #1                                                            ; a6f7: a0 01       ..
+    ldx #5                                                            ; a6f9: a2 05       ..
 ; ***************************************************************************************
 ; Conditionally copy parameter block byte to workspace
 ; 
@@ -9744,7 +9869,7 @@ bad_prefix = bad_str_anchor+1
 ;     X: byte count
 ;     Y: PB source offset
 ; ***************************************************************************************
-; &a6fb referenced 4 times by &a5a2, &a5e9, &a62b, &a707
+; &a6fb referenced 5 times by &a5a2, &a5e9, &a62b, &a707, &a714
 .copy_pb_byte_to_ws
     bcc copy_ws_byte_to_pb                                            ; a6fb: 90 04       ..             ; C=0: skip PB-to-WS copy
     lda (osword_pb_ptr),y                                             ; a6fd: b1 f0       ..             ; C=1: load from parameter block
@@ -9758,37 +9883,260 @@ bad_prefix = bad_str_anchor+1
     bpl copy_pb_byte_to_ws                                            ; a707: 10 f2       ..             ; Loop for all bytes
     rts                                                               ; a709: 60          `              ; Return
 
-    equb &a5, &9f, &85, &ac, &c8, &98, &85, &ab, &aa, &18, &90, &e5   ; a70a: a5 9f 85... ...
-    equb &c8, &b1, &f0, &c8, &91, &9e, &b1, &f0, &c8, &91, &9e, &20   ; a716: c8 b1 f0... ...
-    equb &68, &a8, &51, &9e, &d0,   2, &91, &9e, &60, &ad, &68, &0d   ; a722: 68 a8 51... h.Q
-    equb &4c, &10, &a8, &c8, &b1, &f0, &4c, &1a, &b3, &2c, &6c, &0d   ; a72e: 4c 10 a8... L..
-    equb &10, &10, &a0,   3, &b9, &71, &10, &91, &f0, &88, &d0, &f8   ; a73a: 10 10 a0... ...
-    equs "`,l"                                                        ; a746: 60 2c 6c    `,l
-    equb &0d, &30,   6, &a9,   0, &a8, &91, &f0, &60, &a0,   1, &b1   ; a749: 0d 30 06... .0.
-    equb &f0, &c9, &20, &90, &0a, &c9, &30, &b0,   6, &aa, &bd, &10   ; a755: f0 c9 20... ..
-    equb &10, &d0,   7, &a9,   0, &aa, &81, &f0, &f0, &26, &bd, &40   ; a761: 10 d0 07... ...
-    equb &10, &29,   2, &f0, &f2, &8a, &99, &71, &10, &bd, &10, &10   ; a76d: 10 29 02... .).
-    equb &99,   1, &0e, &c0,   1, &d0, &18, &98, &48, &a0,   4, &20   ; a779: 99 01 0e... ...
-    equb &c2, &a7, &68, &a8, &bd, &40, &10,   9, &24, &9d, &40, &10   ; a785: c2 a7 68... ..h
-    equb &c8, &c0,   4, &d0, &be, &88, &60, &c0,   2, &d0, &13, &98   ; a791: c8 c0 04... ...
-    equb &48, &a0,   8, &20, &c2, &a7, &68, &a8, &bd, &40, &10,   9   ; a79d: 48 a0 08... H..
-    equb &28, &9d, &40, &10, &d0, &e2, &98, &48, &a0, &10, &20, &c2   ; a7a9: 28 9d 40... (.@
-    equb &a7, &68, &a8, &bd, &40, &10,   9, &30, &9d, &40, &10, &d0   ; a7b5: a7 68 a8... .h.
-    equb &cf, &8a, &48, &a2, &0f, &bd, &60, &10, &2a, &2a, &10, &14   ; a7c1: cf 8a 48... ..H
-    equb &98, &3d, &60, &10, &f0,   5, &98,   9, &20, &d0,   1, &98   ; a7cd: 98 3d 60... .=`
-    equb &49, &ff, &3d, &60, &10, &9d, &60, &10, &ca, &10, &e2, &68   ; a7d9: 49 ff 3d... I.=
-    equb &aa, &60, &a0,   5, &b1, &9c, &a0,   0, &4c, &10, &a8, &a0   ; a7e5: aa 60 a0... .`.
-    equb &7f, &b1, &9c, &a0,   1, &91, &f0, &c8, &a9, &80, &91, &f0   ; a7f1: 7f b1 9c... ...
-    equb &60, &ad,   9, &0e, &4c, &10, &a8, &ad, &6d, &0d, &4c, &10   ; a7fd: 60 ad 09... `..
-    equb &a8, &a9, &6f, &38, &ed, &6b, &0d, &c8, &91, &f0, &60, &c8   ; a809: a8 a9 6f... ..o
-    equb &b9, &6d, &0d, &91, &f0, &c0,   3, &d0, &f6, &60, &c8, &b1   ; a815: b9 6d 0d... .m.
-    equb &f0, &99, &6d, &0d, &c0,   3, &d0, &f6                       ; a821: f0 99 6d... ..m
-    equs "` h"                                                        ; a829: 60 20 68    ` h
-    equb &a8, &a0,   0, &ad, &72, &0d, &c9, &ff, &d0,   4, &98, &91   ; a82c: a8 a0 00... ...
-    equb &f0, &60, &c8, &91, &f0, &c8, &c8, &b1, &f0, &f0,   7, &4d   ; a838: f0 60 c8... .`.
+.sub_ca70a
+    lda nfs_workspace_hi                                              ; a70a: a5 9f       ..
+    sta ws_ptr_hi                                                     ; a70c: 85 ac       ..
+    iny                                                               ; a70e: c8          .
+    tya                                                               ; a70f: 98          .
+    sta ws_ptr_lo                                                     ; a710: 85 ab       ..
+    tax                                                               ; a712: aa          .
+    clc                                                               ; a713: 18          .
+    bcc copy_pb_byte_to_ws                                            ; a714: 90 e5       ..             ; ALWAYS branch
+
+.sub_ca716
+    iny                                                               ; a716: c8          .
+    lda (osword_pb_ptr),y                                             ; a717: b1 f0       ..
+    iny                                                               ; a719: c8          .
+    sta (nfs_workspace),y                                             ; a71a: 91 9e       ..
+    lda (osword_pb_ptr),y                                             ; a71c: b1 f0       ..
+    iny                                                               ; a71e: c8          .
+    sta (nfs_workspace),y                                             ; a71f: 91 9e       ..
+    jsr init_bridge_poll                                              ; a721: 20 68 a8     h.
+    eor (nfs_workspace),y                                             ; a724: 51 9e       Q.
+    bne return_24                                                     ; a726: d0 02       ..
+    sta (nfs_workspace),y                                             ; a728: 91 9e       ..
+; &a72a referenced 1 time by &a726
+.return_24
+    rts                                                               ; a72a: 60          `
+
+.sub_ca72b
+    lda ws_0d68                                                       ; a72b: ad 68 0d    .h.
+    jmp ca810                                                         ; a72e: 4c 10 a8    L..
+
+.sub_ca731
+    iny                                                               ; a731: c8          .
+    lda (osword_pb_ptr),y                                             ; a732: b1 f0       ..
+    jmp store_prot_mask                                               ; a734: 4c 1a b3    L..
+
+.sub_ca737
+    bit l0d6c                                                         ; a737: 2c 6c 0d    ,l.
+    bpl ca74c                                                         ; a73a: 10 10       ..
+    ldy #3                                                            ; a73c: a0 03       ..
+; &a73e referenced 1 time by &a744
+.loop_ca73e
+    lda l1071,y                                                       ; a73e: b9 71 10    .q.
+    sta (osword_pb_ptr),y                                             ; a741: 91 f0       ..
+    dey                                                               ; a743: 88          .
+    bne loop_ca73e                                                    ; a744: d0 f8       ..
+    rts                                                               ; a746: 60          `
+
+.sub_ca747
+    bit l0d6c                                                         ; a747: 2c 6c 0d    ,l.
+    bmi ca752                                                         ; a74a: 30 06       0.
+; &a74c referenced 2 times by &a668, &a73a
+.ca74c
+    lda #0                                                            ; a74c: a9 00       ..
+    tay                                                               ; a74e: a8          .              ; Y=&00
+    sta (osword_pb_ptr),y                                             ; a74f: 91 f0       ..
+    rts                                                               ; a751: 60          `
+
+; &a752 referenced 1 time by &a74a
+.ca752
+    ldy #1                                                            ; a752: a0 01       ..
+; &a754 referenced 1 time by &a794
+.ca754
+    lda (osword_pb_ptr),y                                             ; a754: b1 f0       ..
+    cmp #&20 ; ' '                                                    ; a756: c9 20       .
+    bcc ca764                                                         ; a758: 90 0a       ..
+    cmp #&30 ; '0'                                                    ; a75a: c9 30       .0
+    bcs ca764                                                         ; a75c: b0 06       ..
+    tax                                                               ; a75e: aa          .
+    lda l1010,x                                                       ; a75f: bd 10 10    ...
+    bne ca76b                                                         ; a762: d0 07       ..
+; &a764 referenced 3 times by &a758, &a75c, &a770
+.ca764
+    lda #0                                                            ; a764: a9 00       ..
+    tax                                                               ; a766: aa          .              ; X=&00
+    sta (osword_pb_ptr,x)                                             ; a767: 81 f0       ..
+    beq ca791                                                         ; a769: f0 26       .&             ; ALWAYS branch
+
+; &a76b referenced 1 time by &a762
+.ca76b
+    lda l1040,x                                                       ; a76b: bd 40 10    .@.
+    and #2                                                            ; a76e: 29 02       ).
+    beq ca764                                                         ; a770: f0 f2       ..
+    txa                                                               ; a772: 8a          .
+    sta l1071,y                                                       ; a773: 99 71 10    .q.
+    lda l1010,x                                                       ; a776: bd 10 10    ...
+    sta l0e01,y                                                       ; a779: 99 01 0e    ...
+    cpy #1                                                            ; a77c: c0 01       ..
+    bne ca798                                                         ; a77e: d0 18       ..
+    tya                                                               ; a780: 98          .
+    pha                                                               ; a781: 48          H
+    ldy #4                                                            ; a782: a0 04       ..
+    jsr sub_ca7c2                                                     ; a784: 20 c2 a7     ..
+    pla                                                               ; a787: 68          h
+    tay                                                               ; a788: a8          .
+    lda l1040,x                                                       ; a789: bd 40 10    .@.
+    ora #&24 ; '$'                                                    ; a78c: 09 24       .$
+    sta l1040,x                                                       ; a78e: 9d 40 10    .@.
+; &a791 referenced 3 times by &a769, &a7ad, &a7c0
+.ca791
+    iny                                                               ; a791: c8          .
+    cpy #4                                                            ; a792: c0 04       ..
+    bne ca754                                                         ; a794: d0 be       ..
+    dey                                                               ; a796: 88          .
+    rts                                                               ; a797: 60          `
+
+; &a798 referenced 1 time by &a77e
+.ca798
+    cpy #2                                                            ; a798: c0 02       ..
+    bne ca7af                                                         ; a79a: d0 13       ..
+    tya                                                               ; a79c: 98          .
+    pha                                                               ; a79d: 48          H
+    ldy #8                                                            ; a79e: a0 08       ..
+    jsr sub_ca7c2                                                     ; a7a0: 20 c2 a7     ..
+    pla                                                               ; a7a3: 68          h
+    tay                                                               ; a7a4: a8          .
+    lda l1040,x                                                       ; a7a5: bd 40 10    .@.
+    ora #&28 ; '('                                                    ; a7a8: 09 28       .(
+    sta l1040,x                                                       ; a7aa: 9d 40 10    .@.
+    bne ca791                                                         ; a7ad: d0 e2       ..             ; ALWAYS branch
+
+; &a7af referenced 1 time by &a79a
+.ca7af
+    tya                                                               ; a7af: 98          .
+    pha                                                               ; a7b0: 48          H
+    ldy #&10                                                          ; a7b1: a0 10       ..
+    jsr sub_ca7c2                                                     ; a7b3: 20 c2 a7     ..
+    pla                                                               ; a7b6: 68          h
+    tay                                                               ; a7b7: a8          .
+    lda l1040,x                                                       ; a7b8: bd 40 10    .@.
+    ora #&30 ; '0'                                                    ; a7bb: 09 30       .0
+    sta l1040,x                                                       ; a7bd: 9d 40 10    .@.
+    bne ca791                                                         ; a7c0: d0 cf       ..             ; ALWAYS branch
+
+; &a7c2 referenced 3 times by &a784, &a7a0, &a7b3
+.sub_ca7c2
+    txa                                                               ; a7c2: 8a          .
+    pha                                                               ; a7c3: 48          H
+    ldx #&0f                                                          ; a7c4: a2 0f       ..
+; &a7c6 referenced 1 time by &a7e2
+.loop_ca7c6
+    lda l1060,x                                                       ; a7c6: bd 60 10    .`.
+    rol a                                                             ; a7c9: 2a          *
+    rol a                                                             ; a7ca: 2a          *
+    bpl ca7e1                                                         ; a7cb: 10 14       ..
+    tya                                                               ; a7cd: 98          .
+    and l1060,x                                                       ; a7ce: 3d 60 10    =`.
+    beq ca7d8                                                         ; a7d1: f0 05       ..
+    tya                                                               ; a7d3: 98          .
+    ora #&20 ; ' '                                                    ; a7d4: 09 20       .
+    bne ca7d9                                                         ; a7d6: d0 01       ..             ; ALWAYS branch
+
+; &a7d8 referenced 1 time by &a7d1
+.ca7d8
+    tya                                                               ; a7d8: 98          .
+; &a7d9 referenced 1 time by &a7d6
+.ca7d9
+    eor #&ff                                                          ; a7d9: 49 ff       I.
+    and l1060,x                                                       ; a7db: 3d 60 10    =`.
+    sta l1060,x                                                       ; a7de: 9d 60 10    .`.
+; &a7e1 referenced 1 time by &a7cb
+.ca7e1
+    dex                                                               ; a7e1: ca          .
+    bpl loop_ca7c6                                                    ; a7e2: 10 e2       ..
+    pla                                                               ; a7e4: 68          h
+    tax                                                               ; a7e5: aa          .
+    rts                                                               ; a7e6: 60          `
+
+.sub_ca7e7
+    ldy #5                                                            ; a7e7: a0 05       ..
+    lda (net_rx_ptr),y                                                ; a7e9: b1 9c       ..
+    ldy #0                                                            ; a7eb: a0 00       ..
+    jmp ca810                                                         ; a7ed: 4c 10 a8    L..
+
+.sub_ca7f0
+    ldy #&7f                                                          ; a7f0: a0 7f       ..
+    lda (net_rx_ptr),y                                                ; a7f2: b1 9c       ..
+    ldy #1                                                            ; a7f4: a0 01       ..
+    sta (osword_pb_ptr),y                                             ; a7f6: 91 f0       ..
+    iny                                                               ; a7f8: c8          .              ; Y=&02
+    lda #&80                                                          ; a7f9: a9 80       ..
+    sta (osword_pb_ptr),y                                             ; a7fb: 91 f0       ..
+    rts                                                               ; a7fd: 60          `
+
+.sub_ca7fe
+    lda l0e09                                                         ; a7fe: ad 09 0e    ...
+    jmp ca810                                                         ; a801: 4c 10 a8    L..
+
+.sub_ca804
+    lda l0d6d                                                         ; a804: ad 6d 0d    .m.
+    jmp ca810                                                         ; a807: 4c 10 a8    L..
+
+.sub_ca80a
+    lda #&6f ; 'o'                                                    ; a80a: a9 6f       .o
+    sec                                                               ; a80c: 38          8
+    sbc l0d6b                                                         ; a80d: ed 6b 0d    .k.
+; &a810 referenced 4 times by &a72e, &a7ed, &a801, &a807
+.ca810
+    iny                                                               ; a810: c8          .
+    sta (osword_pb_ptr),y                                             ; a811: 91 f0       ..
+    rts                                                               ; a813: 60          `
+
+; &a814 referenced 1 time by &a81c
+.loop_ca814
+    iny                                                               ; a814: c8          .
+    lda l0d6d,y                                                       ; a815: b9 6d 0d    .m.
+    sta (osword_pb_ptr),y                                             ; a818: 91 f0       ..
+    cpy #3                                                            ; a81a: c0 03       ..
+    bne loop_ca814                                                    ; a81c: d0 f6       ..
+    rts                                                               ; a81e: 60          `
+
+; &a81f referenced 1 time by &a827
+.loop_ca81f
+    iny                                                               ; a81f: c8          .
+    lda (osword_pb_ptr),y                                             ; a820: b1 f0       ..
+    sta l0d6d,y                                                       ; a822: 99 6d 0d    .m.
+    cpy #3                                                            ; a825: c0 03       ..
+    bne loop_ca81f                                                    ; a827: d0 f6       ..
+    rts                                                               ; a829: 60          `
+
+.sub_ca82a
+    jsr init_bridge_poll                                              ; a82a: 20 68 a8     h.
+    ldy #0                                                            ; a82d: a0 00       ..
+    lda l0d72                                                         ; a82f: ad 72 0d    .r.
+    cmp #&ff                                                          ; a832: c9 ff       ..
+    bne ca83a                                                         ; a834: d0 04       ..
+    tya                                                               ; a836: 98          .              ; A=&00
+    sta (osword_pb_ptr),y                                             ; a837: 91 f0       ..
+    rts                                                               ; a839: 60          `
+
+; &a83a referenced 1 time by &a834
+.ca83a
+    iny                                                               ; a83a: c8          .
+    sta (osword_pb_ptr),y                                             ; a83b: 91 f0       ..
+    iny                                                               ; a83d: c8          .
+    iny                                                               ; a83e: c8          .
+    lda (osword_pb_ptr),y                                             ; a83f: b1 f0       ..
+    beq ca84a                                                         ; a841: f0 07       ..
+.sub_ca843
+bridge_ws_init_data = sub_ca843+1
+    eor l0d72                                                         ; a843: 4d 72 0d    Mr.
 ; &a844 referenced 1 time by &a878
-.bridge_ws_init_data
-    equb &72, &0d, &d0, 7, &f0, 3, &ad, 1, &0e, &91, &f0, &60         ; a844: 72 0d d0... r..
+    bne return_25                                                     ; a846: d0 07       ..
+    beq ca84d                                                         ; a848: f0 03       ..             ; ALWAYS branch
+
+; &a84a referenced 1 time by &a841
+.ca84a
+    lda l0e01                                                         ; a84a: ad 01 0e    ...
+; &a84d referenced 1 time by &a848
+.ca84d
+    sta (osword_pb_ptr),y                                             ; a84d: 91 f0       ..
+; &a84f referenced 1 time by &a846
+.return_25
+    rts                                                               ; a84f: 60          `
+
 ; &a850 referenced 1 time by &a87d
 .bridge_txcb_init_table
     equb &82, &9c, &ff, &ff                                           ; a850: 82 9c ff... ...
@@ -9806,11 +10154,11 @@ bad_prefix = bad_str_anchor+1
 ; table. Skips the broadcast if the table has
 ; already been populated from a previous call.
 ; ***************************************************************************************
-; &a868 referenced 2 times by &8dfe, &a09c
+; &a868 referenced 4 times by &8dfe, &a09c, &a721, &a82a
 .init_bridge_poll
     lda l0d72                                                         ; a868: ad 72 0d    .r.            ; Check bridge status
     cmp #&ff                                                          ; a86b: c9 ff       ..             ; Is it &FF (uninitialised)?
-    bne return_24                                                     ; a86d: d0 60       .`             ; No: bridge already active, return
+    bne return_26                                                     ; a86d: d0 60       .`             ; No: bridge already active, return
     tya                                                               ; a86f: 98          .              ; Save Y
     pha                                                               ; a870: 48          H              ; Preserve Y on stack
     ldy #&18                                                          ; a871: a0 18       ..             ; Y=&18: workspace offset for init
@@ -9867,17 +10215,17 @@ bad_prefix = bad_str_anchor+1
     lda l0d72                                                         ; a8c6: ad 72 0d    .r.            ; Load bridge status
     tax                                                               ; a8c9: aa          .              ; X = bridge status
     eor #&ff                                                          ; a8ca: 49 ff       I.             ; Complement status
-    beq return_24                                                     ; a8cc: f0 01       ..             ; Status was &FF: return (no bridge)
+    beq return_26                                                     ; a8cc: f0 01       ..             ; Status was &FF: return (no bridge)
     txa                                                               ; a8ce: 8a          .              ; Return bridge station in A
 ; &a8cf referenced 4 times by &a86d, &a8cc, &a8d7, &a943
-.return_24
+.return_26
     rts                                                               ; a8cf: 60          `              ; Return
 
 .osword_14_handler
     cmp #1                                                            ; a8d0: c9 01       ..             ; Compare sub-code with 1
     bcs handle_tx_request                                             ; a8d2: b0 52       .R             ; Sub-code >= 1: handle TX request
     bit l0d6c                                                         ; a8d4: 2c 6c 0d    ,l.            ; Test station active flag
-    bpl return_24                                                     ; a8d7: 10 f6       ..             ; Not active: return
+    bpl return_26                                                     ; a8d7: 10 f6       ..             ; Not active: return
     ldy #&23 ; '#'                                                    ; a8d9: a0 23       .#             ; Y=&23: workspace offset for params
     jsr mask_owner_access                                             ; a8db: 20 12 af     ..            ; Set owner access mask
 ; &a8de referenced 1 time by &a8eb
@@ -9946,7 +10294,7 @@ bad_prefix = bad_str_anchor+1
     ldy ws_ptr_lo                                                     ; a93d: a4 ab       ..             ; Load current offset
     inc ws_ptr_lo                                                     ; a93f: e6 ab       ..             ; Advance offset for next byte
     lda (osword_pb_ptr),y                                             ; a941: b1 f0       ..             ; Load next char from PB
-    beq return_24                                                     ; a943: f0 8a       ..             ; Zero: end of data, return
+    beq return_26                                                     ; a943: f0 8a       ..             ; Zero: end of data, return
     ldy #&7d ; '}'                                                    ; a945: a0 7d       .}             ; Y=&7D: workspace char offset
     sta (net_rx_ptr),y                                                ; a947: 91 9c       ..             ; Store char to RX buffer
     pha                                                               ; a949: 48          H              ; Save char for later test
@@ -10080,7 +10428,7 @@ bad_prefix = bad_str_anchor+1
 .process_match_result
     ldx #2                                                            ; a9e9: a2 02       ..             ; X=2: default state
     tya                                                               ; a9eb: 98          .              ; A = Y (search result)
-    beq return_25                                                     ; a9ec: f0 35       .5             ; Zero: not found, return
+    beq return_27                                                     ; a9ec: f0 35       .5             ; Zero: not found, return
     php                                                               ; a9ee: 08          .              ; Save result flags
     bpl save_tube_state                                               ; a9ef: 10 01       ..             ; Positive: use state X=2
     inx                                                               ; a9f1: e8          .              ; X=&03
@@ -10097,7 +10445,7 @@ bad_prefix = bad_str_anchor+1
     txa                                                               ; a9fe: 8a          .              ; A = state (2 or 3)
     jsr tx_econet_abort                                               ; a9ff: 20 ac a9     ..            ; Send abort with state code
     plp                                                               ; aa02: 28          (              ; Restore flags
-    bpl return_25                                                     ; aa03: 10 1e       ..             ; Positive: return without poll
+    bpl return_27                                                     ; aa03: 10 1e       ..             ; Positive: return without poll
     lda #&7f                                                          ; aa05: a9 7f       ..             ; Set control to &7F
     ldy #&0c                                                          ; aa07: a0 0c       ..             ; Y=&0C: control offset
     sta (nfs_workspace),y                                             ; aa09: 91 9e       ..             ; Store control byte
@@ -10122,7 +10470,7 @@ bad_prefix = bad_str_anchor+1
     cpy #&da                                                          ; aa1f: c0 da       ..             ; Reached start of save area?
     bne loop_restore_stack                                            ; aa21: d0 f5       ..             ; No: copy next byte
 ; &aa23 referenced 2 times by &a9ec, &aa03
-.return_25
+.return_27
     rts                                                               ; aa23: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -10143,11 +10491,11 @@ bad_prefix = bad_str_anchor+1
 ; &aa24 referenced 3 times by &a9da, &a9e3, &aa2a
 .match_rx_code
     cmp osword_claim_codes,x                                          ; aa24: dd 2d aa    .-.            ; Compare A with code at index X
-    beq return_26                                                     ; aa27: f0 03       ..             ; Match: return with Z set
+    beq return_28                                                     ; aa27: f0 03       ..             ; Match: return with Z set
     dex                                                               ; aa29: ca          .              ; Try next code
     bpl match_rx_code                                                 ; aa2a: 10 f8       ..             ; More codes: continue search
 ; &aa2c referenced 1 time by &aa27
-.return_26
+.return_28
     rts                                                               ; aa2c: 60          `              ; Return (Z clear = not found)
 
 ; &aa2d referenced 1 time by &aa24
@@ -10257,11 +10605,11 @@ bad_prefix = bad_str_anchor+1
     lda #&41 ; 'A'                                                    ; aad5: a9 41       .A             ; Control state &41
     sta ws_0d6a                                                       ; aad7: 8d 6a 0d    .j.            ; Store as spool control state
 ; &aada referenced 2 times by &aadd, &aaf1
-.return_27
+.return_29
     rts                                                               ; aada: 60          `              ; Return
 
     cpy #4                                                            ; aadb: c0 04       ..             ; Check Y == 4
-    bne return_27                                                     ; aadd: d0 fb       ..             ; No: return
+    bne return_29                                                     ; aadd: d0 fb       ..             ; No: return
     txa                                                               ; aadf: 8a          .              ; A = X (control byte)
     dex                                                               ; aae0: ca          .              ; Decrement X
     bne handle_spool_ctrl_byte                                        ; aae1: d0 26       .&             ; Non-zero: handle spool ctrl byte
@@ -10273,7 +10621,7 @@ bad_prefix = bad_str_anchor+1
     lda #osbyte_read_buffer                                           ; aaea: a9 91       ..             ; OSBYTE &91: read buffer
     ldx #buffer_printer                                               ; aaec: a2 03       ..             ; X=3: printer buffer
     jsr osbyte                                                        ; aaee: 20 f4 ff     ..            ; Read character from buffer; Get character from input buffer (C is set if the buffer is empty, otherwise Y=extracted character)
-    bcs return_27                                                     ; aaf1: b0 e7       ..             ; C=1: buffer empty, return
+    bcs return_29                                                     ; aaf1: b0 e7       ..             ; C=1: buffer empty, return
     tya                                                               ; aaf3: 98          .              ; A = extracted character; Y is the character extracted from the buffer
     jsr append_byte_to_rxbuf                                          ; aaf4: 20 00 ab     ..            ; Add byte to RX buffer
     cpy #&6e ; 'n'                                                    ; aaf7: c0 6e       .n             ; Buffer past &6E limit?
@@ -11026,13 +11374,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     pla                                                               ; aec6: 68          h              ; Restore X
     tax                                                               ; aec7: aa          .              ; Transfer back to X
 ; &aec8 referenced 3 times by &aecb, &aed2, &aedd
-.return_28
+.return_30
     rts                                                               ; aec8: 60          `              ; Return
 
 ; &aec9 referenced 1 time by &ae9c
 .check_hash_prefix
     eor #&23 ; '#'                                                    ; aec9: 49 23       I#             ; Is it '#'?
-    beq return_28                                                     ; aecb: f0 fb       ..             ; Yes: '#' prefix accepted
+    beq return_30                                                     ; aecb: f0 fb       ..             ; Yes: '#' prefix accepted
 ; &aecd referenced 1 time by &aea3
 .error_bad_prefix
     jmp error_bad_filename                                            ; aecd: 4c e6 92    L..            ; Bad filename error
@@ -11040,12 +11388,12 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; &aed0 referenced 1 time by &ae8a
 .check_colon_prefix
     eor #&1c                                                          ; aed0: 49 1c       I.             ; Check for ':' prefix
-    bne return_28                                                     ; aed2: d0 f4       ..             ; Neither '&' nor ':': no prefix
+    bne return_30                                                     ; aed2: d0 f4       ..             ; Neither '&' nor ':': no prefix
     lda l0e32                                                         ; aed4: ad 32 0e    .2.            ; Get character after ':'
     eor #&2e ; '.'                                                    ; aed7: 49 2e       I.             ; Is it '.'?
     beq set_fs_select_flag                                            ; aed9: f0 04       ..             ; Yes: ':.' qualified prefix
     eor #&23 ; '#'                                                    ; aedb: 49 23       I#             ; Is it CR (end of line)?
-    bne return_28                                                     ; aedd: d0 e9       ..             ; No: no FS prefix, return
+    bne return_30                                                     ; aedd: d0 e9       ..             ; No: no FS prefix, return
 ; &aedf referenced 1 time by &aed9
 .set_fs_select_flag
     lda l1071                                                         ; aedf: ad 71 10    .q.            ; Get flags
@@ -11121,7 +11469,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     eor #&0d                                                          ; af09: 49 0d       I.             ; Is it CR (end of line)?
     bne loop_copy_char                                                ; af0b: d0 e8       ..             ; No: continue copying
 ; &af0d referenced 1 time by &af23
-.return_29
+.return_31
     rts                                                               ; af0d: 60          `              ; Return
 
     equs "Load"                                                       ; af0e: 4c 6f 61... Loa
@@ -11149,7 +11497,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; &af20 referenced 1 time by &af40
 .loop_scan_entries
     lda l0f05,x                                                       ; af20: bd 05 0f    ...            ; Get entry byte from buffer
-    bmi return_29                                                     ; af23: 30 e8       0.             ; High bit set: end of entries
+    bmi return_31                                                     ; af23: 30 e8       0.             ; High bit set: end of entries
     bne print_entry_char                                              ; af25: d0 15       ..             ; Non-zero: printable character
 ; ***************************************************************************************
 ; Print column separator or newline for *Ex/*Cat
@@ -11288,14 +11636,14 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     plp                                                               ; af86: 28          (              ; Restore V flag
     bvc print_nonzero_digit                                           ; af87: 50 04       P.             ; V clear: always print digit
     cmp #&30 ; '0'                                                    ; af89: c9 30       .0             ; V set: is digit '0'?
-    beq return_30                                                     ; af8b: f0 07       ..             ; Yes: suppress leading zero
+    beq return_32                                                     ; af8b: f0 07       ..             ; Yes: suppress leading zero
 ; &af8d referenced 1 time by &af87
 .print_nonzero_digit
     ldx fs_error_ptr                                                  ; af8d: a6 b8       ..             ; Save divisor across OSASCI call
     jsr osasci                                                        ; af8f: 20 e3 ff     ..            ; Write character
     stx fs_error_ptr                                                  ; af92: 86 b8       ..             ; Restore divisor
 ; &af94 referenced 1 time by &af8b
-.return_30
+.return_32
     rts                                                               ; af94: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -11339,7 +11687,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     cmp #&20 ; ' '                                                    ; afa3: c9 20       .              ; Space?
     beq loop_skip_space_chars                                         ; afa5: f0 06       ..             ; Yes: skip trailing spaces
     cmp #&0d                                                          ; afa7: c9 0d       ..             ; CR (end of line)?
-    beq return_31                                                     ; afa9: f0 09       ..             ; Yes: return (at end)
+    beq return_33                                                     ; afa9: f0 09       ..             ; Yes: return (at end)
     bne loop_advance_char                                             ; afab: d0 f3       ..             ; ALWAYS branch
 
 ; &afad referenced 2 times by &afa5, &afb2
@@ -11349,7 +11697,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     cmp #&20 ; ' '                                                    ; afb0: c9 20       .              ; Still a space?
     beq loop_skip_space_chars                                         ; afb2: f0 f9       ..             ; Yes: skip multiple spaces
 ; &afb4 referenced 1 time by &afa9
-.return_31
+.return_33
     rts                                                               ; afb4: 60          `              ; Return (at next argument)
 
 ; ***************************************************************************************
@@ -11914,7 +12262,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b243 referenced 1 time by &b2c1
 .loop_pop_poll_slot
     pla                                                               ; b243: 68          h              ; Get slot offset from stack
-    beq return_32                                                     ; b244: f0 7d       .}             ; Zero: all slots done, return
+    beq return_34                                                     ; b244: f0 7d       .}             ; Zero: all slots done, return
     pha                                                               ; b246: 48          H              ; Save slot offset
     tay                                                               ; b247: a8          .              ; Transfer to Y
     lda (nfs_workspace),y                                             ; b248: b1 9e       ..             ; Read slot status byte
@@ -11986,7 +12334,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     bne loop_pop_poll_slot                                            ; b2c1: d0 80       ..             ; ALWAYS branch
 
 ; &b2c3 referenced 1 time by &b244
-.return_32
+.return_34
     rts                                                               ; b2c3: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12089,7 +12437,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b319 referenced 1 time by &b314
 .done_prot_args
     pla                                                               ; b319: 68          h              ; Retrieve final protection mask
-; &b31a referenced 2 times by &b2f8, &b325
+; &b31a referenced 3 times by &a734, &b2f8, &b325
 .store_prot_mask
     sta ws_0d68                                                       ; b31a: 8d 68 0d    .h.            ; Store protection mask
     sta ws_0d69                                                       ; b31d: 8d 69 0d    .i.            ; Store protection mask copy
@@ -12286,11 +12634,11 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     ldx #1                                                            ; b421: a2 01       ..             ; X=1: flush input buffers
     jsr osbyte                                                        ; b423: 20 f4 ff     ..            ; Flush keyboard buffer before read; Flush input buffers (X non-zero)
     jsr osrdch                                                        ; b426: 20 e0 ff     ..            ; Read character from input stream; Read a character from the current input stream
-    bcc return_33                                                     ; b429: 90 03       ..             ; C clear: character read OK
+    bcc return_35                                                     ; b429: 90 03       ..             ; C clear: character read OK
     jmp raise_escape_error                                            ; b42b: 4c 60 95    L`.            ; Escape pressed: raise error
 
 ; &b42e referenced 1 time by &b429
-.return_33
+.return_35
     rts                                                               ; b42e: 60          `              ; Return with character in A
 
     equb &a9, 0, &a0, &78, &88, &91, &cc, &d0, &fb, &60               ; b42f: a9 00 a0... ...
@@ -12471,13 +12819,13 @@ net_channel_err_string = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b4e3: 20 6a b4     j.            ; Validate and look up channel
     and #2                                                            ; b4e6: 29 02       ).             ; Test directory flag (bit 1)
-    beq return_34                                                     ; b4e8: f0 0f       ..             ; Not a directory: return OK
+    beq return_36                                                     ; b4e8: f0 0f       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b4ea: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b4ec: 20 bb 96     ..            ; Generate 'Is a dir.' error
     equs "Is a dir.", 0                                               ; b4ef: 49 73 20... Is
 
 ; &b4f9 referenced 1 time by &b4e8
-.return_34
+.return_36
     rts                                                               ; b4f9: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12619,15 +12967,15 @@ net_channel_err_string = err_net_chan_not_found+2
 ; On Exit:
 ;     Z: 1=match, 0=no match
 ; ***************************************************************************************
-; &b57a referenced 6 times by &a2ee, &a319, &a350, &ac2e, &b4a7, &b56b
+; &b57a referenced 7 times by &a2ee, &a319, &a350, &a69e, &ac2e, &b4a7, &b56b
 .match_station_net
     lda l1040,x                                                       ; b57a: bd 40 10    .@.            ; Load FCB station number
     eor l0e00                                                         ; b57d: 4d 00 0e    M..            ; Compare with current station (EOR)
-    bne return_35                                                     ; b580: d0 06       ..             ; Different: Z=0, no match
+    bne return_37                                                     ; b580: d0 06       ..             ; Different: Z=0, no match
     lda l1050,x                                                       ; b582: bd 50 10    .P.            ; Load FCB network number
     eor l0e01                                                         ; b585: 4d 01 0e    M..            ; Compare with current network (EOR)
 ; &b588 referenced 1 time by &b580
-.return_35
+.return_37
     rts                                                               ; b588: 60          `              ; Return; Z=1 if match, Z=0 if not
 
 ; ***************************************************************************************
@@ -13015,12 +13363,12 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &b791 referenced 2 times by &b836, &b910
 .inc_fcb_byte_count
     inc l1000,x                                                       ; b791: fe 00 10    ...            ; Increment byte count low
-    bne return_36                                                     ; b794: d0 08       ..             ; No overflow: done
+    bne return_38                                                     ; b794: d0 08       ..             ; No overflow: done
     inc l1010,x                                                       ; b796: fe 10 10    ...            ; Increment byte count mid
-    bne return_36                                                     ; b799: d0 03       ..             ; No overflow: done
+    bne return_38                                                     ; b799: d0 03       ..             ; No overflow: done
     inc l1020,x                                                       ; b79b: fe 20 10    . .            ; Increment byte count high
 ; &b79e referenced 2 times by &b794, &b799
-.return_36
+.return_38
     rts                                                               ; b79e: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -13037,7 +13385,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; On Entry:
 ;     Y: filter attribute (0=process all)
 ; ***************************************************************************************
-; &b79f referenced 8 times by &8d7c, &8f87, &948c, &9bcd, &9c13, &9cb6, &9d7e, &9e4c
+; &b79f referenced 9 times by &8d7c, &8f87, &948c, &9bcd, &9c13, &9cb6, &9d7e, &9e4c, &a67d
 .process_all_fcbs
     txa                                                               ; b79f: 8a          .              ; Save X
     pha                                                               ; b7a0: 48          H              ; Push X to stack
@@ -14063,6 +14411,8 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(lang_2_save_palette_vdu-1) == &85
     assert <(lang_3_execute_at_0100-1) == &97
     assert <(lang_4_remote_validated-1) == &a7
+    assert <(loop_ca814-1) == &13
+    assert <(loop_ca81f-1) == &1e
     assert <(net_1_read_handle-1) == &cb
     assert <(net_2_read_handle_entry-1) == &d1
     assert <(net_3_close_handle-1) == &e1
@@ -14079,6 +14429,22 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &ae
     assert <(rx_imm_peek-1) == &c0
     assert <(rx_imm_poke-1) == &a3
+    assert <(sub_ca663-1) == &62
+    assert <(sub_ca676-1) == &75
+    assert <(sub_ca6eb-1) == &ea
+    assert <(sub_ca6ee-1) == &ed
+    assert <(sub_ca70a-1) == &09
+    assert <(sub_ca716-1) == &15
+    assert <(sub_ca72b-1) == &2a
+    assert <(sub_ca731-1) == &30
+    assert <(sub_ca737-1) == &36
+    assert <(sub_ca747-1) == &46
+    assert <(sub_ca7e7-1) == &e6
+    assert <(sub_ca7f0-1) == &ef
+    assert <(sub_ca7fe-1) == &fd
+    assert <(sub_ca804-1) == &03
+    assert <(sub_ca80a-1) == &09
+    assert <(sub_ca82a-1) == &29
     assert <(svc5_irq_check-1) == &22
     assert <(svc_18_fs_select-1) == &04
     assert <(svc_1_abs_workspace-1) == &8e
@@ -14109,6 +14475,8 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(lang_2_save_palette_vdu-1) == &ac
     assert >(lang_3_execute_at_0100-1) == &95
     assert >(lang_4_remote_validated-1) == &95
+    assert >(loop_ca814-1) == &a8
+    assert >(loop_ca81f-1) == &a8
     assert >(net_1_read_handle-1) == &a0
     assert >(net_2_read_handle_entry-1) == &a0
     assert >(net_3_close_handle-1) == &a0
@@ -14120,6 +14488,22 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(osword_14_handler-1) == &a8
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
+    assert >(sub_ca663-1) == &a6
+    assert >(sub_ca676-1) == &a6
+    assert >(sub_ca6eb-1) == &a6
+    assert >(sub_ca6ee-1) == &a6
+    assert >(sub_ca70a-1) == &a7
+    assert >(sub_ca716-1) == &a7
+    assert >(sub_ca72b-1) == &a7
+    assert >(sub_ca731-1) == &a7
+    assert >(sub_ca737-1) == &a7
+    assert >(sub_ca747-1) == &a7
+    assert >(sub_ca7e7-1) == &a7
+    assert >(sub_ca7f0-1) == &a7
+    assert >(sub_ca7fe-1) == &a7
+    assert >(sub_ca804-1) == &a8
+    assert >(sub_ca80a-1) == &a8
+    assert >(sub_ca82a-1) == &a8
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
     assert >(svc_1_abs_workspace-1) == &8e
@@ -14173,24 +14557,26 @@ net_channel_err_string = err_net_chan_not_found+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                           76
+;     nfs_workspace:                           80
 ;     l0f05:                                   69
-;     net_rx_ptr:                              65
+;     net_rx_ptr:                              67
 ;     fs_options:                              57
 ;     econet_control23_or_status2:             46
 ;     fs_load_addr_2:                          38
 ;     l00ae:                                   38
+;     osword_pb_ptr:                           38
 ;     econet_data_continue_frame:              37
 ;     net_tx_ptr:                              37
 ;     print_inline:                            35
 ;     port_ws_offset:                          34
 ;     fs_crc_lo:                               33
 ;     econet_control1_or_status1:              32
+;     l1071:                                   32
 ;     l0f06:                                   30
-;     l1071:                                   30
 ;     osbyte:                                  28
 ;     rx_src_net:                              27
 ;     save_net_tx_cb:                          26
+;     l1060:                                   25
 ;     l10b8:                                   25
 ;     fs_work_4:                               24
 ;     osasci:                                  23
@@ -14201,34 +14587,33 @@ save pydis_start, pydis_end
 ;     tube_read_r2:                            21
 ;     error_text:                              20
 ;     l0d61:                                   20
-;     osword_pb_ptr:                           20
 ;     ws_page:                                 20
+;     ws_ptr_hi:                               20
+;     l0d6c:                                   19
 ;     l00ad:                                   18
 ;     l1000:                                   18
-;     l1060:                                   18
-;     ws_ptr_hi:                               18
 ;     fs_block_offset:                         17
 ;     l0e30:                                   17
 ;     fs_work_5:                               16
+;     l1010:                                   16
+;     l1030:                                   16
 ;     open_port_buf_hi:                        16
 ;     os_text_ptr:                             16
 ;     osnewl:                                  16
 ;     osword_flag:                             16
+;     ws_ptr_lo:                               16
 ;     error_block:                             15
-;     l0d6c:                                   15
 ;     nmi_tx_block:                            15
 ;     station_id_disable_net_nmis:             15
 ;     l0f07:                                   14
-;     l1010:                                   14
+;     l1040:                                   14
 ;     l10c8:                                   14
 ;     net_tx_ptr_hi:                           14
 ;     open_port_buf:                           14
 ;     port_buf_len_hi:                         14
 ;     set_nmi_vector:                          14
 ;     tube_send_r2:                            14
-;     ws_ptr_lo:                               14
 ;     escapable:                               13
-;     l1030:                                   13
 ;     mask_owner_access:                       13
 ;     cmd_table_fs:                            12
 ;     fs_last_byte_flag:                       12
@@ -14239,41 +14624,41 @@ save pydis_start, pydis_end
 ;     error_bad_inline:                        11
 ;     fs_load_addr_3:                          11
 ;     l00b6:                                   11
+;     net_rx_ptr_hi:                           11
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
 ;     copy_arg_to_buf:                         10
 ;     error_inline_log:                        10
-;     net_rx_ptr_hi:                           10
+;     nfs_workspace_hi:                        10
 ;     tube_addr_data_dispatch:                 10
 ;     tube_data_register_3:                    10
 ;     tube_status_register_2:                  10
 ;     ws_0d6a:                                 10
 ;     zp_ptr_lo:                               10
 ;     l0d2e:                                    9
+;     l0e01:                                    9
 ;     l0f03:                                    9
 ;     l0f08:                                    9
 ;     l1020:                                    9
-;     nfs_workspace_hi:                         9
+;     process_all_fcbs:                         9
 ;     txcb_end:                                 9
+;     ws_0d68:                                  9
 ;     error_msg_table:                          8
 ;     install_nmi_handler:                      8
 ;     l00af:                                    8
-;     process_all_fcbs:                         8
 ;     romsel_copy:                              8
 ;     save_ptr_to_os_text:                      8
 ;     tube_send_r4:                             8
 ;     tube_status_1_and_tube_control:           8
 ;     ws_0d60:                                  8
-;     ws_0d68:                                  8
 ;     zp_ptr_hi:                                8
 ;     alloc_fcb_slot:                           7
 ;     fs_load_addr_hi:                          7
 ;     l0df0:                                    7
-;     l0e01:                                    7
 ;     l0f02:                                    7
 ;     l0f09:                                    7
-;     l1040:                                    7
 ;     l1098:                                    7
+;     match_station_net:                        7
 ;     reject_reply:                             7
 ;     rx_buf_offset:                            7
 ;     send_net_packet:                          7
@@ -14290,16 +14675,20 @@ save pydis_start, pydis_end
 ;     finalise_and_return:                      6
 ;     l00cc:                                    6
 ;     l00d0:                                    6
+;     l0d6b:                                    6
+;     l0d6d:                                    6
+;     l0d72:                                    6
 ;     l0e00:                                    6
+;     l0e03:                                    6
 ;     l0e05:                                    6
 ;     l10d8:                                    6
-;     match_station_net:                        6
 ;     nmi_rti:                                  6
 ;     os_text_ptr_hi:                           6
 ;     osfind:                                   6
 ;     tube_main_loop:                           6
 ;     wait_net_tx_ack:                          6
 ;     attr_to_chan_index:                       5
+;     copy_pb_byte_to_ws:                       5
 ;     data_tx_last:                             5
 ;     escape_flag:                              5
 ;     fs_crc_hi:                                5
@@ -14310,9 +14699,10 @@ save pydis_start, pydis_end
 ;     l0d30:                                    5
 ;     l0d31:                                    5
 ;     l0d63:                                    5
-;     l0d6b:                                    5
-;     l0e03:                                    5
+;     l0e02:                                    5
+;     l0e04:                                    5
 ;     l0e07:                                    5
+;     l0e09:                                    5
 ;     l10cf:                                    5
 ;     l10d4:                                    5
 ;     l10d5:                                    5
@@ -14333,9 +14723,9 @@ save pydis_start, pydis_end
 ;     verify_ws_checksum:                       5
 ;     zp_work_3:                                5
 ;     byte_to_2bit_index:                       4
+;     ca810:                                    4
 ;     check_net_error_code:                     4
 ;     commit_state_byte:                        4
-;     copy_pb_byte_to_ws:                       4
 ;     done_poll_name_parse:                     4
 ;     err_bad_station_num:                      4
 ;     error_bad_filename:                       4
@@ -14344,13 +14734,10 @@ save pydis_start, pydis_end
 ;     get_ws_page:                              4
 ;     gsinit:                                   4
 ;     gsread:                                   4
+;     init_bridge_poll:                         4
 ;     l0d2f:                                    4
 ;     l0d43:                                    4
 ;     l0d44:                                    4
-;     l0d72:                                    4
-;     l0e02:                                    4
-;     l0e04:                                    4
-;     l0e09:                                    4
 ;     l0e0a:                                    4
 ;     l10a8:                                    4
 ;     l10f3:                                    4
@@ -14366,7 +14753,7 @@ save pydis_start, pydis_end
 ;     print_station_addr:                       4
 ;     process_spool_data:                       4
 ;     read_pw_char:                             4
-;     return_24:                                4
+;     return_26:                                4
 ;     rx_ctrl:                                  4
 ;     tube_reply_byte:                          4
 ;     tx_done_exit:                             4
@@ -14381,6 +14768,8 @@ save pydis_start, pydis_end
 ;     append_byte_to_rxbuf:                     3
 ;     brk_ptr:                                  3
 ;     ca5fb:                                    3
+;     ca764:                                    3
+;     ca791:                                    3
 ;     check_tube_irq_loop:                      3
 ;     close_all_net_chans:                      3
 ;     cmd_table_fs_hi:                          3
@@ -14402,7 +14791,6 @@ save pydis_start, pydis_end
 ;     l0106:                                    3
 ;     l0355:                                    3
 ;     l0d66:                                    3
-;     l0d6d:                                    3
 ;     l0e31:                                    3
 ;     l0f00:                                    3
 ;     l1070:                                    3
@@ -14435,14 +14823,16 @@ save pydis_start, pydis_end
 ;     reload_inactive_mask:                     3
 ;     reset_adlc_rx_listen:                     3
 ;     restore_fs_context:                       3
-;     return_28:                                3
 ;     return_3:                                 3
+;     return_30:                                3
 ;     return_4:                                 3
 ;     rx_complete_update_rxcb:                  3
 ;     rx_remote_addr:                           3
 ;     save_net_tx_cb_vset:                      3
 ;     save_text_ptr:                            3
 ;     send_disconnect_reply:                    3
+;     store_prot_mask:                          3
+;     sub_ca7c2:                                3
 ;     svc_return_unclaimed:                     3
 ;     tube_claim_c3:                            3
 ;     tube_data_register_1:                     3
@@ -14471,6 +14861,8 @@ save pydis_start, pydis_end
 ;     append_space_and_num:                     2
 ;     build_error_block:                        2
 ;     ca5fd:                                    2
+;     ca6e7:                                    2
+;     ca74c:                                    2
 ;     check_adlc_flag:                          2
 ;     check_and_setup_txcb:                     2
 ;     check_chan_char:                          2
@@ -14480,6 +14872,7 @@ save pydis_start, pydis_end
 ;     claim_addr_ff:                            2
 ;     classify_reply_error:                     2
 ;     clear_conn_active:                        2
+;     clear_if_station_match:                   2
 ;     clear_result:                             2
 ;     clear_v_flag:                             2
 ;     cmd_pass:                                 2
@@ -14530,7 +14923,6 @@ save pydis_start, pydis_end
 ;     help_wrap_if_serial:                      2
 ;     imm_op_out_of_range:                      2
 ;     inc_fcb_byte_count:                       2
-;     init_bridge_poll:                         2
 ;     init_remote_session:                      2
 ;     init_spool_drive:                         2
 ;     init_tx_ptr_and_send:                     2
@@ -14544,6 +14936,7 @@ save pydis_start, pydis_end
 ;     l0d42:                                    2
 ;     l0d6e:                                    2
 ;     l0dfa:                                    2
+;     l0dff:                                    2
 ;     l0e06:                                    2
 ;     l0e2f:                                    2
 ;     l0e38:                                    2
@@ -14557,6 +14950,9 @@ save pydis_start, pydis_end
 ;     l0fdc:                                    2
 ;     l0fdd:                                    2
 ;     l0fde:                                    2
+;     l1072:                                    2
+;     l1073:                                    2
+;     l1074:                                    2
 ;     l10d7:                                    2
 ;     l10d9:                                    2
 ;     load_boot_type:                           2
@@ -14618,9 +15014,9 @@ save pydis_start, pydis_end
 ;     return_12:                                2
 ;     return_15:                                2
 ;     return_21:                                2
-;     return_25:                                2
 ;     return_27:                                2
-;     return_36:                                2
+;     return_29:                                2
+;     return_38:                                2
 ;     return_5:                                 2
 ;     return_6:                                 2
 ;     return_8:                                 2
@@ -14656,7 +15052,6 @@ save pydis_start, pydis_end
 ;     start_wipe_pass:                          2
 ;     store_char_uppercase:                     2
 ;     store_pb_result:                          2
-;     store_prot_mask:                          2
 ;     store_result_check_dir:                   2
 ;     store_station_result:                     2
 ;     store_stn_flags_restore:                  2
@@ -14728,6 +15123,23 @@ save pydis_start, pydis_end
 ;     ca5d2:                                    1
 ;     ca5e9:                                    1
 ;     ca5f6:                                    1
+;     ca66b:                                    1
+;     ca68f:                                    1
+;     ca6b9:                                    1
+;     ca6ce:                                    1
+;     ca6e3:                                    1
+;     ca6ef:                                    1
+;     ca752:                                    1
+;     ca754:                                    1
+;     ca76b:                                    1
+;     ca798:                                    1
+;     ca7af:                                    1
+;     ca7d8:                                    1
+;     ca7d9:                                    1
+;     ca7e1:                                    1
+;     ca83a:                                    1
+;     ca84a:                                    1
+;     ca84d:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     call_fscv:                                1
@@ -14772,7 +15184,6 @@ save pydis_start, pydis_end
 ;     clear_buf_after_write:                    1
 ;     clear_c_flag:                             1
 ;     clear_escapable:                          1
-;     clear_if_station_match:                   1
 ;     clear_release_flag:                       1
 ;     clear_single_fcb:                         1
 ;     clear_svc_and_ws:                         1
@@ -14988,9 +15399,6 @@ save pydis_start, pydis_end
 ;     l0fe0:                                    1
 ;     l0ff0:                                    1
 ;     l1050:                                    1
-;     l1072:                                    1
-;     l1073:                                    1
-;     l1074:                                    1
 ;     l10cb:                                    1
 ;     l10cd:                                    1
 ;     l10ce:                                    1
@@ -14999,8 +15407,6 @@ save pydis_start, pydis_end
 ;     l2322:                                    1
 ;     l6f6e:                                    1
 ;     l7dfd:                                    1
-;     la63f:                                    1
-;     la651:                                    1
 ;     language_entry:                           1
 ;     library_dir_prefix:                       1
 ;     library_tried:                            1
@@ -15021,6 +15427,13 @@ save pydis_start, pydis_end
 ;     loop_build_wipe_cmd:                      1
 ;     loop_ca5b9:                               1
 ;     loop_ca5e8:                               1
+;     loop_ca668:                               1
+;     loop_ca66d:                               1
+;     loop_ca682:                               1
+;     loop_ca73e:                               1
+;     loop_ca7c6:                               1
+;     loop_ca814:                               1
+;     loop_ca81f:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
 ;     loop_check_handles:                       1
@@ -15238,6 +15651,8 @@ save pydis_start, pydis_end
 ;     osgbpb:                                   1
 ;     osrdsc:                                   1
 ;     osrdsc_ptr_hi:                            1
+;     osword_13_hi_table:                       1
+;     osword_13_lo_table:                       1
 ;     osword_claim_codes:                       1
 ;     osword_dispatch_hi_table:                 1
 ;     osword_dispatch_lo_table:                 1
@@ -15320,14 +15735,16 @@ save pydis_start, pydis_end
 ;     return_20:                                1
 ;     return_22:                                1
 ;     return_23:                                1
-;     return_26:                                1
-;     return_29:                                1
-;     return_30:                                1
+;     return_24:                                1
+;     return_25:                                1
+;     return_28:                                1
 ;     return_31:                                1
 ;     return_32:                                1
 ;     return_33:                                1
 ;     return_34:                                1
 ;     return_35:                                1
+;     return_36:                                1
+;     return_37:                                1
 ;     return_7:                                 1
 ;     return_9:                                 1
 ;     return_alloc_success:                     1
@@ -15579,6 +15996,28 @@ save pydis_start, pydis_end
 ;     ca5f6
 ;     ca5fb
 ;     ca5fd
+;     ca66b
+;     ca68f
+;     ca6b9
+;     ca6ce
+;     ca6e3
+;     ca6e7
+;     ca6ef
+;     ca74c
+;     ca752
+;     ca754
+;     ca764
+;     ca76b
+;     ca791
+;     ca798
+;     ca7af
+;     ca7d8
+;     ca7d9
+;     ca7e1
+;     ca810
+;     ca83a
+;     ca84a
+;     ca84d
 ;     cbe6f
 ;     l0006
 ;     l0063
@@ -15628,6 +16067,7 @@ save pydis_start, pydis_end
 ;     l0df0
 ;     l0dfa
 ;     l0dfe
+;     l0dff
 ;     l0e00
 ;     l0e01
 ;     l0e02
@@ -15712,10 +16152,15 @@ save pydis_start, pydis_end
 ;     l2322
 ;     l6f6e
 ;     l7dfd
-;     la63f
-;     la651
 ;     loop_ca5b9
 ;     loop_ca5e8
+;     loop_ca668
+;     loop_ca66d
+;     loop_ca682
+;     loop_ca73e
+;     loop_ca7c6
+;     loop_ca814
+;     loop_ca81f
 ;     return_1
 ;     return_10
 ;     return_11
@@ -15746,6 +16191,8 @@ save pydis_start, pydis_end
 ;     return_34
 ;     return_35
 ;     return_36
+;     return_37
+;     return_38
 ;     return_4
 ;     return_5
 ;     return_6
@@ -15754,15 +16201,33 @@ save pydis_start, pydis_end
 ;     return_9
 ;     sub_c84a1
 ;     sub_c8e2d
+;     sub_ca663
+;     sub_ca676
+;     sub_ca6eb
+;     sub_ca6ee
+;     sub_ca70a
+;     sub_ca716
+;     sub_ca72b
+;     sub_ca731
+;     sub_ca737
+;     sub_ca747
+;     sub_ca7c2
+;     sub_ca7e7
+;     sub_ca7f0
+;     sub_ca7fe
+;     sub_ca804
+;     sub_ca80a
+;     sub_ca82a
+;     sub_ca843
 ;     sub_cbe5e
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14035 bytes (86%)
-;     Data                     = 2349 bytes (14%)
+;     Code                     = 14513 bytes (89%)
+;     Data                     = 1871 bytes (11%)
 ;
-;     Number of instructions   = 6869
-;     Number of data bytes     = 1051 bytes
+;     Number of instructions   = 7120
+;     Number of data bytes     = 586 bytes
 ;     Number of data words     = 110 bytes
-;     Number of string bytes   = 1188 bytes
-;     Number of strings        = 146
+;     Number of string bytes   = 1175 bytes
+;     Number of strings        = 142
