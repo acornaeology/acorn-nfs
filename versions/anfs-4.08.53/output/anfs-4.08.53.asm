@@ -12389,9 +12389,17 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     bpl loop_copy_tx_hdr                                              ; b16d: 10 f8       ..             ; Loop until all 4 copied
     rts                                                               ; b16f: 60          `              ; Return
 
+; Printer server TX header template
+; 
+; 4-byte header copied to the TX control block by
+; reverse_ps_name_to_tx. Sets up an immediate
+; transmit on port &9F (PS port) to any station.
 ; &b170 referenced 1 time by &b167
 .ps_tx_header_template
-    equb &80, &9f, &ff, &ff                                           ; b170: 80 9f ff... ...
+    equb &80                                                          ; b170: 80          .              ; Control byte &80 (immediate TX)
+    equb &9f                                                          ; b171: 9f          .              ; Port &9F (printer server)
+    equb &ff                                                          ; b172: ff          .              ; Station &FF (any)
+    equb &ff                                                          ; b173: ff          .              ; Network &FF (any)
 
 ; ***************************************************************************************
 ; Print station address as decimal net.station
@@ -12422,7 +12430,34 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     plp                                                               ; b18f: 28          (              ; Restore flags
     jmp print_decimal_3dig                                            ; b190: 4c 68 af    Lh.            ; Print station as 3 digits
 
-    equb &80, &9f, 0, 0, &14, 0, &ff, &ff, &1c, 0, &ff, &ff           ; b193: 80 9f 00... ...
+; PS slot transmit control block template
+; 
+; 12-byte Econet TXCB initialisation template for
+; printer server slot buffers. Not referenced by
+; label; accessed indirectly by init_ps_slot_from_rx
+; via LDA write_ps_slot_link_addr,Y where the base
+; address &B11B plus Y offset &78 computes to &B193.
+; 
+; Structure: 4-byte header (control, port, station,
+; network) followed by two 4-byte buffer descriptors
+; (lo address, hi page, end lo, end hi). The hi page
+; bytes at positions 5 and 9 are overwritten with
+; net_rx_ptr_hi during the copy to point into the
+; actual RX buffer page. End bytes &FF are
+; placeholders filled in later by the caller.
+.ps_slot_txcb_template
+    equb &80                                                          ; b193: 80          .              ; Control byte &80 (immediate TX)
+    equb &9f                                                          ; b194: 9f          .              ; Port &9F (printer server)
+    equb 0                                                            ; b195: 00          .              ; Station 0 (filled in later)
+    equb 0                                                            ; b196: 00          .              ; Network 0 (filled in later)
+    equb &14                                                          ; b197: 14          .              ; Data buffer start lo (&14)
+    equb 0                                                            ; b198: 00          .              ; Data buffer start hi (= rx page)
+    equb &ff                                                          ; b199: ff          .              ; Data buffer end lo (placeholder)
+    equb &ff                                                          ; b19a: ff          .              ; Data buffer end hi (placeholder)
+    equb &1c                                                          ; b19b: 1c          .              ; Reply buffer start lo (&1C)
+    equb 0                                                            ; b19c: 00          .              ; Reply buffer start hi (= rx page)
+    equb &ff                                                          ; b19d: ff          .              ; Reply buffer end lo (placeholder)
+    equb &ff                                                          ; b19e: ff          .              ; Reply buffer end hi (placeholder)
 
 ; ***************************************************************************************
 ; *Pollps command handler
@@ -12613,9 +12648,12 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; Initialise PS slot buffer from template data
 ; 
-; Copies 12 bytes from the template at offsets &78-&83
-; into workspace, substituting the RX buffer page at
-; offsets &7D and &81.
+; Copies the 12-byte ps_slot_txcb_template (&B193)
+; into workspace at offsets &78-&83 via indexed
+; addressing from write_ps_slot_link_addr (&B11B).
+; Substitutes net_rx_ptr_hi at offsets &7D and &81
+; (the hi bytes of the two buffer pointers) so they
+; point into the current RX buffer page.
 ; ***************************************************************************************
 ; &b2c4 referenced 1 time by &b1a9
 .init_ps_slot_from_rx

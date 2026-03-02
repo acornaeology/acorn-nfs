@@ -897,8 +897,18 @@ label(0xB14B, "loop_push_ps_name")
 label(0xB155, "loop_pop_ps_name")
 label(0xB167, "loop_copy_tx_hdr")
 label(0xB170, "ps_tx_header_template")
+
+# Split the 4-byte PS TX header template into individual bytes.
+for i in range(4):
+    byte(0xB170 + i)
+
 label(0xB184, "skip_if_local_net")
 label(0xB18D, "print_station_only")
+label(0xB193, "ps_slot_txcb_template")
+
+# Split the 12-byte PS slot TXCB template into individual bytes.
+for i in range(12):
+    byte(0xB193 + i)
 label(0xB1E1, "no_poll_name_given")
 label(0xB1E4, "skip_if_no_poll_arg")
 label(0xB1EC, "loop_pad_poll_name")
@@ -3506,9 +3516,12 @@ subroutine(0xB174, "print_station_addr",
 
 subroutine(0xB2C4, "init_ps_slot_from_rx",
     title="Initialise PS slot buffer from template data",
-    description="Copies 12 bytes from the template at offsets &78-&83\n"
-    "into workspace, substituting the RX buffer page at\n"
-    "offsets &7D and &81.")
+    description="Copies the 12-byte ps_slot_txcb_template (&B193)\n"
+    "into workspace at offsets &78-&83 via indexed\n"
+    "addressing from write_ps_slot_link_addr (&B11B).\n"
+    "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
+    "(the hi bytes of the two buffer pointers) so they\n"
+    "point into the current RX buffer page.")
 subroutine(0xB2DB, "store_char_uppercase",
     title="Convert to uppercase and store in RX buffer",
     description="If the character in A is lowercase (&61-&7A), converts\n"
@@ -7969,6 +7982,17 @@ comment(0xB16C, "Previous byte", inline=True)
 comment(0xB16D, "Loop until all 4 copied", inline=True)
 comment(0xB16F, "Return", inline=True)
 
+# ps_tx_header_template (&B170): 4-byte PS transmit header.
+comment(0xB170, "Printer server TX header template\n"
+    "\n"
+    "4-byte header copied to the TX control block by\n"
+    "reverse_ps_name_to_tx. Sets up an immediate\n"
+    "transmit on port &9F (PS port) to any station.")
+comment(0xB170, "Control byte &80 (immediate TX)", inline=True)
+comment(0xB171, "Port &9F (printer server)", inline=True)
+comment(0xB172, "Station &FF (any)", inline=True)
+comment(0xB173, "Network &FF (any)", inline=True)
+
 # print_station_addr (&B174) — print net.station address
 comment(0xB174, "Save V flag (controls padding)", inline=True)
 comment(0xB175, "Get network number", inline=True)
@@ -7981,6 +8005,42 @@ comment(0xB186, "Print 4 spaces (padding)", inline=True)
 comment(0xB18D, "Get station number", inline=True)
 comment(0xB18F, "Restore flags", inline=True)
 comment(0xB190, "Print station as 3 digits", inline=True)
+
+# ps_slot_txcb_template (&B193): 12-byte TXCB template for PS slots.
+# Accessed indirectly by init_ps_slot_from_rx (&B2C4) via:
+#   LDA write_ps_slot_link_addr,Y  (base &B11B + Y=&78 = &B193)
+# This is the same 12-byte TXCB structure used by
+# tx_econet_txcb_template (&AC6E) and rx_palette_txcb_template
+# (&AC7A). Bytes at workspace offsets &7D and &81 (positions 5
+# and 9: the hi bytes of the two buffer pointers) are
+# substituted with net_rx_ptr_hi during the copy.
+comment(0xB193, "PS slot transmit control block template\n"
+    "\n"
+    "12-byte Econet TXCB initialisation template for\n"
+    "printer server slot buffers. Not referenced by\n"
+    "label; accessed indirectly by init_ps_slot_from_rx\n"
+    "via LDA write_ps_slot_link_addr,Y where the base\n"
+    "address &B11B plus Y offset &78 computes to &B193.\n"
+    "\n"
+    "Structure: 4-byte header (control, port, station,\n"
+    "network) followed by two 4-byte buffer descriptors\n"
+    "(lo address, hi page, end lo, end hi). The hi page\n"
+    "bytes at positions 5 and 9 are overwritten with\n"
+    "net_rx_ptr_hi during the copy to point into the\n"
+    "actual RX buffer page. End bytes &FF are\n"
+    "placeholders filled in later by the caller.")
+comment(0xB193, "Control byte &80 (immediate TX)", inline=True)
+comment(0xB194, "Port &9F (printer server)", inline=True)
+comment(0xB195, "Station 0 (filled in later)", inline=True)
+comment(0xB196, "Network 0 (filled in later)", inline=True)
+comment(0xB197, "Data buffer start lo (&14)", inline=True)
+comment(0xB198, "Data buffer start hi (= rx page)", inline=True)
+comment(0xB199, "Data buffer end lo (placeholder)", inline=True)
+comment(0xB19A, "Data buffer end hi (placeholder)", inline=True)
+comment(0xB19B, "Reply buffer start lo (&1C)", inline=True)
+comment(0xB19C, "Reply buffer start hi (= rx page)", inline=True)
+comment(0xB19D, "Reply buffer end lo (placeholder)", inline=True)
+comment(0xB19E, "Reply buffer end hi (placeholder)", inline=True)
 
 # cmd_bye (&948A) — *Bye: logoff from file server
 comment(0x948A, "Y=0: close all files", inline=True)
