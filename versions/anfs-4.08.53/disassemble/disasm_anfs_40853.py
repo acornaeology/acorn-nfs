@@ -5172,13 +5172,32 @@ comment(0x88CE, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x88D0, "&80: completion flag for &0D3A", inline=True)
 comment(0x88D2, "Signal TX complete", inline=True)
 comment(0x88D5, "Full ADLC reset and return to idle listen", inline=True)
-comment(0x88D8, "Unreferenced data block (purpose unknown)", inline=True)
-comment(0x88DB, "Unreachable: data decoded as ASL A", inline=True)
-comment(0x88DC, "Unreachable: data decoded as ASL A", inline=True)
-comment(0x88DD, "Unreachable: data decoded as ASL &06", inline=True)
-comment(0x88DF, "Unreachable: data decoded as ASL A", inline=True)
-comment(0x88E0, "Unreachable: data decoded as STA (&00,X)", inline=True)
-comment(0x88E2, "Unreachable: data decoded as BRK", inline=True)
+# Unreferenced dead data: 16 bytes between JMP at &88D5 and
+# tx_calc_transfer at &88E8. No code or data reference points here.
+comment(0x88D8, "Unreferenced dead data (16 bytes)\n"
+    "\n"
+    "16 bytes between JMP discard_reset_rx (&88D5) and\n"
+    "tx_calc_transfer (&88E8). Unreachable as code (after\n"
+    "an unconditional JMP) and unreferenced as data. No\n"
+    "label, index, or indirect pointer targets any address\n"
+    "in the &88D8-&88E7 range. Likely unused remnant from\n"
+    "development.")
+comment(0x88D8, "Dead data: &0E", inline=True)
+comment(0x88D9, "Dead data: &0E", inline=True)
+comment(0x88DA, "Dead data: &0A", inline=True)
+comment(0x88DB, "Dead data: &0A", inline=True)
+comment(0x88DC, "Dead data: &0A", inline=True)
+comment(0x88DD, "Dead data: &06", inline=True)
+comment(0x88DE, "Dead data: &06", inline=True)
+comment(0x88DF, "Dead data: &0A", inline=True)
+comment(0x88E0, "Dead data: &81", inline=True)
+comment(0x88E1, "Dead data: &00", inline=True)
+comment(0x88E2, "Dead data: &00", inline=True)
+comment(0x88E3, "Dead data: &00", inline=True)
+comment(0x88E4, "Dead data: &00", inline=True)
+comment(0x88E5, "Dead data: &01", inline=True)
+comment(0x88E6, "Dead data: &01", inline=True)
+comment(0x88E7, "Dead data: &81", inline=True)
 comment(0x88E8, "Y=7: offset to RXCB buffer addr byte 3", inline=True)
 comment(0x88EA, "Read RXCB[7] (buffer addr high byte)", inline=True)
 comment(0x88EC, "Compare to &FF", inline=True)
@@ -6696,6 +6715,11 @@ expr(0x867B, "<(proc_op_status2-1)")
 expr(0x867C, "<(tx_ctrl_exit-1)")
 expr(0x867D, "<(tx_ctrl_exit-1)")
 expr(0x867E, "<(tx_ctrl_machine_type-1)")
+
+# Dead data between tx_store_result and tx_calc_transfer (16 bytes)
+# Unreferenced and unreachable — force to individual data bytes.
+for i in range(16):
+    byte(0x88D8 + i)
 
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84B1)   # After dispatch table data

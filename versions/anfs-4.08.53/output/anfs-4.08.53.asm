@@ -52,7 +52,6 @@ zp_ptr_lo                               = &0000
 zp_ptr_hi                               = &0001
 zp_work_2                               = &0002
 zp_work_3                               = &0003
-l0006                                   = &0006
 zp_temp_10                              = &0010
 zp_temp_11                              = &0011
 tube_data_ptr                           = &0012
@@ -144,7 +143,6 @@ l0355                                   = &0355
 string_buf                              = &0700
 l072c                                   = &072c
 l072e                                   = &072e
-l0a0e                                   = &0a0e
 nmi_code_base                           = &0cff
 l0d07                                   = &0d07
 nmi_jmp_lo                              = &0d0c
@@ -3306,15 +3304,30 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     sta ws_0d60                                                       ; 88d2: 8d 60 0d    .`.            ; Signal TX complete
     jmp discard_reset_rx                                              ; 88d5: 4c eb 83    L..            ; Full ADLC reset and return to idle listen
 
-    asl l0a0e                                                         ; 88d8: 0e 0e 0a    ...            ; Unreferenced data block (purpose unknown)
-    asl a                                                             ; 88db: 0a          .              ; Unreachable: data decoded as ASL A
-    asl a                                                             ; 88dc: 0a          .              ; Unreachable: data decoded as ASL A
-    asl l0006                                                         ; 88dd: 06 06       ..             ; Unreachable: data decoded as ASL &06
-    asl a                                                             ; 88df: 0a          .              ; Unreachable: data decoded as ASL A
-    sta (zp_ptr_lo,x)                                                 ; 88e0: 81 00       ..             ; Unreachable: data decoded as STA (&00,X)
-    brk                                                               ; 88e2: 00          .              ; Unreachable: data decoded as BRK
-
-    equb 0, 0, 1, 1, &81                                              ; 88e3: 00 00 01... ...
+; Unreferenced dead data (16 bytes)
+; 
+; 16 bytes between JMP discard_reset_rx (&88D5) and
+; tx_calc_transfer (&88E8). Unreachable as code (after
+; an unconditional JMP) and unreferenced as data. No
+; label, index, or indirect pointer targets any address
+; in the &88D8-&88E7 range. Likely unused remnant from
+; development.
+    equb &0e                                                          ; 88d8: 0e          .              ; Dead data: &0E
+    equb &0e                                                          ; 88d9: 0e          .              ; Dead data: &0E
+    equb &0a                                                          ; 88da: 0a          .              ; Dead data: &0A
+    equb &0a                                                          ; 88db: 0a          .              ; Dead data: &0A
+    equb &0a                                                          ; 88dc: 0a          .              ; Dead data: &0A
+    equb 6                                                            ; 88dd: 06          .              ; Dead data: &06
+    equb 6                                                            ; 88de: 06          .              ; Dead data: &06
+    equb &0a                                                          ; 88df: 0a          .              ; Dead data: &0A
+    equb &81                                                          ; 88e0: 81          .              ; Dead data: &81
+    equb 0                                                            ; 88e1: 00          .              ; Dead data: &00
+    equb 0                                                            ; 88e2: 00          .              ; Dead data: &00
+    equb 0                                                            ; 88e3: 00          .              ; Dead data: &00
+    equb 0                                                            ; 88e4: 00          .              ; Dead data: &00
+    equb 1                                                            ; 88e5: 01          .              ; Dead data: &01
+    equb 1                                                            ; 88e6: 01          .              ; Dead data: &01
+    equb &81                                                          ; 88e7: 81          .              ; Dead data: &81
 
 ; ***************************************************************************************
 ; Calculate transfer size
@@ -15043,7 +15056,6 @@ save pydis_start, pydis_end
 ;     tube_data_register_3:                    10
 ;     tube_status_register_2:                  10
 ;     ws_0d6a:                                 10
-;     zp_ptr_lo:                               10
 ;     l0d2e:                                    9
 ;     l0e01:                                    9
 ;     l0f03:                                    9
@@ -15052,6 +15064,7 @@ save pydis_start, pydis_end
 ;     process_all_fcbs:                         9
 ;     txcb_end:                                 9
 ;     ws_0d68:                                  9
+;     zp_ptr_lo:                                9
 ;     error_msg_table:                          8
 ;     install_nmi_handler:                      8
 ;     l00af:                                    8
@@ -15778,7 +15791,6 @@ save pydis_start, pydis_end
 ;     issue_svc_osbyte:                         1
 ;     jmp_osbyte:                               1
 ;     jmp_osnewl:                               1
-;     l0006:                                    1
 ;     l0063:                                    1
 ;     l0078:                                    1
 ;     l0104:                                    1
@@ -15786,7 +15798,6 @@ save pydis_start, pydis_end
 ;     l02a0:                                    1
 ;     l0351:                                    1
 ;     l072c:                                    1
-;     l0a0e:                                    1
 ;     l0d07:                                    1
 ;     l0d1a:                                    1
 ;     l0d32:                                    1
@@ -16430,7 +16441,6 @@ save pydis_start, pydis_end
 ;     ca84d
 ;     caa49
 ;     cbe6f
-;     l0006
 ;     l0063
 ;     l0078
 ;     l00ad
@@ -16451,7 +16461,6 @@ save pydis_start, pydis_end
 ;     l0355
 ;     l072c
 ;     l072e
-;     l0a0e
 ;     l0d07
 ;     l0d1a
 ;     l0d1e
@@ -16619,11 +16628,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14605 bytes (89%)
-;     Data                     = 1779 bytes (11%)
+;     Code                     = 14594 bytes (89%)
+;     Data                     = 1790 bytes (11%)
 ;
-;     Number of instructions   = 7167
-;     Number of data bytes     = 508 bytes
+;     Number of instructions   = 7160
+;     Number of data bytes     = 519 bytes
 ;     Number of data words     = 110 bytes
 ;     Number of string bytes   = 1161 bytes
 ;     Number of strings        = 140
