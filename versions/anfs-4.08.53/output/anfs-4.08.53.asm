@@ -9344,19 +9344,39 @@ bad_prefix = bad_str_anchor+1
     equb &80                                                          ; a4a7: 80          .              ; No syntax
     equw cmd_utils-1                                                  ; a4a8: 86 8b       ..             ; Dispatch addr-1
     equb &80                                                          ; a4aa: 80          .              ; End of Net/Utils sub-table
+; Protection attribute keyword table. Each entry:
+; ASCII name + flag byte (&80+) + OR mask + AND mask.
+; Used by *Prot (ORA lo byte) and *Unprot (AND hi
+; byte) to set/clear individual protection bits.
+; Also listed by *HELP Prot/*HELP Unprot via the
+; shared commands handler (syntax index 14).
+; Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt
 .cmd_table_copro
-    equs "Halt"                                                       ; a4ab: 48 61 6c... Hal
-    equb &fc, &20, &df                                                ; a4af: fc 20 df    . .
-    equs "JSR"                                                        ; a4b2: 4a 53 52    JSR
-    equb &fc, 4, &fb                                                  ; a4b5: fc 04 fb    ...
-    equs "Peek"                                                       ; a4b8: 50 65 65... Pee
-    equb &fc, 1, &fe                                                  ; a4bc: fc 01 fe    ...
-    equs "Poke"                                                       ; a4bf: 50 6f 6b... Pok
-    equb &fc, 2, &fd                                                  ; a4c3: fc 02 fd    ...
-    equs "Proc"                                                       ; a4c6: 50 72 6f... Pro
-    equb &fc, 8, &f7                                                  ; a4ca: fc 08 f7    ...
-    equs "Utils"                                                      ; a4cd: 55 74 69... Uti
-    equb &a9, &10, &ef, &80                                           ; a4d2: a9 10 ef... ...
+    equs "Halt"                                                       ; a4ab: 48 61 6c... Hal            ; Halt
+    equb &fc                                                          ; a4af: fc          .              ; Flag &FC: V no arg, syn 28 (unused)
+    equb &20                                                          ; a4b0: 20                         ; *Prot OR mask: bit 5
+    equb &df                                                          ; a4b1: df          .              ; *Unprot AND mask: ~bit 5
+    equs "JSR"                                                        ; a4b2: 4a 53 52    JSR            ; JSR
+    equb &fc                                                          ; a4b5: fc          .              ; Flag &FC: V no arg, syn 28 (unused)
+    equb 4                                                            ; a4b6: 04          .              ; *Prot OR mask: bit 2
+    equb &fb                                                          ; a4b7: fb          .              ; *Unprot AND mask: ~bit 2
+    equs "Peek"                                                       ; a4b8: 50 65 65... Pee            ; Peek
+    equb &fc                                                          ; a4bc: fc          .              ; Flag &FC: V no arg, syn 28 (unused)
+    equb 1                                                            ; a4bd: 01          .              ; *Prot OR mask: bit 0
+    equb &fe                                                          ; a4be: fe          .              ; *Unprot AND mask: ~bit 0
+    equs "Poke"                                                       ; a4bf: 50 6f 6b... Pok            ; Poke
+    equb &fc                                                          ; a4c3: fc          .              ; Flag &FC: V no arg, syn 28 (unused)
+    equb 2                                                            ; a4c4: 02          .              ; *Prot OR mask: bit 1
+    equb &fd                                                          ; a4c5: fd          .              ; *Unprot AND mask: ~bit 1
+    equs "Proc"                                                       ; a4c6: 50 72 6f... Pro            ; Proc
+    equb &fc                                                          ; a4ca: fc          .              ; Flag &FC: V no arg, syn 28 (unused)
+    equb 8                                                            ; a4cb: 08          .              ; *Prot OR mask: bit 3
+    equb &f7                                                          ; a4cc: f7          .              ; *Unprot AND mask: ~bit 3
+    equs "Utils"                                                      ; a4cd: 55 74 69... Uti            ; Utils
+    equb &a9                                                          ; a4d2: a9          .              ; Flag &A9: syn 9 (unused)
+    equb &10                                                          ; a4d3: 10          .              ; *Prot OR mask: bit 4
+    equb &ef                                                          ; a4d4: ef          .              ; *Unprot AND mask: ~bit 4
+    equb &80                                                          ; a4d5: 80          .              ; End of attribute keyword table
 
 ; ***************************************************************************************
 ; Filing system OSWORD entry

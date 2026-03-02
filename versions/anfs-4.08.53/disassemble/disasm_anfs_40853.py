@@ -6056,6 +6056,67 @@ comment(0xA4A7, "No syntax", inline=True)
 comment(0xA4A8, "Dispatch addr-1", inline=True)
 comment(0xA4AA, "End of Net/Utils sub-table", inline=True)
 
+# Sub-table 4: protection attribute keywords (&A4AB-&A4D5)
+# Dual-purpose table: entries are keyword names for *Prot/*Unprot
+# attribute matching, and also printed by the shared commands
+# handler (syn 14) in *HELP Prot/*HELP Unprot output.
+# Each entry: ASCII name + flag byte + OR mask + AND mask.
+# *Prot ORs the lo byte into the protection mask.
+# *Unprot ANDs the hi byte to clear the corresponding bit.
+# Protection bits: 0=Peek, 1=Poke, 2=JSR, 3=Proc, 4=Utils, 5=Halt.
+
+comment(0xA4AB, """\
+Protection attribute keyword table. Each entry:
+ASCII name + flag byte (&80+) + OR mask + AND mask.
+Used by *Prot (ORA lo byte) and *Unprot (AND hi
+byte) to set/clear individual protection bits.
+Also listed by *HELP Prot/*HELP Unprot via the
+shared commands handler (syntax index 14).
+Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt""")
+
+# Split multi-byte equb groups so each byte gets its own line.
+_attr_entries = [
+    # (flag_addr, or_addr, and_addr)
+    (0xA4AF, 0xA4B0, 0xA4B1),   # Halt
+    (0xA4B5, 0xA4B6, 0xA4B7),   # JSR
+    (0xA4BC, 0xA4BD, 0xA4BE),   # Peek
+    (0xA4C3, 0xA4C4, 0xA4C5),   # Poke
+    (0xA4CA, 0xA4CB, 0xA4CC),   # Proc
+    (0xA4D2, 0xA4D3, 0xA4D4),   # Utils
+]
+for flag_addr, or_addr, and_addr in _attr_entries:
+    byte(flag_addr)
+    byte(or_addr)
+    byte(and_addr)
+byte(0xA4D5)  # End-of-table sentinel
+
+# Inline comments for sub-table 4
+comment(0xA4AB, "Halt", inline=True)
+comment(0xA4AF, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
+comment(0xA4B0, "*Prot OR mask: bit 5", inline=True)
+comment(0xA4B1, "*Unprot AND mask: ~bit 5", inline=True)
+comment(0xA4B2, "JSR", inline=True)
+comment(0xA4B5, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
+comment(0xA4B6, "*Prot OR mask: bit 2", inline=True)
+comment(0xA4B7, "*Unprot AND mask: ~bit 2", inline=True)
+comment(0xA4B8, "Peek", inline=True)
+comment(0xA4BC, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
+comment(0xA4BD, "*Prot OR mask: bit 0", inline=True)
+comment(0xA4BE, "*Unprot AND mask: ~bit 0", inline=True)
+comment(0xA4BF, "Poke", inline=True)
+comment(0xA4C3, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
+comment(0xA4C4, "*Prot OR mask: bit 1", inline=True)
+comment(0xA4C5, "*Unprot AND mask: ~bit 1", inline=True)
+comment(0xA4C6, "Proc", inline=True)
+comment(0xA4CA, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
+comment(0xA4CB, "*Prot OR mask: bit 3", inline=True)
+comment(0xA4CC, "*Unprot AND mask: ~bit 3", inline=True)
+comment(0xA4CD, "Utils", inline=True)
+comment(0xA4D2, "Flag &A9: syn 9 (unused)", inline=True)
+comment(0xA4D3, "*Prot OR mask: bit 4", inline=True)
+comment(0xA4D4, "*Unprot AND mask: ~bit 4", inline=True)
+comment(0xA4D5, "End of attribute keyword table", inline=True)
+
 label(0xB97F, "cmd_close")
 label(0xBA06, "cmd_dump")
 label(0x8B0E, "cmd_net_fs")
