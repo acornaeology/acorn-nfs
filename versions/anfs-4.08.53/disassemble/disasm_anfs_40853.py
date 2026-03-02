@@ -823,6 +823,12 @@ label(0xA74C, "return_zero_in_pb")
 label(0xA810, "store_a_to_pb_1")
 label(0xA844, "bridge_ws_init_data")
 label(0xA850, "bridge_txcb_init_table")
+label(0xA85C, "bridge_rxcb_init_data")
+for i in range(4):
+    byte(0xA850 + i)
+# bytes 4-9 are "BRIDGE" — leave as equs
+for i in range(14):
+    byte(0xA85A + i)
 label(0xA878, "loop_copy_bridge_init")
 label(0xA88C, "loop_wait_ws_status")
 label(0xA8A0, "loop_wait_tx_done")
@@ -9862,6 +9868,39 @@ comment(0xA848, "Same: confirm station", inline=True)
 comment(0xA84A, "Load default from l0e01", inline=True)
 comment(0xA84D, "Store to PB[3]", inline=True)
 comment(0xA84F, "Return", inline=True)
+
+# bridge_txcb_init_table (&A850) — bridge discovery templates
+comment(0xA850, "Bridge discovery init data (24 bytes)\n"
+    "\n"
+    "Two 12-byte templates copied simultaneously by\n"
+    "loop_copy_bridge_init. X counts down &0B to 0,\n"
+    "copying the TXCB template into &C0. Y counts up\n"
+    "&18 to &23, copying the RXCB data into workspace\n"
+    "via bridge_ws_init_data (&A844) + Y = &A85C.\n"
+    "\n"
+    "The TX broadcasts \"BRIDGE\" as immediate data on\n"
+    "port &9C to all stations (FF.FF). The RX listens\n"
+    "on the same port for a reply into the bridge\n"
+    "status bytes at &0D72.")
+comment(0xA850, "TX 0: ctrl = &82 (immediate mode)", inline=True)
+comment(0xA851, "TX 1: port = &9C (bridge discovery)", inline=True)
+comment(0xA852, "TX 2: dest station = &FF (broadcast)", inline=True)
+comment(0xA853, "TX 3: dest network = &FF (all nets)", inline=True)
+comment(0xA854, "TX 4-9: immediate data payload", inline=True)
+comment(0xA85A, "TX 10: &9C (port echo)", inline=True)
+comment(0xA85B, "TX 11: &00 (terminator)", inline=True)
+comment(0xA85C, "RX 0: ctrl = &7F (receive)", inline=True)
+comment(0xA85D, "RX 1: port = &9C (bridge discovery)", inline=True)
+comment(0xA85E, "RX 2: station = &00 (any)", inline=True)
+comment(0xA85F, "RX 3: network = &00 (any)", inline=True)
+comment(0xA860, "RX 4: buf start lo (&72)", inline=True)
+comment(0xA861, "RX 5: buf start hi (&0D) -> &0D72", inline=True)
+comment(0xA862, "RX 6: extended addr fill (&FF)", inline=True)
+comment(0xA863, "RX 7: extended addr fill (&FF)", inline=True)
+comment(0xA864, "RX 8: buf end lo (&74)", inline=True)
+comment(0xA865, "RX 9: buf end hi (&0D) -> &0D74", inline=True)
+comment(0xA866, "RX 10: extended addr fill (&FF)", inline=True)
+comment(0xA867, "RX 11: extended addr fill (&FF)", inline=True)
 
 # init_bridge_poll (&A868): initialise bridge polling
 comment(0xA868, "Check bridge status", inline=True)

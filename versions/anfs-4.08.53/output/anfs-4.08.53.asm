@@ -10531,12 +10531,40 @@ bridge_ws_init_data = sub_ca843+1
 .return_25
     rts                                                               ; a84f: 60          `              ; Return
 
+; Bridge discovery init data (24 bytes)
+; 
+; Two 12-byte templates copied simultaneously by
+; loop_copy_bridge_init. X counts down &0B to 0,
+; copying the TXCB template into &C0. Y counts up
+; &18 to &23, copying the RXCB data into workspace
+; via bridge_ws_init_data (&A844) + Y = &A85C.
+; 
+; The TX broadcasts "BRIDGE" as immediate data on
+; port &9C to all stations (FF.FF). The RX listens
+; on the same port for a reply into the bridge
+; status bytes at &0D72.
 ; &a850 referenced 1 time by &a87d
 .bridge_txcb_init_table
-    equb &82, &9c, &ff, &ff                                           ; a850: 82 9c ff... ...
-    equs "BRIDGE"                                                     ; a854: 42 52 49... BRI
-    equb &9c, 0, &7f, &9c, 0, 0, &72, &0d, &ff, &ff, &74, &0d, &ff    ; a85a: 9c 00 7f... ...
-    equb &ff                                                          ; a867: ff          .
+    equb &82                                                          ; a850: 82          .              ; TX 0: ctrl = &82 (immediate mode)
+    equb &9c                                                          ; a851: 9c          .              ; TX 1: port = &9C (bridge discovery)
+    equb &ff                                                          ; a852: ff          .              ; TX 2: dest station = &FF (broadcast)
+    equb &ff                                                          ; a853: ff          .              ; TX 3: dest network = &FF (all nets)
+    equs "BRIDGE"                                                     ; a854: 42 52 49... BRI            ; TX 4-9: immediate data payload
+    equb &9c                                                          ; a85a: 9c          .              ; TX 10: &9C (port echo)
+    equb 0                                                            ; a85b: 00          .              ; TX 11: &00 (terminator)
+.bridge_rxcb_init_data
+    equb &7f                                                          ; a85c: 7f          .              ; RX 0: ctrl = &7F (receive)
+    equb &9c                                                          ; a85d: 9c          .              ; RX 1: port = &9C (bridge discovery)
+    equb 0                                                            ; a85e: 00          .              ; RX 2: station = &00 (any)
+    equb 0                                                            ; a85f: 00          .              ; RX 3: network = &00 (any)
+    equb &72                                                          ; a860: 72          r              ; RX 4: buf start lo (&72)
+    equb &0d                                                          ; a861: 0d          .              ; RX 5: buf start hi (&0D) -> &0D72
+    equb &ff                                                          ; a862: ff          .              ; RX 6: extended addr fill (&FF)
+    equb &ff                                                          ; a863: ff          .              ; RX 7: extended addr fill (&FF)
+    equb &74                                                          ; a864: 74          t              ; RX 8: buf end lo (&74)
+    equb &0d                                                          ; a865: 0d          .              ; RX 9: buf end hi (&0D) -> &0D74
+    equb &ff                                                          ; a866: ff          .              ; RX 10: extended addr fill (&FF)
+    equb &ff                                                          ; a867: ff          .              ; RX 11: extended addr fill (&FF)
 
 ; ***************************************************************************************
 ; Initialise Econet bridge routing table
