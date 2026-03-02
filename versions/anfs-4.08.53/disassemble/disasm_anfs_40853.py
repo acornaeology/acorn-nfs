@@ -10590,9 +10590,9 @@ comment(0xBC83, "Return; Y=&10 (address low byte)", inline=True)
 comment(0xBC84, "JSR+fall-through: 8+8=16 INXs total", inline=True)
 comment(0xBC87, "JSR+fall-through: 4+4=8 INXs", inline=True)
 comment(0xBC8A, "X += 1", inline=True)
-comment(0xBC8B, "X += 2", inline=True)
-comment(0xBC8C, "X += 3", inline=True)
-comment(0xBC8D, "X += 4", inline=True)
+comment(0xBC8B, "X += 1", inline=True)
+comment(0xBC8C, "X += 1", inline=True)
+comment(0xBC8D, "X += 1", inline=True)
 comment(0xBC8E, "Return", inline=True)
 
 

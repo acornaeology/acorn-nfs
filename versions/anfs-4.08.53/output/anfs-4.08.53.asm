@@ -14678,9 +14678,9 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &bc8a referenced 1 time by &bc87
 .inx4
     inx                                                               ; bc8a: e8          .              ; X += 1
-    inx                                                               ; bc8b: e8          .              ; X += 2
-    inx                                                               ; bc8c: e8          .              ; X += 3
-    inx                                                               ; bc8d: e8          .              ; X += 4
+    inx                                                               ; bc8b: e8          .              ; X += 1
+    inx                                                               ; bc8c: e8          .              ; X += 1
+    inx                                                               ; bc8d: e8          .              ; X += 1
     rts                                                               ; bc8e: 60          `              ; Return
 
     equb &ff                                                          ; bc8f: ff          .
