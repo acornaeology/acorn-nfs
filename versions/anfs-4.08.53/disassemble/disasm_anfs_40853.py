@@ -56,6 +56,8 @@ label(0xBF00, "reloc_p4_src")        # ROM source of page 4 code
 label(0xBC90, "reloc_p5_src")        # ROM source of page 5 code
 label(0xBD90, "reloc_p6_src")        # ROM source of page 6 code
 
+byte(0xBC8F)  # Force padding byte onto its own line for annotation
+
 # acorn.bbc() provides OS vectors, entry points, zero page labels.
 # acorn.is_sideways_rom() provides ROM header labels.
 acorn.bbc()
@@ -1011,6 +1013,8 @@ label(0x83EB, "discard_reset_rx")
 label(0x83EE, "reset_adlc_rx_listen")
 label(0x83F1, "set_nmi_rx_scout")
 label(0x8505, "setup_cb1_sr_tx")
+label(0x8534, "tx_done_dispatch_lo")
+label(0x8542, "tx_done_econet_event")
 label(0x854A, "tx_done_fire_event")
 label(0x8AE2, "scan_remote_keys")
 label(0x8AFA, "save_text_ptr")
@@ -1500,6 +1504,8 @@ label(0x8635, "tx_no_clock_error")
 label(0x8637, "store_tx_error")
 label(0x8689, "store_status_add4")
 label(0x8690, "add_bytes_loop")
+label(0x8677, "tx_ctrl_dispatch_lo")
+label(0x867F, "tx_ctrl_machine_type")
 label(0x86A2, "setup_data_xfer")
 label(0x86B8, "copy_bcast_addr")
 label(0x86C4, "setup_unicast_xfer")
@@ -2032,6 +2038,12 @@ subroutine(0x8539, "tx_done_jsr",
     "tx_done_exit), then does JMP (l0d66) to call the remote\n"
     "JSR target routine. When that routine returns via RTS,\n"
     "control resumes at tx_done_exit.")
+subroutine(0x8542, "tx_done_econet_event",
+    title="TX done: fire Econet event",
+    description="Handler for TX operation type &84. Loads the\n"
+    "remote address from l0d66/l0d67 into X/A and\n"
+    "sets Y=8 (Econet event number), then falls\n"
+    "through to tx_done_fire_event to call OSEVEN.")
 subroutine(0x8550, "tx_done_os_proc",
     title="TX done: OSProc call",
     description="Calls the ROM service entry point with X=l0d66,\n"
@@ -2094,6 +2106,12 @@ subroutine(0x8643, "tx_prepare",
     "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
     "Tube transfers, claims the Tube address; for direct\n"
     "transfers, sets up the buffer pointer from the TXCB.")
+subroutine(0x867F, "tx_ctrl_machine_type",
+    title="TX ctrl: machine type query setup",
+    description="Handler for control byte &88. Sets scout_status=3\n"
+    "and branches to store_status_copy_ptr, skipping\n"
+    "the 4-byte address addition (no address parameters\n"
+    "needed for a machine type query).")
 subroutine(0x8683, "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
     description="Sets scout_status=3, then performs a 4-byte addition\n"
@@ -4708,9 +4726,29 @@ comment(0x853B, "Push hi byte on stack", inline=True)
 comment(0x853C, "Push lo of (tx_done_exit-1)", inline=True)
 comment(0x853E, "Push lo byte on stack", inline=True)
 comment(0x853F, "Call remote JSR; RTS to tx_done_exit", inline=True)
-comment(0x8541, "ORA opcode (dead code / data overlap)", inline=True)
-comment(0x8542, "X = remote address lo", inline=True)
-comment(0x8545, "A = remote address hi", inline=True)
+
+# tx_done_dispatch_lo (&8534): 5-byte dispatch table.
+# Low bytes of PHA/PHA/RTS targets for TX operation types &83-&87.
+# Read by LDA set_rx_buf_len_hi,Y at &8064 (hi byte always &85).
+comment(0x8534, "TX done dispatch table (lo bytes)\n"
+    "\n"
+    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
+    "operation types &83-&87. Read by the dispatch at\n"
+    "&8064 via LDA set_rx_buf_len_hi,Y (base &84B1\n"
+    "+ Y). High byte is always &85, so targets are\n"
+    "&85xx+1. Entries for Y < &83 read from preceding\n"
+    "code bytes and are not valid operation types.")
+comment(0x8534, "Y=&83: lo &38 -> tx_done_jsr (&8539)", inline=True)
+comment(0x8535, "Y=&84: lo &41 -> tx_done_econet_event", inline=True)
+comment(0x8536, "Y=&85: lo &4F -> tx_done_os_proc", inline=True)
+comment(0x8537, "Y=&86: lo &5B -> tx_done_halt", inline=True)
+comment(0x8538, "Y=&87: lo &72 -> tx_done_continue", inline=True)
+
+# tx_done_econet_event (&8542): TX operation type &84 handler.
+comment(0x8542, "X = remote address lo from l0d66", inline=True)
+comment(0x8545, "A = remote address hi from l0d67", inline=True)
+comment(0x8548, "Y = 8: Econet event number", inline=True)
+
 comment(0x854D, "Exit TX done handler", inline=True)
 comment(0x8550, "X = remote address lo", inline=True)
 comment(0x8553, "Y = remote address hi", inline=True)
@@ -4855,6 +4893,32 @@ comment(0x8671, "Push high byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x8672, "Look up handler address low from table", inline=True)
 comment(0x8675, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x8676, "RTS dispatches to control-byte handler", inline=True)
+
+# tx_ctrl_dispatch_lo (&8677): 8-byte dispatch table.
+# Low bytes of PHA/PHA/RTS targets for TX control byte handlers
+# &81-&88. Read by LDA intoff_disable_nmi_op,Y at &8672 (base
+# &85F6 + Y). High byte always &86, so targets are &86xx+1.
+# The last entry (&88) dispatches to tx_ctrl_machine_type at
+# &867F, which is the 4 bytes immediately after the table.
+comment(0x8677, "TX ctrl dispatch table (lo bytes)\n"
+    "\n"
+    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
+    "control byte types &81-&88. Read by the dispatch\n"
+    "at &8672 via LDA intoff_disable_nmi_op,Y (base\n"
+    "&85F6 + Y). High byte is always &86, so targets\n"
+    "are &86xx+1. The last entry dispatches to\n"
+    "tx_ctrl_machine_type at &867F, immediately after\n"
+    "the table.")
+comment(0x8677, "Ctrl &81 PEEK: tx_ctrl_peek", inline=True)
+comment(0x8678, "Ctrl &82 POKE: tx_ctrl_poke", inline=True)
+comment(0x8679, "Ctrl &83 JSR: proc_op_status2", inline=True)
+comment(0x867A, "Ctrl &84 UserProc: proc_op_status2", inline=True)
+comment(0x867B, "Ctrl &85 OSProc: proc_op_status2", inline=True)
+comment(0x867C, "Ctrl &86 HALT: tx_ctrl_exit", inline=True)
+comment(0x867D, "Ctrl &87 CONTINUE: tx_ctrl_exit", inline=True)
+comment(0x867E, "Ctrl &88 MachType: tx_ctrl_machine_type", inline=True)
+comment(0x867F, "scout_status=3 (machine type query)", inline=True)
+comment(0x8681, "Skip address addition, store status", inline=True)
 comment(0x8683, "A=3: scout_status for PEEK op", inline=True)
 comment(0x8687, "Scout status = 2 (POKE transfer)", inline=True)
 comment(0x8689, "Store scout status", inline=True)
@@ -6605,6 +6669,33 @@ entry(0xAADB)   # After &AACF data table
 entry(0xB7CF)   # File operation handler
 # entry(0xB865) removed — was mid-instruction; &B865 is byte 2 of
 # LDA #&C1 at &B864, part of the inline error call to error_inline_log.
+
+# TX done dispatch table (5 bytes) and event handler (8 bytes)
+entry(0x8542)   # tx_done_econet_event: TX operation type &84 handler
+for i in range(5):
+    byte(0x8534 + i)
+
+# Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
+expr(0x8534, "<(tx_done_jsr-1)")
+expr(0x8535, "<(tx_done_econet_event-1)")
+expr(0x8536, "<(tx_done_os_proc-1)")
+expr(0x8537, "<(tx_done_halt-1)")
+expr(0x8538, "<(tx_done_continue-1)")
+
+# TX ctrl dispatch table (8 bytes) and machine type handler (4 bytes)
+entry(0x867F)   # tx_ctrl_machine_type: ctrl &88 handler
+for i in range(8):
+    byte(0x8677 + i)
+
+# Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
+expr(0x8677, "<(tx_ctrl_peek-1)")
+expr(0x8678, "<(tx_ctrl_poke-1)")
+expr(0x8679, "<(proc_op_status2-1)")
+expr(0x867A, "<(proc_op_status2-1)")
+expr(0x867B, "<(proc_op_status2-1)")
+expr(0x867C, "<(tx_ctrl_exit-1)")
+expr(0x867D, "<(tx_ctrl_exit-1)")
+expr(0x867E, "<(tx_ctrl_machine_type-1)")
 
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84B1)   # After dispatch table data
@@ -10594,7 +10685,7 @@ comment(0xBC8B, "X += 1", inline=True)
 comment(0xBC8C, "X += 1", inline=True)
 comment(0xBC8D, "X += 1", inline=True)
 comment(0xBC8E, "Return", inline=True)
-
+comment(0xBC8F, "Padding; next byte is reloc_p5_src", inline=True)
 
 # ============================================================
 # cmd_wipe: *Wipe command + channel management utilities
@@ -12654,6 +12745,16 @@ comment(0xA062, "Return (tube claimed)", inline=True)
 
 # tube_init_reloc continued: copy relocated blocks (&BE90-&BEBE)
 # Copies pages 4/5/6 code and zero-page workspace from ROM to RAM
+comment(0xBE90, "Resume normal ROM address space\n"
+    "\n"
+    "The preceding &200 bytes (ROM addresses &BC90-&BE8F)\n"
+    "are the source data for two relocated code blocks:\n"
+    "  &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)\n"
+    "  &BD90-&BE8F -> &0600-&06FF (page 6: Econet)\n"
+    "py8dis assembles those blocks at their runtime\n"
+    "addresses (&0500/&0600) via org directives. This\n"
+    "org &BE90 restores the origin to the actual ROM\n"
+    "address for the remaining non-relocated code.")
 comment(0xBE90, "Store BRK vector high byte", inline=True)
 comment(0xBE93, "A=&8E: Tube control register value", inline=True)
 comment(0xBE95, "Write Tube control register", inline=True)

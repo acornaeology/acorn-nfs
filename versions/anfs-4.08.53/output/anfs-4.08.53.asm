@@ -16,6 +16,7 @@ err_no_clock                                = 163
 err_no_reply                                = 165
 err_not_listening                           = 162
 err_tx_cb_error                             = 164
+event_network_error                         = 8
 handle_base                                 = 32
 inkey_key_ctrl                              = 254
 osbyte_acknowledge_escape                   = 126
@@ -2395,7 +2396,20 @@ svc5_dispatch_lo = sub_c84a1+1
 .return_3
     rts                                                               ; 8533: 60          `              ; Return
 
-    equs "8AO[r"                                                      ; 8534: 38 41 4f... 8AO
+; TX done dispatch table (lo bytes)
+; 
+; Low bytes of PHA/PHA/RTS dispatch targets for TX
+; operation types &83-&87. Read by the dispatch at
+; &8064 via LDA set_rx_buf_len_hi,Y (base &84B1
+; + Y). High byte is always &85, so targets are
+; &85xx+1. Entries for Y < &83 read from preceding
+; code bytes and are not valid operation types.
+.tx_done_dispatch_lo
+    equb <(tx_done_jsr-1)                                             ; 8534: 38          8              ; Y=&83: lo &38 -> tx_done_jsr (&8539)
+    equb <(tx_done_econet_event-1)                                    ; 8535: 41          A              ; Y=&84: lo &41 -> tx_done_econet_event
+    equb <(tx_done_os_proc-1)                                         ; 8536: 4f          O              ; Y=&85: lo &4F -> tx_done_os_proc
+    equb <(tx_done_halt-1)                                            ; 8537: 5b          [              ; Y=&86: lo &5B -> tx_done_halt
+    equb <(tx_done_continue-1)                                        ; 8538: 72          r              ; Y=&87: lo &72 -> tx_done_continue
 
 ; ***************************************************************************************
 ; TX done: remote JSR execution
@@ -2410,13 +2424,23 @@ svc5_dispatch_lo = sub_c84a1+1
     pha                                                               ; 853b: 48          H              ; Push hi byte on stack
     lda #&7a ; 'z'                                                    ; 853c: a9 7a       .z             ; Push lo of (tx_done_exit-1)
     pha                                                               ; 853e: 48          H              ; Push lo byte on stack
-    jmp (l0d66)                                                       ; 853f: 6c 66 0d    lf.            ; Call remote JSR; RTS to tx_done_exit; ORA opcode (dead code / data overlap)
+    jmp (l0d66)                                                       ; 853f: 6c 66 0d    lf.            ; Call remote JSR; RTS to tx_done_exit
 
-    equb &ae, &66, &0d, &ad, &67, &0d, &a0, 8                         ; 8542: ae 66 0d... .f.            ; X = remote address lo; A = remote address hi
-
+; ***************************************************************************************
+; TX done: fire Econet event
+; 
+; Handler for TX operation type &84. Loads the
+; remote address from l0d66/l0d67 into X/A and
+; sets Y=8 (Econet event number), then falls
+; through to tx_done_fire_event to call OSEVEN.
+; ***************************************************************************************
+.tx_done_econet_event
+    ldx l0d66                                                         ; 8542: ae 66 0d    .f.            ; X = remote address lo from l0d66
+    lda l0d67                                                         ; 8545: ad 67 0d    .g.            ; A = remote address hi from l0d67
+    ldy #event_network_error                                          ; 8548: a0 08       ..             ; Y = 8: Econet event number
 ; &854a referenced 1 time by &804f
 .tx_done_fire_event
-    jsr oseven                                                        ; 854a: 20 bf ff     ..            ; Generate event Y
+    jsr oseven                                                        ; 854a: 20 bf ff     ..            ; Generate event Y='Network error'
     jmp tx_done_exit                                                  ; 854d: 4c 7b 85    L{.            ; Exit TX done handler
 
 ; ***************************************************************************************
@@ -2693,7 +2717,36 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     pha                                                               ; 8675: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 8676: 60          `              ; RTS dispatches to control-byte handler
 
-    equb &82, &86, &c8, &c8, &c8, &d8, &d8, &7e, &a9, 3, &d0, &48     ; 8677: 82 86 c8... ...
+; TX ctrl dispatch table (lo bytes)
+; 
+; Low bytes of PHA/PHA/RTS dispatch targets for TX
+; control byte types &81-&88. Read by the dispatch
+; at &8672 via LDA intoff_disable_nmi_op,Y (base
+; &85F6 + Y). High byte is always &86, so targets
+; are &86xx+1. The last entry dispatches to
+; tx_ctrl_machine_type at &867F, immediately after
+; the table.
+.tx_ctrl_dispatch_lo
+    equb <(tx_ctrl_peek-1)                                            ; 8677: 82          .              ; Ctrl &81 PEEK: tx_ctrl_peek
+    equb <(tx_ctrl_poke-1)                                            ; 8678: 86          .              ; Ctrl &82 POKE: tx_ctrl_poke
+    equb <(proc_op_status2-1)                                         ; 8679: c8          .              ; Ctrl &83 JSR: proc_op_status2
+    equb <(proc_op_status2-1)                                         ; 867a: c8          .              ; Ctrl &84 UserProc: proc_op_status2
+    equb <(proc_op_status2-1)                                         ; 867b: c8          .              ; Ctrl &85 OSProc: proc_op_status2
+    equb <(tx_ctrl_exit-1)                                            ; 867c: d8          .              ; Ctrl &86 HALT: tx_ctrl_exit
+    equb <(tx_ctrl_exit-1)                                            ; 867d: d8          .              ; Ctrl &87 CONTINUE: tx_ctrl_exit
+    equb <(tx_ctrl_machine_type-1)                                    ; 867e: 7e          ~              ; Ctrl &88 MachType: tx_ctrl_machine_type
+
+; ***************************************************************************************
+; TX ctrl: machine type query setup
+; 
+; Handler for control byte &88. Sets scout_status=3
+; and branches to store_status_copy_ptr, skipping
+; the 4-byte address addition (no address parameters
+; needed for a machine type query).
+; ***************************************************************************************
+.tx_ctrl_machine_type
+    lda #3                                                            ; 867f: a9 03       ..             ; scout_status=3 (machine type query)
+    bne store_status_copy_ptr                                         ; 8681: d0 48       .H             ; Skip address addition, store status; ALWAYS branch
 
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
@@ -2768,6 +2821,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     sta rx_src_net                                                    ; 86c6: 8d 3e 0d    .>.            ; Clear tx_flags
 .proc_op_status2
     lda #2                                                            ; 86c9: a9 02       ..             ; scout_status=2: data transfer pending
+; &86cb referenced 1 time by &8681
 .store_status_copy_ptr
     sta rx_port                                                       ; 86cb: 8d 40 0d    .@.            ; Store scout status
 ; &86ce referenced 1 time by &86a0
@@ -14683,11 +14737,21 @@ net_channel_err_string = err_net_chan_not_found+2
     inx                                                               ; bc8d: e8          .              ; X += 1
     rts                                                               ; bc8e: 60          `              ; Return
 
-    equb &ff                                                          ; bc8f: ff          .
+    equb &ff                                                          ; bc8f: ff          .              ; Padding; next byte is reloc_p5_src
 ; &bc90 referenced 1 time by &bea0
 
     org &be90
 
+; Resume normal ROM address space
+; 
+; The preceding &200 bytes (ROM addresses &BC90-&BE8F)
+; are the source data for two relocated code blocks:
+;   &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)
+;   &BD90-&BE8F -> &0600-&06FF (page 6: Econet)
+; py8dis assembles those blocks at their runtime
+; addresses (&0500/&0600) via org directives. This
+; org &BE90 restores the origin to the actual ROM
+; address for the remaining non-relocated code.
     sta brkv+1                                                        ; be90: 8d 03 02    ...            ; Store BRK vector high byte
     lda #&8e                                                          ; be93: a9 8e       ..             ; A=&8E: Tube control register value
     sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...            ; Write Tube control register
@@ -14765,6 +14829,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(osword_14_handler-1) == &cf
     assert <(osword_4_handler-1) == &9d
     assert <(osword_8_handler-1) == &3e
+    assert <(proc_op_status2-1) == &c8
     assert <(return_21-1) == &06
     assert <(return_4-1) == &41
     assert <(rx_imm_exec-1) == &85
@@ -14784,6 +14849,15 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(svc_7_osbyte-1) == &7b
     assert <(svc_8_osword-1) == &d5
     assert <(svc_9_help-1) == &51
+    assert <(tx_ctrl_exit-1) == &d8
+    assert <(tx_ctrl_machine_type-1) == &7e
+    assert <(tx_ctrl_peek-1) == &82
+    assert <(tx_ctrl_poke-1) == &86
+    assert <(tx_done_continue-1) == &72
+    assert <(tx_done_econet_event-1) == &41
+    assert <(tx_done_halt-1) == &5b
+    assert <(tx_done_jsr-1) == &38
+    assert <(tx_done_os_proc-1) == &4f
     assert <(wait_idle_and_reset-1) == &78
     assert >(econet_restore-1) == &80
     assert >(fs_work_4) == &00
@@ -15073,6 +15147,7 @@ save pydis_start, pydis_end
 ;     l0d2f:                                    4
 ;     l0d43:                                    4
 ;     l0d44:                                    4
+;     l0d66:                                    4
 ;     l0e0a:                                    4
 ;     l10a8:                                    4
 ;     l10f3:                                    4
@@ -15127,7 +15202,6 @@ save pydis_start, pydis_end
 ;     is_decimal_digit:                         3
 ;     jmp_restore_fs_ctx:                       3
 ;     l0355:                                    3
-;     l0d66:                                    3
 ;     l0e31:                                    3
 ;     l0f00:                                    3
 ;     l1070:                                    3
@@ -15270,6 +15344,7 @@ save pydis_start, pydis_end
 ;     l072e:                                    2
 ;     l0d1e:                                    2
 ;     l0d42:                                    2
+;     l0d67:                                    2
 ;     l0d6e:                                    2
 ;     l0dfa:                                    2
 ;     l0dff:                                    2
@@ -15715,7 +15790,6 @@ save pydis_start, pydis_end
 ;     l0d07:                                    1
 ;     l0d1a:                                    1
 ;     l0d32:                                    1
-;     l0d67:                                    1
 ;     l0d6f:                                    1
 ;     l0d70:                                    1
 ;     l0de6:                                    1
@@ -16234,6 +16308,7 @@ save pydis_start, pydis_end
 ;     store_station_id:                         1
 ;     store_station_lo:                         1
 ;     store_status_add4:                        1
+;     store_status_copy_ptr:                    1
 ;     store_tx_ctrl_byte:                       1
 ;     store_tx_ptr_hi:                          1
 ;     store_txcb_init_byte:                     1
@@ -16544,11 +16619,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14593 bytes (89%)
-;     Data                     = 1791 bytes (11%)
+;     Code                     = 14605 bytes (89%)
+;     Data                     = 1779 bytes (11%)
 ;
-;     Number of instructions   = 7162
-;     Number of data bytes     = 515 bytes
+;     Number of instructions   = 7167
+;     Number of data bytes     = 508 bytes
 ;     Number of data words     = 110 bytes
-;     Number of string bytes   = 1166 bytes
-;     Number of strings        = 141
+;     Number of string bytes   = 1161 bytes
+;     Number of strings        = 140
