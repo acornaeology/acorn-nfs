@@ -1178,6 +1178,8 @@ label(0xB174, "print_station_addr")
 label(0xB2C4, "init_ps_slot_from_rx")
 label(0xB2DB, "store_char_uppercase")
 label(0xB41F, "flush_and_read_char")
+label(0xB42F, "unused_clear_ws_78")
+label(0xB433, "loop_clear_ws_78")
 label(0xB439, "init_channel_table")
 label(0xB45B, "attr_to_chan_index")
 label(0xB46A, "check_chan_char")
@@ -3537,6 +3539,13 @@ subroutine(0xB41F, "flush_and_read_char",
     description="Calls OSBYTE &0F to flush the input buffer, then\n"
     "OSRDCH to read a single character. Raises an escape\n"
     "error if escape was pressed (carry set on return).")
+subroutine(0xB42F, "unused_clear_ws_78",
+    title="Dead code: clear 120 bytes of workspace",
+    description="Unreferenced subroutine. Zeroes offsets &00-&77\n"
+    "(120 bytes) of the workspace page pointed to by\n"
+    "l00cc. Superseded by loop_zero_workspace (&8ED5)\n"
+    "which clears a full 256-byte page via both l00cc\n"
+    "and nfs_workspace pointers.")
 subroutine(0xB439, "init_channel_table",
     title="Initialise channel allocation table",
     description="Clears all 256 bytes of the table, then marks\n"
@@ -6605,6 +6614,7 @@ entry(0xA61C)   # 552-byte undecoded block (largest remaining)
 entry(0xA968)   # 68-byte undecoded block
 entry(0xAA9F)   # 49-byte undecoded block
 entry(0xB850)   # 21-byte file handler block
+entry(0xB42F)   # Dead code: unreferenced workspace clear routine
 
 # Page 5 relocated code — ANFS-specific entry points
 # Runtime addresses for undecoded blocks in page 5 source (&BC90)
@@ -10711,6 +10721,16 @@ comment(0xB426, "Read character from input stream", inline=True)
 comment(0xB429, "C clear: character read OK", inline=True)
 comment(0xB42B, "Escape pressed: raise error", inline=True)
 comment(0xB42E, "Return with character in A", inline=True)
+
+# unused_clear_ws_78 (&B42F): dead code — clear 120 workspace bytes.
+# No code references this subroutine. Likely superseded by the
+# full-page clear at loop_zero_workspace (&8ED5).
+comment(0xB42F, "A=0: clear value", inline=True)
+comment(0xB431, "Y=&78: clear offsets &00-&77", inline=True)
+comment(0xB433, "Decrement index", inline=True)
+comment(0xB434, "Clear workspace byte via l00cc", inline=True)
+comment(0xB436, "Loop until Y=0", inline=True)
+comment(0xB438, "Return", inline=True)
 
 # init_channel_table: clear page &10 and set up channels
 comment(0xB439, "A=0: clear value", inline=True)

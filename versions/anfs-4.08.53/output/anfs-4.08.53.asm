@@ -12952,7 +12952,24 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 .return_35
     rts                                                               ; b42e: 60          `              ; Return with character in A
 
-    equb &a9, 0, &a0, &78, &88, &91, &cc, &d0, &fb, &60               ; b42f: a9 00 a0... ...
+; ***************************************************************************************
+; Dead code: clear 120 bytes of workspace
+; 
+; Unreferenced subroutine. Zeroes offsets &00-&77
+; (120 bytes) of the workspace page pointed to by
+; l00cc. Superseded by loop_zero_workspace (&8ED5)
+; which clears a full 256-byte page via both l00cc
+; and nfs_workspace pointers.
+; ***************************************************************************************
+.unused_clear_ws_78
+    lda #0                                                            ; b42f: a9 00       ..             ; A=0: clear value
+    ldy #&78 ; 'x'                                                    ; b431: a0 78       .x             ; Y=&78: clear offsets &00-&77
+; &b433 referenced 1 time by &b436
+.loop_clear_ws_78
+    dey                                                               ; b433: 88          .              ; Decrement index
+    sta (l00cc),y                                                     ; b434: 91 cc       ..             ; Clear workspace byte via l00cc
+    bne loop_clear_ws_78                                              ; b436: d0 fb       ..             ; Loop until Y=0
+    rts                                                               ; b438: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Initialise channel allocation table
@@ -14975,6 +14992,7 @@ save pydis_start, pydis_end
 ;     zp_ptr_hi:                                8
 ;     alloc_fcb_slot:                           7
 ;     fs_load_addr_hi:                          7
+;     l00cc:                                    7
 ;     l00d0:                                    7
 ;     l0df0:                                    7
 ;     l0f02:                                    7
@@ -14995,7 +15013,6 @@ save pydis_start, pydis_end
 ;     discard_reset_rx:                         6
 ;     error_overflow:                           6
 ;     finalise_and_return:                      6
-;     l00cc:                                    6
 ;     l0d6b:                                    6
 ;     l0d6d:                                    6
 ;     l0d72:                                    6
@@ -15769,6 +15786,7 @@ save pydis_start, pydis_end
 ;     loop_clear_chan_table:                    1
 ;     loop_clear_counters:                      1
 ;     loop_clear_hex_accum:                     1
+;     loop_clear_ws_78:                         1
 ;     loop_cmp_file_length:                     1
 ;     loop_cmp_handle:                          1
 ;     loop_compute_diffs:                       1
@@ -16530,11 +16548,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14580 bytes (89%)
-;     Data                     = 1804 bytes (11%)
+;     Code                     = 14590 bytes (89%)
+;     Data                     = 1794 bytes (11%)
 ;
-;     Number of instructions   = 7155
-;     Number of data bytes     = 528 bytes
+;     Number of instructions   = 7161
+;     Number of data bytes     = 518 bytes
 ;     Number of data words     = 110 bytes
 ;     Number of string bytes   = 1166 bytes
 ;     Number of strings        = 141
