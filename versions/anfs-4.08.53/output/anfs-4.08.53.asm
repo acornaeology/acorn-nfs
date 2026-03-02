@@ -5626,9 +5626,34 @@ ws_init_data = error_bad_station+2
     bne loop_encode_prot                                              ; 926f: d0 f6       ..             ; More bits to process
     rts                                                               ; 9271: 60          `              ; Return encoded access in A
 
+; Protection/access bit encode table
+; 
+; 11-entry lookup table used by get_prot_bits and
+; get_access_bits to remap attribute bits between
+; the file server protocol format and the local
+; representation. The encoding loop shifts out each
+; source bit; for each set bit, the corresponding
+; table entry is ORed into the result.
+; 
+; Indices 0-4: used by get_prot_bits (5-bit input).
+; Some entries set multiple output bits (expansion).
+; 
+; Indices 5-10: used by get_access_bits (6-bit input
+; from directory entry offset &0E). Each entry sets
+; exactly one output bit (pure permutation).
 ; &9272 referenced 1 time by &926c
 .prot_bit_encode_table
-    equb &50, &20, 5, 2, &88, 4, 8, &80, &10, 1, 2                    ; 9272: 50 20 05... P .
+    equb &50                                                          ; 9272: 50          P              ; Bit 0: &50 = %01010000 (bits 4,6)
+    equb &20                                                          ; 9273: 20                         ; Bit 1: &20 = %00100000 (bit 5)
+    equb 5                                                            ; 9274: 05          .              ; Bit 2: &05 = %00000101 (bits 0,2)
+    equb 2                                                            ; 9275: 02          .              ; Bit 3: &02 = %00000010 (bit 1)
+    equb &88                                                          ; 9276: 88          .              ; Bit 4: &88 = %10001000 (bits 3,7)
+    equb 4                                                            ; 9277: 04          .              ; Bit 0: &04 = %00000100 (bit 2)
+    equb 8                                                            ; 9278: 08          .              ; Bit 1: &08 = %00001000 (bit 3)
+    equb &80                                                          ; 9279: 80          .              ; Bit 2: &80 = %10000000 (bit 7)
+    equb &10                                                          ; 927a: 10          .              ; Bit 3: &10 = %00010000 (bit 4)
+    equb 1                                                            ; 927b: 01          .              ; Bit 4: &01 = %00000001 (bit 0)
+    equb 2                                                            ; 927c: 02          .              ; Bit 5: &02 = %00000010 (bit 1)
 
 ; ***************************************************************************************
 ; Set OS text pointer then transfer parameters

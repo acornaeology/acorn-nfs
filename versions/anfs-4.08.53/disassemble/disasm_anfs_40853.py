@@ -459,6 +459,8 @@ label(0x9263, "begin_prot_encode")
 label(0x9267, "loop_encode_prot")
 label(0x926F, "skip_clear_prot")
 label(0x9272, "prot_bit_encode_table")
+for i in range(11):
+    byte(0x9272 + i)
 label(0x9292, "loop_cmp_handle")
 label(0x929C, "fscv_7_read_handles")
 label(0x92CD, "done_conn_flag")
@@ -9174,6 +9176,34 @@ comment(0x926A, "Bit clear: skip this position", inline=True)
 comment(0x926C, "Bit set: OR in encoded value", inline=True)
 comment(0x926F, "More bits to process", inline=True)
 comment(0x9271, "Return encoded access in A", inline=True)
+
+# prot_bit_encode_table (&9272) — bit remapping table
+comment(0x9272, "Protection/access bit encode table\n"
+    "\n"
+    "11-entry lookup table used by get_prot_bits and\n"
+    "get_access_bits to remap attribute bits between\n"
+    "the file server protocol format and the local\n"
+    "representation. The encoding loop shifts out each\n"
+    "source bit; for each set bit, the corresponding\n"
+    "table entry is ORed into the result.\n"
+    "\n"
+    "Indices 0-4: used by get_prot_bits (5-bit input).\n"
+    "Some entries set multiple output bits (expansion).\n"
+    "\n"
+    "Indices 5-10: used by get_access_bits (6-bit input\n"
+    "from directory entry offset &0E). Each entry sets\n"
+    "exactly one output bit (pure permutation).")
+comment(0x9272, "Bit 0: &50 = %01010000 (bits 4,6)", inline=True)
+comment(0x9273, "Bit 1: &20 = %00100000 (bit 5)", inline=True)
+comment(0x9274, "Bit 2: &05 = %00000101 (bits 0,2)", inline=True)
+comment(0x9275, "Bit 3: &02 = %00000010 (bit 1)", inline=True)
+comment(0x9276, "Bit 4: &88 = %10001000 (bits 3,7)", inline=True)
+comment(0x9277, "Bit 0: &04 = %00000100 (bit 2)", inline=True)
+comment(0x9278, "Bit 1: &08 = %00001000 (bit 3)", inline=True)
+comment(0x9279, "Bit 2: &80 = %10000000 (bit 7)", inline=True)
+comment(0x927A, "Bit 3: &10 = %00010000 (bit 4)", inline=True)
+comment(0x927B, "Bit 4: &01 = %00000001 (bit 0)", inline=True)
+comment(0x927C, "Bit 5: &02 = %00000010 (bit 1)", inline=True)
 
 # set_text_and_xfer_ptr (&927D) — set OSWORD text and transfer pointers
 comment(0x927D, "Set text pointer low", inline=True)
