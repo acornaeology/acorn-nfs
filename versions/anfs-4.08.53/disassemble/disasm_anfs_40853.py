@@ -484,7 +484,9 @@ label(0x944E, "dir_pass_simple")
 label(0x9462, "loop_init_txcb")
 label(0x9472, "skip_txcb_dest")
 label(0x9477, "txcb_init_template")
-label(0x947D, "bit_test_ff_pad")
+for i in range(12):
+    byte(0x9477 + i)
+label(0x947D, "bit_test_ff")
 label(0x94A0, "txcb_copy_carry_clr")
 label(0x94A1, "txcb_copy_carry_set")
 label(0x94A7, "loop_copy_vset_stn")
@@ -3462,7 +3464,7 @@ subroutine(0xAF27, "ex_print_col_sep",
 
 subroutine(0xAF65, "print_num_no_leading",
     title="Print decimal number with leading zero suppression",
-    description="Sets V via BIT bit_test_ff_pad to enable leading\n"
+    description="Sets V via BIT bit_test_ff to enable leading\n"
     "zero suppression, then falls through to\n"
     "print_decimal_3dig. Used by print_station_id\n"
     "for compact station number display.",
@@ -6090,8 +6092,29 @@ comment(0x9126, "Digit >= &0A?", inline=True)
 comment(0x9128, "No: skip letter adjustment", inline=True)
 comment(0x912A, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
 comment(0x912C, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
-comment(0x947D, "&FF padding (unused ROM space)", inline=True)
-
+# txcb_init_template (&9477) — 12-byte TXCB template
+comment(0x9477, "TXCB initialisation template (12 bytes)\n"
+    "\n"
+    "Copied by init_txcb into the TXCB workspace at\n"
+    "&00C0. For offsets 0-1, the destination station\n"
+    "bytes are also copied from l0e00 into txcb_dest.\n"
+    "\n"
+    "The &FF byte at offset 6 (bit_test_ff, &947D)\n"
+    "serves double duty: it is part of this template\n"
+    "AND a BIT target used by 22 callers to set the\n"
+    "V and N flags without clobbering A.")
+comment(0x9477, "Offset 0: txcb_ctrl = &80 (transmit)", inline=True)
+comment(0x9478, "Offset 1: txcb_port = &99 (FS reply)", inline=True)
+comment(0x9479, "Offset 2: txcb_dest lo (overwritten)", inline=True)
+comment(0x947A, "Offset 3: txcb_dest hi (overwritten)", inline=True)
+comment(0x947B, "Offset 4: txcb_start = 0", inline=True)
+comment(0x947C, "Offset 5: buffer start hi (page &0F)", inline=True)
+comment(0x947D, "Offset 6: BIT target / buffer end lo", inline=True)
+comment(0x947E, "Offset 7: txcb_pos = &FF", inline=True)
+comment(0x947F, "Offset 8: txcb_end = &FF", inline=True)
+comment(0x9480, "Offset 9: buffer end hi (page &0F)", inline=True)
+comment(0x9481, "Offset 10: extended addr fill (&FF)", inline=True)
+comment(0x9482, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # ============================================================
 # Service dispatch table (&89C0/&89E5)

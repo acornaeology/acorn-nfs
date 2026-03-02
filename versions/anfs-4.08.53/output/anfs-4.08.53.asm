@@ -4256,7 +4256,7 @@ listen_jmp_hi = reset_enter_listen+2
 
 ; &8c68 referenced 1 time by &8c5b
 .check_help_topic
-    bit bit_test_ff_pad                                               ; 8c68: 2c 7d 94    ,}.            ; Test for topic match (sets flags)
+    bit bit_test_ff                                                   ; 8c68: 2c 7d 94    ,}.            ; Test for topic match (sets flags)
     cmp #&2e ; '.'                                                    ; 8c6b: c9 2e       ..             ; Is first char '.' (abbreviation)?
     bne match_help_topic                                              ; 8c6d: d0 03       ..             ; No: try topic-specific help
     jmp help_print_nfs_cmds                                           ; 8c6f: 4c 82 8b    L..            ; '.' found: show full command list
@@ -6178,12 +6178,32 @@ ws_init_data = error_bad_station+2
     pla                                                               ; 9475: 68          h              ; Restore A
     rts                                                               ; 9476: 60          `              ; Return
 
+; TXCB initialisation template (12 bytes)
+; 
+; Copied by init_txcb into the TXCB workspace at
+; &00C0. For offsets 0-1, the destination station
+; bytes are also copied from l0e00 into txcb_dest.
+; 
+; The &FF byte at offset 6 (bit_test_ff, &947D)
+; serves double duty: it is part of this template
+; AND a BIT target used by 22 callers to set the
+; V and N flags without clobbering A.
 ; &9477 referenced 1 time by &9462
 .txcb_init_template
-    equb &80, &99, 0, 0, 0, &0f                                       ; 9477: 80 99 00... ...
+    equb &80                                                          ; 9477: 80          .              ; Offset 0: txcb_ctrl = &80 (transmit)
+    equb &99                                                          ; 9478: 99          .              ; Offset 1: txcb_port = &99 (FS reply)
+    equb 0                                                            ; 9479: 00          .              ; Offset 2: txcb_dest lo (overwritten)
+    equb 0                                                            ; 947a: 00          .              ; Offset 3: txcb_dest hi (overwritten)
+    equb 0                                                            ; 947b: 00          .              ; Offset 4: txcb_start = 0
+    equb &0f                                                          ; 947c: 0f          .              ; Offset 5: buffer start hi (page &0F)
 ; &947d referenced 22 times by &8c68, &9638, &9768, &9b2f, &9d02, &a086, &a185, &a2fe, &a329, &a360, &aa6e, &af5f, &af65, &b005, &b181, &b1e1, &b222, &b2b2, &b54e, &b58c, &b88b, &b988
-.bit_test_ff_pad
-    equb &ff, &ff, &ff, &0f, &ff, &ff                                 ; 947d: ff ff ff... ...            ; &FF padding (unused ROM space)
+.bit_test_ff
+    equb &ff                                                          ; 947d: ff          .              ; Offset 6: BIT target / buffer end lo
+    equb &ff                                                          ; 947e: ff          .              ; Offset 7: txcb_pos = &FF
+    equb &ff                                                          ; 947f: ff          .              ; Offset 8: txcb_end = &FF
+    equb &0f                                                          ; 9480: 0f          .              ; Offset 9: buffer end hi (page &0F)
+    equb &ff                                                          ; 9481: ff          .              ; Offset 10: extended addr fill (&FF)
+    equb &ff                                                          ; 9482: ff          .              ; Offset 11: extended addr fill (&FF)
 
 ; ***************************************************************************************
 ; Send read-only FS request (carry set)
@@ -6603,7 +6623,7 @@ ws_init_data = error_bad_station+2
     lda (net_tx_ptr,x)                                                ; 9636: a1 9a       ..             ; Load first reply byte
 ; &9638 referenced 2 times by &9567, &9dd0
 .classify_reply_error
-    bit bit_test_ff_pad                                               ; 9638: 2c 7d 94    ,}.            ; Set V flag (via BIT &FF)
+    bit bit_test_ff                                                   ; 9638: 2c 7d 94    ,}.            ; Set V flag (via BIT &FF)
 ; &963b referenced 1 time by &9634
 .mask_error_class
     and #7                                                            ; 963b: 29 07       ).             ; Mask to error class (0-7)
@@ -6888,7 +6908,7 @@ bad_prefix = bad_str_anchor+1
 ; &9767 referenced 2 times by &9746, &9756
 .append_decimal_num
     tay                                                               ; 9767: a8          .              ; Save number in Y for division
-    bit bit_test_ff_pad                                               ; 9768: 2c 7d 94    ,}.            ; Set V: suppress leading zeros
+    bit bit_test_ff                                                   ; 9768: 2c 7d 94    ,}.            ; Set V: suppress leading zeros
     lda #&64 ; 'd'                                                    ; 976b: a9 64       .d             ; A=100: hundreds digit divisor
     jsr append_decimal_digit                                          ; 976d: 20 78 97     x.            ; Extract and append hundreds digit
     lda #&0a                                                          ; 9770: a9 0a       ..             ; A=10: tens digit divisor
@@ -7721,7 +7741,7 @@ bad_prefix = bad_str_anchor+1
     ldy #&14                                                          ; 9b2d: a0 14       ..             ; Y=&14: delete file command
 ; &9b2f referenced 1 time by &9b28
 .send_request_vset
-    bit bit_test_ff_pad                                               ; 9b2f: 2c 7d 94    ,}.            ; Set V flag (no directory check)
+    bit bit_test_ff                                                   ; 9b2f: 2c 7d 94    ,}.            ; Set V flag (no directory check)
     jsr save_net_tx_cb_vset                                           ; 9b32: 20 9a 94     ..            ; Send request with V set
 ; &9b35 referenced 1 time by &9ae4
 .skip_if_error
@@ -8040,7 +8060,7 @@ bad_prefix = bad_str_anchor+1
     ldx #2                                                            ; 9cfb: a2 02       ..             ; X=2: buffer offset
     jsr copy_arg_to_buf                                               ; 9cfd: 20 f2 ae     ..            ; Copy argument to TX buffer
     ldy #6                                                            ; 9d00: a0 06       ..             ; Y=6: open file command
-    bit bit_test_ff_pad                                               ; 9d02: 2c 7d 94    ,}.            ; Set V flag (skip directory check)
+    bit bit_test_ff                                                   ; 9d02: 2c 7d 94    ,}.            ; Set V flag (skip directory check)
     sec                                                               ; 9d05: 38          8              ; Set carry
     ror escapable                                                     ; 9d06: 66 97       f.             ; Rotate carry into escapable flag bit 7
     jsr save_net_tx_cb_vset                                           ; 9d08: 20 9a 94     ..            ; Send open request with V set
@@ -8724,7 +8744,7 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &a086 referenced 1 time by &b092
 .print_fs_info_newline
-    bit bit_test_ff_pad                                               ; a086: 2c 7d 94    ,}.            ; Set V (suppress padding)
+    bit bit_test_ff                                                   ; a086: 2c 7d 94    ,}.            ; Set V (suppress padding)
     jsr print_station_addr                                            ; a089: 20 74 b1     t.            ; Print station address
     jmp osnewl                                                        ; a08c: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
@@ -8967,7 +8987,7 @@ bad_prefix = bad_str_anchor+1
     lda (fs_crc_lo),y                                                 ; a17f: b1 be       ..             ; Check if line ends here
     cmp #&0d                                                          ; a181: c9 0d       ..             ; Is it CR?
     bne clear_v_flag                                                  ; a183: d0 05       ..             ; No: argument present, V clear
-    bit bit_test_ff_pad                                               ; a185: 2c 7d 94    ,}.            ; CR found: set V (no argument)
+    bit bit_test_ff                                                   ; a185: 2c 7d 94    ,}.            ; CR found: set V (no argument)
     bvs clear_c_flag                                                  ; a188: 70 01       p.             ; V set: command is valid
 ; &a18a referenced 2 times by &a17d, &a183
 .clear_v_flag
@@ -9219,7 +9239,7 @@ bad_prefix = bad_str_anchor+1
     beq loop_search_stn_bit2                                          ; a2f8: f0 f1       ..             ; Not set: try next
     tya                                                               ; a2fa: 98          .              ; Transfer Y to A
     sta l1030,x                                                       ; a2fb: 9d 30 10    .0.            ; Store Y in slot data
-    bit bit_test_ff_pad                                               ; a2fe: 2c 7d 94    ,}.            ; Set V (found match)
+    bit bit_test_ff                                                   ; a2fe: 2c 7d 94    ,}.            ; Set V (found match)
 ; &a301 referenced 1 time by &a2ec
 .done_search_bit2
     sty l0e02                                                         ; a301: 8c 02 0e    ...            ; Store Y to l0e02
@@ -9258,7 +9278,7 @@ bad_prefix = bad_str_anchor+1
     beq loop_search_stn_bit3                                          ; a323: f0 f1       ..             ; Not set: try next
     tya                                                               ; a325: 98          .              ; Transfer Y to A
     sta l1030,x                                                       ; a326: 9d 30 10    .0.            ; Store Y in slot data
-    bit bit_test_ff_pad                                               ; a329: 2c 7d 94    ,}.            ; Set V (found match)
+    bit bit_test_ff                                                   ; a329: 2c 7d 94    ,}.            ; Set V (found match)
 ; &a32c referenced 1 time by &a317
 .done_search_bit3
     sty l0e03                                                         ; a32c: 8c 03 0e    ...            ; Store Y to l0e03
@@ -9316,7 +9336,7 @@ bad_prefix = bad_str_anchor+1
     beq loop_search_stn_boot                                          ; a35a: f0 f1       ..             ; Not active: try next station
     tya                                                               ; a35c: 98          .              ; Transfer boot type to A
     sta l1030,x                                                       ; a35d: 9d 30 10    .0.            ; Store boot setting for station
-    bit bit_test_ff_pad                                               ; a360: 2c 7d 94    ,}.            ; Set V flag (station match found)
+    bit bit_test_ff                                                   ; a360: 2c 7d 94    ,}.            ; Set V flag (station match found)
 ; &a363 referenced 1 time by &a34e
 .done_search_boot
     sty l0e04                                                         ; a363: 8c 04 0e    ...            ; Store boot type
@@ -10921,7 +10941,7 @@ bridge_ws_init_data = sub_ca843+1
 .init_ws_copy_wide
     ldx #&0d                                                          ; aa6a: a2 0d       ..             ; X=&0D: 14 bytes to copy
     ldy #&7c ; '|'                                                    ; aa6c: a0 7c       .|             ; Y=&7C: workspace destination offset
-    bit bit_test_ff_pad                                               ; aa6e: 2c 7d 94    ,}.            ; Test bit 6 via BIT (V flag check)
+    bit bit_test_ff                                                   ; aa6e: 2c 7d 94    ,}.            ; Test bit 6 via BIT (V flag check)
     bvs loop_copy_ws_template                                         ; aa71: 70 05       p.             ; V=1: skip to wide mode copy
 ; ***************************************************************************************
 ; Initialise workspace copy in narrow mode (27 bytes)
@@ -12002,13 +12022,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jsr parse_filename_arg                                            ; af57: 20 82 ae     ..            ; Parse filename argument
     jsr copy_arg_to_buf_x0                                            ; af5a: 20 f0 ae     ..            ; Copy filename to TX buffer
     ldy #&14                                                          ; af5d: a0 14       ..             ; Y=&14: *Delete FS command code
-    bit bit_test_ff_pad                                               ; af5f: 2c 7d 94    ,}.            ; Set V flag (via BIT #&FF)
+    bit bit_test_ff                                                   ; af5f: 2c 7d 94    ,}.            ; Set V flag (via BIT #&FF)
     jmp save_net_tx_cb_vset                                           ; af62: 4c 9a 94    L..            ; Send to FS with V-flag dispatch
 
 ; ***************************************************************************************
 ; Print decimal number with leading zero suppression
 ; 
-; Sets V via BIT bit_test_ff_pad to enable leading
+; Sets V via BIT bit_test_ff to enable leading
 ; zero suppression, then falls through to
 ; print_decimal_3dig. Used by print_station_id
 ; for compact station number display.
@@ -12018,7 +12038,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; &af65 referenced 1 time by &8ff3
 .print_num_no_leading
-    bit bit_test_ff_pad                                               ; af65: 2c 7d 94    ,}.            ; Set V (suppress leading zeros)
+    bit bit_test_ff                                                   ; af65: 2c 7d 94    ,}.            ; Set V (suppress leading zeros)
 ; ***************************************************************************************
 ; Print byte as 3-digit decimal via OSASCI
 ; 
@@ -12252,7 +12272,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 
 ; &b005 referenced 1 time by &afe2
 .no_ps_name_given
-    bit bit_test_ff_pad                                               ; b005: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
+    bit bit_test_ff                                                   ; b005: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
 ; &b008 referenced 1 time by &afe8
 .save_ps_cmd_ptr
     sty ws_ptr_hi                                                     ; b008: 84 ac       ..             ; Save command line pointer
@@ -12584,7 +12604,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     jsr print_decimal_3dig                                            ; b179: 20 68 af     h.            ; Print network as 3 digits
     lda #&2e ; '.'                                                    ; b17c: a9 2e       ..             ; '.' separator
     jsr osasci                                                        ; b17e: 20 e3 ff     ..            ; Write character 46
-    bit bit_test_ff_pad                                               ; b181: 2c 7d 94    ,}.            ; Set V (suppress station padding)
+    bit bit_test_ff                                                   ; b181: 2c 7d 94    ,}.            ; Set V (suppress station padding)
 ; &b184 referenced 1 time by &b177
 .skip_if_local_net
     bvs print_station_only                                            ; b184: 70 07       p.             ; V set: skip padding spaces
@@ -12676,7 +12696,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 
 ; &b1e1 referenced 1 time by &b1b5
 .no_poll_name_given
-    bit bit_test_ff_pad                                               ; b1e1: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
+    bit bit_test_ff                                                   ; b1e1: 2c 7d 94    ,}.            ; Set V (= no explicit PS name)
 ; &b1e4 referenced 1 time by &b1bb
 .skip_if_no_poll_arg
     bvs done_poll_name_parse                                          ; b1e4: 70 2c       p,             ; V set (no arg): skip to send
@@ -12713,7 +12733,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     jsr pop_requeue_ps_scan                                           ; b219: 20 d2 b0     ..            ; Pop and requeue PS scan
     jsr print_printer_server_is                                       ; b21c: 20 ab b0     ..            ; Print 'Printer server '
     jsr load_ps_server_addr                                           ; b21f: 20 c6 b0     ..            ; Load PS server address
-    bit bit_test_ff_pad                                               ; b222: 2c 7d 94    ,}.            ; Set V and N flags
+    bit bit_test_ff                                                   ; b222: 2c 7d 94    ,}.            ; Set V and N flags
     jsr print_station_addr                                            ; b225: 20 74 b1     t.            ; Print station address
     jsr print_inline                                                  ; b228: 20 31 91     1.            ; Print ' "'
     equs " ", '"'                                                     ; b22b: 20 22        "
@@ -12795,7 +12815,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     inc l00ae                                                         ; b2ac: e6 ae       ..             ; Advance past station low
     lda (l00ae,x)                                                     ; b2ae: a1 ae       ..             ; Read client network number
     sta l00b6                                                         ; b2b0: 85 b6       ..             ; Store network number
-    bit bit_test_ff_pad                                               ; b2b2: 2c 7d 94    ,}.            ; Set V flag
+    bit bit_test_ff                                                   ; b2b2: 2c 7d 94    ,}.            ; Set V flag
     jsr print_station_addr                                            ; b2b5: 20 74 b1     t.            ; Print client station address
 ; &b2b8 referenced 3 times by &b276, &b286, &b299
 .done_poll_status_line
@@ -13409,7 +13429,7 @@ net_channel_err_string = err_net_chan_not_found+2
     sec                                                               ; b54d: 38          8              ; C=1: close with write-flush
 ; &b54e referenced 1 time by &b54b
 .skip_set_carry
-    bit bit_test_ff_pad                                               ; b54e: 2c 7d 94    ,}.            ; Set V flag via BIT (alternate mode)
+    bit bit_test_ff                                                   ; b54e: 2c 7d 94    ,}.            ; Set V flag via BIT (alternate mode)
 ; ***************************************************************************************
 ; Scan FCB slot flags from &10 downward
 ; 
@@ -13484,7 +13504,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &b589 referenced 2 times by &b68a, &b788
 .find_open_fcb
     ldx l10c8                                                         ; b589: ae c8 10    ...            ; Load current FCB index
-    bit bit_test_ff_pad                                               ; b58c: 2c 7d 94    ,}.            ; Set V flag (first pass marker)
+    bit bit_test_ff                                                   ; b58c: 2c 7d 94    ,}.            ; Set V flag (first pass marker)
 ; &b58f referenced 4 times by &b59e, &b5a4, &b5c1, &b5c8
 .loop_find_fcb
     inx                                                               ; b58f: e8          .              ; Next FCB slot
@@ -14012,7 +14032,7 @@ net_channel_err_string = err_net_chan_not_found+2
 
 ; &b88b referenced 1 time by &b87f
 .done_find_write_fcb
-    bit bit_test_ff_pad                                               ; b88b: 2c 7d 94    ,}.            ; Set V flag (alternate match mode)
+    bit bit_test_ff                                                   ; b88b: 2c 7d 94    ,}.            ; Set V flag (alternate match mode)
     jsr find_matching_fcb                                             ; b88e: 20 38 b7     8.            ; Find matching FCB for channel
     lda l1000,y                                                       ; b891: b9 00 10    ...            ; Load byte count for FCB
     cmp #&ff                                                          ; b894: c9 ff       ..             ; Buffer full (&FF bytes)?
@@ -14217,7 +14237,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_print
-    bit bit_test_ff_pad                                               ; b988: 2c 7d 94    ,}.            ; Set V flag (= print mode)
+    bit bit_test_ff                                                   ; b988: 2c 7d 94    ,}.            ; Set V flag (= print mode)
 ; &b98b referenced 1 time by &b986
 .open_and_read_file
     jsr open_file_for_read                                            ; b98b: 20 13 bb     ..            ; Open file for reading
@@ -15118,7 +15138,7 @@ save pydis_start, pydis_end
 ;     fs_work_4:                               24
 ;     osasci:                                  23
 ;     port_buf_len:                            23
-;     bit_test_ff_pad:                         22
+;     bit_test_ff:                             22
 ;     fs_load_addr:                            22
 ;     fs_error_ptr:                            21
 ;     tube_read_r2:                            21
