@@ -712,6 +712,8 @@ label(0xA14D, "loop_skip_to_next")
 label(0xA152, "check_separator")
 label(0xA158, "loop_check_sep_table")
 label(0xA164, "sep_table_data")
+for i in range(9):
+    byte(0xA164 + i)
 label(0xA16D, "separator_matched")
 label(0xA16F, "loop_skip_trail_spaces")
 label(0xA175, "skip_dot_and_spaces")
@@ -8838,9 +8840,22 @@ comment(0xA15E, "Loop through separator list", inline=True)
 comment(0xA160, "No separator match: restore Y", inline=True)
 comment(0xA161, "Transfer back to Y", inline=True)
 comment(0xA162, "Try next table entry", inline=True)
-comment(0xA164, "Data: command separator table (space/quotes)", inline=True)
-comment(0xA167, "Data: separator chars &24, &26", inline=True)
-comment(0xA169, "Data: separator char &2A (asterisk)", inline=True)
+# sep_table_data (&A164) — command separator characters
+comment(0xA164, "Command separator table (9 bytes)\n"
+    "\n"
+    "Characters that terminate a command name in the\n"
+    "star command parser. loop_check_sep_table scans\n"
+    "Y down from 8 to 0, comparing each input char\n"
+    "against this table.")
+comment(0xA164, "Space", inline=True)
+comment(0xA165, "'\"' double quote", inline=True)
+comment(0xA166, "'#' hash", inline=True)
+comment(0xA167, "'$' dollar", inline=True)
+comment(0xA168, "'&' ampersand", inline=True)
+comment(0xA169, "'*' asterisk", inline=True)
+comment(0xA16A, "':' colon", inline=True)
+comment(0xA16B, "'@' at-sign", inline=True)
+comment(0xA16C, "CR (carriage return)", inline=True)
 
 # Valid separator found
 comment(0xA16D, "Restore saved Y", inline=True)

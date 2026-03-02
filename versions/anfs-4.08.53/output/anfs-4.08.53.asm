@@ -282,7 +282,6 @@ l10d7                                   = &10d7
 l10d8                                   = &10d8
 l10d9                                   = &10d9
 l10f3                                   = &10f3
-l2322                                   = &2322
 l6f6e                                   = &6f6e
 l7dfd                                   = &7dfd
 sub_cbe5e                               = &be5e
@@ -339,7 +338,6 @@ oscli                                   = &fff7
     jsr tube_send_r2                                                  ; bec9: 20 95 06     .. :0020[1]   ; Send zero prefix byte via R2
     tay                                                               ; becc: a8          .   :0023[1]   ; Y=0: start of error block at (&FD)
     lda (brk_ptr),y                                                   ; becd: b1 fd       ..  :0024[1]   ; Load error number from (&FD),0
-; &becf referenced 1 time by &a167
 .tube_send_error_num
     jsr tube_send_r2                                                  ; becf: 20 95 06     .. :0026[1]   ; Send error number via R2
 ; &bed2 referenced 1 time by &0030[1]
@@ -9024,12 +9022,23 @@ bad_prefix = bad_str_anchor+1
     pla                                                               ; a160: 68          h              ; No separator match: restore Y
     tay                                                               ; a161: a8          .              ; Transfer back to Y
     bne loop_skip_to_next                                             ; a162: d0 e9       ..             ; Try next table entry
+; Command separator table (9 bytes)
+; 
+; Characters that terminate a command name in the
+; star command parser. loop_check_sep_table scans
+; Y down from 8 to 0, comparing each input char
+; against this table.
 ; &a164 referenced 1 time by &a158
 .sep_table_data
-    jsr l2322                                                         ; a164: 20 22 23     "#            ; Data: command separator table (space/quotes)
-    bit tube_send_error_num                                           ; a167: 24 26       $&             ; Data: separator chars &24, &26
-    rol a                                                             ; a169: 2a          *              ; Data: separator char &2A (asterisk)
-    equb &3a, &40, &0d                                                ; a16a: 3a 40 0d    :@.
+    equb &20                                                          ; a164: 20                         ; Space
+    equb &22                                                          ; a165: 22          "              ; '"' double quote
+    equb &23                                                          ; a166: 23          #              ; '#' hash
+    equb &24                                                          ; a167: 24          $              ; '$' dollar
+    equb &26                                                          ; a168: 26          &              ; '&' ampersand
+    equb &2a                                                          ; a169: 2a          *              ; '*' asterisk
+    equb &3a                                                          ; a16a: 3a          :              ; ':' colon
+    equb &40                                                          ; a16b: 40          @              ; '@' at-sign
+    equb &0d                                                          ; a16c: 0d          .              ; CR (carriage return)
 
 ; &a16d referenced 1 time by &a15b
 .separator_matched
@@ -16037,7 +16046,6 @@ save pydis_start, pydis_end
 ;     l10ce:                                    1
 ;     l10d1:                                    1
 ;     l10d6:                                    1
-;     l2322:                                    1
 ;     l6f6e:                                    1
 ;     l7dfd:                                    1
 ;     language_entry:                           1
@@ -16574,7 +16582,6 @@ save pydis_start, pydis_end
 ;     tube_release_claim:                       1
 ;     tube_reset_stack:                         1
 ;     tube_return_main:                         1
-;     tube_send_error_num:                      1
 ;     tube_sendw_complete:                      1
 ;     tube_transfer_setup:                      1
 ;     tube_tx_inc_operand:                      1
@@ -16781,7 +16788,6 @@ save pydis_start, pydis_end
 ;     l10d8
 ;     l10d9
 ;     l10f3
-;     l2322
 ;     l6f6e
 ;     l7dfd
 ;     loop_ca5b9
@@ -16840,11 +16846,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14597 bytes (89%)
-;     Data                     = 1787 bytes (11%)
+;     Code                     = 14591 bytes (89%)
+;     Data                     = 1793 bytes (11%)
 ;
-;     Number of instructions   = 7161
-;     Number of data bytes     = 528 bytes
+;     Number of instructions   = 7158
+;     Number of data bytes     = 534 bytes
 ;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1147 bytes
 ;     Number of strings        = 138
