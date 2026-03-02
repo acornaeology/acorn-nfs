@@ -283,7 +283,6 @@ l10d8                                   = &10d8
 l10d9                                   = &10d9
 l10f3                                   = &10f3
 l6f6e                                   = &6f6e
-l7dfd                                   = &7dfd
 sub_cbe5e                               = &be5e
 cbe6f                                   = &be6f
 station_id_disable_net_nmis             = &fe18
@@ -4982,7 +4981,16 @@ ws_init_data = error_bad_station+2
     jmp err_bad_station_num                                           ; 8f29: 4c 01 92    L..            ; Station 0: report error
 
 ; &8f2b referenced 1 time by &8eff
-    equb &ff, &28, &0a                                                ; 8f2c: ff 28 0a    .(.
+; Workspace init data
+; 
+; 3 bytes read via LDA ws_init_data,X with X=3
+; down to 1. ws_init_data at &8F2B overlaps the
+; high byte of JMP err_bad_station_num; byte at
+; &8F2B itself (&92) is never read (BNE exits
+; when X=0). Stores to l0d6e, l0d6f, l0d70.
+    equb &ff                                                          ; 8f2c: ff          .              ; l0d6e: init=&FF (retry count)
+    equb &28                                                          ; 8f2d: 28          (              ; l0d6f: init=&28 (40, TX timeout)
+    equb &0a                                                          ; 8f2e: 0a          .              ; l0d70: init=&0A (10, pass-thru ctrl)
 
 ; &8f2f referenced 1 time by &8f27
 .store_station_id
@@ -9472,9 +9480,19 @@ bad_prefix = bad_str_anchor+1
 .boot_exec_cmd
     equs "E.!BOOT"                                                    ; a3bf: 45 2e 21... E.!
     equb &0d                                                          ; a3c6: 0d          .
+; Boot option OSCLI address table
+; 
+; Low bytes of boot command string addresses,
+; all in page &A3. Indexed by boot option 0-3
+; (option 0 is never reached due to BEQ).
+; Entry 2 reuses the tail of 'L.!BOOT' to
+; get '!BOOT' (*RUN equivalent).
 ; &a3c7 referenced 1 time by &a3d0
 .boot_oscli_lo_table
-    equb &c6, &b7, &b9, &bf                                           ; a3c7: c6 b7 b9... ...
+    equb &c6                                                          ; a3c7: c6          .              ; Opt 0: &A3C6 (don't-care, unused)
+    equb &b7                                                          ; a3c8: b7          .              ; Opt 1: &A3B7 'L.!BOOT' (*LOAD)
+    equb &b9                                                          ; a3c9: b9          .              ; Opt 2: &A3B9 '!BOOT' (*RUN)
+    equb &bf                                                          ; a3ca: bf          .              ; Opt 3: &A3BF 'E.!BOOT' (*EXEC)
 
 ; &a3cb referenced 2 times by &a3aa, &a3b4
 .load_boot_type
@@ -11125,13 +11143,55 @@ bridge_ws_init_data = sub_ca843+1
     sty net_tx_ptr                                                    ; aa9c: 84 9a       ..             ; Set net_tx_ptr from Y
     rts                                                               ; aa9e: 60          `              ; Return
 
+; Workspace TXCB init template
+; 
+; 39-byte template with three overlapping
+; regions, each a TXCB/RXCB structure:
+;   Wide  [0..13]:  ws+&6F..&7C via net_rx_ptr
+;   Narrow [14..26]: ws+&0C..&17 via workspace
+;   Spool [27..38]:  ws+&01..&0B via workspace
+; Markers: &FE=end, &FD=skip, &FC=page ptr.
 ; &aa9f referenced 1 time by &aa78
 .ws_txcb_template_data
-    sta zp_ptr_lo                                                     ; aa9f: 85 00       ..             ; Data: TXCB template (decoded as STA &00)
-    sbc l7dfd,x                                                       ; aaa1: fd fd 7d    ..}            ; Data: template continuation bytes
-    equb &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80, &93   ; aaa4: fc ff ff... ...
-    equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; aab0: fd fd d9... ...
-    equb &fd, &fd, &25, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; aabc: fd fd 25... ..%
+    equb &85                                                          ; aa9f: 85          .              ; Wide &6F: ctrl=&85
+    equb 0                                                            ; aaa0: 00          .              ; Wide &70: port=&00
+    equb &fd                                                          ; aaa1: fd          .              ; Wide &71: skip (dest station)
+    equb &fd                                                          ; aaa2: fd          .              ; Wide &72: skip (dest network)
+    equb &7d                                                          ; aaa3: 7d          }              ; Wide &73: buf start lo=&7D
+    equb &fc                                                          ; aaa4: fc          .              ; Wide &74: buf start hi=page ptr
+    equb &ff                                                          ; aaa5: ff          .              ; Wide &75: buf start ext lo
+    equb &ff                                                          ; aaa6: ff          .              ; Wide &76: buf start ext hi
+    equb &7e                                                          ; aaa7: 7e          ~              ; Wide &77: buf end lo=&7E
+    equb &fc                                                          ; aaa8: fc          .              ; Wide &78: buf end hi=page ptr
+    equb &ff                                                          ; aaa9: ff          .              ; Wide &79: buf end ext lo
+    equb &ff                                                          ; aaaa: ff          .              ; Wide &7A: buf end ext hi
+    equb 0                                                            ; aaab: 00          .              ; Wide &7B: zero
+    equb 0                                                            ; aaac: 00          .              ; Wide &7C: zero
+    equb &fe                                                          ; aaad: fe          .              ; Narrow stop (&FE terminator)
+    equb &80                                                          ; aaae: 80          .              ; Narrow &0C: ctrl=&80 (standard)
+    equb &93                                                          ; aaaf: 93          .              ; Narrow &0D: port=&93
+    equb &fd                                                          ; aab0: fd          .              ; Narrow &0E: skip (dest station)
+    equb &fd                                                          ; aab1: fd          .              ; Narrow &0F: skip (dest network)
+    equb &d9                                                          ; aab2: d9          .              ; Narrow &10: buf start lo=&D9
+    equb &fc                                                          ; aab3: fc          .              ; Narrow &11: buf start hi=page ptr
+    equb &ff                                                          ; aab4: ff          .              ; Narrow &12: buf start ext lo
+    equb &ff                                                          ; aab5: ff          .              ; Narrow &13: buf start ext hi
+    equb &de                                                          ; aab6: de          .              ; Narrow &14: buf end lo=&DE
+    equb &fc                                                          ; aab7: fc          .              ; Narrow &15: buf end hi=page ptr
+    equb &ff                                                          ; aab8: ff          .              ; Narrow &16: buf end ext lo
+    equb &ff                                                          ; aab9: ff          .              ; Narrow &17: buf end ext hi
+    equb &fe                                                          ; aaba: fe          .              ; Spool stop (&FE terminator)
+    equb &d1                                                          ; aabb: d1          .              ; Spool &01: port=&D1
+    equb &fd                                                          ; aabc: fd          .              ; Spool &02: skip (dest station)
+    equb &fd                                                          ; aabd: fd          .              ; Spool &03: skip (dest network)
+    equb &25                                                          ; aabe: 25          %              ; Spool &04: buf start lo=&25
+    equb &fd                                                          ; aabf: fd          .              ; Spool &05: skip (buf start hi)
+    equb &ff                                                          ; aac0: ff          .              ; Spool &06: buf start ext lo
+    equb &ff                                                          ; aac1: ff          .              ; Spool &07: buf start ext hi
+    equb &fd                                                          ; aac2: fd          .              ; Spool &08: skip (buf end lo)
+    equb &fd                                                          ; aac3: fd          .              ; Spool &09: skip (buf end hi)
+    equb &ff                                                          ; aac4: ff          .              ; Spool &0A: buf end ext lo
+    equb &ff                                                          ; aac5: ff          .              ; Spool &0B: buf end ext hi
 
 ; ***************************************************************************************
 ; OSWORD 5 handler: check spool PB and reset buffer
@@ -11466,12 +11526,48 @@ bridge_ws_init_data = sub_ca843+1
     pla                                                               ; ac6c: 68          h              ; Discard disconnect code
     rts                                                               ; ac6d: 60          `              ; Return
 
+; Spool TX control block template
+; 
+; 12-byte TXCB template copied directly (no
+; marker processing) to workspace at offset
+; &25..&30. Destination station and network
+; (&27/&28) are filled in from (nfs_workspace)
+; after the copy.
 ; &ac6e referenced 1 time by &ab77
 .tx_econet_txcb_template
-    equb &80, &9f, 0, 0, &43, &8e, &ff, &ff, &4b, &8e, &ff, &ff       ; ac6e: 80 9f 00... ...
+    equb &80                                                          ; ac6e: 80          .              ; ctrl=&80 (standard TX)
+    equb &9f                                                          ; ac6f: 9f          .              ; port=&9F
+    equb 0                                                            ; ac70: 00          .              ; dest station=&00 (filled later)
+    equb 0                                                            ; ac71: 00          .              ; dest network=&00 (filled later)
+    equb &43                                                          ; ac72: 43          C              ; buf start lo=&43
+    equb &8e                                                          ; ac73: 8e          .              ; buf start hi=&8E
+    equb &ff                                                          ; ac74: ff          .              ; buf start ext lo=&FF
+    equb &ff                                                          ; ac75: ff          .              ; buf start ext hi=&FF
+    equb &4b                                                          ; ac76: 4b          K              ; buf end lo=&4B
+    equb &8e                                                          ; ac77: 8e          .              ; buf end hi=&8E
+    equb &ff                                                          ; ac78: ff          .              ; buf end ext lo=&FF
+    equb &ff                                                          ; ac79: ff          .              ; buf end ext hi=&FF
+; Spool RX control block template
+; 
+; 12-byte RXCB template with marker processing:
+; &FD skips the offset (preserves existing value)
+; and &FC substitutes net_rx_ptr_hi. Copied to
+; workspace at offset &00..&0B. Sets up a 3-byte
+; receive buffer at &xx31..&xx34.
 ; &ac7a referenced 1 time by &ab96
 .rx_palette_txcb_template
-    equb &7f, &9e, &fd, &fd, &31, &fc, &ff, &ff, &34, &fc, &ff, &ff   ; ac7a: 7f 9e fd... ...
+    equb &7f                                                          ; ac7a: 7f          .              ; ctrl=&7F (RX listen)
+    equb &9e                                                          ; ac7b: 9e          .              ; port=&9E
+    equb &fd                                                          ; ac7c: fd          .              ; skip: preserve dest station
+    equb &fd                                                          ; ac7d: fd          .              ; skip: preserve dest network
+    equb &31                                                          ; ac7e: 31          1              ; buf start lo=&31
+    equb &fc                                                          ; ac7f: fc          .              ; buf start hi=page ptr (&FC)
+    equb &ff                                                          ; ac80: ff          .              ; buf start ext lo=&FF
+    equb &ff                                                          ; ac81: ff          .              ; buf start ext hi=&FF
+    equb &34                                                          ; ac82: 34          4              ; buf end lo=&34
+    equb &fc                                                          ; ac83: fc          .              ; buf end hi=page ptr (&FC)
+    equb &ff                                                          ; ac84: ff          .              ; buf end ext lo=&FF
+    equb &ff                                                          ; ac85: ff          .              ; buf end ext hi=&FF
 
 .lang_2_save_palette_vdu
     lda l00ad                                                         ; ac86: a5 ad       ..             ; Save l00ad counter
@@ -11578,9 +11674,16 @@ bridge_ws_init_data = sub_ca843+1
     sta (nfs_workspace,x)                                             ; acf8: 81 9e       ..             ; Store result to workspace
     rts                                                               ; acfa: 60          `              ; Return
 
+; OSBYTE mode read codes
+; 
+; Three OSBYTE numbers used by read_osbyte_to_ws
+; to save display mode state to workspace before
+; a language 2 file transfer.
 ; &acfb referenced 1 time by &aced
 .osbyte_mode_read_codes
-    equb &85, &c2, &c3                                                ; acfb: 85 c2 c3    ...
+    equb &85                                                          ; acfb: 85          .              ; OSBYTE &85: read display start addr
+    equb &c2                                                          ; acfc: c2          .              ; OSBYTE &C2: read video ULA ctrl
+    equb &c3                                                          ; acfd: c3          .              ; OSBYTE &C3: read video ULA palette
 
 ; ***************************************************************************************
 ; *CDir command handler
@@ -15350,7 +15453,6 @@ save pydis_start, pydis_end
 ;     process_all_fcbs:                         9
 ;     txcb_end:                                 9
 ;     ws_0d68:                                  9
-;     zp_ptr_lo:                                9
 ;     error_msg_table:                          8
 ;     install_nmi_handler:                      8
 ;     l00af:                                    8
@@ -15360,6 +15462,7 @@ save pydis_start, pydis_end
 ;     tube_status_1_and_tube_control:           8
 ;     ws_0d60:                                  8
 ;     zp_ptr_hi:                                8
+;     zp_ptr_lo:                                8
 ;     alloc_fcb_slot:                           7
 ;     finalise_and_return:                      7
 ;     fs_load_addr_hi:                          7
@@ -16113,7 +16216,6 @@ save pydis_start, pydis_end
 ;     l10d1:                                    1
 ;     l10d6:                                    1
 ;     l6f6e:                                    1
-;     l7dfd:                                    1
 ;     language_entry:                           1
 ;     library_dir_prefix:                       1
 ;     library_tried:                            1
@@ -16854,7 +16956,6 @@ save pydis_start, pydis_end
 ;     l10d9
 ;     l10f3
 ;     l6f6e
-;     l7dfd
 ;     loop_ca5b9
 ;     loop_ca5e8
 ;     loop_ca668
@@ -16907,11 +17008,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14591 bytes (89%)
-;     Data                     = 1793 bytes (11%)
+;     Code                     = 14586 bytes (89%)
+;     Data                     = 1798 bytes (11%)
 ;
-;     Number of instructions   = 7158
-;     Number of data bytes     = 534 bytes
+;     Number of instructions   = 7156
+;     Number of data bytes     = 539 bytes
 ;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1147 bytes
 ;     Number of strings        = 138

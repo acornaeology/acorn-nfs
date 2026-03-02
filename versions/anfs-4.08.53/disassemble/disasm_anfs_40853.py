@@ -399,6 +399,13 @@ label(0x8F11, "loop_alloc_handles")
 label(0x8F23, "read_station_id")
 label(0x8F29, "error_bad_station")
 label(0x8F2B, "ws_init_data")
+
+# Split the 3 workspace init bytes into individual entries.
+# ws_init_data label overlaps the JMP operand high byte at &8F2B;
+# the actual data bytes at &8F2C-&8F2E are read via LDA ws_init_data,X
+# with X=3..1 (X=0 never read due to BNE loop exit).
+for i in range(3):
+    byte(0x8F2C + i)
 label(0x8F2F, "store_station_id")
 label(0x8F75, "loop_restore_ctx")
 label(0x8F97, "loop_checksum_byte")
@@ -762,6 +769,12 @@ label(0xA379, "fsreply_1_copy_handles_boot")
 label(0xA383, "fsreply_2_copy_handles")
 label(0xA39C, "check_auto_boot_flag")
 label(0xA3C7, "boot_oscli_lo_table")
+
+# Split the 4-byte boot OSCLI address table into individual bytes.
+# Low bytes of boot command string addresses in page &A3.
+# Indexed by boot option (1-3); entry 0 is a don't-care (BEQ skips).
+for i in range(4):
+    byte(0xA3C7 + i)
 label(0xA3CB, "load_boot_type")
 label(0xA3D9, "cmd_table_fs_lo")
 label(0xA3DA, "cmd_table_fs_hi")
@@ -897,6 +910,16 @@ label(0xAA95, "store_via_rx_ptr")
 label(0xAA97, "advance_template_idx")
 label(0xAA9B, "done_ws_template_copy")
 label(0xAA9F, "ws_txcb_template_data")
+
+# Split the 39-byte workspace TXCB template into individual bytes.
+# Three overlapping regions indexed by different callers:
+#   Wide  (X=&0D, Y=&7C, V=1): bytes [0..13]  → ws+&6F..&7C via net_rx_ptr
+#   Narrow (X=&1A, Y=&17, V=0): bytes [14..26] → ws+&0C..&17 via nfs_workspace
+#   Spool (X=&26, Y=&0B, V=0): bytes [27..38] → ws+&01..&0B via nfs_workspace
+# Markers: &FE=terminate, &FD=skip, &FC=substitute page pointer.
+for i in range(39):
+    byte(0xAA9F + i)
+
 label(0xAAC6, "netv_spool_check")
 label(0xAADB, "netv_print_data")
 label(0xAAEA, "loop_drain_printer_buf")
@@ -916,10 +939,27 @@ label(0xAC38, "send_disconnect_status")
 label(0xAC55, "store_tx_ctrl_byte")
 label(0xAC5D, "loop_wait_disc_tx_ack")
 label(0xAC6E, "tx_econet_txcb_template")
+
+# Split the 12-byte spool TX control block template into individual bytes.
+# Simple copy (no marker processing) to workspace offset &25..&30 via
+# (net_rx_ptr),Y. Destination station/network filled in afterwards.
+for i in range(12):
+    byte(0xAC6E + i)
+
 label(0xAC7A, "rx_palette_txcb_template")
+
+# Split the 12-byte spool RX control block template into individual bytes.
+# Copied with marker processing: &FD=skip, &FC=substitute net_rx_ptr_hi.
+for i in range(12):
+    byte(0xAC7A + i)
 label(0xAC86, "lang_2_save_palette_vdu")
 label(0xAC9D, "loop_read_palette")
 label(0xACFB, "osbyte_mode_read_codes")
+
+# Split the 3-byte OSBYTE code table into individual bytes.
+# Indexed by read_osbyte_to_ws to read display mode state.
+for i in range(3):
+    byte(0xACFB + i)
 label(0xAD0E, "parse_cdir_size")
 label(0xAD17, "loop_find_alloc_size")
 label(0xAD1D, "done_cdir_size")
@@ -5991,6 +6031,19 @@ comment(0x8F05, "Decrement counter", inline=True)
 comment(0x8F06, "More bytes: loop", inline=True)
 comment(0x8F08, "Clear workspace flag", inline=True)
 comment(0x8F0B, "Clear workspace byte", inline=True)
+# ws_init_data (&8F2B): 3 workspace initialisation bytes.
+# Label overlaps last byte of JMP at &8F29 (classic 6502 trick).
+# Loop reads ws_init_data+X with X=3,2,1, storing to l0d6d+X.
+comment(0x8F2C, "Workspace init data\n"
+    "\n"
+    "3 bytes read via LDA ws_init_data,X with X=3\n"
+    "down to 1. ws_init_data at &8F2B overlaps the\n"
+    "high byte of JMP err_bad_station_num; byte at\n"
+    "&8F2B itself (&92) is never read (BNE exits\n"
+    "when X=0). Stores to l0d6e, l0d6f, l0d70.")
+comment(0x8F2C, "l0d6e: init=&FF (retry count)", inline=True)
+comment(0x8F2D, "l0d6f: init=&28 (40, TX timeout)", inline=True)
+comment(0x8F2E, "l0d70: init=&0A (10, pass-thru ctrl)", inline=True)
 comment(0x8F0E, "Initialise ADLC protection table", inline=True)
 comment(0x8F11, "Get current workspace page", inline=True)
 comment(0x8F13, "Allocate FS handle page", inline=True)
@@ -6991,7 +7044,7 @@ entry(0x88D8)   # 16 bytes after NMI code
 entry(0xA58B)   # 118-byte undecoded block
 entry(0xA61C)   # 552-byte undecoded block (largest remaining)
 entry(0xA968)   # 68-byte undecoded block
-entry(0xAA9F)   # 49-byte undecoded block
+# entry(0xAA9F) removed — classified as data via byte() declarations
 entry(0xB850)   # 21-byte file handler block
 entry(0xB42F)   # Dead code: unreferenced workspace clear routine
 
@@ -7606,6 +7659,22 @@ comment(0xA3AA, "Bit 2 was set: skip to boot cmd", inline=True)
 comment(0xA3AC, "OSBYTE &79: scan keyboard", inline=True)
 comment(0xA3B4, "CTRL not pressed: proceed to boot", inline=True)
 comment(0xA3B6, "CTRL pressed: cancel boot, return", inline=True)
+# boot_oscli_lo_table (&A3C7): 4-byte boot command address table.
+# Low bytes of OSCLI string addresses (all in page &A3).
+# Entry 0 is never used (BEQ at &A3CE exits before lookup).
+# Entry 2 cleverly points into "L.!BOOT" at &A3B9 = "!BOOT"
+# which MOS treats as *RUN !BOOT.
+comment(0xA3C7, "Boot option OSCLI address table\n"
+    "\n"
+    "Low bytes of boot command string addresses,\n"
+    "all in page &A3. Indexed by boot option 0-3\n"
+    "(option 0 is never reached due to BEQ).\n"
+    "Entry 2 reuses the tail of 'L.!BOOT' to\n"
+    "get '!BOOT' (*RUN equivalent).")
+comment(0xA3C7, "Opt 0: &A3C6 (don't-care, unused)", inline=True)
+comment(0xA3C8, "Opt 1: &A3B7 'L.!BOOT' (*LOAD)", inline=True)
+comment(0xA3C9, "Opt 2: &A3B9 '!BOOT' (*RUN)", inline=True)
+comment(0xA3CA, "Opt 3: &A3BF 'E.!BOOT' (*EXEC)", inline=True)
 comment(0xA3CB, "Load boot type", inline=True)
 comment(0xA3CE, "Type 0: no command, just return", inline=True)
 comment(0xA3D0, "Look up boot command address low", inline=True)
@@ -10330,8 +10399,59 @@ comment(0xAA99, "More bytes: continue copy", inline=True)
 comment(0xAA9B, "Adjust Y for start of TX data", inline=True)
 comment(0xAA9C, "Set net_tx_ptr from Y", inline=True)
 comment(0xAA9E, "Return", inline=True)
-comment(0xAA9F, "Data: TXCB template (decoded as STA &00)", inline=True)
-comment(0xAAA1, "Data: template continuation bytes", inline=True)
+# ws_txcb_template_data (&AA9F): 39-byte workspace init template.
+# Three overlapping regions shared via indexed access:
+#   Wide  (init_ws_copy_wide):    X=&0D → bytes [0..13]
+#   Narrow (init_ws_copy_narrow): X=&1A → bytes [14..26]
+#   Spool (process_spool_data):   X=&26 → bytes [27..38]
+# Markers: &FE=end, &FD=skip, &FC=page pointer.
+comment(0xAA9F, "Workspace TXCB init template\n"
+    "\n"
+    "39-byte template with three overlapping\n"
+    "regions, each a TXCB/RXCB structure:\n"
+    "  Wide  [0..13]:  ws+&6F..&7C via net_rx_ptr\n"
+    "  Narrow [14..26]: ws+&0C..&17 via workspace\n"
+    "  Spool [27..38]:  ws+&01..&0B via workspace\n"
+    "Markers: &FE=end, &FD=skip, &FC=page ptr.")
+comment(0xAA9F, "Wide &6F: ctrl=&85", inline=True)
+comment(0xAAA0, "Wide &70: port=&00", inline=True)
+comment(0xAAA1, "Wide &71: skip (dest station)", inline=True)
+comment(0xAAA2, "Wide &72: skip (dest network)", inline=True)
+comment(0xAAA3, "Wide &73: buf start lo=&7D", inline=True)
+comment(0xAAA4, "Wide &74: buf start hi=page ptr", inline=True)
+comment(0xAAA5, "Wide &75: buf start ext lo", inline=True)
+comment(0xAAA6, "Wide &76: buf start ext hi", inline=True)
+comment(0xAAA7, "Wide &77: buf end lo=&7E", inline=True)
+comment(0xAAA8, "Wide &78: buf end hi=page ptr", inline=True)
+comment(0xAAA9, "Wide &79: buf end ext lo", inline=True)
+comment(0xAAAA, "Wide &7A: buf end ext hi", inline=True)
+comment(0xAAAB, "Wide &7B: zero", inline=True)
+comment(0xAAAC, "Wide &7C: zero", inline=True)
+comment(0xAAAD, "Narrow stop (&FE terminator)", inline=True)
+comment(0xAAAE, "Narrow &0C: ctrl=&80 (standard)", inline=True)
+comment(0xAAAF, "Narrow &0D: port=&93", inline=True)
+comment(0xAAB0, "Narrow &0E: skip (dest station)", inline=True)
+comment(0xAAB1, "Narrow &0F: skip (dest network)", inline=True)
+comment(0xAAB2, "Narrow &10: buf start lo=&D9", inline=True)
+comment(0xAAB3, "Narrow &11: buf start hi=page ptr", inline=True)
+comment(0xAAB4, "Narrow &12: buf start ext lo", inline=True)
+comment(0xAAB5, "Narrow &13: buf start ext hi", inline=True)
+comment(0xAAB6, "Narrow &14: buf end lo=&DE", inline=True)
+comment(0xAAB7, "Narrow &15: buf end hi=page ptr", inline=True)
+comment(0xAAB8, "Narrow &16: buf end ext lo", inline=True)
+comment(0xAAB9, "Narrow &17: buf end ext hi", inline=True)
+comment(0xAABA, "Spool stop (&FE terminator)", inline=True)
+comment(0xAABB, "Spool &01: port=&D1", inline=True)
+comment(0xAABC, "Spool &02: skip (dest station)", inline=True)
+comment(0xAABD, "Spool &03: skip (dest network)", inline=True)
+comment(0xAABE, "Spool &04: buf start lo=&25", inline=True)
+comment(0xAABF, "Spool &05: skip (buf start hi)", inline=True)
+comment(0xAAC0, "Spool &06: buf start ext lo", inline=True)
+comment(0xAAC1, "Spool &07: buf start ext hi", inline=True)
+comment(0xAAC2, "Spool &08: skip (buf end lo)", inline=True)
+comment(0xAAC3, "Spool &09: skip (buf end hi)", inline=True)
+comment(0xAAC4, "Spool &0A: buf end ext lo", inline=True)
+comment(0xAAC5, "Spool &0B: buf end ext hi", inline=True)
 
 # netv_spool_check (&AAC6): OSWORD 5 handler
 comment(0xAAC6, "X = X - 1", inline=True)
@@ -10580,6 +10700,52 @@ comment(0xAC6B, "Done: discard status", inline=True)
 comment(0xAC6C, "Discard disconnect code", inline=True)
 comment(0xAC6D, "Return", inline=True)
 
+# tx_econet_txcb_template (&AC6E): 12-byte spool TX control block.
+# Simple copy to workspace offset &25..&30 via (net_rx_ptr),Y.
+# Station/network at offsets &27/&28 filled in after copy.
+comment(0xAC6E, "Spool TX control block template\n"
+    "\n"
+    "12-byte TXCB template copied directly (no\n"
+    "marker processing) to workspace at offset\n"
+    "&25..&30. Destination station and network\n"
+    "(&27/&28) are filled in from (nfs_workspace)\n"
+    "after the copy.")
+comment(0xAC6E, "ctrl=&80 (standard TX)", inline=True)
+comment(0xAC6F, "port=&9F", inline=True)
+comment(0xAC70, "dest station=&00 (filled later)", inline=True)
+comment(0xAC71, "dest network=&00 (filled later)", inline=True)
+comment(0xAC72, "buf start lo=&43", inline=True)
+comment(0xAC73, "buf start hi=&8E", inline=True)
+comment(0xAC74, "buf start ext lo=&FF", inline=True)
+comment(0xAC75, "buf start ext hi=&FF", inline=True)
+comment(0xAC76, "buf end lo=&4B", inline=True)
+comment(0xAC77, "buf end hi=&8E", inline=True)
+comment(0xAC78, "buf end ext lo=&FF", inline=True)
+comment(0xAC79, "buf end ext hi=&FF", inline=True)
+
+# rx_palette_txcb_template (&AC7A): 12-byte spool RX control block.
+# Copied with marker processing by loop_copy_spool_rx.
+# &FD=skip (preserve dest station/network), &FC=net_rx_ptr_hi.
+comment(0xAC7A, "Spool RX control block template\n"
+    "\n"
+    "12-byte RXCB template with marker processing:\n"
+    "&FD skips the offset (preserves existing value)\n"
+    "and &FC substitutes net_rx_ptr_hi. Copied to\n"
+    "workspace at offset &00..&0B. Sets up a 3-byte\n"
+    "receive buffer at &xx31..&xx34.")
+comment(0xAC7A, "ctrl=&7F (RX listen)", inline=True)
+comment(0xAC7B, "port=&9E", inline=True)
+comment(0xAC7C, "skip: preserve dest station", inline=True)
+comment(0xAC7D, "skip: preserve dest network", inline=True)
+comment(0xAC7E, "buf start lo=&31", inline=True)
+comment(0xAC7F, "buf start hi=page ptr (&FC)", inline=True)
+comment(0xAC80, "buf start ext lo=&FF", inline=True)
+comment(0xAC81, "buf start ext hi=&FF", inline=True)
+comment(0xAC82, "buf end lo=&34", inline=True)
+comment(0xAC83, "buf end hi=page ptr (&FC)", inline=True)
+comment(0xAC84, "buf end ext lo=&FF", inline=True)
+comment(0xAC85, "buf end ext hi=&FF", inline=True)
+
 # Palette read handler (&AC86)
 comment(0xAC86, "Save l00ad counter", inline=True)
 comment(0xAC88, "Push for later restore", inline=True)
@@ -10650,6 +10816,17 @@ comment(0xACF5, "A = result (from X)", inline=True)
 comment(0xACF6, "X=0 for indexed store", inline=True)
 comment(0xACF8, "Store result to workspace", inline=True)
 comment(0xACFA, "Return", inline=True)
+
+# osbyte_mode_read_codes (&ACFB): 3-byte OSBYTE number table.
+# Indexed by read_osbyte_to_ws to save display mode state.
+comment(0xACFB, "OSBYTE mode read codes\n"
+    "\n"
+    "Three OSBYTE numbers used by read_osbyte_to_ws\n"
+    "to save display mode state to workspace before\n"
+    "a language 2 file transfer.")
+comment(0xACFB, "OSBYTE &85: read display start addr", inline=True)
+comment(0xACFC, "OSBYTE &C2: read video ULA ctrl", inline=True)
+comment(0xACFD, "OSBYTE &C3: read video ULA palette", inline=True)
 
 # cmd_dump (&BA06): *DUMP command — hex/ASCII file dump
 # Buffer layout: 21 bytes on stack (page 1), pointed to by l00ae/l00af
