@@ -6007,6 +6007,49 @@ comment(0x8FFB, "Clock present: skip warning", inline=True)
 comment(0x8FFD, "Print ' No Clock' via inline", inline=True)
 comment(0x9009, "NOP (string terminator)", inline=True)
 comment(0x900D, "Return", inline=True)
+
+# cmd_syntax_strings (&900E-&910D): null-terminated *HELP syntax
+# strings. Multi-line strings use &0D as a line break. Indexed
+# via cmd_syntax_table offsets from the low 5 bits of each
+# command table syntax descriptor byte.
+comment(0x900E, "*HELP command syntax strings\n"
+    "\n"
+    "13 null-terminated syntax help strings displayed\n"
+    "by *HELP after each command name. Multi-line\n"
+    "entries use &0D as a line break. Indexed by\n"
+    "cmd_syntax_table via the low 5 bits of each\n"
+    "command's syntax descriptor byte.")
+comment(0x900E, "Syn 1: *Dir, *LCat, *LEx, *Wipe", inline=True)
+comment(0x9015, "Null terminator", inline=True)
+comment(0x9016, "Syn 2: *I Am (login)", inline=True)
+comment(0x902E, "Line break", inline=True)
+comment(0x902F, "Syn 2 continued: password clause", inline=True)
+comment(0x9042, "Null terminator", inline=True)
+comment(0x9043, "Syn 3: *Delete, *FS, *Remove", inline=True)
+comment(0x904B, "Null terminator", inline=True)
+comment(0x904C, "Syn 4: *Dump", inline=True)
+comment(0x9061, "Line break", inline=True)
+comment(0x9062, "Syn 4 continued: address clause", inline=True)
+comment(0x906E, "Null terminator", inline=True)
+comment(0x906F, "Syn 5: *Lib", inline=True)
+comment(0x9074, "Null terminator", inline=True)
+comment(0x9075, "Syn 6: *CDir", inline=True)
+comment(0x9085, "Null terminator", inline=True)
+comment(0x9086, "Syn 7: *Pass", inline=True)
+comment(0x9099, "Line break", inline=True)
+comment(0x909A, "Syn 7 continued: new password", inline=True)
+comment(0x90A8, "Null terminator", inline=True)
+comment(0x90A9, "Syn 8: *PS, *Pollps", inline=True)
+comment(0x90BF, "Null terminator", inline=True)
+comment(0x90C0, "Syn 9: *Access", inline=True)
+comment(0x90DB, "Null terminator", inline=True)
+comment(0x90DC, "Syn 10: *Rename", inline=True)
+comment(0x90F5, "Null terminator", inline=True)
+comment(0x90F6, "Syn 11: (station id. argument)", inline=True)
+comment(0x9102, "Null terminator", inline=True)
+comment(0x9103, "Syn 12: *Print, *Type", inline=True)
+comment(0x910D, "Null terminator", inline=True)
+
 # cmd_syntax_table (&910E): 13-entry offset table for *HELP syntax.
 # Each byte is an offset into cmd_syntax_strings (&900E). The print
 # loop does INY before LDA, so the offset points to the byte before

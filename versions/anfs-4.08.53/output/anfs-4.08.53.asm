@@ -5199,50 +5199,57 @@ ws_init_data = error_bad_station+2
 .syntax_strings
     rts                                                               ; 900d: 60          `              ; Return
 
+; *HELP command syntax strings
+; 
+; 13 null-terminated syntax help strings displayed
+; by *HELP after each command name. Multi-line
+; entries use &0D as a line break. Indexed by
+; cmd_syntax_table via the low 5 bits of each
+; command's syntax descriptor byte.
 ; &900e referenced 1 time by &8bd6
 .cmd_syntax_strings
 .syn_opt_dir
-    equs "(<dir>)"                                                    ; 900e: 28 3c 64... (<d
-    equb 0                                                            ; 9015: 00          .
+    equs "(<dir>)"                                                    ; 900e: 28 3c 64... (<d            ; Syn 1: *Dir, *LCat, *LEx, *Wipe
+    equb 0                                                            ; 9015: 00          .              ; Null terminator
 .syn_iam
-    equs "(<stn. id.>) <user id.> "                                   ; 9016: 28 3c 73... (<s
-    equb &0d                                                          ; 902e: 0d          .
-    equs "((:<CR>)<password>)"                                        ; 902f: 28 28 3a... ((:
-    equb 0                                                            ; 9042: 00          .
+    equs "(<stn. id.>) <user id.> "                                   ; 9016: 28 3c 73... (<s            ; Syn 2: *I Am (login)
+    equb &0d                                                          ; 902e: 0d          .              ; Line break
+    equs "((:<CR>)<password>)"                                        ; 902f: 28 28 3a... ((:            ; Syn 2 continued: password clause
+    equb 0                                                            ; 9042: 00          .              ; Null terminator
 .syn_object
-    equs "<object>"                                                   ; 9043: 3c 6f 62... <ob
-    equb 0                                                            ; 904b: 00          .
+    equs "<object>"                                                   ; 9043: 3c 6f 62... <ob            ; Syn 3: *Delete, *FS, *Remove
+    equb 0                                                            ; 904b: 00          .              ; Null terminator
 .syn_file_offset
-    equs "<filename> (<offset> "                                      ; 904c: 3c 66 69... <fi
-    equb &0d                                                          ; 9061: 0d          .
-    equs "(<address>))"                                               ; 9062: 28 3c 61... (<a
-    equb 0                                                            ; 906e: 00          .
+    equs "<filename> (<offset> "                                      ; 904c: 3c 66 69... <fi            ; Syn 4: *Dump
+    equb &0d                                                          ; 9061: 0d          .              ; Line break
+    equs "(<address>))"                                               ; 9062: 28 3c 61... (<a            ; Syn 4 continued: address clause
+    equb 0                                                            ; 906e: 00          .              ; Null terminator
 .syn_dir
-    equs "<dir>"                                                      ; 906f: 3c 64 69... <di
-    equb 0                                                            ; 9074: 00          .
+    equs "<dir>"                                                      ; 906f: 3c 64 69... <di            ; Syn 5: *Lib
+    equb 0                                                            ; 9074: 00          .              ; Null terminator
 .syn_dir_num
-    equs "<dir> (<number>)"                                           ; 9075: 3c 64 69... <di
-    equb 0                                                            ; 9085: 00          .
+    equs "<dir> (<number>)"                                           ; 9075: 3c 64 69... <di            ; Syn 6: *CDir
+    equb 0                                                            ; 9085: 00          .              ; Null terminator
 .syn_password
-    equs "(:<CR>) <password> "                                        ; 9086: 28 3a 3c... (:<
-    equb &0d                                                          ; 9099: 0d          .
-    equs "<new password>"                                             ; 909a: 3c 6e 65... <ne
-    equb 0                                                            ; 90a8: 00          .
+    equs "(:<CR>) <password> "                                        ; 9086: 28 3a 3c... (:<            ; Syn 7: *Pass
+    equb &0d                                                          ; 9099: 0d          .              ; Line break
+    equs "<new password>"                                             ; 909a: 3c 6e 65... <ne            ; Syn 7 continued: new password
+    equb 0                                                            ; 90a8: 00          .              ; Null terminator
 .syn_ps_type
-    equs "(<stn. id.>|<ps type>)"                                     ; 90a9: 28 3c 73... (<s
-    equb 0                                                            ; 90bf: 00          .
+    equs "(<stn. id.>|<ps type>)"                                     ; 90a9: 28 3c 73... (<s            ; Syn 8: *PS, *Pollps
+    equb 0                                                            ; 90bf: 00          .              ; Null terminator
 .syn_access
-    equs "<object> (L)(W)(R)(/(W)(R))"                                ; 90c0: 3c 6f 62... <ob
-    equb 0                                                            ; 90db: 00          .
+    equs "<object> (L)(W)(R)(/(W)(R))"                                ; 90c0: 3c 6f 62... <ob            ; Syn 9: *Access
+    equb 0                                                            ; 90db: 00          .              ; Null terminator
 .syn_rename
-    equs "<filename> <new filename>"                                  ; 90dc: 3c 66 69... <fi
-    equb 0                                                            ; 90f5: 00          .
+    equs "<filename> <new filename>"                                  ; 90dc: 3c 66 69... <fi            ; Syn 10: *Rename
+    equb 0                                                            ; 90f5: 00          .              ; Null terminator
 .syn_opt_stn
-    equs "(<stn. id.>)"                                               ; 90f6: 28 3c 73... (<s
-    equb 0                                                            ; 9102: 00          .
+    equs "(<stn. id.>)"                                               ; 90f6: 28 3c 73... (<s            ; Syn 11: (station id. argument)
+    equb 0                                                            ; 9102: 00          .              ; Null terminator
 .syn_filename
-    equs "<filename>"                                                 ; 9103: 3c 66 69... <fi
-    equb 0                                                            ; 910d: 00          .
+    equs "<filename>"                                                 ; 9103: 3c 66 69... <fi            ; Syn 12: *Print, *Type
+    equb 0                                                            ; 910d: 00          .              ; Null terminator
 ; Command syntax string offset table
 ; 
 ; 13 offsets into cmd_syntax_strings (&900E).
