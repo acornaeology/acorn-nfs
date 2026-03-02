@@ -4795,8 +4795,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; 0-8 to Econet handlers. Interleaved with the
 ; OSBYTE wrapper code in the data area.
 .netv_handler_addr
-    equb <netv_handler                                                ; 8e74: 68          h              ; NETV handler lo: netv_handler
-    equb >netv_handler                                                ; 8e75: a9          .              ; NETV handler hi: netv_handler
+    equw netv_handler                                                 ; 8e74: 68 a9       h.             ; NETV handler: netv_handler (&A968)
 
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=0
@@ -14917,7 +14916,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(tx_done_jsr-1) == &38
     assert <(tx_done_os_proc-1) == &4f
     assert <(wait_idle_and_reset-1) == &78
-    assert <netv_handler == &68
     assert >(econet_restore-1) == &80
     assert >(fs_work_4) == &00
     assert >(fscv_0_opt_entry-1) == &9d
@@ -14982,7 +14980,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(svc_8_osword-1) == &a4
     assert >(svc_9_help-1) == &8c
     assert >(wait_idle_and_reset-1) == &89
-    assert >netv_handler == &a9
     assert cmd_bye-1 == &9489
     assert cmd_cdir-1 == &acfd
     assert cmd_close-1 == &b97e
@@ -15010,6 +15007,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert cmd_utils-1 == &8b86
     assert cmd_wipe-1 == &b33c
     assert copyright - rom_header == &14
+    assert netv_handler == &a968
     assert tube_osargs == &055e
     assert tube_osbget == &052d
     assert tube_osbput == &0520
@@ -16679,7 +16677,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1790 bytes (11%)
 ;
 ;     Number of instructions   = 7160
-;     Number of data bytes     = 525 bytes
-;     Number of data words     = 110 bytes
+;     Number of data bytes     = 523 bytes
+;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1155 bytes
 ;     Number of strings        = 139

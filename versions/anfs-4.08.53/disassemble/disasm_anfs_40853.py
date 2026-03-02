@@ -5809,8 +5809,7 @@ comment(0x8E74, "NETV handler address\n"
     "netv_handler (&A968) which dispatches OSWORDs\n"
     "0-8 to Econet handlers. Interleaved with the\n"
     "OSBYTE wrapper code in the data area.")
-comment(0x8E74, "NETV handler lo: netv_handler", inline=True)
-comment(0x8E75, "NETV handler hi: netv_handler", inline=True)
+comment(0x8E74, "NETV handler: netv_handler (&A968)", inline=True)
 
 comment(0x8E76, "X=0", inline=True)
 comment(0x8E78, "Y=0", inline=True)
@@ -6859,10 +6858,8 @@ for i in range(8):
 # NETV handler address pair at &8E74 (read by write_vector_entry)
 label(0x8E74, "netv_handler_addr")
 label(0xA968, "netv_handler")
-byte(0x8E74)
-byte(0x8E75)
-expr(0x8E74, "<netv_handler")
-expr(0x8E75, ">netv_handler")
+word(0x8E74)
+expr(0x8E74, "netv_handler")
 
 # Command syntax help strings (&900D-&910C)
 label(0x900D, "syntax_strings")
