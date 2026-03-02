@@ -6323,6 +6323,7 @@ entry(0xAC86)
 entry(0x9598)
 entry(0x95A8)
 entry(0x9DBC)
+entry(0x9B83)
 entry(0x9DE2)
 entry(0xA1A9)
 entry(0xA0FC)
@@ -12470,6 +12471,12 @@ comment(0x9B7A, "Loop until all copied", inline=True)
 comment(0x9B7C, "Reload file handle", inline=True)
 comment(0x9B7F, "Transfer to A", inline=True)
 comment(0x9B80, "Jump to finalise and return", inline=True)
+comment(0x9B83, "Unreachable dead code (3 bytes)\n"
+    "\n"
+    "Duplicate of the JMP at &9B80 immediately above.\n"
+    "Unreachable after the unconditional JMP and\n"
+    "unreferenced. Likely a development remnant.")
+comment(0x9B83, "Dead: duplicate JMP finalise_and_return", inline=True)
 
 # format_filename_field: format filename for display (&9B86-&9BAE)
 comment(0x9B86, "Y=0: destination index", inline=True)

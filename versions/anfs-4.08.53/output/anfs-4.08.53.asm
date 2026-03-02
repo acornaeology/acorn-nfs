@@ -7857,7 +7857,12 @@ bad_prefix = bad_str_anchor+1
 .done_osword_op
     jmp finalise_and_return                                           ; 9b80: 4c bb 9c    L..            ; Jump to finalise and return
 
-    equb &4c, &bb, &9c                                                ; 9b83: 4c bb 9c    L..
+; Unreachable dead code (3 bytes)
+; 
+; Duplicate of the JMP at &9B80 immediately above.
+; Unreachable after the unconditional JMP and
+; unreferenced. Likely a development remnant.
+    jmp finalise_and_return                                           ; 9b83: 4c bb 9c    L..            ; Dead: duplicate JMP finalise_and_return
 
 ; ***************************************************************************************
 ; Format filename into fixed-width display field
@@ -8068,7 +8073,7 @@ bad_prefix = bad_str_anchor+1
 ; &9cb9 referenced 12 times by &9935, &9a42, &9b37, &9c3d, &9c59, &9c7c, &9cb3, &9daf, &9e36, &a2df, &a2e5, &a399
 .return_with_last_flag
     lda fs_last_byte_flag                                             ; 9cb9: a5 bd       ..             ; Load last byte flag
-; &9cbb referenced 6 times by &9b80, &9cd1, &9ce4, &9d7b, &9ebd, &a1ee
+; &9cbb referenced 7 times by &9b80, &9b83, &9cd1, &9ce4, &9d7b, &9ebd, &a1ee
 .finalise_and_return
     pha                                                               ; 9cbb: 48          H              ; Push result on stack
     lda #0                                                            ; 9cbc: a9 00       ..             ; A=0: clear error flag
@@ -15281,6 +15286,7 @@ save pydis_start, pydis_end
 ;     ws_0d60:                                  8
 ;     zp_ptr_hi:                                8
 ;     alloc_fcb_slot:                           7
+;     finalise_and_return:                      7
 ;     fs_load_addr_hi:                          7
 ;     l00cc:                                    7
 ;     l00d0:                                    7
@@ -15302,7 +15308,6 @@ save pydis_start, pydis_end
 ;     copy_arg_to_buf_x0:                       6
 ;     discard_reset_rx:                         6
 ;     error_overflow:                           6
-;     finalise_and_return:                      6
 ;     l0d6b:                                    6
 ;     l0d6d:                                    6
 ;     l0d72:                                    6
@@ -16835,11 +16840,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14594 bytes (89%)
-;     Data                     = 1790 bytes (11%)
+;     Code                     = 14597 bytes (89%)
+;     Data                     = 1787 bytes (11%)
 ;
-;     Number of instructions   = 7160
-;     Number of data bytes     = 531 bytes
+;     Number of instructions   = 7161
+;     Number of data bytes     = 528 bytes
 ;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1147 bytes
 ;     Number of strings        = 138
