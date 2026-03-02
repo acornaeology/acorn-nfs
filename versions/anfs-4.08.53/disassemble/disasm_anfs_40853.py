@@ -6603,7 +6603,8 @@ entry(0xA8D0)   # Large undecoded block (220 bytes)
 entry(0xA9D0)   # After &A9CF code
 entry(0xAADB)   # After &AACF data table
 entry(0xB7CF)   # File operation handler
-entry(0xB865)   # File operation handler
+# entry(0xB865) removed — was mid-instruction; &B865 is byte 2 of
+# LDA #&C1 at &B864, part of the inline error call to error_inline_log.
 
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84B1)   # After dispatch table data
@@ -11284,7 +11285,8 @@ comment(0xB859, "Save data byte in workspace", inline=True)
 comment(0xB85C, "Store result and check not directory", inline=True)
 comment(0xB85F, "Load channel flags", inline=True)
 comment(0xB862, "Bit 7 set: channel open, proceed", inline=True)
-comment(0xB865, "Misdecoded error path (equb data)", inline=True)
+comment(0xB864, "Error &C1: Not open for update", inline=True)
+comment(0xB866, "Raise error with inline string", inline=True)
 
 # Channel open for writing: check write mode
 comment(0xB87D, "Test write flag (bit 5)", inline=True)

@@ -336,7 +336,6 @@ oscli                                   = &fff7
     jsr tube_send_r4                                                  ; bec1: 20 9e 06     .. :0018[1]   ; Send &FF error signal to Tube R4
     lda tube_data_register_2                                          ; bec4: ad e3 fe    ... :001b[1]   ; Flush any pending R2 byte
     lda #0                                                            ; bec7: a9 00       ..  :001e[1]   ; A=0: send zero prefix to R2
-; &bec9 referenced 1 time by &b865
 .tube_send_zero_r2
     jsr tube_send_r2                                                  ; bec9: 20 95 06     .. :0020[1]   ; Send zero prefix byte via R2
     tay                                                               ; becc: a8          .   :0023[1]   ; Y=0: start of error block at (&FD)
@@ -6559,7 +6558,7 @@ bad_prefix = bad_str_anchor+1
 ; On Entry:
 ;     A: error number
 ; ***************************************************************************************
-; &96bb referenced 10 times by &941b, &959d, &a25e, &abee, &ac00, &b475, &b4ec, &b538, &b7e0, &b81b
+; &96bb referenced 11 times by &941b, &959d, &a25e, &abee, &ac00, &b475, &b4ec, &b538, &b7e0, &b81b, &b866
 .error_inline_log
     jsr cond_save_error_code                                          ; 96bb: 20 fb 95     ..            ; Conditionally log error code to workspace
 ; ***************************************************************************************
@@ -13830,10 +13829,8 @@ net_channel_err_string = err_net_chan_not_found+2
     jsr store_result_check_dir                                        ; b85c: 20 dc b4     ..            ; Store result and check not directory
     lda l1060,x                                                       ; b85f: bd 60 10    .`.            ; Load channel flags
     bmi done_test_write_flag                                          ; b862: 30 19       0.             ; Bit 7 set: channel open, proceed
-    equb &a9                                                          ; b864: a9          .
-
-    cmp (tube_send_zero_r2,x)                                         ; b865: c1 20       .              ; Misdecoded error path (equb data)
-    equb &bb, &96                                                     ; b867: bb 96       ..
+    lda #&c1                                                          ; b864: a9 c1       ..             ; Error &C1: Not open for update
+    jsr error_inline_log                                              ; b866: 20 bb 96     ..            ; Raise error with inline string
     equs "Not open for update", 0                                     ; b869: 4e 6f 74... Not
 
 ; &b87d referenced 1 time by &b862
@@ -14960,13 +14957,13 @@ save pydis_start, pydis_end
 ;     return_with_last_flag:                   12
 ;     svc_state:                               12
 ;     error_bad_inline:                        11
+;     error_inline_log:                        11
 ;     fs_load_addr_3:                          11
 ;     l00b6:                                   11
 ;     net_rx_ptr_hi:                           11
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
 ;     copy_arg_to_buf:                         10
-;     error_inline_log:                        10
 ;     nfs_workspace_hi:                        10
 ;     tube_addr_data_dispatch:                 10
 ;     tube_data_register_3:                    10
@@ -16280,7 +16277,6 @@ save pydis_start, pydis_end
 ;     tube_reset_stack:                         1
 ;     tube_return_main:                         1
 ;     tube_send_error_num:                      1
-;     tube_send_zero_r2:                        1
 ;     tube_sendw_complete:                      1
 ;     tube_transfer_setup:                      1
 ;     tube_tx_inc_operand:                      1
@@ -16548,11 +16544,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14590 bytes (89%)
-;     Data                     = 1794 bytes (11%)
+;     Code                     = 14593 bytes (89%)
+;     Data                     = 1791 bytes (11%)
 ;
-;     Number of instructions   = 7161
-;     Number of data bytes     = 518 bytes
+;     Number of instructions   = 7162
+;     Number of data bytes     = 515 bytes
 ;     Number of data words     = 110 bytes
 ;     Number of string bytes   = 1166 bytes
 ;     Number of strings        = 141
