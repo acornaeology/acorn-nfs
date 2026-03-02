@@ -11259,7 +11259,7 @@ bridge_ws_init_data = sub_ca843+1
 ; 
 ; Parses an optional allocation size argument: if absent,
 ; defaults to index 2; if present, parses the decimal value
-; and searches a 27-entry threshold table to find the
+; and searches a 26-entry threshold table to find the
 ; matching allocation size index. Parses the directory name
 ; via parse_filename_arg, copies it to the TX buffer, and
 ; sends FS command code &1B to create the directory.
@@ -11282,7 +11282,7 @@ bridge_ws_init_data = sub_ca843+1
     lda #&ff                                                          ; ad0e: a9 ff       ..             ; A=&FF: mark as decimal parse
     sta fs_work_4                                                     ; ad10: 85 b4       ..             ; Store decimal parse flag
     jsr parse_addr_arg                                                ; ad12: 20 5a 91     Z.            ; Parse numeric size argument
-    ldx #&1b                                                          ; ad15: a2 1b       ..             ; X=&1B: top of 27-entry size table
+    ldx #&1b                                                          ; ad15: a2 1b       ..             ; X=&1B: top of 26-entry size table
 ; &ad17 referenced 1 time by &ad1b
 .loop_find_alloc_size
     dex                                                               ; ad17: ca          .              ; Try next lower index
@@ -11303,10 +11303,41 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jmp save_net_tx_cb                                                ; ad2f: 4c 99 94    L..            ; Send command to file server
 
 ; &ad31 referenced 1 time by &ad18
-    equb 0, &0a, &14, &1d                                             ; ad32: 00 0a 14... ...
-    equs "'1;EOXblv"                                                  ; ad36: 27 31 3b... '1;
-    equb &80, &8a, &94, &9d, &a7, &b1, &bb, &c5, &cf, &d8, &e2, &ec   ; ad3f: 80 8a 94... ...
-    equb &f6, &ff                                                     ; ad4b: f6 ff       ..
+; *CDir allocation size threshold table
+; 
+; 26 thresholds dividing 0-255 into size classes.
+; Table base overlaps with the JMP high byte at
+; &AD31 (entry 0 = &94, never reached). Searched
+; from index 26 down to 0; the result index (1-26)
+; is stored as the directory allocation size class.
+; Default when no size argument given: index 2.
+    equb 0                                                            ; ad32: 00          .              ; Index 1: threshold 0 (catch-all)
+    equb &0a                                                          ; ad33: 0a          .              ; Index 2: threshold 10 (default)
+    equb &14                                                          ; ad34: 14          .              ; Index 3: threshold 20
+    equb &1d                                                          ; ad35: 1d          .              ; Index 4: threshold 29
+    equb &27                                                          ; ad36: 27          '              ; Index 5: threshold 39
+    equb &31                                                          ; ad37: 31          1              ; Index 6: threshold 49
+    equb &3b                                                          ; ad38: 3b          ;              ; Index 7: threshold 59
+    equb &45                                                          ; ad39: 45          E              ; Index 8: threshold 69
+    equb &4f                                                          ; ad3a: 4f          O              ; Index 9: threshold 79
+    equb &58                                                          ; ad3b: 58          X              ; Index 10: threshold 88
+    equb &62                                                          ; ad3c: 62          b              ; Index 11: threshold 98
+    equb &6c                                                          ; ad3d: 6c          l              ; Index 12: threshold 108
+    equb &76                                                          ; ad3e: 76          v              ; Index 13: threshold 118
+    equb &80                                                          ; ad3f: 80          .              ; Index 14: threshold 128
+    equb &8a                                                          ; ad40: 8a          .              ; Index 15: threshold 138
+    equb &94                                                          ; ad41: 94          .              ; Index 16: threshold 148
+    equb &9d                                                          ; ad42: 9d          .              ; Index 17: threshold 157
+    equb &a7                                                          ; ad43: a7          .              ; Index 18: threshold 167
+    equb &b1                                                          ; ad44: b1          .              ; Index 19: threshold 177
+    equb &bb                                                          ; ad45: bb          .              ; Index 20: threshold 187
+    equb &c5                                                          ; ad46: c5          .              ; Index 21: threshold 197
+    equb &cf                                                          ; ad47: cf          .              ; Index 22: threshold 207
+    equb &d8                                                          ; ad48: d8          .              ; Index 23: threshold 216
+    equb &e2                                                          ; ad49: e2          .              ; Index 24: threshold 226
+    equb &ec                                                          ; ad4a: ec          .              ; Index 25: threshold 236
+    equb &f6                                                          ; ad4b: f6          .              ; Index 26: threshold 246
+    equb &ff                                                          ; ad4c: ff          .              ; Unused (index 27, never accessed)
 
 ; ***************************************************************************************
 ; *LCat command handler
@@ -16465,7 +16496,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1804 bytes (11%)
 ;
 ;     Number of instructions   = 7155
-;     Number of data bytes     = 519 bytes
+;     Number of data bytes     = 528 bytes
 ;     Number of data words     = 110 bytes
-;     Number of string bytes   = 1175 bytes
-;     Number of strings        = 142
+;     Number of string bytes   = 1166 bytes
+;     Number of strings        = 141

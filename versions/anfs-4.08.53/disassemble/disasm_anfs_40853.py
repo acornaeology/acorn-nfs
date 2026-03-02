@@ -832,6 +832,13 @@ label(0xAD0E, "parse_cdir_size")
 label(0xAD17, "loop_find_alloc_size")
 label(0xAD1D, "done_cdir_size")
 label(0xAD31, "cdir_alloc_size_table")
+
+# Split the 27-byte *CDir allocation size threshold table into
+# individual bytes for annotation. Table base at &AD31 overlaps
+# with the JMP operand high byte; data bytes run &AD32-&AD4C.
+for i in range(27):
+    byte(0xAD32 + i)
+
 label(0xAD5D, "ex_set_lib_flag")
 label(0xAD6E, "fscv_5_cat")
 label(0xAD77, "cat_set_lib_flag")
@@ -6428,7 +6435,7 @@ subroutine(0xACFE, "cmd_cdir",
     title="*CDir command handler",
     description="Parses an optional allocation size argument: if absent,\n"
     "defaults to index 2; if present, parses the decimal value\n"
-    "and searches a 27-entry threshold table to find the\n"
+    "and searches a 26-entry threshold table to find the\n"
     "matching allocation size index. Parses the directory name\n"
     "via parse_filename_arg, copies it to the TX buffer, and\n"
     "sends FS command code &1B to create the directory.",
@@ -6809,7 +6816,7 @@ comment(0xAD0A, "Default allocation size index = 2", inline=True)
 comment(0xAD0E, "A=&FF: mark as decimal parse", inline=True)
 comment(0xAD10, "Store decimal parse flag", inline=True)
 comment(0xAD12, "Parse numeric size argument", inline=True)
-comment(0xAD15, "X=&1B: top of 27-entry size table", inline=True)
+comment(0xAD15, "X=&1B: top of 26-entry size table", inline=True)
 comment(0xAD17, "Try next lower index", inline=True)
 comment(0xAD18, "Compare size with threshold", inline=True)
 comment(0xAD1B, "A < threshold: keep searching", inline=True)
@@ -6822,6 +6829,48 @@ comment(0xAD28, "X=1: one argument to copy", inline=True)
 comment(0xAD2A, "Copy directory name to TX buffer", inline=True)
 comment(0xAD2D, "Y=&1B: *CDir FS command code", inline=True)
 comment(0xAD2F, "Send command to file server", inline=True)
+
+# cdir_alloc_size_table (&AD32): *CDir allocation size thresholds.
+# Table base label is at &AD31 (overlapping the JMP operand high
+# byte at &AD2F). The search loop (LDX #&1B / DEX / CMP table,X /
+# BCC) scans indices 26 down to 0; index 0 reads &94 from the JMP
+# but is unreachable because index 1 (threshold &00) always matches.
+# Result X (1-26) is the allocation size class sent to the FS.
+comment(0xAD32, "*CDir allocation size threshold table\n"
+    "\n"
+    "26 thresholds dividing 0-255 into size classes.\n"
+    "Table base overlaps with the JMP high byte at\n"
+    "&AD31 (entry 0 = &94, never reached). Searched\n"
+    "from index 26 down to 0; the result index (1-26)\n"
+    "is stored as the directory allocation size class.\n"
+    "Default when no size argument given: index 2.")
+comment(0xAD32, "Index 1: threshold 0 (catch-all)", inline=True)
+comment(0xAD33, "Index 2: threshold 10 (default)", inline=True)
+comment(0xAD34, "Index 3: threshold 20", inline=True)
+comment(0xAD35, "Index 4: threshold 29", inline=True)
+comment(0xAD36, "Index 5: threshold 39", inline=True)
+comment(0xAD37, "Index 6: threshold 49", inline=True)
+comment(0xAD38, "Index 7: threshold 59", inline=True)
+comment(0xAD39, "Index 8: threshold 69", inline=True)
+comment(0xAD3A, "Index 9: threshold 79", inline=True)
+comment(0xAD3B, "Index 10: threshold 88", inline=True)
+comment(0xAD3C, "Index 11: threshold 98", inline=True)
+comment(0xAD3D, "Index 12: threshold 108", inline=True)
+comment(0xAD3E, "Index 13: threshold 118", inline=True)
+comment(0xAD3F, "Index 14: threshold 128", inline=True)
+comment(0xAD40, "Index 15: threshold 138", inline=True)
+comment(0xAD41, "Index 16: threshold 148", inline=True)
+comment(0xAD42, "Index 17: threshold 157", inline=True)
+comment(0xAD43, "Index 18: threshold 167", inline=True)
+comment(0xAD44, "Index 19: threshold 177", inline=True)
+comment(0xAD45, "Index 20: threshold 187", inline=True)
+comment(0xAD46, "Index 21: threshold 197", inline=True)
+comment(0xAD47, "Index 22: threshold 207", inline=True)
+comment(0xAD48, "Index 23: threshold 216", inline=True)
+comment(0xAD49, "Index 24: threshold 226", inline=True)
+comment(0xAD4A, "Index 25: threshold 236", inline=True)
+comment(0xAD4B, "Index 26: threshold 246", inline=True)
+comment(0xAD4C, "Unused (index 27, never accessed)", inline=True)
 
 # cmd_lcat (&AD4D) — *LCat: library catalogue
 comment(0xAD4D, "Rotate carry into lib flag bit 7", inline=True)
