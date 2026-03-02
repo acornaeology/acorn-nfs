@@ -725,6 +725,22 @@ label(0xA50F, "osword_dispatch_hi_table")
 # Mark OSWORD dispatch table entries as symbolic address pairs.
 for i in range(7):
     rts_code_ptr(0xA508 + i, 0xA50F + i)
+
+comment(0xA508, "lo-&0E: Read clock", inline=True)
+comment(0xA509, "lo-&0F: (unimplemented)", inline=True)
+comment(0xA50A, "lo-&10: Transmit", inline=True)
+comment(0xA50B, "lo-&11: Receive", inline=True)
+comment(0xA50C, "lo-&12: Read station info", inline=True)
+comment(0xA50D, "lo-&13: Misc operations", inline=True)
+comment(0xA50E, "lo-&14: Bridge/net config", inline=True)
+comment(0xA50F, "hi-&0E: Read clock", inline=True)
+comment(0xA510, "hi-&0F: (unimplemented)", inline=True)
+comment(0xA511, "hi-&10: Transmit", inline=True)
+comment(0xA512, "hi-&11: Receive", inline=True)
+comment(0xA513, "hi-&12: Read station info", inline=True)
+comment(0xA514, "hi-&13: Misc operations", inline=True)
+comment(0xA515, "hi-&14: Bridge/net config", inline=True)
+
 label(0xA516, "osword_0e_handler")
 label(0xA526, "save_txcb_and_convert")
 label(0xA573, "loop_copy_bcd_to_pb")

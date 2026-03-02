@@ -9445,22 +9445,22 @@ bad_prefix = bad_str_anchor+1
 ; Maps OSWORD codes &0E-&14 to handler routines.
 ; &a508 referenced 1 time by &a4f4
 .osword_dispatch_lo_table
-    equb <(osword_0e_handler-1)                                       ; a508: 15          .
-    equb <(return_21-1)                                               ; a509: 06          .
-    equb <(osword_10_handler-1)                                       ; a50a: 8a          .
-    equb <(osword_11_handler-1)                                       ; a50b: a7          .
-    equb <(osword_12_handler-1)                                       ; a50c: 1b          .
-    equb <(osword_13_dispatch-1)                                      ; a50d: 30          0
-    equb <(osword_14_handler-1)                                       ; a50e: cf          .
+    equb <(osword_0e_handler-1)                                       ; a508: 15          .              ; lo-&0E: Read clock
+    equb <(return_21-1)                                               ; a509: 06          .              ; lo-&0F: (unimplemented)
+    equb <(osword_10_handler-1)                                       ; a50a: 8a          .              ; lo-&10: Transmit
+    equb <(osword_11_handler-1)                                       ; a50b: a7          .              ; lo-&11: Receive
+    equb <(osword_12_handler-1)                                       ; a50c: 1b          .              ; lo-&12: Read station info
+    equb <(osword_13_dispatch-1)                                      ; a50d: 30          0              ; lo-&13: Misc operations
+    equb <(osword_14_handler-1)                                       ; a50e: cf          .              ; lo-&14: Bridge/net config
 ; &a50f referenced 1 time by &a4f0
 .osword_dispatch_hi_table
-    equb >(osword_0e_handler-1)                                       ; a50f: a5          .
-    equb >(return_21-1)                                               ; a510: a5          .
-    equb >(osword_10_handler-1)                                       ; a511: a5          .
-    equb >(osword_11_handler-1)                                       ; a512: a5          .
-    equb >(osword_12_handler-1)                                       ; a513: a6          .
-    equb >(osword_13_dispatch-1)                                      ; a514: a6          .
-    equb >(osword_14_handler-1)                                       ; a515: a8          .
+    equb >(osword_0e_handler-1)                                       ; a50f: a5          .              ; hi-&0E: Read clock
+    equb >(return_21-1)                                               ; a510: a5          .              ; hi-&0F: (unimplemented)
+    equb >(osword_10_handler-1)                                       ; a511: a5          .              ; hi-&10: Transmit
+    equb >(osword_11_handler-1)                                       ; a512: a5          .              ; hi-&11: Receive
+    equb >(osword_12_handler-1)                                       ; a513: a6          .              ; hi-&12: Read station info
+    equb >(osword_13_dispatch-1)                                      ; a514: a6          .              ; hi-&13: Misc operations
+    equb >(osword_14_handler-1)                                       ; a515: a8          .              ; hi-&14: Bridge/net config
 
 .osword_0e_handler
     pha                                                               ; a516: 48          H              ; Save A for later test
