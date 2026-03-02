@@ -539,6 +539,21 @@ label(0x9752, "append_station_num")
 label(0x977F, "loop_count_digit")
 label(0x978F, "store_digit")
 label(0x9798, "net_error_lookup_data")
+for i in range(12):
+    byte(0x9798 + i)
+# Symbolic offsets into error_msg_table
+expr(0x9798, "error_msg_table - error_msg_table")
+expr(0x9799, "msg_net_error - error_msg_table")
+expr(0x979A, "msg_station - error_msg_table")
+expr(0x979B, "msg_no_clock - error_msg_table")
+expr(0x979C, "msg_escape - error_msg_table")
+expr(0x979D, "msg_escape - error_msg_table")
+expr(0x979E, "msg_escape - error_msg_table")
+expr(0x979F, "msg_bad_option - error_msg_table")
+expr(0x97A0, "msg_no_reply - error_msg_table")
+expr(0x97A1, "msg_not_listening - error_msg_table")
+expr(0x97A2, "msg_on_channel - error_msg_table")
+expr(0x97A3, "msg_not_present - error_msg_table")
 label(0x9831, "set_timeout")
 label(0x983A, "start_tx_attempt")
 label(0x9850, "loop_retry_tx")
@@ -6984,6 +6999,33 @@ label(0x900D, "syntax_strings")
 
 # Error message table (&97A4)
 label(0x97A4, "error_msg_table")
+label(0x97B1, "msg_net_error")
+label(0x97BC, "msg_station")
+label(0x97C5, "msg_no_clock")
+label(0x97CF, "msg_escape")
+label(0x97D7, "msg_bad_option")
+label(0x97E3, "msg_no_reply")
+label(0x97FA, "msg_not_listening")
+label(0x9809, "msg_on_channel")
+label(0x9815, "msg_not_present")
+# Split error number and null terminator bytes
+byte(0x97A4)   # error &A0
+byte(0x97B0)   # null
+byte(0x97B1)   # error &A1
+byte(0x97BB)   # null
+byte(0x97BC)   # error &A2
+byte(0x97C4)   # null
+byte(0x97C5)   # error &A3
+byte(0x97CE)   # null
+byte(0x97CF)   # error &11
+byte(0x97D6)   # null
+byte(0x97D7)   # error &CB
+byte(0x97E2)   # null
+byte(0x97E3)   # error &A5
+byte(0x97F9)   # null
+byte(0x9808)   # null
+byte(0x9814)   # null
+byte(0x9821)   # null
 
 # Credits string
 label(0x8C98, "version_string")
@@ -11880,6 +11922,58 @@ comment(0x9790, "Load current text position", inline=True)
 comment(0x9792, "Store ASCII digit in error text", inline=True)
 comment(0x9795, "Advance text position", inline=True)
 comment(0x9797, "Return", inline=True)
+
+# net_error_lookup_data (&9798) — error class offset table
+comment(0x9798, "Network error lookup table (12 bytes)\n"
+    "\n"
+    "Each byte is an offset into error_msg_table.\n"
+    "Indices 0-7 are keyed by error class (reply AND 7).\n"
+    "Index 8 is used by build_no_reply_error.\n"
+    "Indices 9-11 point to suffix strings appended\n"
+    "after the station address in compound errors.")
+comment(0x9798, "Class 0: &A0 \"Line jammed\"", inline=True)
+comment(0x9799, "Class 1: &A1 \"Net error\"", inline=True)
+comment(0x979A, "Class 2: &A2 \"Station\"", inline=True)
+comment(0x979B, "Class 3: &A3 \"No clock\"", inline=True)
+comment(0x979C, "Class 4: &11 \"Escape\"", inline=True)
+comment(0x979D, "Class 5: &11 \"Escape\" (duplicate)", inline=True)
+comment(0x979E, "Class 6: &11 \"Escape\" (duplicate)", inline=True)
+comment(0x979F, "Class 7: &CB \"Bad option\"", inline=True)
+comment(0x97A0, "Index 8: &A5 \"No reply from station\"", inline=True)
+comment(0x97A1, "Index 9: \" not listening\" suffix", inline=True)
+comment(0x97A2, "Index 10: \" on channel\" suffix", inline=True)
+comment(0x97A3, "Index 11: \" not present\" suffix", inline=True)
+
+# error_msg_table (&97A4) — error number + string entries
+comment(0x97A4, "Network error message table\n"
+    "\n"
+    "Each entry is [error_number][string...][null].\n"
+    "The error number is the BRK error code stored in\n"
+    "the error block at &0100. Entries 0-6 are complete\n"
+    "error messages. The last 3 are suffix strings\n"
+    "(no error number) appended to class 2 \"Station\"\n"
+    "errors to form compound messages like\n"
+    "\"Station 1.254 not listening\".")
+comment(0x97A4, "Error &A0: Line jammed", inline=True)
+comment(0x97B0, "Null terminator", inline=True)
+comment(0x97B1, "Error &A1: Net error", inline=True)
+comment(0x97BB, "Null terminator", inline=True)
+comment(0x97BC, "Error &A2: Station", inline=True)
+comment(0x97C4, "Null terminator", inline=True)
+comment(0x97C5, "Error &A3: No clock", inline=True)
+comment(0x97CE, "Null terminator", inline=True)
+comment(0x97CF, "Error &11: Escape", inline=True)
+comment(0x97D6, "Null terminator", inline=True)
+comment(0x97D7, "Error &CB: Bad option", inline=True)
+comment(0x97E2, "Null terminator", inline=True)
+comment(0x97E3, "Error &A5: No reply from station", inline=True)
+comment(0x97F9, "Null terminator", inline=True)
+comment(0x97FA, "Suffix: \" not listening\"", inline=True)
+comment(0x9808, "Null terminator", inline=True)
+comment(0x9809, "Suffix: \" on channel\"", inline=True)
+comment(0x9814, "Null terminator", inline=True)
+comment(0x9815, "Suffix: \" not present\"", inline=True)
+comment(0x9821, "Null terminator", inline=True)
 
 # init_tx_ptr_and_send: init TX pointer and send packet (&9822-&982A)
 comment(0x9822, "X=&C0: TX control block base (low)", inline=True)

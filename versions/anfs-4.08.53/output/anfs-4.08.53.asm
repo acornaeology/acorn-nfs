@@ -6963,33 +6963,74 @@ bad_prefix = bad_str_anchor+1
 .return_17
     rts                                                               ; 9797: 60          `              ; Return
 
+; Network error lookup table (12 bytes)
+; 
+; Each byte is an offset into error_msg_table.
+; Indices 0-7 are keyed by error class (reply AND 7).
+; Index 8 is used by build_no_reply_error.
+; Indices 9-11 point to suffix strings appended
+; after the station address in compound errors.
 ; &9798 referenced 5 times by &9606, &9644, &9672, &9685, &971b
 .net_error_lookup_data
-    equb 0, &0d, &18                                                  ; 9798: 00 0d 18    ...
-    equs "!+++3?Veq"                                                  ; 979b: 21 2b 2b... !++
+    equb error_msg_table - error_msg_table                            ; 9798: 00          .              ; Class 0: &A0 "Line jammed"
+    equb msg_net_error - error_msg_table                              ; 9799: 0d          .              ; Class 1: &A1 "Net error"
+    equb msg_station - error_msg_table                                ; 979a: 18          .              ; Class 2: &A2 "Station"
+    equb msg_no_clock - error_msg_table                               ; 979b: 21          !              ; Class 3: &A3 "No clock"
+    equb msg_escape - error_msg_table                                 ; 979c: 2b          +              ; Class 4: &11 "Escape"
+    equb msg_escape - error_msg_table                                 ; 979d: 2b          +              ; Class 5: &11 "Escape" (duplicate)
+    equb msg_escape - error_msg_table                                 ; 979e: 2b          +              ; Class 6: &11 "Escape" (duplicate)
+    equb msg_bad_option - error_msg_table                             ; 979f: 33          3              ; Class 7: &CB "Bad option"
+    equb msg_no_reply - error_msg_table                               ; 97a0: 3f          ?              ; Index 8: &A5 "No reply from station"
+    equb msg_not_listening - error_msg_table                          ; 97a1: 56          V              ; Index 9: " not listening" suffix
+    equb msg_on_channel - error_msg_table                             ; 97a2: 65          e              ; Index 10: " on channel" suffix
+    equb msg_not_present - error_msg_table                            ; 97a3: 71          q              ; Index 11: " not present" suffix
+; Network error message table
+; 
+; Each entry is [error_number][string...][null].
+; The error number is the BRK error code stored in
+; the error block at &0100. Entries 0-6 are complete
+; error messages. The last 3 are suffix strings
+; (no error number) appended to class 2 "Station"
+; errors to form compound messages like
+; "Station 1.254 not listening".
 ; &97a4 referenced 8 times by &960e, &9614, &9647, &9652, &9676, &968d, &9693, &971f
 .error_msg_table
-    equb &a0                                                          ; 97a4: a0          .
+    equb &a0                                                          ; 97a4: a0          .              ; Error &A0: Line jammed
     equs "Line jammed"                                                ; 97a5: 4c 69 6e... Lin
-    equb 0, &a1                                                       ; 97b0: 00 a1       ..
+    equb 0                                                            ; 97b0: 00          .              ; Null terminator
+.msg_net_error
+    equb &a1                                                          ; 97b1: a1          .              ; Error &A1: Net error
     equs "Net error"                                                  ; 97b2: 4e 65 74... Net
-    equb 0, &a2                                                       ; 97bb: 00 a2       ..
+    equb 0                                                            ; 97bb: 00          .              ; Null terminator
+.msg_station
+    equb &a2                                                          ; 97bc: a2          .              ; Error &A2: Station
     equs "Station"                                                    ; 97bd: 53 74 61... Sta
-    equb 0, &a3                                                       ; 97c4: 00 a3       ..
+    equb 0                                                            ; 97c4: 00          .              ; Null terminator
+.msg_no_clock
+    equb &a3                                                          ; 97c5: a3          .              ; Error &A3: No clock
     equs "No clock"                                                   ; 97c6: 4e 6f 20... No
-    equb 0, &11                                                       ; 97ce: 00 11       ..
+    equb 0                                                            ; 97ce: 00          .              ; Null terminator
+.msg_escape
+    equb &11                                                          ; 97cf: 11          .              ; Error &11: Escape
     equs "Escape"                                                     ; 97d0: 45 73 63... Esc
-    equb 0, &cb                                                       ; 97d6: 00 cb       ..
+    equb 0                                                            ; 97d6: 00          .              ; Null terminator
+.msg_bad_option
+    equb &cb                                                          ; 97d7: cb          .              ; Error &CB: Bad option
     equs "Bad option"                                                 ; 97d8: 42 61 64... Bad
-    equb 0, &a5                                                       ; 97e2: 00 a5       ..
+    equb 0                                                            ; 97e2: 00          .              ; Null terminator
+.msg_no_reply
+    equb &a5                                                          ; 97e3: a5          .              ; Error &A5: No reply from station
     equs "No reply from station"                                      ; 97e4: 4e 6f 20... No
-    equb 0                                                            ; 97f9: 00          .
-    equs " not listening"                                             ; 97fa: 20 6e 6f...  no
-    equb 0                                                            ; 9808: 00          .
-    equs " on channel"                                                ; 9809: 20 6f 6e...  on
-    equb 0                                                            ; 9814: 00          .
-    equs " not present"                                               ; 9815: 20 6e 6f...  no
-    equb 0                                                            ; 9821: 00          .
+    equb 0                                                            ; 97f9: 00          .              ; Null terminator
+.msg_not_listening
+    equs " not listening"                                             ; 97fa: 20 6e 6f...  no            ; Suffix: " not listening"
+    equb 0                                                            ; 9808: 00          .              ; Null terminator
+.msg_on_channel
+    equs " on channel"                                                ; 9809: 20 6f 6e...  on            ; Suffix: " on channel"
+    equb 0                                                            ; 9814: 00          .              ; Null terminator
+.msg_not_present
+    equs " not present"                                               ; 9815: 20 6e 6f...  no            ; Suffix: " not present"
+    equb 0                                                            ; 9821: 00          .              ; Null terminator
 
 ; ***************************************************************************************
 ; Point TX at zero-page TXCB and send
@@ -15085,6 +15126,16 @@ net_channel_err_string = err_net_chan_not_found+2
     assert cmd_utils-1 == &8b86
     assert cmd_wipe-1 == &b33c
     assert copyright - rom_header == &14
+    assert error_msg_table - error_msg_table == &00
+    assert msg_bad_option - error_msg_table == &33
+    assert msg_escape - error_msg_table == &2b
+    assert msg_net_error - error_msg_table == &0d
+    assert msg_no_clock - error_msg_table == &21
+    assert msg_no_reply - error_msg_table == &3f
+    assert msg_not_listening - error_msg_table == &56
+    assert msg_not_present - error_msg_table == &71
+    assert msg_on_channel - error_msg_table == &65
+    assert msg_station - error_msg_table == &18
     assert netv_handler == &a968
     assert syn_access - cmd_syntax_strings - 1 == &b1
     assert syn_dir - cmd_syntax_strings - 1 == &60
@@ -16768,7 +16819,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1790 bytes (11%)
 ;
 ;     Number of instructions   = 7160
-;     Number of data bytes     = 522 bytes
+;     Number of data bytes     = 531 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1156 bytes
-;     Number of strings        = 139
+;     Number of string bytes   = 1147 bytes
+;     Number of strings        = 138
