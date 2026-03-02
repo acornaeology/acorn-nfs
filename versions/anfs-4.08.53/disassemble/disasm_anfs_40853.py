@@ -5879,16 +5879,21 @@ entry(0xA0E2)
 # Star command table (&A3D8-&A4D5)
 # ============================================================
 # Four sub-tables of star command entries. Each entry:
-# ASCII command name + flag byte (>= &80) + lo byte + hi byte.
+# ASCII command name + flag byte (>= &80) + dispatch word (EQUW).
 # Tables separated by &80 sentinel bytes.
+# Flag byte: bit 7 = end of name, bit 6 = set V if no arg,
+# bits 0-4 = syntax string index into cmd_syntax_table.
 
 comment(0xA3D8, """\
 Star command table (4 interleaved sub-tables).
 Each entry: ASCII name + flag byte (&80+) +
-lo/hi dispatch address (PHA/PHA/RTS, address-1).
+dispatch address word (PHA/PHA/RTS, addr-1).
 Sub-tables separated by &80 sentinel bytes.
+Flag byte: bit 7 = end of name marker,
+bit 6 = set V on return if no argument,
+bits 0-4 = *HELP syntax string index.
 1: FS commands  2: NFS commands
-3: Net/Utils    4: Copro commands""")
+3: Net/Utils    4: Copro/attributes""")
 
 label(0xA3D8, "cmd_table_fs")
 label(0xA422, "cmd_table_nfs")
@@ -5908,48 +5913,148 @@ entry(0xB985)   # *Type
 entry(0xB321)   # *Unprot
 entry(0x8ACC)   # *Roff
 
-# Mark lo/hi dispatch bytes as symbolic label expressions.
-# Each entry: (lo_addr, hi_addr, target_label).
+# Mark dispatch address words as symbolic label expressions.
+# Each entry: (addr, target_label). Uses EQUW (little-endian word).
 _cmd_entries = [
     # Sub-table 1: FS commands
-    (0xA3DE, 0xA3DF, "cmd_close"),
-    (0xA3E5, 0xA3E6, "cmd_dump"),
-    (0xA3EB, 0xA3EC, "cmd_net_fs"),
-    (0xA3F4, 0xA3F5, "cmd_pollps"),
-    (0xA3FC, 0xA3FD, "cmd_print"),
-    (0xA403, 0xA404, "cmd_prot"),
-    (0xA408, 0xA409, "cmd_ps"),
-    (0xA40F, 0xA410, "cmd_roff"),
-    (0xA416, 0xA417, "cmd_type"),
-    (0xA41F, 0xA420, "cmd_unprot"),
+    (0xA3DE, "cmd_close"),
+    (0xA3E5, "cmd_dump"),
+    (0xA3EB, "cmd_net_fs"),
+    (0xA3F4, "cmd_pollps"),
+    (0xA3FC, "cmd_print"),
+    (0xA403, "cmd_prot"),
+    (0xA408, "cmd_ps"),
+    (0xA40F, "cmd_roff"),
+    (0xA416, "cmd_type"),
+    (0xA41F, "cmd_unprot"),
     # Sub-table 2: NFS commands
-    (0xA429, 0xA42A, "cmd_fs_operation"),   # *Access
-    (0xA42F, 0xA430, "cmd_bye"),
-    (0xA436, 0xA437, "cmd_cdir"),
-    (0xA43F, 0xA440, "cmd_fs_operation"),   # *Delete
-    (0xA445, 0xA446, "cmd_dir"),
-    (0xA44A, 0xA44B, "cmd_ex"),
-    (0xA451, 0xA452, "cmd_flip"),
-    (0xA456, 0xA457, "cmd_fs"),
-    (0xA45D, 0xA45E, "cmd_fs_operation"),   # *Info
-    (0xA464, 0xA465, "cmd_iam"),
-    (0xA46B, 0xA46C, "cmd_lcat"),
-    (0xA471, 0xA472, "cmd_lex"),
-    (0xA477, 0xA478, "cmd_fs_operation"),   # *Lib
-    (0xA47E, 0xA47F, "cmd_pass"),
-    (0xA487, 0xA488, "cmd_remove"),
-    (0xA490, 0xA491, "cmd_rename"),
-    (0xA497, 0xA498, "cmd_wipe"),
+    (0xA429, "cmd_fs_operation"),   # *Access
+    (0xA42F, "cmd_bye"),
+    (0xA436, "cmd_cdir"),
+    (0xA43F, "cmd_fs_operation"),   # *Delete
+    (0xA445, "cmd_dir"),
+    (0xA44A, "cmd_ex"),
+    (0xA451, "cmd_flip"),
+    (0xA456, "cmd_fs"),
+    (0xA45D, "cmd_fs_operation"),   # *Info
+    (0xA464, "cmd_iam"),
+    (0xA46B, "cmd_lcat"),
+    (0xA471, "cmd_lex"),
+    (0xA477, "cmd_fs_operation"),   # *Lib
+    (0xA47E, "cmd_pass"),
+    (0xA487, "cmd_remove"),
+    (0xA490, "cmd_rename"),
+    (0xA497, "cmd_wipe"),
     # Sub-table 3: Net/Utils commands
-    (0xA4A0, 0xA4A1, "cmd_net_local"),
-    (0xA4A8, 0xA4A9, "cmd_utils"),
+    (0xA4A0, "cmd_net_local"),
+    (0xA4A8, "cmd_utils"),
     # Sub-table 4 (copro) skipped — targets outside ROM range
 ]
-for lo_addr, hi_addr, target_label in _cmd_entries:
-    byte(lo_addr)
-    expr(lo_addr, make_lo(target_label + "-1"))
-    byte(hi_addr)
-    expr(hi_addr, make_hi(target_label + "-1"))
+for addr, target_label in _cmd_entries:
+    word(addr)
+    expr(addr, target_label + "-1")
+
+# Inline comments for every item in the command table.
+# Name strings: command identification.
+# Flag bytes: decode bit 6 (V if no arg) and syntax index.
+# Dispatch words: PHA/PHA/RTS target.
+# Sentinels: sub-table terminators.
+
+# Sub-table 1: FS commands (&A3D8-&A421)
+comment(0xA3D8, "*Close (first char)", inline=True)
+comment(0xA3D9, "*Close cont (dispatch lo base)", inline=True)
+comment(0xA3DA, "*Close cont (dispatch hi base)", inline=True)
+comment(0xA3DD, "No syntax", inline=True)
+comment(0xA3DE, "Dispatch addr-1", inline=True)
+comment(0xA3E0, "*Dump", inline=True)
+comment(0xA3E4, "V no arg; syn 4: <filename> ...", inline=True)
+comment(0xA3E5, "Dispatch addr-1", inline=True)
+comment(0xA3E7, "*Net (file server)", inline=True)
+comment(0xA3EA, "No syntax", inline=True)
+comment(0xA3EB, "Dispatch addr-1", inline=True)
+comment(0xA3ED, "*Pollps", inline=True)
+comment(0xA3F3, "Syn 8: (<stn. id.>|<ps type>)", inline=True)
+comment(0xA3F4, "Dispatch addr-1", inline=True)
+comment(0xA3F6, "*Print", inline=True)
+comment(0xA3FB, "V no arg; syn 12: <filename>", inline=True)
+comment(0xA3FC, "Dispatch addr-1", inline=True)
+comment(0xA3FE, "*Prot", inline=True)
+comment(0xA402, "Syn 14: (attribute keywords)", inline=True)
+comment(0xA403, "Dispatch addr-1", inline=True)
+comment(0xA405, "*PS; syn 8: (<stn. id.>|<ps type>)", inline=True)
+comment(0xA408, "Dispatch addr-1", inline=True)
+comment(0xA40A, "*Roff", inline=True)
+comment(0xA40E, "No syntax", inline=True)
+comment(0xA40F, "Dispatch addr-1", inline=True)
+comment(0xA411, "*Type", inline=True)
+comment(0xA415, "V no arg; syn 12: <filename>", inline=True)
+comment(0xA416, "Dispatch addr-1", inline=True)
+comment(0xA418, "*Unprot", inline=True)
+comment(0xA41E, "Syn 14: (attribute keywords)", inline=True)
+comment(0xA41F, "Dispatch addr-1", inline=True)
+comment(0xA421, "End of FS sub-table", inline=True)
+
+# Sub-table 2: NFS commands (&A422-&A499)
+comment(0xA422, "*Access", inline=True)
+comment(0xA428, "V no arg; syn 9: <obj> (L)(W)(R)...", inline=True)
+comment(0xA429, "Dispatch addr-1", inline=True)
+comment(0xA42B, "*Bye", inline=True)
+comment(0xA42E, "No syntax", inline=True)
+comment(0xA42F, "Dispatch addr-1", inline=True)
+comment(0xA431, "*Cdir", inline=True)
+comment(0xA435, "V no arg; syn 6: <dir> (<number>)", inline=True)
+comment(0xA436, "Dispatch addr-1", inline=True)
+comment(0xA438, "*Delete", inline=True)
+comment(0xA43E, "V no arg; syn 3: <object>", inline=True)
+comment(0xA43F, "Dispatch addr-1", inline=True)
+comment(0xA441, "*Dir", inline=True)
+comment(0xA444, "Syn 1: (<dir>)", inline=True)
+comment(0xA445, "Dispatch addr-1", inline=True)
+comment(0xA447, "*Ex; syn 1: (<dir>)", inline=True)
+comment(0xA44A, "Dispatch addr-1", inline=True)
+comment(0xA44C, "*Flip", inline=True)
+comment(0xA450, "No syntax", inline=True)
+comment(0xA451, "Dispatch addr-1", inline=True)
+comment(0xA453, "*FS; syn 11: (<stn. id.>)", inline=True)
+comment(0xA456, "Dispatch addr-1", inline=True)
+comment(0xA458, "*Info", inline=True)
+comment(0xA45C, "V no arg; syn 3: <object>", inline=True)
+comment(0xA45D, "Dispatch addr-1", inline=True)
+comment(0xA45F, "*I am", inline=True)
+comment(0xA463, "V no arg; syn 2: (<stn>) <user>...", inline=True)
+comment(0xA464, "Dispatch addr-1", inline=True)
+comment(0xA466, "*Lcat", inline=True)
+comment(0xA46A, "Syn 1: (<dir>)", inline=True)
+comment(0xA46B, "Dispatch addr-1", inline=True)
+comment(0xA46D, "*Lex", inline=True)
+comment(0xA470, "Syn 1: (<dir>)", inline=True)
+comment(0xA471, "Dispatch addr-1", inline=True)
+comment(0xA473, "*Lib", inline=True)
+comment(0xA476, "V no arg; syn 5: <dir>", inline=True)
+comment(0xA477, "Dispatch addr-1", inline=True)
+comment(0xA479, "*Pass", inline=True)
+comment(0xA47D, "V no arg; syn 7: <pass> ...", inline=True)
+comment(0xA47E, "Dispatch addr-1", inline=True)
+comment(0xA480, "*Remove", inline=True)
+comment(0xA486, "V no arg; syn 3: <object>", inline=True)
+comment(0xA487, "Dispatch addr-1", inline=True)
+comment(0xA489, "*Rename", inline=True)
+comment(0xA48F, "V no arg; syn 10: <file> <new file>", inline=True)
+comment(0xA490, "Dispatch addr-1", inline=True)
+comment(0xA492, "*Wipe", inline=True)
+comment(0xA496, "Syn 1: (<dir>)", inline=True)
+comment(0xA497, "Dispatch addr-1", inline=True)
+comment(0xA499, "End of NFS sub-table", inline=True)
+
+# Sub-table 3: Net/Utils (&A49A-&A4AA)
+comment(0xA49A, "&09/&8E: before help-only entries", inline=True)
+comment(0xA49C, "*Net (local)", inline=True)
+comment(0xA49F, "No syntax", inline=True)
+comment(0xA4A0, "Dispatch addr-1", inline=True)
+comment(0xA4A2, "*Utils", inline=True)
+comment(0xA4A7, "No syntax", inline=True)
+comment(0xA4A8, "Dispatch addr-1", inline=True)
+comment(0xA4AA, "End of Net/Utils sub-table", inline=True)
 
 label(0xB97F, "cmd_close")
 label(0xBA06, "cmd_dump")

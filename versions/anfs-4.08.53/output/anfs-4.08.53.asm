@@ -9237,139 +9237,113 @@ bad_prefix = bad_str_anchor+1
 
 ; Star command table (4 interleaved sub-tables).
 ; Each entry: ASCII name + flag byte (&80+) +
-; lo/hi dispatch address (PHA/PHA/RTS, address-1).
+; dispatch address word (PHA/PHA/RTS, addr-1).
 ; Sub-tables separated by &80 sentinel bytes.
+; Flag byte: bit 7 = end of name marker,
+; bit 6 = set V on return if no argument,
+; bits 0-4 = *HELP syntax string index.
 ; 1: FS commands  2: NFS commands
-; 3: Net/Utils    4: Copro commands
+; 3: Net/Utils    4: Copro/attributes
 ; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
-    equb &43                                                          ; a3d8: 43          C
+    equb &43                                                          ; a3d8: 43          C              ; *Close (first char)
 ; &a3d9 referenced 3 times by &8c88, &a123, &b30a
 .cmd_table_fs_lo
-    equb &6c                                                          ; a3d9: 6c          l
+    equb &6c                                                          ; a3d9: 6c          l              ; *Close cont (dispatch lo base)
 ; &a3da referenced 3 times by &8c84, &a11f, &b337
 .cmd_table_fs_hi
-    equs "ose"                                                        ; a3da: 6f 73 65    ose
-    equb &80                                                          ; a3dd: 80          .
-    equb <(cmd_close-1)                                               ; a3de: 7e          ~
-    equb >(cmd_close-1)                                               ; a3df: b9          .
-    equs "Dump"                                                       ; a3e0: 44 75 6d... Dum
-    equb &c4                                                          ; a3e4: c4          .
-    equb <(cmd_dump-1)                                                ; a3e5: 05          .
-    equb >(cmd_dump-1)                                                ; a3e6: ba          .
-    equs "Net"                                                        ; a3e7: 4e 65 74    Net
-    equb &80                                                          ; a3ea: 80          .
-    equb <(cmd_net_fs-1)                                              ; a3eb: 0d          .
-    equb >(cmd_net_fs-1)                                              ; a3ec: 8b          .
-    equs "Pollps"                                                     ; a3ed: 50 6f 6c... Pol
-    equb &88                                                          ; a3f3: 88          .
-    equb <(cmd_pollps-1)                                              ; a3f4: 9e          .
-    equb >(cmd_pollps-1)                                              ; a3f5: b1          .
-    equs "Print"                                                      ; a3f6: 50 72 69... Pri
-    equb &cc                                                          ; a3fb: cc          .
-    equb <(cmd_print-1)                                               ; a3fc: 87          .
-    equb >(cmd_print-1)                                               ; a3fd: b9          .
-    equs "Prot"                                                       ; a3fe: 50 72 6f... Pro
-    equb &8e                                                          ; a402: 8e          .
-    equb <(cmd_prot-1)                                                ; a403: ef          .
-    equb >(cmd_prot-1)                                                ; a404: b2          .
-    equb &50, &53, &88                                                ; a405: 50 53 88    PS.
-    equb <(cmd_ps-1)                                                  ; a408: cd          .
-    equb >(cmd_ps-1)                                                  ; a409: af          .
-    equs "Roff"                                                       ; a40a: 52 6f 66... Rof
-    equb &80                                                          ; a40e: 80          .
-    equb <(cmd_roff-1)                                                ; a40f: cb          .
-    equb >(cmd_roff-1)                                                ; a410: 8a          .
-    equs "Type"                                                       ; a411: 54 79 70... Typ
-    equb &cc                                                          ; a415: cc          .
-    equb <(cmd_type-1)                                                ; a416: 84          .
-    equb >(cmd_type-1)                                                ; a417: b9          .
-    equs "Unprot"                                                     ; a418: 55 6e 70... Unp
-    equb &8e                                                          ; a41e: 8e          .
-    equb <(cmd_unprot-1)                                              ; a41f: 20
-    equb >(cmd_unprot-1)                                              ; a420: b3          .
-    equb &80                                                          ; a421: 80          .
+    equs "ose"                                                        ; a3da: 6f 73 65    ose            ; *Close cont (dispatch hi base)
+    equb &80                                                          ; a3dd: 80          .              ; No syntax
+    equw cmd_close-1                                                  ; a3de: 7e b9       ~.             ; Dispatch addr-1
+    equs "Dump"                                                       ; a3e0: 44 75 6d... Dum            ; *Dump
+    equb &c4                                                          ; a3e4: c4          .              ; V no arg; syn 4: <filename> ...
+    equw cmd_dump-1                                                   ; a3e5: 05 ba       ..             ; Dispatch addr-1
+    equs "Net"                                                        ; a3e7: 4e 65 74    Net            ; *Net (file server)
+    equb &80                                                          ; a3ea: 80          .              ; No syntax
+    equw cmd_net_fs-1                                                 ; a3eb: 0d 8b       ..             ; Dispatch addr-1
+    equs "Pollps"                                                     ; a3ed: 50 6f 6c... Pol            ; *Pollps
+    equb &88                                                          ; a3f3: 88          .              ; Syn 8: (<stn. id.>|<ps type>)
+    equw cmd_pollps-1                                                 ; a3f4: 9e b1       ..             ; Dispatch addr-1
+    equs "Print"                                                      ; a3f6: 50 72 69... Pri            ; *Print
+    equb &cc                                                          ; a3fb: cc          .              ; V no arg; syn 12: <filename>
+    equw cmd_print-1                                                  ; a3fc: 87 b9       ..             ; Dispatch addr-1
+    equs "Prot"                                                       ; a3fe: 50 72 6f... Pro            ; *Prot
+    equb &8e                                                          ; a402: 8e          .              ; Syn 14: (attribute keywords)
+    equw cmd_prot-1                                                   ; a403: ef b2       ..             ; Dispatch addr-1
+    equb &50, &53, &88                                                ; a405: 50 53 88    PS.            ; *PS; syn 8: (<stn. id.>|<ps type>)
+    equw cmd_ps-1                                                     ; a408: cd af       ..             ; Dispatch addr-1
+    equs "Roff"                                                       ; a40a: 52 6f 66... Rof            ; *Roff
+    equb &80                                                          ; a40e: 80          .              ; No syntax
+    equw cmd_roff-1                                                   ; a40f: cb 8a       ..             ; Dispatch addr-1
+    equs "Type"                                                       ; a411: 54 79 70... Typ            ; *Type
+    equb &cc                                                          ; a415: cc          .              ; V no arg; syn 12: <filename>
+    equw cmd_type-1                                                   ; a416: 84 b9       ..             ; Dispatch addr-1
+    equs "Unprot"                                                     ; a418: 55 6e 70... Unp            ; *Unprot
+    equb &8e                                                          ; a41e: 8e          .              ; Syn 14: (attribute keywords)
+    equw cmd_unprot-1                                                 ; a41f: 20 b3        .             ; Dispatch addr-1
+    equb &80                                                          ; a421: 80          .              ; End of FS sub-table
 .cmd_table_nfs
-    equs "Access"                                                     ; a422: 41 63 63... Acc
-    equb &c9                                                          ; a428: c9          .
-    equb <(cmd_fs_operation-1)                                        ; a429: d1          .
-    equb >(cmd_fs_operation-1)                                        ; a42a: 92          .
-    equs "Bye"                                                        ; a42b: 42 79 65    Bye
-    equb &80                                                          ; a42e: 80          .
-    equb <(cmd_bye-1)                                                 ; a42f: 89          .
-    equb >(cmd_bye-1)                                                 ; a430: 94          .
-    equs "Cdir"                                                       ; a431: 43 64 69... Cdi
-    equb &c6                                                          ; a435: c6          .
-    equb <(cmd_cdir-1)                                                ; a436: fd          .
-    equb >(cmd_cdir-1)                                                ; a437: ac          .
-    equs "Delete"                                                     ; a438: 44 65 6c... Del
-    equb &c3                                                          ; a43e: c3          .
-    equb <(cmd_fs_operation-1)                                        ; a43f: d1          .
-    equb >(cmd_fs_operation-1)                                        ; a440: 92          .
-    equs "Dir"                                                        ; a441: 44 69 72    Dir
-    equb &81                                                          ; a444: 81          .
-    equb <(cmd_dir-1)                                                 ; a445: c8          .
-    equb >(cmd_dir-1)                                                 ; a446: 93          .
-    equb &45, &78, &81                                                ; a447: 45 78 81    Ex.
-    equb <(cmd_ex-1)                                                  ; a44a: 58          X
-    equb >(cmd_ex-1)                                                  ; a44b: ad          .
-    equs "Flip"                                                       ; a44c: 46 6c 69... Fli
-    equb &80                                                          ; a450: 80          .
-    equb <(cmd_flip-1)                                                ; a451: 3d          =
-    equb >(cmd_flip-1)                                                ; a452: a3          .
-    equb &46, &53, &8b                                                ; a453: 46 53 8b    FS.
-    equb <(cmd_fs-1)                                                  ; a456: 62          b
-    equb >(cmd_fs-1)                                                  ; a457: a0          .
-    equs "Info"                                                       ; a458: 49 6e 66... Inf
-    equb &c3                                                          ; a45c: c3          .
-    equb <(cmd_fs_operation-1)                                        ; a45d: d1          .
-    equb >(cmd_fs_operation-1)                                        ; a45e: 92          .
+    equs "Access"                                                     ; a422: 41 63 63... Acc            ; *Access
+    equb &c9                                                          ; a428: c9          .              ; V no arg; syn 9: <obj> (L)(W)(R)...
+    equw cmd_fs_operation-1                                           ; a429: d1 92       ..             ; Dispatch addr-1
+    equs "Bye"                                                        ; a42b: 42 79 65    Bye            ; *Bye
+    equb &80                                                          ; a42e: 80          .              ; No syntax
+    equw cmd_bye-1                                                    ; a42f: 89 94       ..             ; Dispatch addr-1
+    equs "Cdir"                                                       ; a431: 43 64 69... Cdi            ; *Cdir
+    equb &c6                                                          ; a435: c6          .              ; V no arg; syn 6: <dir> (<number>)
+    equw cmd_cdir-1                                                   ; a436: fd ac       ..             ; Dispatch addr-1
+    equs "Delete"                                                     ; a438: 44 65 6c... Del            ; *Delete
+    equb &c3                                                          ; a43e: c3          .              ; V no arg; syn 3: <object>
+    equw cmd_fs_operation-1                                           ; a43f: d1 92       ..             ; Dispatch addr-1
+    equs "Dir"                                                        ; a441: 44 69 72    Dir            ; *Dir
+    equb &81                                                          ; a444: 81          .              ; Syn 1: (<dir>)
+    equw cmd_dir-1                                                    ; a445: c8 93       ..             ; Dispatch addr-1
+    equb &45, &78, &81                                                ; a447: 45 78 81    Ex.            ; *Ex; syn 1: (<dir>)
+    equw cmd_ex-1                                                     ; a44a: 58 ad       X.             ; Dispatch addr-1
+    equs "Flip"                                                       ; a44c: 46 6c 69... Fli            ; *Flip
+    equb &80                                                          ; a450: 80          .              ; No syntax
+    equw cmd_flip-1                                                   ; a451: 3d a3       =.             ; Dispatch addr-1
+    equb &46, &53, &8b                                                ; a453: 46 53 8b    FS.            ; *FS; syn 11: (<stn. id.>)
+    equw cmd_fs-1                                                     ; a456: 62 a0       b.             ; Dispatch addr-1
+    equs "Info"                                                       ; a458: 49 6e 66... Inf            ; *Info
+    equb &c3                                                          ; a45c: c3          .              ; V no arg; syn 3: <object>
+    equw cmd_fs_operation-1                                           ; a45d: d1 92       ..             ; Dispatch addr-1
 ; &a45f referenced 1 time by &8da4
 .cmd_table_nfs_iam
-    equs "I am"                                                       ; a45f: 49 20 61... I a
-    equb &c2                                                          ; a463: c2          .
-    equb <(cmd_iam-1)                                                 ; a464: 6d          m
-    equb >(cmd_iam-1)                                                 ; a465: 8d          .
-    equs "Lcat"                                                       ; a466: 4c 63 61... Lca
-    equb &81                                                          ; a46a: 81          .
-    equb <(cmd_lcat-1)                                                ; a46b: 4c          L
-    equb >(cmd_lcat-1)                                                ; a46c: ad          .
-    equs "Lex"                                                        ; a46d: 4c 65 78    Lex
-    equb &81                                                          ; a470: 81          .
-    equb <(cmd_lex-1)                                                 ; a471: 52          R
-    equb >(cmd_lex-1)                                                 ; a472: ad          .
-    equs "Lib"                                                        ; a473: 4c 69 62    Lib
-    equb &c5                                                          ; a476: c5          .
-    equb <(cmd_fs_operation-1)                                        ; a477: d1          .
-    equb >(cmd_fs_operation-1)                                        ; a478: 92          .
-    equs "Pass"                                                       ; a479: 50 61 73... Pas
-    equb &c7                                                          ; a47d: c7          .
-    equb <(cmd_pass-1)                                                ; a47e: b0          .
-    equb >(cmd_pass-1)                                                ; a47f: 8d          .
-    equs "Remove"                                                     ; a480: 52 65 6d... Rem
-    equb &c3                                                          ; a486: c3          .
-    equb <(cmd_remove-1)                                              ; a487: 45          E
-    equb >(cmd_remove-1)                                              ; a488: af          .
-    equs "Rename"                                                     ; a489: 52 65 6e... Ren
-    equb &ca                                                          ; a48f: ca          .
-    equb <(cmd_rename-1)                                              ; a490: 76          v
-    equb >(cmd_rename-1)                                              ; a491: 93          .
-    equs "Wipe"                                                       ; a492: 57 69 70... Wip
-    equb &81                                                          ; a496: 81          .
-    equb <(cmd_wipe-1)                                                ; a497: 3c          <
-    equb >(cmd_wipe-1)                                                ; a498: b3          .
-    equb &80                                                          ; a499: 80          .
+    equs "I am"                                                       ; a45f: 49 20 61... I a            ; *I am
+    equb &c2                                                          ; a463: c2          .              ; V no arg; syn 2: (<stn>) <user>...
+    equw cmd_iam-1                                                    ; a464: 6d 8d       m.             ; Dispatch addr-1
+    equs "Lcat"                                                       ; a466: 4c 63 61... Lca            ; *Lcat
+    equb &81                                                          ; a46a: 81          .              ; Syn 1: (<dir>)
+    equw cmd_lcat-1                                                   ; a46b: 4c ad       L.             ; Dispatch addr-1
+    equs "Lex"                                                        ; a46d: 4c 65 78    Lex            ; *Lex
+    equb &81                                                          ; a470: 81          .              ; Syn 1: (<dir>)
+    equw cmd_lex-1                                                    ; a471: 52 ad       R.             ; Dispatch addr-1
+    equs "Lib"                                                        ; a473: 4c 69 62    Lib            ; *Lib
+    equb &c5                                                          ; a476: c5          .              ; V no arg; syn 5: <dir>
+    equw cmd_fs_operation-1                                           ; a477: d1 92       ..             ; Dispatch addr-1
+    equs "Pass"                                                       ; a479: 50 61 73... Pas            ; *Pass
+    equb &c7                                                          ; a47d: c7          .              ; V no arg; syn 7: <pass> ...
+    equw cmd_pass-1                                                   ; a47e: b0 8d       ..             ; Dispatch addr-1
+    equs "Remove"                                                     ; a480: 52 65 6d... Rem            ; *Remove
+    equb &c3                                                          ; a486: c3          .              ; V no arg; syn 3: <object>
+    equw cmd_remove-1                                                 ; a487: 45 af       E.             ; Dispatch addr-1
+    equs "Rename"                                                     ; a489: 52 65 6e... Ren            ; *Rename
+    equb &ca                                                          ; a48f: ca          .              ; V no arg; syn 10: <file> <new file>
+    equw cmd_rename-1                                                 ; a490: 76 93       v.             ; Dispatch addr-1
+    equs "Wipe"                                                       ; a492: 57 69 70... Wip            ; *Wipe
+    equb &81                                                          ; a496: 81          .              ; Syn 1: (<dir>)
+    equw cmd_wipe-1                                                   ; a497: 3c b3       <.             ; Dispatch addr-1
+    equb &80                                                          ; a499: 80          .              ; End of NFS sub-table
 .cmd_table_net
-    equb 9, &8e                                                       ; a49a: 09 8e       ..
-    equs "Net"                                                        ; a49c: 4e 65 74    Net
-    equb &80                                                          ; a49f: 80          .
-    equb <(cmd_net_local-1)                                           ; a4a0: 8a          .
-    equb >(cmd_net_local-1)                                           ; a4a1: 8b          .
-    equs "Utils"                                                      ; a4a2: 55 74 69... Uti
-    equb &80                                                          ; a4a7: 80          .
-    equb <(cmd_utils-1)                                               ; a4a8: 86          .
-    equb >(cmd_utils-1)                                               ; a4a9: 8b          .
-    equb &80                                                          ; a4aa: 80          .
+    equb 9, &8e                                                       ; a49a: 09 8e       ..             ; &09/&8E: before help-only entries
+    equs "Net"                                                        ; a49c: 4e 65 74    Net            ; *Net (local)
+    equb &80                                                          ; a49f: 80          .              ; No syntax
+    equw cmd_net_local-1                                              ; a4a0: 8a 8b       ..             ; Dispatch addr-1
+    equs "Utils"                                                      ; a4a2: 55 74 69... Uti            ; *Utils
+    equb &80                                                          ; a4a7: 80          .              ; No syntax
+    equw cmd_utils-1                                                  ; a4a8: 86 8b       ..             ; Dispatch addr-1
+    equb &80                                                          ; a4aa: 80          .              ; End of Net/Utils sub-table
 .cmd_table_copro
     equs "Halt"                                                       ; a4ab: 48 61 6c... Hal
     equb &fc, &20, &df                                                ; a4af: fc 20 df    . .
@@ -14049,32 +14023,6 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &bebf referenced 1 time by &beb4
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
-    assert <(cmd_bye-1) == &89
-    assert <(cmd_cdir-1) == &fd
-    assert <(cmd_close-1) == &7e
-    assert <(cmd_dir-1) == &c8
-    assert <(cmd_dump-1) == &05
-    assert <(cmd_ex-1) == &58
-    assert <(cmd_flip-1) == &3d
-    assert <(cmd_fs-1) == &62
-    assert <(cmd_fs_operation-1) == &d1
-    assert <(cmd_iam-1) == &6d
-    assert <(cmd_lcat-1) == &4c
-    assert <(cmd_lex-1) == &52
-    assert <(cmd_net_fs-1) == &0d
-    assert <(cmd_net_local-1) == &8a
-    assert <(cmd_pass-1) == &b0
-    assert <(cmd_pollps-1) == &9e
-    assert <(cmd_print-1) == &87
-    assert <(cmd_prot-1) == &ef
-    assert <(cmd_ps-1) == &cd
-    assert <(cmd_remove-1) == &45
-    assert <(cmd_rename-1) == &76
-    assert <(cmd_roff-1) == &cb
-    assert <(cmd_type-1) == &84
-    assert <(cmd_unprot-1) == &20
-    assert <(cmd_utils-1) == &86
-    assert <(cmd_wipe-1) == &3c
     assert <(econet_restore-1) == &84
     assert <(fs_work_4) == &b4
     assert <(fscv_0_opt_entry-1) == &bb
@@ -14121,32 +14069,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(svc_8_osword-1) == &d5
     assert <(svc_9_help-1) == &51
     assert <(wait_idle_and_reset-1) == &78
-    assert >(cmd_bye-1) == &94
-    assert >(cmd_cdir-1) == &ac
-    assert >(cmd_close-1) == &b9
-    assert >(cmd_dir-1) == &93
-    assert >(cmd_dump-1) == &ba
-    assert >(cmd_ex-1) == &ad
-    assert >(cmd_flip-1) == &a3
-    assert >(cmd_fs-1) == &a0
-    assert >(cmd_fs_operation-1) == &92
-    assert >(cmd_iam-1) == &8d
-    assert >(cmd_lcat-1) == &ad
-    assert >(cmd_lex-1) == &ad
-    assert >(cmd_net_fs-1) == &8b
-    assert >(cmd_net_local-1) == &8b
-    assert >(cmd_pass-1) == &8d
-    assert >(cmd_pollps-1) == &b1
-    assert >(cmd_print-1) == &b9
-    assert >(cmd_prot-1) == &b2
-    assert >(cmd_ps-1) == &af
-    assert >(cmd_remove-1) == &af
-    assert >(cmd_rename-1) == &93
-    assert >(cmd_roff-1) == &8a
-    assert >(cmd_type-1) == &b9
-    assert >(cmd_unprot-1) == &b3
-    assert >(cmd_utils-1) == &8b
-    assert >(cmd_wipe-1) == &b3
     assert >(econet_restore-1) == &80
     assert >(fs_work_4) == &00
     assert >(fscv_0_opt_entry-1) == &9d
@@ -14188,6 +14110,32 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(svc_8_osword-1) == &a4
     assert >(svc_9_help-1) == &8c
     assert >(wait_idle_and_reset-1) == &89
+    assert cmd_bye-1 == &9489
+    assert cmd_cdir-1 == &acfd
+    assert cmd_close-1 == &b97e
+    assert cmd_dir-1 == &93c8
+    assert cmd_dump-1 == &ba05
+    assert cmd_ex-1 == &ad58
+    assert cmd_flip-1 == &a33d
+    assert cmd_fs-1 == &a062
+    assert cmd_fs_operation-1 == &92d1
+    assert cmd_iam-1 == &8d6d
+    assert cmd_lcat-1 == &ad4c
+    assert cmd_lex-1 == &ad52
+    assert cmd_net_fs-1 == &8b0d
+    assert cmd_net_local-1 == &8b8a
+    assert cmd_pass-1 == &8db0
+    assert cmd_pollps-1 == &b19e
+    assert cmd_print-1 == &b987
+    assert cmd_prot-1 == &b2ef
+    assert cmd_ps-1 == &afcd
+    assert cmd_remove-1 == &af45
+    assert cmd_rename-1 == &9376
+    assert cmd_roff-1 == &8acb
+    assert cmd_type-1 == &b984
+    assert cmd_unprot-1 == &b320
+    assert cmd_utils-1 == &8b86
+    assert cmd_wipe-1 == &b33c
     assert copyright - rom_header == &14
     assert tube_osargs == &055e
     assert tube_osbget == &052d
@@ -15794,7 +15742,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2349 bytes (14%)
 ;
 ;     Number of instructions   = 6869
-;     Number of data bytes     = 1109 bytes
-;     Number of data words     = 52 bytes
+;     Number of data bytes     = 1051 bytes
+;     Number of data words     = 110 bytes
 ;     Number of string bytes   = 1188 bytes
 ;     Number of strings        = 146
