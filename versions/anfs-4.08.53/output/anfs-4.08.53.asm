@@ -10805,28 +10805,35 @@ bridge_ws_init_data = sub_ca843+1
     lda osbyte_a_copy                                                 ; a989: a5 ef       ..             ; Reload OSWORD number for handler
     rts                                                               ; a98b: 60          `              ; RTS will dispatch to handler
 
+; OSWORD handler dispatch table
+; 
+; 9-entry PHA/PHA/RTS table for OSWORD numbers
+; 0-8. push_osword_handler_addr indexes by the
+; OSWORD number, pushes the handler address-1,
+; then RTS dispatches to the handler with the
+; OSWORD number reloaded in A.
 ; &a98c referenced 1 time by &a985
 .osword_handler_lo_table
-    equb <(return_4-1)                                                ; a98c: 41          A
-    equb <(sub_caadb-1)                                               ; a98d: da          .
-    equb <(sub_caadb-1)                                               ; a98e: da          .
-    equb <(sub_caadb-1)                                               ; a98f: da          .
-    equb <(osword_4_handler-1)                                        ; a990: 9d          .
-    equb <(sub_caac6-1)                                               ; a991: c5          .
-    equb <(return_4-1)                                                ; a992: 41          A
-    equb <(sub_ca9d0-1)                                               ; a993: cf          .
-    equb <(osword_8_handler-1)                                        ; a994: 3e          >
+    equb <(return_4-1)                                                ; a98c: 41          A              ; lo OSWORD 0: no-op (RTS)
+    equb <(netv_print_data-1)                                         ; a98d: da          .              ; lo OSWORD 1: printer spool data
+    equb <(netv_print_data-1)                                         ; a98e: da          .              ; lo OSWORD 2: printer spool data
+    equb <(netv_print_data-1)                                         ; a98f: da          .              ; lo OSWORD 3: printer spool data
+    equb <(osword_4_handler-1)                                        ; a990: 9d          .              ; lo OSWORD 4: clear carry + abort
+    equb <(netv_spool_check-1)                                        ; a991: c5          .              ; lo OSWORD 5: spool buffer check
+    equb <(return_4-1)                                                ; a992: 41          A              ; lo OSWORD 6: no-op (RTS)
+    equb <(netv_claim_release-1)                                      ; a993: cf          .              ; lo OSWORD 7: claim/release handler
+    equb <(osword_8_handler-1)                                        ; a994: 3e          >              ; lo OSWORD 8: copy PB + abort
 ; &a995 referenced 1 time by &a981
 .osword_handler_hi_table
-    equb >(return_4-1)                                                ; a995: 8e          .
-    equb >(sub_caadb-1)                                               ; a996: aa          .
-    equb >(sub_caadb-1)                                               ; a997: aa          .
-    equb >(sub_caadb-1)                                               ; a998: aa          .
-    equb >(osword_4_handler-1)                                        ; a999: a9          .
-    equb >(sub_caac6-1)                                               ; a99a: aa          .
-    equb >(return_4-1)                                                ; a99b: 8e          .
-    equb >(sub_ca9d0-1)                                               ; a99c: a9          .
-    equb >(osword_8_handler-1)                                        ; a99d: aa          .
+    equb >(return_4-1)                                                ; a995: 8e          .              ; hi OSWORD 0: no-op (RTS)
+    equb >(netv_print_data-1)                                         ; a996: aa          .              ; hi OSWORD 1: printer spool data
+    equb >(netv_print_data-1)                                         ; a997: aa          .              ; hi OSWORD 2: printer spool data
+    equb >(netv_print_data-1)                                         ; a998: aa          .              ; hi OSWORD 3: printer spool data
+    equb >(osword_4_handler-1)                                        ; a999: a9          .              ; hi OSWORD 4: clear carry + abort
+    equb >(netv_spool_check-1)                                        ; a99a: aa          .              ; hi OSWORD 5: spool buffer check
+    equb >(return_4-1)                                                ; a99b: 8e          .              ; hi OSWORD 6: no-op (RTS)
+    equb >(netv_claim_release-1)                                      ; a99c: a9          .              ; hi OSWORD 7: claim/release handler
+    equb >(osword_8_handler-1)                                        ; a99d: aa          .              ; hi OSWORD 8: copy PB + abort
 
 ; ***************************************************************************************
 ; OSWORD 4 handler: clear carry and send abort
@@ -10877,7 +10884,19 @@ bridge_ws_init_data = sub_ca843+1
     sta net_tx_ptr                                                    ; a9cd: 85 9a       ..             ; Back to net_tx_ptr
     rts                                                               ; a9cf: 60          `              ; Return
 
-.sub_ca9d0
+; ***************************************************************************************
+; OSWORD 7 handler: claim/release network resources
+; 
+; Handles OSWORD 7 (SOUND) intercepted via NETV.
+; Searches the claim code table in two passes:
+; first 11 entries (state 2), then all 18 (state
+; 3). On match, saves 3 tube state bytes to
+; workspace and sends an abort with the state
+; code. For state 3 matches, also polls workspace
+; for a response and restores the caller's stack
+; frame from the saved bytes.
+; ***************************************************************************************
+.netv_claim_release
     ldy osword_pb_ptr_hi                                              ; a9d0: a4 f1       ..             ; Load PB pointer high
     cmp #&81                                                          ; a9d2: c9 81       ..             ; Compare with &81 (special case)
     beq process_match_result                                          ; a9d4: f0 13       ..             ; Match: skip to processing
@@ -11008,19 +11027,19 @@ bridge_ws_init_data = sub_ca843+1
 .osword_8_handler
     ldy #&0e                                                          ; aa3f: a0 0e       ..             ; Y=&0E: copy 15 bytes (0-14)
     cmp #7                                                            ; aa41: c9 07       ..             ; OSWORD 7?
-    beq caa49                                                         ; aa43: f0 04       ..             ; Yes: handle
+    beq copy_pb_to_ws                                                 ; aa43: f0 04       ..             ; Yes: handle
     cmp #8                                                            ; aa45: c9 08       ..             ; OSWORD 8?
     bne return_28                                                     ; aa47: d0 e3       ..             ; No: return
 ; &aa49 referenced 1 time by &aa43
-.caa49
+.copy_pb_to_ws
     ldx #&db                                                          ; aa49: a2 db       ..             ; Workspace low = &DB
     stx nfs_workspace                                                 ; aa4b: 86 9e       ..             ; Set nfs_workspace low byte
 ; &aa4d referenced 1 time by &aa52
-.loop_caa4d
+.loop_copy_pb_to_ws
     lda (osword_pb_ptr),y                                             ; aa4d: b1 f0       ..             ; Load PB[Y]
     sta (nfs_workspace),y                                             ; aa4f: 91 9e       ..             ; Store to workspace[Y]
     dey                                                               ; aa51: 88          .              ; Next byte down
-    bpl loop_caa4d                                                    ; aa52: 10 f9       ..             ; Loop for 15 bytes
+    bpl loop_copy_pb_to_ws                                            ; aa52: 10 f9       ..             ; Loop for 15 bytes
     iny                                                               ; aa54: c8          .              ; Y=0
     dec nfs_workspace                                                 ; aa55: c6 9e       ..             ; Workspace low = &DA
     lda osbyte_a_copy                                                 ; aa57: a5 ef       ..             ; Load OSWORD number
@@ -11114,13 +11133,22 @@ bridge_ws_init_data = sub_ca843+1
     equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; aab0: fd fd d9... ...
     equb &fd, &fd, &25, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; aabc: fd fd 25... ..%
 
-.sub_caac6
-    dex                                                               ; aac6: ca          .
-    cpx osword_pb_ptr                                                 ; aac7: e4 f0       ..
-    bne return_29                                                     ; aac9: d0 0f       ..
-    lda l00d0                                                         ; aacb: a5 d0       ..
-    ror a                                                             ; aacd: 6a          j
-    bcs return_29                                                     ; aace: b0 0a       ..
+; ***************************************************************************************
+; OSWORD 5 handler: check spool PB and reset buffer
+; 
+; Handles OSWORD 5 intercepted via NETV. Checks
+; if X-1 matches osword_pb_ptr and bit 0 of
+; &00D0 is clear. If both conditions are met,
+; falls through to reset_spool_buf_state to
+; reinitialise the spool buffer for new data.
+; ***************************************************************************************
+.netv_spool_check
+    dex                                                               ; aac6: ca          .              ; X = X - 1
+    cpx osword_pb_ptr                                                 ; aac7: e4 f0       ..             ; Match osword_pb_ptr?
+    bne return_29                                                     ; aac9: d0 0f       ..             ; No: return (not our PB)
+    lda l00d0                                                         ; aacb: a5 d0       ..             ; Load spool state byte
+    ror a                                                             ; aacd: 6a          j              ; Rotate bit 0 into carry
+    bcs return_29                                                     ; aace: b0 0a       ..             ; C=1: already active, return
 ; ***************************************************************************************
 ; Reset spool buffer to initial state
 ; 
@@ -11139,7 +11167,17 @@ bridge_ws_init_data = sub_ca843+1
 .return_29
     rts                                                               ; aada: 60          `              ; Return
 
-.sub_caadb
+; ***************************************************************************************
+; OSWORD 1-3 handler: drain printer buffer
+; 
+; Handles OSWORDs 1-3 intercepted via NETV.
+; When X=1, drains the printer buffer (OSBYTE
+; &91, buffer 3) into the receive buffer, sending
+; packets via process_spool_data when the buffer
+; exceeds &6E bytes. When X>1, routes to
+; handle_spool_ctrl_byte for spool state control.
+; ***************************************************************************************
+.netv_print_data
     cpy #4                                                            ; aadb: c0 04       ..             ; Check Y == 4
     bne return_29                                                     ; aadd: d0 fb       ..             ; No: return
     txa                                                               ; aadf: 8a          .              ; A = X (control byte)
@@ -15041,6 +15079,9 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(net_1_read_handle-1) == &cb
     assert <(net_2_read_handle_entry-1) == &d1
     assert <(net_3_close_handle-1) == &e1
+    assert <(netv_claim_release-1) == &cf
+    assert <(netv_print_data-1) == &da
+    assert <(netv_spool_check-1) == &c5
     assert <(osword_0e_handler-1) == &15
     assert <(osword_10_handler-1) == &8a
     assert <(osword_11_handler-1) == &a7
@@ -15075,9 +15116,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &ae
     assert <(rx_imm_peek-1) == &c0
     assert <(rx_imm_poke-1) == &a3
-    assert <(sub_ca9d0-1) == &cf
-    assert <(sub_caac6-1) == &c5
-    assert <(sub_caadb-1) == &da
     assert <(svc5_irq_check-1) == &22
     assert <(svc_18_fs_select-1) == &04
     assert <(svc_1_abs_workspace-1) == &8e
@@ -15120,6 +15158,9 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(net_1_read_handle-1) == &a0
     assert >(net_2_read_handle_entry-1) == &a0
     assert >(net_3_close_handle-1) == &a0
+    assert >(netv_claim_release-1) == &a9
+    assert >(netv_print_data-1) == &aa
+    assert >(netv_spool_check-1) == &aa
     assert >(osword_0e_handler-1) == &a5
     assert >(osword_10_handler-1) == &a5
     assert >(osword_11_handler-1) == &a5
@@ -15148,9 +15189,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(osword_8_handler-1) == &aa
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
-    assert >(sub_ca9d0-1) == &a9
-    assert >(sub_caac6-1) == &aa
-    assert >(sub_caadb-1) == &aa
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
     assert >(svc_1_abs_workspace-1) == &8e
@@ -15812,7 +15850,6 @@ save pydis_start, pydis_end
 ;     ca83a:                                    1
 ;     ca84a:                                    1
 ;     ca84d:                                    1
-;     caa49:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     call_fscv:                                1
@@ -15879,6 +15916,7 @@ save pydis_start, pydis_end
 ;     copy_from_buf_entry:                      1
 ;     copy_imm_params:                          1
 ;     copy_nmi_shim:                            1
+;     copy_pb_to_ws:                            1
 ;     copy_ps_data:                             1
 ;     copy_ps_data_y1c:                         1
 ;     copy_scout_bytes:                         1
@@ -16101,7 +16139,6 @@ save pydis_start, pydis_end
 ;     loop_ca682:                               1
 ;     loop_ca73e:                               1
 ;     loop_ca7c6:                               1
-;     loop_caa4d:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
 ;     loop_check_handles:                       1
@@ -16155,6 +16192,7 @@ save pydis_start, pydis_end
 ;     loop_copy_osfile_ptr:                     1
 ;     loop_copy_osword_data:                    1
 ;     loop_copy_osword_flag:                    1
+;     loop_copy_pb_to_ws:                       1
 ;     loop_copy_ps_tmpl:                        1
 ;     loop_copy_ptr_to_buf:                     1
 ;     loop_copy_reloc_pages:                    1
@@ -16686,7 +16724,6 @@ save pydis_start, pydis_end
 ;     ca83a
 ;     ca84a
 ;     ca84d
-;     caa49
 ;     cbe6f
 ;     l0063
 ;     l0078
@@ -16825,7 +16862,6 @@ save pydis_start, pydis_end
 ;     loop_ca682
 ;     loop_ca73e
 ;     loop_ca7c6
-;     loop_caa4d
 ;     return_1
 ;     return_10
 ;     return_11
@@ -16867,9 +16903,6 @@ save pydis_start, pydis_end
 ;     sub_c84a1
 ;     sub_c8e2d
 ;     sub_ca843
-;     sub_ca9d0
-;     sub_caac6
-;     sub_caadb
 ;     sub_cbe5e
 
 ; Stats:

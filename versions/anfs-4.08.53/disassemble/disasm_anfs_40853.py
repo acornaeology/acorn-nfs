@@ -846,9 +846,37 @@ label(0xA98C, "osword_handler_lo_table")
 label(0xA995, "osword_handler_hi_table")
 
 # OSWORD handler PHA/PHA/RTS dispatch table (9 entries, OSWORDs 0-8).
+# Dispatched via push_osword_handler_addr (&A981). Each pair of lo/hi bytes
+# encodes handler_address-1 for the PHA/PHA/RTS idiom.
 for i in range(9):
     rts_code_ptr(0xA98C + i, 0xA995 + i)
+comment(0xA98C, "OSWORD handler dispatch table\n"
+    "\n"
+    "9-entry PHA/PHA/RTS table for OSWORD numbers\n"
+    "0-8. push_osword_handler_addr indexes by the\n"
+    "OSWORD number, pushes the handler address-1,\n"
+    "then RTS dispatches to the handler with the\n"
+    "OSWORD number reloaded in A.")
+comment(0xA98C, "lo OSWORD 0: no-op (RTS)", inline=True)
+comment(0xA98D, "lo OSWORD 1: printer spool data", inline=True)
+comment(0xA98E, "lo OSWORD 2: printer spool data", inline=True)
+comment(0xA98F, "lo OSWORD 3: printer spool data", inline=True)
+comment(0xA990, "lo OSWORD 4: clear carry + abort", inline=True)
+comment(0xA991, "lo OSWORD 5: spool buffer check", inline=True)
+comment(0xA992, "lo OSWORD 6: no-op (RTS)", inline=True)
+comment(0xA993, "lo OSWORD 7: claim/release handler", inline=True)
+comment(0xA994, "lo OSWORD 8: copy PB + abort", inline=True)
+comment(0xA995, "hi OSWORD 0: no-op (RTS)", inline=True)
+comment(0xA996, "hi OSWORD 1: printer spool data", inline=True)
+comment(0xA997, "hi OSWORD 2: printer spool data", inline=True)
+comment(0xA998, "hi OSWORD 3: printer spool data", inline=True)
+comment(0xA999, "hi OSWORD 4: clear carry + abort", inline=True)
+comment(0xA99A, "hi OSWORD 5: spool buffer check", inline=True)
+comment(0xA99B, "hi OSWORD 6: no-op (RTS)", inline=True)
+comment(0xA99C, "hi OSWORD 7: claim/release handler", inline=True)
+comment(0xA99D, "hi OSWORD 8: copy PB + abort", inline=True)
 
+label(0xA9D0, "netv_claim_release")
 label(0xA9E9, "process_match_result")
 label(0xA9F2, "save_tube_state")
 label(0xA9F4, "loop_save_tube_bytes")
@@ -860,6 +888,8 @@ label(0xAA2D, "osword_claim_codes")
 # Split the 18-byte claim codes table into individual bytes for annotation.
 for i in range(18):
     byte(0xAA2D + i)
+label(0xAA49, "copy_pb_to_ws")
+label(0xAA4D, "loop_copy_pb_to_ws")
 label(0xAA78, "loop_copy_ws_template")
 label(0xAA8D, "store_tx_ptr_hi")
 label(0xAA8F, "select_store_target")
@@ -867,6 +897,8 @@ label(0xAA95, "store_via_rx_ptr")
 label(0xAA97, "advance_template_idx")
 label(0xAA9B, "done_ws_template_copy")
 label(0xAA9F, "ws_txcb_template_data")
+label(0xAAC6, "netv_spool_check")
+label(0xAADB, "netv_print_data")
 label(0xAAEA, "loop_drain_printer_buf")
 label(0xAB21, "done_spool_ctrl")
 label(0xAB63, "check_spool_state")
@@ -3308,6 +3340,16 @@ subroutine(0xA9AC, "tx_econet_abort",
     "(immediate operation flag), and transmits the\n"
     "abort packet. Used to cleanly disconnect from\n"
     "a remote station during error recovery.")
+subroutine(0xA9D0, "netv_claim_release",
+    title="OSWORD 7 handler: claim/release network resources",
+    description="Handles OSWORD 7 (SOUND) intercepted via NETV.\n"
+    "Searches the claim code table in two passes:\n"
+    "first 11 entries (state 2), then all 18 (state\n"
+    "3). On match, saves 3 tube state bytes to\n"
+    "workspace and sends an abort with the state\n"
+    "code. For state 3 matches, also polls workspace\n"
+    "for a response and restores the caller's stack\n"
+    "frame from the saved bytes.")
 subroutine(0xAA24, "match_rx_code",
     title="Search receive code table for match",
     description="Scans a table of receive operation codes\n"
@@ -3345,6 +3387,21 @@ subroutine(0xAA77, "ws_copy_vclr_entry",
     "substitutes the workspace page pointer. All\n"
     "other values are stored directly to the\n"
     "workspace at the current offset.")
+subroutine(0xAAC6, "netv_spool_check",
+    title="OSWORD 5 handler: check spool PB and reset buffer",
+    description="Handles OSWORD 5 intercepted via NETV. Checks\n"
+    "if X-1 matches osword_pb_ptr and bit 0 of\n"
+    "&00D0 is clear. If both conditions are met,\n"
+    "falls through to reset_spool_buf_state to\n"
+    "reinitialise the spool buffer for new data.")
+subroutine(0xAADB, "netv_print_data",
+    title="OSWORD 1-3 handler: drain printer buffer",
+    description="Handles OSWORDs 1-3 intercepted via NETV.\n"
+    "When X=1, drains the printer buffer (OSBYTE\n"
+    "&91, buffer 3) into the receive buffer, sending\n"
+    "packets via process_spool_data when the buffer\n"
+    "exceeds &6E bytes. When X>1, routes to\n"
+    "handle_spool_ctrl_byte for spool state control.")
 subroutine(0xAAD0, "reset_spool_buf_state",
     title="Reset spool buffer to initial state",
     description="Sets the spool buffer pointer to &25 (first\n"
@@ -10109,7 +10166,7 @@ comment(0xA9CC, "Restore TX ptr low", inline=True)
 comment(0xA9CD, "Back to net_tx_ptr", inline=True)
 comment(0xA9CF, "Return", inline=True)
 
-# OSWORD handler (&A9D0): handle claim/release
+# netv_claim_release (&A9D0): OSWORD 7 handler
 comment(0xA9D0, "Load PB pointer high", inline=True)
 comment(0xA9D2, "Compare with &81 (special case)", inline=True)
 comment(0xA9D4, "Match: skip to processing", inline=True)
@@ -10164,7 +10221,7 @@ comment(0xAA1F, "Reached start of save area?", inline=True)
 comment(0xAA21, "No: copy next byte", inline=True)
 comment(0xAA23, "Return", inline=True)
 
-# caa24: search claim code table
+# match_rx_code (&AA24): search claim code table
 comment(0xAA24, "Compare A with code at index X", inline=True)
 comment(0xAA27, "Match: return with Z set", inline=True)
 comment(0xAA29, "Try next code", inline=True)
@@ -10276,6 +10333,14 @@ comment(0xAA9E, "Return", inline=True)
 comment(0xAA9F, "Data: TXCB template (decoded as STA &00)", inline=True)
 comment(0xAAA1, "Data: template continuation bytes", inline=True)
 
+# netv_spool_check (&AAC6): OSWORD 5 handler
+comment(0xAAC6, "X = X - 1", inline=True)
+comment(0xAAC7, "Match osword_pb_ptr?", inline=True)
+comment(0xAAC9, "No: return (not our PB)", inline=True)
+comment(0xAACB, "Load spool state byte", inline=True)
+comment(0xAACD, "Rotate bit 0 into carry", inline=True)
+comment(0xAACE, "C=1: already active, return", inline=True)
+
 # reset_spool_buf_state: reset printer spool buffer
 comment(0xAAD0, "Buffer start at &25", inline=True)
 comment(0xAAD2, "Store as buffer pointer", inline=True)
@@ -10283,7 +10348,7 @@ comment(0xAAD5, "Control state &41", inline=True)
 comment(0xAAD7, "Store as spool control state", inline=True)
 comment(0xAADA, "Return", inline=True)
 
-# Spool printer handler (&AADB)
+# netv_print_data (&AADB): OSWORD 1-3 handler
 comment(0xAADB, "Check Y == 4", inline=True)
 comment(0xAADD, "No: return", inline=True)
 comment(0xAADF, "A = X (control byte)", inline=True)
