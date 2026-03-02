@@ -5785,12 +5785,7 @@ comment(0x8E43, "Unreferenced dead data (8 bytes)\n"
     "pointer. Absent from all NFS versions (3.34-3.65);\n"
     "unique to ANFS. Likely a development remnant — possibly\n"
     "an OSCLI command template left from testing.")
-comment(0x8E43, "Dead data: 'P'", inline=True)
-comment(0x8E44, "Dead data: 'R'", inline=True)
-comment(0x8E45, "Dead data: 'I'", inline=True)
-comment(0x8E46, "Dead data: 'N'", inline=True)
-comment(0x8E47, "Dead data: 'T'", inline=True)
-comment(0x8E48, "Dead data: ' '", inline=True)
+comment(0x8E43, "Dead data: ASCII \"PRINT \"", inline=True)
 comment(0x8E49, "Dead data: &01", inline=True)
 comment(0x8E4A, "Dead data: &00", inline=True)
 
@@ -6852,8 +6847,8 @@ for i, (name, handler_addr) in enumerate(handler_names):
 
 # Dead data: "PRINT " + &01 &00 at &8E43 (8 bytes, unreferenced)
 label(0x8E43, "print_string")
-for i in range(8):
-    byte(0x8E43 + i)
+byte(0x8E49)
+byte(0x8E4A)
 
 # NETV handler address pair at &8E74 (read by write_vector_entry)
 label(0x8E74, "netv_handler_addr")

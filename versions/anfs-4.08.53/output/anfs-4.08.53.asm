@@ -4700,12 +4700,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; unique to ANFS. Likely a development remnant — possibly
 ; an OSCLI command template left from testing.
 .print_string
-    equb &50                                                          ; 8e43: 50          P              ; Dead data: 'P'
-    equb &52                                                          ; 8e44: 52          R              ; Dead data: 'R'
-    equb &49                                                          ; 8e45: 49          I              ; Dead data: 'I'
-    equb &4e                                                          ; 8e46: 4e          N              ; Dead data: 'N'
-    equb &54                                                          ; 8e47: 54          T              ; Dead data: 'T'
-    equb &20                                                          ; 8e48: 20                         ; Dead data: ' '
+    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI            ; Dead data: ASCII "PRINT "
     equb 1                                                            ; 8e49: 01          .              ; Dead data: &01
     equb 0                                                            ; 8e4a: 00          .              ; Dead data: &00
 ; ***************************************************************************************
@@ -16677,7 +16672,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1790 bytes (11%)
 ;
 ;     Number of instructions   = 7160
-;     Number of data bytes     = 523 bytes
+;     Number of data bytes     = 517 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1155 bytes
-;     Number of strings        = 139
+;     Number of string bytes   = 1161 bytes
+;     Number of strings        = 140
