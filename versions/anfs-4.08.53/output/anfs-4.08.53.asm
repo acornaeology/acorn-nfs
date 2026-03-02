@@ -9696,164 +9696,197 @@ bad_prefix = bad_str_anchor+1
     jmp commit_state_byte                                             ; a62e: 4c cb ac    L..            ; Update state and return
 
 .osword_13_dispatch
-    tax                                                               ; a631: aa          .
-    cmp #&13                                                          ; a632: c9 13       ..
-    bcs return_23                                                     ; a634: b0 08       ..
-    lda osword_13_hi_table,x                                          ; a636: bd 51 a6    .Q.
-    pha                                                               ; a639: 48          H
-    lda osword_13_lo_table,x                                          ; a63a: bd 3f a6    .?.
-    pha                                                               ; a63d: 48          H
+    tax                                                               ; a631: aa          .              ; X = sub-code
+    cmp #&13                                                          ; a632: c9 13       ..             ; Sub-code < &13?
+    bcs return_23                                                     ; a634: b0 08       ..             ; Out of range: return
+    lda osword_13_hi_table,x                                          ; a636: bd 51 a6    .Q.            ; Load handler address high byte
+    pha                                                               ; a639: 48          H              ; Push high byte
+    lda osword_13_lo_table,x                                          ; a63a: bd 3f a6    .?.            ; Load handler address low byte
+    pha                                                               ; a63d: 48          H              ; Push low byte
 ; &a63e referenced 1 time by &a634
 .return_23
-    rts                                                               ; a63e: 60          `
+    rts                                                               ; a63e: 60          `              ; RTS dispatches to handler
 
 ; &a63f referenced 1 time by &a63a
 .osword_13_lo_table
-    equb <(sub_ca663-1)                                               ; a63f: 62          b
-    equb <(sub_ca676-1)                                               ; a640: 75          u
-    equb <(sub_ca70a-1)                                               ; a641: 09          .
-    equb <(sub_ca716-1)                                               ; a642: 15          .
-    equb <(sub_ca72b-1)                                               ; a643: 2a          *
-    equb <(sub_ca731-1)                                               ; a644: 30          0
-    equb <(sub_ca737-1)                                               ; a645: 36          6
-    equb <(sub_ca747-1)                                               ; a646: 46          F
-    equb <(sub_ca7e7-1)                                               ; a647: e6          .
-    equb <(sub_ca7f0-1)                                               ; a648: ef          .
-    equb <(sub_ca7fe-1)                                               ; a649: fd          .
-    equb <(sub_ca804-1)                                               ; a64a: 03          .
-    equb <(sub_ca6eb-1)                                               ; a64b: ea          .
-    equb <(sub_ca6ee-1)                                               ; a64c: ed          .
-    equb <(sub_ca80a-1)                                               ; a64d: 09          .
-    equb <(loop_ca814-1)                                              ; a64e: 13          .
-    equb <(loop_ca81f-1)                                              ; a64f: 1e          .
-    equb <(sub_ca82a-1)                                               ; a650: 29          )
+    equb <(osword_13_read_station-1)                                  ; a63f: 62          b              ; lo-sub 0: read FS station
+    equb <(osword_13_set_station-1)                                   ; a640: 75          u              ; lo-sub 1: set FS station
+    equb <(osword_13_read_ws_pair-1)                                  ; a641: 09          .              ; lo-sub 2: read workspace pair
+    equb <(osword_13_write_ws_pair-1)                                 ; a642: 15          .              ; lo-sub 3: write workspace pair
+    equb <(osword_13_read_prot-1)                                     ; a643: 2a          *              ; lo-sub 4: read protection mask
+    equb <(osword_13_write_prot-1)                                    ; a644: 30          0              ; lo-sub 5: write protection mask
+    equb <(osword_13_read_handles-1)                                  ; a645: 36          6              ; lo-sub 6: read FCB handles
+    equb <(osword_13_set_handles-1)                                   ; a646: 46          F              ; lo-sub 7: set FCB handles
+    equb <(osword_13_read_rx_flag-1)                                  ; a647: e6          .              ; lo-sub 8: read RX flag
+    equb <(osword_13_read_rx_port-1)                                  ; a648: ef          .              ; lo-sub 9: read RX port
+    equb <(osword_13_read_error-1)                                    ; a649: fd          .              ; lo-sub 10: read error flag
+    equb <(osword_13_read_context-1)                                  ; a64a: 03          .              ; lo-sub 11: read context byte
+    equb <(osword_13_read_csd-1)                                      ; a64b: ea          .              ; lo-sub 12: read CSD path
+    equb <(osword_13_write_csd-1)                                     ; a64c: ed          .              ; lo-sub 13: write CSD path
+    equb <(osword_13_read_free_bufs-1)                                ; a64d: 09          .              ; lo-sub 14: read free buffers
+    equb <(osword_13_read_ctx_3-1)                                    ; a64e: 13          .              ; lo-sub 15: read 3 context bytes
+    equb <(osword_13_write_ctx_3-1)                                   ; a64f: 1e          .              ; lo-sub 16: write 3 context bytes
+    equb <(osword_13_bridge_query-1)                                  ; a650: 29          )              ; lo-sub 17: query bridge status
 ; &a651 referenced 1 time by &a636
 .osword_13_hi_table
-    equb >(sub_ca663-1)                                               ; a651: a6          .
-    equb >(sub_ca676-1)                                               ; a652: a6          .
-    equb >(sub_ca70a-1)                                               ; a653: a7          .
-    equb >(sub_ca716-1)                                               ; a654: a7          .
-    equb >(sub_ca72b-1)                                               ; a655: a7          .
-    equb >(sub_ca731-1)                                               ; a656: a7          .
-    equb >(sub_ca737-1)                                               ; a657: a7          .
-    equb >(sub_ca747-1)                                               ; a658: a7          .
-    equb >(sub_ca7e7-1)                                               ; a659: a7          .
-    equb >(sub_ca7f0-1)                                               ; a65a: a7          .
-    equb >(sub_ca7fe-1)                                               ; a65b: a7          .
-    equb >(sub_ca804-1)                                               ; a65c: a8          .
-    equb >(sub_ca6eb-1)                                               ; a65d: a6          .
-    equb >(sub_ca6ee-1)                                               ; a65e: a6          .
-    equb >(sub_ca80a-1)                                               ; a65f: a8          .
-    equb >(loop_ca814-1)                                              ; a660: a8          .
-    equb >(loop_ca81f-1)                                              ; a661: a8          .
-    equb >(sub_ca82a-1)                                               ; a662: a8          .
+    equb >(osword_13_read_station-1)                                  ; a651: a6          .              ; hi-sub 0: read FS station
+    equb >(osword_13_set_station-1)                                   ; a652: a6          .              ; hi-sub 1: set FS station
+    equb >(osword_13_read_ws_pair-1)                                  ; a653: a7          .              ; hi-sub 2: read workspace pair
+    equb >(osword_13_write_ws_pair-1)                                 ; a654: a7          .              ; hi-sub 3: write workspace pair
+    equb >(osword_13_read_prot-1)                                     ; a655: a7          .              ; hi-sub 4: read protection mask
+    equb >(osword_13_write_prot-1)                                    ; a656: a7          .              ; hi-sub 5: write protection mask
+    equb >(osword_13_read_handles-1)                                  ; a657: a7          .              ; hi-sub 6: read FCB handles
+    equb >(osword_13_set_handles-1)                                   ; a658: a7          .              ; hi-sub 7: set FCB handles
+    equb >(osword_13_read_rx_flag-1)                                  ; a659: a7          .              ; hi-sub 8: read RX flag
+    equb >(osword_13_read_rx_port-1)                                  ; a65a: a7          .              ; hi-sub 9: read RX port
+    equb >(osword_13_read_error-1)                                    ; a65b: a7          .              ; hi-sub 10: read error flag
+    equb >(osword_13_read_context-1)                                  ; a65c: a8          .              ; hi-sub 11: read context byte
+    equb >(osword_13_read_csd-1)                                      ; a65d: a6          .              ; hi-sub 12: read CSD path
+    equb >(osword_13_write_csd-1)                                     ; a65e: a6          .              ; hi-sub 13: write CSD path
+    equb >(osword_13_read_free_bufs-1)                                ; a65f: a8          .              ; hi-sub 14: read free buffers
+    equb >(osword_13_read_ctx_3-1)                                    ; a660: a8          .              ; hi-sub 15: read 3 context bytes
+    equb >(osword_13_write_ctx_3-1)                                   ; a661: a8          .              ; hi-sub 16: write 3 context bytes
+    equb >(osword_13_bridge_query-1)                                  ; a662: a8          .              ; hi-sub 17: query bridge status
 
-.sub_ca663
-    bit l0d6c                                                         ; a663: 2c 6c 0d    ,l.
-    bmi ca66b                                                         ; a666: 30 03       0.
+; ***************************************************************************************
+; OSWORD &13 sub 0: read file server station
+; 
+; Returns the current file server station and
+; network numbers in PB[1..2]. If the NFS is not
+; active (l0d6c bit 7 clear), returns zero in
+; PB[0] instead.
+; ***************************************************************************************
+.osword_13_read_station
+    bit l0d6c                                                         ; a663: 2c 6c 0d    ,l.            ; NFS active?
+    bmi ca66b                                                         ; a666: 30 03       0.             ; Yes: read station data
 ; &a668 referenced 1 time by &a679
 .loop_ca668
-    jmp ca74c                                                         ; a668: 4c 4c a7    LL.
+    jmp return_zero_in_pb                                             ; a668: 4c 4c a7    LL.            ; No: return zero
 
 ; &a66b referenced 1 time by &a666
 .ca66b
-    ldy #2                                                            ; a66b: a0 02       ..
+    ldy #2                                                            ; a66b: a0 02       ..             ; Y=2: copy 2 bytes
 ; &a66d referenced 1 time by &a673
 .loop_ca66d
-    lda l0dff,y                                                       ; a66d: b9 ff 0d    ...
-    sta (osword_pb_ptr),y                                             ; a670: 91 f0       ..
-    dey                                                               ; a672: 88          .
-    bne loop_ca66d                                                    ; a673: d0 f8       ..
-    rts                                                               ; a675: 60          `
+    lda l0dff,y                                                       ; a66d: b9 ff 0d    ...            ; Load station byte
+    sta (osword_pb_ptr),y                                             ; a670: 91 f0       ..             ; Store to PB[Y]
+    dey                                                               ; a672: 88          .              ; Previous byte
+    bne loop_ca66d                                                    ; a673: d0 f8       ..             ; Loop for bytes 2..1
+    rts                                                               ; a675: 60          `              ; Return
 
-.sub_ca676
-    bit l0d6c                                                         ; a676: 2c 6c 0d    ,l.
-    bpl loop_ca668                                                    ; a679: 10 ed       ..
-    ldy #0                                                            ; a67b: a0 00       ..
-    jsr process_all_fcbs                                              ; a67d: 20 9f b7     ..
-    ldy #2                                                            ; a680: a0 02       ..
+; ***************************************************************************************
+; OSWORD &13 sub 1: set file server station
+; 
+; Sets the file server station and network
+; numbers from PB[1..2]. Processes all FCBs,
+; then scans the 16-entry FCB table to
+; reassign handles matching the new station.
+; If the NFS is not active, returns zero.
+; ***************************************************************************************
+.osword_13_set_station
+    bit l0d6c                                                         ; a676: 2c 6c 0d    ,l.            ; NFS active?
+    bpl loop_ca668                                                    ; a679: 10 ed       ..             ; No: return zero
+    ldy #0                                                            ; a67b: a0 00       ..             ; Y=0 for process_all_fcbs
+    jsr process_all_fcbs                                              ; a67d: 20 9f b7     ..            ; Close all open FCBs
+    ldy #2                                                            ; a680: a0 02       ..             ; Y=2: copy 2 bytes
 ; &a682 referenced 1 time by &a688
 .loop_ca682
-    lda (osword_pb_ptr),y                                             ; a682: b1 f0       ..
-    sta l0dff,y                                                       ; a684: 99 ff 0d    ...
-    dey                                                               ; a687: 88          .
-    bne loop_ca682                                                    ; a688: d0 f8       ..
-    jsr clear_if_station_match                                        ; a68a: 20 fe 8d     ..
-    ldx #&0f                                                          ; a68d: a2 0f       ..
+    lda (osword_pb_ptr),y                                             ; a682: b1 f0       ..             ; Load new station byte from PB
+    sta l0dff,y                                                       ; a684: 99 ff 0d    ...            ; Store to l0dff
+    dey                                                               ; a687: 88          .              ; Previous byte
+    bne loop_ca682                                                    ; a688: d0 f8       ..             ; Loop for bytes 2..1
+    jsr clear_if_station_match                                        ; a68a: 20 fe 8d     ..            ; Clear handles if station matches
+    ldx #&0f                                                          ; a68d: a2 0f       ..             ; X=&0F: scan 16 FCB entries
 ; &a68f referenced 1 time by &a6e8
 .ca68f
-    lda l1060,x                                                       ; a68f: bd 60 10    .`.
-    tay                                                               ; a692: a8          .
-    and #2                                                            ; a693: 29 02       ).
-    beq ca6e7                                                         ; a695: f0 50       .P
-    tya                                                               ; a697: 98          .
-    and #&df                                                          ; a698: 29 df       ).
-    sta l1060,x                                                       ; a69a: 9d 60 10    .`.
-    tay                                                               ; a69d: a8          .
-    jsr match_station_net                                             ; a69e: 20 7a b5     z.
-    bne ca6e7                                                         ; a6a1: d0 44       .D
-    clc                                                               ; a6a3: 18          .
-    tya                                                               ; a6a4: 98          .
-    and #4                                                            ; a6a5: 29 04       ).
-    beq ca6b9                                                         ; a6a7: f0 10       ..
-    tya                                                               ; a6a9: 98          .
-    ora #&20 ; ' '                                                    ; a6aa: 09 20       .
-    tay                                                               ; a6ac: a8          .
-    lda l1030,x                                                       ; a6ad: bd 30 10    .0.
-    sta l0e02                                                         ; a6b0: 8d 02 0e    ...
-    txa                                                               ; a6b3: 8a          .
-    adc #&20 ; ' '                                                    ; a6b4: 69 20       i
-    sta l1072                                                         ; a6b6: 8d 72 10    .r.
+    lda l1060,x                                                       ; a68f: bd 60 10    .`.            ; Load FCB flags
+    tay                                                               ; a692: a8          .              ; Save flags in Y
+    and #2                                                            ; a693: 29 02       ).             ; Test bit 1 (FCB allocated?)
+    beq ca6e7                                                         ; a695: f0 50       .P             ; No: skip to next entry
+    tya                                                               ; a697: 98          .              ; Restore flags
+    and #&df                                                          ; a698: 29 df       ).             ; Clear bit 5 (pending update)
+    sta l1060,x                                                       ; a69a: 9d 60 10    .`.            ; Store updated flags
+    tay                                                               ; a69d: a8          .              ; Save in Y
+    jsr match_station_net                                             ; a69e: 20 7a b5     z.            ; Does FCB match new station?
+    bne ca6e7                                                         ; a6a1: d0 44       .D             ; No match: skip to next
+    clc                                                               ; a6a3: 18          .              ; Clear carry for ADC
+    tya                                                               ; a6a4: 98          .              ; Restore flags
+    and #4                                                            ; a6a5: 29 04       ).             ; Test bit 2 (handle 1 active?)
+    beq ca6b9                                                         ; a6a7: f0 10       ..             ; No: check handle 2
+    tya                                                               ; a6a9: 98          .              ; Restore flags
+    ora #&20 ; ' '                                                    ; a6aa: 09 20       .              ; Set bit 5 (handle reassigned)
+    tay                                                               ; a6ac: a8          .              ; Save updated flags
+    lda l1030,x                                                       ; a6ad: bd 30 10    .0.            ; Get FCB high byte
+    sta l0e02                                                         ; a6b0: 8d 02 0e    ...            ; Store as handle 1 station
+    txa                                                               ; a6b3: 8a          .              ; FCB index
+    adc #&20 ; ' '                                                    ; a6b4: 69 20       i              ; Add &20 for FCB table offset
+    sta l1072                                                         ; a6b6: 8d 72 10    .r.            ; Store as handle 1 FCB index
 ; &a6b9 referenced 1 time by &a6a7
 .ca6b9
-    tya                                                               ; a6b9: 98          .
-    and #8                                                            ; a6ba: 29 08       ).
-    beq ca6ce                                                         ; a6bc: f0 10       ..
-    tya                                                               ; a6be: 98          .
-    ora #&20 ; ' '                                                    ; a6bf: 09 20       .
-    tay                                                               ; a6c1: a8          .
-    lda l1030,x                                                       ; a6c2: bd 30 10    .0.
-    sta l0e03                                                         ; a6c5: 8d 03 0e    ...
-    txa                                                               ; a6c8: 8a          .
-    adc #&20 ; ' '                                                    ; a6c9: 69 20       i
-    sta l1073                                                         ; a6cb: 8d 73 10    .s.
+    tya                                                               ; a6b9: 98          .              ; Restore flags
+    and #8                                                            ; a6ba: 29 08       ).             ; Test bit 3 (handle 2 active?)
+    beq ca6ce                                                         ; a6bc: f0 10       ..             ; No: check handle 3
+    tya                                                               ; a6be: 98          .              ; Restore flags
+    ora #&20 ; ' '                                                    ; a6bf: 09 20       .              ; Set bit 5
+    tay                                                               ; a6c1: a8          .              ; Save updated flags
+    lda l1030,x                                                       ; a6c2: bd 30 10    .0.            ; Get FCB high byte
+    sta l0e03                                                         ; a6c5: 8d 03 0e    ...            ; Store as handle 2 station
+    txa                                                               ; a6c8: 8a          .              ; FCB index
+    adc #&20 ; ' '                                                    ; a6c9: 69 20       i              ; Add &20 for FCB table offset
+    sta l1073                                                         ; a6cb: 8d 73 10    .s.            ; Store as handle 2 FCB index
 ; &a6ce referenced 1 time by &a6bc
 .ca6ce
-    tya                                                               ; a6ce: 98          .
-    and #&10                                                          ; a6cf: 29 10       ).
-    beq ca6e3                                                         ; a6d1: f0 10       ..
-    tya                                                               ; a6d3: 98          .
-    ora #&20 ; ' '                                                    ; a6d4: 09 20       .
-    tay                                                               ; a6d6: a8          .
-    lda l1030,x                                                       ; a6d7: bd 30 10    .0.
-    sta l0e04                                                         ; a6da: 8d 04 0e    ...
-    txa                                                               ; a6dd: 8a          .
-    adc #&20 ; ' '                                                    ; a6de: 69 20       i
-    sta l1074                                                         ; a6e0: 8d 74 10    .t.
+    tya                                                               ; a6ce: 98          .              ; Restore flags
+    and #&10                                                          ; a6cf: 29 10       ).             ; Test bit 4 (handle 3 active?)
+    beq ca6e3                                                         ; a6d1: f0 10       ..             ; No: store final flags
+    tya                                                               ; a6d3: 98          .              ; Restore flags
+    ora #&20 ; ' '                                                    ; a6d4: 09 20       .              ; Set bit 5
+    tay                                                               ; a6d6: a8          .              ; Save updated flags
+    lda l1030,x                                                       ; a6d7: bd 30 10    .0.            ; Get FCB high byte
+    sta l0e04                                                         ; a6da: 8d 04 0e    ...            ; Store as handle 3 station
+    txa                                                               ; a6dd: 8a          .              ; FCB index
+    adc #&20 ; ' '                                                    ; a6de: 69 20       i              ; Add &20 for FCB table offset
+    sta l1074                                                         ; a6e0: 8d 74 10    .t.            ; Store as handle 3 FCB index
 ; &a6e3 referenced 1 time by &a6d1
 .ca6e3
-    tya                                                               ; a6e3: 98          .
-    sta l1060,x                                                       ; a6e4: 9d 60 10    .`.
+    tya                                                               ; a6e3: 98          .              ; Store final flags for this FCB
+    sta l1060,x                                                       ; a6e4: 9d 60 10    .`.            ; Update l1060[X]
 ; &a6e7 referenced 2 times by &a695, &a6a1
 .ca6e7
-    dex                                                               ; a6e7: ca          .
-    bpl ca68f                                                         ; a6e8: 10 a5       ..
-    rts                                                               ; a6ea: 60          `
+    dex                                                               ; a6e7: ca          .              ; Next FCB entry
+    bpl ca68f                                                         ; a6e8: 10 a5       ..             ; Loop for all 16 entries
+    rts                                                               ; a6ea: 60          `              ; Return
 
-.sub_ca6eb
-    clc                                                               ; a6eb: 18          .
-    bcc ca6ef                                                         ; a6ec: 90 01       ..             ; ALWAYS branch
+; ***************************************************************************************
+; OSWORD &13 sub 12: read CSD path
+; 
+; Reads 5 current selected directory path bytes
+; from the RX workspace at offset &1B into
+; PB[1..5]. Sets carry clear to select the
+; workspace-to-PB copy direction.
+; ***************************************************************************************
+.osword_13_read_csd
+    clc                                                               ; a6eb: 18          .              ; C=0: workspace-to-PB direction
+    bcc ca6ef                                                         ; a6ec: 90 01       ..             ; Skip SEC; ALWAYS branch
 
-.sub_ca6ee
-    sec                                                               ; a6ee: 38          8
+; ***************************************************************************************
+; OSWORD &13 sub 13: write CSD path
+; 
+; Writes 5 current selected directory path bytes
+; from PB[1..5] into the RX workspace at offset
+; &1B. Sets carry to select the PB-to-workspace
+; copy direction.
+; ***************************************************************************************
+.osword_13_write_csd
+    sec                                                               ; a6ee: 38          8              ; C=1: PB-to-workspace direction
 ; &a6ef referenced 1 time by &a6ec
 .ca6ef
-    lda #&1b                                                          ; a6ef: a9 1b       ..
-    sta ws_ptr_lo                                                     ; a6f1: 85 ab       ..
-    lda net_rx_ptr_hi                                                 ; a6f3: a5 9d       ..
-    sta ws_ptr_hi                                                     ; a6f5: 85 ac       ..
-    ldy #1                                                            ; a6f7: a0 01       ..
-    ldx #5                                                            ; a6f9: a2 05       ..
+    lda #&1b                                                          ; a6ef: a9 1b       ..             ; Workspace offset &1B
+    sta ws_ptr_lo                                                     ; a6f1: 85 ab       ..             ; Set ws_ptr_lo
+    lda net_rx_ptr_hi                                                 ; a6f3: a5 9d       ..             ; Page from RX pointer high byte
+    sta ws_ptr_hi                                                     ; a6f5: 85 ac       ..             ; Set ws_ptr_hi
+    ldy #1                                                            ; a6f7: a0 01       ..             ; Y=1: first PB data byte
+    ldx #5                                                            ; a6f9: a2 05       ..             ; X=5: copy 5 bytes
 ; ***************************************************************************************
 ; Conditionally copy parameter block byte to workspace
 ; 
@@ -9883,259 +9916,370 @@ bad_prefix = bad_str_anchor+1
     bpl copy_pb_byte_to_ws                                            ; a707: 10 f2       ..             ; Loop for all bytes
     rts                                                               ; a709: 60          `              ; Return
 
-.sub_ca70a
-    lda nfs_workspace_hi                                              ; a70a: a5 9f       ..
-    sta ws_ptr_hi                                                     ; a70c: 85 ac       ..
-    iny                                                               ; a70e: c8          .
-    tya                                                               ; a70f: 98          .
-    sta ws_ptr_lo                                                     ; a710: 85 ab       ..
-    tax                                                               ; a712: aa          .
-    clc                                                               ; a713: 18          .
-    bcc copy_pb_byte_to_ws                                            ; a714: 90 e5       ..             ; ALWAYS branch
+; ***************************************************************************************
+; OSWORD &13 sub 2: read workspace byte pair
+; 
+; Reads 2 bytes from the NFS workspace page
+; starting at offset 1 into PB[1..2]. Uses
+; nfs_workspace_hi as the page and
+; copy_pb_byte_to_ws with carry clear for the
+; workspace-to-PB direction.
+; ***************************************************************************************
+.osword_13_read_ws_pair
+    lda nfs_workspace_hi                                              ; a70a: a5 9f       ..             ; Load workspace page high byte
+    sta ws_ptr_hi                                                     ; a70c: 85 ac       ..             ; Set ws_ptr_hi
+    iny                                                               ; a70e: c8          .              ; Y=1
+    tya                                                               ; a70f: 98          .              ; A=1
+    sta ws_ptr_lo                                                     ; a710: 85 ab       ..             ; Set ws_ptr_lo = 1
+    tax                                                               ; a712: aa          .              ; X=1: copy 2 bytes
+    clc                                                               ; a713: 18          .              ; C=0: workspace-to-PB direction
+    bcc copy_pb_byte_to_ws                                            ; a714: 90 e5       ..             ; Copy via copy_pb_byte_to_ws; ALWAYS branch
 
-.sub_ca716
-    iny                                                               ; a716: c8          .
-    lda (osword_pb_ptr),y                                             ; a717: b1 f0       ..
-    iny                                                               ; a719: c8          .
-    sta (nfs_workspace),y                                             ; a71a: 91 9e       ..
-    lda (osword_pb_ptr),y                                             ; a71c: b1 f0       ..
-    iny                                                               ; a71e: c8          .
-    sta (nfs_workspace),y                                             ; a71f: 91 9e       ..
-    jsr init_bridge_poll                                              ; a721: 20 68 a8     h.
-    eor (nfs_workspace),y                                             ; a724: 51 9e       Q.
-    bne return_24                                                     ; a726: d0 02       ..
-    sta (nfs_workspace),y                                             ; a728: 91 9e       ..
+; ***************************************************************************************
+; OSWORD &13 sub 3: write workspace byte pair
+; 
+; Writes 2 bytes from PB[1..2] into the NFS
+; workspace at offsets 2 and 3. Then calls
+; init_bridge_poll and conditionally clears
+; the workspace byte if the bridge status
+; changed.
+; ***************************************************************************************
+.osword_13_write_ws_pair
+    iny                                                               ; a716: c8          .              ; Y=1: first PB data byte
+    lda (osword_pb_ptr),y                                             ; a717: b1 f0       ..             ; Load PB[1]
+    iny                                                               ; a719: c8          .              ; Y=2
+    sta (nfs_workspace),y                                             ; a71a: 91 9e       ..             ; Store to (nfs_workspace)+2
+    lda (osword_pb_ptr),y                                             ; a71c: b1 f0       ..             ; Load PB[2]
+    iny                                                               ; a71e: c8          .              ; Y=3
+    sta (nfs_workspace),y                                             ; a71f: 91 9e       ..             ; Store to (nfs_workspace)+3
+    jsr init_bridge_poll                                              ; a721: 20 68 a8     h.            ; Reinitialise bridge routing
+    eor (nfs_workspace),y                                             ; a724: 51 9e       Q.             ; Compare result with workspace
+    bne return_24                                                     ; a726: d0 02       ..             ; Different: leave unchanged
+    sta (nfs_workspace),y                                             ; a728: 91 9e       ..             ; Same: clear workspace byte
 ; &a72a referenced 1 time by &a726
 .return_24
-    rts                                                               ; a72a: 60          `
+    rts                                                               ; a72a: 60          `              ; Return
 
-.sub_ca72b
-    lda ws_0d68                                                       ; a72b: ad 68 0d    .h.
-    jmp ca810                                                         ; a72e: 4c 10 a8    L..
+; ***************************************************************************************
+; OSWORD &13 sub 4: read protection mask
+; 
+; Returns the current protection mask (ws_0d68)
+; in PB[1].
+; ***************************************************************************************
+.osword_13_read_prot
+    lda ws_0d68                                                       ; a72b: ad 68 0d    .h.            ; Load protection mask
+    jmp store_a_to_pb_1                                               ; a72e: 4c 10 a8    L..            ; Store to PB[1] and return
 
-.sub_ca731
-    iny                                                               ; a731: c8          .
-    lda (osword_pb_ptr),y                                             ; a732: b1 f0       ..
-    jmp store_prot_mask                                               ; a734: 4c 1a b3    L..
+; ***************************************************************************************
+; OSWORD &13 sub 5: write protection mask
+; 
+; Sets the protection mask from PB[1] via
+; store_prot_mask.
+; ***************************************************************************************
+.osword_13_write_prot
+    iny                                                               ; a731: c8          .              ; Y=1: PB data offset
+    lda (osword_pb_ptr),y                                             ; a732: b1 f0       ..             ; Load new mask from PB[1]
+    jmp store_prot_mask                                               ; a734: 4c 1a b3    L..            ; Store via store_prot_mask
 
-.sub_ca737
-    bit l0d6c                                                         ; a737: 2c 6c 0d    ,l.
-    bpl ca74c                                                         ; a73a: 10 10       ..
-    ldy #3                                                            ; a73c: a0 03       ..
+; ***************************************************************************************
+; OSWORD &13 sub 6: read FCB handle info
+; 
+; Returns the 3-byte FCB handle/port data from
+; l1071[1..3] in PB[1..3]. If the NFS is not
+; active, returns zero in PB[0].
+; ***************************************************************************************
+.osword_13_read_handles
+    bit l0d6c                                                         ; a737: 2c 6c 0d    ,l.            ; NFS active?
+    bpl return_zero_in_pb                                             ; a73a: 10 10       ..             ; No: return zero
+    ldy #3                                                            ; a73c: a0 03       ..             ; Y=3: copy 3 bytes
 ; &a73e referenced 1 time by &a744
 .loop_ca73e
-    lda l1071,y                                                       ; a73e: b9 71 10    .q.
-    sta (osword_pb_ptr),y                                             ; a741: 91 f0       ..
-    dey                                                               ; a743: 88          .
-    bne loop_ca73e                                                    ; a744: d0 f8       ..
-    rts                                                               ; a746: 60          `
+    lda l1071,y                                                       ; a73e: b9 71 10    .q.            ; Load handle byte
+    sta (osword_pb_ptr),y                                             ; a741: 91 f0       ..             ; Store to PB[Y]
+    dey                                                               ; a743: 88          .              ; Previous byte
+    bne loop_ca73e                                                    ; a744: d0 f8       ..             ; Loop for bytes 3..1
+    rts                                                               ; a746: 60          `              ; Return
 
-.sub_ca747
-    bit l0d6c                                                         ; a747: 2c 6c 0d    ,l.
-    bmi ca752                                                         ; a74a: 30 06       0.
+; ***************************************************************************************
+; OSWORD &13 sub 7: set FCB handles
+; 
+; Validates and assigns up to 3 FCB handles
+; from PB[1..3]. Each handle value (&20-&2F)
+; indexes the l1010/l1040 tables. For valid
+; handles with bit 2 set in l1040, stores the
+; station to l0e01+Y and FCB index to l1071+Y,
+; then updates flag bits across all FCB entries
+; via update_fcb_flag_bits.
+; ***************************************************************************************
+.osword_13_set_handles
+    bit l0d6c                                                         ; a747: 2c 6c 0d    ,l.            ; NFS active?
+    bmi ca752                                                         ; a74a: 30 06       0.             ; Yes: process handles
 ; &a74c referenced 2 times by &a668, &a73a
-.ca74c
-    lda #0                                                            ; a74c: a9 00       ..
+.return_zero_in_pb
+    lda #0                                                            ; a74c: a9 00       ..             ; A=0
     tay                                                               ; a74e: a8          .              ; Y=&00
-    sta (osword_pb_ptr),y                                             ; a74f: 91 f0       ..
-    rts                                                               ; a751: 60          `
+    sta (osword_pb_ptr),y                                             ; a74f: 91 f0       ..             ; Store 0 to PB[0]
+    rts                                                               ; a751: 60          `              ; Return
 
 ; &a752 referenced 1 time by &a74a
 .ca752
-    ldy #1                                                            ; a752: a0 01       ..
+    ldy #1                                                            ; a752: a0 01       ..             ; Y=1: first handle in PB
 ; &a754 referenced 1 time by &a794
 .ca754
-    lda (osword_pb_ptr),y                                             ; a754: b1 f0       ..
-    cmp #&20 ; ' '                                                    ; a756: c9 20       .
-    bcc ca764                                                         ; a758: 90 0a       ..
-    cmp #&30 ; '0'                                                    ; a75a: c9 30       .0
-    bcs ca764                                                         ; a75c: b0 06       ..
-    tax                                                               ; a75e: aa          .
-    lda l1010,x                                                       ; a75f: bd 10 10    ...
-    bne ca76b                                                         ; a762: d0 07       ..
+    lda (osword_pb_ptr),y                                             ; a754: b1 f0       ..             ; Load handle value from PB[Y]
+    cmp #&20 ; ' '                                                    ; a756: c9 20       .              ; Must be >= &20
+    bcc ca764                                                         ; a758: 90 0a       ..             ; Below range: invalid
+    cmp #&30 ; '0'                                                    ; a75a: c9 30       .0             ; Must be < &30
+    bcs ca764                                                         ; a75c: b0 06       ..             ; Above range: invalid
+    tax                                                               ; a75e: aa          .              ; X = handle value
+    lda l1010,x                                                       ; a75f: bd 10 10    ...            ; Load l1010[handle]
+    bne ca76b                                                         ; a762: d0 07       ..             ; Non-zero: FCB exists
 ; &a764 referenced 3 times by &a758, &a75c, &a770
 .ca764
-    lda #0                                                            ; a764: a9 00       ..
+    lda #0                                                            ; a764: a9 00       ..             ; Invalid: store 0 to PB[0]
     tax                                                               ; a766: aa          .              ; X=&00
-    sta (osword_pb_ptr,x)                                             ; a767: 81 f0       ..
-    beq ca791                                                         ; a769: f0 26       .&             ; ALWAYS branch
+    sta (osword_pb_ptr,x)                                             ; a767: 81 f0       ..             ; Clear PB[0] status
+    beq ca791                                                         ; a769: f0 26       .&             ; Skip to next handle; ALWAYS branch
 
 ; &a76b referenced 1 time by &a762
 .ca76b
-    lda l1040,x                                                       ; a76b: bd 40 10    .@.
-    and #2                                                            ; a76e: 29 02       ).
-    beq ca764                                                         ; a770: f0 f2       ..
-    txa                                                               ; a772: 8a          .
-    sta l1071,y                                                       ; a773: 99 71 10    .q.
-    lda l1010,x                                                       ; a776: bd 10 10    ...
-    sta l0e01,y                                                       ; a779: 99 01 0e    ...
-    cpy #1                                                            ; a77c: c0 01       ..
-    bne ca798                                                         ; a77e: d0 18       ..
-    tya                                                               ; a780: 98          .
-    pha                                                               ; a781: 48          H
-    ldy #4                                                            ; a782: a0 04       ..
-    jsr sub_ca7c2                                                     ; a784: 20 c2 a7     ..
-    pla                                                               ; a787: 68          h
-    tay                                                               ; a788: a8          .
-    lda l1040,x                                                       ; a789: bd 40 10    .@.
-    ora #&24 ; '$'                                                    ; a78c: 09 24       .$
-    sta l1040,x                                                       ; a78e: 9d 40 10    .@.
+    lda l1040,x                                                       ; a76b: bd 40 10    .@.            ; Load l1040[handle] flags
+    and #2                                                            ; a76e: 29 02       ).             ; Test bit 1 (allocated?)
+    beq ca764                                                         ; a770: f0 f2       ..             ; Not allocated: invalid
+    txa                                                               ; a772: 8a          .              ; X = handle value
+    sta l1071,y                                                       ; a773: 99 71 10    .q.            ; Store handle to l1071+Y
+    lda l1010,x                                                       ; a776: bd 10 10    ...            ; Load station from l1010
+    sta l0e01,y                                                       ; a779: 99 01 0e    ...            ; Store station to l0e01+Y
+    cpy #1                                                            ; a77c: c0 01       ..             ; Is this handle 1 (Y=1)?
+    bne ca798                                                         ; a77e: d0 18       ..             ; No: check handle 2
+    tya                                                               ; a780: 98          .              ; Save Y
+    pha                                                               ; a781: 48          H              ; Push Y
+    ldy #4                                                            ; a782: a0 04       ..             ; Bit mask &04 for handle 1
+    jsr update_fcb_flag_bits                                          ; a784: 20 c2 a7     ..            ; Update flags across all FCBs
+    pla                                                               ; a787: 68          h              ; Restore Y
+    tay                                                               ; a788: a8          .              ; Back to Y
+    lda l1040,x                                                       ; a789: bd 40 10    .@.            ; Reload l1040 flags
+    ora #&24 ; '$'                                                    ; a78c: 09 24       .$             ; Set bits 2+5 (active+updated)
+    sta l1040,x                                                       ; a78e: 9d 40 10    .@.            ; Store updated flags
 ; &a791 referenced 3 times by &a769, &a7ad, &a7c0
 .ca791
-    iny                                                               ; a791: c8          .
-    cpy #4                                                            ; a792: c0 04       ..
-    bne ca754                                                         ; a794: d0 be       ..
-    dey                                                               ; a796: 88          .
-    rts                                                               ; a797: 60          `
+    iny                                                               ; a791: c8          .              ; Next handle slot
+    cpy #4                                                            ; a792: c0 04       ..             ; Done all 3 handles?
+    bne ca754                                                         ; a794: d0 be       ..             ; No: process next handle
+    dey                                                               ; a796: 88          .              ; Y=3 for return
+    rts                                                               ; a797: 60          `              ; Return
 
 ; &a798 referenced 1 time by &a77e
 .ca798
-    cpy #2                                                            ; a798: c0 02       ..
-    bne ca7af                                                         ; a79a: d0 13       ..
-    tya                                                               ; a79c: 98          .
-    pha                                                               ; a79d: 48          H
-    ldy #8                                                            ; a79e: a0 08       ..
-    jsr sub_ca7c2                                                     ; a7a0: 20 c2 a7     ..
-    pla                                                               ; a7a3: 68          h
-    tay                                                               ; a7a4: a8          .
-    lda l1040,x                                                       ; a7a5: bd 40 10    .@.
-    ora #&28 ; '('                                                    ; a7a8: 09 28       .(
-    sta l1040,x                                                       ; a7aa: 9d 40 10    .@.
-    bne ca791                                                         ; a7ad: d0 e2       ..             ; ALWAYS branch
+    cpy #2                                                            ; a798: c0 02       ..             ; Is this handle 2 (Y=2)?
+    bne ca7af                                                         ; a79a: d0 13       ..             ; No: must be handle 3
+    tya                                                               ; a79c: 98          .              ; Save Y
+    pha                                                               ; a79d: 48          H              ; Push Y
+    ldy #8                                                            ; a79e: a0 08       ..             ; Bit mask &08 for handle 2
+    jsr update_fcb_flag_bits                                          ; a7a0: 20 c2 a7     ..            ; Update flags across all FCBs
+    pla                                                               ; a7a3: 68          h              ; Restore Y
+    tay                                                               ; a7a4: a8          .              ; Back to Y
+    lda l1040,x                                                       ; a7a5: bd 40 10    .@.            ; Reload l1040 flags
+    ora #&28 ; '('                                                    ; a7a8: 09 28       .(             ; Set bits 3+5 (active+updated)
+    sta l1040,x                                                       ; a7aa: 9d 40 10    .@.            ; Store updated flags
+    bne ca791                                                         ; a7ad: d0 e2       ..             ; Next handle slot; ALWAYS branch
 
 ; &a7af referenced 1 time by &a79a
 .ca7af
-    tya                                                               ; a7af: 98          .
-    pha                                                               ; a7b0: 48          H
-    ldy #&10                                                          ; a7b1: a0 10       ..
-    jsr sub_ca7c2                                                     ; a7b3: 20 c2 a7     ..
-    pla                                                               ; a7b6: 68          h
-    tay                                                               ; a7b7: a8          .
-    lda l1040,x                                                       ; a7b8: bd 40 10    .@.
-    ora #&30 ; '0'                                                    ; a7bb: 09 30       .0
-    sta l1040,x                                                       ; a7bd: 9d 40 10    .@.
-    bne ca791                                                         ; a7c0: d0 cf       ..             ; ALWAYS branch
+    tya                                                               ; a7af: 98          .              ; Handle 3: save Y
+    pha                                                               ; a7b0: 48          H              ; Push Y
+    ldy #&10                                                          ; a7b1: a0 10       ..             ; Bit mask &10 for handle 3
+    jsr update_fcb_flag_bits                                          ; a7b3: 20 c2 a7     ..            ; Update flags across all FCBs
+    pla                                                               ; a7b6: 68          h              ; Restore Y
+    tay                                                               ; a7b7: a8          .              ; Back to Y
+    lda l1040,x                                                       ; a7b8: bd 40 10    .@.            ; Reload l1040 flags
+    ora #&30 ; '0'                                                    ; a7bb: 09 30       .0             ; Set bits 4+5 (active+updated)
+    sta l1040,x                                                       ; a7bd: 9d 40 10    .@.            ; Store updated flags
+    bne ca791                                                         ; a7c0: d0 cf       ..             ; Next handle slot; ALWAYS branch
 
+; ***************************************************************************************
+; Update FCB flag bits across all entries
+; 
+; Scans all 16 FCB entries in l1060. For each
+; entry with bit 6 set, tests the Y-specified
+; bit mask: if matching, ORs bit 5 into the
+; flags; if not, leaves bit 5 clear. In both
+; cases, inverts and clears the tested bits.
+; Preserves X.
+; 
+; On Entry:
+;     Y: flag bit mask to test
+;     X: current FCB index (preserved)
+; ***************************************************************************************
 ; &a7c2 referenced 3 times by &a784, &a7a0, &a7b3
-.sub_ca7c2
-    txa                                                               ; a7c2: 8a          .
-    pha                                                               ; a7c3: 48          H
-    ldx #&0f                                                          ; a7c4: a2 0f       ..
+.update_fcb_flag_bits
+    txa                                                               ; a7c2: 8a          .              ; Save X (current FCB index)
+    pha                                                               ; a7c3: 48          H              ; Push X
+    ldx #&0f                                                          ; a7c4: a2 0f       ..             ; X=&0F: scan 16 FCB entries
 ; &a7c6 referenced 1 time by &a7e2
 .loop_ca7c6
-    lda l1060,x                                                       ; a7c6: bd 60 10    .`.
-    rol a                                                             ; a7c9: 2a          *
-    rol a                                                             ; a7ca: 2a          *
-    bpl ca7e1                                                         ; a7cb: 10 14       ..
-    tya                                                               ; a7cd: 98          .
-    and l1060,x                                                       ; a7ce: 3d 60 10    =`.
-    beq ca7d8                                                         ; a7d1: f0 05       ..
-    tya                                                               ; a7d3: 98          .
-    ora #&20 ; ' '                                                    ; a7d4: 09 20       .
-    bne ca7d9                                                         ; a7d6: d0 01       ..             ; ALWAYS branch
+    lda l1060,x                                                       ; a7c6: bd 60 10    .`.            ; Load FCB flags
+    rol a                                                             ; a7c9: 2a          *              ; Shift bits 6-7 into bits 7-0
+    rol a                                                             ; a7ca: 2a          *              ; Bit 6 now in bit 7 (N flag)
+    bpl ca7e1                                                         ; a7cb: 10 14       ..             ; Bit 6 clear: skip entry
+    tya                                                               ; a7cd: 98          .              ; Restore Y (bit mask)
+    and l1060,x                                                       ; a7ce: 3d 60 10    =`.            ; Test mask bits against flags
+    beq ca7d8                                                         ; a7d1: f0 05       ..             ; Zero: no matching bits
+    tya                                                               ; a7d3: 98          .              ; Matching: restore Y
+    ora #&20 ; ' '                                                    ; a7d4: 09 20       .              ; Set bit 5 (updated)
+    bne ca7d9                                                         ; a7d6: d0 01       ..             ; Skip clear path; ALWAYS branch
 
 ; &a7d8 referenced 1 time by &a7d1
 .ca7d8
-    tya                                                               ; a7d8: 98          .
+    tya                                                               ; a7d8: 98          .              ; No match: restore Y
 ; &a7d9 referenced 1 time by &a7d6
 .ca7d9
-    eor #&ff                                                          ; a7d9: 49 ff       I.
-    and l1060,x                                                       ; a7db: 3d 60 10    =`.
-    sta l1060,x                                                       ; a7de: 9d 60 10    .`.
+    eor #&ff                                                          ; a7d9: 49 ff       I.             ; Invert all bits
+    and l1060,x                                                       ; a7db: 3d 60 10    =`.            ; Clear tested bits in flags
+    sta l1060,x                                                       ; a7de: 9d 60 10    .`.            ; Store updated flags
 ; &a7e1 referenced 1 time by &a7cb
 .ca7e1
-    dex                                                               ; a7e1: ca          .
-    bpl loop_ca7c6                                                    ; a7e2: 10 e2       ..
-    pla                                                               ; a7e4: 68          h
-    tax                                                               ; a7e5: aa          .
-    rts                                                               ; a7e6: 60          `
+    dex                                                               ; a7e1: ca          .              ; Next FCB entry
+    bpl loop_ca7c6                                                    ; a7e2: 10 e2       ..             ; Loop for all 16 entries
+    pla                                                               ; a7e4: 68          h              ; Restore original X
+    tax                                                               ; a7e5: aa          .              ; Back to X
+    rts                                                               ; a7e6: 60          `              ; Return
 
-.sub_ca7e7
-    ldy #5                                                            ; a7e7: a0 05       ..
-    lda (net_rx_ptr),y                                                ; a7e9: b1 9c       ..
-    ldy #0                                                            ; a7eb: a0 00       ..
-    jmp ca810                                                         ; a7ed: 4c 10 a8    L..
+; ***************************************************************************************
+; OSWORD &13 sub 8: read RX control block flag
+; 
+; Returns byte 5 of the current RX control
+; block in PB[1].
+; ***************************************************************************************
+.osword_13_read_rx_flag
+    ldy #5                                                            ; a7e7: a0 05       ..             ; Y=5: RX control block offset
+    lda (net_rx_ptr),y                                                ; a7e9: b1 9c       ..             ; Load (net_rx_ptr)+5
+    ldy #0                                                            ; a7eb: a0 00       ..             ; Y=0
+    jmp store_a_to_pb_1                                               ; a7ed: 4c 10 a8    L..            ; Store to PB[1] and return
 
-.sub_ca7f0
-    ldy #&7f                                                          ; a7f0: a0 7f       ..
-    lda (net_rx_ptr),y                                                ; a7f2: b1 9c       ..
-    ldy #1                                                            ; a7f4: a0 01       ..
-    sta (osword_pb_ptr),y                                             ; a7f6: 91 f0       ..
+; ***************************************************************************************
+; OSWORD &13 sub 9: read RX port byte
+; 
+; Returns byte &7F of the current RX control
+; block in PB[1], and stores &80 in PB[2].
+; ***************************************************************************************
+.osword_13_read_rx_port
+    ldy #&7f                                                          ; a7f0: a0 7f       ..             ; Y=&7F: port byte offset
+    lda (net_rx_ptr),y                                                ; a7f2: b1 9c       ..             ; Load (net_rx_ptr)+&7F
+    ldy #1                                                            ; a7f4: a0 01       ..             ; Y=1
+    sta (osword_pb_ptr),y                                             ; a7f6: 91 f0       ..             ; Store to PB[1]
     iny                                                               ; a7f8: c8          .              ; Y=&02
-    lda #&80                                                          ; a7f9: a9 80       ..
-    sta (osword_pb_ptr),y                                             ; a7fb: 91 f0       ..
-    rts                                                               ; a7fd: 60          `
+    lda #&80                                                          ; a7f9: a9 80       ..             ; A=&80
+    sta (osword_pb_ptr),y                                             ; a7fb: 91 f0       ..             ; Store &80 to PB[2]
+    rts                                                               ; a7fd: 60          `              ; Return
 
-.sub_ca7fe
-    lda l0e09                                                         ; a7fe: ad 09 0e    ...
-    jmp ca810                                                         ; a801: 4c 10 a8    L..
+; ***************************************************************************************
+; OSWORD &13 sub 10: read error flag
+; 
+; Returns the error flag (l0e09) in PB[1].
+; ***************************************************************************************
+.osword_13_read_error
+    lda l0e09                                                         ; a7fe: ad 09 0e    ...            ; Load error flag
+    jmp store_a_to_pb_1                                               ; a801: 4c 10 a8    L..            ; Store to PB[1] and return
 
-.sub_ca804
-    lda l0d6d                                                         ; a804: ad 6d 0d    .m.
-    jmp ca810                                                         ; a807: 4c 10 a8    L..
+; ***************************************************************************************
+; OSWORD &13 sub 11: read context byte
+; 
+; Returns the context byte (l0d6d) in PB[1].
+; ***************************************************************************************
+.osword_13_read_context
+    lda l0d6d                                                         ; a804: ad 6d 0d    .m.            ; Load context byte
+    jmp store_a_to_pb_1                                               ; a807: 4c 10 a8    L..            ; Store to PB[1] and return
 
-.sub_ca80a
-    lda #&6f ; 'o'                                                    ; a80a: a9 6f       .o
-    sec                                                               ; a80c: 38          8
-    sbc l0d6b                                                         ; a80d: ed 6b 0d    .k.
+; ***************************************************************************************
+; OSWORD &13 sub 14: read free buffer count
+; 
+; Returns the free buffer count (&6F minus
+; l0d6b) in PB[1].
+; ***************************************************************************************
+.osword_13_read_free_bufs
+    lda #&6f ; 'o'                                                    ; a80a: a9 6f       .o             ; Total buffers = &6F
+    sec                                                               ; a80c: 38          8              ; Subtract used count
+    sbc l0d6b                                                         ; a80d: ed 6b 0d    .k.            ; Free = &6F - l0d6b
 ; &a810 referenced 4 times by &a72e, &a7ed, &a801, &a807
-.ca810
-    iny                                                               ; a810: c8          .
-    sta (osword_pb_ptr),y                                             ; a811: 91 f0       ..
-    rts                                                               ; a813: 60          `
+.store_a_to_pb_1
+    iny                                                               ; a810: c8          .              ; Y=1
+    sta (osword_pb_ptr),y                                             ; a811: 91 f0       ..             ; Store A to PB[1]
+    rts                                                               ; a813: 60          `              ; Return
 
+; ***************************************************************************************
+; OSWORD &13 sub 15: read 3 context bytes
+; 
+; Copies 3 bytes from l0d6d[1..3] into
+; PB[1..3].
+; ***************************************************************************************
 ; &a814 referenced 1 time by &a81c
-.loop_ca814
-    iny                                                               ; a814: c8          .
-    lda l0d6d,y                                                       ; a815: b9 6d 0d    .m.
-    sta (osword_pb_ptr),y                                             ; a818: 91 f0       ..
-    cpy #3                                                            ; a81a: c0 03       ..
-    bne loop_ca814                                                    ; a81c: d0 f6       ..
-    rts                                                               ; a81e: 60          `
+.osword_13_read_ctx_3
+    iny                                                               ; a814: c8          .              ; Next byte offset
+    lda l0d6d,y                                                       ; a815: b9 6d 0d    .m.            ; Load l0d6d[Y]
+    sta (osword_pb_ptr),y                                             ; a818: 91 f0       ..             ; Store to PB[Y]
+    cpy #3                                                            ; a81a: c0 03       ..             ; Done 3 bytes?
+    bne osword_13_read_ctx_3                                          ; a81c: d0 f6       ..             ; No: loop
+    rts                                                               ; a81e: 60          `              ; Return
 
+; ***************************************************************************************
+; OSWORD &13 sub 16: write 3 context bytes
+; 
+; Copies 3 bytes from PB[1..3] into
+; l0d6d[1..3].
+; ***************************************************************************************
 ; &a81f referenced 1 time by &a827
-.loop_ca81f
-    iny                                                               ; a81f: c8          .
-    lda (osword_pb_ptr),y                                             ; a820: b1 f0       ..
-    sta l0d6d,y                                                       ; a822: 99 6d 0d    .m.
-    cpy #3                                                            ; a825: c0 03       ..
-    bne loop_ca81f                                                    ; a827: d0 f6       ..
-    rts                                                               ; a829: 60          `
+.osword_13_write_ctx_3
+    iny                                                               ; a81f: c8          .              ; Next byte offset
+    lda (osword_pb_ptr),y                                             ; a820: b1 f0       ..             ; Load PB[Y]
+    sta l0d6d,y                                                       ; a822: 99 6d 0d    .m.            ; Store to l0d6d[Y]
+    cpy #3                                                            ; a825: c0 03       ..             ; Done 3 bytes?
+    bne osword_13_write_ctx_3                                         ; a827: d0 f6       ..             ; No: loop
+    rts                                                               ; a829: 60          `              ; Return
 
-.sub_ca82a
-    jsr init_bridge_poll                                              ; a82a: 20 68 a8     h.
-    ldy #0                                                            ; a82d: a0 00       ..
-    lda l0d72                                                         ; a82f: ad 72 0d    .r.
-    cmp #&ff                                                          ; a832: c9 ff       ..
-    bne ca83a                                                         ; a834: d0 04       ..
+; ***************************************************************************************
+; OSWORD &13 sub 17: query bridge status
+; 
+; Calls init_bridge_poll, then returns the
+; bridge status. If l0d72 is &FF (no bridge),
+; stores 0 in PB[0]. Otherwise stores l0d72
+; in PB[1] and conditionally updates PB[3]
+; based on station comparison.
+; ***************************************************************************************
+.osword_13_bridge_query
+    jsr init_bridge_poll                                              ; a82a: 20 68 a8     h.            ; Poll for bridge
+    ldy #0                                                            ; a82d: a0 00       ..             ; Y=0
+    lda l0d72                                                         ; a82f: ad 72 0d    .r.            ; Load bridge status
+    cmp #&ff                                                          ; a832: c9 ff       ..             ; Is it &FF (no bridge)?
+    bne ca83a                                                         ; a834: d0 04       ..             ; No: bridge found
     tya                                                               ; a836: 98          .              ; A=&00
-    sta (osword_pb_ptr),y                                             ; a837: 91 f0       ..
-    rts                                                               ; a839: 60          `
+    sta (osword_pb_ptr),y                                             ; a837: 91 f0       ..             ; PB[0] = 0 (no bridge)
+    rts                                                               ; a839: 60          `              ; Return
 
 ; &a83a referenced 1 time by &a834
 .ca83a
-    iny                                                               ; a83a: c8          .
-    sta (osword_pb_ptr),y                                             ; a83b: 91 f0       ..
-    iny                                                               ; a83d: c8          .
-    iny                                                               ; a83e: c8          .
-    lda (osword_pb_ptr),y                                             ; a83f: b1 f0       ..
-    beq ca84a                                                         ; a841: f0 07       ..
+    iny                                                               ; a83a: c8          .              ; Y=1
+    sta (osword_pb_ptr),y                                             ; a83b: 91 f0       ..             ; PB[1] = bridge status
+    iny                                                               ; a83d: c8          .              ; Y=2
+    iny                                                               ; a83e: c8          .              ; Y=3
+    lda (osword_pb_ptr),y                                             ; a83f: b1 f0       ..             ; Load PB[3] (caller value)
+    beq ca84a                                                         ; a841: f0 07       ..             ; Zero: use default station
 .sub_ca843
 bridge_ws_init_data = sub_ca843+1
-    eor l0d72                                                         ; a843: 4d 72 0d    Mr.
+    eor l0d72                                                         ; a843: 4d 72 0d    Mr.            ; Compare with bridge status
 ; &a844 referenced 1 time by &a878
-    bne return_25                                                     ; a846: d0 07       ..
-    beq ca84d                                                         ; a848: f0 03       ..             ; ALWAYS branch
+    bne return_25                                                     ; a846: d0 07       ..             ; Different: return unchanged
+    beq ca84d                                                         ; a848: f0 03       ..             ; Same: confirm station; ALWAYS branch
 
 ; &a84a referenced 1 time by &a841
 .ca84a
-    lda l0e01                                                         ; a84a: ad 01 0e    ...
+    lda l0e01                                                         ; a84a: ad 01 0e    ...            ; Load default from l0e01
 ; &a84d referenced 1 time by &a848
 .ca84d
-    sta (osword_pb_ptr),y                                             ; a84d: 91 f0       ..
+    sta (osword_pb_ptr),y                                             ; a84d: 91 f0       ..             ; Store to PB[3]
 ; &a84f referenced 1 time by &a846
 .return_25
-    rts                                                               ; a84f: 60          `
+    rts                                                               ; a84f: 60          `              ; Return
 
 ; &a850 referenced 1 time by &a87d
 .bridge_txcb_init_table
@@ -10373,12 +10517,44 @@ bridge_ws_init_data = sub_ca843+1
 
 ; &a98c referenced 1 time by &a985
 .osword_handler_lo_table
-    equb &41, &da, &da, &da, &9d, &c5, &41, &cf, &3e                  ; a98c: 41 da da... A..
+    equb <(return_4-1)                                                ; a98c: 41          A
+    equb <(sub_caadb-1)                                               ; a98d: da          .
+    equb <(sub_caadb-1)                                               ; a98e: da          .
+    equb <(sub_caadb-1)                                               ; a98f: da          .
+    equb <(osword_4_handler-1)                                        ; a990: 9d          .
+    equb <(sub_caac6-1)                                               ; a991: c5          .
+    equb <(return_4-1)                                                ; a992: 41          A
+    equb <(sub_ca9d0-1)                                               ; a993: cf          .
+    equb <(osword_8_handler-1)                                        ; a994: 3e          >
 ; &a995 referenced 1 time by &a981
 .osword_handler_hi_table
-    equb &8e, &aa, &aa, &aa, &a9, &aa, &8e, &a9, &aa, &ba, &7e, 6, 1  ; a995: 8e aa aa... ...
-    equb &1e,   6,   1, &98, &a0, &da, &91, &9e, &a9,   0             ; a9a2: 1e 06 01... ...
+    equb >(return_4-1)                                                ; a995: 8e          .
+    equb >(sub_caadb-1)                                               ; a996: aa          .
+    equb >(sub_caadb-1)                                               ; a997: aa          .
+    equb >(sub_caadb-1)                                               ; a998: aa          .
+    equb >(osword_4_handler-1)                                        ; a999: a9          .
+    equb >(sub_caac6-1)                                               ; a99a: aa          .
+    equb >(return_4-1)                                                ; a99b: 8e          .
+    equb >(sub_ca9d0-1)                                               ; a99c: a9          .
+    equb >(osword_8_handler-1)                                        ; a99d: aa          .
 
+; ***************************************************************************************
+; OSWORD 4 handler: clear carry and send abort
+; 
+; Clears the carry flag in the stacked processor
+; status, stores the original Y to workspace at
+; offset &DA, and falls through to tx_econet_abort
+; with A=0. Called via OSWORD handler dispatch
+; table for OSWORD 4 (write interval timer).
+; ***************************************************************************************
+.osword_4_handler
+    tsx                                                               ; a99e: ba          .              ; Get stack pointer
+    ror l0106,x                                                       ; a99f: 7e 06 01    ~..            ; Clear bit 0 of stacked P (carry)
+    asl l0106,x                                                       ; a9a2: 1e 06 01    ...            ; Shift back (clears carry flag)
+    tya                                                               ; a9a5: 98          .              ; A = original Y
+    ldy #&da                                                          ; a9a6: a0 da       ..             ; Y=&DA: workspace offset
+    sta (nfs_workspace),y                                             ; a9a8: 91 9e       ..             ; Store Y to workspace
+    lda #0                                                            ; a9aa: a9 00       ..             ; Abort code = 0
 ; ***************************************************************************************
 ; Send Econet abort/disconnect packet
 ; 
@@ -10388,7 +10564,7 @@ bridge_ws_init_data = sub_ca843+1
 ; abort packet. Used to cleanly disconnect from
 ; a remote station during error recovery.
 ; ***************************************************************************************
-; &a9ac referenced 2 times by &8adf, &a9ff
+; &a9ac referenced 3 times by &8adf, &a9ff, &aa65
 .tx_econet_abort
     ldy #&d9                                                          ; a9ac: a0 d9       ..             ; Y=&D9: workspace abort offset
     sta (nfs_workspace),y                                             ; a9ae: 91 9e       ..             ; Store abort code to workspace
@@ -10411,6 +10587,7 @@ bridge_ws_init_data = sub_ca843+1
     sta net_tx_ptr                                                    ; a9cd: 85 9a       ..             ; Back to net_tx_ptr
     rts                                                               ; a9cf: 60          `              ; Return
 
+.sub_ca9d0
     ldy osword_pb_ptr_hi                                              ; a9d0: a4 f1       ..             ; Load PB pointer high
     cmp #&81                                                          ; a9d2: c9 81       ..             ; Compare with &81 (special case)
     beq process_match_result                                          ; a9d4: f0 13       ..             ; Match: skip to processing
@@ -10494,19 +10671,77 @@ bridge_ws_init_data = sub_ca843+1
     beq return_28                                                     ; aa27: f0 03       ..             ; Match: return with Z set
     dex                                                               ; aa29: ca          .              ; Try next code
     bpl match_rx_code                                                 ; aa2a: 10 f8       ..             ; More codes: continue search
-; &aa2c referenced 1 time by &aa27
+; &aa2c referenced 2 times by &aa27, &aa47
 .return_28
     rts                                                               ; aa2c: 60          `              ; Return (Z clear = not found)
 
+; OSWORD claim code table
+; 
+; Table of OSWORD numbers that trigger NMI
+; claim processing. Searched in two passes by
+; the OSWORD 7 handler: first the 11-entry
+; range (indices 0-&0A), then the full 18-entry
+; range (indices 0-&11). A match in the first
+; range sets state 2 (standard claim); a match
+; only in the extended range sets state 3.
 ; &aa2d referenced 1 time by &aa24
 .osword_claim_codes
-    equb   4,   9, &0a, &14, &15, &9a, &9b, &e1, &e2, &e3, &e4, &0b   ; aa2d: 04 09 0a... ...
-    equb &0c, &0f, &79, &7a, &86, &87, &a0, &0e, &c9,   7, &f0,   4   ; aa39: 0c 0f 79... ..y
-    equb &c9,   8, &d0, &e3, &a2, &db, &86, &9e, &b1, &f0, &91, &9e   ; aa45: c9 08 d0... ...
-    equb &88, &10, &f9, &c8, &c6, &9e, &a5, &ef, &91, &9e, &84, &9e   ; aa51: 88 10 f9... ...
-    equb &a0, &14, &a9, &e9, &91, &9e, &a9,   1, &20, &ac, &a9, &86   ; aa5d: a0 14 a9... ...
-    equb &9e                                                          ; aa69: 9e          .
+    equb 4                                                            ; aa2d: 04          .              ; Range 1+2: OSWORD &04
+    equb 9                                                            ; aa2e: 09          .              ; Range 1+2: OSWORD &09
+    equb &0a                                                          ; aa2f: 0a          .              ; Range 1+2: OSWORD &0A
+    equb &14                                                          ; aa30: 14          .              ; Range 1+2: OSWORD &14
+    equb &15                                                          ; aa31: 15          .              ; Range 1+2: OSWORD &15
+    equb &9a                                                          ; aa32: 9a          .              ; Range 1+2: OSWORD &9A
+    equb &9b                                                          ; aa33: 9b          .              ; Range 1+2: OSWORD &9B
+    equb &e1                                                          ; aa34: e1          .              ; Range 1+2: OSWORD &E1
+    equb &e2                                                          ; aa35: e2          .              ; Range 1+2: OSWORD &E2
+    equb &e3                                                          ; aa36: e3          .              ; Range 1+2: OSWORD &E3
+    equb &e4                                                          ; aa37: e4          .              ; Range 1+2: OSWORD &E4
+    equb &0b                                                          ; aa38: 0b          .              ; Range 2 only: OSWORD &0B
+    equb &0c                                                          ; aa39: 0c          .              ; Range 2 only: OSWORD &0C
+    equb &0f                                                          ; aa3a: 0f          .              ; Range 2 only: OSWORD &0F
+    equb &79                                                          ; aa3b: 79          y              ; Range 2 only: OSWORD &79
+    equb &7a                                                          ; aa3c: 7a          z              ; Range 2 only: OSWORD &7A
+    equb &86                                                          ; aa3d: 86          .              ; Range 2 only: OSWORD &86
+    equb &87                                                          ; aa3e: 87          .              ; Range 2 only: OSWORD &87
 
+; ***************************************************************************************
+; OSWORD 7/8 handler: copy PB to workspace and abort
+; 
+; Handles OSWORD 7 or 8 by copying 15 bytes from
+; the parameter block to workspace at offset &DB,
+; storing the OSWORD number at offset &DA, setting
+; control value &E9, and sending an abort packet.
+; Returns via tx_econet_abort. Rejects other
+; OSWORD numbers by returning immediately.
+; ***************************************************************************************
+.osword_8_handler
+    ldy #&0e                                                          ; aa3f: a0 0e       ..             ; Y=&0E: copy 15 bytes (0-14)
+    cmp #7                                                            ; aa41: c9 07       ..             ; OSWORD 7?
+    beq caa49                                                         ; aa43: f0 04       ..             ; Yes: handle
+    cmp #8                                                            ; aa45: c9 08       ..             ; OSWORD 8?
+    bne return_28                                                     ; aa47: d0 e3       ..             ; No: return
+; &aa49 referenced 1 time by &aa43
+.caa49
+    ldx #&db                                                          ; aa49: a2 db       ..             ; Workspace low = &DB
+    stx nfs_workspace                                                 ; aa4b: 86 9e       ..             ; Set nfs_workspace low byte
+; &aa4d referenced 1 time by &aa52
+.loop_caa4d
+    lda (osword_pb_ptr),y                                             ; aa4d: b1 f0       ..             ; Load PB[Y]
+    sta (nfs_workspace),y                                             ; aa4f: 91 9e       ..             ; Store to workspace[Y]
+    dey                                                               ; aa51: 88          .              ; Next byte down
+    bpl loop_caa4d                                                    ; aa52: 10 f9       ..             ; Loop for 15 bytes
+    iny                                                               ; aa54: c8          .              ; Y=0
+    dec nfs_workspace                                                 ; aa55: c6 9e       ..             ; Workspace low = &DA
+    lda osbyte_a_copy                                                 ; aa57: a5 ef       ..             ; Load OSWORD number
+    sta (nfs_workspace),y                                             ; aa59: 91 9e       ..             ; Store at workspace+0 (= &DA)
+    sty nfs_workspace                                                 ; aa5b: 84 9e       ..             ; Workspace low = 0 (restore)
+    ldy #&14                                                          ; aa5d: a0 14       ..             ; Y=&14: control offset
+    lda #&e9                                                          ; aa5f: a9 e9       ..             ; Control value &E9
+    sta (nfs_workspace),y                                             ; aa61: 91 9e       ..             ; Store to workspace+&14
+    lda #1                                                            ; aa63: a9 01       ..             ; Abort code = 1
+    jsr tx_econet_abort                                               ; aa65: 20 ac a9     ..            ; Send abort packet
+    stx nfs_workspace                                                 ; aa68: 86 9e       ..             ; Restore nfs_workspace low
 ; ***************************************************************************************
 ; Initialise workspace copy in wide mode (14 bytes)
 ; 
@@ -10587,9 +10822,15 @@ bridge_ws_init_data = sub_ca843+1
     sbc l7dfd,x                                                       ; aaa1: fd fd 7d    ..}            ; Data: template continuation bytes
     equb &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80, &93   ; aaa4: fc ff ff... ...
     equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; aab0: fd fd d9... ...
-    equb &fd, &fd, &25, &fd, &ff, &ff, &fd, &fd, &ff, &ff, &ca, &e4   ; aabc: fd fd 25... ..%
-    equb &f0, &d0, &0f, &a5, &d0, &6a, &b0, &0a                       ; aac8: f0 d0 0f... ...
+    equb &fd, &fd, &25, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; aabc: fd fd 25... ..%
 
+.sub_caac6
+    dex                                                               ; aac6: ca          .
+    cpx osword_pb_ptr                                                 ; aac7: e4 f0       ..
+    bne return_29                                                     ; aac9: d0 0f       ..
+    lda l00d0                                                         ; aacb: a5 d0       ..
+    ror a                                                             ; aacd: 6a          j
+    bcs return_29                                                     ; aace: b0 0a       ..
 ; ***************************************************************************************
 ; Reset spool buffer to initial state
 ; 
@@ -10604,10 +10845,11 @@ bridge_ws_init_data = sub_ca843+1
     sta l0d6b                                                         ; aad2: 8d 6b 0d    .k.            ; Store as buffer pointer
     lda #&41 ; 'A'                                                    ; aad5: a9 41       .A             ; Control state &41
     sta ws_0d6a                                                       ; aad7: 8d 6a 0d    .j.            ; Store as spool control state
-; &aada referenced 2 times by &aadd, &aaf1
+; &aada referenced 4 times by &aac9, &aace, &aadd, &aaf1
 .return_29
     rts                                                               ; aada: 60          `              ; Return
 
+.sub_caadb
     cpy #4                                                            ; aadb: c0 04       ..             ; Check Y == 4
     bne return_29                                                     ; aadd: d0 fb       ..             ; No: return
     txa                                                               ; aadf: 8a          .              ; A = X (control byte)
@@ -14411,8 +14653,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(lang_2_save_palette_vdu-1) == &85
     assert <(lang_3_execute_at_0100-1) == &97
     assert <(lang_4_remote_validated-1) == &a7
-    assert <(loop_ca814-1) == &13
-    assert <(loop_ca81f-1) == &1e
     assert <(net_1_read_handle-1) == &cb
     assert <(net_2_read_handle_entry-1) == &d1
     assert <(net_3_close_handle-1) == &e1
@@ -14420,8 +14660,28 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(osword_10_handler-1) == &8a
     assert <(osword_11_handler-1) == &a7
     assert <(osword_12_handler-1) == &1b
+    assert <(osword_13_bridge_query-1) == &29
     assert <(osword_13_dispatch-1) == &30
+    assert <(osword_13_read_context-1) == &03
+    assert <(osword_13_read_csd-1) == &ea
+    assert <(osword_13_read_ctx_3-1) == &13
+    assert <(osword_13_read_error-1) == &fd
+    assert <(osword_13_read_free_bufs-1) == &09
+    assert <(osword_13_read_handles-1) == &36
+    assert <(osword_13_read_prot-1) == &2a
+    assert <(osword_13_read_rx_flag-1) == &e6
+    assert <(osword_13_read_rx_port-1) == &ef
+    assert <(osword_13_read_station-1) == &62
+    assert <(osword_13_read_ws_pair-1) == &09
+    assert <(osword_13_set_handles-1) == &46
+    assert <(osword_13_set_station-1) == &75
+    assert <(osword_13_write_csd-1) == &ed
+    assert <(osword_13_write_ctx_3-1) == &1e
+    assert <(osword_13_write_prot-1) == &30
+    assert <(osword_13_write_ws_pair-1) == &15
     assert <(osword_14_handler-1) == &cf
+    assert <(osword_4_handler-1) == &9d
+    assert <(osword_8_handler-1) == &3e
     assert <(return_21-1) == &06
     assert <(return_4-1) == &41
     assert <(rx_imm_exec-1) == &85
@@ -14429,22 +14689,9 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &ae
     assert <(rx_imm_peek-1) == &c0
     assert <(rx_imm_poke-1) == &a3
-    assert <(sub_ca663-1) == &62
-    assert <(sub_ca676-1) == &75
-    assert <(sub_ca6eb-1) == &ea
-    assert <(sub_ca6ee-1) == &ed
-    assert <(sub_ca70a-1) == &09
-    assert <(sub_ca716-1) == &15
-    assert <(sub_ca72b-1) == &2a
-    assert <(sub_ca731-1) == &30
-    assert <(sub_ca737-1) == &36
-    assert <(sub_ca747-1) == &46
-    assert <(sub_ca7e7-1) == &e6
-    assert <(sub_ca7f0-1) == &ef
-    assert <(sub_ca7fe-1) == &fd
-    assert <(sub_ca804-1) == &03
-    assert <(sub_ca80a-1) == &09
-    assert <(sub_ca82a-1) == &29
+    assert <(sub_ca9d0-1) == &cf
+    assert <(sub_caac6-1) == &c5
+    assert <(sub_caadb-1) == &da
     assert <(svc5_irq_check-1) == &22
     assert <(svc_18_fs_select-1) == &04
     assert <(svc_1_abs_workspace-1) == &8e
@@ -14475,8 +14722,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(lang_2_save_palette_vdu-1) == &ac
     assert >(lang_3_execute_at_0100-1) == &95
     assert >(lang_4_remote_validated-1) == &95
-    assert >(loop_ca814-1) == &a8
-    assert >(loop_ca81f-1) == &a8
     assert >(net_1_read_handle-1) == &a0
     assert >(net_2_read_handle_entry-1) == &a0
     assert >(net_3_close_handle-1) == &a0
@@ -14484,26 +14729,33 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(osword_10_handler-1) == &a5
     assert >(osword_11_handler-1) == &a5
     assert >(osword_12_handler-1) == &a6
+    assert >(osword_13_bridge_query-1) == &a8
     assert >(osword_13_dispatch-1) == &a6
+    assert >(osword_13_read_context-1) == &a8
+    assert >(osword_13_read_csd-1) == &a6
+    assert >(osword_13_read_ctx_3-1) == &a8
+    assert >(osword_13_read_error-1) == &a7
+    assert >(osword_13_read_free_bufs-1) == &a8
+    assert >(osword_13_read_handles-1) == &a7
+    assert >(osword_13_read_prot-1) == &a7
+    assert >(osword_13_read_rx_flag-1) == &a7
+    assert >(osword_13_read_rx_port-1) == &a7
+    assert >(osword_13_read_station-1) == &a6
+    assert >(osword_13_read_ws_pair-1) == &a7
+    assert >(osword_13_set_handles-1) == &a7
+    assert >(osword_13_set_station-1) == &a6
+    assert >(osword_13_write_csd-1) == &a6
+    assert >(osword_13_write_ctx_3-1) == &a8
+    assert >(osword_13_write_prot-1) == &a7
+    assert >(osword_13_write_ws_pair-1) == &a7
     assert >(osword_14_handler-1) == &a8
+    assert >(osword_4_handler-1) == &a9
+    assert >(osword_8_handler-1) == &aa
     assert >(return_21-1) == &a5
     assert >(return_4-1) == &8e
-    assert >(sub_ca663-1) == &a6
-    assert >(sub_ca676-1) == &a6
-    assert >(sub_ca6eb-1) == &a6
-    assert >(sub_ca6ee-1) == &a6
-    assert >(sub_ca70a-1) == &a7
-    assert >(sub_ca716-1) == &a7
-    assert >(sub_ca72b-1) == &a7
-    assert >(sub_ca731-1) == &a7
-    assert >(sub_ca737-1) == &a7
-    assert >(sub_ca747-1) == &a7
-    assert >(sub_ca7e7-1) == &a7
-    assert >(sub_ca7f0-1) == &a7
-    assert >(sub_ca7fe-1) == &a7
-    assert >(sub_ca804-1) == &a8
-    assert >(sub_ca80a-1) == &a8
-    assert >(sub_ca82a-1) == &a8
+    assert >(sub_ca9d0-1) == &a9
+    assert >(sub_caac6-1) == &aa
+    assert >(sub_caadb-1) == &aa
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
     assert >(svc_1_abs_workspace-1) == &8e
@@ -14557,14 +14809,14 @@ net_channel_err_string = err_net_chan_not_found+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                           80
+;     nfs_workspace:                           88
 ;     l0f05:                                   69
 ;     net_rx_ptr:                              67
 ;     fs_options:                              57
 ;     econet_control23_or_status2:             46
+;     osword_pb_ptr:                           40
 ;     fs_load_addr_2:                          38
 ;     l00ae:                                   38
-;     osword_pb_ptr:                           38
 ;     econet_data_continue_frame:              37
 ;     net_tx_ptr:                              37
 ;     print_inline:                            35
@@ -14654,6 +14906,7 @@ save pydis_start, pydis_end
 ;     zp_ptr_hi:                                8
 ;     alloc_fcb_slot:                           7
 ;     fs_load_addr_hi:                          7
+;     l00d0:                                    7
 ;     l0df0:                                    7
 ;     l0f02:                                    7
 ;     l0f09:                                    7
@@ -14674,7 +14927,6 @@ save pydis_start, pydis_end
 ;     error_overflow:                           6
 ;     finalise_and_return:                      6
 ;     l00cc:                                    6
-;     l00d0:                                    6
 ;     l0d6b:                                    6
 ;     l0d6d:                                    6
 ;     l0d72:                                    6
@@ -14696,6 +14948,7 @@ save pydis_start, pydis_end
 ;     fs_spool_handle:                          5
 ;     init_txcb:                                5
 ;     l0102:                                    5
+;     l0106:                                    5
 ;     l0d30:                                    5
 ;     l0d31:                                    5
 ;     l0d63:                                    5
@@ -14723,7 +14976,6 @@ save pydis_start, pydis_end
 ;     verify_ws_checksum:                       5
 ;     zp_work_3:                                5
 ;     byte_to_2bit_index:                       4
-;     ca810:                                    4
 ;     check_net_error_code:                     4
 ;     commit_state_byte:                        4
 ;     done_poll_name_parse:                     4
@@ -14745,6 +14997,7 @@ save pydis_start, pydis_end
 ;     loop_find_fcb:                            4
 ;     loop_scan_fcb_down:                       4
 ;     nmi_tx_block_hi:                          4
+;     osbyte_a_copy:                            4
 ;     osword:                                   4
 ;     osword_pb_ptr_hi:                         4
 ;     parse_access_prefix:                      4
@@ -14754,7 +15007,9 @@ save pydis_start, pydis_end
 ;     process_spool_data:                       4
 ;     read_pw_char:                             4
 ;     return_26:                                4
+;     return_29:                                4
 ;     rx_ctrl:                                  4
+;     store_a_to_pb_1:                          4
 ;     tube_reply_byte:                          4
 ;     tx_done_exit:                             4
 ;     txcb_port:                                4
@@ -14788,7 +15043,6 @@ save pydis_start, pydis_end
 ;     find_station_bit3:                        3
 ;     is_decimal_digit:                         3
 ;     jmp_restore_fs_ctx:                       3
-;     l0106:                                    3
 ;     l0355:                                    3
 ;     l0d66:                                    3
 ;     l0e31:                                    3
@@ -14809,7 +15063,6 @@ save pydis_start, pydis_end
 ;     nmi_jmp_lo:                               3
 ;     osargs:                                   3
 ;     osbget:                                   3
-;     osbyte_a_copy:                            3
 ;     osbyte_x0:                                3
 ;     osrdch:                                   3
 ;     parse_fs_ps_args:                         3
@@ -14832,7 +15085,6 @@ save pydis_start, pydis_end
 ;     save_text_ptr:                            3
 ;     send_disconnect_reply:                    3
 ;     store_prot_mask:                          3
-;     sub_ca7c2:                                3
 ;     svc_return_unclaimed:                     3
 ;     tube_claim_c3:                            3
 ;     tube_data_register_1:                     3
@@ -14842,7 +15094,9 @@ save pydis_start, pydis_end
 ;     tx_active_start:                          3
 ;     tx_begin:                                 3
 ;     tx_calc_transfer:                         3
+;     tx_econet_abort:                          3
 ;     tx_op_type:                               3
+;     update_fcb_flag_bits:                     3
 ;     write_second_tube_byte:                   3
 ;     ws_0d69:                                  3
 ;     abort_if_escape:                          2
@@ -14862,7 +15116,6 @@ save pydis_start, pydis_end
 ;     build_error_block:                        2
 ;     ca5fd:                                    2
 ;     ca6e7:                                    2
-;     ca74c:                                    2
 ;     check_adlc_flag:                          2
 ;     check_and_setup_txcb:                     2
 ;     check_chan_char:                          2
@@ -15015,12 +15268,13 @@ save pydis_start, pydis_end
 ;     return_15:                                2
 ;     return_21:                                2
 ;     return_27:                                2
-;     return_29:                                2
+;     return_28:                                2
 ;     return_38:                                2
 ;     return_5:                                 2
 ;     return_6:                                 2
 ;     return_8:                                 2
 ;     return_tube_init:                         2
+;     return_zero_in_pb:                        2
 ;     reverse_ps_name_to_tx:                    2
 ;     romsel:                                   2
 ;     save_fcb_context:                         2
@@ -15077,7 +15331,6 @@ save pydis_start, pydis_end
 ;     tube_xfer_addr_2:                         2
 ;     tube_xfer_addr_3:                         2
 ;     tx_ctrl_byte:                             2
-;     tx_econet_abort:                          2
 ;     tx_port:                                  2
 ;     tx_result_ok:                             2
 ;     tx_send_error:                            2
@@ -15140,6 +15393,7 @@ save pydis_start, pydis_end
 ;     ca83a:                                    1
 ;     ca84a:                                    1
 ;     ca84d:                                    1
+;     caa49:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     call_fscv:                                1
@@ -15432,8 +15686,7 @@ save pydis_start, pydis_end
 ;     loop_ca682:                               1
 ;     loop_ca73e:                               1
 ;     loop_ca7c6:                               1
-;     loop_ca814:                               1
-;     loop_ca81f:                               1
+;     loop_caa4d:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
 ;     loop_check_handles:                       1
@@ -15653,6 +15906,8 @@ save pydis_start, pydis_end
 ;     osrdsc_ptr_hi:                            1
 ;     osword_13_hi_table:                       1
 ;     osword_13_lo_table:                       1
+;     osword_13_read_ctx_3:                     1
+;     osword_13_write_ctx_3:                    1
 ;     osword_claim_codes:                       1
 ;     osword_dispatch_hi_table:                 1
 ;     osword_dispatch_lo_table:                 1
@@ -15737,7 +15992,6 @@ save pydis_start, pydis_end
 ;     return_23:                                1
 ;     return_24:                                1
 ;     return_25:                                1
-;     return_28:                                1
 ;     return_31:                                1
 ;     return_32:                                1
 ;     return_33:                                1
@@ -16003,7 +16257,6 @@ save pydis_start, pydis_end
 ;     ca6e3
 ;     ca6e7
 ;     ca6ef
-;     ca74c
 ;     ca752
 ;     ca754
 ;     ca764
@@ -16014,10 +16267,10 @@ save pydis_start, pydis_end
 ;     ca7d8
 ;     ca7d9
 ;     ca7e1
-;     ca810
 ;     ca83a
 ;     ca84a
 ;     ca84d
+;     caa49
 ;     cbe6f
 ;     l0006
 ;     l0063
@@ -16159,8 +16412,7 @@ save pydis_start, pydis_end
 ;     loop_ca682
 ;     loop_ca73e
 ;     loop_ca7c6
-;     loop_ca814
-;     loop_ca81f
+;     loop_caa4d
 ;     return_1
 ;     return_10
 ;     return_11
@@ -16201,33 +16453,19 @@ save pydis_start, pydis_end
 ;     return_9
 ;     sub_c84a1
 ;     sub_c8e2d
-;     sub_ca663
-;     sub_ca676
-;     sub_ca6eb
-;     sub_ca6ee
-;     sub_ca70a
-;     sub_ca716
-;     sub_ca72b
-;     sub_ca731
-;     sub_ca737
-;     sub_ca747
-;     sub_ca7c2
-;     sub_ca7e7
-;     sub_ca7f0
-;     sub_ca7fe
-;     sub_ca804
-;     sub_ca80a
-;     sub_ca82a
 ;     sub_ca843
+;     sub_ca9d0
+;     sub_caac6
+;     sub_caadb
 ;     sub_cbe5e
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14513 bytes (89%)
-;     Data                     = 1871 bytes (11%)
+;     Code                     = 14580 bytes (89%)
+;     Data                     = 1804 bytes (11%)
 ;
-;     Number of instructions   = 7120
-;     Number of data bytes     = 586 bytes
+;     Number of instructions   = 7155
+;     Number of data bytes     = 519 bytes
 ;     Number of data words     = 110 bytes
 ;     Number of string bytes   = 1175 bytes
 ;     Number of strings        = 142

@@ -765,6 +765,8 @@ entry(0xA6EB)   # Sub 12
 entry(0xA6EE)   # Sub 13
 
 label(0xA701, "copy_ws_byte_to_pb")
+label(0xA74C, "return_zero_in_pb")
+label(0xA810, "store_a_to_pb_1")
 label(0xA844, "bridge_ws_init_data")
 label(0xA850, "bridge_txcb_init_table")
 label(0xA878, "loop_copy_bridge_init")
@@ -782,6 +784,11 @@ label(0xA959, "handle_burst_xfer")
 label(0xA97A, "restore_regs_return")
 label(0xA98C, "osword_handler_lo_table")
 label(0xA995, "osword_handler_hi_table")
+
+# OSWORD handler PHA/PHA/RTS dispatch table (9 entries, OSWORDs 0-8).
+for i in range(9):
+    rts_code_ptr(0xA98C + i, 0xA995 + i)
+
 label(0xA9E9, "process_match_result")
 label(0xA9F2, "save_tube_state")
 label(0xA9F4, "loop_save_tube_bytes")
@@ -789,6 +796,10 @@ label(0xAA0B, "loop_poll_ws_status")
 label(0xAA18, "loop_restore_stack")
 label(0xAA1C, "store_stack_byte")
 label(0xAA2D, "osword_claim_codes")
+
+# Split the 18-byte claim codes table into individual bytes for annotation.
+for i in range(18):
+    byte(0xAA2D + i)
 label(0xAA78, "loop_copy_ws_template")
 label(0xAA8D, "store_tx_ptr_hi")
 label(0xAA8F, "select_store_target")
@@ -3052,6 +3063,110 @@ subroutine(0xA6FB, "copy_pb_byte_to_ws",
     on_entry={"c": "set to load from PB, clear to use A",
               "x": "byte count",
               "y": "PB source offset"})
+subroutine(0xA663, "osword_13_read_station",
+    title="OSWORD &13 sub 0: read file server station",
+    description="Returns the current file server station and\n"
+    "network numbers in PB[1..2]. If the NFS is not\n"
+    "active (l0d6c bit 7 clear), returns zero in\n"
+    "PB[0] instead.")
+subroutine(0xA676, "osword_13_set_station",
+    title="OSWORD &13 sub 1: set file server station",
+    description="Sets the file server station and network\n"
+    "numbers from PB[1..2]. Processes all FCBs,\n"
+    "then scans the 16-entry FCB table to\n"
+    "reassign handles matching the new station.\n"
+    "If the NFS is not active, returns zero.")
+subroutine(0xA6EB, "osword_13_read_csd",
+    title="OSWORD &13 sub 12: read CSD path",
+    description="Reads 5 current selected directory path bytes\n"
+    "from the RX workspace at offset &1B into\n"
+    "PB[1..5]. Sets carry clear to select the\n"
+    "workspace-to-PB copy direction.")
+subroutine(0xA6EE, "osword_13_write_csd",
+    title="OSWORD &13 sub 13: write CSD path",
+    description="Writes 5 current selected directory path bytes\n"
+    "from PB[1..5] into the RX workspace at offset\n"
+    "&1B. Sets carry to select the PB-to-workspace\n"
+    "copy direction.")
+subroutine(0xA70A, "osword_13_read_ws_pair",
+    title="OSWORD &13 sub 2: read workspace byte pair",
+    description="Reads 2 bytes from the NFS workspace page\n"
+    "starting at offset 1 into PB[1..2]. Uses\n"
+    "nfs_workspace_hi as the page and\n"
+    "copy_pb_byte_to_ws with carry clear for the\n"
+    "workspace-to-PB direction.")
+subroutine(0xA716, "osword_13_write_ws_pair",
+    title="OSWORD &13 sub 3: write workspace byte pair",
+    description="Writes 2 bytes from PB[1..2] into the NFS\n"
+    "workspace at offsets 2 and 3. Then calls\n"
+    "init_bridge_poll and conditionally clears\n"
+    "the workspace byte if the bridge status\n"
+    "changed.")
+subroutine(0xA72B, "osword_13_read_prot",
+    title="OSWORD &13 sub 4: read protection mask",
+    description="Returns the current protection mask (ws_0d68)\n"
+    "in PB[1].")
+subroutine(0xA731, "osword_13_write_prot",
+    title="OSWORD &13 sub 5: write protection mask",
+    description="Sets the protection mask from PB[1] via\n"
+    "store_prot_mask.")
+subroutine(0xA737, "osword_13_read_handles",
+    title="OSWORD &13 sub 6: read FCB handle info",
+    description="Returns the 3-byte FCB handle/port data from\n"
+    "l1071[1..3] in PB[1..3]. If the NFS is not\n"
+    "active, returns zero in PB[0].")
+subroutine(0xA747, "osword_13_set_handles",
+    title="OSWORD &13 sub 7: set FCB handles",
+    description="Validates and assigns up to 3 FCB handles\n"
+    "from PB[1..3]. Each handle value (&20-&2F)\n"
+    "indexes the l1010/l1040 tables. For valid\n"
+    "handles with bit 2 set in l1040, stores the\n"
+    "station to l0e01+Y and FCB index to l1071+Y,\n"
+    "then updates flag bits across all FCB entries\n"
+    "via update_fcb_flag_bits.")
+subroutine(0xA7C2, "update_fcb_flag_bits",
+    title="Update FCB flag bits across all entries",
+    description="Scans all 16 FCB entries in l1060. For each\n"
+    "entry with bit 6 set, tests the Y-specified\n"
+    "bit mask: if matching, ORs bit 5 into the\n"
+    "flags; if not, leaves bit 5 clear. In both\n"
+    "cases, inverts and clears the tested bits.\n"
+    "Preserves X.",
+    on_entry={"y": "flag bit mask to test",
+              "x": "current FCB index (preserved)"})
+subroutine(0xA7E7, "osword_13_read_rx_flag",
+    title="OSWORD &13 sub 8: read RX control block flag",
+    description="Returns byte 5 of the current RX control\n"
+    "block in PB[1].")
+subroutine(0xA7F0, "osword_13_read_rx_port",
+    title="OSWORD &13 sub 9: read RX port byte",
+    description="Returns byte &7F of the current RX control\n"
+    "block in PB[1], and stores &80 in PB[2].")
+subroutine(0xA7FE, "osword_13_read_error",
+    title="OSWORD &13 sub 10: read error flag",
+    description="Returns the error flag (l0e09) in PB[1].")
+subroutine(0xA804, "osword_13_read_context",
+    title="OSWORD &13 sub 11: read context byte",
+    description="Returns the context byte (l0d6d) in PB[1].")
+subroutine(0xA80A, "osword_13_read_free_bufs",
+    title="OSWORD &13 sub 14: read free buffer count",
+    description="Returns the free buffer count (&6F minus\n"
+    "l0d6b) in PB[1].")
+subroutine(0xA814, "osword_13_read_ctx_3",
+    title="OSWORD &13 sub 15: read 3 context bytes",
+    description="Copies 3 bytes from l0d6d[1..3] into\n"
+    "PB[1..3].")
+subroutine(0xA81F, "osword_13_write_ctx_3",
+    title="OSWORD &13 sub 16: write 3 context bytes",
+    description="Copies 3 bytes from PB[1..3] into\n"
+    "l0d6d[1..3].")
+subroutine(0xA82A, "osword_13_bridge_query",
+    title="OSWORD &13 sub 17: query bridge status",
+    description="Calls init_bridge_poll, then returns the\n"
+    "bridge status. If l0d72 is &FF (no bridge),\n"
+    "stores 0 in PB[0]. Otherwise stores l0d72\n"
+    "in PB[1] and conditionally updates PB[3]\n"
+    "based on station comparison.")
 subroutine(0xA868, "init_bridge_poll",
     title="Initialise Econet bridge routing table",
     description="Checks the bridge status byte: if &FF\n"
@@ -3075,6 +3190,13 @@ subroutine(0xA981, "push_osword_handler_addr",
     "Reloads the OSWORD number from osbyte_a_copy\n"
     "so the dispatched handler can identify the\n"
     "specific call.")
+subroutine(0xA99E, "osword_4_handler",
+    title="OSWORD 4 handler: clear carry and send abort",
+    description="Clears the carry flag in the stacked processor\n"
+    "status, stores the original Y to workspace at\n"
+    "offset &DA, and falls through to tx_econet_abort\n"
+    "with A=0. Called via OSWORD handler dispatch\n"
+    "table for OSWORD 4 (write interval timer).")
 subroutine(0xA9AC, "tx_econet_abort",
     title="Send Econet abort/disconnect packet",
     description="Stores the abort code in workspace, configures\n"
@@ -3091,6 +3213,14 @@ subroutine(0xAA24, "match_rx_code",
     on_entry={"a": "receive code to match",
               "x": "starting table index"},
     on_exit={"z": "set if match found"})
+subroutine(0xAA3F, "osword_8_handler",
+    title="OSWORD 7/8 handler: copy PB to workspace and abort",
+    description="Handles OSWORD 7 or 8 by copying 15 bytes from\n"
+    "the parameter block to workspace at offset &DB,\n"
+    "storing the OSWORD number at offset &DA, setting\n"
+    "control value &E9, and sending an abort packet.\n"
+    "Returns via tx_econet_abort. Rejects other\n"
+    "OSWORD numbers by returning immediately.")
 subroutine(0xAA6A, "init_ws_copy_wide",
     title="Initialise workspace copy in wide mode (14 bytes)",
     description="Copies 14 bytes to workspace offset &7C.\n"
@@ -8872,6 +9002,56 @@ comment(0xA629, "Y=0 for copy", inline=True)
 comment(0xA62B, "Copy workspace data", inline=True)
 comment(0xA62E, "Update state and return", inline=True)
 
+# osword_13_dispatch (&A631): dispatch by sub-code
+comment(0xA631, "X = sub-code", inline=True)
+comment(0xA632, "Sub-code < &13?", inline=True)
+comment(0xA634, "Out of range: return", inline=True)
+comment(0xA636, "Load handler address high byte", inline=True)
+comment(0xA639, "Push high byte", inline=True)
+comment(0xA63A, "Load handler address low byte", inline=True)
+comment(0xA63D, "Push low byte", inline=True)
+comment(0xA63E, "RTS dispatches to handler", inline=True)
+
+# OSWORD &13 dispatch table: lo bytes
+comment(0xA63F, "lo-sub 0: read FS station", inline=True)
+comment(0xA640, "lo-sub 1: set FS station", inline=True)
+comment(0xA641, "lo-sub 2: read workspace pair", inline=True)
+comment(0xA642, "lo-sub 3: write workspace pair", inline=True)
+comment(0xA643, "lo-sub 4: read protection mask", inline=True)
+comment(0xA644, "lo-sub 5: write protection mask", inline=True)
+comment(0xA645, "lo-sub 6: read FCB handles", inline=True)
+comment(0xA646, "lo-sub 7: set FCB handles", inline=True)
+comment(0xA647, "lo-sub 8: read RX flag", inline=True)
+comment(0xA648, "lo-sub 9: read RX port", inline=True)
+comment(0xA649, "lo-sub 10: read error flag", inline=True)
+comment(0xA64A, "lo-sub 11: read context byte", inline=True)
+comment(0xA64B, "lo-sub 12: read CSD path", inline=True)
+comment(0xA64C, "lo-sub 13: write CSD path", inline=True)
+comment(0xA64D, "lo-sub 14: read free buffers", inline=True)
+comment(0xA64E, "lo-sub 15: read 3 context bytes", inline=True)
+comment(0xA64F, "lo-sub 16: write 3 context bytes", inline=True)
+comment(0xA650, "lo-sub 17: query bridge status", inline=True)
+
+# OSWORD &13 dispatch table: hi bytes
+comment(0xA651, "hi-sub 0: read FS station", inline=True)
+comment(0xA652, "hi-sub 1: set FS station", inline=True)
+comment(0xA653, "hi-sub 2: read workspace pair", inline=True)
+comment(0xA654, "hi-sub 3: write workspace pair", inline=True)
+comment(0xA655, "hi-sub 4: read protection mask", inline=True)
+comment(0xA656, "hi-sub 5: write protection mask", inline=True)
+comment(0xA657, "hi-sub 6: read FCB handles", inline=True)
+comment(0xA658, "hi-sub 7: set FCB handles", inline=True)
+comment(0xA659, "hi-sub 8: read RX flag", inline=True)
+comment(0xA65A, "hi-sub 9: read RX port", inline=True)
+comment(0xA65B, "hi-sub 10: read error flag", inline=True)
+comment(0xA65C, "hi-sub 11: read context byte", inline=True)
+comment(0xA65D, "hi-sub 12: read CSD path", inline=True)
+comment(0xA65E, "hi-sub 13: write CSD path", inline=True)
+comment(0xA65F, "hi-sub 14: read free buffers", inline=True)
+comment(0xA660, "hi-sub 15: read 3 context bytes", inline=True)
+comment(0xA661, "hi-sub 16: write 3 context bytes", inline=True)
+comment(0xA662, "hi-sub 17: query bridge status", inline=True)
+
 # ca6fb: copy between workspace and parameter block
 comment(0xA6FB, "C=0: skip PB-to-WS copy", inline=True)
 comment(0xA6FD, "C=1: load from parameter block", inline=True)
@@ -8882,6 +9062,295 @@ comment(0xA705, "Next byte", inline=True)
 comment(0xA706, "Count down", inline=True)
 comment(0xA707, "Loop for all bytes", inline=True)
 comment(0xA709, "Return", inline=True)
+
+# osword_13_read_station (&A663): sub 0 — read FS station
+comment(0xA663, "NFS active?", inline=True)
+comment(0xA666, "Yes: read station data", inline=True)
+comment(0xA668, "No: return zero", inline=True)
+comment(0xA66B, "Y=2: copy 2 bytes", inline=True)
+comment(0xA66D, "Load station byte", inline=True)
+comment(0xA670, "Store to PB[Y]", inline=True)
+comment(0xA672, "Previous byte", inline=True)
+comment(0xA673, "Loop for bytes 2..1", inline=True)
+comment(0xA675, "Return", inline=True)
+
+# osword_13_set_station (&A676): sub 1 — set FS station
+comment(0xA676, "NFS active?", inline=True)
+comment(0xA679, "No: return zero", inline=True)
+comment(0xA67B, "Y=0 for process_all_fcbs", inline=True)
+comment(0xA67D, "Close all open FCBs", inline=True)
+comment(0xA680, "Y=2: copy 2 bytes", inline=True)
+comment(0xA682, "Load new station byte from PB", inline=True)
+comment(0xA684, "Store to l0dff", inline=True)
+comment(0xA687, "Previous byte", inline=True)
+comment(0xA688, "Loop for bytes 2..1", inline=True)
+comment(0xA68A, "Clear handles if station matches", inline=True)
+comment(0xA68D, "X=&0F: scan 16 FCB entries", inline=True)
+comment(0xA68F, "Load FCB flags", inline=True)
+comment(0xA692, "Save flags in Y", inline=True)
+comment(0xA693, "Test bit 1 (FCB allocated?)", inline=True)
+comment(0xA695, "No: skip to next entry", inline=True)
+comment(0xA697, "Restore flags", inline=True)
+comment(0xA698, "Clear bit 5 (pending update)", inline=True)
+comment(0xA69A, "Store updated flags", inline=True)
+comment(0xA69D, "Save in Y", inline=True)
+comment(0xA69E, "Does FCB match new station?", inline=True)
+comment(0xA6A1, "No match: skip to next", inline=True)
+comment(0xA6A3, "Clear carry for ADC", inline=True)
+comment(0xA6A4, "Restore flags", inline=True)
+comment(0xA6A5, "Test bit 2 (handle 1 active?)", inline=True)
+comment(0xA6A7, "No: check handle 2", inline=True)
+comment(0xA6A9, "Restore flags", inline=True)
+comment(0xA6AA, "Set bit 5 (handle reassigned)", inline=True)
+comment(0xA6AC, "Save updated flags", inline=True)
+comment(0xA6AD, "Get FCB high byte", inline=True)
+comment(0xA6B0, "Store as handle 1 station", inline=True)
+comment(0xA6B3, "FCB index", inline=True)
+comment(0xA6B4, "Add &20 for FCB table offset", inline=True)
+comment(0xA6B6, "Store as handle 1 FCB index", inline=True)
+comment(0xA6B9, "Restore flags", inline=True)
+comment(0xA6BA, "Test bit 3 (handle 2 active?)", inline=True)
+comment(0xA6BC, "No: check handle 3", inline=True)
+comment(0xA6BE, "Restore flags", inline=True)
+comment(0xA6BF, "Set bit 5", inline=True)
+comment(0xA6C1, "Save updated flags", inline=True)
+comment(0xA6C2, "Get FCB high byte", inline=True)
+comment(0xA6C5, "Store as handle 2 station", inline=True)
+comment(0xA6C8, "FCB index", inline=True)
+comment(0xA6C9, "Add &20 for FCB table offset", inline=True)
+comment(0xA6CB, "Store as handle 2 FCB index", inline=True)
+comment(0xA6CE, "Restore flags", inline=True)
+comment(0xA6CF, "Test bit 4 (handle 3 active?)", inline=True)
+comment(0xA6D1, "No: store final flags", inline=True)
+comment(0xA6D3, "Restore flags", inline=True)
+comment(0xA6D4, "Set bit 5", inline=True)
+comment(0xA6D6, "Save updated flags", inline=True)
+comment(0xA6D7, "Get FCB high byte", inline=True)
+comment(0xA6DA, "Store as handle 3 station", inline=True)
+comment(0xA6DD, "FCB index", inline=True)
+comment(0xA6DE, "Add &20 for FCB table offset", inline=True)
+comment(0xA6E0, "Store as handle 3 FCB index", inline=True)
+comment(0xA6E3, "Store final flags for this FCB", inline=True)
+comment(0xA6E4, "Update l1060[X]", inline=True)
+comment(0xA6E7, "Next FCB entry", inline=True)
+comment(0xA6E8, "Loop for all 16 entries", inline=True)
+comment(0xA6EA, "Return", inline=True)
+
+# osword_13_read_csd (&A6EB): sub 12 — read CSD path
+comment(0xA6EB, "C=0: workspace-to-PB direction", inline=True)
+comment(0xA6EC, "Skip SEC", inline=True)
+
+# osword_13_write_csd (&A6EE): sub 13 — write CSD path
+comment(0xA6EE, "C=1: PB-to-workspace direction", inline=True)
+comment(0xA6EF, "Workspace offset &1B", inline=True)
+comment(0xA6F1, "Set ws_ptr_lo", inline=True)
+comment(0xA6F3, "Page from RX pointer high byte", inline=True)
+comment(0xA6F5, "Set ws_ptr_hi", inline=True)
+comment(0xA6F7, "Y=1: first PB data byte", inline=True)
+comment(0xA6F9, "X=5: copy 5 bytes", inline=True)
+
+# osword_13_read_ws_pair (&A70A): sub 2 — read workspace bytes
+comment(0xA70A, "Load workspace page high byte", inline=True)
+comment(0xA70C, "Set ws_ptr_hi", inline=True)
+comment(0xA70E, "Y=1", inline=True)
+comment(0xA70F, "A=1", inline=True)
+comment(0xA710, "Set ws_ptr_lo = 1", inline=True)
+comment(0xA712, "X=1: copy 2 bytes", inline=True)
+comment(0xA713, "C=0: workspace-to-PB direction", inline=True)
+comment(0xA714, "Copy via copy_pb_byte_to_ws", inline=True)
+
+# osword_13_write_ws_pair (&A716): sub 3 — write workspace bytes
+comment(0xA716, "Y=1: first PB data byte", inline=True)
+comment(0xA717, "Load PB[1]", inline=True)
+comment(0xA719, "Y=2", inline=True)
+comment(0xA71A, "Store to (nfs_workspace)+2", inline=True)
+comment(0xA71C, "Load PB[2]", inline=True)
+comment(0xA71E, "Y=3", inline=True)
+comment(0xA71F, "Store to (nfs_workspace)+3", inline=True)
+comment(0xA721, "Reinitialise bridge routing", inline=True)
+comment(0xA724, "Compare result with workspace", inline=True)
+comment(0xA726, "Different: leave unchanged", inline=True)
+comment(0xA728, "Same: clear workspace byte", inline=True)
+comment(0xA72A, "Return", inline=True)
+
+# osword_13_read_prot (&A72B): sub 4 — read protection mask
+comment(0xA72B, "Load protection mask", inline=True)
+comment(0xA72E, "Store to PB[1] and return", inline=True)
+
+# osword_13_write_prot (&A731): sub 5 — write protection mask
+comment(0xA731, "Y=1: PB data offset", inline=True)
+comment(0xA732, "Load new mask from PB[1]", inline=True)
+comment(0xA734, "Store via store_prot_mask", inline=True)
+
+# osword_13_read_handles (&A737): sub 6 — read FCB handle info
+comment(0xA737, "NFS active?", inline=True)
+comment(0xA73A, "No: return zero", inline=True)
+comment(0xA73C, "Y=3: copy 3 bytes", inline=True)
+comment(0xA73E, "Load handle byte", inline=True)
+comment(0xA741, "Store to PB[Y]", inline=True)
+comment(0xA743, "Previous byte", inline=True)
+comment(0xA744, "Loop for bytes 3..1", inline=True)
+comment(0xA746, "Return", inline=True)
+
+# return_zero_in_pb (&A74C): return zero status
+comment(0xA74C, "A=0", inline=True)
+comment(0xA74F, "Store 0 to PB[0]", inline=True)
+comment(0xA751, "Return", inline=True)
+
+# osword_13_set_handles (&A747): sub 7 — validate and set FCB handles
+comment(0xA747, "NFS active?", inline=True)
+comment(0xA74A, "Yes: process handles", inline=True)
+comment(0xA752, "Y=1: first handle in PB", inline=True)
+comment(0xA754, "Load handle value from PB[Y]", inline=True)
+comment(0xA756, "Must be >= &20", inline=True)
+comment(0xA758, "Below range: invalid", inline=True)
+comment(0xA75A, "Must be < &30", inline=True)
+comment(0xA75C, "Above range: invalid", inline=True)
+comment(0xA75E, "X = handle value", inline=True)
+comment(0xA75F, "Load l1010[handle]", inline=True)
+comment(0xA762, "Non-zero: FCB exists", inline=True)
+comment(0xA764, "Invalid: store 0 to PB[0]", inline=True)
+comment(0xA767, "Clear PB[0] status", inline=True)
+comment(0xA769, "Skip to next handle", inline=True)
+comment(0xA76B, "Load l1040[handle] flags", inline=True)
+comment(0xA76E, "Test bit 1 (allocated?)", inline=True)
+comment(0xA770, "Not allocated: invalid", inline=True)
+comment(0xA772, "X = handle value", inline=True)
+comment(0xA773, "Store handle to l1071+Y", inline=True)
+comment(0xA776, "Load station from l1010", inline=True)
+comment(0xA779, "Store station to l0e01+Y", inline=True)
+comment(0xA77C, "Is this handle 1 (Y=1)?", inline=True)
+comment(0xA77E, "No: check handle 2", inline=True)
+comment(0xA780, "Save Y", inline=True)
+comment(0xA781, "Push Y", inline=True)
+comment(0xA782, "Bit mask &04 for handle 1", inline=True)
+comment(0xA784, "Update flags across all FCBs", inline=True)
+comment(0xA787, "Restore Y", inline=True)
+comment(0xA788, "Back to Y", inline=True)
+comment(0xA789, "Reload l1040 flags", inline=True)
+comment(0xA78C, "Set bits 2+5 (active+updated)", inline=True)
+comment(0xA78E, "Store updated flags", inline=True)
+comment(0xA791, "Next handle slot", inline=True)
+comment(0xA792, "Done all 3 handles?", inline=True)
+comment(0xA794, "No: process next handle", inline=True)
+comment(0xA796, "Y=3 for return", inline=True)
+comment(0xA797, "Return", inline=True)
+comment(0xA798, "Is this handle 2 (Y=2)?", inline=True)
+comment(0xA79A, "No: must be handle 3", inline=True)
+comment(0xA79C, "Save Y", inline=True)
+comment(0xA79D, "Push Y", inline=True)
+comment(0xA79E, "Bit mask &08 for handle 2", inline=True)
+comment(0xA7A0, "Update flags across all FCBs", inline=True)
+comment(0xA7A3, "Restore Y", inline=True)
+comment(0xA7A4, "Back to Y", inline=True)
+comment(0xA7A5, "Reload l1040 flags", inline=True)
+comment(0xA7A8, "Set bits 3+5 (active+updated)", inline=True)
+comment(0xA7AA, "Store updated flags", inline=True)
+comment(0xA7AD, "Next handle slot", inline=True)
+comment(0xA7AF, "Handle 3: save Y", inline=True)
+comment(0xA7B0, "Push Y", inline=True)
+comment(0xA7B1, "Bit mask &10 for handle 3", inline=True)
+comment(0xA7B3, "Update flags across all FCBs", inline=True)
+comment(0xA7B6, "Restore Y", inline=True)
+comment(0xA7B7, "Back to Y", inline=True)
+comment(0xA7B8, "Reload l1040 flags", inline=True)
+comment(0xA7BB, "Set bits 4+5 (active+updated)", inline=True)
+comment(0xA7BD, "Store updated flags", inline=True)
+comment(0xA7C0, "Next handle slot", inline=True)
+
+# update_fcb_flag_bits (&A7C2): update flags across FCB entries
+comment(0xA7C2, "Save X (current FCB index)", inline=True)
+comment(0xA7C3, "Push X", inline=True)
+comment(0xA7C4, "X=&0F: scan 16 FCB entries", inline=True)
+comment(0xA7C6, "Load FCB flags", inline=True)
+comment(0xA7C9, "Shift bits 6-7 into bits 7-0", inline=True)
+comment(0xA7CA, "Bit 6 now in bit 7 (N flag)", inline=True)
+comment(0xA7CB, "Bit 6 clear: skip entry", inline=True)
+comment(0xA7CD, "Restore Y (bit mask)", inline=True)
+comment(0xA7CE, "Test mask bits against flags", inline=True)
+comment(0xA7D1, "Zero: no matching bits", inline=True)
+comment(0xA7D3, "Matching: restore Y", inline=True)
+comment(0xA7D4, "Set bit 5 (updated)", inline=True)
+comment(0xA7D6, "Skip clear path", inline=True)
+comment(0xA7D8, "No match: restore Y", inline=True)
+comment(0xA7D9, "Invert all bits", inline=True)
+comment(0xA7DB, "Clear tested bits in flags", inline=True)
+comment(0xA7DE, "Store updated flags", inline=True)
+comment(0xA7E1, "Next FCB entry", inline=True)
+comment(0xA7E2, "Loop for all 16 entries", inline=True)
+comment(0xA7E4, "Restore original X", inline=True)
+comment(0xA7E5, "Back to X", inline=True)
+comment(0xA7E6, "Return", inline=True)
+
+# osword_13_read_rx_flag (&A7E7): sub 8 — read RX flag
+comment(0xA7E7, "Y=5: RX control block offset", inline=True)
+comment(0xA7E9, "Load (net_rx_ptr)+5", inline=True)
+comment(0xA7EB, "Y=0", inline=True)
+comment(0xA7ED, "Store to PB[1] and return", inline=True)
+
+# osword_13_read_rx_port (&A7F0): sub 9 — read RX port
+comment(0xA7F0, "Y=&7F: port byte offset", inline=True)
+comment(0xA7F2, "Load (net_rx_ptr)+&7F", inline=True)
+comment(0xA7F4, "Y=1", inline=True)
+comment(0xA7F6, "Store to PB[1]", inline=True)
+comment(0xA7F9, "A=&80", inline=True)
+comment(0xA7FB, "Store &80 to PB[2]", inline=True)
+comment(0xA7FD, "Return", inline=True)
+
+# osword_13_read_error (&A7FE): sub 10 — read error flag
+comment(0xA7FE, "Load error flag", inline=True)
+comment(0xA801, "Store to PB[1] and return", inline=True)
+
+# osword_13_read_context (&A804): sub 11 — read context byte
+comment(0xA804, "Load context byte", inline=True)
+comment(0xA807, "Store to PB[1] and return", inline=True)
+
+# osword_13_read_free_bufs (&A80A): sub 14 — free buffer count
+comment(0xA80A, "Total buffers = &6F", inline=True)
+comment(0xA80C, "Subtract used count", inline=True)
+comment(0xA80D, "Free = &6F - l0d6b", inline=True)
+
+# store_a_to_pb_1 (&A810): store A to PB[1] and return
+comment(0xA810, "Y=1", inline=True)
+comment(0xA811, "Store A to PB[1]", inline=True)
+comment(0xA813, "Return", inline=True)
+
+# osword_13_read_ctx_3 (&A814): sub 15 — read 3 context bytes
+comment(0xA814, "Next byte offset", inline=True)
+comment(0xA815, "Load l0d6d[Y]", inline=True)
+comment(0xA818, "Store to PB[Y]", inline=True)
+comment(0xA81A, "Done 3 bytes?", inline=True)
+comment(0xA81C, "No: loop", inline=True)
+comment(0xA81E, "Return", inline=True)
+
+# osword_13_write_ctx_3 (&A81F): sub 16 — write 3 context bytes
+comment(0xA81F, "Next byte offset", inline=True)
+comment(0xA820, "Load PB[Y]", inline=True)
+comment(0xA822, "Store to l0d6d[Y]", inline=True)
+comment(0xA825, "Done 3 bytes?", inline=True)
+comment(0xA827, "No: loop", inline=True)
+comment(0xA829, "Return", inline=True)
+
+# osword_13_bridge_query (&A82A): sub 17 — query bridge
+comment(0xA82A, "Poll for bridge", inline=True)
+comment(0xA82D, "Y=0", inline=True)
+comment(0xA82F, "Load bridge status", inline=True)
+comment(0xA832, "Is it &FF (no bridge)?", inline=True)
+comment(0xA834, "No: bridge found", inline=True)
+comment(0xA837, "PB[0] = 0 (no bridge)", inline=True)
+comment(0xA839, "Return", inline=True)
+comment(0xA83A, "Y=1", inline=True)
+comment(0xA83B, "PB[1] = bridge status", inline=True)
+comment(0xA83D, "Y=2", inline=True)
+comment(0xA83E, "Y=3", inline=True)
+comment(0xA83F, "Load PB[3] (caller value)", inline=True)
+comment(0xA841, "Zero: use default station", inline=True)
+comment(0xA843, "Compare with bridge status", inline=True)
+comment(0xA846, "Different: return unchanged", inline=True)
+comment(0xA848, "Same: confirm station", inline=True)
+comment(0xA84A, "Load default from l0e01", inline=True)
+comment(0xA84D, "Store to PB[3]", inline=True)
+comment(0xA84F, "Return", inline=True)
 
 # init_bridge_poll (&A868): initialise bridge polling
 comment(0xA868, "Check bridge status", inline=True)
@@ -9151,6 +9620,73 @@ comment(0xAA27, "Match: return with Z set", inline=True)
 comment(0xAA29, "Try next code", inline=True)
 comment(0xAA2A, "More codes: continue search", inline=True)
 comment(0xAA2C, "Return (Z clear = not found)", inline=True)
+
+# osword_claim_codes (&AA2D): 18-byte OSWORD number table.
+# Searched by match_rx_code from the OSWORD 7 dispatch handler.
+# Two search ranges select different processing paths:
+#   Range 1 (indices 0-&0A, 11 entries): match → Y=1 → state 2
+#   Range 2 (indices 0-&11, all 18):     match → Y=-1 → state 3
+# No match → Y=0 → return without action.
+comment(0xAA2D, "OSWORD claim code table\n"
+    "\n"
+    "Table of OSWORD numbers that trigger NMI\n"
+    "claim processing. Searched in two passes by\n"
+    "the OSWORD 7 handler: first the 11-entry\n"
+    "range (indices 0-&0A), then the full 18-entry\n"
+    "range (indices 0-&11). A match in the first\n"
+    "range sets state 2 (standard claim); a match\n"
+    "only in the extended range sets state 3.")
+comment(0xAA2D, "Range 1+2: OSWORD &04", inline=True)
+comment(0xAA2E, "Range 1+2: OSWORD &09", inline=True)
+comment(0xAA2F, "Range 1+2: OSWORD &0A", inline=True)
+comment(0xAA30, "Range 1+2: OSWORD &14", inline=True)
+comment(0xAA31, "Range 1+2: OSWORD &15", inline=True)
+comment(0xAA32, "Range 1+2: OSWORD &9A", inline=True)
+comment(0xAA33, "Range 1+2: OSWORD &9B", inline=True)
+comment(0xAA34, "Range 1+2: OSWORD &E1", inline=True)
+comment(0xAA35, "Range 1+2: OSWORD &E2", inline=True)
+comment(0xAA36, "Range 1+2: OSWORD &E3", inline=True)
+comment(0xAA37, "Range 1+2: OSWORD &E4", inline=True)
+comment(0xAA38, "Range 2 only: OSWORD &0B", inline=True)
+comment(0xAA39, "Range 2 only: OSWORD &0C", inline=True)
+comment(0xAA3A, "Range 2 only: OSWORD &0F", inline=True)
+comment(0xAA3B, "Range 2 only: OSWORD &79", inline=True)
+comment(0xAA3C, "Range 2 only: OSWORD &7A", inline=True)
+comment(0xAA3D, "Range 2 only: OSWORD &86", inline=True)
+comment(0xAA3E, "Range 2 only: OSWORD &87", inline=True)
+
+# osword_8_handler (&AA3F): OSWORD 7/8 — copy PB and abort
+comment(0xAA3F, "Y=&0E: copy 15 bytes (0-14)", inline=True)
+comment(0xAA41, "OSWORD 7?", inline=True)
+comment(0xAA43, "Yes: handle", inline=True)
+comment(0xAA45, "OSWORD 8?", inline=True)
+comment(0xAA47, "No: return", inline=True)
+comment(0xAA49, "Workspace low = &DB", inline=True)
+comment(0xAA4B, "Set nfs_workspace low byte", inline=True)
+comment(0xAA4D, "Load PB[Y]", inline=True)
+comment(0xAA4F, "Store to workspace[Y]", inline=True)
+comment(0xAA51, "Next byte down", inline=True)
+comment(0xAA52, "Loop for 15 bytes", inline=True)
+comment(0xAA54, "Y=0", inline=True)
+comment(0xAA55, "Workspace low = &DA", inline=True)
+comment(0xAA57, "Load OSWORD number", inline=True)
+comment(0xAA59, "Store at workspace+0 (= &DA)", inline=True)
+comment(0xAA5B, "Workspace low = 0 (restore)", inline=True)
+comment(0xAA5D, "Y=&14: control offset", inline=True)
+comment(0xAA5F, "Control value &E9", inline=True)
+comment(0xAA61, "Store to workspace+&14", inline=True)
+comment(0xAA63, "Abort code = 1", inline=True)
+comment(0xAA65, "Send abort packet", inline=True)
+comment(0xAA68, "Restore nfs_workspace low", inline=True)
+
+# osword_4_handler (&A99E): OSWORD 4 — clear carry, abort
+comment(0xA99E, "Get stack pointer", inline=True)
+comment(0xA99F, "Clear bit 0 of stacked P (carry)", inline=True)
+comment(0xA9A2, "Shift back (clears carry flag)", inline=True)
+comment(0xA9A5, "A = original Y", inline=True)
+comment(0xA9A6, "Y=&DA: workspace offset", inline=True)
+comment(0xA9A8, "Store Y to workspace", inline=True)
+comment(0xA9AA, "Abort code = 0", inline=True)
 
 # init_ws_copy_wide: copy template to workspace (wide mode)
 comment(0xAA6A, "X=&0D: 14 bytes to copy", inline=True)
