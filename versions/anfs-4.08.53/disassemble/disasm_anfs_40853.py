@@ -407,7 +407,36 @@ label(0x8FA4, "store_ws_byte")
 label(0x8FBB, "loop_sum_ws")
 label(0x900A, "done_print_newline")
 label(0x900E, "cmd_syntax_strings")
+label(0x900E, "syn_opt_dir")     # "(<dir>)"
+label(0x9016, "syn_iam")         # "(<stn. id.>) <user id.>..."
+label(0x9043, "syn_object")      # "<object>"
+label(0x904C, "syn_file_offset") # "<filename> (<offset>...)"
+label(0x906F, "syn_dir")         # "<dir>"
+label(0x9075, "syn_dir_num")     # "<dir> (<number>)"
+label(0x9086, "syn_password")    # "(:<CR>) <password>..."
+label(0x90A9, "syn_ps_type")     # "(<stn. id.>|<ps type>)"
+label(0x90C0, "syn_access")      # "<object> (L)(W)(R)..."
+label(0x90DC, "syn_rename")      # "<filename> <new filename>"
+label(0x90F6, "syn_opt_stn")     # "(<stn. id.>)"
+label(0x9103, "syn_filename")    # "<filename>"
 label(0x910E, "cmd_syntax_table")
+for i in range(13):
+    byte(0x910E + i)
+# Symbolic expressions: offset = string_start - cmd_syntax_strings - 1
+# (the print loop does INY before LDA, so offset points to byte before string)
+expr(0x910E, "syn_iam - cmd_syntax_strings - 2")
+expr(0x910F, "(syn_opt_dir - cmd_syntax_strings - 1) AND &FF")
+expr(0x9110, "syn_iam - cmd_syntax_strings - 1")
+expr(0x9111, "syn_object - cmd_syntax_strings - 1")
+expr(0x9112, "syn_file_offset - cmd_syntax_strings - 1")
+expr(0x9113, "syn_dir - cmd_syntax_strings - 1")
+expr(0x9114, "syn_dir_num - cmd_syntax_strings - 1")
+expr(0x9115, "syn_password - cmd_syntax_strings - 1")
+expr(0x9116, "syn_ps_type - cmd_syntax_strings - 1")
+expr(0x9117, "syn_access - cmd_syntax_strings - 1")
+expr(0x9118, "syn_rename - cmd_syntax_strings - 1")
+expr(0x9119, "syn_opt_stn - cmd_syntax_strings - 1")
+expr(0x911A, "syn_filename - cmd_syntax_strings - 1")
 label(0x912C, "add_ascii_base")
 label(0x9139, "loop_next_char")
 label(0x913F, "load_char")
@@ -5978,6 +6007,32 @@ comment(0x8FFB, "Clock present: skip warning", inline=True)
 comment(0x8FFD, "Print ' No Clock' via inline", inline=True)
 comment(0x9009, "NOP (string terminator)", inline=True)
 comment(0x900D, "Return", inline=True)
+# cmd_syntax_table (&910E): 13-entry offset table for *HELP syntax.
+# Each byte is an offset into cmd_syntax_strings (&900E). The print
+# loop does INY before LDA, so the offset points to the byte before
+# the first character of each syntax string.
+comment(0x910E, "Command syntax string offset table\n"
+    "\n"
+    "13 offsets into cmd_syntax_strings (&900E).\n"
+    "Indexed by the low 5 bits of each command table\n"
+    "syntax descriptor byte. Index &0E is handled\n"
+    "separately as a shared-commands list. The print\n"
+    "loop at &8BD5 does INY before LDA, so each offset\n"
+    "points to the byte before the first character.")
+comment(0x910E, "Idx 0: (no syntax)", inline=True)
+comment(0x910F, "Idx 1: \"(<dir>)\" (Y wraps via &FF)", inline=True)
+comment(0x9110, "Idx 2: \"(<stn.id.>) <user id.>...\"", inline=True)
+comment(0x9111, "Idx 3: \"<object>\"", inline=True)
+comment(0x9112, "Idx 4: \"<filename> (<offset>...)\"", inline=True)
+comment(0x9113, "Idx 5: \"<dir>\"", inline=True)
+comment(0x9114, "Idx 6: \"<dir> (<number>)\"", inline=True)
+comment(0x9115, "Idx 7: \"(:<CR>) <password>...\"", inline=True)
+comment(0x9116, "Idx 8: \"(<stn.id.>|<ps type>)\"", inline=True)
+comment(0x9117, "Idx 9: \"<object> (L)(W)(R)...\"", inline=True)
+comment(0x9118, "Idx 10: \"<filename> <new filename>\"", inline=True)
+comment(0x9119, "Idx 11: \"(<stn. id.>)\"", inline=True)
+comment(0x911A, "Idx 12: \"<filename>\"", inline=True)
+
 comment(0x911B, "Save full byte", inline=True)
 comment(0x911C, "Shift high nybble to low", inline=True)
 comment(0x911D, "Continue shifting", inline=True)

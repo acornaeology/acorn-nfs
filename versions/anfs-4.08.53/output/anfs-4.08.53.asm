@@ -5201,41 +5201,71 @@ ws_init_data = error_bad_station+2
 
 ; &900e referenced 1 time by &8bd6
 .cmd_syntax_strings
+.syn_opt_dir
     equs "(<dir>)"                                                    ; 900e: 28 3c 64... (<d
     equb 0                                                            ; 9015: 00          .
+.syn_iam
     equs "(<stn. id.>) <user id.> "                                   ; 9016: 28 3c 73... (<s
     equb &0d                                                          ; 902e: 0d          .
     equs "((:<CR>)<password>)"                                        ; 902f: 28 28 3a... ((:
     equb 0                                                            ; 9042: 00          .
+.syn_object
     equs "<object>"                                                   ; 9043: 3c 6f 62... <ob
     equb 0                                                            ; 904b: 00          .
+.syn_file_offset
     equs "<filename> (<offset> "                                      ; 904c: 3c 66 69... <fi
     equb &0d                                                          ; 9061: 0d          .
     equs "(<address>))"                                               ; 9062: 28 3c 61... (<a
     equb 0                                                            ; 906e: 00          .
+.syn_dir
     equs "<dir>"                                                      ; 906f: 3c 64 69... <di
     equb 0                                                            ; 9074: 00          .
+.syn_dir_num
     equs "<dir> (<number>)"                                           ; 9075: 3c 64 69... <di
     equb 0                                                            ; 9085: 00          .
+.syn_password
     equs "(:<CR>) <password> "                                        ; 9086: 28 3a 3c... (:<
     equb &0d                                                          ; 9099: 0d          .
     equs "<new password>"                                             ; 909a: 3c 6e 65... <ne
     equb 0                                                            ; 90a8: 00          .
+.syn_ps_type
     equs "(<stn. id.>|<ps type>)"                                     ; 90a9: 28 3c 73... (<s
     equb 0                                                            ; 90bf: 00          .
+.syn_access
     equs "<object> (L)(W)(R)(/(W)(R))"                                ; 90c0: 3c 6f 62... <ob
     equb 0                                                            ; 90db: 00          .
+.syn_rename
     equs "<filename> <new filename>"                                  ; 90dc: 3c 66 69... <fi
     equb 0                                                            ; 90f5: 00          .
+.syn_opt_stn
     equs "(<stn. id.>)"                                               ; 90f6: 28 3c 73... (<s
     equb 0                                                            ; 9102: 00          .
+.syn_filename
     equs "<filename>"                                                 ; 9103: 3c 66 69... <fi
     equb 0                                                            ; 910d: 00          .
+; Command syntax string offset table
+; 
+; 13 offsets into cmd_syntax_strings (&900E).
+; Indexed by the low 5 bits of each command table
+; syntax descriptor byte. Index &0E is handled
+; separately as a shared-commands list. The print
+; loop at &8BD5 does INY before LDA, so each offset
+; points to the byte before the first character.
 ; &910e referenced 1 time by &8bd1
 .cmd_syntax_table
-    equb 6, &ff, 7                                                    ; 910e: 06 ff 07    ...
-    equs "4=`fw"                                                      ; 9111: 34 3d 60... 4=`
-    equb &9a, &b1, &cd, &e7, &f4                                      ; 9116: 9a b1 cd... ...
+    equb syn_iam - cmd_syntax_strings - 2                             ; 910e: 06          .              ; Idx 0: (no syntax)
+    equb (syn_opt_dir - cmd_syntax_strings - 1) AND &FF               ; 910f: ff          .              ; Idx 1: "(<dir>)" (Y wraps via &FF)
+    equb syn_iam - cmd_syntax_strings - 1                             ; 9110: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."
+    equb syn_object - cmd_syntax_strings - 1                          ; 9111: 34          4              ; Idx 3: "<object>"
+    equb syn_file_offset - cmd_syntax_strings - 1                     ; 9112: 3d          =              ; Idx 4: "<filename> (<offset>...)"
+    equb syn_dir - cmd_syntax_strings - 1                             ; 9113: 60          `              ; Idx 5: "<dir>"
+    equb syn_dir_num - cmd_syntax_strings - 1                         ; 9114: 66          f              ; Idx 6: "<dir> (<number>)"
+    equb syn_password - cmd_syntax_strings - 1                        ; 9115: 77          w              ; Idx 7: "(:<CR>) <password>..."
+    equb syn_ps_type - cmd_syntax_strings - 1                         ; 9116: 9a          .              ; Idx 8: "(<stn.id.>|<ps type>)"
+    equb syn_access - cmd_syntax_strings - 1                          ; 9117: b1          .              ; Idx 9: "<object> (L)(W)(R)..."
+    equb syn_rename - cmd_syntax_strings - 1                          ; 9118: cd          .              ; Idx 10: "<filename> <new filename>"
+    equb syn_opt_stn - cmd_syntax_strings - 1                         ; 9119: e7          .              ; Idx 11: "(<stn. id.>)"
+    equb syn_filename - cmd_syntax_strings - 1                        ; 911a: f4          .              ; Idx 12: "<filename>"
 
 ; ***************************************************************************************
 ; Print A as two hexadecimal digits
@@ -14832,6 +14862,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &bebf referenced 1 time by &beb4
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
+    assert (syn_opt_dir - cmd_syntax_strings - 1) AND &FF == &ff
     assert <(econet_restore-1) == &84
     assert <(fs_work_4) == &b4
     assert <(fscv_0_opt_entry-1) == &bb
@@ -15003,6 +15034,18 @@ net_channel_err_string = err_net_chan_not_found+2
     assert cmd_wipe-1 == &b33c
     assert copyright - rom_header == &14
     assert netv_handler == &a968
+    assert syn_access - cmd_syntax_strings - 1 == &b1
+    assert syn_dir - cmd_syntax_strings - 1 == &60
+    assert syn_dir_num - cmd_syntax_strings - 1 == &66
+    assert syn_file_offset - cmd_syntax_strings - 1 == &3d
+    assert syn_filename - cmd_syntax_strings - 1 == &f4
+    assert syn_iam - cmd_syntax_strings - 1 == &07
+    assert syn_iam - cmd_syntax_strings - 2 == &06
+    assert syn_object - cmd_syntax_strings - 1 == &34
+    assert syn_opt_stn - cmd_syntax_strings - 1 == &e7
+    assert syn_password - cmd_syntax_strings - 1 == &77
+    assert syn_ps_type - cmd_syntax_strings - 1 == &9a
+    assert syn_rename - cmd_syntax_strings - 1 == &cd
     assert tube_osargs == &055e
     assert tube_osbget == &052d
     assert tube_osbput == &0520
@@ -16377,6 +16420,7 @@ save pydis_start, pydis_end
 ;     suffix_not_listening:                     1
 ;     svc_dispatch_hi:                          1
 ;     svc_dispatch_lo:                          1
+;     syn_opt_dir:                              1
 ;     trigger_brk:                              1
 ;     try_alternate_phase:                      1
 ;     try_library_path:                         1
@@ -16672,7 +16716,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1790 bytes (11%)
 ;
 ;     Number of instructions   = 7160
-;     Number of data bytes     = 517 bytes
+;     Number of data bytes     = 522 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1161 bytes
-;     Number of strings        = 140
+;     Number of string bytes   = 1156 bytes
+;     Number of strings        = 139
