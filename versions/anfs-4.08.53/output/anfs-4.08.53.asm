@@ -3549,7 +3549,16 @@ listen_jmp_hi = reset_enter_listen+2
     bit video_ula_control                                             ; 89b9: 2c 20 fe    , .            ; INTON: re-enable NMIs
     rti                                                               ; 89bc: 40          @              ; Return from interrupt
 
-    equb 1, 0, 8                                                      ; 89bd: 01 00 08    ...
+; Unreferenced dead data (3 bytes)
+; 
+; 3 bytes between the RTI at &89BC (end of the NMI
+; shim ROM source) and svc_dispatch_lo at &89C0.
+; The init copy loop (Y=1..&20) copies &899D-&89BC
+; to &0D00-&0D1F; these bytes are outside that range
+; and unreferenced. Likely unused development remnant.
+    equb 1                                                            ; 89bd: 01          .              ; Dead data: &01
+    equb 0                                                            ; 89be: 00          .              ; Dead data: &00
+    equb 8                                                            ; 89bf: 08          .              ; Dead data: &08
 ; Service dispatch table (37 entries, split lo/hi).
 ; PHA/PHA/RTS dispatch used by svc_dispatch.
 ; Indices 0-14: service calls (index = service + 1).
@@ -4682,9 +4691,23 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 .return_4
     rts                                                               ; 8e42: 60          `              ; Dispatch via RTS
 
+; Unreferenced dead data (8 bytes)
+; 
+; 8 bytes between return_4 (&8E42) and fs_vector_table
+; (&8E4B). Contains the ASCII string "PRINT " followed
+; by &01 and &00. Unreferenced by any code or data
+; pointer. Absent from all NFS versions (3.34-3.65);
+; unique to ANFS. Likely a development remnant — possibly
+; an OSCLI command template left from testing.
 .print_string
-    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI
-    equb 1, 0                                                         ; 8e49: 01 00       ..
+    equb &50                                                          ; 8e43: 50          P              ; Dead data: 'P'
+    equb &52                                                          ; 8e44: 52          R              ; Dead data: 'R'
+    equb &49                                                          ; 8e45: 49          I              ; Dead data: 'I'
+    equb &4e                                                          ; 8e46: 4e          N              ; Dead data: 'N'
+    equb &54                                                          ; 8e47: 54          T              ; Dead data: 'T'
+    equb &20                                                          ; 8e48: 20                         ; Dead data: ' '
+    equb 1                                                            ; 8e49: 01          .              ; Dead data: &01
+    equb 0                                                            ; 8e4a: 00          .              ; Dead data: &00
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -4763,7 +4786,17 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 .jmp_osbyte
     jmp osbyte                                                        ; 8e71: 4c f4 ff    L..            ; Execute OSBYTE and return
 
-    equb &68, &a9                                                     ; 8e74: 68 a9       h.
+; NETV handler address
+; 
+; 2-byte handler address for the NETV extended
+; vector, read by write_vector_entry at Y=&36
+; from svc_dispatch_lo_offset (&8E3E). Points to
+; netv_handler (&A968) which dispatches OSWORDs
+; 0-8 to Econet handlers. Interleaved with the
+; OSBYTE wrapper code in the data area.
+.netv_handler_addr
+    equb <netv_handler                                                ; 8e74: 68          h              ; NETV handler lo: netv_handler
+    equb >netv_handler                                                ; 8e75: a9          .              ; NETV handler hi: netv_handler
 
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=0
@@ -10540,6 +10573,18 @@ bridge_ws_init_data = sub_ca843+1
     cli                                                               ; a964: 58          X              ; Enable interrupts
     jmp send_net_packet                                               ; a965: 4c 2a 98    L*.            ; Send packet and return
 
+; ***************************************************************************************
+; NETV handler: OSWORD dispatch
+; 
+; Installed as the NETV handler via
+; write_vector_entry. Saves all registers, reads
+; the OSWORD number from the stack, and dispatches
+; OSWORDs 0-8 via push_osword_handler_addr. OSWORDs
+; >= 9 are ignored (registers restored, RTS returns
+; to MOS). Address stored at netv_handler_addr
+; (&8E74) in the extended vector data area.
+; ***************************************************************************************
+.netv_handler
     php                                                               ; a968: 08          .              ; Save processor flags
     pha                                                               ; a969: 48          H              ; Save A
     txa                                                               ; a96a: 8a          .              ; Save X
@@ -14872,6 +14917,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert <(tx_done_jsr-1) == &38
     assert <(tx_done_os_proc-1) == &4f
     assert <(wait_idle_and_reset-1) == &78
+    assert <netv_handler == &68
     assert >(econet_restore-1) == &80
     assert >(fs_work_4) == &00
     assert >(fscv_0_opt_entry-1) == &9d
@@ -14936,6 +14982,7 @@ net_channel_err_string = err_net_chan_not_found+2
     assert >(svc_8_osword-1) == &a4
     assert >(svc_9_help-1) == &8c
     assert >(wait_idle_and_reset-1) == &89
+    assert >netv_handler == &a9
     assert cmd_bye-1 == &9489
     assert cmd_cdir-1 == &acfd
     assert cmd_close-1 == &b97e
@@ -16632,7 +16679,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1790 bytes (11%)
 ;
 ;     Number of instructions   = 7160
-;     Number of data bytes     = 519 bytes
+;     Number of data bytes     = 525 bytes
 ;     Number of data words     = 110 bytes
-;     Number of string bytes   = 1161 bytes
-;     Number of strings        = 140
+;     Number of string bytes   = 1155 bytes
+;     Number of strings        = 139

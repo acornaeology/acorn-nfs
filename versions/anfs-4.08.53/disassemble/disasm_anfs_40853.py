@@ -3219,6 +3219,15 @@ subroutine(0xA964, "enable_irq_and_poll",
     "a sequence that ran with interrupts disabled\n"
     "to ensure the packet is sent with normal\n"
     "interrupt handling active.")
+subroutine(0xA968, "netv_handler",
+    title="NETV handler: OSWORD dispatch",
+    description="Installed as the NETV handler via\n"
+    "write_vector_entry. Saves all registers, reads\n"
+    "the OSWORD number from the stack, and dispatches\n"
+    "OSWORDs 0-8 via push_osword_handler_addr. OSWORDs\n"
+    ">= 9 are ignored (registers restored, RTS returns\n"
+    "to MOS). Address stored at netv_handler_addr\n"
+    "(&8E74) in the extended vector data area.")
 subroutine(0xA981, "push_osword_handler_addr",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD handler dispatch table\n"
@@ -5307,6 +5316,20 @@ comment(0x89B8, "Restore A from stack", inline=True)
 comment(0x89B9, "INTON: re-enable NMIs", inline=True)
 comment(0x89BC, "Return from interrupt", inline=True)
 
+# Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo.
+# The NMI shim copy (Y=1..&20) ends at &89BC; these 3 bytes at
+# &89BD-&89BF are outside the copy range and unreferenced.
+comment(0x89BD, "Unreferenced dead data (3 bytes)\n"
+    "\n"
+    "3 bytes between the RTI at &89BC (end of the NMI\n"
+    "shim ROM source) and svc_dispatch_lo at &89C0.\n"
+    "The init copy loop (Y=1..&20) copies &899D-&89BC\n"
+    "to &0D00-&0D1F; these bytes are outside that range\n"
+    "and unreferenced. Likely unused development remnant.")
+comment(0x89BD, "Dead data: &01", inline=True)
+comment(0x89BE, "Dead data: &00", inline=True)
+comment(0x89BF, "Dead data: &08", inline=True)
+
 # Inline comments: service/infrastructure layer (&8A0B-&9130)
 comment(0x8A0B, "Save service call number", inline=True)
 comment(0x8A0C, "Is it service 15 (vectors claimed)?", inline=True)
@@ -5750,9 +5773,45 @@ comment(0x8E3C, "Load dispatch address low byte", inline=True)
 comment(0x8E3F, "Push low byte for RTS dispatch", inline=True)
 comment(0x8E40, "Load FS options pointer", inline=True)
 comment(0x8E42, "Dispatch via RTS", inline=True)
+
+# Dead data: "PRINT " + &01 &00 between return_4 RTS and
+# fs_vector_table. Unreferenced; unique to ANFS (absent from
+# all NFS versions). Likely a development remnant.
+comment(0x8E43, "Unreferenced dead data (8 bytes)\n"
+    "\n"
+    "8 bytes between return_4 (&8E42) and fs_vector_table\n"
+    "(&8E4B). Contains the ASCII string \"PRINT \" followed\n"
+    "by &01 and &00. Unreferenced by any code or data\n"
+    "pointer. Absent from all NFS versions (3.34-3.65);\n"
+    "unique to ANFS. Likely a development remnant — possibly\n"
+    "an OSCLI command template left from testing.")
+comment(0x8E43, "Dead data: 'P'", inline=True)
+comment(0x8E44, "Dead data: 'R'", inline=True)
+comment(0x8E45, "Dead data: 'I'", inline=True)
+comment(0x8E46, "Dead data: 'N'", inline=True)
+comment(0x8E47, "Dead data: 'T'", inline=True)
+comment(0x8E48, "Dead data: ' '", inline=True)
+comment(0x8E49, "Dead data: &01", inline=True)
+comment(0x8E4A, "Dead data: &00", inline=True)
+
 comment(0x8E6D, "X=0", inline=True)
 comment(0x8E6F, "Y=&FF", inline=True)
 comment(0x8E71, "Execute OSBYTE and return", inline=True)
+
+# NETV handler address pair at &8E74. Read by write_vector_entry
+# via LDA svc_dispatch_lo_offset,Y at Y=&36/&37. Interleaved
+# with OSBYTE wrapper code at svc_dispatch_lo_offset + &30..&35.
+comment(0x8E74, "NETV handler address\n"
+    "\n"
+    "2-byte handler address for the NETV extended\n"
+    "vector, read by write_vector_entry at Y=&36\n"
+    "from svc_dispatch_lo_offset (&8E3E). Points to\n"
+    "netv_handler (&A968) which dispatches OSWORDs\n"
+    "0-8 to Econet handlers. Interleaved with the\n"
+    "OSBYTE wrapper code in the data area.")
+comment(0x8E74, "NETV handler lo: netv_handler", inline=True)
+comment(0x8E75, "NETV handler hi: netv_handler", inline=True)
+
 comment(0x8E76, "X=0", inline=True)
 comment(0x8E78, "Y=0", inline=True)
 comment(0x8E7C, "Get original OSBYTE A parameter", inline=True)
@@ -6721,6 +6780,10 @@ expr(0x867E, "<(tx_ctrl_machine_type-1)")
 for i in range(16):
     byte(0x88D8 + i)
 
+# Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo (3 bytes)
+for i in range(3):
+    byte(0x89BD + i)
+
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84B1)   # After dispatch table data
 entry(0x84C1)   # After &84B1 block
@@ -6788,8 +6851,18 @@ for i, (name, handler_addr) in enumerate(handler_names):
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
-# "PRINT " string at &8E43
+# Dead data: "PRINT " + &01 &00 at &8E43 (8 bytes, unreferenced)
 label(0x8E43, "print_string")
+for i in range(8):
+    byte(0x8E43 + i)
+
+# NETV handler address pair at &8E74 (read by write_vector_entry)
+label(0x8E74, "netv_handler_addr")
+label(0xA968, "netv_handler")
+byte(0x8E74)
+byte(0x8E75)
+expr(0x8E74, "<netv_handler")
+expr(0x8E75, ">netv_handler")
 
 # Command syntax help strings (&900D-&910C)
 label(0x900D, "syntax_strings")
