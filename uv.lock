@@ -49,4 +49,4 @@ wheels = [
 [[package]]
 name = "py8dis"
 version = "0.1.0"
-source = { git = "https://github.com/acornaeology/py8dis.git#3fe3455096e0d6e0e6240cc5f39ec41833734923" }
+source = { git = "https://github.com/acornaeology/py8dis.git#04bd72586baf1c6f948a5f4894f5863b55c8977c" }
