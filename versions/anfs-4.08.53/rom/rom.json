@@ -8,6 +8,11 @@
             "label": "Acorn ANFS 4.08.53 in The BBC Micro ROM Library",
             "url": "https://tobylobster.github.io/rom_library/?md5=eadb37a9abbdbb70543efc2bede440bd",
             "icon": "chip"
+        },
+        {
+            "label": "Disassembly source on GitHub",
+            "url": "https://github.com/acornaeology/acorn-nfs/blob/master/versions/anfs-4.08.53/output/anfs-4.08.53.asm",
+            "icon": "github"
         }
     ],
     "docs": []
