@@ -8,6 +8,11 @@
             "label": "Acorn NFS 3.35K in The BBC Micro ROM Library",
             "url": "https://tobylobster.github.io/rom_library/?md5=03b6f0a92809fc0f30854a667cdfc2b0",
             "icon": "chip"
+        },
+        {
+            "label": "Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32531",
+            "icon": "chat"
         }
     ],
     "docs": [
