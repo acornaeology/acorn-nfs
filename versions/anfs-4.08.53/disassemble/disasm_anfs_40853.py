@@ -167,6 +167,9 @@ label(0x00A9, "svc_state")           # Multi-purpose service state
 label(0x00AA, "osword_flag")         # OSWORD param byte
 label(0x00AB, "ws_ptr_lo")           # Workspace indirect pointer (lo)
 label(0x00AC, "ws_ptr_hi")           # Workspace indirect pointer (hi)
+label(0x00AD, "table_idx")           # OSBYTE/palette table index counter
+label(0x00AE, "work_ae")             # Indexed workspace (multi-purpose scratch)
+label(0x00AF, "addr_work")           # Address work byte for comparison (indexed)
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
@@ -178,6 +181,7 @@ label(0x00B2, "fs_load_addr_2")
 label(0x00B3, "fs_load_addr_3")
 label(0x00B4, "fs_work_4")
 label(0x00B5, "fs_work_5")
+label(0x00B6, "fs_work_6")
 label(0x00B7, "fs_work_7")
 label(0x00B8, "fs_error_ptr")
 label(0x00B9, "fs_crflag")
@@ -187,6 +191,7 @@ label(0x00BC, "fs_block_offset")
 label(0x00BD, "fs_last_byte_flag")
 label(0x00BE, "fs_crc_lo")
 label(0x00BF, "fs_crc_hi")
+label(0x00CC, "fs_ws_ptr")            # FS workspace page pointer (lo, always 0)
 label(0x00C0, "txcb_ctrl")
 label(0x00C1, "txcb_port")
 label(0x00C2, "txcb_dest")
@@ -196,6 +201,7 @@ label(0x00C8, "txcb_end")
 label(0x00CD, "nfs_temp")
 label(0x00CE, "rom_svc_num")
 label(0x00CF, "fs_spool0")
+label(0x00D0, "vdu_status")           # VDU status register (OSBYTE &75)
 
 # Zero page — Additional OS locations
 label(0x0000, "zp_ptr_lo")
@@ -209,6 +215,8 @@ label(0x0013, "tube_data_ptr_hi")
 label(0x0014, "tube_claim_flag")
 label(0x0015, "tube_claimed_id")
 label(0x0016, "nmi_workspace_start")
+label(0x0063, "zp_0063")             # (false ref from inline string data)
+label(0x0078, "zp_0078")             # (false ref from inline string data)
 
 # Zero page — MOS locations (&EF-&FF)
 label(0x00EF, "osbyte_a_copy")
@@ -222,12 +230,26 @@ label(0x00FF, "escape_flag")
 # Page 1 — Stack page
 label(0x0100, "error_block")
 label(0x0101, "error_text")
+label(0x0102, "stack_page_2")         # Stack-relative access at SP+2
+label(0x0103, "stack_page_3")         # Stack-relative access at SP+3
+label(0x0104, "stack_page_4")         # Stack-relative access at SP+4
+label(0x0106, "stack_page_6")         # Stack-relative access at SP+6
+label(0x0128, "tube_osword_pb")       # Tube host: OSWORD parameter block
+
+# Page 2 — OS workspace
+label(0x026A, "vdu_queue_count")      # OSBYTE &DA: 256 - VDU queue items
+label(0x028D, "last_break_type")      # OSBYTE &FD: last BREAK type
+label(0x02A0, "rom_type_table")       # Paged ROM type table (16 entries)
 
 # Page 3 — VDU variables
 label(0x0350, "vdu_screen_mode")
+label(0x0351, "vdu_display_start_hi") # 6845 screen display start address hi
+label(0x0355, "vdu_mode")             # Current screen mode
 
 # Page 7 — String buffer
 label(0x0700, "string_buf")
+label(0x072C, "tube_vdu_stream_end")  # Tube VDU relay: end-of-stream target
+label(0x072E, "tube_vdu_normal_byte") # Tube VDU relay: normal byte target
 
 # Page &0C — NMI shim write base
 label(0x0CFF, "nmi_code_base")
@@ -236,11 +258,14 @@ label(0x0CFF, "nmi_code_base")
 # Page &0D — NMI handler workspace (&0D00-&0DFF)
 # ============================================================
 
+label(0x0D07, "nmi_romsel")           # ROM bank number patched into NMI shim
 label(0x0D0C, "nmi_jmp_lo")
 label(0x0D0D, "nmi_jmp_hi")
 label(0x0D0E, "set_nmi_vector")
 label(0x0D11, "install_nmi_handler")
 label(0x0D14, "nmi_rti")
+label(0x0D1A, "imm_param_base")       # Base for indexed imm-op TXCB param copy
+label(0x0D1E, "tx_addr_base")         # Base for 4-byte TX transfer address
 
 # Scout/acknowledge packet buffer (&0D20-&0D25)
 label(0x0D20, "tx_dst_stn")
@@ -254,12 +279,22 @@ label(0x0D26, "tx_data_start")
 # TX control
 label(0x0D2A, "tx_data_len")
 
+# RX scout buffer (&0D2E-&0D39)
+label(0x0D2E, "scout_buf")            # Base of 12-byte RX scout data buffer
+label(0x0D2F, "scout_src_net")        # Scout: source network (scout_buf+1)
+label(0x0D30, "scout_ctrl")           # Scout: control byte (scout_buf+2)
+label(0x0D31, "scout_port")           # Scout: port byte (scout_buf+3)
+label(0x0D32, "scout_data")           # Scout: data payload base (scout_buf+4)
+
 # Received scout
 label(0x0D3D, "rx_src_stn")
 label(0x0D3E, "rx_src_net")
 label(0x0D3F, "rx_ctrl")
 label(0x0D40, "rx_port")
 label(0x0D41, "rx_remote_addr")
+label(0x0D42, "rx_extra_byte")        # Extra trailing RX data byte
+label(0x0D43, "saved_nmi_lo")         # Saved next NMI handler address lo
+label(0x0D44, "saved_nmi_hi")         # Saved next NMI handler address hi
 
 # TX state
 label(0x0D4A, "tx_flags")
@@ -270,12 +305,143 @@ label(0x0D50, "tx_length")
 
 # ANFS-specific workspace (identified from references in ROM)
 label(0x0D60, "ws_0d60")
+label(0x0D61, "econet_flags")         # Econet control flags (b7: port list, b2: halt)
 label(0x0D62, "ws_0d62")
+label(0x0D63, "tube_present")         # Tube co-processor presence flag
 label(0x0D64, "ws_0d64")
 label(0x0D65, "tx_op_type")
+label(0x0D66, "exec_addr_lo")         # Remote execution address lo
+label(0x0D67, "exec_addr_hi")         # Remote execution address hi
 label(0x0D68, "ws_0d68")
 label(0x0D69, "ws_0d69")
 label(0x0D6A, "ws_0d6a")
+label(0x0D6B, "spool_buf_idx")        # Spool/printer buffer write index
+label(0x0D6C, "fs_flags")             # FS status flags (b7: selected/active)
+label(0x0D6D, "net_context")          # Econet context byte; base of 4-byte block
+label(0x0D6E, "tx_retry_count")       # TX retry count (default &FF)
+label(0x0D6F, "tx_timeout")           # TX completion timeout counter (default &28)
+label(0x0D70, "passthru_retry")       # Pass-through TX retry count (default &0A)
+label(0x0D72, "bridge_status")        # Bridge station number (&FF = no bridge)
+
+# Page &0D — workspace pointers
+label(0x0DE6, "txcb_default_base")    # Base for indexed read of default TXCB values
+label(0x0DF0, "rom_ws_pages")         # MOS per-ROM workspace page table (16 bytes)
+label(0x0DFA, "fs_context_save")      # Saved FS context block (station, handles)
+label(0x0DFE, "osword_ws_base")       # Base for OSWORD &14 workspace-to-PB copy
+label(0x0DFF, "fs_server_base")       # Base for Y-indexed file server stn/net
+
+# ============================================================
+# Page &0E — FS context workspace (&0E00-&0EFF)
+# ============================================================
+
+label(0x0E00, "fs_server_stn")        # Current file server station number
+label(0x0E01, "fs_server_net")        # Current file server network number
+label(0x0E02, "fs_urd_handle")        # URD handle / station byte for handle 1
+label(0x0E03, "fs_csd_handle")        # CSD handle / station byte for handle 2
+label(0x0E04, "fs_lib_handle")        # Library handle / station byte for handle 3
+label(0x0E05, "fs_boot_option")       # Boot option / display flag
+label(0x0E06, "fs_messages_flag")     # Display control / messages flag
+label(0x0E07, "fs_eof_flags")         # Pending operation marker / FS state byte
+label(0x0E09, "fs_last_error")        # Last error code
+label(0x0E0A, "fs_cmd_context")       # Command tail pointer lo / reply data source
+label(0x0E0B, "fs_context_hi")        # Command tail pointer hi
+label(0x0E16, "fs_work_16")           # OSWORD parameter size storage
+label(0x0E2F, "fs_filename_buf_m1")   # Byte before filename buffer (trim indexing)
+label(0x0E30, "fs_filename_buf")      # Parsed filename buffer
+label(0x0E31, "fs_filename_buf_1")    # fs_filename_buf + 1
+label(0x0E32, "fs_filename_buf_2")    # fs_filename_buf + 2
+label(0x0E38, "fs_filename_backup")   # Filename backup for library path retry
+label(0x0EF7, "fs_reply_data")        # File info reply data
+
+# ============================================================
+# Page &0F — TX buffer / FS command workspace (&0F00-&0FFF)
+# ============================================================
+
+# TX buffer fields (&0F00-&0F16)
+label(0x0F00, "txcb_reply_port")      # TXCB reply port / command type
+label(0x0F01, "fs_cmd_y_param")       # TXCB function code / Y parameter
+label(0x0F02, "fs_cmd_urd")           # TXCB station byte / URD / port number
+label(0x0F03, "fs_cmd_csd")           # TXCB port byte / CSD handle
+label(0x0F04, "fs_cmd_lib")           # TXCB lib handle / terminator byte
+label(0x0F05, "fs_cmd_data")          # TX buffer data start / FS reply data
+label(0x0F06, "fs_func_code")         # Function code / direction flag / offset
+label(0x0F07, "fs_data_count")        # Data count / lock flag / position byte
+label(0x0F08, "fs_reply_cmd")         # Transfer size lo / result byte
+label(0x0F09, "fs_load_vector")       # Transfer size hi / indirect dispatch vector
+label(0x0F0A, "fs_handle_check")      # Handle validity check / BCD minutes
+label(0x0F0B, "fs_load_upper")        # Tube transfer check / BCD seconds
+label(0x0F0C, "fs_addr_check")        # Tube transfer check (second byte)
+label(0x0F0D, "fs_file_len")          # File length / address offset buffer (4 bytes)
+label(0x0F0E, "fs_file_attrs")        # File access/attributes byte
+label(0x0F10, "fs_file_len_3")        # File length hi / offset copy source
+label(0x0F11, "fs_obj_type")          # Object type / reply handle
+label(0x0F12, "fs_access_level")      # Access level / owner-public flag
+label(0x0F13, "fs_reply_stn")         # Reply station / cycle number
+label(0x0F14, "fs_len_clear")         # Cleared workspace byte
+label(0x0F16, "fs_boot_data")         # OSBPUT display flag copy
+
+# Examine response offsets
+label(0x0F2F, "fs_exam_attr_char")    # File attribute char in examine response
+label(0x0F30, "fs_exam_dir_flag")     # Directory contents flag in examine response
+
+# OSBPUT send buffer (&0FDC-&0FE0)
+label(0x0FDC, "fs_putb_buf")          # OSBPUT send buffer (function code)
+label(0x0FDD, "fs_getb_buf")          # OSBPUT reply port / reply status
+label(0x0FDE, "fs_handle_mask")       # Reply port for addressing
+label(0x0FDF, "fs_error_flags")       # Data byte in send buffer
+label(0x0FE0, "fcb_xfer_count_lo")    # FCB transfer count lo (per-slot table)
+label(0x0FF0, "fcb_xfer_count_mid")   # FCB transfer count mid (per-slot table)
+
+# ============================================================
+# Page &10 — Channel/FCB table workspace (&1000-&10FF)
+# ============================================================
+
+# FCB parallel arrays with &10-byte stride (16 entries each)
+label(0x1000, "fcb_count_lo")         # Byte count / position lo; shadow ws base
+label(0x1010, "fcb_attr_or_count_mid")  # Channel attribute / byte count mid
+label(0x1020, "fcb_station_or_count_hi")  # Station number / byte count hi
+label(0x1030, "fcb_net_or_port")      # Network number / reply port
+label(0x1040, "fcb_flags")            # FCB flags (handle assignment, state)
+label(0x1050, "fcb_net_num")          # FCB network number (station matching)
+label(0x1060, "chan_status")           # Channel status flags (per-slot)
+
+# Scalar handle/flag variables
+label(0x1070, "cur_dir_handle")       # Current directory handle
+label(0x1071, "fs_lib_flags")         # FS/library flags byte
+label(0x1072, "handle_1_fcb")         # Handle 1 FCB index
+label(0x1073, "handle_2_fcb")         # Handle 2 FCB index
+label(0x1074, "handle_3_fcb")         # Handle 3 FCB index
+
+# FCB station/buffer parallel arrays (&10-byte stride)
+label(0x1078, "fcb_stn_lo")           # FCB station lo byte
+label(0x1088, "fcb_stn_hi")           # FCB station hi byte (network)
+label(0x1098, "fcb_buf_offset")       # FCB buffer offset (negated)
+label(0x10A8, "fcb_attr_ref")         # FCB attribute reference
+label(0x10B8, "fcb_status")           # FCB status flags
+
+# FCB processing temporaries
+label(0x10C8, "cur_fcb_index")        # Current FCB slot index
+label(0x10C9, "cur_chan_attr")         # Current channel attribute
+label(0x10CA, "cur_attr_ref")         # Current attribute reference
+label(0x10CB, "xfer_count_lo")        # Byte counter lo (wipe/transfer)
+label(0x10CC, "fcb_buf_page")         # Buffer page address hi byte
+label(0x10CD, "xfer_sentinel_1")      # Sentinel byte 1 (wipe/transfer)
+label(0x10CE, "xfer_sentinel_2")      # Sentinel byte 2 (wipe/transfer)
+label(0x10CF, "xfer_offset")          # Offset counter (wipe/transfer)
+label(0x10D0, "xfer_pass_count")      # Pass counter (wipe/transfer)
+label(0x10D1, "xfer_counter")         # 3-byte counter array
+label(0x10D4, "work_stn_lo")          # Working station lo byte
+label(0x10D5, "work_stn_hi")          # Working station hi byte (network)
+label(0x10D6, "xfer_flag")            # Transfer flag
+label(0x10D7, "osbput_saved_byte")    # Saved data byte for OSBPUT
+label(0x10D8, "quote_mode")           # Quote mode tracking flag
+label(0x10D9, "fcb_ctx_save")         # FCB context save buffer (13 bytes)
+
+# Display buffer
+label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
+
+# Other
+label(0x6F6E, "false_ref_6f6e")       # (false ref from inline string data)
 
 # ============================================================
 # Entry points for relocated code
@@ -324,9 +490,13 @@ label(0x8002, "rom_header_byte2")
 label(0x802D, "save_registers")
 label(0x8052, "set_jsr_protection")
 label(0x8085, "econet_restore")
+label(0x80B2, "adlc_init_done")
 label(0x83DA, "loop_count_rxcb_slot")
 expr_label(0x83FD, "imm_op_dispatch_lo-&81")  # = &847E - &81
+label(0x8405, "return_from_discard_reset")
+label(0x84A1, "jmp_send_data_rx_ack")
 label(0x84B1, "set_rx_buf_len_hi")
+label(0x8533, "return_from_advance_buf")
 label(0x85F1, "reload_inactive_mask")
 label(0x85F6, "intoff_disable_nmi_op")
 label(0x87BD, "tx_check_tdra_ready")
@@ -347,6 +517,7 @@ label(0x8AC3, "restore_svc_state")
 label(0x8AC9, "restore_romsel_rts")
 label(0x8AE6, "loop_scan_key_range")
 label(0x8AF3, "clear_svc_and_ws")
+label(0x8B04, "return_from_save_text_ptr")
 label(0x8B1A, "loop_sum_rom_bytes")
 label(0x8B28, "done_rom_checksum")
 label(0x8B2D, "loop_copy_fs_ctx")
@@ -368,18 +539,21 @@ label(0x8C19, "done_shared_cmds")
 label(0x8C1B, "done_entry_newline")
 label(0x8C24, "done_print_table")
 label(0x8C3A, "loop_indent_spaces")
+label(0x8C42, "return_from_help_wrap")
 label(0x8C65, "svc_return_unclaimed")
 label(0x8C68, "check_help_topic")
 label(0x8C72, "match_help_topic")
 label(0x8C75, "loop_dispatch_help")
 label(0x8C8D, "skip_if_no_match")
 label(0x8C97, "version_string_cr")
+label(0x8CBE, "return_from_setup_ws_ptr")
 label(0x8CCF, "write_key_state")
 label(0x8CD5, "select_net_fs")
 label(0x8CFF, "issue_svc_osbyte")
 label(0x8D10, "loop_match_credits")
 label(0x8D1B, "done_credits_check")
 label(0x8D21, "loop_emit_credits")
+label(0x8D2C, "return_from_credits_check")
 label(0x8D2D, "credits_keyword_start")
 label(0x8D4B, "credits_string_mid")
 label(0x8D9C, "skip_no_fs_addr")
@@ -391,7 +565,9 @@ label(0x8DD9, "loop_erase_pw")
 label(0x8DE0, "check_pw_special")
 label(0x8DEF, "send_pass_to_fs")
 label(0x8E3E, "svc_dispatch_lo_offset")
+label(0x8E42, "dispatch_rts")
 label(0x8E71, "jmp_osbyte")
+label(0x8E95, "return_from_svc_1_workspace")
 label(0x8E9D, "done_cap_ws_count")
 label(0x8ED5, "loop_zero_workspace")
 label(0x8EFF, "loop_copy_init_data")
@@ -411,6 +587,7 @@ label(0x8F75, "loop_restore_ctx")
 label(0x8F97, "loop_checksum_byte")
 label(0x8FA1, "loop_copy_to_ws")
 label(0x8FA4, "store_ws_byte")
+label(0x8FB1, "return_from_fs_shutdown")
 label(0x8FBB, "loop_sum_ws")
 label(0x900A, "done_print_newline")
 label(0x900E, "cmd_syntax_strings")
@@ -461,6 +638,7 @@ label(0x91FD, "error_overflow")
 label(0x9215, "error_bad_number")
 label(0x9221, "error_bad_param")
 label(0x9230, "error_bad_net_num")
+label(0x9252, "return_from_digit_test")
 label(0x9253, "not_a_digit")
 label(0x9263, "begin_prot_encode")
 label(0x9267, "loop_encode_prot")
@@ -469,11 +647,13 @@ label(0x9272, "prot_bit_encode_table")
 for i in range(11):
     byte(0x9272 + i)
 label(0x9292, "loop_cmp_handle")
+label(0x929B, "return_from_cmp_handle")
 label(0x929C, "fscv_7_read_handles")
 label(0x92CD, "done_conn_flag")
 label(0x9315, "loop_scan_flag")
 label(0x931E, "loop_copy_name")
 label(0x932A, "append_space")
+label(0x9334, "return_from_copy_cmd_name")
 label(0x933B, "loop_skip_spaces")
 label(0x9344, "check_open_quote")
 label(0x934F, "loop_copy_arg_char")
@@ -501,6 +681,7 @@ label(0x94BF, "use_lib_station")
 label(0x94C5, "done_vset_station")
 label(0x94E4, "loop_next_reply")
 label(0x94EE, "process_reply_code")
+label(0x94F0, "return_from_recv_reply")
 label(0x94F1, "handle_disconnect")
 label(0x94FA, "store_reply_status")
 label(0x9506, "check_data_loss")
@@ -518,6 +699,7 @@ label(0x95B8, "lang_0_insert_remote_key")
 label(0x95D8, "init_poll_counters")
 label(0x95DE, "loop_poll_tx")
 label(0x95F1, "done_poll_tx")
+label(0x9603, "return_from_cond_save_err")
 label(0x9604, "build_no_reply_error")
 label(0x9614, "loop_copy_no_reply_msg")
 label(0x9620, "done_no_reply_msg")
@@ -545,6 +727,7 @@ label(0x972B, "append_error_number")
 label(0x9752, "append_station_num")
 label(0x977F, "loop_count_digit")
 label(0x978F, "store_digit")
+label(0x9797, "return_from_store_digit")
 label(0x9798, "net_error_lookup_data")
 for i in range(12):
     byte(0x9798 + i)
@@ -592,6 +775,7 @@ label(0x9978, "loop_copy_offsets")
 label(0x998D, "loop_swap_and_send")
 label(0x998F, "loop_copy_start_end")
 label(0x99A3, "loop_verify_addrs")
+label(0x99AE, "return_from_txcb_swap")
 label(0x99AF, "check_display_type")
 label(0x99B4, "setup_dir_display")
 label(0x99B9, "loop_compute_diffs")
@@ -605,6 +789,7 @@ label(0x9A1E, "store_prot_byte")
 label(0x9A2C, "loop_print_filename")
 label(0x9A52, "loop_print_hex_byte")
 label(0x9A62, "loop_copy_fsopts_byte")
+label(0x9A71, "return_from_advance_y")
 label(0x9A75, "loop_copy_ws_byte")
 label(0x9A84, "discard_handle_match")
 label(0x9A8E, "init_transfer_addrs")
@@ -781,6 +966,7 @@ label(0xA3DA, "cmd_table_fs_hi")
 label(0xA45F, "cmd_table_nfs_iam")
 label(0xA4E6, "loop_copy_osword_data")
 label(0xA4FA, "loop_copy_osword_flag")
+label(0xA507, "return_from_osword_setup")
 comment(0xA508, """\
 OSWORD dispatch table (7 entries, split lo/hi).
 PHA/PHA/RTS dispatch used by svc_8_osword.
@@ -809,6 +995,7 @@ comment(0xA514, "hi-&13: Misc operations", inline=True)
 comment(0xA515, "hi-&14: Bridge/net config", inline=True)
 
 label(0xA516, "osword_0e_handler")
+label(0xA525, "return_from_osword_0e")
 label(0xA526, "save_txcb_and_convert")
 label(0xA573, "loop_copy_bcd_to_pb")
 label(0xA583, "loop_bcd_add")
@@ -816,8 +1003,17 @@ label(0xA589, "done_bcd_convert")
 label(0xA58B, "osword_10_handler")
 label(0xA594, "setup_ws_rx_ptrs")
 label(0xA5A8, "osword_11_handler")
+label(0xA5B9, "loop_find_rx_slot")
+label(0xA5CD, "store_rx_slot_found")
+label(0xA5D2, "use_specified_slot")
+label(0xA5E8, "loop_copy_slot_data")
+label(0xA5E9, "copy_pb_and_mark")
+label(0xA5F6, "increment_and_retry")
+label(0xA5FB, "store_rx_result")
+label(0xA5FD, "osword_11_done")
 label(0xA61C, "osword_12_handler")
 label(0xA631, "osword_13_dispatch")
+label(0xA63E, "return_from_osword_13")
 label(0xA63F, "osword_13_lo_table")
 label(0xA651, "osword_13_hi_table")
 
@@ -831,10 +1027,38 @@ entry(0xA676)   # Sub 1
 entry(0xA6EB)   # Sub 12
 entry(0xA6EE)   # Sub 13
 
+label(0xA668, "nfs_inactive_exit")
+label(0xA66B, "read_station_bytes")
+label(0xA66D, "loop_copy_station")
+label(0xA682, "loop_store_station")
+label(0xA68F, "scan_fcb_entry")
+label(0xA6B9, "check_handle_2")
+label(0xA6CE, "check_handle_3")
+label(0xA6E3, "store_updated_status")
+label(0xA6E7, "next_fcb_entry")
+label(0xA6EF, "setup_csd_copy")
 label(0xA701, "copy_ws_byte_to_pb")
+label(0xA72A, "return_from_write_ws_pair")
+label(0xA73E, "loop_copy_handles")
 label(0xA74C, "return_zero_in_pb")
+label(0xA752, "start_set_handles")
+label(0xA754, "validate_handle")
+label(0xA764, "handle_invalid")
+label(0xA76B, "check_handle_alloc")
+label(0xA791, "next_handle_slot")
+label(0xA798, "assign_handle_2")
+label(0xA7AF, "assign_handle_3")
+label(0xA7C6, "loop_scan_fcb_flags")
+label(0xA7D8, "no_flag_match")
+label(0xA7D9, "clear_flag_bits")
+label(0xA7E1, "next_flag_entry")
 label(0xA810, "store_a_to_pb_1")
+label(0xA83A, "bridge_found")
+label(0xA843, "compare_bridge_status")
 label(0xA844, "bridge_ws_init_data")
+label(0xA84A, "use_default_station")
+label(0xA84D, "store_bridge_station")
+label(0xA84F, "return_from_bridge_query")
 label(0xA850, "bridge_txcb_init_table")
 label(0xA85C, "bridge_rxcb_init_data")
 for i in range(4):
@@ -846,6 +1070,7 @@ label(0xA878, "loop_copy_bridge_init")
 label(0xA88C, "loop_wait_ws_status")
 label(0xA8A0, "loop_wait_tx_done")
 label(0xA8C0, "bridge_responded")
+label(0xA8CF, "return_from_bridge_poll")
 label(0xA8D0, "osword_14_handler")
 label(0xA8DE, "loop_copy_txcb_init")
 label(0xA8E6, "store_txcb_init_byte")
@@ -896,6 +1121,8 @@ label(0xA9F4, "loop_save_tube_bytes")
 label(0xAA0B, "loop_poll_ws_status")
 label(0xAA18, "loop_restore_stack")
 label(0xAA1C, "store_stack_byte")
+label(0xAA23, "return_from_claim_release")
+label(0xAA2C, "return_from_match_rx_code")
 label(0xAA2D, "osword_claim_codes")
 
 # Split the 18-byte claim codes table into individual bytes for annotation.
@@ -921,6 +1148,7 @@ for i in range(39):
     byte(0xAA9F + i)
 
 label(0xAAC6, "netv_spool_check")
+label(0xAADA, "return_from_spool_reset")
 label(0xAADB, "netv_print_data")
 label(0xAAEA, "loop_drain_printer_buf")
 label(0xAB21, "done_spool_ctrl")
@@ -986,6 +1214,7 @@ label(0xAE7D, "jmp_osnewl")
 label(0xAEA9, "loop_shift_str_left")
 label(0xAEB7, "loop_trim_trailing")
 label(0xAEC6, "done_strip_prefix")
+label(0xAEC8, "return_from_strip_prefix")
 label(0xAEC9, "check_hash_prefix")
 label(0xAECD, "error_bad_prefix")
 label(0xAED0, "check_colon_prefix")
@@ -1160,8 +1389,10 @@ label(0x8CFA, "call_fscv")
 label(0x8CFD, "issue_svc_15")
 label(0x8D0C, "check_credits_easter_egg")
 label(0x8DFE, "clear_if_station_match")
+label(0x8E09, "return_from_station_match")
 label(0x8E0A, "pass_send_cmd")
 label(0x8E0E, "send_cmd_and_dispatch")
+label(0x8E2D, "dir_op_dispatch")
 label(0x8E3C, "push_dispatch_lo")
 label(0x8E76, "osbyte_x0_y0")
 label(0x8E96, "store_ws_page_count")
@@ -1250,6 +1481,7 @@ label(0xA086, "print_fs_info_newline")
 label(0xA08F, "parse_fs_ps_args")
 label(0xA0B4, "get_pb_ptr_as_index")
 label(0xA0B6, "byte_to_2bit_index")
+label(0xA0CB, "return_from_2bit_index")
 label(0xA0FC, "fscv_3_star_cmd")
 label(0xA10D, "cmd_fs_reentry")
 label(0xA10F, "error_syntax")
@@ -1289,13 +1521,16 @@ label(0xAEA5, "strip_token_prefix")
 label(0xAEF0, "copy_arg_to_buf_x0")
 label(0xAEF2, "copy_arg_to_buf")
 label(0xAEF4, "copy_arg_validated")
+label(0xAF0D, "return_from_copy_arg")
 label(0xAF12, "mask_owner_access")
 label(0xAF27, "ex_print_col_sep")
 label(0xAF65, "print_num_no_leading")
 label(0xAF68, "print_decimal_3dig")
 label(0xAF76, "print_decimal_digit")
+label(0xAF94, "return_from_print_digit")
 label(0xAF95, "save_ptr_to_os_text")
 label(0xAFA1, "skip_to_next_arg")
+label(0xAFB4, "return_from_skip_arg")
 label(0xAFB5, "save_ptr_to_spool_buf")
 label(0xAFC0, "init_spool_drive")
 label(0xAFF7, "copy_ps_data_y1c")
@@ -1309,9 +1544,11 @@ label(0xB13A, "write_ps_slot_byte_ff")
 label(0xB141, "write_two_bytes_inc_y")
 label(0xB149, "reverse_ps_name_to_tx")
 label(0xB174, "print_station_addr")
+label(0xB2C3, "return_from_poll_slots")
 label(0xB2C4, "init_ps_slot_from_rx")
 label(0xB2DB, "store_char_uppercase")
 label(0xB41F, "flush_and_read_char")
+label(0xB42E, "return_from_flush_read")
 label(0xB42F, "unused_clear_ws_78")
 label(0xB433, "loop_clear_ws_78")
 label(0xB439, "init_channel_table")
@@ -1322,11 +1559,13 @@ label(0xB475, "err_net_chan_not_found")
 label(0xB49D, "lookup_chan_by_char")
 label(0xB4DC, "store_result_check_dir")
 label(0xB4E3, "check_not_dir")
+label(0xB4F9, "return_from_dir_check")
 label(0xB4FA, "alloc_fcb_slot")
 label(0xB52E, "alloc_fcb_or_error")
 label(0xB54A, "close_all_net_chans")
 label(0xB551, "scan_fcb_flags")
 label(0xB57A, "match_station_net")
+label(0xB588, "return_from_match_stn")
 label(0xB589, "find_open_fcb")
 label(0xB5CC, "init_wipe_counters")
 label(0xB5EF, "start_wipe_pass")
@@ -1334,6 +1573,7 @@ label(0xB660, "save_fcb_context")
 label(0xB729, "restore_catalog_entry")
 label(0xB738, "find_matching_fcb")
 label(0xB791, "inc_fcb_byte_count")
+label(0xB79E, "return_from_inc_fcb_count")
 label(0xB79F, "process_all_fcbs")
 label(0xB920, "send_wipe_request")
 label(0xB979, "send_and_receive")
@@ -1401,6 +1641,8 @@ label(0xBC7B, "loop_store_disp_addr")
 label(0xBC84, "advance_x_by_8")
 label(0xBC87, "advance_x_by_4")
 label(0xBC8A, "inx4")
+label(0xBE5E, "tube_vdu_dispatch")
+label(0xBE6F, "loop_poll_r1_vdu_rom")
 label(0xBE9A, "loop_copy_reloc_pages")
 label(0xBEB4, "loop_copy_zp_workspace")
 
