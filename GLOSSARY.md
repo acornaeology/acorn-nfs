@@ -183,6 +183,15 @@ transmission and prioritised status bits.
   b6-b7=not used. Typical values: &1E (RX idle), &82 (flag idle wait),
   &A7 (TX handshake with RTS+PSE).
 
+**CTS** (Clear To Send)
+: ADLC status register 1 bit 4. Indicates that the Econet clock
+hardware is present and the network is physically connected.
+
+  NFS tests CTS in SR1 during the INACTIVE polling loop after
+  detecting a quiet line. If CTS is not set, the station has no
+  clock signal and cannot transmit. The "No Clock" error is generated
+  when CTS is absent.
+
 **Econet**
 : Acorn's low-cost local area network for BBC Micro and other Acorn
 computers.
@@ -207,6 +216,34 @@ has been received (valid CRC, no overrun, no abort).
   NFS NMI handlers test FV to confirm a received scout or data frame is
   complete before processing its contents. FV interacts with PSE: when
   PSE is enabled, FV masks RDA in the prioritised status.
+
+**INACTIVE**
+: ADLC status register 2 bit 2. Set when the Econet line is idle —
+no carrier is detected and no frame transmission or reception is in
+progress.
+
+  NFS polls INACTIVE before attempting to transmit, spinning in a
+  tight loop with a three-byte timeout counter. If INACTIVE is never
+  detected, the "Line Jammed" error is generated. The line must be
+  idle before a station can assert RTS and begin sending a scout frame.
+
+**INTOFF**
+: Disable Econet NMIs by reading the station ID register at &FE18. The
+read has the side effect of clearing the NMI enable latch in the Econet
+hardware, preventing further NMIs until INTON is performed.
+
+  NFS 3.65 uses INTOFF in combination with a self-modifying NMI shim.
+  ANFS replaces the self-modifying approach with double INTOFF (two
+  consecutive reads of &FE18) for robustness.
+
+**INTON**
+: Re-enable Econet NMIs by reading the video ULA control register at
+&FE20. The read has the side effect of setting the NMI enable latch,
+allowing the ADLC to trigger NMIs again.
+
+  Always paired with a preceding INTOFF. The NMI-disabled window
+  between INTOFF and INTON protects critical ADLC register accesses
+  from being interrupted by incoming network traffic.
 
 **IRQ** (Interrupt Request)
 : A maskable hardware interrupt on the 6502 processor, triggered by
@@ -266,6 +303,25 @@ signal readiness to transmit on the Econet bus.
 : One of up to 16 ROM slots in the BBC Micro, all mapped to the same
 address range (&8000-&BFFF) and bank-switched by the MOS. Only one
 sideways ROM is paged in at a time.
+
+**SR1** (Status Register 1)
+: ADLC status register at &FEA0 (read when AC=0). Reports transmitter
+and receiver status.
+
+  Key bits: b0=RDA (via 2/1 byte mode), b1=S2RQ (SR2 request),
+  b2=loop/FD, b3=DCD, b4=CTS, b5=TXU (underrun), b6=TDRA,
+  b7=IRQ. NFS reads SR1 to check CTS (clock present) and TDRA
+  (TX FIFO ready), and to acknowledge pending interrupts.
+
+**SR2** (Status Register 2)
+: ADLC status register at &FEA1 (read when AC=0). Reports frame-level
+receive status and error conditions.
+
+  Key bits: b0=AP (address present), b1=FV (frame valid),
+  b2=INACTIVE (idle line), b3=abort, b4=FCS error, b5=DCD,
+  b6=RX overrun, b7=RDA. When PSE is enabled, FV and error bits
+  take priority over RDA. NFS NMI handlers use BIT SR2 to test
+  AP, INACTIVE, FV, and RDA during frame reception.
 
 **TDRA** (Transmit Data Register Available)
 : ADLC status register 1 bit 6. Set when the TX FIFO has space for
@@ -354,7 +410,48 @@ control block, or the act of receiving a network packet.
 : Refers to data transmission over Econet — the transmit buffer, transmit
 control block, or the act of sending a network packet.
 
-## Protocol concepts
+**four-way handshake**
+: The Econet reliable delivery protocol for data transfers between
+stations. Consists of four sequential frames: scout, scout ACK, data,
+and final ACK.
+
+  The transmitting station sends a scout frame containing the
+  destination address and control byte. If the destination is
+  listening, it replies with a scout ACK. The transmitter then sends
+  the data frame, and the receiver confirms with a final ACK. Any
+  failure at any stage causes a retry or error. NFS implements the
+  full four-way handshake in its NMI handler chain.
+
+**scout**
+: The initial short frame in an Econet four-way handshake. Contains the
+destination station address, source station address, and a control byte
+identifying the operation type (port number and function code).
+
+  The scout tests whether the remote station is listening before
+  committing to a potentially large data transfer. The NMI handler
+  `nmi_rx_scout` processes incoming scouts by checking the destination
+  address against the local station ID. If the scout is for us (or a
+  broadcast), the handler sets up to receive the data frame.
+
+**RXCB** (Receive Control Block)
+: The 12-byte parameter block for OSWORD &11 (Econet receive). Specifies
+the port number, station filter, buffer address, and buffer size for an
+incoming data transfer.
+
+  NFS maintains an RXCB in its workspace for each active receive
+  operation. The buffer address bytes at offsets 4-7 determine whether
+  the transfer targets main memory or Tube address space.
+
+**TXCB** (Transmit Control Block)
+: The 12-byte parameter block for OSWORD &10 (Econet transmit). Specifies
+the destination port, station address, control byte, buffer address, and
+byte count for an outgoing data transfer.
+
+  The low 3 bits of the TXCB status byte encode the error class when
+  a transmission fails (0=Line Jammed, 2=Not listening, 3=No Clock,
+  etc.). NFS masks these bits to select the appropriate error message.
+
+## Miscellaneous
 
 **MOS** (Machine Operating System)
 : The BBC Micro's ROM-based operating system.
