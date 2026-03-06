@@ -3704,22 +3704,22 @@ listen_jmp_hi = reset_enter_listen+2
     bne check_adlc_flag                                               ; 8a39: d0 15       ..             ; No: skip ADLC check
     lda econet_control1_or_status1                                    ; 8a3b: ad a0 fe    ...            ; Read ADLC status register 1
     and #&ed                                                          ; 8a3e: 29 ed       ).             ; Mask relevant status bits
-    bne set_adlc_present                                              ; 8a40: d0 07       ..             ; Non-zero: ADLC present, set flag
+    bne set_adlc_absent                                               ; 8a40: d0 07       ..             ; Non-zero: ADLC absent, set flag
     lda econet_control23_or_status2                                   ; 8a42: ad a1 fe    ...            ; Read ADLC status register 2
     and #&db                                                          ; 8a45: 29 db       ).             ; Mask relevant status bits
-    beq check_adlc_flag                                               ; 8a47: f0 07       ..             ; Zero: no ADLC detected, skip
+    beq check_adlc_flag                                               ; 8a47: f0 07       ..             ; Zero: ADLC present, skip
 ; &8a49 referenced 1 time by &8a40
-.set_adlc_present
+.set_adlc_absent
     rol rom_ws_pages,x                                                ; 8a49: 3e f0 0d    >..            ; Shift bit 7 into carry
-    sec                                                               ; 8a4c: 38          8              ; Set carry to mark ADLC present
+    sec                                                               ; 8a4c: 38          8              ; Set carry to mark ADLC absent
     ror rom_ws_pages,x                                                ; 8a4d: 7e f0 0d    ~..            ; Rotate carry into bit 7 of slot flag
 ; &8a50 referenced 2 times by &8a39, &8a47
 .check_adlc_flag
     lda rom_ws_pages,x                                                ; 8a50: bd f0 0d    ...            ; Load ROM slot flag byte
-    asl a                                                             ; 8a53: 0a          .              ; Shift bit 7 (ADLC present) into carry
+    asl a                                                             ; 8a53: 0a          .              ; Shift bit 7 (ADLC absent) into carry
     pla                                                               ; 8a54: 68          h              ; Restore service call number
-    bcc handle_vectors_claimed                                        ; 8a55: 90 01       ..             ; ADLC not present: continue dispatch
-    rts                                                               ; 8a57: 60          `              ; ADLC present: claim service, return
+    bcc handle_vectors_claimed                                        ; 8a55: 90 01       ..             ; ADLC present: continue dispatch
+    rts                                                               ; 8a57: 60          `              ; ADLC absent: decline service, return
 
 ; &8a58 referenced 1 time by &8a55
 .handle_vectors_claimed
@@ -16594,7 +16594,7 @@ save pydis_start, pydis_end
 ;     service_entry:                            1
 ;     service_handler:                          1
 ;     service_handler_lo:                       1
-;     set_adlc_present:                         1
+;     set_adlc_absent:                          1
 ;     set_c_and_return:                         1
 ;     set_flags_bit2:                           1
 ;     set_flags_bit3:                           1
