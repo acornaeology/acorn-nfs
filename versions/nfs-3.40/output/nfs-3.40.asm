@@ -6133,7 +6133,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jmp init_nmi_workspace                                            ; 9669: 4c 8d 96    L..            ; Trampoline: forward to NMI claim
 
 .svc_5_unknown_irq
-    jmp check_cb1_irq                                                 ; 966c: 4c 35 9b    L5.            ; Trampoline: forward to IRQ handler
+    jmp check_sr_irq                                                  ; 966c: 4c 35 9b    L5.            ; Trampoline: forward to IRQ handler
 
 ; ***************************************************************************************
 ; ADLC initialisation
@@ -7137,7 +7137,7 @@ tx_done_handler_hi = tx_nmi_setup+1
 ; 
 ; Stores data length, source station/network, and control byte
 ; into the RX buffer header area for port-0 immediate operations.
-; Then disables CB1 interrupts and configures the VIA shift
+; Then disables SR interrupts and configures the VIA shift
 ; register for outgoing shift-out mode before returning to
 ; idle listen.
 ; ***************************************************************************************
@@ -7156,8 +7156,8 @@ tx_done_handler_hi = tx_nmi_setup+1
     sta (net_rx_ptr),y                                                ; 9b10: 91 9c       ..             ; Store source network in reply header
     lda rx_ctrl                                                       ; 9b12: ad 3f 0d    .?.            ; Load control byte from received frame
     sta tx_work_57                                                    ; 9b15: 8d 57 0d    .W.            ; Save ctrl byte for TX response
-    lda #&84                                                          ; 9b18: a9 84       ..             ; IER bit 2: disable CB1 interrupt
-    sta system_via_ier                                                ; 9b1a: 8d 4e fe    .N.            ; Write IER to disable CB1
+    lda #&84                                                          ; 9b18: a9 84       ..             ; IER bit 2: disable SR interrupt
+    sta system_via_ier                                                ; 9b1a: 8d 4e fe    .N.            ; Write IER to disable SR
     lda system_via_acr                                                ; 9b1d: ad 4b fe    .K.            ; Read ACR for shift register config
     and #&1c                                                          ; 9b20: 29 1c       ).             ; Isolate shift register mode bits (2-4)
     sta tx_work_51                                                    ; 9b22: 8d 51 0d    .Q.            ; Save original SR mode for later restore
@@ -7171,12 +7171,12 @@ tx_done_handler_hi = tx_nmi_setup+1
     jmp discard_listen                                                ; 9b32: 4c 3d 9a    L=.            ; Return to idle listen mode
 
 ; &9b35 referenced 1 time by &966c
-.check_cb1_irq
-    lda #4                                                            ; 9b35: a9 04       ..             ; A=&04: IFR bit 2 (CB1) mask
-    bit system_via_ifr                                                ; 9b37: 2c 4d fe    ,M.            ; Test CB1 interrupt pending
-    bne tx_done_error                                                 ; 9b3a: d0 03       ..             ; CB1 fired: handle TX completion
-    lda #5                                                            ; 9b3c: a9 05       ..             ; A=5: no CB1, return status 5
-    rts                                                               ; 9b3e: 60          `              ; Return (no CB1 interrupt)
+.check_sr_irq
+    lda #4                                                            ; 9b35: a9 04       ..             ; A=&04: IFR bit 2 (SR) mask
+    bit system_via_ifr                                                ; 9b37: 2c 4d fe    ,M.            ; Test SR interrupt pending
+    bne tx_done_error                                                 ; 9b3a: d0 03       ..             ; SR fired: handle TX completion
+    lda #5                                                            ; 9b3c: a9 05       ..             ; A=5: no SR, return status 5
+    rts                                                               ; 9b3e: 60          `              ; Return (no SR interrupt)
 
 ; &9b3f referenced 1 time by &9b3a
 .tx_done_error
@@ -7189,9 +7189,9 @@ tx_done_handler_hi = tx_nmi_setup+1
     ora tx_work_51                                                    ; 9b48: 0d 51 0d    .Q.            ; Restore original SR mode
     sta system_via_acr                                                ; 9b4b: 8d 4b fe    .K.            ; Write updated ACR
     lda system_via_sr                                                 ; 9b4e: ad 4a fe    .J.            ; Read SR to clear pending interrupt
-    lda #4                                                            ; 9b51: a9 04       ..             ; A=&04: CB1 bit mask
-    sta system_via_ifr                                                ; 9b53: 8d 4d fe    .M.            ; Clear CB1 in IFR
-    sta system_via_ier                                                ; 9b56: 8d 4e fe    .N.            ; Disable CB1 in IER
+    lda #4                                                            ; 9b51: a9 04       ..             ; A=&04: SR bit mask
+    sta system_via_ifr                                                ; 9b53: 8d 4d fe    .M.            ; Clear SR in IFR
+    sta system_via_ier                                                ; 9b56: 8d 4e fe    .N.            ; Disable SR in IER
     ldy tx_work_57                                                    ; 9b59: ac 57 0d    .W.            ; Load ctrl byte for dispatch
     cpy #&86                                                          ; 9b5c: c0 86       ..             ; Ctrl >= &86? (HALT/CONTINUE)
     bcs tx_done_classify                                              ; 9b5e: b0 0b       ..             ; Yes: skip protection mask save
@@ -8736,7 +8736,6 @@ save pydis_start, pydis_end
 ;     chalp2:                                   1
 ;     check_attrib_result:                      1
 ;     check_break_type:                         1
-;     check_cb1_irq:                            1
 ;     check_fs_error:                           1
 ;     check_fv_final_ack:                       1
 ;     check_handshake_bit:                      1
@@ -8744,6 +8743,7 @@ save pydis_start, pydis_end
 ;     check_opt1:                               1
 ;     check_port_slot:                          1
 ;     check_sr2_loop_again:                     1
+;     check_sr_irq:                             1
 ;     check_station_filter:                     1
 ;     check_svc_high:                           1
 ;     clamp_dest_addr:                          1

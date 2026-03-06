@@ -6661,8 +6661,8 @@ comment(0x9B39, "Load requesting network number", inline=True)
 comment(0x9B3C, "Store source network in reply header", inline=True)
 comment(0x9B3E, "Load control byte from received frame", inline=True)
 comment(0x9B41, "Save ctrl byte for TX response", inline=True)
-comment(0x9B44, "IER bit 2: disable CB1 interrupt", inline=True)
-comment(0x9B46, "Write IER to disable CB1", inline=True)
+comment(0x9B44, "IER bit 2: disable SR interrupt", inline=True)
+comment(0x9B46, "Write IER to disable SR", inline=True)
 comment(0x9B49, "Read ACR for shift register config", inline=True)
 comment(0x9B4C, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B4E, "Save original SR mode for later restore", inline=True)
@@ -7871,16 +7871,16 @@ subroutine(0x9B28, "imm_op_build_reply", hook=None,
     description="""\
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables CB1 interrupts and configures the VIA shift
+Then disables SR interrupts and configures the VIA shift
 register for outgoing shift-out mode before returning to
 idle listen.""")
 label(0x9B5E, "imm_op_discard")       # Error path: JMP discard_listen
-label(0x9B61, "check_cb1_irq")        # Tests CB1 interrupt pending via IFR
-comment(0x9B61, "A=&04: IFR bit 2 (CB1) mask", inline=True)
-comment(0x9B63, "Test CB1 interrupt pending", inline=True)
-comment(0x9B66, "CB1 fired: handle TX completion", inline=True)
-comment(0x9B68, "A=5: no CB1, return status 5", inline=True)
-comment(0x9B6A, "Return (no CB1 interrupt)", inline=True)
+label(0x9B61, "check_sr_irq")         # Tests SR interrupt pending via IFR
+comment(0x9B61, "A=&04: IFR bit 2 (SR) mask", inline=True)
+comment(0x9B63, "Test SR interrupt pending", inline=True)
+comment(0x9B66, "SR fired: handle TX completion", inline=True)
+comment(0x9B68, "A=5: no SR, return status 5", inline=True)
+comment(0x9B6A, "Return (no SR interrupt)", inline=True)
 label(0x9B6B, "tx_done_error")        # TX error code check
 comment(0x9B6B, "Save X", inline=True)
 comment(0x9B6C, "Push X", inline=True)
@@ -7891,9 +7891,9 @@ comment(0x9B72, "Clear SR mode bits (2-4)", inline=True)
 comment(0x9B74, "Restore original SR mode", inline=True)
 comment(0x9B77, "Write updated ACR", inline=True)
 comment(0x9B7A, "Read SR to clear pending interrupt", inline=True)
-comment(0x9B7D, "A=&04: CB1 bit mask", inline=True)
-comment(0x9B7F, "Clear CB1 in IFR", inline=True)
-comment(0x9B82, "Disable CB1 in IER", inline=True)
+comment(0x9B7D, "A=&04: SR bit mask", inline=True)
+comment(0x9B7F, "Clear SR in IFR", inline=True)
+comment(0x9B82, "Disable SR in IER", inline=True)
 comment(0x9B85, "Load ctrl byte for dispatch", inline=True)
 comment(0x9B88, "Ctrl >= &86? (HALT/CONTINUE)", inline=True)
 comment(0x9B8A, "Yes: skip protection mask save", inline=True)

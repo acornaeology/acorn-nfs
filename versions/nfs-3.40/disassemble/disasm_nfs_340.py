@@ -1268,7 +1268,7 @@ entry(0x9669)   # NMI claim trampolines (JMP; JMP)
 entry(0x966C)   # svc_5_unknown_irq: JMP to IRQ service
 entry(0x99E8)   # Econet RX immediate-operation handler
 entry(0x9AFC)   # ACK/reply handler: store source station, configure VIA
-entry(0x9B35)   # IRQ service: check CB1, dispatch TX done handlers
+entry(0x9B35)   # IRQ service: check SR, dispatch TX done handlers
 
 # ============================================================
 # Code regions identified by manual inspection of equb data
@@ -6930,8 +6930,8 @@ comment(0x9B0D, "Load requesting network number", inline=True)
 comment(0x9B10, "Store source network in reply header", inline=True)
 comment(0x9B12, "Load control byte from received frame", inline=True)
 comment(0x9B15, "Save ctrl byte for TX response", inline=True)
-comment(0x9B18, "IER bit 2: disable CB1 interrupt", inline=True)
-comment(0x9B1A, "Write IER to disable CB1", inline=True)
+comment(0x9B18, "IER bit 2: disable SR interrupt", inline=True)
+comment(0x9B1A, "Write IER to disable SR", inline=True)
 comment(0x9B1D, "Read ACR for shift register config", inline=True)
 comment(0x9B20, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B22, "Save original SR mode for later restore", inline=True)
@@ -7425,12 +7425,12 @@ comment(0x9AF5, "NMI handler lo byte (self-modifying)", inline=True)
 comment(0x9AF7, "Y=&9B: dispatch table page", inline=True)
 comment(0x9AF9, "Acknowledge and write TX dest", inline=True)
 
-# c9b35: TX done CB1 check and dispatch
-comment(0x9B35, "A=&04: IFR bit 2 (CB1) mask", inline=True)
-comment(0x9B37, "Test CB1 interrupt pending", inline=True)
-comment(0x9B3A, "CB1 fired: handle TX completion", inline=True)
-comment(0x9B3C, "A=5: no CB1, return status 5", inline=True)
-comment(0x9B3E, "Return (no CB1 interrupt)", inline=True)
+# c9b35: TX done SR check and dispatch
+comment(0x9B35, "A=&04: IFR bit 2 (SR) mask", inline=True)
+comment(0x9B37, "Test SR interrupt pending", inline=True)
+comment(0x9B3A, "SR fired: handle TX completion", inline=True)
+comment(0x9B3C, "A=5: no SR, return status 5", inline=True)
+comment(0x9B3E, "Return (no SR interrupt)", inline=True)
 comment(0x9B3F, "Save X", inline=True)
 comment(0x9B40, "Push X", inline=True)
 comment(0x9B41, "Save Y", inline=True)
@@ -7440,9 +7440,9 @@ comment(0x9B46, "Clear SR mode bits (2-4)", inline=True)
 comment(0x9B48, "Restore original SR mode", inline=True)
 comment(0x9B4B, "Write updated ACR", inline=True)
 comment(0x9B4E, "Read SR to clear pending interrupt", inline=True)
-comment(0x9B51, "A=&04: CB1 bit mask", inline=True)
-comment(0x9B53, "Clear CB1 in IFR", inline=True)
-comment(0x9B56, "Disable CB1 in IER", inline=True)
+comment(0x9B51, "A=&04: SR bit mask", inline=True)
+comment(0x9B53, "Clear SR in IFR", inline=True)
+comment(0x9B56, "Disable SR in IER", inline=True)
 comment(0x9B59, "Load ctrl byte for dispatch", inline=True)
 comment(0x9B5C, "Ctrl >= &86? (HALT/CONTINUE)", inline=True)
 comment(0x9B5E, "Yes: skip protection mask save", inline=True)
@@ -7535,7 +7535,7 @@ label(0x9AEB, "rx_imm_halt_cont")     # Handler for HALT/CONTINUE immediate ops
 label(0x9AF0, "tx_cr2_setup")         # Self-modifying CR2 configuration
 label(0x9AF5, "tx_nmi_setup")         # Self-modifying NMI handler lo byte
 label(0x9B32, "imm_op_discard")       # Error path: JMP discard_listen
-label(0x9B35, "check_cb1_irq")        # Tests CB1 interrupt pending via IFR
+label(0x9B35, "check_sr_irq")         # Tests SR interrupt pending via IFR
 label(0x9C40, "test_line_idle")       # Tests SR2 INACTIVE bit for line idle
 label(0x9CCB, "imm_op_status3")       # Loads scout_status=3 for immediate ops
 label(0x9D16, "proc_op_status2")      # Loads scout_status=2 for proc calls
@@ -8021,7 +8021,7 @@ subroutine(0x9AFC, "imm_op_build_reply", hook=None,
     description="""\
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables CB1 interrupts and configures the VIA shift
+Then disables SR interrupts and configures the VIA shift
 register for outgoing shift-out mode before returning to
 idle listen.""")
 comment(0x9BB8, "Load current RX flags", inline=True)

@@ -383,7 +383,7 @@ followed by four JMP trampolines that dispatch to the main ROM code:
     JMP wait_idle_and_reset  ; &06F1
 .svc_11_nmi_claim
     JMP init_nmi_workspace   ; &06F4
-    LDA #4                   ; CB1 interrupt test
+    LDA #4                   ; SR interrupt test
     BIT &FE4D
 ```
 

@@ -1371,7 +1371,7 @@ label(0x0421, "clear_tube_claim")
 label(0x83EB, "discard_reset_rx")
 label(0x83EE, "reset_adlc_rx_listen")
 label(0x83F1, "set_nmi_rx_scout")
-label(0x8505, "setup_cb1_sr_tx")
+label(0x8505, "setup_sr_tx")
 label(0x8534, "tx_done_dispatch_lo")
 label(0x8542, "tx_done_econet_event")
 label(0x854A, "tx_done_fire_event")
@@ -1651,10 +1651,10 @@ label(0xBEB4, "loop_copy_zp_workspace")
 # ============================================================
 
 subroutine(0x8023, "svc5_irq_check",
-    title="Service 5: unrecognised interrupt (CB1 dispatch)",
-    description="Tests IFR bit 2 (CB1 active edge) to check for a\n"
-    "shift register transfer complete. If CB1 is not set,\n"
-    "returns A=5 to pass the service call on. If CB1 is\n"
+    title="Service 5: unrecognised interrupt (SR dispatch)",
+    description="Tests IFR bit 2 (SR complete) to check for a\n"
+    "shift register transfer complete. If SR is not set,\n"
+    "returns A=5 to pass the service call on. If SR is\n"
     "set, saves registers, reads the VIA ACR, clears and\n"
     "restores the SR mode bits from ws_0d64, then dispatches\n"
     "the TX completion callback via the operation type stored\n"
@@ -2401,7 +2401,7 @@ subroutine(0x84EC, "imm_op_build_reply",
     title="Build immediate operation reply header",
     description="Stores data length, source station/network, and control byte\n"
     "into the RX buffer header area for port-0 immediate operations.\n"
-    "Then disables CB1 interrupts and configures the VIA shift\n"
+    "Then disables SR interrupts and configures the VIA shift\n"
     "register for outgoing shift-out mode before returning to\n"
     "idle listen.")
 subroutine(0x8539, "tx_done_jsr",
@@ -4560,9 +4560,9 @@ comment(0x06FE, "A=0", inline=True)
 comment(0x8003, "JMP service_handler", inline=True)
 comment(0x8006, "ROM type: service + language", inline=True)
 comment(0x8014, "Null terminator before copyright", inline=True)
-comment(0x8023, "A=4: CB1 bit mask for IFR test", inline=True)
-comment(0x8025, "Test IFR bit 2: CB1 active edge", inline=True)
-comment(0x8028, "CB1 set: shift register complete", inline=True)
+comment(0x8023, "A=4: SR bit mask for IFR test", inline=True)
+comment(0x8025, "Test IFR bit 2: SR complete", inline=True)
+comment(0x8028, "SR set: shift register complete", inline=True)
 comment(0x802A, "A=5: not our interrupt, pass on", inline=True)
 comment(0x802C, "Return service code 5 to MOS", inline=True)
 comment(0x802D, "Save X on stack", inline=True)
@@ -4574,9 +4574,9 @@ comment(0x8034, "Clear SR mode bits (2-4)", inline=True)
 comment(0x8036, "Restore saved SR mode from ws_0d64", inline=True)
 comment(0x8039, "Write restored ACR to system VIA", inline=True)
 comment(0x803C, "Read SR to clear shift register IRQ", inline=True)
-comment(0x803F, "A=4: CB1 bit mask", inline=True)
-comment(0x8041, "Clear CB1 interrupt flag in IFR", inline=True)
-comment(0x8044, "Disable CB1 interrupt in IER", inline=True)
+comment(0x803F, "A=4: SR bit mask", inline=True)
+comment(0x8041, "Clear SR interrupt flag in IFR", inline=True)
+comment(0x8044, "Disable SR interrupt in IER", inline=True)
 comment(0x8047, "Load TX operation type for dispatch", inline=True)
 comment(0x804A, "Copy to A for sign test", inline=True)
 comment(0x804B, "Bit 7 set: dispatch via table", inline=True)
@@ -5108,9 +5108,9 @@ comment(0x84FA, "Store source station in reply header", inline=True)
 comment(0x84FD, "Load requesting network number", inline=True)
 comment(0x8500, "Store source network in reply header", inline=True)
 comment(0x8502, "Load control byte from received frame", inline=True)
-comment(0x8505, "Save TX operation type for CB1 dispatch", inline=True)
-comment(0x8508, "IER bit 2: disable CB1 interrupt", inline=True)
-comment(0x850A, "Write IER to disable CB1", inline=True)
+comment(0x8505, "Save TX operation type for SR dispatch", inline=True)
+comment(0x8508, "IER bit 2: disable SR interrupt", inline=True)
+comment(0x850A, "Write IER to disable SR", inline=True)
 comment(0x850D, "Read ACR for shift register config", inline=True)
 comment(0x8510, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x8512, "Save original SR mode for later restore", inline=True)

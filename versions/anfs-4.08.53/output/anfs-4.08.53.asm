@@ -1278,11 +1278,11 @@ service_handler_lo = service_entry+1
     equs "(C)1985 Acorn", 0                                           ; 8015: 28 43 29... (C)
 
 ; ***************************************************************************************
-; Service 5: unrecognised interrupt (CB1 dispatch)
+; Service 5: unrecognised interrupt (SR dispatch)
 ; 
-; Tests IFR bit 2 (CB1 active edge) to check for a
-; shift register transfer complete. If CB1 is not set,
-; returns A=5 to pass the service call on. If CB1 is
+; Tests IFR bit 2 (SR complete) to check for a
+; shift register transfer complete. If SR is not set,
+; returns A=5 to pass the service call on. If SR is
 ; set, saves registers, reads the VIA ACR, clears and
 ; restores the SR mode bits from ws_0d64, then dispatches
 ; the TX completion callback via the operation type stored
@@ -1296,9 +1296,9 @@ service_handler_lo = service_entry+1
 ;     Y: parameter
 ; ***************************************************************************************
 .svc5_irq_check
-    lda #4                                                            ; 8023: a9 04       ..             ; A=4: CB1 bit mask for IFR test
-    bit system_via_ifr                                                ; 8025: 2c 4d fe    ,M.            ; Test IFR bit 2: CB1 active edge
-    bne save_registers                                                ; 8028: d0 03       ..             ; CB1 set: shift register complete
+    lda #4                                                            ; 8023: a9 04       ..             ; A=4: SR bit mask for IFR test
+    bit system_via_ifr                                                ; 8025: 2c 4d fe    ,M.            ; Test IFR bit 2: SR complete
+    bne save_registers                                                ; 8028: d0 03       ..             ; SR set: shift register complete
     lda #5                                                            ; 802a: a9 05       ..             ; A=5: not our interrupt, pass on
     rts                                                               ; 802c: 60          `              ; Return service code 5 to MOS
 
@@ -1313,9 +1313,9 @@ service_handler_lo = service_entry+1
     ora ws_0d64                                                       ; 8036: 0d 64 0d    .d.            ; Restore saved SR mode from ws_0d64
     sta system_via_acr                                                ; 8039: 8d 4b fe    .K.            ; Write restored ACR to system VIA
     lda system_via_sr                                                 ; 803c: ad 4a fe    .J.            ; Read SR to clear shift register IRQ
-    lda #4                                                            ; 803f: a9 04       ..             ; A=4: CB1 bit mask
-    sta system_via_ifr                                                ; 8041: 8d 4d fe    .M.            ; Clear CB1 interrupt flag in IFR
-    sta system_via_ier                                                ; 8044: 8d 4e fe    .N.            ; Disable CB1 interrupt in IER
+    lda #4                                                            ; 803f: a9 04       ..             ; A=4: SR bit mask
+    sta system_via_ifr                                                ; 8041: 8d 4d fe    .M.            ; Clear SR interrupt flag in IFR
+    sta system_via_ier                                                ; 8044: 8d 4e fe    .N.            ; Disable SR interrupt in IER
     ldy tx_op_type                                                    ; 8047: ac 65 0d    .e.            ; Load TX operation type for dispatch
     tya                                                               ; 804a: 98          .              ; Copy to A for sign test
     bmi set_jsr_protection                                            ; 804b: 30 05       0.             ; Bit 7 set: dispatch via table
@@ -2051,7 +2051,7 @@ service_handler_lo = service_entry+1
     bcc discard_reset_rx                                              ; 83e2: 90 07       ..             ; Slot < 3: no callback, skip to reset
     jsr discard_reset_listen                                          ; 83e4: 20 f8 83     ..
     tya                                                               ; 83e7: 98          .              ; Pass slot index as callback parameter
-    jmp setup_cb1_sr_tx                                               ; 83e8: 4c 05 85    L..            ; Jump to TX completion with slot index
+    jmp setup_sr_tx                                                   ; 83e8: 4c 05 85    L..            ; Jump to TX completion with slot index
 
 ; &83eb referenced 6 times by &8236, &83b4, &83d5, &83e2, &886b, &88d5
 .discard_reset_rx
@@ -2333,7 +2333,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; 
 ; Stores data length, source station/network, and control byte
 ; into the RX buffer header area for port-0 immediate operations.
-; Then disables CB1 interrupts and configures the VIA shift
+; Then disables SR interrupts and configures the VIA shift
 ; register for outgoing shift-out mode before returning to
 ; idle listen.
 ; ***************************************************************************************
@@ -2352,10 +2352,10 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     sta (net_rx_ptr),y                                                ; 8500: 91 9c       ..             ; Store source network in reply header
     lda scout_ctrl                                                    ; 8502: ad 30 0d    .0.            ; Load control byte from received frame
 ; &8505 referenced 1 time by &83e8
-.setup_cb1_sr_tx
-    sta tx_op_type                                                    ; 8505: 8d 65 0d    .e.            ; Save TX operation type for CB1 dispatch
-    lda #&84                                                          ; 8508: a9 84       ..             ; IER bit 2: disable CB1 interrupt
-    sta system_via_ier                                                ; 850a: 8d 4e fe    .N.            ; Write IER to disable CB1
+.setup_sr_tx
+    sta tx_op_type                                                    ; 8505: 8d 65 0d    .e.            ; Save TX operation type for SR dispatch
+    lda #&84                                                          ; 8508: a9 84       ..             ; IER bit 2: disable SR interrupt
+    sta system_via_ier                                                ; 850a: 8d 4e fe    .N.            ; Write IER to disable SR
     lda system_via_acr                                                ; 850d: ad 4b fe    .K.            ; Read ACR for shift register config
     and #&1c                                                          ; 8510: 29 1c       ).             ; Isolate shift register mode bits (2-4)
     sta ws_0d64                                                       ; 8512: 8d 64 0d    .d.            ; Save original SR mode for later restore
@@ -16609,7 +16609,6 @@ save pydis_start, pydis_end
 ;     set_tx_reply_flag:                        1
 ;     set_wipe_cr_end:                          1
 ;     set_write_active:                         1
-;     setup_cb1_sr_tx:                          1
 ;     setup_csd_copy:                           1
 ;     setup_data_xfer:                          1
 ;     setup_error_copy:                         1
@@ -16620,6 +16619,7 @@ save pydis_start, pydis_end
 ;     setup_oscli_arg:                          1
 ;     setup_pass_txbuf:                         1
 ;     setup_save_access:                        1
+;     setup_sr_tx:                              1
 ;     setup_tube_vectors:                       1
 ;     setup_txcb_addrs:                         1
 ;     setup_txcb_transfer:                      1

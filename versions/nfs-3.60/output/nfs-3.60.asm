@@ -1133,14 +1133,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .svc_11_nmi_claim
     jmp init_nmi_workspace                                            ; 9639: 4c 98 96    L.. :06d7[4]   ; Trampoline: init NMI workspace
 
-    lda #4                                                            ; 963c: a9 04       ..  :06da[4]   ; A=4: CB1 interrupt bit mask
-    bit system_via_ifr                                                ; 963e: 2c 4d fe    ,M. :06dc[4]   ; Test CB1 flag in VIA IFR
-    bne handle_cb1_intr                                               ; 9641: d0 03       ..  :06df[4]   ; CB1 active: handle interrupt
+    lda #4                                                            ; 963c: a9 04       ..  :06da[4]   ; A=4: SR interrupt bit mask
+    bit system_via_ifr                                                ; 963e: 2c 4d fe    ,M. :06dc[4]   ; Test SR flag in VIA IFR
+    bne handle_sr_intr                                                ; 9641: d0 03       ..  :06df[4]   ; SR active: handle interrupt
     lda #5                                                            ; 9643: a9 05       ..  :06e1[4]   ; A=5: NMI not for us
     rts                                                               ; 9645: 60          `   :06e3[4]   ; Return (NMI not claimed)
 
 ; &9646 referenced 1 time by &06df[4]
-.handle_cb1_intr
+.handle_sr_intr
     txa                                                               ; 9646: 8a          .   :06e4[4]   ; Save X on stack
     pha                                                               ; 9647: 48          H   :06e5[4]   ; Push X for later restore
     tya                                                               ; 9648: 98          .   :06e6[4]   ; Save Y on stack
@@ -1150,9 +1150,9 @@ tube_cmd_lo = tube_dispatch_cmd+1
     ora tx_work_51                                                    ; 964f: 0d 51 0d    .Q. :06ed[4]   ; OR in TX shift register mode
     sta system_via_acr                                                ; 9652: 8d 4b fe    .K. :06f0[4]   ; Write back ACR with SR mode
     lda system_via_sr                                                 ; 9655: ad 4a fe    .J. :06f3[4]   ; Read SR to clear shift complete
-    lda #4                                                            ; 9658: a9 04       ..  :06f6[4]   ; A=4: CB1 interrupt bit
-    sta system_via_ifr                                                ; 965a: 8d 4d fe    .M. :06f8[4]   ; Clear CB1 interrupt flag
-    sta system_via_ier                                                ; 965d: 8d 4e fe    .N. :06fb[4]   ; Disable CB1 interrupt
+    lda #4                                                            ; 9658: a9 04       ..  :06f6[4]   ; A=4: SR interrupt bit
+    sta system_via_ifr                                                ; 965a: 8d 4d fe    .M. :06f8[4]   ; Clear SR interrupt flag
+    sta system_via_ier                                                ; 965d: 8d 4e fe    .N. :06fb[4]   ; Disable SR interrupt
     equb &ac, &57                                                     ; 9660: ac 57       .W  :06fe[4]   ; A=5: NMI not for us
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -7308,7 +7308,7 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; 
 ; Stores data length, source station/network, and control byte
 ; into the RX buffer header area for port-0 immediate operations.
-; Then disables CB1 interrupts and configures the VIA shift
+; Then disables SR interrupts and configures the VIA shift
 ; register for outgoing shift-out mode before returning to
 ; idle listen.
 ; ***************************************************************************************
@@ -7327,8 +7327,8 @@ svc5_dispatch_lo = sub_c9a9c+1
     sta (net_rx_ptr),y                                                ; 9afb: 91 9c       ..             ; Store source network in reply header
     lda rx_ctrl                                                       ; 9afd: ad 3f 0d    .?.            ; Load control byte from received frame
     sta tx_work_57                                                    ; 9b00: 8d 57 0d    .W.            ; Save ctrl byte for TX response
-    lda #&84                                                          ; 9b03: a9 84       ..             ; IER bit 2: disable CB1 interrupt
-    sta system_via_ier                                                ; 9b05: 8d 4e fe    .N.            ; Write IER to disable CB1
+    lda #&84                                                          ; 9b03: a9 84       ..             ; IER bit 2: disable SR interrupt
+    sta system_via_ier                                                ; 9b05: 8d 4e fe    .N.            ; Write IER to disable SR
     lda system_via_acr                                                ; 9b08: ad 4b fe    .K.            ; Read ACR for shift register config
     and #&1c                                                          ; 9b0b: 29 1c       ).             ; Isolate shift register mode bits (2-4)
     sta tx_work_51                                                    ; 9b0d: 8d 51 0d    .Q.            ; Save original SR mode for later restore
@@ -9022,7 +9022,7 @@ save pydis_start, pydis_end
 ;     got_station_num:                          1
 ;     halt_spin_loop:                           1
 ;     halve_args_a:                             1
-;     handle_cb1_intr:                          1
+;     handle_sr_intr:                           1
 ;     handle_to_mask:                           1
 ;     handle_tx_result:                         1
 ;     handshake_await_ack:                      1

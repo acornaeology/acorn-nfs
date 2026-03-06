@@ -825,8 +825,8 @@ label(0x04C0, "skip_addr_carry")     # BNE: skip 24-bit destination address carr
 label(0x04FB, "store_xfer_end_addr") # BEQ: no reloc flag, store default end address
 label(0x0593, "string_buf_done")     # BEQ: overflow or CR found, set XY=&0700/RTS
 label(0x0645, "skip_param_read")     # BMI: zero-length params, skip R2 read loop
-# Page 6 code from &06CE changed in 3.65; label removed (was handle_cb1_intr)
-# label(0x06E4, "handle_cb1_intr")     # BNE: IFR bit 4 set, reconfigure VIA for CB1
+# Page 6 code from &06CE changed in 3.65; label removed (was handle_sr_intr)
+# label(0x06E4, "handle_sr_intr")      # BNE: IFR bit 2 set, reconfigure VIA for SR
 entry(0x0600)
 entry(0x0625)
 entry(0x0607)
@@ -1877,7 +1877,7 @@ entry(0x9659)   # NMI claim trampolines (JMP; JMP)
 entry(0x9699)   # svc_5_unknown_irq: JMP to IRQ service
 entry(0x99B7)   # Econet RX immediate-operation handler
 entry(0x9B09)   # ACK/reply handler: store source station, configure VIA
-entry(0x06F7)   # IRQ service: check CB1, dispatch TX done handlers
+entry(0x06F7)   # IRQ service: check SR, dispatch TX done handlers
 
 # ============================================================
 # Code regions identified by manual inspection of equb data
@@ -7013,7 +7013,7 @@ subroutine(0x9B09, "imm_op_build_reply", hook=None,
     description="""\
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables CB1 interrupts and configures the VIA shift
+Then disables SR interrupts and configures the VIA shift
 register for outgoing shift-out mode before returning to
 idle listen.""")
 comment(0x9B09, "Get buffer position for reply header", inline=True)
@@ -7028,8 +7028,8 @@ comment(0x9B1A, "Load requesting network number", inline=True)
 comment(0x9B1D, "Store source network in reply header", inline=True)
 comment(0x9B1F, "Load control byte from received frame", inline=True)
 comment(0x9B22, "Save ctrl byte for TX response", inline=True)
-comment(0x9B25, "IER bit 2: disable CB1 interrupt", inline=True)
-comment(0x9B27, "Write IER to disable CB1", inline=True)
+comment(0x9B25, "IER bit 2: disable SR interrupt", inline=True)
+comment(0x9B27, "Write IER to disable SR", inline=True)
 comment(0x9B2A, "Read ACR for shift register config", inline=True)
 comment(0x9B2D, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B2F, "Save original SR mode for later restore", inline=True)
@@ -8626,9 +8626,9 @@ comment(0x06EB, "Trampoline: begin TX operation", inline=True)
 comment(0x06EE, "Trampoline: full ADLC init", inline=True)
 comment(0x06F1, "Trampoline: wait idle and reset", inline=True)
 comment(0x06F4, "Trampoline: init NMI workspace", inline=True)
-comment(0x06F7, "A=4: CB1 interrupt bit mask", inline=True)
-comment(0x06F9, "Test CB1 flag in VIA IFR", inline=True)
-comment(0x06FC, "CB1 active: handle interrupt", inline=True)
+comment(0x06F7, "A=4: SR interrupt bit mask", inline=True)
+comment(0x06F9, "Test SR flag in VIA IFR", inline=True)
+comment(0x06FC, "SR active: handle interrupt", inline=True)
 comment(0x06FE, "A=5: NMI not for us", inline=True)
 # Page 6 code from &06CE changed in 3.65; these inline comments from 3.62
 # no longer correspond to valid instruction boundaries. Will be re-annotated
@@ -8643,9 +8643,9 @@ comment(0x06FE, "A=5: NMI not for us", inline=True)
 # comment(0x06ED, "OR in TX shift register mode", inline=True)
 # comment(0x06F0, "Write back ACR with SR mode", inline=True)
 # comment(0x06F3, "Read SR to clear shift complete", inline=True)
-# comment(0x06F6, "A=4: CB1 interrupt bit", inline=True)
-# comment(0x06F8, "Clear CB1 interrupt flag", inline=True)
-# comment(0x06FB, "Disable CB1 interrupt", inline=True)
+# comment(0x06F6, "A=4: SR interrupt bit", inline=True)
+# comment(0x06F8, "Clear SR interrupt flag", inline=True)
+# comment(0x06FB, "Disable SR interrupt", inline=True)
 
 # ============================================================
 # Generate disassembly
