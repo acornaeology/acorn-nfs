@@ -1366,11 +1366,11 @@ svc_entry_lo = service_entry+1
 ; 
 ; Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
 ; probes ADLC status registers &FEA0/&FEA1 to detect whether
-; Econet hardware has already been initialised by another ROM.
-; If active ADLC bits found, sets bit 7 of per-ROM workspace
-; as a disable flag. For services < &80, the flag causes an
-; early return (disabling this ROM as a duplicate). Services
-; >= &80 (&FE, &FF) are always handled regardless of flag.
+; Econet hardware is present. Non-zero reads indicate bus noise
+; from absent hardware; sets bit 7 of per-ROM workspace as a
+; disable flag. For services < &80, the flag causes an early
+; return (disabling this ROM). Services >= &80 (&FE, &FF) are
+; always handled regardless of flag.
 ; 
 ; Intercepts three service calls before normal dispatch:
 ;   &FE: Tube init — explode character definitions

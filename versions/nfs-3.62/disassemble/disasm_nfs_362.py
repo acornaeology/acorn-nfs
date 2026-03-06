@@ -983,7 +983,7 @@ label(0x80A0, "scan_for_colon")        # Loop: scan backward through cmd buffer 
 label(0x80AD, "read_remote_cmd_line")   # Read characters from keyboard into FS command buffer
 label(0x80C5, "prepare_cmd_dispatch")   # Prepare FS command and dispatch recognised *command
 label(0x80E3, "svc_dispatch_range")     # Service dispatch range check (out of range: return)
-label(0x8113, "set_adlc_disable")       # BNE: ADLC active, set bit 7 disable flag
+label(0x8113, "set_adlc_disable")       # BNE: ADLC absent, set bit 7 disable flag
 label(0x811A, "check_disable_flag")    # BNE/BEQ: skip probe, test workspace disable flag
 label(0x8123, "check_svc_high")         # Test service >= &FE (high-priority dispatch)
 label(0x8134, "poll_tube_ready")       # Top of Tube status polling loop
@@ -2825,17 +2825,17 @@ comment(0x80E5, "Y=&0E: base offset for language handlers (index 15+)", inline=T
 # ============================================================
 # Service handler entry (&80EA)
 # ============================================================
-# Service handler preamble: ADLC probe for duplicate ROM detection
+# Service handler preamble: ADLC probe for hardware detection
 comment(0x80F7, "9 NOPs: bus settling time for ADLC probe", inline=True)
 comment(0x8100, "Save service call number", inline=True)
 comment(0x8101, "Only probe ADLC on service 1 (workspace claim)", inline=True)
 comment(0x8103, "Not service 1: skip probe", inline=True)
-comment(0x8105, "Probe ADLC SR1: non-zero = already initialised", inline=True)
+comment(0x8105, "Probe ADLC SR1: non-zero = absent (bus noise)", inline=True)
 comment(0x8108, "Mask SR1 status bits (ignore bits 4,1)", inline=True)
-comment(0x810A, "Non-zero: ADLC active, set disable flag", inline=True)
+comment(0x810A, "Non-zero: ADLC absent, set disable flag", inline=True)
 comment(0x810C, "Probe ADLC SR2 if SR1 was all zeros", inline=True)
 comment(0x810F, "Mask SR2 status bits (ignore bits 5,2)", inline=True)
-comment(0x8111, "Both zero: no ADLC present, skip", inline=True)
+comment(0x8111, "Both zero: ADLC present, skip", inline=True)
 comment(0x8113, "Set bit 7 of per-ROM workspace = disable flag", inline=True)
 comment(0x8116, "SEC for ROR to set bit 7", inline=True)
 comment(0x8117, "Rotate carry into bit 7 of workspace", inline=True)
@@ -2843,7 +2843,7 @@ comment(0x811A, "Read back flag; ASL puts bit 7 into carry", inline=True)
 comment(0x811D, "C into bit 7 of A", inline=True)
 comment(0x811E, "Restore service call number", inline=True)
 comment(0x811F, "Service >= &80: always handle (Tube/init)", inline=True)
-comment(0x8121, "C=1 (ADLC active): duplicate ROM, skip", inline=True)
+comment(0x8121, "C=1 (no ADLC): disable ROM, skip", inline=True)
 comment(0x8123, "Service >= &FE?", inline=True)
 comment(0x8125, "Service < &FE: skip to &12/dispatch check", inline=True)
 comment(0x8127, "Service &FF: full init (vectors + RAM copy)", inline=True)
@@ -2909,11 +2909,11 @@ subroutine(0x8123, hook=None,
     description="""\
 Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
 probes ADLC status registers &FEA0/&FEA1 to detect whether
-Econet hardware has already been initialised by another ROM.
-If active ADLC bits found, sets bit 7 of per-ROM workspace
-as a disable flag. For services < &80, the flag causes an
-early return (disabling this ROM as a duplicate). Services
->= &80 (&FE, &FF) are always handled regardless of flag.
+Econet hardware is present. Non-zero reads indicate bus noise
+from absent hardware; sets bit 7 of per-ROM workspace as a
+disable flag. For services < &80, the flag causes an early
+return (disabling this ROM). Services >= &80 (&FE, &FF) are
+always handled regardless of flag.
 
 Intercepts three service calls before normal dispatch:
   &FE: Tube init — explode character definitions

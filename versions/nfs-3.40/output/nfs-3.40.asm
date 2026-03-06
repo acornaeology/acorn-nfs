@@ -1484,7 +1484,7 @@ svc_entry_lo = service_entry+1
     asl a                                                             ; 8119: 0a          .              ; C into bit 7 of A
     pla                                                               ; 811a: 68          h              ; Restore service call number
     bmi check_svc_high                                                ; 811b: 30 02       0.             ; Service >= &80: always handle (Tube/init)
-    bcs svc_unhandled_return                                          ; 811d: b0 6e       .n             ; C=1 (ADLC active): duplicate ROM, skip
+    bcs svc_unhandled_return                                          ; 811d: b0 6e       .n             ; C=1 (no ADLC): disable ROM, skip
 ; ***************************************************************************************
 ; Service handler entry
 ; 

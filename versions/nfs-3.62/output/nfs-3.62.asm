@@ -1531,12 +1531,12 @@ service_handler_lo = service_entry+1
     pha                                                               ; 8100: 48          H              ; Save service call number
     cmp #1                                                            ; 8101: c9 01       ..             ; Only probe ADLC on service 1 (workspace claim)
     bne check_disable_flag                                            ; 8103: d0 15       ..             ; Not service 1: skip probe
-    lda econet_control1_or_status1                                    ; 8105: ad a0 fe    ...            ; Probe ADLC SR1: non-zero = already initialised
+    lda econet_control1_or_status1                                    ; 8105: ad a0 fe    ...            ; Probe ADLC SR1: non-zero = absent (bus noise)
     and #&ed                                                          ; 8108: 29 ed       ).             ; Mask SR1 status bits (ignore bits 4,1)
-    bne set_adlc_disable                                              ; 810a: d0 07       ..             ; Non-zero: ADLC active, set disable flag
+    bne set_adlc_disable                                              ; 810a: d0 07       ..             ; Non-zero: ADLC absent, set disable flag
     lda econet_control23_or_status2                                   ; 810c: ad a1 fe    ...            ; Probe ADLC SR2 if SR1 was all zeros
     and #&db                                                          ; 810f: 29 db       ).             ; Mask SR2 status bits (ignore bits 5,2)
-    beq check_disable_flag                                            ; 8111: f0 07       ..             ; Both zero: no ADLC present, skip
+    beq check_disable_flag                                            ; 8111: f0 07       ..             ; Both zero: ADLC present, skip
 ; &8113 referenced 1 time by &810a
 .set_adlc_disable
     rol rom_ws_table,x                                                ; 8113: 3e f0 0d    >..            ; Set bit 7 of per-ROM workspace = disable flag
@@ -1548,17 +1548,17 @@ service_handler_lo = service_entry+1
     asl a                                                             ; 811d: 0a          .              ; C into bit 7 of A
     pla                                                               ; 811e: 68          h              ; Restore service call number
     bmi check_svc_high                                                ; 811f: 30 02       0.             ; Service >= &80: always handle (Tube/init)
-    bcs svc_unhandled_return                                          ; 8121: b0 6e       .n             ; C=1 (ADLC active): duplicate ROM, skip
+    bcs svc_unhandled_return                                          ; 8121: b0 6e       .n             ; C=1 (no ADLC): disable ROM, skip
 ; ***************************************************************************************
 ; Service handler entry
 ; 
 ; Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
 ; probes ADLC status registers &FEA0/&FEA1 to detect whether
-; Econet hardware has already been initialised by another ROM.
-; If active ADLC bits found, sets bit 7 of per-ROM workspace
-; as a disable flag. For services < &80, the flag causes an
-; early return (disabling this ROM as a duplicate). Services
-; >= &80 (&FE, &FF) are always handled regardless of flag.
+; Econet hardware is present. Non-zero reads indicate bus noise
+; from absent hardware; sets bit 7 of per-ROM workspace as a
+; disable flag. For services < &80, the flag causes an early
+; return (disabling this ROM). Services >= &80 (&FE, &FF) are
+; always handled regardless of flag.
 ; 
 ; Intercepts three service calls before normal dispatch:
 ;   &FE: Tube init — explode character definitions
