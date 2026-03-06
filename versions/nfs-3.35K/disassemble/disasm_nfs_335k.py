@@ -6674,7 +6674,7 @@ comment(0x9B4C, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B4E, "Save original SR mode for later restore", inline=True)
 comment(0x9B51, "Reload ACR for modification", inline=True)
 comment(0x9B54, "Clear SR mode bits (keep other bits)", inline=True)
-comment(0x9B56, "SR mode 4: shift out under CB1 control", inline=True)
+comment(0x9B56, "SR mode 2: shift in under φ2", inline=True)
 comment(0x9B58, "Apply new shift register mode", inline=True)
 comment(0x9B5B, "Read SR to clear pending interrupt", inline=True)
 comment(0x9B5E, "Return to idle listen mode", inline=True)
@@ -8079,7 +8079,7 @@ subroutine(0x9B28, "imm_op_build_reply", hook=None,
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
 Then disables SR interrupts and configures the VIA shift
-register for outgoing shift-out mode before returning to
+register for shift-in mode before returning to
 idle listen.""")
 subroutine(0x9BF3, "tx_begin", hook=None,
     title="Begin TX operation",

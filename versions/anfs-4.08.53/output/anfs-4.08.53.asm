@@ -2334,7 +2334,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; Stores data length, source station/network, and control byte
 ; into the RX buffer header area for port-0 immediate operations.
 ; Then disables SR interrupts and configures the VIA shift
-; register for outgoing shift-out mode before returning to
+; register for shift-in mode before returning to
 ; idle listen.
 ; ***************************************************************************************
 ; &84ec referenced 1 time by &8397
@@ -2361,7 +2361,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     sta ws_0d64                                                       ; 8512: 8d 64 0d    .d.            ; Save original SR mode for later restore
     lda system_via_acr                                                ; 8515: ad 4b fe    .K.            ; Reload ACR for modification
     and #&e3                                                          ; 8518: 29 e3       ).             ; Clear SR mode bits (keep other bits)
-    ora #8                                                            ; 851a: 09 08       ..             ; SR mode 4: shift out under CB1 control
+    ora #8                                                            ; 851a: 09 08       ..             ; SR mode 2: shift in under φ2
     sta system_via_acr                                                ; 851c: 8d 4b fe    .K.            ; Apply new shift register mode
     bit system_via_sr                                                 ; 851f: 2c 4a fe    ,J.            ; Read SR to clear pending interrupt
 ; &8522 referenced 1 time by &84d1

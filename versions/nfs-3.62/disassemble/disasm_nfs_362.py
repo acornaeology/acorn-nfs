@@ -7003,7 +7003,7 @@ subroutine(0x9AE7, "imm_op_build_reply", hook=None,
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
 Then disables SR interrupts and configures the VIA shift
-register for outgoing shift-out mode before returning to
+register for shift-in mode before returning to
 idle listen.""")
 comment(0x9AE7, "Get buffer position for reply header", inline=True)
 comment(0x9AE9, "Clear carry for offset addition", inline=True)
@@ -7024,7 +7024,7 @@ comment(0x9B0B, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B0D, "Save original SR mode for later restore", inline=True)
 comment(0x9B10, "Reload ACR for modification", inline=True)
 comment(0x9B13, "Clear SR mode bits (keep other bits)", inline=True)
-comment(0x9B15, "SR mode 4: shift out under CB1 control", inline=True)
+comment(0x9B15, "SR mode 2: shift in under φ2", inline=True)
 comment(0x9B17, "Apply new shift register mode", inline=True)
 comment(0x9B1A, "Read SR to clear pending interrupt", inline=True)
 comment(0x9B1D, "Return to idle listen mode", inline=True)

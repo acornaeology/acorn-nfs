@@ -6937,7 +6937,7 @@ comment(0x9B20, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x9B22, "Save original SR mode for later restore", inline=True)
 comment(0x9B25, "Reload ACR for modification", inline=True)
 comment(0x9B28, "Clear SR mode bits (keep other bits)", inline=True)
-comment(0x9B2A, "SR mode 4: shift out under CB1 control", inline=True)
+comment(0x9B2A, "SR mode 2: shift in under φ2", inline=True)
 comment(0x9B2C, "Apply new shift register mode", inline=True)
 comment(0x9B2F, "Read SR to clear pending interrupt", inline=True)
 comment(0x9B32, "Return to idle listen mode", inline=True)
@@ -8022,7 +8022,7 @@ subroutine(0x9AFC, "imm_op_build_reply", hook=None,
 Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
 Then disables SR interrupts and configures the VIA shift
-register for outgoing shift-out mode before returning to
+register for shift-in mode before returning to
 idle listen.""")
 comment(0x9BB8, "Load current RX flags", inline=True)
 comment(0x9BBB, "Clear bit 2: release halted station", inline=True)

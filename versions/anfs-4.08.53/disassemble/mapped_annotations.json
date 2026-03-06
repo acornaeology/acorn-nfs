@@ -1211,7 +1211,7 @@
     "0x8512": "Save original SR mode for later restore",
     "0x8515": "Reload ACR for modification",
     "0x8518": "Clear SR mode bits (keep other bits)",
-    "0x851A": "SR mode 4: shift out under CB1 control",
+    "0x851A": "SR mode 2: shift in under φ2",
     "0x851C": "Apply new shift register mode",
     "0x851F": "Read SR to clear pending interrupt",
     "0x8522": "Return to idle listen mode",

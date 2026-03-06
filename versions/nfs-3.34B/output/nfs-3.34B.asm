@@ -7163,7 +7163,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 ; Stores data length, source station/network, and control byte
 ; into the RX buffer header area for port-0 immediate operations.
 ; Then disables SR interrupts and configures the VIA shift
-; register for outgoing shift-out mode before returning to
+; register for shift-in mode before returning to
 ; idle listen.
 ; ***************************************************************************************
 .imm_op_build_reply
@@ -7187,7 +7187,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     sta tx_work_51                                                    ; 9b3f: 8d 51 0d    .Q.            ; Save original SR mode for later restore
     lda system_via_acr                                                ; 9b42: ad 4b fe    .K.            ; Reload ACR for modification
     and #&e3                                                          ; 9b45: 29 e3       ).             ; Clear SR mode bits (keep other bits)
-    ora #8                                                            ; 9b47: 09 08       ..             ; SR mode 4: shift out under CB1 control
+    ora #8                                                            ; 9b47: 09 08       ..             ; SR mode 2: shift in under φ2
     sta system_via_acr                                                ; 9b49: 8d 4b fe    .K.            ; Apply new shift register mode
     bit system_via_sr                                                 ; 9b4c: 2c 4a fe    ,J.            ; Read SR to clear pending interrupt
 ; &9b4f referenced 3 times by &9a7d, &9af7, &9b17

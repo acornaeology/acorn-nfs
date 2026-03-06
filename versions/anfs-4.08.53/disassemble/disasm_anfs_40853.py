@@ -2402,7 +2402,7 @@ subroutine(0x84EC, "imm_op_build_reply",
     description="Stores data length, source station/network, and control byte\n"
     "into the RX buffer header area for port-0 immediate operations.\n"
     "Then disables SR interrupts and configures the VIA shift\n"
-    "register for outgoing shift-out mode before returning to\n"
+    "register for shift-in mode before returning to\n"
     "idle listen.")
 subroutine(0x8539, "tx_done_jsr",
     title="TX done: remote JSR execution",
@@ -5116,7 +5116,7 @@ comment(0x8510, "Isolate shift register mode bits (2-4)", inline=True)
 comment(0x8512, "Save original SR mode for later restore", inline=True)
 comment(0x8515, "Reload ACR for modification", inline=True)
 comment(0x8518, "Clear SR mode bits (keep other bits)", inline=True)
-comment(0x851A, "SR mode 4: shift out under CB1 control", inline=True)
+comment(0x851A, "SR mode 2: shift in under φ2", inline=True)
 comment(0x851C, "Apply new shift register mode", inline=True)
 comment(0x851F, "Read SR to clear pending interrupt", inline=True)
 comment(0x8522, "Return to idle listen mode", inline=True)
