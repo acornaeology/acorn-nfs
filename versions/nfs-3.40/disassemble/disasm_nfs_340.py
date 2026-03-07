@@ -3108,7 +3108,6 @@ A=0: Initialise TX control block from ROM template at &8391
 A>=1: Handle transmit result (branch to cleanup at &9034).""")
 
 comment(0x8FE8, "A=0: set up and transmit; A>=1: handle result", inline=True)
-comment(0x8F7F, "Load from ROM template (zero = use NMI workspace value)", inline=True)
 comment(0x8FAA, "Enable interrupts before transmit", inline=True)
 comment(0x8FB0, "Dest station = &FFFF (accept reply from any station)", inline=True)
 comment(0x8FC2, "Initiate receive with timeout", inline=True)
@@ -3163,7 +3162,6 @@ return flags without touching the actual processor status.""",
              "x": "0",
              "y": "0"})
 
-comment(0x903A, "ROR/ASL on stacked P: zeros carry to signal success", inline=True)
 
 # ============================================================
 # Setup TX and send (&90B8)
@@ -3791,7 +3789,6 @@ subroutine(0x96D8, "adlc_full_reset", hook=None,
 Aborts all activity and returns to idle RX listen mode.""")
 
 comment(0x96D8, "CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)", inline=True)
-comment(0x96E7, "CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding", inline=True)
 comment(0x96E2, "CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR", inline=True)
 
 # ============================================================
@@ -3828,7 +3825,6 @@ comment(0x96FF, "Match -- accept frame", inline=True)
 comment(0x9701, "Check for broadcast address (&FF)", inline=True)
 comment(0x9703, "Neither our address nor broadcast -- reject frame", inline=True)
 comment(0x9705, "Flag &40 = broadcast frame", inline=True)
-comment(0x970A, "Install next NMI handler at &9715 (RX scout second byte)", inline=True)
 
 # ============================================================
 # RX scout second byte handler (&971F)
@@ -3851,7 +3847,6 @@ comment(0x971F, "Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE", inline=Tru
 
 comment(0x9727, "Network = &FF broadcast: clear &0D4A", inline=True)
 comment(0x972A, "Store Y offset for scout data buffer", inline=True)
-comment(0x972C, "Install scout data reading loop at &9747", inline=True)
 
 # ============================================================
 # Error/discard path (&9741)
@@ -4041,7 +4036,6 @@ comment(0x9966, "BIT SR1: test TDRA (V=bit6)", inline=True)
 comment(0x9969, "TDRA not ready -- error", inline=True)
 comment(0x996B, "Write dest station to TX FIFO", inline=True)
 comment(0x996E, "Write dest network to TX FIFO", inline=True)
-comment(0x9974, "Install handler at &9992 (write src addr)", inline=True)
 
 subroutine(0x997B, "nmi_ack_tx_src", hook=None,
     title="ACK TX continuation",
@@ -4108,7 +4102,6 @@ installs NMI TX handler at &9D5B, and re-enables NMIs.""")
 
 comment(0x9C89, "Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)", inline=True)
 comment(0x9C8C, "CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)", inline=True)
-comment(0x9C91, "Install NMI handler at &9D4C (TX data handler)", inline=True)
 comment(0x9C9B, "INTON -- NMIs now fire for TDRA (&FE20 read)", inline=True)
 
 # ============================================================
@@ -4162,7 +4155,6 @@ CR2=&3F = 0011_1111:
 Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)""")
 
 comment(0x9D69, "CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE", inline=True)
-comment(0x9D6E, "Install NMI handler at &9D94 (TX completion)", inline=True)
 
 # ============================================================
 # TX completion: switch to RX mode (&9DA3)
@@ -4183,7 +4175,6 @@ comment(0x9D7A, "Test workspace flags", inline=True)
 comment(0x9D7D, "bit6 not set -- check bit0", inline=True)
 comment(0x9D7F, "bit6 set -- TX completion", inline=True)
 comment(0x9D89, "bit0 set -- four-way handshake data phase", inline=True)
-comment(0x9D8C, "Install RX reply handler at &9DB2", inline=True)
 
 # ============================================================
 # RX reply scout handler (&9DC1)
@@ -4202,7 +4193,6 @@ comment(0x9D98, "No AP -- error", inline=True)
 comment(0x9DA9, "Read RX byte (destination station)", inline=True)
 comment(0x9D9D, "Compare to our station ID (INTOFF side effect)", inline=True)
 comment(0x9DA0, "Not our station -- error/reject", inline=True)
-comment(0x9DA2, "Install next handler at &9DC8 (reply continuation)", inline=True)
 
 # ============================================================
 # RX reply continuation handler (&9DD7)
@@ -4222,7 +4212,6 @@ comment(0x9DA9, "BIT SR2: test for RDA (bit7 = data available)", inline=True)
 comment(0x9DAC, "No RDA -- error", inline=True)
 comment(0x9DAE, "Read destination network byte", inline=True)
 comment(0x9DB1, "Non-zero -- network mismatch, error", inline=True)
-comment(0x9DB3, "Install next handler at &9DE3 (reply validation)", inline=True)
 comment(0x9DB7, "BIT SR1: test IRQ (N=bit7) -- more data ready?", inline=True)
 comment(0x9DBA, "IRQ set -- fall through to &9DE3 without RTI", inline=True)
 comment(0x9DBC, "IRQ not set -- install handler and RTI", inline=True)
@@ -4275,7 +4264,6 @@ comment(0x9DF5, "BIT SR1: test TDRA (V=bit6)", inline=True)
 comment(0x9DF8, "TDRA not ready -- error", inline=True)
 comment(0x9DFA, "Write dest station to TX FIFO", inline=True)
 comment(0x9DFD, "Write dest network to TX FIFO", inline=True)
-comment(0x9E03, "Install handler at &9E2B (write src addr for scout ACK)", inline=True)
 
 # ============================================================
 # TX data phase: write src address (&9E3A)
@@ -4316,7 +4304,6 @@ subroutine(0x9EBA, "handshake_await_ack", hook=None,
 After the data frame TX completes, switches to RX mode (CR1=&82)
 and installs &9EF8 to receive the final ACK from the remote station.""")
 comment(0x9EBA, "CR1=&82: TX_RESET | RIE (switch to RX for final ACK)", inline=True)
-comment(0x9EBF, "Install handler at &9EE9 (RX final ACK)", inline=True)
 
 # ============================================================
 # Four-way handshake: RX final ACK (&9EF8-&9F4C)
@@ -4340,13 +4327,11 @@ comment(0x9ECB, "No AP -- error", inline=True)
 comment(0x9ECD, "Read dest station", inline=True)
 comment(0x9ED0, "Compare to our station (INTOFF side effect)", inline=True)
 comment(0x9ED3, "Not our station -- error", inline=True)
-comment(0x9ED5, "Install handler at &9EFF (final ACK continuation)", inline=True)
 
 comment(0x9EDC, "BIT SR2: test RDA", inline=True)
 comment(0x9EDF, "No RDA -- error", inline=True)
 comment(0x9EE1, "Read dest network", inline=True)
 comment(0x9EE4, "Non-zero -- network mismatch, error", inline=True)
-comment(0x9EE6, "Install handler at &9F15 (final ACK validation)", inline=True)
 comment(0x9EEA, "BIT SR1: test IRQ -- more data ready?", inline=True)
 comment(0x9EED, "IRQ set -- fall through to &9F15 without RTI", inline=True)
 
@@ -6210,7 +6195,6 @@ comment(0x8FA3, "Y = offset-1: points to flag byte", inline=True)
 comment(0x8FA4, "Set &AB = workspace ptr low byte", inline=True)
 comment(0x8FA6, "&C0: test mask for flag byte", inline=True)
 comment(0x8FA8, "Y=1: flag byte offset in RXCB", inline=True)
-comment(0x8FAA, "X=11: copy 12 bytes from RXCB", inline=True)
 comment(0x8FAC, "Compare Y(1) with saved byte (open/read)", inline=True)
 comment(0x8FAE, "ADC flag: test if slot is in use", inline=True)
 comment(0x8FB0, "Zero: slot open, do copy", inline=True)
@@ -6301,7 +6285,6 @@ comment(0x904D, "Advance data index for next iteration", inline=True)
 comment(0x904F, "Load next data byte", inline=True)
 comment(0x9051, "Zero byte: end of data, return", inline=True)
 comment(0x9053, "Y=&7D: store byte for TX at offset &7D", inline=True)
-comment(0x9055, "Store data byte at (net_rx_ptr)+&7D for TX", inline=True)
 comment(0x9055, "Store data byte at (net_rx_ptr)+&7D for TX", inline=True)
 comment(0x9057, "Save data byte for &0D check after TX", inline=True)
 comment(0x9058, "Set up TX control block", inline=True)
@@ -7695,15 +7678,12 @@ comment(0x06BC, "Poll R1 status (bit 6 = ready)", inline=True)
 comment(0x06BF, "Not ready: keep polling", inline=True)
 comment(0x06C1, "Write A to Tube R1 data register", inline=True)
 comment(0x06C4, "Return to caller", inline=True)
-comment(0x807D, "Y=&20: base offset for *NET commands (index 33+)", inline=True)
 comment(0x8081, "Advance past matched command text", inline=True)
 comment(0x80C1, "Copy command text to FS buffer", inline=True)
 comment(0x80CB, "CSD handle zero: not logged in", inline=True)
 comment(0x80D7, "FSCV function >= 8?", inline=True)
 comment(0x80DB, "X = function code for dispatch", inline=True)
 comment(0x80DC, "Save Y (command text ptr hi)", inline=True)
-comment(0x80DD, "Y=&12: base offset for FSCV dispatch (indices 19+)", inline=True)
-comment(0x80E5, "Y=&0D: base offset for language handlers (index 14+)", inline=True)
 comment(0x8277, "A=&8F: issue service request", inline=True)
 comment(0x8279, "X=&0F: 'vectors claimed' service", inline=True)
 comment(0x827E, "X=&0A: service &0A", inline=True)
