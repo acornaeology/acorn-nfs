@@ -681,6 +681,7 @@ comment(0x0534, "Send carry+byte reply (BGET result)", inline=True)
 comment(0x053A, "ROR A: encode carry (error flag) into bit 7", inline=True)
 comment(0x053B, "Send carry+data byte to Tube R2", inline=True)
 comment(0x053E, "ROL A: restore carry flag", inline=True)
+comment(0x053F, "Return via tube_reply_byte", inline=True)
 comment(0x0542, "Read open mode from R2 for OSFIND", inline=True)
 comment(0x0545, "A=0: close file, else open with filename", inline=True)
 comment(0x0547, "Save open mode while reading filename", inline=True)
@@ -8343,6 +8344,7 @@ label(0x99B4, "store_rxcb_buf_ptr")  # Store updated buffer pointer pair to RXCB
 label(0x99B9, "store_rxcb_buf_hi")    # Stores buffer hi byte to RXCB offset 9
 comment(0x99DD, "Check if Tube transfer active", inline=True)
 comment(0x99E0, "Test tx_flags for Tube transfer", inline=True)
+comment(0x9A81, "A=0: port buffer lo at page boundary", inline=True)
 comment(0x9A83, "Set port buffer lo", inline=True)
 comment(0x9A85, "Buffer length lo = &82", inline=True)
 comment(0x9A87, "Set buffer length lo", inline=True)
@@ -8393,6 +8395,7 @@ comment(0x9AE0, "NMI handler lo byte (self-modifying)", inline=True)
 comment(0x9AE2, "Y=&9A: dispatch table page", inline=True)
 comment(0x9AE4, "Acknowledge and write TX dest", inline=True)
 label(0x9B1D, "imm_op_discard")       # Error path: JMP discard_listen
+comment(0x9B25, "Hi byte of tx_done_exit-1", inline=True)
 comment(0x9B27, "Push hi byte on stack", inline=True)
 comment(0x9B28, "Push lo of (tx_done_exit-1)", inline=True)
 comment(0x9B2A, "Push lo byte on stack", inline=True)
@@ -8469,6 +8472,7 @@ comment(0x9C86, "Save carry for next addition", inline=True)
 comment(0x9C87, "Compare Y with 16-byte boundary", inline=True)
 comment(0x9C89, "Below boundary: continue addition", inline=True)
 comment(0x9C8B, "Restore processor flags", inline=True)
+comment(0x9C8C, "Skip buffer setup if transfer size is zero", inline=True)
 label(0x9CB5, "proc_op_status2")      # Loads scout_status=2 for proc calls
 label(0x9CB7, "store_status_copy_ptr")  # Stores status + copies TX block ptr
 label(0x9CBA, "skip_buf_setup")       # Transfer size check: skip buffer
