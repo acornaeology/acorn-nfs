@@ -3235,7 +3235,8 @@ comment(0x81BA, "No match: try *NET", inline=True)
 subroutine(0x8208, "svc_9_help", hook=None,
     title="Service 9: *HELP",
     description="""\
-Prints the ROM identification string using print_inline.""")
+Prints the ROM identification string using print_inline.""",
+    on_exit={"y": "workspace page number (from ws_page)"})
 comment(0x8208, "Print ROM identification string", inline=True)
 comment(0x820B, "Notify current FS of shutdown", inline=True)
 comment(0x8215, "Restore Y (workspace page number)", inline=True)
@@ -3897,7 +3898,9 @@ normal URD copy, preserving &92). The FS reply contains load/exec
 addresses and file length used to set up the data transfer.
 Byte 6 of the parameter block selects load address handling:
 non-zero uses the address from the FS reply (load to file's own
-address); zero uses the caller-supplied address.""")
+address); zero uses the caller-supplied address.""",
+    on_entry={"y": "FS function code (2=load, 5=examine)",
+              "x": "TX buffer extent"})
 comment(0x8722, "Port &92 = PLDATA (data transfer port)", inline=True)
 comment(0x8724, "Mark transfer as escapable", inline=True)
 comment(0x8726, "Overwrite URD field with data port number", inline=True)
@@ -5374,7 +5377,8 @@ A=0: Initialise TX control block from ROM template at &8395
      (init_tx_ctrl_block+Y, zero entries substituted from NMI
      workspace &0DE6), transmit it, set up RX control block,
      and receive reply.
-A>=1: Handle transmit result (branch to cleanup at &903E).""")
+A>=1: Handle transmit result (branch to cleanup at &903E).""",
+    on_entry={"a": "0=set up and transmit, >=1=handle TX result"})
 
 comment(0x8FF0, "A=0: set up and transmit; A>=1: handle result", inline=True)
 comment(0x8FF2, "A >= 1: handle TX result", inline=True)
@@ -5503,7 +5507,8 @@ subroutine(0x90B6, "net_write_char_handler", hook=None,
 Zeros the carry flag in the stacked processor status to
 signal success, stores the character from Y into workspace
 offset &DA, loads A=0 as the command type, and falls through
-to setup_tx_and_send.""")
+to setup_tx_and_send.""",
+    on_entry={"y": "character to write"})
 
 # FS response data relay (&9043)
 # ============================================================
@@ -5569,7 +5574,8 @@ temporarily redirects it to (nfs_workspace)+&0C so tx_poll_ff
 transmits from the workspace TX control block. After transmission
 completes, writes &3F (TX deleted) at (net_tx_ptr)+&00 to mark
 the control block as free, then restores net_tx_ptr to its
-original value.""")
+original value.""",
+    on_entry={"a": "command type byte"})
 
 comment(0x90C4, "Y=&D9: command type offset", inline=True)
 comment(0x90C6, "Store command type at ws+&D9", inline=True)
@@ -6191,7 +6197,8 @@ Called when the printer selection changes. Compares X against
 the network printer buffer number (&F0). If it matches,
 initialises the printer buffer pointer (&0D61 = &1F) and
 sets the initial flag byte (&0D60 = &41). Otherwise falls
-through to return.""")
+through to return.""",
+    on_entry={"x": "1-based buffer number"})
 comment(0x91DB, "X-1: convert 1-based buffer to 0-based", inline=True)
 comment(0x91DC, "Is this the network printer buffer?", inline=True)
 comment(0x91DE, "No: skip printer init", inline=True)
@@ -6219,7 +6226,9 @@ N.B. The printer and REMOTE facility share the same dynamically
 allocated static workspace page via WORKP1 (&9E,&9F) — care must
 be taken to never leave the pointer corrupted, as corruption would
 cause one subsystem to overwrite the other's data.
-Only handles buffer 4 (network printer); others are ignored.""")
+Only handles buffer 4 (network printer); others are ignored.""",
+    on_entry={"x": "reason code (1=chars, 2=Ctrl-B, 3=Ctrl-C)",
+              "y": "buffer number (must be 4 for network printer)"})
 
 comment(0x91EA, "Only handle buffer 4 (network printer)", inline=True)
 comment(0x91EC, "Not buffer 4: ignore", inline=True)
@@ -7098,7 +7107,8 @@ transfers, storing results to port_buf_len..open_port_buf_hi
 (&A2-&A5). The fallback path (no Tube or buffer addr = &FFFF)
 does a 2-byte subtraction using open_port_buf/open_port_buf_hi
 (&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
-effect of the result area overlapping open_port_buf.""")
+effect of the result area overlapping open_port_buf.""",
+    on_exit={"c": "1 if transfer set up, 0 if not", "x": "preserved"})
 comment(0x9ECA, "Load RXCB[6] (buffer addr byte 2)", inline=True)
 comment(0x9ECF, "AND with TX block[7] (byte 3)", inline=True)
 comment(0x9ED1, "Both &FF = no buffer?", inline=True)
@@ -8284,7 +8294,9 @@ subroutine(0x83B9, "prepare_cmd_with_flag", hook=None,
 Alternate entry to prepare_fs_cmd that pushes A, loads &2A
 into fs_error_ptr, and enters with carry set (SEC). The carry
 flag is later tested by build_send_fs_cmd to select the
-byte-stream (BSXMIT) transmission path.""")
+byte-stream (BSXMIT) transmission path.""",
+    on_entry={"a": "flag byte to include in FS command",
+              "y": "function code for FS header"})
 comment(0x83C0, "A=&77: OSBYTE close spool/exec", inline=True)
 comment(0x8413, "CLC for address addition", inline=True)
 comment(0x849C, "Transfer A to Y for indexing", inline=True)

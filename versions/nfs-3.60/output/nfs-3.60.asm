@@ -1779,6 +1779,9 @@ service_handler_lo = service_entry+1
 ; Service 9: *HELP
 ; 
 ; Prints the ROM identification string using print_inline.
+; 
+; On Exit:
+;     Y: workspace page number (from ws_page)
 ; ***************************************************************************************
 .svc_9_help
     jsr print_inline                                                  ; 8208: 20 5c 86     \.            ; Print ROM identification string
@@ -2238,6 +2241,10 @@ service_handler_lo = service_entry+1
 ; into fs_error_ptr, and enters with carry set (SEC). The carry
 ; flag is later tested by build_send_fs_cmd to select the
 ; byte-stream (BSXMIT) transmission path.
+; 
+; On Entry:
+;     A: flag byte to include in FS command
+;     Y: function code for FS header
 ; ***************************************************************************************
 ; &83b9 referenced 1 time by &8ac3
 .prepare_cmd_with_flag
@@ -3441,6 +3448,10 @@ error_msg_table = error_table_base+6
 ; Byte 6 of the parameter block selects load address handling:
 ; non-zero uses the address from the FS reply (load to file's own
 ; address); zero uses the caller-supplied address.
+; 
+; On Entry:
+;     Y: FS function code (2=load, 5=examine)
+;     X: TX buffer extent
 ; ***************************************************************************************
 ; &8722 referenced 1 time by &8e0d
 .send_fs_examine
@@ -5664,6 +5675,9 @@ cmd_match_data = fs_cmd_match_table+1
 ;      workspace &0DE6), transmit it, set up RX control block,
 ;      and receive reply.
 ; A>=1: Handle transmit result (branch to cleanup at &903E).
+; 
+; On Entry:
+;     A: 0=set up and transmit, >=1=handle TX result
 ; ***************************************************************************************
 .econet_tx_rx
     cmp #1                                                            ; 8ff0: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
@@ -5871,6 +5885,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; signal success, stores the character from Y into workspace
 ; offset &DA, loads A=0 as the command type, and falls through
 ; to setup_tx_and_send.
+; 
+; On Entry:
+;     Y: character to write
 ; ***************************************************************************************
 .net_write_char_handler
     tsx                                                               ; 90b6: ba          .              ; Get stack pointer for P register access
@@ -5890,6 +5907,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; completes, writes &3F (TX deleted) at (net_tx_ptr)+&00 to mark
 ; the control block as free, then restores net_tx_ptr to its
 ; original value.
+; 
+; On Entry:
+;     A: command type byte
 ; ***************************************************************************************
 ; &90c4 referenced 3 times by &81cf, &9117, &917a
 .setup_tx_and_send
@@ -6194,6 +6214,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; initialises the printer buffer pointer (&0D61 = &1F) and
 ; sets the initial flag byte (&0D60 = &41). Otherwise falls
 ; through to return.
+; 
+; On Entry:
+;     X: 1-based buffer number
 ; ***************************************************************************************
 .printer_select_handler
     dex                                                               ; 91db: ca          .              ; X-1: convert 1-based buffer to 0-based
@@ -6228,6 +6251,10 @@ cmd_match_data = fs_cmd_match_table+1
 ; be taken to never leave the pointer corrupted, as corruption would
 ; cause one subsystem to overwrite the other's data.
 ; Only handles buffer 4 (network printer); others are ignored.
+; 
+; On Entry:
+;     X: reason code (1=chars, 2=Ctrl-B, 3=Ctrl-C)
+;     Y: buffer number (must be 4 for network printer)
 ; ***************************************************************************************
 .remote_print_handler
     cpy #4                                                            ; 91ea: c0 04       ..             ; Only handle buffer 4 (network printer)
@@ -8389,6 +8416,10 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; does a 2-byte subtraction using open_port_buf/open_port_buf_hi
 ; (&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
 ; effect of the result area overlapping open_port_buf.
+; 
+; On Exit:
+;     C: 1 if transfer set up, 0 if not
+;     X: preserved
 ; ***************************************************************************************
 ; &9eca referenced 3 times by &97be, &9ac9, &9cc2
 .tx_calc_transfer
