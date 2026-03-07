@@ -1262,6 +1262,7 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &8099 referenced 1 time by &8000
 .language_handler
+.lang_entry_dispatch
     cpx #5                                                            ; 8099: e0 05       ..             ; X >= 5: invalid reason code, return
 .svc_dispatch_range
     bcs return_1                                                      ; 809b: b0 11       ..             ; Out of range: return via RTS
@@ -1308,6 +1309,7 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &80af referenced 1 time by &8003
 .service_handler
+.service_handler_entry
 .check_svc_high
     cmp #&fe                                                          ; 80af: c9 fe       ..             ; Service >= &FE?
     bcc check_svc_12                                                  ; 80b1: 90 6c       .l             ; Service < &FE: skip to &12/dispatch check
@@ -6326,6 +6328,7 @@ post_reply_check = scan_or_read_rxcb+1
 ;     - SR2 = 0 -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
+.scout_data_loop
     ldy port_buf_len                                                  ; 9747: a4 a2       ..             ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 9749: ad a1 fe    ...            ; Read SR2
 ; &974c referenced 1 time by &976c
@@ -7096,6 +7099,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
 ; PEEK response data back to the requesting station.
 ; Uses workspace offsets (&A6/&A7) for nmi_tx_block.
 ; ***************************************************************************************
+.rx_imm_peek_setup
     lda #&3d ; '='                                                    ; 9ae1: a9 3d       .=             ; Port workspace offset = &3D
     sta nmi_tx_block                                                  ; 9ae3: 85 a0       ..             ; Store workspace offset lo
     lda #&0d                                                          ; 9ae5: a9 0d       ..             ; RX buffer page = &0D
@@ -7570,6 +7574,7 @@ sr2_test_operand = test_line_idle+2
 ; (no 4-byte address addition needed for procedure calls).
 ; Shared by operation types &83-&85.
 ; ***************************************************************************************
+.tx_ctrl_add_done
     cpy #&10                                                          ; 9d00: c0 10       ..             ; Compare Y with 16-byte boundary
     bcc add_bytes_loop                                                ; 9d02: 90 f1       ..             ; Below boundary: continue addition
     plp                                                               ; 9d04: 28          (              ; Restore processor flags
@@ -8885,6 +8890,7 @@ save pydis_start, pydis_end
 ;     l0fc6:                                    1
 ;     l212e:                                    1
 ;     l944d:                                    1
+;     lang_entry_dispatch:                      1
 ;     lang_entry_hi:                            1
 ;     lang_entry_lo:                            1
 ;     language_handler:                         1
@@ -9041,6 +9047,7 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
+;     service_handler_entry:                    1
 ;     set_listen_offset:                        1
 ;     set_star_reply_port:                      1
 ;     set_tx_reply_flag:                        1
