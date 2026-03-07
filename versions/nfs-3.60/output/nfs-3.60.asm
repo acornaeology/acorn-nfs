@@ -5091,6 +5091,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; 
 ; Stores Y into &0E04 (library directory handle in FS workspace).
 ; Falls through to JMP restore_args_return if Y is non-zero.
+; 
+; On Entry:
+;     Y: library handle from FS reply
 ; ***************************************************************************************
 .fsreply_5_set_lib
     sty fs_lib_handle                                                 ; 8e2d: 8c 04 0e    ...            ; Save library handle from FS reply
@@ -5100,6 +5103,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; 
 ; Stores Y into &0E03 (current selected directory handle).
 ; Falls through to JMP restore_args_return.
+; 
+; On Entry:
+;     Y: CSD handle from FS reply
 ; ***************************************************************************************
 .fsreply_3_set_csd
     sty fs_csd_handle                                                 ; 8e32: 8c 03 0e    ...            ; Store CSD handle from FS reply
@@ -5221,6 +5227,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; workspace slot contains &3F ('?', meaning unused/closed),
 ; returns 0. Otherwise returns the stored handle value.
 ; Clears rom_svc_num on exit.
+; 
+; On Exit:
+;     A: handle value (0 if closed/invalid)
 ; ***************************************************************************************
 .net_2_read_handle_entry
     jsr load_handle_calc_offset                                       ; 8e6d: 20 53 8e     S.            ; Look up handle &F0 in workspace
@@ -5244,6 +5253,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; workspace. Returns via RTS (earlier versions preserved the
 ; carry flag across the write using ROL/ROR on rx_flags, but
 ; 3.60 simplified this).
+; 
+; On Exit:
+;     A: &3F (close marker) or 0 if invalid
 ; ***************************************************************************************
 .net_3_close_handle
     jsr load_handle_calc_offset                                       ; 8e7d: 20 53 8e     S.            ; Look up handle &F0 in workspace
@@ -5647,6 +5659,9 @@ cmd_match_data = fs_cmd_match_table+1
 ; Calculates the start address of the RX data area (&F0+1) and stores
 ; it at workspace offset &1C. Also reads the data length from (&F0)+1
 ; and adds it to &F0 to compute the end address at offset &20.
+; 
+; On Entry:
+;     C: clear for ADC
 ; ***************************************************************************************
 ; &8fd5 referenced 1 time by &9008
 .setup_rx_buffer_ptrs

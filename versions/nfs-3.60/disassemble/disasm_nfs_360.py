@@ -5049,7 +5049,8 @@ subroutine(0x8E2D, "fsreply_5_set_lib", hook=None,
     title="Set library handle",
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
-Falls through to JMP restore_args_return if Y is non-zero.""")
+Falls through to JMP restore_args_return if Y is non-zero.""",
+    on_entry={"y": "library handle from FS reply"})
 comment(0x8E2D, "Save library handle from FS reply", inline=True)
 comment(0x8E30, "SDISC path: skip CSD, jump to return", inline=True)
 
@@ -5057,7 +5058,8 @@ subroutine(0x8E32, "fsreply_3_set_csd", hook=None,
     title="Set CSD handle",
     description="""\
 Stores Y into &0E03 (current selected directory handle).
-Falls through to JMP restore_args_return.""")
+Falls through to JMP restore_args_return.""",
+    on_entry={"y": "CSD handle from FS reply"})
 comment(0x8E32, "Store CSD handle from FS reply", inline=True)
 comment(0x8E35, "Restore A/X/Y and return to caller", inline=True)
 
@@ -5292,7 +5294,8 @@ subroutine(0x8E6D, "net_2_read_handle_entry", hook=None,
 Looks up the handle in &F0 via calc_handle_offset. If the
 workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
-Clears rom_svc_num on exit.""")
+Clears rom_svc_num on exit.""",
+    on_exit={"a": "handle value (0 if closed/invalid)"})
 comment(0x8E6D, "Look up handle &F0 in workspace", inline=True)
 comment(0x8E70, "Invalid handle: return 0", inline=True)
 comment(0x8E72, "Load stored handle value", inline=True)
@@ -5310,7 +5313,8 @@ Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
 workspace. Returns via RTS (earlier versions preserved the
 carry flag across the write using ROL/ROR on rx_flags, but
-3.60 simplified this).""")
+3.60 simplified this).""",
+    on_exit={"a": "&3F (close marker) or 0 if invalid"})
 comment(0x8E7D, "Look up handle &F0 in workspace", inline=True)
 comment(0x8E80, "Invalid handle: return 0", inline=True)
 comment(0x8E82, "&3F = '?' marks slot as unused", inline=True)
@@ -6032,7 +6036,8 @@ subroutine(0x8FD5, "setup_rx_buffer_ptrs", hook=None,
     description="""\
 Calculates the start address of the RX data area (&F0+1) and stores
 it at workspace offset &1C. Also reads the data length from (&F0)+1
-and adds it to &F0 to compute the end address at offset &20.""")
+and adds it to &F0 to compute the end address at offset &20.""",
+    on_entry={"c": "clear for ADC"})
 comment(0x8FD5, "Y=&1C: workspace offset for RX data start", inline=True)
 comment(0x8FD7, "A = base address low byte", inline=True)
 comment(0x8FD9, "A = base + 1 (skip length byte)", inline=True)
