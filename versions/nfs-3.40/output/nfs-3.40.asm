@@ -1611,7 +1611,7 @@ svc_entry_lo = service_entry+1
 .return_2
     rts                                                               ; 81ab: 60          `              ; Return to MOS service handler
 
-    nop                                                               ; 81ac: ea          .              ; Padding: dispatch targets &81B5
+    nop                                                               ; 81ac: ea          .              ; Padding: dispatch targets &81B1
     nop                                                               ; 81ad: ea          .              ; NOP padding for command table
     nop                                                               ; 81ae: ea          .              ; NOP padding
     nop                                                               ; 81af: ea          .              ; NOP padding
@@ -1825,7 +1825,7 @@ svc_entry_lo = service_entry+1
     jsr osbyte                                                        ; 8280: 20 f4 ff     ..            ; Issue service &0A
     ldx ws_page                                                       ; 8283: a6 a8       ..             ; Non-zero after hard reset: skip auto-boot
     bne return_3                                                      ; 8285: d0 37       .7             ; Non-zero: skip auto-boot
-    ldx #&8e                                                          ; 8287: a2 8e       ..             ; X = lo byte of auto-boot string at &8292
+    ldx #&8e                                                          ; 8287: a2 8e       ..             ; X = lo byte of auto-boot string at &828E
 ; ***************************************************************************************
 ; Run FSCV command from ROM
 ; 
@@ -5597,7 +5597,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     cmp #&81                                                          ; 90e0: c9 81       ..             ; OSBYTE &81 (INKEY): always forward to terminal
     beq dispatch_remote_osbyte                                        ; 90e2: f0 13       ..             ; Forward &81 to terminal for keyboard read
     ldy #1                                                            ; 90e4: a0 01       ..             ; Y=1: search NCTBPL table (execute on both)
-    ldx #7                                                            ; 90e6: a2 07       ..             ; X=9: 10-entry NCTBPL table size
+    ldx #7                                                            ; 90e6: a2 07       ..             ; X=7: 8-entry NCTBPL table size
     jsr match_osbyte_code                                             ; 90e8: 20 30 91     0.            ; Search for OSBYTE code in NCTBPL table
     beq dispatch_remote_osbyte                                        ; 90eb: f0 0a       ..             ; Match found: dispatch with Y=1 (both)
     dey                                                               ; 90ed: 88          .              ; Y=-1: search NCTBMI table (terminal only)
@@ -5719,7 +5719,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .ctrl_block_setup_alt
     ldx #&0d                                                          ; 9173: a2 0d       ..             ; X=&0D: template offset for alt entry
     ldy #&7c ; '|'                                                    ; 9175: a0 7c       .|             ; Y=&7C: target workspace offset for alt entry
-    bit tx_ctrl_upper                                                 ; 9177: 2c af 83    ,..            ; BIT test: V flag = bit 6 of &83B3
+    bit tx_ctrl_upper                                                 ; 9177: 2c af 83    ,..            ; BIT test: V flag = bit 6 of &83AF
     bvs cbset2                                                        ; 917a: 70 05       p.             ; V=1: store to (net_rx_ptr) instead
 ; ***************************************************************************************
 ; Control block setup — main entry
@@ -6277,7 +6277,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     sta tx_flags                                                      ; 9707: 8d 4a 0d    .J.            ; Store broadcast flag in TX flags
 ; &970a referenced 1 time by &96ff
 .accept_frame
-    lda #&11                                                          ; 970a: a9 11       ..             ; Install next NMI handler at &96DC (RX scout net byte)
+    lda #&11                                                          ; 970a: a9 11       ..             ; Install next NMI handler at &9711 (RX scout net byte)
     ldy #&97                                                          ; 970c: a0 97       ..             ; High byte of scout net handler
     jmp set_nmi_vector                                                ; 970e: 4c 0e 0d    L..            ; Install next handler and RTI
 
@@ -6326,7 +6326,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .scout_error
     lda econet_control23_or_status2                                   ; 9733: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 9736: 29 81       ).             ; Test AP (b0) | RDA (b7)
-    beq scout_discard                                                 ; 9738: f0 06       ..             ; Neither set -- clean end, discard via &99E8
+    beq scout_discard                                                 ; 9738: f0 06       ..             ; Neither set -- clean end, discard via &9740
     jsr adlc_full_reset                                               ; 973a: 20 d8 96     ..            ; Unexpected data/status: full ADLC reset
     jmp install_rx_scout_handler                                      ; 973d: 4c 40 9a    L@.            ; Discard and return to idle
 
@@ -6359,7 +6359,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda econet_control23_or_status2                                   ; 9745: ad a1 fe    ...            ; Read SR2
 ; &9748 referenced 1 time by &9768
 .scout_loop_rda
-    bpl scout_error                                                   ; 9748: 10 e9       ..             ; No RDA -- error handler &96FE
+    bpl scout_error                                                   ; 9748: 10 e9       ..             ; No RDA -- error handler &9733
     lda econet_data_continue_frame                                    ; 974a: ad a2 fe    ...            ; Read data byte from RX FIFO
     sta rx_src_stn,y                                                  ; 974d: 99 3d 0d    .=.            ; Store at &0D3D+Y (scout buffer)
     iny                                                               ; 9750: c8          .              ; Advance buffer index
@@ -6507,7 +6507,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .data_rx_setup
     lda #&82                                                          ; 9815: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 9817: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
-    lda #&21 ; '!'                                                    ; 981a: a9 21       .!             ; Install nmi_data_rx at &97E6
+    lda #&21 ; '!'                                                    ; 981a: a9 21       .!             ; Install nmi_data_rx at &9821
     ldy #&98                                                          ; 981c: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 981e: 4c 0e 0d    L..            ; Install nmi_data_rx and return from NMI
 
@@ -6530,7 +6530,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda econet_data_continue_frame                                    ; 9828: ad a2 fe    ...            ; Read first byte (dest station)
     cmp station_id_disable_net_nmis                                   ; 982b: cd 18 fe    ...            ; Compare to our station ID (INTOFF)
     bne nmi_error_dispatch                                            ; 982e: d0 42       .B             ; Not for us: error path
-    lda #&37 ; '7'                                                    ; 9830: a9 37       .7             ; Install net check handler at &97FA
+    lda #&37 ; '7'                                                    ; 9830: a9 37       .7             ; Install net check handler at &9837
     ldy #&98                                                          ; 9832: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 9834: 4c 0e 0d    L..            ; Set NMI vector via RAM shim
 
@@ -6571,8 +6571,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 
 ; &986b referenced 1 time by &985d
 .install_tube_rx
-    lda #&dd                                                          ; 986b: a9 dd       ..             ; Tube: install Tube RX at &98A0
-    ldy #&98                                                          ; 986d: a0 98       ..             ; High byte of &98A0 handler
+    lda #&dd                                                          ; 986b: a9 dd       ..             ; Tube: install Tube RX at &98DD
+    ldy #&98                                                          ; 986d: a0 98       ..             ; High byte of &98DD handler
     jmp set_nmi_vector                                                ; 986f: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
 ; ***************************************************************************************
@@ -6949,7 +6949,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; &9a40 referenced 2 times by &9724, &973d
 .install_rx_scout_handler
-    lda #&f2                                                          ; 9a40: a9 f2       ..             ; Install nmi_rx_scout (&96BF) as NMI handler
+    lda #&f2                                                          ; 9a40: a9 f2       ..             ; Install nmi_rx_scout (&96F2) as NMI handler
     ldy #&96                                                          ; 9a42: a0 96       ..             ; High byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 9a44: 4c 0e 0d    L..            ; Set NMI vector and return
 
@@ -7484,7 +7484,7 @@ sr2_idle_status = test_line_idle+2
     sty econet_control23_or_status2                                   ; 9c89: 8c a1 fe    ...            ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44 ; 'D'                                                    ; 9c8c: a2 44       .D             ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 9c8e: 8e a0 fe    ...            ; Write to ADLC CR1
-    ldx #&2d ; '-'                                                    ; 9c91: a2 2d       .-             ; Install NMI handler at &9CCC (nmi_tx_data)
+    ldx #&2d ; '-'                                                    ; 9c91: a2 2d       .-             ; Install NMI handler at &9D2D (nmi_tx_data)
     ldy #&9d                                                          ; 9c93: a0 9d       ..             ; High byte of NMI handler address
     stx nmi_jmp_lo                                                    ; 9c95: 8e 0c 0d    ...            ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 9c98: 8c 0d 0d    ...            ; Write NMI vector high byte directly
@@ -7685,7 +7685,7 @@ sr2_idle_status = test_line_idle+2
 .tx_last_data
     lda #&3f ; '?'                                                    ; 9d69: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 9d6b: 8d a1 fe    ...            ; Write to ADLC CR2
-    lda #&75 ; 'u'                                                    ; 9d6e: a9 75       .u             ; Install NMI handler at &9D14 (nmi_tx_complete)
+    lda #&75 ; 'u'                                                    ; 9d6e: a9 75       .u             ; Install NMI handler at &9D75 (nmi_tx_complete)
     ldy #&9d                                                          ; 9d70: a0 9d       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9d72: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
@@ -7735,7 +7735,7 @@ sr2_idle_status = test_line_idle+2
     lda econet_data_continue_frame                                    ; 9d9a: ad a2 fe    ...            ; Read first RX byte (destination station)
     cmp station_id_disable_net_nmis                                   ; 9d9d: cd 18 fe    ...            ; Compare to our station ID (INTOFF side effect)
     bne reject_reply                                                  ; 9da0: d0 1d       ..             ; Not our station -- error/reject
-    lda #&a9                                                          ; 9da2: a9 a9       ..             ; Install nmi_reply_cont at &9D44
+    lda #&a9                                                          ; 9da2: a9 a9       ..             ; Install nmi_reply_cont at &9DA9
     ldy #&9d                                                          ; 9da4: a0 9d       ..             ; High byte of nmi_reply_cont
     jmp set_nmi_vector                                                ; 9da6: 4c 0e 0d    L..            ; Install continuation handler
 
@@ -7755,10 +7755,10 @@ sr2_idle_status = test_line_idle+2
     bpl reject_reply                                                  ; 9dac: 10 11       ..             ; No RDA -- error
     lda econet_data_continue_frame                                    ; 9dae: ad a2 fe    ...            ; Read destination network byte
     bne reject_reply                                                  ; 9db1: d0 0c       ..             ; Non-zero -- network mismatch, error
-    lda #&c2                                                          ; 9db3: a9 c2       ..             ; Install nmi_reply_validate at &9D5B
+    lda #&c2                                                          ; 9db3: a9 c2       ..             ; Install nmi_reply_validate at &9DC2
     ldy #&9d                                                          ; 9db5: a0 9d       ..             ; High byte of nmi_reply_validate
     bit econet_control1_or_status1                                    ; 9db7: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
-    bmi nmi_reply_validate                                            ; 9dba: 30 06       0.             ; IRQ set -- fall through to &9D5B without RTI
+    bmi nmi_reply_validate                                            ; 9dba: 30 06       0.             ; IRQ set -- fall through to &9DC2 without RTI
     jmp set_nmi_vector                                                ; 9dbc: 4c 0e 0d    L..            ; IRQ not set -- install handler and RTI
 
 ; &9dbf referenced 7 times by &9da0, &9dac, &9db1, &9dc5, &9dcd, &9dd5, &9ddc
@@ -7805,7 +7805,7 @@ sr2_idle_status = test_line_idle+2
     sta econet_data_continue_frame                                    ; 9dfa: 8d a2 fe    ...            ; Write dest station to TX FIFO
     lda tx_dst_net                                                    ; 9dfd: ad 21 0d    .!.            ; Load dest network for scout ACK TX
     sta econet_data_continue_frame                                    ; 9e00: 8d a2 fe    ...            ; Write dest network to TX FIFO
-    lda #&0a                                                          ; 9e03: a9 0a       ..             ; Install nmi_scout_ack_src at &9DA3
+    lda #&0a                                                          ; 9e03: a9 0a       ..             ; Install nmi_scout_ack_src at &9E0A
     ldy #&9e                                                          ; 9e05: a0 9e       ..             ; High byte &9D of handler address
     jmp set_nmi_vector                                                ; 9e07: 4c 0e 0d    L..            ; Set NMI vector and return
 
@@ -7827,13 +7827,13 @@ sr2_idle_status = test_line_idle+2
     lda #2                                                            ; 9e1a: a9 02       ..             ; Test bit 1 of tx_flags
     bit tx_flags                                                      ; 9e1c: 2c 4a 0d    ,J.            ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 9e1f: d0 07       ..             ; Bit 1 set: immediate op, use alt handler
-    lda #&2f ; '/'                                                    ; 9e21: a9 2f       ./             ; Install nmi_data_tx at &9DC8
+    lda #&2f ; '/'                                                    ; 9e21: a9 2f       ./             ; Install nmi_data_tx at &9E2F
     ldy #&9e                                                          ; 9e23: a0 9e       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9e25: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; &9e28 referenced 1 time by &9e1f
 .install_imm_data_nmi
-    lda #&81                                                          ; 9e28: a9 81       ..             ; Install nmi_imm_data at &9E0F
+    lda #&81                                                          ; 9e28: a9 81       ..             ; Install nmi_data_tx_tube at &9E81
     ldy #&9e                                                          ; 9e2a: a0 9e       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9e2c: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
