@@ -2140,8 +2140,8 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-dangling file handles across the FS switch.""")
+OSBYTE &7B (printer driver going dormant) to release the
+Econet network printer on FS switch.""")
 
 # ============================================================
 # Init TX control block (&831D)
@@ -4385,7 +4385,7 @@ comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
 comment(0x040C, "C=1: external claim, check ownership", inline=True)
 comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
 comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-comment(0x0412, "Match: we own it, return (no release)", inline=True)
+comment(0x0412, "Not our address: return", inline=True)
 comment(0x0416, "Store to claim-in-progress flag", inline=True)
 comment(0x0418, "Return from tube_post_init", inline=True)
 label(0x0419, "addr_claim_external")  # External address claim check (another host)
@@ -4594,27 +4594,12 @@ comment(0x8137, "Y=0: base offset for service dispatch", inline=True)
 comment(0x813C, "Recover service claim status from &A9", inline=True)
 comment(0x813E, "Restore saved &A8 from stack", inline=True)
 comment(0x813F, "Write back &A8", inline=True)
-subroutine(0x8141, "svc_star_command", hook=None,
-    title="Service 4: unrecognised * command",
+subroutine(0x8141, "svc_dispatch_epilogue", hook=None,
+    title="Service dispatch epilogue",
     description="""\
-The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
-PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-This is the common return path reached after any dispatched
-service handler completes.
-
-The service 4 handler entry at &81B5 (after 5 NOPs of padding)
-makes two match_rom_string calls against the ROM header, reusing
-header bytes as command strings:
-
-  X=&0C: matches "ROFF" at &8014 — the suffix of the
-         copyright string "(C)ROFF" — *ROFF (Remote Off,
-         end remote session) — falls through to net_4_resume_remote
-
-  X=5: matches "NET" at &800D — the ROM title suffix
-       — *NET (select NFS) — falls through to svc_13_select_nfs
-
-If neither matches, returns with the service call
-unclaimed.""")
+Common return path for all dispatched service handlers.
+Restores rom_svc_num from the stack (pushed by dispatch_service),
+transfers X (ROM number) to A, then returns via RTS.""")
 comment(0x8141, "Restore saved A from service dispatch", inline=True)
 comment(0x8142, "Save to workspace &A9", inline=True)
 comment(0x8144, "Return ROM number in A", inline=True)
@@ -6634,7 +6619,7 @@ label(0x045D, "release_claim_restart")  # Release Tube claim flag and restart ma
 comment(0x045D, "A=&80: reset claim flag sentinel", inline=True)
 comment(0x045F, "Clear claim-in-progress flag", inline=True)
 label(0x0464, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
-comment(0x0464, "Flush R3 data (first byte)", inline=True)
+comment(0x0464, "Poll R4 status: wait for transfer ready", inline=True)
 label(0x0473, "tube_begin")          # BEGIN: startup entry for Tube host code
 comment(0x0473, "BEGIN: enable interrupts for Tube host code", inline=True)
 comment(0x0474, "Save processor status", inline=True)

@@ -465,7 +465,7 @@ comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
 comment(0x040C, "C=1: external claim, check ownership", inline=True)
 comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
 comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-comment(0x0412, "Match: we own it, return (no release)", inline=True)
+comment(0x0412, "Not our address: return", inline=True)
 comment(0x0414, "PHP: save interrupt state for release", inline=True)
 comment(0x0415, "SEI: disable interrupts during R4 protocol", inline=True)
 comment(0x0416, "R4 cmd 5: release our address claim", inline=True)
@@ -3348,8 +3348,8 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-dangling file handles across the FS switch.""")
+OSBYTE &7B (printer driver going dormant) to release the
+Econet network printer on FS switch.""")
 
 comment(0x8351, "Copy 10 bytes: FS state to workspace backup", inline=True)
 comment(0x8359, "Offsets &15-&1D: server, handles, OPT, etc.", inline=True)

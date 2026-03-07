@@ -2268,8 +2268,8 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-dangling file handles across the FS switch.""")
+OSBYTE &7B (printer driver going dormant) to release the
+Econet network printer on FS switch.""")
 
 # ============================================================
 # Init TX control block (&8356)
@@ -4428,7 +4428,7 @@ comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
 comment(0x040C, "C=1: external claim, check ownership", inline=True)
 comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
 comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-comment(0x0412, "Match: we own it, return (no release)", inline=True)
+comment(0x0412, "Not our address: return", inline=True)
 comment(0x0420, "Store to claim-in-progress flag", inline=True)
 comment(0x0422, "Return from tube_post_init", inline=True)
 label(0x0423, "addr_claim_external")  # External address claim check (another host)
@@ -7515,6 +7515,7 @@ label(0x9CDC, "add_bytes_loop")       # 4-byte address addition loop
 
 # --- Internal conditional labels (33) ---
 label(0x046D, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
+comment(0x046D, "Poll R4 status: wait for transfer ready", inline=True)
 label(0x8114, "no_adlc_found")        # No ADLC: zero station ID, set flag
 label(0x8118, "adlc_detect_done")     # ADLC detection complete
 label(0x852D, "fs_reply_poll")        # Poll for FS reply with timeout/escape
@@ -7555,7 +7556,7 @@ label(0x9E75, "jmp_tx_result_fail")   # JMP tx_result_fail
 comment(0x041E, "&80 sentinel: clear address claim", inline=True)
 label(0x0432, "setup_data_transfer")   # Save (X,Y) as transfer addr, send type via R4
 comment(0x0449, "Send claimed address via R4", inline=True)
-comment(0x046D, "Flush R3 data (first byte)", inline=True)
+
 comment(0x0470, "Flush R3 data (second byte)", inline=True)
 subroutine(0x04CB, "tube_init_reloc", hook=None,
     title="Initialise relocation address for ROM transfer",

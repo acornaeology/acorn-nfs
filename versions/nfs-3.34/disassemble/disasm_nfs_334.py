@@ -2123,8 +2123,8 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-dangling file handles across the FS switch.""")
+OSBYTE &7B (printer driver going dormant) to release the
+Econet network printer on FS switch.""")
 
 # ============================================================
 # Init TX control block (&831C)
@@ -4370,7 +4370,7 @@ comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
 comment(0x040C, "C=1: external claim, check ownership", inline=True)
 comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
 comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-comment(0x0412, "Match: we own it, return (no release)", inline=True)
+comment(0x0412, "Not our address: return", inline=True)
 comment(0x0416, "Store to claim-in-progress flag", inline=True)
 comment(0x0418, "Return from tube_post_init", inline=True)
 label(0x0419, "addr_claim_external")  # External address claim check (another host)
@@ -4578,27 +4578,12 @@ comment(0x8139, "Dispatch to service handler", inline=True)
 comment(0x813C, "Recover service claim status from &A9", inline=True)
 comment(0x813E, "Restore saved &A8 from stack", inline=True)
 comment(0x813F, "Write back &A8", inline=True)
-subroutine(0x8141, "svc_star_command", hook=None,
-    title="Service 4: unrecognised * command",
+subroutine(0x8141, "svc_dispatch_epilogue", hook=None,
+    title="Service dispatch epilogue",
     description="""\
-The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
-PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-This is the common return path reached after any dispatched
-service handler completes.
-
-The service 4 handler entry at &81B5 (after 5 NOPs of padding)
-makes two match_rom_string calls against the ROM header, reusing
-header bytes as command strings:
-
-  X=&0C: matches "ROFF" at &8014 — the suffix of the
-         copyright string "(C)ROFF" — *ROFF (Remote Off,
-         end remote session) — falls through to net_4_resume_remote
-
-  X=5: matches "NET" at &800D — the ROM title suffix
-       — *NET (select NFS) — falls through to svc_13_select_nfs
-
-If neither matches, returns with the service call
-unclaimed.""")
+Common return path for all dispatched service handlers.
+Restores rom_svc_num from the stack (pushed by dispatch_service),
+transfers X (ROM number) to A, then returns via RTS.""")
 comment(0x8141, "Restore saved A from service dispatch", inline=True)
 comment(0x8142, "Save to workspace &A9", inline=True)
 comment(0x8144, "Return ROM number in A", inline=True)
@@ -6639,7 +6624,7 @@ label(0x045D, "release_claim_restart")  # Release Tube claim flag and restart ma
 comment(0x045D, "A=&80: reset claim flag sentinel", inline=True)
 comment(0x045F, "Clear claim-in-progress flag", inline=True)
 label(0x0464, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
-comment(0x0464, "Flush R3 data (first byte)", inline=True)
+comment(0x0464, "Poll R4 status: wait for transfer ready", inline=True)
 comment(0x0467, "V=0: skip R3 flush", inline=True)
 comment(0x0469, "Flush Tube R3 data register", inline=True)
 comment(0x046C, "Flush Tube R3 again", inline=True)
@@ -6916,8 +6901,7 @@ comment(0x849B, "Branch if flow control set", inline=True)
 comment(0x849D, "Error code: TX failed", inline=True)
 label(0x84A0, "tx_error_classify")
 comment(0x84A0, "Shift error bits right", inline=True)
-comment(0x84A4, "Fatal TX error: cannot retry", inline=True)
-comment(0x84A6, "Jump to error handler", inline=True)
+comment(0x84A4, "Y += 5 (entry point)", inline=True)
 comment(0x84AE, "Return with handle mask in A", inline=True)
 comment(0x8508, "A = function code / command", inline=True)
 comment(0x850A, "X = control block ptr lo", inline=True)
@@ -6981,18 +6965,15 @@ comment(0x85FA, "Digit 0-9: skip A-F adjustment", inline=True)
 comment(0x85FC, "Add 7 to get ASCII 'A'-'F'", inline=True)
 label(0x85FE, "print_hex_digit")
 comment(0x85FE, "ALWAYS branch to print character", inline=True)
-comment(0x8600, "X=0: start of filename buffer", inline=True)
-comment(0x8605, "CR: end of filename, print access", inline=True)
 label(0x8607, "print_filename_loop")
-comment(0x8607, "Print filename character", inline=True)
-comment(0x860B, "Loop printing filename chars", inline=True)
-comment(0x860F, "Print access attribute string", inline=True)
-comment(0x8615, "Load sequence number from reply", inline=True)
-comment(0x861B, "Print space separator", inline=True)
+comment(0x860B, "CR: pad rest of filename field", inline=True)
+comment(0x860F, "Space: also ends filename", inline=True)
+comment(0x8615, "Loop until all chars printed", inline=True)
+comment(0x861B, "Pad to 12 chars wide", inline=True)
 comment(0x8621, "Print load address as 2 hex bytes", inline=True)
-comment(0x8633, "Zero: no creation date", inline=True)
-comment(0x8635, "Print space separator", inline=True)
-comment(0x863E, "Print date byte as decimal", inline=True)
+comment(0x8633, "ALWAYS branch", inline=True)
+comment(0x8635, "X=4: print 4 bytes for address", inline=True)
+comment(0x863E, "Loop for remaining hex bytes", inline=True)
 comment(0x8644, "X=&C0: TX control block at &00C0", inline=True)
 comment(0x8646, "Set TX pointer lo", inline=True)
 comment(0x8648, "X=0: page zero", inline=True)

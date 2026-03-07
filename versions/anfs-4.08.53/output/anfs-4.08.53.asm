@@ -434,7 +434,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; bf0c: b0 1a       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; bf0e: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; bf10: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; bf12: d0 20       .   :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; bf12: d0 20       .   :0412[2]   ; Not our address: return
 ; ***************************************************************************************
 ; Release Tube address claim via R4 command 5
 ; 

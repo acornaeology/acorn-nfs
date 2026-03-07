@@ -398,7 +398,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; 936b: b0 0b       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; 936d: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 936f: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; 9371: d0 11       ..  :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; 9371: d0 11       ..  :0412[2]   ; Not our address: return
 ; &9373 referenced 1 time by &813f
 .tube_post_init
     lda #&80                                                          ; 9373: a9 80       ..  :0414[2]   ; &80 sentinel: clear address claim
@@ -458,7 +458,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 
 ; &93bb referenced 1 time by &044d[2]
 .flush_r3_nmi_check
-    bit tube_data_register_3                                          ; 93bb: 2c e5 fe    ,.. :045c[2]   ; Flush R3 data (first byte)
+    bit tube_data_register_3                                          ; 93bb: 2c e5 fe    ,.. :045c[2]   ; Poll R4 status: wait for transfer ready
     bit tube_data_register_3                                          ; 93be: 2c e5 fe    ,.. :045f[2]   ; Flush R3 data (second byte)
 .copro_ack_nmi_check
     lsr a                                                             ; 93c1: 4a          J   :0462[2]   ; LSR: check bit 0 (NMI used?)
@@ -1491,22 +1491,13 @@ svc_entry_lo = service_entry+1
     pla                                                               ; 816f: 68          h              ; Restore saved &A8 from stack
     sta nfs_temp                                                      ; 8170: 85 a8       ..             ; Write back &A8
 ; ***************************************************************************************
-; Service 4: unrecognised * command
+; Service dispatch epilogue
 ; 
-; Matches the command text against ROM string table entries.
-; Both entries reuse bytes from the ROM header to save space:
-; 
-;   X=8: matches "ROFF" at &8010 — the suffix of the
-;        copyright string "(C)ROFF" → *ROFF (Remote Off,
-;        end remote session) — jumps to net_4_resume_remote
-; 
-;   X=1: matches "NET" at &8009 — the ROM title string
-;        → *NET (select NFS) — falls through to select_nfs
-; 
-; If neither matches, returns with the service call
-; unclaimed.
+; Common return path for all dispatched service handlers.
+; Restores rom_svc_num from the stack (pushed by dispatch_service),
+; transfers X (ROM number) to A, then returns via RTS.
 ; ***************************************************************************************
-.svc_star_command
+.svc_dispatch_epilogue
     pla                                                               ; 8172: 68          h              ; Restore saved A from service dispatch
     sta rom_svc_num                                                   ; 8173: 85 a9       ..             ; Save to workspace &A9
     txa                                                               ; 8175: 8a          .              ; Return ROM number in A
@@ -1964,8 +1955,8 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-; dangling file handles across the FS switch.
+; OSBYTE &7B (printer driver going dormant) to release the
+; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
     ldy #&1d                                                          ; 8341: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup

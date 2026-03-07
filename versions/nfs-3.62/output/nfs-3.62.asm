@@ -386,7 +386,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; 936e: b0 1a       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; 9370: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 9372: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; 9374: d0 20       .   :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; 9374: d0 20       .   :0412[2]   ; Not our address: return
 ; ***************************************************************************************
 ; Release Tube address claim via R4 command 5
 ; 
@@ -2089,8 +2089,8 @@ service_handler_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-; dangling file handles across the FS switch.
+; OSBYTE &7B (printer driver going dormant) to release the
+; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
     ldy #&1d                                                          ; 8351: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup

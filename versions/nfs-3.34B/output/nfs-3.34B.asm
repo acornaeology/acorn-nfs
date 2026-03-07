@@ -403,7 +403,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; 9359: b0 0b       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; 935b: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 935d: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; 935f: d0 11       ..  :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; 935f: d0 11       ..  :0412[2]   ; Not our address: return
 ; &9361 referenced 1 time by &810e
 .tube_post_init
     lda #&80                                                          ; 9361: a9 80       ..  :0414[2]   ; &80 sentinel: clear address claim
@@ -467,7 +467,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 
 ; &93b1 referenced 3 times by &044e[2], &0452[2], &0467[2]
 .flush_r3_nmi_check
-    bit tube_status_register_4_and_cpu_control                        ; 93b1: 2c e6 fe    ,.. :0464[2]   ; Flush R3 data (first byte)
+    bit tube_status_register_4_and_cpu_control                        ; 93b1: 2c e6 fe    ,.. :0464[2]   ; Poll R4 status: wait for transfer ready
     bvc flush_r3_nmi_check                                            ; 93b4: 50 fb       P.  :0467[2]   ; V=0: skip R3 flush
     bit tube_data_register_3                                          ; 93b6: 2c e5 fe    ,.. :0469[2]   ; Flush Tube R3 data register
     bit tube_data_register_3                                          ; 93b9: 2c e5 fe    ,.. :046c[2]   ; Flush Tube R3 again
@@ -1417,28 +1417,13 @@ svc_entry_lo = service_entry+1
     pla                                                               ; 813e: 68          h              ; Restore saved &A8 from stack
     sta nfs_temp                                                      ; 813f: 85 cd       ..             ; Write back &A8
 ; ***************************************************************************************
-; Service 4: unrecognised * command
+; Service dispatch epilogue
 ; 
-; The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
-; PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-; This is the common return path reached after any dispatched
-; service handler completes.
-; 
-; The service 4 handler entry at &81B5 (after 5 NOPs of padding)
-; makes two match_rom_string calls against the ROM header, reusing
-; header bytes as command strings:
-; 
-;   X=&0C: matches "ROFF" at &8014 — the suffix of the
-;          copyright string "(C)ROFF" — *ROFF (Remote Off,
-;          end remote session) — falls through to net_4_resume_remote
-; 
-;   X=5: matches "NET" at &800D — the ROM title suffix
-;        — *NET (select NFS) — falls through to svc_13_select_nfs
-; 
-; If neither matches, returns with the service call
-; unclaimed.
+; Common return path for all dispatched service handlers.
+; Restores rom_svc_num from the stack (pushed by dispatch_service),
+; transfers X (ROM number) to A, then returns via RTS.
 ; ***************************************************************************************
-.svc_star_command
+.svc_dispatch_epilogue
     pla                                                               ; 8141: 68          h              ; Restore saved A from service dispatch
     sta rom_svc_num                                                   ; 8142: 85 ce       ..             ; Save to workspace &A9
     txa                                                               ; 8144: 8a          .              ; Return ROM number in A
@@ -1906,8 +1891,8 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-; dangling file handles across the FS switch.
+; OSBYTE &7B (printer driver going dormant) to release the
+; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
     ldy #&1d                                                          ; 82fe: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup

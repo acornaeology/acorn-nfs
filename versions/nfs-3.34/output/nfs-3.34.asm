@@ -403,7 +403,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; 9358: b0 0b       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; 935a: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 935c: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; 935e: d0 11       ..  :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; 935e: d0 11       ..  :0412[2]   ; Not our address: return
 ; &9360 referenced 1 time by &810e
 .tube_post_init
     lda #&80                                                          ; 9360: a9 80       ..  :0414[2]   ; &80 sentinel: clear address claim
@@ -467,7 +467,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 
 ; &93b0 referenced 3 times by &044e[2], &0452[2], &0467[2]
 .flush_r3_nmi_check
-    bit tube_status_register_4_and_cpu_control                        ; 93b0: 2c e6 fe    ,.. :0464[2]   ; Flush R3 data (first byte)
+    bit tube_status_register_4_and_cpu_control                        ; 93b0: 2c e6 fe    ,.. :0464[2]   ; Poll R4 status: wait for transfer ready
     bvc flush_r3_nmi_check                                            ; 93b3: 50 fb       P.  :0467[2]   ; V=0: skip R3 flush
     bit tube_data_register_3                                          ; 93b5: 2c e5 fe    ,.. :0469[2]   ; Flush Tube R3 data register
     bit tube_data_register_3                                          ; 93b8: 2c e5 fe    ,.. :046c[2]   ; Flush Tube R3 again
@@ -1416,28 +1416,13 @@ svc_entry_lo = service_entry+1
     pla                                                               ; 813e: 68          h              ; Restore saved &A8 from stack
     sta nfs_temp                                                      ; 813f: 85 cd       ..             ; Write back &A8
 ; ***************************************************************************************
-; Service 4: unrecognised * command
+; Service dispatch epilogue
 ; 
-; The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
-; PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-; This is the common return path reached after any dispatched
-; service handler completes.
-; 
-; The service 4 handler entry at &81B5 (after 5 NOPs of padding)
-; makes two match_rom_string calls against the ROM header, reusing
-; header bytes as command strings:
-; 
-;   X=&0C: matches "ROFF" at &8014 — the suffix of the
-;          copyright string "(C)ROFF" — *ROFF (Remote Off,
-;          end remote session) — falls through to net_4_resume_remote
-; 
-;   X=5: matches "NET" at &800D — the ROM title suffix
-;        — *NET (select NFS) — falls through to svc_13_select_nfs
-; 
-; If neither matches, returns with the service call
-; unclaimed.
+; Common return path for all dispatched service handlers.
+; Restores rom_svc_num from the stack (pushed by dispatch_service),
+; transfers X (ROM number) to A, then returns via RTS.
 ; ***************************************************************************************
-.svc_star_command
+.svc_dispatch_epilogue
     pla                                                               ; 8141: 68          h              ; Restore saved A from service dispatch
     sta rom_svc_num                                                   ; 8142: 85 ce       ..             ; Save to workspace &A9
     txa                                                               ; 8144: 8a          .              ; Return ROM number in A
@@ -1905,8 +1890,8 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-; dangling file handles across the FS switch.
+; OSBYTE &7B (printer driver going dormant) to release the
+; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
     ldy #&1d                                                          ; 82fd: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup
@@ -2413,11 +2398,11 @@ svc_entry_lo = service_entry+1
 
 ; &84a4 referenced 1 time by &8760
 .add_5_to_y
-    iny                                                               ; 84a4: c8          .              ; Fatal TX error: cannot retry
+    iny                                                               ; 84a4: c8          .              ; Y += 5 (entry point)
 ; &84a5 referenced 1 time by &8a4d
 .add_4_to_y
     iny                                                               ; 84a5: c8          .              ; Y += 4 (entry point)
-    iny                                                               ; 84a6: c8          .              ; Jump to error handler
+    iny                                                               ; 84a6: c8          .
     iny                                                               ; 84a7: c8          .              ; Y += 2
     iny                                                               ; 84a8: c8          .              ; Y += 1
     rts                                                               ; 84a9: 60          `              ; Return with Y adjusted
@@ -2891,24 +2876,24 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &8600 referenced 2 times by &8703, &8783
 .print_file_info
-    ldy fs_messages_flag                                              ; 8600: ac 06 0e    ...            ; X=0: start of filename buffer
+    ldy fs_messages_flag                                              ; 8600: ac 06 0e    ...
     beq return_fscv_handles                                           ; 8603: f0 d9       ..             ; No info available: return
-    ldy #0                                                            ; 8605: a0 00       ..             ; CR: end of filename, print access
+    ldy #0                                                            ; 8605: a0 00       ..
 ; &8607 referenced 1 time by &8615
 .print_filename_loop
-    lda (fs_crc_lo),y                                                 ; 8607: b1 be       ..             ; Print filename character
+    lda (fs_crc_lo),y                                                 ; 8607: b1 be       ..
     cmp #&0d                                                          ; 8609: c9 0d       ..             ; Compare with CR (end of filename)
-    beq pad_filename_spaces                                           ; 860b: f0 0a       ..             ; Loop printing filename chars
+    beq pad_filename_spaces                                           ; 860b: f0 0a       ..             ; CR: pad rest of filename field
     cmp #&20 ; ' '                                                    ; 860d: c9 20       .              ; Also end name on space character
-    beq pad_filename_spaces                                           ; 860f: f0 06       ..             ; Print access attribute string
+    beq pad_filename_spaces                                           ; 860f: f0 06       ..             ; Space: also ends filename
     jsr osasci                                                        ; 8611: 20 e3 ff     ..            ; Write character
     iny                                                               ; 8614: c8          .              ; Advance to next filename char
-    bne print_filename_loop                                           ; 8615: d0 f0       ..             ; Load sequence number from reply
+    bne print_filename_loop                                           ; 8615: d0 f0       ..             ; Loop until all chars printed
 ; &8617 referenced 3 times by &860b, &860f, &861d
 .pad_filename_spaces
     jsr print_space                                                   ; 8617: 20 40 86     @.            ; Print padding space
     iny                                                               ; 861a: c8          .              ; Advance padding counter
-    cpy #&0c                                                          ; 861b: c0 0c       ..             ; Print space separator
+    cpy #&0c                                                          ; 861b: c0 0c       ..             ; Pad to 12 chars wide
     bcc pad_filename_spaces                                           ; 861d: 90 f8       ..             ; Continue padding if < 12 chars
     ldy #5                                                            ; 861f: a0 05       ..             ; Y=5: high byte of load address
     jsr print_hex_bytes                                               ; 8621: 20 35 86     5.            ; Print load address as 2 hex bytes
@@ -2921,18 +2906,18 @@ svc_entry_lo = service_entry+1
     jsr print_hex_bytes                                               ; 862c: 20 35 86     5.            ; Print exec address bytes
     ldy #&0c                                                          ; 862f: a0 0c       ..             ; Y=&0C: file length offset
     ldx #3                                                            ; 8631: a2 03       ..             ; X=3: print 3 bytes for file length
-    bne num01                                                         ; 8633: d0 02       ..             ; Zero: no creation date; ALWAYS branch
+    bne num01                                                         ; 8633: d0 02       ..             ; ALWAYS branch
 
 ; &8635 referenced 2 times by &8621, &862c
 .print_hex_bytes
-    ldx #4                                                            ; 8635: a2 04       ..             ; Print space separator
+    ldx #4                                                            ; 8635: a2 04       ..             ; X=4: print 4 bytes for address
 ; &8637 referenced 2 times by &8633, &863e
 .num01
     lda (fs_options),y                                                ; 8637: b1 bb       ..             ; Load address/length byte
     jsr print_hex                                                     ; 8639: 20 eb 85     ..            ; Print as 2 hex digits
     dey                                                               ; 863c: 88          .              ; Move to next lower address byte
     dex                                                               ; 863d: ca          .              ; Decrement byte counter
-    bne num01                                                         ; 863e: d0 f7       ..             ; Print date byte as decimal
+    bne num01                                                         ; 863e: d0 f7       ..             ; Loop for remaining hex bytes
 ; &8640 referenced 2 times by &8617, &8d5c
 .print_space
     lda #&20 ; ' '                                                    ; 8640: a9 20       .              ; A=space: separator character

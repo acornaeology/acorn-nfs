@@ -392,7 +392,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bcs addr_claim_external                                           ; 9371: b0 1a       ..  :040c[2]   ; C=1: external claim, check ownership
     ora #&40 ; '@'                                                    ; 9373: 09 40       .@  :040e[2]   ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 9375: c5 15       ..  :0410[2]   ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; 9377: d0 20       .   :0412[2]   ; Match: we own it, return (no release)
+    bne return_tube_init                                              ; 9377: d0 20       .   :0412[2]   ; Not our address: return
 ; ***************************************************************************************
 ; Release Tube address claim via R4 command 5
 ; 
@@ -1636,28 +1636,13 @@ service_handler_lo = service_entry+1
     pla                                                               ; 8199: 68          h              ; Restore saved &A8 from stack
     sta ws_page                                                       ; 819a: 85 a8       ..             ; Write back &A8
 ; ***************************************************************************************
-; Service 4: unrecognised * command
+; Service dispatch epilogue
 ; 
-; The first 5 bytes (&81A9-&81AF) are the service handler epilogue:
-; PLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.
-; This is the common return path reached after any dispatched
-; service handler completes.
-; 
-; The service 4 handler entry at &81B5 (after 5 NOPs of padding)
-; makes two match_rom_string calls against the ROM header, reusing
-; header bytes as command strings:
-; 
-;   X=&0C: matches "ROFF" at &8014 — the suffix of the
-;          copyright string "(C)ROFF" — *ROFF (Remote Off,
-;          end remote session) — falls through to net_4_resume_remote
-; 
-;   X=5: matches "NET" at &800D — the ROM title suffix
-;        — *NET (select NFS) — falls through to svc_13_select_nfs
-; 
-; If neither matches, returns with the service call
-; unclaimed.
+; Common return path for all dispatched service handlers.
+; Restores rom_svc_num from the stack (pushed by dispatch_service),
+; transfers X (ROM number) to A, then returns via RTS.
 ; ***************************************************************************************
-.svc_star_command
+.svc_dispatch_epilogue
     pla                                                               ; 819c: 68          h              ; Restore saved A from service dispatch
     sta svc_state                                                     ; 819d: 85 a9       ..             ; Save to workspace &A9
     txa                                                               ; 819f: 8a          .              ; Return ROM number in A
@@ -2064,8 +2049,8 @@ service_handler_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-; dangling file handles across the FS switch.
+; OSBYTE &7B (printer driver going dormant) to release the
+; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
     ldy #&1d                                                          ; 833f: a0 1d       ..             ; Copy 10 bytes: FS state to workspace backup

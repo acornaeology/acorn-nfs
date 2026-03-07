@@ -2043,21 +2043,12 @@ auto-boot, any other key causes the auto-boot to be declined.""")
 # ============================================================
 # Service 4: unrecognised * command (&8168)
 # ============================================================
-subroutine(0x8168, "svc_star_command", hook=None,
-    title="Service 4: unrecognised * command",
+subroutine(0x8168, "svc_dispatch_epilogue", hook=None,
+    title="Service dispatch epilogue",
     description="""\
-Matches the command text against ROM string table entries.
-Both entries reuse bytes from the ROM header to save space:
-
-  X=8: matches "ROFF" at &8010 — the suffix of the
-       copyright string "(C)ROFF" → *ROFF (Remote Off,
-       end remote session) — jumps to net_4_resume_remote
-
-  X=1: matches "NET" at &8009 — the ROM title string
-       → *NET (select NFS) — falls through to select_nfs
-
-If neither matches, returns with the service call
-unclaimed.""")
+Common return path for all dispatched service handlers.
+Restores rom_svc_num from the stack (pushed by dispatch_service),
+transfers X (ROM number) to A, then returns via RTS.""")
 
 # ============================================================
 # Service 9: *HELP (&81ED)
@@ -2166,8 +2157,8 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (FXSPEX: close SPOOL and EXEC files) to avoid leaving
-dangling file handles across the FS switch.""")
+OSBYTE &7B (printer driver going dormant) to release the
+Econet network printer on FS switch.""")
 
 # ============================================================
 # Init TX control block (&8356)
@@ -4417,7 +4408,7 @@ comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
 comment(0x040C, "C=1: external claim, check ownership", inline=True)
 comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
 comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-comment(0x0412, "Match: we own it, return (no release)", inline=True)
+comment(0x0412, "Not our address: return", inline=True)
 comment(0x0416, "Store to claim-in-progress flag", inline=True)
 comment(0x0418, "Return from tube_post_init", inline=True)
 label(0x0419, "addr_claim_external")  # External address claim check (another host)
@@ -6885,6 +6876,7 @@ comment(0x9FF9, "Return from interrupt", inline=True)
 # ============================================================
 label(0x0020, "tube_send_zero_r2")    # Sends zero prefix via R2 to Tube
 label(0x045C, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
+comment(0x045C, "Poll R4 status: wait for transfer ready", inline=True)
 comment(0x8273, "Y=&82: ROM page high byte", inline=True)
 comment(0x8275, "Execute command string at (X, Y)", inline=True)
 label(0x84FD, "fs_reply_poll")        # Poll for FS reply with timeout/escape
@@ -7352,7 +7344,7 @@ comment(0x0453, "Discard return address (high byte)", inline=True)
 comment(0x0454, "Discard return address (low byte)", inline=True)
 comment(0x0455, "A=&80: reset claim flag sentinel", inline=True)
 comment(0x0457, "Clear claim-in-progress flag", inline=True)
-comment(0x045C, "Flush R3 data (first byte)", inline=True)
+
 comment(0x045F, "Flush R3 data (second byte)", inline=True)
 comment(0x0474, "Save processor status", inline=True)
 comment(0x0475, "Save A on stack", inline=True)
