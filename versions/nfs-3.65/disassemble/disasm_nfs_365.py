@@ -2019,14 +2019,14 @@ subroutine(0x9AC1, "rx_imm_poke", hook=None,
     description="""\
 Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-the common data-receive path at c9805.""")
+the common data-receive path at port_match_found.""")
 
 subroutine(0x9ACC, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
 Sets up a buffer at &7F21 (length #&01FC) for the machine
-type query response, then jumps to the query handler at
-c9b0f. Returns system identification data to the remote
+type query response, then branches to
+set_tx_reply_flag. Returns system identification data to the remote
 station.""")
 
 subroutine(0x9ADE, "rx_imm_peek", hook=None,
@@ -5016,7 +5016,7 @@ subroutine(0x8E3C, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
 CLC entry (SDISC): copies handles only, then jumps to
-restore_args_return via c8e27. Called when the FS reply contains
+restore_args_return via jmp_restore_args. Called when the FS reply contains
 updated handle values but no boot action is needed.""")
 comment(0x8E3C, "Copy 4 bytes: boot option + 3 handles", inline=True)
 comment(0x8E3E, "SDISC: skip boot option, copy handles only", inline=True)
@@ -8322,7 +8322,7 @@ comment(0x9ACC, "Buffer length hi = 1", inline=True)
 comment(0x9ACE, "Set buffer length hi", inline=True)
 comment(0x9AD0, "Buffer length lo = &FC", inline=True)
 comment(0x9AD2, "Set buffer length lo", inline=True)
-comment(0x9AD4, "Buffer start lo = &25", inline=True)
+comment(0x9AD4, "Buffer start lo = &21", inline=True)
 comment(0x9AD6, "Set port buffer lo", inline=True)
 comment(0x9AD8, "Buffer hi = &7F (below screen)", inline=True)
 comment(0x9ADA, "Set port buffer hi", inline=True)

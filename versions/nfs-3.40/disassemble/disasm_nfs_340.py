@@ -1385,7 +1385,7 @@ subroutine(0x9AB3, "rx_imm_poke", hook=None,
     description="""\
 Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-the common data-receive path at c9805.""")
+the common data-receive path at ack_scout_match.""")
 
 label(0x9ABE, "rx_imm_machine_type")
 subroutine(0x9ABE, "rx_imm_machine_type", hook=None,
@@ -1393,7 +1393,7 @@ subroutine(0x9ABE, "rx_imm_machine_type", hook=None,
     description="""\
 Sets up a buffer at &7F25 (length #&01FC) for the machine
 type query response, then jumps to the query handler at
-c9b0f. Returns system identification data to the remote
+set_tx_reply_flag. Returns system identification data to the remote
 station.""")
 
 label(0x9AD1, "rx_imm_peek")
@@ -1991,7 +1991,7 @@ Intercepts three service calls before normal dispatch:
   &FE: Tube init -- explode character definitions
   &FF: Full init -- vector setup, copy code to RAM, select NFS
   &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8146.""")
+All other service calls < &0D dispatch via dispatch.""")
 
 # ============================================================
 # Init: set up vectors and copy code (&8140)
@@ -2937,7 +2937,7 @@ subroutine(0x8E2B, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
 CLC entry (SDISC): copies handles only, then jumps to
-restore_args_return via c8e27. Called when the FS reply contains
+restore_args_return via jmp_restore_args. Called when the FS reply contains
 updated handle values but no boot action is needed.""")
 
 # ============================================================
@@ -3527,7 +3527,7 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
   &0414: tube_post_init — called after ROM→RAM copy
   &0473: BEGIN — startup/CLI entry, break type check
-  &04D2: sub_c04d2 — extract relocation address from ROM table""")
+  &04CB: tube_init_reloc — initialise relocation address for ROM transfer""")
 
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",

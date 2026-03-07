@@ -2739,13 +2739,13 @@ subroutine(0x8CF7, "fsreply_5_set_lib", hook=None,
     title="Set library handle",
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
-Falls through to c8cff (JMP c892c) if Y is non-zero.""")
+Falls through to set_handle_return (JMP restore_args_return) if Y is non-zero.""")
 
 subroutine(0x8CFC, "fsreply_3_set_csd", hook=None,
     title="Set CSD handle",
     description="""\
 Stores Y into &0E03 (current selected directory handle).
-Falls through to c8cff (JMP c892c).""")
+Falls through to set_handle_return (JMP restore_args_return).""")
 
 # ============================================================
 # Boot option table and "I AM" handler (&8D02-&8D1E)
@@ -2795,7 +2795,7 @@ two callers avoids duplicating the handle-copy loop.""")
 subroutine(0x8D20, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
-CLC entry (SDISC): copies handles only, then jumps to c8cff.
+CLC entry (SDISC): copies handles only, then jumps to set_handle_return.
 Called when the FS reply contains updated handle values
 but no boot action is needed.""")
 
@@ -2887,7 +2887,7 @@ subroutine(0x8DAF, "net_1_read_handle", hook=None,
     description="""\
 Reads a file handle byte from offset &6F in the RX buffer
 (net_rx_ptr), stores it in &F0, then falls through to the
-common handle workspace cleanup at c8dda (clear rom_svc_num).""")
+common handle workspace cleanup at clear_svc_return.""")
 
 subroutine(0x8DB7, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",
@@ -2934,7 +2934,7 @@ subroutine(0x8DF2, "net_4_resume_remote", hook=None,
     description="""\
 Calls resume_after_remote (&8146) to re-enable the keyboard
 and send a completion notification. The BVC always branches
-to c8dda (clear rom_svc_num) since resume_after_remote
+to clear_svc_return since resume_after_remote
 returns with V clear (from CLV in prepare_cmd_clv).""")
 
 # NMI handler init — ROM code copies to page &04/&05/&06

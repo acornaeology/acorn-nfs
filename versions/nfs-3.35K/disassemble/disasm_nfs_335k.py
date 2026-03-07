@@ -2887,7 +2887,7 @@ two callers avoids duplicating the handle-copy loop.""")
 subroutine(0x8E21, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
-CLC entry (SDISC): copies handles only, then jumps to c8cff.
+CLC entry (SDISC): copies handles only, then jumps to jmp_restore_args.
 Called when the FS reply contains updated handle values
 but no boot action is needed.""")
 
@@ -2964,8 +2964,7 @@ subroutine(0x8E3B, "net_1_read_handle", hook=None,
     title="*NET1: read file handle from received packet",
     description="""\
 Reads a file handle byte from offset &6F in the RX buffer
-(net_rx_ptr), stores it in &F0, then falls through to the
-common handle workspace cleanup at c8dda (clear rom_svc_num).""")
+(net_rx_ptr), stores it in &F0, then returns.""")
 
 subroutine(0x8E44, "calc_handle_offset", hook=None,
     title="Calculate handle workspace offset",

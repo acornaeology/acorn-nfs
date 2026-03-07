@@ -4785,7 +4785,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Copy FS reply handles to workspace (no boot)
 ; 
-; CLC entry (SDISC): copies handles only, then jumps to c8cff.
+; CLC entry (SDISC): copies handles only, then jumps to jmp_restore_args.
 ; Called when the FS reply contains updated handle values
 ; but no boot action is needed.
 ; ***************************************************************************************
@@ -4819,8 +4819,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; *NET1: read file handle from received packet
 ; 
 ; Reads a file handle byte from offset &6F in the RX buffer
-; (net_rx_ptr), stores it in &F0, then falls through to the
-; common handle workspace cleanup at c8dda (clear rom_svc_num).
+; (net_rx_ptr), stores it in &F0, then returns.
 ; ***************************************************************************************
 .net_1_read_handle
     ldy #&6f ; 'o'                                                    ; 8e3b: a0 6f       .o             ; Y=&6F: offset to handle byte in RX buf

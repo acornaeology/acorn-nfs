@@ -4395,7 +4395,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Set library handle
 ; 
 ; Stores Y into &0E04 (library directory handle in FS workspace).
-; Falls through to c8cff (JMP c892c) if Y is non-zero.
+; Falls through to set_handle_return (JMP restore_args_return) if Y is non-zero.
 ; ***************************************************************************************
 .fsreply_5_set_lib
     sty fs_lib_handle                                                 ; 8cf8: 8c 04 0e    ...            ; Store Y (library handle) to &0E04
@@ -4404,7 +4404,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Set CSD handle
 ; 
 ; Stores Y into &0E03 (current selected directory handle).
-; Falls through to c8cff (JMP c892c).
+; Falls through to set_handle_return (JMP restore_args_return).
 ; ***************************************************************************************
 .fsreply_3_set_csd
     sty fs_csd_handle                                                 ; 8cfd: 8c 03 0e    ...            ; Store Y (CSD handle) to &0E03
@@ -4471,7 +4471,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Copy FS reply handles to workspace (no boot)
 ; 
-; CLC entry (SDISC): copies handles only, then jumps to c8cff.
+; CLC entry (SDISC): copies handles only, then jumps to set_handle_return.
 ; Called when the FS reply contains updated handle values
 ; but no boot action is needed.
 ; ***************************************************************************************
@@ -4653,7 +4653,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; 
 ; Reads a file handle byte from offset &6F in the RX buffer
 ; (net_rx_ptr), stores it in &F0, then falls through to the
-; common handle workspace cleanup at c8dda (clear rom_svc_num).
+; common handle workspace cleanup at clear_svc_return.
 ; ***************************************************************************************
 .net_1_read_handle
     ldy #&6f ; 'o'                                                    ; 8db0: a0 6f       .o             ; Y=&6F: handle offset in RX buffer
@@ -4746,7 +4746,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; 
 ; Calls resume_after_remote (&8146) to re-enable the keyboard
 ; and send a completion notification. The BVC always branches
-; to c8dda (clear rom_svc_num) since resume_after_remote
+; to clear_svc_return since resume_after_remote
 ; returns with V clear (from CLV in prepare_cmd_clv).
 ; ***************************************************************************************
 .net_4_resume_remote

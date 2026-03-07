@@ -366,7 +366,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 ;   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
 ;   &0414: tube_post_init — called after ROM→RAM copy
 ;   &0473: BEGIN — startup/CLI entry, break type check
-;   &04D2: sub_c04d2 — extract relocation address from ROM table
+;   &04CB: tube_init_reloc — initialise relocation address for ROM transfer
 ; ***************************************************************************************
 ; &935d referenced 1 time by &815e
 .tube_code_page4
@@ -1493,7 +1493,7 @@ svc_entry_lo = service_entry+1
 ;   &FE: Tube init -- explode character definitions
 ;   &FF: Full init -- vector setup, copy code to RAM, select NFS
 ;   &12 (Y=5): Select NFS as active filing system
-; All other service calls < &0D dispatch via c8146.
+; All other service calls < &0D dispatch via dispatch.
 ; ***************************************************************************************
 ; &811f referenced 1 time by &811b
 .service_handler_entry
@@ -4825,7 +4825,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Copy FS reply handles to workspace (no boot)
 ; 
 ; CLC entry (SDISC): copies handles only, then jumps to
-; restore_args_return via c8e27. Called when the FS reply contains
+; restore_args_return via jmp_restore_args. Called when the FS reply contains
 ; updated handle values but no boot action is needed.
 ; ***************************************************************************************
 .fsreply_2_copy_handles
@@ -7069,7 +7069,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; 
 ; Sets up workspace offsets for receiving POKE data.
 ; port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-; the common data-receive path at c9805.
+; the common data-receive path at ack_scout_match.
 ; ***************************************************************************************
 .rx_imm_poke
     lda #&3d ; '='                                                    ; 9ab3: a9 3d       .=             ; Port workspace offset = &3D
@@ -7083,7 +7083,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; 
 ; Sets up a buffer at &7F25 (length #&01FC) for the machine
 ; type query response, then jumps to the query handler at
-; c9b0f. Returns system identification data to the remote
+; set_tx_reply_flag. Returns system identification data to the remote
 ; station.
 ; ***************************************************************************************
 .rx_imm_machine_type

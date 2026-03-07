@@ -4942,7 +4942,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; Copy FS reply handles to workspace (no boot)
 ; 
 ; CLC entry (SDISC): copies handles only, then jumps to
-; restore_args_return via c8e27. Called when the FS reply contains
+; restore_args_return via jmp_restore_args. Called when the FS reply contains
 ; updated handle values but no boot action is needed.
 ; ***************************************************************************************
 .fsreply_2_copy_handles
@@ -7245,7 +7245,7 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; 
 ; Sets up workspace offsets for receiving POKE data.
 ; port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-; the common data-receive path at c9805.
+; the common data-receive path at port_match_found.
 ; ***************************************************************************************
 .rx_imm_poke
     lda #&3d ; '='                                                    ; 9a9f: a9 3d       .=             ; Port workspace offset = &3D
@@ -7257,10 +7257,9 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response, then jumps to the query handler at
-; c9b0f. Returns system identification data to the remote
-; station.
+; Sets up a buffer at &7F25 (length #&01FC) for the machine
+; type query response, then branches to set_tx_reply_flag.
+; Returns system identification data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9aaa: a9 01       ..             ; Buffer length hi = 1

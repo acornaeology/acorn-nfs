@@ -2013,14 +2013,14 @@ subroutine(0x9A9F, "rx_imm_poke", hook=None,
     description="""\
 Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-the common data-receive path at c9805.""")
+the common data-receive path at port_match_found.""")
 
 subroutine(0x9AAA, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length #&01FC) for the machine
+Sets up a buffer at &7F25 (length #&01FC) for the machine
 type query response, then jumps to the query handler at
-c9b0f. Returns system identification data to the remote
+set_tx_reply_flag. Returns system identification data to the remote
 station.""")
 
 subroutine(0x9ABC, "rx_imm_peek", hook=None,
@@ -5034,7 +5034,7 @@ subroutine(0x8E39, "fsreply_2_copy_handles", hook=None,
     title="Copy FS reply handles to workspace (no boot)",
     description="""\
 CLC entry (SDISC): copies handles only, then jumps to
-restore_args_return via c8e27. Called when the FS reply contains
+restore_args_return via jmp_restore_args. Called when the FS reply contains
 updated handle values but no boot action is needed.""")
 comment(0x8E39, "Copy 4 bytes: boot option + 3 handles", inline=True)
 comment(0x8E3B, "SDISC: skip boot option, copy handles only", inline=True)

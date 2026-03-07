@@ -4928,7 +4928,7 @@ boot_string_offsets = boot_option_offsets+1
 ; Copy FS reply handles to workspace (no boot)
 ; 
 ; CLC entry (SDISC): copies handles only, then jumps to
-; restore_args_return via c8e27. Called when the FS reply contains
+; restore_args_return via jmp_restore_args. Called when the FS reply contains
 ; updated handle values but no boot action is needed.
 ; ***************************************************************************************
 .fsreply_2_copy_handles
@@ -7226,7 +7226,7 @@ svc5_dispatch_lo = sub_c9abe+1
 ; 
 ; Sets up workspace offsets for receiving POKE data.
 ; port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-; the common data-receive path at c9805.
+; the common data-receive path at port_match_found.
 ; ***************************************************************************************
 .rx_imm_poke
     lda #&3d ; '='                                                    ; 9ac1: a9 3d       .=             ; Port workspace offset = &3D
@@ -7239,8 +7239,8 @@ svc5_dispatch_lo = sub_c9abe+1
 ; RX immediate: machine type query
 ; 
 ; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response, then jumps to the query handler at
-; c9b0f. Returns system identification data to the remote
+; type query response, then branches to
+; set_tx_reply_flag. Returns system identification data to the remote
 ; station.
 ; ***************************************************************************************
 .rx_imm_machine_type
@@ -7248,7 +7248,7 @@ svc5_dispatch_lo = sub_c9abe+1
     sta port_buf_len_hi                                               ; 9ace: 85 a3       ..             ; Set buffer length hi
     lda #&fc                                                          ; 9ad0: a9 fc       ..             ; Buffer length lo = &FC
     sta port_buf_len                                                  ; 9ad2: 85 a2       ..             ; Set buffer length lo
-    lda #&21 ; '!'                                                    ; 9ad4: a9 21       .!             ; Buffer start lo = &25
+    lda #&21 ; '!'                                                    ; 9ad4: a9 21       .!             ; Buffer start lo = &21
     sta open_port_buf                                                 ; 9ad6: 85 a4       ..             ; Set port buffer lo
     lda #&7f                                                          ; 9ad8: a9 7f       ..             ; Buffer hi = &7F (below screen)
     sta open_port_buf_hi                                              ; 9ada: 85 a5       ..             ; Set port buffer hi
