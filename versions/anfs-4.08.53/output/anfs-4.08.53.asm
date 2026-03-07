@@ -2250,7 +2250,7 @@ service_handler_lo = service_entry+1
     sta port_buf_len_hi                                               ; 8490: 85 a3       ..             ; Set buffer length hi
     lda net_rx_ptr_hi                                                 ; 8492: a5 9d       ..             ; Load RX page hi for buffer
     sta open_port_buf_hi                                              ; 8494: 85 a5       ..             ; Set port buffer hi
-    ldy #1                                                            ; 8496: a0 01       ..             ; Y=3: copy 4 bytes (3 down to 0)
+    ldy #1                                                            ; 8496: a0 01       ..             ; Y=1: copy 2 bytes (1 down to 0)
 ; &8498 referenced 1 time by &849f
 .copy_addr_loop
     lda scout_data,y                                                  ; 8498: b9 32 0d    .2.            ; Load remote address byte
@@ -2325,7 +2325,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     sta econet_control23_or_status2                                   ; 84e2: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #2                                                            ; 84e5: a9 02       ..             ; NMI handler lo byte (self-modifying)
-    ldy #&85                                                          ; 84e7: a0 85       ..             ; Y=&9B: dispatch table page
+    ldy #&85                                                          ; 84e7: a0 85       ..             ; Y=&85: NMI handler high byte
     jmp ack_tx_write_dest                                             ; 84e9: 4c fd 82    L..            ; Acknowledge and write TX dest
 
 ; ***************************************************************************************
