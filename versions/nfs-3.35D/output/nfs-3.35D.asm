@@ -2282,7 +2282,7 @@ svc_entry_lo = service_entry+1
     tax                                                               ; 8431: aa          .              ; X=File handle
     lda #osbyte_read_write_exec_file_handle                           ; 8432: a9 c6       ..             ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 8434: 20 f4 ff     ..            ; Read/Write *EXEC file handle
-    lda #&f1                                                          ; 8437: a9 f1       ..             ; ')': offset into "SP." string at &8529
+    lda #&f1                                                          ; 8437: a9 f1       ..             ; A=&F1: OSCLI "SP." string at &84F1
     cpy fs_spool_handle                                               ; 8439: c4 ba       ..             ; Y=value of *SPOOL file handle
     beq close_spool_exec                                              ; 843b: f0 06       ..             ; Match: close SPOOL file
     lda #&f5                                                          ; 843d: a9 f5       ..             ; A=&F5: offset for 'E.' string
@@ -6367,7 +6367,7 @@ osword_12_handler = restore_rx_flags+2
     sta tx_flags                                                      ; 9715: 8d 4a 0d    .J.            ; Store broadcast flag in TX flags
 ; &9718 referenced 1 time by &970d
 .accept_frame
-    lda #&1f                                                          ; 9718: a9 1f       ..             ; Install next NMI handler at &96DC (RX scout net byte)
+    lda #&1f                                                          ; 9718: a9 1f       ..             ; Install next NMI handler at &971F (RX scout net byte)
     ldy #&97                                                          ; 971a: a0 97       ..             ; High byte of scout net handler
     jmp set_nmi_vector                                                ; 971c: 4c 0e 0d    L..            ; Install next handler and RTI
 
@@ -6609,7 +6609,7 @@ osword_12_handler = restore_rx_flags+2
 .data_rx_setup
     lda #&82                                                          ; 9837: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 9839: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
-    lda #&43 ; 'C'                                                    ; 983c: a9 43       .C             ; Install nmi_data_rx at &97E6
+    lda #&43 ; 'C'                                                    ; 983c: a9 43       .C             ; Install nmi_data_rx at &9843
     ldy #&98                                                          ; 983e: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 9840: 4c 0e 0d    L..            ; Install nmi_data_rx and return from NMI
 
@@ -6641,8 +6641,8 @@ osword_12_handler = restore_rx_flags+2
     bpl nmi_error_dispatch                                            ; 985c: 10 36       .6             ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 985e: ad a2 fe    ...            ; Read dest network byte
     bne nmi_error_dispatch                                            ; 9861: d0 31       .1             ; Network != 0: wrong network -- error
-    lda #&6f ; 'o'                                                    ; 9863: a9 6f       .o             ; Install skip handler at &9810
-    ldy #&98                                                          ; 9865: a0 98       ..             ; High byte of &9810 handler
+    lda #&6f ; 'o'                                                    ; 9863: a9 6f       .o             ; Install skip handler at &986F
+    ldy #&98                                                          ; 9865: a0 98       ..             ; High byte of &986F handler
     bit econet_control1_or_status1                                    ; 9867: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 986a: 30 03       0.             ; Data ready: skip directly, no RTI
     jmp set_nmi_vector                                                ; 986c: 4c 0e 0d    L..            ; Install handler and return via RTI
@@ -7814,7 +7814,7 @@ sr2_test_operand = test_line_idle+2
 .tx_last_data
     lda #&3f ; '?'                                                    ; 9d97: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 9d99: 8d a1 fe    ...            ; Write to ADLC CR2
-    lda #&a3                                                          ; 9d9c: a9 a3       ..             ; Install NMI handler at &9D14 (nmi_tx_complete)
+    lda #&a3                                                          ; 9d9c: a9 a3       ..             ; Install NMI handler at &9DA3 (nmi_tx_complete)
     ldy #&9d                                                          ; 9d9e: a0 9d       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9da0: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
@@ -8011,8 +8011,8 @@ sr2_test_operand = test_line_idle+2
     sta econet_control23_or_status2                                   ; 9e8e: 8d a1 fe    ...            ; Write CR2 to close frame
     lda tx_flags                                                      ; 9e91: ad 4a 0d    .J.            ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 9e94: 10 14       ..             ; Bit7 clear: error, install saved handler
-    lda #&4a ; 'J'                                                    ; 9e96: a9 4a       .J             ; Install discard_reset_listen at &99DB
-    ldy #&9a                                                          ; 9e98: a0 9a       ..             ; High byte of &99DB handler
+    lda #&4a ; 'J'                                                    ; 9e96: a9 4a       .J             ; Install discard_reset_listen at &9A4A
+    ldy #&9a                                                          ; 9e98: a0 9a       ..             ; High byte of &9A4A handler
     jmp set_nmi_vector                                                ; 9e9a: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; &9e9d referenced 4 times by &9e28, &9e40, &9e64, &9eb6
