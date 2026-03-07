@@ -6928,7 +6928,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
 ; &9a43 referenced 2 times by &9728, &9741
 .discard_after_reset
 .install_rx_scout_handler
-    lda #&f6                                                          ; 9a43: a9 f6       ..             ; Install nmi_rx_scout (&96BF) as NMI handler
+    lda #&f6                                                          ; 9a43: a9 f6       ..             ; Install nmi_rx_scout (&96F6) as NMI handler
     ldy #&96                                                          ; 9a45: a0 96       ..             ; High byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 9a47: 4c 0e 0d    L..            ; Set NMI vector and return
 
@@ -7840,7 +7840,7 @@ sr2_test_operand = test_line_idle+2
     lda #2                                                            ; 9e3b: a9 02       ..             ; Test bit 1 of tx_flags
     bit tx_flags                                                      ; 9e3d: 2c 4a 0d    ,J.            ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 9e40: d0 07       ..             ; Bit 1 set: immediate op, use alt handler
-    lda #&50 ; 'P'                                                    ; 9e42: a9 50       .P             ; Install nmi_data_tx at &9DC8
+    lda #&50 ; 'P'                                                    ; 9e42: a9 50       .P             ; Install nmi_data_tx at &9E50
     ldy #&9e                                                          ; 9e44: a0 9e       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9e46: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 

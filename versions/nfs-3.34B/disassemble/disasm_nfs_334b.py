@@ -6293,7 +6293,7 @@ comment(0x9A39, "No Tube transfer active -- skip release", inline=True)
 comment(0x9A3D, "Release Tube claim before discarding", inline=True)
 comment(0x9A40, "Re-enter idle RX listen mode", inline=True)
 label(0x9A43, "install_rx_scout_handler") # Install RX scout NMI handler
-comment(0x9A43, "Install nmi_rx_scout (&96BF) as NMI handler", inline=True)
+comment(0x9A43, "Install nmi_rx_scout (&96F6) as NMI handler", inline=True)
 comment(0x9A45, "High byte of nmi_rx_scout", inline=True)
 comment(0x9A47, "Set NMI vector and return", inline=True)
 comment(0x9A59, "Control byte &81-&88 range check", inline=True)

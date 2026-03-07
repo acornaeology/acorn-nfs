@@ -6930,7 +6930,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
 ; &9a43 referenced 2 times by &9728, &9741
 .discard_after_reset
 .install_rx_scout_handler
-    lda #&f6                                                          ; 9a43: a9 f6       ..             ; Install nmi_rx_scout (&96BF) as NMI handler
+    lda #&f6                                                          ; 9a43: a9 f6       ..             ; Install nmi_rx_scout (&96F6) as NMI handler
     ldy #&96                                                          ; 9a45: a0 96       ..             ; High byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 9a47: 4c 0e 0d    L..            ; Set NMI vector and return
 
