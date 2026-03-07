@@ -2511,7 +2511,7 @@ comment(0x86E6, "Loop for both bytes", inline=True)
 # instead of ORA #&30 / CMP #&3A / ADC #6, and explicitly
 # calls OSASCI before returning (self-contained, no fall-through).
 label(0x9F9D, "print_hex")
-subroutine(0x9F9D, hook=None,
+subroutine(0x9F9D, "print_hex", hook=None,
     title="Print byte as two hex digits",
     description="""\
 Prints the high nibble first (via 4x LSR), then the low
@@ -2523,7 +2523,7 @@ comment(0x9FA2, "Print high nibble as hex", inline=True)
 comment(0x9FA5, "Restore byte; fall through for low nibble", inline=True)
 
 label(0x9FA6, "print_hex_nibble")
-subroutine(0x9FA6, hook=None,
+subroutine(0x9FA6, "print_hex_nibble", hook=None,
     title="Print single hex nibble",
     description="""\
 Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')
@@ -2539,7 +2539,7 @@ comment(0x9FB4, "Return", inline=True)
 
 entry(0x9FB5)
 label(0x9FB5, "ex_trampoline")
-subroutine(0x9FB5, hook=None,
+subroutine(0x9FB5, "ex_exec_trampoline", hook=None,
     title="*EX vs *EXEC disambiguation trampoline",
     description="""\
 Added in 3.62 to fix *EX matching *EXEC. The "EX" command table
@@ -2643,7 +2643,7 @@ comment(0x8646, "Jump to clear escapable flag and return", inline=True)
 # print_inline subroutine (&85D9)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
-subroutine(0x865C, hook=None,
+subroutine(0x865C, "print_inline", hook=None,
     title="Print inline string, high-bit terminated (VSTRNG)",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -2811,7 +2811,7 @@ comment(0x80F6, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch (&80D4)
 # ============================================================
-subroutine(0x80E1, hook=None,
+subroutine(0x80E1, "lang_entry_dispatch", hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. Although rom_type
@@ -2905,7 +2905,7 @@ comment(0x81A1, "Dispatch to service handler", inline=True)
 comment(0x81A4, "Recover service claim status from &A9", inline=True)
 comment(0x81A6, "Restore saved &A8 from stack", inline=True)
 comment(0x81A7, "Write back &A8", inline=True)
-subroutine(0x8123, hook=None,
+subroutine(0x8123, "service_handler_entry", hook=None,
     title="Service handler entry",
     description="""\
 Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
@@ -7265,7 +7265,7 @@ comment(0x9708, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-subroutine(0x970E, hook=None,
+subroutine(0x970E, "scout_data_loop", hook=None,
     title="Scout data reading loop",
     description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores

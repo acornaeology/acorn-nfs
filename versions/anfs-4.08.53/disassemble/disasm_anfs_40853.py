@@ -7493,7 +7493,7 @@ label(0x8E6F, "osbyte_yff")
 # ============================================================
 # Label and code-tracing hooks created by hook_subroutine() above.
 
-subroutine(0x9131,
+subroutine(0x9131, "print_inline",
     title="Print inline string, high-bit terminated",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -7515,7 +7515,7 @@ comment(0x9149, "Reload character (pointer may have been clobbered)", inline=Tru
 comment(0x914B, "Print character via OSASCI", inline=True)
 comment(0x9157, "Jump to address of high-bit byte (resumes code)", inline=True)
 
-subroutine(0x96BE,
+subroutine(0x96BE, "error_inline",
     title="Generate BRK error from inline string",
     description="""\
 Pops the return address from the stack and copies the null-terminated
@@ -7527,7 +7527,7 @@ comment(0x96BE, "Save error number in Y", inline=True)
 comment(0x96BF, "Pop return address (low) — points to last byte of JSR", inline=True)
 comment(0x96C2, "Pop return address (high)", inline=True)
 
-subroutine(0x96BB,
+subroutine(0x96BB, "error_inline_log",
     title="Generate BRK error from inline string (with logging)",
     description="""\
 Like error_inline, but first conditionally logs the error code to
@@ -7536,7 +7536,7 @@ workspace via sub_c95fb before building the error block.""",
 
 comment(0x96BB, "Conditionally log error code to workspace", inline=True)
 
-subroutine(0x96A2,
+subroutine(0x96A2, "error_bad_inline",
     title="Generate 'Bad ...' BRK error from inline string",
     description="""\
 Like error_inline, but prepends 'Bad ' to the error message. Copies

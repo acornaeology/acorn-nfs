@@ -1482,6 +1482,7 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; &80e1 referenced 1 time by &8000
 .language_handler
+.lang_entry_dispatch
     cpx #5                                                            ; 80e1: e0 05       ..             ; X >= 5: invalid reason code, return
 ; &80e3 referenced 1 time by &8075
 .svc_dispatch_range
@@ -1572,6 +1573,7 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; &8123 referenced 1 time by &811f
 .check_svc_high
+.service_handler_entry
     cmp #&fe                                                          ; 8123: c9 fe       ..             ; Service >= &FE?
     bcc check_svc_12                                                  ; 8125: 90 5c       .\             ; Service < &FE: skip to &12/dispatch check
     bne init_vectors_and_copy                                         ; 8127: d0 1b       ..             ; Service &FF: full init (vectors + RAM copy)
@@ -6469,6 +6471,7 @@ cmd_match_data = fs_cmd_match_table+1
 ;     - SR2 = 0 -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
+.scout_data_loop
     ldy port_buf_len                                                  ; 970e: a4 a2       ..             ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 9710: ad a1 fe    ...            ; Read SR2
 ; &9713 referenced 1 time by &9733
@@ -9050,6 +9053,7 @@ save pydis_start, pydis_end
 ;     intoff_operand:                           1
 ;     issue_vectors_claimed:                    1
 ;     jump_via_addr:                            1
+;     lang_entry_dispatch:                      1
 ;     language_handler:                         1
 ;     language_handler_hi:                      1
 ;     language_handler_lo:                      1
@@ -9201,6 +9205,7 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
+;     service_handler_entry:                    1
 ;     service_handler_lo:                       1
 ;     set_adlc_disable:                         1
 ;     set_listen_offset:                        1

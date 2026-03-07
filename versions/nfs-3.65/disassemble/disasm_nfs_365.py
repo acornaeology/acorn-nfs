@@ -2633,7 +2633,7 @@ comment(0x8634, "Jump to clear escapable flag and return", inline=True)
 # print_inline subroutine (&85D9)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
-subroutine(0x864A, hook=None,
+subroutine(0x864A, "print_inline", hook=None,
     title="Print inline string, high-bit terminated (VSTRNG)",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -2796,7 +2796,7 @@ comment(0x80F2, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch (&80D4)
 # ============================================================
-subroutine(0x80DD, hook=None,
+subroutine(0x80DD, "lang_entry_dispatch", hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. Although rom_type
@@ -2889,7 +2889,7 @@ comment(0x8194, "Dispatch to service handler", inline=True)
 comment(0x8197, "Recover service claim status from &A9", inline=True)
 comment(0x8199, "Restore saved &A8 from stack", inline=True)
 comment(0x819A, "Write back &A8", inline=True)
-subroutine(0x8116, hook=None,
+subroutine(0x8116, "service_handler_entry", hook=None,
     title="Service handler entry",
     description="""\
 On service 1 only, probes ADLC status registers SR1 (&FEA0)
@@ -7253,7 +7253,7 @@ comment(0x9728, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-subroutine(0x972E, hook=None,
+subroutine(0x972E, "scout_data_loop", hook=None,
     title="Scout data reading loop",
     description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores
