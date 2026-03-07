@@ -3575,7 +3575,7 @@ comment(0x8436, "Error buffer at &0FE0", inline=True)
 comment(0x843D, "Restore C: selects BPUT (0) vs BGET (1)", inline=True)
 comment(0x844E, "Zero reply = success, skip error handling", inline=True)
 comment(0x8450, "Copy 32-byte reply to error buffer at &0FE0", inline=True)
-comment(0x845C, "A=&C7: read *SPOOL file handle", inline=True)
+comment(0x845C, "A=&C6: read *EXEC file handle", inline=True)
 comment(0x8461, "')': offset into \"SP.\" string at &8529", inline=True)
 comment(0x8463, "Y=value of *SPOOL file handle", inline=True)
 comment(0x8467, "'-': offset into \"E.\" string at &852D", inline=True)
@@ -5966,7 +5966,7 @@ subroutine(0x8FD5, "setup_rx_buffer_ptrs", hook=None,
 Calculates the start address of the RX data area (&F0+1) and stores
 it at workspace offset &1C. Also reads the data length from (&F0)+1
 and adds it to &F0 to compute the end address at offset &20.""")
-comment(0x8FD5, "Y=2: copy 3 bytes (indices 2,1,0)", inline=True)
+comment(0x8FD5, "Y=&1C: workspace offset for RX data start", inline=True)
 comment(0x8FD7, "A = base address low byte", inline=True)
 comment(0x8FD9, "A = base + 1 (skip length byte)", inline=True)
 comment(0x8FDE, "Read data length from (&F0)+1", inline=True)

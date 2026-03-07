@@ -2391,7 +2391,7 @@ service_handler_lo = service_entry+1
     dey                                                               ; 8446: 88          .              ; Next byte (descending)
     bpl error1                                                        ; 8447: 10 f7       ..             ; Loop until all 32 bytes copied
     tax                                                               ; 8449: aa          .              ; X=File handle
-    lda #osbyte_read_write_exec_file_handle                           ; 844a: a9 c6       ..             ; A=&C7: read *SPOOL file handle
+    lda #osbyte_read_write_exec_file_handle                           ; 844a: a9 c6       ..             ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 844c: 20 f4 ff     ..            ; Read/Write *EXEC file handle
     lda #&17                                                          ; 844f: a9 17       ..             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 8451: c4 ba       ..             ; Y=value of *SPOOL file handle
@@ -5424,7 +5424,7 @@ boot_string_offsets = boot_option_offsets+1
 ; ***************************************************************************************
 ; &8fd8 referenced 1 time by &900b
 .setup_rx_buffer_ptrs
-    ldy #&1c                                                          ; 8fd8: a0 1c       ..             ; Y=2: copy 3 bytes (indices 2,1,0)
+    ldy #&1c                                                          ; 8fd8: a0 1c       ..             ; Y=&1C: workspace offset for RX data start
     lda osword_pb_ptr                                                 ; 8fda: a5 f0       ..             ; A = base address low byte
     adc #1                                                            ; 8fdc: 69 01       i.             ; A = base + 1 (skip length byte)
     jsr store_16bit_at_y                                              ; 8fde: 20 e9 8f     ..            ; Receive data blocks until command byte = &00 or &0D

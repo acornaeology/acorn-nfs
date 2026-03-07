@@ -2430,7 +2430,7 @@ service_handler_lo = service_entry+1
     dey                                                               ; 8458: 88          .              ; Next byte (descending)
     bpl error1                                                        ; 8459: 10 f7       ..             ; Loop until all 32 bytes copied
     tax                                                               ; 845b: aa          .              ; X=File handle
-    lda #osbyte_read_write_exec_file_handle                           ; 845c: a9 c6       ..             ; A=&C7: read *SPOOL file handle
+    lda #osbyte_read_write_exec_file_handle                           ; 845c: a9 c6       ..             ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 845e: 20 f4 ff     ..            ; Read/Write *EXEC file handle
     lda #&29 ; ')'                                                    ; 8461: a9 29       .)             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 8463: c4 ba       ..             ; Y=value of *SPOOL file handle
@@ -5432,7 +5432,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &8fd5 referenced 1 time by &9008
 .setup_rx_buffer_ptrs
-    ldy #&1c                                                          ; 8fd5: a0 1c       ..             ; Y=2: copy 3 bytes (indices 2,1,0)
+    ldy #&1c                                                          ; 8fd5: a0 1c       ..             ; Y=&1C: workspace offset for RX data start
     lda osword_pb_ptr                                                 ; 8fd7: a5 f0       ..             ; A = base address low byte
     adc #1                                                            ; 8fd9: 69 01       i.             ; A = base + 1 (skip length byte)
     jsr store_16bit_at_y                                              ; 8fdb: 20 e6 8f     ..            ; Receive data blocks until command byte = &00 or &0D

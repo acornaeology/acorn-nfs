@@ -2123,7 +2123,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (close SPOOL/EXEC files) to release the
+OSBYTE &7B (printer driver going dormant) to release the
 Econet network printer on FS switch.""")
 
 # ============================================================

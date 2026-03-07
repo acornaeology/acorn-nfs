@@ -2157,7 +2157,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &77 (close SPOOL/EXEC files) to release the
+OSBYTE &7B (printer driver going dormant) to release the
 Econet network printer on FS switch.""")
 
 # ============================================================
@@ -4878,7 +4878,7 @@ comment(0x8419, "Load reply byte at offset Y", inline=True)
 comment(0x841C, "Store to error buffer at &0FE0+Y", inline=True)
 comment(0x841F, "Next byte (descending)", inline=True)
 comment(0x8420, "Loop until all 32 bytes copied", inline=True)
-comment(0x8423, "A=&C7: read *SPOOL file handle", inline=True)
+comment(0x8423, "A=&C6: read *EXEC file handle", inline=True)
 comment(0x8428, "')': offset into \"SP.\" string at &8529", inline=True)
 comment(0x842A, "Y=value of *SPOOL file handle", inline=True)
 label(0x8436, "close_spool_exec")       # BEQ: SPOOL handle matched, OSCLI close

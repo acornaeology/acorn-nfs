@@ -1913,7 +1913,7 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &77 (close SPOOL/EXEC files) to release the
+; OSBYTE &7B (printer driver going dormant) to release the
 ; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
@@ -2222,7 +2222,7 @@ svc_entry_lo = service_entry+1
     dey                                                               ; 841f: 88          .              ; Next byte (descending)
     bpl error1                                                        ; 8420: 10 f7       ..             ; Loop until all 32 bytes copied
     tax                                                               ; 8422: aa          .              ; X=File handle
-    lda #osbyte_read_write_exec_file_handle                           ; 8423: a9 c6       ..             ; A=&C7: read *SPOOL file handle
+    lda #osbyte_read_write_exec_file_handle                           ; 8423: a9 c6       ..             ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 8425: 20 f4 ff     ..            ; Read/Write *EXEC file handle
     lda #&ea                                                          ; 8428: a9 ea       ..             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 842a: c4 ba       ..             ; Y=value of *SPOOL file handle

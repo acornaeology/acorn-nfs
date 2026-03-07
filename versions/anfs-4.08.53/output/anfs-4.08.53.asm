@@ -1423,7 +1423,7 @@ service_handler_lo = service_entry+1
     cmp #&ff                                                          ; 80c2: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 80c4: d0 18       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 80c6: a9 40       .@             ; Flag &40 = broadcast frame
-    sta rx_src_net                                                    ; 80c8: 8d 3e 0d    .>.            ; Store broadcast flag in TX flags
+    sta rx_src_net                                                    ; 80c8: 8d 3e 0d    .>.            ; Store broadcast flag in rx_src_net
 ; &80cb referenced 1 time by &80c0
 .accept_frame
     lda #&d0                                                          ; 80cb: a9 d0       ..             ; Install nmi_rx_scout_net NMI handler
