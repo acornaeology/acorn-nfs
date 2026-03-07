@@ -3344,10 +3344,10 @@ Searches remote_osbyte_table for OSBYTE code A. X indexes the
 last entry to check (table is scanned X..0). Returns Z=1 if
 found. Called twice by remote_cmd_dispatch:
 
-  X=9  -> first 10 entries (NCTBPL: execute on both machines)
+  X=7  -> first 8 entries (NCTBPL: execute on both machines)
   X=14 -> all 15 entries (NCTBMI: execute on terminal only)
 
-The last 5 entries (&0F, &79, &7A, &E3, &E4) are terminal-only
+The last 7 entries (&0B, &0C, &0F, &79, &7A, &E3, &E4) are terminal-only
 because they affect the local keyboard, buffers, or function keys.
 
 On entry: A = OSBYTE code, X = table size - 1
@@ -3964,7 +3964,7 @@ and sends TX_LAST_DATA (CR2=&3F) to close the frame.""")
 
 comment(0x9970, "CR1=&44: RX_RESET | TIE (switch to TX mode)", inline=True)
 comment(0x9975, "CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE", inline=True)
-comment(0x997A, "Install saved next handler (&99BB for scout ACK)", inline=True)
+comment(0x997A, "Install saved next handler (&99C5 for scout ACK)", inline=True)
 comment(0x9984, "Load dest station from RX scout buffer", inline=True)
 comment(0x9987, "BIT SR1: test TDRA (V=bit6)", inline=True)
 comment(0x998A, "TDRA not ready -- error", inline=True)
@@ -4874,7 +4874,7 @@ comment(0x8437, "')': offset into \"SP.\" string at &8529", inline=True)
 comment(0x8439, "Y=value of *SPOOL file handle", inline=True)
 label(0x8443, "close_spool_exec")       # BEQ: SPOOL handle matched, OSCLI close
 comment(0x8443, "X = string offset for OSCLI close", inline=True)
-comment(0x8444, "Y=&85: high byte of OSCLI string in ROM", inline=True)
+comment(0x8444, "Y=&84: high byte of OSCLI string in ROM", inline=True)
 comment(0x8446, "Close SPOOL/EXEC via \"*SP.\" or \"*E.\"", inline=True)
 label(0x8449, "dispatch_fs_error")     # BNE: no handle match, reset ptr for FSERR
 comment(0x8449, "Reset CB pointer to error buffer at &0FE0", inline=True)
@@ -6028,7 +6028,7 @@ comment(0x90D8, "Load original Y (OSBYTE secondary param)", inline=True)
 comment(0x90DA, "OSBYTE &81 (INKEY): always forward to terminal", inline=True)
 comment(0x90DC, "Forward &81 to terminal for keyboard read", inline=True)
 comment(0x90DE, "Y=1: search NCTBPL table (execute on both)", inline=True)
-comment(0x90E0, "X=9: 10-entry NCTBPL table size", inline=True)
+comment(0x90E0, "X=7: 8-entry NCTBPL table size", inline=True)
 comment(0x90E2, "Search for OSBYTE code in NCTBPL table", inline=True)
 comment(0x90E5, "Match found: dispatch with Y=1 (both)", inline=True)
 comment(0x90E7, "Y=-1: search NCTBMI table (terminal only)", inline=True)
@@ -6114,7 +6114,7 @@ comment(0x9166, "A=1: single-byte TX", inline=True)
 comment(0x916B, "Restore workspace ptr", inline=True)
 comment(0x916D, "X=&0D: template offset for alt entry", inline=True)
 comment(0x916F, "Y=&7C: target workspace offset for alt entry", inline=True)
-comment(0x9171, "BIT test: V flag = bit 6 of &83B3", inline=True)
+comment(0x9171, "BIT test: V flag = bit 6 of &837E", inline=True)
 comment(0x9174, "V=1: store to (net_rx_ptr) instead", inline=True)
 comment(0x9176, "Y=&17: workspace target offset (main entry)", inline=True)
 comment(0x9178, "X=&1A: template table index (main entry)", inline=True)
@@ -6322,9 +6322,9 @@ label(0x9718, "accept_frame")         # Station ID matched, install next NMI han
 comment(0x9718, "Install next NMI handler at &96DC (RX scout net byte)", inline=True)
 label(0x9735, "accept_local_net")     # Network=0: clear broadcast marker
 label(0x9738, "accept_scout_net")     # Common accept for local/broadcast frames
-comment(0x973A, "Install scout data reading loop at &970E", inline=True)
-comment(0x9746, "Neither set -- clean end, discard via &99E8", inline=True)
-comment(0x9756, "No RDA -- error handler &96FE", inline=True)
+comment(0x973A, "Install scout data reading loop at &9751", inline=True)
+comment(0x9746, "Neither set -- clean end, discard via &974E", inline=True)
+comment(0x9756, "No RDA -- error handler &9741", inline=True)
 comment(0x977D, "Write CR1", inline=True)
 comment(0x9782, "Write CR2", inline=True)
 comment(0x9796, "Write CR1: switch to TX mode", inline=True)
@@ -6377,7 +6377,7 @@ comment(0x9848, "No AP: wrong frame or error", inline=True)
 comment(0x984A, "Read first byte (dest station)", inline=True)
 comment(0x984D, "Compare to our station ID (INTOFF)", inline=True)
 comment(0x9850, "Not for us: error path", inline=True)
-comment(0x9852, "Install net check handler at &97FA", inline=True)
+comment(0x9852, "Install net check handler at &9859", inline=True)
 comment(0x9856, "Set NMI vector via RAM shim", inline=True)
 comment(0x985C, "SR2 bit7 clear: no data ready -- error", inline=True)
 comment(0x985E, "Read dest network byte", inline=True)
@@ -6397,8 +6397,8 @@ comment(0x9885, "SR1 bit7: more data already waiting?", inline=True)
 comment(0x9888, "Yes: enter bulk read directly", inline=True)
 comment(0x988A, "No: install handler and RTI", inline=True)
 label(0x988D, "install_tube_rx")      # BNE: Tube active, install Tube RX handler
-comment(0x988D, "Tube: install Tube RX at &98A0", inline=True)
-comment(0x988F, "High byte of &98A0 handler", inline=True)
+comment(0x988D, "Tube: install Tube RX at &9901", inline=True)
+comment(0x988F, "High byte of &9901 handler", inline=True)
 comment(0x9891, "Install Tube handler and RTI", inline=True)
 comment(0x9894, "Check tx_flags for error path", inline=True)
 comment(0x9897, "Bit7 clear: RX error path", inline=True)
@@ -6476,7 +6476,7 @@ comment(0x997C, "High byte of post-ACK handler", inline=True)
 comment(0x997E, "Store next handler low byte", inline=True)
 comment(0x9981, "Store next handler high byte", inline=True)
 comment(0x9992, "Write dest net byte to FIFO", inline=True)
-comment(0x9995, "Install nmi_ack_tx_src at &9925", inline=True)
+comment(0x9995, "Install nmi_ack_tx_src at &999C", inline=True)
 comment(0x9997, "High byte of nmi_ack_tx_src", inline=True)
 comment(0x9999, "Set NMI vector to ack_tx_src handler", inline=True)
 comment(0x99B3, "Write CR2 to clear status after ACK TX", inline=True)
@@ -6547,7 +6547,7 @@ comment(0x9A4A, "Tube flag bit 1 AND tx_flags bit 1", inline=True)
 comment(0x9A4F, "No Tube transfer active -- skip release", inline=True)
 comment(0x9A53, "Release Tube claim before discarding", inline=True)
 comment(0x9A56, "Re-enter idle RX listen mode", inline=True)
-comment(0x9A59, "Install nmi_rx_scout (&96BF) as NMI handler", inline=True)
+comment(0x9A59, "Install nmi_rx_scout (&9700) as NMI handler", inline=True)
 comment(0x9A5B, "High byte of nmi_rx_scout", inline=True)
 comment(0x9A5D, "Set NMI vector and return", inline=True)
 comment(0x9A6F, "Control byte &81-&88 range check", inline=True)
@@ -6663,7 +6663,7 @@ comment(0x9CAE, "Restore X saved by caller", inline=True)
 comment(0x9CAF, "Move to X register", inline=True)
 comment(0x9CB0, "Return to TX caller", inline=True)
 comment(0x9CB6, "Write to ADLC CR1", inline=True)
-comment(0x9CB9, "Install NMI handler at &9CCC (nmi_tx_data)", inline=True)
+comment(0x9CB9, "Install NMI handler at &9D5B (nmi_tx_data)", inline=True)
 comment(0x9CBB, "High byte of NMI handler address", inline=True)
 comment(0x9CBD, "Write NMI vector low byte directly", inline=True)
 comment(0x9CC0, "Write NMI vector high byte directly", inline=True)
@@ -6719,9 +6719,9 @@ comment(0x9D9E, "High byte of handler address", inline=True)
 comment(0x9DA0, "Install and return via set_nmi_vector", inline=True)
 label(0x9DB0, "check_handshake_bit")  # BVC: tx_flags bit6 clear, check bit0
 label(0x9DBA, "install_reply_scout")  # BEQ: handshake bit0 clear, install nmi_reply_scout
-comment(0x9DBA, "Install nmi_reply_scout at &9D30", inline=True)
+comment(0x9DBA, "Install nmi_reply_scout at &9DC1", inline=True)
 comment(0x9DC8, "Read first RX byte (destination station)", inline=True)
-comment(0x9DD0, "Install nmi_reply_cont at &9D44", inline=True)
+comment(0x9DD0, "Install nmi_reply_cont at &9DD7", inline=True)
 comment(0x9DE1, "Install nmi_reply_validate at &9D5B", inline=True)
 comment(0x9DE8, "IRQ set -- fall through to &9D5B without RTI", inline=True)
 label(0x9DEF, "reject_reply")          # Reject invalid reply scout frame
@@ -6743,11 +6743,11 @@ comment(0x9E47, "Write network byte to TX FIFO", inline=True)
 comment(0x9E4A, "Test bit 1 of tx_flags", inline=True)
 comment(0x9E4C, "Check if immediate-op or data-transfer", inline=True)
 comment(0x9E4F, "Bit 1 set: immediate op, use alt handler", inline=True)
-comment(0x9E51, "Install nmi_data_tx at &9DC8", inline=True)
+comment(0x9E51, "Install nmi_data_tx at &9E5F", inline=True)
 comment(0x9E53, "High byte of handler address", inline=True)
 comment(0x9E55, "Install and return via set_nmi_vector", inline=True)
 label(0x9E58, "install_imm_data_nmi")  # BNE: tx_flags bit1 set, install nmi_imm_data
-comment(0x9E58, "Install nmi_imm_data at &9E0F", inline=True)
+comment(0x9E58, "Install nmi_data_tx_tube at &9EB3", inline=True)
 comment(0x9E5A, "High byte of handler address", inline=True)
 comment(0x9E5C, "Install and return via set_nmi_vector", inline=True)
 label(0x9E64, "data_tx_check_fifo")   # Test TDRA and write data byte pair to FIFO
@@ -7680,7 +7680,7 @@ comment(0x9A51, "A=&82: Tube release claim type", inline=True)
 subroutine(0x9A59, "install_rx_scout_handler", hook=None,
     title="Install RX scout NMI handler",
     description="""\
-Installs nmi_rx_scout (&96BF) as the NMI handler via
+Installs nmi_rx_scout (&9700) as the NMI handler via
 set_nmi_vector, without first calling adlc_rx_listen.
 Used when the ADLC is already in the correct RX mode.""")
 label(0x9A60, "copy_scout_fields")    # Copies scout fields to port workspace
