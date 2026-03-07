@@ -259,6 +259,19 @@ def check_tube_register(item, _context):
     return findings if findings else None
 
 
+def find_stale_addrs(text, known_addrs):
+    """Find &XXXX hex addresses in text that aren't in known_addrs.
+
+    Returns list of int addresses that are stale.
+    """
+    stale = []
+    for m in re.finditer(r"&([0-9A-Fa-f]{4})\b", text):
+        addr_val = int(m.group(1), 16)
+        if addr_val not in known_addrs:
+            stale.append(addr_val)
+    return stale
+
+
 def check_stale_addr(item, context):
     """Check if comment contains &XXXX that doesn't correspond to any
     known address in this version's JSON output.
@@ -266,19 +279,15 @@ def check_stale_addr(item, context):
     MEDIUM confidence.
     """
     comment = item.get("comment_inline", "")
-    known_addrs = context["known_addrs"]
-
     findings = []
-    for m in re.finditer(r"&([0-9A-Fa-f]{4})\b", comment):
-        addr_val = int(m.group(1), 16)
-        if addr_val not in known_addrs:
-            findings.append({
-                "check": "stale_addr",
-                "confidence": "MEDIUM",
-                "addr": item["addr"],
-                "message": (f"Comment contains &{addr_val:04X} which is "
-                            f"not a known address in this version"),
-            })
+    for addr_val in find_stale_addrs(comment, context["known_addrs"]):
+        findings.append({
+            "check": "stale_addr",
+            "confidence": "MEDIUM",
+            "addr": item["addr"],
+            "message": (f"Comment contains &{addr_val:04X} which is "
+                        f"not a known address in this version"),
+        })
 
     return findings if findings else None
 
@@ -291,6 +300,80 @@ ALL_CHECKS = [
     check_tube_register,
     check_stale_addr,
 ]
+
+
+# Regex to match py8dis auto-generated reference lines
+_REFERENCE_LINE_RE = re.compile(
+    r"^&[0-9A-Fa-f]+ referenced \d+ times? by "
+)
+
+
+def check_desc_stale_addr(sub, known_addrs):
+    """Check subroutine description/title/on_entry/on_exit for stale &XXXX.
+
+    MEDIUM confidence.
+    """
+    findings = []
+    addr = sub["addr"]
+
+    for field in ("description", "title"):
+        for stale in find_stale_addrs(sub.get(field, ""), known_addrs):
+            findings.append({
+                "check": "desc_stale_addr",
+                "confidence": "MEDIUM",
+                "addr": addr,
+                "message": (f"Description contains &{stale:04X} which is "
+                            f"not a known address in this version"),
+            })
+
+    for field in ("on_entry", "on_exit"):
+        obj = sub.get(field)
+        if isinstance(obj, dict):
+            for _reg, text in obj.items():
+                for stale in find_stale_addrs(str(text), known_addrs):
+                    findings.append({
+                        "check": "desc_stale_addr",
+                        "confidence": "MEDIUM",
+                        "addr": addr,
+                        "message": (f"Description {field} contains "
+                                    f"&{stale:04X} which is not a known "
+                                    f"address in this version"),
+                    })
+
+    return findings
+
+
+def check_block_stale_addr(item, known_addrs, seen):
+    """Check comments_before for stale &XXXX addresses.
+
+    Excludes py8dis-generated reference lines and *** separator lines.
+    Skips (addr, stale) pairs already in `seen` to avoid duplicating
+    desc_stale_addr findings.
+
+    MEDIUM confidence.
+    """
+    comments = item.get("comments_before", [])
+    if not comments:
+        return []
+
+    findings = []
+    addr = item["addr"]
+
+    for comment in comments:
+        if comment.startswith("*****") or _REFERENCE_LINE_RE.match(comment):
+            continue
+        for stale in find_stale_addrs(comment, known_addrs):
+            if (addr, stale) in seen:
+                continue
+            findings.append({
+                "check": "block_stale_addr",
+                "confidence": "MEDIUM",
+                "addr": addr,
+                "message": (f"Block comment contains &{stale:04X} which is "
+                            f"not a known address in this version"),
+            })
+
+    return findings
 
 
 def build_known_addrs(data):
@@ -395,6 +478,31 @@ def run_checks(data, sub_target=None):
                     findings.append(result)
 
         prev_item = item
+
+    # Check subroutine descriptions for stale addresses
+    # Track (item_addr, stale_addr) pairs to deduplicate against block comments
+    desc_seen = set()
+    for sub in data.get("subroutines", []):
+        if sub_range:
+            if sub["addr"] < sub_range[0]:
+                continue
+            if sub_range[1] is not None and sub["addr"] >= sub_range[1]:
+                continue
+        desc_findings = check_desc_stale_addr(sub, known_addrs)
+        findings.extend(desc_findings)
+        # Collect all stale addrs found at this sub's address for dedup
+        for field in ("description", "title"):
+            for stale in find_stale_addrs(sub.get(field, ""), known_addrs):
+                desc_seen.add((sub["addr"], stale))
+
+    # Check block comments (comments_before) for stale addresses
+    for item in sorted_items:
+        if sub_range:
+            if item["addr"] < sub_range[0]:
+                continue
+            if sub_range[1] is not None and item["addr"] >= sub_range[1]:
+                break
+        findings.extend(check_block_stale_addr(item, known_addrs, desc_seen))
 
     return findings
 
