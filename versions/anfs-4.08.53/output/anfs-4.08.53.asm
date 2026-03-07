@@ -1028,7 +1028,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .skip_param_read
     ldx #<(tube_osword_pb)                                            ; bdd5: a2 28       .(  :0645[4]   ; XY=&0128: param block address for OSWORD
     ldy #>(tube_osword_pb)                                            ; bdd7: a0 01       ..  :0647[4]   ; Y=&01: param block at &0128
-    jsr osword                                                        ; bdd9: 20 f1 ff     .. :0649[4]   ; Send result marker via R2
+    jsr osword                                                        ; bdd9: 20 f1 ff     .. :0649[4]   ; Execute OSWORD with XY=&0128
 ; &bddc referenced 1 time by &064f[4]
 .poll_r2_osword_result
     bit tube_status_register_2                                        ; bddc: 2c e2 fe    ,.. :064c[4]   ; Poll R2 status for ready

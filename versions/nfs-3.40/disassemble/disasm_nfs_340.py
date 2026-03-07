@@ -7515,7 +7515,7 @@ label(0x9CDC, "add_bytes_loop")       # 4-byte address addition loop
 
 # --- Internal conditional labels (33) ---
 label(0x046D, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
-comment(0x046D, "Poll R4 status: wait for transfer ready", inline=True)
+comment(0x046D, "Flush R3 data (first byte)", inline=True)
 label(0x8114, "no_adlc_found")        # No ADLC: zero station ID, set flag
 label(0x8118, "adlc_detect_done")     # ADLC detection complete
 label(0x852D, "fs_reply_poll")        # Poll for FS reply with timeout/escape
@@ -7585,7 +7585,7 @@ comment(0x063B, "Read param byte from R2", inline=True)
 comment(0x0641, "Next param byte (descending)", inline=True)
 comment(0x0642, "Loop until all params read", inline=True)
 comment(0x0647, "Y=&01: param block at &0128", inline=True)
-comment(0x0649, "Send result marker via R2", inline=True)
+comment(0x0649, "Execute OSWORD with XY=&0128", inline=True)
 comment(0x064C, "Poll R2 status for ready", inline=True)
 comment(0x064F, "Not ready: keep polling", inline=True)
 comment(0x0654, "Decrement result byte counter", inline=True)
@@ -7653,7 +7653,7 @@ comment(0x834F, "Load FS state byte at offset Y", inline=True)
 comment(0x8352, "Store to workspace backup area", inline=True)
 comment(0x8354, "Next byte down", inline=True)
 comment(0x8357, "Loop for offsets &1D..&15", inline=True)
-comment(0x8359, "A=&7B: printer driver going dormant", inline=True)
+comment(0x8359, "A=&77: OSBYTE close spool/exec", inline=True)
 subroutine(0x8383, "init_tx_reply_port", hook=None,
     title="Initialise TX control block for FS reply on port &90",
     description="""\
@@ -7825,7 +7825,7 @@ comment(0x96B7, "Load NMI vector low byte", inline=True)
 comment(0x96BA, "Check if low byte is expected value", inline=True)
 comment(0x96BC, "Mismatch: keep polling", inline=True)
 comment(0x96BE, "Load NMI vector high byte", inline=True)
-comment(0x96C1, "Check if high byte is &97", inline=True)
+comment(0x96C1, "Check if high byte is &96", inline=True)
 comment(0x96C3, "Mismatch: keep polling", inline=True)
 comment(0x96C5, "BIT INTOFF: disable NMIs", inline=True)
 comment(0x96E9, "Write CR1: RIE | TX_RESET", inline=True)
@@ -8068,7 +8068,7 @@ comment(0x82C3, "Next page for NFS workspace", inline=True)
 comment(0x82C4, "Store page as NFS workspace high", inline=True)
 
 # fscv_6_shutdown (&834D)
-comment(0x8382, "Mark TX semaphore as available", inline=True)
+comment(0x8382, "Return with Z flag result", inline=True)
 
 # check_escape_handler (&854D)
 comment(0x854D, "Test escape flag (bit 7)", inline=True)

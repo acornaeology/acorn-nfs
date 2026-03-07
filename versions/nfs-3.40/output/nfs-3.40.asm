@@ -452,7 +452,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 
 ; &93ca referenced 1 time by &045e[2]
 .flush_r3_nmi_check
-    bit tube_data_register_3                                          ; 93ca: 2c e5 fe    ,.. :046d[2]   ; Poll R4 status: wait for transfer ready
+    bit tube_data_register_3                                          ; 93ca: 2c e5 fe    ,.. :046d[2]   ; Flush R3 data (first byte)
     bit tube_data_register_3                                          ; 93cd: 2c e5 fe    ,.. :0470[2]   ; Flush R3 data (second byte)
 .copro_ack_nmi_check
     lsr a                                                             ; 93d0: 4a          J   :0473[2]   ; LSR: check bit 0 (NMI used?)
@@ -941,7 +941,7 @@ tube_osword = tube_osbyte_short+1
 .skip_param_read
     ldx #<(l0128)                                                     ; 959b: a2 28       .(  :0645[4]   ; XY=&0128: param block address for OSWORD
     ldy #>(l0128)                                                     ; 959d: a0 01       ..  :0647[4]   ; Y=&01: param block at &0128
-    jsr osword                                                        ; 959f: 20 f1 ff     .. :0649[4]   ; Send result marker via R2
+    jsr osword                                                        ; 959f: 20 f1 ff     .. :0649[4]   ; Execute OSWORD with XY=&0128
 ; &95a2 referenced 1 time by &064f[4]
 .poll_r2_osword_result
     bit tube_status_register_2                                        ; 95a2: 2c e2 fe    ,.. :064c[4]   ; Poll R2 status for ready
@@ -2024,7 +2024,7 @@ svc_entry_lo = service_entry+1
     dey                                                               ; 8354: 88          .              ; Next byte down
     cpy #&14                                                          ; 8355: c0 14       ..             ; Offsets &15-&1D: server, handles, OPT, etc.
     bne fsdiel                                                        ; 8357: d0 f6       ..             ; Loop for offsets &1D..&15
-    lda #osbyte_close_spool_exec                                      ; 8359: a9 77       .w             ; A=&7B: printer driver going dormant
+    lda #osbyte_close_spool_exec                                      ; 8359: a9 77       .w             ; A=&77: OSBYTE close spool/exec
     jmp osbyte                                                        ; 835b: 4c f4 ff    L..            ; Close any *SPOOL and *EXEC files
 
 ; &835e referenced 2 times by &81b3, &81e8
@@ -2057,7 +2057,7 @@ svc_entry_lo = service_entry+1
     cmp #&20 ; ' '                                                    ; 837c: c9 20       .              ; Is it a space?
     beq skip_space_next                                               ; 837e: f0 f9       ..             ; Yes: keep skipping
     eor #&0d                                                          ; 8380: 49 0d       I.             ; XOR with CR: Z=1 if end of line
-    rts                                                               ; 8382: 60          `              ; Mark TX semaphore as available
+    rts                                                               ; 8382: 60          `              ; Return with Z flag result
 
 ; ***************************************************************************************
 ; Initialise TX control block for FS reply on port &90
@@ -6207,7 +6207,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     cmp #&f2                                                          ; 96ba: c9 f2       ..             ; Check if low byte is expected value
     bne nmi_vec_lo_match                                              ; 96bc: d0 f9       ..             ; Mismatch: keep polling
     lda nmi_jmp_hi                                                    ; 96be: ad 0d 0d    ...            ; Load NMI vector high byte
-    cmp #&96                                                          ; 96c1: c9 96       ..             ; Check if high byte is &97
+    cmp #&96                                                          ; 96c1: c9 96       ..             ; Check if high byte is &96
     bne nmi_vec_lo_match                                              ; 96c3: d0 f2       ..             ; Mismatch: keep polling
     bit station_id_disable_net_nmis                                   ; 96c5: 2c 18 fe    ,..            ; BIT INTOFF: disable NMIs
 ; ***************************************************************************************

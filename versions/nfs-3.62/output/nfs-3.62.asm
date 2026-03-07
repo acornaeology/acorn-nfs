@@ -975,7 +975,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .skip_param_read
     ldx #<(tube_osword_pb)                                            ; 95a7: a2 28       .(  :0645[4]   ; XY=&0128: param block address for OSWORD
     ldy #>(tube_osword_pb)                                            ; 95a9: a0 01       ..  :0647[4]   ; Y=&01: param block at &0128
-    jsr osword                                                        ; 95ab: 20 f1 ff     .. :0649[4]   ; Send result marker via R2
+    jsr osword                                                        ; 95ab: 20 f1 ff     .. :0649[4]   ; Execute OSWORD with XY=&0128
 ; &95ae referenced 1 time by &064f[4]
 .poll_r2_osword_result
     bit tube_status_register_2                                        ; 95ae: 2c e2 fe    ,.. :064c[4]   ; Poll R2 status for ready
@@ -2101,7 +2101,7 @@ service_handler_lo = service_entry+1
     dey                                                               ; 8358: 88          .              ; Next byte down
     cpy #&14                                                          ; 8359: c0 14       ..             ; Offsets &15-&1D: server, handles, OPT, etc.
     bne fsdiel                                                        ; 835b: d0 f6       ..             ; Loop for offsets &1D..&15
-    lda #osbyte_close_spool_exec                                      ; 835d: a9 77       .w             ; A=&7B: printer driver going dormant
+    lda #osbyte_close_spool_exec                                      ; 835d: a9 77       .w             ; A=&77: OSBYTE close spool/exec
     jmp osbyte                                                        ; 835f: 4c f4 ff    L..            ; Close any *SPOOL and *EXEC files
 
 ; &8362 referenced 2 times by &81b7, &81ec
@@ -2141,7 +2141,7 @@ service_handler_lo = service_entry+1
     cmp #&20 ; ' '                                                    ; 8380: c9 20       .              ; Is it a space?
     beq skip_space_next                                               ; 8382: f0 f9       ..             ; Yes: keep skipping
     eor #&0d                                                          ; 8384: 49 0d       I.             ; XOR with CR: Z=1 if end of line
-    rts                                                               ; 8386: 60          `              ; Mark TX semaphore as available
+    rts                                                               ; 8386: 60          `              ; Return with Z flag result
 
 ; ***************************************************************************************
 ; Initialise TX control block for FS reply on port &90
