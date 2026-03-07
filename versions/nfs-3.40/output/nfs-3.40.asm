@@ -1972,7 +1972,7 @@ svc_entry_lo = service_entry+1
 ; 
 ; Reads the ROM pointer table base address via OSBYTE &A8, stores
 ; it in osrdsc_ptr (&F6). Sets NETV low byte to &36. Then copies
-; one 3-byte extended vector entry (addr=&9074, rom=current) into
+; one 3-byte extended vector entry (addr=&9076, rom=current) into
 ; the ROM pointer table at offset &36, installing osword_dispatch
 ; as the NETV handler.
 ; ***************************************************************************************
@@ -2275,7 +2275,7 @@ svc_entry_lo = service_entry+1
 ; Handle BPUT/BGET file byte I/O
 ; 
 ; BPUTV enters at &83DC (CLC; fall through) and BGETV enters
-; at &852E (SEC; JSR here). The carry flag is preserved via
+; at &855C (SEC; JSR here). The carry flag is preserved via
 ; PHP/PLP through the call chain and tested later (BCS) to
 ; select byte-stream transmission (BSXMIT) vs normal FS
 ; transmission (FSXMIT) -- a control-flow encoding using
@@ -2687,7 +2687,7 @@ svc_entry_lo = service_entry+1
 ; masks to 6 bits, then falls through to the shared bitmask
 ; builder. Converts fileserver protection format (5-6 bits) to
 ; BBC OSFILE attribute format (8 bits) via the lookup table at
-; &85CE. The two formats use different bit layouts for file
+; &85FA. The two formats use different bit layouts for file
 ; protection attributes.
 ; ***************************************************************************************
 ; &85dd referenced 2 times by &88b7, &88e2
@@ -2702,7 +2702,7 @@ svc_entry_lo = service_entry+1
 ; Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)
 ; 
 ; Masks A to 5 bits and builds an access bitmask via the
-; lookup table at &85CE. Each input bit position maps to a
+; lookup table at &85FA. Each input bit position maps to a
 ; different output bit via the table. The conversion is done
 ; by iterating through the source bits and OR-ing in the
 ; corresponding destination bits from the table, translating
@@ -3770,7 +3770,7 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; FINDV handler (OSFIND entry point)
 ; 
-;   A=0: close file -- delegates to close_handle (&89AE)
+;   A=0: close file -- delegates to close_handle (&89CC)
 ;   A>0: open file -- modes &40=read, &80=write/update, &C0=read/write
 ; For open: the mode byte is converted to the fileserver's two-flag
 ; format by flipping bit 7 (EOR #&80) and shifting. This produces
@@ -4456,10 +4456,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Option name encoding: the boot option names ("Off",
 ; "Load", "Run", "Exec") are scattered through the code rather
 ; than stored as a contiguous table. They are addressed via
-; base+offset from return_9 (&8CE0), whose first four bytes
-; (starting with the RTS opcode &60) double as the offset table:
-;   &60→&8D40 "Off", &73→&8D53 "Load",
-;   &9B→&8D7B "Run", &18→&8CF8 "Exec"
+; base+offset from boot_option_text (&8D08), whose first four
+; bytes are the offset table:
+;   &6A→&8D72 "Off", &7D→&8D85 "Load",
+;   &A5→&8DAD "Run", &18→&8D20 "Exec"
 ; Each string is terminated by the next instruction's opcode
 ; having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).
 .return_9
@@ -4943,7 +4943,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; 
 ; Subtracts &0F from the command code in &EF, giving a 0-4 index
 ; for OSWORD calls &0F-&13 (15-19). Falls through to the
-; PHA/PHA/RTS dispatch at &8E80.
+; PHA/PHA/RTS dispatch at &8E97.
 ; ***************************************************************************************
 .svc_8_osword
     lda osbyte_a_copy                                                 ; 8e7f: a5 ef       ..             ; Command code from &EF
@@ -5068,7 +5068,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Reads the buffer size from workspace offset JSRSIZ, then copies
 ; that many bytes. After the copy, clears the old LSTAT byte via
 ; CLRJSR to reset the protection status. Also provides READRB as
-; a sub-entry (&8EE7) to return just the buffer size and args size
+; a sub-entry (&8EE9) to return just the buffer size and args size
 ; without copying the data.
 ; ***************************************************************************************
 .osword_11_handler
@@ -5781,13 +5781,13 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Control block initialisation template
 ; 
-; Read by the loop at &9176, indexed by X from a starting value
+; Read by the loop at &9181, indexed by X from a starting value
 ; down to 0. Values are stored into either (nfs_workspace) or
 ; (net_rx_ptr) at offset Y, depending on the V flag.
 ; 
 ; Two entry paths read different slices of this table:
 ;   ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0
-;   ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &8374
+;   ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &83AF
 ; 
 ; Sentinel values:
 ;   &FE = stop processing
@@ -6287,7 +6287,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Reads the second byte of an incoming scout (destination network).
 ; Checks for network match: 0 = local network (accept), &FF = broadcast
 ; (accept and flag), anything else = reject.
-; Installs the scout data reading loop handler at &9747.
+; Installs the scout data reading loop handler at &9743.
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 9711: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -6315,10 +6315,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Scout error/discard handler
 ; 
-; Reached when the scout data loop sees no RDA (BPL at &9756) or
+; Reached when the scout data loop sees no RDA (BPL at &9748) or
 ; when scout completion finds unexpected SR2 state.
-; If SR2 & &81 is non-zero (AP or RDA still active), performs full
-; ADLC reset and discards. If zero (clean end), discards via &9A56.
+; Reads SR2 and tests AP|RDA bits. If non-zero, performs full
+; ADLC reset and discards. If zero (clean end), discards via scout_discard.
 ; This path is a common landing for any unexpected ADLC state during
 ; scout reception.
 ; ***************************************************************************************
@@ -6340,18 +6340,17 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Reads the body of a scout frame, two bytes per iteration. Stores
 ; bytes at &0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 ; Between each pair it checks SR2:
-;   - SR2 & &81 tested at entry (&974A): AP|RDA bits
-;     - Neither set (BEQ) -> discard (&974E -> &9A56)
-;     - AP without RDA (BPL) -> error (&9741)
+;   - SR2 read at entry (&9745)
+;     - No RDA (BPL) -> error (&9733)
 ;     - RDA set (BMI) -> read byte
-;   - After first byte (&9755): full SR2 tested
-;     - SR2 non-zero (BNE) -> scout completion (&977B)
+;   - After first byte (&9751): full SR2 tested
+;     - SR2 non-zero (BNE) -> scout completion (&976D)
 ;       This is the FV detection point: when FV is set (by inline refill
 ;       of the last byte during the preceding RX FIFO read), SR2 is
 ;       non-zero and the branch is taken.
 ;     - SR2 = 0 -> read second byte and loop
-;   - After second byte (&9769): re-test SR2 & &81 for next pair
-;     - RDA set (BMI) -> loop back to &974E
+;   - After second byte (&9765): re-test SR2 for next pair
+;     - RDA set (BMI) -> loop back to &974A
 ;     - Neither set -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
@@ -6386,8 +6385,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ;   CR1=&00 (clear all enables)
 ;   CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits
 ; Then checks FV (bit1) and RDA (bit7):
-;   - No FV (BEQ) -> error &9741 (not a valid frame end)
-;   - FV set, no RDA (BPL) -> error &9741 (missing last byte)
+;   - No FV (BEQ) -> error &9733 (not a valid frame end)
+;   - FV set, no RDA (BPL) -> error &9733 (missing last byte)
 ;   - FV set, RDA set -> read last byte, process scout
 ; After reading the last byte, the complete scout buffer (&0D3D-&0D48)
 ; contains: src_stn, src_net, ctrl, port [, extra_data...].
@@ -6520,8 +6519,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; against our station address, then installs continuation handlers
 ; to read the remaining data payload into the open port buffer.
 ; 
-; Handler chain: &9843 (AP+addr check) -> &9859 (net=0 check) ->
-; &986F (skip ctrl+port) -> &98A4 (bulk data read) -> &98D8 (completion)
+; Handler chain: &9821 (AP+addr check) -> &9837 (net=0 check) ->
+; &984D (skip ctrl+port) -> &9880 (bulk data read) -> &98B4 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 9821: a9 01       ..             ; A=&01: mask for AP (Address Present)
@@ -6554,8 +6553,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ; 
-; Selects either the normal bulk RX handler (&9843) or the Tube
-; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+; Selects either the normal bulk RX handler (&9880) or the Tube
+; RX handler (&98DD) based on the Tube transfer flag in tx_flags,
 ; and installs the appropriate NMI handler.
 ; ***************************************************************************************
 ; &9858 referenced 1 time by &9f0c
@@ -6601,7 +6600,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Reads data payload bytes from the RX FIFO and stores them into
 ; the open port buffer at (open_port_buf),Y. Reads bytes in pairs
 ; (like the scout data loop), checking SR2 between each pair.
-; SR2 non-zero (FV or other) -> frame completion at &98D8.
+; SR2 non-zero (FV or other) -> frame completion at &98B4.
 ; SR2 = 0 -> RTI, wait for next NMI to continue.
 ; ***************************************************************************************
 ; &9880 referenced 1 time by &9866
@@ -6643,10 +6642,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Data frame completion
 ; 
 ; Reached when SR2 non-zero during data RX (FV detected).
-; Same pattern as scout completion (&977B): disables PSE (CR1=&00,
+; Same pattern as scout completion (&976D): disables PSE (CR1=&00,
 ; CR2=&84), then tests FV and RDA. If FV+RDA, reads the last byte.
 ; If extra data available and buffer space remains, stores it.
-; Proceeds to send the final ACK via &9968.
+; Proceeds to send the final ACK via &9944.
 ; ***************************************************************************************
 ; &98b4 referenced 3 times by &9885, &989a, &98aa
 .data_rx_complete
@@ -6733,7 +6732,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; ACK transmission
 ; 
 ; Sends a scout ACK or final ACK frame as part of the four-way handshake.
-; If bit7 of &0D4A is set, this is a final ACK -> completion (&9F48).
+; If bit7 of &0D4A is set, this is a final ACK -> completion (&9F16).
 ; Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK
 ; frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).
 ; The ACK frame has no data payload -- just address bytes.
@@ -6943,7 +6942,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; Install RX scout NMI handler
 ; 
-; Installs nmi_rx_scout (&96BF) as the NMI handler via
+; Installs nmi_rx_scout (&96F2) as the NMI handler via
 ; set_nmi_vector, without first calling adlc_rx_listen.
 ; Used when the ADLC is already in the correct RX mode.
 ; ***************************************************************************************
@@ -7388,7 +7387,7 @@ tx_done_handler_hi = tx_nmi_setup+1
 ; attempting transmission. Uses a 3-byte timeout counter on the stack.
 ; The timeout (~256^3 iterations) generates "Line Jammed" if INACTIVE
 ; never appears.
-; The CTS check at &9C66-&9C6B works because CR2=&67 has RTS=0, so
+; The CTS check at &9C4D-&9C52 works because CR2=&67 has RTS=0, so
 ; cts_input_ is always true, and SR1_CTS reflects presence of clock hardware.
 ; ***************************************************************************************
 .inactive_poll
@@ -7477,7 +7476,7 @@ sr2_idle_status = test_line_idle+2
 ; TX preparation
 ; 
 ; Configures ADLC for transmission: asserts RTS via CR2, enables TIE via CR1,
-; installs NMI TX handler at &9D5B, and re-enables NMIs.
+; installs NMI TX handler at &9D2D, and re-enables NMIs.
 ; ***************************************************************************************
 ; &9c89 referenced 1 time by &9c52
 .tx_prepare
@@ -7671,7 +7670,7 @@ sr2_idle_status = test_line_idle+2
 ; TX_LAST_DATA and frame completion
 ; 
 ; Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs
-; the TX completion NMI handler at &9DA3 which switches to RX mode.
+; the TX completion NMI handler at &9D75 which switches to RX mode.
 ; CR2=&3F = 0011_1111:
 ;   bit5: CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply)
 ;   bit4: TX_LAST_DATA -- tells ADLC this is the final data byte
@@ -7696,9 +7695,9 @@ sr2_idle_status = test_line_idle+2
 ; fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.
 ; CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).
 ; Checks workspace flags to decide next action:
-;   - bit6 set at &0D4A -> completion at &9F48
-;   - bit0 set at &0D4A -> four-way handshake data phase at &9EEC
-;   - Otherwise -> install RX reply handler at &9DC1
+;   - bit6 set at &0D4A -> completion at &9F16
+;   - bit0 set at &0D4A -> four-way handshake data phase at &9EBA
+;   - Otherwise -> install RX reply handler at &9D93
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 9d75: a9 82       ..             ; CR1=&82: TX_RESET | RIE (now in RX mode)
@@ -7743,10 +7742,10 @@ sr2_idle_status = test_line_idle+2
 ; RX reply continuation handler
 ; 
 ; Reads the second byte of the reply scout (destination network) and
-; validates it is zero (local network). Installs &9DF2 for the
+; validates it is zero (local network). Installs &9DC2 for the
 ; remaining two bytes (source station and network).
-; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9DD9.
-; If IRQ is still set, falls through directly to &9DF2 without an RTI,
+; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9DBA.
+; If IRQ is still set, falls through directly to &9DC2 without an RTI,
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive
 ; in quick succession.
 ; ***************************************************************************************
@@ -7771,10 +7770,10 @@ sr2_idle_status = test_line_idle+2
 ; Reads the source station and source network from the reply scout and
 ; validates them against the original TX destination (&0D20/&0D21).
 ; Sequence:
-;   1. Check SR2 bit7 (RDA) at &9DF2 -- must see data available
-;   2. Read source station at &9DE8, compare to &0D20 (tx_dst_stn)
-;   3. Read source network at &9DF0, compare to &0D21 (tx_dst_net)
-;   4. Check SR2 bit1 (FV) at &9DFA -- must see frame complete
+;   1. Check SR2 bit7 (RDA) at &9DC2 -- must see data available
+;   2. Read source station at &9DC7, compare to &0D20 (tx_dst_stn)
+;   3. Read source network at &9DCF, compare to &0D21 (tx_dst_net)
+;   4. Check SR2 bit1 (FV) at &9DD9 -- must see frame complete
 ; If all checks pass, the reply scout is valid and the ROM proceeds
 ; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
 ; ***************************************************************************************
@@ -7841,7 +7840,7 @@ sr2_idle_status = test_line_idle+2
 ; TX data phase: send payload
 ; 
 ; Sends the data frame payload from (open_port_buf),Y in pairs per NMI.
-; Same pattern as the NMI TX handler at &9D5B but reads from the port
+; Same pattern as the NMI TX handler at &9D2D but reads from the port
 ; buffer instead of the TX workspace. Writes two bytes per iteration,
 ; checking SR1 IRQ between pairs for tight looping.
 ; ***************************************************************************************
@@ -7944,7 +7943,7 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; Four-way handshake: switch to RX for final ACK
 ; 
 ; After the data frame TX completes, switches to RX mode (CR1=&82)
-; and installs &9EF8 to receive the final ACK from the remote station.
+; and installs &9EC6 to receive the final ACK from the remote station.
 ; ***************************************************************************************
 ; &9eba referenced 1 time by &9d89
 .handshake_await_ack
@@ -7958,12 +7957,12 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; RX final ACK handler
 ; 
 ; Receives the final ACK in a four-way handshake. Same validation
-; pattern as the reply scout handler (&9DC1-&9DF2):
-;   &9EF8: Check AP, read dest_stn, compare to our station
-;   &9F0E: Check RDA, read dest_net, validate = 0
-;   &9F24: Check RDA, read src_stn/net, compare to TX dest
-;   &9F32: Check FV for frame completion
-; On success, stores result=0 at &9F48. On any failure, error &41.
+; pattern as the reply scout handler (&9D93-&9DC2):
+;   &9EC6: Check AP, read dest_stn, compare to our station
+;   &9EDC: Check RDA, read dest_net, validate = 0
+;   &9EF2: Check RDA, read src_stn/net, compare to TX dest
+;   &9F0F: Check FV for frame completion
+; On success, stores result=0 at &9F16. On any failure, error &41.
 ; ***************************************************************************************
 .nmi_final_ack
     lda #1                                                            ; 9ec6: a9 01       ..             ; A=&01: AP mask
@@ -8017,7 +8016,7 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; 
 ; Stores result code 0 (success) into the first byte of the TX control
 ; block (nmi_tx_block),Y=0. Then sets &0D3A bit7 to signal completion
-; and calls full ADLC reset + idle listen via &9A4A.
+; and calls full ADLC reset + idle listen via &9A2E.
 ; ***************************************************************************************
 ; &9f16 referenced 2 times by &994c, &9d7f
 .tx_result_ok
@@ -8039,7 +8038,7 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; TX error handler
 ; 
 ; Stores error code (A) into the TX control block, sets &0D3A bit7
-; for completion, and returns to idle via &9A4A.
+; for completion, and returns to idle via &9A2E.
 ; Error codes: &00=success, &40=line jammed, &41=not listening,
 ; &42=net error.
 ; ***************************************************************************************
@@ -8147,10 +8146,10 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
 ; An alternate NMI handler that lives in the ROM itself rather than
 ; in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
 ; self-modifying JMP to dispatch to different handlers), this one
-; hardcodes JMP nmi_rx_scout (&9700). Used as the initial NMI handler
+; hardcodes JMP nmi_rx_scout (&96F2). Used as the initial NMI handler
 ; before the workspace has been properly set up during initialisation.
 ; Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
-; LDA romsel, STA &FE30, JMP &9700.
+; LDA romsel, STA &FE30, JMP &96F2.
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit station_id_disable_net_nmis                                   ; 9fa8: 2c 18 fe    ,..            ; INTOFF: disable NMIs while switching ROM
