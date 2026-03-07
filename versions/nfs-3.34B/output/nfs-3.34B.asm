@@ -325,17 +325,17 @@ oscli                                   = &fff7
     sty zp_temp_10                                                    ; 932a: 84 10       ..  :0038[1]   ; Save Y to temporary
 ; &932c referenced 7 times by &0048[1], &05ae[3], &05d5[3], &0623[4], &0638[4], &06a0[4], &06cd[4]
 .tube_main_loop
-    bit tube_status_register_4_and_cpu_control                        ; 932c: 2c e6 fe    ,.. :003a[1]   ; BIT R1 status: check WRCH request
+    bit tube_status_register_4_and_cpu_control                        ; 932c: 2c e6 fe    ,.. :003a[1]   ; BIT R4 status: check WRCH request
     bpl tube_poll_r2                                                  ; 932f: 10 06       ..  :003d[1]   ; R1 not ready: check R2 instead
 ; &9331 referenced 1 time by &004d[1]
 .tube_handle_wrch
-    lda tube_data_register_4                                          ; 9331: ad e7 fe    ... :003f[1]   ; Read character from Tube R1 data
+    lda tube_data_register_4                                          ; 9331: ad e7 fe    ... :003f[1]   ; Read character from Tube R4 data
     jsr nvwrch                                                        ; 9334: 20 cb ff     .. :0042[1]   ; Write character
 ; &9337 referenced 1 time by &003d[1]
 .tube_poll_r2
     bit tube_status_register_2                                        ; 9337: 2c e2 fe    ,.. :0045[1]   ; BIT R2 status: check command byte
     bpl tube_main_loop                                                ; 933a: 10 f0       ..  :0048[1]   ; R2 not ready: loop back to R1 check
-    bit tube_status_register_4_and_cpu_control                        ; 933c: 2c e6 fe    ,.. :004a[1]   ; Re-check R1: WRCH has priority over R2
+    bit tube_status_register_4_and_cpu_control                        ; 933c: 2c e6 fe    ,.. :004a[1]   ; Re-check R4: WRCH has priority over R2
     bmi tube_handle_wrch                                              ; 933f: 30 f0       0.  :004d[1]   ; R1 ready: handle WRCH first
     ldx tube_data_register_2                                          ; 9341: ae e3 fe    ... :004f[1]   ; Read command byte from Tube R2 data
     stx tube_dispatch_ptr_lo                                          ; 9344: 86 55       .U  :0052[1]   ; Self-modify JMP low byte for dispatch
@@ -4624,7 +4624,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; indirect pointer at (&0F09) to execute at the load address.
 ; ***************************************************************************************
 .fsreply_4_notify_exec
-    ldx #&0e                                                          ; 8d85: a2 0e       ..             ; X=2: OSWORD parameter block size
+    ldx #&0e                                                          ; 8d85: a2 0e       ..             ; X=&0E: OSWORD &10 parameter block size
     stx fs_block_offset                                               ; 8d87: 86 bc       ..             ; Y=0: param block offset
     lda #&10                                                          ; 8d89: a9 10       ..             ; A=&10: OSWORD &10 (open RXCB)
     sta fs_options                                                    ; 8d8b: 85 bb       ..             ; Issue OSWORD &10 to open RXCB
@@ -5130,7 +5130,7 @@ post_reply_check = scan_or_read_rxcb+1
 ; ***************************************************************************************
 ; &8f58 referenced 1 time by &8f8b
 .setup_rx_buffer_ptrs
-    ldy #&28 ; '('                                                    ; 8f58: a0 28       .(             ; Y=&1C: RXCB template offset
+    ldy #&28 ; '('                                                    ; 8f58: a0 28       .(             ; Y=&28: RXCB template offset
     lda osword_pb_ptr                                                 ; 8f5a: a5 f0       ..             ; A = base address low byte
     adc #1                                                            ; 8f5c: 69 01       i.             ; A = base + 1 (skip length byte)
     jsr store_16bit_at_y                                              ; 8f5e: 20 69 8f     i.            ; Receive data blocks until command byte = &00 or &0D
@@ -5158,7 +5158,7 @@ post_reply_check = scan_or_read_rxcb+1
 .econet_tx_rx
     cmp #1                                                            ; 8f73: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
     bcs handle_tx_result                                              ; 8f75: b0 4a       .J             ; A >= 1: handle TX result
-    ldy #&2f ; '/'                                                    ; 8f77: a0 2f       ./             ; Y=&23: start of template (descending)
+    ldy #&2f ; '/'                                                    ; 8f77: a0 2f       ./             ; Y=&2F: start of template (descending)
 ; &8f79 referenced 1 time by &8f86
 .dofs01
     lda init_tx_ctrl_port,y                                           ; 8f79: b9 11 83    ...            ; Load from ROM template (zero = use NMI workspace value)
@@ -5189,12 +5189,12 @@ post_reply_check = scan_or_read_rxcb+1
     sta net_tx_ptr_hi                                                 ; 8fa2: 85 9b       ..             ; Store as TX pointer high byte
     cli                                                               ; 8fa4: 58          X              ; Enable interrupts before transmit
     jsr tx_poll_timeout                                               ; 8fa5: 20 4f 86     O.            ; Transmit with full retry
-    ldy #&2c ; ','                                                    ; 8fa8: a0 2c       .,             ; Y=&20: RX end address offset
+    ldy #&2c ; ','                                                    ; 8fa8: a0 2c       .,             ; Y=&2C: RX end address offset
     lda #&ff                                                          ; 8faa: a9 ff       ..             ; Dest station = &FFFF (accept reply from any station)
     sta (nfs_workspace),y                                             ; 8fac: 91 9e       ..             ; Store end address low byte (&FF)
     iny                                                               ; 8fae: c8          .              ; Y=&2d
     sta (nfs_workspace),y                                             ; 8faf: 91 9e       ..             ; Store end address high byte (&FF)
-    ldy #&25 ; '%'                                                    ; 8fb1: a0 25       .%             ; Y=&19: port byte in workspace RXCB
+    ldy #&25 ; '%'                                                    ; 8fb1: a0 25       .%             ; Y=&25: port byte in workspace RXCB
     lda #&90                                                          ; 8fb3: a9 90       ..             ; A=&90: FS reply port
     sta (nfs_workspace),y                                             ; 8fb5: 91 9e       ..             ; Store port to workspace RXCB
     dey                                                               ; 8fb7: 88          .              ; Y=&24
@@ -5417,7 +5417,7 @@ post_reply_check = scan_or_read_rxcb+1
     cmp #&81                                                          ; 9066: c9 81       ..             ; OSBYTE &81 (INKEY): always forward to terminal
     beq dispatch_remote_osbyte                                        ; 9068: f0 13       ..             ; Forward &81 to terminal for keyboard read
     ldy #1                                                            ; 906a: a0 01       ..             ; Y=1: search NCTBPL table (execute on both)
-    ldx #7                                                            ; 906c: a2 07       ..             ; X=9: 10-entry NCTBPL table size
+    ldx #7                                                            ; 906c: a2 07       ..             ; X=7: 8-entry NCTBPL table size
     jsr match_osbyte_code                                             ; 906e: 20 b6 90     ..            ; Search for OSBYTE code in NCTBPL table
     beq dispatch_remote_osbyte                                        ; 9071: f0 0a       ..             ; Match found: dispatch with Y=1 (both)
     dey                                                               ; 9073: 88          .              ; Y=-1: search NCTBMI table (terminal only)
@@ -5481,10 +5481,10 @@ post_reply_check = scan_or_read_rxcb+1
 ; last entry to check (table is scanned X..0). Returns Z=1 if
 ; found. Called twice by remote_cmd_dispatch:
 ; 
-;   X=9  -> first 10 entries (NCTBPL: execute on both machines)
+;   X=7  -> first 8 entries (NCTBPL: execute on both machines)
 ;   X=14 -> all 15 entries (NCTBMI: execute on terminal only)
 ; 
-; The last 5 entries (&0F, &79, &7A, &E3, &E4) are terminal-only
+; The last 7 entries (&0B, &0C, &0F, &79, &7A, &E3, &E4) are terminal-only
 ; because they affect the local keyboard, buffers, or function keys.
 ; 
 ; On entry: A = OSBYTE code, X = table size - 1
@@ -6297,7 +6297,7 @@ post_reply_check = scan_or_read_rxcb+1
 .scout_error
     lda econet_control23_or_status2                                   ; 9737: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 973a: 29 81       ).             ; Test AP (b0) | RDA (b7)
-    beq scout_discard                                                 ; 973c: f0 06       ..             ; Neither set -- clean end, discard via &99E8
+    beq scout_discard                                                 ; 973c: f0 06       ..             ; Neither set -- clean end, discard via &9A40
     jsr adlc_full_reset                                               ; 973e: 20 dc 96     ..            ; Unexpected data/status: full ADLC reset
     jmp discard_after_reset                                           ; 9741: 4c 43 9a    LC.            ; Discard and return to idle
 
@@ -6330,7 +6330,7 @@ post_reply_check = scan_or_read_rxcb+1
     lda econet_control23_or_status2                                   ; 9749: ad a1 fe    ...            ; Read SR2
 ; &974c referenced 1 time by &976c
 .scout_loop_rda
-    bpl scout_error                                                   ; 974c: 10 e9       ..             ; No RDA -- error handler &96FE
+    bpl scout_error                                                   ; 974c: 10 e9       ..             ; No RDA -- error handler &9737
     lda econet_data_continue_frame                                    ; 974e: ad a2 fe    ...            ; Read data byte from RX FIFO
     sta rx_src_stn,y                                                  ; 9751: 99 3d 0d    .=.            ; Store at &0D3D+Y (scout buffer)
     iny                                                               ; 9754: c8          .              ; Advance buffer index
@@ -6483,14 +6483,14 @@ post_reply_check = scan_or_read_rxcb+1
     sta econet_control1_or_status1                                    ; 981e: 8d a0 fe    ...            ; Write CR1: TX mode for ACK
     lda #&a7                                                          ; 9821: a9 a7       ..             ; CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE
     sta econet_control23_or_status2                                   ; 9823: 8d a1 fe    ...            ; Write CR2: enable TX with PSE
-    lda #&2d ; '-'                                                    ; 9826: a9 2d       .-             ; Install data_rx_setup at &97DC
+    lda #&2d ; '-'                                                    ; 9826: a9 2d       .-             ; Install data_rx_setup at &982D
     ldy #&98                                                          ; 9828: a0 98       ..             ; High byte of data_rx_setup handler
     jmp ack_tx_write_dest                                             ; 982a: 4c 74 99    Lt.            ; Send ACK with data_rx_setup as next NMI
 
 .data_rx_setup
     lda #&82                                                          ; 982d: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 982f: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
-    lda #&39 ; '9'                                                    ; 9832: a9 39       .9             ; Install nmi_data_rx at &97E6
+    lda #&39 ; '9'                                                    ; 9832: a9 39       .9             ; Install nmi_data_rx at &9839
     ldy #&98                                                          ; 9834: a0 98       ..             ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 9836: 4c 0e 0d    L..            ; Install nmi_data_rx and return from NMI
 
@@ -6513,8 +6513,8 @@ post_reply_check = scan_or_read_rxcb+1
     lda econet_data_continue_frame                                    ; 9840: ad a2 fe    ...            ; Read first byte (dest station)
     cmp station_id_disable_net_nmis                                   ; 9843: cd 18 fe    ...            ; Compare to our station ID (INTOFF)
     bne rx_error                                                      ; 9846: d0 42       .B             ; Not for us: error path
-    lda #&4f ; 'O'                                                    ; 9848: a9 4f       .O             ; Install net check handler at &97FA
-    ldy #&98                                                          ; 984a: a0 98       ..             ; High byte of nmi_data_rx handler
+    lda #&4f ; 'O'                                                    ; 9848: a9 4f       .O             ; Install net check handler at &984F
+    ldy #&98                                                          ; 984a: a0 98       ..             ; High byte of nmi_data_rx_net handler
     jmp set_nmi_vector                                                ; 984c: 4c 0e 0d    L..            ; Set NMI vector via RAM shim
 
 .nmi_data_rx_net
@@ -6522,8 +6522,8 @@ post_reply_check = scan_or_read_rxcb+1
     bpl rx_error                                                      ; 9852: 10 36       .6             ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 9854: ad a2 fe    ...            ; Read dest network byte
     bne rx_error                                                      ; 9857: d0 31       .1             ; Network != 0: wrong network -- error
-    lda #&65 ; 'e'                                                    ; 9859: a9 65       .e             ; Install skip handler at &9810
-    ldy #&98                                                          ; 985b: a0 98       ..             ; High byte of &9810 handler
+    lda #&65 ; 'e'                                                    ; 9859: a9 65       .e             ; Install skip handler at &9865
+    ldy #&98                                                          ; 985b: a0 98       ..             ; High byte of &9865 handler
     bit econet_control1_or_status1                                    ; 985d: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 9860: 30 03       0.             ; Data ready: skip directly, no RTI
     jmp set_nmi_vector                                                ; 9862: 4c 0e 0d    L..            ; Install handler and return via RTI
@@ -6546,16 +6546,16 @@ post_reply_check = scan_or_read_rxcb+1
     lda #2                                                            ; 9870: a9 02       ..             ; A=2: Tube transfer flag mask
     bit tx_flags                                                      ; 9872: 2c 4a 0d    ,J.            ; Check if Tube transfer active
     bne install_tube_rx                                               ; 9875: d0 0c       ..             ; Tube active: use Tube RX path
-    lda #&9a                                                          ; 9877: a9 9a       ..             ; Install bulk read at &9843
-    ldy #&98                                                          ; 9879: a0 98       ..             ; High byte of &9843 handler
+    lda #&9a                                                          ; 9877: a9 9a       ..             ; Install bulk read at &989A
+    ldy #&98                                                          ; 9879: a0 98       ..             ; High byte of &989A handler
     bit econet_control1_or_status1                                    ; 987b: 2c a0 fe    ,..            ; SR1 bit7: more data already waiting?
     bmi nmi_data_rx_bulk                                              ; 987e: 30 1a       0.             ; Yes: enter bulk read directly
     jmp set_nmi_vector                                                ; 9880: 4c 0e 0d    L..            ; No: install handler and RTI
 
 ; &9883 referenced 1 time by &9875
 .install_tube_rx
-    lda #&f7                                                          ; 9883: a9 f7       ..             ; Tube: install Tube RX at &98A0
-    ldy #&98                                                          ; 9885: a0 98       ..             ; High byte of &98A0 handler
+    lda #&f7                                                          ; 9883: a9 f7       ..             ; Tube: install Tube RX at &98F7
+    ldy #&98                                                          ; 9885: a0 98       ..             ; High byte of &98F7 handler
     jmp set_nmi_vector                                                ; 9887: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
 ; ***************************************************************************************
@@ -7842,13 +7842,13 @@ sr2_test_operand = test_line_idle+2
     lda #2                                                            ; 9e3b: a9 02       ..             ; Test bit 1 of tx_flags
     bit tx_flags                                                      ; 9e3d: 2c 4a 0d    ,J.            ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 9e40: d0 07       ..             ; Bit 1 set: immediate op, use alt handler
-    lda #&50 ; 'P'                                                    ; 9e42: a9 50       .P             ; Install nmi_data_tx at &9DC8
+    lda #&50 ; 'P'                                                    ; 9e42: a9 50       .P             ; Install nmi_data_tx at &9E50
     ldy #&9e                                                          ; 9e44: a0 9e       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9e46: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; &9e49 referenced 1 time by &9e40
 .install_imm_data_nmi
-    lda #&a4                                                          ; 9e49: a9 a4       ..             ; Install nmi_imm_data at &9E0F
+    lda #&a4                                                          ; 9e49: a9 a4       ..             ; Install nmi_data_tx_tube at &9EA4
     ldy #&9e                                                          ; 9e4b: a0 9e       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 9e4d: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
@@ -7895,8 +7895,8 @@ sr2_test_operand = test_line_idle+2
     sta econet_control23_or_status2                                   ; 9e7f: 8d a1 fe    ...            ; Write CR2 to close frame
     lda tx_flags                                                      ; 9e82: ad 4a 0d    .J.            ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 9e85: 10 14       ..             ; Bit7 clear: error, install saved handler
-    lda #&34 ; '4'                                                    ; 9e87: a9 34       .4             ; Install discard_reset_listen at &99DB
-    ldy #&9a                                                          ; 9e89: a0 9a       ..             ; High byte of &99DB handler
+    lda #&34 ; '4'                                                    ; 9e87: a9 34       .4             ; Install discard_reset_listen at &9A34
+    ldy #&9a                                                          ; 9e89: a0 9a       ..             ; High byte of &9A34 handler
     jmp set_nmi_vector                                                ; 9e8b: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; &9e8e referenced 4 times by &9e19, &9e31, &9e55, &9ea7
@@ -8001,7 +8001,7 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
     lda #&15                                                          ; 9f09: a9 15       ..             ; Install handler at &9F15 (final ACK validation)
     ldy #&9f                                                          ; 9f0b: a0 9f       ..             ; High byte of handler address
     bit econet_control1_or_status1                                    ; 9f0d: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
-    bmi nmi_final_ack_validate                                        ; 9f10: 30 03       0.             ; IRQ set -- fall through to &9E84 without RTI
+    bmi nmi_final_ack_validate                                        ; 9f10: 30 03       0.             ; IRQ set -- fall through to &9F15 without RTI
     jmp set_nmi_vector                                                ; 9f12: 4c 0e 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
