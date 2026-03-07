@@ -1212,7 +1212,7 @@ for y in range(0x81, 0x89):
 # UserProc, OSProc, machine type query) received from the network.
 
 label(0x9AB5, "rx_imm_exec")
-subroutine(0x9AB5, hook=None,
+subroutine(0x9AB5, "rx_imm_exec", hook=None,
     title="RX immediate: JSR/UserProc/OSProc setup",
     description="""\
 Sets up the port buffer to receive remote procedure data.
@@ -1222,7 +1222,7 @@ the common receive path at c9826. Used for operation types
 &83 (JSR), &84 (UserProc), and &85 (OSProc).""")
 
 label(0x9AD3, "rx_imm_poke")
-subroutine(0x9AD3, hook=None,
+subroutine(0x9AD3, "rx_imm_poke", hook=None,
     title="RX immediate: POKE setup",
     description="""\
 Sets up workspace offsets for receiving POKE data.
@@ -1230,7 +1230,7 @@ port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
 the common data-receive path at c9805.""")
 
 label(0x9ADE, "rx_imm_machine_type")
-subroutine(0x9ADE, hook=None,
+subroutine(0x9ADE, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
 Sets up a buffer at &7F21 (length #&01FC) for the machine
@@ -1239,7 +1239,7 @@ c9b0f. Returns system identification data to the remote
 station.""")
 
 label(0x9AF1, "rx_imm_peek")
-subroutine(0x9AF1, hook=None,
+subroutine(0x9AF1, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Saves the current TX block pointer, replaces it with a
@@ -1253,7 +1253,7 @@ data back to the requesting station.""")
 # Called when an outbound immediate operation TX completes.
 
 label(0x9BAA, "tx_done_jsr")
-subroutine(0x9BAA, hook=None,
+subroutine(0x9BAA, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
 Pushes address &9BEB on the stack (so RTS returns to
@@ -1262,7 +1262,7 @@ JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
 
 label(0x9BB3, "tx_done_user_proc")
-subroutine(0x9BB3, hook=None,
+subroutine(0x9BB3, "tx_done_user_proc", hook=None,
     title="TX done: UserProc event",
     description="""\
 Generates a network event (event 8) via OSEVEN with
@@ -1270,7 +1270,7 @@ X=l0d58, A=l0d59 (the remote address). This notifies
 the user program that a UserProc operation has completed.""")
 
 label(0x9BC1, "tx_done_os_proc")
-subroutine(0x9BC1, hook=None,
+subroutine(0x9BC1, "tx_done_os_proc", hook=None,
     title="TX done: OSProc call",
     description="""\
 Calls the ROM entry point at &8000 (rom_header) with
@@ -1278,7 +1278,7 @@ X=l0d58, Y=l0d59. This invokes an OS-level procedure
 on behalf of the remote station.""")
 
 label(0x9BCD, "tx_done_halt")
-subroutine(0x9BCD, hook=None,
+subroutine(0x9BCD, "tx_done_halt", hook=None,
     title="TX done: HALT",
     description="""\
 Sets bit 2 of rx_flags (&0D64), enables interrupts, and
@@ -1286,7 +1286,7 @@ spin-waits until bit 2 is cleared (by a CONTINUE from the
 remote station). If bit 2 is already set, skips to exit.""")
 
 label(0x9BE4, "tx_done_continue")
-subroutine(0x9BE4, hook=None,
+subroutine(0x9BE4, "tx_done_continue", hook=None,
     title="TX done: CONTINUE",
     description="""\
 Clears bit 2 of rx_flags (&0D64), releasing any station
@@ -1302,7 +1302,7 @@ label(0x9BEC, "tx_done_exit")
 # parameters for outbound immediate operations.
 
 label(0x9CF7, "tx_ctrl_peek")
-subroutine(0x9CF7, hook=None,
+subroutine(0x9CF7, "tx_ctrl_peek", hook=None,
     title="TX ctrl: PEEK transfer setup",
     description="""\
 Sets scout_status=3, then performs a 4-byte addition of
@@ -1312,14 +1312,14 @@ Calls tx_calc_transfer to finalise, then exits via
 tx_ctrl_exit.""")
 
 label(0x9CFB, "tx_ctrl_poke")
-subroutine(0x9CFB, hook=None,
+subroutine(0x9CFB, "tx_ctrl_poke", hook=None,
     title="TX ctrl: POKE transfer setup",
     description="""\
 Sets scout_status=2 and shares the 4-byte addition and
 transfer calculation path with tx_ctrl_peek.""")
 
 label(0x9D1A, "tx_ctrl_proc")
-subroutine(0x9D1A, hook=None,
+subroutine(0x9D1A, "tx_ctrl_proc", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -1598,7 +1598,7 @@ if fs_messages_flag is zero (no info available).""")
 # ============================================================
 # Hex printing (&8DA5 / &8DB0)
 # ============================================================
-subroutine(0x8DA5, hook=None,
+subroutine(0x8DA5, "print_hex", hook=None,
     title="Print byte as two hex digits",
     description="""\
 Prints the high nibble first (via 4× LSR), then the low
@@ -1646,7 +1646,7 @@ standard TXCB; tx_poll_core (&8675) is general-purpose.""",
 # print_inline subroutine (&85E2)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
-subroutine(0x85E2, hook=None,
+subroutine(0x85E2, "print_inline", hook=None,
     title="Print inline string, high-bit terminated (VSTRNG)",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -1799,7 +1799,7 @@ comment(0x80E9, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch (&8099)
 # ============================================================
-subroutine(0x80D4, hook=None,
+subroutine(0x80D4, "lang_entry_dispatch", hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. Although rom_type
@@ -1812,7 +1812,7 @@ comment(0x80D8, "Y=&0D: base offset for language handlers (index 14+)", inline=T
 # ============================================================
 # Service handler entry (&80EA)
 # ============================================================
-subroutine(0x80EA, hook=None,
+subroutine(0x80EA, "service_handler_entry", hook=None,
     title="Service handler entry",
     description="""\
 Checks per-ROM disable flag at &0DF0+X (new in 3.35D). If
@@ -3819,7 +3819,7 @@ comment(0x974B, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-subroutine(0x9751, hook=None,
+subroutine(0x9751, "scout_data_loop", hook=None,
     title="Scout data reading loop",
     description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores
@@ -4575,7 +4575,7 @@ comment(0x80DB, "Decrement base offset counter", inline=True)
 comment(0x80DC, "Loop until Y exhausted", inline=True)
 comment(0x80DE, "Y=&FF (no further use)", inline=True)
 label(0x80F4, "check_svc_high")         # Test service >= &FE (high-priority dispatch)
-subroutine(0x80F4, hook=None,
+subroutine(0x80F4, "check_svc_high", hook=None,
     title="Service handler: high service dispatch",
     description="""\
 Handles service calls >= &80. Compares A against &FE:
@@ -6553,7 +6553,7 @@ label(0x9A8D, "rotate_prot_mask")      # Rotate protection mask right to align p
 comment(0x9A8D, "Rotate mask right by control byte index", inline=True)
 comment(0x9A8E, "Decrement rotation counter", inline=True)
 comment(0x9A8F, "Loop until bit aligned", inline=True)
-subroutine(0x9AF7, hook=None,
+subroutine(0x9AF7, "rx_imm_peek_setup", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
@@ -6661,7 +6661,7 @@ comment(0x9CCE, "Look up tx_flags from table", inline=True)
 comment(0x9CD1, "Store operation flags", inline=True)
 comment(0x9CD4, "Look up tx_length from table", inline=True)
 comment(0x9CD7, "Store expected transfer length", inline=True)
-subroutine(0x9D0F, hook=None,
+subroutine(0x9D0F, "tx_ctrl_add_done", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -6851,7 +6851,7 @@ comment(0x9FF9, "Return from interrupt", inline=True)
 # ============================================================
 label(0x0020, "tube_send_zero_r2")    # Sends zero prefix via R2 to Tube
 label(0x0036, "tube_enter_main_loop")
-subroutine(0x0036, hook=None,
+subroutine(0x0036, "tube_enter_main_loop", hook=None,
     title="Save registers and enter Tube polling loop",
     description="""\
 Saves X and Y to zp_temp_11/zp_temp_10, then falls through
@@ -7492,7 +7492,7 @@ comment(0x96AA, "Clear TX source network byte", inline=True)
 comment(0x96AD, "INTON: re-enable NMIs (&FE20 read side effect)", inline=True)
 comment(0x96B0, "Return to caller", inline=True)
 label(0x96B1, "wait_nmi_ready")
-subroutine(0x96B1, hook=None,
+subroutine(0x96B1, "wait_nmi_ready", hook=None,
     title="Wait for NMI subsystem ready and save Econet state",
     description="""\
 Clears the TX complete flag, then polls econet_init_flag
@@ -7523,7 +7523,7 @@ comment(0x96D7, "Save TX status in RXCB", inline=True)
 label(0x96D9, "jmp_rx_listen")         # JMP adlc_rx_listen (tail-call to RX listen)
 comment(0x96D9, "Enter RX listen mode", inline=True)
 label(0x96DC, "restore_econet_state")
-subroutine(0x96DC, hook=None,
+subroutine(0x96DC, "restore_econet_state", hook=None,
     title="Restore Econet TX state and re-enter RX listen",
     description="""\
 Loads the saved tx_in_progress flag from RXCB offset 8
@@ -7968,7 +7968,7 @@ comment(0x865E, "ALWAYS branch to store updated flags", inline=True)
 
 # Subroutine promotions (3.35D-specific addresses)
 label(0x8E7A, "restore_rx_flags")
-subroutine(0x8E7A, hook=None,
+subroutine(0x8E7A, "restore_rx_flags", hook=None,
     title="Restore RX flags after close handle",
     description="""\
 Performs ROR on rx_flags to restore the carry flag state
@@ -7976,7 +7976,7 @@ that was preserved by the matching ROL in net_3_close_handle.
 Falls through to osword_12_handler (clearing fs_temp_ce).""")
 
 label(0x8EFF, "osword_12_dispatch")
-subroutine(0x8EFF, hook=None,
+subroutine(0x8EFF, "osword_12_dispatch", hook=None,
     title="OSWORD &12 sub-function dispatcher",
     description="""\
 Dispatches sub-functions 0-9 for OSWORD &12 (read/set FS
@@ -7986,7 +7986,7 @@ context handles (URD/CSD/LIB); 8 reads local station;
 9 reads JSR argument buffer size.""")
 
 label(0x90B2, "nwrch_handler")
-subroutine(0x90B2, hook=None,
+subroutine(0x90B2, "nwrch_handler", hook=None,
     title="NETVEC reason 4: write character to network (NWRCH)",
     description="""\
 Handles remote character output over the network. Clears
@@ -8223,7 +8223,7 @@ comment(0x96EB, "CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled,
 label(0x9A15, "jmp_store_rxcb")
 label(0x9A26, "load_rxcb_buf_hi")
 label(0x9A2F, "store_rxcb_completion")
-subroutine(0x9A2F, hook=None,
+subroutine(0x9A2F, "store_rxcb_completion", hook=None,
     title="Store RXCB completion fields from scout buffer",
     description="""\
 Writes source network, source station, port, and control
