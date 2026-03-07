@@ -2746,26 +2746,42 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
 ; 
-; Sets scout_status=3, then performs a 4-byte addition
-; of bytes from the TX block into the transfer parameter
-; workspace at &0D1E-&0D21 (with carry propagation).
-; Calls tx_calc_transfer to finalise, then exits via
-; tx_ctrl_exit.
+; Sets A=3 (scout_status for PEEK) and branches
+; to tx_ctrl_store_and_add to store the status and
+; perform the 4-byte transfer address addition.
 ; ***************************************************************************************
 .tx_ctrl_peek
     lda #3                                                            ; 8683: a9 03       ..             ; A=3: scout_status for PEEK op
-    bne store_status_add4                                             ; 8685: d0 02       ..             ; ALWAYS branch
+    bne tx_ctrl_store_and_add                                         ; 8685: d0 02       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; TX ctrl: POKE transfer setup
 ; 
-; Sets scout_status=2 and shares the 4-byte addition
-; and transfer calculation path with tx_ctrl_peek.
+; Sets A=2 (scout_status for POKE) and falls
+; through to tx_ctrl_store_and_add to store the
+; status and perform the 4-byte transfer address
+; addition.
 ; ***************************************************************************************
 .tx_ctrl_poke
     lda #2                                                            ; 8687: a9 02       ..             ; Scout status = 2 (POKE transfer)
+; ***************************************************************************************
+; TX ctrl: store status and add transfer address
+; 
+; Shared path for PEEK (A=3) and POKE (A=2).
+; Stores A as the scout status byte at rx_port
+; (&0D40), then performs a 4-byte addition with
+; carry propagation, adding bytes from the TXCB
+; (nmi_tx_block+&0C to +&0F) into the transfer
+; address workspace at &0D1E-&0D21. Falls through
+; to tx_ctrl_proc which checks the loop boundary,
+; then continues to tx_calc_transfer and
+; tx_ctrl_exit.
+; 
+; On Entry:
+;     A: scout status (3=PEEK, 2=POKE)
+; ***************************************************************************************
 ; &8689 referenced 1 time by &8685
-.store_status_add4
+.tx_ctrl_store_and_add
     sta rx_port                                                       ; 8689: 8d 40 0d    .@.            ; Store scout status
     clc                                                               ; 868c: 18          .              ; Clear carry for 4-byte addition
     php                                                               ; 868d: 08          .              ; Save carry on stack
@@ -16690,7 +16706,6 @@ save pydis_start, pydis_end
 ;     store_stack_byte:                         1
 ;     store_station_id:                         1
 ;     store_station_lo:                         1
-;     store_status_add4:                        1
 ;     store_status_copy_ptr:                    1
 ;     store_tx_ctrl_byte:                       1
 ;     store_tx_ptr_hi:                          1
@@ -16744,6 +16759,7 @@ save pydis_start, pydis_end
 ;     tx_check_tdra_ready:                      1
 ;     tx_ctrl_exit:                             1
 ;     tx_ctrl_range_check:                      1
+;     tx_ctrl_store_and_add:                    1
 ;     tx_data_start:                            1
 ;     tx_done_fire_event:                       1
 ;     tx_econet_txcb_template:                  1

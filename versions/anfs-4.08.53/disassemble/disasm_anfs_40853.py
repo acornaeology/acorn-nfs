@@ -1874,7 +1874,6 @@ label(0x860F, "inactive_retry")
 label(0x8625, "tx_active_start")
 label(0x8635, "tx_no_clock_error")
 label(0x8637, "store_tx_error")
-label(0x8689, "store_status_add4")
 label(0x8690, "add_bytes_loop")
 label(0x8677, "tx_ctrl_dispatch_lo")
 label(0x867F, "tx_ctrl_machine_type")
@@ -2486,15 +2485,27 @@ subroutine(0x867F, "tx_ctrl_machine_type",
     "needed for a machine type query).")
 subroutine(0x8683, "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
-    description="Sets scout_status=3, then performs a 4-byte addition\n"
-    "of bytes from the TX block into the transfer parameter\n"
-    "workspace at &0D1E-&0D21 (with carry propagation).\n"
-    "Calls tx_calc_transfer to finalise, then exits via\n"
-    "tx_ctrl_exit.")
+    description="Sets A=3 (scout_status for PEEK) and branches\n"
+    "to tx_ctrl_store_and_add to store the status and\n"
+    "perform the 4-byte transfer address addition.")
 subroutine(0x8687, "tx_ctrl_poke",
     title="TX ctrl: POKE transfer setup",
-    description="Sets scout_status=2 and shares the 4-byte addition\n"
-    "and transfer calculation path with tx_ctrl_peek.")
+    description="Sets A=2 (scout_status for POKE) and falls\n"
+    "through to tx_ctrl_store_and_add to store the\n"
+    "status and perform the 4-byte transfer address\n"
+    "addition.")
+subroutine(0x8689, "tx_ctrl_store_and_add",
+    title="TX ctrl: store status and add transfer address",
+    description="Shared path for PEEK (A=3) and POKE (A=2).\n"
+    "Stores A as the scout status byte at rx_port\n"
+    "(&0D40), then performs a 4-byte addition with\n"
+    "carry propagation, adding bytes from the TXCB\n"
+    "(nmi_tx_block+&0C to +&0F) into the transfer\n"
+    "address workspace at &0D1E-&0D21. Falls through\n"
+    "to tx_ctrl_proc which checks the loop boundary,\n"
+    "then continues to tx_calc_transfer and\n"
+    "tx_ctrl_exit.",
+    on_entry={"a": "scout status (3=PEEK, 2=POKE)"})
 subroutine(0x869B, "tx_ctrl_proc",
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="Sets scout_status=2 and calls tx_calc_transfer\n"
