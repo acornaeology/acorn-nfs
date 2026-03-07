@@ -321,8 +321,8 @@ oscli                                   = &fff7
 ; ***************************************************************************************
 ; &9327 referenced 2 times by &04ec[2], &053a[3]
 .tube_enter_main_loop
-    stx zp_temp_11                                                    ; 9327: 86 11       ..  :0036[1]   ; More pages: continue transfer
-    sty zp_temp_10                                                    ; 9329: 84 10       ..  :0038[1]   ; A=4: host-to-parasite burst
+    stx zp_temp_11                                                    ; 9327: 86 11       ..  :0036[1]   ; Save X to temporary
+    sty zp_temp_10                                                    ; 9329: 84 10       ..  :0038[1]   ; Save Y to temporary
 ; &932b referenced 7 times by &0048[1], &05ae[3], &05d5[3], &0623[4], &0638[4], &06a0[4], &06cd[4]
 .tube_main_loop
     bit tube_status_1_and_tube_control                                ; 932b: 2c e0 fe    ,.. :003a[1]   ; BIT R1 status: check WRCH request
@@ -954,7 +954,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; 9611: 20 d0 06     .. :06c5[4]   ; Send char to co-processor
     inx                                                               ; 9614: e8          .   :06c8[4]   ; Next character
-    cmp #&0d                                                          ; 9615: c9 0d       ..  :06c9[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; 9615: c9 0d       ..  :06c9[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; 9617: d0 f5       ..  :06cb[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; 9619: 4c 3a 00    L:. :06cd[4]   ; Return to main event loop
 
@@ -1511,7 +1511,7 @@ svc_entry_lo = service_entry+1
 
 ; &817d referenced 1 time by &8177
 .match_net_cmd
-    ldx #1                                                            ; 817d: a2 01       ..             ; X=5: ROM offset for "NET" match
+    ldx #1                                                            ; 817d: a2 01       ..             ; X=1: ROM offset for "NET" match
     jsr match_rom_string                                              ; 817f: 20 9b 81     ..            ; Try matching *NET command
     bne restore_y_return                                              ; 8182: d0 45       .E             ; No match: return unclaimed
 ; ***************************************************************************************
@@ -2620,7 +2620,7 @@ svc_entry_lo = service_entry+1
 ; &8565 referenced 1 time by &8582
 .scan_decimal_digit
     lda (fs_options),y                                                ; 8565: b1 bb       ..             ; Load next char from buffer
-    cmp #&40 ; '@'                                                    ; 8567: c9 40       .@             ; Letter or above?; Dot separator?
+    cmp #&40 ; '@'                                                    ; 8567: c9 40       .@             ; Letter or above?
     bcs no_dot_exit                                                   ; 8569: b0 19       ..             ; Yes: not a digit, done
     cmp #&2e ; '.'                                                    ; 856b: c9 2e       ..             ; Dot separator?
     beq parse_decimal_rts                                             ; 856d: f0 16       ..             ; Yes: exit with C=1 (dot found)
@@ -6217,7 +6217,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &96dc referenced 3 times by &9672, &973e, &9894
 .adlc_full_reset
-    lda #&c1                                                          ; 96dc: a9 c1       ..             ; CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set); High byte of NMI handler address
+    lda #&c1                                                          ; 96dc: a9 c1       ..             ; CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)
     sta econet_control1_or_status1                                    ; 96de: 8d a0 fe    ...            ; Write CR1: full reset
     lda #&1e                                                          ; 96e1: a9 1e       ..             ; CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding; CR4=&1E: 8-bit word, abort ext, NRZ
     sta econet_data_terminate_frame                                   ; 96e3: 8d a3 fe    ...            ; Write CR4 via ADLC reg 3 (AC=1)
@@ -6381,7 +6381,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &9771 referenced 2 times by &975a, &9765
 .scout_complete
-    lda #0                                                            ; 9771: a9 00       ..             ; CR1=&00: disable all interrupts; Save Y for next iteration
+    lda #0                                                            ; 9771: a9 00       ..             ; CR1=&00: disable all interrupts
     sta econet_control1_or_status1                                    ; 9773: 8d a0 fe    ...            ; Write CR1
     lda #&84                                                          ; 9776: a9 84       ..             ; CR2=&84: disable PSE, enable RDA_SUPPRESS_FV
     sta econet_control23_or_status2                                   ; 9778: 8d a1 fe    ...            ; Write CR2
@@ -6520,7 +6520,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &9865 (skip ctrl+port) -> &989A (bulk data read) -> &98CE (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 9839: a9 01       ..             ; Read SR2 for AP check; A=&01: mask for AP (Address Present)
+    lda #1                                                            ; 9839: a9 01       ..             ; A=1: AP mask for SR2 bit test; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 983b: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq rx_error                                                      ; 983e: f0 4a       .J             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 9840: ad a2 fe    ...            ; Read first byte (dest station)
@@ -6647,10 +6647,10 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &98ce referenced 3 times by &989f, &98b4, &98c4
 .data_rx_complete
-    lda #0                                                            ; 98ce: a9 00       ..             ; CR1=&00: disable all interrupts; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 98d0: 8d a0 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #&84                                                          ; 98d3: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 98d5: 8d a1 fe    ...            ; Write CR1: disable all interrupts
+    lda #0                                                            ; 98ce: a9 00       ..             ; CR1=&00: disable all interrupts
+    sta econet_control1_or_status1                                    ; 98d0: 8d a0 fe    ...            ; Write CR1
+    lda #&84                                                          ; 98d3: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing
+    sta econet_control23_or_status2                                   ; 98d5: 8d a1 fe    ...            ; Write CR2
     sty port_buf_len                                                  ; 98d8: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98da: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98dc: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
@@ -7727,7 +7727,7 @@ sr2_test_operand = test_line_idle+2
 ;   - Otherwise -> install RX reply handler at &9DB2
 ; ***************************************************************************************
 .nmi_tx_complete
-    lda #&82                                                          ; 9d94: a9 82       ..             ; CR1=&82: TX_RESET | RIE (now in RX mode); Jump to error handler
+    lda #&82                                                          ; 9d94: a9 82       ..             ; CR1=&82: TX_RESET | RIE (now in RX mode)
     sta econet_control1_or_status1                                    ; 9d96: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
     bit tx_flags                                                      ; 9d99: 2c 4a 0d    ,J.            ; Test workspace flags
     bvc check_handshake_bit                                           ; 9d9c: 50 03       P.             ; bit6 not set -- check bit0
