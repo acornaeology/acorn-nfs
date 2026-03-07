@@ -2140,7 +2140,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &7B (printer driver going dormant) to release the
+OSBYTE &77 (close SPOOL/EXEC files) to release the
 Econet network printer on FS switch.""")
 
 # ============================================================
@@ -3773,7 +3773,7 @@ comment(0x971F, "EOR &FF: test if network = &FF (broadcast)", inline=True)
 comment(0x9721, "Broadcast network -- accept", inline=True)
 comment(0x9723, "Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE", inline=True)
 
-comment(0x972B, "Network = &FF broadcast: clear &0D4A", inline=True)
+comment(0x972B, "Network = 0 (local): clear tx_flags", inline=True)
 comment(0x972E, "Store Y offset for scout data buffer", inline=True)
 comment(0x9730, "Install scout data reading loop at &9747", inline=True)
 
@@ -7012,7 +7012,7 @@ comment(0x8F27, "Enable interrupts before transmit", inline=True)
 comment(0x8F2D, "Dest station = &FFFF (accept reply from any station)", inline=True)
 comment(0x8F58, "Y=&1C: RXCB template offset", inline=True)
 comment(0x8F5E, "Receive data blocks until command byte = &00 or &0D", inline=True)
-comment(0x8F95, "Retrieve original A (function code) from stack", inline=True)
+comment(0x8F95, "Y=&04: advance to station address", inline=True)
 comment(0x8FDE, "Y=&7D: store byte for TX at offset &7D", inline=True)
 comment(0x8FE0, "Store data byte at (net_rx_ptr)+&7D for TX", inline=True)
 comment(0x8FE2, "Save data byte for &0D check after TX", inline=True)
@@ -7252,7 +7252,7 @@ label(0x9B01, "rx_imm_halt_cont")     # Handler for HALT/CONTINUE immediate ops
 comment(0x9B01, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
 comment(0x9B03, "Write CR1: enable TX interrupts", inline=True)
 label(0x9B06, "tx_cr2_setup")         # Self-modifying CR2 configuration
-comment(0x9B06, "NMI handler hi byte (self-modifying)", inline=True)
+comment(0x9B06, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", inline=True)
 comment(0x9B08, "Write CR2 for TX setup", inline=True)
 label(0x9B0B, "tx_nmi_setup")         # Self-modifying NMI handler lo byte
 comment(0x9B0B, "NMI handler lo byte (self-modifying)", inline=True)
@@ -7379,7 +7379,7 @@ comment(0x9CCF, "Look up handler address low from table", inline=True)
 comment(0x9CD2, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x9CD3, "RTS dispatches to control-byte handler", inline=True)
 label(0x9CE4, "imm_op_status3")       # Loads scout_status=3 for immediate ops
-comment(0x9CE4, "A=3: scout_status for POKE", inline=True)
+comment(0x9CE4, "A=3: scout_status for PEEK", inline=True)
 comment(0x9CE8, "A=3: scout_status for PEEK op", inline=True)
 comment(0x9CEC, "Scout status = 2 (POKE transfer)", inline=True)
 label(0x9CEE, "store_status_add4")    # Stores scout status + 4-byte addition

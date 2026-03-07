@@ -2088,7 +2088,7 @@ service_handler_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &7B (printer driver going dormant) to release the
+; OSBYTE &77 (close SPOOL/EXEC files) to release the
 ; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
@@ -2734,13 +2734,13 @@ error_msg_table = error_table_base+6
     equs "Net Error", 0                                               ; 858e: 4e 65 74... Net            ; Error string "Net Error"
     equb &a2                                                          ; 8598: a2          .              ; Error &A2: Not listening
     equs "Not listening", 0                                           ; 8599: 4e 6f 74... Not            ; Error string "Not listening"
-    equb &a3                                                          ; 85a7: a3          .              ; Error &CB: Bad Option
+    equb &a3                                                          ; 85a7: a3          .              ; Error &A3: No Clock
     equs "No Clock", 0                                                ; 85a8: 4e 6f 20... No             ; Error string "No Clock"
     equb &11                                                          ; 85b1: 11          .              ; Error &11: Escape
     equs "Escape", 0                                                  ; 85b2: 45 73 63... Esc            ; Error string "Escape"
     equb &cb                                                          ; 85b9: cb          .              ; Error &CB: Bad Option
     equs "Bad Option", 0                                              ; 85ba: 42 61 64... Bad            ; Error string "Bad Option"
-    equb &a5                                                          ; 85c5: a5          .              ; ALWAYS branch to shared bitmask builder
+    equb &a5                                                          ; 85c5: a5          .              ; Error &A5: No reply
     equs "No reply", 0                                                ; 85c6: 4e 6f 20... No             ; Error string "No reply"
 
 ; ***************************************************************************************
@@ -4637,8 +4637,8 @@ cmd_match_data = fs_cmd_match_table+1
 ; &8d54 referenced 2 times by &8cdf, &8ce2
 .option_name_offsets
     equs "+>f"                                                        ; 8d54: 2b 3e 66    +>f            ; Option name offsets (4 entries)
-    equb &18                                                          ; 8d57: 18          .              ; Opt 1 (Load): L.!BOOT at &8D46
-    equs "L.!"                                                        ; 8d58: 4c 2e 21    L.!            ; Opt 2 (Run): !BOOT at &8D48
+    equb &18                                                          ; 8d57: 18          .              ; Opt 3 (Exec) name offset: &18 -> &8D6C
+    equs "L.!"                                                        ; 8d58: 4c 2e 21    L.!            ; Opt 1 (Load): "L.!" command prefix
 ; ***************************************************************************************
 ; Boot command strings for auto-boot
 ; 
@@ -4660,7 +4660,7 @@ cmd_match_data = fs_cmd_match_table+1
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8d5b: 42 4f 4f... BOO            ; "BOOT" string for boot option 2
     equb &0d                                                          ; 8d5f: 0d          .              ; CR terminator for BOOT string
-    equs "E.!BOOT"                                                    ; 8d60: 45 2e 21... E.!            ; Load byte from parameter block
+    equs "E.!BOOT"                                                    ; 8d60: 45 2e 21... E.!            ; Opt 3 (Exec): "E.!BOOT" command string
 ; ***************************************************************************************
 ; Boot option → OSCLI string offset table
 ; 
@@ -4672,7 +4672,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; See boot_cmd_strings for the target strings.
 ; ***************************************************************************************
 .boot_option_offsets
-    equb &0d                                                          ; 8d67: 0d          .              ; Loop until 4 bytes printed
+    equb &0d                                                          ; 8d67: 0d          .              ; CR terminator / Opt 0 bare CR command
 ; &8d68 referenced 1 time by &8e4b
 .boot_string_offsets
     equb &67                                                          ; 8d68: 67          g              ; Opt 0 (Off): bare CR at &8D67
@@ -5107,7 +5107,7 @@ cmd_match_data = fs_cmd_match_table+1
     pha                                                               ; 8ea3: 48          H              ; Push high byte for RTS dispatch
     lda osword_handler_lo,x                                           ; 8ea4: bd b8 8e    ...            ; Load handler address low byte from table
 .fs_osword_tbl_lo
-    pha                                                               ; 8ea7: 48          H              ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    pha                                                               ; 8ea7: 48          H              ; Push low byte for RTS dispatch
     ldy #2                                                            ; 8ea8: a0 02       ..             ; Y=2: save 3 bytes (&AA-&AC)
 ; &8eaa referenced 1 time by &8eb0
 .save1
@@ -5124,18 +5124,18 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &8eb8 referenced 1 time by &8ea4
 .osword_handler_lo
-    equb <(osword_0f_handler-1)                                       ; 8eb8: c1          .              ; Store Y=1 to &A9
+    equb <(osword_0f_handler-1)                                       ; 8eb8: c1          .              ; lo(osword_0f_handler-1): OSWORD &0F
     equb <(osword_10_handler-1)                                       ; 8eb9: 7b          {              ; lo(osword_10_handler-1): OSWORD &10
-    equb <(osword_11_handler-1)                                       ; 8eba: db          .              ; RTS dispatches to pushed handler address
-    equb <(osword_12_dispatch-1)                                      ; 8ebb: 00          .              ; lo(osword_0f_handler-1): OSWORD &0F
-    equb <(econet_tx_rx-1)                                            ; 8ebc: ef          .              ; lo(osword_10_handler-1): OSWORD &10
+    equb <(osword_11_handler-1)                                       ; 8eba: db          .              ; lo(osword_11_handler-1): OSWORD &11
+    equb <(osword_12_dispatch-1)                                      ; 8ebb: 00          .              ; lo(osword_12_dispatch-1): OSWORD &12
+    equb <(econet_tx_rx-1)                                            ; 8ebc: ef          .              ; lo(econet_tx_rx-1): OSWORD &13
 ; &8ebd referenced 1 time by &8ea0
 .fs_osword_tbl_hi
-    equb >(osword_0f_handler-1)                                       ; 8ebd: 8e          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
-    equb >(osword_10_handler-1)                                       ; 8ebe: 8f          .              ; lo(osword_12_dispatch-1): OSWORD &12
-    equb >(osword_11_handler-1)                                       ; 8ebf: 8e          .              ; lo(econet_tx_rx-1): OSWORD &13
-    equb >(osword_12_dispatch-1)                                      ; 8ec0: 8f          .              ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
-    equb >(econet_tx_rx-1)                                            ; 8ec1: 8f          .              ; hi(osword_10_handler-1): OSWORD &10
+    equb >(osword_0f_handler-1)                                       ; 8ebd: 8e          .              ; hi(osword_0f_handler-1): OSWORD &0F
+    equb >(osword_10_handler-1)                                       ; 8ebe: 8f          .              ; hi(osword_10_handler-1): OSWORD &10
+    equb >(osword_11_handler-1)                                       ; 8ebf: 8e          .              ; hi(osword_11_handler-1): OSWORD &11
+    equb >(osword_12_dispatch-1)                                      ; 8ec0: 8f          .              ; hi(osword_12_dispatch-1): OSWORD &12
+    equb >(econet_tx_rx-1)                                            ; 8ec1: 8f          .              ; hi(econet_tx_rx-1): OSWORD &13
 
 ; ***************************************************************************************
 ; OSWORD &0F handler: initiate transmit (CALLTX)
@@ -5481,7 +5481,7 @@ cmd_match_data = fs_cmd_match_table+1
     sta escapable                                                     ; 900f: 85 97       ..             ; Mark as escapable operation
     sta (osword_pb_ptr),y                                             ; 9011: 91 f0       ..             ; Store port &90 at (&F0)+2
     iny                                                               ; 9013: c8          .              ; Y=&03
-    iny                                                               ; 9014: c8          .              ; Retrieve original A (function code) from stack; Y=&04
+    iny                                                               ; 9014: c8          .              ; Y=&04: advance to station address; Y=&04
 ; &9015 referenced 1 time by &901d
 .copy_fs_addr
     lda fs_context_base,y                                             ; 9015: b9 fe 0d    ...            ; Copy FS station addr from workspace
@@ -6419,7 +6419,7 @@ cmd_match_data = fs_cmd_match_table+1
 
 ; &96f2 referenced 1 time by &96e4
 .accept_local_net
-    sta tx_flags                                                      ; 96f2: 8d 4a 0d    .J.            ; Network = &FF broadcast: clear &0D4A
+    sta tx_flags                                                      ; 96f2: 8d 4a 0d    .J.            ; Network = 0 (local): clear tx_flags
 ; &96f5 referenced 1 time by &96e8
 .accept_scout_net
     sta port_buf_len                                                  ; 96f5: 85 a2       ..             ; Store Y offset for scout data buffer
@@ -6755,10 +6755,10 @@ cmd_match_data = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &9877 referenced 3 times by &9848, &985d, &986d
 .data_rx_complete
-    lda #&84                                                          ; 9877: a9 84       ..             ; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 9879: 8d a1 fe    ...            ; Write CR1
-    lda #0                                                            ; 987c: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 987e: 8d a0 fe    ...            ; Write CR2
+    lda #&84                                                          ; 9877: a9 84       ..             ; CR2=&84: disable PSE for bit testing
+    sta econet_control23_or_status2                                   ; 9879: 8d a1 fe    ...            ; Write CR2
+    lda #0                                                            ; 987c: a9 00       ..             ; CR1=&00: disable all interrupts
+    sta econet_control1_or_status1                                    ; 987e: 8d a0 fe    ...            ; Write CR1
     sty port_buf_len                                                  ; 9881: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 9883: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 9885: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
@@ -7296,11 +7296,11 @@ svc5_dispatch_lo = sub_c9a9c+1
     lda #&44 ; 'D'                                                    ; 9ad6: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
     sta econet_control1_or_status1                                    ; 9ad8: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
-    lda #&a7                                                          ; 9adb: a9 a7       ..             ; NMI handler hi byte (self-modifying)
+    lda #&a7                                                          ; 9adb: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 9add: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #&fd                                                          ; 9ae0: a9 fd       ..             ; NMI handler lo byte (self-modifying)
-    ldy #&9a                                                          ; 9ae2: a0 9a       ..             ; Y=&9B: dispatch table page
+    ldy #&9a                                                          ; 9ae2: a0 9a       ..             ; Y=&9A: dispatch table page
     jmp ack_tx_write_dest                                             ; 9ae4: 4c 07 99    L..            ; Acknowledge and write TX dest
 
 ; ***************************************************************************************
@@ -7356,7 +7356,7 @@ svc5_dispatch_lo = sub_c9a9c+1
     pha                                                               ; 9b27: 48          H              ; Push hi byte on stack
     lda #&66 ; 'f'                                                    ; 9b28: a9 66       .f             ; Push lo of (tx_done_exit-1)
     pha                                                               ; 9b2a: 48          H              ; Push lo byte on stack
-    jmp (l0d58)                                                       ; 9b2b: 6c 58 0d    lX.            ; Call remote JSR; RTS to tx_done_exit; Isolate shift register mode bits (2-4)
+    jmp (l0d58)                                                       ; 9b2b: 6c 58 0d    lX.            ; Call remote JSR; RTS to tx_done_exit
 
 ; ***************************************************************************************
 ; TX done: UserProc event
@@ -7633,7 +7633,7 @@ intoff_operand = intoff_test_inactive+1
 
     equb &6e, &72, &b4, &b4, &b4, &c4, &c4, &6a                       ; 9c63: 6e 72 b4... nr.            ; TX timeout/retry parameter table
 .imm_op_status3
-    equb &a9, 3, &d0, &48                                             ; 9c6b: a9 03 d0... ...            ; A=3: scout_status for POKE
+    equb &a9, 3, &d0, &48                                             ; 9c6b: a9 03 d0... ...            ; A=3: scout_status for PEEK
 
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
@@ -7865,7 +7865,7 @@ intoff_operand = intoff_test_inactive+1
     bne reject_reply                                                  ; 9d4c: d0 0a       ..             ; Non-zero -- network mismatch, error
     lda #&5b ; '['                                                    ; 9d4e: a9 5b       .[             ; Install nmi_reply_validate at &9D5B
     bit econet_control1_or_status1                                    ; 9d50: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
-    bmi nmi_reply_validate                                            ; 9d53: 30 06       0.             ; IRQ set -- fall through to &9DE3 without RTI
+    bmi nmi_reply_validate                                            ; 9d53: 30 06       0.             ; IRQ set: validate reply immediately
     jmp install_nmi_handler                                           ; 9d55: 4c 11 0d    L..            ; IRQ not set -- install handler and RTI
 
 ; &9d58 referenced 7 times by &9d3d, &9d47, &9d4c, &9d5e, &9d66, &9d6e, &9d75
@@ -7902,7 +7902,7 @@ intoff_operand = intoff_test_inactive+1
     sta econet_control23_or_status2                                   ; 9d79: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 9d7c: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 9d7e: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
-    lda #&50 ; 'P'                                                    ; 9d81: a9 50       .P             ; Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C
+    lda #&50 ; 'P'                                                    ; 9d81: a9 50       .P             ; Install next handler at &9E50 into &0D4B/&0D4C
     ldy #&9e                                                          ; 9d83: a0 9e       ..             ; High byte &9E of next handler address
     sta nmi_next_lo                                                   ; 9d85: 8d 4b 0d    .K.            ; Store low byte to nmi_next_lo
     sty nmi_next_hi                                                   ; 9d88: 8c 4c 0d    .L.            ; Store high byte to nmi_next_hi
@@ -8086,7 +8086,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     bne tx_result_fail                                                ; 9e78: d0 32       .2             ; Non-zero -- network mismatch, error
     lda #&84                                                          ; 9e7a: a9 84       ..             ; Install nmi_final_ack_validate at &9E84
     bit econet_control1_or_status1                                    ; 9e7c: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
-    bmi nmi_final_ack_validate                                        ; 9e7f: 30 03       0.             ; IRQ set -- fall through to &9F15 without RTI
+    bmi nmi_final_ack_validate                                        ; 9e7f: 30 03       0.             ; IRQ set: validate final ACK immediately
     jmp install_nmi_handler                                           ; 9e81: 4c 11 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************

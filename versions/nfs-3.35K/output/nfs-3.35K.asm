@@ -1913,7 +1913,7 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &7B (printer driver going dormant) to release the
+; OSBYTE &77 (close SPOOL/EXEC files) to release the
 ; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
@@ -5335,7 +5335,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     lda #&90                                                          ; 9002: a9 90       ..             ; A=&90: FS reply port
     sta (osword_pb_ptr),y                                             ; 9004: 91 f0       ..             ; Store port &90 at (&F0)+2
     iny                                                               ; 9006: c8          .              ; Y=&03
-    iny                                                               ; 9007: c8          .              ; Retrieve original A (function code) from stack; Y=&04
+    iny                                                               ; 9007: c8          .              ; Y=&04: advance to station address; Y=&04
 ; &9008 referenced 1 time by &9010
 .copy_fs_addr
     lda fs_context_base,y                                             ; 9008: b9 fe 0d    ...            ; Copy FS station addr from workspace
@@ -6377,7 +6377,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 
 ; &9735 referenced 1 time by &9727
 .accept_local_net
-    sta tx_flags                                                      ; 9735: 8d 4a 0d    .J.            ; Network = &FF broadcast: clear &0D4A
+    sta tx_flags                                                      ; 9735: 8d 4a 0d    .J.            ; Network = 0 (local): clear tx_flags
 ; &9738 referenced 1 time by &972b
 .accept_scout_net
     sta port_buf_len                                                  ; 9738: 85 a2       ..             ; Store Y offset for scout data buffer
@@ -7218,7 +7218,7 @@ rx_port_operand = skip_buf_ptr_update+2
     sta econet_control1_or_status1                                    ; 9b19: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
 tx_cr2_operand = tx_cr2_setup+1
-    lda #&a7                                                          ; 9b1c: a9 a7       ..             ; NMI handler hi byte (self-modifying)
+    lda #&a7                                                          ; 9b1c: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
 ; &9b1d referenced 1 time by &9b9b
     sta econet_control23_or_status2                                   ; 9b1e: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
@@ -7613,7 +7613,7 @@ sr2_test_operand = test_line_idle+2
     equb >(imm_op_status3-1)                                          ; 9cf2: 9c          .
 
 .imm_op_status3
-    lda #3                                                            ; 9cf3: a9 03       ..             ; A=3: scout_status for POKE
+    lda #3                                                            ; 9cf3: a9 03       ..             ; A=3: scout_status for PEEK
     bne store_status_calc_xfer                                        ; 9cf5: d0 25       .%             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -7898,7 +7898,7 @@ sr2_test_operand = test_line_idle+2
     sta econet_control23_or_status2                                   ; 9e10: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 9e13: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 9e15: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
-    lda #&ec                                                          ; 9e18: a9 ec       ..             ; Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C
+    lda #&ec                                                          ; 9e18: a9 ec       ..             ; Install next handler at &9EEC into &0D4B/&0D4C
     ldy #&9e                                                          ; 9e1a: a0 9e       ..             ; High byte &9E of next handler address
     sta nmi_next_lo                                                   ; 9e1c: 8d 4b 0d    .K.            ; Store low byte to nmi_next_lo
     sty nmi_next_hi                                                   ; 9e1f: 8c 4c 0d    .L.            ; Store high byte to nmi_next_hi

@@ -2157,7 +2157,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &7B (printer driver going dormant) to release the
+OSBYTE &77 (close SPOOL/EXEC files) to release the
 Econet network printer on FS switch.""")
 
 # ============================================================
@@ -3079,7 +3079,7 @@ Dispatch targets (from NFS09):
              "x": "preserved",
              "y": "preserved"})
 
-comment(0x9007, "Retrieve original A (function code) from stack", inline=True)
+comment(0x9007, "Y=&04: advance to station address", inline=True)
 comment(0x908D, "PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it", inline=True)
 
 # ============================================================
@@ -3809,7 +3809,7 @@ comment(0x9729, "EOR &FF: test if network = &FF (broadcast)", inline=True)
 comment(0x972B, "Broadcast network -- accept", inline=True)
 comment(0x972D, "Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE", inline=True)
 
-comment(0x9735, "Network = &FF broadcast: clear &0D4A", inline=True)
+comment(0x9735, "Network = 0 (local): clear tx_flags", inline=True)
 comment(0x9738, "Store Y offset for scout data buffer", inline=True)
 
 # ============================================================
@@ -4216,7 +4216,7 @@ comment(0x9E09, "BIT SR2: test FV -- frame must be complete", inline=True)
 comment(0x9E0C, "No FV -- incomplete frame, error", inline=True)
 comment(0x9E0E, "CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE (TX in handshake)", inline=True)
 comment(0x9E13, "CR1=&44: RX_RESET | TIE (TX active for scout ACK)", inline=True)
-comment(0x9E18, "Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C", inline=True)
+comment(0x9E18, "Install next handler at &9EEC into &0D4B/&0D4C", inline=True)
 comment(0x9E22, "Load dest station for scout ACK TX", inline=True)
 comment(0x9E25, "BIT SR1: test TDRA (V=bit6)", inline=True)
 comment(0x9E28, "TDRA not ready -- error", inline=True)
@@ -7044,7 +7044,7 @@ label(0x9B17, "rx_imm_halt_cont")     # Handler for HALT/CONTINUE immediate ops
 comment(0x9B17, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
 comment(0x9B19, "Write CR1: enable TX interrupts", inline=True)
 label(0x9B1C, "tx_cr2_setup")         # Self-modifying CR2 configuration
-comment(0x9B1C, "NMI handler hi byte (self-modifying)", inline=True)
+comment(0x9B1C, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", inline=True)
 comment(0x9B1E, "Write CR2 for TX setup", inline=True)
 label(0x9B21, "tx_nmi_setup")         # Self-modifying NMI handler lo byte
 comment(0x9B21, "NMI handler lo byte (self-modifying)", inline=True)
@@ -8441,7 +8441,7 @@ comment(0x9C9E, "Pop saved register", inline=True)
 
 # --- tx_prepare (&9CB1) ---
 comment(0x9CDA, "Load handler from dispatch table", inline=True)
-comment(0x9CF3, "A=3: scout_status for POKE", inline=True)
+comment(0x9CF3, "A=3: scout_status for PEEK", inline=True)
 
 # --- nmi_reply_scout (&9DC1) ---
 comment(0x9DD2, "High byte of nmi_reply_cont", inline=True)

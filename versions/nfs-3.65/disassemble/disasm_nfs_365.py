@@ -3324,7 +3324,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &7B (printer driver going dormant) to release the
+OSBYTE &77 (close SPOOL/EXEC files) to release the
 Econet network printer on FS switch.""")
 
 comment(0x833F, "Copy 10 bytes: FS state to workspace backup", inline=True)
@@ -7517,8 +7517,8 @@ comment(0x98A7, "BIT SR2: test FV (Z) and RDA (N)", inline=True)
 comment(0x98AA, "No FV -- error", inline=True)
 comment(0x98AC, "FV set, no RDA -- proceed to ACK", inline=True)
 comment(0x98B2, "FV+RDA: read and store last data byte", inline=True)
-comment(0x989B, "Write CR1", inline=True)
-comment(0x98A0, "Write CR2", inline=True)
+comment(0x989B, "Write CR2", inline=True)
+comment(0x98A0, "Write CR1", inline=True)
 comment(0x98A3, "Save Y (byte count from data RX loop)", inline=True)
 comment(0x98AE, "Check if buffer space remains", inline=True)
 comment(0x98B0, "No buffer space: error/discard frame", inline=True)
@@ -8250,7 +8250,7 @@ comment(0x8F25, "Load byte from workspace", inline=True)
 comment(0x8FB5, "Enable interrupts before transmit", inline=True)
 comment(0x8FBB, "Dest station = &FFFF (accept reply from any station)", inline=True)
 comment(0x8FDE, "Receive data blocks until command byte = &00 or &0D", inline=True)
-comment(0x9017, "Retrieve original A (function code) from stack", inline=True)
+comment(0x9017, "Y=&04: advance to station address", inline=True)
 comment(0x917D, "Load template byte from ctrl_block_template[X]", inline=True)
 comment(0x919F, "V=1: use (net_rx_ptr) page", inline=True)
 label(0x91A5, "rxcb_matched")         # Scout frame matched RXCB
@@ -8277,7 +8277,7 @@ comment(0x96F7, "Install next NMI handler at &9715 (RX scout second byte)", inli
 comment(0x96F9, "Install next handler and RTI", inline=True)
 comment(0x970C, "Write CR1 to discontinue RX", inline=True)
 comment(0x970F, "Return to idle scout listening", inline=True)
-comment(0x9712, "Network = &FF broadcast: clear &0D4A", inline=True)
+comment(0x9712, "Network = 0 (local): clear tx_flags", inline=True)
 comment(0x9717, "Install scout data reading loop at &9747", inline=True)
 comment(0x9719, "High byte of scout data handler", inline=True)
 comment(0x971B, "Install scout data loop and RTI", inline=True)
@@ -8289,8 +8289,8 @@ comment(0x974E, "Save final buffer offset", inline=True)
 label(0x979A, "scout_ctrl_check")     # Check scout control byte
 comment(0x97A2, "Y=1: advance to port byte in slot", inline=True)
 label(0x97B6, "scout_port_match")     # Check scout port number
-comment(0x9899, "CR1=&00: disable all interrupts", inline=True)
-comment(0x989E, "CR2=&84: disable PSE for individual bit testing", inline=True)
+comment(0x9899, "CR2=&84: disable PSE for bit testing", inline=True)
+comment(0x989E, "CR1=&00: disable all interrupts", inline=True)
 comment(0x9925, "Install saved next handler (&99BB for scout ACK)", inline=True)
 comment(0x9940, "Install handler at &9992 (write src addr)", inline=True)
 comment(0x9954, "Write network=0 (local) to TX FIFO", inline=True)
@@ -8346,7 +8346,7 @@ label(0x9AF8, "rx_imm_halt_cont")     # Handler for HALT/CONTINUE immediate ops
 comment(0x9AF8, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
 comment(0x9AFA, "Write CR1: enable TX interrupts", inline=True)
 label(0x9AFD, "tx_cr2_setup")         # Self-modifying CR2 configuration
-comment(0x9AFD, "NMI handler hi byte (self-modifying)", inline=True)
+comment(0x9AFD, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", inline=True)
 comment(0x9AFF, "Write CR2 for TX setup", inline=True)
 label(0x9B02, "tx_nmi_setup")         # Self-modifying NMI handler lo byte
 comment(0x9B02, "NMI handler lo byte (self-modifying)", inline=True)
@@ -8416,7 +8416,7 @@ comment(0x9C44, "Pop saved register", inline=True)
 comment(0x9C45, "Pop saved register", inline=True)
 comment(0x9C65, "Install NMI handler at &9D4C (TX data handler)", inline=True)
 label(0x9C9E, "imm_op_status3")       # Loads scout_status=3 for immediate ops
-comment(0x9C9E, "A=3: scout_status for POKE", inline=True)
+comment(0x9C9E, "A=3: scout_status for PEEK", inline=True)
 comment(0x9CA2, "A=3: scout_status for PEEK op", inline=True)
 comment(0x9CA6, "Scout status = 2 (POKE transfer)", inline=True)
 label(0x9CA8, "store_status_add4")    # Stores scout status + 4-byte addition
@@ -8456,9 +8456,9 @@ comment(0x9D60, "Install handler and RTI", inline=True)
 comment(0x9D72, "Install next handler at &9DC8 (reply continuation)", inline=True)
 comment(0x9D74, "Install continuation handler", inline=True)
 comment(0x9D81, "Install next handler at &9DE3 (reply validation)", inline=True)
-comment(0x9D86, "IRQ set -- fall through to &9DE3 without RTI", inline=True)
+comment(0x9D86, "IRQ set: validate reply immediately", inline=True)
 comment(0x9D8B, "Store error and return to idle", inline=True)
-comment(0x9DB4, "Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C", inline=True)
+comment(0x9DB4, "Install next handler at &9E83 into &0D4B/&0D4C", inline=True)
 comment(0x9DCF, "Install handler at &9E2B (write src addr for scout ACK)", inline=True)
 label(0x9E67, "tube_tx_inc_byte2")    # Increment byte 2 of 4-byte counter
 label(0x9E6F, "tube_tx_inc_byte4")    # Increment byte 4 of 4-byte counter
@@ -8466,7 +8466,7 @@ comment(0x9E88, "Install handler at &9EE9 (RX final ACK)", inline=True)
 comment(0x9E9E, "Install handler at &9EFF (final ACK continuation)", inline=True)
 comment(0x9EA0, "Install continuation handler", inline=True)
 comment(0x9EAD, "Install handler at &9F15 (final ACK validation)", inline=True)
-comment(0x9EB2, "IRQ set -- fall through to &9F15 without RTI", inline=True)
+comment(0x9EB2, "IRQ set: validate final ACK immediately", inline=True)
 comment(0x9EB4, "Install handler and RTI", inline=True)
 comment(0x9ECC, "Load TX flags for next action", inline=True)
 comment(0x9ECF, "bit7 clear: no data phase", inline=True)

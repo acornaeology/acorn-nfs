@@ -1890,7 +1890,7 @@ svc_entry_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &7B (printer driver going dormant) to release the
+; OSBYTE &77 (close SPOOL/EXEC files) to release the
 ; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
@@ -5175,7 +5175,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     lda #&90                                                          ; 8f8f: a9 90       ..             ; A=&90: FS reply port
     sta (osword_pb_ptr),y                                             ; 8f91: 91 f0       ..             ; Store port &90 at (&F0)+2
     iny                                                               ; 8f93: c8          .              ; Y=&03
-    iny                                                               ; 8f94: c8          .              ; Retrieve original A (function code) from stack; Y=&04
+    iny                                                               ; 8f94: c8          .              ; Y=&04: advance to station address; Y=&04
 ; &8f95 referenced 1 time by &8f9d
 .copy_fs_addr
     lda fs_context_base,y                                             ; 8f95: b9 fe 0d    ...            ; Copy FS station addr from workspace
@@ -7115,7 +7115,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
     lda #&44 ; 'D'                                                    ; 9b01: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
     sta econet_control1_or_status1                                    ; 9b03: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
-    lda #&a7                                                          ; 9b06: a9 a7       ..             ; NMI handler hi byte (self-modifying)
+    lda #&a7                                                          ; 9b06: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 9b08: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #&2f ; '/'                                                    ; 9b0b: a9 2f       ./             ; NMI handler lo byte (self-modifying)
@@ -7524,7 +7524,7 @@ sr2_test_operand = test_line_idle+2
     equb >(imm_op_status3-1)                                          ; 9ce3: 9c          .
 
 .imm_op_status3
-    lda #3                                                            ; 9ce4: a9 03       ..             ; A=3: scout_status for POKE
+    lda #3                                                            ; 9ce4: a9 03       ..             ; A=3: scout_status for PEEK
     bne store_status_calc_xfer                                        ; 9ce6: d0 25       .%             ; ALWAYS branch
 
 ; ***************************************************************************************

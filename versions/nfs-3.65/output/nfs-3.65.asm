@@ -2049,7 +2049,7 @@ service_handler_lo = service_entry+1
 ; handles, OPT byte, etc.) from page &0E into the dynamic workspace
 ; backup area. This allows the state to be restored when *NET is
 ; re-issued later, without losing the login session. Finally calls
-; OSBYTE &7B (printer driver going dormant) to release the
+; OSBYTE &77 (close SPOOL/EXEC files) to release the
 ; Econet network printer on FS switch.
 ; ***************************************************************************************
 .fscv_6_shutdown
@@ -5473,7 +5473,7 @@ boot_string_offsets = boot_option_offsets+1
     sta escapable                                                     ; 9012: 85 97       ..             ; Mark as escapable operation
     sta (osword_pb_ptr),y                                             ; 9014: 91 f0       ..             ; Store port &90 at (&F0)+2
     iny                                                               ; 9016: c8          .              ; Y=&03
-    iny                                                               ; 9017: c8          .              ; Retrieve original A (function code) from stack; Y=&04
+    iny                                                               ; 9017: c8          .              ; Y=&04: advance to station address; Y=&04
 ; &9018 referenced 1 time by &9020
 .copy_fs_addr
     lda fs_context_base,y                                             ; 9018: b9 fe 0d    ...            ; Copy FS station addr from workspace
@@ -6406,7 +6406,7 @@ boot_string_offsets = boot_option_offsets+1
 
 ; &9712 referenced 1 time by &9704
 .accept_local_net
-    sta tx_flags                                                      ; 9712: 8d 4a 0d    .J.            ; Network = &FF broadcast: clear &0D4A
+    sta tx_flags                                                      ; 9712: 8d 4a 0d    .J.            ; Network = 0 (local): clear tx_flags
 ; &9715 referenced 1 time by &9708
 .accept_scout_net
     sta port_buf_len                                                  ; 9715: 85 a2       ..             ; Store Y offset for scout data buffer
@@ -6743,10 +6743,10 @@ boot_string_offsets = boot_option_offsets+1
 ; ***************************************************************************************
 ; &9899 referenced 3 times by &986a, &987f, &988f
 .data_rx_complete
-    lda #&84                                                          ; 9899: a9 84       ..             ; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 989b: 8d a1 fe    ...            ; Write CR1
-    lda #0                                                            ; 989e: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 98a0: 8d a0 fe    ...            ; Write CR2
+    lda #&84                                                          ; 9899: a9 84       ..             ; CR2=&84: disable PSE for bit testing
+    sta econet_control23_or_status2                                   ; 989b: 8d a1 fe    ...            ; Write CR2
+    lda #0                                                            ; 989e: a9 00       ..             ; CR1=&00: disable all interrupts
+    sta econet_control1_or_status1                                    ; 98a0: 8d a0 fe    ...            ; Write CR1
     sty port_buf_len                                                  ; 98a3: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98a5: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98a7: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
@@ -7283,7 +7283,7 @@ svc5_dispatch_lo = sub_c9abe+1
     lda #&44 ; 'D'                                                    ; 9af8: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
     sta econet_control1_or_status1                                    ; 9afa: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
-    lda #&a7                                                          ; 9afd: a9 a7       ..             ; NMI handler hi byte (self-modifying)
+    lda #&a7                                                          ; 9afd: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 9aff: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #&1f                                                          ; 9b02: a9 1f       ..             ; NMI handler lo byte (self-modifying)
@@ -7630,7 +7630,7 @@ svc5_dispatch_lo = sub_c9abe+1
 
     equb &a1, &a5, &e7, &e7, &e7, &f7, &f7, &9d                       ; 9c96: a1 a5 e7... ...            ; Control byte → CR2 value lookup table
 .imm_op_status3
-    equb &a9, 3, &d0, &48                                             ; 9c9e: a9 03 d0... ...            ; A=3: scout_status for POKE
+    equb &a9, 3, &d0, &48                                             ; 9c9e: a9 03 d0... ...            ; A=3: scout_status for PEEK
 
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
@@ -7862,7 +7862,7 @@ svc5_dispatch_lo = sub_c9abe+1
     bne reject_reply                                                  ; 9d7f: d0 0a       ..             ; Non-zero -- network mismatch, error
     lda #&8e                                                          ; 9d81: a9 8e       ..             ; Install next handler at &9DE3 (reply validation)
     bit econet_control1_or_status1                                    ; 9d83: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
-    bmi nmi_reply_validate                                            ; 9d86: 30 06       0.             ; IRQ set -- fall through to &9DE3 without RTI
+    bmi nmi_reply_validate                                            ; 9d86: 30 06       0.             ; IRQ set: validate reply immediately
     jmp install_nmi_handler                                           ; 9d88: 4c 11 0d    L..            ; IRQ not set -- install handler and RTI
 
 ; &9d8b referenced 7 times by &9d70, &9d7a, &9d7f, &9d91, &9d99, &9da1, &9da8
@@ -7899,7 +7899,7 @@ svc5_dispatch_lo = sub_c9abe+1
     sta econet_control23_or_status2                                   ; 9dac: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 9daf: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 9db1: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
-    lda #&83                                                          ; 9db4: a9 83       ..             ; Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C
+    lda #&83                                                          ; 9db4: a9 83       ..             ; Install next handler at &9E83 into &0D4B/&0D4C
     ldy #&9e                                                          ; 9db6: a0 9e       ..             ; High byte &9E of next handler address
     sta nmi_next_lo                                                   ; 9db8: 8d 4b 0d    .K.            ; Store low byte to nmi_next_lo
     sty nmi_next_hi                                                   ; 9dbb: 8c 4c 0d    .L.            ; Store high byte to nmi_next_hi
@@ -8083,7 +8083,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     bne tx_result_fail                                                ; 9eab: d0 32       .2             ; Non-zero -- network mismatch, error
     lda #&b7                                                          ; 9ead: a9 b7       ..             ; Install handler at &9F15 (final ACK validation)
     bit econet_control1_or_status1                                    ; 9eaf: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
-    bmi nmi_final_ack_validate                                        ; 9eb2: 30 03       0.             ; IRQ set -- fall through to &9F15 without RTI
+    bmi nmi_final_ack_validate                                        ; 9eb2: 30 03       0.             ; IRQ set: validate final ACK immediately
     jmp install_nmi_handler                                           ; 9eb4: 4c 11 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************

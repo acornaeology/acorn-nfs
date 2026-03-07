@@ -1452,7 +1452,7 @@ service_handler_lo = service_entry+1
 
 ; &80e6 referenced 1 time by &80d8
 .accept_local_net
-    sta rx_src_net                                                    ; 80e6: 8d 3e 0d    .>.            ; Network = &FF broadcast: clear &0D4A
+    sta rx_src_net                                                    ; 80e6: 8d 3e 0d    .>.            ; Network = 0 (local): clear tx_flags
 ; &80e9 referenced 1 time by &80dc
 .accept_scout_net
     sta port_buf_len                                                  ; 80e9: 85 a2       ..             ; Store Y offset for scout data buffer
@@ -2321,7 +2321,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     lda #&44 ; 'D'                                                    ; 84db: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
     sta econet_control1_or_status1                                    ; 84dd: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
-    lda #&a7                                                          ; 84e0: a9 a7       ..             ; NMI handler hi byte (self-modifying)
+    lda #&a7                                                          ; 84e0: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 84e2: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #2                                                            ; 84e5: a9 02       ..             ; NMI handler lo byte (self-modifying)

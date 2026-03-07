@@ -2268,7 +2268,7 @@ the current NFS context (FSLOCN station number, URD/CSD/LIB
 handles, OPT byte, etc.) from page &0E into the dynamic workspace
 backup area. This allows the state to be restored when *NET is
 re-issued later, without losing the login session. Finally calls
-OSBYTE &7B (printer driver going dormant) to release the
+OSBYTE &77 (close SPOOL/EXEC files) to release the
 Econet network printer on FS switch.""")
 
 # ============================================================
@@ -3137,7 +3137,7 @@ Dispatch targets (from NFS09):
              "x": "preserved",
              "y": "preserved"})
 
-comment(0x900A, "Retrieve original A (function code) from stack", inline=True)
+comment(0x900A, "Y=&04: advance to station address", inline=True)
 comment(0x908F, "PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it", inline=True)
 
 # ============================================================
@@ -3829,7 +3829,7 @@ comment(0x971B, "EOR &FF: test if network = &FF (broadcast)", inline=True)
 comment(0x971D, "Broadcast network -- accept", inline=True)
 comment(0x971F, "Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE", inline=True)
 
-comment(0x9727, "Network = &FF broadcast: clear &0D4A", inline=True)
+comment(0x9727, "Network = 0 (local): clear tx_flags", inline=True)
 comment(0x972A, "Store Y offset for scout data buffer", inline=True)
 
 # ============================================================
@@ -4236,7 +4236,7 @@ comment(0x9DD9, "BIT SR2: test FV -- frame must be complete", inline=True)
 comment(0x9DDC, "No FV -- incomplete frame, error", inline=True)
 comment(0x9DDE, "CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE (TX in handshake)", inline=True)
 comment(0x9DE3, "CR1=&44: RX_RESET | TIE (TX active for scout ACK)", inline=True)
-comment(0x9DE8, "Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C", inline=True)
+comment(0x9DE8, "Install next handler at &9EBA into &0D4B/&0D4C", inline=True)
 comment(0x9DF2, "Load dest station for scout ACK TX", inline=True)
 comment(0x9DF5, "BIT SR1: test TDRA (V=bit6)", inline=True)
 comment(0x9DF8, "TDRA not ready -- error", inline=True)
@@ -7349,7 +7349,7 @@ comment(0x9AE6, "Set reply pending flag", inline=True)
 comment(0x9AE8, "Store updated TX flags", inline=True)
 comment(0x9AEB, "CR1=&44: TIE | TX_LAST_DATA", inline=True)
 comment(0x9AED, "Write CR1: enable TX interrupts", inline=True)
-comment(0x9AF0, "NMI handler hi byte (self-modifying)", inline=True)
+comment(0x9AF0, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", inline=True)
 comment(0x9AF2, "Write CR2 for TX setup", inline=True)
 comment(0x9AF5, "NMI handler lo byte (self-modifying)", inline=True)
 comment(0x9AF7, "Y=&9B: dispatch table page", inline=True)
@@ -7986,7 +7986,7 @@ comment(0x9CB5, "Push high byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x9CB6, "Look up handler address low from table", inline=True)
 comment(0x9CB9, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x9CBA, "RTS dispatches to control-byte handler", inline=True)
-comment(0x9CCB, "A=3: scout_status for POKE", inline=True)
+comment(0x9CCB, "A=3: scout_status for PEEK", inline=True)
 comment(0x9CCF, "A=3: scout_status for PEEK op", inline=True)
 comment(0x9CE7, "Compare Y with 16-byte boundary", inline=True)
 comment(0x9CE9, "Below boundary: continue addition", inline=True)
