@@ -1040,7 +1040,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; 95ef: 20 95 06     .. :068a[4]   ; Send char to co-processor
     inx                                                               ; 95f2: e8          .   :068d[4]   ; Next character
-    cmp #&0d                                                          ; 95f3: c9 0d       ..  :068e[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; 95f3: c9 0d       ..  :068e[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; 95f5: d0 f5       ..  :0690[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; 95f7: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
@@ -1716,7 +1716,7 @@ service_handler_lo = service_entry+1
 
 ; &81d8 referenced 1 time by &81a8
 .match_net_cmd
-    ldx #1                                                            ; 81d8: a2 01       ..             ; X=5: ROM offset for "NET" match
+    ldx #1                                                            ; 81d8: a2 01       ..             ; X=1: ROM offset for "NET" match
     jsr match_rom_string                                              ; 81da: 20 50 83     P.            ; Try matching *NET command
     bne restore_ws_return                                             ; 81dd: d0 24       .$             ; No match: return unclaimed
 ; ***************************************************************************************
@@ -6633,7 +6633,7 @@ boot_string_offsets = boot_option_offsets+1
 ; &9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 9808: a9 01       ..             ; A=&01: mask for AP (Address Present); Read SR2 for AP check
+    lda #1                                                            ; 9808: a9 01       ..             ; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 980a: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 980d: f0 48       .H             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 980f: ad a2 fe    ...            ; Read first byte (dest station)
@@ -6758,10 +6758,10 @@ boot_string_offsets = boot_option_offsets+1
 ; ***************************************************************************************
 ; &9899 referenced 3 times by &986a, &987f, &988f
 .data_rx_complete
-    lda #&84                                                          ; 9899: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 989b: 8d a1 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #0                                                            ; 989e: a9 00       ..             ; CR1=&00: disable all interrupts; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 98a0: 8d a0 fe    ...            ; Write CR1: disable all interrupts
+    lda #&84                                                          ; 9899: a9 84       ..             ; CR1=&00: disable all interrupts
+    sta econet_control23_or_status2                                   ; 989b: 8d a1 fe    ...            ; Write CR1
+    lda #0                                                            ; 989e: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
+    sta econet_control1_or_status1                                    ; 98a0: 8d a0 fe    ...            ; Write CR2
     sty port_buf_len                                                  ; 98a3: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98a5: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98a7: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)

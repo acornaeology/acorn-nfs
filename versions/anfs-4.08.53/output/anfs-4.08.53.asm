@@ -1087,7 +1087,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; be1a: 20 95 06     .. :068a[4]   ; Send char to co-processor
     inx                                                               ; be1d: e8          .   :068d[4]   ; Next character
-    cmp #&0d                                                          ; be1e: c9 0d       ..  :068e[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; be1e: c9 0d       ..  :068e[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; be20: d0 f5       ..  :0690[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; be22: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
@@ -1643,7 +1643,7 @@ service_handler_lo = service_entry+1
 ; &9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 81dc: a9 01       ..             ; Read SR2 for AP check
+    lda #1                                                            ; 81dc: a9 01       ..             ; A=1: AP mask for SR2 bit test
     bit econet_control23_or_status2                                   ; 81de: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 81e1: f0 48       .H             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 81e3: ad a2 fe    ...            ; Read first byte (dest station)

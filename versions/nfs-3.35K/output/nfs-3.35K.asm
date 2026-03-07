@@ -314,8 +314,8 @@ oscli                                   = &fff7
 ; ***************************************************************************************
 ; &9335 referenced 2 times by &04ec[2], &053a[3]
 .tube_enter_main_loop
-    stx zp_temp_11                                                    ; 9335: 86 11       ..  :0036[1]   ; More pages: continue transfer
-    sty zp_temp_10                                                    ; 9337: 84 10       ..  :0038[1]   ; A=4: host-to-parasite burst
+    stx zp_temp_11                                                    ; 9335: 86 11       ..  :0036[1]   ; Save X to temporary
+    sty zp_temp_10                                                    ; 9337: 84 10       ..  :0038[1]   ; Save Y to temporary
 ; &9339 referenced 7 times by &0048[1], &05ae[3], &05d5[3], &0623[4], &0638[4], &06a0[4], &06cd[4]
 .tube_main_loop
     bit tube_status_1_and_tube_control                                ; 9339: 2c e0 fe    ,.. :003a[1]   ; BIT R1 status: check WRCH request
@@ -950,7 +950,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; 961f: 20 d0 06     .. :06c5[4]   ; Send char to co-processor
     inx                                                               ; 9622: e8          .   :06c8[4]   ; Next character
-    cmp #&0d                                                          ; 9623: c9 0d       ..  :06c9[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; 9623: c9 0d       ..  :06c9[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; 9625: d0 f5       ..  :06cb[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; 9627: 4c 3a 00    L:. :06cd[4]   ; Return to main event loop
 
@@ -1523,7 +1523,7 @@ svc_entry_lo = service_entry+1
 
 ; &81ae referenced 1 time by &817e
 .match_net_cmd
-    ldx #1                                                            ; 81ae: a2 01       ..             ; X=5: ROM offset for "NET" match
+    ldx #1                                                            ; 81ae: a2 01       ..             ; X=1: ROM offset for "NET" match
     jsr match_rom_string                                              ; 81b0: 20 cc 81     ..            ; Try matching *NET command
     bne restore_y_return                                              ; 81b3: d0 46       .F             ; No match: return unclaimed
 ; ***************************************************************************************
@@ -2729,7 +2729,7 @@ svc_entry_lo = service_entry+1
 ; &85f8 referenced 1 time by &8615
 .scan_decimal_digit
     lda (fs_options),y                                                ; 85f8: b1 bb       ..             ; Load next char from buffer
-    cmp #&40 ; '@'                                                    ; 85fa: c9 40       .@             ; Letter or above?; Dot separator?
+    cmp #&40 ; '@'                                                    ; 85fa: c9 40       .@             ; Letter or above?
     bcs no_dot_exit                                                   ; 85fc: b0 19       ..             ; Yes: not a digit, done
     cmp #&2e ; '.'                                                    ; 85fe: c9 2e       ..             ; Dot separator?
     beq parse_decimal_rts                                             ; 8600: f0 16       ..             ; Yes: exit with C=1 (dot found)
@@ -6479,7 +6479,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &977b referenced 2 times by &9764, &976f
 .scout_complete
-    lda #0                                                            ; 977b: a9 00       ..             ; Save Y for next iteration; CR1=&00: disable all interrupts
+    lda #0                                                            ; 977b: a9 00       ..             ; CR1=&00: disable all interrupts
     sta econet_control1_or_status1                                    ; 977d: 8d a0 fe    ...            ; Write CR1
     lda #&84                                                          ; 9780: a9 84       ..             ; CR2=&84: disable PSE, enable RDA_SUPPRESS_FV
     sta econet_control23_or_status2                                   ; 9782: 8d a1 fe    ...            ; Write CR2
@@ -6618,7 +6618,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &986F (skip ctrl+port) -> &98A4 (bulk data read) -> &98D8 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 9843: a9 01       ..             ; Read SR2 for AP check; A=&01: mask for AP (Address Present)
+    lda #1                                                            ; 9843: a9 01       ..             ; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 9845: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 9848: f0 4a       .J             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 984a: ad a2 fe    ...            ; Read first byte (dest station)
@@ -6745,10 +6745,10 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &98d8 referenced 3 times by &98a9, &98be, &98ce
 .data_rx_complete
-    lda #0                                                            ; 98d8: a9 00       ..             ; CR1=&00: disable all interrupts; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 98da: 8d a0 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #&84                                                          ; 98dd: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 98df: 8d a1 fe    ...            ; Write CR1: disable all interrupts
+    lda #0                                                            ; 98d8: a9 00       ..             ; CR1=&00: disable all interrupts
+    sta econet_control1_or_status1                                    ; 98da: 8d a0 fe    ...            ; Write CR1
+    lda #&84                                                          ; 98dd: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing
+    sta econet_control23_or_status2                                   ; 98df: 8d a1 fe    ...            ; Write CR2
     sty port_buf_len                                                  ; 98e2: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98e4: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98e6: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
@@ -7811,7 +7811,7 @@ sr2_test_operand = test_line_idle+2
 ;   - Otherwise -> install RX reply handler at &9DC1
 ; ***************************************************************************************
 .nmi_tx_complete
-    lda #&82                                                          ; 9da3: a9 82       ..             ; Jump to error handler; CR1=&82: TX_RESET | RIE (now in RX mode)
+    lda #&82                                                          ; 9da3: a9 82       ..             ; CR1=&82: TX_RESET | RIE (now in RX mode)
     sta econet_control1_or_status1                                    ; 9da5: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
     bit tx_flags                                                      ; 9da8: 2c 4a 0d    ,J.            ; Test workspace flags
     bvc check_handshake_bit                                           ; 9dab: 50 03       P.             ; bit6 not set -- check bit0

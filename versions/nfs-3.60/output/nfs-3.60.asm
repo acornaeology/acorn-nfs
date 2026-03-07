@@ -1034,7 +1034,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; 95ec: 20 95 06     .. :068a[4]   ; Send char to co-processor
     inx                                                               ; 95ef: e8          .   :068d[4]   ; Next character
-    cmp #&0d                                                          ; 95f0: c9 0d       ..  :068e[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; 95f0: c9 0d       ..  :068e[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; 95f2: d0 f5       ..  :0690[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; 95f4: 4c 36 00    L6. :0692[4]   ; Return to main event loop
 
@@ -6630,7 +6630,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; &9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 97e6: a9 01       ..             ; A=&01: mask for AP (Address Present); Read SR2 for AP check
+    lda #1                                                            ; 97e6: a9 01       ..             ; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 97e8: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 97eb: f0 48       .H             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 97ed: ad a2 fe    ...            ; Read first byte (dest station)
@@ -6755,10 +6755,10 @@ cmd_match_data = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &9877 referenced 3 times by &9848, &985d, &986d
 .data_rx_complete
-    lda #&84                                                          ; 9877: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 9879: 8d a1 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #0                                                            ; 987c: a9 00       ..             ; CR1=&00: disable all interrupts; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 987e: 8d a0 fe    ...            ; Write CR1: disable all interrupts
+    lda #&84                                                          ; 9877: a9 84       ..             ; CR1=&00: disable all interrupts
+    sta econet_control23_or_status2                                   ; 9879: 8d a1 fe    ...            ; Write CR1
+    lda #0                                                            ; 987c: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
+    sta econet_control1_or_status1                                    ; 987e: 8d a0 fe    ...            ; Write CR2
     sty port_buf_len                                                  ; 9881: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 9883: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 9885: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)

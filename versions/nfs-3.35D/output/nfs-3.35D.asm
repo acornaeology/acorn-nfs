@@ -316,8 +316,8 @@ oscli                                   = &fff7
 ; ***************************************************************************************
 ; &933a referenced 2 times by &04ec[2], &053a[3]
 .tube_enter_main_loop
-    stx zp_temp_11                                                    ; 933a: 86 11       ..  :0036[1]   ; More pages: continue transfer
-    sty zp_temp_10                                                    ; 933c: 84 10       ..  :0038[1]   ; A=4: host-to-parasite burst
+    stx zp_temp_11                                                    ; 933a: 86 11       ..  :0036[1]   ; Save X to temporary
+    sty zp_temp_10                                                    ; 933c: 84 10       ..  :0038[1]   ; Save Y to temporary
 ; &933e referenced 6 times by &0048[1], &05ae[3], &05d5[3], &0635[4], &069d[4], &06ca[4]
 .tube_main_loop
     bit tube_status_1_and_tube_control                                ; 933e: 2c e0 fe    ,.. :003a[1]   ; BIT R1 status: check WRCH request
@@ -950,7 +950,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .tube_rdln_send_byte
     jsr tube_send_r2                                                  ; 9621: 20 cd 06     .. :06c2[4]   ; Send char to co-processor
     inx                                                               ; 9624: e8          .   :06c5[4]   ; Next character
-    cmp #&0d                                                          ; 9625: c9 0d       ..  :06c6[4]   ; Loop until CR terminator sent
+    cmp #&0d                                                          ; 9625: c9 0d       ..  :06c6[4]   ; Check for CR terminator
     bne tube_rdln_send_loop                                           ; 9627: d0 f5       ..  :06c8[4]   ; Loop until CR terminator sent
     jmp tube_main_loop                                                ; 9629: 4c 3a 00    L:. :06ca[4]   ; Return to main event loop
 
@@ -1564,7 +1564,7 @@ svc_entry_lo = service_entry+1
 
 ; &81b8 referenced 1 time by &8188
 .match_net_cmd
-    ldx #1                                                            ; 81b8: a2 01       ..             ; X=5: ROM offset for "NET" match
+    ldx #1                                                            ; 81b8: a2 01       ..             ; X=1: ROM offset for "NET" match
     jsr match_rom_string                                              ; 81ba: 20 d6 81     ..            ; Try matching *NET command
     bne restore_y_return                                              ; 81bd: d0 46       .F             ; No match: return unclaimed
 ; ***************************************************************************************
@@ -2770,7 +2770,7 @@ svc_entry_lo = service_entry+1
 ; &8602 referenced 1 time by &861f
 .scan_decimal_digit
     lda (fs_options),y                                                ; 8602: b1 bb       ..             ; Load next char from buffer
-    cmp #&40 ; '@'                                                    ; 8604: c9 40       .@             ; Letter or above?; Dot separator?
+    cmp #&40 ; '@'                                                    ; 8604: c9 40       .@             ; Letter or above?
     bcs no_dot_exit                                                   ; 8606: b0 19       ..             ; Yes: not a digit, done
     cmp #&2e ; '.'                                                    ; 8608: c9 2e       ..             ; Dot separator?
     beq parse_decimal_rts                                             ; 860a: f0 16       ..             ; Yes: exit with C=1 (dot found)
@@ -6472,7 +6472,7 @@ osword_12_handler = restore_rx_flags+2
     iny                                                               ; 976c: c8          .              ; Advance and check buffer limit
     cpy #&0c                                                          ; 976d: c0 0c       ..             ; Copied all 12 scout bytes?
     beq scout_complete                                                ; 976f: f0 0a       ..             ; Buffer full (Y=12) -- force completion
-    sty port_buf_len                                                  ; 9771: 84 a2       ..             ; Save final buffer offset; Save Y for next iteration
+    sty port_buf_len                                                  ; 9771: 84 a2       ..             ; Save final buffer offset
     lda econet_control23_or_status2                                   ; 9773: ad a1 fe    ...            ; Read SR2 for next pair
     bne scout_loop_rda                                                ; 9776: d0 de       ..             ; SR2 non-zero -- loop back for more bytes
     jmp nmi_rti                                                       ; 9778: 4c 14 0d    L..            ; SR2 = 0 -- RTI, wait for next NMI
@@ -6635,7 +6635,7 @@ osword_12_handler = restore_rx_flags+2
 ; &9865 (skip ctrl+port) -> &989A (bulk data read) -> &98CE (completion)
 ; ***************************************************************************************
 .nmi_data_rx
-    lda #1                                                            ; 9843: a9 01       ..             ; Read SR2 for AP check; A=&01: mask for AP (Address Present)
+    lda #1                                                            ; 9843: a9 01       ..             ; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 9845: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 9848: f0 4a       .J             ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 984a: ad a2 fe    ...            ; Read first byte (dest station)
@@ -6762,10 +6762,10 @@ osword_12_handler = restore_rx_flags+2
 ; ***************************************************************************************
 ; &98d8 referenced 3 times by &98a9, &98be, &98ce
 .data_rx_complete
-    lda #0                                                            ; 98d8: a9 00       ..             ; CR1=&00: disable all interrupts; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 98da: 8d a0 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #&84                                                          ; 98dd: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 98df: 8d a1 fe    ...            ; Write CR1: disable all interrupts
+    lda #0                                                            ; 98d8: a9 00       ..             ; CR1=&00: disable all interrupts
+    sta econet_control1_or_status1                                    ; 98da: 8d a0 fe    ...            ; Write CR1
+    lda #&84                                                          ; 98dd: a9 84       ..             ; CR2=&84: disable PSE for individual bit testing
+    sta econet_control23_or_status2                                   ; 98df: 8d a1 fe    ...            ; Write CR2
     sty port_buf_len                                                  ; 98e2: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98e4: a9 02       ..             ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98e6: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
@@ -7803,7 +7803,7 @@ sr2_test_operand = test_line_idle+2
     pla                                                               ; 9d90: 68          h              ; PHA/PLA delay (~7 cycles each)
     iny                                                               ; 9d91: c8          .              ; Increment delay counter
     bne delay_nmi_disable                                             ; 9d92: d0 fb       ..             ; Loop 256 times for NMI disable
-    jmp tx_store_result                                               ; 9d94: 4c 4e 9f    LN.            ; Store error and return to idle; Jump to error handler
+    jmp tx_store_result                                               ; 9d94: 4c 4e 9f    LN.            ; Store error and return to idle
 
 ; ***************************************************************************************
 ; TX_LAST_DATA and frame completion
