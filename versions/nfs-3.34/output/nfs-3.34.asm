@@ -1019,14 +1019,14 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .language_entry
 lang_entry_lo = rom_header+1
 lang_entry_hi = rom_header+2
-    jmp language_handler                                              ; 8000: 4c 99 80    L..
+    jmp language_handler                                              ; 8000: 4c 99 80    L..            ; JMP language_handler
 
 ; &8001 referenced 1 time by &0490[2]
 ; &8002 referenced 1 time by &0495[2]
 ; &8003 referenced 1 time by &049a[2]
 .service_entry
 svc_entry_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c af 80    L..
+    jmp service_handler                                               ; 8003: 4c af 80    L..            ; JMP service_handler
 
 ; &8004 referenced 1 time by &049d[2]
 ; &8006 referenced 1 time by &0482[2]
@@ -2402,7 +2402,7 @@ svc_entry_lo = service_entry+1
 ; &84a5 referenced 1 time by &8a4d
 .add_4_to_y
     iny                                                               ; 84a5: c8          .              ; Y += 4 (entry point)
-    iny                                                               ; 84a6: c8          .
+    iny                                                               ; 84a6: c8          .              ; Y += 3
     iny                                                               ; 84a7: c8          .              ; Y += 2
     iny                                                               ; 84a8: c8          .              ; Y += 1
     rts                                                               ; 84a9: 60          `              ; Return with Y adjusted
@@ -2876,12 +2876,12 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &8600 referenced 2 times by &8703, &8783
 .print_file_info
-    ldy fs_messages_flag                                              ; 8600: ac 06 0e    ...
+    ldy fs_messages_flag                                              ; 8600: ac 06 0e    ...            ; Check if file info available
     beq return_fscv_handles                                           ; 8603: f0 d9       ..             ; No info available: return
-    ldy #0                                                            ; 8605: a0 00       ..
+    ldy #0                                                            ; 8605: a0 00       ..             ; Y=0: start of filename string
 ; &8607 referenced 1 time by &8615
 .print_filename_loop
-    lda (fs_crc_lo),y                                                 ; 8607: b1 be       ..
+    lda (fs_crc_lo),y                                                 ; 8607: b1 be       ..             ; Load filename character
     cmp #&0d                                                          ; 8609: c9 0d       ..             ; Compare with CR (end of filename)
     beq pad_filename_spaces                                           ; 860b: f0 0a       ..             ; CR: pad rest of filename field
     cmp #&20 ; ' '                                                    ; 860d: c9 20       .              ; Also end name on space character
