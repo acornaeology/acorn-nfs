@@ -3815,19 +3815,19 @@ subroutine(0x9747, hook=None,
 Reads the body of a scout frame, two bytes per iteration. Stores
 bytes at &0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 Between each pair it checks SR2:
-  - SR2 & &81 tested at entry (&974A): AP|RDA bits
-    - Neither set (BEQ) -> discard (&9744 -> &9A40)
-    - AP without RDA (BPL) -> error (&9737)
+  - At entry (&9749): LDA SR2, BPL tests RDA (bit7)
+    - No RDA (BPL) -> error (&9737)
     - RDA set (BMI) -> read byte
-  - After first byte (&9755): full SR2 tested
+  - After first byte (&9755): LDA SR2
+    - RDA set (BMI) -> read second byte
     - SR2 non-zero (BNE) -> scout completion (&9771)
       This is the FV detection point: when FV is set (by inline refill
       of the last byte during the preceding RX FIFO read), SR2 is
       non-zero and the branch is taken.
-    - SR2 = 0 -> read second byte and loop
-  - After second byte (&9769): re-test SR2 & &81 for next pair
-    - RDA set (BMI) -> loop back to &974E
-    - Neither set -> RTI, wait for next NMI
+    - SR2 = 0 -> RTI, wait for next NMI
+  - After second byte (&9769): LDA SR2
+    - SR2 non-zero (BNE) -> loop back to &974C
+    - SR2 = 0 -> RTI, wait for next NMI
 The loop ends at Y=&0C (12 bytes max in scout buffer).""")
 
 comment(0x9747, "Y = buffer offset", inline=True)
@@ -6065,7 +6065,7 @@ comment(0x96F5, "Return", inline=True)
 label(0x970E, "accept_frame")         # Station ID matched, install next NMI handler
 label(0x972B, "accept_local_net")     # Network=0: clear broadcast marker
 label(0x972E, "accept_scout_net")     # Common accept for local/broadcast frames
-comment(0x973C, "Neither set -- clean end, discard via &9A40", inline=True)
+comment(0x973C, "Neither set -- clean end, discard via &9744", inline=True)
 comment(0x974C, "No RDA -- error handler &9737", inline=True)
 comment(0x9773, "Write CR1", inline=True)
 comment(0x9778, "Write CR2", inline=True)
@@ -7120,8 +7120,8 @@ comment(0x984A, "High byte of nmi_data_rx_net handler", inline=True)
 subroutine(0x9870, "install_data_rx_handler", hook=None,
     title="Install data RX bulk or Tube handler",
     description="""\
-Selects either the normal bulk RX handler (&9843) or the Tube
-RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+Selects either the normal bulk RX handler (&989A) or the Tube
+RX handler (&98F7) based on the Tube transfer flag in tx_flags,
 and installs the appropriate NMI handler.""")
 comment(0x988F, "A=&41: 'not listening' error", inline=True)
 comment(0x98FF, "Advance Tube transfer byte count", inline=True)
