@@ -735,7 +735,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; &94fd referenced 3 times by &056f[3], &05c5[3], &05e2[3]
 .tube_read_string
     ldx #0                                                            ; 94fd: a2 00       ..  :05b1[3]   ; X=0: initialise string buffer index
-    ldy #0                                                            ; 94ff: a0 00       ..  :05b3[3]   ; X=0, Y=0: buffer at &0700, offset 0
+    ldy #0                                                            ; 94ff: a0 00       ..  :05b3[3]   ; Y=0: string buffer offset 0
 ; &9501 referenced 1 time by &05c0[3]
 .strnh
     jsr tube_read_r2                                                  ; 9501: 20 f7 04     .. :05b5[3]   ; Read next string byte from R2
@@ -3506,7 +3506,7 @@ svc_entry_lo = service_entry+1
 
 ; &88a3 referenced 1 time by &884f
 .cha5
-    ldx #1                                                            ; 88a3: a2 01       ..             ; A=5: X=1 (filename only, no data)
+    ldx #1                                                            ; 88a3: a2 01       ..             ; X=1: filename only, no data extent
     jsr copy_string_to_cmd                                            ; 88a5: 20 65 8d     e.            ; Copy filename to cmd buffer
     ldy #&12                                                          ; 88a8: a0 12       ..             ; Y=&12: fn code for FCEXAM (read info); Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 88aa: 20 50 83     P.            ; Prepare FS command buffer (12 references)
@@ -4680,7 +4680,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     pla                                                               ; 8dc0: 68          h              ; Clean stack (discard handle*4)
     cmp #&48 ; 'H'                                                    ; 8dc1: c9 48       .H             ; Offset >= &48 (6 handles max)?
     bcc return_calc_handle                                            ; 8dc3: 90 03       ..             ; No: valid handle, return with C=0
-    ldy #0                                                            ; 8dc5: a0 00       ..             ; Invalid: Y=0, A=0 error sentinel
+    ldy #0                                                            ; 8dc5: a0 00       ..             ; Y=0: invalid handle error sentinel
     tya                                                               ; 8dc7: 98          .              ; A=0, C set = error indicator; A=&00
 ; &8dc8 referenced 1 time by &8dc3
 .return_calc_handle
