@@ -201,6 +201,15 @@ def cmd_labels(args):
                              summary_only=args.summary))
 
 
+def cmd_comment_check(args):
+    """Check inline comments against actual instruction data."""
+    from disasm_tools.comment_check import comment_check
+
+    version_dirpath = get_version_dirpath(args.version)
+    sys.exit(comment_check(version_dirpath, args.version,
+                           sub_target=args.sub, summary=args.summary))
+
+
 def cmd_rename_labels(args):
     """Batch rename auto-generated labels in a driver script."""
     from disasm_tools.rename_labels import rename_labels, show_sub_labels
@@ -385,6 +394,15 @@ def main():
     labels_parser.add_argument("--summary", action="store_true",
                                help="Print summary stats only, no files")
     labels_parser.set_defaults(func=cmd_labels)
+
+    check_parser = subparsers.add_parser(
+        "comment-check", help="Check inline comments against instruction data"
+    )
+    check_parser.add_argument("version", help="NFS version (e.g. 3.34)")
+    check_parser.add_argument("--sub", help="Check one subroutine only (addr)")
+    check_parser.add_argument("--summary", action="store_true",
+                              help="Show counts only, no detail")
+    check_parser.set_defaults(func=cmd_comment_check)
 
     rename_parser = subparsers.add_parser(
         "rename-labels", help="Batch rename auto-generated labels"
