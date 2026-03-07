@@ -3991,25 +3991,25 @@ listen_jmp_hi = reset_enter_listen+2
     ldx #&4a ; 'J'                                                    ; 8b82: a2 4a       .J             ; X=&4A: NFS command table offset
     jsr print_cmd_table                                               ; 8b84: 20 8d 8b     ..            ; Print help for NFS commands
 ; ***************************************************************************************
-; *Utils command handler
+; *HELP UTILS topic handler
 ; 
-; Sets X=0 to select the first (FS) command
-; sub-table and branches to print_cmd_table to
-; display the command list. Prints the version
-; header followed by all FS utility commands.
+; Sets X=0 to select the utility command sub-table
+; and branches to print_cmd_table to display the
+; command list. Prints the version header followed
+; by all utility commands.
 ; ***************************************************************************************
-.cmd_utils
-    ldx #0                                                            ; 8b87: a2 00       ..             ; X=0: FS command table offset
+.help_utils
+    ldx #0                                                            ; 8b87: a2 00       ..             ; X=0: utility command table offset
     beq print_cmd_table                                               ; 8b89: f0 02       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
-; *Net command (local variant)
+; *HELP NET topic handler
 ; 
 ; Sets X to &4A (the NFS command sub-table offset)
 ; and falls through to print_cmd_table to display
 ; the NFS command list with version header.
 ; ***************************************************************************************
-.cmd_net_local
+.help_net
     ldx #&4a ; 'J'                                                    ; 8b8b: a2 4a       .J             ; X=&4A: NFS command table offset
 ; ***************************************************************************************
 ; Print *HELP command listing with optional header
@@ -4207,7 +4207,7 @@ listen_jmp_hi = reset_enter_listen+2
 ; 
 ; Saves the OS text pointer, then calls match_fs_cmd
 ; to search the command table starting at offset 0
-; (all FS commands). If no match is found (carry
+; (all command sub-tables). If no match is found (carry
 ; set), returns with the service call unclaimed. On
 ; a match, JMPs to cmd_fs_reentry to execute the
 ; matched command handler via the PHA/PHA/RTS
@@ -4217,7 +4217,7 @@ listen_jmp_hi = reset_enter_listen+2
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .svc_4_star_command
-    ldx #0                                                            ; 8c43: a2 00       ..             ; X=0: start of FS command table
+    ldx #0                                                            ; 8c43: a2 00       ..             ; X=0: start of utility command table
     ldy ws_page                                                       ; 8c45: a4 a8       ..             ; Get command line offset
     jsr save_text_ptr                                                 ; 8c47: 20 fa 8a     ..            ; Save text pointer to fs_crc
     jsr match_fs_cmd                                                  ; 8c4a: 20 28 a1     (.            ; Try to match command in table
@@ -9511,8 +9511,8 @@ bad_prefix = bad_str_anchor+1
 ; Flag byte: bit 7 = end of name marker,
 ; bit 6 = set V on return if no argument,
 ; bits 0-4 = *HELP syntax string index.
-; 1: FS commands  2: NFS commands
-; 3: Net/Utils    4: Copro/attributes
+; 1: Utility cmds  2: NFS commands
+; 3: Help topics  4: Copro/attributes
 ; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
     equb &43                                                          ; a3d8: 43          C              ; *Close (first char)
@@ -9527,7 +9527,7 @@ bad_prefix = bad_str_anchor+1
     equs "Dump"                                                       ; a3e0: 44 75 6d... Dum            ; *Dump
     equb &c4                                                          ; a3e4: c4          .              ; V no arg; syn 4: <filename> ...
     equw cmd_dump-1                                                   ; a3e5: 05 ba       ..             ; Dispatch addr-1
-    equs "Net"                                                        ; a3e7: 4e 65 74    Net            ; *Net (file server)
+    equs "Net"                                                        ; a3e7: 4e 65 74    Net            ; *Net (select NFS)
     equb &80                                                          ; a3ea: 80          .              ; No syntax
     equw cmd_net_fs-1                                                 ; a3eb: 0d 8b       ..             ; Dispatch addr-1
     equs "Pollps"                                                     ; a3ed: 50 6f 6c... Pol            ; *Pollps
@@ -9550,7 +9550,7 @@ bad_prefix = bad_str_anchor+1
     equs "Unprot"                                                     ; a418: 55 6e 70... Unp            ; *Unprot
     equb &8e                                                          ; a41e: 8e          .              ; Syn 14: (attribute keywords)
     equw cmd_unprot-1                                                 ; a41f: 20 b3        .             ; Dispatch addr-1
-    equb &80                                                          ; a421: 80          .              ; End of FS sub-table
+    equb &80                                                          ; a421: 80          .              ; End of utility sub-table
 .cmd_table_nfs
     equs "Access"                                                     ; a422: 41 63 63... Acc            ; *Access
     equb &c9                                                          ; a428: c9          .              ; V no arg; syn 9: <obj> (L)(W)(R)...
@@ -9604,15 +9604,15 @@ bad_prefix = bad_str_anchor+1
     equb &81                                                          ; a496: 81          .              ; Syn 1: (<dir>)
     equw cmd_wipe-1                                                   ; a497: 3c b3       <.             ; Dispatch addr-1
     equb &80                                                          ; a499: 80          .              ; End of NFS sub-table
-.cmd_table_net
+.cmd_table_help
     equb 9, &8e                                                       ; a49a: 09 8e       ..             ; &09/&8E: before help-only entries
     equs "Net"                                                        ; a49c: 4e 65 74    Net            ; *Net (local)
     equb &80                                                          ; a49f: 80          .              ; No syntax
-    equw cmd_net_local-1                                              ; a4a0: 8a 8b       ..             ; Dispatch addr-1
+    equw help_net-1                                                   ; a4a0: 8a 8b       ..             ; Dispatch addr-1
     equs "Utils"                                                      ; a4a2: 55 74 69... Uti            ; *Utils
     equb &80                                                          ; a4a7: 80          .              ; No syntax
-    equw cmd_utils-1                                                  ; a4a8: 86 8b       ..             ; Dispatch addr-1
-    equb &80                                                          ; a4aa: 80          .              ; End of Net/Utils sub-table
+    equw help_utils-1                                                 ; a4a8: 86 8b       ..             ; Dispatch addr-1
+    equb &80                                                          ; a4aa: 80          .              ; End of help topic sub-table
 ; Protection attribute keyword table. Each entry:
 ; ASCII name + flag byte (&80+) + OR mask + AND mask.
 ; Used by *Prot (ORA lo byte) and *Unprot (AND hi
@@ -15315,7 +15315,6 @@ net_channel_err_string = err_net_chan_not_found+2
     assert cmd_lcat-1 == &ad4c
     assert cmd_lex-1 == &ad52
     assert cmd_net_fs-1 == &8b0d
-    assert cmd_net_local-1 == &8b8a
     assert cmd_pass-1 == &8db0
     assert cmd_pollps-1 == &b19e
     assert cmd_print-1 == &b987
@@ -15326,10 +15325,11 @@ net_channel_err_string = err_net_chan_not_found+2
     assert cmd_roff-1 == &8acb
     assert cmd_type-1 == &b984
     assert cmd_unprot-1 == &b320
-    assert cmd_utils-1 == &8b86
     assert cmd_wipe-1 == &b33c
     assert copyright - rom_header == &14
     assert error_msg_table - error_msg_table == &00
+    assert help_net-1 == &8b8a
+    assert help_utils-1 == &8b86
     assert msg_bad_option - error_msg_table == &33
     assert msg_escape - error_msg_table == &2b
     assert msg_net_error - error_msg_table == &0d

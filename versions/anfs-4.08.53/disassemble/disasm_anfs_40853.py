@@ -5929,7 +5929,7 @@ comment(0x8B7C, "Store updated flags", inline=True)
 comment(0x8B7F, "Issue service 15 (FS initialised)", inline=True)
 comment(0x8B82, "X=&4A: NFS command table offset", inline=True)
 comment(0x8B84, "Print help for NFS commands", inline=True)
-comment(0x8B87, "X=0: FS command table offset", inline=True)
+comment(0x8B87, "X=0: utility command table offset", inline=True)
 comment(0x8B8B, "X=&4A: NFS command table offset", inline=True)
 comment(0x8B8D, "V clear: need to print header first", inline=True)
 comment(0x8B8F, "Save X (table offset)", inline=True)
@@ -6017,7 +6017,7 @@ comment(0x8C3E, "More spaces needed: loop", inline=True)
 comment(0x8C40, "Restore Y", inline=True)
 comment(0x8C41, "Transfer to Y", inline=True)
 comment(0x8C42, "Return", inline=True)
-comment(0x8C43, "X=0: start of FS command table", inline=True)
+comment(0x8C43, "X=0: start of utility command table", inline=True)
 comment(0x8C45, "Get command line offset", inline=True)
 comment(0x8C47, "Save text pointer to fs_crc", inline=True)
 comment(0x8C4A, "Try to match command in table", inline=True)
@@ -6662,7 +6662,7 @@ subroutine(0x8C43, "svc_4_star_command",
     title="Service 4: unrecognised star command",
     description="Saves the OS text pointer, then calls match_fs_cmd\n"
     "to search the command table starting at offset 0\n"
-    "(all FS commands). If no match is found (carry\n"
+    "(all command sub-tables). If no match is found (carry\n"
     "set), returns with the service call unclaimed. On\n"
     "a match, JMPs to cmd_fs_reentry to execute the\n"
     "matched command handler via the PHA/PHA/RTS\n"
@@ -6750,19 +6750,19 @@ Sub-tables separated by &80 sentinel bytes.
 Flag byte: bit 7 = end of name marker,
 bit 6 = set V on return if no argument,
 bits 0-4 = *HELP syntax string index.
-1: FS commands  2: NFS commands
-3: Net/Utils    4: Copro/attributes""")
+1: Utility cmds  2: NFS commands
+3: Help topics  4: Copro/attributes""")
 
 label(0xA3D8, "cmd_table_fs")
 label(0xA422, "cmd_table_nfs")
-label(0xA49A, "cmd_table_net")
+label(0xA49A, "cmd_table_help")
 label(0xA4AB, "cmd_table_copro")
 
-# Sub-table 1: file server commands
+# Sub-table 1: utility commands
 # Table stores address-1 for PHA/PHA/RTS dispatch; actual targets are +1.
 entry(0xB97F)   # *Close
 entry(0xBA06)   # *Dump
-entry(0x8B0E)   # *Net (file server)
+entry(0x8B0E)   # *Net (select NFS)
 entry(0xB19F)   # *Pollps
 entry(0xB988)   # *Print
 entry(0xB2F0)   # *Prot
@@ -6774,7 +6774,7 @@ entry(0x8ACC)   # *Roff
 # Mark dispatch address words as symbolic label expressions.
 # Each entry: (addr, target_label). Uses EQUW (little-endian word).
 _cmd_entries = [
-    # Sub-table 1: FS commands
+    # Sub-table 1: utility commands
     (0xA3DE, "cmd_close"),
     (0xA3E5, "cmd_dump"),
     (0xA3EB, "cmd_net_fs"),
@@ -6803,9 +6803,9 @@ _cmd_entries = [
     (0xA487, "cmd_remove"),
     (0xA490, "cmd_rename"),
     (0xA497, "cmd_wipe"),
-    # Sub-table 3: Net/Utils commands
-    (0xA4A0, "cmd_net_local"),
-    (0xA4A8, "cmd_utils"),
+    # Sub-table 3: help topic handlers
+    (0xA4A0, "help_net"),
+    (0xA4A8, "help_utils"),
     # Sub-table 4 (copro) skipped — targets outside ROM range
 ]
 for addr, target_label in _cmd_entries:
@@ -6818,7 +6818,7 @@ for addr, target_label in _cmd_entries:
 # Dispatch words: PHA/PHA/RTS target.
 # Sentinels: sub-table terminators.
 
-# Sub-table 1: FS commands (&A3D8-&A421)
+# Sub-table 1: utility commands (&A3D8-&A421)
 comment(0xA3D8, "*Close (first char)", inline=True)
 comment(0xA3D9, "*Close cont (dispatch lo base)", inline=True)
 comment(0xA3DA, "*Close cont (dispatch hi base)", inline=True)
@@ -6827,7 +6827,7 @@ comment(0xA3DE, "Dispatch addr-1", inline=True)
 comment(0xA3E0, "*Dump", inline=True)
 comment(0xA3E4, "V no arg; syn 4: <filename> ...", inline=True)
 comment(0xA3E5, "Dispatch addr-1", inline=True)
-comment(0xA3E7, "*Net (file server)", inline=True)
+comment(0xA3E7, "*Net (select NFS)", inline=True)
 comment(0xA3EA, "No syntax", inline=True)
 comment(0xA3EB, "Dispatch addr-1", inline=True)
 comment(0xA3ED, "*Pollps", inline=True)
@@ -6850,7 +6850,7 @@ comment(0xA416, "Dispatch addr-1", inline=True)
 comment(0xA418, "*Unprot", inline=True)
 comment(0xA41E, "Syn 14: (attribute keywords)", inline=True)
 comment(0xA41F, "Dispatch addr-1", inline=True)
-comment(0xA421, "End of FS sub-table", inline=True)
+comment(0xA421, "End of utility sub-table", inline=True)
 
 # Sub-table 2: NFS commands (&A422-&A499)
 comment(0xA422, "*Access", inline=True)
@@ -6904,7 +6904,7 @@ comment(0xA496, "Syn 1: (<dir>)", inline=True)
 comment(0xA497, "Dispatch addr-1", inline=True)
 comment(0xA499, "End of NFS sub-table", inline=True)
 
-# Sub-table 3: Net/Utils (&A49A-&A4AA)
+# Sub-table 3: help topic handlers (&A49A-&A4AA)
 comment(0xA49A, "&09/&8E: before help-only entries", inline=True)
 comment(0xA49C, "*Net (local)", inline=True)
 comment(0xA49F, "No syntax", inline=True)
@@ -6912,7 +6912,7 @@ comment(0xA4A0, "Dispatch addr-1", inline=True)
 comment(0xA4A2, "*Utils", inline=True)
 comment(0xA4A7, "No syntax", inline=True)
 comment(0xA4A8, "Dispatch addr-1", inline=True)
-comment(0xA4AA, "End of Net/Utils sub-table", inline=True)
+comment(0xA4AA, "End of help topic sub-table", inline=True)
 
 # Sub-table 4: protection attribute keywords (&A4AB-&A4D5)
 # Dual-purpose table: entries are keyword names for *Prot/*Unprot
@@ -7235,24 +7235,24 @@ subroutine(0xB33D, "cmd_wipe",
     "flush_and_read_char on completion.",
     on_entry={"y": "command line offset in text pointer"})
 
-# Sub-table 3: Net/Utils commands
+# Sub-table 3: help topic handlers
 entry(0x8B8B)   # *Net (second variant)
 entry(0x8B87)   # *Utils
 
-label(0x8B8B, "cmd_net_local")
-label(0x8B87, "cmd_utils")
+label(0x8B8B, "help_net")
+label(0x8B87, "help_utils")
 
-subroutine(0x8B8B, "cmd_net_local",
-    title="*Net command (local variant)",
+subroutine(0x8B8B, "help_net",
+    title="*HELP NET topic handler",
     description="Sets X to &4A (the NFS command sub-table offset)\n"
     "and falls through to print_cmd_table to display\n"
     "the NFS command list with version header.")
-subroutine(0x8B87, "cmd_utils",
-    title="*Utils command handler",
-    description="Sets X=0 to select the first (FS) command\n"
-    "sub-table and branches to print_cmd_table to\n"
-    "display the command list. Prints the version\n"
-    "header followed by all FS utility commands.")
+subroutine(0x8B87, "help_utils",
+    title="*HELP UTILS topic handler",
+    description="Sets X=0 to select the utility command sub-table\n"
+    "and branches to print_cmd_table to display the\n"
+    "command list. Prints the version header followed\n"
+    "by all utility commands.")
 
 
 # ============================================================
