@@ -1522,7 +1522,7 @@ label(0x9F49, "restore_x_and_return") # BCC: Tube not claimed, restore X/RTS
 label(0x9F4C, "fallback_calc_transfer") # BEQ: no buffer/Tube, simple 2-byte subtract
 label(0x9EDF, "tx_result_fail")        # Store result=&41 (not listening) (9 refs)
 
-label(0x9F8F, "poll_nmi_idle")          # BNE: spin reading nmi_jmp until idle (&96BF)
+label(0x9F8F, "poll_nmi_idle")          # BNE: spin reading nmi_jmp until idle (&96DF)
 label(0x9F8A, "wait_idle_and_reset")   # Wait for idle NMI state and reset Econet
 label(0x9FAF, "reset_enter_listen")  # Reset Econet flags and enter RX listen mode
 label(0x9FB1, "listen_jmp_hi")       # High byte of JMP adlc_rx_listen (self-mod target)
@@ -2204,7 +2204,7 @@ entry(0x915F)   # Function 8 handler (remote_cmd_data)
 # --- Code found in third-pass remaining equb regions ---
 entry(0x877E)   # BEQ +3; JMP &8870 (called from &8744 region)
 entry(0x8FD8)   # LDY #&28; ... (preceded by RTS, standalone entry)
-entry(0x97FC)   # LDA #&82; STA &FEA0; installs NMI handler &97E6
+entry(0x97FC)   # LDA #&82; STA &FEA0; installs NMI handler &9808
 
 # ============================================================
 # Inline comments for key instructions
@@ -4889,18 +4889,18 @@ subroutine(0x8D49, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
 The four boot options use OSCLI strings at offsets within page &8D.
-The offset table at boot_option_offsets+1 (&8D68) is indexed by
+The offset table at boot_option_offsets+1 (&8D56) is indexed by
 the boot option value (0-3); each byte is the low byte of the
 string address, with the page high byte &8D loaded separately:
-  Option 0 (Off):  offset &67 → &8D67 = bare CR (empty command)
-  Option 1 (Load): offset &58 → &8D58 = "L.!BOOT" (the bytes
-      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D5F)
-  Option 2 (Run):  offset &5A → &8D5A = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &60 → &8D60 = "E.!BOOT"
+  Option 0 (Off):  offset &55 → &8D55 = bare CR (empty command)
+  Option 1 (Load): offset &46 → &8D46 = "L.!BOOT" (the bytes
+      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D4D)
+  Option 2 (Run):  offset &48 → &8D48 = "!BOOT" (bare filename = *RUN)
+  Option 3 (Exec): offset &4E → &8D4E = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the string data
 overlaps with other byte sequences to save space. The &0D byte
-at &8D67 terminates "E.!BOOT" AND doubles as the bare-CR
+at &8D55 terminates "E.!BOOT" AND doubles as the bare-CR
 command for boot option 0.""")
 comment(0x8D49, '"BOOT" command string tail', inline=True)
 comment(0x8D4D, "CR terminator for BOOT string", inline=True)
@@ -4916,7 +4916,7 @@ Five bytes: the first byte (&0D) is the bare-CR target for boot
 option 0; bytes 1-4 are the offset table indexed by boot option
 (0-3). Each offset is the low byte of a pointer into page &8D.
 The code reads from boot_option_offsets+1 (&8D68) via
-LDX l8d68,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+LDX l8d56,Y with Y=boot_option, then LDY #&8D, JMP oscli.
 See boot_cmd_strings for the target strings.""")
 for i in range(5):
     byte(0x8D67 + i)
@@ -6364,9 +6364,9 @@ comment(0x96DE, "Return", inline=True)
 
 # c9f57: service 12 entry -- spin-wait for idle NMI handler
 # before releasing Econet. Checks that nmi_jmp points to
-# nmi_rx_scout (&96BF), confirming no transfer is in progress.
+# nmi_rx_scout (&96DF), confirming no transfer is in progress.
 comment(0x9F8A, "Econet not initialised -- skip to adlc_rx_listen", inline=True)
-comment(0x9F8F, "Spin until NMI handler = &96BF (nmi_rx_scout)", inline=True)
+comment(0x9F8F, "Spin until NMI handler = &96DF (nmi_rx_scout)", inline=True)
 
 subroutine(0x9FA2, "save_econet_state", hook=None,
     title="Reset Econet flags and enter RX listen",
@@ -6846,7 +6846,7 @@ network, port, and control byte into the RXCB.""")
 subroutine(0x9A0D, "install_rx_scout_handler", hook=None,
     title="Install RX scout NMI handler",
     description="""\
-Installs nmi_rx_scout (&96BF) as the NMI handler via
+Installs nmi_rx_scout (&96DF) as the NMI handler via
 set_nmi_vector, without first calling adlc_rx_listen.
 Used when the ADLC is already in the correct RX mode.""")
 
@@ -6890,12 +6890,12 @@ subroutine(0x9A0A, "discard_listen", hook=None,
     title="Discard frame and return to idle listen",
     description="""\
 Calls adlc_rx_listen to re-enter idle RX mode (CR1=&82, CR2=&67),
-then installs nmi_rx_scout (&96BF) as the NMI handler via
+then installs nmi_rx_scout (&96DF) as the NMI handler via
 set_nmi_vector. Returns to the caller's NMI context. Used as
 the common discard tail for both gentle rejection (wrong
 station/network) and error recovery paths.""")
 comment(0x9A0A, "Re-enter idle RX listen mode", inline=True)
-comment(0x9A0D, "Install nmi_rx_scout (&96BF) as NMI handler", inline=True)
+comment(0x9A0D, "Install nmi_rx_scout (&96DF) as NMI handler", inline=True)
 comment(0x9A0F, "High byte of nmi_rx_scout", inline=True)
 comment(0x9A11, "Set NMI vector and return", inline=True)
 comment(0x9A14, "Save X on stack", inline=True)
@@ -7085,10 +7085,10 @@ subroutine(0x9FB2, "nmi_bootstrap_entry", hook=None,
 An alternate NMI handler that lives in the ROM itself rather than
 in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
 self-modifying JMP to dispatch to different handlers), this one
-hardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler
+hardcodes JMP nmi_rx_scout (&96DF). Used as the initial NMI handler
 before the workspace has been properly set up during initialisation.
 Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
-LDA romsel, STA &FE30, JMP &96BF.""")
+LDA romsel, STA &FE30, JMP &96DF.""")
 comment(0x9FB2, "INTOFF: disable NMIs while switching ROM", inline=True)
 comment(0x9FB5, "Save A", inline=True)
 comment(0x9FB6, "Transfer Y to A", inline=True)
@@ -7161,7 +7161,7 @@ comment(0x9F84, "CR2=&67: CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE", inl
 comment(0x9F86, "Write to ADLC CR2", inline=True)
 comment(0x9F89, "Return; ADLC now in RX listen mode", inline=True)
 comment(0x9F8D, "Not initialised: skip to RX listen", inline=True)
-comment(0x9F92, "Expected: &BF (nmi_rx_scout low)", inline=True)
+comment(0x9F92, "Expected: &DF (nmi_rx_scout low)", inline=True)
 comment(0x9F94, "Not idle: spin and wait", inline=True)
 comment(0x9F96, "Read current NMI handler high byte", inline=True)
 comment(0x9F99, "Expected: &96 (nmi_rx_scout high)", inline=True)
@@ -7182,7 +7182,7 @@ then falls through to save_econet_state to clear flags and
 re-enter RX listen mode.""")
 
 # ============================================================
-# NMI RX scout handler (&96BF) — idle listen
+# NMI RX scout handler (&96DF) — idle listen
 # ============================================================
 subroutine(0x96DF, "nmi_rx_scout", hook=None,
     title="NMI RX scout handler (initial byte)",
@@ -7345,7 +7345,7 @@ comment(0x97D9, "Match found: set scout_status = 3", inline=True)
 comment(0x97DE, "Calculate transfer parameters", inline=True)
 comment(0x97EB, "CR1=&44: RX_RESET | TIE", inline=True)
 comment(0x97F0, "CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE", inline=True)
-comment(0x97F5, "Install data_rx_setup at &97DC", inline=True)
+comment(0x97F5, "Install data_rx_setup at &97FC", inline=True)
 comment(0x975A, "Write CR1", inline=True)
 comment(0x975F, "Write CR2", inline=True)
 comment(0x9773, "Write CR1: switch to TX mode", inline=True)
@@ -7390,16 +7390,16 @@ comment(0x97FE, "Write CR1: switch to RX for data frame", inline=True)
 comment(0x9805, "Install nmi_data_rx and return from NMI", inline=True)
 
 # ============================================================
-# Data RX handler (&97E6-&9840)
+# Data RX handler (&9808-&9862)
 # ============================================================
 # This handler chain receives the data frame in a four-way handshake.
-# After sending the scout ACK, the ROM installs &97E6 to receive
+# After sending the scout ACK, the ROM installs &9808 to receive
 # the incoming data frame.
 subroutine(0x983D, "install_data_rx_handler", hook=None,
     title="Install data RX bulk or Tube handler",
     description="""\
-Selects either the normal bulk RX handler (&9843) or the Tube
-RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+Selects either the normal bulk RX handler (&9865) or the Tube
+RX handler (&98C2) based on the Tube transfer flag in tx_flags,
 and installs the appropriate NMI handler.""")
 
 subroutine(0x9857, "nmi_error_dispatch", hook=None,
@@ -7419,11 +7419,11 @@ Reads and validates the first two address bytes (dest_stn, dest_net)
 against our station address, then installs continuation handlers
 to read the remaining data payload into the open port buffer.
 
-Handler chain: &97E6 (AP+addr check) -> &97FA (net=0 check) ->
-&9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)""")
+Handler chain: &9808 (AP+addr check) -> &981C (net=0 check) ->
+&9832 (skip ctrl+port) -> &9865 (bulk data read) -> &9899 (completion)""")
 
 comment(0x97FC, "CR1=&82: TX_RESET | RIE (switch to RX for data frame)", inline=True)
-comment(0x9801, "Install nmi_data_rx at &97E6", inline=True)
+comment(0x9801, "Install nmi_data_rx at &9808", inline=True)
 comment(0x9803, "Y=&98: NMI handler high byte", inline=True)
 comment(0x9808, "A=&01: mask for AP (Address Present)", inline=True)
 comment(0x980A, "BIT SR2: test AP bit", inline=True)
@@ -7431,14 +7431,14 @@ comment(0x980D, "No AP: wrong frame or error", inline=True)
 comment(0x980F, "Read first byte (dest station)", inline=True)
 comment(0x9812, "Compare to our station ID (INTOFF)", inline=True)
 comment(0x9815, "Not for us: error path", inline=True)
-comment(0x9817, "Install net check handler at &97FA", inline=True)
+comment(0x9817, "Install net check handler at &981C", inline=True)
 comment(0x9819, "Set NMI vector via RAM shim", inline=True)
 comment(0x981C, "Validate source network = 0", inline=True)
 comment(0x981F, "SR2 bit7 clear: no data ready -- error", inline=True)
 comment(0x9821, "Read dest network byte", inline=True)
 comment(0x9824, "Network != 0: wrong network -- error", inline=True)
-comment(0x9826, "Install skip handler at &9810", inline=True)
-comment(0x9828, "High byte of &9810 handler", inline=True)
+comment(0x9826, "Install skip handler at &9832", inline=True)
+comment(0x9828, "High byte of &9832 handler", inline=True)
 comment(0x982A, "SR1 bit7: IRQ, data already waiting", inline=True)
 comment(0x982D, "Data ready: skip directly, no RTI", inline=True)
 comment(0x982F, "Install handler and return via RTI", inline=True)
@@ -7449,13 +7449,13 @@ comment(0x983A, "Discard port byte", inline=True)
 comment(0x983D, "A=2: Tube transfer flag mask", inline=True)
 comment(0x983F, "Check if Tube transfer active", inline=True)
 comment(0x9842, "Tube active: use Tube RX path", inline=True)
-comment(0x9844, "Install bulk read at &9843", inline=True)
-comment(0x9846, "High byte of &9843 handler", inline=True)
+comment(0x9844, "Install bulk read at &9865", inline=True)
+comment(0x9846, "High byte of &9865 handler", inline=True)
 comment(0x9848, "SR1 bit7: more data already waiting?", inline=True)
 comment(0x984B, "Yes: enter bulk read directly", inline=True)
 comment(0x984D, "No: install handler and RTI", inline=True)
-comment(0x9850, "Tube: install Tube RX at &98A0", inline=True)
-comment(0x9852, "High byte of &98A0 handler", inline=True)
+comment(0x9850, "Tube: install Tube RX at &98C2", inline=True)
+comment(0x9852, "High byte of &98C2 handler", inline=True)
 comment(0x9854, "Install Tube handler and RTI", inline=True)
 comment(0x9857, "Check tx_flags for error path", inline=True)
 comment(0x985A, "Bit7 clear: RX error path", inline=True)
@@ -7464,7 +7464,7 @@ comment(0x985F, "Full ADLC reset on RX error", inline=True)
 comment(0x9862, "Discard and return to idle listen", inline=True)
 
 # ============================================================
-# Data frame bulk read (&9843-&9874)
+# Data frame bulk read (&9865-&9896)
 # ============================================================
 subroutine(0x9865, "nmi_data_rx_bulk", hook=None,
     title="Data frame bulk read loop",
@@ -7472,7 +7472,7 @@ subroutine(0x9865, "nmi_data_rx_bulk", hook=None,
 Reads data payload bytes from the RX FIFO and stores them into
 the open port buffer at (open_port_buf),Y. Reads bytes in pairs
 (like the scout data loop), checking SR2 between each pair.
-SR2 non-zero (FV or other) -> frame completion at &9877.
+SR2 non-zero (FV or other) -> frame completion at &9899.
 SR2 = 0 -> RTI, wait for next NMI to continue.""")
 
 comment(0x9865, "Y = buffer offset, resume from last position", inline=True)
@@ -7501,7 +7501,7 @@ comment(0x9894, "SR2 non-zero: more data, loop back", inline=True)
 comment(0x9896, "SR2=0: no more data yet, wait for NMI", inline=True)
 
 # ============================================================
-# Data frame completion (&9877-&989D)
+# Data frame completion (&9899-&98BF)
 # ============================================================
 subroutine(0x9899, "data_rx_complete", hook=None,
     title="Data frame completion",
@@ -7567,7 +7567,7 @@ subroutine(0x9910, "ack_tx", hook=None,
     title="ACK transmission",
     description="""\
 Sends a scout ACK or final ACK frame as part of the four-way handshake.
-If bit7 of &0D4A is set, this is a final ACK -> completion (&9EA8).
+If bit7 of &0D4A is set, this is a final ACK -> completion (&9EDB).
 Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK
 frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).
 The ACK frame has no data payload -- just address bytes.
@@ -7758,7 +7758,7 @@ subroutine(0x9D3B, "tx_last_data", hook=None,
     title="TX_LAST_DATA and frame completion",
     description="""\
 Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs
-the TX completion NMI handler at &9D14 (nmi_tx_complete).
+the TX completion NMI handler at &9D47 (nmi_tx_complete).
 CR2=&3F = 0011_1111:
   bit5: CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply)
   bit4: TX_LAST_DATA -- tells ADLC this is the final data byte
@@ -7774,7 +7774,7 @@ comment(0x9D42, "High byte of handler address", inline=True)
 comment(0x9D44, "Install and return via set_nmi_vector", inline=True)
 
 # ============================================================
-# TX completion: switch to RX mode (&9D14)
+# TX completion: switch to RX mode (&9D47)
 # ============================================================
 subroutine(0x9D47, "nmi_tx_complete", hook=None,
     title="TX completion: switch to RX mode",
@@ -7783,9 +7783,9 @@ Called via NMI after the frame (including CRC and closing flag) has been
 fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.
 CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).
 Checks workspace flags to decide next action:
-  - bit6 set at &0D4A -> tx_result_ok at &9EA8
-  - bit0 set at &0D4A -> handshake_await_ack at &9E50
-  - Otherwise -> install nmi_reply_scout at &9D30""")
+  - bit6 set at &0D4A -> tx_result_ok at &9EDB
+  - bit0 set at &0D4A -> handshake_await_ack at &9E83
+  - Otherwise -> install nmi_reply_scout at &9D63""")
 
 comment(0x9D47, "CR1=&82: TX_RESET | RIE (now in RX mode)", inline=True)
 comment(0x9D4C, "Test workspace flags", inline=True)
@@ -7794,7 +7794,7 @@ comment(0x9D51, "bit6 set -- TX completion", inline=True)
 comment(0x9D5B, "bit0 set -- four-way handshake data phase", inline=True)
 
 # ============================================================
-# RX reply scout handler (&9D30)
+# RX reply scout handler (&9D63)
 # ============================================================
 subroutine(0x9D63, "nmi_reply_scout", hook=None,
     title="RX reply scout handler",
@@ -7812,16 +7812,16 @@ comment(0x9D6D, "Compare to our station ID (INTOFF side effect)", inline=True)
 comment(0x9D70, "Not our station -- error/reject", inline=True)
 
 # ============================================================
-# RX reply continuation handler (&9D44)
+# RX reply continuation handler (&9D77)
 # ============================================================
 subroutine(0x9D77, "nmi_reply_cont", hook=None,
     title="RX reply continuation handler",
     description="""\
 Reads the second byte of the reply scout (destination network) and
 validates it is zero (local network). Installs nmi_reply_validate
-(&9D5B) for the remaining two bytes (source station and network).
-Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9D53.
-If IRQ is still set, falls through directly to &9D5B without an RTI,
+(&9D8E) for the remaining two bytes (source station and network).
+Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9D86.
+If IRQ is still set, falls through directly to &9D8E without an RTI,
 avoiding NMI re-entry overhead for short frames where all bytes arrive
 in quick succession.""")
 
@@ -7833,31 +7833,31 @@ comment(0x9D83, "BIT SR1: test IRQ (N=bit7) -- more data ready?", inline=True)
 comment(0x9D88, "IRQ not set -- install handler and RTI", inline=True)
 
 # ============================================================
-# RX reply validation handler (&9D5B)
+# RX reply validation handler (&9D8E)
 # ============================================================
 # This is the critical Path 2 code for ADLC FV/PSE interaction.
 # The handler reads two bytes (source station and network) and
 # then checks for FV. The key requirement is that RDA must be
-# visible at &9D5B even if FV has been latched.
+# visible at &9D8E even if FV has been latched.
 #
 # With Beebium's inline refill model, this works because the
 # inline refill chain feeds bytes in rapid succession: each FIFO
 # read refills the next byte. For a 4-byte reply scout:
-#   Read byte 0 at &9D37 -> refills byte 1 (RDA visible at &9D44)
-#   Read byte 1 at &9D49 -> refills byte 2 (RDA visible at &9D5B)
-#   Read byte 2 at &9D60 -> refills byte 3/LAST (FV set)
-#   Read byte 3 at &9D68 -> FIFO empty
-#   Check FV at &9D72 -> FV is set
+#   Read byte 0 at &9D6A -> refills byte 1 (RDA visible at &9D77)
+#   Read byte 1 at &9D7C -> refills byte 2 (RDA visible at &9D8E)
+#   Read byte 2 at &9D93 -> refills byte 3/LAST (FV set)
+#   Read byte 3 at &9D9B -> FIFO empty
+#   Check FV at &9DA5 -> FV is set
 subroutine(0x9D8E, "nmi_reply_validate", hook=None,
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="""\
 Reads the source station and source network from the reply scout and
 validates them against the original TX destination (&0D20/&0D21).
 Sequence:
-  1. Check SR2 bit7 (RDA) at &9D5B -- must see data available
-  2. Read source station at &9D60, compare to &0D20 (tx_dst_stn)
-  3. Read source network at &9D68, compare to &0D21 (tx_dst_net)
-  4. Check SR2 bit1 (FV) at &9D72 -- must see frame complete
+  1. Check SR2 bit7 (RDA) at &9D8E -- must see data available
+  2. Read source station at &9D93, compare to &0D20 (tx_dst_stn)
+  3. Read source network at &9D9B, compare to &0D21 (tx_dst_net)
+  4. Check SR2 bit1 (FV) at &9DA5 -- must see frame complete
 If all checks pass, the reply scout is valid and the ROM proceeds
 to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).""")
 
@@ -7884,10 +7884,10 @@ comment(0x9DE3, "Write network byte to TX FIFO", inline=True)
 comment(0x9DE6, "Test bit 1 of tx_flags", inline=True)
 comment(0x9DE8, "Check if immediate-op or data-transfer", inline=True)
 comment(0x9DEB, "Bit 1 set: immediate op, use alt handler", inline=True)
-comment(0x9DED, "Install nmi_data_tx at &9DC8", inline=True)
+comment(0x9DED, "Install nmi_data_tx at &9DFB", inline=True)
 comment(0x9DEF, "High byte of handler address", inline=True)
 comment(0x9DF1, "Install and return via set_nmi_vector", inline=True)
-comment(0x9DF4, "Install nmi_imm_data at &9E0F", inline=True)
+comment(0x9DF4, "Install nmi_imm_data at &9E42", inline=True)
 comment(0x9DF6, "High byte of handler address", inline=True)
 comment(0x9DF8, "Install and return via set_nmi_vector", inline=True)
 comment(0x9DB6, "High byte &9E of next handler address", inline=True)
@@ -7903,7 +7903,7 @@ comment(0x9DD1, "High byte &9D of handler address", inline=True)
 comment(0x9DD3, "Set NMI vector and return", inline=True)
 
 # ============================================================
-# TX data phase: write src address (&9DA3)
+# TX data phase: write src address (&9DD6)
 # ============================================================
 subroutine(0x9DD6, "nmi_scout_ack_src", hook=None,
     title="TX scout ACK: write source address",
@@ -7913,7 +7913,7 @@ Writes our station ID and network=0 to TX FIFO, completing the
 comment(0x9DD6, "Load our station ID (also INTOFF)", inline=True)
 
 # ============================================================
-# TX data phase: send data payload (&9DC8)
+# TX data phase: send data payload (&9DFB)
 # ============================================================
 subroutine(0x9DFB, "nmi_data_tx", hook=None,
     title="TX data phase: send payload",
@@ -7983,7 +7983,7 @@ comment(0x9E7E, "Bit7 clear: TX result = not listening", inline=True)
 comment(0x9E80, "Bit7 set: discard and return to listen", inline=True)
 
 # ============================================================
-# Four-way handshake: switch to RX for final ACK (&9E50)
+# Four-way handshake: switch to RX for final ACK (&9E83)
 # ============================================================
 subroutine(0x9E83, "handshake_await_ack", hook=None,
     title="Four-way handshake: switch to RX for final ACK",
@@ -7998,13 +7998,13 @@ comment(0x9E8C, "Install and return via set_nmi_vector", inline=True)
 # ============================================================
 # Four-way handshake: RX final ACK (&9E5C-&9EA6)
 # ============================================================
-# Same pattern as &9D30/&9D44/&9D5B but for the final ACK.
+# Same pattern as &9D63/&9D77/&9D8E but for the final ACK.
 # Validates that the final ACK is from the expected station.
 subroutine(0x9E8F, "nmi_final_ack", hook=None,
     title="RX final ACK handler",
     description="""\
 Receives the final ACK in a four-way handshake. Same validation
-pattern as the reply scout handler (&9D30-&9D5B):
+pattern as the reply scout handler (&9D63-&9D8E):
   &9E5C: Check AP, read dest_stn, compare to our station
   &9E70: Check RDA, read dest_net, validate = 0
   &9E84: Check RDA, read src_stn/net, compare to TX dest
@@ -8042,7 +8042,7 @@ comment(0x9ED6, "BIT SR2: test FV -- frame must be complete", inline=True)
 comment(0x9ED9, "No FV -- error", inline=True)
 
 # ============================================================
-# Completion and error handlers (&9EA8-&9EB7)
+# Completion and error handlers (&9EDB-&9EEA)
 # ============================================================
 subroutine(0x9EDB, "tx_result_ok", hook=None,
     title="TX completion handler",
@@ -8278,12 +8278,12 @@ comment(0x96F9, "Install next handler and RTI", inline=True)
 comment(0x970C, "Write CR1 to discontinue RX", inline=True)
 comment(0x970F, "Return to idle scout listening", inline=True)
 comment(0x9712, "Network = 0 (local): clear tx_flags", inline=True)
-comment(0x9717, "Install scout data reading loop at &9747", inline=True)
+comment(0x9717, "Install scout data reading loop at &972E", inline=True)
 comment(0x9719, "High byte of scout data handler", inline=True)
 comment(0x971B, "Install scout data loop and RTI", inline=True)
-comment(0x9723, "Neither set -- clean end, discard via &9A40", inline=True)
+comment(0x9723, "Neither set -- clean end, discard via &972B", inline=True)
 comment(0x972B, "Gentle discard: RX_DISCONTINUE", inline=True)
-comment(0x9733, "No RDA -- error handler &9737", inline=True)
+comment(0x9733, "No RDA -- error handler &971E", inline=True)
 comment(0x974A, "Copied all 12 scout bytes?", inline=True)
 comment(0x974E, "Save final buffer offset", inline=True)
 label(0x979A, "scout_ctrl_check")     # Check scout control byte
@@ -8291,7 +8291,7 @@ comment(0x97A2, "Y=1: advance to port byte in slot", inline=True)
 label(0x97B6, "scout_port_match")     # Check scout port number
 comment(0x9899, "CR2=&84: disable PSE for bit testing", inline=True)
 comment(0x989E, "CR1=&00: disable all interrupts", inline=True)
-comment(0x9925, "Install saved next handler (&99BB for scout ACK)", inline=True)
+comment(0x9925, "Install saved next handler (&99B7 for scout ACK)", inline=True)
 comment(0x9940, "Install handler at &9992 (write src addr)", inline=True)
 comment(0x9954, "Write network=0 (local) to TX FIFO", inline=True)
 comment(0x9957, "Check tx_flags for data phase", inline=True)
@@ -8446,23 +8446,23 @@ comment(0x9D34, "PHA/PLA delay (~7 cycles each)", inline=True)
 comment(0x9D35, "Increment delay counter", inline=True)
 comment(0x9D36, "Loop 256 times for NMI disable", inline=True)
 comment(0x9D38, "Store error and return to idle", inline=True)
-comment(0x9D40, "Install NMI handler at &9D94 (TX completion)", inline=True)
+comment(0x9D40, "Install NMI handler at &9D47 (TX completion)", inline=True)
 comment(0x9D49, "Write CR1 to switch from TX to RX", inline=True)
 comment(0x9D54, "A=1: mask for bit0 test", inline=True)
 comment(0x9D56, "Test tx_flags bit0 (handshake)", inline=True)
 comment(0x9D59, "bit0 clear: install reply handler", inline=True)
-comment(0x9D5E, "Install RX reply handler at &9DB2", inline=True)
+comment(0x9D5E, "Install RX reply handler at &9D63", inline=True)
 comment(0x9D60, "Install handler and RTI", inline=True)
-comment(0x9D72, "Install next handler at &9DC8 (reply continuation)", inline=True)
+comment(0x9D72, "Install next handler at &9D77 (reply continuation)", inline=True)
 comment(0x9D74, "Install continuation handler", inline=True)
 comment(0x9D81, "Install next handler at &9DE3 (reply validation)", inline=True)
 comment(0x9D86, "IRQ set: validate reply immediately", inline=True)
 comment(0x9D8B, "Store error and return to idle", inline=True)
 comment(0x9DB4, "Install next handler at &9E83 into &0D4B/&0D4C", inline=True)
-comment(0x9DCF, "Install handler at &9E2B (write src addr for scout ACK)", inline=True)
+comment(0x9DCF, "Install handler at &9DD6 (write src addr for scout ACK)", inline=True)
 label(0x9E67, "tube_tx_inc_byte2")    # Increment byte 2 of 4-byte counter
 label(0x9E6F, "tube_tx_inc_byte4")    # Increment byte 4 of 4-byte counter
-comment(0x9E88, "Install handler at &9EE9 (RX final ACK)", inline=True)
+comment(0x9E88, "Install handler at &9E8F (RX final ACK)", inline=True)
 comment(0x9E9E, "Install handler at &9EFF (final ACK continuation)", inline=True)
 comment(0x9EA0, "Install continuation handler", inline=True)
 comment(0x9EAD, "Install handler at &9F15 (final ACK validation)", inline=True)
