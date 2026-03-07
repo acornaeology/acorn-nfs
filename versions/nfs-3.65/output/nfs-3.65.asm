@@ -779,7 +779,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &94e7 referenced 3 times by &0548[3], &0596[3], &05b3[3]
 .tube_read_string
     ldx #0                                                            ; 94e7: a2 00       ..  :0582[3]   ; X=0: initialise string buffer index
-    ldy #0                                                            ; 94e9: a0 00       ..  :0584[3]   ; X=0, Y=0: buffer at &0700, offset 0
+    ldy #0                                                            ; 94e9: a0 00       ..  :0584[3]   ; Y=0: string buffer offset 0
 ; &94eb referenced 1 time by &0591[3]
 .strnh
     jsr tube_read_r2                                                  ; 94eb: 20 c5 06     .. :0586[3]   ; Read next string byte from R2
@@ -3211,7 +3211,7 @@ error_table_base = bgetv_shared_jsr+1
 ; ***************************************************************************************
 ; &86d8 referenced 1 time by &8c69
 .parse_filename_gs_y
-    ldx #&ff                                                          ; 86d8: a2 ff       ..             ; X=&FF: INX will make X=0 (first char index)
+    ldx #&ff                                                          ; 86d8: a2 ff       ..             ; X=&FF: next INX wraps to first char index
     clc                                                               ; 86da: 18          .              ; C=0 for GSINIT: parse from current position
     jsr gsinit                                                        ; 86db: 20 c2 ff     ..            ; Initialise GS string parser
     beq terminate_filename                                            ; 86de: f0 0b       ..             ; Empty string: skip to CR terminator
@@ -3729,7 +3729,7 @@ error_table_base = bgetv_shared_jsr+1
 
 ; &891e referenced 1 time by &88ca
 .cha5
-    ldx #1                                                            ; 891e: a2 01       ..             ; A=5: X=1 (filename only, no data)
+    ldx #1                                                            ; 891e: a2 01       ..             ; X=1: filename only, no data extent
     jsr copy_string_to_cmd                                            ; 8920: 20 72 8d     r.            ; Copy filename to cmd buffer
     ldy #&12                                                          ; 8923: a0 12       ..             ; Y=&12: fn code for FCEXAM (read info); Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 8925: 20 b5 83     ..            ; Prepare FS command buffer (12 references)
