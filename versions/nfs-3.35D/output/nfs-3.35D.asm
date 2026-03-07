@@ -1016,14 +1016,14 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .language_entry
 lang_entry_lo = rom_header+1
 lang_entry_hi = rom_header+2
-    jmp language_handler                                              ; 8000: 4c d4 80    L..
+    jmp language_handler                                              ; 8000: 4c d4 80    L..            ; JMP language_handler
 
 ; &8001 referenced 1 time by &0490[2]
 ; &8002 referenced 1 time by &0495[2]
 ; &8003 referenced 1 time by &049a[2]
 .service_entry
 svc_entry_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c ea 80    L..
+    jmp service_handler                                               ; 8003: 4c ea 80    L..            ; JMP service_handler
 
 ; &8004 referenced 1 time by &049d[2]
 ; &8006 referenced 1 time by &0482[2]

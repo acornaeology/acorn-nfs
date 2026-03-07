@@ -889,7 +889,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; parameters and returning both X and Y results.
 ; ***************************************************************************************
 .tube_osbyte_long
-    jsr tube_read_r2                                                  ; 955d: 20 c5 06     .. :0607[4]
+    jsr tube_read_r2                                                  ; 955d: 20 c5 06     .. :0607[4]   ; Read X parameter from co-processor
     tax                                                               ; 9560: aa          .   :060a[4]   ; Save in X
     jsr tube_read_r2                                                  ; 9561: 20 c5 06     .. :060b[4]   ; Read Y parameter from co-processor
     tay                                                               ; 9564: a8          .   :060e[4]   ; Save in Y
@@ -908,7 +908,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 
 .tube_osbyte_short
 tube_osword = tube_osbyte_short+1
-    cmp tube_send_zero_r2,x                                           ; 957c: d5 20       .   :0626[4]
+    cmp tube_send_zero_r2,x                                           ; 957c: d5 20       .   :0626[4]   ; Send X result via R2 (data overlap with &70=BVS)
 ; ***************************************************************************************
 ; Tube OSWORD handler (R2 cmd 4)
 ; 
@@ -918,8 +918,8 @@ tube_osword = tube_osbyte_short+1
 ; bytes from the parameter block back via R2.
 ; Returns to the main loop via tube_return_main.
 ; ***************************************************************************************
-    cmp l0006                                                         ; 957e: c5 06       ..  :0628[4]
-    tay                                                               ; 9580: a8          .   :062a[4]   ; Save OSWORD number in Y
+    cmp l0006                                                         ; 957e: c5 06       ..  :0628[4]   ; Read OSWORD number from R2
+    tay                                                               ; 9580: a8          .   :062a[4]   ; Save OSWORD number in Y; Save OSWORD number in Y
 ; &9581 referenced 1 time by &062e[4]
 .tube_osword_read
     bit tube_status_register_2                                        ; 9581: 2c e2 fe    ,.. :062b[4]   ; Poll R2 status for data ready
@@ -974,7 +974,7 @@ tube_osword = tube_osbyte_short+1
 ; or &7F (success).
 ; ***************************************************************************************
 .tube_osword_rdln
-    ldx #4                                                            ; 95be: a2 04       ..  :0668[4]
+    ldx #4                                                            ; 95be: a2 04       ..  :0668[4]   ; X=4: read 5 control block bytes
 ; &95c0 referenced 1 time by &0670[4]
 .read_rdln_ctrl_block
     jsr tube_read_r2                                                  ; 95c0: 20 c5 06     .. :066a[4]   ; Read control block byte from R2
@@ -1082,10 +1082,10 @@ tube_osword = tube_osbyte_short+1
 ; ***************************************************************************************
 ; &961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &066a[4], &06c8[4]
 .tube_read_r2
-    bit tube_status_register_2                                        ; 961b: 2c e2 fe    ,.. :06c5[4]
-    bpl tube_read_r2                                                  ; 961e: 10 fb       ..  :06c8[4]
-    lda tube_data_register_2                                          ; 9620: ad e3 fe    ... :06ca[4]
-    rts                                                               ; 9623: 60          `   :06cd[4]
+    bit tube_status_register_2                                        ; 961b: 2c e2 fe    ,.. :06c5[4]   ; Poll R2 status (bit 7 = data ready)
+    bpl tube_read_r2                                                  ; 961e: 10 fb       ..  :06c8[4]   ; Not ready: keep polling
+    lda tube_data_register_2                                          ; 9620: ad e3 fe    ... :06ca[4]   ; Read byte from Tube R2 data register
+    rts                                                               ; 9623: 60          `   :06cd[4]   ; Return with byte in A
 
     equs "Jes"                                                        ; 9624: 4a 65 73    Jes :06ce[4]
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9627: ff ff ff... ... :06d1[4]
@@ -1117,14 +1117,14 @@ tube_osword = tube_osbyte_short+1
 .language_entry
 lang_entry_lo = rom_header+1
 lang_entry_hi = rom_header+2
-    jmp language_handler                                              ; 8000: 4c e1 80    L..
+    jmp language_handler                                              ; 8000: 4c e1 80    L..            ; JMP language_handler
 
 ; &8001 referenced 1 time by &04e4[2]
 ; &8002 referenced 1 time by &04e9[2]
 ; &8003 referenced 1 time by &04ee[2]
 .service_entry
 svc_entry_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c f7 80    L..
+    jmp service_handler                                               ; 8003: 4c f7 80    L..            ; JMP service_handler
 
 ; &8004 referenced 1 time by &04f1[2]
 ; &8006 referenced 1 time by &04d3[2]

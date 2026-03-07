@@ -981,6 +981,8 @@ label(0x92A3, "return_bspsx")         # NFS09: return from broadcast search area
 comment(0x8000, """\
 NFS ROM 3.35D disassembly (Acorn Econet filing system)
 =====================================================""")
+comment(0x8000, "JMP language_handler", inline=True)
+comment(0x8003, "JMP service_handler", inline=True)
 
 # ============================================================
 # Dispatch table at &8020 (low bytes) / &8044 (high bytes)
