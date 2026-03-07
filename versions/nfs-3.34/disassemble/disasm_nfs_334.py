@@ -1180,7 +1180,7 @@ for y in range(0x81, 0x89):
 # Targets of dispatch table 1 at &9A0E/&9A16.
 
 label(0x9A9F, "rx_imm_exec")
-subroutine(0x9A9F, hook=None,
+subroutine(0x9A9F, "rx_imm_exec", hook=None,
     title="RX immediate: JSR/UserProc/OSProc setup",
     description="""\
 Sets up the port buffer to receive remote procedure data.
@@ -1189,14 +1189,14 @@ the execution address workspace, then jumps to the common
 receive path. Used for operation types &83-&85.""")
 
 label(0x9ABD, "rx_imm_poke")
-subroutine(0x9ABD, hook=None,
+subroutine(0x9ABD, "rx_imm_poke", hook=None,
     title="RX immediate: POKE setup",
     description="""\
 Sets up workspace offsets for receiving POKE data, then
 jumps to the common data-receive path.""")
 
 label(0x9AC8, "rx_imm_machine_type")
-subroutine(0x9AC8, hook=None,
+subroutine(0x9AC8, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
 Sets up a buffer at &7F21 (length #&01FC) for the machine
@@ -1204,7 +1204,7 @@ type query response. Returns system identification data
 to the remote station.""")
 
 label(0x9ADB, "rx_imm_peek")
-subroutine(0x9ADB, hook=None,
+subroutine(0x9ADB, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Saves the current TX block pointer, replaces it with a
@@ -1217,7 +1217,7 @@ response data back to the requesting station.""")
 # Targets of dispatch table 2 at &9B0E/&9B13.
 
 label(0x9B9B, "tx_done_jsr")
-subroutine(0x9B9B, hook=None,
+subroutine(0x9B9B, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
 Pushes a return address on the stack (pointing to
@@ -1226,7 +1226,7 @@ JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
 
 label(0x9BA4, "tx_done_user_proc")
-subroutine(0x9BA4, hook=None,
+subroutine(0x9BA4, "tx_done_user_proc", hook=None,
     title="TX done: UserProc event",
     description="""\
 Generates a network event (event 8) via OSEVEN with the
@@ -1234,7 +1234,7 @@ remote address. This notifies the user program that a
 UserProc operation has completed.""")
 
 label(0x9BB2, "tx_done_os_proc")
-subroutine(0x9BB2, hook=None,
+subroutine(0x9BB2, "tx_done_os_proc", hook=None,
     title="TX done: OSProc call",
     description="""\
 Calls the ROM entry point at &8000 (rom_header) with
@@ -1242,7 +1242,7 @@ X/Y from the remote address workspace. This invokes an
 OS-level procedure on behalf of the remote station.""")
 
 label(0x9BBE, "tx_done_halt")
-subroutine(0x9BBE, hook=None,
+subroutine(0x9BBE, "tx_done_halt", hook=None,
     title="TX done: HALT",
     description="""\
 Sets bit 2 of rx_flags, enables interrupts, and spin-waits
@@ -1250,7 +1250,7 @@ until bit 2 is cleared (by a CONTINUE from the remote
 station). If bit 2 is already set, skips to exit.""")
 
 label(0x9BD5, "tx_done_continue")
-subroutine(0x9BD5, hook=None,
+subroutine(0x9BD5, "tx_done_continue", hook=None,
     title="TX done: CONTINUE",
     description="""\
 Clears bit 2 of rx_flags, releasing any station that is
@@ -1264,7 +1264,7 @@ label(0x9BDD, "tx_done_exit")
 # Targets of dispatch table 3 at &9C53/&9C5B.
 
 label(0x9CE8, "tx_ctrl_peek")
-subroutine(0x9CE8, hook=None,
+subroutine(0x9CE8, "tx_ctrl_peek", hook=None,
     title="TX ctrl: PEEK transfer setup",
     description="""\
 Sets scout_status=3, then performs a 4-byte addition of
@@ -1273,14 +1273,14 @@ workspace (with carry propagation). Calls tx_calc_transfer
 to finalise, then exits via tx_ctrl_exit.""")
 
 label(0x9CEC, "tx_ctrl_poke")
-subroutine(0x9CEC, hook=None,
+subroutine(0x9CEC, "tx_ctrl_poke", hook=None,
     title="TX ctrl: POKE transfer setup",
     description="""\
 Sets scout_status=2 and shares the 4-byte addition and
 transfer calculation path with tx_ctrl_peek.""")
 
 label(0x9D0B, "tx_ctrl_proc")
-subroutine(0x9D0B, hook=None,
+subroutine(0x9D0B, "tx_ctrl_proc", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -1607,7 +1607,7 @@ standard TXCB; tx_poll_core (&8650) is general-purpose.""",
 # print_inline subroutine (&853B)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
-subroutine(0x853B, hook=None,
+subroutine(0x853B, "print_inline", hook=None,
     title="Print inline string, high-bit terminated (VSTRNG)",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -1760,7 +1760,7 @@ comment(0x80AE, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch (&8099)
 # ============================================================
-subroutine(0x8099, hook=None,
+subroutine(0x8099, "lang_entry_dispatch", hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. Although rom_type
@@ -1787,7 +1787,7 @@ comment(0x8137, "Y=0: base offset for service calls (index 1+)", inline=True)
 # ============================================================
 # Service handler entry (&80AF)
 # ============================================================
-subroutine(0x80AF, hook=None,
+subroutine(0x80AF, "service_handler_entry", hook=None,
     title="Service handler entry",
     description="""\
 Intercepts three special service calls before normal dispatch:
@@ -3796,7 +3796,7 @@ comment(0x9741, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-subroutine(0x9747, hook=None,
+subroutine(0x9747, "scout_data_loop", hook=None,
     title="Scout data reading loop",
     description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores
@@ -6307,7 +6307,7 @@ label(0x9A77, "rotate_prot_mask")      # Rotate protection mask right to align p
 comment(0x9A77, "Rotate mask right by control byte index", inline=True)
 comment(0x9A78, "Decrement rotation counter", inline=True)
 comment(0x9A79, "Loop until bit aligned", inline=True)
-subroutine(0x9AE1, hook=None,
+subroutine(0x9AE1, "rx_imm_peek_setup", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
@@ -6414,7 +6414,7 @@ comment(0x9CBF, "Look up tx_flags from table", inline=True)
 comment(0x9CC2, "Store operation flags", inline=True)
 comment(0x9CC5, "Look up tx_length from table", inline=True)
 comment(0x9CC8, "Store expected transfer length", inline=True)
-subroutine(0x9D00, hook=None,
+subroutine(0x9D00, "tx_ctrl_add_done", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -6592,7 +6592,7 @@ comment(0x9FEA, "Return from interrupt", inline=True)
 # ============================================================
 label(0x0020, "tube_send_zero_r2")    # Sends zero prefix via R2 to Tube
 label(0x0036, "tube_enter_main_loop")
-subroutine(0x0036, hook=None,
+subroutine(0x0036, "tube_enter_main_loop", hook=None,
     title="Save registers and enter Tube polling loop",
     description="""\
 Saves X and Y to zp_temp_11/zp_temp_10, then falls through
@@ -7156,7 +7156,7 @@ comment(0x8DE6, "Preserve carry via ROL", inline=True)
 comment(0x8DE9, "&3F = '?' marks slot as unused", inline=True)
 comment(0x8DEB, "Mark handle as closed in workspace", inline=True)
 label(0x8DED, "restore_rx_flags")
-subroutine(0x8DED, hook=None,
+subroutine(0x8DED, "restore_rx_flags", hook=None,
     title="Restore RX flags after close handle",
     description="""\
 Performs ROR on rx_flags to restore the carry flag state
@@ -7182,7 +7182,7 @@ label(0x8EDB, "osword_12_error")
 label(0x8EE1, "carry_exit_or_read")
 label(0x8EFD, "scan_or_read_rxcb")
 label(0x8F48, "clear_svc_restore_args")
-subroutine(0x8F48, hook=None,
+subroutine(0x8F48, "clear_svc_restore_args", hook=None,
     title="Clear service number and restore OSWORD args",
     description="""\
 Shared exit for OSWORD handlers. Zeros rom_svc_num to
@@ -7412,7 +7412,7 @@ label(0x9A12, "store_rxcb_buf_ptr")  # Store updated buffer pointer pair to RXCB
 label(0x9A15, "load_rxcb_buf_hi")
 label(0x9A17, "store_rxcb_buf_hi")    # Stores buffer hi byte to RXCB offset 9
 label(0x9A19, "store_rxcb_completion")
-subroutine(0x9A19, hook=None,
+subroutine(0x9A19, "store_rxcb_completion", hook=None,
     title="Store RXCB completion fields from scout buffer",
     description="""\
 Writes source network, source station, port, and control
@@ -7504,7 +7504,7 @@ label(0x9B0D, "tx_nmi_dispatch_page")
 comment(0x9B0D, "Y=&9B: dispatch table page", inline=True)
 comment(0x9B0F, "Acknowledge and write TX dest", inline=True)
 label(0x9B12, "check_imm_op_ctrl")
-subroutine(0x9B12, hook=None,
+subroutine(0x9B12, "check_imm_op_ctrl", hook=None,
     title="Check control byte for immediate operation type",
     description="""\
 Loads the RX control byte and compares against &82
