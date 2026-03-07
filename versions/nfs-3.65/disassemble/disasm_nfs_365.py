@@ -1711,9 +1711,9 @@ NFS ROM 3.65 disassembly (Acorn Econet filing system)
 # data extends to &8023 and the tables start at &8024/&8049.
 #
 # The lo and hi sub-tables overlap: lo bytes for the last 6
-# entries (i=31-36) fall at &8044-&8049 (the start of the hi area),
-# and hi bytes for i=31-36 are at &8069-&806E (between the main
-# dispatch_0_hi table and dispatch_net_cmd at &806F).
+# entries (i=31-36) fall at &8040-&8045 (the start of the hi area),
+# and hi bytes for i=31-36 are at &8065-&806A (between the main
+# dispatch_0_hi table and dispatch_net_cmd at &806B).
 #
 # Index 0 and unused indices point to an RTS (null handler), so
 # unrecognised service calls or out-of-range values fall through
@@ -2045,7 +2045,7 @@ Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 subroutine(0x9B47, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
-Pushes address &9C0D on the stack (so RTS returns to
+Pushes address &9B88 on the stack (so RTS returns to
 tx_done_exit), then does JMP (l0d58) to call the remote
 JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
@@ -2256,7 +2256,7 @@ Reads attribute byte at offset &0E from the parameter block,
 masks to 6 bits, then falls through to the shared bitmask
 builder. Converts fileserver protection format (5-6 bits) to
 BBC OSFILE attribute format (8 bits) via the lookup table at
-&85EC. The two formats use different bit layouts for file
+&85DA. The two formats use different bit layouts for file
 protection attributes.""")
 comment(0x85BD, "Y=&0E: attribute byte offset in param block", inline=True)
 comment(0x85BF, "Load FS attribute byte", inline=True)
@@ -2268,7 +2268,7 @@ subroutine(0x85C7, "decode_attribs_5bit", hook=None,
     title="Decode file attributes: BBC → FS format (BBCFS, 5-bit variant)",
     description="""\
 Masks A to 5 bits and builds an access bitmask via the
-lookup table at &85EC. Each input bit position maps to a
+lookup table at &85DA. Each input bit position maps to a
 different output bit via the table. The conversion is done
 by iterating through the source bits and OR-ing in the
 corresponding destination bits from the table, translating
@@ -2577,8 +2577,8 @@ and polls the control byte for completion:
   bit 6 set = error (check escape or report)
   bit 6 clear = success (clean return)
 On error, checks for escape condition and handles retries.
-Two entry points: setup_tx_ptr_c0 (&85F7) always uses the
-standard TXCB; tx_poll_core (&8603) is general-purpose.""",
+Two entry points: setup_tx_ptr_c0 (&85E5) always uses the
+standard TXCB; tx_poll_core (&85F1) is general-purpose.""",
     on_entry={"a": "retry count (&FF = full retry)",
               "y": "timeout parameter (&60 = standard)"},
     on_exit={"a": "entry A (retry count, restored from stack)",
@@ -2670,8 +2670,8 @@ Five callers share this table via different Y base offsets:
   Y=&21  *NET1-4 sub-commands     (indices 33-36)
 
 Lo bytes for the last 6 entries (indices 31-36) occupy
-&8044-&8049, immediately before the hi bytes. Their hi
-bytes are at &8069-&806E, after dispatch_0_hi.""")
+&8040-&8045, immediately before the hi bytes. Their hi
+bytes are at &8065-&806A, after dispatch_0_hi.""")
 
 
 # Dispatch table inline comments (lo and hi bytes).
@@ -2741,16 +2741,16 @@ requires a space or terminator after 'NET', so *NET1 typed
 at the command line does not match; these are reached only
 via OSCLI calls within the ROM.
 
-*NET1 (&8E5C): read file handle from received
+*NET1 (&8E6A): read file handle from received
 packet (net_1_read_handle)
 
-*NET2 (&8E62): read handle entry from workspace
+*NET2 (&8E70): read handle entry from workspace
 (net_2_read_handle_entry)
 
-*NET3 (&8E72): close handle / mark as unused
+*NET3 (&8E80): close handle / mark as unused
 (net_3_close_handle)
 
-*NET4 (&81A6): resume after remote operation
+*NET4 (&81AA): resume after remote operation
 (net_4_resume_remote)""")
 
 comment(0x806B, "Read command character following *NET", inline=True)
@@ -2891,24 +2891,18 @@ comment(0x819A, "Write back &A8", inline=True)
 subroutine(0x8116, hook=None,
     title="Service handler entry",
     description="""\
-Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
-probes ADLC status registers &FEA0/&FEA1 to detect whether
-Econet hardware is present. Non-zero reads indicate bus noise
-from absent hardware; sets bit 7 of per-ROM workspace as a
-disable flag. For services < &80, the flag causes an early
-return (disabling this ROM). Services >= &80 (&FE, &FF) are
-always handled regardless of flag.
+On service 1 only, probes ADLC status registers SR1 (&FEA0)
+and SR2 (&FEA1) to detect whether Econet hardware is present.
+Non-zero reads indicate bus noise from absent hardware; sets
+bit 7 of per-ROM workspace as a disable flag. For services
+< &80, the flag causes an early return (disabling this ROM).
+Services >= &80 (&FE, &FF) are always handled regardless.
 
 Intercepts three service calls before normal dispatch:
   &FE: Tube init — explode character definitions
   &FF: Full init — vector setup, copy code to RAM, select NFS
   &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8146.
-
-Probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1)
-to detect whether Econet hardware is present. Sets bit 7 of
-per-ROM workspace as a disable flag if not found. The 9 NOPs
-at &80F7 provide bus settling time after register access.""")
+All other service calls < &0D dispatch via c8146.""")
 
 # ============================================================
 # Init: set up vectors and copy code (&8140)
@@ -3336,7 +3330,7 @@ comment(0x8347, "Offsets &15-&1D: server, handles, OPT, etc.", inline=True)
 subroutine(0x8383, "init_tx_ctrl_block", hook=None,
     title="Initialise TX control block at &00C0 from template",
     description="""\
-Copies 12 bytes from tx_ctrl_template (&83AD) to &00C0.
+Copies 12 bytes from tx_ctrl_template (&839B) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
 station/network from &0E00/&0E01 to &00C2/&00C3.
 The template sets up: control=&80, port=&99 (FS command port),
@@ -3516,7 +3510,7 @@ subroutine(0x8405, "handle_bput_bget",
     title="Handle BPUT/BGET file byte I/O",
     description="""\
 BPUTV enters at &8413 (CLC; fall through) and BGETV enters
-at &8563 (SEC; JSR here). The carry flag is preserved via
+at &8551 (SEC; JSR here). The carry flag is preserved via
 PHP/PLP through the call chain and tested later (BCS) to
 select byte-stream transmission (BSXMIT) vs normal FS
 transmission (FSXMIT) -- a control-flow encoding using
@@ -3674,7 +3668,7 @@ and NLISTN routines build a MOS BRK error block at &100 on the
 stack page: NREPLY fires when the fileserver does not respond
 within the timeout period; NLISTN fires when the destination
 station actively refused the connection.
-Indexed via c850c/nlistn/nlisne at &850C-&8514.""")
+Indexed via c84FA/nlistn/nlisne at &84FA-&850B.""")
 
 # Mark each error table entry as data: error code byte + NUL-terminated string.
 # Without this, the first entry's &A0 byte is traced as code (LDY #imm).
@@ -3777,7 +3771,7 @@ into the (os_text_ptr) string. Initialises GSINIT, reads chars
 via GSREAD into &0E30, CR-terminates the result, and sets up
 fs_crc_lo/hi to point at the buffer.""")
 
-# GSINIT/GSREAD filename parser (&86E8)
+# GSINIT/GSREAD filename parser (&86D6)
 # ============================================================
 subroutine(0x86D6, "parse_filename_gs", hook=None,
     title="Parse filename using GSINIT/GSREAD into &0E30",
@@ -3785,9 +3779,9 @@ subroutine(0x86D6, "parse_filename_gs", hook=None,
 Uses the MOS GSINIT/GSREAD API to parse a filename string from
 (os_text_ptr),Y, handling quoted strings and |-escaped characters.
 Stores the parsed result CR-terminated at &0E30 and sets up
-fs_crc_lo/hi to point to that buffer. Sub-entry at &86EA allows
+fs_crc_lo/hi to point to that buffer. Sub-entry at &86D8 allows
 a non-zero starting Y offset.""",
-    on_entry={"y": "offset into (os_text_ptr) buffer (0 at &86E8)"},
+    on_entry={"y": "offset into (os_text_ptr) buffer (0 at &86D6)"},
     on_exit={"x": "length of parsed string",
              "y": "preserved"})
 comment(0x86D6, "Start from beginning of string", inline=True)
@@ -3815,15 +3809,15 @@ comment(0x86F9, "Return; X = string length", inline=True)
 subroutine(0x86FA, "filev_handler",
     title="FILEV handler (OSFILE entry point)",
     description="""\
-Calls save_fscv_args (&864D) to preserve A/X/Y, then JSR &86DE
+Calls save_fscv_args (&863B) to preserve A/X/Y, then JSR &86CC
 to copy the 2-byte filename pointer from the parameter block to
-os_text_ptr and fall through to parse_filename_gs (&86E8) which
+os_text_ptr and fall through to parse_filename_gs (&86D6) which
 parses the filename into &0E30+. Sets fs_crc_lo/hi to point at
 the parsed filename buffer.
 Dispatches by function code A:
-  A=&FF: load file (send_fs_examine at &8722)
-  A=&00: save file (filev_save at &8795)
-  A=&01-&06: attribute operations (filev_attrib_dispatch at &88D1)
+  A=&FF: load file (send_fs_examine at &8710)
+  A=&00: save file (filev_save at &8783)
+  A=&01-&06: attribute operations (filev_attrib_dispatch at &88BF)
   Other: restore_args_return (unsupported, no-op)""",
     on_entry={"a": "function code (&FF=load, &00=save, &01-&06=attrs)",
               "x": "parameter block address low byte",
@@ -4347,7 +4341,7 @@ comment(0x89B6, "Copy command context to caller's block", inline=True)
 subroutine(0x89C6, "findv_handler",
     title="FINDV handler (OSFIND entry point)",
     description="""\
-  A=0: close file -- delegates to close_handle (&8A10)
+  A=0: close file -- delegates to close_handle (&89FE)
   A>0: open file -- modes &40=read, &80=write/update, &C0=read/write
 For open: the mode byte is converted to the fileserver's two-flag
 format by flipping bit 7 (EOR #&80) and shifting. This produces
@@ -4940,9 +4934,9 @@ comment(0x8D41, """\
 Option name encoding: the boot option names ("Off", "Load",
 "Run", "Exec") are scattered through the code rather than
 stored as a contiguous table. They are addressed via base+offset
-from l8d54 (&8D54), whose four bytes are offsets into page &8D:
-  &2B→&8D7F "Off", &3E→&8D92 "Load",
-  &66→&8DBA "Run", &18→&8D6C "Exec"
+from option_name_offsets (&8D42), whose four bytes are offsets:
+  &2B→&8D6D "Off", &3E→&8D80 "Load",
+  &66→&8DA8 "Run", &18→&8D5A "Exec"
 Each string is terminated by the next instruction's opcode
 having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""")
 
@@ -5256,7 +5250,7 @@ subroutine(0x8E8A, "svc_8_osword", hook=None,
     description="""\
 Subtracts &0F from the command code in &EF, giving a 0-4 index
 for OSWORD calls &0F-&13 (15-19). Falls through to the range
-check and dispatch at osword_12_handler (&8E8D).""")
+check and dispatch at osword_12_handler (&8E90).""")
 
 comment(0x8E8A, "Command code from &EF", inline=True)
 comment(0x8E8C, "Subtract &0F: OSWORD &0F-&13 become indices 0-4", inline=True)
@@ -5304,7 +5298,7 @@ comment(0x816C, "Copy NMI workspace initialiser from ROM to &0016-&0076")
 subroutine(0x8FF3, "econet_tx_rx", hook=None,
     title="Econet transmit/receive handler",
     description="""\
-A=0: Initialise TX control block from ROM template at &8395
+A=0: Initialise TX control block from ROM template at &8383
      (init_tx_ctrl_block+Y, zero entries substituted from NMI
      workspace &0DE6), transmit it, set up RX control block,
      and receive reply.
@@ -6337,9 +6331,9 @@ subroutine(0x96B5, "adlc_init_workspace", hook=None,
     title="Initialise NMI workspace",
     description="""\
 Issues OSBYTE &8F with X=&0C (NMI claim service request) before
-copying the NMI shim. Sub-entry at &9698 skips the service
+copying the NMI shim. Sub-entry at &96B8 skips the service
 request for quick re-init. Then copies 32 bytes of
-NMI shim from ROM (&9F7D) to RAM (&0D00), patches the current
+NMI shim from ROM (&9FB2) to RAM (&0D00), patches the current
 ROM bank number into the shim's self-modifying code at &0D07,
 sets TX clear flag and econet_init_flag to &80, reads station ID
 from &FE18 (INTOFF side effect), stores it in the TX scout buffer,
@@ -7214,7 +7208,7 @@ subroutine(0x96FC, "nmi_rx_scout_net", hook=None,
 Reads the second byte of an incoming scout (destination network).
 Checks for network match: 0 = local network (accept), &FF = broadcast
 (accept and flag), anything else = reject.
-Installs the scout data reading loop handler at &970E.""")
+Installs the scout data reading loop handler at &972E.""")
 
 comment(0x96FC, "BIT SR2: test for RDA (bit7 = data available)", inline=True)
 comment(0x96FF, "No RDA -- check errors", inline=True)
@@ -7232,10 +7226,10 @@ comment(0x9715, "Store Y offset for scout data buffer", inline=True)
 subroutine(0x971E, "scout_error", hook=None,
     title="Scout error/discard handler",
     description="""\
-Reached when the scout data loop sees no RDA (BPL at &9713) or
+Reached when the scout data loop sees no RDA (BPL at &9733) or
 when scout completion finds unexpected SR2 state.
 If SR2 & &81 is non-zero (AP or RDA still active), performs full
-ADLC reset and discards. If zero (clean end), discards via &99E8.
+ADLC reset and discards. If zero (clean end), discards via &9A0A.
 This path is a common landing for any unexpected ADLC state during
 scout reception.""")
 
@@ -7264,17 +7258,17 @@ subroutine(0x972E, hook=None,
 Reads the body of a scout frame, two bytes per iteration. Stores
 bytes at &0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 Between each pair it checks SR2:
-  - At entry (&9710): SR2 read, BPL tests RDA (bit7)
-    - No RDA (BPL) -> error (&96FE)
+  - At entry (&9730): SR2 read, BPL tests RDA (bit7)
+    - No RDA (BPL) -> error (&971E)
     - RDA set (BMI) -> read byte
-  - After first byte (&971C): full SR2 tested
-    - SR2 non-zero (BNE) -> scout completion (&9738)
+  - After first byte (&973C): full SR2 tested
+    - SR2 non-zero (BNE) -> scout completion (&9758)
       This is the FV detection point: when FV is set (by inline refill
       of the last byte during the preceding RX FIFO read), SR2 is
       non-zero and the branch is taken.
     - SR2 = 0 -> read second byte and loop
-  - After second byte (&9730): re-test full SR2
-    - SR2 non-zero (BNE) -> loop back to &9713
+  - After second byte (&9750): re-test full SR2
+    - SR2 non-zero (BNE) -> loop back to &9733
     - SR2 = 0 -> RTI, wait for next NMI
 The loop ends at Y=&0C (12 bytes max in scout buffer).""")
 
@@ -7305,8 +7299,8 @@ Disables PSE to allow individual SR2 bit testing:
   CR1=&00 (clear all enables)
   CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits
 Then checks FV (bit1) and RDA (bit7):
-  - No FV (BEQ) -> error &96FE (not a valid frame end)
-  - FV set, no RDA (BPL) -> error &96FE (missing last byte)
+  - No FV (BEQ) -> error &971E (not a valid frame end)
+  - FV set, no RDA (BPL) -> error &971E (missing last byte)
   - FV set, RDA set -> read last byte, process scout
 After reading the last byte, the complete scout buffer (&0D3D-&0D48)
 contains: src_stn, src_net, ctrl, port [, extra_data...].
@@ -7507,10 +7501,10 @@ subroutine(0x9899, "data_rx_complete", hook=None,
     title="Data frame completion",
     description="""\
 Reached when SR2 non-zero during data RX (FV detected).
-Same pattern as scout completion (&9738): disables PSE (CR2=&84,
+Same pattern as scout completion (&9758): disables PSE (CR2=&84,
 CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
 If extra data available and buffer space remains, stores it.
-Proceeds to send the final ACK via &98EE.""")
+Proceeds to send the final ACK via &9910.""")
 
 comment(0x98A5, "A=&02: FV mask", inline=True)
 comment(0x98A7, "BIT SR2: test FV (Z) and RDA (N)", inline=True)
@@ -7635,7 +7629,7 @@ Polls SR2 for INACTIVE (bit2) to confirm the network line is idle before
 attempting transmission. Uses a 3-byte timeout counter on the stack.
 The timeout (~256^3 iterations) generates "Line Jammed" if INACTIVE
 never appears.
-The CTS check at &9BF4-&9BF9 works because CR2=&67 has RTS=0, so
+The CTS check at &9C18-&9C1D works because CR2=&67 has RTS=0, so
 cts_input_ is always true, and SR1_CTS reflects presence of clock hardware.""")
 
 comment(0x9BFD, "Y=&E7: CR2 value for TX prep (RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)", inline=True)
@@ -7689,7 +7683,7 @@ subroutine(0x9C5D, "tx_prepare", hook=None,
     title="TX preparation",
     description="""\
 Configures ADLC for transmission: asserts RTS via CR2, enables TIE via CR1,
-installs NMI TX handler at &9CCC (nmi_tx_data), and re-enables NMIs.
+installs NMI TX handler at &9CFF (nmi_tx_data), and re-enables NMIs.
 For port-0 (immediate) operations, dispatches via a lookup table indexed
 by control byte to set tx_flags, tx_length, and a per-operation handler.
 For port non-zero, branches to c9c8e for standard data transfer setup.""")
@@ -7720,7 +7714,7 @@ comment(0x9C95, "RTS dispatches to control-byte handler", inline=True)
 comment(0x9C96, "Control byte → CR2 value lookup table", inline=True)
 
 # ============================================================
-# NMI TX data handler (&9CCC)
+# NMI TX data handler (&9CFF)
 # ============================================================
 subroutine(0x9CFF, "nmi_tx_data", hook=None,
     title="NMI TX data handler",
@@ -7919,7 +7913,7 @@ subroutine(0x9DFB, "nmi_data_tx", hook=None,
     title="TX data phase: send payload",
     description="""\
 Sends the data frame payload from (open_port_buf),Y in pairs per NMI.
-Same pattern as the NMI TX handler at &9CCC but reads from the port
+Same pattern as the NMI TX handler at &9CFF but reads from the port
 buffer instead of the TX workspace. Writes two bytes per iteration,
 checking SR1 IRQ between pairs for tight looping.""")
 comment(0x9DFB, "Y = buffer offset, resume from last position", inline=True)
@@ -7989,14 +7983,14 @@ subroutine(0x9E83, "handshake_await_ack", hook=None,
     title="Four-way handshake: switch to RX for final ACK",
     description="""\
 After the data frame TX completes, switches to RX mode (CR1=&82)
-and installs &9EF8 to receive the final ACK from the remote station.""")
+and installs &9E8F to receive the final ACK from the remote station.""")
 comment(0x9E83, "CR1=&82: TX_RESET | RIE (switch to RX for final ACK)", inline=True)
 comment(0x9E85, "Write to ADLC CR1", inline=True)
 comment(0x9E8A, "High byte of handler address", inline=True)
 comment(0x9E8C, "Install and return via set_nmi_vector", inline=True)
 
 # ============================================================
-# Four-way handshake: RX final ACK (&9E5C-&9EA6)
+# Four-way handshake: RX final ACK (&9E8F-&9EDA)
 # ============================================================
 # Same pattern as &9D63/&9D77/&9D8E but for the final ACK.
 # Validates that the final ACK is from the expected station.
@@ -8005,10 +7999,10 @@ subroutine(0x9E8F, "nmi_final_ack", hook=None,
     description="""\
 Receives the final ACK in a four-way handshake. Same validation
 pattern as the reply scout handler (&9D63-&9D8E):
-  &9E5C: Check AP, read dest_stn, compare to our station
-  &9E70: Check RDA, read dest_net, validate = 0
-  &9E84: Check RDA, read src_stn/net, compare to TX dest
-  &9EA3: Check FV for frame completion
+  &9E8F: Check AP, read dest_stn, compare to our station
+  &9EA3: Check RDA, read dest_net, validate = 0
+  &9EB7: Check RDA, read src_stn/net, compare to TX dest
+  &9ED6: Check FV for frame completion
 On success, stores result=0 at tx_result_ok. On failure, error &41.""")
 
 comment(0x9E8F, "A=&01: AP mask", inline=True)
