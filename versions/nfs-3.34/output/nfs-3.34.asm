@@ -6295,7 +6295,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 .scout_error
     lda econet_control23_or_status2                                   ; 9737: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 973a: 29 81       ).             ; Test AP (b0) | RDA (b7)
-    beq scout_discard                                                 ; 973c: f0 06       ..             ; Neither set -- clean end, discard via &9A40
+    beq scout_discard                                                 ; 973c: f0 06       ..             ; Neither set -- clean end, discard via &9744
     jsr adlc_full_reset                                               ; 973e: 20 dc 96     ..            ; Unexpected data/status: full ADLC reset
     jmp discard_after_reset                                           ; 9741: 4c 43 9a    LC.            ; Discard and return to idle
 
@@ -6309,19 +6309,19 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Reads the body of a scout frame, two bytes per iteration. Stores
 ; bytes at &0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 ; Between each pair it checks SR2:
-;   - SR2 & &81 tested at entry (&974A): AP|RDA bits
-;     - Neither set (BEQ) -> discard (&9744 -> &9A40)
-;     - AP without RDA (BPL) -> error (&9737)
+;   - At entry (&9749): LDA SR2, BPL tests RDA (bit7)
+;     - No RDA (BPL) -> error (&9737)
 ;     - RDA set (BMI) -> read byte
-;   - After first byte (&9755): full SR2 tested
+;   - After first byte (&9755): LDA SR2
+;     - RDA set (BMI) -> read second byte
 ;     - SR2 non-zero (BNE) -> scout completion (&9771)
 ;       This is the FV detection point: when FV is set (by inline refill
 ;       of the last byte during the preceding RX FIFO read), SR2 is
 ;       non-zero and the branch is taken.
-;     - SR2 = 0 -> read second byte and loop
-;   - After second byte (&9769): re-test SR2 & &81 for next pair
-;     - RDA set (BMI) -> loop back to &974E
-;     - Neither set -> RTI, wait for next NMI
+;     - SR2 = 0 -> RTI, wait for next NMI
+;   - After second byte (&9769): LDA SR2
+;     - SR2 non-zero (BNE) -> loop back to &974C
+;     - SR2 = 0 -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
     ldy port_buf_len                                                  ; 9747: a4 a2       ..             ; Y = buffer offset
@@ -6535,8 +6535,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ; 
-; Selects either the normal bulk RX handler (&9843) or the Tube
-; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+; Selects either the normal bulk RX handler (&989A) or the Tube
+; RX handler (&98F7) based on the Tube transfer flag in tx_flags,
 ; and installs the appropriate NMI handler.
 ; ***************************************************************************************
 ; &9870 referenced 1 time by &9f2f
