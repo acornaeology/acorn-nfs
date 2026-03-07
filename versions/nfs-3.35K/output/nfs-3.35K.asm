@@ -1697,7 +1697,7 @@ svc_entry_lo = service_entry+1
 ; 
 ; Issues service &0F (vectors claimed) via OSBYTE &8F, then
 ; service &0A. If nfs_temp is zero (auto-boot not inhibited),
-; sets up the command string "I .BOOT" at &8246 and jumps to
+; sets up the command string "I .BOOT" at &8278 and jumps to
 ; the FSCV 3 unrecognised-command handler (which matches against
 ; the command table at &8BE4). The "I." prefix triggers the
 ; catch-all entry which forwards the command to the fileserver.
@@ -3047,11 +3047,11 @@ svc_entry_lo = service_entry+1
 ; Uses the MOS GSINIT/GSREAD API to parse a filename string from
 ; (os_text_ptr),Y, handling quoted strings and |-escaped characters.
 ; Stores the parsed result CR-terminated at &0E30 and sets up
-; fs_crc_lo/hi to point to that buffer. Sub-entry at &86C5 allows
+; fs_crc_lo/hi to point to that buffer. Sub-entry at &86BC allows
 ; a non-zero starting Y offset.
 ; 
 ; On Entry:
-;     Y: offset into (os_text_ptr) buffer (0 at &86C3)
+;     Y: offset into (os_text_ptr) buffer (0 at &86BA)
 ; 
 ; On Exit:
 ;     X: length of parsed string
@@ -6360,7 +6360,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Reads the second byte of an incoming scout (destination network).
 ; Checks for network match: 0 = local network (accept), &FF = broadcast
 ; (accept and flag), anything else = reject.
-; Installs the scout data reading loop handler at &9747.
+; Installs the scout data reading loop handler at &9751.
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 971f: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -6413,18 +6413,17 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Reads the body of a scout frame, two bytes per iteration. Stores
 ; bytes at &0D3D+Y (scout buffer: src_stn, src_net, ctrl, port, ...).
 ; Between each pair it checks SR2:
-;   - SR2 & &81 tested at entry (&974A): AP|RDA bits
-;     - Neither set (BEQ) -> discard (&974E -> &9A56)
-;     - AP without RDA (BPL) -> error (&9741)
+;   - SR2 read at entry (&9753)
+;     - No RDA (BPL) -> error (&9741)
 ;     - RDA set (BMI) -> read byte
-;   - After first byte (&9755): full SR2 tested
+;   - After first byte (&975F): full SR2 tested
 ;     - SR2 non-zero (BNE) -> scout completion (&977B)
 ;       This is the FV detection point: when FV is set (by inline refill
 ;       of the last byte during the preceding RX FIFO read), SR2 is
 ;       non-zero and the branch is taken.
 ;     - SR2 = 0 -> read second byte and loop
-;   - After second byte (&9769): re-test SR2 & &81 for next pair
-;     - RDA set (BMI) -> loop back to &974E
+;   - After second byte (&9773): re-test SR2 for next pair
+;     - RDA set (BMI) -> loop back to &9758
 ;     - Neither set -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
@@ -6639,8 +6638,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ; 
-; Selects either the normal bulk RX handler (&9843) or the Tube
-; RX handler (&98A0) based on the Tube transfer flag in tx_flags,
+; Selects either the normal bulk RX handler (&98A4) or the Tube
+; RX handler (&9901) based on the Tube transfer flag in tx_flags,
 ; and installs the appropriate NMI handler.
 ; ***************************************************************************************
 ; &987a referenced 1 time by &9f3e
@@ -7481,7 +7480,7 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; attempting transmission. Uses a 3-byte timeout counter on the stack.
 ; The timeout (~256^3 iterations) generates "Line Jammed" if INACTIVE
 ; never appears.
-; The CTS check at &9C66-&9C6B works because CR2=&67 has RTS=0, so
+; The CTS check at &9C75-&9C7A works because CR2=&67 has RTS=0, so
 ; cts_input_ is always true, and SR1_CTS reflects presence of clock hardware.
 ; ***************************************************************************************
 .inactive_poll
@@ -7846,7 +7845,7 @@ sr2_test_operand = test_line_idle+2
 ; Reads the second byte of the reply scout (destination network) and
 ; validates it is zero (local network). Installs &9DF2 for the
 ; remaining two bytes (source station and network).
-; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9DD9.
+; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9DE8.
 ; If IRQ is still set, falls through directly to &9DF2 without an RTI,
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive
 ; in quick succession.
@@ -7875,9 +7874,9 @@ sr2_test_operand = test_line_idle+2
 ; validates them against the original TX destination (&0D20/&0D21).
 ; Sequence:
 ;   1. Check SR2 bit7 (RDA) at &9DF2 -- must see data available
-;   2. Read source station at &9DE8, compare to &0D20 (tx_dst_stn)
-;   3. Read source network at &9DF0, compare to &0D21 (tx_dst_net)
-;   4. Check SR2 bit1 (FV) at &9DFA -- must see frame complete
+;   2. Read source station at &9DF7, compare to &0D20 (tx_dst_stn)
+;   3. Read source network at &9DFF, compare to &0D21 (tx_dst_net)
+;   4. Check SR2 bit1 (FV) at &9E09 -- must see frame complete
 ; If all checks pass, the reply scout is valid and the ROM proceeds
 ; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
 ; ***************************************************************************************
@@ -8067,7 +8066,7 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
 ;   &9EF8: Check AP, read dest_stn, compare to our station
 ;   &9F0E: Check RDA, read dest_net, validate = 0
 ;   &9F24: Check RDA, read src_stn/net, compare to TX dest
-;   &9F32: Check FV for frame completion
+;   &9F41: Check FV for frame completion
 ; On success, stores result=0 at &9F48. On any failure, error &41.
 ; ***************************************************************************************
 .nmi_final_ack
