@@ -2192,7 +2192,7 @@ subroutine(0x80D0, "nmi_rx_scout_net",
     description="Reads the second byte of an incoming scout (destination network).\n"
     "Checks for network match: 0 = local network (accept), &FF = broadcast\n"
     "(accept and flag), anything else = reject.\n"
-    "Installs the scout data reading loop handler at &970E.")
+    "Installs the scout data reading loop handler at &8102.")
 subroutine(0x80F2, "scout_error",
     title="Scout error/discard handler",
     description="Handles scout reception errors and end-of-frame\n"
@@ -2223,8 +2223,8 @@ subroutine(0x81DC, "nmi_data_rx",
     "against our station address, then installs continuation handlers\n"
     "to read the remaining data payload into the open port buffer.\n"
     "\n"
-    "Handler chain: &97E6 (AP+addr check) -> &97FA (net=0 check) ->\n"
-    "&9810 (skip ctrl+port) -> &9843 (bulk data read) -> &9877 (completion)")
+    "Handler chain: &81DC (AP+addr check) -> &81F0 (net=0 check) ->\n"
+    "&8206 (skip ctrl+port) -> &8239 (bulk data read) -> &826D (completion)")
 subroutine(0x8211, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="Selects between the normal bulk RX handler (&8239)\n"
@@ -2245,19 +2245,19 @@ subroutine(0x8239, "nmi_data_rx_bulk",
     description="Reads data payload bytes from the RX FIFO and stores them into\n"
     "the open port buffer at (open_port_buf),Y. Reads bytes in pairs\n"
     "(like the scout data loop), checking SR2 between each pair.\n"
-    "SR2 non-zero (FV or other) -> frame completion at &9877.\n"
+    "SR2 non-zero (FV or other) -> frame completion at &826D.\n"
     "SR2 = 0 -> RTI, wait for next NMI to continue.")
 subroutine(0x826D, "data_rx_complete",
     title="Data frame completion",
     description="Reached when SR2 non-zero during data RX (FV detected).\n"
-    "Same pattern as scout completion (&9738): disables PSE (CR2=&84,\n"
+    "Same pattern as scout completion (&812C): disables PSE (CR2=&84,\n"
     "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
     "If extra data available and buffer space remains, stores it.\n"
-    "Proceeds to send the final ACK via &98EE.")
+    "Proceeds to send the final ACK via &82E4.")
 subroutine(0x82E4, "ack_tx",
     title="ACK transmission",
     description="Sends a scout ACK or final ACK frame as part of the four-way handshake.\n"
-    "If bit7 of &0D4A is set, this is a final ACK -> completion (&9EA8).\n"
+    "If bit7 of &0D4A is set, this is a final ACK -> completion (&88C6).\n"
     "Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK\n"
     "frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).\n"
     "The ACK frame has no data payload -- just address bytes.\n"
@@ -2510,7 +2510,7 @@ subroutine(0x86E0, "nmi_tx_data",
 subroutine(0x871C, "tx_last_data",
     title="TX_LAST_DATA and frame completion",
     description="Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs\n"
-    "the TX completion NMI handler at &9D14 (nmi_tx_complete).\n"
+    "the TX completion NMI handler at &8728 (nmi_tx_complete).\n"
     "CR2=&3F = 0011_1111:\n"
     "  bit5: CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply)\n"
     "  bit4: TX_LAST_DATA -- tells ADLC this is the final data byte\n"
@@ -2525,9 +2525,9 @@ subroutine(0x8728, "nmi_tx_complete",
     "fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.\n"
     "CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).\n"
     "Checks workspace flags to decide next action:\n"
-    "  - bit6 set at &0D4A -> tx_result_ok at &9EA8\n"
-    "  - bit0 set at &0D4A -> handshake_await_ack at &9E50\n"
-    "  - Otherwise -> install nmi_reply_scout at &9D30")
+    "  - bit6 set at &0D4A -> tx_result_ok at &88C6\n"
+    "  - bit0 set at &0D4A -> handshake_await_ack at &886E\n"
+    "  - Otherwise -> install nmi_reply_scout at &8744")
 subroutine(0x8744, "nmi_reply_scout",
     title="RX reply scout handler",
     description="Handles reception of the reply scout frame after transmission.\n"
@@ -2538,9 +2538,9 @@ subroutine(0x8758, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="Reads the second byte of the reply scout (destination network) and\n"
     "validates it is zero (local network). Installs nmi_reply_validate\n"
-    "(&9D5B) for the remaining two bytes (source station and network).\n"
-    "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9D53.\n"
-    "If IRQ is still set, falls through directly to &9D5B without an RTI,\n"
+    "(&876F) for the remaining two bytes (source station and network).\n"
+    "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\n"
+    "If IRQ is still set, falls through directly to &876F without an RTI,\n"
     "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
     "in quick succession.")
 subroutine(0x876F, "nmi_reply_validate",
@@ -2548,10 +2548,10 @@ subroutine(0x876F, "nmi_reply_validate",
     description="Reads the source station and source network from the reply scout and\n"
     "validates them against the original TX destination (&0D20/&0D21).\n"
     "Sequence:\n"
-    "  1. Check SR2 bit7 (RDA) at &9D5B -- must see data available\n"
-    "  2. Read source station at &9D60, compare to &0D20 (tx_dst_stn)\n"
-    "  3. Read source network at &9D68, compare to &0D21 (tx_dst_net)\n"
-    "  4. Check SR2 bit1 (FV) at &9D72 -- must see frame complete\n"
+    "  1. Check SR2 bit7 (RDA) at &876F -- must see data available\n"
+    "  2. Read source station at &8774, compare to &0D20 (tx_dst_stn)\n"
+    "  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n"
+    "  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\n"
     "If all checks pass, the reply scout is valid and the ROM proceeds\n"
     "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).")
 subroutine(0x87B7, "nmi_scout_ack_src",
@@ -2587,11 +2587,11 @@ subroutine(0x886E, "handshake_await_ack",
 subroutine(0x887A, "nmi_final_ack",
     title="RX final ACK handler",
     description="Receives the final ACK in a four-way handshake. Same validation\n"
-    "pattern as the reply scout handler (&9D30-&9D5B):\n"
-    "  &9E5C: Check AP, read dest_stn, compare to our station\n"
-    "  &9E70: Check RDA, read dest_net, validate = 0\n"
-    "  &9E84: Check RDA, read src_stn/net, compare to TX dest\n"
-    "  &9EA3: Check FV for frame completion\n"
+    "pattern as the reply scout handler (&8744-&876F):\n"
+    "  &887A: Check AP, read dest_stn, compare to our station\n"
+    "  &888E: Check RDA, read dest_net, validate = 0\n"
+    "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
+    "  &88C1: Check FV for frame completion\n"
     "On success, stores result=0 at tx_result_ok. On failure, error &41.")
 subroutine(0x88A2, "nmi_final_ack_validate",
     title="Final ACK validation",
@@ -2682,10 +2682,10 @@ subroutine(0x899D, "nmi_bootstrap_entry",
     description="An alternate NMI handler that lives in the ROM itself rather than\n"
     "in the RAM workspace at &0D00. Unlike the RAM shim (which uses a\n"
     "self-modifying JMP to dispatch to different handlers), this one\n"
-    "hardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler\n"
+    "hardcodes JMP nmi_rx_scout (&80B3). Used as the initial NMI handler\n"
     "before the workspace has been properly set up during initialisation.\n"
     "Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\n"
-    "LDA romsel, STA &FE30, JMP &96BF.")
+    "LDA romsel, STA &FE30, JMP &80B3.")
 subroutine(0x89AB, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="A version of the NMI vector-setting subroutine and RTI sequence\n"
