@@ -736,7 +736,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; &94fe referenced 3 times by &056f[3], &05c5[3], &05e2[3]
 .tube_read_string
     ldx #0                                                            ; 94fe: a2 00       ..  :05b1[3]   ; X=0: initialise string buffer index
-    ldy #0                                                            ; 9500: a0 00       ..  :05b3[3]   ; X=0, Y=0: buffer at &0700, offset 0
+    ldy #0                                                            ; 9500: a0 00       ..  :05b3[3]   ; Y=0: string buffer offset 0
 ; &9502 referenced 1 time by &05c0[3]
 .strnh
     jsr tube_read_r2                                                  ; 9502: 20 f7 04     .. :05b5[3]   ; Read next string byte from R2
@@ -3507,7 +3507,7 @@ svc_entry_lo = service_entry+1
 
 ; &88a4 referenced 1 time by &8850
 .cha5
-    ldx #1                                                            ; 88a4: a2 01       ..             ; A=5: X=1 (filename only, no data)
+    ldx #1                                                            ; 88a4: a2 01       ..             ; X=1: filename only, no data extent
     jsr copy_string_to_cmd                                            ; 88a6: 20 66 8d     f.            ; Copy filename to cmd buffer
     ldy #&12                                                          ; 88a9: a0 12       ..             ; Y=&12: fn code for FCEXAM (read info); Y=function code for HDRFN
     jsr prepare_fs_cmd                                                ; 88ab: 20 51 83     Q.            ; Prepare FS command buffer (12 references)
