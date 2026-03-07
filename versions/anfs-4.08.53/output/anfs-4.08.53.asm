@@ -2534,13 +2534,13 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 .calc_peek_poke_size
     lda (nmi_tx_block),y                                              ; 85ae: b1 a0       ..             ; Load TXCB[Y] (end addr byte)
     dey                                                               ; 85b0: 88          .              ; Y -= 4: back to start addr offset
-    dey                                                               ; 85b1: 88          .              ; (Y -= 4: reach start addr offset)
+    dey                                                               ; 85b1: 88          .              ; (continued)
     dey                                                               ; 85b2: 88          .              ; (continued)
     dey                                                               ; 85b3: 88          .              ; (continued)
     plp                                                               ; 85b4: 28          (              ; Restore borrow from stack
     sbc (nmi_tx_block),y                                              ; 85b5: f1 a0       ..             ; end - start = transfer size byte
     sta tx_data_start,y                                               ; 85b7: 99 26 0d    .&.            ; Store result to tx_data_start
-    iny                                                               ; 85ba: c8          .              ; (Y += 5: advance to next end byte)
+    iny                                                               ; 85ba: c8          .              ; Y += 5: advance to next end byte
     iny                                                               ; 85bb: c8          .              ; (continued)
     iny                                                               ; 85bc: c8          .              ; (continued)
     iny                                                               ; 85bd: c8          .              ; (continued)
@@ -3364,14 +3364,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .calc_transfer_size
     lda (port_ws_offset),y                                            ; 8908: b1 a6       ..             ; Load RXCB[Y] (current ptr byte)
     iny                                                               ; 890a: c8          .              ; Y += 4: advance to RXCB[Y+4]
-    iny                                                               ; 890b: c8          .              ; Y += 4: advance to high ptr offset
+    iny                                                               ; 890b: c8          .              ; (continued)
     iny                                                               ; 890c: c8          .              ; (continued)
     iny                                                               ; 890d: c8          .              ; (continued)
     plp                                                               ; 890e: 28          (              ; Restore borrow from previous byte
     sbc (port_ws_offset),y                                            ; 890f: f1 a6       ..             ; Subtract RXCB[Y+4] (start ptr byte)
     sta net_tx_ptr,y                                                  ; 8911: 99 9a 00    ...            ; Store result byte
     dey                                                               ; 8914: 88          .              ; Y -= 3: next source byte
-    dey                                                               ; 8915: 88          .              ; Y -= 3: back to next low ptr byte
+    dey                                                               ; 8915: 88          .              ; (continued)
     dey                                                               ; 8916: 88          .              ; (continued)
     php                                                               ; 8917: 08          .              ; Save borrow for next byte
     cpy #8                                                            ; 8918: c0 08       ..             ; Done all 4 bytes?
@@ -4144,9 +4144,9 @@ listen_jmp_hi = reset_enter_listen+2
     jsr help_wrap_if_serial                                           ; 8c11: 20 28 8c     (.            ; Handle line wrap after 4 commands
 ; &8c14 referenced 1 time by &8c0f
 .skip_syntax_bytes
-    inx                                                               ; 8c14: e8          .              ; Skip 3 bytes (syntax descriptor)
-    inx                                                               ; 8c15: e8          .              ; to advance to next command
-    inx                                                               ; 8c16: e8          .              ; in the table
+    inx                                                               ; 8c14: e8          .              ; X += 3: skip syntax descriptor and address
+    inx                                                               ; 8c15: e8          .              ; (continued)
+    inx                                                               ; 8c16: e8          .              ; (continued)
     bne loop_next_shared                                              ; 8c17: d0 dc       ..             ; Loop for more shared commands
 ; &8c19 referenced 1 time by &8bf8
 .done_shared_cmds
@@ -4155,9 +4155,9 @@ listen_jmp_hi = reset_enter_listen+2
 ; &8c1b referenced 1 time by &8bd9
 .done_entry_newline
     jsr osnewl                                                        ; 8c1b: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    inx                                                               ; 8c1e: e8          .              ; Skip 3 bytes to next table entry
-    inx                                                               ; 8c1f: e8          .              ; (syntax descriptor byte,
-    inx                                                               ; 8c20: e8          .              ; dispatch address low and high)
+    inx                                                               ; 8c1e: e8          .              ; X += 3: skip syntax descriptor and address
+    inx                                                               ; 8c1f: e8          .              ; (continued)
+    inx                                                               ; 8c20: e8          .              ; (continued)
     jmp loop_next_entry                                               ; 8c21: 4c a3 8b    L..            ; Loop for next command
 
 ; &8c24 referenced 1 time by &8ba8
@@ -7596,7 +7596,7 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &9a6c referenced 1 time by &99cf
 .skip_one_and_advance5
-    iny                                                               ; 9a6c: c8          .              ; Skip one (INY for skip_one_and_advance5)
+    iny                                                               ; 9a6c: c8          .              ; Y += 5
 ; ***************************************************************************************
 ; Advance Y by 4
 ; 
@@ -7612,10 +7612,10 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &9a6d referenced 2 times by &9f1d, &b054
 .advance_y_by_4
-    iny                                                               ; 9a6d: c8          .              ; INY (advance_y_by_4 entry)
-    iny                                                               ; 9a6e: c8          .              ; INY
-    iny                                                               ; 9a6f: c8          .              ; INY
-    iny                                                               ; 9a70: c8          .              ; INY
+    iny                                                               ; 9a6d: c8          .              ; Y += 4
+    iny                                                               ; 9a6e: c8          .              ; (continued)
+    iny                                                               ; 9a6f: c8          .              ; (continued)
+    iny                                                               ; 9a70: c8          .              ; (continued)
 ; &9a71 referenced 1 time by &9a28
 .return_from_advance_y
     rts                                                               ; 9a71: 60          `              ; Return
@@ -7655,7 +7655,7 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &9a7f referenced 1 time by &99be
 .retreat_y_by_4
-    dey                                                               ; 9a7f: 88          .              ; DEY (retreat_y_by_4 entry)
+    dey                                                               ; 9a7f: 88          .              ; Y -= 4
 ; ***************************************************************************************
 ; Retreat Y by 3
 ; 
@@ -7671,9 +7671,9 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &9a80 referenced 2 times by &9afc, &9f25
 .retreat_y_by_3
-    dey                                                               ; 9a80: 88          .              ; DEY (retreat_y_by_3 entry)
-    dey                                                               ; 9a81: 88          .              ; DEY
-    dey                                                               ; 9a82: 88          .              ; DEY
+    dey                                                               ; 9a80: 88          .              ; Y -= 3
+    dey                                                               ; 9a81: 88          .              ; (continued)
+    dey                                                               ; 9a82: 88          .              ; (continued)
     rts                                                               ; 9a83: 60          `              ; Return
 
 ; &9a84 referenced 2 times by &9a8c, &9ad2
@@ -9011,9 +9011,9 @@ bad_prefix = bad_str_anchor+1
     beq skip_dot_and_spaces                                           ; a14b: f0 28       .(             ; Yes: skip spaces after dot
 ; &a14d referenced 1 time by &a162
 .loop_skip_to_next
-    inx                                                               ; a14d: e8          .              ; Skip 3 bytes (flags + address)
-    inx                                                               ; a14e: e8          .              ; (skip 2)
-    inx                                                               ; a14f: e8          .              ; (skip 3)
+    inx                                                               ; a14d: e8          .              ; X += 3: skip flags and address bytes
+    inx                                                               ; a14e: e8          .              ; (continued)
+    inx                                                               ; a14f: e8          .              ; (continued)
     bne restart_table_scan                                            ; a150: d0 d8       ..             ; Try next table entry
 ; &a152 referenced 1 time by &a135
 .check_separator
@@ -15023,9 +15023,9 @@ net_channel_err_string = err_net_chan_not_found+2
     dey                                                               ; bc30: 88          .              ; Y-2: destination is 2 bytes earlier
     dey                                                               ; bc31: 88          .              ; Continue decrement
     sta (work_ae),y                                                   ; bc32: 91 ae       ..             ; Store to buf[Y-2]
-    iny                                                               ; bc34: c8          .              ; Advance source index by 3
-    iny                                                               ; bc35: c8          .              ; (net +1 per iteration)
-    iny                                                               ; bc36: c8          .              ; Continue increment
+    iny                                                               ; bc34: c8          .              ; Y += 3: advance source index
+    iny                                                               ; bc35: c8          .              ; (continued)
+    iny                                                               ; bc36: c8          .              ; (continued)
     cpy #6                                                            ; bc37: c0 06       ..             ; Copied all 4 load address bytes?
     bne loop_shift_osfile_data                                        ; bc39: d0 f3       ..             ; No: copy next byte
     dey                                                               ; bc3b: 88          .              ; Y=6 after loop exit
@@ -15109,10 +15109,10 @@ net_channel_err_string = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bc8a referenced 1 time by &bc87
 .inx4
-    inx                                                               ; bc8a: e8          .              ; X += 1
-    inx                                                               ; bc8b: e8          .              ; X += 1
-    inx                                                               ; bc8c: e8          .              ; X += 1
-    inx                                                               ; bc8d: e8          .              ; X += 1
+    inx                                                               ; bc8a: e8          .              ; X += 4
+    inx                                                               ; bc8b: e8          .              ; (continued)
+    inx                                                               ; bc8c: e8          .              ; (continued)
+    inx                                                               ; bc8d: e8          .              ; (continued)
     rts                                                               ; bc8e: 60          `              ; Return
 
     equb &ff                                                          ; bc8f: ff          .              ; Padding; next byte is reloc_p5_src

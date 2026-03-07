@@ -376,6 +376,125 @@ def check_block_stale_addr(item, known_addrs, seen):
     return findings
 
 
+_CHAIN_MNEMONICS = {"iny", "inx", "dey", "dex"}
+
+# Patterns indicating enumeration-style chain comments
+_ENUM_PATTERN = re.compile(
+    r"(?:Add|Subtract)\s+\d+\s+\(of\s+\d+\)", re.IGNORECASE
+)
+
+# Patterns that just restate the mnemonic
+_BARE_MNEMONIC_RE = re.compile(
+    r"^(?:INY|INX|DEY|DEX)(?:\s*\(.*entry\))?$", re.IGNORECASE
+)
+
+
+def find_chains(sorted_items):
+    """Find chains of 2+ consecutive same-mnemonic increment/decrement ops.
+
+    Returns list of chains, each a list of items.
+    """
+    chains = []
+    i = 0
+    while i < len(sorted_items):
+        item = sorted_items[i]
+        mnem = item.get("mnemonic", "")
+        if mnem in _CHAIN_MNEMONICS:
+            chain = [item]
+            j = i + 1
+            while (j < len(sorted_items)
+                   and sorted_items[j].get("mnemonic") == mnem
+                   and sorted_items[j]["addr"] == chain[-1]["addr"] + 1):
+                chain.append(sorted_items[j])
+                j += 1
+            if len(chain) >= 2:
+                chains.append(chain)
+            i = j
+        else:
+            i += 1
+    return chains
+
+
+def check_chain_comments(sorted_items, sub_range=None):
+    """Check that increment/decrement chains use consistent comment style.
+
+    For chains of 3+ instructions:
+    - Each segment-first instruction (entry point) should describe the
+      cumulative effect, not just restate the mnemonic.
+    - Non-first instructions in a segment should say "(continued)".
+    - Enumeration comments like "Add 1 (of 5)" are flagged.
+
+    Chains of exactly 2 are skipped (too short to enforce "(continued)").
+
+    MEDIUM confidence.
+    """
+    findings = []
+
+    for chain in find_chains(sorted_items):
+        # Filter by sub_range
+        if sub_range:
+            if chain[0]["addr"] < sub_range[0]:
+                continue
+            if sub_range[1] is not None and chain[0]["addr"] >= sub_range[1]:
+                continue
+
+        # Skip 2-instruction chains
+        if len(chain) <= 2:
+            continue
+
+        # Identify segment boundaries (entry points)
+        # Position 0 is always a segment start.
+        # Any mid-chain item with references/labels/sub_labels is also one.
+        segment_starts = {0}
+        for ci, item in enumerate(chain):
+            if ci == 0:
+                continue
+            if (item.get("references")
+                    or item.get("labels")
+                    or item.get("sub_labels")):
+                segment_starts.add(ci)
+
+        for ci, item in enumerate(chain):
+            comment = item.get("comment_inline", "")
+            addr = item["addr"]
+
+            if ci in segment_starts:
+                # Segment-first: should NOT be bare mnemonic or enumeration
+                if _BARE_MNEMONIC_RE.match(comment):
+                    findings.append({
+                        "check": "chain_comment",
+                        "confidence": "MEDIUM",
+                        "addr": addr,
+                        "message": (
+                            f"Chain entry comment \"{comment}\" just restates "
+                            f"mnemonic; should describe cumulative effect"),
+                    })
+                if _ENUM_PATTERN.search(comment):
+                    findings.append({
+                        "check": "chain_comment",
+                        "confidence": "MEDIUM",
+                        "addr": addr,
+                        "message": (
+                            f"Chain entry has enumeration comment "
+                            f"\"{comment}\"; should describe cumulative "
+                            f"effect"),
+                    })
+            else:
+                # Non-first: should be "(continued)" (may have hook-appended
+                # text like "; Y=&06" from py8dis auto-tracking)
+                if comment and not comment.startswith("(continued)"):
+                    findings.append({
+                        "check": "chain_comment",
+                        "confidence": "MEDIUM",
+                        "addr": addr,
+                        "message": (
+                            f"Mid-chain comment \"{comment}\" should be "
+                            f"\"(continued)\""),
+                    })
+
+    return findings
+
+
 def build_known_addrs(data):
     """Build a set of all known addresses for the stale_addr check."""
     known = set()
@@ -503,6 +622,9 @@ def run_checks(data, sub_target=None):
             if sub_range[1] is not None and item["addr"] >= sub_range[1]:
                 break
         findings.extend(check_block_stale_addr(item, known_addrs, desc_seen))
+
+    # Check increment/decrement chain comments
+    findings.extend(check_chain_comments(sorted_items, sub_range=sub_range))
 
     return findings
 

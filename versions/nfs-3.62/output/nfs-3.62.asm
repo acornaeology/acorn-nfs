@@ -3667,13 +3667,13 @@ error_msg_table = error_table_base+6
     bcs lodrl1                                                        ; 8839: b0 f6       ..             ; Loop while Y >= 2
 ; &883b referenced 1 time by &87af
 .add_5_to_y
-    iny                                                               ; 883b: c8          .              ; Y=3 after loop; add 5 to get Y=8
+    iny                                                               ; 883b: c8          .              ; Y += 5
 ; &883c referenced 1 time by &8ad5
 .add_4_to_y
-    iny                                                               ; 883c: c8          .              ; INY * 4 = add 4 to Y
-    iny                                                               ; 883d: c8          .              ; Add 1 (of 5) to Y
-    iny                                                               ; 883e: c8          .              ; Add 2 (of 5) to Y
-    iny                                                               ; 883f: c8          .              ; Add 3 (of 5) to Y
+    iny                                                               ; 883c: c8          .              ; Y += 4
+    iny                                                               ; 883d: c8          .              ; (continued)
+    iny                                                               ; 883e: c8          .              ; (continued)
+    iny                                                               ; 883f: c8          .              ; (continued)
     rts                                                               ; 8840: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -3699,12 +3699,12 @@ error_msg_table = error_table_base+6
     bcs lodrl2                                                        ; 884c: b0 f6       ..             ; Loop until offset 2 reached
 ; &884e referenced 1 time by &879e
 .sub_4_from_y
-    dey                                                               ; 884e: 88          .              ; Y=1 after loop; sub 4 to get Y=&FD
+    dey                                                               ; 884e: 88          .              ; Y -= 4
 ; &884f referenced 2 times by &88e9, &8add
 .sub_3_from_y
-    dey                                                               ; 884f: 88          .              ; Subtract 1 (of 3) from Y
-    dey                                                               ; 8850: 88          .              ; Subtract 2 (of 3) from Y
-    dey                                                               ; 8851: 88          .              ; Subtract 3 (of 3) from Y
+    dey                                                               ; 884f: 88          .              ; Y -= 3
+    dey                                                               ; 8850: 88          .              ; (continued)
+    dey                                                               ; 8851: 88          .              ; (continued)
     rts                                                               ; 8852: 60          `              ; Return to caller
 
 ; ***************************************************************************************
@@ -7730,13 +7730,13 @@ svc5_dispatch_lo = sub_c9a9c+1
 .calc_peek_poke_size
     lda (nmi_tx_block),y                                              ; 9b9a: b1 a0       ..             ; Load TXCB[Y] (end addr byte)
     dey                                                               ; 9b9c: 88          .              ; Y -= 4: back to start addr offset
-    dey                                                               ; 9b9d: 88          .              ; (Y -= 4: reach start addr offset)
+    dey                                                               ; 9b9d: 88          .              ; (continued)
     dey                                                               ; 9b9e: 88          .              ; (continued)
     dey                                                               ; 9b9f: 88          .              ; (continued)
     plp                                                               ; 9ba0: 28          (              ; Restore borrow from stack
     sbc (nmi_tx_block),y                                              ; 9ba1: f1 a0       ..             ; end - start = transfer size byte
     sta tx_data_start,y                                               ; 9ba3: 99 26 0d    .&.            ; Store result to tx_data_start
-    iny                                                               ; 9ba6: c8          .              ; (Y += 5: advance to next end byte)
+    iny                                                               ; 9ba6: c8          .              ; Y += 5: advance to next end byte
     iny                                                               ; 9ba7: c8          .              ; (continued)
     iny                                                               ; 9ba8: c8          .              ; (continued)
     iny                                                               ; 9ba9: c8          .              ; (continued)
@@ -8460,14 +8460,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .calc_transfer_size
     lda (port_ws_offset),y                                            ; 9ee6: b1 a6       ..             ; Load RXCB[Y] (current ptr byte)
     iny                                                               ; 9ee8: c8          .              ; Y += 4: advance to RXCB[Y+4]
-    iny                                                               ; 9ee9: c8          .              ; Y += 4: advance to high ptr offset
+    iny                                                               ; 9ee9: c8          .              ; (continued)
     iny                                                               ; 9eea: c8          .              ; (continued)
     iny                                                               ; 9eeb: c8          .              ; (continued)
     plp                                                               ; 9eec: 28          (              ; Restore borrow from previous byte
     sbc (port_ws_offset),y                                            ; 9eed: f1 a6       ..             ; Subtract RXCB[Y+4] (start ptr byte)
     sta net_tx_ptr,y                                                  ; 9eef: 99 9a 00    ...            ; Store result byte
     dey                                                               ; 9ef2: 88          .              ; Y -= 3: next source byte
-    dey                                                               ; 9ef3: 88          .              ; Y -= 3: back to next low ptr byte
+    dey                                                               ; 9ef3: 88          .              ; (continued)
     dey                                                               ; 9ef4: 88          .              ; (continued)
     php                                                               ; 9ef5: 08          .              ; Save borrow for next byte
     cpy #8                                                            ; 9ef6: c0 08       ..             ; Done all 4 bytes?
