@@ -6444,7 +6444,7 @@ cmd_match_data = fs_cmd_match_table+1
 .scout_error
     lda econet_control23_or_status2                                   ; 96fe: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 9701: 29 81       ).             ; Test AP (b0) | RDA (b7)
-    beq scout_discard                                                 ; 9703: f0 06       ..             ; Neither set -- clean end, discard via &9A40
+    beq scout_discard                                                 ; 9703: f0 06       ..             ; Neither set -- clean end, discard via &970B
     jsr adlc_full_reset                                               ; 9705: 20 3d 9f     =.            ; Unexpected data/status: full ADLC reset
     jmp install_rx_scout_handler                                      ; 9708: 4c eb 99    L..            ; Discard and return to idle
 
@@ -6476,7 +6476,7 @@ cmd_match_data = fs_cmd_match_table+1
     lda econet_control23_or_status2                                   ; 9710: ad a1 fe    ...            ; Read SR2
 ; &9713 referenced 1 time by &9733
 .scout_loop_rda
-    bpl scout_error                                                   ; 9713: 10 e9       ..             ; No RDA -- error handler &9737
+    bpl scout_error                                                   ; 9713: 10 e9       ..             ; No RDA -- error handler &96FE
     lda econet_data_continue_frame                                    ; 9715: ad a2 fe    ...            ; Read data byte from RX FIFO
     sta rx_src_stn,y                                                  ; 9718: 99 3d 0d    .=.            ; Store at &0D3D+Y (scout buffer)
     iny                                                               ; 971b: c8          .              ; Advance buffer index
