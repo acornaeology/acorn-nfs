@@ -2746,16 +2746,16 @@ requires a space or terminator after 'NET', so *NET1 typed
 at the command line does not match; these are reached only
 via OSCLI calls within the ROM.
 
-*NET1 (&8E59): read file handle from received
+*NET1 (&8E67): read file handle from received
 packet (net_1_read_handle)
 
-*NET2 (&8E5F): read handle entry from workspace
+*NET2 (&8E6D): read handle entry from workspace
 (net_2_read_handle_entry)
 
-*NET3 (&8E6F): close handle / mark as unused
+*NET3 (&8E7D): close handle / mark as unused
 (net_3_close_handle)
 
-*NET4 (&81B8): resume after remote operation
+*NET4 (&81BC): resume after remote operation
 (net_4_resume_remote)""")
 
 comment(0x806F, "Read command character following *NET", inline=True)
