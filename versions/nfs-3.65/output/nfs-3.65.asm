@@ -707,7 +707,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     ror a                                                             ; 949f: 6a          j   :053a[3]   ; ROR A: encode carry (error flag) into bit 7
     jsr tube_send_r2                                                  ; 94a0: 20 95 06     .. :053b[3]   ; Send carry+data byte to Tube R2
     rol a                                                             ; 94a3: 2a          *   :053e[3]   ; ROL A: restore carry flag
-    jmp tube_reply_byte                                               ; 94a4: 4c 9e 05    L.. :053f[3]
+    jmp tube_reply_byte                                               ; 94a4: 4c 9e 05    L.. :053f[3]   ; Return via tube_reply_byte
 
 ; ***************************************************************************************
 ; Tube OSFIND handler (R2 cmd 9)
@@ -7199,7 +7199,7 @@ boot_string_offsets = boot_option_offsets+1
 ; &83 (JSR), &84 (UserProc), and &85 (OSProc).
 ; ***************************************************************************************
 .rx_imm_exec
-    lda #0                                                            ; 9aa3: a9 00       ..
+    lda #0                                                            ; 9aa3: a9 00       ..             ; A=0: port buffer lo at page boundary
     sta open_port_buf                                                 ; 9aa5: 85 a4       ..             ; Set port buffer lo
     lda #&82                                                          ; 9aa7: a9 82       ..             ; Buffer length lo = &82
     sta port_buf_len                                                  ; 9aa9: 85 a2       ..             ; Set buffer length lo
@@ -7334,7 +7334,7 @@ svc5_dispatch_lo = sub_c9abe+1
 ; control resumes at tx_done_exit.
 ; ***************************************************************************************
 .tx_done_jsr
-    lda #&9b                                                          ; 9b47: a9 9b       ..
+    lda #&9b                                                          ; 9b47: a9 9b       ..             ; Hi byte of tx_done_exit-1
     pha                                                               ; 9b49: 48          H              ; Push hi byte on stack
     lda #&88                                                          ; 9b4a: a9 88       ..             ; Push lo of (tx_done_exit-1)
     pha                                                               ; 9b4c: 48          H              ; Push lo byte on stack
@@ -7672,7 +7672,7 @@ svc5_dispatch_lo = sub_c9abe+1
     cpy #&10                                                          ; 9cba: c0 10       ..             ; Compare Y with 16-byte boundary
     bcc add_bytes_loop                                                ; 9cbc: 90 f1       ..             ; Below boundary: continue addition
     plp                                                               ; 9cbe: 28          (              ; Restore processor flags
-    bne skip_buf_setup                                                ; 9cbf: d0 2c       .,
+    bne skip_buf_setup                                                ; 9cbf: d0 2c       .,             ; Skip buffer setup if transfer size is zero
 ; &9cc1 referenced 1 time by &9c7d
 .setup_data_xfer
     lda tx_dst_stn                                                    ; 9cc1: ad 20 0d    . .            ; Load dest station for broadcast check
