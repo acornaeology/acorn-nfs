@@ -358,7 +358,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
+; Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B)
 ; overlap with the end of the ZP block (the same ROM bytes serve both
 ; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
@@ -573,7 +573,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &944D during init. Contains:
+; Copied from ROM at &9456 during init. Contains:
 ;   &0500: tube_dispatch_table — 12-entry handler address table
 ;   &0518: R2 command byte table — 8 even command bytes (&00-&0E)
 ;   &0520: tube_osbput — write byte to file
@@ -1420,6 +1420,7 @@ svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; &80e1 referenced 1 time by &8000
 .language_handler
+.lang_entry_dispatch
     cpx #5                                                            ; 80e1: e0 05       ..             ; X >= 5: invalid reason code, return
 ; &80e3 referenced 1 time by &8075
 .svc_dispatch_range
@@ -1483,7 +1484,7 @@ svc_entry_lo = service_entry+1
     pla                                                               ; 8118: 68          h              ; Restore detection flag
     asl a                                                             ; 8119: 0a          .              ; C into bit 7 of A
     pla                                                               ; 811a: 68          h              ; Restore service call number
-    bmi check_svc_high                                                ; 811b: 30 02       0.             ; Service >= &80: always handle (Tube/init)
+    bmi service_handler_entry                                         ; 811b: 30 02       0.             ; Service >= &80: always handle (Tube/init)
     bcs svc_unhandled_return                                          ; 811d: b0 6e       .n             ; C=1 (no ADLC): disable ROM, skip
 ; ***************************************************************************************
 ; Service handler entry
@@ -1495,6 +1496,7 @@ svc_entry_lo = service_entry+1
 ; All other service calls < &0D dispatch via c8146.
 ; ***************************************************************************************
 ; &811f referenced 1 time by &811b
+.service_handler_entry
 .check_svc_high
     cmp #&fe                                                          ; 811f: c9 fe       ..             ; Service >= &FE?
     bcc check_svc_12                                                  ; 8121: 90 5c       .\             ; Service < &FE: skip to &12/dispatch check
@@ -6354,6 +6356,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ;     - Neither set -> RTI, wait for next NMI
 ; The loop ends at Y=&0C (12 bytes max in scout buffer).
 ; ***************************************************************************************
+.scout_data_loop
     ldy port_buf_len                                                  ; 9743: a4 a2       ..             ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 9745: ad a1 fe    ...            ; Read SR2
 ; &9748 referenced 1 time by &9768
@@ -7078,7 +7081,7 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
+; Sets up a buffer at &7F25 (length #&01FC) for the machine
 ; type query response, then jumps to the query handler at
 ; c9b0f. Returns system identification data to the remote
 ; station.
@@ -8905,6 +8908,7 @@ save pydis_start, pydis_end
 ;     l0e11:                                    1
 ;     l4:                                       1
 ;     l9556:                                    1
+;     lang_entry_dispatch:                      1
 ;     lang_entry_hi:                            1
 ;     lang_entry_lo:                            1
 ;     language_handler:                         1
@@ -9052,6 +9056,7 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
+;     service_handler_entry:                    1
 ;     set_listen_offset:                        1
 ;     set_messages_flag:                        1
 ;     set_tx_reply_flag:                        1

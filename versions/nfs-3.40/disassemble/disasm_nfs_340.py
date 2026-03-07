@@ -56,10 +56,10 @@ load(0x8000, _rom_filepath, "6502")
 #   BRKV  = &0016 (in workspace block — BRK/error handler)
 #   EVNTV = &06E8 (in page 6 — event handler)
 
-# BRK handler + NMI workspace init code (&9308 → &0016-&0076)
+# BRK handler + NMI workspace init code (&931C → &0016-&0076)
 move(0x0016, 0x931C, 0x61)
 
-# NMI handler / CLI command code (&934D/&944D/&954D → pages &04/&05/&06)
+# NMI handler / CLI command code (&935D/&9456/&9556 → pages &04/&05/&06)
 move(0x0400, 0x935D, 0x100)
 move(0x0500, 0x9456, 0x100)
 move(0x0600, 0x9556, 0x100)
@@ -1370,7 +1370,7 @@ for y in range(0x81, 0x89):
 # UserProc, OSProc, machine type query) received from the network.
 
 label(0x9A95, "rx_imm_exec")
-subroutine(0x9A95, hook=None,
+subroutine(0x9A95, "rx_imm_exec", hook=None,
     title="RX immediate: JSR/UserProc/OSProc setup",
     description="""\
 Sets up the port buffer to receive remote procedure data.
@@ -1380,7 +1380,7 @@ the common receive path at c9826. Used for operation types
 &83 (JSR), &84 (UserProc), and &85 (OSProc).""")
 
 label(0x9AB3, "rx_imm_poke")
-subroutine(0x9AB3, hook=None,
+subroutine(0x9AB3, "rx_imm_poke", hook=None,
     title="RX immediate: POKE setup",
     description="""\
 Sets up workspace offsets for receiving POKE data.
@@ -1388,16 +1388,16 @@ port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
 the common data-receive path at c9805.""")
 
 label(0x9ABE, "rx_imm_machine_type")
-subroutine(0x9ABE, hook=None,
+subroutine(0x9ABE, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length #&01FC) for the machine
+Sets up a buffer at &7F25 (length #&01FC) for the machine
 type query response, then jumps to the query handler at
 c9b0f. Returns system identification data to the remote
 station.""")
 
 label(0x9AD1, "rx_imm_peek")
-subroutine(0x9AD1, hook=None,
+subroutine(0x9AD1, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
     description="""\
 Writes &0D3D to port_ws_offset/rx_buf_offset, sets
@@ -1412,7 +1412,7 @@ Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 # Called when an outbound immediate operation TX completes.
 
 label(0x9B7E, "tx_done_jsr")
-subroutine(0x9B7E, hook=None,
+subroutine(0x9B7E, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
 Pushes address &9BEB on the stack (so RTS returns to
@@ -1421,7 +1421,7 @@ JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
 
 label(0x9B87, "tx_done_user_proc")
-subroutine(0x9B87, hook=None,
+subroutine(0x9B87, "tx_done_user_proc", hook=None,
     title="TX done: UserProc event",
     description="""\
 Generates a network event (event 8) via OSEVEN with
@@ -1429,7 +1429,7 @@ X=l0d58, A=l0d59 (the remote address). This notifies
 the user program that a UserProc operation has completed.""")
 
 label(0x9B95, "tx_done_os_proc")
-subroutine(0x9B95, hook=None,
+subroutine(0x9B95, "tx_done_os_proc", hook=None,
     title="TX done: OSProc call",
     description="""\
 Calls the ROM entry point at &8000 (rom_header) with
@@ -1437,7 +1437,7 @@ X=l0d58, Y=l0d59. This invokes an OS-level procedure
 on behalf of the remote station.""")
 
 label(0x9BA1, "tx_done_halt")
-subroutine(0x9BA1, hook=None,
+subroutine(0x9BA1, "tx_done_halt", hook=None,
     title="TX done: HALT",
     description="""\
 Sets bit 2 of rx_flags (&0D64), enables interrupts, and
@@ -1445,7 +1445,7 @@ spin-waits until bit 2 is cleared (by a CONTINUE from the
 remote station). If bit 2 is already set, skips to exit.""")
 
 label(0x9BB8, "tx_done_continue")
-subroutine(0x9BB8, hook=None,
+subroutine(0x9BB8, "tx_done_continue", hook=None,
     title="TX done: CONTINUE",
     description="""\
 Clears bit 2 of rx_flags (&0D64), releasing any station
@@ -1461,7 +1461,7 @@ label(0x9BC0, "tx_done_exit")
 # parameters for outbound immediate operations.
 
 label(0x9CCF, "tx_ctrl_peek")
-subroutine(0x9CCF, hook=None,
+subroutine(0x9CCF, "tx_ctrl_peek", hook=None,
     title="TX ctrl: PEEK transfer setup",
     description="""\
 Sets scout_status=3, then performs a 4-byte addition of
@@ -1471,14 +1471,14 @@ Calls tx_calc_transfer to finalise, then exits via
 tx_ctrl_exit.""")
 
 label(0x9CD3, "tx_ctrl_poke")
-subroutine(0x9CD3, hook=None,
+subroutine(0x9CD3, "tx_ctrl_poke", hook=None,
     title="TX ctrl: POKE transfer setup",
     description="""\
 Sets scout_status=2 and shares the 4-byte addition and
 transfer calculation path with tx_ctrl_peek.""")
 
 label(0x9CE7, "tx_ctrl_proc")
-subroutine(0x9CE7, hook=None,
+subroutine(0x9CE7, "tx_ctrl_proc", hook=None,
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="""\
 Sets scout_status=2 and calls tx_calc_transfer directly
@@ -1758,7 +1758,7 @@ if fs_messages_flag is zero (no info available).""")
 # instead of ORA #&30 / CMP #&3A / ADC #6, and explicitly
 # calls OSASCI before returning (self-contained, no fall-through).
 label(0x9FE0, "print_hex")
-subroutine(0x9FE0, hook=None,
+subroutine(0x9FE0, "print_hex", hook=None,
     title="Print byte as two hex digits",
     description="""\
 Prints the high nibble first (via 4x LSR), then the low
@@ -1766,7 +1766,7 @@ nibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'
 and output via OSASCI. Returns with carry set.""")
 
 label(0x9FE9, "print_hex_nibble")
-subroutine(0x9FE9, hook=None,
+subroutine(0x9FE9, "print_hex_nibble", hook=None,
     title="Print single hex nibble",
     description="""\
 Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')
@@ -1813,7 +1813,7 @@ standard TXCB; tx_poll_core (&8693) is general-purpose.""",
 # print_inline subroutine (&85D9)
 # ============================================================
 # Label and code-tracing hook created by hook_subroutine() above.
-subroutine(0x8605, hook=None,
+subroutine(0x8605, "print_inline", hook=None,
     title="Print inline string, high-bit terminated (VSTRNG)",
     description="""\
 Pops the return address from the stack, prints each byte via OSASCI
@@ -1971,7 +1971,7 @@ comment(0x80F6, "RTS pops address, adds 1, jumps to handler", inline=True)
 # ============================================================
 # Language entry dispatch (&80D4)
 # ============================================================
-subroutine(0x80E1, hook=None,
+subroutine(0x80E1, "lang_entry_dispatch", hook=None,
     title="Language entry dispatcher",
     description="""\
 Called when the NFS ROM is entered as a language. Although rom_type
@@ -1984,7 +1984,7 @@ comment(0x80E5, "Y=&0E: base offset for language handlers (index 15+)", inline=T
 # ============================================================
 # Service handler entry (&80EA)
 # ============================================================
-subroutine(0x811F, hook=None,
+subroutine(0x811F, "service_handler_entry", hook=None,
     title="Service handler entry",
     description="""\
 Intercepts three service calls before normal dispatch:
@@ -3519,7 +3519,7 @@ before dispatch via JMP (&0500).""")
 subroutine(0x0400, "tube_code_page4", hook=None,
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
     description="""\
-Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
+Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B)
 overlap with the end of the ZP block (the same ROM bytes serve both
 the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
@@ -3532,7 +3532,7 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &944D during init. Contains:
+Copied from ROM at &9456 during init. Contains:
   &0500: tube_dispatch_table — 12-entry handler address table
   &0518: R2 command byte table — 8 even command bytes (&00-&0E)
   &0520: tube_osbput — write byte to file
@@ -3575,7 +3575,7 @@ Copied from ROM at &944D during init. Contains:
 # The osbyte_vdu_table is at different addresses in 3.40.
 
 # ============================================================
-# Relocated code block sources (&9308, &934D, &944D, &954D)
+# Relocated code block sources (&931C, &935D, &9456, &9556)
 # ============================================================
 # These labels mark the ROM storage addresses. The code is
 # disassembled at its runtime addresses via move() declarations
@@ -3866,7 +3866,7 @@ comment(0x973D, "Discard and return to idle", inline=True)
 # penultimate byte triggers inline refill of the last byte, which
 # sets FV immediately (push-time FV). The byte timer reset prevents
 # the timer from firing mid-loop.
-subroutine(0x9743, hook=None,
+subroutine(0x9743, "scout_data_loop", hook=None,
     title="Scout data reading loop",
     description="""\
 Reads the body of a scout frame, two bytes per iteration. Stores
