@@ -446,8 +446,8 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bcs flush_r3_nmi_check                                            ; 93a7: b0 0d       ..  :044d[2]   ; R4 bit 7: co-processor acknowledged transfer
     cpx #4                                                            ; 93a9: e0 04       ..  :044f[2]   ; Type 4 = SENDW (host-to-parasite word xfer)
     bne return_tube_xfer                                              ; 93ab: d0 17       ..  :0451[2]   ; Not SENDW type: skip release path
-    pla                                                               ; 93ad: 68          h   :0453[2]   ; Discard return address (high byte)
-    pla                                                               ; 93ae: 68          h   :0454[2]   ; Discard return address (low byte)
+    pla                                                               ; 93ad: 68          h   :0453[2]   ; Discard return address (low byte)
+    pla                                                               ; 93ae: 68          h   :0454[2]   ; Discard return address (high byte)
 ; &93af referenced 1 time by &04b8[2]
 .release_claim_restart
     lda #&80                                                          ; 93af: a9 80       ..  :0455[2]   ; A=&80: reset claim flag sentinel
@@ -636,9 +636,9 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bit tube_status_register_2                                        ; 947c: 2c e2 fe    ,.. :0522[3]   ; Poll R2 for co-processor reply
     bvs wrch_echo_reply                                               ; 947f: 70 0e       p.  :0525[3]   ; R2 ready: go process reply
 .tube_poll_r1_wrch
-    bit tube_status_1_and_tube_control                                ; 9481: 2c e0 fe    ,.. :0527[3]   ; Check R1 for pending WRCH request
-    bpl poll_r2_reply                                                 ; 9484: 10 f6       ..  :052a[3]   ; No R1 data: back to polling R2
-    lda tube_data_register_1                                          ; 9486: ad e1 fe    ... :052c[3]   ; Read WRCH character from R1
+    bit tube_status_1_and_tube_control                                ; 9481: 2c e0 fe    ,.. :0527[3]   ; Check R4 for pending WRCH request
+    bpl poll_r2_reply                                                 ; 9484: 10 f6       ..  :052a[3]   ; No R4 data: back to polling R2
+    lda tube_data_register_1                                          ; 9486: ad e1 fe    ... :052c[3]   ; Read WRCH character from R4
     jsr nvwrch                                                        ; 9489: 20 cb ff     .. :052f[3]   ; Write character
 .tube_resume_poll
     jmp poll_r2_reply                                                 ; 948c: 4c 22 05    L". :0532[3]   ; Resume R2 polling after servicing
@@ -680,7 +680,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     ror a                                                             ; 94bb: 6a          j   :0561[3]   ; ROR A: encode carry (error flag) into bit 7
     jsr tube_send_r2                                                  ; 94bc: 20 d0 06     .. :0562[3]   ; = JSR tube_send_r2 (overlaps &053D entry)
     pla                                                               ; 94bf: 68          h   :0565[3]   ; Restore read character/byte
-    jmp tube_reply_byte                                               ; 94c0: 4c cd 05    L.. :0566[3]   ; JMP tube_reply_byte (dead code path)
+    jmp tube_reply_byte                                               ; 94c0: 4c cd 05    L.. :0566[3]   ; Return to Tube main loop
 
 .tube_osfind
     jsr tube_read_r2                                                  ; 94c3: 20 f7 04     .. :0569[3]   ; Read OSFIND open mode from R2
@@ -864,7 +864,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     tay                                                               ; 959c: a8          .   :0642[4]   ; Save in Y
     jsr tube_read_r2                                                  ; 959d: 20 f7 04     .. :0643[4]   ; Read A (OSBYTE function code)
     jsr osbyte                                                        ; 95a0: 20 f4 ff     .. :0646[4]   ; Execute OSBYTE A,X,Y
-    eor #&9d                                                          ; 95a3: 49 9d       I.  :0649[4]   ; Send carry result to co-processor
+    eor #&9d                                                          ; 95a3: 49 9d       I.  :0649[4]   ; Test for OSBYTE &9D (fast Tube BPUT)
     beq bytex                                                         ; 95a5: f0 eb       ..  :064b[4]   ; OSBYTE &9D (fast Tube BPUT): no result needed
     lda #&40 ; '@'                                                    ; 95a7: a9 40       .@  :064d[4]   ; A=&40: high bit will hold carry
     ror a                                                             ; 95a9: 6a          j   :064f[4]   ; Encode carry (error flag) into bit 7
@@ -2222,7 +2222,7 @@ svc_entry_lo = service_entry+1
     dey                                                               ; 841f: 88          .              ; Next byte (descending)
     bpl error1                                                        ; 8420: 10 f7       ..             ; Loop until all 32 bytes copied
     tax                                                               ; 8422: aa          .              ; X=File handle
-    lda #osbyte_read_write_exec_file_handle                           ; 8423: a9 c6       ..             ; Returns X=EXEC handle, Y=SPOOL handle
+    lda #osbyte_read_write_exec_file_handle                           ; 8423: a9 c6       ..             ; A=&C7: read *SPOOL file handle
     jsr osbyte                                                        ; 8425: 20 f4 ff     ..            ; Read/Write *EXEC file handle
     lda #&ea                                                          ; 8428: a9 ea       ..             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 842a: c4 ba       ..             ; Y=value of *SPOOL file handle
@@ -5065,7 +5065,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 .osword_11_handler
     lda net_rx_ptr_hi                                                 ; 8ed2: a5 9d       ..             ; Set source high byte from workspace page
-    sta fs_crc_hi                                                     ; 8ed4: 85 bf       ..             ; Store as copy source high byte in &AC
+    sta fs_crc_hi                                                     ; 8ed4: 85 bf       ..             ; Store as copy source high byte in &BF
     ldy #&7f                                                          ; 8ed6: a0 7f       ..             ; JSRSIZ at workspace offset &7F
     lda (net_rx_ptr),y                                                ; 8ed8: b1 9c       ..             ; Load buffer size from workspace
     iny                                                               ; 8eda: c8          .              ; Y=&80: start of JSR argument data; Y=&80
@@ -5108,7 +5108,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     cmp #6                                                            ; 8ef7: c9 06       ..             ; Sub-function >= 6?
     bcs rsl1                                                          ; 8ef9: b0 35       .5             ; Yes: out of range, error
     cmp #4                                                            ; 8efb: c9 04       ..             ; Sub-function 4 or 5?
-    bcs rssl1                                                         ; 8efd: b0 16       ..             ; Sub-function 4 or 5: read/set station
+    bcs rssl1                                                         ; 8efd: b0 16       ..             ; Sub-function 4 or 5: read/set protection
     lsr a                                                             ; 8eff: 4a          J              ; LSR: 0->0, 1->0, 2->1, 3->1
     ldx #&0d                                                          ; 8f00: a2 0d       ..             ; X=&0D: default to static workspace page
     tay                                                               ; 8f02: a8          .              ; Transfer LSR result to Y for indexing
@@ -5116,9 +5116,9 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     ldx nfs_workspace_hi                                              ; 8f05: a6 9f       ..             ; Y=1 (sub 2-3): use dynamic workspace
 ; &8f07 referenced 1 time by &8f03
 .set_workspace_page
-    stx fs_crc_hi                                                     ; 8f07: 86 bf       ..             ; Store workspace page in &AC (hi byte)
+    stx fs_crc_hi                                                     ; 8f07: 86 bf       ..             ; Store workspace page in &BF (hi byte)
     lda osword_12_offsets,y                                           ; 8f09: b9 f5 8e    ...            ; Load offset: &FF (sub 0-1) or &01 (sub 2-3)
-    sta fs_crc_lo                                                     ; 8f0c: 85 be       ..             ; Store offset in &AB (lo byte)
+    sta fs_crc_lo                                                     ; 8f0c: 85 be       ..             ; Store offset in &BE (lo byte)
     ldx #1                                                            ; 8f0e: a2 01       ..             ; X=1: copy 2 bytes
     ldy #1                                                            ; 8f10: a0 01       ..             ; Y=1: start at param block offset 1
     jmp copy_param_byte                                               ; 8f12: 4c a9 8e    L..            ; Jump to read/write workspace path
@@ -5275,7 +5275,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     rol rx_flags                                                      ; 8fbb: 2e 64 0d    .d.            ; Re-enable user RX
     rts                                                               ; 8fbe: 60          `              ; Return
 
-    equb &a0, 2                                                       ; 8fbf: a0 02       ..             ; Workspace offset &1C = RX data start
+    equb &a0, 2                                                       ; 8fbf: a0 02       ..             ; Y=2: copy 3 bytes (indices 2,1,0)
 .rest1
     equb &b1, &9c, &99, &bd, 0, &88, &10, &f8, &60                    ; 8fc1: b1 9c 99... ...
 
@@ -5718,14 +5718,14 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     stx nfs_workspace                                                 ; 9146: 86 9e       ..             ; Store workspace ptr offset &DB
 ; &9148 referenced 1 time by &914d
 .copy_osword_params
-    lda (osword_pb_ptr),y                                             ; 9148: b1 f0       ..             ; Copy parameter bytes from RX buffer
+    lda (osword_pb_ptr),y                                             ; 9148: b1 f0       ..             ; Load param byte from OSWORD param block
     sta (nfs_workspace),y                                             ; 914a: 91 9e       ..             ; Write param byte to workspace
     dey                                                               ; 914c: 88          .              ; Next byte (descending)
     bpl copy_osword_params                                            ; 914d: 10 f9       ..             ; Loop for all parameter bytes
     iny                                                               ; 914f: c8          .              ; Y=0 after loop
     dec nfs_workspace                                                 ; 9150: c6 9e       ..             ; Point workspace to offset &DA
-    lda osbyte_a_copy                                                 ; 9152: a5 ef       ..             ; Store original OSBYTE code at workspace+0
-    sta (nfs_workspace),y                                             ; 9154: 91 9e       ..             ; Store OSBYTE code at ws+0
+    lda osbyte_a_copy                                                 ; 9152: a5 ef       ..             ; Load original OSWORD code
+    sta (nfs_workspace),y                                             ; 9154: 91 9e       ..             ; Store OSWORD code at ws+0
     sty nfs_workspace                                                 ; 9156: 84 9e       ..             ; Reset workspace ptr to base
     ldy #&14                                                          ; 9158: a0 14       ..             ; Y=&14: command type offset
     lda #&e9                                                          ; 915a: a9 e9       ..             ; Tag as RWORD (port &E9)
@@ -5770,7 +5770,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     clv                                                               ; 9175: b8          .              ; V=0: target is (nfs_workspace)
 ; &9176 referenced 2 times by &916f, &9197
 .cbset2
-    lda ctrl_block_template,x                                         ; 9176: bd 9d 91    ...            ; Load template byte from ctrl_block_template[X]
+    lda ctrl_block_template,x                                         ; 9176: bd 9d 91    ...            ; Set up TX and send RWORD packet
     cmp #&fe                                                          ; 9179: c9 fe       ..             ; &FE = stop sentinel
     beq cb_template_tail                                              ; 917b: f0 1c       ..             ; End of template: jump to exit
     cmp #&fd                                                          ; 917d: c9 fd       ..             ; &FD = skip sentinel
@@ -8174,7 +8174,7 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
     ldy #6                                                            ; 9f6a: a0 06       ..             ; Load RXCB[6] (buffer addr byte 2)
     lda (nmi_tx_block),y                                              ; 9f6c: b1 a0       ..             ; Load RXCB[6] (buffer addr byte 2)
     iny                                                               ; 9f6e: c8          .              ; Y=&07
-    and (nmi_tx_block),y                                              ; 9f6f: 31 a0       1.             ; AND with RXCB[7] (byte 3)
+    and (nmi_tx_block),y                                              ; 9f6f: 31 a0       1.             ; AND with TX block[7] (byte 3)
     cmp #&ff                                                          ; 9f71: c9 ff       ..             ; Both &FF = no buffer?
     beq fallback_calc_transfer                                        ; 9f73: f0 41       .A             ; Yes: fallback path
     lda tx_in_progress                                                ; 9f75: ad 52 0d    .R.            ; Tube transfer in progress?

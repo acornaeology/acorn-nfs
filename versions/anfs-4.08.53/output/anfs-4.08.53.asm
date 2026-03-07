@@ -984,7 +984,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     tay                                                               ; bd9e: a8          .   :060e[4]   ; Save in Y
     jsr tube_read_r2                                                  ; bd9f: 20 c5 06     .. :060f[4]   ; Read A (OSBYTE function code)
     jsr osbyte                                                        ; bda2: 20 f4 ff     .. :0612[4]   ; Execute OSBYTE A,X,Y
-    eor #&9d                                                          ; bda5: 49 9d       I.  :0615[4]   ; Send carry result to co-processor
+    eor #&9d                                                          ; bda5: 49 9d       I.  :0615[4]   ; Test for OSBYTE &9D (fast Tube BPUT)
     beq bytex                                                         ; bda7: f0 eb       ..  :0617[4]   ; OSBYTE &9D (fast Tube BPUT): no result needed
     ror a                                                             ; bda9: 6a          j   :0619[4]   ; Encode carry (error flag) into bit 7
     jsr tube_send_r2                                                  ; bdaa: 20 95 06     .. :061a[4]   ; Send carry+status byte via R2
