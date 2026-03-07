@@ -1733,6 +1733,9 @@ service_handler_lo = service_entry+1
 ; Service 9: *HELP
 ; 
 ; Prints the ROM identification string using print_inline.
+; 
+; On Exit:
+;     Y: workspace page number (from ws_page)
 ; ***************************************************************************************
 .svc_9_help
     jsr print_inline                                                  ; 81f6: 20 4a 86     J.            ; Print ROM identification string
@@ -1922,6 +1925,12 @@ service_handler_lo = service_entry+1
 ; Claims pages up to &10 for NMI workspace (&0D), FS state (&0E),
 ; and FS command buffer (&0F). If Y >= &10, workspace already
 ; allocated — returns unchanged.
+; 
+; On Entry:
+;     Y: current top of absolute workspace
+; 
+; On Exit:
+;     Y: updated top of absolute workspace (max of input and &10)
 ; ***************************************************************************************
 .svc_1_abs_workspace
     cpy #&10                                                          ; 82aa: c0 10       ..             ; Already at page &10 or above?
@@ -1949,6 +1958,12 @@ service_handler_lo = service_entry+1
 ;   - Initialises all RXCBs with &3F flag (available)
 ; In both cases: reads station ID from &FE18 (only valid during
 ; reset), calls adlc_init, enables user-level RX (LFLAG=&40).
+; 
+; On Entry:
+;     Y: next available workspace page
+; 
+; On Exit:
+;     Y: next available workspace page after NFS (input + 2)
 ; ***************************************************************************************
 .svc_2_private_workspace
     sty net_rx_ptr_hi                                                 ; 82b3: 84 9d       ..             ; RX buffer page = first claimed page
@@ -2090,6 +2105,14 @@ service_handler_lo = service_entry+1
 ; Advances Y past leading spaces in the text at (os_text_ptr),Y.
 ; Returns Z=1 if the next non-space character is CR (end of line),
 ; Z=0 otherwise with A holding the character.
+; 
+; On Entry:
+;     Y: offset into (os_text_ptr) buffer
+; 
+; On Exit:
+;     A: character EOR &0D (0 if CR)
+;     Y: offset of first non-space character
+;     Z: set if end of line (CR)
 ; ***************************************************************************************
 ; &836c referenced 2 times by &8368, &8df0
 .skip_spaces
@@ -2127,6 +2150,10 @@ service_handler_lo = service_entry+1
 ; station/network from &0E00/&0E01 to &00C2/&00C3.
 ; The template sets up: control=&80, port=&99 (FS command port),
 ; command data length=&0F, plus padding bytes.
+; 
+; On Exit:
+;     A: preserved
+;     Y: &FF (decremented past 0)
 ; ***************************************************************************************
 ; &8383 referenced 4 times by &8377, &83d1, &841d, &8ff9
 .init_tx_ctrl_block
@@ -2169,6 +2196,10 @@ service_handler_lo = service_entry+1
 ; into fs_error_ptr, and enters with carry set (SEC). The carry
 ; flag is later tested by build_send_fs_cmd to select the
 ; byte-stream (BSXMIT) transmission path.
+; 
+; On Entry:
+;     A: flag byte to include in FS command
+;     Y: function code for FS header
 ; ***************************************************************************************
 ; &83a7 referenced 1 time by &8ab1
 .prepare_cmd_with_flag
@@ -2316,6 +2347,14 @@ service_handler_lo = service_entry+1
 ; Clears the escapable flag via clear_escapable, then falls
 ; through to handle_bput_bget with carry set (SEC by caller)
 ; to indicate a BGET operation.
+; 
+; On Entry:
+;     Y: file handle
+;     C: 1 (set by MOS before calling BGETV)
+; 
+; On Exit:
+;     A: byte read from file
+;     C: 1 if EOF, 0 otherwise
 ; ***************************************************************************************
 ; &8402 referenced 1 time by &8552
 .bgetv_entry
@@ -2460,6 +2499,9 @@ service_handler_lo = service_entry+1
 ; escapable flag. If no escape is pending, returns immediately.
 ; If escape is active, acknowledges it via OSBYTE &7E and jumps
 ; to the escape error handler.
+; 
+; On Exit:
+;     A: corrupted (AND result on normal return)
 ; ***************************************************************************************
 ; &848f referenced 2 times by &80a9, &8615
 .check_escape
@@ -2597,6 +2639,9 @@ service_handler_lo = service_entry+1
 ; Loads A with &2A ('*') as the FS command prefix byte, then
 ; falls through to send_to_fs to perform a full fileserver
 ; transaction: transmit and wait for reply.
+; 
+; On Exit:
+;     A: reply command code
 ; ***************************************************************************************
 ; &851e referenced 5 times by &83e5, &876d, &8896, &903e, &929e
 .waitfs
@@ -2614,6 +2659,12 @@ service_handler_lo = service_entry+1
 ; rather than memory to avoid bus conflicts with Econet hardware
 ; during the tight polling loop. Handles multi-block replies and
 ; checks for escape conditions between blocks.
+; 
+; On Entry:
+;     A: function code / command prefix byte
+; 
+; On Exit:
+;     A: reply command code
 ; ***************************************************************************************
 .send_to_fs
     pha                                                               ; 8520: 48          H              ; Save function code on stack
@@ -2715,6 +2766,11 @@ error_table_base = bgetv_shared_jsr+1
 ; BBC OSFILE attribute format (8 bits) via the lookup table at
 ; &85DA. The two formats use different bit layouts for file
 ; protection attributes.
+; 
+; On Exit:
+;     A: BBC attribute bitmask (8-bit)
+;     X: corrupted
+;     Y: &0E
 ; ***************************************************************************************
 ; &85bd referenced 2 times by &88e9, &8914
 .decode_attribs_6bit
@@ -2733,6 +2789,13 @@ error_table_base = bgetv_shared_jsr+1
 ; by iterating through the source bits and OR-ing in the
 ; corresponding destination bits from the table, translating
 ; between BBC (8-bit) and fileserver (5-bit) protection formats.
+; 
+; On Entry:
+;     A: BBC attribute byte (bits 0-4 used)
+; 
+; On Exit:
+;     A: FS attribute bitmask (5-bit)
+;     X: corrupted
 ; ***************************************************************************************
 ; &85c7 referenced 2 times by &880d, &8931
 .decode_attribs_5bit
@@ -2763,6 +2826,11 @@ error_table_base = bgetv_shared_jsr+1
 ; Points net_tx_ptr to &00C0 where the TX control block has
 ; been built by init_tx_ctrl_block. Falls through to tx_poll_ff
 ; to initiate transmission with full retry.
+; 
+; On Exit:
+;     A: &FF (retry count, restored)
+;     X: 0
+;     Y: 0
 ; ***************************************************************************************
 ; &85e5 referenced 2 times by &83dd, &8885
 .setup_tx_ptr_c0
@@ -2775,6 +2843,11 @@ error_table_base = bgetv_shared_jsr+1
 ; 
 ; Sets A=&FF (retry count) and Y=&60 (timeout parameter).
 ; Falls through to tx_poll_core.
+; 
+; On Exit:
+;     A: &FF (retry count, restored)
+;     X: 0
+;     Y: 0
 ; ***************************************************************************************
 ; &85ed referenced 4 times by &9027, &9080, &90dd, &927c
 .tx_poll_ff
@@ -2872,6 +2945,11 @@ error_table_base = bgetv_shared_jsr+1
 ; Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
 ; falls through to save_fscv_args to store A/X/Y in the FS
 ; workspace.
+; 
+; On Entry:
+;     A: function code
+;     X: text pointer low
+;     Y: text pointer high
 ; ***************************************************************************************
 ; &8637 referenced 3 times by &80d0, &89c6, &8c09
 .save_fscv_args_with_ptrs
@@ -2887,6 +2965,11 @@ error_table_base = bgetv_shared_jsr+1
 ;   &BB (fs_options)        = X (control block ptr low)
 ;   &BC (fs_block_offset)   = Y (control block ptr high)
 ;   &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)
+; 
+; On Entry:
+;     A: function code
+;     X: control block pointer low
+;     Y: control block pointer high
 ; ***************************************************************************************
 ; &863b referenced 3 times by &86fa, &8956, &8a60
 .save_fscv_args
@@ -3004,6 +3087,14 @@ error_table_base = bgetv_shared_jsr+1
 ; 
 ; Transfers A to Y via TAY, then falls through to
 ; handle_to_mask_clc to clear carry and convert.
+; 
+; On Entry:
+;     A: file handle number (&20-&27, or 0)
+; 
+; On Exit:
+;     A: preserved
+;     X: preserved
+;     Y: bitmask (single bit set) or &FF if invalid
 ; ***************************************************************************************
 ; &8688 referenced 3 times by &889d, &8a7b, &8f5e
 .handle_to_mask_a
@@ -3013,6 +3104,14 @@ error_table_base = bgetv_shared_jsr+1
 ; 
 ; Clears carry to ensure handle_to_mask converts
 ; unconditionally. Falls through to handle_to_mask.
+; 
+; On Entry:
+;     Y: file handle number (&20-&27, or 0)
+; 
+; On Exit:
+;     A: preserved
+;     X: preserved
+;     Y: bitmask (single bit set) or &FF if invalid
 ; ***************************************************************************************
 ; &8689 referenced 2 times by &8410, &8961
 .handle_to_mask_clc
@@ -3148,6 +3247,12 @@ error_table_base = bgetv_shared_jsr+1
 ; the file pointer is updated (since seeking away from EOF
 ; invalidates the hint) and set after BGET/OPEN/EOF operations
 ; that might have reached the end.
+; 
+; On Entry:
+;     A: bitmask of bits to set
+; 
+; On Exit:
+;     A: updated fs_eof_flags value
 ; ***************************************************************************************
 ; &86be referenced 5 times by &8567, &899e, &89f5, &8a15, &8af6
 .set_fs_flag
@@ -3158,6 +3263,12 @@ error_table_base = bgetv_shared_jsr+1
 ; 
 ; Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
 ; to clear the specified bits.
+; 
+; On Entry:
+;     A: bitmask of bits to clear
+; 
+; On Exit:
+;     A: updated fs_eof_flags value
 ; ***************************************************************************************
 ; &86c3 referenced 3 times by &8564, &88b8, &8af3
 .clear_fs_flag
@@ -3174,6 +3285,10 @@ error_table_base = bgetv_shared_jsr+1
 ; Copies the 2-byte filename pointer from (fs_options),Y into
 ; os_text_ptr (&F2/&F3), then falls through to parse_filename_gs
 ; to parse the filename via GSINIT/GSREAD into the &0E30 buffer.
+; 
+; On Exit:
+;     X: length of parsed string
+;     Y: 0
 ; ***************************************************************************************
 ; &86cc referenced 1 time by &86fd
 .copy_filename_ptr
@@ -3210,6 +3325,13 @@ error_table_base = bgetv_shared_jsr+1
 ; into the (os_text_ptr) string. Initialises GSINIT, reads chars
 ; via GSREAD into &0E30, CR-terminates the result, and sets up
 ; fs_crc_lo/hi to point at the buffer.
+; 
+; On Entry:
+;     Y: offset into (os_text_ptr) string
+; 
+; On Exit:
+;     X: length of parsed string
+;     Y: preserved
 ; ***************************************************************************************
 ; &86d8 referenced 1 time by &8c69
 .parse_filename_gs_y
@@ -3287,6 +3409,10 @@ error_table_base = bgetv_shared_jsr+1
 ; Byte 6 of the parameter block selects load address handling:
 ; non-zero uses the address from the FS reply (load to file's own
 ; address); zero uses the caller-supplied address.
+; 
+; On Entry:
+;     Y: FS function code (2=load, 5=examine)
+;     X: TX buffer extent
 ; ***************************************************************************************
 ; &8710 referenced 1 time by &8e10
 .send_fs_examine
@@ -3484,6 +3610,10 @@ error_table_base = bgetv_shared_jsr+1
 ; 
 ; Copies 4 bytes from (fs_options)+2..5 (the load address in the
 ; OSFILE parameter block) to &AE-&B3 (local workspace).
+; 
+; On Exit:
+;     Y: 8 (final offset)
+;     A: last byte copied
 ; ***************************************************************************************
 ; &881d referenced 2 times by &8720, &872b
 .copy_load_addr_from_params
@@ -3512,6 +3642,9 @@ error_table_base = bgetv_shared_jsr+1
 ; Copies bytes from the FS command reply buffer (&0F02+) into the
 ; parameter block at (fs_options)+2..13. Used to fill in the OSFILE
 ; parameter block with information returned by the fileserver.
+; 
+; On Entry:
+;     X: attribute byte (stored first at offset &0D)
 ; ***************************************************************************************
 ; &882f referenced 2 times by &8723, &8728
 .copy_reply_to_params
@@ -3621,6 +3754,12 @@ error_table_base = bgetv_shared_jsr+1
 ; the fileserver for definitive EOF status. Returns X=&FF if at
 ; EOF, X=&00 if not. This two-level check avoids an expensive
 ; network round-trip when the file is known to not be at EOF.
+; 
+; On Entry:
+;     X: file handle to check
+; 
+; On Exit:
+;     X: &FF if at EOF, &00 if not
 ; ***************************************************************************************
 .fscv_1_eof
     pha                                                               ; 889b: 48          H              ; Save A (function code)
@@ -3661,6 +3800,12 @@ error_table_base = bgetv_shared_jsr+1
 ; The control block layout uses dual-purpose fields: the 'data
 ; start' field doubles as 'length' and 'data end' doubles as
 ; 'protection' depending on whether reading or writing attrs.
+; 
+; On Entry:
+;     A: function code (1-6)
+; 
+; On Exit:
+;     A: object type (A=5 read info) or restored
 ; ***************************************************************************************
 ; &88bf referenced 1 time by &8780
 .filev_attrib_dispatch
@@ -3839,6 +3984,11 @@ error_table_base = bgetv_shared_jsr+1
 ; fs_last_byte_flag (&BD), X from fs_options (&BB), and Y from
 ; fs_block_offset (&BC) — the values saved at entry by
 ; save_fscv_args — and returns to the caller.
+; 
+; On Exit:
+;     A: restored from fs_last_byte_flag (&BD)
+;     X: restored from fs_options (&BB)
+;     Y: restored from fs_block_offset (&BC)
 ; ***************************************************************************************
 ; &89a1 referenced 7 times by &8708, &881a, &895b, &8985, &8a18, &8a6b, &8e38
 .restore_args_return
@@ -3876,6 +4026,11 @@ error_table_base = bgetv_shared_jsr+1
 ; restore exit at restore_args_return. Used as a shared exit
 ; point by ARGSV, FINDV, and GBPBV when an operation is
 ; unsupported or should return zero.
+; 
+; On Exit:
+;     A: 0
+;     X: restored from fs_options (&BB)
+;     Y: restored from fs_block_offset (&BC)
 ; ***************************************************************************************
 ; &89c2 referenced 4 times by &89ac, &89d2, &8b07, &8ba9
 .return_a_zero
@@ -3949,6 +4104,9 @@ error_table_base = bgetv_shared_jsr+1
 ;   Y>0: close single handle — sends FS close command and clears
 ;        the handle's bit in both the EOF hint byte and the sequence
 ;        number tracking byte.
+; 
+; On Entry:
+;     Y: file handle (0=close all, >0=close single)
 ; ***************************************************************************************
 ; &89fe referenced 1 time by &89ce
 .close_handle
@@ -3977,6 +4135,10 @@ error_table_base = bgetv_shared_jsr+1
 ;   *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)
 ;   *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)
 ; Other combinations generate error &CB (OPTER: "bad option").
+; 
+; On Entry:
+;     X: option number (1 or 4)
+;     Y: option value
 ; ***************************************************************************************
 .fscv_0_opt
     cpx #4                                                            ; 8a1c: e0 04       ..             ; Is it *OPT 4,Y?
@@ -4024,6 +4186,14 @@ error_table_base = bgetv_shared_jsr+1
 ;   If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X
 ; Starting offset X=&FC means it reads from &0E06-&0E09 area.
 ; Used to convert between absolute and relative file positions.
+; 
+; On Entry:
+;     Y: starting offset into (fs_options) parameter block
+; 
+; On Exit:
+;     A: corrupted (last adjusted byte)
+;     X: 0
+;     Y: entry Y + 4
 ; ***************************************************************************************
 ; &8a48 referenced 2 times by &8b01, &8bfc
 .adjust_addrs
@@ -4665,6 +4835,11 @@ boot_string_offsets = boot_option_offsets+1
 ; Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.
 ; Used to place a filename into the FS command buffer before
 ; sending to the fileserver. Falls through to copy_string_to_cmd.
+; 
+; On Exit:
+;     X: next free position in cmd buffer
+;     Y: string length (incl CR)
+;     A: 0 (from EOR &0D with final CR)
 ; ***************************************************************************************
 ; &8d70 referenced 5 times by &8099, &80bd, &870b, &8905, &8de2
 .infol2
@@ -4677,6 +4852,14 @@ boot_string_offsets = boot_option_offsets+1
 ; to &0F05+X, stopping when a CR (&0D) is encountered. The CR
 ; itself is also copied. Returns with X pointing past the last
 ; byte written.
+; 
+; On Entry:
+;     X: destination offset in fs_cmd_data (&0F05+X)
+; 
+; On Exit:
+;     X: next free position past CR
+;     Y: string length (incl CR)
+;     A: 0 (from EOR &0D with final CR)
 ; ***************************************************************************************
 ; &8d72 referenced 6 times by &87b8, &88fe, &8920, &89e4, &8c6e, &8d10
 .copy_string_to_cmd
@@ -4894,6 +5077,9 @@ boot_string_offsets = boot_option_offsets+1
 ; 
 ; Stores Y into &0E04 (library directory handle in FS workspace).
 ; Falls through to JMP restore_args_return if Y is non-zero.
+; 
+; On Entry:
+;     Y: library handle from FS reply
 ; ***************************************************************************************
 .fsreply_5_set_lib
     sty fs_lib_handle                                                 ; 8e30: 8c 04 0e    ...            ; Save library handle from FS reply
@@ -4903,6 +5089,9 @@ boot_string_offsets = boot_option_offsets+1
 ; 
 ; Stores Y into &0E03 (current selected directory handle).
 ; Falls through to JMP restore_args_return.
+; 
+; On Entry:
+;     Y: CSD handle from FS reply
 ; ***************************************************************************************
 .fsreply_3_set_csd
     sty fs_csd_handle                                                 ; 8e35: 8c 03 0e    ...            ; Store CSD handle from FS reply
@@ -4963,6 +5152,11 @@ boot_string_offsets = boot_option_offsets+1
 ; Loads the file handle byte from &F0, then falls through to
 ; calc_handle_offset which converts handle * 12 to a workspace
 ; byte offset. Validates offset < &48.
+; 
+; On Exit:
+;     A: handle*12 or 0 if invalid
+;     Y: workspace offset or 0 if invalid
+;     C: clear if valid, set if invalid
 ; ***************************************************************************************
 ; &8e56 referenced 2 times by &8e70, &8e80
 .load_handle_calc_offset
@@ -4977,6 +5171,14 @@ boot_string_offsets = boot_option_offsets+1
 ; Validates that the offset is < &48 (max 6 handles × 12 bytes
 ; per handle entry = 72 bytes). If invalid (>= &48), returns
 ; with C set and Y=0, A=0 as an error indicator.
+; 
+; On Entry:
+;     A: file handle number
+; 
+; On Exit:
+;     A: handle*12 or 0 if invalid
+;     Y: workspace offset or 0 if invalid
+;     C: clear if valid, set if invalid
 ; ***************************************************************************************
 ; &8e58 referenced 3 times by &82f7, &8f90, &8fa9
 .calc_handle_offset
@@ -5011,6 +5213,9 @@ boot_string_offsets = boot_option_offsets+1
 ; workspace slot contains &3F ('?', meaning unused/closed),
 ; returns 0. Otherwise returns the stored handle value.
 ; Clears rom_svc_num on exit.
+; 
+; On Exit:
+;     A: handle value (0 if closed/invalid)
 ; ***************************************************************************************
 .net_2_read_handle_entry
     jsr load_handle_calc_offset                                       ; 8e70: 20 56 8e     V.            ; Look up handle &F0 in workspace
@@ -5034,6 +5239,9 @@ boot_string_offsets = boot_option_offsets+1
 ; workspace. Returns via RTS (earlier versions preserved the
 ; carry flag across the write using ROL/ROR on rx_flags, but
 ; 3.60 simplified this).
+; 
+; On Exit:
+;     A: &3F (close marker) or 0 if invalid
 ; ***************************************************************************************
 .net_3_close_handle
     jsr load_handle_calc_offset                                       ; 8e80: 20 56 8e     V.            ; Look up handle &F0 in workspace
@@ -5235,6 +5443,16 @@ boot_string_offsets = boot_option_offsets+1
 ; (&AB),Y. In either case, loads from workspace and stores to
 ; param block. Loops for X+1 bytes. Used by OSWORD &0F, &10,
 ; &11, and &12 handlers.
+; 
+; On Entry:
+;     C: 1=copy param to workspace first, 0=workspace to param only
+;     X: byte count minus 1
+;     Y: starting offset
+; 
+; On Exit:
+;     A: last byte copied
+;     X: &FF
+;     Y: start + count + 1
 ; ***************************************************************************************
 ; &8f1f referenced 4 times by &8ed9, &8eee, &8f2b, &8fc0
 .copy_param_workspace
@@ -5249,6 +5467,16 @@ boot_string_offsets = boot_option_offsets+1
 ; 
 ; C=1: copy X+1 bytes from (&F0),Y to (&AB),Y (param to workspace)
 ; C=0: copy X+1 bytes from (&AB),Y to (&F0),Y (workspace to param)
+; 
+; On Entry:
+;     C: 1=param to workspace, 0=workspace to param
+;     X: byte count minus 1
+;     Y: starting offset
+; 
+; On Exit:
+;     A: last byte copied
+;     X: &FF
+;     Y: start + count + 1
 ; ***************************************************************************************
 .copy_param_block
     sta (osword_pb_ptr),y                                             ; 8f27: 91 f0       ..             ; Store to param block (no-op if C=1)
@@ -5417,6 +5645,9 @@ boot_string_offsets = boot_option_offsets+1
 ; Calculates the start address of the RX data area (&F0+1) and stores
 ; it at workspace offset &1C. Also reads the data length from (&F0)+1
 ; and adds it to &F0 to compute the end address at offset &20.
+; 
+; On Entry:
+;     C: clear for ADC
 ; ***************************************************************************************
 ; &8fd8 referenced 1 time by &900b
 .setup_rx_buffer_ptrs
@@ -5445,6 +5676,9 @@ boot_string_offsets = boot_option_offsets+1
 ;      workspace &0DE6), transmit it, set up RX control block,
 ;      and receive reply.
 ; A>=1: Handle transmit result (branch to cleanup at &903E).
+; 
+; On Entry:
+;     A: 0=set up and transmit, >=1=handle TX result
 ; ***************************************************************************************
 .econet_tx_rx
     cmp #1                                                            ; 8ff3: c9 01       ..             ; A=0: set up and transmit; A>=1: handle result
@@ -5652,6 +5886,9 @@ boot_string_offsets = boot_option_offsets+1
 ; signal success, stores the character from Y into workspace
 ; offset &DA, loads A=0 as the command type, and falls through
 ; to setup_tx_and_send.
+; 
+; On Entry:
+;     Y: character to write
 ; ***************************************************************************************
 .net_write_char_handler
     tsx                                                               ; 90b9: ba          .              ; Get stack pointer for P register access
@@ -5671,6 +5908,9 @@ boot_string_offsets = boot_option_offsets+1
 ; completes, writes &3F (TX deleted) at (net_tx_ptr)+&00 to mark
 ; the control block as free, then restores net_tx_ptr to its
 ; original value.
+; 
+; On Entry:
+;     A: command type byte
 ; ***************************************************************************************
 ; &90c7 referenced 3 times by &81bd, &911a, &917d
 .setup_tx_and_send
@@ -5975,6 +6215,9 @@ boot_string_offsets = boot_option_offsets+1
 ; initialises the printer buffer pointer (&0D61 = &1F) and
 ; sets the initial flag byte (&0D60 = &41). Otherwise falls
 ; through to return.
+; 
+; On Entry:
+;     X: 1-based buffer number
 ; ***************************************************************************************
 .printer_select_handler
     dex                                                               ; 91de: ca          .              ; X-1: convert 1-based buffer to 0-based
@@ -6009,6 +6252,10 @@ boot_string_offsets = boot_option_offsets+1
 ; be taken to never leave the pointer corrupted, as corruption would
 ; cause one subsystem to overwrite the other's data.
 ; Only handles buffer 4 (network printer); others are ignored.
+; 
+; On Entry:
+;     X: reason code (1=chars, 2=Ctrl-B, 3=Ctrl-C)
+;     Y: buffer number (must be 4 for network printer)
 ; ***************************************************************************************
 .remote_print_handler
     cpy #4                                                            ; 91ed: c0 04       ..             ; Only handle buffer 4 (network printer)
@@ -6037,6 +6284,12 @@ boot_string_offsets = boot_option_offsets+1
 ; Stores byte A at the current output offset in the RX buffer
 ; pointed to by (net_rx_ptr). Advances the offset counter and
 ; triggers a flush if the buffer is full.
+; 
+; On Entry:
+;     A: byte to store
+; 
+; On Exit:
+;     Y: buffer offset before store
 ; ***************************************************************************************
 ; &9212 referenced 2 times by &9206, &921f
 .store_output_byte
@@ -6117,6 +6370,11 @@ boot_string_offsets = boot_option_offsets+1
 ; a loop via BRIANX (c8530), retrying while the result bit
 ; differs from the expected sequence. On success, toggles the
 ; sequence tracking bit in fs_sequence_nos.
+; 
+; On Entry:
+;     A: handle bitmask (0=printer, non-zero=file)
+;     X: TX control block address low
+;     Y: TX control block address high
 ; ***************************************************************************************
 ; &9269 referenced 2 times by &83fa, &8436
 .econet_tx_retry
@@ -8165,6 +8423,10 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; does a 2-byte subtraction using open_port_buf/open_port_buf_hi
 ; (&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
 ; effect of the result area overlapping open_port_buf.
+; 
+; On Exit:
+;     C: 1 if transfer set up, 0 if not
+;     X: preserved
 ; ***************************************************************************************
 ; &9efd referenced 3 times by &97de, &9aeb, &9cf5
 .tx_calc_transfer
@@ -8247,6 +8509,9 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; ADLC full reset
 ; 
 ; Aborts all activity and returns to idle RX listen mode.
+; 
+; On Exit:
+;     A: 0
 ; ***************************************************************************************
 ; &9f70 referenced 3 times by &969d, &9725, &985f
 .adlc_full_reset
@@ -8260,6 +8525,9 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; Enter RX listen mode
 ; 
 ; TX held in reset, RX active with interrupts. Clears all status.
+; 
+; On Exit:
+;     A: &67
 ; ***************************************************************************************
 ; &9f7f referenced 2 times by &9a0a, &9faf
 .adlc_rx_listen

@@ -2223,7 +2223,9 @@ subroutine(0x8637, "save_fscv_args_with_ptrs", hook=None,
 Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.
 Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
 falls through to save_fscv_args to store A/X/Y in the FS
-workspace.""")
+workspace.""",
+    on_entry={"a": "function code", "x": "text pointer low",
+              "y": "text pointer high"})
 comment(0x8637, "Set os_text_ptr low = X", inline=True)
 comment(0x8639, "Set os_text_ptr high = Y", inline=True)
 
@@ -2236,7 +2238,9 @@ GBPBV, FINDV, FSCV). NFS repurposes CFS/RFS workspace locations:
   &BD (fs_last_byte_flag) = A (function code / command)
   &BB (fs_options)        = X (control block ptr low)
   &BC (fs_block_offset)   = Y (control block ptr high)
-  &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)""")
+  &BE/&BF (fs_crc_lo/hi)  = X/Y (duplicate for indexed access)""",
+    on_entry={"a": "function code", "x": "control block pointer low",
+              "y": "control block pointer high"})
 comment(0x863B, "Save A = function code / command", inline=True)
 comment(0x863D, "Save X = control block ptr low", inline=True)
 comment(0x863F, "Save Y = control block ptr high", inline=True)
@@ -2258,7 +2262,8 @@ masks to 6 bits, then falls through to the shared bitmask
 builder. Converts fileserver protection format (5-6 bits) to
 BBC OSFILE attribute format (8 bits) via the lookup table at
 &85DA. The two formats use different bit layouts for file
-protection attributes.""")
+protection attributes.""",
+    on_exit={"a": "BBC attribute bitmask (8-bit)", "x": "corrupted", "y": "&0E"})
 comment(0x85BD, "Y=&0E: attribute byte offset in param block", inline=True)
 comment(0x85BF, "Load FS attribute byte", inline=True)
 comment(0x85C1, "Mask to 6 bits (FS → BBC direction)", inline=True)
@@ -2273,7 +2278,9 @@ lookup table at &85DA. Each input bit position maps to a
 different output bit via the table. The conversion is done
 by iterating through the source bits and OR-ing in the
 corresponding destination bits from the table, translating
-between BBC (8-bit) and fileserver (5-bit) protection formats.""")
+between BBC (8-bit) and fileserver (5-bit) protection formats.""",
+    on_entry={"a": "BBC attribute byte (bits 0-4 used)"},
+    on_exit={"a": "FS attribute bitmask (5-bit)", "x": "corrupted"})
 comment(0x85C7, "Mask to 5 bits (BBC → FS direction)", inline=True)
 comment(0x85C9, "X=&FF: INX makes 0; start from table index 0", inline=True)
 comment(0x85CB, "Temp storage for source bitmask to shift out", inline=True)
@@ -2332,14 +2339,20 @@ subroutine(0x8688, "handle_to_mask_a", hook=None,
     title="Convert handle in A to bitmask",
     description="""\
 Transfers A to Y via TAY, then falls through to
-handle_to_mask_clc to clear carry and convert.""")
+handle_to_mask_clc to clear carry and convert.""",
+    on_entry={"a": "file handle number (&20-&27, or 0)"},
+    on_exit={"a": "preserved", "x": "preserved",
+             "y": "bitmask (single bit set) or &FF if invalid"})
 comment(0x8688, "Handle number to Y for conversion", inline=True)
 
 subroutine(0x8689, "handle_to_mask_clc", hook=None,
     title="Convert handle to bitmask (carry cleared)",
     description="""\
 Clears carry to ensure handle_to_mask converts
-unconditionally. Falls through to handle_to_mask.""")
+unconditionally. Falls through to handle_to_mask.""",
+    on_entry={"y": "file handle number (&20-&27, or 0)"},
+    on_exit={"a": "preserved", "x": "preserved",
+             "y": "bitmask (single bit set) or &FF if invalid"})
 comment(0x8689, "Force unconditional conversion", inline=True)
 
 subroutine(0x868A, "handle_to_mask",
@@ -2509,7 +2522,9 @@ This negative-cache optimisation avoids expensive network
 round-trips for the common case. The hint is cleared when
 the file pointer is updated (since seeking away from EOF
 invalidates the hint) and set after BGET/OPEN/EOF operations
-that might have reached the end.""")
+that might have reached the end.""",
+    on_entry={"a": "bitmask of bits to set"},
+    on_exit={"a": "updated fs_eof_flags value"})
 comment(0x86BE, "Merge new bits into flags", inline=True)
 comment(0x86C1, "Store updated flags (always taken)", inline=True)
 
@@ -2517,7 +2532,9 @@ subroutine(0x86C3, "clear_fs_flag", hook=None,
     title="Clear bit(s) in FS flags (&0E07)",
     description="""\
 Inverts A (EOR #&FF), then ANDs the result into fs_eof_flags
-to clear the specified bits.""")
+to clear the specified bits.""",
+    on_entry={"a": "bitmask of bits to clear"},
+    on_exit={"a": "updated fs_eof_flags value"})
 comment(0x86C3, "Invert mask: set bits become clear bits", inline=True)
 comment(0x86C5, "Clear specified bits in flags", inline=True)
 comment(0x86C8, "Write back updated flags", inline=True)
@@ -2553,7 +2570,8 @@ subroutine(0x85E5, "setup_tx_ptr_c0", hook=None,
     description="""\
 Points net_tx_ptr to &00C0 where the TX control block has
 been built by init_tx_ctrl_block. Falls through to tx_poll_ff
-to initiate transmission with full retry.""")
+to initiate transmission with full retry.""",
+    on_exit={"a": "&FF (retry count, restored)", "x": "0", "y": "0"})
 comment(0x85E5, "TX control block low byte", inline=True)
 comment(0x85E7, "Set net_tx_ptr = &00C0", inline=True)
 comment(0x85E9, "TX control block high byte", inline=True)
@@ -2563,7 +2581,8 @@ subroutine(0x85ED, "tx_poll_ff", hook=None,
     title="Transmit and poll for result (full retry)",
     description="""\
 Sets A=&FF (retry count) and Y=&60 (timeout parameter).
-Falls through to tx_poll_core.""")
+Falls through to tx_poll_core.""",
+    on_exit={"a": "&FF (retry count, restored)", "x": "0", "y": "0"})
 
 subroutine(0x85F1, "tx_poll_core",
     title="Core transmit and poll routine (XMIT)",
@@ -3071,7 +3090,9 @@ subroutine(0x82AA, "svc_1_abs_workspace", hook=None,
     description="""\
 Claims pages up to &10 for NMI workspace (&0D), FS state (&0E),
 and FS command buffer (&0F). If Y >= &10, workspace already
-allocated — returns unchanged.""")
+allocated — returns unchanged.""",
+    on_entry={"y": "current top of absolute workspace"},
+    on_exit={"y": "updated top of absolute workspace (max of input and &10)"})
 comment(0x82AA, "Already at page &10 or above?", inline=True)
 comment(0x82AC, "Yes: nothing to claim", inline=True)
 comment(0x82AE, "Claim pages &0D-&0F (3 pages)", inline=True)
@@ -3094,7 +3115,9 @@ On power-up/CTRL-BREAK (result non-zero):
   - Clears FS handles, OPT byte, message flag, SEQNOS
   - Initialises all RXCBs with &3F flag (available)
 In both cases: reads station ID from &FE18 (only valid during
-reset), calls adlc_init, enables user-level RX (LFLAG=&40).""")
+reset), calls adlc_init, enables user-level RX (LFLAG=&40).""",
+    on_entry={"y": "next available workspace page"},
+    on_exit={"y": "next available workspace page after NFS (input + 2)"})
 
 comment(0x82B3, "RX buffer page = first claimed page", inline=True)
 comment(0x82B5, "Advance to next page", inline=True)
@@ -3179,7 +3202,8 @@ comment(0x81A8, "No match: try *NET", inline=True)
 subroutine(0x81F6, "svc_9_help", hook=None,
     title="Service 9: *HELP",
     description="""\
-Prints the ROM identification string using print_inline.""")
+Prints the ROM identification string using print_inline.""",
+    on_exit={"y": "workspace page number (from ws_page)"})
 comment(0x81F6, "Print ROM identification string", inline=True)
 comment(0x81F9, '"NFS 3.65" version string + CRs', inline=True)
 comment(0x8203, "Restore Y (workspace page number)", inline=True)
@@ -3295,7 +3319,10 @@ subroutine(0x836C, "skip_spaces", hook=None,
     description="""\
 Advances Y past leading spaces in the text at (os_text_ptr),Y.
 Returns Z=1 if the next non-space character is CR (end of line),
-Z=0 otherwise with A holding the character.""")
+Z=0 otherwise with A holding the character.""",
+    on_entry={"y": "offset into (os_text_ptr) buffer"},
+    on_exit={"a": "character EOR &0D (0 if CR)", "y": "offset of first non-space character",
+             "z": "set if end of line (CR)"})
 
 subroutine(0x8375, "init_tx_reply_port", hook=None,
     title="Initialise TX control block for FS reply on port &90",
@@ -3335,7 +3362,8 @@ Copies 12 bytes from tx_ctrl_template (&839B) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
 station/network from &0E00/&0E01 to &00C2/&00C3.
 The template sets up: control=&80, port=&99 (FS command port),
-command data length=&0F, plus padding bytes.""")
+command data length=&0F, plus padding bytes.""",
+    on_exit={"a": "preserved", "y": "&FF (decremented past 0)"})
 comment(0x8383, "Preserve A across call", inline=True)
 comment(0x8384, "Copy 12 bytes (Y=11..0)", inline=True)
 comment(0x8386, "Load template byte", inline=True)
@@ -3494,7 +3522,9 @@ subroutine(0x8402, "bgetv_entry", hook=None,
     description="""\
 Clears the escapable flag via clear_escapable, then falls
 through to handle_bput_bget with carry set (SEC by caller)
-to indicate a BGET operation.""")
+to indicate a BGET operation.""",
+    on_entry={"y": "file handle", "c": "1 (set by MOS before calling BGETV)"},
+    on_exit={"a": "byte read from file", "c": "1 if EOF, 0 otherwise"})
 
 subroutine(0x848F, "check_escape", hook=None,
     title="Check for pending escape condition",
@@ -3502,7 +3532,8 @@ subroutine(0x848F, "check_escape", hook=None,
 Tests bit 7 of the MOS escape flag (&FF) ANDed with the
 escapable flag. If no escape is pending, returns immediately.
 If escape is active, acknowledges it via OSBYTE &7E and jumps
-to the escape error handler.""")
+to the escape error handler.""",
+    on_exit={"a": "corrupted (AND result on normal return)"})
 
 # ============================================================
 # Handle BPUT/BGET (&83DD)
@@ -3581,7 +3612,8 @@ subroutine(0x851E, "waitfs", hook=None,
     description="""\
 Loads A with &2A ('*') as the FS command prefix byte, then
 falls through to send_to_fs to perform a full fileserver
-transaction: transmit and wait for reply.""")
+transaction: transmit and wait for reply.""",
+    on_exit={"a": "reply command code"})
 
 subroutine(0x8645, "clear_escapable", hook=None,
     title="Clear escapable flag preserving processor status",
@@ -3606,7 +3638,9 @@ non-zero, setting the system flag would interfere with other RX
 operations. The timeout counter uses the stack (indexed via TSX)
 rather than memory to avoid bus conflicts with Econet hardware
 during the tight polling loop. Handles multi-block replies and
-checks for escape conditions between blocks.""")
+checks for escape conditions between blocks.""",
+    on_entry={"a": "function code / command prefix byte"},
+    on_exit={"a": "reply command code"})
 comment(0x8520, "Save function code on stack", inline=True)
 comment(0x8521, "Load current rx_flags", inline=True)
 comment(0x8524, "Save rx_flags on stack for restore", inline=True)
@@ -3762,7 +3796,8 @@ subroutine(0x86CC, "copy_filename_ptr", hook=None,
     description="""\
 Copies the 2-byte filename pointer from (fs_options),Y into
 os_text_ptr (&F2/&F3), then falls through to parse_filename_gs
-to parse the filename via GSINIT/GSREAD into the &0E30 buffer.""")
+to parse the filename via GSINIT/GSREAD into the &0E30 buffer.""",
+    on_exit={"x": "length of parsed string", "y": "0"})
 
 subroutine(0x86D8, "parse_filename_gs_y", hook=None,
     title="Parse filename via GSINIT/GSREAD from offset Y",
@@ -3770,7 +3805,9 @@ subroutine(0x86D8, "parse_filename_gs_y", hook=None,
 Sub-entry of parse_filename_gs that accepts a non-zero Y offset
 into the (os_text_ptr) string. Initialises GSINIT, reads chars
 via GSREAD into &0E30, CR-terminates the result, and sets up
-fs_crc_lo/hi to point at the buffer.""")
+fs_crc_lo/hi to point at the buffer.""",
+    on_entry={"y": "offset into (os_text_ptr) string"},
+    on_exit={"x": "length of parsed string", "y": "preserved"})
 
 # GSINIT/GSREAD filename parser (&86D6)
 # ============================================================
@@ -3845,7 +3882,9 @@ normal URD copy, preserving &92). The FS reply contains load/exec
 addresses and file length used to set up the data transfer.
 Byte 6 of the parameter block selects load address handling:
 non-zero uses the address from the FS reply (load to file's own
-address); zero uses the caller-supplied address.""")
+address); zero uses the caller-supplied address.""",
+    on_entry={"y": "FS function code (2=load, 5=examine)",
+              "x": "TX buffer extent"})
 comment(0x8710, "Port &92 = PLDATA (data transfer port)", inline=True)
 comment(0x8712, "Mark transfer as escapable", inline=True)
 comment(0x8714, "Overwrite URD field with data port number", inline=True)
@@ -3994,7 +4033,8 @@ subroutine(0x881D, "copy_load_addr_from_params", hook=None,
     title="Copy load address from parameter block",
     description="""\
 Copies 4 bytes from (fs_options)+2..5 (the load address in the
-OSFILE parameter block) to &AE-&B3 (local workspace).""")
+OSFILE parameter block) to &AE-&B3 (local workspace).""",
+    on_exit={"y": "8 (final offset)", "a": "last byte copied"})
 comment(0x881D, "Start at offset 5 (top of 4-byte addr)", inline=True)
 comment(0x881F, "Read from parameter block", inline=True)
 comment(0x8821, "Store to local workspace", inline=True)
@@ -4010,7 +4050,8 @@ subroutine(0x882F, "copy_reply_to_params", hook=None,
     description="""\
 Copies bytes from the FS command reply buffer (&0F02+) into the
 parameter block at (fs_options)+2..13. Used to fill in the OSFILE
-parameter block with information returned by the fileserver.""")
+parameter block with information returned by the fileserver.""",
+    on_entry={"x": "attribute byte (stored first at offset &0D)"})
 comment(0x882F, "Start at offset &0D (top of range)", inline=True)
 comment(0x8831, "First store uses X (attrib byte)", inline=True)
 comment(0x8832, "Write to parameter block", inline=True)
@@ -4089,7 +4130,9 @@ immediately (definitely not at EOF — no network call needed).
 If the hint bit is set, sends FS command &11 (FCEOF) to query
 the fileserver for definitive EOF status. Returns X=&FF if at
 EOF, X=&00 if not. This two-level check avoids an expensive
-network round-trip when the file is known to not be at EOF.""")
+network round-trip when the file is known to not be at EOF.""",
+    on_entry={"x": "file handle to check"},
+    on_exit={"x": "&FF if at EOF, &00 if not"})
 comment(0x889B, "Save A (function code)", inline=True)
 comment(0x889C, "X = file handle to check", inline=True)
 comment(0x889D, "Convert handle to bitmask in A", inline=True)
@@ -4123,7 +4166,9 @@ Each handler builds the appropriate FS command, sends it to
 the fileserver, and copies the reply into the parameter block.
 The control block layout uses dual-purpose fields: the 'data
 start' field doubles as 'length' and 'data end' doubles as
-'protection' depending on whether reading or writing attrs.""")
+'protection' depending on whether reading or writing attrs.""",
+    on_entry={"a": "function code (1-6)"},
+    on_exit={"a": "object type (A=5 read info) or restored"})
 comment(0x88BF, "Store function code in FS cmd buffer", inline=True)
 comment(0x88C2, "A=6? (delete)", inline=True)
 comment(0x88C4, "Yes: jump to delete handler", inline=True)
@@ -4201,7 +4246,9 @@ subroutine(0x89C2, "return_a_zero", hook=None,
 Loads A=0 and branches (always taken) to the common register
 restore exit at restore_args_return. Used as a shared exit
 point by ARGSV, FINDV, and GBPBV when an operation is
-unsupported or should return zero.""")
+unsupported or should return zero.""",
+    on_exit={"a": "0", "x": "restored from fs_options (&BB)",
+             "y": "restored from fs_block_offset (&BC)"})
 
 subroutine(0x89A1, "restore_args_return", hook=None,
     title="Restore arguments and return",
@@ -4209,7 +4256,10 @@ subroutine(0x89A1, "restore_args_return", hook=None,
 Common exit point for FS vector handlers. Reloads A from
 fs_last_byte_flag (&BD), X from fs_options (&BB), and Y from
 fs_block_offset (&BC) — the values saved at entry by
-save_fscv_args — and returns to the caller.""")
+save_fscv_args — and returns to the caller.""",
+    on_exit={"a": "restored from fs_last_byte_flag (&BD)",
+             "x": "restored from fs_options (&BB)",
+             "y": "restored from fs_block_offset (&BC)"})
 comment(0x89A1, "A = saved function code / command", inline=True)
 comment(0x89A3, "X = saved control block ptr low", inline=True)
 comment(0x89A5, "Y = saved control block ptr high", inline=True)
@@ -4234,7 +4284,8 @@ subroutine(0x8A1C, "fscv_0_opt", hook=None,
 Handles *OPT X,Y to set filing system options:
   *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)
   *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)
-Other combinations generate error &CB (OPTER: "bad option").""")
+Other combinations generate error &CB (OPTER: "bad option").""",
+    on_entry={"x": "option number (1 or 4)", "y": "option value"})
 comment(0x8A1C, "Is it *OPT 4,Y?", inline=True)
 comment(0x8A1E, "No: check for *OPT 1", inline=True)
 comment(0x8A20, "Y must be 0-3 for boot option", inline=True)
@@ -4262,7 +4313,10 @@ Adjusts a 4-byte value in the parameter block at (fs_options)+Y:
   If fs_load_addr_2 (&B2) is positive: adds fs_lib_handle+X values
   If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X
 Starting offset X=&FC means it reads from &0E06-&0E09 area.
-Used to convert between absolute and relative file positions.""")
+Used to convert between absolute and relative file positions.""",
+    on_entry={"y": "starting offset into (fs_options) parameter block"},
+    on_exit={"a": "corrupted (last adjusted byte)", "x": "0",
+             "y": "entry Y + 4"})
 comment(0x8A48, "X=&FC: index into &0E06 area (wraps to 0)", inline=True)
 comment(0x8A4A, "Load byte from param block", inline=True)
 comment(0x8A4C, "Test sign of adjustment direction", inline=True)
@@ -4402,7 +4456,8 @@ subroutine(0x89FE, "close_handle", hook=None,
        a closed spool file.
   Y>0: close single handle — sends FS close command and clears
        the handle's bit in both the EOF hint byte and the sequence
-       number tracking byte.""")
+       number tracking byte.""",
+    on_entry={"y": "file handle (0=close all, >0=close single)"})
 comment(0x89FE, "A = handle (Y preserved in A)", inline=True)
 comment(0x89FF, "Y>0: close single file", inline=True)
 comment(0x8A01, "Close SPOOL/EXEC before FS close-all", inline=True)
@@ -4984,7 +5039,8 @@ subroutine(0x8E30, "fsreply_5_set_lib", hook=None,
     title="Set library handle",
     description="""\
 Stores Y into &0E04 (library directory handle in FS workspace).
-Falls through to JMP restore_args_return if Y is non-zero.""")
+Falls through to JMP restore_args_return if Y is non-zero.""",
+    on_entry={"y": "library handle from FS reply"})
 comment(0x8E30, "Save library handle from FS reply", inline=True)
 comment(0x8E33, "SDISC path: skip CSD, jump to return", inline=True)
 
@@ -4992,7 +5048,8 @@ subroutine(0x8E35, "fsreply_3_set_csd", hook=None,
     title="Set CSD handle",
     description="""\
 Stores Y into &0E03 (current selected directory handle).
-Falls through to JMP restore_args_return.""")
+Falls through to JMP restore_args_return.""",
+    on_entry={"y": "CSD handle from FS reply"})
 comment(0x8E35, "Store CSD handle from FS reply", inline=True)
 comment(0x8E38, "Restore A/X/Y and return to caller", inline=True)
 
@@ -5034,7 +5091,9 @@ subroutine(0x8D70, "copy_filename", hook=None,
     description="""\
 Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.
 Used to place a filename into the FS command buffer before
-sending to the fileserver. Falls through to copy_string_to_cmd.""")
+sending to the fileserver. Falls through to copy_string_to_cmd.""",
+    on_exit={"x": "next free position in cmd buffer", "y": "string length (incl CR)",
+             "a": "0 (from EOR &0D with final CR)"})
 comment(0x8D70, "Start writing at &0F05 (after cmd header)", inline=True)
 
 subroutine(0x8D72, "copy_string_to_cmd", hook=None,
@@ -5043,7 +5102,10 @@ subroutine(0x8D72, "copy_string_to_cmd", hook=None,
 Entry with X and Y specified: copies bytes from (fs_crc_lo),Y
 to &0F05+X, stopping when a CR (&0D) is encountered. The CR
 itself is also copied. Returns with X pointing past the last
-byte written.""")
+byte written.""",
+    on_entry={"x": "destination offset in fs_cmd_data (&0F05+X)"},
+    on_exit={"x": "next free position past CR", "y": "string length (incl CR)",
+             "a": "0 (from EOR &0D with final CR)"})
 comment(0x8D76, "Store to FS command buffer (&0F05+X)", inline=True)
 comment(0x8D7A, "Advance source pointer", inline=True)
 comment(0x8D7B, "XOR with CR: result=0 if byte was CR", inline=True)
@@ -5163,7 +5225,9 @@ subroutine(0x8E56, "load_handle_calc_offset", hook=None,
     description="""\
 Loads the file handle byte from &F0, then falls through to
 calc_handle_offset which converts handle * 12 to a workspace
-byte offset. Validates offset < &48.""")
+byte offset. Validates offset < &48.""",
+    on_exit={"a": "handle*12 or 0 if invalid", "y": "workspace offset or 0 if invalid",
+             "c": "clear if valid, set if invalid"})
 
 subroutine(0x8E4B, "boot_cmd_execute", hook=None,
     title="Execute boot command via OSCLI",
@@ -5197,7 +5261,10 @@ into the NFS handle workspace. The calculation is A*12:
   ADC stack (A*8 + A*4 = A*12).
 Validates that the offset is < &48 (max 6 handles × 12 bytes
 per handle entry = 72 bytes). If invalid (>= &48), returns
-with C set and Y=0, A=0 as an error indicator.""")
+with C set and Y=0, A=0 as an error indicator.""",
+    on_entry={"a": "file handle number"},
+    on_exit={"a": "handle*12 or 0 if invalid", "y": "workspace offset or 0 if invalid",
+             "c": "clear if valid, set if invalid"})
 comment(0x8E58, "A = handle * 2", inline=True)
 comment(0x8E59, "A = handle * 4", inline=True)
 comment(0x8E5A, "Push handle*4 onto stack", inline=True)
@@ -5217,7 +5284,8 @@ subroutine(0x8E70, "net_2_read_handle_entry", hook=None,
 Looks up the handle in &F0 via calc_handle_offset. If the
 workspace slot contains &3F ('?', meaning unused/closed),
 returns 0. Otherwise returns the stored handle value.
-Clears rom_svc_num on exit.""")
+Clears rom_svc_num on exit.""",
+    on_exit={"a": "handle value (0 if closed/invalid)"})
 comment(0x8E70, "Look up handle &F0 in workspace", inline=True)
 comment(0x8E73, "Invalid handle: return 0", inline=True)
 comment(0x8E75, "Load stored handle value", inline=True)
@@ -5235,7 +5303,8 @@ Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
 workspace. Returns via RTS (earlier versions preserved the
 carry flag across the write using ROL/ROR on rx_flags, but
-3.60 simplified this).""")
+3.60 simplified this).""",
+    on_exit={"a": "&3F (close marker) or 0 if invalid"})
 comment(0x8E80, "Look up handle &F0 in workspace", inline=True)
 comment(0x8E83, "Invalid handle: return 0", inline=True)
 comment(0x8E85, "&3F = '?' marks slot as unused", inline=True)
@@ -5303,7 +5372,8 @@ A=0: Initialise TX control block from ROM template at &8383
      (init_tx_ctrl_block+Y, zero entries substituted from NMI
      workspace &0DE6), transmit it, set up RX control block,
      and receive reply.
-A>=1: Handle transmit result (branch to cleanup at &903E).""")
+A>=1: Handle transmit result (branch to cleanup at &903E).""",
+    on_entry={"a": "0=set up and transmit, >=1=handle TX result"})
 
 comment(0x8FF3, "A=0: set up and transmit; A>=1: handle result", inline=True)
 comment(0x8FF5, "A >= 1: handle TX result", inline=True)
@@ -5433,7 +5503,8 @@ subroutine(0x90B9, "net_write_char_handler", hook=None,
 Zeros the carry flag in the stacked processor status to
 signal success, stores the character from Y into workspace
 offset &DA, loads A=0 as the command type, and falls through
-to setup_tx_and_send.""")
+to setup_tx_and_send.""",
+    on_entry={"y": "character to write"})
 
 # FS response data relay (&9043)
 # ============================================================
@@ -5499,7 +5570,8 @@ temporarily redirects it to (nfs_workspace)+&0C so tx_poll_ff
 transmits from the workspace TX control block. After transmission
 completes, writes &3F (TX deleted) at (net_tx_ptr)+&00 to mark
 the control block as free, then restores net_tx_ptr to its
-original value.""")
+original value.""",
+    on_entry={"a": "command type byte"})
 
 comment(0x90C7, "Y=&D9: command type offset", inline=True)
 comment(0x90C9, "Store command type at ws+&D9", inline=True)
@@ -5644,7 +5716,10 @@ subroutine(0x8F1F, "copy_param_workspace", hook=None,
 If C=1, copies from OSWORD param block (&F0),Y to workspace
 (&AB),Y. In either case, loads from workspace and stores to
 param block. Loops for X+1 bytes. Used by OSWORD &0F, &10,
-&11, and &12 handlers.""")
+&11, and &12 handlers.""",
+    on_entry={"c": "1=copy param to workspace first, 0=workspace to param only",
+              "x": "byte count minus 1", "y": "starting offset"},
+    on_exit={"a": "last byte copied", "x": "&FF", "y": "start + count + 1"})
 
 # ============================================================
 # Bidirectional block copy (&8F14)
@@ -5653,7 +5728,10 @@ subroutine(0x8F27, "copy_param_block", hook=None,
     title="Bidirectional block copy between OSWORD param block and workspace.",
     description="""\
 C=1: copy X+1 bytes from (&F0),Y to (&AB),Y (param to workspace)
-C=0: copy X+1 bytes from (&AB),Y to (&F0),Y (workspace to param)""")
+C=0: copy X+1 bytes from (&AB),Y to (&F0),Y (workspace to param)""",
+    on_entry={"c": "1=param to workspace, 0=workspace to param",
+              "x": "byte count minus 1", "y": "starting offset"},
+    on_exit={"a": "last byte copied", "x": "&FF", "y": "start + count + 1"})
 comment(0x8F1F, "C=0: skip param-to-workspace copy", inline=True)
 comment(0x8F27, "Store to param block (no-op if C=1)", inline=True)
 comment(0x8F29, "Advance to next byte", inline=True)
@@ -5955,7 +6033,8 @@ subroutine(0x8FD8, "setup_rx_buffer_ptrs", hook=None,
     description="""\
 Calculates the start address of the RX data area (&F0+1) and stores
 it at workspace offset &1C. Also reads the data length from (&F0)+1
-and adds it to &F0 to compute the end address at offset &20.""")
+and adds it to &F0 to compute the end address at offset &20.""",
+    on_entry={"c": "clear for ADC"})
 comment(0x8FD8, "Y=&1C: workspace offset for RX data start", inline=True)
 comment(0x8FDA, "A = base address low byte", inline=True)
 comment(0x8FDC, "A = base + 1 (skip length byte)", inline=True)
@@ -6120,7 +6199,8 @@ Called when the printer selection changes. Compares X against
 the network printer buffer number (&F0). If it matches,
 initialises the printer buffer pointer (&0D61 = &1F) and
 sets the initial flag byte (&0D60 = &41). Otherwise falls
-through to return.""")
+through to return.""",
+    on_entry={"x": "1-based buffer number"})
 comment(0x91DE, "X-1: convert 1-based buffer to 0-based", inline=True)
 comment(0x91DF, "Is this the network printer buffer?", inline=True)
 comment(0x91E1, "No: skip printer init", inline=True)
@@ -6148,7 +6228,9 @@ N.B. The printer and REMOTE facility share the same dynamically
 allocated static workspace page via WORKP1 (&9E,&9F) — care must
 be taken to never leave the pointer corrupted, as corruption would
 cause one subsystem to overwrite the other's data.
-Only handles buffer 4 (network printer); others are ignored.""")
+Only handles buffer 4 (network printer); others are ignored.""",
+    on_entry={"x": "reason code (1=chars, 2=Ctrl-B, 3=Ctrl-C)",
+              "y": "buffer number (must be 4 for network printer)"})
 
 comment(0x91ED, "Only handle buffer 4 (network printer)", inline=True)
 comment(0x91EF, "Not buffer 4: ignore", inline=True)
@@ -6178,7 +6260,9 @@ subroutine(0x9212, "store_output_byte", hook=None,
     description="""\
 Stores byte A at the current output offset in the RX buffer
 pointed to by (net_rx_ptr). Advances the offset counter and
-triggers a flush if the buffer is full.""")
+triggers a flush if the buffer is full.""",
+    on_entry={"a": "byte to store"},
+    on_exit={"y": "buffer offset before store"})
 comment(0x9212, "Load current buffer offset", inline=True)
 comment(0x9215, "Store byte at current position", inline=True)
 comment(0x9217, "Advance buffer pointer", inline=True)
@@ -6648,7 +6732,9 @@ transmit via tx_poll_ff. Sets end addresses (offsets 8/9) to
 &90 (FS) based on the original A value. Polls the TX result in
 a loop via BRIANX (c8530), retrying while the result bit
 differs from the expected sequence. On success, toggles the
-sequence tracking bit in fs_sequence_nos.""")
+sequence tracking bit in fs_sequence_nos.""",
+    on_entry={"a": "handle bitmask (0=printer, non-zero=file)",
+              "x": "TX control block address low", "y": "TX control block address high"})
 
 comment(0x9269, "Set TX control block ptr low byte", inline=True)
 comment(0x926B, "Set TX control block ptr high byte", inline=True)
@@ -7021,7 +7107,8 @@ transfers, storing results to port_buf_len..open_port_buf_hi
 (&A2-&A5). The fallback path (no Tube or buffer addr = &FFFF)
 does a 2-byte subtraction using open_port_buf/open_port_buf_hi
 (&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side
-effect of the result area overlapping open_port_buf.""")
+effect of the result area overlapping open_port_buf.""",
+    on_exit={"c": "1 if transfer set up, 0 if not", "x": "preserved"})
 comment(0x9EFD, "Load RXCB[6] (buffer addr byte 2)", inline=True)
 comment(0x9F02, "AND with TX block[7] (byte 3)", inline=True)
 comment(0x9F04, "Both &FF = no buffer?", inline=True)
@@ -7136,7 +7223,8 @@ comment(0x9FD2, "&FF padding (unused ROM space)", inline=True)
 subroutine(0x9F70, "adlc_full_reset", hook=None,
     title="ADLC full reset",
     description="""\
-Aborts all activity and returns to idle RX listen mode.""")
+Aborts all activity and returns to idle RX listen mode.""",
+    on_exit={"a": "0"})
 
 comment(0x9F70, "CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)", inline=True)
 comment(0x9F75, "CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding", inline=True)
@@ -7148,7 +7236,8 @@ comment(0x9F7A, "CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR", inline=
 subroutine(0x9F7F, "adlc_rx_listen", hook=None,
     title="Enter RX listen mode",
     description="""\
-TX held in reset, RX active with interrupts. Clears all status.""")
+TX held in reset, RX active with interrupts. Clears all status.""",
+    on_exit={"a": "&67"})
 
 comment(0x9F7F, "CR1=&82: TX_RESET | RIE (TX in reset, RX interrupts enabled)", inline=True)
 comment(0x9F81, "Write to ADLC CR1", inline=True)
@@ -8182,7 +8271,9 @@ subroutine(0x83A7, "prepare_cmd_with_flag", hook=None,
 Alternate entry to prepare_fs_cmd that pushes A, loads &2A
 into fs_error_ptr, and enters with carry set (SEC). The carry
 flag is later tested by build_send_fs_cmd to select the
-byte-stream (BSXMIT) transmission path.""")
+byte-stream (BSXMIT) transmission path.""",
+    on_entry={"a": "flag byte to include in FS command",
+              "y": "function code for FS header"})
 comment(0x83AE, "A=&77: OSBYTE close spool/exec", inline=True)
 comment(0x8401, "CLC for address addition", inline=True)
 comment(0x848A, "Transfer A to Y for indexing", inline=True)
