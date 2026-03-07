@@ -982,7 +982,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .tube_event_handler
     pha                                                               ; 9635: 48          H   :06e8[4]   ; EVNTV: forward event A, Y, X to co-processor
     lda #0                                                            ; 9636: a9 00       ..  :06e9[4]   ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; 9638: 20 f7 06     .. :06eb[4]   ; Send event number via R1
+    jsr tube_send_r1                                                  ; 9638: 20 f7 06     .. :06eb[4]   ; Send zero prefix via R1
     tya                                                               ; 963b: 98          .   :06ee[4]   ; Y value for event
     jsr tube_send_r1                                                  ; 963c: 20 f7 06     .. :06ef[4]   ; Send Y via R1
     txa                                                               ; 963f: 8a          .   :06f2[4]   ; X value for event
@@ -2702,7 +2702,7 @@ svc_entry_lo = service_entry+1
 ; &85a2 referenced 2 times by &8591, &859f
 .handle_mask_exit
     pla                                                               ; 85a2: 68          h              ; Restore X
-    tax                                                               ; 85a3: aa          .              ; Transfer mask to X for return
+    tax                                                               ; 85a3: aa          .              ; Restore X from stack
     pla                                                               ; 85a4: 68          h              ; Restore A
     rts                                                               ; 85a5: 60          `              ; Return with mask in X
 
@@ -6245,7 +6245,7 @@ post_reply_check = scan_or_read_rxcb+1
     cmp #&ff                                                          ; 9705: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 9707: d0 1a       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 9709: a9 40       .@             ; Flag &40 = broadcast frame
-    sta tx_flags                                                      ; 970b: 8d 4a 0d    .J.            ; Clear TX flags for new reception
+    sta tx_flags                                                      ; 970b: 8d 4a 0d    .J.            ; Store broadcast flag in TX flags
 ; &970e referenced 1 time by &9703
 .accept_frame
     lda #&15                                                          ; 970e: a9 15       ..             ; Install next NMI handler at &9715 (RX scout second byte)

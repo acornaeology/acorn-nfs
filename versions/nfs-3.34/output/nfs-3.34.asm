@@ -641,9 +641,9 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bit tube_status_register_2                                        ; 946e: 2c e2 fe    ,.. :0522[3]   ; Poll R2 for co-processor reply
     bvs wrch_echo_reply                                               ; 9471: 70 0e       p.  :0525[3]   ; R2 ready: go process reply
 .tube_poll_r1_wrch
-    bit tube_status_1_and_tube_control                                ; 9473: 2c e0 fe    ,.. :0527[3]   ; Check R4 for pending WRCH request
-    bpl poll_r2_reply                                                 ; 9476: 10 f6       ..  :052a[3]   ; No R4 data: back to polling R2
-    lda tube_data_register_1                                          ; 9478: ad e1 fe    ... :052c[3]   ; Read WRCH character from R4
+    bit tube_status_1_and_tube_control                                ; 9473: 2c e0 fe    ,.. :0527[3]   ; Check R1 for pending WRCH request
+    bpl poll_r2_reply                                                 ; 9476: 10 f6       ..  :052a[3]   ; No R1 data: back to polling R2
+    lda tube_data_register_1                                          ; 9478: ad e1 fe    ... :052c[3]   ; Read WRCH character from R1
     jsr nvwrch                                                        ; 947b: 20 cb ff     .. :052f[3]   ; Write character
 .tube_resume_poll
     jmp poll_r2_reply                                                 ; 947e: 4c 22 05    L". :0532[3]   ; Resume R2 polling after servicing
@@ -981,7 +981,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .tube_event_handler
     pha                                                               ; 9634: 48          H   :06e8[4]   ; EVNTV: forward event A, Y, X to co-processor
     lda #0                                                            ; 9635: a9 00       ..  :06e9[4]   ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; 9637: 20 f7 06     .. :06eb[4]   ; Send event number via R1
+    jsr tube_send_r1                                                  ; 9637: 20 f7 06     .. :06eb[4]   ; Send zero prefix via R1
     tya                                                               ; 963a: 98          .   :06ee[4]   ; Y value for event
     jsr tube_send_r1                                                  ; 963b: 20 f7 06     .. :06ef[4]   ; Send Y via R1
     txa                                                               ; 963e: 8a          .   :06f2[4]   ; X value for event
@@ -2701,7 +2701,7 @@ svc_entry_lo = service_entry+1
 ; &85a1 referenced 2 times by &8590, &859e
 .handle_mask_exit
     pla                                                               ; 85a1: 68          h              ; Restore X
-    tax                                                               ; 85a2: aa          .              ; Transfer mask to X for return
+    tax                                                               ; 85a2: aa          .              ; Restore X from stack
     pla                                                               ; 85a3: 68          h              ; Restore A
     rts                                                               ; 85a4: 60          `              ; Return with mask in X
 
@@ -6243,7 +6243,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     cmp #&ff                                                          ; 9705: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 9707: d0 1a       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 9709: a9 40       .@             ; Flag &40 = broadcast frame
-    sta tx_flags                                                      ; 970b: 8d 4a 0d    .J.            ; Clear TX flags for new reception
+    sta tx_flags                                                      ; 970b: 8d 4a 0d    .J.            ; Store broadcast flag in TX flags
 ; &970e referenced 1 time by &9703
 .accept_frame
     lda #&15                                                          ; 970e: a9 15       ..             ; Install next NMI handler at &9715 (RX scout second byte)

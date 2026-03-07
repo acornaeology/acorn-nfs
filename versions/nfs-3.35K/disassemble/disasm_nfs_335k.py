@@ -6876,7 +6876,7 @@ comment(0x9FF9, "Return from interrupt", inline=True)
 # ============================================================
 label(0x0020, "tube_send_zero_r2")    # Sends zero prefix via R2 to Tube
 label(0x045C, "flush_r3_nmi_check")   # BIT R3 twice to flush, check NMI
-comment(0x045C, "Poll R4 status: wait for transfer ready", inline=True)
+comment(0x045C, "Flush R3 data (first byte)", inline=True)
 comment(0x8273, "Y=&82: ROM page high byte", inline=True)
 comment(0x8275, "Execute command string at (X, Y)", inline=True)
 label(0x84FD, "fs_reply_poll")        # Poll for FS reply with timeout/escape
@@ -7023,7 +7023,7 @@ comment(0x9ADE, "Buffer length hi = 1", inline=True)
 comment(0x9AE0, "Set buffer length hi", inline=True)
 comment(0x9AE2, "Buffer length lo = &FC", inline=True)
 comment(0x9AE4, "Set buffer length lo", inline=True)
-comment(0x9AE6, "Buffer start lo = &25", inline=True)
+comment(0x9AE6, "Buffer start lo = &21", inline=True)
 comment(0x9AE8, "Set port buffer lo", inline=True)
 comment(0x9AEA, "Buffer hi = &7F (below screen)", inline=True)
 comment(0x9AEC, "Set port buffer hi", inline=True)
@@ -7569,9 +7569,9 @@ comment(0x051D, "A=0: send null prefix via R2", inline=True)
 comment(0x051F, "Send prefix byte to co-processor", inline=True)
 comment(0x0522, "Poll R2 for co-processor reply", inline=True)
 comment(0x0525, "R2 ready: go process reply", inline=True)
-comment(0x0527, "Check R4 for pending WRCH request", inline=True)
-comment(0x052A, "No R4 data: back to polling R2", inline=True)
-comment(0x052C, "Read WRCH character from R4", inline=True)
+comment(0x0527, "Check R1 for pending WRCH request", inline=True)
+comment(0x052A, "No R1 data: back to polling R2", inline=True)
+comment(0x052C, "Read WRCH character from R1", inline=True)
 comment(0x0532, "Resume R2 polling after servicing", inline=True)
 # c0535: R2 reply received
 comment(0x0535, "Recover original character", inline=True)
@@ -7689,7 +7689,7 @@ comment(0x06DC, "Not ready: keep polling", inline=True)
 comment(0x06DE, "Write A to Tube R4 data register", inline=True)
 comment(0x06E1, "Return to caller", inline=True)
 comment(0x06E5, "ROR: shift escape bit 7 to carry", inline=True)
-comment(0x06EB, "Send event number via R1", inline=True)
+comment(0x06EB, "Send zero prefix via R1", inline=True)
 comment(0x06EE, "Y value for event", inline=True)
 comment(0x06EF, "Send Y via R1", inline=True)
 comment(0x06F2, "X value for event", inline=True)
@@ -7834,8 +7834,8 @@ comment(0x80AF, "Not CR: continue reading input", inline=True)
 comment(0x80F8, "X=6 extra pages for char definitions", inline=True)
 comment(0x80FA, "OSBYTE &14: explode character RAM", inline=True)
 label(0x811B, "init_tube_and_workspace")
-comment(0x811B, "EVNTV low = &AD (event handler address)", inline=True)
-comment(0x811D, "Set EVNTV low byte at &0220", inline=True)
+comment(0x811B, "A=&8E: Tube control register init value", inline=True)
+comment(0x811D, "Write to Tube control register", inline=True)
 label(0x8144, "tube_chars_done")       # BEQ: zero byte received, transfer complete
 comment(0x8144, "A=0: fall through to service &12 check", inline=True)
 label(0x8146, "check_svc_12")          # Convergence before CMP #&12 test
@@ -7872,10 +7872,10 @@ into the (os_text_ptr) string. Initialises GSINIT, reads chars
 via GSREAD into &0E30, CR-terminates the result, and sets up
 fs_crc_lo/hi to point at the buffer.""")
 comment(0x87A4, "Build header and send FS save command", inline=True)
-comment(0x87A7, "Send file data blocks to server", inline=True)
+comment(0x87A7, "Display filename being saved", inline=True)
 label(0x87AA, "save_csd_display")       # Save CSD from reply and display file info
-comment(0x87AA, "Save CSD from reply for catalogue display", inline=True)
-comment(0x87AD, "Print file length in hex", inline=True)
+comment(0x87AA, "Load CSD from FS reply", inline=True)
+comment(0x87AD, "Transfer file data blocks to server", inline=True)
 comment(0x87C7, "Store decoded access in param block", inline=True)
 comment(0x87C9, "Next attribute byte", inline=True)
 comment(0x8805, "CLC for ADC in loop", inline=True)
@@ -7893,7 +7893,7 @@ point by ARGSV, FINDV, and GBPBV when an operation is
 unsupported or should return zero.""")
 comment(0x8C02, "X=3: column count for multi-column layout", inline=True)
 comment(0x8C04, "CRFLAG=3: first entry will trigger newline", inline=True)
-comment(0x8C06, "Y=&FF: mark as escapable", inline=True)
+comment(0x8C06, "Y=0: initialise column counter", inline=True)
 comment(0x8C0A, "A=&0B: examine argument count", inline=True)
 label(0x8C0C, "init_cat_params")       # Store examine arg count, init catalogue display
 comment(0x8C0C, "Store examine argument count", inline=True)
@@ -8328,9 +8328,9 @@ comment(0x85F6, "Clear accumulator workspace", inline=True)
 comment(0x861A, "Return with result in A", inline=True)
 
 # --- handle_to_mask (&861D) ---
-comment(0x8635, "Transfer mask to X for return", inline=True)
+comment(0x8635, "Restore X from stack", inline=True)
 comment(0x8637, "Return with mask in X", inline=True)
-comment(0x863F, "Return (identity: no conversion)", inline=True)
+comment(0x863F, "Return with handle in A", inline=True)
 
 # --- compare_addresses (&8640) ---
 comment(0x8648, "Next byte", inline=True)
@@ -8381,7 +8381,7 @@ comment(0x8EB7, "Return after copy", inline=True)
 
 # --- osword_0f_handler (&8EB8) ---
 comment(0x8EB8, "ASL: set C if TX in progress", inline=True)
-comment(0x8EBB, "Y = sub-function number", inline=True)
+comment(0x8EBB, "Save param block high byte to A", inline=True)
 comment(0x8EBC, "C=0: read path", inline=True)
 
 # --- setup_rx_buffer_ptrs (&8FCA) ---
@@ -8414,7 +8414,7 @@ comment(0x96F7, "Write CR1: RIE | TX_RESET", inline=True)
 comment(0x96FC, "Write CR2: listen mode config", inline=True)
 
 # --- nmi_rx_scout (&9700) ---
-comment(0x9715, "Clear TX flags for new reception", inline=True)
+comment(0x9715, "Store broadcast flag in TX flags", inline=True)
 comment(0x971A, "High byte of scout net handler", inline=True)
 comment(0x971C, "Install next handler and RTI", inline=True)
 

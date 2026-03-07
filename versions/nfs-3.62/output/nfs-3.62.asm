@@ -1082,7 +1082,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_event_handler
     pha                                                               ; 960f: 48          H   :06ad[4]   ; EVNTV: forward event A, Y, X to co-processor
     lda #0                                                            ; 9610: a9 00       ..  :06ae[4]   ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; 9612: 20 bc 06     .. :06b0[4]   ; Send event number via R1
+    jsr tube_send_r1                                                  ; 9612: 20 bc 06     .. :06b0[4]   ; Send zero prefix via R1
     tya                                                               ; 9615: 98          .   :06b3[4]   ; Y value for event
     jsr tube_send_r1                                                  ; 9616: 20 bc 06     .. :06b4[4]   ; Send Y via R1
     txa                                                               ; 9619: 8a          .   :06b7[4]   ; X value for event
@@ -3109,7 +3109,7 @@ error_msg_table = error_table_base+6
 ; &86b3 referenced 2 times by &86a2, &86b0
 .handle_mask_exit
     pla                                                               ; 86b3: 68          h              ; Restore X
-    tax                                                               ; 86b4: aa          .              ; Transfer mask to X for return
+    tax                                                               ; 86b4: aa          .              ; Restore X from stack
     pla                                                               ; 86b5: 68          h              ; Restore A
     rts                                                               ; 86b6: 60          `              ; Return with mask in X
 
@@ -3139,7 +3139,7 @@ error_msg_table = error_table_base+6
     lsr a                                                             ; 86ba: 4a          J              ; Shift mask right; C=0 when done
     bne fs2al1                                                        ; 86bb: d0 fc       ..             ; Loop until all bits shifted out
     txa                                                               ; 86bd: 8a          .              ; A = X = &1F + bit position = handle
-    rts                                                               ; 86be: 60          `              ; Return (identity: no conversion)
+    rts                                                               ; 86be: 60          `              ; Return with handle in A
 
 ; ***************************************************************************************
 ; Compare two 4-byte addresses
@@ -6393,7 +6393,7 @@ cmd_match_data = fs_cmd_match_table+1
     cmp #&ff                                                          ; 96ce: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 96d0: d0 18       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 96d2: a9 40       .@             ; Flag &40 = broadcast frame
-    sta tx_flags                                                      ; 96d4: 8d 4a 0d    .J.            ; Clear TX flags for new reception
+    sta tx_flags                                                      ; 96d4: 8d 4a 0d    .J.            ; Store broadcast flag in TX flags
 ; &96d7 referenced 1 time by &96cc
 .accept_frame
     lda #&dc                                                          ; 96d7: a9 dc       ..             ; Install next NMI handler at &96DC (RX scout net byte)

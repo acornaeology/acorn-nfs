@@ -1147,7 +1147,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_event_handler
     pha                                                               ; be3d: 48          H   :06ad[4]   ; EVNTV: forward event A, Y, X to co-processor
     lda #0                                                            ; be3e: a9 00       ..  :06ae[4]   ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; be40: 20 bc 06     .. :06b0[4]   ; Send event number via R1
+    jsr tube_send_r1                                                  ; be40: 20 bc 06     .. :06b0[4]   ; Send zero prefix via R1
     tya                                                               ; be43: 98          .   :06b3[4]   ; Y value for event
     jsr tube_send_r1                                                  ; be44: 20 bc 06     .. :06b4[4]   ; Send Y via R1
     txa                                                               ; be47: 8a          .   :06b7[4]   ; X value for event
@@ -1423,7 +1423,7 @@ service_handler_lo = service_entry+1
     cmp #&ff                                                          ; 80c2: c9 ff       ..             ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 80c4: d0 18       ..             ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 80c6: a9 40       .@             ; Flag &40 = broadcast frame
-    sta rx_src_net                                                    ; 80c8: 8d 3e 0d    .>.            ; Clear TX flags for new reception
+    sta rx_src_net                                                    ; 80c8: 8d 3e 0d    .>.            ; Store broadcast flag in TX flags
 ; &80cb referenced 1 time by &80c0
 .accept_frame
     lda #&d0                                                          ; 80cb: a9 d0       ..             ; Install nmi_rx_scout_net NMI handler
