@@ -2298,6 +2298,7 @@ subroutine(0x8402, "discard_reset_listen",
     "free it before returning. Used as the clean-up\n"
     "path after RXCB completion and after ADLC reset\n"
     "to ensure no stale Tube claims persist.")
+label(0x8407, "imm_op_jump_table")
 subroutine(0x8410, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
     description="Copies scout data bytes (offsets 4-11) from the\n"
@@ -2687,6 +2688,7 @@ subroutine(0x89B5, "rom_set_nmi_vector",
     "one normally used at runtime; this ROM copy is used during early\n"
     "initialisation before the RAM workspace has been set up, and as\n"
     "the source for the initial copy to RAM.")
+label(0x8A6F, "start_rom_scan")
 subroutine(0x8AEA, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
     description="Uses OSBYTE &7A with Y=&7F to check whether\n"
@@ -2791,6 +2793,7 @@ subroutine(0x8E09, "clear_if_station_match",
     "by cmd_iam when processing a file server address\n"
     "in the logon command.",
     on_exit={"a": "0 if matched, non-zero if different"})
+label(0x8E15, "check_urd_prefix")
 subroutine(0x8E43, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
     description="Validates X < 5 and sets Y=&0E as the directory\n"
@@ -2817,6 +2820,7 @@ subroutine(0x8EAC, "store_ws_page_count",
     "svc_2_private_workspace after issuing the absolute\n"
     "workspace claim service call.",
     on_entry={"y": "workspace page count from service 1"})
+label(0x8F3D, "done_alloc_handles")
 subroutine(0x8F5D, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
     description="Reads the ROM pointer table via OSBYTE &A8,\n"
@@ -3131,6 +3135,7 @@ subroutine(0x9611, "cond_save_error_code",
     "is active. Called internally by the error\n"
     "classification chain and by error_inline_log.",
     on_entry={"a": "error code to store"})
+label(0x971E, "close_exec_via_y")
 subroutine(0x974D, "append_drv_dot_num",
     title="Append 'net.station' decimal string to error text",
     description="Reads network and station numbers from the TX\n"
@@ -3330,6 +3335,7 @@ subroutine(0x9E17, "adjust_fsopts_4bytes",
     "bytes for correct multi-byte arithmetic.",
     on_entry={"y": "FS options offset for first byte",
               "c": "carry input for first byte"})
+label(0x9ECD, "return_success")
 subroutine(0x9ED2, "lookup_cat_entry_0",
     title="Look up channel from FS options offset 0",
     description="Loads the channel handle from (fs_options) at\n"
@@ -3835,6 +3841,7 @@ subroutine(0xAF06, "copy_arg_validated",
     on_entry={"x": "TX buffer destination offset",
               "y": "command line source offset",
               "c": "set to enable '&' validation"})
+label(0xAF2B, "done_trim_spaces")
 subroutine(0xAF32, "mask_owner_access",
     title="Clear FS selection flags from options word",
     description="ANDs the l1071 flags byte with &1F, clearing\n"
@@ -3926,6 +3933,8 @@ subroutine(0xB019, "copy_ps_data",
     "address is ps_template_base+&F8 = ps_template_data\n"
     "(&8E59). This 6502 trick reaches data 248 bytes\n"
     "past the base label using a single instruction.")
+label(0xB083, "read_ps_station_addr")
+label(0xB0B9, "store_ps_station_addr")
 subroutine(0xB0C5, "print_file_server_is",
     title="Print 'File server ' prefix",
     description="Uses print_inline to output 'File' then falls through\n"
@@ -4139,6 +4148,7 @@ subroutine(0xB8E4, "flush_fcb_with_init",
     "Restores the catalog entry and all registers on return.",
     on_entry={"Y": "channel index (FCB slot)"},
     on_exit={"A": "preserved", "X": "preserved", "Y": "preserved"})
+label(0xB8F3, "store_station_and_flush")
 subroutine(0xB92B, "send_wipe_request",
     title="Send wipe/close request packet",
     description="Sets up the TX control block with function code\n"
@@ -4201,6 +4211,8 @@ subroutine(0xBC44, "open_file_for_read",
     "pointer plus the Y offset, calls OSFIND with A=&40\n"
     "(open for input). Stores the handle in ws_page.\n"
     "Raises 'Not found' if the returned handle is zero.")
+label(0xBC6A, "restore_text_ptr")
+label(0xBC84, "done_skip_filename")
 subroutine(0xBB0E, "parse_dump_range",
     title="Parse hex address for dump range",
     description="Reads up to 4 hex digits from the command line\n"
@@ -4230,6 +4242,7 @@ subroutine(0xBC8C, "inx4",
     description="Four consecutive INX instructions. Used as a\n"
     "building block by advance_x_by_4 and\n"
     "advance_x_by_8 via JSR/fall-through chaining.")
+label(0x049B, "send_next_rom_page")
 
 # ============================================================
 # Inline comments (from NFS 3.65 correspondence)
@@ -6228,11 +6241,11 @@ comment(0x8E15, "Y=0: first character offset", inline=True)
 comment(0x8E20, "Build FS command packet", inline=True)
 comment(0x8E17, "Load first character of command text", inline=True)
 comment(0x8E23, "Transfer result to Y", inline=True)
-comment(0x8E19, "Is it '&' (hex address prefix)?", inline=True)
+comment(0x8E19, "Is it '&' (URD prefix)?", inline=True)
 comment(0x8E24, "Set up command and send to FS", inline=True)
 comment(0x8E1B, "No: send as normal FS command", inline=True)
 comment(0x8E27, "Load reply function code", inline=True)
-comment(0x8E1D, "Yes: divert to *RUN handler", inline=True)
+comment(0x8E1D, "Yes: route via *RUN for URD prefix handling", inline=True)
 comment(0x8E2A, "Zero: no reply, return", inline=True)
 comment(0x8E2C, "Load first reply byte", inline=True)
 comment(0x8E2F, "Y=&17: logon dispatch offset", inline=True)
