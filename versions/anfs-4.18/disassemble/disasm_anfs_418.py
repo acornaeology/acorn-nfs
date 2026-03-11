@@ -7393,8 +7393,7 @@ for i, (name, handler_addr) in enumerate(handler_names):
 
 # Dead data: "PRINT " + &01 &00 at &8E43 (8 bytes, unreferenced)
 label(0x8E59, "print_string")
-# UNMAPPED: byte(0x8E49)
-# UNMAPPED: byte(0x8E4A)
+# Dead data bytes &01 &00 at &8E5F-&8E60 (already classified by py8dis)
 
 # NETV handler address pair at &8E74 (read by write_vector_entry)
 label(0x8E8A, "netv_handler_addr")
