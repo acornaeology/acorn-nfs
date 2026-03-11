@@ -1322,6 +1322,19 @@ service_handler_lo = service_entry+1
     ldy #&fe                                                          ; 804d: a0 fe       ..             ; Y=&FE: Econet receive event
     jmp tx_done_fire_event                                            ; 804f: 4c 4a 85    LJ.            ; Fire event (enable: *FX52,150)
 
+; ***************************************************************************************
+; Set JSR protection and dispatch via table
+; 
+; Validates the TX operation type in Y against the
+; dispatch table range, saves the current JSR protection
+; mask, sets protection bits 2-4, then dispatches through
+; the PHA/RTS trampoline using the table at
+; set_rx_buf_len_hi. If Y >= &86, skips the protection
+; setup and dispatches directly.
+; 
+; On Entry:
+;     Y: TX operation type (dispatch index)
+; ***************************************************************************************
 ; &8052 referenced 1 time by &804b
 .set_jsr_protection
     cpy #&86                                                          ; 8052: c0 86       ..             ; Y >= &86: above dispatch range

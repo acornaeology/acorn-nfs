@@ -1350,6 +1350,19 @@ service_handler_lo = service_entry+1
 .generate_event
     jmp (evntv)                                                       ; 805a: 6c 20 02    l .            ; Dispatch through event vector
 
+; ***************************************************************************************
+; Set JSR protection and dispatch via table
+; 
+; Validates the TX operation type in Y against the
+; dispatch table range, saves the current JSR protection
+; mask, sets protection bits 2-4, then dispatches through
+; the PHA/RTS trampoline using the table at
+; set_rx_buf_len_hi. If Y >= &86, skips the protection
+; setup and dispatches directly.
+; 
+; On Entry:
+;     Y: TX operation type (dispatch index)
+; ***************************************************************************************
 ; &805d referenced 1 time by &8050
 .set_jsr_protection
     cpy #&86                                                          ; 805d: c0 86       ..             ; Y >= &86: above dispatch range

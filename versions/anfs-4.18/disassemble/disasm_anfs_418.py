@@ -2069,6 +2069,17 @@ subroutine(0x06C5, "tube_read_r2",
     "reads, string reads, and OSBYTE parameter reception.",
     on_exit={"a": "byte read from R2"})
 
+subroutine(0x805D, "set_jsr_protection",
+    title="Set JSR protection and dispatch via table",
+    description=
+    "Validates the TX operation type in Y against the\n"
+    "dispatch table range, saves the current JSR protection\n"
+    "mask, sets protection bits 2-4, then dispatches through\n"
+    "the PHA/RTS trampoline using the table at\n"
+    "set_rx_buf_len_hi. If Y >= &86, skips the protection\n"
+    "setup and dispatches directly.",
+    on_entry={"y": "TX operation type (dispatch index)"})
+
 comment(0x8000, """\
 ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
 ===================================================================""")
