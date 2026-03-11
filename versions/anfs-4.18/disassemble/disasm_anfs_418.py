@@ -6171,8 +6171,6 @@ comment(0x8E59, "Unreferenced dead data (8 bytes)\n"
     "unique to ANFS. Likely a development remnant — possibly\n"
     "an OSCLI command template left from testing.")
 comment(0x8E59, "Dead data: ASCII \"PRINT \"", inline=True)
-comment(0x8E5F, "Dead data: &01", inline=True)
-comment(0x8E60, "Dead data: &00", inline=True)
 
 comment(0x8E83, "X=0", inline=True)
 comment(0x8E85, "Y=&FF", inline=True)

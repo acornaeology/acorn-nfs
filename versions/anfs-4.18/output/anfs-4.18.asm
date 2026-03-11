@@ -4740,7 +4740,7 @@ dispatch_rts = l8e57+1
     equb &49                                                          ; 8e5b: 49          I              ; (ROM bank — not read)
     equw &544e                                                        ; 8e5c: 4e 54       NT             ; ARGSV handler (&9BAF)
     equb &20                                                          ; 8e5e: 20                         ; (ROM bank — not read)
-    equw 1                                                            ; 8e5f: 01 00       ..             ; Dead data: &01; BGETV handler (&B7CF); Dead data: &00
+    equw 1                                                            ; 8e5f: 01 00       ..             ; BGETV handler (&B7CF)
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
