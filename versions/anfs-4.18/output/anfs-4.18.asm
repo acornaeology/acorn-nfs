@@ -567,7 +567,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 
 ; &bf90 referenced 1 time by &0487[2]
 .check_break_type
-    ldx last_break_type                                               ; bf90: ae 8d 02    ... :048c[2]   ; X=0 for OSBYTE
+    ldx last_break_type                                               ; bf90: ae 8d 02    ... :048c[2]   ; Read last break type from OS workspace
     beq tube_sendw_complete                                           ; bf93: f0 e0       ..  :048f[2]   ; Soft break (X=0): re-init Tube and restart
 ; &bf95 referenced 2 times by &0485[2], &0496[2]
 .claim_addr_ff
@@ -1648,14 +1648,14 @@ service_handler_lo = service_entry+1
     sta econet_control1_or_status1                                    ; 81ce: 8d a0 fe    ...            ; Write CR1: TX mode for ACK
     lda #&a7                                                          ; 81d1: a9 a7       ..             ; CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE
     sta econet_control23_or_status2                                   ; 81d3: 8d a1 fe    ...            ; Write CR2: enable TX with PSE
-    lda #&dd                                                          ; 81d6: a9 dd       ..             ; Install data_rx_setup at &81D2
+    lda #&dd                                                          ; 81d6: a9 dd       ..             ; Install data_rx_setup at &81DD
     ldy #&81                                                          ; 81d8: a0 81       ..             ; High byte of data_rx_setup handler
     jmp ack_tx_write_dest                                             ; 81da: 4c 08 83    L..            ; Send ACK with data_rx_setup as next NMI
 
 .data_rx_setup
     lda #&82                                                          ; 81dd: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 81df: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
-    lda #&e7                                                          ; 81e2: a9 e7       ..             ; Install nmi_data_rx at &81DC
+    lda #&e7                                                          ; 81e2: a9 e7       ..             ; Install nmi_data_rx at &81E7
     jmp install_nmi_handler                                           ; 81e4: 4c 11 0d    L..            ; Install nmi_data_rx and return from NMI
 
 ; ***************************************************************************************
@@ -1667,8 +1667,8 @@ service_handler_lo = service_entry+1
 ; against our station address, then installs continuation handlers
 ; to read the remaining data payload into the open port buffer.
 ; 
-; Handler chain: &81DC (AP+addr check) -> &81F0 (net=0 check) ->
-; &8206 (skip ctrl+port) -> &8239 (bulk data read) -> &826D (completion)
+; Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->
+; &8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 81e7: a9 01       ..             ; A=1: AP mask for SR2 bit test
@@ -1677,7 +1677,7 @@ service_handler_lo = service_entry+1
     lda econet_data_continue_frame                                    ; 81ee: ad a2 fe    ...            ; Read first byte (dest station)
     cmp station_id_disable_net_nmis                                   ; 81f1: cd 18 fe    ...            ; Compare to our station ID (INTOFF)
     bne nmi_error_dispatch                                            ; 81f4: d0 40       .@             ; Not for us: error path
-    lda #&fb                                                          ; 81f6: a9 fb       ..             ; Install net check handler at &81F0
+    lda #&fb                                                          ; 81f6: a9 fb       ..             ; Install net check handler at &81FB
     jmp install_nmi_handler                                           ; 81f8: 4c 11 0d    L..            ; Set NMI vector via RAM shim
 
 .nmi_data_rx_net
@@ -1685,8 +1685,8 @@ service_handler_lo = service_entry+1
     bpl nmi_error_dispatch                                            ; 81fe: 10 36       .6             ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 8200: ad a2 fe    ...            ; Read dest network byte
     bne nmi_error_dispatch                                            ; 8203: d0 31       .1             ; Network != 0: wrong network -- error
-    lda #&11                                                          ; 8205: a9 11       ..             ; Install skip handler at &8206
-    ldy #&82                                                          ; 8207: a0 82       ..             ; High byte of &8206 handler
+    lda #&11                                                          ; 8205: a9 11       ..             ; Install skip handler at &8211
+    ldy #&82                                                          ; 8207: a0 82       ..             ; High byte of &8211 handler
     bit econet_control1_or_status1                                    ; 8209: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 820c: 30 03       0.             ; Data ready: skip directly, no RTI
     jmp set_nmi_vector                                                ; 820e: 4c 0e 0d    L..            ; Install handler and return via RTI
@@ -1750,7 +1750,7 @@ service_handler_lo = service_entry+1
 ; Reads data payload bytes from the RX FIFO and stores them into
 ; the open port buffer at (open_port_buf),Y. Reads bytes in pairs
 ; (like the scout data loop), checking SR2 between each pair.
-; SR2 non-zero (FV or other) -> frame completion at &826D.
+; SR2 non-zero (FV or other) -> frame completion at &8278.
 ; SR2 = 0 -> RTI, wait for next NMI to continue.
 ; ***************************************************************************************
 ; &8244 referenced 1 time by &822a
@@ -1792,7 +1792,7 @@ service_handler_lo = service_entry+1
 ; Data frame completion
 ; 
 ; Reached when SR2 non-zero during data RX (FV detected).
-; Same pattern as scout completion (&812C): disables PSE (CR2=&84,
+; Same pattern as scout completion (&8137): disables PSE (CR2=&84,
 ; CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
 ; If extra data available and buffer space remains, stores it.
 ; Proceeds to send the final ACK via &82E4.
@@ -1886,7 +1886,7 @@ service_handler_lo = service_entry+1
     sta econet_control1_or_status1                                    ; 82fc: 8d a0 fe    ...            ; Write CR1: switch to TX mode
     lda #&a7                                                          ; 82ff: a9 a7       ..             ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 8301: 8d a1 fe    ...            ; Write CR2: enable TX with status clear
-    lda #&96                                                          ; 8304: a9 96       ..             ; Install saved next handler (&838B for scout ACK)
+    lda #&96                                                          ; 8304: a9 96       ..             ; Install saved next handler (&8396 for scout ACK)
     ldy #&83                                                          ; 8306: a0 83       ..             ; High byte of post-ACK handler
 ; &8308 referenced 2 times by &81da, &84f3
 .ack_tx_write_dest
@@ -1898,7 +1898,7 @@ service_handler_lo = service_entry+1
     sta econet_data_continue_frame                                    ; 8316: 8d a2 fe    ...            ; Write dest station to TX FIFO
     lda scout_src_net                                                 ; 8319: ad 2f 0d    ./.            ; Write dest network to TX FIFO
     sta econet_data_continue_frame                                    ; 831c: 8d a2 fe    ...            ; Write dest net byte to FIFO
-    lda #&26 ; '&'                                                    ; 831f: a9 26       .&             ; Install handler at &831B (write src addr)
+    lda #&26 ; '&'                                                    ; 831f: a9 26       .&             ; Install handler at &8326 (write src addr)
     ldy #&83                                                          ; 8321: a0 83       ..             ; High byte of nmi_ack_tx_src
     jmp set_nmi_vector                                                ; 8323: 4c 0e 0d    L..            ; Set NMI vector to ack_tx_src handler
 
@@ -2088,7 +2088,7 @@ service_handler_lo = service_entry+1
     jsr adlc_rx_listen                                                ; 83f8: 20 78 89     x.            ; Reset ADLC and return to RX listen
 ; &83fb referenced 2 times by &80ee, &8107
 .set_nmi_rx_scout
-    lda #&be                                                          ; 83fb: a9 be       ..             ; A=&B3: low byte of nmi_rx_scout
+    lda #&be                                                          ; 83fb: a9 be       ..             ; A=&BE: low byte of nmi_rx_scout
     ldy #&80                                                          ; 83fd: a0 80       ..             ; Y=&80: high byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 83ff: 4c 0e 0d    L..            ; Install nmi_rx_scout as NMI handler
 
@@ -2422,7 +2422,7 @@ service_handler_lo = service_entry+1
 ; 
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX
 ; operation types &83-&87. Read by the dispatch at
-; &8064 via LDA set_rx_buf_len_hi,Y (base &84B1
+; &8064 via LDA set_rx_buf_len_hi,Y (base &84BB
 ; + Y). High byte is always &85, so targets are
 ; &85xx+1. Entries for Y < &83 read from preceding
 ; code bytes and are not valid operation types.
@@ -2436,8 +2436,8 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &857A on the stack (so RTS returns to
-; tx_done_exit), then does JMP (l0d66) to call the remote
+; Pushes (tx_done_exit - 1) on the stack so RTS returns
+; to tx_done_exit, then does JMP (l0d66) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.
 ; ***************************************************************************************
@@ -2742,9 +2742,9 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; 
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX
 ; control byte types &81-&88. Read by the dispatch
-; at &8672 via LDA intoff_disable_nmi_op,Y (base
-; &85F6 + Y). High byte is always &86, so targets
-; are &86xx+1. The last entry dispatches to
+; at &867C via LDA intoff_disable_nmi_op,Y (base
+; intoff_test_inactive+1). High byte is always &86,
+; so targets are &86xx+1. Last entry dispatches to
 ; tx_ctrl_machine_type at &867F, immediately after
 ; the table.
 .tx_ctrl_dispatch_lo
@@ -2957,7 +2957,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).
 ; Checks workspace flags to decide next action:
 ;   - bit6 set at &0D4A -> tx_result_ok at &88C6
-;   - bit0 set at &0D4A -> handshake_await_ack at &886E
+;   - bit0 set at &0D4A -> handshake_await_ack at &8878
 ;   - Otherwise -> install nmi_reply_scout at &8744
 ; ***************************************************************************************
 .nmi_tx_complete
@@ -3002,9 +3002,9 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; 
 ; Reads the second byte of the reply scout (destination network) and
 ; validates it is zero (local network). Installs nmi_reply_validate
-; (&876F) for the remaining two bytes (source station and network).
+; (&8779) for the remaining two bytes (source station and network).
 ; Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.
-; If IRQ is still set, falls through directly to &876F without an RTI,
+; If IRQ is still set, falls through directly to &8779 without an RTI,
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive
 ; in quick succession.
 ; ***************************************************************************************
@@ -3013,9 +3013,9 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     bpl reject_reply                                                  ; 8765: 10 0f       ..             ; No RDA -- error
     lda econet_data_continue_frame                                    ; 8767: ad a2 fe    ...            ; Read destination network byte
     bne reject_reply                                                  ; 876a: d0 0a       ..             ; Non-zero -- network mismatch, error
-    lda #&79 ; 'y'                                                    ; 876c: a9 79       .y             ; Install next handler at &876F (reply validation)
+    lda #&79 ; 'y'                                                    ; 876c: a9 79       .y             ; Install next handler at &8779 (reply validation)
     bit econet_control1_or_status1                                    ; 876e: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
-    bmi nmi_reply_validate                                            ; 8771: 30 06       0.             ; IRQ set -- fall through to &876F without RTI
+    bmi nmi_reply_validate                                            ; 8771: 30 06       0.             ; IRQ set -- fall through to &8779 without RTI
     jmp install_nmi_handler                                           ; 8773: 4c 11 0d    L..            ; IRQ not set -- install handler and RTI
 
 ; &8776 referenced 7 times by &875b, &8765, &876a, &877c, &8784, &878c, &8793
@@ -3028,8 +3028,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; Reads the source station and source network from the reply scout and
 ; validates them against the original TX destination (&0D20/&0D21).
 ; Sequence:
-;   1. Check SR2 bit7 (RDA) at &876F -- must see data available
-;   2. Read source station at &8774, compare to &0D20 (tx_dst_stn)
+;   1. Check SR2 bit7 (RDA) at &8779 -- must see data available
+;   2. Read source station at &877E, compare to &0D20 (tx_dst_stn)
 ;   3. Read source network at &877C, compare to &0D21 (tx_dst_net)
 ;   4. Check SR2 bit1 (FV) at &8786 -- must see frame complete
 ; If all checks pass, the reply scout is valid and the ROM proceeds
@@ -3052,7 +3052,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     sta econet_control23_or_status2                                   ; 8797: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 879a: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 879c: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
-    lda #&78 ; 'x'                                                    ; 879f: a9 78       .x             ; Install next handler at &886E (four-way data phase) into &0D43/&0D44
+    lda #&78 ; 'x'                                                    ; 879f: a9 78       .x             ; Install next handler at &8878 (four-way data phase) into &0D43/&0D44
     ldy #&88                                                          ; 87a1: a0 88       ..             ; High byte &88 of next handler address
     sta saved_nmi_lo                                                  ; 87a3: 8d 43 0d    .C.            ; Store low byte to nmi_next_lo
     sty saved_nmi_hi                                                  ; 87a6: 8c 44 0d    .D.            ; Store high byte to nmi_next_hi
@@ -3074,9 +3074,9 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; and writes station + network=0 to the TX FIFO. Then
 ; checks bit 1 of rx_src_net to select between the
 ; immediate-op data NMI handler and the normal
-; nmi_data_tx handler at &87E4. Installs the chosen
+; nmi_data_tx handler at &87EE. Installs the chosen
 ; handler via set_nmi_vector. Shares the tx_check_tdra
-; entry at &87BD with ack_tx.
+; entry at &87C7 with ack_tx.
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda station_id_disable_net_nmis                                   ; 87c1: ad 18 fe    ...            ; Load our station ID (also INTOFF)
@@ -3092,13 +3092,13 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda #2                                                            ; 87d1: a9 02       ..             ; Test bit 1 of tx_flags
     bit rx_src_net                                                    ; 87d3: 2c 3e 0d    ,>.            ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 87d6: d0 07       ..             ; Bit 1 set: immediate op, use alt handler
-    lda #&ee                                                          ; 87d8: a9 ee       ..             ; Install nmi_data_tx at &87E4
+    lda #&ee                                                          ; 87d8: a9 ee       ..             ; Install nmi_data_tx at &87EE
     ldy #&87                                                          ; 87da: a0 87       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 87dc: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; &87df referenced 1 time by &87d6
 .install_imm_data_nmi
-    lda #&37 ; '7'                                                    ; 87df: a9 37       .7             ; Install nmi_imm_data at &882D
+    lda #&37 ; '7'                                                    ; 87df: a9 37       .7             ; Install nmi_imm_data at &8837
     ldy #&88                                                          ; 87e1: a0 88       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 87e3: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
@@ -3159,8 +3159,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     sta econet_control23_or_status2                                   ; 881f: 8d a1 fe    ...            ; Write CR2 to close frame
     lda rx_src_net                                                    ; 8822: ad 3e 0d    .>.            ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 8825: 10 07       ..             ; Bit7 clear: error, install saved handler
-    lda #&f5                                                          ; 8827: a9 f5       ..             ; Install discard_reset_listen at &83EB
-    ldy #&83                                                          ; 8829: a0 83       ..             ; High byte of &83EB handler
+    lda #&f5                                                          ; 8827: a9 f5       ..             ; Install discard_reset_listen at &83F5
+    ldy #&83                                                          ; 8829: a0 83       ..             ; High byte of &83F5 handler
     jmp set_nmi_vector                                                ; 882b: 4c 0e 0d    L..            ; Set NMI vector and return
 
 ; &882e referenced 1 time by &8825
@@ -3237,7 +3237,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; RX final ACK handler
 ; 
 ; Receives the final ACK in a four-way handshake. Same validation
-; pattern as the reply scout handler (&8744-&876F):
+; pattern as the reply scout handler (&874E-&8779):
 ;   &887A: Check AP, read dest_stn, compare to our station
 ;   &888E: Check RDA, read dest_net, validate = 0
 ;   &88A2: Check RDA, read src_stn/net, compare to TX dest
@@ -3345,11 +3345,11 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 
 ; Unreferenced dead data (16 bytes)
 ; 
-; 16 bytes between JMP discard_reset_rx (&88D5) and
-; tx_calc_transfer (&88E8). Unreachable as code (after
+; 16 bytes between JMP discard_reset_rx (&88DF) and
+; tx_calc_transfer (&88F2). Unreachable as code (after
 ; an unconditional JMP) and unreferenced as data. No
 ; label, index, or indirect pointer targets any address
-; in the &88D8-&88E7 range. Likely unused remnant from
+; in the &88E2-&88F1 range. Likely unused remnant from
 ; development.
     equb &0e                                                          ; 88e2: 0e          .              ; Dead data: &0E
     equb &0e                                                          ; 88e3: 0e          .              ; Dead data: &0E
@@ -3509,7 +3509,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; straight to adlc_rx_listen. Otherwise spins in a
 ; tight loop comparing the NMI handler vector at
 ; &0D0C/&0D0D against the address of nmi_rx_scout
-; (&80B3). When the NMI handler returns to idle, falls
+; (&80BE). When the NMI handler returns to idle, falls
 ; through to save_econet_state to clear the initialised
 ; flags and re-enter RX listen mode.
 ; ***************************************************************************************
@@ -3554,10 +3554,10 @@ listen_jmp_hi = reset_enter_listen+2
 ; An alternate NMI handler that lives in the ROM itself rather than
 ; in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
 ; self-modifying JMP to dispatch to different handlers), this one
-; hardcodes JMP nmi_rx_scout (&80B3). Used as the initial NMI handler
+; hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler
 ; before the workspace has been properly set up during initialisation.
 ; Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
-; LDA romsel, STA &FE30, JMP &80B3.
+; LDA romsel, STA &FE30, JMP &80BE.
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit station_id_disable_net_nmis                                   ; 89a7: 2c 18 fe    ,..            ; INTOFF: disable NMIs while switching ROM
@@ -3590,9 +3590,9 @@ listen_jmp_hi = reset_enter_listen+2
 
 ; Unreferenced dead data (3 bytes)
 ; 
-; 3 bytes between the RTI at &89BC (end of the NMI
-; shim ROM source) and svc_dispatch_lo at &89C0.
-; The init copy loop (Y=1..&20) copies &899D-&89BC
+; 3 bytes between the RTI at &89C6 (end of the NMI
+; shim ROM source) and svc_dispatch_lo at &89CA.
+; The init copy loop (Y=1..&20) copies &89A7-&89C6
 ; to &0D00-&0D1F; these bytes are outside that range
 ; and unreferenced. Likely unused development remnant.
     equb 1                                                            ; 89c7: 01          .              ; Dead data: &01
@@ -3987,7 +3987,7 @@ init_rom_scan = sub_c8a6c+2
 ; &8b34 referenced 1 time by &8b2f
 .done_rom_checksum
     jsr notify_new_fs                                                 ; 8b34: 20 fc 8c     ..            ; Call FSCV with A=6 (new FS)
-    ldy #9                                                            ; 8b37: a0 09       ..             ; Y=&0D: end of FS context block
+    ldy #9                                                            ; 8b37: a0 09       ..             ; Y=9: end of FS context block
 ; &8b39 referenced 1 time by &8b41
 .loop_copy_fs_ctx
     lda (net_rx_ptr),y                                                ; 8b39: b1 9c       ..             ; Load byte from receive block
@@ -4320,7 +4320,7 @@ init_rom_scan = sub_c8a6c+2
     pha                                                               ; 8c92: 48          H              ; Push dispatch high for RTS
     lda cmd_table_fs_lo,x                                             ; 8c93: bd f1 a3    ...            ; Load dispatch address low
     pha                                                               ; 8c96: 48          H              ; Push dispatch low for RTS
-    rts                                                               ; 8c97: 60          `              ; Dispatch via RTS (returns to &8C75)
+    rts                                                               ; 8c97: 60          `              ; Dispatch via RTS (returns to &8C80)
 
 ; &8c98 referenced 1 time by &8c86
 .skip_if_no_match
@@ -4425,7 +4425,7 @@ version_string = version_string_cr+1
     lda fs_lib_flags                                                  ; 8ced: ad 71 10    .q.            ; Load boot flags
     ora #4                                                            ; 8cf0: 09 04       ..             ; Set bit 2 (auto-boot in progress)
     sta fs_lib_flags                                                  ; 8cf2: 8d 71 10    .q.            ; Store updated boot flags
-    ldx #&0f                                                          ; 8cf5: a2 0f       ..             ; X=4: boot filename parameter
+    ldx #&0f                                                          ; 8cf5: a2 0f       ..             ; X=&0F: boot filename address low
     ldy #&8d                                                          ; 8cf7: a0 8d       ..             ; Y=&8D: boot filename address high
     jmp fscv_3_star_cmd                                               ; 8cf9: 4c 14 a1    L..            ; Execute boot file
 
@@ -4699,6 +4699,18 @@ version_string = version_string_cr+1
     ldy #&13                                                          ; 8e3f: a0 13       ..             ; Y=&13: handle dispatch offset
     bne svc_dispatch                                                  ; 8e41: d0 06       ..             ; ALWAYS branch
 
+; ***************************************************************************************
+; Dispatch directory operation via PHA/PHA/RTS
+; 
+; Validates X < 5 and sets Y=&0E as the directory
+; dispatch offset, then falls through to svc_dispatch
+; for PHA/PHA/RTS table dispatch. Called by
+; tx_done_os_proc to handle directory operations
+; (e.g. FILEV, ARGSV) from the remote JSR service.
+; 
+; On Entry:
+;     X: directory operation code (0-4)
+; ***************************************************************************************
 ; &8e43 referenced 1 time by &8560
 .dir_op_dispatch
     cpx #5                                                            ; 8e43: e0 05       ..             ; Handle >= 5?
@@ -4744,8 +4756,8 @@ dispatch_rts = l8e57+1
 ; &8e58 referenced 3 times by &8e2a, &8e38, &8e45
 ; Unreferenced dead data (8 bytes)
 ; 
-; 8 bytes between return_4 (&8E42) and fs_vector_table
-; (&8E4B). Contains the ASCII string "PRINT " followed
+; 8 bytes between dispatch_rts and fs_vector_table
+; (&8E61). Contains the ASCII string "PRINT " followed
 ; by &01 and &00. Unreferenced by any code or data
 ; pointer. Absent from all NFS versions (3.34-3.65);
 ; unique to ANFS. Likely a development remnant — possibly
@@ -4842,7 +4854,7 @@ dispatch_rts = l8e57+1
 ; Called from the Econet OSBYTE dispatch chain to
 ; handle OSBYTEs that require both X and Y cleared.
 ; The unconditional BEQ (after LDY #0 sets Z)
-; reaches the JMP osbyte instruction at &8E71.
+; reaches the JMP osbyte instruction at &8E87.
 ; 
 ; On Entry:
 ;     A: OSBYTE number
@@ -5111,7 +5123,7 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Restore FS context from saved workspace
 ; 
-; Copies 8 bytes (offsets 6 to &0D) from the saved
+; Copies 8 bytes (offsets 2 to 9) from the saved
 ; workspace at &0DFA back into the receive control
 ; block via (net_rx_ptr). This restores the station
 ; identity, directory handles, and library path after
@@ -5122,7 +5134,7 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; &8f8c referenced 3 times by &8f3d, &8fa8, &a38e
 .restore_fs_context
-    ldy #9                                                            ; 8f8c: a0 09       ..             ; Y=&0D: end of FS context block
+    ldy #9                                                            ; 8f8c: a0 09       ..             ; Y=9: end of FS context block
 ; &8f8e referenced 1 time by &8f96
 .loop_restore_ctx
     lda osword_ws_base,y                                              ; 8f8e: b9 fe 0d    ...            ; Load FS context byte
@@ -5310,7 +5322,7 @@ ws_init_data = error_bad_station+2
     equb 0                                                            ; 9121: 00          .              ; Null terminator
 ; Command syntax string offset table
 ; 
-; 13 offsets into cmd_syntax_strings (&900E).
+; 13 offsets into cmd_syntax_strings (&9022).
 ; Indexed by the low 5 bits of each command table
 ; syntax descriptor byte. Index &0E is handled
 ; separately as a shared-commands list. The print
@@ -5635,7 +5647,7 @@ ws_init_data = error_bad_station+2
 ; directory entry via (fs_options),Y, masks to 6
 ; bits (AND #&3F), then sets X=4 and branches to
 ; begin_prot_encode to map through the protection
-; bit encode table at &9272. Called by
+; bit encode table at &9286. Called by
 ; check_and_setup_txcb for owner and public access.
 ; 
 ; On Exit:
@@ -5656,7 +5668,7 @@ ws_init_data = error_bad_station+2
 ; start at table index 0, then enters the shared
 ; encoding loop at begin_prot_encode. Shifts out
 ; each source bit and ORs in the corresponding
-; value from prot_bit_encode_table (&9272). Called
+; value from prot_bit_encode_table (&9286). Called
 ; by send_txcb_swap_addrs and check_and_setup_txcb.
 ; 
 ; On Entry:
@@ -6209,7 +6221,7 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Initialise TX control block from ROM template
 ; 
-; Copies 12 bytes from txcb_init_template (&9477)
+; Copies 12 bytes from txcb_init_template (&948B)
 ; into the TXCB workspace at &00C0. For the first
 ; two bytes (Y=0,1), also copies the destination
 ; station/network from &0E00 into txcb_dest (&C2).
@@ -6242,7 +6254,7 @@ ws_init_data = error_bad_station+2
 ; &00C0. For offsets 0-1, the destination station
 ; bytes are also copied from l0e00 into txcb_dest.
 ; 
-; The &FF byte at offset 6 (bit_test_ff, &947D)
+; The &FF byte at offset 6 (bit_test_ff, &9491)
 ; serves double duty: it is part of this template
 ; AND a BIT target used by 22 callers to set the
 ; V and N flags without clobbering A.
@@ -7566,7 +7578,7 @@ bad_prefix = bad_str_anchor+1
     bne loop_copy_file_info                                           ; 9a37: d0 f6       ..             ; No: copy next byte
     ldy fs_messages_flag                                              ; 9a39: ac 06 0e    ...            ; Load display flag from l0e06
     beq return_from_advance_y                                         ; 9a3c: f0 45       .E             ; Zero: skip display, return
-    ldy #&f4                                                          ; 9a3e: a0 f4       ..             ; Y=0: filename character index
+    ldy #&f4                                                          ; 9a3e: a0 f4       ..             ; Y=&F4: index into l0fff for filename
 ; &9a40 referenced 1 time by &9a47
 .loop_print_filename
     lda l0fff,y                                                       ; 9a40: b9 ff 0f    ...            ; Load filename character from l10f3
@@ -7929,7 +7941,7 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; Unreachable dead code (3 bytes)
 ; 
-; Duplicate of the JMP at &9B80 immediately above.
+; Duplicate of the JMP at &9B92 immediately above.
 ; Unreachable after the unconditional JMP and
 ; unreferenced. Likely a development remnant.
 ; &9b95 referenced 2 times by &9984, &9a0f
@@ -9336,7 +9348,7 @@ bad_prefix = bad_str_anchor+1
     jsr save_text_ptr                                                 ; a2bf: 20 02 8b     ..            ; Save text pointer for later
     ldx #&0e                                                          ; a2c2: a2 0e       ..             ; X=&0E: OSWORD parameter offset
     stx fs_block_offset                                               ; a2c4: 86 bc       ..             ; Store as block offset high
-    lda #&0e                                                          ; a2c6: a9 0e       ..             ; A=&10: OSWORD parameter size
+    lda #&0e                                                          ; a2c6: a9 0e       ..             ; A=&0E: OSWORD parameter size
     sta fs_options                                                    ; a2c8: 85 bb       ..             ; Store as options pointer
     sta l0e14                                                         ; a2ca: 8d 14 0e    ...            ; Store to l0e16
     ldx #&4a ; 'J'                                                    ; a2cd: a2 4a       .J             ; X=&4A: FS command table offset
@@ -9749,7 +9761,7 @@ bad_prefix = bad_str_anchor+1
     dey                                                               ; a506: 88          .              ; Next byte down
     bne loop_ca4fc                                                    ; a507: d0 f3       ..             ; Loop for all 6 bytes
     jsr osword_setup_handler                                          ; a509: 20 16 a5     ..            ; Set up dispatch and save state
-    ldy #&fa                                                          ; a50c: a0 fa       ..             ; Copy 3 bytes (Y=2,1,0)
+    ldy #&fa                                                          ; a50c: a0 fa       ..             ; Y=&FA: restore 6 workspace bytes
 ; &a50e referenced 1 time by &a513
 .loop_ca50e
     pla                                                               ; a50e: 68          h              ; Restore saved workspace byte
@@ -10446,12 +10458,12 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 8: read RX control block flag
 ; 
-; Returns byte 5 of the current RX control
+; Returns byte 1 of the current RX control
 ; block in PB[1].
 ; ***************************************************************************************
 .osword_13_read_rx_flag
-    ldy #1                                                            ; a7e4: a0 01       ..             ; Y=5: RX control block offset
-    lda (net_rx_ptr),y                                                ; a7e6: b1 9c       ..             ; Load (net_rx_ptr)+5
+    ldy #1                                                            ; a7e4: a0 01       ..             ; Y=1: RX control block offset
+    lda (net_rx_ptr),y                                                ; a7e6: b1 9c       ..             ; Load (net_rx_ptr)+1
     ldy #0                                                            ; a7e8: a0 00       ..             ; Y=0
     jmp store_a_to_pb_1                                               ; a7ea: 4c fe a7    L..            ; Store to PB[1] and return
 
@@ -10606,7 +10618,8 @@ bridge_ws_init_data = compare_bridge_status+1
 ; loop_copy_bridge_init. X counts down &0B to 0,
 ; copying the TXCB template into &C0. Y counts up
 ; &18 to &23, copying the RXCB data into workspace
-; via bridge_ws_init_data (&A844) + Y = &A85C.
+; via bridge_ws_init_data (compare_bridge_status+1)
+; + Y to reach the RXCB data area.
 ; 
 ; The TX broadcasts "BRIDGE" as immediate data on
 ; port &9C to all stations (FF.FF). The RX listens
@@ -10870,7 +10883,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; OSWORDs 0-8 via push_osword_handler_addr. OSWORDs
 ; >= 9 are ignored (registers restored, RTS returns
 ; to MOS). Address stored at netv_handler_addr
-; (&8E74) in the extended vector data area.
+; (&8E8A) in the extended vector data area.
 ; ***************************************************************************************
 .netv_handler
     php                                                               ; a97a: 08          .              ; Save processor flags
@@ -11454,7 +11467,7 @@ bridge_ws_init_data = compare_bridge_status+1
 .start_spool_retry
     pha                                                               ; ab84: 48          H              ; Save retry count
     ldx #&0b                                                          ; ab85: a2 0b       ..             ; X=&0B: 12 bytes of template
-    ldy #&2c ; ','                                                    ; ab87: a0 2c       .,             ; Y=&30: workspace offset for TXCB
+    ldy #&2c ; ','                                                    ; ab87: a0 2c       .,             ; Y=&2C: workspace offset for TXCB
 ; &ab89 referenced 1 time by &ab90
 .loop_copy_spool_tx
     lda tx_econet_txcb_template,x                                     ; ab89: bd 80 ac    ...            ; Load template byte
@@ -11468,9 +11481,9 @@ bridge_ws_init_data = compare_bridge_status+1
     pha                                                               ; ab98: 48          H              ; Save station
     iny                                                               ; ab99: c8          .              ; Y=&03
     lda (nfs_workspace),y                                             ; ab9a: b1 9e       ..             ; Load network number
-    ldy #&24 ; '$'                                                    ; ab9c: a0 24       .$             ; Y=&28: TXCB dest network offset
+    ldy #&24 ; '$'                                                    ; ab9c: a0 24       .$             ; Y=&24: TXCB dest network offset
     sta (net_rx_ptr),y                                                ; ab9e: 91 9c       ..             ; Store network to TXCB
-    dey                                                               ; aba0: 88          .              ; Y=&27; Y=&23
+    dey                                                               ; aba0: 88          .              ; Y=&23
     pla                                                               ; aba1: 68          h              ; Restore station
     sta (net_rx_ptr),y                                                ; aba2: 91 9c       ..             ; Store station to TXCB
     ldx #&0b                                                          ; aba4: a2 0b       ..             ; X=&0B: 12 bytes of RX template
@@ -11502,7 +11515,7 @@ bridge_ws_init_data = compare_bridge_status+1
     lda nfs_workspace_hi                                              ; abcd: a5 9f       ..             ; Set TX high to workspace page
     sta net_tx_ptr_hi                                                 ; abcf: 85 9b       ..             ; Store workspace high byte
     jsr wait_net_tx_ack                                               ; abd1: 20 dd 95     ..            ; Wait for TX acknowledgement
-    ldy #&2d ; '-'                                                    ; abd4: a0 2d       .-             ; Y=&31: check reply status
+    ldy #&2d ; '-'                                                    ; abd4: a0 2d       .-             ; Y=&2D: reply status offset
     lda (net_rx_ptr),y                                                ; abd6: b1 9c       ..             ; Load reply byte
     beq spool_tx_succeeded                                            ; abd8: f0 04       ..             ; Zero: success
     cmp #3                                                            ; abda: c9 03       ..             ; Status = 3? (busy, can retry)
@@ -11829,8 +11842,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; *CDir allocation size threshold table
 ; 
 ; 26 thresholds dividing 0-255 into size classes.
-; Table base overlaps with the JMP high byte at
-; &AD31 (entry 0 = &94, never reached). Searched
+; Table base (cdir_dispatch_col+2) overlaps with
+; the JMP high byte (entry 0, never reached). Searched
 ; from index 26 down to 0; the result index (1-26)
 ; is stored as the directory allocation size class.
 ; Default when no size argument given: index 2.
@@ -12977,7 +12990,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; printer server slot buffers. Not referenced by
 ; label; accessed indirectly by init_ps_slot_from_rx
 ; via LDA write_ps_slot_link_addr,Y where the base
-; address &B11B plus Y offset &78 computes to &B193.
+; address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B1B7.
 ; 
 ; Structure: 4-byte header (control, port, station,
 ; network) followed by two 4-byte buffer descriptors
@@ -13189,9 +13202,9 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; Initialise PS slot buffer from template data
 ; 
-; Copies the 12-byte ps_slot_txcb_template (&B193)
+; Copies the 12-byte ps_slot_txcb_template (&B1B7)
 ; into workspace at offsets &78-&83 via indexed
-; addressing from write_ps_slot_link_addr (&B11B).
+; addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).
 ; Substitutes net_rx_ptr_hi at offsets &7D and &81
 ; (the hi bytes of the two buffer pointers) so they
 ; point into the current RX buffer page.
@@ -13505,7 +13518,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 
 ; &b448 referenced 1 time by &b443
 .return_2
-    rts                                                               ; b448: 60          `              ; Return with character in A; Return
+    rts                                                               ; b448: 60          `              ; Return with character in A
 
 ; ***************************************************************************************
 ; Initialise channel allocation table
@@ -13517,13 +13530,13 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; &b449 referenced 1 time by &8b75
 .init_channel_table
-    lda #0                                                            ; b449: a9 00       ..             ; A=0: clear value; A=0: clear value
-    tay                                                               ; b44b: a8          .              ; Y=&78: clear offsets &00-&77; Y=0: start index; Y=&00
+    lda #0                                                            ; b449: a9 00       ..             ; A=0: clear value
+    tay                                                               ; b44b: a8          .              ; Y=0: start index; Y=&00
 ; &b44c referenced 1 time by &b450
 .loop_clear_chan_table
     sta fcb_count_lo,y                                                ; b44c: 99 00 10    ...            ; Clear channel table entry
     iny                                                               ; b44f: c8          .              ; Next entry
-    bne loop_clear_chan_table                                         ; b450: d0 fa       ..             ; Loop until Y=0; Loop until all 256 bytes cleared
+    bne loop_clear_chan_table                                         ; b450: d0 fa       ..             ; Loop until all 256 bytes cleared
     ldy #&0b                                                          ; b452: a0 0b       ..             ; Offset &0F in receive buffer
     lda (net_rx_ptr),y                                                ; b454: b1 9c       ..             ; Get number of available channels
     sec                                                               ; b456: 38          8              ; Prepare subtraction
@@ -14382,7 +14395,7 @@ net_channel_err_string = err_net_chan_not_found+2
 .done_check_buf_offset
     cmp fcb_buf_offset,x                                              ; b898: dd 98 10    ...            ; Push Y; Compare count with buffer offset
     bcc done_set_dirty_flag                                           ; b89b: 90 0f       ..             ; Below offset: skip offset update
-    adc #0                                                            ; b89d: 69 00       i.             ; Y=0: no nested context; Add carry (count + 1)
+    adc #0                                                            ; b89d: 69 00       i.             ; Carry set from BCS/BCC above; Add carry (count + 1)
     sta fcb_buf_offset,x                                              ; b89f: 9d 98 10    ...            ; Update buffer offset in FCB
     bne done_set_dirty_flag                                           ; b8a2: d0 08       ..             ; Non-zero: keep offset flag
     lda #&df                                                          ; b8a4: a9 df       ..             ; Mask &DF: clear bit 5
@@ -14912,7 +14925,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &bacf referenced 1 time by &baca
 .done_end_dump_line
     jsr osnewl                                                        ; bacf: 20 e7 ff     ..            ; Print newline; Write newline (characters 10 and 13)
-    plp                                                               ; bad2: 28          (              ; Restore EOF status from &BA37
+    plp                                                               ; bad2: 28          (              ; Restore EOF status from &BA4C
     bcs done_dump_eof                                                 ; bad3: b0 03       ..             ; C=1: EOF reached, clean up
     jmp loop_dump_line                                                ; bad5: 4c 33 ba    L3.            ; Not EOF: continue with next line
 
@@ -14949,16 +14962,28 @@ net_channel_err_string = err_net_chan_not_found+2
     jsr osnewl                                                        ; bafd: 20 e7 ff     ..            ; Print trailer with ASCII label; Write newline (characters 10 and 13)
     jmp osnewl                                                        ; bb00: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
+; ***************************************************************************************
+; Print hex byte followed by space
+; 
+; Saves A, prints it as a 2-digit hex value via
+; print_hex_byte, outputs a space character, then
+; restores A from the stack. Used by cmd_dump and
+; print_dump_header for column-aligned hex output.
+; 
+; On Entry:
+;     A: byte value to print
+; ***************************************************************************************
 ; &bb03 referenced 2 times by &ba92, &baf2
 .loop_print_col_num
-    pha                                                               ; bb03: 48          H              ; Save column number for space separator
+.print_hex_and_space
+    pha                                                               ; bb03: 48          H              ; Save byte value on stack
     jsr print_hex_byte                                                ; bb04: 20 2f 91     /.
-    lda #&20 ; ' '                                                    ; bb07: a9 20       .              ; Open for input
+    lda #&20 ; ' '                                                    ; bb07: a9 20       .              ; A=&20: space character
 .sub_cbb09
 return_with_fn_offset = sub_cbb09+2
-    jsr osasci                                                        ; bb09: 20 e3 ff     ..            ; OSFIND: open file; Write character 32
+    jsr osasci                                                        ; bb09: 20 e3 ff     ..            ; Print space character; Write character 32
 .done_restore_text_ptr
-    pla                                                               ; bb0c: 68          h              ; Restore saved text pointer high
+    pla                                                               ; bb0c: 68          h              ; Restore byte value from stack
     rts                                                               ; bb0d: 60          `              ; Return; Y = offset to next argument
 
 ; ***************************************************************************************
@@ -15309,14 +15334,14 @@ return_with_fn_offset = sub_cbb09+2
 
 ; Resume normal ROM address space
 ; 
-; The preceding &200 bytes (ROM addresses &BC90-&BE8F)
-; are the source data for two relocated code blocks:
-;   &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)
-;   &BD90-&BE8F -> &0600-&06FF (page 6: Econet)
+; The preceding 512 bytes are the source data for
+; two relocated code blocks (see move() calls):
+;   page 5 source -> &0500-&05FF (Tube host code)
+;   page 6 source -> &0600-&06FF (Econet handlers)
 ; py8dis assembles those blocks at their runtime
 ; addresses (&0500/&0600) via org directives. This
-; org &BE90 restores the origin to the actual ROM
-; address for the remaining non-relocated code.
+; org restores the origin to the actual ROM address
+; for the remaining non-relocated code.
     sta brkv+1                                                        ; be94: 8d 03 02    ...            ; Store BRK vector high byte
     lda #&8e                                                          ; be97: a9 8e       ..             ; A=&8E: Tube control register value
     sta tube_status_1_and_tube_control                                ; be99: 8d e0 fe    ...            ; Write Tube control register
@@ -16000,6 +16025,7 @@ save pydis_start, pydis_end
 ;     print_col_newline:                        2
 ;     print_decimal_digit:                      2
 ;     print_dump_header:                        2
+;     print_hex_and_space:                      2
 ;     print_printer_server_is:                  2
 ;     print_station_id:                         2
 ;     print_version_header:                     2

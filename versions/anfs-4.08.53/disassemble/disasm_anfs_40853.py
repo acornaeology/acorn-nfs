@@ -1194,7 +1194,7 @@ label(0xAD1D, "done_cdir_size")
 label(0xAD31, "cdir_alloc_size_table")
 
 # Split the 27-byte *CDir allocation size threshold table into
-# individual bytes for annotation. Table base at &AD31 overlaps
+# individual bytes for annotation. Table base at cdir_dispatch_col+2 overlaps
 # with the JMP operand high byte; data bytes run &AD32-&AD4C.
 for i in range(27):
     byte(0xAD32 + i)
@@ -2405,8 +2405,8 @@ subroutine(0x84EC, "imm_op_build_reply",
     "idle listen.")
 subroutine(0x8539, "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="Pushes address &857A on the stack (so RTS returns to\n"
-    "tx_done_exit), then does JMP (l0d66) to call the remote\n"
+    description="Pushes (tx_done_exit - 1) on the stack so RTS returns\n"
+    "to tx_done_exit, then does JMP (l0d66) to call the remote\n"
     "JSR target routine. When that routine returns via RTS,\n"
     "control resumes at tx_done_exit.")
 subroutine(0x8542, "tx_done_econet_event",
@@ -3966,7 +3966,7 @@ subroutine(0xB2C4, "init_ps_slot_from_rx",
     title="Initialise PS slot buffer from template data",
     description="Copies the 12-byte ps_slot_txcb_template (&B193)\n"
     "into workspace at offsets &78-&83 via indexed\n"
-    "addressing from write_ps_slot_link_addr (&B11B).\n"
+    "addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).\n"
     "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
     "(the hi bytes of the two buffer pointers) so they\n"
     "point into the current RX buffer page.")
@@ -5346,7 +5346,7 @@ comment(0x8676, "RTS dispatches to control-byte handler", inline=True)
 # tx_ctrl_dispatch_lo (&8677): 8-byte dispatch table.
 # Low bytes of PHA/PHA/RTS targets for TX control byte handlers
 # &81-&88. Read by LDA intoff_disable_nmi_op,Y at &8672 (base
-# &85F6 + Y). High byte always &86, so targets are &86xx+1.
+# intoff_test_inactive+1 + Y). High byte always &86, targets are &86xx+1.
 # The last entry (&88) dispatches to tx_ctrl_machine_type at
 # &867F, which is the 4 bytes immediately after the table.
 comment(0x8677, "TX ctrl dispatch table (lo bytes)\n"
@@ -5354,8 +5354,8 @@ comment(0x8677, "TX ctrl dispatch table (lo bytes)\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
     "control byte types &81-&88. Read by the dispatch\n"
     "at &8672 via LDA intoff_disable_nmi_op,Y (base\n"
-    "&85F6 + Y). High byte is always &86, so targets\n"
-    "are &86xx+1. The last entry dispatches to\n"
+    "intoff_test_inactive+1). High byte is always &86,\n"
+    "so targets are &86xx+1. Last entry dispatches to\n"
     "tx_ctrl_machine_type at &867F, immediately after\n"
     "the table.")
 comment(0x8677, "Ctrl &81 PEEK: tx_ctrl_peek", inline=True)
@@ -6249,10 +6249,10 @@ comment(0x8E74, "NETV handler address\n"
     "\n"
     "2-byte handler address for the NETV extended\n"
     "vector, read by write_vector_entry at Y=&36\n"
-    "from svc_dispatch_lo_offset (&8E3E). Points to\n"
-    "netv_handler (&A968) which dispatches OSWORDs\n"
-    "0-8 to Econet handlers. Interleaved with the\n"
-    "OSBYTE wrapper code in the data area.")
+    "from svc_dispatch_lo_offset (push_dispatch_lo+2).\n"
+    "Points to netv_handler (&A968) which dispatches\n"
+    "OSWORDs 0-8 to Econet handlers. Interleaved with\n"
+    "the OSBYTE wrapper code in the data area.")
 comment(0x8E74, "NETV handler: netv_handler (&A968)", inline=True)
 
 comment(0x8E76, "X=0", inline=True)
@@ -6326,16 +6326,16 @@ comment(0x8F05, "Decrement counter", inline=True)
 comment(0x8F06, "More bytes: loop", inline=True)
 comment(0x8F08, "Clear workspace flag", inline=True)
 comment(0x8F0B, "Clear workspace byte", inline=True)
-# ws_init_data (&8F2B): 3 workspace initialisation bytes.
+# ws_init_data: 3 workspace initialisation bytes.
 # Label overlaps last byte of JMP at &8F29 (classic 6502 trick).
 # Loop reads ws_init_data+X with X=3,2,1, storing to l0d6d+X.
 comment(0x8F2C, "Workspace init data\n"
     "\n"
     "3 bytes read via LDA ws_init_data,X with X=3\n"
-    "down to 1. ws_init_data at &8F2B overlaps the\n"
-    "high byte of JMP err_bad_station_num; byte at\n"
-    "&8F2B itself (&92) is never read (BNE exits\n"
-    "when X=0). Stores to l0d6e, l0d6f, l0d70.")
+    "down to 1. ws_init_data overlaps the high byte\n"
+    "of JMP err_bad_station_num; byte 0 is the JMP\n"
+    "operand (&92), never read (BNE exits when X=0).\n"
+    "Stores to l0d6e, l0d6f, l0d70.")
 comment(0x8F2C, "l0d6e: init=&FF (retry count)", inline=True)
 comment(0x8F2D, "l0d6f: init=&28 (40, receive poll count)", inline=True)
 comment(0x8F2E, "l0d70: init=&0A (10, machine peek retries)", inline=True)
@@ -7393,7 +7393,7 @@ for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
 # write_vector_entry reads lo/hi from svc_dispatch_lo_offset+Y.
-# With Y=&1B, that's &8E3E+&1B = &8E59.
+# With Y=&1B, that's svc_dispatch_lo_offset+&1B = &8E59.
 handler_names = [
     ("FILEV",  0x9921),
     ("ARGSV",  0x9BAF),
@@ -7628,7 +7628,7 @@ comment(0xAD2D, "Y=&1B: *CDir FS command code", inline=True)
 comment(0xAD2F, "Send command to file server", inline=True)
 
 # cdir_alloc_size_table (&AD32): *CDir allocation size thresholds.
-# Table base label is at &AD31 (overlapping the JMP operand high
+# Table base label is at cdir_dispatch_col+2 (overlapping the JMP operand high
 # byte at &AD2F). The search loop (LDX #&1B / DEX / CMP table,X /
 # BCC) scans indices 26 down to 0; index 0 reads &94 from the JMP
 # but is unreachable because index 1 (threshold &00) always matches.
@@ -7637,7 +7637,7 @@ comment(0xAD32, "*CDir allocation size threshold table\n"
     "\n"
     "26 thresholds dividing 0-255 into size classes.\n"
     "Table base overlaps with the JMP high byte at\n"
-    "&AD31 (entry 0 = &94, never reached). Searched\n"
+    "cdir_dispatch_col+2 (entry 0 = &94, never reached). Searched\n"
     "from index 26 down to 0; the result index (1-26)\n"
     "is stored as the directory allocation size class.\n"
     "Default when no size argument given: index 2.")
@@ -8808,7 +8808,7 @@ comment(0xB190, "Print station as 3 digits", inline=True)
 
 # ps_slot_txcb_template (&B193): 12-byte TXCB template for PS slots.
 # Accessed indirectly by init_ps_slot_from_rx (&B2C4) via:
-#   LDA write_ps_slot_link_addr,Y  (base &B11B + Y=&78 = &B193)
+#   LDA write_ps_slot_link_addr,Y  (base write_ps_slot_hi_link+1 + Y=&78 = &B193)
 # This is the same 12-byte TXCB structure used by
 # tx_econet_txcb_template (&AC6E) and rx_palette_txcb_template
 # (&AC7A). Bytes at workspace offsets &7D and &81 (positions 5
@@ -8820,7 +8820,7 @@ comment(0xB193, "PS slot transmit control block template\n"
     "printer server slot buffers. Not referenced by\n"
     "label; accessed indirectly by init_ps_slot_from_rx\n"
     "via LDA write_ps_slot_link_addr,Y where the base\n"
-    "address &B11B plus Y offset &78 computes to &B193.\n"
+    "address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B193.\n"
     "\n"
     "Structure: 4-byte header (control, port, station,\n"
     "network) followed by two 4-byte buffer descriptors\n"
@@ -10355,7 +10355,8 @@ comment(0xA850, "Bridge discovery init data (24 bytes)\n"
     "loop_copy_bridge_init. X counts down &0B to 0,\n"
     "copying the TXCB template into &C0. Y counts up\n"
     "&18 to &23, copying the RXCB data into workspace\n"
-    "via bridge_ws_init_data (&A844) + Y = &A85C.\n"
+    "via bridge_ws_init_data (compare_bridge_status+1)\n"
+    "+ Y to reach the RXCB data area.\n"
     "\n"
     "The TX broadcasts \"BRIDGE\" as immediate data on\n"
     "port &9C to all stations (FF.FF). The RX listens\n"
@@ -13762,14 +13763,14 @@ comment(0xA062, "Return (tube claimed)", inline=True)
 # Copies pages 4/5/6 code and zero-page workspace from ROM to RAM
 comment(0xBE90, "Resume normal ROM address space\n"
     "\n"
-    "The preceding &200 bytes (ROM addresses &BC90-&BE8F)\n"
-    "are the source data for two relocated code blocks:\n"
-    "  &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)\n"
-    "  &BD90-&BE8F -> &0600-&06FF (page 6: Econet)\n"
+    "The preceding 512 bytes are the source data for\n"
+    "two relocated code blocks (see move() calls):\n"
+    "  page 5 source -> &0500-&05FF (Tube host code)\n"
+    "  page 6 source -> &0600-&06FF (Econet handlers)\n"
     "py8dis assembles those blocks at their runtime\n"
     "addresses (&0500/&0600) via org directives. This\n"
-    "org &BE90 restores the origin to the actual ROM\n"
-    "address for the remaining non-relocated code.")
+    "org restores the origin to the actual ROM address\n"
+    "for the remaining non-relocated code.")
 comment(0xBE90, "Store BRK vector high byte", inline=True)
 comment(0xBE93, "A=&8E: Tube control register value", inline=True)
 comment(0xBE95, "Write Tube control register", inline=True)

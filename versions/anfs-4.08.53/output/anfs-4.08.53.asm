@@ -2409,8 +2409,8 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &857A on the stack (so RTS returns to
-; tx_done_exit), then does JMP (l0d66) to call the remote
+; Pushes (tx_done_exit - 1) on the stack so RTS returns
+; to tx_done_exit, then does JMP (l0d66) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.
 ; ***************************************************************************************
@@ -2717,8 +2717,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX
 ; control byte types &81-&88. Read by the dispatch
 ; at &8672 via LDA intoff_disable_nmi_op,Y (base
-; &85F6 + Y). High byte is always &86, so targets
-; are &86xx+1. The last entry dispatches to
+; intoff_test_inactive+1). High byte is always &86,
+; so targets are &86xx+1. Last entry dispatches to
 ; tx_ctrl_machine_type at &867F, immediately after
 ; the table.
 .tx_ctrl_dispatch_lo
@@ -4798,10 +4798,10 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; 
 ; 2-byte handler address for the NETV extended
 ; vector, read by write_vector_entry at Y=&36
-; from svc_dispatch_lo_offset (&8E3E). Points to
-; netv_handler (&A968) which dispatches OSWORDs
-; 0-8 to Econet handlers. Interleaved with the
-; OSBYTE wrapper code in the data area.
+; from svc_dispatch_lo_offset (push_dispatch_lo+2).
+; Points to netv_handler (&A968) which dispatches
+; OSWORDs 0-8 to Econet handlers. Interleaved with
+; the OSBYTE wrapper code in the data area.
 .netv_handler_addr
     equw netv_handler                                                 ; 8e74: 68 a9       h.             ; NETV handler: netv_handler (&A968)
 
@@ -5000,10 +5000,10 @@ ws_init_data = error_bad_station+2
 ; Workspace init data
 ; 
 ; 3 bytes read via LDA ws_init_data,X with X=3
-; down to 1. ws_init_data at &8F2B overlaps the
-; high byte of JMP err_bad_station_num; byte at
-; &8F2B itself (&92) is never read (BNE exits
-; when X=0). Stores to l0d6e, l0d6f, l0d70.
+; down to 1. ws_init_data overlaps the high byte
+; of JMP err_bad_station_num; byte 0 is the JMP
+; operand (&92), never read (BNE exits when X=0).
+; Stores to l0d6e, l0d6f, l0d70.
     equb &ff                                                          ; 8f2c: ff          .              ; l0d6e: init=&FF (retry count)
     equb &28                                                          ; 8f2d: 28          (              ; l0d6f: init=&28 (40, receive poll count)
     equb &0a                                                          ; 8f2e: 0a          .              ; l0d70: init=&0A (10, machine peek retries)
@@ -10585,7 +10585,8 @@ bridge_ws_init_data = compare_bridge_status+1
 ; loop_copy_bridge_init. X counts down &0B to 0,
 ; copying the TXCB template into &C0. Y counts up
 ; &18 to &23, copying the RXCB data into workspace
-; via bridge_ws_init_data (&A844) + Y = &A85C.
+; via bridge_ws_init_data (compare_bridge_status+1)
+; + Y to reach the RXCB data area.
 ; 
 ; The TX broadcasts "BRIDGE" as immediate data on
 ; port &9C to all stations (FF.FF). The RX listens
@@ -11769,7 +11770,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; 
 ; 26 thresholds dividing 0-255 into size classes.
 ; Table base overlaps with the JMP high byte at
-; &AD31 (entry 0 = &94, never reached). Searched
+; cdir_dispatch_col+2 (entry 0 = &94, never reached). Searched
 ; from index 26 down to 0; the result index (1-26)
 ; is stored as the directory allocation size class.
 ; Default when no size argument given: index 2.
@@ -12901,7 +12902,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; printer server slot buffers. Not referenced by
 ; label; accessed indirectly by init_ps_slot_from_rx
 ; via LDA write_ps_slot_link_addr,Y where the base
-; address &B11B plus Y offset &78 computes to &B193.
+; address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B193.
 ; 
 ; Structure: 4-byte header (control, port, station,
 ; network) followed by two 4-byte buffer descriptors
@@ -13115,7 +13116,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; 
 ; Copies the 12-byte ps_slot_txcb_template (&B193)
 ; into workspace at offsets &78-&83 via indexed
-; addressing from write_ps_slot_link_addr (&B11B).
+; addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).
 ; Substitutes net_rx_ptr_hi at offsets &7D and &81
 ; (the hi bytes of the two buffer pointers) so they
 ; point into the current RX buffer page.
@@ -15159,14 +15160,14 @@ net_channel_err_string = err_net_chan_not_found+2
 
 ; Resume normal ROM address space
 ; 
-; The preceding &200 bytes (ROM addresses &BC90-&BE8F)
-; are the source data for two relocated code blocks:
-;   &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)
-;   &BD90-&BE8F -> &0600-&06FF (page 6: Econet)
+; The preceding 512 bytes are the source data for
+; two relocated code blocks (see move() calls):
+;   page 5 source -> &0500-&05FF (Tube host code)
+;   page 6 source -> &0600-&06FF (Econet handlers)
 ; py8dis assembles those blocks at their runtime
 ; addresses (&0500/&0600) via org directives. This
-; org &BE90 restores the origin to the actual ROM
-; address for the remaining non-relocated code.
+; org restores the origin to the actual ROM address
+; for the remaining non-relocated code.
     sta brkv+1                                                        ; be90: 8d 03 02    ...            ; Store BRK vector high byte
     lda #&8e                                                          ; be93: a9 8e       ..             ; A=&8E: Tube control register value
     sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...            ; Write Tube control register

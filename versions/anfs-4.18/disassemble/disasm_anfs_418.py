@@ -1179,7 +1179,7 @@ label(0xAD2F, "done_cdir_size")
 label(0xAD43, "cdir_alloc_size_table")
 
 # Split the 27-byte *CDir allocation size threshold table into
-# individual bytes for annotation. Table base at &AD31 overlaps
+# individual bytes for annotation. Table base (cdir_dispatch_col+2) overlaps
 # with the JMP operand high byte; data bytes run &AD32-&AD4C.
 for i in range(27):
     byte(0xAD44 + i)
@@ -2213,8 +2213,8 @@ subroutine(0x81E7, "nmi_data_rx",
     "against our station address, then installs continuation handlers\n"
     "to read the remaining data payload into the open port buffer.\n"
     "\n"
-    "Handler chain: &81DC (AP+addr check) -> &81F0 (net=0 check) ->\n"
-    "&8206 (skip ctrl+port) -> &8239 (bulk data read) -> &826D (completion)")
+    "Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->\n"
+    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)")
 subroutine(0x821C, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="Selects between the normal bulk RX handler (&8239)\n"
@@ -2235,12 +2235,12 @@ subroutine(0x8244, "nmi_data_rx_bulk",
     description="Reads data payload bytes from the RX FIFO and stores them into\n"
     "the open port buffer at (open_port_buf),Y. Reads bytes in pairs\n"
     "(like the scout data loop), checking SR2 between each pair.\n"
-    "SR2 non-zero (FV or other) -> frame completion at &826D.\n"
+    "SR2 non-zero (FV or other) -> frame completion at &8278.\n"
     "SR2 = 0 -> RTI, wait for next NMI to continue.")
 subroutine(0x8278, "data_rx_complete",
     title="Data frame completion",
     description="Reached when SR2 non-zero during data RX (FV detected).\n"
-    "Same pattern as scout completion (&812C): disables PSE (CR2=&84,\n"
+    "Same pattern as scout completion (&8137): disables PSE (CR2=&84,\n"
     "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
     "If extra data available and buffer space remains, stores it.\n"
     "Proceeds to send the final ACK via &82E4.")
@@ -2388,8 +2388,8 @@ subroutine(0x84F6, "imm_op_build_reply",
     "idle listen.")
 subroutine(0x8543, "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="Pushes address &857A on the stack (so RTS returns to\n"
-    "tx_done_exit), then does JMP (l0d66) to call the remote\n"
+    description="Pushes (tx_done_exit - 1) on the stack so RTS returns\n"
+    "to tx_done_exit, then does JMP (l0d66) to call the remote\n"
     "JSR target routine. When that routine returns via RTS,\n"
     "control resumes at tx_done_exit.")
 subroutine(0x854C, "tx_done_econet_event",
@@ -2520,7 +2520,7 @@ subroutine(0x8732, "nmi_tx_complete",
     "CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).\n"
     "Checks workspace flags to decide next action:\n"
     "  - bit6 set at &0D4A -> tx_result_ok at &88C6\n"
-    "  - bit0 set at &0D4A -> handshake_await_ack at &886E\n"
+    "  - bit0 set at &0D4A -> handshake_await_ack at &8878\n"
     "  - Otherwise -> install nmi_reply_scout at &8744")
 subroutine(0x874E, "nmi_reply_scout",
     title="RX reply scout handler",
@@ -2532,9 +2532,9 @@ subroutine(0x8762, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="Reads the second byte of the reply scout (destination network) and\n"
     "validates it is zero (local network). Installs nmi_reply_validate\n"
-    "(&876F) for the remaining two bytes (source station and network).\n"
+    "(&8779) for the remaining two bytes (source station and network).\n"
     "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\n"
-    "If IRQ is still set, falls through directly to &876F without an RTI,\n"
+    "If IRQ is still set, falls through directly to &8779 without an RTI,\n"
     "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
     "in quick succession.")
 subroutine(0x8779, "nmi_reply_validate",
@@ -2542,8 +2542,8 @@ subroutine(0x8779, "nmi_reply_validate",
     description="Reads the source station and source network from the reply scout and\n"
     "validates them against the original TX destination (&0D20/&0D21).\n"
     "Sequence:\n"
-    "  1. Check SR2 bit7 (RDA) at &876F -- must see data available\n"
-    "  2. Read source station at &8774, compare to &0D20 (tx_dst_stn)\n"
+    "  1. Check SR2 bit7 (RDA) at &8779 -- must see data available\n"
+    "  2. Read source station at &877E, compare to &0D20 (tx_dst_stn)\n"
     "  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n"
     "  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\n"
     "If all checks pass, the reply scout is valid and the ROM proceeds\n"
@@ -2555,9 +2555,9 @@ subroutine(0x87C1, "nmi_scout_ack_src",
     "and writes station + network=0 to the TX FIFO. Then\n"
     "checks bit 1 of rx_src_net to select between the\n"
     "immediate-op data NMI handler and the normal\n"
-    "nmi_data_tx handler at &87E4. Installs the chosen\n"
+    "nmi_data_tx handler at &87EE. Installs the chosen\n"
     "handler via set_nmi_vector. Shares the tx_check_tdra\n"
-    "entry at &87BD with ack_tx.")
+    "entry at &87C7 with ack_tx.")
 subroutine(0x87E6, "nmi_data_tx",
     title="TX data phase: send payload",
     description="Transmits the data payload of a four-way\n"
@@ -2581,7 +2581,7 @@ subroutine(0x8878, "handshake_await_ack",
 subroutine(0x8884, "nmi_final_ack",
     title="RX final ACK handler",
     description="Receives the final ACK in a four-way handshake. Same validation\n"
-    "pattern as the reply scout handler (&8744-&876F):\n"
+    "pattern as the reply scout handler (&874E-&8779):\n"
     "  &887A: Check AP, read dest_stn, compare to our station\n"
     "  &888E: Check RDA, read dest_net, validate = 0\n"
     "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
@@ -2658,7 +2658,7 @@ subroutine(0x8983, "wait_idle_and_reset",
     "straight to adlc_rx_listen. Otherwise spins in a\n"
     "tight loop comparing the NMI handler vector at\n"
     "&0D0C/&0D0D against the address of nmi_rx_scout\n"
-    "(&80B3). When the NMI handler returns to idle, falls\n"
+    "(&80BE). When the NMI handler returns to idle, falls\n"
     "through to save_econet_state to clear the initialised\n"
     "flags and re-enter RX listen mode.")
 subroutine(0x8996, "save_econet_state",
@@ -2676,10 +2676,10 @@ subroutine(0x89A7, "nmi_bootstrap_entry",
     description="An alternate NMI handler that lives in the ROM itself rather than\n"
     "in the RAM workspace at &0D00. Unlike the RAM shim (which uses a\n"
     "self-modifying JMP to dispatch to different handlers), this one\n"
-    "hardcodes JMP nmi_rx_scout (&80B3). Used as the initial NMI handler\n"
+    "hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler\n"
     "before the workspace has been properly set up during initialisation.\n"
     "Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\n"
-    "LDA romsel, STA &FE30, JMP &80B3.")
+    "LDA romsel, STA &FE30, JMP &80BE.")
 subroutine(0x89B5, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="A version of the NMI vector-setting subroutine and RTI sequence\n"
@@ -2791,13 +2791,21 @@ subroutine(0x8E09, "clear_if_station_match",
     "by cmd_iam when processing a file server address\n"
     "in the logon command.",
     on_exit={"a": "0 if matched, non-zero if different"})
+subroutine(0x8E43, "dir_op_dispatch",
+    title="Dispatch directory operation via PHA/PHA/RTS",
+    description="Validates X < 5 and sets Y=&0E as the directory\n"
+    "dispatch offset, then falls through to svc_dispatch\n"
+    "for PHA/PHA/RTS table dispatch. Called by\n"
+    "tx_done_os_proc to handle directory operations\n"
+    "(e.g. FILEV, ARGSV) from the remote JSR service.",
+    on_entry={"x": "directory operation code (0-4)"})
 subroutine(0x8E8C, "osbyte_x0_y0",
     title="OSBYTE wrapper with X=0, Y=0",
     description="Sets X=0 and Y=0 then branches to jmp_osbyte.\n"
     "Called from the Econet OSBYTE dispatch chain to\n"
     "handle OSBYTEs that require both X and Y cleared.\n"
     "The unconditional BEQ (after LDY #0 sets Z)\n"
-    "reaches the JMP osbyte instruction at &8E71.",
+    "reaches the JMP osbyte instruction at &8E87.",
     on_entry={"a": "OSBYTE number"},
     on_exit={"x": "0", "y": "0"})
 subroutine(0x8EAC, "store_ws_page_count",
@@ -2830,7 +2838,7 @@ subroutine(0x8F70, "write_vector_entry",
     on_exit={"y": "workspace page number + 1"})
 subroutine(0x8F8C, "restore_fs_context",
     title="Restore FS context from saved workspace",
-    description="Copies 8 bytes (offsets 6 to &0D) from the saved\n"
+    description="Copies 8 bytes (offsets 2 to 9) from the saved\n"
     "workspace at &0DFA back into the receive control\n"
     "block via (net_rx_ptr). This restores the station\n"
     "identity, directory handles, and library path after\n"
@@ -2919,7 +2927,7 @@ subroutine(0x9269, "get_access_bits",
     "directory entry via (fs_options),Y, masks to 6\n"
     "bits (AND #&3F), then sets X=4 and branches to\n"
     "begin_prot_encode to map through the protection\n"
-    "bit encode table at &9272. Called by\n"
+    "bit encode table at &9286. Called by\n"
     "check_and_setup_txcb for owner and public access.",
     on_exit={"a": "encoded access flags"})
 subroutine(0x9273, "get_prot_bits",
@@ -2928,7 +2936,7 @@ subroutine(0x9273, "get_prot_bits",
     "start at table index 0, then enters the shared\n"
     "encoding loop at begin_prot_encode. Shifts out\n"
     "each source bit and ORs in the corresponding\n"
-    "value from prot_bit_encode_table (&9272). Called\n"
+    "value from prot_bit_encode_table (&9286). Called\n"
     "by send_txcb_swap_addrs and check_and_setup_txcb.",
     on_entry={"a": "raw protection bits (low 5 used)"},
     on_exit={"a": "encoded protection flags"})
@@ -3034,7 +3042,7 @@ subroutine(0x9467, "init_txcb_port",
     on_entry={"a": "port number"})
 subroutine(0x9473, "init_txcb",
     title="Initialise TX control block from ROM template",
-    description="Copies 12 bytes from txcb_init_template (&9477)\n"
+    description="Copies 12 bytes from txcb_init_template (&948B)\n"
     "into the TXCB workspace at &00C0. For the first\n"
     "two bytes (Y=0,1), also copies the destination\n"
     "station/network from &0E00 into txcb_dest (&C2).\n"
@@ -3548,7 +3556,7 @@ subroutine(0xA7BF, "update_fcb_flag_bits",
               "x": "current FCB index (preserved)"})
 subroutine(0xA7E4, "osword_13_read_rx_flag",
     title="OSWORD &13 sub 8: read RX control block flag",
-    description="Returns byte 5 of the current RX control\n"
+    description="Returns byte 1 of the current RX control\n"
     "block in PB[1].")
 subroutine(0xA7ED, "osword_13_read_rx_port",
     title="OSWORD &13 sub 9: read RX port byte",
@@ -3618,7 +3626,7 @@ subroutine(0xA97A, "netv_handler",
     "OSWORDs 0-8 via push_osword_handler_addr. OSWORDs\n"
     ">= 9 are ignored (registers restored, RTS returns\n"
     "to MOS). Address stored at netv_handler_addr\n"
-    "(&8E74) in the extended vector data area.")
+    "(&8E8A) in the extended vector data area.")
 subroutine(0xA993, "push_osword_handler_addr",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD handler dispatch table\n"
@@ -3961,9 +3969,9 @@ subroutine(0xB198, "print_station_addr",
 
 subroutine(0xB2E0, "init_ps_slot_from_rx",
     title="Initialise PS slot buffer from template data",
-    description="Copies the 12-byte ps_slot_txcb_template (&B193)\n"
+    description="Copies the 12-byte ps_slot_txcb_template (&B1B7)\n"
     "into workspace at offsets &78-&83 via indexed\n"
-    "addressing from write_ps_slot_link_addr (&B11B).\n"
+    "addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).\n"
     "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
     "(the hi bytes of the two buffer pointers) so they\n"
     "point into the current RX buffer page.")
@@ -4175,6 +4183,13 @@ subroutine(0xBADD, "print_dump_header",
     "column numbers (00-0F), each separated by a space.\n"
     "Provides the column alignment header for *Dump\n"
     "output.")
+subroutine(0xBB03, "print_hex_and_space",
+    title="Print hex byte followed by space",
+    description="Saves A, prints it as a 2-digit hex value via\n"
+    "print_hex_byte, outputs a space character, then\n"
+    "restores A from the stack. Used by cmd_dump and\n"
+    "print_dump_header for column-aligned hex output.",
+    on_entry={"a": "byte value to print"})
 subroutine(0xBC3D, "close_ws_file",
     title="Close file handle stored in workspace",
     description="Loads the file handle from ws_page and closes it\n"
@@ -4318,9 +4333,8 @@ comment(0x0484, "BEGIN: enable interrupts for Tube host code", inline=True)
 comment(0x0485, "C=1: hard break, claim addr &FF", inline=True)
 comment(0x0487, "C=0, A!=0: re-init path", inline=True)
 comment(0x0489, "Z=1 from C=0 path: just acknowledge", inline=True)
-comment(0x048C, "X=0 for OSBYTE", inline=True)
-# Removed: Y=&FF and OSBYTE &FD comments — 4.18 uses LDX &028D directly
-# instead of separate LDY/OSBYTE instructions
+comment(0x048C, "Read last break type from OS workspace", inline=True)
+# 4.18 uses LDX &028D directly instead of OSBYTE &FD
 comment(0x048F, "Soft break (X=0): re-init Tube and restart", inline=True)
 comment(0x0491, "Claim address &FF (startup = highest prio)", inline=True)
 comment(0x0493, "Request address claim from Tube system", inline=True)
@@ -4807,12 +4821,12 @@ comment(0x81CC, "CR1=&44: RX_RESET | TIE", inline=True)
 comment(0x81CE, "Write CR1: TX mode for ACK", inline=True)
 comment(0x81D1, "CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE", inline=True)
 comment(0x81D3, "Write CR2: enable TX with PSE", inline=True)
-comment(0x81D6, "Install data_rx_setup at &81D2", inline=True)
+comment(0x81D6, "Install data_rx_setup at &81DD", inline=True)
 comment(0x81D8, "High byte of data_rx_setup handler", inline=True)
 comment(0x81DA, "Send ACK with data_rx_setup as next NMI", inline=True)
 comment(0x81DD, "CR1=&82: TX_RESET | RIE (switch to RX for data frame)", inline=True)
 comment(0x81DF, "Write CR1: switch to RX for data frame", inline=True)
-comment(0x81E2, "Install nmi_data_rx at &81DC", inline=True)
+comment(0x81E2, "Install nmi_data_rx at &81E7", inline=True)
 comment(0x81E4, "Install nmi_data_rx and return from NMI", inline=True)
 comment(0x81E7, "A=1: AP mask for SR2 bit test", inline=True)
 comment(0x81E9, "BIT SR2: test AP bit", inline=True)
@@ -4820,14 +4834,14 @@ comment(0x81EC, "No AP: wrong frame or error", inline=True)
 comment(0x81EE, "Read first byte (dest station)", inline=True)
 comment(0x81F1, "Compare to our station ID (INTOFF)", inline=True)
 comment(0x81F4, "Not for us: error path", inline=True)
-comment(0x81F6, "Install net check handler at &81F0", inline=True)
+comment(0x81F6, "Install net check handler at &81FB", inline=True)
 comment(0x81F8, "Set NMI vector via RAM shim", inline=True)
 comment(0x81FB, "Validate source network = 0", inline=True)
 comment(0x81FE, "SR2 bit7 clear: no data ready -- error", inline=True)
 comment(0x8200, "Read dest network byte", inline=True)
 comment(0x8203, "Network != 0: wrong network -- error", inline=True)
-comment(0x8205, "Install skip handler at &8206", inline=True)
-comment(0x8207, "High byte of &8206 handler", inline=True)
+comment(0x8205, "Install skip handler at &8211", inline=True)
+comment(0x8207, "High byte of &8211 handler", inline=True)
 comment(0x8209, "SR1 bit7: IRQ, data already waiting", inline=True)
 comment(0x820C, "Data ready: skip directly, no RTI", inline=True)
 comment(0x820E, "Install handler and return via RTI", inline=True)
@@ -4932,7 +4946,7 @@ comment(0x82FA, "CR1=&44: RX_RESET | TIE (switch to TX mode)", inline=True)
 comment(0x82FC, "Write CR1: switch to TX mode", inline=True)
 comment(0x82FF, "CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE", inline=True)
 comment(0x8301, "Write CR2: enable TX with status clear", inline=True)
-comment(0x8304, "Install saved next handler (&838B for scout ACK)", inline=True)
+comment(0x8304, "Install saved next handler (&8396 for scout ACK)", inline=True)
 comment(0x8306, "High byte of post-ACK handler", inline=True)
 comment(0x8308, "Store next handler low byte", inline=True)
 comment(0x830B, "Store next handler high byte", inline=True)
@@ -4942,7 +4956,7 @@ comment(0x8314, "TDRA not ready -- error", inline=True)
 comment(0x8316, "Write dest station to TX FIFO", inline=True)
 comment(0x8319, "Write dest network to TX FIFO", inline=True)
 comment(0x831C, "Write dest net byte to FIFO", inline=True)
-comment(0x831F, "Install handler at &831B (write src addr)", inline=True)
+comment(0x831F, "Install handler at &8326 (write src addr)", inline=True)
 comment(0x8321, "High byte of nmi_ack_tx_src", inline=True)
 comment(0x8323, "Set NMI vector to ack_tx_src handler", inline=True)
 comment(0x8326, "Load our station ID (also INTOFF)", inline=True)
@@ -5049,7 +5063,7 @@ comment(0x83F1, "Pass slot index as callback parameter", inline=True)
 comment(0x83F2, "Jump to TX completion with slot index", inline=True)
 comment(0x83F5, "Discard scout and reset RX listen", inline=True)
 comment(0x83F8, "Reset ADLC and return to RX listen", inline=True)
-comment(0x83FB, "A=&B3: low byte of nmi_rx_scout", inline=True)
+comment(0x83FB, "A=&BE: low byte of nmi_rx_scout", inline=True)
 comment(0x83FD, "Y=&80: high byte of nmi_rx_scout", inline=True)
 comment(0x83FF, "Install nmi_rx_scout as NMI handler", inline=True)
 comment(0x8402, "Tube flag bit 1 AND tx_flags bit 1", inline=True)
@@ -5209,7 +5223,7 @@ comment(0x853E, "TX done dispatch table (lo bytes)\n"
     "\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
     "operation types &83-&87. Read by the dispatch at\n"
-    "&8064 via LDA set_rx_buf_len_hi,Y (base &84B1\n"
+    "&8064 via LDA set_rx_buf_len_hi,Y (base &84BB\n"
     "+ Y). High byte is always &85, so targets are\n"
     "&85xx+1. Entries for Y < &83 read from preceding\n"
     "code bytes and are not valid operation types.")
@@ -5366,17 +5380,17 @@ comment(0x8680, "RTS dispatches to control-byte handler", inline=True)
 
 # tx_ctrl_dispatch_lo (&8677): 8-byte dispatch table.
 # Low bytes of PHA/PHA/RTS targets for TX control byte handlers
-# &81-&88. Read by LDA intoff_disable_nmi_op,Y at &8672 (base
-# &85F6 + Y). High byte always &86, so targets are &86xx+1.
+# &81-&88. Read by LDA intoff_disable_nmi_op,Y at &867C (base
+# intoff_test_inactive+1 + Y). High byte always &86, targets are &86xx+1.
 # The last entry (&88) dispatches to tx_ctrl_machine_type at
 # &867F, which is the 4 bytes immediately after the table.
 comment(0x8681, "TX ctrl dispatch table (lo bytes)\n"
     "\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
     "control byte types &81-&88. Read by the dispatch\n"
-    "at &8672 via LDA intoff_disable_nmi_op,Y (base\n"
-    "&85F6 + Y). High byte is always &86, so targets\n"
-    "are &86xx+1. The last entry dispatches to\n"
+    "at &867C via LDA intoff_disable_nmi_op,Y (base\n"
+    "intoff_test_inactive+1). High byte is always &86,\n"
+    "so targets are &86xx+1. Last entry dispatches to\n"
     "tx_ctrl_machine_type at &867F, immediately after\n"
     "the table.")
 comment(0x8689, "scout_status=3 (machine type query)", inline=True)
@@ -5480,9 +5494,9 @@ comment(0x8762, "Read RX byte (destination station)", inline=True)
 comment(0x8765, "No RDA -- error", inline=True)
 comment(0x8767, "Read destination network byte", inline=True)
 comment(0x876A, "Non-zero -- network mismatch, error", inline=True)
-comment(0x876C, "Install next handler at &876F (reply validation)", inline=True)
+comment(0x876C, "Install next handler at &8779 (reply validation)", inline=True)
 comment(0x876E, "BIT SR1: test IRQ (N=bit7) -- more data ready?", inline=True)
-comment(0x8771, "IRQ set -- fall through to &876F without RTI", inline=True)
+comment(0x8771, "IRQ set -- fall through to &8779 without RTI", inline=True)
 comment(0x8773, "IRQ not set -- install handler and RTI", inline=True)
 comment(0x8776, "Store error and return to idle", inline=True)
 comment(0x8779, "BIT SR2: test RDA (bit7). Must be set for valid reply.", inline=True)
@@ -5500,7 +5514,7 @@ comment(0x8795, "CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE (TX in handshake)",
 comment(0x8797, "Write CR2: enable RTS for TX handshake", inline=True)
 comment(0x879A, "CR1=&44: RX_RESET | TIE (TX active for scout ACK)", inline=True)
 comment(0x879C, "Write CR1: reset RX, enable TX interrupt", inline=True)
-comment(0x879F, "Install next handler at &886E (four-way data phase) into &0D43/&0D44", inline=True)
+comment(0x879F, "Install next handler at &8878 (four-way data phase) into &0D43/&0D44", inline=True)
 comment(0x87A1, "High byte &88 of next handler address", inline=True)
 comment(0x87A3, "Store low byte to nmi_next_lo", inline=True)
 comment(0x87A6, "Store high byte to nmi_next_hi", inline=True)
@@ -5522,10 +5536,10 @@ comment(0x87CE, "Write network byte to TX FIFO", inline=True)
 comment(0x87D1, "Test bit 1 of tx_flags", inline=True)
 comment(0x87D3, "Check if immediate-op or data-transfer", inline=True)
 comment(0x87D6, "Bit 1 set: immediate op, use alt handler", inline=True)
-comment(0x87D8, "Install nmi_data_tx at &87E4", inline=True)
+comment(0x87D8, "Install nmi_data_tx at &87EE", inline=True)
 comment(0x87DA, "High byte of handler address", inline=True)
 comment(0x87DC, "Install and return via set_nmi_vector", inline=True)
-comment(0x87DF, "Install nmi_imm_data at &882D", inline=True)
+comment(0x87DF, "Install nmi_imm_data at &8837", inline=True)
 comment(0x87E1, "High byte of handler address", inline=True)
 comment(0x87E3, "Install and return via set_nmi_vector", inline=True)
 comment(0x87E6, "Y = buffer offset, resume from last position", inline=True)
@@ -5558,8 +5572,8 @@ comment(0x881D, "CR2=&3F: TX_LAST_DATA (close data frame)", inline=True)
 comment(0x881F, "Write CR2 to close frame", inline=True)
 comment(0x8822, "Check tx_flags for next action", inline=True)
 comment(0x8825, "Bit7 clear: error, install saved handler", inline=True)
-comment(0x8827, "Install discard_reset_listen at &83EB", inline=True)
-comment(0x8829, "High byte of &83EB handler", inline=True)
+comment(0x8827, "Install discard_reset_listen at &83F5", inline=True)
+comment(0x8829, "High byte of &83F5 handler", inline=True)
 comment(0x882B, "Set NMI vector and return", inline=True)
 comment(0x882E, "Load saved next handler low byte", inline=True)
 comment(0x8831, "Load saved next handler high byte", inline=True)
@@ -5635,15 +5649,15 @@ comment(0x88D8, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x88DA, "&80: completion flag for &0D3A", inline=True)
 comment(0x88DC, "Signal TX complete", inline=True)
 comment(0x88DF, "Full ADLC reset and return to idle listen", inline=True)
-# Unreferenced dead data: 16 bytes between JMP at &88D5 and
-# tx_calc_transfer at &88E8. No code or data reference points here.
+# Unreferenced dead data: 16 bytes between JMP at &88DF and
+# tx_calc_transfer at &88F2. No code or data reference points here.
 comment(0x88E2, "Unreferenced dead data (16 bytes)\n"
     "\n"
-    "16 bytes between JMP discard_reset_rx (&88D5) and\n"
-    "tx_calc_transfer (&88E8). Unreachable as code (after\n"
+    "16 bytes between JMP discard_reset_rx (&88DF) and\n"
+    "tx_calc_transfer (&88F2). Unreachable as code (after\n"
     "an unconditional JMP) and unreferenced as data. No\n"
     "label, index, or indirect pointer targets any address\n"
-    "in the &88D8-&88E7 range. Likely unused remnant from\n"
+    "in the &88E2-&88F1 range. Likely unused remnant from\n"
     "development.")
 comment(0x88E2, "Dead data: &0E", inline=True)
 comment(0x88E3, "Dead data: &0E", inline=True)
@@ -5771,13 +5785,13 @@ comment(0x89C3, "INTON: re-enable NMIs", inline=True)
 comment(0x89C6, "Return from interrupt", inline=True)
 
 # Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo.
-# The NMI shim copy (Y=1..&20) ends at &89BC; these 3 bytes at
+# The NMI shim copy (Y=1..&20) ends at &89C6; these 3 bytes at
 # &89BD-&89BF are outside the copy range and unreferenced.
 comment(0x89C7, "Unreferenced dead data (3 bytes)\n"
     "\n"
-    "3 bytes between the RTI at &89BC (end of the NMI\n"
-    "shim ROM source) and svc_dispatch_lo at &89C0.\n"
-    "The init copy loop (Y=1..&20) copies &899D-&89BC\n"
+    "3 bytes between the RTI at &89C6 (end of the NMI\n"
+    "shim ROM source) and svc_dispatch_lo at &89CA.\n"
+    "The init copy loop (Y=1..&20) copies &89A7-&89C6\n"
     "to &0D00-&0D1F; these bytes are outside that range\n"
     "and unreferenced. Likely unused development remnant.")
 comment(0x89C7, "Dead data: &01", inline=True)
@@ -5927,7 +5941,7 @@ comment(0x8B2D, "Compare with stored checksum", inline=True)
 comment(0x8B2F, "Match: checksum valid", inline=True)
 comment(0x8B31, "Mismatch: raise checksum error", inline=True)
 comment(0x8B34, "Call FSCV with A=6 (new FS)", inline=True)
-comment(0x8B37, "Y=&0D: end of FS context block", inline=True)
+comment(0x8B37, "Y=9: end of FS context block", inline=True)
 comment(0x8B39, "Load byte from receive block", inline=True)
 comment(0x8B3B, "Store into FS workspace", inline=True)
 comment(0x8B3E, "Decrement index", inline=True)
@@ -6087,7 +6101,7 @@ comment(0x8C8F, "Load dispatch address high", inline=True)
 comment(0x8C92, "Push dispatch high for RTS", inline=True)
 comment(0x8C93, "Load dispatch address low", inline=True)
 comment(0x8C96, "Push dispatch low for RTS", inline=True)
-comment(0x8C97, "Dispatch via RTS (returns to &8C75)", inline=True)
+comment(0x8C97, "Dispatch via RTS (returns to &8C80)", inline=True)
 comment(0x8C98, "Restore flags from before match", inline=True)
 comment(0x8C99, "End of command line?", inline=True)
 comment(0x8C9B, "No: try matching next topic", inline=True)
@@ -6117,7 +6131,7 @@ comment(0x8CEB, "Non-zero: already initialised, return", inline=True)
 comment(0x8CED, "Load boot flags", inline=True)
 comment(0x8CF0, "Set bit 2 (auto-boot in progress)", inline=True)
 comment(0x8CF2, "Store updated boot flags", inline=True)
-comment(0x8CF5, "X=4: boot filename parameter", inline=True)
+comment(0x8CF5, "X=&0F: boot filename address low", inline=True)
 comment(0x8CF7, "Y=&8D: boot filename address high", inline=True)
 comment(0x8CF9, "Execute boot file", inline=True)
 comment(0x8CFC, "A=6: notify new filing system", inline=True)
@@ -6247,8 +6261,8 @@ comment(0x8E58, "Dispatch via RTS", inline=True)
 # all NFS versions). Likely a development remnant.
 comment(0x8E59, "Unreferenced dead data (8 bytes)\n"
     "\n"
-    "8 bytes between return_4 (&8E42) and fs_vector_table\n"
-    "(&8E4B). Contains the ASCII string \"PRINT \" followed\n"
+    "8 bytes between dispatch_rts and fs_vector_table\n"
+    "(&8E61). Contains the ASCII string \"PRINT \" followed\n"
     "by &01 and &00. Unreferenced by any code or data\n"
     "pointer. Absent from all NFS versions (3.34-3.65);\n"
     "unique to ANFS. Likely a development remnant — possibly\n"
@@ -6259,7 +6273,7 @@ comment(0x8E83, "X=0", inline=True)
 comment(0x8E85, "Y=&FF", inline=True)
 comment(0x8E87, "Execute OSBYTE and return", inline=True)
 
-# NETV handler address pair at &8E74. Read by write_vector_entry
+# NETV handler address pair at &8E8A. Read by write_vector_entry
 # via LDA svc_dispatch_lo_offset,Y at Y=&36/&37. Interleaved
 # with OSBYTE wrapper code at svc_dispatch_lo_offset + &30..&35.
 comment(0x8E8A, "NETV handler address\n"
@@ -6403,7 +6417,7 @@ comment(0x8F84, "Restore FS state if previously active", inline=True)
 comment(0x8F87, "Get workspace page for ROM slot", inline=True)
 comment(0x8F8A, "Advance Y past workspace page", inline=True)
 comment(0x8F8B, "Return", inline=True)
-comment(0x8F8C, "Y=&0D: end of FS context block", inline=True)
+comment(0x8F8C, "Y=9: end of FS context block", inline=True)
 comment(0x8F8E, "Load FS context byte", inline=True)
 comment(0x8F91, "Store into receive block", inline=True)
 comment(0x8F93, "Decrement index", inline=True)
@@ -6463,7 +6477,7 @@ comment(0x9011, "Print ' No Clock' via inline", inline=True)
 comment(0x901D, "NOP (string terminator)", inline=True)
 comment(0x9021, "Return", inline=True)
 
-# cmd_syntax_strings (&900E-&910D): null-terminated *HELP syntax
+# cmd_syntax_strings (&9022-&910D): null-terminated *HELP syntax
 # strings. Multi-line strings use &0D as a line break. Indexed
 # via cmd_syntax_table offsets from the low 5 bits of each
 # command table syntax descriptor byte.
@@ -6506,12 +6520,12 @@ comment(0x9117, "Syn 12: *Print, *Type", inline=True)
 comment(0x9121, "Null terminator", inline=True)
 
 # cmd_syntax_table (&910E): 13-entry offset table for *HELP syntax.
-# Each byte is an offset into cmd_syntax_strings (&900E). The print
+# Each byte is an offset into cmd_syntax_strings (&9022). The print
 # loop does INY before LDA, so the offset points to the byte before
 # the first character of each syntax string.
 comment(0x9122, "Command syntax string offset table\n"
     "\n"
-    "13 offsets into cmd_syntax_strings (&900E).\n"
+    "13 offsets into cmd_syntax_strings (&9022).\n"
     "Indexed by the low 5 bits of each command table\n"
     "syntax descriptor byte. Index &0E is handled\n"
     "separately as a shared-commands list. The print\n"
@@ -6543,14 +6557,14 @@ comment(0x913A, "Digit >= &0A?", inline=True)
 comment(0x913C, "No: skip letter adjustment", inline=True)
 comment(0x913E, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
 comment(0x9140, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
-# txcb_init_template (&9477) — 12-byte TXCB template
+# txcb_init_template (&948B) — 12-byte TXCB template
 comment(0x948B, "TXCB initialisation template (12 bytes)\n"
     "\n"
     "Copied by init_txcb into the TXCB workspace at\n"
     "&00C0. For offsets 0-1, the destination station\n"
     "bytes are also copied from l0e00 into txcb_dest.\n"
     "\n"
-    "The &FF byte at offset 6 (bit_test_ff, &947D)\n"
+    "The &FF byte at offset 6 (bit_test_ff, &9491)\n"
     "serves double duty: it is part of this template\n"
     "AND a BIT target used by 22 callers to set the\n"
     "V and N flags without clobbering A.")
@@ -6574,7 +6588,7 @@ comment(0x9496, "Offset 11: extended addr fill (&FF)", inline=True)
 # Indices 0-14: service dispatch (index = mapped service code + 1).
 # Indices 15-36: extended dispatch for FS commands and OSWORD routing.
 # Service codes 1-12 map directly; 18 maps to index 14 via SBC #5.
-# Indices 1, 7, 11 point to &8E58 (RTS = no-op).
+# Indices 1, 7, 11 point to dispatch_rts (RTS = no-op).
 
 comment(0x89CA, """\
 Service dispatch table (37 entries, split lo/hi).
@@ -7339,7 +7353,7 @@ for i in range(3):
 
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84BB)   # After dispatch table data
-entry(0x84CB)   # After &84B1 block
+entry(0x84CB)   # After &84BB block
 entry(0x88E2)   # 16 bytes after NMI code
 entry(0xA5A4)   # 118-byte undecoded block
 entry(0xA619)   # 552-byte undecoded block (largest remaining)
@@ -7408,7 +7422,7 @@ for i, (name, handler_addr) in enumerate(handler_names):
 label(0x8E59, "print_string")
 # Dead data bytes &01 &00 at &8E5F-&8E60 (already classified by py8dis)
 
-# NETV handler address pair at &8E74 (read by write_vector_entry)
+# NETV handler address pair at &8E8A (read by write_vector_entry)
 label(0x8E8A, "netv_handler_addr")
 label(0xA97A, "netv_handler")
 word(0x8E8A)
@@ -7617,7 +7631,7 @@ comment(0xAD3F, "Y=&1B: *CDir FS command code", inline=True)
 comment(0xAD41, "Send command to file server", inline=True)
 
 # cdir_alloc_size_table (&AD32): *CDir allocation size thresholds.
-# Table base label is at &AD31 (overlapping the JMP operand high
+# Table base is at cdir_dispatch_col+2 (overlapping the JMP operand high
 # byte at &AD2F). The search loop (LDX #&1B / DEX / CMP table,X /
 # BCC) scans indices 26 down to 0; index 0 reads &94 from the JMP
 # but is unreachable because index 1 (threshold &00) always matches.
@@ -7625,8 +7639,8 @@ comment(0xAD41, "Send command to file server", inline=True)
 comment(0xAD44, "*CDir allocation size threshold table\n"
     "\n"
     "26 thresholds dividing 0-255 into size classes.\n"
-    "Table base overlaps with the JMP high byte at\n"
-    "&AD31 (entry 0 = &94, never reached). Searched\n"
+    "Table base (cdir_dispatch_col+2) overlaps with\n"
+    "the JMP high byte (entry 0, never reached). Searched\n"
     "from index 26 down to 0; the result index (1-26)\n"
     "is stored as the directory allocation size class.\n"
     "Default when no size argument given: index 2.")
@@ -8798,9 +8812,9 @@ comment(0xB1B1, "Get station number", inline=True)
 comment(0xB1B3, "Restore flags", inline=True)
 comment(0xB1B4, "Print station as 3 digits", inline=True)
 
-# ps_slot_txcb_template (&B193): 12-byte TXCB template for PS slots.
+# ps_slot_txcb_template (&B1B7): 12-byte TXCB template for PS slots.
 # Accessed indirectly by init_ps_slot_from_rx (&B2C4) via:
-#   LDA write_ps_slot_link_addr,Y  (base &B11B + Y=&78 = &B193)
+#   LDA write_ps_slot_link_addr,Y  (base write_ps_slot_hi_link+1 + Y=&78 = &B1B7)
 # This is the same 12-byte TXCB structure used by
 # tx_econet_txcb_template (&AC6E) and rx_palette_txcb_template
 # (&AC7A). Bytes at workspace offsets &7D and &81 (positions 5
@@ -8812,7 +8826,7 @@ comment(0xB1B7, "PS slot transmit control block template\n"
     "printer server slot buffers. Not referenced by\n"
     "label; accessed indirectly by init_ps_slot_from_rx\n"
     "via LDA write_ps_slot_link_addr,Y where the base\n"
-    "address &B11B plus Y offset &78 computes to &B193.\n"
+    "address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B1B7.\n"
     "\n"
     "Structure: 4-byte header (control, port, station,\n"
     "network) followed by two 4-byte buffer descriptors\n"
@@ -9454,7 +9468,7 @@ comment(0xA2BC, "Store as command tail pointer high", inline=True)
 comment(0xA2BF, "Save text pointer for later", inline=True)
 comment(0xA2C2, "X=&0E: OSWORD parameter offset", inline=True)
 comment(0xA2C4, "Store as block offset high", inline=True)
-comment(0xA2C6, "A=&10: OSWORD parameter size", inline=True)
+comment(0xA2C6, "A=&0E: OSWORD parameter size", inline=True)
 comment(0xA2C8, "Store as options pointer", inline=True)
 comment(0xA2CA, "Store to l0e16", inline=True)
 comment(0xA2CD, "X=&4A: FS command table offset", inline=True)
@@ -9692,7 +9706,7 @@ comment(0x9280, "Bit set: OR in encoded value", inline=True)
 comment(0x9283, "More bits to process", inline=True)
 comment(0x9285, "Return encoded access in A", inline=True)
 
-# prot_bit_encode_table (&9272) — bit remapping table
+# prot_bit_encode_table (&9286) — bit remapping table
 comment(0x9286, "Protection/access bit encode table\n"
     "\n"
     "11-entry lookup table used by get_prot_bits and\n"
@@ -9805,7 +9819,7 @@ comment(0xA4FA, "Y=6: save 6 workspace bytes", inline=True)
 comment(0xA4FC, "Load current workspace byte", inline=True)
 # Copy osword_flag to parameter block on return
 comment(0xA4FF, "Save on stack", inline=True)
-comment(0xA50C, "Copy 3 bytes (Y=2,1,0)", inline=True)
+comment(0xA50C, "Y=&FA: restore 6 workspace bytes", inline=True)
 comment(0xA50E, "Restore saved workspace byte", inline=True)
 comment(0xA500, "Load OSWORD parameter byte", inline=True)
 comment(0xA50F, "Store to osword_flag workspace", inline=True)
@@ -10244,8 +10258,8 @@ comment(0xA7E2, "Back to X", inline=True)
 comment(0xA7E3, "Return", inline=True)
 
 # osword_13_read_rx_flag (&A7E7): sub 8 — read RX flag
-comment(0xA7E4, "Y=5: RX control block offset", inline=True)
-comment(0xA7E6, "Load (net_rx_ptr)+5", inline=True)
+comment(0xA7E4, "Y=1: RX control block offset", inline=True)
+comment(0xA7E6, "Load (net_rx_ptr)+1", inline=True)
 comment(0xA7E8, "Y=0", inline=True)
 comment(0xA7EA, "Store to PB[1] and return", inline=True)
 
@@ -10320,7 +10334,8 @@ comment(0xA84D, "Bridge discovery init data (24 bytes)\n"
     "loop_copy_bridge_init. X counts down &0B to 0,\n"
     "copying the TXCB template into &C0. Y counts up\n"
     "&18 to &23, copying the RXCB data into workspace\n"
-    "via bridge_ws_init_data (&A844) + Y = &A85C.\n"
+    "via bridge_ws_init_data (compare_bridge_status+1)\n"
+    "+ Y to reach the RXCB data area.\n"
     "\n"
     "The TX broadcasts \"BRIDGE\" as immediate data on\n"
     "port &9C to all stations (FF.FF). The RX listens\n"
@@ -10888,7 +10903,7 @@ comment(0xAB82, "Control byte &14 (repeat count)", inline=True)
 # cab72: transmit spool data with retry
 comment(0xAB84, "Save retry count", inline=True)
 comment(0xAB85, "X=&0B: 12 bytes of template", inline=True)
-comment(0xAB87, "Y=&30: workspace offset for TXCB", inline=True)
+comment(0xAB87, "Y=&2C: workspace offset for TXCB", inline=True)
 
 # Copy TX template to workspace
 comment(0xAB89, "Load template byte", inline=True)
@@ -10901,9 +10916,9 @@ comment(0xAB94, "Y=2: workspace offset for station", inline=True)
 comment(0xAB96, "Load station number", inline=True)
 comment(0xAB98, "Save station", inline=True)
 comment(0xAB9A, "Load network number", inline=True)
-comment(0xAB9C, "Y=&28: TXCB dest network offset", inline=True)
+comment(0xAB9C, "Y=&24: TXCB dest network offset", inline=True)
 comment(0xAB9E, "Store network to TXCB", inline=True)
-comment(0xABA0, "Y=&27", inline=True)
+comment(0xABA0, "Y=&23", inline=True)
 comment(0xABA1, "Restore station", inline=True)
 comment(0xABA2, "Store station to TXCB", inline=True)
 comment(0xABA4, "X=&0B: 12 bytes of RX template", inline=True)
@@ -10933,7 +10948,7 @@ comment(0xABCB, "Store zero", inline=True)
 comment(0xABCD, "Set TX high to workspace page", inline=True)
 comment(0xABCF, "Store workspace high byte", inline=True)
 comment(0xABD1, "Wait for TX acknowledgement", inline=True)
-comment(0xABD4, "Y=&31: check reply status", inline=True)
+comment(0xABD4, "Y=&2D: reply status offset", inline=True)
 comment(0xABD6, "Load reply byte", inline=True)
 comment(0xABD8, "Zero: success", inline=True)
 comment(0xABDA, "Status = 3? (busy, can retry)", inline=True)
@@ -11281,7 +11296,7 @@ comment(0xBACD, "More data: print next ASCII char", inline=True)
 
 # End of line: check for EOF
 comment(0xBACF, "Print newline", inline=True)
-comment(0xBAD2, "Restore EOF status from &BA37", inline=True)
+comment(0xBAD2, "Restore EOF status from &BA4C", inline=True)
 comment(0xBAD3, "C=1: EOF reached, clean up", inline=True)
 comment(0xBAD5, "Not EOF: continue with next line", inline=True)
 
@@ -11306,18 +11321,18 @@ comment(0xBAF8, "Wrap to low nibble (0-F)", inline=True)
 comment(0xBAFA, "Count down", inline=True)
 comment(0xBAFB, "Loop for all 16 columns", inline=True)
 comment(0xBAFD, "Print trailer with ASCII label", inline=True)
-comment(0xBB03, "Save column number for space separator", inline=True)
+comment(0xBB03, "Save byte value on stack", inline=True)
 
 # close_ws_file: close file handle stored in ws_page
 
 # open_file_for_read: open file, advance past filename
 # On entry: Y = offset to filename start within command line
 # On exit: ws_page = file handle, Y = offset past filename
-comment(0xBB07, "Open for input", inline=True)
-comment(0xBB09, "OSFIND: open file", inline=True)
+comment(0xBB07, "A=&20: space character", inline=True)
+comment(0xBB09, "Print space character", inline=True)
 
 # Restore text pointer and skip past filename in command line
-comment(0xBB0C, "Restore saved text pointer high", inline=True)
+comment(0xBB0C, "Restore byte value from stack", inline=True)
 
 # Scan past filename to find end (space or CR)
 
@@ -11714,14 +11729,6 @@ comment(0xB440, "Read character from input stream", inline=True)
 comment(0xB443, "C clear: character read OK", inline=True)
 comment(0xB445, "Escape pressed: raise error", inline=True)
 comment(0xB448, "Return with character in A", inline=True)
-
-# unused_clear_ws_78 (&B42F): dead code — clear 120 workspace bytes.
-# No code references this subroutine. Likely superseded by the
-# full-page clear at loop_zero_workspace (&8ED5).
-comment(0xB449, "A=0: clear value", inline=True)
-comment(0xB44B, "Y=&78: clear offsets &00-&77", inline=True)
-comment(0xB450, "Loop until Y=0", inline=True)
-comment(0xB448, "Return", inline=True)
 
 # init_channel_table: clear page &10 and set up channels
 comment(0xB449, "A=0: clear value", inline=True)
@@ -12290,7 +12297,7 @@ comment(0xB893, "No: store byte in buffer", inline=True)
 # Buffer full: flush to server before storing new byte
 comment(0xB895, "Save X", inline=True)
 comment(0xB898, "Push Y", inline=True)
-comment(0xB89D, "Y=0: no nested context", inline=True)
+comment(0xB89D, "Carry set from BCS/BCC above", inline=True)
 comment(0xB895, "Save context and flush FCB data", inline=True)
 
 # Update buffer offset tracking after write
@@ -12908,7 +12915,7 @@ comment(0x9A35, "Y=&12: end of protection fields?", inline=True)
 comment(0x9A37, "No: copy next byte", inline=True)
 comment(0x9A39, "Load display flag from l0e06", inline=True)
 comment(0x9A3C, "Zero: skip display, return", inline=True)
-comment(0x9A3E, "Y=0: filename character index", inline=True)
+comment(0x9A3E, "Y=&F4: index into l0fff for filename", inline=True)
 comment(0x9A40, "Load filename character from l10f3", inline=True)
 comment(0x9A43, "Print character via OSASCI", inline=True)
 comment(0x9A46, "Advance to next character", inline=True)
@@ -13097,7 +13104,7 @@ comment(0x9B91, "Transfer to A", inline=True)
 comment(0x9B92, "Jump to finalise and return", inline=True)
 comment(0x9B95, "Unreachable dead code (3 bytes)\n"
     "\n"
-    "Duplicate of the JMP at &9B80 immediately above.\n"
+    "Duplicate of the JMP at &9B92 immediately above.\n"
     "Unreachable after the unconditional JMP and\n"
     "unreferenced. Likely a development remnant.")
 comment(0x9B95, "Dead: duplicate JMP finalise_and_return", inline=True)
@@ -13737,18 +13744,18 @@ comment(0xA075, "Dispatch tube address/data claim", inline=True)
 comment(0xA078, "Carry clear: claim failed, retry", inline=True)
 comment(0xA07A, "Return (tube claimed)", inline=True)
 
-# tube_init_reloc continued: copy relocated blocks (&BE90-&BEBE)
+# tube_init_reloc continued: copy relocated blocks (&BE94-&BEC2)
 # Copies pages 4/5/6 code and zero-page workspace from ROM to RAM
 comment(0xBE94, "Resume normal ROM address space\n"
     "\n"
-    "The preceding &200 bytes (ROM addresses &BC90-&BE8F)\n"
-    "are the source data for two relocated code blocks:\n"
-    "  &BC90-&BD8F -> &0500-&05FF (page 5: Tube host)\n"
-    "  &BD90-&BE8F -> &0600-&06FF (page 6: Econet)\n"
+    "The preceding 512 bytes are the source data for\n"
+    "two relocated code blocks (see move() calls):\n"
+    "  page 5 source -> &0500-&05FF (Tube host code)\n"
+    "  page 6 source -> &0600-&06FF (Econet handlers)\n"
     "py8dis assembles those blocks at their runtime\n"
     "addresses (&0500/&0600) via org directives. This\n"
-    "org &BE90 restores the origin to the actual ROM\n"
-    "address for the remaining non-relocated code.")
+    "org restores the origin to the actual ROM address\n"
+    "for the remaining non-relocated code.")
 comment(0xBE94, "Store BRK vector high byte", inline=True)
 comment(0xBE97, "A=&8E: Tube control register value", inline=True)
 comment(0xBE99, "Write Tube control register", inline=True)
