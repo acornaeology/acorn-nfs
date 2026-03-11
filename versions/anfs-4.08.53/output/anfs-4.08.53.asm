@@ -193,8 +193,8 @@ spool_buf_idx                           = &0d6b
 fs_flags                                = &0d6c
 net_context                             = &0d6d
 tx_retry_count                          = &0d6e
-tx_timeout                              = &0d6f
-passthru_retry                          = &0d70
+rx_poll_count                           = &0d6f
+peek_retry_count                        = &0d70
 bridge_status                           = &0d72
 txcb_default_base                       = &0de6
 rom_ws_pages                            = &0df0
@@ -1319,8 +1319,8 @@ service_handler_lo = service_entry+1
     ldy tx_op_type                                                    ; 8047: ac 65 0d    .e.            ; Load TX operation type for dispatch
     tya                                                               ; 804a: 98          .              ; Copy to A for sign test
     bmi set_jsr_protection                                            ; 804b: 30 05       0.             ; Bit 7 set: dispatch via table
-    ldy #&fe                                                          ; 804d: a0 fe       ..             ; Y=&FE: Econet event number
-    jmp tx_done_fire_event                                            ; 804f: 4c 4a 85    LJ.            ; Generate event and exit
+    ldy #&fe                                                          ; 804d: a0 fe       ..             ; Y=&FE: Econet receive event
+    jmp tx_done_fire_event                                            ; 804f: 4c 4a 85    LJ.            ; Fire event (enable: *FX52,150)
 
 ; &8052 referenced 1 time by &804b
 .set_jsr_protection
@@ -5005,8 +5005,8 @@ ws_init_data = error_bad_station+2
 ; &8F2B itself (&92) is never read (BNE exits
 ; when X=0). Stores to l0d6e, l0d6f, l0d70.
     equb &ff                                                          ; 8f2c: ff          .              ; l0d6e: init=&FF (retry count)
-    equb &28                                                          ; 8f2d: 28          (              ; l0d6f: init=&28 (40, TX timeout)
-    equb &0a                                                          ; 8f2e: 0a          .              ; l0d70: init=&0A (10, pass-thru ctrl)
+    equb &28                                                          ; 8f2d: 28          (              ; l0d6f: init=&28 (40, receive poll count)
+    equb &0a                                                          ; 8f2e: 0a          .              ; l0d70: init=&0A (10, machine peek retries)
 
 ; &8f2f referenced 1 time by &8f27
 .store_station_id
@@ -5149,7 +5149,10 @@ ws_init_data = error_bad_station+2
 ; Sums bytes 0 to &76 of the workspace page via the
 ; zero-page pointer at &CC/&CD and compares with the
 ; stored value at offset &77. On mismatch, raises a
-; 'net checksum' error via error_bad_inline.
+; 'net checksum' error (&AA). The checksummed page
+; holds open file information (preserved when NFS is
+; not the current filing system) and the current
+; printer type. Can only be reset by a control BREAK.
 ; Preserves A, Y, and processor flags using PHP/PHA.
 ; Called by 5 sites across format_filename_field,
 ; adjust_fsopts_4bytes, and start_wipe_pass before
@@ -6549,7 +6552,7 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; &95c7 referenced 6 times by &94e0, &999e, &9ad8, &a923, &abbf, &ac61
 .wait_net_tx_ack
-    lda tx_timeout                                                    ; 95c7: ad 6f 0d    .o.            ; Save TX timeout counter
+    lda rx_poll_count                                                 ; 95c7: ad 6f 0d    .o.            ; Save TX timeout counter
     pha                                                               ; 95ca: 48          H              ; Push (used as outer loop counter)
     lda econet_flags                                                  ; 95cb: ad 61 0d    .a.            ; Save TX control state
     pha                                                               ; 95ce: 48          H              ; Push (preserved during wait)
@@ -7204,7 +7207,7 @@ bad_prefix = bad_str_anchor+1
 .skip_template_byte
     dey                                                               ; 9896: 88          .              ; Next offset (descending)
     bpl loop_copy_template                                            ; 9897: 10 f0       ..             ; Loop until all 12 bytes processed
-    lda passthru_retry                                                ; 9899: ad 70 0d    .p.            ; Load pass-through control value
+    lda peek_retry_count                                              ; 9899: ad 70 0d    .p.            ; Load pass-through control value
     pha                                                               ; 989c: 48          H              ; Push control value
     tya                                                               ; 989d: 98          .              ; A=&FF (Y is &FF after loop)
     pha                                                               ; 989e: 48          H              ; Push &FF as timeout
@@ -9394,22 +9397,25 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; *Flip command handler
 ; 
-; Saves the file server station byte (&0E03), loads the
-; boot type flag from &0E04, and calls find_station_bit3
-; to locate the station table entry. Restores the station
-; byte to Y and falls through to flip_set_station_boot
-; to toggle the auto-boot setting.
+; Exchanges the CSD and CSL (library) handles.
+; Saves the current CSD handle (&0E03), loads the
+; library handle (&0E04) into Y, and calls
+; find_station_bit3 to install it as the new CSD.
+; Restores the original CSD handle and falls through
+; to flip_set_station_boot to install it as the new
+; library. Useful when files to be LOADed are in the
+; library and *DIR/*LIB would be inconvenient.
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_flip
-    lda fs_csd_handle                                                 ; a33e: ad 03 0e    ...            ; Load FS station byte
-    pha                                                               ; a341: 48          H              ; Save it
-    ldy fs_lib_handle                                                 ; a342: ac 04 0e    ...            ; Load boot type flag
-    jsr find_station_bit3                                             ; a345: 20 13 a3     ..            ; Find station entry with bit 3 set
-    pla                                                               ; a348: 68          h              ; Restore FS station
-    tay                                                               ; a349: a8          .              ; Transfer to Y (boot type)
+    lda fs_csd_handle                                                 ; a33e: ad 03 0e    ...            ; Load current CSD handle
+    pha                                                               ; a341: 48          H              ; Save CSD handle
+    ldy fs_lib_handle                                                 ; a342: ac 04 0e    ...            ; Load library handle into Y
+    jsr find_station_bit3                                             ; a345: 20 13 a3     ..            ; Install library as new CSD
+    pla                                                               ; a348: 68          h              ; Restore original CSD handle
+    tay                                                               ; a349: a8          .              ; Y = original CSD (becomes library)
 ; ***************************************************************************************
 ; Set boot option for a station in the table
 ; 
@@ -10476,10 +10482,12 @@ bad_prefix = bad_str_anchor+1
     jmp store_a_to_pb_1                                               ; a807: 4c 10 a8    L..            ; Store to PB[1] and return
 
 ; ***************************************************************************************
-; OSWORD &13 sub 14: read free buffer count
+; OSWORD &13 sub 14: read printer buffer free space
 ; 
-; Returns the free buffer count (&6F minus
-; l0d6b) in PB[1].
+; Returns the number of free bytes remaining in
+; the printer spool buffer (&6F minus spool_buf_idx)
+; in PB[1]. The buffer starts at offset &25 and can
+; hold up to &4A bytes of spool data.
 ; ***************************************************************************************
 .osword_13_read_free_bufs
     lda #&6f ; 'o'                                                    ; a80a: a9 6f       .o             ; Total buffers = &6F
@@ -10492,10 +10500,14 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a813: 60          `              ; Return
 
 ; ***************************************************************************************
-; OSWORD &13 sub 15: read 3 context bytes
+; OSWORD &13 sub 15: read retry counts
 ; 
-; Copies 3 bytes from l0d6d[1..3] into
-; PB[1..3].
+; Returns the three retry count values in
+; PB[1..3]: PB[1] = transmit retry count
+; (default &FF = 255), PB[2] = receive poll
+; count (default &28 = 40), PB[3] = machine
+; peek retry count (default &0A = 10). Setting
+; transmit retries to 0 means retry forever.
 ; ***************************************************************************************
 ; &a814 referenced 1 time by &a81c
 .osword_13_read_ctx_3
@@ -10507,10 +10519,12 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a81e: 60          `              ; Return
 
 ; ***************************************************************************************
-; OSWORD &13 sub 16: write 3 context bytes
+; OSWORD &13 sub 16: write retry counts
 ; 
-; Copies 3 bytes from PB[1..3] into
-; l0d6d[1..3].
+; Sets the three retry count values from
+; PB[1..3]: PB[1] = transmit retry count,
+; PB[2] = receive poll count, PB[3] = machine
+; peek retry count.
 ; ***************************************************************************************
 ; &a81f referenced 1 time by &a827
 .osword_13_write_ctx_3
@@ -11705,11 +11719,12 @@ bridge_ws_init_data = compare_bridge_status+1
 ; *CDir command handler
 ; 
 ; Parses an optional allocation size argument: if absent,
-; defaults to index 2; if present, parses the decimal value
-; and searches a 26-entry threshold table to find the
-; matching allocation size index. Parses the directory name
-; via parse_filename_arg, copies it to the TX buffer, and
-; sends FS command code &1B to create the directory.
+; defaults to index 2 (standard 19-entry directory, &200
+; bytes); if present, parses the decimal value and searches
+; a 26-entry threshold table to find the matching allocation
+; size index. Parses the directory name via parse_filename_arg,
+; copies it to the TX buffer, and sends FS command code &1B
+; to create the directory.
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -12257,11 +12272,14 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; *Remove command handler
 ; 
-; Validates that exactly one argument is present — raises
-; 'Syntax' if extra arguments follow. Parses the filename
-; via parse_filename_arg, copies it to the TX buffer, and
-; sends FS command code &14 (*Delete) with the V flag set
-; via BIT for save_net_tx_cb_vset dispatch.
+; Like *Delete but suppresses the 'Not found' error,
+; making it suitable for use in programs where a missing
+; file should not cause an unexpected error. Validates
+; that exactly one argument is present — raises 'Syntax'
+; if extra arguments follow. Parses the filename via
+; parse_filename_arg, copies it to the TX buffer, and
+; sends FS command code &14 with the V flag set via BIT
+; for save_net_tx_cb_vset dispatch.
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -14460,7 +14478,9 @@ net_channel_err_string = err_net_chan_not_found+2
 ; *Close command handler
 ; 
 ; Loads A=0 and Y=0, then jumps to OSFIND to close
-; all open files. Just 3 instructions.
+; all open files on the current file server (equivalent
+; to CLOSE#0). Files open on other file servers are
+; not affected.
 ; ***************************************************************************************
 .cmd_close
     lda #osfind_close                                                 ; b97f: a9 00       ..             ; A=0: close all open files
@@ -14472,8 +14492,9 @@ net_channel_err_string = err_net_chan_not_found+2
 ; 
 ; Clears V and branches to the shared open_and_read_file
 ; entry in cmd_print. The V-clear state selects line-
-; ending normalisation mode, converting CR/LF or LF/CR
-; pairs to single newlines.
+; ending normalisation mode: CR, LF, CR+LF, and LF+CR
+; are all treated as a single newline. Designed for
+; displaying text files.
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -16467,7 +16488,7 @@ save pydis_start, pydis_end
 ;     parse_prot_keywords:                      1
 ;     pass_send_cmd:                            1
 ;     pass_tx_success:                          1
-;     passthru_retry:                           1
+;     peek_retry_count:                         1
 ;     poll_r2_osword_result:                    1
 ;     poll_r4_copro_ack:                        1
 ;     prep_send_tx_cb:                          1
@@ -16568,6 +16589,7 @@ save pydis_start, pydis_end
 ;     rotate_prot_mask:                         1
 ;     rx_error_reset:                           1
 ;     rx_palette_txcb_template:                 1
+;     rx_poll_count:                            1
 ;     rx_tube_data:                             1
 ;     save_ps_cmd_ptr:                          1
 ;     save_registers:                           1
@@ -16776,7 +16798,6 @@ save pydis_start, pydis_end
 ;     tx_store_error:                           1
 ;     tx_success:                               1
 ;     tx_tdra_error:                            1
-;     tx_timeout:                               1
 ;     txcb_copy_carry_clr:                      1
 ;     txcb_copy_carry_set:                      1
 ;     txcb_default_base:                        1

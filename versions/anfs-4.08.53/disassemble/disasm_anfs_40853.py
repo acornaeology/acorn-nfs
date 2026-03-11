@@ -319,8 +319,8 @@ label(0x0D6B, "spool_buf_idx")        # Spool/printer buffer write index
 label(0x0D6C, "fs_flags")             # FS status flags (b7: selected/active)
 label(0x0D6D, "net_context")          # Econet context byte; base of 4-byte block
 label(0x0D6E, "tx_retry_count")       # TX retry count (default &FF)
-label(0x0D6F, "tx_timeout")           # TX completion timeout counter (default &28)
-label(0x0D70, "passthru_retry")       # Pass-through TX retry count (default &0A)
+label(0x0D6F, "rx_poll_count")        # Receive poll count (default &28 = 40)
+label(0x0D70, "peek_retry_count")    # Machine peek retry count (default &0A = 10)
 label(0x0D72, "bridge_status")        # Bridge station number (&FF = no bridge)
 
 # Page &0D — workspace pointers
@@ -2867,7 +2867,10 @@ subroutine(0x8FB2, "verify_ws_checksum",
     description="Sums bytes 0 to &76 of the workspace page via the\n"
     "zero-page pointer at &CC/&CD and compares with the\n"
     "stored value at offset &77. On mismatch, raises a\n"
-    "'net checksum' error via error_bad_inline.\n"
+    "'net checksum' error (&AA). The checksummed page\n"
+    "holds open file information (preserved when NFS is\n"
+    "not the current filing system) and the current\n"
+    "printer type. Can only be reset by a control BREAK.\n"
     "Preserves A, Y, and processor flags using PHP/PHA.\n"
     "Called by 5 sites across format_filename_field,\n"
     "adjust_fsopts_4bytes, and start_wipe_pass before\n"
@@ -3569,17 +3572,25 @@ subroutine(0xA804, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
     description="Returns the context byte (l0d6d) in PB[1].")
 subroutine(0xA80A, "osword_13_read_free_bufs",
-    title="OSWORD &13 sub 14: read free buffer count",
-    description="Returns the free buffer count (&6F minus\n"
-    "l0d6b) in PB[1].")
+    title="OSWORD &13 sub 14: read printer buffer free space",
+    description="Returns the number of free bytes remaining in\n"
+    "the printer spool buffer (&6F minus spool_buf_idx)\n"
+    "in PB[1]. The buffer starts at offset &25 and can\n"
+    "hold up to &4A bytes of spool data.")
 subroutine(0xA814, "osword_13_read_ctx_3",
-    title="OSWORD &13 sub 15: read 3 context bytes",
-    description="Copies 3 bytes from l0d6d[1..3] into\n"
-    "PB[1..3].")
+    title="OSWORD &13 sub 15: read retry counts",
+    description="Returns the three retry count values in\n"
+    "PB[1..3]: PB[1] = transmit retry count\n"
+    "(default &FF = 255), PB[2] = receive poll\n"
+    "count (default &28 = 40), PB[3] = machine\n"
+    "peek retry count (default &0A = 10). Setting\n"
+    "transmit retries to 0 means retry forever.")
 subroutine(0xA81F, "osword_13_write_ctx_3",
-    title="OSWORD &13 sub 16: write 3 context bytes",
-    description="Copies 3 bytes from PB[1..3] into\n"
-    "l0d6d[1..3].")
+    title="OSWORD &13 sub 16: write retry counts",
+    description="Sets the three retry count values from\n"
+    "PB[1..3]: PB[1] = transmit retry count,\n"
+    "PB[2] = receive poll count, PB[3] = machine\n"
+    "peek retry count.")
 subroutine(0xA82A, "osword_13_bridge_query",
     title="OSWORD &13 sub 17: query bridge status",
     description="Calls init_bridge_poll, then returns the\n"
@@ -4605,8 +4616,8 @@ comment(0x8044, "Disable SR interrupt in IER", inline=True)
 comment(0x8047, "Load TX operation type for dispatch", inline=True)
 comment(0x804A, "Copy to A for sign test", inline=True)
 comment(0x804B, "Bit 7 set: dispatch via table", inline=True)
-comment(0x804D, "Y=&FE: Econet event number", inline=True)
-comment(0x804F, "Generate event and exit", inline=True)
+comment(0x804D, "Y=&FE: Econet receive event", inline=True)
+comment(0x804F, "Fire event (enable: *FX52,150)", inline=True)
 comment(0x8052, "Y >= &86: above dispatch range", inline=True)
 comment(0x8054, "Out of range: skip protection", inline=True)
 comment(0x8056, "Save current JSR protection mask", inline=True)
@@ -6326,8 +6337,8 @@ comment(0x8F2C, "Workspace init data\n"
     "&8F2B itself (&92) is never read (BNE exits\n"
     "when X=0). Stores to l0d6e, l0d6f, l0d70.")
 comment(0x8F2C, "l0d6e: init=&FF (retry count)", inline=True)
-comment(0x8F2D, "l0d6f: init=&28 (40, TX timeout)", inline=True)
-comment(0x8F2E, "l0d70: init=&0A (10, pass-thru ctrl)", inline=True)
+comment(0x8F2D, "l0d6f: init=&28 (40, receive poll count)", inline=True)
+comment(0x8F2E, "l0d70: init=&0A (10, machine peek retries)", inline=True)
 comment(0x8F0E, "Initialise ADLC protection table", inline=True)
 comment(0x8F11, "Get current workspace page", inline=True)
 comment(0x8F13, "Allocate FS handle page", inline=True)
@@ -7000,7 +7011,9 @@ label(0x8ACC, "cmd_roff")
 subroutine(0xB97F, "cmd_close",
     title="*Close command handler",
     description="Loads A=0 and Y=0, then jumps to OSFIND to close\n"
-    "all open files. Just 3 instructions.")
+    "all open files on the current file server (equivalent\n"
+    "to CLOSE#0). Files open on other file servers are\n"
+    "not affected.")
 subroutine(0xBA06, "cmd_dump",
     title="*Dump command handler",
     description="Opens the file via open_file_for_read, allocates a\n"
@@ -7066,8 +7079,9 @@ subroutine(0xB985, "cmd_type",
     title="*Type command handler",
     description="Clears V and branches to the shared open_and_read_file\n"
     "entry in cmd_print. The V-clear state selects line-\n"
-    "ending normalisation mode, converting CR/LF or LF/CR\n"
-    "pairs to single newlines.",
+    "ending normalisation mode: CR, LF, CR+LF, and LF+CR\n"
+    "are all treated as a single newline. Designed for\n"
+    "displaying text files.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB321, "cmd_unprot",
     title="*Unprot command handler",
@@ -7137,11 +7151,12 @@ subroutine(0x948A, "cmd_bye",
 subroutine(0xACFE, "cmd_cdir",
     title="*CDir command handler",
     description="Parses an optional allocation size argument: if absent,\n"
-    "defaults to index 2; if present, parses the decimal value\n"
-    "and searches a 26-entry threshold table to find the\n"
-    "matching allocation size index. Parses the directory name\n"
-    "via parse_filename_arg, copies it to the TX buffer, and\n"
-    "sends FS command code &1B to create the directory.",
+    "defaults to index 2 (standard 19-entry directory, &200\n"
+    "bytes); if present, parses the decimal value and searches\n"
+    "a 26-entry threshold table to find the matching allocation\n"
+    "size index. Parses the directory name via parse_filename_arg,\n"
+    "copies it to the TX buffer, and sends FS command code &1B\n"
+    "to create the directory.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x93C9, "cmd_dir",
     title="*Dir command handler",
@@ -7167,11 +7182,14 @@ subroutine(0xAD59, "cmd_ex",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA33E, "cmd_flip",
     title="*Flip command handler",
-    description="Saves the file server station byte (&0E03), loads the\n"
-    "boot type flag from &0E04, and calls find_station_bit3\n"
-    "to locate the station table entry. Restores the station\n"
-    "byte to Y and falls through to flip_set_station_boot\n"
-    "to toggle the auto-boot setting.",
+    description="Exchanges the CSD and CSL (library) handles.\n"
+    "Saves the current CSD handle (&0E03), loads the\n"
+    "library handle (&0E04) into Y, and calls\n"
+    "find_station_bit3 to install it as the new CSD.\n"
+    "Restores the original CSD handle and falls through\n"
+    "to flip_set_station_boot to install it as the new\n"
+    "library. Useful when files to be LOADed are in the\n"
+    "library and *DIR/*LIB would be inconvenient.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA063, "cmd_fs",
     title="*FS command handler",
@@ -7219,11 +7237,14 @@ subroutine(0x8DB1, "cmd_pass",
     "branches to send_cmd_and_dispatch for the reply.")
 subroutine(0xAF46, "cmd_remove",
     title="*Remove command handler",
-    description="Validates that exactly one argument is present — raises\n"
-    "'Syntax' if extra arguments follow. Parses the filename\n"
-    "via parse_filename_arg, copies it to the TX buffer, and\n"
-    "sends FS command code &14 (*Delete) with the V flag set\n"
-    "via BIT for save_net_tx_cb_vset dispatch.",
+    description="Like *Delete but suppresses the 'Not found' error,\n"
+    "making it suitable for use in programs where a missing\n"
+    "file should not cause an unexpected error. Validates\n"
+    "that exactly one argument is present — raises 'Syntax'\n"
+    "if extra arguments follow. Parses the filename via\n"
+    "parse_filename_arg, copies it to the TX buffer, and\n"
+    "sends FS command code &14 with the V flag set via BIT\n"
+    "for save_net_tx_cb_vset dispatch.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9377, "cmd_rename",
     title="*Rename command handler",
@@ -7892,12 +7913,12 @@ comment(0x9484, "Set carry (read-only mode)", inline=True)
 comment(0x9487, "Clear V", inline=True)
 
 # cmd_flip (&A33E) — *Flip: toggle auto-boot configuration
-comment(0xA33E, "Load FS station byte", inline=True)
-comment(0xA341, "Save it", inline=True)
-comment(0xA342, "Load boot type flag", inline=True)
-comment(0xA345, "Find station entry with bit 3 set", inline=True)
-comment(0xA348, "Restore FS station", inline=True)
-comment(0xA349, "Transfer to Y (boot type)", inline=True)
+comment(0xA33E, "Load current CSD handle", inline=True)
+comment(0xA341, "Save CSD handle", inline=True)
+comment(0xA342, "Load library handle into Y", inline=True)
+comment(0xA345, "Install library as new CSD", inline=True)
+comment(0xA348, "Restore original CSD handle", inline=True)
+comment(0xA349, "Y = original CSD (becomes library)", inline=True)
 comment(0xA34A, "X=&10: max 16 station entries", inline=True)
 comment(0xA34C, "Clear V (no match found yet)", inline=True)
 comment(0xA34D, "Decrement station index", inline=True)

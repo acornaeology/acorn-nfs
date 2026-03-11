@@ -8,6 +8,11 @@
             "label": "Acorn ANFS 4.18 in The BBC Micro ROM Library",
             "url": "https://tobylobster.github.io/rom_library/?md5=0926bcb6f47458f8c4aed5364ff1122d",
             "icon": "chip"
+        },
+        {
+            "label": "BBC ANFS technical description (PDF, for the unrecovered ANFS 4.08.61 but applicable to this version)",
+            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
+            "icon": "document"
         }
     ]
 }
