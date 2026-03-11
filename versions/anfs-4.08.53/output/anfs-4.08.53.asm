@@ -4487,21 +4487,22 @@ version_string = version_string_cr+1
 
 ; &8d2d referenced 2 times by &8d12, &8d21
 .credits_keyword_start
-    equb &0d                                                          ; 8d2d: 0d          .
+    equb &0d                                                          ; 8d2d: 0d          .              ; CR
 .credits_string
     equs "The authors of ANFS are;"                                   ; 8d2e: 54 68 65... The
-    equb &0d                                                          ; 8d46: 0d          .
+    equb &0d                                                          ; 8d46: 0d          .              ; CR
     equs "B Co"                                                       ; 8d47: 42 20 43... B C
 ; &8d4b referenced 1 time by &affb
-.credits_string_mid
+.ps_template_base
     equs "ckburn"                                                     ; 8d4b: 63 6b 62... ckb
-    equb &0d                                                          ; 8d51: 0d          .
+    equb &0d                                                          ; 8d51: 0d          .              ; CR
     equs "J Dunn"                                                     ; 8d52: 4a 20 44... J D
-    equb &0d                                                          ; 8d58: 0d          .
+    equb &0d                                                          ; 8d58: 0d          .              ; CR
     equs "B Robertson"                                                ; 8d59: 42 20 52... B R
-    equb &0d                                                          ; 8d64: 0d          .
+    equb &0d                                                          ; 8d64: 0d          .              ; CR
     equs "J Wills"                                                    ; 8d65: 4a 20 57... J W
-    equb &0d, 0                                                       ; 8d6c: 0d 00       ..
+    equb &0d                                                          ; 8d6c: 0d          .              ; CR
+    equb 0                                                            ; 8d6d: 00          .              ; String terminator
 
 ; ***************************************************************************************
 ; *I AM command handler (file server logon)
@@ -4704,18 +4705,19 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 .dispatch_rts
     rts                                                               ; 8e42: 60          `              ; Dispatch via RTS
 
-; Unreferenced dead data (8 bytes)
+; Printer server template (8 bytes)
 ; 
-; 8 bytes between return_4 (&8E42) and fs_vector_table
-; (&8E4B). Contains the ASCII string "PRINT " followed
-; by &01 and &00. Unreferenced by any code or data
-; pointer. Absent from all NFS versions (3.34-3.65);
-; unique to ANFS. Likely a development remnant — possibly
-; an OSCLI command template left from testing.
-.print_string
-    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI            ; Dead data: ASCII "PRINT "
-    equb 1                                                            ; 8e49: 01          .              ; Dead data: &01
-    equb 0                                                            ; 8e4a: 00          .              ; Dead data: &00
+; Default printer server configuration data, read
+; indirectly by copy_ps_data via LDA ps_template_base,X
+; with X=&F8..&FF (reaching ps_template_base+&F8 =
+; &8E43). Contains "PRINT " (6 bytes) as the default
+; printer server name, followed by &01 and &00 as
+; default status bytes. Absent from NFS versions;
+; unique to ANFS.
+.ps_template_data
+    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI            ; PS template: default name "PRINT "
+    equb 1                                                            ; 8e49: 01          .              ; PS template: status &01
+    equb 0                                                            ; 8e4a: 00          .              ; PS template: terminator &00
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -12530,19 +12532,20 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
 ; 
-; Copies 8 bytes from the credits_string_mid area
-; (using X starting at &F8, wrapping to 0) into
-; the RX buffer at the current Y offset. The
-; template contains default printer server
-; configuration data used when initialising a new
-; printer server slot.
+; Copies 8 bytes of default printer server data
+; into the RX buffer at the current Y offset.
+; Uses indexed addressing: LDA ps_template_base,X
+; with X starting at &F8, so the effective read
+; address is ps_template_base+&F8 = ps_template_data
+; (&8E43). This 6502 trick reaches data 248 bytes
+; past the base label using a single instruction.
 ; ***************************************************************************************
 ; &aff9 referenced 1 time by &b1d4
 .copy_ps_data
     ldx #&f8                                                          ; aff9: a2 f8       ..             ; X=&F8: offset into template
 ; &affb referenced 1 time by &b002
 .loop_copy_ps_tmpl
-    lda credits_string_mid,x                                          ; affb: bd 4b 8d    .K.            ; Get template byte
+    lda ps_template_base,x                                            ; affb: bd 4b 8d    .K.            ; Get template byte
     sta (net_rx_ptr),y                                                ; affe: 91 9c       ..             ; Store in RX buffer
     iny                                                               ; b000: c8          .              ; Next destination offset
     inx                                                               ; b001: e8          .              ; Next source offset
@@ -16052,7 +16055,6 @@ save pydis_start, pydis_end
 ;     copy_ws_byte_to_pb:                       1
 ;     copy_ws_then_fsopts:                      1
 ;     copyright_offset:                         1
-;     credits_string_mid:                       1
 ;     data_rx_loop:                             1
 ;     data_tx_begin:                            1
 ;     delay_nmi_disable:                        1
@@ -16514,6 +16516,7 @@ save pydis_start, pydis_end
 ;     print_table_newline:                      1
 ;     process_reply_code:                       1
 ;     prot_bit_encode_table:                    1
+;     ps_template_base:                         1
 ;     ps_tx_header_template:                    1
 ;     push_osword_handler_addr:                 1
 ;     pydis_start:                              1

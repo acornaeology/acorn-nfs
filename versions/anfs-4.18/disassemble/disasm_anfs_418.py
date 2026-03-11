@@ -556,7 +556,7 @@ label(0x8D26, "done_credits_check")
 label(0x8D2C, "loop_emit_credits")
 label(0x8D37, "return_from_credits_check")
 label(0x8D38, "credits_keyword_start")
-label(0x8D56, "credits_string_mid")
+label(0x8D61, "ps_template_base")
 label(0x8DA7, "skip_no_fs_addr")
 label(0x8DAE, "loop_copy_logon_cmd")
 label(0x8DBF, "scan_pass_prompt")
@@ -3912,19 +3912,20 @@ subroutine(0xAFE0, "init_spool_drive",
 # --- cmd_ps subroutines ---
 
 subroutine(0xB017, "copy_ps_data_y1c",
-    title="Copy printer server template at offset &1C",
-    description="Sets Y=&1C and falls through to copy_ps_data.\n"
+    title="Copy printer server template at offset &18",
+    description="Sets Y=&18 and falls through to copy_ps_data.\n"
     "Called during workspace initialisation\n"
     "(svc_2_private_workspace) to set up the printer\n"
     "server template at the standard offset.")
 subroutine(0xB019, "copy_ps_data",
     title="Copy 8-byte printer server template to RX buffer",
-    description="Copies 8 bytes from the credits_string_mid area\n"
-    "(using X starting at &F8, wrapping to 0) into\n"
-    "the RX buffer at the current Y offset. The\n"
-    "template contains default printer server\n"
-    "configuration data used when initialising a new\n"
-    "printer server slot.")
+    description="Copies 8 bytes of default printer server data\n"
+    "into the RX buffer at the current Y offset.\n"
+    "Uses indexed addressing: LDA ps_template_base,X\n"
+    "with X starting at &F8, so the effective read\n"
+    "address is ps_template_base+&F8 = ps_template_data\n"
+    "(&8E59). This 6502 trick reaches data 248 bytes\n"
+    "past the base label using a single instruction.")
 subroutine(0xB0C5, "print_file_server_is",
     title="Print 'File server ' prefix",
     description="Uses print_inline to output 'File' then falls through\n"
@@ -6256,18 +6257,20 @@ comment(0x8E55, "Push low byte for RTS dispatch", inline=True)
 comment(0x8E56, "Load FS options pointer", inline=True)
 comment(0x8E58, "Dispatch via RTS", inline=True)
 
-# Dead data: "PRINT " + &01 &00 between return_4 RTS and
-# fs_vector_table. Unreferenced; unique to ANFS (absent from
-# all NFS versions). Likely a development remnant.
-comment(0x8E59, "Unreferenced dead data (8 bytes)\n"
+# Printer server template data (8 bytes). Read indirectly by
+# copy_ps_data via LDA ps_template_base,X with X=&F8..&FF,
+# reaching ps_template_base+&F8 = &8E59. Default PS name
+# "PRINT " followed by status bytes &01, &00.
+comment(0x8E59, "Printer server template (8 bytes)\n"
     "\n"
-    "8 bytes between dispatch_rts and fs_vector_table\n"
-    "(&8E61). Contains the ASCII string \"PRINT \" followed\n"
-    "by &01 and &00. Unreferenced by any code or data\n"
-    "pointer. Absent from all NFS versions (3.34-3.65);\n"
-    "unique to ANFS. Likely a development remnant — possibly\n"
-    "an OSCLI command template left from testing.")
-comment(0x8E59, "Dead data: ASCII \"PRINT \"", inline=True)
+    "Default printer server configuration data, read\n"
+    "indirectly by copy_ps_data via LDA ps_template_base,X\n"
+    "with X=&F8..&FF (reaching ps_template_base+&F8 =\n"
+    "&8E59). Contains \"PRINT \" (6 bytes) as the default\n"
+    "printer server name, followed by &01 and &00 as\n"
+    "default status bytes. Absent from NFS versions;\n"
+    "unique to ANFS.")
+comment(0x8E59, "PS template: default name \"PRINT \"", inline=True)
 
 comment(0x8E83, "X=0", inline=True)
 comment(0x8E85, "Y=&FF", inline=True)
@@ -6280,8 +6283,8 @@ comment(0x8E8A, "NETV handler address\n"
     "\n"
     "2-byte handler address for the NETV extended\n"
     "vector, read by write_vector_entry at Y=&36\n"
-    "from svc_dispatch_lo_offset (&8E3E). Points to\n"
-    "netv_handler (&A968) which dispatches OSWORDs\n"
+    "from svc_dispatch_lo_offset. Points to\n"
+    "netv_handler which dispatches OSWORDs\n"
     "0-8 to Econet handlers. Interleaved with the\n"
     "OSBYTE wrapper code in the data area.")
 
@@ -7375,7 +7378,7 @@ entry(0x05D3)   # read_osgbpb_ctrl_blk (ANFS variant)
 # ============================================================
 
 # ============================================================
-# FS vector dispatch and handler addresses (&8E4B)
+# FS vector dispatch and handler addresses (&8E61)
 # ============================================================
 subroutine(0x8E61, "fs_vector_table",
     title="FS vector dispatch and handler addresses (34 bytes)",
@@ -7394,33 +7397,35 @@ byte.""")
 # Part 1: extended vector dispatch addresses (7 x 2 bytes)
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
                            "GBPBV", "FINDV", "FSCV"]):
-    addr = 0x8E4B + i * 2
+    addr = 0x8E61 + i * 2
     word(addr)
     comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
 # write_vector_entry reads lo/hi from svc_dispatch_lo_offset+Y.
-# With Y=&1B, that's &8E3E+&1B = &8E59.
+# With Y=&1B, that's &8E54+&1B = &8E6F.
 handler_names = [
-    ("FILEV",  0x9921),
-    ("ARGSV",  0x9BAF),
-    ("BGETV",  0xB7CF),
-    ("BPUTV",  0xB850),
-    ("GBPBV",  0x9E23),
-    ("FINDV",  0x9D42),
-    ("FSCV",   0x8E1D),
+    ("FILEV",  0x9935),
+    ("ARGSV",  0x9BBE),
+    ("BGETV",  0xB7CE),
+    ("BPUTV",  0xB84D),
+    ("GBPBV",  0x9E2F),
+    ("FINDV",  0x9D4E),
+    ("FSCV",   0x8E33),
 ]
 for i, (name, handler_addr) in enumerate(handler_names):
-    base_addr = 0x8E59 + i * 3
+    base_addr = 0x8E6F + i * 3
     word(base_addr)
     comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
     if i < 6:  # pad byte for all but last entry
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
-# Dead data: "PRINT " + &01 &00 at &8E43 (8 bytes, unreferenced)
-label(0x8E59, "print_string")
-# Dead data bytes &01 &00 at &8E5F-&8E60 (already classified by py8dis)
+# Printer server template data: "PRINT " + &01 &00 (8 bytes)
+# Read by copy_ps_data via indexed addressing from ps_template_base.
+label(0x8E59, "ps_template_data")
+byte(0x8E5F)
+byte(0x8E60)
 
 # NETV handler address pair at &8E8A (read by write_vector_entry)
 label(0x8E8A, "netv_handler_addr")
@@ -7457,9 +7462,25 @@ byte(0x981D)   # null
 byte(0x9829)   # null
 byte(0x9836)   # null
 
-# Credits string
+# Credits string — force each CR (&0D) onto its own line and
+# ensure "nn" (end of "J Dunn") displays as equs not equb.
 label(0x8CA3, "version_string")
 label(0x8D39, "credits_string")
+byte(0x8D38)
+comment(0x8D38, "CR", inline=True)
+byte(0x8D51)
+comment(0x8D51, "CR", inline=True)
+byte(0x8D5C)
+comment(0x8D5C, "CR", inline=True)
+string(0x8D61, 2)
+byte(0x8D63)
+comment(0x8D63, "CR", inline=True)
+byte(0x8D6F)
+comment(0x8D6F, "CR", inline=True)
+byte(0x8D77)
+comment(0x8D77, "CR", inline=True)
+byte(0x8D78)
+comment(0x8D78, "String terminator", inline=True)
 
 # Boot command strings
 label(0xA3CE, "boot_load_cmd")

@@ -555,7 +555,7 @@ label(0x8D1B, "done_credits_check")
 label(0x8D21, "loop_emit_credits")
 label(0x8D2C, "return_from_credits_check")
 label(0x8D2D, "credits_keyword_start")
-label(0x8D4B, "credits_string_mid")
+label(0x8D4B, "ps_template_base")
 label(0x8D9C, "skip_no_fs_addr")
 label(0x8DA3, "loop_copy_logon_cmd")
 label(0x8DB4, "scan_pass_prompt")
@@ -3914,12 +3914,13 @@ subroutine(0xAFF7, "copy_ps_data_y1c",
     "server template at the standard offset.")
 subroutine(0xAFF9, "copy_ps_data",
     title="Copy 8-byte printer server template to RX buffer",
-    description="Copies 8 bytes from the credits_string_mid area\n"
-    "(using X starting at &F8, wrapping to 0) into\n"
-    "the RX buffer at the current Y offset. The\n"
-    "template contains default printer server\n"
-    "configuration data used when initialising a new\n"
-    "printer server slot.")
+    description="Copies 8 bytes of default printer server data\n"
+    "into the RX buffer at the current Y offset.\n"
+    "Uses indexed addressing: LDA ps_template_base,X\n"
+    "with X starting at &F8, so the effective read\n"
+    "address is ps_template_base+&F8 = ps_template_data\n"
+    "(&8E43). This 6502 trick reaches data 248 bytes\n"
+    "past the base label using a single instruction.")
 subroutine(0xB0A1, "print_file_server_is",
     title="Print 'File server ' prefix",
     description="Uses print_inline to output 'File' then falls through\n"
@@ -6223,20 +6224,22 @@ comment(0x8E3F, "Push low byte for RTS dispatch", inline=True)
 comment(0x8E40, "Load FS options pointer", inline=True)
 comment(0x8E42, "Dispatch via RTS", inline=True)
 
-# Dead data: "PRINT " + &01 &00 between return_4 RTS and
-# fs_vector_table. Unreferenced; unique to ANFS (absent from
-# all NFS versions). Likely a development remnant.
-comment(0x8E43, "Unreferenced dead data (8 bytes)\n"
+# Printer server template data (8 bytes). Read indirectly by
+# copy_ps_data via LDA ps_template_base,X with X=&F8..&FF,
+# reaching ps_template_base+&F8 = &8E43. Default PS name
+# "PRINT " followed by status bytes &01, &00.
+comment(0x8E43, "Printer server template (8 bytes)\n"
     "\n"
-    "8 bytes between return_4 (&8E42) and fs_vector_table\n"
-    "(&8E4B). Contains the ASCII string \"PRINT \" followed\n"
-    "by &01 and &00. Unreferenced by any code or data\n"
-    "pointer. Absent from all NFS versions (3.34-3.65);\n"
-    "unique to ANFS. Likely a development remnant — possibly\n"
-    "an OSCLI command template left from testing.")
-comment(0x8E43, "Dead data: ASCII \"PRINT \"", inline=True)
-comment(0x8E49, "Dead data: &01", inline=True)
-comment(0x8E4A, "Dead data: &00", inline=True)
+    "Default printer server configuration data, read\n"
+    "indirectly by copy_ps_data via LDA ps_template_base,X\n"
+    "with X=&F8..&FF (reaching ps_template_base+&F8 =\n"
+    "&8E43). Contains \"PRINT \" (6 bytes) as the default\n"
+    "printer server name, followed by &01 and &00 as\n"
+    "default status bytes. Absent from NFS versions;\n"
+    "unique to ANFS.")
+comment(0x8E43, "PS template: default name \"PRINT \"", inline=True)
+comment(0x8E49, "PS template: status &01", inline=True)
+comment(0x8E4A, "PS template: terminator &00", inline=True)
 
 comment(0x8E6D, "X=0", inline=True)
 comment(0x8E6F, "Y=&FF", inline=True)
@@ -7411,8 +7414,9 @@ for i, (name, handler_addr) in enumerate(handler_names):
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
-# Dead data: "PRINT " + &01 &00 at &8E43 (8 bytes, unreferenced)
-label(0x8E43, "print_string")
+# Printer server template data: "PRINT " + &01 &00 (8 bytes)
+# Read by copy_ps_data via indexed addressing from ps_template_base.
+label(0x8E43, "ps_template_data")
 byte(0x8E49)
 byte(0x8E4A)
 
@@ -7455,9 +7459,23 @@ byte(0x9808)   # null
 byte(0x9814)   # null
 byte(0x9821)   # null
 
-# Credits string
+# Credits string — add CR comments and split trailing CR/null.
 label(0x8C98, "version_string")
 label(0x8D2E, "credits_string")
+byte(0x8D2D)
+comment(0x8D2D, "CR", inline=True)
+byte(0x8D46)
+comment(0x8D46, "CR", inline=True)
+byte(0x8D51)
+comment(0x8D51, "CR", inline=True)
+byte(0x8D58)
+comment(0x8D58, "CR", inline=True)
+byte(0x8D64)
+comment(0x8D64, "CR", inline=True)
+byte(0x8D6C)
+comment(0x8D6C, "CR", inline=True)
+byte(0x8D6D)
+comment(0x8D6D, "String terminator", inline=True)
 
 # Boot command strings
 label(0xA3B6, "boot_load_cmd")

@@ -3603,6 +3603,7 @@ listen_jmp_hi = reset_enter_listen+2
 ; Indices 0-14: service calls (index = service + 1).
 ; Indices 15-36: FS command and OSWORD routing.
 ; Indices 1, 7, 11 point to return_4 (no-op RTS).
+; &89ca referenced 1 time by &8e52
 .svc_dispatch_lo
     equb 4                                                            ; 89ca: 04          .              ; lo - dummy entry (outside ROM range)
     equb <(dispatch_rts-1)                                            ; 89cb: 57          W              ; lo - Svc 0: already claimed (no-op)
@@ -3641,6 +3642,7 @@ listen_jmp_hi = reset_enter_listen+2
     equb <(net_1_read_handle-1)                                       ; 89ec: e3          .              ; lo - *NET1: read handle from packet
     equb <(net_2_read_handle_entry-1)                                 ; 89ed: e9          .              ; lo - *NET2: read handle from workspace
     equb <(net_3_close_handle-1)                                      ; 89ee: f9          .              ; lo - *NET3: close handle
+; &89ef referenced 1 time by &8e4e
 .svc_dispatch_hi
     equb &d3                                                          ; 89ef: d3          .              ; hi - dummy entry (outside ROM range)
     equb >(dispatch_rts-1)                                            ; 89f0: 8e          .              ; hi - Svc 0: already claimed (no-op)
@@ -4515,22 +4517,22 @@ version_string = version_string_cr+1
 
 ; &8d38 referenced 2 times by &8d1d, &8d2c
 .credits_keyword_start
-    equb &0d                                                          ; 8d38: 0d          .
+    equb &0d                                                          ; 8d38: 0d          .              ; CR
 .credits_string
     equs "The authors of ANFS are;"                                   ; 8d39: 54 68 65... The
-    equb &0d                                                          ; 8d51: 0d          .
-    equs "B Co"                                                       ; 8d52: 42 20 43... B C
-.credits_string_mid
-    equs "ckburn"                                                     ; 8d56: 63 6b 62... ckb
-    equb &0d                                                          ; 8d5c: 0d          .
+    equb &0d                                                          ; 8d51: 0d          .              ; CR
+    equs "B Cockburn"                                                 ; 8d52: 42 20 43... B C
+    equb &0d                                                          ; 8d5c: 0d          .              ; CR
     equs "J Du"                                                       ; 8d5d: 4a 20 44... J D
 ; &8d61 referenced 1 time by &b01b
-.l8d61
-    equb &6e, &6e, &0d                                                ; 8d61: 6e 6e 0d    nn.
+.ps_template_base
+    equs "nn"                                                         ; 8d61: 6e 6e       nn
+    equb &0d                                                          ; 8d63: 0d          .              ; CR
     equs "B Robertson"                                                ; 8d64: 42 20 52... B R
-    equb &0d                                                          ; 8d6f: 0d          .
+    equb &0d                                                          ; 8d6f: 0d          .              ; CR
     equs "J Wills"                                                    ; 8d70: 4a 20 57... J W
-    equb &0d, 0                                                       ; 8d77: 0d 00       ..
+    equb &0d                                                          ; 8d77: 0d          .              ; CR
+    equb 0                                                            ; 8d78: 00          .              ; String terminator
 
 ; ***************************************************************************************
 ; *I AM command handler (file server logon)
@@ -4735,39 +4737,37 @@ version_string = version_string_cr+1
 ; On Exit:
 ;     X: fs_options value
 ; ***************************************************************************************
-; &8e49 referenced 4 times by &8ac5, &8e31, &8e41, &8ea2
+; &8e49 referenced 5 times by &8ac5, &8e31, &8e41, &8e4b, &8ea2
 .svc_dispatch
     inx                                                               ; 8e49: e8          .              ; Advance X to target index
     dey                                                               ; 8e4a: 88          .              ; Decrement Y offset counter
-    equw &fc10                                                        ; 8e4b: 10 fc       ..             ; Y still positive: continue counting; FILEV dispatch (&FF1B)
-    equw &bda8                                                        ; 8e4d: a8 bd       ..             ; Y=&FF: will be ignored by caller; ARGSV dispatch (&FF1E); Load dispatch address high byte
-    equw &89ef                                                        ; 8e4f: ef 89       ..             ; BGETV dispatch (&FF21)
-.l8e51
-push_dispatch_lo = l8e51+1
-    equw &bd48                                                        ; 8e51: 48 bd       H.             ; Push high byte for RTS dispatch; BPUTV dispatch (&FF24); Load dispatch address low byte
-.l8e53
-svc_dispatch_lo_offset = l8e53+1
-    equw &89ca                                                        ; 8e53: ca 89       ..             ; GBPBV dispatch (&FF27)
+    bpl svc_dispatch                                                  ; 8e4b: 10 fc       ..             ; Y still positive: continue counting
+    tay                                                               ; 8e4d: a8          .              ; Y=&FF: will be ignored by caller
+    lda svc_dispatch_hi,x                                             ; 8e4e: bd ef 89    ...            ; Load dispatch address high byte
+    pha                                                               ; 8e51: 48          H              ; Push high byte for RTS dispatch
+.push_dispatch_lo
+svc_dispatch_lo_offset = push_dispatch_lo+2
+    lda svc_dispatch_lo,x                                             ; 8e52: bd ca 89    ...            ; Load dispatch address low byte
 ; &8e54 referenced 2 times by &8f70, &8f76
-    equw &a648                                                        ; 8e55: 48 a6       H.             ; Push low byte for RTS dispatch; FINDV dispatch (&FF2A); Load FS options pointer
-.l8e57
-dispatch_rts = l8e57+1
-    equw &60bb                                                        ; 8e57: bb 60       .`             ; FSCV dispatch (&FF2D); Dispatch via RTS
+    pha                                                               ; 8e55: 48          H              ; Push low byte for RTS dispatch
+    ldx fs_options                                                    ; 8e56: a6 bb       ..             ; Load FS options pointer
 ; &8e58 referenced 3 times by &8e2a, &8e38, &8e45
-; Unreferenced dead data (8 bytes)
+.dispatch_rts
+    rts                                                               ; 8e58: 60          `              ; Dispatch via RTS
+
+; Printer server template (8 bytes)
 ; 
-; 8 bytes between dispatch_rts and fs_vector_table
-; (&8E61). Contains the ASCII string "PRINT " followed
-; by &01 and &00. Unreferenced by any code or data
-; pointer. Absent from all NFS versions (3.34-3.65);
-; unique to ANFS. Likely a development remnant — possibly
-; an OSCLI command template left from testing.
-.print_string
-    equw &5250                                                        ; 8e59: 50 52       PR             ; Dead data: ASCII "PRINT "; FILEV handler (&9921)
-    equb &49                                                          ; 8e5b: 49          I              ; (ROM bank — not read)
-    equw &544e                                                        ; 8e5c: 4e 54       NT             ; ARGSV handler (&9BAF)
-    equb &20                                                          ; 8e5e: 20                         ; (ROM bank — not read)
-    equw 1                                                            ; 8e5f: 01 00       ..             ; BGETV handler (&B7CF)
+; Default printer server configuration data, read
+; indirectly by copy_ps_data via LDA ps_template_base,X
+; with X=&F8..&FF (reaching ps_template_base+&F8 =
+; &8E59). Contains "PRINT " (6 bytes) as the default
+; printer server name, followed by &01 and &00 as
+; default status bytes. Absent from NFS versions;
+; unique to ANFS.
+.ps_template_data
+    equs "PRINT "                                                     ; 8e59: 50 52 49... PRI            ; PS template: default name "PRINT "
+    equb 1                                                            ; 8e5f: 01          .
+    equb 0                                                            ; 8e60: 00          .
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ; 
@@ -4784,16 +4784,26 @@ dispatch_rts = l8e57+1
 ; ***************************************************************************************
 ; &8e61 referenced 1 time by &8b4c
 .fs_vector_table
-    equb &1b                                                          ; 8e61: 1b          .              ; (ROM bank — not read)
-    equw &1eff                                                        ; 8e62: ff 1e       ..             ; BPUTV handler (&B850)
-    equb &ff                                                          ; 8e64: ff          .              ; (ROM bank — not read)
-    equw &ff21                                                        ; 8e65: 21 ff       !.             ; GBPBV handler (&9E23)
-    equb &24                                                          ; 8e67: 24          $              ; (ROM bank — not read)
-    equw &27ff                                                        ; 8e68: ff 27       .'             ; FINDV handler (&9D42)
-    equb &ff                                                          ; 8e6a: ff          .              ; (ROM bank — not read)
-    equw &ff2a                                                        ; 8e6b: 2a ff       *.             ; FSCV handler (&8E1D)
-    equb &2d, &ff, &35, &99, &4a, &be, &9b, &44, &ce, &b7, &57, &4d   ; 8e6d: 2d ff 35... -.5
-    equb &b8, &42, &2f, &9e, &41, &4e, &9d, &52, &33, &8e             ; 8e79: b8 42 2f... .B/
+    equw &ff1b                                                        ; 8e61: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equw &ff1e                                                        ; 8e63: 1e ff       ..             ; ARGSV dispatch (&FF1E)
+    equw &ff21                                                        ; 8e65: 21 ff       !.             ; BGETV dispatch (&FF21)
+    equw &ff24                                                        ; 8e67: 24 ff       $.             ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 8e69: 27 ff       '.             ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 8e6b: 2a ff       *.             ; FINDV dispatch (&FF2A)
+    equw &ff2d                                                        ; 8e6d: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equw &9935                                                        ; 8e6f: 35 99       5.             ; FILEV handler (&9935)
+    equb &4a                                                          ; 8e71: 4a          J              ; (ROM bank — not read)
+    equw &9bbe                                                        ; 8e72: be 9b       ..             ; ARGSV handler (&9BBE)
+    equb &44                                                          ; 8e74: 44          D              ; (ROM bank — not read)
+    equw &b7ce                                                        ; 8e75: ce b7       ..             ; BGETV handler (&B7CE)
+    equb &57                                                          ; 8e77: 57          W              ; (ROM bank — not read)
+    equw &b84d                                                        ; 8e78: 4d b8       M.             ; BPUTV handler (&B84D)
+    equb &42                                                          ; 8e7a: 42          B              ; (ROM bank — not read)
+    equw &9e2f                                                        ; 8e7b: 2f 9e       /.             ; GBPBV handler (&9E2F)
+    equb &41                                                          ; 8e7d: 41          A              ; (ROM bank — not read)
+    equw &9d4e                                                        ; 8e7e: 4e 9d       N.             ; FINDV handler (&9D4E)
+    equb &52                                                          ; 8e80: 52          R              ; (ROM bank — not read)
+    equw &8e33                                                        ; 8e81: 33 8e       3.             ; FSCV handler (&8E33)
 
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=&FF
@@ -4840,8 +4850,8 @@ dispatch_rts = l8e57+1
 ; 
 ; 2-byte handler address for the NETV extended
 ; vector, read by write_vector_entry at Y=&36
-; from svc_dispatch_lo_offset (&8E3E). Points to
-; netv_handler (&A968) which dispatches OSWORDs
+; from svc_dispatch_lo_offset. Points to
+; netv_handler which dispatches OSWORDs
 ; 0-8 to Econet handlers. Interleaved with the
 ; OSBYTE wrapper code in the data area.
 .netv_handler_addr
@@ -12600,9 +12610,9 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jmp cb0b9                                                         ; b014: 4c b9 b0    L..            ; Jump to store station address
 
 ; ***************************************************************************************
-; Copy printer server template at offset &1C
+; Copy printer server template at offset &18
 ; 
-; Sets Y=&1C and falls through to copy_ps_data.
+; Sets Y=&18 and falls through to copy_ps_data.
 ; Called during workspace initialisation
 ; (svc_2_private_workspace) to set up the printer
 ; server template at the standard offset.
@@ -12613,19 +12623,20 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
 ; 
-; Copies 8 bytes from the credits_string_mid area
-; (using X starting at &F8, wrapping to 0) into
-; the RX buffer at the current Y offset. The
-; template contains default printer server
-; configuration data used when initialising a new
-; printer server slot.
+; Copies 8 bytes of default printer server data
+; into the RX buffer at the current Y offset.
+; Uses indexed addressing: LDA ps_template_base,X
+; with X starting at &F8, so the effective read
+; address is ps_template_base+&F8 = ps_template_data
+; (&8E59). This 6502 trick reaches data 248 bytes
+; past the base label using a single instruction.
 ; ***************************************************************************************
 ; &b019 referenced 1 time by &b1f8
 .copy_ps_data
     ldx #&f8                                                          ; b019: a2 f8       ..             ; X=&F8: offset into template
 ; &b01b referenced 1 time by &b022
 .loop_copy_ps_tmpl
-    lda l8d61,x                                                       ; b01b: bd 61 8d    .a.            ; Get template byte
+    lda ps_template_base,x                                            ; b01b: bd 61 8d    .a.            ; Get template byte
     sta (net_rx_ptr),y                                                ; b01e: 91 9c       ..             ; Store in RX buffer
     iny                                                               ; b020: c8          .              ; Next destination offset
     inx                                                               ; b021: e8          .              ; Next source offset
@@ -15581,7 +15592,7 @@ save pydis_start, pydis_end
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           88
 ;     fs_cmd_data:                             69
-;     fs_options:                              54
+;     fs_options:                              55
 ;     net_rx_ptr:                              53
 ;     ws_ptr_hi:                               50
 ;     econet_control23_or_status2:             46
@@ -15734,6 +15745,7 @@ save pydis_start, pydis_end
 ;     stack_page_2:                             5
 ;     stack_page_6:                             5
 ;     strip_token_prefix:                       5
+;     svc_dispatch:                             5
 ;     system_via_acr:                           5
 ;     tube_present:                             5
 ;     tube_send_r1:                             5
@@ -15778,7 +15790,6 @@ save pydis_start, pydis_end
 ;     saved_nmi_lo:                             4
 ;     scout_src_net:                            4
 ;     store_a_to_pb_1:                          4
-;     svc_dispatch:                             4
 ;     tube_reply_byte:                          4
 ;     txcb_port:                                4
 ;     video_ula_control:                        4
@@ -16416,7 +16427,6 @@ save pydis_start, pydis_end
 ;     l00ed:                                    1
 ;     l0e14:                                    1
 ;     l0fff:                                    1
-;     l8d61:                                    1
 ;     language_entry:                           1
 ;     lffb0:                                    1
 ;     lffbd:                                    1
@@ -16709,6 +16719,7 @@ save pydis_start, pydis_end
 ;     print_table_newline:                      1
 ;     process_reply_code:                       1
 ;     prot_bit_encode_table:                    1
+;     ps_template_base:                         1
 ;     ps_tx_header_template:                    1
 ;     push_osword_handler_addr:                 1
 ;     pydis_start:                              1
@@ -16936,6 +16947,8 @@ save pydis_start, pydis_end
 ;     subst_rx_page_byte:                       1
 ;     subtract_ws_byte:                         1
 ;     suffix_not_listening:                     1
+;     svc_dispatch_hi:                          1
+;     svc_dispatch_lo:                          1
 ;     syn_opt_dir:                              1
 ;     trigger_brk:                              1
 ;     try_alternate_phase:                      1
@@ -17047,10 +17060,6 @@ save pydis_start, pydis_end
 ;     l0e14
 ;     l0fc8
 ;     l0fff
-;     l8d61
-;     l8e51
-;     l8e53
-;     l8e57
 ;     lffb0
 ;     lffbd
 ;     loop_ca4fc
@@ -17066,11 +17075,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14589 bytes (89%)
-;     Data                     = 1795 bytes (11%)
+;     Code                     = 14603 bytes (89%)
+;     Data                     = 1781 bytes (11%)
 ;
-;     Number of instructions   = 7154
-;     Number of data bytes     = 576 bytes
+;     Number of instructions   = 7162
+;     Number of data bytes     = 554 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1107 bytes
-;     Number of strings        = 137
+;     Number of string bytes   = 1115 bytes
+;     Number of strings        = 138
