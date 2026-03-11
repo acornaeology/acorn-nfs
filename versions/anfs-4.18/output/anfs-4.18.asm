@@ -3859,7 +3859,7 @@ init_rom_scan = sub_c8a6c+2
 ; *ROFF command handler
 ; 
 ; Disables remote operation by clearing the flag at
-; offset 4 in the receive block. If remote operation
+; offset 0 in the receive block. If remote operation
 ; was active, re-enables the keyboard via OSBYTE &C9
 ; (with X=0, Y=0) and calls tx_econet_abort with
 ; A=&0A to reinitialise the workspace area. Falls
@@ -3867,7 +3867,7 @@ init_rom_scan = sub_c8a6c+2
 ; and nfs_workspace.
 ; ***************************************************************************************
 .cmd_roff
-    ldy #0                                                            ; 8ad4: a0 00       ..             ; Offset 4 in receive block
+    ldy #0                                                            ; 8ad4: a0 00       ..             ; Offset 0 in receive block
     lda (net_rx_ptr),y                                                ; 8ad6: b1 9c       ..             ; Load remote operation flag
     beq clear_svc_and_ws                                              ; 8ad8: f0 21       .!             ; Zero: already off, skip to cleanup
     lda #0                                                            ; 8ada: a9 00       ..             ; A=0
@@ -3993,7 +3993,7 @@ init_rom_scan = sub_c8a6c+2
     lda (net_rx_ptr),y                                                ; 8b39: b1 9c       ..             ; Load byte from receive block
     sta osword_ws_base,y                                              ; 8b3b: 99 fe 0d    ...            ; Store into FS workspace
     dey                                                               ; 8b3e: 88          .              ; Decrement index
-    cpy #1                                                            ; 8b3f: c0 01       ..             ; Reached offset 5?
+    cpy #1                                                            ; 8b3f: c0 01       ..             ; Reached offset 1?
     bne loop_copy_fs_ctx                                              ; 8b41: d0 f6       ..             ; No: continue copying
     rol fs_flags                                                      ; 8b43: 2e 6c 0d    .l.            ; Shift bit 7 of FS flags into carry
     clc                                                               ; 8b46: 18          .              ; Clear carry
@@ -4923,7 +4923,7 @@ dispatch_rts = l8e57+1
 ; Record workspace page count (capped at &21)
 ; 
 ; Stores the workspace allocation from service 1
-; into offset &0F of the receive control block,
+; into offset &0B of the receive control block,
 ; capping the value at &21 to prevent overflow into
 ; adjacent workspace areas. Called by
 ; svc_2_private_workspace after issuing the absolute
@@ -4940,7 +4940,7 @@ dispatch_rts = l8e57+1
     lda #&21 ; '!'                                                    ; 8eb1: a9 21       .!             ; Cap at &21
 ; &8eb3 referenced 1 time by &8eaf
 .done_cap_ws_count
-    ldy #&0b                                                          ; 8eb3: a0 0b       ..             ; Offset &0F in receive block
+    ldy #&0b                                                          ; 8eb3: a0 0b       ..             ; Offset &0B in receive block
     sta (net_rx_ptr),y                                                ; 8eb5: 91 9c       ..             ; Store workspace page count
     rts                                                               ; 8eb7: 60          `              ; Return
 
@@ -4975,7 +4975,7 @@ dispatch_rts = l8e57+1
     sta nfs_workspace                                                 ; 8ecb: 85 9e       ..             ; Clear NFS workspace pointer low
     sta ws_page                                                       ; 8ecd: 85 a8       ..             ; Clear workspace page counter
     sta ws_0d60                                                       ; 8ecf: 8d 60 0d    .`.            ; Clear workspace byte
-    ldy #0                                                            ; 8ed2: a0 00       ..             ; Offset 4 in receive block
+    ldy #0                                                            ; 8ed2: a0 00       ..             ; Offset 0 in receive block
     sta (net_rx_ptr),y                                                ; 8ed4: 91 9c       ..             ; Clear remote operation flag
     lda #osbyte_issue_service_request                                 ; 8ed6: a9 8f       ..             ; OSBYTE &8F: issue service request
     ldx #1                                                            ; 8ed8: a2 01       ..             ; X=1: workspace claim service
@@ -4993,10 +4993,10 @@ dispatch_rts = l8e57+1
     sta (nfs_workspace),y                                             ; 8ef0: 91 9e       ..             ; Clear byte in NFS workspace
     iny                                                               ; 8ef2: c8          .              ; Advance index
     bne loop_zero_workspace                                           ; 8ef3: d0 f9       ..             ; Loop until full page zeroed
-    ldy #8                                                            ; 8ef5: a0 08       ..             ; Offset &0C in receive block
+    ldy #8                                                            ; 8ef5: a0 08       ..             ; Offset 8 in receive block
     sta (net_rx_ptr),y                                                ; 8ef7: 91 9c       ..             ; Clear protection flags
     jsr copy_ps_data_y1c                                              ; 8ef9: 20 17 b0     ..            ; Initialise station identity block
-    ldy #2                                                            ; 8efc: a0 02       ..             ; Offset 6 in receive block
+    ldy #2                                                            ; 8efc: a0 02       ..             ; Offset 2 in receive block
     lda #&fe                                                          ; 8efe: a9 fe       ..             ; A=&FE: default station ID marker
     sta fs_server_stn                                                 ; 8f00: 8d 00 0e    ...            ; Store default station low
     sta (net_rx_ptr),y                                                ; 8f03: 91 9c       ..             ; Store into receive block
@@ -5059,7 +5059,7 @@ ws_init_data = error_bad_station+2
 .store_station_id
     iny                                                               ; 8f4c: c8          .              ; Increment station ID
     beq error_bad_station                                             ; 8f4d: f0 f7       ..             ; Overflow to 0: report error
-    ldy #1                                                            ; 8f4f: a0 01       ..             ; Offset 5: station ID in recv block
+    ldy #1                                                            ; 8f4f: a0 01       ..             ; Offset 1: station ID in recv block
     sta (net_rx_ptr),y                                                ; 8f51: 91 9c       ..             ; Store station ID
     ldx #&40 ; '@'                                                    ; 8f53: a2 40       .@             ; X=&40: Econet flag byte
     stx econet_flags                                                  ; 8f55: 8e 61 0d    .a.            ; Store Econet control flag
@@ -5140,7 +5140,7 @@ ws_init_data = error_bad_station+2
     lda osword_ws_base,y                                              ; 8f8e: b9 fe 0d    ...            ; Load FS context byte
     sta (net_rx_ptr),y                                                ; 8f91: 91 9c       ..             ; Store into receive block
     dey                                                               ; 8f93: 88          .              ; Decrement index
-    cpy #1                                                            ; 8f94: c0 01       ..             ; Reached offset 5?
+    cpy #1                                                            ; 8f94: c0 01       ..             ; Reached offset 1?
     bne loop_restore_ctx                                              ; 8f96: d0 f6       ..             ; No: continue copying
     rts                                                               ; 8f98: 60          `              ; Return
 
@@ -5240,7 +5240,7 @@ ws_init_data = error_bad_station+2
 ; Print Econet station number and clock status
 ; 
 ; Uses print_inline to output 'Econet Station ',
-; then reads the station ID from offset 5 of the
+; then reads the station ID from offset 1 of the
 ; receive control block and prints it as a decimal
 ; number via print_num_no_leading. Tests ADLC
 ; status register 2 (&FEA1) to detect the Econet
@@ -6532,7 +6532,7 @@ ws_init_data = error_bad_station+2
     jmp classify_reply_error                                          ; 957d: 4c 4e 96    LN.            ; Classify as network error
 
 .lang_1_remote_boot
-    ldy #0                                                            ; 9580: a0 00       ..             ; Offset 4: remote state byte
+    ldy #0                                                            ; 9580: a0 00       ..             ; Offset 0: remote state byte
     lda (net_rx_ptr),y                                                ; 9582: b1 9c       ..             ; Load remote state
     beq init_remote_session                                           ; 9584: f0 03       ..             ; Zero: initialise remote session
 ; &9586 referenced 1 time by &95cc
@@ -6567,7 +6567,7 @@ ws_init_data = error_bad_station+2
     equs "Remoted", 0                                                 ; 95b6: 52 65 6d... Rem
 
 .lang_4_remote_validated
-    ldy #0                                                            ; 95be: a0 00       ..             ; Offset 4: remote state byte
+    ldy #0                                                            ; 95be: a0 00       ..             ; Offset 0: remote state byte
     lda (net_rx_ptr),y                                                ; 95c0: b1 9c       ..             ; Load remote state
     beq init_remote_session                                           ; 95c2: f0 c5       ..             ; Zero: reinitialise session
     ldy #&80                                                          ; 95c4: a0 80       ..             ; Offset &80: station low
@@ -9917,10 +9917,10 @@ bad_prefix = bad_str_anchor+1
 ; &a5ad referenced 1 time by &a5a8
 .setup_ws_rx_ptrs
     lda net_rx_ptr_hi                                                 ; a5ad: a5 9d       ..             ; Set workspace high byte
-    sta ws_ptr_lo                                                     ; a5af: 85 ab       ..             ; Copy to ws_ptr_hi
+    sta ws_ptr_lo                                                     ; a5af: 85 ab       ..             ; Copy to ws_ptr_lo
     sta nmi_tx_block_hi                                               ; a5b1: 85 a1       ..             ; Also set as NMI TX block high
     lda #&6f ; 'o'                                                    ; a5b3: a9 6f       .o             ; Low byte = &6F
-    sta osword_flag                                                   ; a5b5: 85 aa       ..             ; Set ws_ptr_lo
+    sta osword_flag                                                   ; a5b5: 85 aa       ..             ; Set osword_flag
     sta nmi_tx_block                                                  ; a5b7: 85 a0       ..             ; Set NMI TX block low
     ldx #&0f                                                          ; a5b9: a2 0f       ..             ; X=&0F: byte count for copy
     jsr copy_pb_byte_to_ws                                            ; a5bb: 20 f8 a6     ..            ; Copy data and begin transmission
@@ -9994,11 +9994,11 @@ bad_prefix = bad_str_anchor+1
 
 .osword_12_handler
     lda net_rx_ptr_hi                                                 ; a619: a5 9d       ..             ; Set workspace from RX ptr high
-    sta ws_ptr_lo                                                     ; a61b: 85 ab       ..             ; Store to ws_ptr_hi
+    sta ws_ptr_lo                                                     ; a61b: 85 ab       ..             ; Store to ws_ptr_lo
     ldy #&7f                                                          ; a61d: a0 7f       ..             ; Y=&7F: last byte of RX buffer
     lda (net_rx_ptr),y                                                ; a61f: b1 9c       ..             ; Load port/count from RX buffer
     iny                                                               ; a621: c8          .              ; Y=&80: set workspace pointer; Y=&80
-    sty osword_flag                                                   ; a622: 84 aa       ..             ; Store as ws_ptr_lo
+    sty osword_flag                                                   ; a622: 84 aa       ..             ; Store as osword_flag
     tax                                                               ; a624: aa          .              ; X = port/count value
     dex                                                               ; a625: ca          .              ; X-1: adjust count
     ldy #0                                                            ; a626: a0 00       ..             ; Y=0 for copy
@@ -10171,7 +10171,7 @@ bad_prefix = bad_str_anchor+1
 ; OSWORD &13 sub 12: read CSD path
 ; 
 ; Reads 5 current selected directory path bytes
-; from the RX workspace at offset &1B into
+; from the RX workspace at offset &17 into
 ; PB[1..5]. Sets carry clear to select the
 ; workspace-to-PB copy direction.
 ; ***************************************************************************************
@@ -10184,14 +10184,14 @@ bad_prefix = bad_str_anchor+1
 ; 
 ; Writes 5 current selected directory path bytes
 ; from PB[1..5] into the RX workspace at offset
-; &1B. Sets carry to select the PB-to-workspace
+; &17. Sets carry to select the PB-to-workspace
 ; copy direction.
 ; ***************************************************************************************
 .osword_13_write_csd
     sec                                                               ; a6eb: 38          8              ; C=1: PB-to-workspace direction
 ; &a6ec referenced 1 time by &a6e9
 .setup_csd_copy
-    lda #&17                                                          ; a6ec: a9 17       ..             ; Workspace offset &1B
+    lda #&17                                                          ; a6ec: a9 17       ..             ; Workspace offset &17
     sta osword_flag                                                   ; a6ee: 85 aa       ..             ; Set ws_ptr_lo
     lda net_rx_ptr_hi                                                 ; a6f0: a5 9d       ..             ; Page from RX pointer high byte
     sta ws_ptr_lo                                                     ; a6f2: 85 ab       ..             ; Set ws_ptr_hi
@@ -10696,10 +10696,10 @@ bridge_ws_init_data = compare_bridge_status+1
     bmi loop_wait_tx_done                                             ; a89f: 30 fc       0.             ; Negative: TX still in progress
     txa                                                               ; a8a1: 8a          .              ; Transfer TX completion status to A
     pha                                                               ; a8a2: 48          H              ; Save TX status
-    lda #osbyte_vsync                                                 ; a8a3: a9 13       ..             ; Save PB pointer high; OSBYTE &13: wait for VSYNC
-    jsr osbyte                                                        ; a8a5: 20 f4 ff     ..            ; Push for later restore; Wait for vertical sync
-    pla                                                               ; a8a8: 68          h              ; Restore PB pointer high; Restore TX status
-    tax                                                               ; a8a9: aa          .              ; Restore to osword_pb_ptr_hi; Back to X
+    lda #osbyte_vsync                                                 ; a8a3: a9 13       ..             ; OSBYTE &13: wait for VSYNC
+    jsr osbyte                                                        ; a8a5: 20 f4 ff     ..            ; Wait for vertical sync
+    pla                                                               ; a8a8: 68          h              ; Restore TX status
+    tax                                                               ; a8a9: aa          .              ; Back to X
     ldy #&18                                                          ; a8aa: a0 18       ..             ; Y=&18: check workspace response
     lda (nfs_workspace),y                                             ; a8ac: b1 9e       ..             ; Load bridge response
     bmi bridge_responded                                              ; a8ae: 30 05       0.             ; Negative: bridge responded
@@ -10741,14 +10741,14 @@ bridge_ws_init_data = compare_bridge_status+1
     iny                                                               ; a8e2: c8          .              ; Y=&18 (INY from &17)
     sty net_tx_ptr                                                    ; a8e3: 84 9a       ..             ; Set net_tx_ptr low byte
 ; ***************************************************************************************
-; Store OSWORD parameter block pointer+1 to workspace
+; Store workspace pointer+1 to NFS workspace
 ; 
-; Computes PB pointer + 1 and stores the resulting
+; Computes ws_ptr_hi + 1 and stores the resulting
 ; 16-bit address at workspace offset &1C via
 ; store_ptr_at_ws_y. Then reads PB byte 1 (the
-; transfer length) and adds the PB low byte to
-; compute the buffer end pointer, stored at
-; workspace offset &20.
+; transfer length) and adds ws_ptr_hi to compute
+; the buffer end pointer, stored at workspace
+; offset &20.
 ; ***************************************************************************************
 .store_osword_pb_ptr
     ldy #&1c                                                          ; a8e5: a0 1c       ..             ; Y=&1C: workspace offset for PB pointer
@@ -10794,7 +10794,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; 
 ; Writes a 16-bit address to (nfs_workspace)+Y.
 ; The low byte comes from A; the high byte is
-; computed from osword_pb_ptr_hi plus carry,
+; computed from table_idx plus carry,
 ; supporting pointer arithmetic across page
 ; boundaries.
 ; 
@@ -11634,8 +11634,8 @@ bridge_ws_init_data = compare_bridge_status+1
 ; 
 ; 12-byte TXCB template copied directly (no
 ; marker processing) to workspace at offset
-; &25..&30. Destination station and network
-; (&27/&28) are filled in from (nfs_workspace)
+; &21..&2C. Destination station and network
+; (&23/&24) are filled in from (nfs_workspace)
 ; after the copy.
 ; &ac80 referenced 1 time by &ab89
 .tx_econet_txcb_template
@@ -12920,7 +12920,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     lda (net_rx_ptr),y                                                ; b16f: b1 9c       ..             ; Load byte from RX buffer
     pha                                                               ; b171: 48          H              ; Push to stack (for reversal)
     iny                                                               ; b172: c8          .              ; Next source byte
-    cpy #&20 ; ' '                                                    ; b173: c0 20       .              ; End of PS name field (&24)?
+    cpy #&20 ; ' '                                                    ; b173: c0 20       .              ; End of PS name field (&20)?
     bne loop_push_ps_name                                             ; b175: d0 f8       ..             ; No: continue pushing
     ldy #&17                                                          ; b177: a0 17       ..             ; End of TX name field at &1B
 ; &b179 referenced 1 time by &b17f
@@ -12928,7 +12928,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     pla                                                               ; b179: 68          h              ; Pop byte (reversed order)
     sta (net_rx_ptr),y                                                ; b17a: 91 9c       ..             ; Store in RX buffer
     dey                                                               ; b17c: 88          .              ; Previous position
-    cpy #&0f                                                          ; b17d: c0 0f       ..             ; Start of TX field (&13)?
+    cpy #&0f                                                          ; b17d: c0 0f       ..             ; Start of TX field (&0F)?
     bne loop_pop_ps_name                                              ; b17f: d0 f8       ..             ; No: continue popping
     lda net_rx_ptr_hi                                                 ; b181: a5 9d       ..             ; Copy RX page to TX
     sta net_tx_ptr_hi                                                 ; b183: 85 9b       ..             ; Set TX pointer high
@@ -14877,7 +14877,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; &ba90 referenced 1 time by &ba9b
 .loop_print_dump_hex
     lda (work_ae),y                                                   ; ba90: b1 ae       ..             ; Load data byte from buffer
-    jsr loop_print_col_num                                            ; ba92: 20 03 bb     ..            ; Print as two hex digits
+    jsr print_hex_and_space                                           ; ba92: 20 03 bb     ..            ; Print as two hex digits
 ; &ba95 referenced 1 time by &baa8
 .loop_next_dump_col
     iny                                                               ; ba95: c8          .              ; Space separator; Next column
@@ -14953,7 +14953,7 @@ net_channel_err_string = err_net_chan_not_found+2
     pla                                                               ; baf1: 68          h              ; Restore starting column number
 ; &baf2 referenced 1 time by &bafb
 .loop_cbaf2
-    jsr loop_print_col_num                                            ; baf2: 20 03 bb     ..            ; Print as two hex digits
+    jsr print_hex_and_space                                           ; baf2: 20 03 bb     ..            ; Print as two hex digits
     sec                                                               ; baf5: 38          8              ; Space separator; SEC for +1 via ADC
     adc #0                                                            ; baf6: 69 00       i.             ; Increment column number (SEC+ADC 0=+1)
     and #&0f                                                          ; baf8: 29 0f       ).             ; Wrap to low nibble (0-F)
@@ -14974,15 +14974,14 @@ net_channel_err_string = err_net_chan_not_found+2
 ;     A: byte value to print
 ; ***************************************************************************************
 ; &bb03 referenced 2 times by &ba92, &baf2
-.loop_print_col_num
 .print_hex_and_space
     pha                                                               ; bb03: 48          H              ; Save byte value on stack
     jsr print_hex_byte                                                ; bb04: 20 2f 91     /.
     lda #&20 ; ' '                                                    ; bb07: a9 20       .              ; A=&20: space character
 .sub_cbb09
-return_with_fn_offset = sub_cbb09+2
+osasci_offset = sub_cbb09+2
     jsr osasci                                                        ; bb09: 20 e3 ff     ..            ; Print space character; Write character 32
-.done_restore_text_ptr
+.done_print_hex_space
     pla                                                               ; bb0c: 68          h              ; Restore byte value from stack
     rts                                                               ; bb0d: 60          `              ; Return; Y = offset to next argument
 
@@ -15987,7 +15986,6 @@ save pydis_start, pydis_end
 ;     loop_next_fcb_slot:                       2
 ;     loop_pass_tx_delay:                       2
 ;     loop_pop_stack_buf:                       2
-;     loop_print_col_num:                       2
 ;     loop_print_hex_byte:                      2
 ;     loop_print_syntax:                        2
 ;     loop_reload_attr:                         2

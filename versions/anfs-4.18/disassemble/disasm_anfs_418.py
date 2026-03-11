@@ -1154,7 +1154,7 @@ label(0xAC6F, "loop_wait_disc_tx_ack")
 label(0xAC80, "tx_econet_txcb_template")
 
 # Split the 12-byte spool TX control block template into individual bytes.
-# Simple copy (no marker processing) to workspace offset &25..&30 via
+# Simple copy (no marker processing) to workspace offset &21..&2C via
 # (net_rx_ptr),Y. Destination station/network filled in afterwards.
 for i in range(12):
     byte(0xAC80 + i)
@@ -1591,13 +1591,13 @@ label(0xBAC0, "done_test_del")
 label(0xBACF, "done_end_dump_line")
 label(0xBAD8, "done_dump_eof")
 label(0xBADD, "print_dump_header")
-label(0xBB03, "loop_print_col_num")
+label(0xBB03, "print_hex_and_space")
 label(0xBC3D, "close_ws_file")
 label(0xBC44, "open_file_for_read")
-label(0xBB0C, "done_restore_text_ptr")
+label(0xBB0C, "done_print_hex_space")
 label(0xBC72, "loop_skip_filename")
 label(0xBC7D, "loop_skip_fn_spaces")
-label(0xBB0B, "return_with_fn_offset")
+label(0xBB0B, "osasci_offset")
 label(0xBB0E, "parse_dump_range")
 label(0xBB13, "loop_clear_hex_accum")
 label(0xBB1A, "loop_parse_hex_digit")
@@ -2811,7 +2811,7 @@ subroutine(0x8E8C, "osbyte_x0_y0",
 subroutine(0x8EAC, "store_ws_page_count",
     title="Record workspace page count (capped at &21)",
     description="Stores the workspace allocation from service 1\n"
-    "into offset &0F of the receive control block,\n"
+    "into offset &0B of the receive control block,\n"
     "capping the value at &21 to prevent overflow into\n"
     "adjacent workspace areas. Called by\n"
     "svc_2_private_workspace after issuing the absolute\n"
@@ -2870,7 +2870,7 @@ subroutine(0x8FCB, "verify_ws_checksum",
 subroutine(0x8FF1, "print_station_id",
     title="Print Econet station number and clock status",
     description="Uses print_inline to output 'Econet Station ',\n"
-    "then reads the station ID from offset 5 of the\n"
+    "then reads the station ID from offset 1 of the\n"
     "receive control block and prints it as a decimal\n"
     "number via print_num_no_leading. Tests ADLC\n"
     "status register 2 (&FEA1) to detect the Econet\n"
@@ -3455,18 +3455,18 @@ subroutine(0xA595, "bin_to_bcd",
     on_entry={"a": "binary value (0-99)"},
     on_exit={"a": "BCD equivalent"})
 subroutine(0xA8E5, "store_osword_pb_ptr",
-    title="Store OSWORD parameter block pointer+1 to workspace",
-    description="Computes PB pointer + 1 and stores the resulting\n"
+    title="Store workspace pointer+1 to NFS workspace",
+    description="Computes ws_ptr_hi + 1 and stores the resulting\n"
     "16-bit address at workspace offset &1C via\n"
     "store_ptr_at_ws_y. Then reads PB byte 1 (the\n"
-    "transfer length) and adds the PB low byte to\n"
-    "compute the buffer end pointer, stored at\n"
-    "workspace offset &20.")
+    "transfer length) and adds ws_ptr_hi to compute\n"
+    "the buffer end pointer, stored at workspace\n"
+    "offset &20.")
 subroutine(0xA92B, "store_ptr_at_ws_y",
     title="Store 16-bit pointer at workspace offset Y",
     description="Writes a 16-bit address to (nfs_workspace)+Y.\n"
     "The low byte comes from A; the high byte is\n"
-    "computed from osword_pb_ptr_hi plus carry,\n"
+    "computed from table_idx plus carry,\n"
     "supporting pointer arithmetic across page\n"
     "boundaries.",
     on_entry={"a": "pointer low byte",
@@ -3499,14 +3499,14 @@ subroutine(0xA673, "osword_13_set_station",
 subroutine(0xA6E8, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
-    "from the RX workspace at offset &1B into\n"
+    "from the RX workspace at offset &17 into\n"
     "PB[1..5]. Sets carry clear to select the\n"
     "workspace-to-PB copy direction.")
 subroutine(0xA6EB, "osword_13_write_csd",
     title="OSWORD &13 sub 13: write CSD path",
     description="Writes 5 current selected directory path bytes\n"
     "from PB[1..5] into the RX workspace at offset\n"
-    "&1B. Sets carry to select the PB-to-workspace\n"
+    "&17. Sets carry to select the PB-to-workspace\n"
     "copy direction.")
 subroutine(0xA707, "osword_13_read_ws_pair",
     title="OSWORD &13 sub 2: read workspace byte pair",
@@ -5894,7 +5894,7 @@ comment(0x8ACE, "Store it back", inline=True)
 comment(0x8AD0, "Transfer return code to A", inline=True)
 comment(0x8AD1, "Restore ROM slot to X", inline=True)
 comment(0x8AD3, "Return to MOS", inline=True)
-comment(0x8AD4, "Offset 4 in receive block", inline=True)
+comment(0x8AD4, "Offset 0 in receive block", inline=True)
 comment(0x8AD6, "Load remote operation flag", inline=True)
 comment(0x8AD8, "Zero: already off, skip to cleanup", inline=True)
 comment(0x8ADA, "A=0", inline=True)
@@ -5945,7 +5945,7 @@ comment(0x8B37, "Y=9: end of FS context block", inline=True)
 comment(0x8B39, "Load byte from receive block", inline=True)
 comment(0x8B3B, "Store into FS workspace", inline=True)
 comment(0x8B3E, "Decrement index", inline=True)
-comment(0x8B3F, "Reached offset 5?", inline=True)
+comment(0x8B3F, "Reached offset 1?", inline=True)
 comment(0x8B41, "No: continue copying", inline=True)
 comment(0x8B43, "Shift bit 7 of FS flags into carry", inline=True)
 comment(0x8B46, "Clear carry", inline=True)
@@ -6305,7 +6305,7 @@ comment(0x8EAC, "Transfer Y to A", inline=True)
 comment(0x8EAD, "Y >= &21?", inline=True)
 comment(0x8EAF, "No: use Y as-is", inline=True)
 comment(0x8EB1, "Cap at &21", inline=True)
-comment(0x8EB3, "Offset &0F in receive block", inline=True)
+comment(0x8EB3, "Offset &0B in receive block", inline=True)
 comment(0x8EB5, "Store workspace page count", inline=True)
 comment(0x8EB7, "Return", inline=True)
 comment(0x8EB8, "Store Y as receive block page", inline=True)
@@ -6321,7 +6321,7 @@ comment(0x8EC9, "Clear receive block pointer low", inline=True)
 comment(0x8ECB, "Clear NFS workspace pointer low", inline=True)
 comment(0x8ECD, "Clear workspace page counter", inline=True)
 comment(0x8ECF, "Clear workspace byte", inline=True)
-comment(0x8ED2, "Offset 4 in receive block", inline=True)
+comment(0x8ED2, "Offset 0 in receive block", inline=True)
 comment(0x8ED4, "Clear remote operation flag", inline=True)
 comment(0x8ED6, "OSBYTE &8F: issue service request", inline=True)
 comment(0x8ED8, "X=1: workspace claim service", inline=True)
@@ -6336,10 +6336,10 @@ comment(0x8EEE, "Clear byte in FS workspace", inline=True)
 comment(0x8EF0, "Clear byte in NFS workspace", inline=True)
 comment(0x8EF2, "Advance index", inline=True)
 comment(0x8EF3, "Loop until full page zeroed", inline=True)
-comment(0x8EF5, "Offset &0C in receive block", inline=True)
+comment(0x8EF5, "Offset 8 in receive block", inline=True)
 comment(0x8EF7, "Clear protection flags", inline=True)
 comment(0x8EF9, "Initialise station identity block", inline=True)
-comment(0x8EFC, "Offset 6 in receive block", inline=True)
+comment(0x8EFC, "Offset 2 in receive block", inline=True)
 comment(0x8EFE, "A=&FE: default station ID marker", inline=True)
 comment(0x8F00, "Store default station low", inline=True)
 comment(0x8F03, "Store into receive block", inline=True)
@@ -6387,7 +6387,7 @@ comment(0x8F44, "Non-zero: station ID valid", inline=True)
 comment(0x8F46, "Station 0: report error", inline=True)
 comment(0x8F4C, "Increment station ID", inline=True)
 comment(0x8F4D, "Overflow to 0: report error", inline=True)
-comment(0x8F4F, "Offset 5: station ID in recv block", inline=True)
+comment(0x8F4F, "Offset 1: station ID in recv block", inline=True)
 comment(0x8F51, "Store station ID", inline=True)
 comment(0x8F53, "X=&40: Econet flag byte", inline=True)
 comment(0x8F55, "Store Econet control flag", inline=True)
@@ -6421,7 +6421,7 @@ comment(0x8F8C, "Y=9: end of FS context block", inline=True)
 comment(0x8F8E, "Load FS context byte", inline=True)
 comment(0x8F91, "Store into receive block", inline=True)
 comment(0x8F93, "Decrement index", inline=True)
-comment(0x8F94, "Reached offset 5?", inline=True)
+comment(0x8F94, "Reached offset 1?", inline=True)
 comment(0x8F96, "No: continue copying", inline=True)
 comment(0x8F98, "Return", inline=True)
 comment(0x8F99, "FS currently selected?", inline=True)
@@ -7095,7 +7095,7 @@ subroutine(0xB33D, "cmd_unprot",
 subroutine(0x8AD4, "cmd_roff",
     title="*ROFF command handler",
     description="Disables remote operation by clearing the flag at\n"
-    "offset 4 in the receive block. If remote operation\n"
+    "offset 0 in the receive block. If remote operation\n"
     "was active, re-enables the keyboard via OSBYTE &C9\n"
     "(with X=0, Y=0) and calls tx_econet_abort with\n"
     "A=&0A to reinitialise the workspace area. Falls\n"
@@ -8769,13 +8769,13 @@ comment(0xB16D, "Start of PS name at offset &1C", inline=True)
 comment(0xB16F, "Load byte from RX buffer", inline=True)
 comment(0xB171, "Push to stack (for reversal)", inline=True)
 comment(0xB172, "Next source byte", inline=True)
-comment(0xB173, "End of PS name field (&24)?", inline=True)
+comment(0xB173, "End of PS name field (&20)?", inline=True)
 comment(0xB175, "No: continue pushing", inline=True)
 comment(0xB177, "End of TX name field at &1B", inline=True)
 comment(0xB179, "Pop byte (reversed order)", inline=True)
 comment(0xB17A, "Store in RX buffer", inline=True)
 comment(0xB17C, "Previous position", inline=True)
-comment(0xB17D, "Start of TX field (&13)?", inline=True)
+comment(0xB17D, "Start of TX field (&0F)?", inline=True)
 comment(0xB17F, "No: continue popping", inline=True)
 comment(0xB181, "Copy RX page to TX", inline=True)
 comment(0xB183, "Set TX pointer high", inline=True)
@@ -8971,7 +8971,7 @@ comment(0x957B, "Error class 6: Escape", inline=True)
 comment(0x957D, "Classify as network error", inline=True)
 
 # Remote station handler (&956A) — handle Econet remote control
-comment(0x9580, "Offset 4: remote state byte", inline=True)
+comment(0x9580, "Offset 0: remote state byte", inline=True)
 comment(0x9582, "Load remote state", inline=True)
 comment(0x9584, "Zero: initialise remote session", inline=True)
 comment(0x9586, "Non-zero: commit state and return", inline=True)
@@ -8997,7 +8997,7 @@ comment(0x95B1, "Error code 0", inline=True)
 comment(0x95B3, "Generate 'Remoted' error", inline=True)
 
 # Remote key injection (&95A8)
-comment(0x95BE, "Offset 4: remote state byte", inline=True)
+comment(0x95BE, "Offset 0: remote state byte", inline=True)
 comment(0x95C0, "Load remote state", inline=True)
 comment(0x95C2, "Zero: reinitialise session", inline=True)
 comment(0x95C4, "Offset &80: station low", inline=True)
@@ -9923,10 +9923,10 @@ comment(0xA5AC, "Return (transmit not active)", inline=True)
 
 # Transmit active: set up and begin
 comment(0xA5AD, "Set workspace high byte", inline=True)
-comment(0xA5AF, "Copy to ws_ptr_hi", inline=True)
+comment(0xA5AF, "Copy to ws_ptr_lo", inline=True)
 comment(0xA5B1, "Also set as NMI TX block high", inline=True)
 comment(0xA5B3, "Low byte = &6F", inline=True)
-comment(0xA5B5, "Set ws_ptr_lo", inline=True)
+comment(0xA5B5, "Set osword_flag", inline=True)
 comment(0xA5B7, "Set NMI TX block low", inline=True)
 comment(0xA5B9, "X=&0F: byte count for copy", inline=True)
 comment(0xA5BB, "Copy data and begin transmission", inline=True)
@@ -9984,11 +9984,11 @@ comment(0xA618, "Return from OSWORD 11 handler", inline=True)
 
 # OSWORD &12 handler (&A61C): receive setup
 comment(0xA619, "Set workspace from RX ptr high", inline=True)
-comment(0xA61B, "Store to ws_ptr_hi", inline=True)
+comment(0xA61B, "Store to ws_ptr_lo", inline=True)
 comment(0xA61D, "Y=&7F: last byte of RX buffer", inline=True)
 comment(0xA61F, "Load port/count from RX buffer", inline=True)
 comment(0xA621, "Y=&80: set workspace pointer", inline=True)
-comment(0xA622, "Store as ws_ptr_lo", inline=True)
+comment(0xA622, "Store as osword_flag", inline=True)
 comment(0xA624, "X = port/count value", inline=True)
 comment(0xA625, "X-1: adjust count", inline=True)
 comment(0xA626, "Y=0 for copy", inline=True)
@@ -10117,7 +10117,7 @@ comment(0xA6E9, "Skip SEC", inline=True)
 
 # osword_13_write_csd (&A6EE): sub 13 — write CSD path
 comment(0xA6EB, "C=1: PB-to-workspace direction", inline=True)
-comment(0xA6EC, "Workspace offset &1B", inline=True)
+comment(0xA6EC, "Workspace offset &17", inline=True)
 comment(0xA6EE, "Set ws_ptr_lo", inline=True)
 comment(0xA6F0, "Page from RX pointer high byte", inline=True)
 comment(0xA6F2, "Set ws_ptr_hi", inline=True)
@@ -10396,12 +10396,8 @@ comment(0xA89D, "Test TX control block bit 7", inline=True)
 comment(0xA89F, "Negative: TX still in progress", inline=True)
 comment(0xA8A1, "Transfer TX completion status to A", inline=True)
 comment(0xA8A2, "Save TX status", inline=True)
-comment(0xA8A3, "Save PB pointer high", inline=True)
-comment(0xA8A5, "Push for later restore", inline=True)
 comment(0xA8A3, "OSBYTE &13: wait for VSYNC", inline=True)
 comment(0xA8A5, "Wait for vertical sync", inline=True)
-comment(0xA8A8, "Restore PB pointer high", inline=True)
-comment(0xA8A9, "Restore to osword_pb_ptr_hi", inline=True)
 comment(0xA8A8, "Restore TX status", inline=True)
 comment(0xA8A9, "Back to X", inline=True)
 comment(0xA8AA, "Y=&18: check workspace response", inline=True)
@@ -11044,15 +11040,15 @@ comment(0xAC7D, "Done: discard status", inline=True)
 comment(0xAC7E, "Discard disconnect code", inline=True)
 comment(0xAC7F, "Return", inline=True)
 
-# tx_econet_txcb_template (&AC6E): 12-byte spool TX control block.
-# Simple copy to workspace offset &25..&30 via (net_rx_ptr),Y.
-# Station/network at offsets &27/&28 filled in after copy.
+# tx_econet_txcb_template (&AC80): 12-byte spool TX control block.
+# Simple copy to workspace offset &21..&2C via (net_rx_ptr),Y.
+# Station/network at offsets &23/&24 filled in after copy.
 comment(0xAC80, "Spool TX control block template\n"
     "\n"
     "12-byte TXCB template copied directly (no\n"
     "marker processing) to workspace at offset\n"
-    "&25..&30. Destination station and network\n"
-    "(&27/&28) are filled in from (nfs_workspace)\n"
+    "&21..&2C. Destination station and network\n"
+    "(&23/&24) are filled in from (nfs_workspace)\n"
     "after the copy.")
 comment(0xAC80, "ctrl=&80 (standard TX)", inline=True)
 comment(0xAC81, "port=&9F", inline=True)
