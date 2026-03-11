@@ -7,6 +7,16 @@ on:
     branches: [master]
 
 jobs:
+  check-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Check README.md is up to date
+        run: uv run generate_readme.py --check
+
   verify:
     runs-on: ubuntu-latest
     strategy:
