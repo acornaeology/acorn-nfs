@@ -1,0 +1,13 @@
+{
+    "title": "Acorn ANFS 4.18",
+    "size": 16384,
+    "md5": "0926bcb6f47458f8c4aed5364ff1122d",
+    "sha256": "963c9bdd114c3987e03031c67a13d1182370df45689d3ba05a2d41b42ee6f6e3",
+    "links": [
+        {
+            "label": "Acorn ANFS 4.18 in The BBC Micro ROM Library",
+            "url": "https://tobylobster.github.io/rom_library/?md5=0926bcb6f47458f8c4aed5364ff1122d",
+            "icon": "chip"
+        }
+    ]
+}
