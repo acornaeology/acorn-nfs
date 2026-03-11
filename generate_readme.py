@@ -3,7 +3,12 @@
 # requires-python = ">=3.10"
 # dependencies = ["jinja2>=3.1"]
 # ///
-"""Generate README.md from project metadata and a Jinja2 template."""
+"""Generate README.md from project metadata and a Jinja2 template.
+
+Usage:
+    uv run generate_readme.py           # Write README.md
+    uv run generate_readme.py --check   # Exit 1 if README.md is out of date
+"""
 
 import json
 import sys
@@ -70,8 +75,20 @@ def main():
     )
 
     readme_filepath = REPO_ROOT / "README.md"
-    readme_filepath.write_text(readme_text)
-    print(f"Generated {readme_filepath.relative_to(REPO_ROOT)}")
+    check_mode = "--check" in sys.argv[1:]
+
+    if check_mode:
+        if readme_filepath.read_text() != readme_text:
+            print(
+                "README.md is out of date. "
+                "Run 'uv run generate_readme.py' and commit the result.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print("README.md is up to date.")
+    else:
+        readme_filepath.write_text(readme_text)
+        print(f"Generated {readme_filepath.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":

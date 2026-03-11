@@ -12,45 +12,72 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.34.html)
   - [Raw assembly source](versions/nfs-3.34/output/nfs-3.34.asm)
   - [Acorn NFS 3.34 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=d6761cb566cd87b0c1117b5b600cff16)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.34/output/nfs-3.34.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
 - **Acorn NFS 3.34B**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.34B.html)
   - [Raw assembly source](versions/nfs-3.34B/output/nfs-3.34B.asm)
   - [Acorn NFS 3.34B in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=f1ce449900053d6d28c743904fc0efb1)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.34B/output/nfs-3.34B.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.34](versions/nfs-3.34B/CHANGES-FROM-3.34.md)
 - **Acorn NFS 3.35D**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.35D.html)
   - [Raw assembly source](versions/nfs-3.35D/output/nfs-3.35D.asm)
   - [Acorn NFS 3.35D in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=3a25c88f6cc81052a4593ca7636105d1)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.35D/output/nfs-3.35D.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.34B](versions/nfs-3.35D/CHANGES-FROM-3.34B.md)
 - **Acorn NFS 3.35K**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.35K.html)
   - [Raw assembly source](versions/nfs-3.35K/output/nfs-3.35K.asm)
   - [Acorn NFS 3.35K in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=03b6f0a92809fc0f30854a667cdfc2b0)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.35K/output/nfs-3.35K.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.35D](versions/nfs-3.35K/CHANGES-FROM-3.35D.md)
 - **Acorn NFS 3.40**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.40.html)
   - [Raw assembly source](versions/nfs-3.40/output/nfs-3.40.asm)
   - [Acorn NFS 3.40 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=e08a5f08c5b3cd910d57581c81cb6c34)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.40/output/nfs-3.40.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.35K](versions/nfs-3.40/CHANGES-FROM-3.35K.md)
 - **Acorn NFS 3.60**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.60.html)
   - [Raw assembly source](versions/nfs-3.60/output/nfs-3.60.asm)
   - [Acorn NFS 3.60 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=e345ac2f6f2130ad7683413071069609)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.60/output/nfs-3.60.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.40](versions/nfs-3.60/CHANGES-FROM-3.40.md)
 - **Acorn NFS 3.62**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.62.html)
   - [Raw assembly source](versions/nfs-3.62/output/nfs-3.62.asm)
   - [Acorn NFS 3.62 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=2753db3479e60e64b8c2eb80a48392f5)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.62/output/nfs-3.62.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.60](versions/nfs-3.62/CHANGES-FROM-3.60.md)
 - **Acorn NFS 3.65**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/3.65.html)
   - [Raw assembly source](versions/nfs-3.65/output/nfs-3.65.asm)
   - [Acorn NFS 3.65 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=1e150e6bd53d22c15eb05302b6e5f167)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.65/output/nfs-3.65.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
   - [Changes from NFS 3.62](versions/nfs-3.65/CHANGES-FROM-3.62.md)
 - **Acorn ANFS 4.08.53**
   - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/4.08.53.html)
   - [Raw assembly source](versions/anfs-4.08.53/output/anfs-4.08.53.asm)
   - [Acorn ANFS 4.08.53 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=eadb37a9abbdbb70543efc2bede440bd)
+  - [Disassembly source on GitHub](https://github.com/acornaeology/acorn-nfs/blob/master/versions/anfs-4.08.53/output/anfs-4.08.53.asm)
+  - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
+  - [Original Acorn technical description [PDF] for ANFS 4.08.61 - unrecovered but applicable to this version](https://www.stardot.org.uk/forums/download/file.php?id=116634)
+  - [Changes from NFS 3.65](versions/anfs-4.08.53/CHANGES-FROM-3.65.md)
+- **Acorn ANFS 4.18**
+  - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/4.18.html)
+  - [Raw assembly source](versions/anfs-4.18/output/anfs-4.18.asm)
+  - [Acorn ANFS 4.18 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=0926bcb6f47458f8c4aed5364ff1122d)
+  - [Original Acorn technical description [PDF] for ANFS 4.08.61 - unrecovered but applicable to this version](https://www.stardot.org.uk/forums/download/file.php?id=116634)
+  - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
+  - [Changes from ANFS 4.08.53](versions/anfs-4.18/CHANGES-FROM-4.08.53.md)
 
 ## How it works
 
@@ -82,6 +109,8 @@ uv run acorn-nfs-disasm-tool disassemble 3.65
 uv run acorn-nfs-disasm-tool verify 3.65
 uv run acorn-nfs-disasm-tool disassemble 4.08.53
 uv run acorn-nfs-disasm-tool verify 4.08.53
+uv run acorn-nfs-disasm-tool disassemble 4.18
+uv run acorn-nfs-disasm-tool verify 4.18
 ```
 
 ## References
