@@ -966,7 +966,7 @@ label(0xA3F1, "cmd_table_fs_lo")
 label(0xA3F2, "cmd_table_fs_hi")
 label(0xA477, "cmd_table_nfs_iam")
 label(0xBBB7, "loop_copy_osword_data")
-# UNMAPPED: label(0xA4FA, "loop_copy_osword_flag")
+# Removed in 4.18: loop_copy_osword_flag (copy-back loop eliminated)
 label(0xA522, "return_from_osword_setup")
 comment(0xA523, """\
 OSWORD dispatch table (7 entries, split lo/hi).
@@ -1549,9 +1549,8 @@ label(0xB2DF, "return_from_poll_slots")
 label(0xB2E0, "init_ps_slot_from_rx")
 label(0xB2F7, "store_char_uppercase")
 label(0xB439, "flush_and_read_char")
-# UNMAPPED: label(0xB42E, "return_from_flush_read")
-# UNMAPPED: label(0xB42F, "unused_clear_ws_78")
-# UNMAPPED: label(0xB433, "loop_clear_ws_78")
+# Removed in 4.18: return_from_flush_read, unused_clear_ws_78,
+# loop_clear_ws_78 (dead code removed)
 label(0xB449, "init_channel_table")
 label(0xB46B, "attr_to_chan_index")
 label(0xB47A, "check_chan_char")
@@ -3975,13 +3974,7 @@ subroutine(0xB439, "flush_and_read_char",
     description="Calls OSBYTE &0F to flush the input buffer, then\n"
     "OSRDCH to read a single character. Raises an escape\n"
     "error if escape was pressed (carry set on return).")
-# UNMAPPED: subroutine(0xB42F, "unused_clear_ws_78",
-# UNMAPPED:     title="Dead code: clear 120 bytes of workspace",
-# UNMAPPED:     description="Unreferenced subroutine. Zeroes offsets &00-&77\n"
-# UNMAPPED:     "(120 bytes) of the workspace page pointed to by\n"
-# UNMAPPED:     "l00cc. Superseded by loop_zero_workspace (&8ED5)\n"
-# UNMAPPED:     "which clears a full 256-byte page via both l00cc\n"
-# UNMAPPED:     "and nfs_workspace pointers.")
+# Removed in 4.18: unused_clear_ws_78 (dead code removed)
 subroutine(0xB449, "init_channel_table",
     title="Initialise channel allocation table",
     description="Clears all 256 bytes of the table, then marks\n"
@@ -7333,7 +7326,7 @@ entry(0xA619)   # 552-byte undecoded block (largest remaining)
 entry(0xA97A)   # 68-byte undecoded block
 # entry(0xAA9F) removed — classified as data via byte() declarations
 entry(0xB84D)   # 21-byte file handler block
-# UNMAPPED: entry(0xB42F)   # Dead code: unreferenced workspace clear routine
+# Removed in 4.18: entry(0xB42F) — dead code removed
 
 # Page 5 relocated code — ANFS-specific entry points
 # Runtime addresses for undecoded blocks in page 5 source (&BC90)
@@ -9943,22 +9936,8 @@ comment(0xA615, "Rotate Econet flags back (restore state)", inline=True)
 comment(0xA618, "Return from OSWORD 11 handler", inline=True)
 
 # store_osword_pb_ptr: store parameter block pointers to workspace
-# UNMAPPED: comment(0xA601, "Y=&1C: workspace offset", inline=True)
-# UNMAPPED: comment(0xA603, "Load PB pointer low byte", inline=True)
-# UNMAPPED: comment(0xA605, "Add 1 (C from earlier operation)", inline=True)
-# UNMAPPED: comment(0xA607, "Store ptr at workspace+Y", inline=True)
-# UNMAPPED: comment(0xA60A, "Y=1: read PB byte 1", inline=True)
-# UNMAPPED: comment(0xA60C, "Load transfer length from PB", inline=True)
-# UNMAPPED: comment(0xA60E, "Y=&20: second workspace offset", inline=True)
-# UNMAPPED: comment(0xA610, "Add PB low byte to get end ptr", inline=True)
 
 # store_ptr_at_ws_y: store 16-bit pointer to workspace
-# UNMAPPED: comment(0xA612, "Store low byte to workspace+Y", inline=True)
-# UNMAPPED: comment(0xA614, "Next byte", inline=True)
-# UNMAPPED: comment(0xA615, "Load PB pointer high byte", inline=True)
-# UNMAPPED: comment(0xA617, "Add carry", inline=True)
-# UNMAPPED: comment(0xA619, "Store high byte to workspace+Y+1", inline=True)
-# UNMAPPED: comment(0xA61B, "Return", inline=True)
 
 # OSWORD &12 handler (&A61C): receive setup
 comment(0xA619, "Set workspace from RX ptr high", inline=True)
@@ -11316,57 +11295,23 @@ comment(0xBAF8, "Wrap to low nibble (0-F)", inline=True)
 comment(0xBAFA, "Count down", inline=True)
 comment(0xBAFB, "Loop for all 16 columns", inline=True)
 comment(0xBAFD, "Print trailer with ASCII label", inline=True)
-# UNMAPPED: comment(0xBB0A, "Inline string terminator (NOP)", inline=True)
-# UNMAPPED: comment(0xBB0B, "Return", inline=True)
 
 # close_ws_file: close file handle stored in ws_page
-# UNMAPPED: comment(0xBB0C, "Y = file handle from ws_page", inline=True)
-# UNMAPPED: comment(0xBB0E, "A=0: close file", inline=True)
-# UNMAPPED: comment(0xBB10, "Close file and return", inline=True)
 
 # open_file_for_read: open file, advance past filename
 # On entry: Y = offset to filename start within command line
 # On exit: ws_page = file handle, Y = offset past filename
-# UNMAPPED: comment(0xBB13, "Save processor flags", inline=True)
-# UNMAPPED: comment(0xBB14, "A = filename offset", inline=True)
-# UNMAPPED: comment(0xBB15, "Add to command text pointer", inline=True)
-# UNMAPPED: comment(0xBB16, "Low byte of filename address", inline=True)
-# UNMAPPED: comment(0xBB18, "Save on stack for later restore", inline=True)
-# UNMAPPED: comment(0xBB19, "X = filename address low", inline=True)
-# UNMAPPED: comment(0xBB1A, "Carry into high byte", inline=True)
-# UNMAPPED: comment(0xBB1C, "High byte of filename address", inline=True)
-# UNMAPPED: comment(0xBB1E, "Save on stack for later restore", inline=True)
-# UNMAPPED: comment(0xBB1F, "Y = filename address high", inline=True)
 comment(0xBB07, "Open for input", inline=True)
 comment(0xBB09, "OSFIND: open file", inline=True)
-# UNMAPPED: comment(0xBB26, "Store file handle", inline=True)
-# UNMAPPED: comment(0xBB28, "Non-zero: file opened OK", inline=True)
-# UNMAPPED: comment(0xBB2A, "Error number &D6", inline=True)
-# UNMAPPED: comment(0xBB2C, "Generate 'Not found' error", inline=True)
 
 # Restore text pointer and skip past filename in command line
 comment(0xBB0C, "Restore saved text pointer high", inline=True)
-# UNMAPPED: comment(0xBB3A, "Restore os_text_ptr high byte", inline=True)
-# UNMAPPED: comment(0xBB3C, "Restore saved text pointer low", inline=True)
-# UNMAPPED: comment(0xBB3D, "Restore os_text_ptr low byte", inline=True)
-# UNMAPPED: comment(0xBB3F, "Start scanning from offset 0", inline=True)
 
 # Scan past filename to find end (space or CR)
-# UNMAPPED: comment(0xBB41, "Advance past current char", inline=True)
-# UNMAPPED: comment(0xBB42, "Load next char from command line", inline=True)
-# UNMAPPED: comment(0xBB44, "CR: end of command line", inline=True)
-# UNMAPPED: comment(0xBB46, "Yes: done scanning", inline=True)
-# UNMAPPED: comment(0xBB48, "Space: end of filename", inline=True)
-# UNMAPPED: comment(0xBB4A, "No: keep scanning filename", inline=True)
 
 # Skip trailing spaces after filename
-# UNMAPPED: comment(0xBB4C, "Advance past space", inline=True)
-# UNMAPPED: comment(0xBB4D, "Load next char", inline=True)
-# UNMAPPED: comment(0xBB4F, "Still a space?", inline=True)
-# UNMAPPED: comment(0xBB51, "Yes: skip it", inline=True)
 
 # Return with Y pointing past filename/spaces
-# UNMAPPED: comment(0xBB53, "Restore processor flags", inline=True)
 comment(0xBB0D, "Return; Y = offset to next argument", inline=True)
 
 # parse_dump_range: parse hex address from command line
@@ -12312,35 +12257,6 @@ comment(0xB899, "Load reply port for FCB", inline=True)
 comment(0xB89C, "Save reply port", inline=True)
 comment(0xB89D, "Y=0: no nested context", inline=True)
 comment(0xB895, "Save context and flush FCB data", inline=True)
-# UNMAPPED: comment(0xB8A5, "Restore reply port", inline=True)
-# UNMAPPED: comment(0xB8A6, "Store reply port in TX buffer", inline=True)
-# UNMAPPED: comment(0xB8A9, "X = reply port", inline=True)
-# UNMAPPED: comment(0xB8AA, "Restore Y (FCB slot)", inline=True)
-# UNMAPPED: comment(0xB8AB, "Y restored", inline=True)
-# UNMAPPED: comment(0xB8AC, "Save Y again for later restore", inline=True)
-# UNMAPPED: comment(0xB8AD, "A = reply port", inline=True)
-# UNMAPPED: comment(0xB8AE, "Save reply port for send", inline=True)
-# UNMAPPED: comment(0xB8AF, "Command byte = 0", inline=True)
-# UNMAPPED: comment(0xB8B1, "Store in TX buffer", inline=True)
-# UNMAPPED: comment(0xB8B4, "X=&FF: flag byte", inline=True)
-# UNMAPPED: comment(0xB8B5, "Store &FF in TX buffer", inline=True)
-# UNMAPPED: comment(0xB8B8, "Load station for FCB", inline=True)
-# UNMAPPED: comment(0xB8BB, "Store in TX buffer", inline=True)
-# UNMAPPED: comment(0xB8BE, "Load network for FCB", inline=True)
-# UNMAPPED: comment(0xB8C1, "Store in TX buffer", inline=True)
-# UNMAPPED: comment(0xB8C4, "Function code &0D", inline=True)
-# UNMAPPED: comment(0xB8C6, "X=5: copy 5 bytes to TX", inline=True)
-# UNMAPPED: comment(0xB8C8, "Send flush request to server", inline=True)
-# UNMAPPED: comment(0xB8CB, "Restore reply port", inline=True)
-# UNMAPPED: comment(0xB8CC, "Y = reply port", inline=True)
-# UNMAPPED: comment(0xB8CD, "Load saved data byte", inline=True)
-# UNMAPPED: comment(0xB8D0, "Send data byte to server", inline=True)
-# UNMAPPED: comment(0xB8D3, "Restore TX buffer from saved context", inline=True)
-# UNMAPPED: comment(0xB8D6, "Restore Y (FCB slot)", inline=True)
-# UNMAPPED: comment(0xB8D7, "Y restored", inline=True)
-# UNMAPPED: comment(0xB8D8, "Restore X", inline=True)
-# UNMAPPED: comment(0xB8D9, "X restored", inline=True)
-# UNMAPPED: comment(0xB8DA, "Reload byte count after flush", inline=True)
 
 # Update buffer offset tracking after write
 comment(0xB898, "Compare count with buffer offset", inline=True)
