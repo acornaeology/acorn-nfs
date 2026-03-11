@@ -358,7 +358,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &9362 during init. The first 28 bytes (&0400-&041B)
+; Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
 ; overlap with the end of the ZP block (the same ROM bytes serve both
 ; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0484 (BEGIN — startup/CLI entry, break type check)
@@ -609,7 +609,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &9462 during init. Contains:
+; Copied from ROM at reloc_p5_src during init. Contains:
 ;   &0500: 12-entry dispatch table (&0500-&0517)
 ;   &0518: 8-byte Tube control register value table
 ;   &0520: tube_osbput — write byte to file
@@ -1202,10 +1202,10 @@ service_handler_lo = service_entry+1
     equs "    NET"                                                    ; 8009: 20 20 20...                ; ROM title string "    NET"
 .copyright
     equb 0                                                            ; 8010: 00          .              ; Null terminator before copyright
-; The 'ROFF' suffix at &8014 is reused by the *ROFF
-; command matcher (svc_star_command) — a space-saving
-; trick that shares ROM bytes between the copyright
-; string and the star command table.
+; The 'ROFF' suffix (copyright_string+3) is reused by
+; the *ROFF command matcher (svc_star_command) — a
+; space-saving trick that shares ROM bytes between the
+; copyright string and the star command table.
 .copyright_string
     equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)            ; Copyright string "(C)ROFF"
 ; Error message offset table (9 entries).
@@ -1670,11 +1670,11 @@ service_handler_lo = service_entry+1
 ; makes two match_rom_string calls against the ROM header, reusing
 ; header bytes as command strings:
 ; 
-;   X=&0C: matches "ROFF" at &8014 — the suffix of the
-;          copyright string "(C)ROFF" — *ROFF (Remote Off,
-;          end remote session) — falls through to net_4_resume_remote
+;   X=&0C: matches "ROFF" at copyright_string+3 — the
+;          suffix of "(C)ROFF" — *ROFF (Remote Off, end
+;          remote session) — falls through to net_4_resume_remote
 ; 
-;   X=5: matches "NET" at &800D — the ROM title suffix
+;   X=5: matches "NET" at the ROM title suffix
 ;        — *NET (select NFS) — falls through to svc_13_select_nfs
 ; 
 ; If neither matches, returns with the service call
@@ -1906,7 +1906,7 @@ service_handler_lo = service_entry+1
     jsr osbyte                                                        ; 8284: 20 f4 ff     ..            ; Issue service &0A
     ldx ws_page                                                       ; 8287: a6 a8       ..             ; Non-zero after hard reset: skip auto-boot
     bne return_3                                                      ; 8289: d0 37       .7             ; Non-zero: skip auto-boot
-    ldx #&92                                                          ; 828b: a2 92       ..             ; X = lo byte of auto-boot string at &8292
+    ldx #&92                                                          ; 828b: a2 92       ..             ; X = lo byte of auto-boot string (run_fscv_cmd+5)
 ; ***************************************************************************************
 ; Run FSCV command from ROM
 ; 
@@ -2477,7 +2477,7 @@ service_handler_lo = service_entry+1
     lda #&29 ; ')'                                                    ; 8461: a9 29       .)             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 8463: c4 ba       ..             ; Y=value of *SPOOL file handle
     beq close_spool_exec                                              ; 8465: f0 06       ..             ; Handle matches SPOOL -- close it
-    lda #&2d ; '-'                                                    ; 8467: a9 2d       .-             ; '-': offset into "E." string at &852D
+    lda #&2d ; '-'                                                    ; 8467: a9 2d       .-             ; '-': offset into "E." close-exec string
     cpx fs_spool_handle                                               ; 8469: e4 ba       ..             ; X=value of *EXEC file handle
     bne dispatch_fs_error                                             ; 846b: d0 06       ..             ; No EXEC match -- skip close
 ; &846d referenced 1 time by &8465
@@ -4824,7 +4824,7 @@ cmd_match_data = fs_cmd_match_table+1
 ;   Option 0 (Off):  offset &67 → &8D67 = bare CR (empty command)
 ;   Option 1 (Load): offset &58 → &8D58 = "L.!BOOT" (the bytes
 ;       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D5F)
-;   Option 2 (Run):  offset &5A → &8D5A = "!BOOT" (bare filename = *RUN)
+;   Option 2 (Run):  offset &5A → boot_cmd_strings-1 = "!BOOT" (*RUN)
 ;   Option 3 (Exec): offset &60 → &8D60 = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the string data
@@ -7518,10 +7518,10 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F25 (length #&01FC) for the machine
-; type query response, then jumps to the query handler at
-; set_tx_reply_flag. Returns system identification data to the remote
-; station.
+; Sets up a response buffer (start &25, page &7F, length
+; #&01FC) for the machine type query, then jumps to the
+; query handler at set_tx_reply_flag. Returns system
+; identification data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9aaa: a9 01       ..             ; Buffer length hi = 1
@@ -7610,7 +7610,7 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &9BEB on the stack (so RTS returns to
+; Pushes tx_done_exit-1 on the stack (so RTS returns to
 ; tx_done_exit), then does JMP (l0d58) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.
@@ -7793,9 +7793,10 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ; 
-; Mid-instruction label within the INACTIVE polling loop. The
-; address &9BE2 is referenced as a constant for self-modifying
-; code. Disables NMIs twice (belt-and-braces) then tests SR2
+; Mid-instruction label within the INACTIVE polling loop.
+; The intoff_operand address (intoff_test_inactive+1) is
+; referenced as a constant for self-modifying code.
+; Disables NMIs twice (belt-and-braces) then tests SR2
 ; for INACTIVE before proceeding with TX.
 ; ***************************************************************************************
 .intoff_test_inactive

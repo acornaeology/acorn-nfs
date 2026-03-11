@@ -369,7 +369,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
+; Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
 ; overlap with the end of the ZP block (the same ROM bytes serve both
 ; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
@@ -591,7 +591,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &944D during init. Contains:
+; Copied from ROM at reloc_p4_src+&100 during init. Contains:
 ;   &0500: tube_dispatch_table — 14-entry handler address table
 ;   &051C: tube_wrch_handler — WRCHV target
 ;   &051F: tube_send_and_poll — send byte via R2, poll for reply
@@ -802,7 +802,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
 ; 
-; Copied from ROM at &954D during init. &0600-&0601 is the tail
+; Copied from ROM at reloc_p4_src+&200 during init. &0600-&0601 is the tail
 ; of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 ;   &0602: tube_osgbpb — multi-byte file I/O
 ;   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
@@ -1038,7 +1038,7 @@ svc_entry_lo = service_entry+1
     equs "NET"                                                        ; 8009: 4e 45 54    NET
 .copyright
     equb 0                                                            ; 800c: 00          .
-; The 'ROFF' suffix at &8010 is reused by the *ROFF
+; The 'ROFF' suffix at copyright_string+3 is reused by the *ROFF
 ; command matcher (svc_star_command) — a space-saving
 ; trick that shares ROM bytes between the copyright
 ; string and the star command table.
@@ -1378,9 +1378,9 @@ svc_entry_lo = service_entry+1
 ;   EVNTV (&0220) = &06E8   BRKV  (&0202) = &0016
 ;   RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
 ; Then writes &8E to Tube control register (&FEE0) and copies
-; 3 pages of Tube host code from ROM (&935A/&945A/&955A)
+; 3 pages of Tube host code from ROM (reloc_p4_src et seq.)
 ; to RAM (&0400/&0500/&0600), calls tube_post_init (&0414),
-; and copies 97 bytes of workspace init from ROM (&9315) to
+; and copies 97 bytes of workspace init from ROM (reloc_zp_src) to
 ; &0016-&0076.
 ; ***************************************************************************************
 ; &8103 referenced 1 time by &80ee
@@ -2247,7 +2247,7 @@ svc_entry_lo = service_entry+1
     tax                                                               ; 8422: aa          .              ; X=File handle
     lda #osbyte_read_write_exec_file_handle                           ; 8423: a9 c6       ..             ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 8425: 20 f4 ff     ..            ; Read/Write *EXEC file handle
-    lda #&ea                                                          ; 8428: a9 ea       ..             ; Default A=&EA: OSCLI no-op (CR at &84EA)
+    lda #&ea                                                          ; 8428: a9 ea       ..             ; Default A=&EA: OSCLI no-op (CR before send_to_fs_star)
     cpy fs_spool_handle                                               ; 842a: c4 ba       ..             ; Y=value of *SPOOL file handle
     bne check_exec_handle                                             ; 842c: d0 02       ..             ; Non-zero reply: error or done
     lda #&e4                                                          ; 842e: a9 e4       ..             ; A=&E4: OSCLI "SP." string at &84E4
@@ -4513,7 +4513,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ;   Option 1 (Load): offset &E4 → &8CE4 = "L.!BOOT" (dual-purpose:
 ;       the bytes &4C='L', &2E='.', &21='!' at &8CE4 are followed
 ;       by "BOOT" at &8CE7, forming the OSCLI string "L.!BOOT")
-;   Option 2 (Run):  offset &E6 → &8CE6 = "!BOOT" (bare filename = *RUN)
+;   Option 2 (Run):  offset &E6 → boot_cmd_strings-1 = "!BOOT" (bare filename = *RUN)
 ;   Option 3 (Exec): offset &EC → &8CEC = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the string data
@@ -7324,10 +7324,10 @@ rx_port_operand = skip_buf_ptr_update+2
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response, then jumps to the query handler at
-; c9b0f. Returns system identification data to the remote
-; station.
+; Sets up a buffer just below screen memory (length #&01FC)
+; for the machine type query response, then jumps to the
+; query handler at set_tx_reply_flag. Returns system
+; identification data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9ade: a9 01       ..             ; Buffer length hi = 1
@@ -7482,8 +7482,8 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &9BEB on the stack (so RTS returns to
-; tx_done_exit), then does JMP (l0d58) to call the remote
+; Pushes address tx_done_exit-1 on the stack (so RTS returns
+; to tx_done_exit), then does JMP (l0d58) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.
 ; ***************************************************************************************

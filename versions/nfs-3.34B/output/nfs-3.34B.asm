@@ -376,7 +376,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
+; Copied from ROM (tube_code_page4) during init. The first 28 bytes (&0400-&041B)
 ; overlap with the end of the ZP block (the same ROM bytes serve both
 ; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
@@ -596,7 +596,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &944D during init. Contains:
+; Copied from ROM (tube_dispatch_table) during init. Contains:
 ;   &0500: tube_dispatch_table — 14-entry handler address table
 ;   &051C: tube_wrch_handler — WRCHV target
 ;   &051F: tube_send_and_poll — send byte via R2, poll for reply
@@ -808,7 +808,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
 ; 
-; Copied from ROM at &954D during init. &0600-&0601 is the tail
+; Copied from ROM (tube_code_page6) during init. &0600-&0601 is the tail
 ; of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 ;   &0602: tube_osgbpb — multi-byte file I/O
 ;   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
@@ -1043,10 +1043,10 @@ svc_entry_lo = service_entry+1
     equs "NET"                                                        ; 8009: 4e 45 54    NET
 .copyright
     equb 0                                                            ; 800c: 00          .
-; The 'ROFF' suffix at &8010 is reused by the *ROFF
-; command matcher (svc_4_star_command) — a space-saving
-; trick that shares ROM bytes between the copyright
-; string and the star command table.
+; The 'ROFF' suffix at copyright_string+3 is reused by
+; the *ROFF command matcher (svc_4_star_command) — a
+; space-saving trick that shares ROM bytes between the
+; copyright string and the star command table.
 .copyright_string
     equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)
 ; Error message offset table (9 entries).
@@ -1332,9 +1332,10 @@ svc_entry_lo = service_entry+1
 ;   BRKV  = &0016 (workspace — BRK/error handler)
 ;   EVNTV = &06E8 (page 6 — event handler)
 ; Writes &8E to Tube control register (&FEE0).
-; Then copies 3 pages of Tube host code from ROM (&934D/&944D/&954D)
-; to RAM (&0400/&0500/&0600), calls tube_post_init (&0414), and copies
-; 97 bytes of workspace init from ROM (&9308) to &0016-&0076.
+; Then copies 3 pages of Tube host code from ROM (tube_code_page4,
+; tube_dispatch_table, tube_code_page6) to RAM (&0400/&0500/&0600),
+; calls tube_post_init (&0414), and copies 97 bytes of workspace
+; init from ROM (nmi_workspace_start) to &0016-&0076.
 ; ***************************************************************************************
 ; &80c8 referenced 1 time by &80b3
 .init_vectors_and_copy
@@ -1480,8 +1481,8 @@ svc_entry_lo = service_entry+1
 ; Matches the command text against ROM string table entries.
 ; Both entries reuse bytes from the ROM header to save space:
 ; 
-;   X=8: matches "ROFF" at &8010 — the suffix of the
-;        copyright string "(C)ROFF" → *ROFF (Remote Off,
+;   X=8: matches "ROFF" at copyright_string+3 — the suffix
+;        of "(C)ROFF" → *ROFF (Remote Off,
 ;        end remote session) — jumps to resume_after_remote
 ; 
 ;   X=1: matches "NET" at &8009 — the ROM title string
@@ -4508,7 +4509,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ;   Option 1 (Load): offset &E8 → &8CE8 = "L.!BOOT" (dual-purpose:
 ;       the JMP &212E instruction at &8CE8 has opcode &4C='L' and
 ;       operand bytes &2E='.' &21='!', forming the string "L.!")
-;   Option 2 (Run):  offset &EA → &8CEA = "!BOOT" (bare filename = *RUN)
+;   Option 2 (Run):  offset &EA → boot_cmd_strings-1 = "!BOOT" (bare filename = *RUN)
 ;   Option 3 (Exec): offset &F0 → &8CF0 = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the JMP instruction's
@@ -7242,9 +7243,9 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response. Returns system identification data
-; to the remote station.
+; Sets up a buffer in high memory (length #&01FC) for the
+; machine type query response. Returns system identification
+; data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9ac8: a9 01       ..             ; Buffer length hi = 1
@@ -7592,10 +7593,11 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ; 
-; Mid-instruction label within the INACTIVE polling loop. The
-; address &9BE2 is referenced as a constant for self-modifying
-; code. Disables NMIs twice (belt-and-braces) then tests SR2
-; for INACTIVE before proceeding with TX.
+; Mid-instruction label within the INACTIVE polling loop.
+; The operand byte of the LDA before tx_begin is referenced
+; as a constant for self-modifying code. Disables NMIs twice
+; (belt-and-braces) then tests SR2 for INACTIVE before
+; proceeding with TX.
 ; ***************************************************************************************
 ; &9c53 referenced 1 time by &9ccf
 .intoff_test_inactive

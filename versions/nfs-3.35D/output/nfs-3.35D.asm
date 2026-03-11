@@ -371,9 +371,10 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
-; overlap with the end of the ZP block (the same ROM bytes serve both
-; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
+; Copied from ROM during init (reloc_p4_src-18). The first
+; 28 bytes (&0400-&041B) overlap with the end of the ZP block
+; (the same ROM bytes serve both the ZP copy at &005B-&0076
+; and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
 ;   &0403: JMP &06E2 (tube_escape_check)
 ;   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
@@ -586,14 +587,14 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     ; Set the program counter to the next position in the binary file.
     org reloc_p4_src + (* - tube_code_page4)
 
-.l945f
+.reloc_p5_src
 
 ; Move 3: &945f to &0500 for length 256
     org &0500
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &944D during init. Contains:
+; Copied from ROM during init (reloc_p5_src-18). Contains:
 ;   &0500: tube_dispatch_table — 14-entry handler address table
 ;   &051C: tube_wrch_handler — WRCHV target
 ;   &051F: tube_send_and_poll — send byte via R2, poll for reply
@@ -788,23 +789,23 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_dispatch_table, *, l945f
+    copyblock tube_dispatch_table, *, reloc_p5_src
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
     clear tube_dispatch_table, &0600
 
     ; Set the program counter to the next position in the binary file.
-    org l945f + (* - tube_dispatch_table)
+    org reloc_p5_src + (* - tube_dispatch_table)
 
-.c955f
+.reloc_p6_src
 
 ; Move 4: &955f to &0600 for length 256
     org &0600
 ; ***************************************************************************************
 ; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
 ; 
-; Copied from ROM at &954D during init. &0600-&0601 is the tail
+; Copied from ROM during init (reloc_p6_src-18). &0600-&0601 is the tail
 ; of tube_osfile (BEQ to tube_reply_byte when done). Contains:
 ;   &0602: tube_osgbpb — multi-byte file I/O
 ;   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
@@ -995,14 +996,14 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_code_page6, *, c955f
+    copyblock tube_code_page6, *, reloc_p6_src
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
     clear tube_code_page6, &0700
 
     ; Set the program counter to the next position in the binary file.
-    org c955f + (* - tube_code_page6)
+    org reloc_p6_src + (* - tube_code_page6)
 
 
     org &8000
@@ -1039,10 +1040,10 @@ svc_entry_lo = service_entry+1
     equs "NET"                                                        ; 8009: 4e 45 54    NET
 .copyright
     equb 0                                                            ; 800c: 00          .
-; The 'ROFF' suffix at &8010 is reused by the *ROFF
-; command matcher (svc_star_command) — a space-saving
-; trick that shares ROM bytes between the copyright
-; string and the star command table.
+; The 'ROFF' suffix at copyright_string+3 is reused by
+; the *ROFF command matcher (svc_star_command) — a
+; space-saving trick that shares ROM bytes between the
+; copyright string and the star command table.
 .copyright_string
     equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)
 ; Error message offset table (9 entries).
@@ -1395,10 +1396,10 @@ svc_entry_lo = service_entry+1
 ;   EVNTV (&0220) = &06E5   BRKV  (&0202) = &0016
 ;   RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
 ; Then writes &8E to Tube control register (&FEE0) and copies
-; 3 pages of Tube host code from ROM (&935F/&945F/&955F)
-; to RAM (&0400/&0500/&0600), calls tube_post_init (&0414),
-; and copies 97 bytes of workspace init from ROM (&931A) to
-; &0016-&0076.
+; 3 pages of Tube host code from ROM (reloc_p4_src /
+; reloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600),
+; calls tube_post_init (&0414), and copies 97 bytes of
+; workspace init from ROM (reloc_zp_src) to &0016-&0076.
 ; ***************************************************************************************
 ; &810d referenced 1 time by &80f8
 .init_vectors_and_copy
@@ -1423,9 +1424,9 @@ svc_entry_lo = service_entry+1
 .cloop
     lda reloc_p4_src,y                                                ; 812a: b9 5f 93    ._.            ; Load ROM byte from page &93
     sta tube_code_page4,y                                             ; 812d: 99 00 04    ...            ; Store to page &04 (Tube code)
-    lda l945f,y                                                       ; 8130: b9 5f 94    ._.            ; Load ROM byte from page &94
+    lda reloc_p5_src,y                                                ; 8130: b9 5f 94    ._.            ; Load ROM byte from page &94
     sta tube_dispatch_table,y                                         ; 8133: 99 00 05    ...            ; Store to page &05 (dispatch table)
-    lda c955f,y                                                       ; 8136: b9 5f 95    ._.            ; Load ROM byte from page &95
+    lda reloc_p6_src,y                                                ; 8136: b9 5f 95    ._.            ; Load ROM byte from page &95
     sta tube_code_page6,y                                             ; 8139: 99 00 06    ...            ; Store to page &06
     dey                                                               ; 813c: 88          .              ; DEY wraps 0 -> &FF on first iteration
     bne cloop                                                         ; 813d: d0 eb       ..             ; Loop until 256 bytes copied per page
@@ -4523,7 +4524,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ;   Option 1 (Load): offset &E2 → &8CE2 = "L.!BOOT" (dual-purpose:
 ;       the JMP &212E instruction at &8CE2 has opcode &4C='L' and
 ;       operand bytes &2E='.' &21='!', forming the string "L.!")
-;   Option 2 (Run):  offset &E4 → &8CE4 = "!BOOT" (bare filename = *RUN)
+;   Option 2 (Run):  offset &E4 → boot_cmd_strings-1 = "!BOOT" (*RUN)
 ;   Option 3 (Exec): offset &EA → &8CEA = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the JMP instruction's
@@ -7335,10 +7336,10 @@ rx_port_operand = skip_buf_ptr_update+2
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response, then jumps to the query handler at
-; c9b0f. Returns system identification data to the remote
-; station.
+; Sets up a receive buffer (length #&01FC) below the screen
+; for the machine type query response, then jumps to the
+; query handler at set_tx_reply_flag. Returns system
+; identification data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9ade: a9 01       ..             ; Buffer length hi = 1
@@ -7494,7 +7495,7 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &9BEB on the stack (so RTS returns to
+; Pushes tx_done_exit-1 on the stack (so RTS returns to
 ; tx_done_exit), then does JMP (l0d58) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.
@@ -8962,7 +8963,6 @@ save pydis_start, pydis_end
 ;     bsxl1:                                    1
 ;     build_send_fs_cmd:                        1
 ;     bytex:                                    1
-;     c955f:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     cat_examine_loop:                         1
@@ -9142,7 +9142,6 @@ save pydis_start, pydis_end
 ;     l0e11:                                    1
 ;     l18a5:                                    1
 ;     l212e:                                    1
-;     l945f:                                    1
 ;     lang_entry_dispatch:                      1
 ;     lang_entry_hi:                            1
 ;     lang_entry_lo:                            1
@@ -9238,6 +9237,8 @@ save pydis_start, pydis_end
 ;     readry:                                   1
 ;     release_claim_restart:                    1
 ;     reloc_p4_src:                             1
+;     reloc_p5_src:                             1
+;     reloc_p6_src:                             1
 ;     reloc_zp_src:                             1
 ;     remote_osbyte_table:                      1
 ;     restore_econet_state:                     1
@@ -9412,7 +9413,6 @@ save pydis_start, pydis_end
 ;     zp_work_2:                                1
 
 ; Automatically generated labels:
-;     c955f
 ;     l0100
 ;     l0101
 ;     l0102
@@ -9432,7 +9432,6 @@ save pydis_start, pydis_end
 ;     l0e11
 ;     l18a5
 ;     l212e
-;     l945f
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes

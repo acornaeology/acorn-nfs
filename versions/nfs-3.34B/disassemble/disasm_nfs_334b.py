@@ -56,10 +56,10 @@ load(0x8000, _rom_filepath, "6502")
 #   WRCHV = &051C (in page 5 — WRCH handler)
 #   EVNTV = &06E8 (in page 6 — event handler)
 
-# BRK handler + NMI workspace init code (&9308 → &0016-&0076)
+# BRK handler + NMI workspace init code (nmi_workspace_start → &0016-&0076)
 move(0x0016, 0x9308, 0x61)
 
-# NMI handler / CLI command code (&934D/&944D/&954D → pages &04/&05/&06)
+# NMI handler / CLI command code (tube_code_page4/tube_dispatch_table/tube_code_page6 → pages &04/&05/&06)
 move(0x0400, 0x934D, 0x100)
 move(0x0500, 0x944D, 0x100)
 move(0x0600, 0x954D, 0x100)
@@ -456,10 +456,10 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
 # separate "ROFF" entry in the command table.
 comment(0x800D, """\
-The 'ROFF' suffix at &8010 is reused by the *ROFF
-command matcher (svc_4_star_command) — a space-saving
-trick that shares ROM bytes between the copyright
-string and the star command table.""")
+The 'ROFF' suffix at copyright_string+3 is reused by
+the *ROFF command matcher (svc_4_star_command) — a
+space-saving trick that shares ROM bytes between the
+copyright string and the star command table.""")
 
 # ROM header: copyright string and error offset table
 label(0x800D, "copyright_string")
@@ -1217,9 +1217,9 @@ label(0x9AC8, "rx_imm_machine_type")
 subroutine(0x9AC8, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length #&01FC) for the machine
-type query response. Returns system identification data
-to the remote station.""")
+Sets up a buffer in high memory (length #&01FC) for the
+machine type query response. Returns system identification
+data to the remote station.""")
 
 label(0x9ADB, "rx_imm_peek")
 subroutine(0x9ADB, "rx_imm_peek", hook=None,
@@ -1848,9 +1848,10 @@ Sets up OS vectors for Tube co-processor support:
   BRKV  = &0016 (workspace — BRK/error handler)
   EVNTV = &06E8 (page 6 — event handler)
 Writes &8E to Tube control register (&FEE0).
-Then copies 3 pages of Tube host code from ROM (&934D/&944D/&954D)
-to RAM (&0400/&0500/&0600), calls tube_post_init (&0414), and copies
-97 bytes of workspace init from ROM (&9308) to &0016-&0076.""")
+Then copies 3 pages of Tube host code from ROM (tube_code_page4,
+tube_dispatch_table, tube_code_page6) to RAM (&0400/&0500/&0600),
+calls tube_post_init (&0414), and copies 97 bytes of workspace
+init from ROM (nmi_workspace_start) to &0016-&0076.""")
 
 comment(0x80C8, "Set WRCHV = &051C (Tube WRCH handler)", inline=True)
 comment(0x80D2, "Set RDCHV = &04E7 (Tube RDCH handler)", inline=True)
@@ -2050,8 +2051,8 @@ subroutine(0x8172, "svc_4_star_command", hook=None,
 Matches the command text against ROM string table entries.
 Both entries reuse bytes from the ROM header to save space:
 
-  X=8: matches "ROFF" at &8010 — the suffix of the
-       copyright string "(C)ROFF" → *ROFF (Remote Off,
+  X=8: matches "ROFF" at copyright_string+3 — the suffix
+       of "(C)ROFF" → *ROFF (Remote Off,
        end remote session) — jumps to resume_after_remote
 
   X=1: matches "NET" at &8009 — the ROM title string
@@ -2783,7 +2784,7 @@ The four boot options use OSCLI strings at offsets within page &8C:
   Option 1 (Load): offset &E8 → &8CE8 = "L.!BOOT" (dual-purpose:
       the JMP &212E instruction at &8CE8 has opcode &4C='L' and
       operand bytes &2E='.' &21='!', forming the string "L.!")
-  Option 2 (Run):  offset &EA → &8CEA = "!BOOT" (bare filename = *RUN)
+  Option 2 (Run):  offset &EA → boot_cmd_strings-1 = "!BOOT" (bare filename = *RUN)
   Option 3 (Exec): offset &F0 → &8CF0 = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the JMP instruction's
@@ -3503,7 +3504,7 @@ before dispatch via JMP (&0500).""")
 subroutine(0x0400, "tube_code_page4", hook=None,
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
     description="""\
-Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
+Copied from ROM (tube_code_page4) during init. The first 28 bytes (&0400-&041B)
 overlap with the end of the ZP block (the same ROM bytes serve both
 the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
@@ -3518,7 +3519,7 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &944D during init. Contains:
+Copied from ROM (tube_dispatch_table) during init. Contains:
   &0500: tube_dispatch_table — 14-entry handler address table
   &051C: tube_wrch_handler — WRCHV target
   &051F: tube_send_and_poll — send byte via R2, poll for reply
@@ -3539,7 +3540,7 @@ Copied from ROM at &944D during init. Contains:
 subroutine(0x0600, "tube_code_page6", hook=None,
     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
     description="""\
-Copied from ROM at &954D during init. &0600-&0601 is the tail
+Copied from ROM (tube_code_page6) during init. &0600-&0601 is the tail
 of tube_osfile (BEQ to tube_reply_byte when done). Contains:
   &0602: tube_osgbpb — multi-byte file I/O
   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
@@ -3566,7 +3567,7 @@ byte(0x9307, 1)
 comment(0x9307, "OSBYTE &C3: read screen start address", inline=True)
 
 # ============================================================
-# Relocated code block sources (&9308, &934D, &944D, &954D)
+# Relocated code block sources (nmi_workspace_start, tube_code_page4, tube_dispatch_table, tube_code_page6)
 # ============================================================
 # These labels mark the ROM storage addresses. The code is
 # disassembled at its runtime addresses via move() declarations
@@ -7412,10 +7413,11 @@ comment(0x9C52, "Disable interrupts for ADLC access", inline=True)
 subroutine(0x9C53, "intoff_test_inactive", hook=None,
     title="Disable NMIs and test INACTIVE",
     description="""\
-Mid-instruction label within the INACTIVE polling loop. The
-address &9BE2 is referenced as a constant for self-modifying
-code. Disables NMIs twice (belt-and-braces) then tests SR2
-for INACTIVE before proceeding with TX.""")
+Mid-instruction label within the INACTIVE polling loop.
+The operand byte of the LDA before tx_begin is referenced
+as a constant for self-modifying code. Disables NMIs twice
+(belt-and-braces) then tests SR2 for INACTIVE before
+proceeding with TX.""")
 label(0x9C59, "test_line_idle")       # Tests SR2 INACTIVE bit for line idle
 comment(0x9C63, "Write CR2: clear status, prepare TX", inline=True)
 comment(0x9C70, "Restore interrupt state", inline=True)

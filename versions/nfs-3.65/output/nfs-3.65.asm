@@ -364,7 +364,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ; 
-; Copied from ROM at &9362 during init. The first 28 bytes (&0400-&041B)
+; Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
 ; overlap with the end of the ZP block (the same ROM bytes serve both
 ; the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 ;   &0400: JMP &0484 (BEGIN — startup/CLI entry, break type check)
@@ -615,7 +615,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ; 
-; Copied from ROM at &9462 during init. Contains:
+; Copied from ROM at reloc_p5_src during init. Contains:
 ;   &0500: 12-entry dispatch table (&0500-&0517)
 ;   &0518: 8-byte Tube control register value table
 ;   &0520: tube_osbput — write byte to file
@@ -2431,7 +2431,7 @@ service_handler_lo = service_entry+1
     lda #&17                                                          ; 844f: a9 17       ..             ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 8451: c4 ba       ..             ; Y=value of *SPOOL file handle
     beq close_spool_exec                                              ; 8453: f0 06       ..             ; Handle matches SPOOL -- close it
-    lda #&1b                                                          ; 8455: a9 1b       ..             ; '-': offset into "E." string at &852D
+    lda #&1b                                                          ; 8455: a9 1b       ..             ; A=&1B: low byte of "E." string address
     cpx fs_spool_handle                                               ; 8457: e4 ba       ..             ; X=value of *EXEC file handle
     bne dispatch_fs_error                                             ; 8459: d0 06       ..             ; No EXEC match -- skip close
 ; &845b referenced 1 time by &8453
@@ -4759,8 +4759,10 @@ cmd_match_data = fs_cmd_match_table+1
 ; "Run", "Exec") are scattered through the code rather than
 ; stored as a contiguous table. They are addressed via base+offset
 ; from option_name_offsets (&8D42), whose four bytes are offsets:
-;   &2B→&8D6D "Off", &3E→&8D80 "Load",
-;   &66→&8DA8 "Run", &18→&8D5A "Exec"
+;   &2B→option_name_offsets+&2B "Off",
+;   &3E→option_name_offsets+&3E "Load",
+;   &66→option_name_offsets+&66 "Run",
+;   &18→option_name_offsets+&18 "Exec"
 ; Each string is terminated by the next instruction's opcode
 ; having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).
 .return_9
@@ -4775,13 +4777,13 @@ cmd_match_data = fs_cmd_match_table+1
 ; Boot command strings for auto-boot
 ; 
 ; The four boot options use OSCLI strings at offsets within page &8D.
-; The offset table at boot_option_offsets+1 (&8D56) is indexed by
+; The offset table at boot_option_offsets+1 is indexed by
 ; the boot option value (0-3); each byte is the low byte of the
-; string address, with the page high byte &8D loaded separately:
-;   Option 0 (Off):  offset &55 → &8D55 = bare CR (empty command)
-;   Option 1 (Load): offset &46 → &8D46 = "L.!BOOT" (the bytes
+; string address, with the page high byte loaded separately:
+;   Option 0 (Off):  offset &55 → boot_option_offsets = bare CR
+;   Option 1 (Load): offset &46 → "L.!BOOT" (the bytes
 ;       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D4D)
-;   Option 2 (Run):  offset &48 → &8D48 = "!BOOT" (bare filename = *RUN)
+;   Option 2 (Run):  offset &48 → boot_cmd_strings-1 = "!BOOT"
 ;   Option 3 (Exec): offset &4E → &8D4E = "E.!BOOT"
 ; 
 ; This is a classic BBC ROM space optimisation: the string data
@@ -4808,7 +4810,7 @@ cmd_match_data = fs_cmd_match_table+1
 boot_string_offsets = boot_option_offsets+1
     ora l4655                                                         ; 8d55: 0d 55 46    .UF            ; Opt 0 (Off): bare CR at &8D55; Opt 1 (Load): L.!BOOT at &8D46
 ; &8d56 referenced 1 time by &8e4e
-    pha                                                               ; 8d58: 48          H              ; Opt 2 (Run): !BOOT at &8D48
+    pha                                                               ; 8d58: 48          H              ; Opt 2 (Run): !BOOT at boot_cmd_strings-1
     lsr l7845                                                         ; 8d59: 4e 45 78    NEx            ; Opt 3 (Exec): E.!BOOT at &8D4E
     adc l0063                                                         ; 8d5c: 65 63       ec             ; Boot string overlap: "ec" tail of "Exec"
 ; &8d5e referenced 2 times by &87f3, &87f8
@@ -7496,10 +7498,10 @@ svc5_dispatch_lo = sub_c9abe+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &7F21 (length #&01FC) for the machine
-; type query response, then branches to
-; set_tx_reply_flag. Returns system identification data to the remote
-; station.
+; Sets up a reply buffer (open_port_buf=&21, page &7F,
+; length &01FC) for the machine type query response, then
+; branches to set_tx_reply_flag. Returns system identification
+; data to the remote station.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 9acc: a9 01       ..             ; Buffer length hi = 1
@@ -7589,7 +7591,7 @@ svc5_dispatch_lo = sub_c9abe+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes address &9B88 on the stack (so RTS returns to
+; Pushes tx_done_exit-1 on the stack (so RTS returns to
 ; tx_done_exit), then does JMP (l0d58) to call the remote
 ; JSR target routine. When that routine returns via RTS,
 ; control resumes at tx_done_exit.

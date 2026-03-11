@@ -855,10 +855,10 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
 # separate "ROFF" entry in the command table.
 comment(0x8011, """\
-The 'ROFF' suffix at &8014 is reused by the *ROFF
-command matcher (svc_star_command) — a space-saving
-trick that shares ROM bytes between the copyright
-string and the star command table.""")
+The 'ROFF' suffix (copyright_string+3) is reused by
+the *ROFF command matcher (svc_star_command) — a
+space-saving trick that shares ROM bytes between the
+copyright string and the star command table.""")
 
 # ROM header: copyright string and error offset table
 label(0x8001, "language_handler_lo")  # JMP operand: language handler address low byte
@@ -2018,10 +2018,10 @@ the common data-receive path at port_match_found.""")
 subroutine(0x9AAA, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F25 (length #&01FC) for the machine
-type query response, then jumps to the query handler at
-set_tx_reply_flag. Returns system identification data to the remote
-station.""")
+Sets up a response buffer (start &25, page &7F, length
+#&01FC) for the machine type query, then jumps to the
+query handler at set_tx_reply_flag. Returns system
+identification data to the remote station.""")
 
 subroutine(0x9ABC, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
@@ -2040,7 +2040,7 @@ Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 subroutine(0x9B25, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
-Pushes address &9BEB on the stack (so RTS returns to
+Pushes tx_done_exit-1 on the stack (so RTS returns to
 tx_done_exit), then does JMP (l0d58) to call the remote
 JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
@@ -3222,11 +3222,11 @@ The service 4 handler entry at &81B5 (after 5 NOPs of padding)
 makes two match_rom_string calls against the ROM header, reusing
 header bytes as command strings:
 
-  X=&0C: matches "ROFF" at &8014 — the suffix of the
-         copyright string "(C)ROFF" — *ROFF (Remote Off,
-         end remote session) — falls through to net_4_resume_remote
+  X=&0C: matches "ROFF" at copyright_string+3 — the
+         suffix of "(C)ROFF" — *ROFF (Remote Off, end
+         remote session) — falls through to net_4_resume_remote
 
-  X=5: matches "NET" at &800D — the ROM title suffix
+  X=5: matches "NET" at the ROM title suffix
        — *NET (select NFS) — falls through to svc_13_select_nfs
 
 If neither matches, returns with the service call
@@ -3305,7 +3305,7 @@ the fileserver. Falls through to run_fscv_cmd.""")
 
 comment(0x8284, "Issue service &0A", inline=True)
 comment(0x8287, "Non-zero after hard reset: skip auto-boot", inline=True)
-comment(0x828B, "X = lo byte of auto-boot string at &8292", inline=True)
+comment(0x828B, "X = lo byte of auto-boot string (run_fscv_cmd+5)", inline=True)
 
 # ============================================================
 # Run FSCV command from ROM (&8289)
@@ -3614,7 +3614,7 @@ comment(0x8450, "Copy 32-byte reply to error buffer at &0FE0", inline=True)
 comment(0x845C, "A=&C6: read *EXEC file handle", inline=True)
 comment(0x8461, "')': offset into \"SP.\" string at &8529", inline=True)
 comment(0x8463, "Y=value of *SPOOL file handle", inline=True)
-comment(0x8467, "'-': offset into \"E.\" string at &852D", inline=True)
+comment(0x8467, "'-': offset into \"E.\" close-exec string", inline=True)
 comment(0x8469, "X=value of *EXEC file handle", inline=True)
 comment(0x846E, "Y=&85: high byte of OSCLI string in ROM", inline=True)
 comment(0x8470, "Close SPOOL/EXEC via \"*SP.\" or \"*E.\"", inline=True)
@@ -4973,7 +4973,7 @@ string address, with the page high byte &8D loaded separately:
   Option 0 (Off):  offset &67 → &8D67 = bare CR (empty command)
   Option 1 (Load): offset &58 → &8D58 = "L.!BOOT" (the bytes
       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D5F)
-  Option 2 (Run):  offset &5A → &8D5A = "!BOOT" (bare filename = *RUN)
+  Option 2 (Run):  offset &5A → boot_cmd_strings-1 = "!BOOT" (*RUN)
   Option 3 (Exec): offset &60 → &8D60 = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the string data
@@ -6499,7 +6499,7 @@ to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
 subroutine(0x0400, "tube_code_page4", hook=None,
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
     description="""\
-Copied from ROM at &9362 during init. The first 28 bytes (&0400-&041B)
+Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
 overlap with the end of the ZP block (the same ROM bytes serve both
 the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0400: JMP &0484 (BEGIN — startup/CLI entry, break type check)
@@ -6548,7 +6548,7 @@ transfer address.""")
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &9462 during init. Contains:
+Copied from ROM at reloc_p5_src during init. Contains:
   &0500: 12-entry dispatch table (&0500-&0517)
   &0518: 8-byte Tube control register value table
   &0520: tube_osbput — write byte to file
@@ -7720,9 +7720,10 @@ then enters the INACTIVE polling loop.""")
 subroutine(0x9BE1, "intoff_test_inactive", hook=None,
     title="Disable NMIs and test INACTIVE",
     description="""\
-Mid-instruction label within the INACTIVE polling loop. The
-address &9BE2 is referenced as a constant for self-modifying
-code. Disables NMIs twice (belt-and-braces) then tests SR2
+Mid-instruction label within the INACTIVE polling loop.
+The intoff_operand address (intoff_test_inactive+1) is
+referenced as a constant for self-modifying code.
+Disables NMIs twice (belt-and-braces) then tests SR2
 for INACTIVE before proceeding with TX.""")
 
 # ============================================================

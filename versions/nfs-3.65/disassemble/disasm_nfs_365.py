@@ -2024,10 +2024,10 @@ the common data-receive path at port_match_found.""")
 subroutine(0x9ACC, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length #&01FC) for the machine
-type query response, then branches to
-set_tx_reply_flag. Returns system identification data to the remote
-station.""")
+Sets up a reply buffer (open_port_buf=&21, page &7F,
+length &01FC) for the machine type query response, then
+branches to set_tx_reply_flag. Returns system identification
+data to the remote station.""")
 
 subroutine(0x9ADE, "rx_imm_peek", hook=None,
     title="RX immediate: PEEK setup",
@@ -2046,7 +2046,7 @@ Uses workspace offsets (&A6/&A7) for nmi_tx_block.""")
 subroutine(0x9B47, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
-Pushes address &9B88 on the stack (so RTS returns to
+Pushes tx_done_exit-1 on the stack (so RTS returns to
 tx_done_exit), then does JMP (l0d58) to call the remote
 JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
@@ -3570,7 +3570,7 @@ comment(0x843E, "Copy 32-byte reply to error buffer at &0FE0", inline=True)
 comment(0x844A, "A=&C6: read *EXEC file handle", inline=True)
 comment(0x844F, "')': offset into \"SP.\" string at &8529", inline=True)
 comment(0x8451, "Y=value of *SPOOL file handle", inline=True)
-comment(0x8455, "'-': offset into \"E.\" string at &852D", inline=True)
+comment(0x8455, "A=&1B: low byte of \"E.\" string address", inline=True)
 comment(0x8457, "X=value of *EXEC file handle", inline=True)
 comment(0x845C, "Y=&85: high byte of OSCLI string in ROM", inline=True)
 comment(0x845E, "Close SPOOL/EXEC via \"*SP.\" or \"*E.\"", inline=True)
@@ -4939,13 +4939,13 @@ subroutine(0x8D49, "boot_cmd_strings", hook=None,
     title="Boot command strings for auto-boot",
     description="""\
 The four boot options use OSCLI strings at offsets within page &8D.
-The offset table at boot_option_offsets+1 (&8D56) is indexed by
+The offset table at boot_option_offsets+1 is indexed by
 the boot option value (0-3); each byte is the low byte of the
-string address, with the page high byte &8D loaded separately:
-  Option 0 (Off):  offset &55 → &8D55 = bare CR (empty command)
-  Option 1 (Load): offset &46 → &8D46 = "L.!BOOT" (the bytes
+string address, with the page high byte loaded separately:
+  Option 0 (Off):  offset &55 → boot_option_offsets = bare CR
+  Option 1 (Load): offset &46 → "L.!BOOT" (the bytes
       &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D4D)
-  Option 2 (Run):  offset &48 → &8D48 = "!BOOT" (bare filename = *RUN)
+  Option 2 (Run):  offset &48 → boot_cmd_strings-1 = "!BOOT"
   Option 3 (Exec): offset &4E → &8D4E = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the string data
@@ -4972,7 +4972,7 @@ for i in range(5):
     byte(0x8D67 + i)
 comment(0x8D56, "Opt 0 (Off): bare CR at &8D55", inline=True)
 comment(0x8D57, "Opt 1 (Load): L.!BOOT at &8D46", inline=True)
-comment(0x8D58, "Opt 2 (Run): !BOOT at &8D48", inline=True)
+comment(0x8D58, "Opt 2 (Run): !BOOT at boot_cmd_strings-1", inline=True)
 comment(0x8D59, "Opt 3 (Exec): E.!BOOT at &8D4E", inline=True)
 comment(0x8D5C, 'Boot string overlap: "ec" tail of "Exec"', inline=True)
 comment(0x8D5E, "X=4: print 4 hex bytes", inline=True)
@@ -4991,8 +4991,10 @@ Option name encoding: the boot option names ("Off", "Load",
 "Run", "Exec") are scattered through the code rather than
 stored as a contiguous table. They are addressed via base+offset
 from option_name_offsets (&8D42), whose four bytes are offsets:
-  &2B→&8D6D "Off", &3E→&8D80 "Load",
-  &66→&8DA8 "Run", &18→&8D5A "Exec"
+  &2B→option_name_offsets+&2B "Off",
+  &3E→option_name_offsets+&3E "Load",
+  &66→option_name_offsets+&66 "Run",
+  &18→option_name_offsets+&18 "Exec"
 Each string is terminated by the next instruction's opcode
 having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""")
 
@@ -6483,7 +6485,7 @@ to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
 subroutine(0x0400, "tube_code_page4", hook=None,
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
     description="""\
-Copied from ROM at &9362 during init. The first 28 bytes (&0400-&041B)
+Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
 overlap with the end of the ZP block (the same ROM bytes serve both
 the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
   &0400: JMP &0484 (BEGIN — startup/CLI entry, break type check)
@@ -6532,7 +6534,7 @@ transfer address.""")
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &9462 during init. Contains:
+Copied from ROM at reloc_p5_src during init. Contains:
   &0500: 12-entry dispatch table (&0500-&0517)
   &0518: 8-byte Tube control register value table
   &0520: tube_osbput — write byte to file

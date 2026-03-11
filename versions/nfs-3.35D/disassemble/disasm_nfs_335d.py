@@ -460,10 +460,10 @@ label(0x0DEB, "fs_state_deb")        # Filing system state
 # text for *ROFF (Remote Off). This saves 4 bytes by avoiding a
 # separate "ROFF" entry in the command table.
 comment(0x800D, """\
-The 'ROFF' suffix at &8010 is reused by the *ROFF
-command matcher (svc_star_command) — a space-saving
-trick that shares ROM bytes between the copyright
-string and the star command table.""")
+The 'ROFF' suffix at copyright_string+3 is reused by
+the *ROFF command matcher (svc_star_command) — a
+space-saving trick that shares ROM bytes between the
+copyright string and the star command table.""")
 
 # ROM header: copyright string and error offset table
 label(0x800D, "copyright_string")
@@ -1233,10 +1233,10 @@ label(0x9ADE, "rx_imm_machine_type")
 subroutine(0x9ADE, "rx_imm_machine_type", hook=None,
     title="RX immediate: machine type query",
     description="""\
-Sets up a buffer at &7F21 (length #&01FC) for the machine
-type query response, then jumps to the query handler at
-c9b0f. Returns system identification data to the remote
-station.""")
+Sets up a receive buffer (length #&01FC) below the screen
+for the machine type query response, then jumps to the
+query handler at set_tx_reply_flag. Returns system
+identification data to the remote station.""")
 
 label(0x9AF1, "rx_imm_peek")
 subroutine(0x9AF1, "rx_imm_peek", hook=None,
@@ -1256,7 +1256,7 @@ label(0x9BAA, "tx_done_jsr")
 subroutine(0x9BAA, "tx_done_jsr", hook=None,
     title="TX done: remote JSR execution",
     description="""\
-Pushes address &9BEB on the stack (so RTS returns to
+Pushes tx_done_exit-1 on the stack (so RTS returns to
 tx_done_exit), then does JMP (l0d58) to call the remote
 JSR target routine. When that routine returns via RTS,
 control resumes at tx_done_exit.""")
@@ -1853,10 +1853,10 @@ and stores each 16-bit value at &0200+offset:
   EVNTV (&0220) = &06E5   BRKV  (&0202) = &0016
   RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
 Then writes &8E to Tube control register (&FEE0) and copies
-3 pages of Tube host code from ROM (&935F/&945F/&955F)
-to RAM (&0400/&0500/&0600), calls tube_post_init (&0414),
-and copies 97 bytes of workspace init from ROM (&931A) to
-&0016-&0076.""")
+3 pages of Tube host code from ROM (reloc_p4_src /
+reloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600),
+calls tube_post_init (&0414), and copies 97 bytes of
+workspace init from ROM (reloc_zp_src) to &0016-&0076.""")
 
 # ============================================================
 # Select NFS as active filing system (&8184)
@@ -2814,7 +2814,7 @@ The four boot options use OSCLI strings at offsets within page &8C:
   Option 1 (Load): offset &E2 → &8CE2 = "L.!BOOT" (dual-purpose:
       the JMP &212E instruction at &8CE2 has opcode &4C='L' and
       operand bytes &2E='.' &21='!', forming the string "L.!")
-  Option 2 (Run):  offset &E4 → &8CE4 = "!BOOT" (bare filename = *RUN)
+  Option 2 (Run):  offset &E4 → boot_cmd_strings-1 = "!BOOT" (*RUN)
   Option 3 (Exec): offset &EA → &8CEA = "E.!BOOT"
 
 This is a classic BBC ROM space optimisation: the JMP instruction's
@@ -3516,9 +3516,10 @@ before dispatch via JMP (&0500).""")
 subroutine(0x0400, "tube_code_page4", hook=None,
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
     description="""\
-Copied from ROM at &934D during init. The first 28 bytes (&0400-&041B)
-overlap with the end of the ZP block (the same ROM bytes serve both
-the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
+Copied from ROM during init (reloc_p4_src-18). The first
+28 bytes (&0400-&041B) overlap with the end of the ZP block
+(the same ROM bytes serve both the ZP copy at &005B-&0076
+and this page at &0400-&041B). Contains:
   &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
   &0403: JMP &06E2 (tube_escape_check)
   &0406: tube_addr_claim — Tube address claim protocol (ADRR)
@@ -3531,7 +3532,7 @@ the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
 subroutine(0x0500, "tube_dispatch_table", hook=None,
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
     description="""\
-Copied from ROM at &944D during init. Contains:
+Copied from ROM during init (reloc_p5_src-18). Contains:
   &0500: tube_dispatch_table — 14-entry handler address table
   &051C: tube_wrch_handler — WRCHV target
   &051F: tube_send_and_poll — send byte via R2, poll for reply
@@ -3552,7 +3553,7 @@ Copied from ROM at &944D during init. Contains:
 subroutine(0x0600, "tube_code_page6", hook=None,
     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
     description="""\
-Copied from ROM at &954D during init. &0600-&0601 is the tail
+Copied from ROM during init (reloc_p6_src-18). &0600-&0601 is the tail
 of tube_osfile (BEQ to tube_reply_byte when done). Contains:
   &0602: tube_osgbpb — multi-byte file I/O
   &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
@@ -6332,6 +6333,8 @@ comment(0x9312, "X=0 for indexed indirect store", inline=True)
 comment(0x9314, "Store result to workspace", inline=True)
 label(0x931A, "reloc_zp_src")        # ROM source of zero-page relocated code
 label(0x935F, "reloc_p4_src")        # ROM source of Tube host page 4 code
+label(0x945F, "reloc_p5_src")        # ROM source of Tube host page 5 code
+label(0x955F, "reloc_p6_src")        # ROM source of Tube host page 6 code
 comment(0x966F, "INTOFF: read station ID, disable NMIs", inline=True)
 comment(0x9672, "Full ADLC hardware reset", inline=True)
 comment(0x9675, "OSBYTE &EA: check Tube co-processor", inline=True)
