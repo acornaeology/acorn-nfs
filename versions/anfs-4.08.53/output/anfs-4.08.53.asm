@@ -9539,10 +9539,10 @@ bad_prefix = bad_str_anchor+1
 ; 3: Help topics  4: Copro/attributes
 ; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
-    equb &43                                                          ; a3d8: 43          C              ; *Close (first char)
+    equs "C"                                                          ; a3d8: 43          C              ; *Close (first char)
 ; &a3d9 referenced 3 times by &8c88, &a123, &b30a
 .cmd_table_fs_lo
-    equb &6c                                                          ; a3d9: 6c          l              ; *Close cont (dispatch lo base)
+    equs "l"                                                          ; a3d9: 6c          l              ; *Close cont (dispatch lo base)
 ; &a3da referenced 3 times by &8c84, &a11f, &b337
 .cmd_table_fs_hi
     equs "ose"                                                        ; a3da: 6f 73 65    ose            ; *Close cont (dispatch hi base)
@@ -9563,7 +9563,8 @@ bad_prefix = bad_str_anchor+1
     equs "Prot"                                                       ; a3fe: 50 72 6f... Pro            ; *Prot
     equb &8e                                                          ; a402: 8e          .              ; Syn 14: (attribute keywords)
     equw cmd_prot-1                                                   ; a403: ef b2       ..             ; Dispatch addr-1
-    equb &50, &53, &88                                                ; a405: 50 53 88    PS.            ; *PS; syn 8: (<stn. id.>|<ps type>)
+    equs "PS"                                                         ; a405: 50 53       PS             ; *PS; syn 8: (<stn. id.>|<ps type>)
+    equb &88                                                          ; a407: 88          .
     equw cmd_ps-1                                                     ; a408: cd af       ..             ; Dispatch addr-1
     equs "Roff"                                                       ; a40a: 52 6f 66... Rof            ; *Roff
     equb &80                                                          ; a40e: 80          .              ; No syntax
@@ -9591,12 +9592,14 @@ bad_prefix = bad_str_anchor+1
     equs "Dir"                                                        ; a441: 44 69 72    Dir            ; *Dir
     equb &81                                                          ; a444: 81          .              ; Syn 1: (<dir>)
     equw cmd_dir-1                                                    ; a445: c8 93       ..             ; Dispatch addr-1
-    equb &45, &78, &81                                                ; a447: 45 78 81    Ex.            ; *Ex; syn 1: (<dir>)
+    equs "Ex"                                                         ; a447: 45 78       Ex             ; *Ex; syn 1: (<dir>)
+    equb &81                                                          ; a449: 81          .
     equw cmd_ex-1                                                     ; a44a: 58 ad       X.             ; Dispatch addr-1
     equs "Flip"                                                       ; a44c: 46 6c 69... Fli            ; *Flip
     equb &80                                                          ; a450: 80          .              ; No syntax
     equw cmd_flip-1                                                   ; a451: 3d a3       =.             ; Dispatch addr-1
-    equb &46, &53, &8b                                                ; a453: 46 53 8b    FS.            ; *FS; syn 11: (<stn. id.>)
+    equs "FS"                                                         ; a453: 46 53       FS             ; *FS; syn 11: (<stn. id.>)
+    equb &8b                                                          ; a455: 8b          .
     equw cmd_fs-1                                                     ; a456: 62 a0       b.             ; Dispatch addr-1
     equs "Info"                                                       ; a458: 49 6e 66... Inf            ; *Info
     equb &c3                                                          ; a45c: c3          .              ; V no arg; syn 3: <object>
@@ -16846,7 +16849,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1798 bytes (11%)
 ;
 ;     Number of instructions   = 7156
-;     Number of data bytes     = 539 bytes
+;     Number of data bytes     = 531 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1147 bytes
-;     Number of strings        = 138
+;     Number of string bytes   = 1155 bytes
+;     Number of strings        = 143

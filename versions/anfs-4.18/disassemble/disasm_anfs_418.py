@@ -6816,6 +6816,17 @@ label(0xA43A, "cmd_table_nfs")
 label(0xA4B2, "cmd_table_help")
 label(0xA4C3, "cmd_table_copro")
 
+# Force short command name fragments to display as equs strings.
+# py8dis auto-classifies these as equb when adjacent to flag bytes.
+string(0xA3F0, 1)    # "C" (first char of *Close)
+string(0xA3F1, 1)    # "l" (dispatch lo base byte of *Close)
+string(0xA41D, 2)    # "PS"
+byte(0xA41F)
+string(0xA45F, 2)    # "Ex"
+byte(0xA461)
+string(0xA46B, 2)    # "FS"
+byte(0xA46D)
+
 # Sub-table 1: utility commands
 # Table stores address-1 for PHA/PHA/RTS dispatch; actual targets are +1.
 entry(0xB994)   # *Close

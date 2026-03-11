@@ -9612,10 +9612,10 @@ bad_prefix = bad_str_anchor+1
 ; 3: Help topics  4: Copro/attributes
 ; &a3f0 referenced 12 times by &8bae, &8bbd, &8bc5, &8bd2, &8c00, &8c07, &932a, &9332, &a145, &a14a, &a15a, &a191
 .cmd_table_fs
-    equb &43                                                          ; a3f0: 43          C              ; *Close (first char)
+    equs "C"                                                          ; a3f0: 43          C              ; *Close (first char)
 ; &a3f1 referenced 3 times by &8c93, &a13b, &b326
 .cmd_table_fs_lo
-    equb &6c                                                          ; a3f1: 6c          l              ; *Close cont (dispatch lo base)
+    equs "l"                                                          ; a3f1: 6c          l              ; *Close cont (dispatch lo base)
 ; &a3f2 referenced 3 times by &8c8f, &a137, &b353
 .cmd_table_fs_hi
     equs "ose"                                                        ; a3f2: 6f 73 65    ose            ; *Close cont (dispatch hi base)
@@ -9636,7 +9636,8 @@ bad_prefix = bad_str_anchor+1
     equs "Prot"                                                       ; a416: 50 72 6f... Pro            ; *Prot
     equb &8e                                                          ; a41a: 8e          .              ; Syn 14: (attribute keywords)
     equw cmd_prot-1                                                   ; a41b: 0b b3       ..
-    equb &50, &53, &88                                                ; a41d: 50 53 88    PS.            ; *PS; syn 8: (<stn. id.>|<ps type>)
+    equs "PS"                                                         ; a41d: 50 53       PS             ; *PS; syn 8: (<stn. id.>|<ps type>)
+    equb &88                                                          ; a41f: 88          .
     equw cmd_ps-1                                                     ; a420: ed af       ..
     equs "Roff"                                                       ; a422: 52 6f 66... Rof            ; *Roff
     equb &80                                                          ; a426: 80          .              ; No syntax
@@ -9664,12 +9665,14 @@ bad_prefix = bad_str_anchor+1
     equs "Dir"                                                        ; a459: 44 69 72    Dir            ; *Dir
     equb &81                                                          ; a45c: 81          .              ; Syn 1: (<dir>)
     equw cmd_dir-1                                                    ; a45d: dc 93       ..
-    equb &45, &78, &81                                                ; a45f: 45 78 81    Ex.            ; *Ex; syn 1: (<dir>)
+    equs "Ex"                                                         ; a45f: 45 78       Ex             ; *Ex; syn 1: (<dir>)
+    equb &81                                                          ; a461: 81          .
     equw cmd_ex-1                                                     ; a462: 6a ad       j.
     equs "Flip"                                                       ; a464: 46 6c 69... Fli            ; *Flip
     equb &80                                                          ; a468: 80          .              ; No syntax
     equw cmd_flip-1                                                   ; a469: 55 a3       U.
-    equb &46, &53, &8b                                                ; a46b: 46 53 8b    FS.            ; *FS; syn 11: (<stn. id.>)
+    equs "FS"                                                         ; a46b: 46 53       FS             ; *FS; syn 11: (<stn. id.>)
+    equb &8b                                                          ; a46d: 8b          .
     equw cmd_fs-1                                                     ; a46e: 7a a0       z.
     equs "Info"                                                       ; a470: 49 6e 66... Inf            ; *Info
     equb &c3                                                          ; a474: c3          .              ; V no arg; syn 3: <object>
@@ -17080,7 +17083,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1770 bytes (11%)
 ;
 ;     Number of instructions   = 7168
-;     Number of data bytes     = 543 bytes
+;     Number of data bytes     = 535 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1115 bytes
-;     Number of strings        = 138
+;     Number of string bytes   = 1123 bytes
+;     Number of strings        = 143
