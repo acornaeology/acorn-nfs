@@ -2334,9 +2334,9 @@ subroutine(0x8455, "immediate_op",
 
 label(0x8488, "imm_op_dispatch_lo")  # Immediate op dispatch lo-byte table
 
-# Immediate operation dispatch lo-byte table (&847E-&8485)
+# Immediate operation dispatch lo-byte table (&8488-&848F)
 # Indexed by ctrl byte Y=&81-&88 via LDA imm_op_dispatch_lo-&81,Y
-for addr in range(0x847E, 0x8486):
+for addr in range(0x8488, 0x8490):
     byte(addr)
 expr(0x8488, "<(rx_imm_peek-1)")
 expr(0x8489, "<(rx_imm_poke-1)")

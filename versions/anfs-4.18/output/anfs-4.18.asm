@@ -1733,7 +1733,7 @@ service_handler_lo = service_entry+1
 ; to idle listen (RX error path); if set, jumps to tx_result_fail
 ; (TX not-listening path).
 ; ***************************************************************************************
-; &8236 referenced 11 times by &81ac, &81c2, &81ec, &81f4, &81fe, &8203, &8214, &8257, &8289, &828f, &834c
+; &8236 referenced 12 times by &81ac, &81c2, &81ec, &81f4, &81fe, &8203, &8214, &8257, &8289, &828f, &834c, &8485
 .nmi_error_dispatch
     lda rx_src_net                                                    ; 8236: ad 3e 0d    .>.            ; Check tx_flags for error path
     bpl rx_error_reset                                                ; 8239: 10 03       ..             ; Bit7 clear: RX error path
@@ -2153,7 +2153,7 @@ service_handler_lo = service_entry+1
     sty port_buf_len                                                  ; 842c: 84 a2       ..             ; Save updated buffer position
     cpx #&0c                                                          ; 842e: e0 0c       ..             ; Done all scout data? (X reaches &0C)
     bne copy_scout_bytes                                              ; 8430: d0 eb       ..             ; No: continue copying
-; &8432 referenced 1 time by &8447
+; &8432 referenced 2 times by &8447, &8481
 .scout_copy_done
     pla                                                               ; 8432: 68          h              ; Restore X from stack
     tax                                                               ; 8433: aa          .              ; Transfer to X register
@@ -2238,25 +2238,26 @@ service_handler_lo = service_entry+1
 
 ; &847d referenced 1 time by &8429
 .scout_page_overflow
-    equb &e6                                                          ; 847d: e6          .              ; Increment port buffer length
-    equb &a2                                                          ; 847e: a2          .
+    inc port_buf_len                                                  ; 847d: e6 a2       ..             ; Increment port buffer length
 ; &847f referenced 1 time by &8440
 .check_scout_done
-    equb &e0                                                          ; 847f: e0          .              ; Check if scout data index reached 11
-    equb &0b                                                          ; 8480: 0b          .
-    equb &f0                                                          ; 8481: f0          .              ; Yes: loop back to continue reading
-    equb &af                                                          ; 8482: af          .
-    equb &68                                                          ; 8483: 68          h              ; Restore A from stack
-    equb &aa                                                          ; 8484: aa          .              ; Transfer to X
+    cpx #&0b                                                          ; 847f: e0 0b       ..             ; Check if scout data index reached 11
+    beq scout_copy_done                                               ; 8481: f0 af       ..             ; Yes: loop back to continue reading
+    pla                                                               ; 8483: 68          h              ; Restore A from stack
+    tax                                                               ; 8484: aa          .              ; Transfer to X
 ; &8485 referenced 2 times by &845a, &845e
 .imm_op_out_of_range
-    equb &4c                                                          ; 8485: 4c          L              ; Jump to discard handler
-    equb &36, &82                                                     ; 8486: 36 82       6.
+    jmp nmi_error_dispatch                                            ; 8485: 4c 36 82    L6.            ; Jump to discard handler
+
 .imm_op_dispatch_lo
-    equb      <(rx_imm_peek-1),         <(rx_imm_poke-1)              ; 8488: ca ad       ..
-    equb      <(rx_imm_exec-1),         <(rx_imm_exec-1)              ; 848a: 8f 8f       ..
-    equb      <(rx_imm_exec-1),    <(rx_imm_halt_cont-1)              ; 848c: 8f e4       ..
-    equb <(rx_imm_halt_cont-1), <(rx_imm_machine_type-1)              ; 848e: e4 b8       ..
+    equb <(rx_imm_peek-1)                                             ; 8488: ca          .
+    equb <(rx_imm_poke-1)                                             ; 8489: ad          .
+    equb <(rx_imm_exec-1)                                             ; 848a: 8f          .
+    equb <(rx_imm_exec-1)                                             ; 848b: 8f          .
+    equb <(rx_imm_exec-1)                                             ; 848c: 8f          .
+    equb <(rx_imm_halt_cont-1)                                        ; 848d: e4          .
+    equb <(rx_imm_halt_cont-1)                                        ; 848e: e4          .
+    equb <(rx_imm_machine_type-1)                                     ; 848f: b8          .
 
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
@@ -15612,12 +15613,12 @@ save pydis_start, pydis_end
 ;     chan_status:                             25
 ;     fs_work_4:                               25
 ;     save_net_tx_cb:                          25
+;     port_buf_len:                            23
 ;     bit_test_ff:                             22
 ;     fcb_status:                              22
 ;     fs_flags:                                22
 ;     fs_load_addr:                            22
 ;     osasci:                                  22
-;     port_buf_len:                            22
 ;     fs_error_ptr:                            21
 ;     tube_read_r2:                            21
 ;     econet_flags:                            20
@@ -15648,6 +15649,7 @@ save pydis_start, pydis_end
 ;     mask_owner_access:                       13
 ;     cmd_table_fs:                            12
 ;     cur_chan_attr:                           12
+;     nmi_error_dispatch:                      12
 ;     return_with_last_flag:                   12
 ;     error_bad_inline:                        11
 ;     error_block:                             11
@@ -15655,7 +15657,6 @@ save pydis_start, pydis_end
 ;     fs_load_addr_3:                          11
 ;     fs_work_6:                               11
 ;     net_rx_ptr_hi:                           11
-;     nmi_error_dispatch:                      11
 ;     table_idx:                               11
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
@@ -16063,6 +16064,7 @@ save pydis_start, pydis_end
 ;     save_fcb_context:                         2
 ;     save_ptr_to_spool_buf:                    2
 ;     scout_complete:                           2
+;     scout_copy_done:                          2
 ;     send_ack:                                 2
 ;     send_and_receive:                         2
 ;     send_cmd_and_dispatch:                    2
@@ -16810,7 +16812,6 @@ save pydis_start, pydis_end
 ;     scan_pass_prompt:                         1
 ;     scan_port_list:                           1
 ;     scan_remote_keys:                         1
-;     scout_copy_done:                          1
 ;     scout_data:                               1
 ;     scout_discard:                            1
 ;     scout_loop_rda:                           1
@@ -17075,11 +17076,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14603 bytes (89%)
-;     Data                     = 1781 bytes (11%)
+;     Code                     = 14614 bytes (89%)
+;     Data                     = 1770 bytes (11%)
 ;
-;     Number of instructions   = 7162
-;     Number of data bytes     = 554 bytes
+;     Number of instructions   = 7168
+;     Number of data bytes     = 543 bytes
 ;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1115 bytes
 ;     Number of strings        = 138
