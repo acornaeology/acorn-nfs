@@ -220,6 +220,7 @@ fs_getb_buf                             = &0fdd
 fs_handle_mask                          = &0fde
 fs_error_flags                          = &0fdf
 fs_error_buf                            = &0fe0
+l7dfd                                   = &7dfd
 start_adlc_tx                           = &9630
 init_adlc_hw                            = &9633
 econet_save                             = &9636
@@ -6154,7 +6155,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; &918c referenced 1 time by &924b
 .ctrl_block_setup_clv
     clv                                                               ; 918c: b8          .              ; V=0: target is (nfs_workspace)
-; &918d referenced 1 time by &9186
+; &918d referenced 2 times by &9186, &91ae
 .cbset2
     lda ctrl_block_template,x                                         ; 918d: bd b4 91    ...            ; Load template byte from ctrl_block_template[X]
     cmp #&fe                                                          ; 9190: c9 fe       ..             ; &FE = stop sentinel
@@ -6163,38 +6164,32 @@ cmd_match_data = fs_cmd_match_table+1
     beq cb_template_main_start                                        ; 9196: f0 14       ..             ; Skip: don't store, just decrement Y
     cmp #&fc                                                          ; 9198: c9 fc       ..             ; &FC = page byte sentinel
     bne cbset3                                                        ; 919a: d0 08       ..             ; Not sentinel: store template value directly
-    equb &a5                                                          ; 919c: a5          .              ; V=1: use (net_rx_ptr) page
-    equb &9d                                                          ; 919d: 9d          .              ; Not sentinel: store template value directly
-    equb &70                                                          ; 919e: 70          p              ; BNE offset (code path: store template)
-    equb 2                                                            ; 919f: 02          .              ; V=1: use (net_rx_ptr) page
-    equb &a5                                                          ; 91a0: a5          .              ; V=0: load from (nfs_workspace)
-    equb &9f                                                          ; 91a1: 9f          .              ; BVS offset (V=1 path)
+    lda net_rx_ptr_hi                                                 ; 919c: a5 9d       ..             ; V=1: use (net_rx_ptr) page
+    bvs rxcb_matched                                                  ; 919e: 70 02       p.             ; V=1: skip to net_rx_ptr page
+    lda nfs_workspace_hi                                              ; 91a0: a5 9f       ..             ; V=0: use (nfs_workspace) page
+; &91a2 referenced 1 time by &919e
 .rxcb_matched
-    equb &85                                                          ; 91a2: 85          .              ; PAGE byte → Y=&02 / Y=&74
-    equb &9b                                                          ; 91a3: 9b          .              ; → Y=&03 / Y=&75
+    sta net_tx_ptr_hi                                                 ; 91a2: 85 9b       ..             ; PAGE byte → Y=&02 / Y=&74
 ; &91a4 referenced 1 time by &919a
 .cbset3
-    equb &70                                                          ; 91a4: 70          p              ; → Y=&04 / Y=&76
-    equb 4                                                            ; 91a5: 04          .              ; → Y=&05 / Y=&77
-    equb &91                                                          ; 91a6: 91          .              ; PAGE byte → Y=&06 / Y=&78
-    equb &9e                                                          ; 91a7: 9e          .              ; → Y=&04 / Y=&76
-    equb &50                                                          ; 91a8: 50          P              ; → Y=&08 / Y=&7A
-    equb 2                                                            ; 91a9: 02          .              ; → Y=&09 / Y=&7B
+    bvs cbset4                                                        ; 91a4: 70 04       p.             ; → Y=&04 / Y=&76
+    sta (nfs_workspace),y                                             ; 91a6: 91 9e       ..             ; PAGE byte → Y=&06 / Y=&78
+    bvc cb_template_main_start                                        ; 91a8: 50 02       P.             ; → Y=&08 / Y=&7A; ALWAYS branch
+
+; &91aa referenced 1 time by &91a4
 .cbset4
-    equb &91                                                          ; 91aa: 91          .              ; Alt-path only → Y=&70
-    equb &9c                                                          ; 91ab: 9c          .              ; STOP — main-path boundary
-; &91ac referenced 1 time by &9196
+    sta (net_rx_ptr),y                                                ; 91aa: 91 9c       ..             ; Alt-path only → Y=&70
+; &91ac referenced 2 times by &9196, &91a8
 .cb_template_main_start
-    equb &88                                                          ; 91ac: 88          .              ; → Y=&0C (main only)
-    equb &ca                                                          ; 91ad: ca          .              ; → Y=&0D (main only)
-    equb &10                                                          ; 91ae: 10          .              ; STOP — main-path boundary
-    equb &dd                                                          ; 91af: dd          .              ; SKIP (main only)
+    dey                                                               ; 91ac: 88          .              ; → Y=&0C (main only)
+    dex                                                               ; 91ad: ca          .              ; → Y=&0D (main only)
+    bpl cbset2                                                        ; 91ae: 10 dd       ..             ; Loop until all template bytes done
 ; &91b0 referenced 1 time by &9192
 .cb_template_tail
-    equb &c8                                                          ; 91b0: c8          .              ; → Y=&10 (main only)
-    equb &84                                                          ; 91b1: 84          .              ; BPL offset (loop back)
-    equb &9a                                                          ; 91b2: 9a          .              ; SKIP (main only)
-    equb &60                                                          ; 91b3: 60          `              ; → Y=&07 / Y=&79
+    iny                                                               ; 91b0: c8          .              ; → Y=&10 (main only)
+    sty net_tx_ptr                                                    ; 91b1: 84 9a       ..             ; Store final offset as net_tx_ptr
+    rts                                                               ; 91b3: 60          `              ; → Y=&07 / Y=&79
+
 ; ***************************************************************************************
 ; Control block initialisation template
 ; 
@@ -6213,13 +6208,11 @@ cmd_match_data = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; &91b4 referenced 1 time by &918d
 .ctrl_block_template
-    equb &85                                                          ; 91b4: 85          .              ; Alt-path only → Y=&6F
-    equb 0                                                            ; 91b5: 00          .              ; PAGE byte → Y=&15 (main only)
-    equb &fd                                                          ; 91b6: fd          .              ; → Y=&16 (main only)
-    equb &fd                                                          ; 91b7: fd          .              ; Alt-path only → Y=&6F
-    equb &7d, &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80   ; 91b8: 7d fc ff... }..            ; → Y=&0D (main only); → Y=&03 / Y=&75; SKIP (main only); → Y=&10 (main only); → Y=&08 / Y=&7A; → Y=&09 / Y=&7B; PAGE byte → Y=&15 (main only); → Y=&16 (main only)
-    equb &93, &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe   ; 91c4: 93 fd fd... ...            ; SKIP (main only); PAGE byte → Y=&11 (main only); → Y=&12 (main only); → Y=&13 (main only); → Y=&14 (main only); → Y=&17 (main only)
-    equb &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff        ; 91d0: d1 fd fd... ...
+    sta zp_ptr_lo                                                     ; 91b4: 85 00       ..             ; Alt-path only → Y=&6F
+    sbc l7dfd,x                                                       ; 91b6: fd fd 7d    ..}
+    equb &fc, &ff, &ff, &7e, &fc, &ff, &ff,   0,   0, &fe, &80, &93   ; 91b9: fc ff ff... ...            ; → Y=&0D (main only); → Y=&03 / Y=&75; SKIP (main only); → Y=&10 (main only); → Y=&08 / Y=&7A; → Y=&09 / Y=&7B; PAGE byte → Y=&15 (main only); → Y=&16 (main only)
+    equb &fd, &fd, &d9, &fc, &ff, &ff, &de, &fc, &ff, &ff, &fe, &d1   ; 91c5: fd fd d9... ...            ; SKIP (main only); PAGE byte → Y=&11 (main only); → Y=&12 (main only); → Y=&13 (main only); → Y=&14 (main only); → Y=&17 (main only)
+    equb &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff             ; 91d1: fd fd 1f... ...
 
 ; ***************************************************************************************
 ; Fn 5: printer selection changed (SELECT)
@@ -8799,18 +8792,18 @@ listen_jmp_hi = reset_enter_listen+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                           54
+;     nfs_workspace:                           55
 ;     econet_control23_or_status2:             46
 ;     fs_options:                              41
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             37
+;     net_rx_ptr:                              33
 ;     port_ws_offset:                          33
 ;     econet_control1_or_status1:              32
-;     net_rx_ptr:                              32
 ;     tx_flags:                                27
 ;     osword_pb_ptr:                           26
+;     net_tx_ptr:                              23
 ;     osbyte:                                  23
-;     net_tx_ptr:                              22
 ;     port_buf_len:                            22
 ;     tube_read_r2:                            21
 ;     open_port_buf_hi:                        16
@@ -8831,17 +8824,17 @@ save pydis_start, pydis_end
 ;     prepare_fs_cmd:                          12
 ;     tube_data_register_2:                    11
 ;     tx_result_fail:                          11
+;     nfs_workspace_hi:                        10
 ;     svc_state:                               10
 ;     tube_addr_claim:                         10
 ;     tube_data_register_3:                    10
 ;     tube_status_register_2:                  10
-;     nfs_workspace_hi:                         9
+;     net_tx_ptr_hi:                            9
 ;     rx_src_stn:                               9
 ;     txcb_end:                                 9
 ;     txcb_start:                               9
 ;     fs_error_ptr:                             8
 ;     install_nmi_handler:                      8
-;     net_tx_ptr_hi:                            8
 ;     table_idx:                                8
 ;     tube_send_r4:                             8
 ;     tube_status_1_and_tube_control:           8
@@ -8859,14 +8852,15 @@ save pydis_start, pydis_end
 ;     tube_claimed_id:                          7
 ;     tx_clear_flag:                            7
 ;     tx_dst_stn:                               7
+;     zp_ptr_lo:                                7
 ;     copy_string_to_cmd:                       6
 ;     fs_block_offset:                          6
 ;     fs_last_byte_flag:                        6
 ;     fs_load_addr_hi:                          6
+;     net_rx_ptr_hi:                            6
 ;     nmi_rti:                                  6
 ;     tube_main_loop:                           6
 ;     zp_ptr_hi:                                6
-;     zp_ptr_lo:                                6
 ;     copy_filename:                            5
 ;     dispatch:                                 5
 ;     error_block:                              5
@@ -8875,7 +8869,6 @@ save pydis_start, pydis_end
 ;     fs_load_addr_3:                           5
 ;     infol2:                                   5
 ;     need_release_tube:                        5
-;     net_rx_ptr_hi:                            5
 ;     os_text_ptr:                              5
 ;     printer_buf_ptr:                          5
 ;     restore_xy_return:                        5
@@ -8982,6 +8975,8 @@ save pydis_start, pydis_end
 ;     binary_version:                           2
 ;     brk_ptr:                                  2
 ;     call_fscv_shutdown:                       2
+;     cb_template_main_start:                   2
+;     cbset2:                                   2
 ;     check_disable_flag:                       2
 ;     check_escape:                             2
 ;     check_rom_end:                            2
@@ -9164,10 +9159,9 @@ save pydis_start, pydis_end
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     cat_column_separator:                     1
-;     cb_template_main_start:                   1
 ;     cb_template_tail:                         1
-;     cbset2:                                   1
 ;     cbset3:                                   1
+;     cbset4:                                   1
 ;     cha4:                                     1
 ;     cha5:                                     1
 ;     cha5lp:                                   1
@@ -9337,6 +9331,7 @@ save pydis_start, pydis_end
 ;     intoff_operand:                           1
 ;     issue_vectors_claimed:                    1
 ;     jump_via_addr:                            1
+;     l7dfd:                                    1
 ;     lang_entry_dispatch:                      1
 ;     language_handler:                         1
 ;     language_handler_hi:                      1
@@ -9455,6 +9450,7 @@ save pydis_start, pydis_end
 ;     rx_error_reset:                           1
 ;     rx_remote_addr:                           1
 ;     rx_tube_data:                             1
+;     rxcb_matched:                             1
 ;     savchk:                                   1
 ;     save1:                                    1
 ;     save_args_handle:                         1
@@ -9610,15 +9606,16 @@ save pydis_start, pydis_end
 ;     l0d1e
 ;     l0d58
 ;     l0d59
+;     l7dfd
 ;     sub_c9a9c
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7508 bytes (92%)
-;     Data                     = 684 bytes (8%)
+;     Code                     = 7537 bytes (92%)
+;     Data                     = 655 bytes (8%)
 ;
-;     Number of instructions   = 3641
-;     Number of data bytes     = 395 bytes
+;     Number of instructions   = 3657
+;     Number of data bytes     = 366 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 237 bytes
 ;     Number of strings        = 36
