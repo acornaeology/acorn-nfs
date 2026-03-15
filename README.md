@@ -85,9 +85,9 @@ The disassembly is produced by a Python script that drives a custom version of [
 
 The output is verified by reassembling with [beebasm](https://github.com/stardot/beebasm) and comparing the result byte-for-byte against the original ROM. This round-trip verification runs automatically in CI on every push.
 
-## Building locally
+## Disassembling locally
 
-Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm).
+Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
 
 ```sh
 uv sync
@@ -111,6 +111,23 @@ uv run acorn-nfs-disasm-tool disassemble 4.08.53
 uv run acorn-nfs-disasm-tool verify 4.08.53
 uv run acorn-nfs-disasm-tool disassemble 4.18
 uv run acorn-nfs-disasm-tool verify 4.18
+```
+
+## (Re-)Assembling locally
+
+To assemble the `.asm` file back into a ROM image using [beebasm](https://github.com/stardot/beebasm):
+
+```sh
+beebasm -i versions/nfs-3.34/output/nfs-3.34.asm -o nfs-3.34.rom
+beebasm -i versions/nfs-3.34B/output/nfs-3.34B.asm -o nfs-3.34B.rom
+beebasm -i versions/nfs-3.35D/output/nfs-3.35D.asm -o nfs-3.35D.rom
+beebasm -i versions/nfs-3.35K/output/nfs-3.35K.asm -o nfs-3.35K.rom
+beebasm -i versions/nfs-3.40/output/nfs-3.40.asm -o nfs-3.40.rom
+beebasm -i versions/nfs-3.60/output/nfs-3.60.asm -o nfs-3.60.rom
+beebasm -i versions/nfs-3.62/output/nfs-3.62.asm -o nfs-3.62.rom
+beebasm -i versions/nfs-3.65/output/nfs-3.65.asm -o nfs-3.65.rom
+beebasm -i versions/anfs-4.08.53/output/anfs-4.08.53.asm -o anfs-4.08.53.rom
+beebasm -i versions/anfs-4.18/output/anfs-4.18.asm -o anfs-4.18.rom
 ```
 
 ## References
