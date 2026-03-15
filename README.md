@@ -2,7 +2,7 @@
 
 [![Verify disassembly](https://github.com/acornaeology/acorn-nfs/actions/workflows/verify.yml/badge.svg)](https://github.com/acornaeology/acorn-nfs/actions/workflows/verify.yml)
 
-Network Filing System and Advanced Network Filing System for the BBC Micro Econet interface.
+NFS (Network Filing System) and ANFS (Advanced Network Filing System) are Econet filing system clients for the BBC Micro, providing remote file access over Acorn's Econet local area network. They handle the full Econet protocol stack — four-way handshake, NMI-driven frame transmission and reception — and plug into the MOS filing system framework to transparently redirect file operations to a network fileserver. Both ROMs also contain Tube host code for managing second-processor communication, which is largely unrelated to the filing system functionality. NFS (versions 3.34–3.65) is an 8 KB ROM; ANFS (4.x) is its 16 KB successor, with an expanded star command set and improved error reporting.
 
 This repository contains annotated disassemblies of the Acorn NFS ROM, produced by reverse-engineering the original 6502 machine code. Each disassembly includes named labels, comments explaining the logic, and cross-references between subroutines.
 
