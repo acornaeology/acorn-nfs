@@ -13,11 +13,6 @@
             "label": "Disassembly source on GitHub",
             "url": "https://github.com/acornaeology/acorn-nfs/blob/master/versions/nfs-3.35D/output/nfs-3.35D.asm",
             "icon": "github"
-        },
-        {
-            "label": "Discuss this disassembly on the Stardot Forums thread: A new annotated disassembly of Acorn NFS",
-            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32531",
-            "icon": "chat"
         }
     ],
     "docs": [
@@ -26,126 +21,621 @@
             "label": "Changes from NFS 3.34B",
             "path": "CHANGES-FROM-3.34B.md",
             "address_links": [
-                {"pattern": "&8099", "occurrence": 0, "version": "3.34B", "address": "0x8099"},
-                {"pattern": "&80D4", "occurrence": 0, "version": "3.35D", "address": "0x80D4"},
-                {"pattern": "&80AF", "occurrence": 0, "version": "3.34B", "address": "0x80AF"},
-                {"pattern": "&80EA", "occurrence": 0, "version": "3.35D", "address": "0x80EA"},
-
-                {"pattern": "&807D", "occurrence": 0, "version": "3.35D", "address": "0x807D"},
-                {"pattern": "&80B3", "occurrence": 0, "version": "3.35D", "address": "0x80B3"},
-                {"pattern": "&80EA", "occurrence": 1, "version": "3.35D", "address": "0x80EA"},
-                {"pattern": "&80F3", "occurrence": 0, "version": "3.35D", "address": "0x80F3"},
-
-                {"pattern": "&81BF", "occurrence": 0, "version": "3.34B", "address": "0x81BF"},
-                {"pattern": "&81FA", "occurrence": 0, "version": "3.35D", "address": "0x81FA"},
-
-                {"pattern": "&807D", "occurrence": 1, "version": "3.35D", "address": "0x807D"},
-                {"pattern": "&80B3", "occurrence": 1, "version": "3.35D", "address": "0x80B3"},
-                {"pattern": "&8088", "occurrence": 0, "version": "3.35D", "address": "0x8088"},
-                {"pattern": "&85FD", "occurrence": 0, "version": "3.35D", "address": "0x85FD"},
-                {"pattern": "&80A7", "occurrence": 0, "version": "3.35D", "address": "0x80A7"},
-
-                {"pattern": "&80EA", "occurrence": 2, "version": "3.35D", "address": "0x80EA"},
-                {"pattern": "&80EA", "occurrence": 3, "version": "3.35D", "address": "0x80EA"},
-                {"pattern": "&80EB", "occurrence": 0, "version": "3.35D", "address": "0x80EB"},
-                {"pattern": "&80EE", "occurrence": 0, "version": "3.35D", "address": "0x80EE"},
-                {"pattern": "&80EF", "occurrence": 0, "version": "3.35D", "address": "0x80EF"},
-                {"pattern": "&80F0", "occurrence": 0, "version": "3.35D", "address": "0x80F0"},
-                {"pattern": "&80F2", "occurrence": 0, "version": "3.35D", "address": "0x80F2"},
-
-                {"pattern": "&80C8", "occurrence": 0, "version": "3.34B", "address": "0x80C8"},
-                {"pattern": "&810D", "occurrence": 0, "version": "3.35D", "address": "0x810D"},
-                {"pattern": "&8123", "occurrence": 0, "version": "3.35D", "address": "0x8123"},
-                {"pattern": "&8177", "occurrence": 0, "version": "3.35D", "address": "0x8177"},
-                {"pattern": "&0016", "occurrence": 0, "version": "3.34B", "address": "0x0016"},
-                {"pattern": "&0016", "occurrence": 1, "version": "3.35D", "address": "0x0016"},
-                {"pattern": "&051C", "occurrence": 0, "version": "3.34B", "address": "0x051C"},
-                {"pattern": "&051C", "occurrence": 1, "version": "3.35D", "address": "0x051C"},
-                {"pattern": "&04E7", "occurrence": 0, "version": "3.34B", "address": "0x04E7"},
-                {"pattern": "&04E7", "occurrence": 1, "version": "3.35D", "address": "0x04E7"},
-                {"pattern": "&06E8", "occurrence": 0, "version": "3.34B", "address": "0x06E8"},
-                {"pattern": "&06E5", "occurrence": 0, "version": "3.35D", "address": "0x06E5"},
-                {"pattern": "&06E8", "occurrence": 1, "version": "3.34B", "address": "0x06E8"},
-                {"pattern": "&06E5", "occurrence": 1, "version": "3.35D", "address": "0x06E5"},
-
-                {"pattern": "&003A", "occurrence": 0, "version": "3.35D", "address": "0x003A"},
-                {"pattern": "&003F", "occurrence": 0, "version": "3.35D", "address": "0x003F"},
-                {"pattern": "&004A", "occurrence": 0, "version": "3.35D", "address": "0x004A"},
-                {"pattern": "&0527", "occurrence": 0, "version": "3.35D", "address": "0x0527"},
-                {"pattern": "&0527", "occurrence": 1, "version": "3.35D", "address": "0x0527"},
-                {"pattern": "&052C", "occurrence": 0, "version": "3.35D", "address": "0x052C"},
-
-                {"pattern": "&8DC7", "occurrence": 0, "version": "3.35D", "address": "0x8DC7"},
-                {"pattern": "&8DE2", "occurrence": 0, "version": "3.35D", "address": "0x8DE2"},
-                {"pattern": "&86A6", "occurrence": 0, "version": "3.34B", "address": "0x86A6"},
-                {"pattern": "&86C8", "occurrence": 0, "version": "3.35D", "address": "0x86C8"},
-                {"pattern": "&8DE2", "occurrence": 1, "version": "3.35D", "address": "0x8DE2"},
-
-                {"pattern": "&83E8", "occurrence": 0, "version": "3.34B", "address": "0x83E8"},
-                {"pattern": "&8432", "occurrence": 0, "version": "3.35D", "address": "0x8432"},
-
-                {"pattern": "&8D3B", "occurrence": 0, "version": "3.34B", "address": "0x8D3B"},
-                {"pattern": "&8D4C", "occurrence": 0, "version": "3.34B", "address": "0x8D4C"},
-                {"pattern": "&8C74", "occurrence": 0, "version": "3.34B", "address": "0x8C74"},
-                {"pattern": "&8CDE", "occurrence": 0, "version": "3.35D", "address": "0x8CDE"},
-                {"pattern": "&8D48", "occurrence": 0, "version": "3.35D", "address": "0x8D48"},
-                {"pattern": "&8D5B", "occurrence": 0, "version": "3.35D", "address": "0x8D5B"},
-                {"pattern": "&8D83", "occurrence": 0, "version": "3.35D", "address": "0x8D83"},
-                {"pattern": "&8CF6", "occurrence": 0, "version": "3.35D", "address": "0x8CF6"},
-                {"pattern": "&8C75", "occurrence": 0, "version": "3.35D", "address": "0x8C75"},
-
-                {"pattern": "&8CFA", "occurrence": 0, "version": "3.35D", "address": "0x8CFA"},
-                {"pattern": "&8D01", "occurrence": 0, "version": "3.35D", "address": "0x8D01"},
-                {"pattern": "&8D09", "occurrence": 0, "version": "3.35D", "address": "0x8D09"},
-
-                {"pattern": "&81C8", "occurrence": 0, "version": "3.34", "address": "0x81C8"},
-
-                {"pattern": "&8099", "occurrence": 1, "version": "3.34B", "address": "0x8099"},
-                {"pattern": "&80D4", "occurrence": 1, "version": "3.35D", "address": "0x80D4"},
-                {"pattern": "&80AF", "occurrence": 1, "version": "3.34B", "address": "0x80AF"},
-                {"pattern": "&80EA", "occurrence": 4, "version": "3.35D", "address": "0x80EA"},
-                {"pattern": "&80C8", "occurrence": 1, "version": "3.34B", "address": "0x80C8"},
-                {"pattern": "&810D", "occurrence": 1, "version": "3.35D", "address": "0x810D"},
-                {"pattern": "&81BF", "occurrence": 1, "version": "3.34B", "address": "0x81BF"},
-                {"pattern": "&81FA", "occurrence": 1, "version": "3.35D", "address": "0x81FA"},
-                {"pattern": "&80B7", "occurrence": 0, "version": "3.34B", "address": "0x80B7"},
-                {"pattern": "&8150", "occurrence": 0, "version": "3.35D", "address": "0x8150"},
-
-                {"pattern": "&9308", "occurrence": 0, "version": "3.34B", "address": "0x9308"},
-                {"pattern": "&931A", "occurrence": 0, "version": "3.35D", "address": "0x931A"},
-                {"pattern": "&0016", "occurrence": 2, "version": "3.35D", "address": "0x0016"},
-                {"pattern": "&0076", "occurrence": 0, "version": "3.35D", "address": "0x0076"},
-                {"pattern": "&934D", "occurrence": 0, "version": "3.34B", "address": "0x934D"},
-                {"pattern": "&935F", "occurrence": 0, "version": "3.35D", "address": "0x935F"},
-                {"pattern": "&0400", "occurrence": 0, "version": "3.35D", "address": "0x0400"},
-                {"pattern": "&04FF", "occurrence": 0, "version": "3.35D", "address": "0x04FF"},
-                {"pattern": "&944D", "occurrence": 0, "version": "3.34B", "address": "0x944D"},
-                {"pattern": "&945F", "occurrence": 0, "version": "3.35D", "address": "0x945F"},
-                {"pattern": "&0500", "occurrence": 0, "version": "3.35D", "address": "0x0500"},
-                {"pattern": "&05FF", "occurrence": 0, "version": "3.35D", "address": "0x05FF"},
-                {"pattern": "&954D", "occurrence": 0, "version": "3.34B", "address": "0x954D"},
-                {"pattern": "&955F", "occurrence": 0, "version": "3.35D", "address": "0x955F"},
-                {"pattern": "&0600", "occurrence": 0, "version": "3.35D", "address": "0x0600"},
-                {"pattern": "&06FF", "occurrence": 0, "version": "3.35D", "address": "0x06FF"}
+                {
+                    "pattern": "&8099",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x8099"
+                },
+                {
+                    "pattern": "&80D4",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80D4"
+                },
+                {
+                    "pattern": "&80AF",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x80AF"
+                },
+                {
+                    "pattern": "&80EA",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80EA"
+                },
+                {
+                    "pattern": "&807D",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x807D"
+                },
+                {
+                    "pattern": "&80B3",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80B3"
+                },
+                {
+                    "pattern": "&80EA",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x80EA"
+                },
+                {
+                    "pattern": "&80F3",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80F3"
+                },
+                {
+                    "pattern": "&81BF",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x81BF"
+                },
+                {
+                    "pattern": "&81FA",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x81FA"
+                },
+                {
+                    "pattern": "&807D",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x807D"
+                },
+                {
+                    "pattern": "&80B3",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x80B3"
+                },
+                {
+                    "pattern": "&8088",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8088"
+                },
+                {
+                    "pattern": "&85FD",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x85FD"
+                },
+                {
+                    "pattern": "&80A7",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80A7"
+                },
+                {
+                    "pattern": "&80EA",
+                    "occurrence": 2,
+                    "version": "3.35D",
+                    "address": "0x80EA"
+                },
+                {
+                    "pattern": "&80EA",
+                    "occurrence": 3,
+                    "version": "3.35D",
+                    "address": "0x80EA"
+                },
+                {
+                    "pattern": "&80EB",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80EB"
+                },
+                {
+                    "pattern": "&80EE",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80EE"
+                },
+                {
+                    "pattern": "&80EF",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80EF"
+                },
+                {
+                    "pattern": "&80F0",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80F0"
+                },
+                {
+                    "pattern": "&80F2",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x80F2"
+                },
+                {
+                    "pattern": "&80C8",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x80C8"
+                },
+                {
+                    "pattern": "&810D",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x810D"
+                },
+                {
+                    "pattern": "&8123",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8123"
+                },
+                {
+                    "pattern": "&8177",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8177"
+                },
+                {
+                    "pattern": "&0016",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x0016"
+                },
+                {
+                    "pattern": "&0016",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x0016"
+                },
+                {
+                    "pattern": "&051C",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x051C"
+                },
+                {
+                    "pattern": "&051C",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x051C"
+                },
+                {
+                    "pattern": "&04E7",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x04E7"
+                },
+                {
+                    "pattern": "&04E7",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x04E7"
+                },
+                {
+                    "pattern": "&06E8",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x06E8"
+                },
+                {
+                    "pattern": "&06E5",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x06E5"
+                },
+                {
+                    "pattern": "&06E8",
+                    "occurrence": 1,
+                    "version": "3.34B",
+                    "address": "0x06E8"
+                },
+                {
+                    "pattern": "&06E5",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x06E5"
+                },
+                {
+                    "pattern": "&003A",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x003A"
+                },
+                {
+                    "pattern": "&003F",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x003F"
+                },
+                {
+                    "pattern": "&004A",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x004A"
+                },
+                {
+                    "pattern": "&0527",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x0527"
+                },
+                {
+                    "pattern": "&0527",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x0527"
+                },
+                {
+                    "pattern": "&052C",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x052C"
+                },
+                {
+                    "pattern": "&8DC7",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8DC7"
+                },
+                {
+                    "pattern": "&8DE2",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8DE2"
+                },
+                {
+                    "pattern": "&86A6",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x86A6"
+                },
+                {
+                    "pattern": "&86C8",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x86C8"
+                },
+                {
+                    "pattern": "&8DE2",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x8DE2"
+                },
+                {
+                    "pattern": "&83E8",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x83E8"
+                },
+                {
+                    "pattern": "&8432",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8432"
+                },
+                {
+                    "pattern": "&8D3B",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x8D3B"
+                },
+                {
+                    "pattern": "&8D4C",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x8D4C"
+                },
+                {
+                    "pattern": "&8C74",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x8C74"
+                },
+                {
+                    "pattern": "&8CDE",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8CDE"
+                },
+                {
+                    "pattern": "&8D48",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8D48"
+                },
+                {
+                    "pattern": "&8D5B",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8D5B"
+                },
+                {
+                    "pattern": "&8D83",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8D83"
+                },
+                {
+                    "pattern": "&8CF6",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8CF6"
+                },
+                {
+                    "pattern": "&8C75",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8C75"
+                },
+                {
+                    "pattern": "&8CFA",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8CFA"
+                },
+                {
+                    "pattern": "&8D01",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8D01"
+                },
+                {
+                    "pattern": "&8D09",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8D09"
+                },
+                {
+                    "pattern": "&81C8",
+                    "occurrence": 0,
+                    "version": "3.34",
+                    "address": "0x81C8"
+                },
+                {
+                    "pattern": "&8099",
+                    "occurrence": 1,
+                    "version": "3.34B",
+                    "address": "0x8099"
+                },
+                {
+                    "pattern": "&80D4",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x80D4"
+                },
+                {
+                    "pattern": "&80AF",
+                    "occurrence": 1,
+                    "version": "3.34B",
+                    "address": "0x80AF"
+                },
+                {
+                    "pattern": "&80EA",
+                    "occurrence": 4,
+                    "version": "3.35D",
+                    "address": "0x80EA"
+                },
+                {
+                    "pattern": "&80C8",
+                    "occurrence": 1,
+                    "version": "3.34B",
+                    "address": "0x80C8"
+                },
+                {
+                    "pattern": "&810D",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x810D"
+                },
+                {
+                    "pattern": "&81BF",
+                    "occurrence": 1,
+                    "version": "3.34B",
+                    "address": "0x81BF"
+                },
+                {
+                    "pattern": "&81FA",
+                    "occurrence": 1,
+                    "version": "3.35D",
+                    "address": "0x81FA"
+                },
+                {
+                    "pattern": "&80B7",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x80B7"
+                },
+                {
+                    "pattern": "&8150",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x8150"
+                },
+                {
+                    "pattern": "&9308",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x9308"
+                },
+                {
+                    "pattern": "&931A",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x931A"
+                },
+                {
+                    "pattern": "&0016",
+                    "occurrence": 2,
+                    "version": "3.35D",
+                    "address": "0x0016"
+                },
+                {
+                    "pattern": "&0076",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x0076"
+                },
+                {
+                    "pattern": "&934D",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x934D"
+                },
+                {
+                    "pattern": "&935F",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x935F"
+                },
+                {
+                    "pattern": "&0400",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x0400"
+                },
+                {
+                    "pattern": "&04FF",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x04FF"
+                },
+                {
+                    "pattern": "&944D",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x944D"
+                },
+                {
+                    "pattern": "&945F",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x945F"
+                },
+                {
+                    "pattern": "&0500",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x0500"
+                },
+                {
+                    "pattern": "&05FF",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x05FF"
+                },
+                {
+                    "pattern": "&954D",
+                    "occurrence": 0,
+                    "version": "3.34B",
+                    "address": "0x954D"
+                },
+                {
+                    "pattern": "&955F",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x955F"
+                },
+                {
+                    "pattern": "&0600",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x0600"
+                },
+                {
+                    "pattern": "&06FF",
+                    "occurrence": 0,
+                    "version": "3.35D",
+                    "address": "0x06FF"
+                }
             ],
             "glossary_links": [
-                {"pattern": "Econet", "occurrence": 0, "term": "Econet"},
-                {"pattern": "MOS", "occurrence": 0, "term": "MOS"},
-                {"pattern": "OSCLI", "occurrence": 0, "term": "OSCLI"},
-                {"pattern": "OSRDCH", "occurrence": 0, "term": "OSRDCH"},
-                {"pattern": "CR", "occurrence": 0, "term": "CR"},
-                {"pattern": "service call", "occurrence": 0, "term": "service call"},
-                {"pattern": "Tube", "occurrence": 0, "term": "Tube"},
-                {"pattern": "BRKV", "occurrence": 0, "term": "BRKV"},
-                {"pattern": "WRCHV", "occurrence": 0, "term": "WRCHV"},
-                {"pattern": "RDCHV", "occurrence": 0, "term": "RDCHV"},
-                {"pattern": "EVNTV", "occurrence": 0, "term": "EVNTV"},
-                {"pattern": "ULA", "occurrence": 0, "term": "ULA"},
-                {"pattern": "FSCV", "occurrence": 0, "term": "FSCV"},
-                {"pattern": "GSINIT", "occurrence": 0, "term": "GSINIT"},
-                {"pattern": "GSREAD", "occurrence": 0, "term": "GSREAD"},
-                {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"},
-                {"pattern": "CSD", "occurrence": 0, "term": "CSD"}
+                {
+                    "pattern": "Econet",
+                    "occurrence": 0,
+                    "term": "Econet"
+                },
+                {
+                    "pattern": "MOS",
+                    "occurrence": 0,
+                    "term": "MOS"
+                },
+                {
+                    "pattern": "OSCLI",
+                    "occurrence": 0,
+                    "term": "OSCLI"
+                },
+                {
+                    "pattern": "OSRDCH",
+                    "occurrence": 0,
+                    "term": "OSRDCH"
+                },
+                {
+                    "pattern": "CR",
+                    "occurrence": 0,
+                    "term": "CR"
+                },
+                {
+                    "pattern": "service call",
+                    "occurrence": 0,
+                    "term": "service call"
+                },
+                {
+                    "pattern": "Tube",
+                    "occurrence": 0,
+                    "term": "Tube"
+                },
+                {
+                    "pattern": "BRKV",
+                    "occurrence": 0,
+                    "term": "BRKV"
+                },
+                {
+                    "pattern": "WRCHV",
+                    "occurrence": 0,
+                    "term": "WRCHV"
+                },
+                {
+                    "pattern": "RDCHV",
+                    "occurrence": 0,
+                    "term": "RDCHV"
+                },
+                {
+                    "pattern": "EVNTV",
+                    "occurrence": 0,
+                    "term": "EVNTV"
+                },
+                {
+                    "pattern": "ULA",
+                    "occurrence": 0,
+                    "term": "ULA"
+                },
+                {
+                    "pattern": "FSCV",
+                    "occurrence": 0,
+                    "term": "FSCV"
+                },
+                {
+                    "pattern": "GSINIT",
+                    "occurrence": 0,
+                    "term": "GSINIT"
+                },
+                {
+                    "pattern": "GSREAD",
+                    "occurrence": 0,
+                    "term": "GSREAD"
+                },
+                {
+                    "pattern": "OSBYTE",
+                    "occurrence": 0,
+                    "term": "OSBYTE"
+                },
+                {
+                    "pattern": "CSD",
+                    "occurrence": 0,
+                    "term": "CSD"
+                }
             ]
         }
     ]

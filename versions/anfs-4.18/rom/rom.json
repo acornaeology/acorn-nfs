@@ -8,16 +8,6 @@
             "label": "Acorn ANFS 4.18 in The BBC Micro ROM Library",
             "url": "https://tobylobster.github.io/rom_library/?md5=0926bcb6f47458f8c4aed5364ff1122d",
             "icon": "chip"
-        },
-        {
-            "label": "Original Acorn technical description [PDF] for ANFS 4.08.61 - unrecovered but applicable to this version",
-            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
-            "icon": "doc"
-        },
-        {
-            "label": "Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly",
-            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32592",
-            "icon": "chat"
         }
     ],
     "docs": [
