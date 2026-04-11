@@ -5123,8 +5123,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     bcs carry_exit_or_read                                            ; 8eb5: b0 2a       .*             ; Always taken (C set above)
 ; &8eb7 referenced 1 time by &8e7d
 .rsl1
-    cmp #8                                                            ; 8eb7: c9 08       ..             ; Sub-function 8: read FS handle
-    beq read_local_station                                            ; 8eb9: f0 f4       ..             ; Match: read handle from RX buffer
+    cmp #8                                                            ; 8eb7: c9 08       ..             ; Sub-function 8: read local station number
+    beq read_local_station                                            ; 8eb9: f0 f4       ..             ; Match: read cached station ID from RX buffer
     cmp #9                                                            ; 8ebb: c9 09       ..             ; Sub-function 9: read args size
     beq read_args_size                                                ; 8ebd: f0 ab       ..             ; Match: read ARGS buffer info
     bpl osword_12_error                                               ; 8ebf: 10 1a       ..             ; Sub >= 10 (bit 7 clear): read error

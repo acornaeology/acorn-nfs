@@ -5885,14 +5885,14 @@ comment(0x8F1E, "Return current value to param block", inline=True)
 comment(0x8F20, "Update protection status", inline=True)
 comment(0x8F23, "Also save as JSR mask backup", inline=True)
 comment(0x8F26, "Return", inline=True)
-label(0x8F27, "read_fs_handle")       # Read one FS handle from RX data at offset &14
-comment(0x8F27, "Y=&14: RX buffer offset for FS handle", inline=True)
-comment(0x8F29, "Read FS reply handle from RX data", inline=True)
+label(0x8F27, "read_local_station_id") # Read cached local station number from RX buffer offset &14
+comment(0x8F27, "Y=&14: RX buf offset of cached station ID", inline=True)
+comment(0x8F29, "Read cached local station number", inline=True)
 comment(0x8F2B, "Y=1: param block byte 1", inline=True)
-comment(0x8F2D, "Return handle to caller's param block", inline=True)
+comment(0x8F2D, "Return station number to caller's param block", inline=True)
 comment(0x8F2F, "Return", inline=True)
-comment(0x8F30, "Sub-function 8: read FS handle", inline=True)
-comment(0x8F32, "Match: read handle from RX buffer", inline=True)
+comment(0x8F30, "Sub-function 8: read local station number", inline=True)
+comment(0x8F32, "Match: read cached station ID from RX buffer", inline=True)
 comment(0x8F34, "Sub-function 9: read args size", inline=True)
 comment(0x8F36, "Match: read ARGS buffer info", inline=True)
 comment(0x8F38, "Sub >= 10 (bit 7 clear): read error", inline=True)
@@ -7223,13 +7223,19 @@ label(0x8EF7, "osword_12_dispatch")
 subroutine(0x8EF7, "osword_12_dispatch", hook=None,
     title="OSWORD &12 sub-function dispatch",
     description="""\
-Dispatches OSWORD &12 sub-functions 0-9. Sub-functions 0-3
-read or write workspace paths (static page &0D or dynamic
-workspace). Sub-functions 4/5 read/set the JSR protection
-status byte. Sub-function 8 reads the FS handle from the
-RX buffer. Sub-function 9 reads ARGS buffer size info.
-Sub-functions >= 6 and unrecognised codes are handled
-via the shared rsl1 error path.""")
+Dispatches OSWORD &12 sub-functions 0-9:
+  0/1: read/set FS server station/network (static page &0D)
+  2/3: read/set printer server station/network (dynamic ws)
+  4/5: read/set JSR protection mask (LSTAT at &0D63)
+  6/7: read/set context handles (URD/CSD/LIB)
+    8: read cached local station number (from (net_rx_ptr)+&14,
+       populated at init by reading the &FE18 station-ID latch)
+    9: read JSR argument buffer size
+Sub-functions 0-3 share the bidirectional param/workspace
+copy loop; 6-9 are re-dispatched via rsl1; values >= 10
+return the last FS error. There is no sub-function that
+*sets* the local station number -- on the Model B that is
+hardwired via the 8 station ID links read from &FE18.""")
 
 label(0x90AA, "nwrch_handler")
 subroutine(0x90AA, "nwrch_handler", hook=None,

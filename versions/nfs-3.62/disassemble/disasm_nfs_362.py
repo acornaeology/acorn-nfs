@@ -1359,7 +1359,7 @@ label(0x8E43, "copy_handles_loop")    # SDISC entry: skip boot option byte, X=3 
 label(0x8E35, "jmp_restore_args")      # JMP restore_args_return (common FS reply exit)
 label(0x8E7A, "store_handle_return")   # Store handle result to &F0, return
 label(0x8E96, "copy_param_ptr")       # Restore 3-byte param block pointer from (net_rx_ptr)
-label(0x8F3D, "read_fs_handle")       # Read one FS handle from RX data at offset &14
+label(0x8F3D, "read_local_station_id") # Read cached local station number from RX buffer offset &14
 label(0x8F57, "copy_handles_to_ws")   # Convert handles to bitmasks and store to workspace
 label(0x8FBC, "copy_rxcb_to_param")   # Copy RXCB data from workspace to param block
 label(0x8F11, "set_workspace_page")   # Sub-fn 0-1: use static page &0D, store to &AC
@@ -5682,13 +5682,28 @@ comment(0x91B3, "→ Y=&07 / Y=&79", inline=True)
 comment(0x91B4, "Alt-path only → Y=&6F", inline=True)
 
 subroutine(0x8F01, "osword_12_dispatch", hook=None,
-    title="OSWORD &12 handler: dispatch sub-functions 0-5",
+    title="OSWORD &12 handler: dispatch sub-functions 0-9",
     description="""\
-Range-checks the sub-function code from the param block.
-Sub-functions 4-5 go to read/set station number. Sub-functions
-0-3 select the appropriate workspace page (static &0D or
-dynamic) and offset, then fall through to the bidirectional
-param block copy loop.""")
+Range-checks the sub-function code from the param block and
+dispatches:
+  0: read FS server station/network (from &0E00/&0E01)
+  1: set  FS server station/network
+  2: read printer server station/network (from dynamic ws)
+  3: set  printer server station/network
+  4: read JSR protection mask (LSTAT at &0D63)
+  5: set  JSR protection mask
+  6: read context handles (URD/CSD/LIB)
+  7: set  context handles
+  8: read cached local station number (from (net_rx_ptr)+&14,
+     populated at init by reading the &FE18 station-ID latch)
+  9: read JSR argument buffer size
+Sub-functions 0-3 select the appropriate workspace page
+(static &0D or dynamic) and offset, then fall through to the
+bidirectional param block copy loop. Sub-functions >= 6 are
+re-dispatched via rsl1; values >= 10 return the last FS error.
+Note: there is no sub-function that *sets* the local station
+number -- on the Model B that is hardwired via the 8 station
+ID links read from &FE18.""")
 
 subroutine(0x8F1C, "copy_param_workspace", hook=None,
     title="Bidirectional copy loop between param block and workspace",
@@ -5727,13 +5742,13 @@ comment(0x8F34, "Return current value to param block", inline=True)
 comment(0x8F36, "Update protection status", inline=True)
 comment(0x8F39, "Also save as JSR mask backup", inline=True)
 comment(0x8F3C, "Return", inline=True)
-comment(0x8F3D, "Y=&14: RX buffer offset for FS handle", inline=True)
-comment(0x8F3F, "Read FS reply handle from RX data", inline=True)
+comment(0x8F3D, "Y=&14: RX buf offset of cached station ID", inline=True)
+comment(0x8F3F, "Read cached local station number", inline=True)
 comment(0x8F41, "Y=1: param block byte 1", inline=True)
 comment(0x8F43, "Return handle to caller's param block", inline=True)
 comment(0x8F45, "Return", inline=True)
-comment(0x8F46, "Sub-function 8: read FS handle", inline=True)
-comment(0x8F48, "Match: read handle from RX buffer", inline=True)
+comment(0x8F46, "Sub-function 8: read local station number", inline=True)
+comment(0x8F48, "Match: read cached station ID from RX buffer", inline=True)
 comment(0x8F4A, "Sub-function 9: read args size", inline=True)
 comment(0x8F4C, "Match: read ARGS buffer info", inline=True)
 comment(0x8F4E, "Sub >= 10 (bit 7 clear): read error", inline=True)
@@ -5850,8 +5865,9 @@ fs_osword_dispatch, then on return copies 3 bytes from
 (net_rx_ptr)+0..2 back to &AA-&AC (restoring the param block
 pointer that was saved by fs_osword_dispatch before dispatch).
 
-The actual OSWORD &12 sub-function dispatch (read/set station,
-protection, handles etc.) lives in sub_c8f01.""")
+The actual OSWORD &12 sub-function dispatch (FS/printer server
+station/network, protection mask, context handles, local
+station number read-back etc.) lives in osword_12_dispatch.""")
 comment(0x8E8D, "Only OSWORDs &0F-&13 (index 0-4)", inline=True)
 comment(0x8E8F, "Index >= 5: not ours, return", inline=True)
 comment(0x8E91, "Dispatch via PHA/PHA/RTS table", inline=True)

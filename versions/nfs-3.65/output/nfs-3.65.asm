@@ -5273,8 +5273,9 @@ boot_string_offsets = boot_option_offsets+1
 ; (net_rx_ptr)+0..2 back to &AA-&AC (restoring the param block
 ; pointer that was saved by fs_osword_dispatch before dispatch).
 ; 
-; The actual OSWORD &12 sub-function dispatch (read/set station,
-; protection, handles etc.) lives in sub_c8f01.
+; The actual OSWORD &12 sub-function dispatch (FS/printer server
+; station/network, protection mask, context handles, local
+; station number read-back etc.) lives in osword_12_dispatch.
 ; ***************************************************************************************
 .osword_12_handler
     cmp #5                                                            ; 8e90: c9 05       ..             ; Only OSWORDs &0F-&13 (index 0-4)
@@ -5413,13 +5414,28 @@ boot_string_offsets = boot_option_offsets+1
     equb &ff, 1                                                       ; 8f02: ff 01       ..             ; OSWORD &12 workspace offset table
 
 ; ***************************************************************************************
-; OSWORD &12 handler: dispatch sub-functions 0-5
+; OSWORD &12 handler: dispatch sub-functions 0-9
 ; 
-; Range-checks the sub-function code from the param block.
-; Sub-functions 4-5 go to read/set station number. Sub-functions
-; 0-3 select the appropriate workspace page (static &0D or
-; dynamic) and offset, then fall through to the bidirectional
-; param block copy loop.
+; Range-checks the sub-function code from the param block and
+; dispatches:
+;   0: read FS server station/network (from &0E00/&0E01)
+;   1: set  FS server station/network
+;   2: read printer server station/network (from dynamic ws)
+;   3: set  printer server station/network
+;   4: read JSR protection mask (LSTAT at &0D63)
+;   5: set  JSR protection mask
+;   6: read context handles (URD/CSD/LIB)
+;   7: set  context handles
+;   8: read cached local station number (from (net_rx_ptr)+&14,
+;      populated at init by reading the &FE18 station-ID latch)
+;   9: read JSR argument buffer size
+; Sub-functions 0-3 select the appropriate workspace page
+; (static &0D or dynamic) and offset, then fall through to the
+; bidirectional param block copy loop. Sub-functions >= 6 are
+; re-dispatched via rsl1; values >= 10 return the last FS error.
+; Note: there is no sub-function that *sets* the local station
+; number -- on the Model B that is hardwired via the 8 station
+; ID links read from &FE18.
 ; ***************************************************************************************
 .osword_12_dispatch
     cmp #6                                                            ; 8f04: c9 06       ..             ; OSWORD &12: range check sub-function
@@ -5504,17 +5520,17 @@ boot_string_offsets = boot_option_offsets+1
     rts                                                               ; 8f3f: 60          `              ; Return
 
 ; &8f40 referenced 1 time by &8f4b
-.read_fs_handle
-    ldy #&14                                                          ; 8f40: a0 14       ..             ; Y=&14: RX buffer offset for FS handle
-    lda (net_rx_ptr),y                                                ; 8f42: b1 9c       ..             ; Read FS reply handle from RX data
+.read_local_station_id
+    ldy #&14                                                          ; 8f40: a0 14       ..             ; Y=&14: RX buf offset of cached station ID
+    lda (net_rx_ptr),y                                                ; 8f42: b1 9c       ..             ; Read cached local station number
     ldy #1                                                            ; 8f44: a0 01       ..             ; Y=1: param block byte 1
     sta (osword_pb_ptr),y                                             ; 8f46: 91 f0       ..             ; Return handle to caller's param block
     rts                                                               ; 8f48: 60          `              ; Return
 
 ; &8f49 referenced 1 time by &8f06
 .rsl1
-    cmp #8                                                            ; 8f49: c9 08       ..             ; Sub-function 8: read FS handle
-    beq read_fs_handle                                                ; 8f4b: f0 f3       ..             ; Match: read handle from RX buffer
+    cmp #8                                                            ; 8f49: c9 08       ..             ; Sub-function 8: read local station number
+    beq read_local_station_id                                         ; 8f4b: f0 f3       ..             ; Match: read cached station ID from RX buffer
     cmp #9                                                            ; 8f4d: c9 09       ..             ; Sub-function 9: read args size
     beq read_args_size                                                ; 8f4f: f0 a3       ..             ; Match: read ARGS buffer info
     bpl return_last_error                                             ; 8f51: 10 19       ..             ; Sub >= 10 (bit 7 clear): read error
@@ -9348,7 +9364,7 @@ save pydis_start, pydis_end
 ;     quote1:                                   1
 ;     rchex:                                    1
 ;     read_args_size:                           1
-;     read_fs_handle:                           1
+;     read_local_station_id:                    1
 ;     read_osargs_params:                       1
 ;     read_osgbpb_ctrl_blk:                     1
 ;     read_rdln_ctrl_block:                     1

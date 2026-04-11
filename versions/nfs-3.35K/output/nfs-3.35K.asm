@@ -5233,13 +5233,19 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; OSWORD &12 sub-function dispatch
 ; 
-; Dispatches OSWORD &12 sub-functions 0-9. Sub-functions 0-3
-; read or write workspace paths (static page &0D or dynamic
-; workspace). Sub-functions 4/5 read/set the JSR protection
-; status byte. Sub-function 8 reads the FS handle from the
-; RX buffer. Sub-function 9 reads ARGS buffer size info.
-; Sub-functions >= 6 and unrecognised codes are handled
-; via the shared rsl1 error path.
+; Dispatches OSWORD &12 sub-functions 0-9:
+;   0/1: read/set FS server station/network (static page &0D)
+;   2/3: read/set printer server station/network (dynamic ws)
+;   4/5: read/set JSR protection mask (LSTAT at &0D63)
+;   6/7: read/set context handles (URD/CSD/LIB)
+;     8: read cached local station number (from (net_rx_ptr)+&14,
+;        populated at init by reading the &FE18 station-ID latch)
+;     9: read JSR argument buffer size
+; Sub-functions 0-3 share the bidirectional param/workspace
+; copy loop; 6-9 are re-dispatched via rsl1; values >= 10
+; return the last FS error. There is no sub-function that
+; *sets* the local station number -- on the Model B that is
+; hardwired via the 8 station ID links read from &FE18.
 ; ***************************************************************************************
 .osword_12_dispatch
     cmp #6                                                            ; 8ef7: c9 06       ..             ; Sub-function >= 6?
@@ -5275,17 +5281,17 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     rts                                                               ; 8f26: 60          `              ; Return
 
 ; &8f27 referenced 1 time by &8f32
-.read_fs_handle
-    ldy #&14                                                          ; 8f27: a0 14       ..             ; Y=&14: RX buffer offset for FS handle
-    lda (net_rx_ptr),y                                                ; 8f29: b1 9c       ..             ; Read FS reply handle from RX data
+.read_local_station_id
+    ldy #&14                                                          ; 8f27: a0 14       ..             ; Y=&14: RX buf offset of cached station ID
+    lda (net_rx_ptr),y                                                ; 8f29: b1 9c       ..             ; Read cached local station number
     ldy #1                                                            ; 8f2b: a0 01       ..             ; Y=1: param block byte 1
-    sta (osword_pb_ptr),y                                             ; 8f2d: 91 f0       ..             ; Return handle to caller's param block
+    sta (osword_pb_ptr),y                                             ; 8f2d: 91 f0       ..             ; Return station number to caller's param block
     rts                                                               ; 8f2f: 60          `              ; Return
 
 ; &8f30 referenced 1 time by &8ef9
 .rsl1
-    cmp #8                                                            ; 8f30: c9 08       ..             ; Sub-function 8: read FS handle
-    beq read_fs_handle                                                ; 8f32: f0 f3       ..             ; Match: read handle from RX buffer
+    cmp #8                                                            ; 8f30: c9 08       ..             ; Sub-function 8: read local station number
+    beq read_local_station_id                                         ; 8f32: f0 f3       ..             ; Match: read cached station ID from RX buffer
     cmp #9                                                            ; 8f34: c9 09       ..             ; Sub-function 9: read args size
     beq read_args_size                                                ; 8f36: f0 af       ..             ; Match: read ARGS buffer info
     bpl return_last_error                                             ; 8f38: 10 19       ..             ; Sub >= 10 (bit 7 clear): read error
@@ -9203,8 +9209,8 @@ save pydis_start, pydis_end
 ;     quote1:                                   1
 ;     rchex:                                    1
 ;     read_args_size:                           1
-;     read_fs_handle:                           1
 ;     read_gbpb_params:                         1
+;     read_local_station_id:                    1
 ;     read_osargs_params:                       1
 ;     read_rdln_ctrl_block:                     1
 ;     read_remote_cmd_line:                     1

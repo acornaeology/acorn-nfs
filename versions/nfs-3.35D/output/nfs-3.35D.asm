@@ -5287,17 +5287,17 @@ osword_12_handler = restore_rx_flags+2
     rts                                                               ; 8f2e: 60          `              ; Return
 
 ; &8f2f referenced 1 time by &8f3a
-.read_fs_handle
-    ldy #&14                                                          ; 8f2f: a0 14       ..             ; Y=&14: RX buffer offset for FS handle
-    lda (net_rx_ptr),y                                                ; 8f31: b1 9c       ..             ; Read FS reply handle from RX data
+.read_local_station_id
+    ldy #&14                                                          ; 8f2f: a0 14       ..             ; Y=&14: RX buf offset of cached station ID
+    lda (net_rx_ptr),y                                                ; 8f31: b1 9c       ..             ; Read cached local station number
     ldy #1                                                            ; 8f33: a0 01       ..             ; Y=1: param block byte 1
-    sta (osword_pb_ptr),y                                             ; 8f35: 91 f0       ..             ; Return handle to caller's param block
+    sta (osword_pb_ptr),y                                             ; 8f35: 91 f0       ..             ; Return station number to caller's param block
     rts                                                               ; 8f37: 60          `              ; Return
 
 ; &8f38 referenced 1 time by &8f01
 .rsl1
-    cmp #8                                                            ; 8f38: c9 08       ..             ; Sub-function 8: read FS handle
-    beq read_fs_handle                                                ; 8f3a: f0 f3       ..             ; Match: read handle from RX buffer
+    cmp #8                                                            ; 8f38: c9 08       ..             ; Sub-function 8: read local station number
+    beq read_local_station_id                                         ; 8f3a: f0 f3       ..             ; Match: read cached station ID from RX buffer
     cmp #9                                                            ; 8f3c: c9 09       ..             ; Sub-function 9: read args size
     beq read_args_size                                                ; 8f3e: f0 af       ..             ; Match: read ARGS buffer info
     bpl return_last_error                                             ; 8f40: 10 19       ..             ; Sub >= 10 (bit 7 clear): read error
@@ -9224,8 +9224,8 @@ save pydis_start, pydis_end
 ;     quote1:                                   1
 ;     rchex:                                    1
 ;     read_args_size:                           1
-;     read_fs_handle:                           1
 ;     read_gbpb_params:                         1
+;     read_local_station_id:                    1
 ;     read_osargs_params:                       1
 ;     read_rdln_ctrl_block:                     1
 ;     read_remote_cmd_line:                     1
