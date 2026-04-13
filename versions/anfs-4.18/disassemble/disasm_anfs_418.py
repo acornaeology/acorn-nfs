@@ -2296,12 +2296,14 @@ subroutine(0x83A5, "rx_complete_update_rxcb",
     description="Finalises a received data transfer. Calls\n"
     "advance_rx_buffer_ptr to update the 4-byte buffer\n"
     "pointer with the transfer count (and handle Tube\n"
-    "re-claim if needed). Adds the buffer bytes remaining\n"
-    "to the base address, then subtracts 8 from the RXCB\n"
-    "buffer length to account for the scout overhead.\n"
-    "Clears the RXCB flag byte and sends the final ACK\n"
-    "via ack_tx. On Tube transfers, releases the Tube\n"
-    "claim before resetting to idle listen.")
+    "re-claim if needed). Stores the source station,\n"
+    "network, and port into the RXCB, then ORs &80\n"
+    "into the control byte (bit 7 = complete). This\n"
+    "is the NMI-to-foreground synchronisation point:\n"
+    "wait_net_tx_ack polls this bit to detect that\n"
+    "the server's reply has arrived. Sends the final\n"
+    "ACK via ack_tx. On Tube transfers, releases the\n"
+    "Tube claim before resetting to idle listen.")
 subroutine(0x8402, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"
@@ -5110,8 +5112,8 @@ comment(0x83CF, "Load port byte", inline=True)
 comment(0x83D2, "Store port to RXCB", inline=True)
 comment(0x83D4, "Y=0: control/flag byte offset", inline=True)
 comment(0x83D5, "Load control byte from scout", inline=True)
-comment(0x83D8, "Set bit7 = reception complete flag", inline=True)
-comment(0x83DA, "Store to RXCB (marks CB as complete)", inline=True)
+comment(0x83D8, "Set bit7: signals wait_net_tx_ack that reply arrived", inline=True)
+comment(0x83DA, "Store to RXCB byte 0 (bit 7 set = complete)", inline=True)
 comment(0x83DC, "Load callback event flags", inline=True)
 comment(0x83DF, "Shift bit 0 into carry", inline=True)
 comment(0x83E0, "Bit 0 clear: no callback, skip to reset", inline=True)

@@ -2032,12 +2032,14 @@ service_handler_lo = service_entry+1
 ; Finalises a received data transfer. Calls
 ; advance_rx_buffer_ptr to update the 4-byte buffer
 ; pointer with the transfer count (and handle Tube
-; re-claim if needed). Adds the buffer bytes remaining
-; to the base address, then subtracts 8 from the RXCB
-; buffer length to account for the scout overhead.
-; Clears the RXCB flag byte and sends the final ACK
-; via ack_tx. On Tube transfers, releases the Tube
-; claim before resetting to idle listen.
+; re-claim if needed). Stores the source station,
+; network, and port into the RXCB, then ORs &80
+; into the control byte (bit 7 = complete). This
+; is the NMI-to-foreground synchronisation point:
+; wait_net_tx_ack polls this bit to detect that
+; the server's reply has arrived. Sends the final
+; ACK via ack_tx. On Tube transfers, releases the
+; Tube claim before resetting to idle listen.
 ; ***************************************************************************************
 ; &83a5 referenced 3 times by &8399, &83a0, &8434
 .rx_complete_update_rxcb
@@ -2074,8 +2076,8 @@ service_handler_lo = service_entry+1
     sta (port_ws_offset),y                                            ; 83d2: 91 a6       ..             ; Store port to RXCB
     dey                                                               ; 83d4: 88          .              ; Y=0: control/flag byte offset; Y=&00
     lda scout_ctrl                                                    ; 83d5: ad 30 0d    .0.            ; Load control byte from scout
-    ora #&80                                                          ; 83d8: 09 80       ..             ; Set bit7 = reception complete flag
-    sta (port_ws_offset),y                                            ; 83da: 91 a6       ..             ; Store to RXCB (marks CB as complete)
+    ora #&80                                                          ; 83d8: 09 80       ..             ; Set bit7: signals wait_net_tx_ack that reply arrived
+    sta (port_ws_offset),y                                            ; 83da: 91 a6       ..             ; Store to RXCB byte 0 (bit 7 set = complete)
     lda fs_flags                                                      ; 83dc: ad 6c 0d    .l.            ; Load callback event flags
     ror a                                                             ; 83df: 6a          j              ; Shift bit 0 into carry
     bcc discard_reset_rx                                              ; 83e0: 90 13       ..             ; Bit 0 clear: no callback, skip to reset
