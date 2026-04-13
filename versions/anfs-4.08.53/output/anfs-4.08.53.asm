@@ -1385,11 +1385,14 @@ service_handler_lo = service_entry+1
 ; Copies 32 bytes of NMI shim code from ROM
 ; (listen_jmp_hi) to &0D00, then patches the current
 ; ROM bank number into the self-modifying code at
-; &0D07. Clears tx_src_net, need_release_tube, and
-; tx_op_type to zero. Reads station ID into tx_src_stn
-; (&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark
-; TX complete and Econet initialised. Finally re-enables
-; NMIs via INTON (&FE20 read).
+; &0D07. The shim includes the INTOFF/INTON pair
+; (BIT &FE18 at entry, BIT &FE20 before RTI) that
+; toggles the IC97 NMI enable flip-flop to guarantee
+; edge re-triggering on /NMI. Clears tx_src_net,
+; need_release_tube, and tx_op_type to zero. Reads
+; station ID into tx_src_stn (&0D22). Sets
+; tx_complete_flag and econet_init_flag to &80.
+; Finally re-enables NMIs via INTON (&FE20 read).
 ; ***************************************************************************************
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8089: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
@@ -2929,6 +2932,11 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ;   bit1: 2_1_BYTE -- two-byte transfer mode
 ;   bit0: PSE -- prioritised status enable
 ; Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)
+; Exits via JMP set_nmi_vector which installs nmi_tx_complete,
+; then falls through to nmi_rti. The INTON (BIT &FE20) in
+; nmi_rti creates the /NMI edge for the frame-complete interrupt
+; -- essential because the ADLC IRQ may transition atomically
+; from TDRA to frame-complete without de-asserting.
 ; ***************************************************************************************
 ; &871c referenced 1 time by &86fc
 .tx_last_data
@@ -2941,13 +2949,18 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
 ; 
-; Called via NMI after the frame (including CRC and closing flag) has been
-; fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.
-; CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).
-; Checks workspace flags to decide next action:
-;   - bit6 set at &0D4A -> tx_result_ok at &88C6
-;   - bit0 set at &0D4A -> handshake_await_ack at &886E
-;   - Otherwise -> install nmi_reply_scout at &8744
+; Called via NMI after the frame (including CRC
+; and closing flag) has been fully transmitted.
+; Writes CR1=&82 (TX_RESET|RIE) to clear RX_RESET
+; and enable RX interrupts -- the TX-to-RX pivot in
+; the four-way handshake. The scout ACK can only be
+; received after this point. Full CR1 sequence through
+; a handshake: &44 (scout TX) -> &82 (await scout ACK)
+; -> &44 (data TX) -> &82 (await data ACK).
+; Dispatches on rx_src_net flags: bit6=broadcast
+; (tx_result_ok), bit0=handshake data pending
+; (handshake_await_ack), both clear=install
+; nmi_reply_scout for scout ACK reception.
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 8728: a9 82       ..             ; Jump to error handler
@@ -3547,9 +3560,20 @@ listen_jmp_hi = reset_enter_listen+2
 ; before the workspace has been properly set up during initialisation.
 ; Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
 ; LDA romsel, STA &FE30, JMP &80B3.
+; 
+; The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI
+; in nmi_rti are essential for edge-triggered NMI re-delivery.
+; The 6502 /NMI is falling-edge triggered; the Econet NMI enable
+; flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears
+; the flip-flop, forcing /NMI high; INTON sets it, allowing the
+; ADLC IRQ through. This creates a guaranteed high-to-low edge on
+; /NMI even when the ADLC IRQ is continuously asserted (e.g. when
+; it transitions atomically from TDRA to frame-complete without
+; de-asserting). Without this mechanism, nmi_tx_complete would
+; never fire after tx_last_data.
 ; ***************************************************************************************
 .nmi_bootstrap_entry
-    bit station_id_disable_net_nmis                                   ; 899d: 2c 18 fe    ,..            ; INTOFF: disable NMIs while switching ROM
+    bit station_id_disable_net_nmis                                   ; 899d: 2c 18 fe    ,..            ; INTOFF: force /NMI high (IC97 flip-flop clear)
     pha                                                               ; 89a0: 48          H              ; Save A
     tya                                                               ; 89a1: 98          .              ; Transfer Y to A
     pha                                                               ; 89a2: 48          H              ; Save Y (via A)
@@ -3560,11 +3584,16 @@ listen_jmp_hi = reset_enter_listen+2
 ; ***************************************************************************************
 ; ROM copy of set_nmi_vector + nmi_rti
 ; 
-; A version of the NMI vector-setting subroutine and RTI sequence
-; that lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the
-; one normally used at runtime; this ROM copy is used during early
-; initialisation before the RAM workspace has been set up, and as
-; the source for the initial copy to RAM.
+; ROM-resident version of the NMI exit sequence, also
+; the source for the initial copy to RAM at &0D0E.
+; set_nmi_vector (&0D0E): writes both hi and lo bytes
+; of the JMP target at &0D0C/&0D0D. nmi_rti (&0D14):
+; restores the original ROM bank, pulls Y and A from
+; the stack, then BIT &FE20 (INTON) to re-enable the
+; NMI flip-flop before RTI. The INTON creates a
+; guaranteed falling edge on /NMI if the ADLC IRQ is
+; already asserted, ensuring the next handler fires
+; immediately.
 ; ***************************************************************************************
 .rom_set_nmi_vector
     sty nmi_jmp_hi                                                    ; 89ab: 8c 0d 0d    ...            ; Store handler high byte at &0D0D
@@ -3574,7 +3603,7 @@ listen_jmp_hi = reset_enter_listen+2
     pla                                                               ; 89b6: 68          h              ; Restore Y from stack
     tay                                                               ; 89b7: a8          .              ; Transfer ROM bank to Y
     pla                                                               ; 89b8: 68          h              ; Restore A from stack
-    bit video_ula_control                                             ; 89b9: 2c 20 fe    , .            ; INTON: re-enable NMIs
+    bit video_ula_control                                             ; 89b9: 2c 20 fe    , .            ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
     rti                                                               ; 89bc: 40          @              ; Return from interrupt
 
 ; Unreferenced dead data (3 bytes)

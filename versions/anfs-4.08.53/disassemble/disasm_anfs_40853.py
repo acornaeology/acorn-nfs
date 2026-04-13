@@ -2183,11 +2183,14 @@ subroutine(0x8089, "init_nmi_workspace",
     description="Copies 32 bytes of NMI shim code from ROM\n"
     "(listen_jmp_hi) to &0D00, then patches the current\n"
     "ROM bank number into the self-modifying code at\n"
-    "&0D07. Clears tx_src_net, need_release_tube, and\n"
-    "tx_op_type to zero. Reads station ID into tx_src_stn\n"
-    "(&0D22). Sets ws_0d60 and ws_0d62 to &80 to mark\n"
-    "TX complete and Econet initialised. Finally re-enables\n"
-    "NMIs via INTON (&FE20 read).")
+    "&0D07. The shim includes the INTOFF/INTON pair\n"
+    "(BIT &FE18 at entry, BIT &FE20 before RTI) that\n"
+    "toggles the IC97 NMI enable flip-flop to guarantee\n"
+    "edge re-triggering on /NMI. Clears tx_src_net,\n"
+    "need_release_tube, and tx_op_type to zero. Reads\n"
+    "station ID into tx_src_stn (&0D22). Sets\n"
+    "tx_complete_flag and econet_init_flag to &80.\n"
+    "Finally re-enables NMIs via INTON (&FE20 read).")
 subroutine(0x80B3, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
     description="Default NMI handler for incoming scout frames. Checks if the frame\n"
@@ -2542,16 +2545,26 @@ subroutine(0x871C, "tx_last_data",
     "  bit2: FC_TDRA -- force clear TDRA\n"
     "  bit1: 2_1_BYTE -- two-byte transfer mode\n"
     "  bit0: PSE -- prioritised status enable\n"
-    "Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)")
+    "Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)\n"
+    "Exits via JMP set_nmi_vector which installs nmi_tx_complete,\n"
+    "then falls through to nmi_rti. The INTON (BIT &FE20) in\n"
+    "nmi_rti creates the /NMI edge for the frame-complete interrupt\n"
+    "-- essential because the ADLC IRQ may transition atomically\n"
+    "from TDRA to frame-complete without de-asserting.")
 subroutine(0x8728, "nmi_tx_complete",
     title="TX completion: switch to RX mode",
-    description="Called via NMI after the frame (including CRC and closing flag) has been\n"
-    "fully transmitted. Switches from TX mode to RX mode by writing CR1=&82.\n"
-    "CR1=&82 = 1000_0010: TX_RESET | RIE (listen for reply).\n"
-    "Checks workspace flags to decide next action:\n"
-    "  - bit6 set at &0D4A -> tx_result_ok at &88C6\n"
-    "  - bit0 set at &0D4A -> handshake_await_ack at &886E\n"
-    "  - Otherwise -> install nmi_reply_scout at &8744")
+    description="Called via NMI after the frame (including CRC\n"
+    "and closing flag) has been fully transmitted.\n"
+    "Writes CR1=&82 (TX_RESET|RIE) to clear RX_RESET\n"
+    "and enable RX interrupts -- the TX-to-RX pivot in\n"
+    "the four-way handshake. The scout ACK can only be\n"
+    "received after this point. Full CR1 sequence through\n"
+    "a handshake: &44 (scout TX) -> &82 (await scout ACK)\n"
+    "-> &44 (data TX) -> &82 (await data ACK).\n"
+    "Dispatches on rx_src_net flags: bit6=broadcast\n"
+    "(tx_result_ok), bit0=handshake data pending\n"
+    "(handshake_await_ack), both clear=install\n"
+    "nmi_reply_scout for scout ACK reception.")
 subroutine(0x8744, "nmi_reply_scout",
     title="RX reply scout handler",
     description="Handles reception of the reply scout frame after transmission.\n"
@@ -2709,14 +2722,30 @@ subroutine(0x899D, "nmi_bootstrap_entry",
     "hardcodes JMP nmi_rx_scout (&80B3). Used as the initial NMI handler\n"
     "before the workspace has been properly set up during initialisation.\n"
     "Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\n"
-    "LDA romsel, STA &FE30, JMP &80B3.")
+    "LDA romsel, STA &FE30, JMP &80B3.\n"
+    "\n"
+    "The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI\n"
+    "in nmi_rti are essential for edge-triggered NMI re-delivery.\n"
+    "The 6502 /NMI is falling-edge triggered; the Econet NMI enable\n"
+    "flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears\n"
+    "the flip-flop, forcing /NMI high; INTON sets it, allowing the\n"
+    "ADLC IRQ through. This creates a guaranteed high-to-low edge on\n"
+    "/NMI even when the ADLC IRQ is continuously asserted (e.g. when\n"
+    "it transitions atomically from TDRA to frame-complete without\n"
+    "de-asserting). Without this mechanism, nmi_tx_complete would\n"
+    "never fire after tx_last_data.")
 subroutine(0x89AB, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
-    description="A version of the NMI vector-setting subroutine and RTI sequence\n"
-    "that lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the\n"
-    "one normally used at runtime; this ROM copy is used during early\n"
-    "initialisation before the RAM workspace has been set up, and as\n"
-    "the source for the initial copy to RAM.")
+    description="ROM-resident version of the NMI exit sequence, also\n"
+    "the source for the initial copy to RAM at &0D0E.\n"
+    "set_nmi_vector (&0D0E): writes both hi and lo bytes\n"
+    "of the JMP target at &0D0C/&0D0D. nmi_rti (&0D14):\n"
+    "restores the original ROM bank, pulls Y and A from\n"
+    "the stack, then BIT &FE20 (INTON) to re-enable the\n"
+    "NMI flip-flop before RTI. The INTON creates a\n"
+    "guaranteed falling edge on /NMI if the ADLC IRQ is\n"
+    "already asserted, ensuring the next handler fires\n"
+    "immediately.")
 subroutine(0x8AE2, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
     description="Uses OSBYTE &7A with Y=&7F to check whether\n"
@@ -5793,7 +5822,7 @@ comment(0x8992, "TX not in progress", inline=True)
 comment(0x8995, "Econet not initialised", inline=True)
 comment(0x8998, "Y=5: service call workspace page", inline=True)
 comment(0x899A, "Set ADLC to RX listen mode", inline=True)
-comment(0x899D, "INTOFF: disable NMIs while switching ROM", inline=True)
+comment(0x899D, "INTOFF: force /NMI high (IC97 flip-flop clear)", inline=True)
 comment(0x89A0, "Save A", inline=True)
 comment(0x89A1, "Transfer Y to A", inline=True)
 comment(0x89A2, "Save Y (via A)", inline=True)
@@ -5807,7 +5836,7 @@ comment(0x89B3, "Page in via hardware latch", inline=True)
 comment(0x89B6, "Restore Y from stack", inline=True)
 comment(0x89B7, "Transfer ROM bank to Y", inline=True)
 comment(0x89B8, "Restore A from stack", inline=True)
-comment(0x89B9, "INTON: re-enable NMIs", inline=True)
+comment(0x89B9, "INTON: guaranteed /NMI edge if ADLC IRQ asserted", inline=True)
 comment(0x89BC, "Return from interrupt", inline=True)
 
 # Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo.
