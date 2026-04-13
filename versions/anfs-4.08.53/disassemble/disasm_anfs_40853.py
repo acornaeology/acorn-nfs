@@ -3224,12 +3224,22 @@ subroutine(0x9887, "setup_pass_txbuf",
     "poll_adlc_tx_status and retries on failure, restoring\n"
     "the original TX buffer contents when done.")
 subroutine(0x98B4, "poll_adlc_tx_status",
-    title="Poll ADLC and start frame transmission",
-    description="Shifts the workspace status byte left in a\n"
-    "loop, then copies the TX pointer into the NMI\n"
-    "TX block and calls tx_begin to start frame\n"
-    "transmission. Returns the TX completion status\n"
-    "in A.")
+    title="Wait for TX ready, then start new transmission",
+    description="Polls tx_complete_flag via ASL (testing bit 7)\n"
+    "until set, indicating any previous TX operation\n"
+    "has completed and the ADLC is back in idle RX\n"
+    "listen mode. Then copies the TX control block\n"
+    "pointer from net_tx_ptr to nmi_tx_block and\n"
+    "calls tx_begin, which performs a complete\n"
+    "transmission from scratch: copies destination\n"
+    "from TXCB to scout buffer, polls for INACTIVE,\n"
+    "configures ADLC (CR1=&44 RX_RESET|TIE, CR2=&E7\n"
+    "RTS|CLR), and runs the full four-way handshake\n"
+    "via NMI. After tx_begin returns, polls the TXCB\n"
+    "first byte until bit 7 clears (NMI handler\n"
+    "stores result there). Returns result in A:\n"
+    "&00=success, &40=jammed, &41=not listening,\n"
+    "&43=no clock, &44=bad control byte.")
 subroutine(0x98F3, "load_text_ptr_and_parse",
     title="Copy text pointer from FS options and parse string",
     description="Reads a 2-byte address from (fs_options)+0/1 into\n"

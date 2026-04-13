@@ -7252,13 +7252,23 @@ bad_prefix = bad_str_anchor+1
     jmp fixup_reply_status_a                                          ; 98b1: 4c 2b 96    L+.            ; Jump to fix up reply status
 
 ; ***************************************************************************************
-; Poll ADLC and start frame transmission
+; Wait for TX ready, then start new transmission
 ; 
-; Shifts the workspace status byte left in a
-; loop, then copies the TX pointer into the NMI
-; TX block and calls tx_begin to start frame
-; transmission. Returns the TX completion status
-; in A.
+; Polls tx_complete_flag via ASL (testing bit 7)
+; until set, indicating any previous TX operation
+; has completed and the ADLC is back in idle RX
+; listen mode. Then copies the TX control block
+; pointer from net_tx_ptr to nmi_tx_block and
+; calls tx_begin, which performs a complete
+; transmission from scratch: copies destination
+; from TXCB to scout buffer, polls for INACTIVE,
+; configures ADLC (CR1=&44 RX_RESET|TIE, CR2=&E7
+; RTS|CLR), and runs the full four-way handshake
+; via NMI. After tx_begin returns, polls the TXCB
+; first byte until bit 7 clears (NMI handler
+; stores result there). Returns result in A:
+; &00=success, &40=jammed, &41=not listening,
+; &43=no clock, &44=bad control byte.
 ; ***************************************************************************************
 ; &98b4 referenced 3 times by &983d, &98a6, &98b7
 .poll_adlc_tx_status
