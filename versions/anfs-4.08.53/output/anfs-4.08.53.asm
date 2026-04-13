@@ -6557,15 +6557,20 @@ ws_init_data = error_bad_station+2
     jmp osbyte                                                        ; 95c4: 4c f4 ff    L..            ; Insert character Y into input buffer X
 
 ; ***************************************************************************************
-; Wait for Econet TX completion with timeout
+; Wait for reply on open receive with timeout
 ; 
-; Saves the timeout counter from &0D6F and the
-; TX control state from &0D61, then polls
-; net_tx_ptr_hi (&9B) for completion. Uses a
-; three-level nested loop: the outer counter
-; comes from the configured timeout at &0D6F.
-; On completion, restores both saved values.
-; On timeout (all loops exhausted), branches to
+; Despite the name, this does not wait for a TX
+; acknowledgment. It polls an open receive control
+; block (bit 7 of txcb_ctrl, set to &7F by
+; init_txcb_port) until the NMI RX handler delivers
+; a reply frame and sets bit 7. Uses a three-level
+; nested polling loop: inner and middle counters
+; start at 0 (wrapping to 256 iterations each),
+; outer counter from rx_poll_count (&0D6F,
+; default &28 = 40). Total: 256 x 256 x 40 =
+; 2,621,440 poll iterations. At ~17 cycles per
+; poll on a 2 MHz 6502, the default gives ~22
+; seconds. On timeout, branches to
 ; build_no_reply_error to raise 'No reply'.
 ; Called by 6 sites across the protocol stack.
 ; ***************************************************************************************

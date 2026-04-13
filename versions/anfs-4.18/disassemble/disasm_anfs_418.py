@@ -3132,19 +3132,20 @@ subroutine(0x9570, "check_escape",
     "the Escape error. Called by cmd_pass and\n"
     "send_net_packet.")
 subroutine(0x95DD, "wait_net_tx_ack",
-    title="Wait for Econet TX completion with timeout",
-    description="Saves the timeout counter from rx_wait_timeout\n"
-    "(&0D6E, default &28 = 40) and the TX control\n"
-    "state from &0D61, then polls net_tx_ptr for\n"
-    "completion. Uses a three-level nested polling\n"
-    "loop: inner and middle counters start at 0\n"
-    "(wrapping to 256 iterations each), outer counter\n"
-    "from rx_wait_timeout. Total poll iterations:\n"
-    "256 x 256 x timeout. At ~17 cycles per poll on\n"
-    "a 2 MHz 6502, the default gives ~22 seconds in\n"
-    "mode 7; longer in modes 0-3 due to video ULA\n"
-    "contention on RAM accesses. On timeout, branches\n"
-    "to build_no_reply_error to raise 'No reply'.\n"
+    title="Wait for reply on open receive with timeout",
+    description="Despite the name, this does not wait for a TX\n"
+    "acknowledgment. It polls an open receive control\n"
+    "block (bit 7 of txcb_ctrl, set to &7F by\n"
+    "init_txcb_port) until the NMI RX handler delivers\n"
+    "a reply frame and sets bit 7. Uses a three-level\n"
+    "nested polling loop: inner and middle counters\n"
+    "start at 0 (wrapping to 256 iterations each),\n"
+    "outer counter from rx_wait_timeout (&0D6E,\n"
+    "default &28 = 40). Total: 256 x 256 x 40 =\n"
+    "2,621,440 poll iterations. At ~17 cycles per\n"
+    "poll on a 2 MHz 6502, the default gives ~22\n"
+    "seconds. On timeout, branches to\n"
+    "build_no_reply_error to raise 'No reply'.\n"
     "Called by 6 sites across the protocol stack.")
 subroutine(0x9611, "cond_save_error_code",
     title="Conditionally store error code to workspace",
