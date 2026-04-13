@@ -2528,7 +2528,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     ldy #0                                                            ; 8591: a0 00       ..             ; Y=0: first byte of TX control block
     lda (nmi_tx_block),y                                              ; 8593: b1 a0       ..             ; Load control/flag byte
     bmi tx_imm_op_setup                                               ; 8595: 30 03       0.             ; Bit7 set: immediate operation ctrl byte
-    jmp tx_active_start                                               ; 8597: 4c 25 86    L%.            ; Bit7 clear: normal data transfer
+    jmp tx_bad_ctrl_error                                             ; 8597: 4c 25 86    L%.            ; Bit7 clear: normal data transfer
 
 ; &859a referenced 1 time by &8595
 .tx_imm_op_setup
@@ -2565,10 +2565,10 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; &85c5 referenced 1 time by &85a8
 .tx_ctrl_range_check
     cpx #&81                                                          ; 85c5: e0 81       ..             ; Ctrl < &81: not an immediate op
-    bcc tx_active_start                                               ; 85c7: 90 5c       .\             ; Below range: normal data transfer
+    bcc tx_bad_ctrl_error                                             ; 85c7: 90 5c       .\             ; Below range: normal data transfer
 .check_imm_range
     cpx #&89                                                          ; 85c9: e0 89       ..             ; Ctrl >= &89: out of immediate range
-    bcs tx_active_start                                               ; 85cb: b0 58       .X             ; Above range: normal data transfer
+    bcs tx_bad_ctrl_error                                             ; 85cb: b0 58       .X             ; Above range: normal data transfer
     ldy #&0c                                                          ; 85cd: a0 0c       ..             ; Y=&0C: start of extra data in TXCB
 ; &85cf referenced 1 time by &85d7
 .copy_imm_params
@@ -2650,8 +2650,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     beq tx_line_jammed                                                ; 8623: f0 04       ..             ; ALWAYS branch
 
 ; &8625 referenced 3 times by &8597, &85c7, &85cb
-.tx_active_start
-    lda #&44 ; 'D'                                                    ; 8625: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
+.tx_bad_ctrl_error
+    lda #&44 ; 'D'                                                    ; 8625: a9 44       .D             ; Error &44: control byte out of valid range
     bne store_tx_error                                                ; 8627: d0 0e       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -15723,7 +15723,7 @@ save pydis_start, pydis_end
 ;     tube_read_string:                         3
 ;     tube_reply_ack:                           3
 ;     tube_xfer_page:                           3
-;     tx_active_start:                          3
+;     tx_bad_ctrl_error:                        3
 ;     tx_begin:                                 3
 ;     tx_calc_transfer:                         3
 ;     tx_econet_abort:                          3
