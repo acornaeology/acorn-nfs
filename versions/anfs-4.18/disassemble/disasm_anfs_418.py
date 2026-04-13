@@ -262,9 +262,16 @@ label(0x0CFF, "nmi_code_base")
 label(0x0D07, "nmi_romsel")           # ROM bank number patched into NMI shim
 label(0x0D0C, "nmi_jmp_lo")
 label(0x0D0D, "nmi_jmp_hi")
-label(0x0D0E, "set_nmi_vector")
-label(0x0D11, "install_nmi_handler")
-label(0x0D14, "nmi_rti")
+# NMI exit entry points (RAM shim, copied from rom_set_nmi_vector):
+#   set_nmi_vector  (&0D0E): STY &0D0D; STA &0D0C — writes both bytes
+#   install_nmi_handler (&0D11): STA &0D0C — writes low byte only
+#     (same-page optimisation: keeps existing high byte at &0D0D)
+#   nmi_rti (&0D14): restore ROM bank, PLA Y, PLA A, BIT &FE20
+#     (INTON), RTI
+# All three converge on the INTON/RTI at &0D1C/&0D1F.
+label(0x0D0E, "set_nmi_vector")       # Update JMP target (both bytes) + nmi_rti
+label(0x0D11, "install_nmi_handler")  # Update JMP target (lo byte only) + nmi_rti
+label(0x0D14, "nmi_rti")              # Restore ROM, PLA, INTON, RTI
 label(0x0D1A, "imm_param_base")       # Base for indexed imm-op TXCB param copy
 label(0x0D1E, "tx_addr_base")         # Base for 4-byte TX transfer address
 
