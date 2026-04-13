@@ -2322,17 +2322,18 @@ subroutine(0x838B, "nmi_post_ack_dispatch",
     "imm_op_build_reply.")
 subroutine(0x839A, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
-    description="Finalises a received data transfer. Calls\n"
-    "advance_rx_buffer_ptr to update the 4-byte buffer\n"
-    "pointer with the transfer count (and handle Tube\n"
-    "re-claim if needed). Stores the source station,\n"
-    "network, and port into the RXCB, then ORs &80\n"
-    "into the control byte (bit 7 = complete). This\n"
-    "is the NMI-to-foreground synchronisation point:\n"
-    "wait_net_tx_ack polls this bit to detect that\n"
-    "the server's reply has arrived. Sends the final\n"
-    "ACK via ack_tx. On Tube transfers, releases the\n"
-    "Tube claim before resetting to idle listen.")
+    description="Called from nmi_post_ack_dispatch after the\n"
+    "final ACK has been transmitted. Finalises the\n"
+    "received data transfer: calls advance_rx_buffer_ptr\n"
+    "to update the 4-byte buffer pointer with the\n"
+    "transfer count (and handle Tube re-claim if\n"
+    "needed). Stores the source station, network, and\n"
+    "port into the RXCB, then ORs &80 into the control\n"
+    "byte (bit 7 = complete). This is the NMI-to-\n"
+    "foreground synchronisation point: wait_net_tx_ack\n"
+    "polls this bit to detect that the reply has\n"
+    "arrived. Falls through to discard_reset_rx to\n"
+    "reset the ADLC to idle RX listen mode.")
 subroutine(0x83F8, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"

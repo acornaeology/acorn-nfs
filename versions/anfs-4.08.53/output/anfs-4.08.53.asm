@@ -2019,17 +2019,18 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Complete RX and update RXCB
 ; 
-; Finalises a received data transfer. Calls
-; advance_rx_buffer_ptr to update the 4-byte buffer
-; pointer with the transfer count (and handle Tube
-; re-claim if needed). Stores the source station,
-; network, and port into the RXCB, then ORs &80
-; into the control byte (bit 7 = complete). This
-; is the NMI-to-foreground synchronisation point:
-; wait_net_tx_ack polls this bit to detect that
-; the server's reply has arrived. Sends the final
-; ACK via ack_tx. On Tube transfers, releases the
-; Tube claim before resetting to idle listen.
+; Called from nmi_post_ack_dispatch after the
+; final ACK has been transmitted. Finalises the
+; received data transfer: calls advance_rx_buffer_ptr
+; to update the 4-byte buffer pointer with the
+; transfer count (and handle Tube re-claim if
+; needed). Stores the source station, network, and
+; port into the RXCB, then ORs &80 into the control
+; byte (bit 7 = complete). This is the NMI-to-
+; foreground synchronisation point: wait_net_tx_ack
+; polls this bit to detect that the reply has
+; arrived. Falls through to discard_reset_rx to
+; reset the ADLC to idle RX listen mode.
 ; ***************************************************************************************
 ; &839a referenced 3 times by &838e, &8395, &842a
 .rx_complete_update_rxcb
