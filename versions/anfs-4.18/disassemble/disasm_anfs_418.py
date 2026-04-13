@@ -318,10 +318,9 @@ label(0x0D69, "ws_0d69")
 label(0x0D6A, "ws_0d6a")
 label(0x0D6B, "spool_buf_idx")        # Spool/printer buffer write index
 label(0x0D6C, "fs_flags")             # FS status flags (b7: selected/active)
-label(0x0D6D, "net_context")          # Econet context byte; base of 4-byte block
-label(0x0D6E, "tx_retry_count")       # TX retry count (default &FF)
-label(0x0D6F, "rx_poll_count")        # Receive poll count (default &28 = 40)
-label(0x0D70, "peek_retry_count")    # Machine peek retry count (default &0A = 10)
+label(0x0D6D, "tx_retry_count")       # Transmit retry count (default &FF = 255); OSWORD &13 PB[1]
+label(0x0D6E, "rx_wait_timeout")      # Receive wait timeout (default &28 = 40); OSWORD &13 PB[2]
+label(0x0D6F, "peek_retry_count")    # Machine peek retry count (default &0A = 10); OSWORD &13 PB[3]
 label(0x0D72, "bridge_status")        # Bridge station number (&FF = no bridge)
 
 # Page &0D — workspace pointers
@@ -578,9 +577,11 @@ label(0x8F46, "error_bad_station")
 label(0x8F48, "ws_init_data")
 
 # Split the 3 workspace init bytes into individual entries.
-# ws_init_data label overlaps the JMP operand high byte at &8F2B;
-# the actual data bytes at &8F2C-&8F2E are read via LDA ws_init_data,X
+# ws_init_data label overlaps the JMP operand high byte at &8F48;
+# the actual data bytes at &8F49-&8F4B are read via LDA ws_init_data,X
 # with X=3..1 (X=0 never read due to BNE loop exit).
+# NB: In 4.08.53 the store base was net_context (&0D6D); in 4.18 it
+# changed to fs_flags (&0D6C), shifting all three targets down by one.
 for i in range(3):
     byte(0x8F49 + i)
 label(0x8F4C, "store_station_id")
@@ -3128,14 +3129,18 @@ subroutine(0x9570, "check_escape",
     "send_net_packet.")
 subroutine(0x95DD, "wait_net_tx_ack",
     title="Wait for Econet TX completion with timeout",
-    description="Saves the timeout counter from &0D6F and the\n"
-    "TX control state from &0D61, then polls\n"
-    "net_tx_ptr_hi (&9B) for completion. Uses a\n"
-    "three-level nested loop: the outer counter\n"
-    "comes from the configured timeout at &0D6F.\n"
-    "On completion, restores both saved values.\n"
-    "On timeout (all loops exhausted), branches to\n"
-    "build_no_reply_error to raise 'No reply'.\n"
+    description="Saves the timeout counter from rx_wait_timeout\n"
+    "(&0D6E, default &28 = 40) and the TX control\n"
+    "state from &0D61, then polls net_tx_ptr for\n"
+    "completion. Uses a three-level nested polling\n"
+    "loop: inner and middle counters start at 0\n"
+    "(wrapping to 256 iterations each), outer counter\n"
+    "from rx_wait_timeout. Total poll iterations:\n"
+    "256 x 256 x timeout. At ~17 cycles per poll on\n"
+    "a 2 MHz 6502, the default gives ~22 seconds in\n"
+    "mode 7; longer in modes 0-3 due to video ULA\n"
+    "contention on RAM accesses. On timeout, branches\n"
+    "to build_no_reply_error to raise 'No reply'.\n"
     "Called by 6 sites across the protocol stack.")
 subroutine(0x9611, "cond_save_error_code",
     title="Conditionally store error code to workspace",
@@ -3192,11 +3197,20 @@ subroutine(0x9837, "init_tx_ptr_and_send",
     "retry logic.")
 subroutine(0x983F, "send_net_packet",
     title="Transmit Econet packet with retry",
-    description="Polls for line idle, starts transmission via\n"
-    "the ADLC, and retries on failure with a\n"
-    "configurable count and delay. Enables escape\n"
-    "handling after the first retry phase exhausts\n"
-    "its count.")
+    description="Two-phase transmit with retry. Loads retry count\n"
+    "from tx_retry_count (&0D6D, default &FF = 255;\n"
+    "0 means retry forever). Each failed attempt waits\n"
+    "in a nested delay loop: X = TXCB control byte\n"
+    "(typically &80), Y = &60; total ~61 ms at 2 MHz\n"
+    "(ROM-only fetches, unaffected by video mode).\n"
+    "Phase 1 runs the full count with escape disabled.\n"
+    "Phase 2 only activates when tx_retry_count = 0:\n"
+    "sets need_release_tube to enable escape checking\n"
+    "and retries indefinitely. With default &FF, phase\n"
+    "2 is never entered. Failures go to\n"
+    "load_reply_and_classify (Line jammed, Net error,\n"
+    "etc.), distinct from the 'No reply' timeout in\n"
+    "wait_net_tx_ack.")
 subroutine(0x9894, "init_tx_ptr_for_pass",
     title="Set up TX pointer and send pass-through packet",
     description="Copies the template into the TX buffer (skipping\n"
@@ -6384,19 +6398,21 @@ comment(0x8F1E, "Decrement counter", inline=True)
 comment(0x8F1F, "More bytes: loop", inline=True)
 comment(0x8F21, "Clear workspace flag", inline=True)
 comment(0x8F24, "Clear workspace byte", inline=True)
-# ws_init_data (&8F2B): 3 workspace initialisation bytes.
-# Label overlaps last byte of JMP at &8F29 (classic 6502 trick).
-# Loop reads ws_init_data+X with X=3,2,1, storing to l0d6d+X.
+# ws_init_data (&8F48): 3 workspace initialisation bytes.
+# Label overlaps last byte of JMP at &8F46 (classic 6502 trick).
+# Loop reads ws_init_data+X with X=3,2,1, storing to fs_flags+X.
 comment(0x8F49, "Workspace init data\n"
     "\n"
     "3 bytes read via LDA ws_init_data,X with X=3\n"
-    "down to 1. ws_init_data at &8F2B overlaps the\n"
+    "down to 1. ws_init_data at &8F48 overlaps the\n"
     "high byte of JMP err_bad_station_num; byte at\n"
-    "&8F2B itself (&92) is never read (BNE exits\n"
-    "when X=0). Stores to l0d6e, l0d6f, l0d70.")
-comment(0x8F49, "l0d6e: init=&FF (retry count)", inline=True)
-comment(0x8F4A, "l0d6f: init=&28 (40, receive poll count)", inline=True)
-comment(0x8F4B, "l0d70: init=&0A (10, machine peek retries)", inline=True)
+    "&8F48 itself (&92) is never read (BNE exits\n"
+    "when X=0). Stores to tx_retry_count (&0D6D),\n"
+    "rx_wait_timeout (&0D6E), peek_retry_count\n"
+    "(&0D6F).")
+comment(0x8F49, "tx_retry_count: init=&FF (255 retries)", inline=True)
+comment(0x8F4A, "rx_wait_timeout: init=&28 (40, reply wait)", inline=True)
+comment(0x8F4B, "peek_retry_count: init=&0A (10, peek retries)", inline=True)
 comment(0x8F27, "Initialise ADLC protection table", inline=True)
 comment(0x8F2A, "X=&FF (underflow from X=0)", inline=True)
 comment(0x8F2E, "Get current workspace page", inline=True)
@@ -9068,7 +9084,7 @@ comment(0x95D3, "X=0: keyboard buffer", inline=True)
 comment(0x95D5, "Commit state change", inline=True)
 comment(0x95D8, "OSBYTE &99: insert into buffer", inline=True)
 
-# wait_net_tx_ack (&95C7) — poll TX status with 3-level timeout
+# wait_net_tx_ack (&95DD) — poll TX status with 3-level timeout
 comment(0x95DD, "Save TX timeout counter", inline=True)
 comment(0x95E0, "Push (used as outer loop counter)", inline=True)
 comment(0x95E1, "Save TX control state", inline=True)

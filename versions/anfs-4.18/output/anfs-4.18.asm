@@ -191,10 +191,9 @@ ws_0d69                                 = &0d69
 ws_0d6a                                 = &0d6a
 spool_buf_idx                           = &0d6b
 fs_flags                                = &0d6c
-net_context                             = &0d6d
-tx_retry_count                          = &0d6e
-rx_poll_count                           = &0d6f
-peek_retry_count                        = &0d70
+tx_retry_count                          = &0d6d
+rx_wait_timeout                         = &0d6e
+peek_retry_count                        = &0d6f
 l0d71                                   = &0d71
 bridge_status                           = &0d72
 txcb_default_base                       = &0de6
@@ -5071,13 +5070,15 @@ ws_init_data = error_bad_station+2
 ; Workspace init data
 ; 
 ; 3 bytes read via LDA ws_init_data,X with X=3
-; down to 1. ws_init_data at &8F2B overlaps the
+; down to 1. ws_init_data at &8F48 overlaps the
 ; high byte of JMP err_bad_station_num; byte at
-; &8F2B itself (&92) is never read (BNE exits
-; when X=0). Stores to l0d6e, l0d6f, l0d70.
-    equb &ff                                                          ; 8f49: ff          .              ; l0d6e: init=&FF (retry count)
-    equb &28                                                          ; 8f4a: 28          (              ; l0d6f: init=&28 (40, receive poll count)
-    equb &0a                                                          ; 8f4b: 0a          .              ; l0d70: init=&0A (10, machine peek retries)
+; &8F48 itself (&92) is never read (BNE exits
+; when X=0). Stores to tx_retry_count (&0D6D),
+; rx_wait_timeout (&0D6E), peek_retry_count
+; (&0D6F).
+    equb &ff                                                          ; 8f49: ff          .              ; tx_retry_count: init=&FF (255 retries)
+    equb &28                                                          ; 8f4a: 28          (              ; rx_wait_timeout: init=&28 (40, reply wait)
+    equb &0a                                                          ; 8f4b: 0a          .              ; peek_retry_count: init=&0A (10, peek retries)
 
 ; &8f4c referenced 1 time by &8f44
 .store_station_id
@@ -6611,19 +6612,23 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Wait for Econet TX completion with timeout
 ; 
-; Saves the timeout counter from &0D6F and the
-; TX control state from &0D61, then polls
-; net_tx_ptr_hi (&9B) for completion. Uses a
-; three-level nested loop: the outer counter
-; comes from the configured timeout at &0D6F.
-; On completion, restores both saved values.
-; On timeout (all loops exhausted), branches to
-; build_no_reply_error to raise 'No reply'.
+; Saves the timeout counter from rx_wait_timeout
+; (&0D6E, default &28 = 40) and the TX control
+; state from &0D61, then polls net_tx_ptr for
+; completion. Uses a three-level nested polling
+; loop: inner and middle counters start at 0
+; (wrapping to 256 iterations each), outer counter
+; from rx_wait_timeout. Total poll iterations:
+; 256 x 256 x timeout. At ~17 cycles per poll on
+; a 2 MHz 6502, the default gives ~22 seconds in
+; mode 7; longer in modes 0-3 due to video ULA
+; contention on RAM accesses. On timeout, branches
+; to build_no_reply_error to raise 'No reply'.
 ; Called by 6 sites across the protocol stack.
 ; ***************************************************************************************
 ; &95dd referenced 6 times by &94f4, &99b2, &9aea, &a928, &abd1, &ac73
 .wait_net_tx_ack
-    lda tx_retry_count                                                ; 95dd: ad 6e 0d    .n.            ; Save TX timeout counter
+    lda rx_wait_timeout                                               ; 95dd: ad 6e 0d    .n.            ; Save TX timeout counter
     pha                                                               ; 95e0: 48          H              ; Push (used as outer loop counter)
     lda econet_flags                                                  ; 95e1: ad 61 0d    .a.            ; Save TX control state
     pha                                                               ; 95e4: 48          H              ; Push (preserved during wait)
@@ -7147,15 +7152,24 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; Transmit Econet packet with retry
 ; 
-; Polls for line idle, starts transmission via
-; the ADLC, and retries on failure with a
-; configurable count and delay. Enables escape
-; handling after the first retry phase exhausts
-; its count.
+; Two-phase transmit with retry. Loads retry count
+; from tx_retry_count (&0D6D, default &FF = 255;
+; 0 means retry forever). Each failed attempt waits
+; in a nested delay loop: X = TXCB control byte
+; (typically &80), Y = &60; total ~61 ms at 2 MHz
+; (ROM-only fetches, unaffected by video mode).
+; Phase 1 runs the full count with escape disabled.
+; Phase 2 only activates when tx_retry_count = 0:
+; sets need_release_tube to enable escape checking
+; and retries indefinitely. With default &FF, phase
+; 2 is never entered. Failures go to
+; load_reply_and_classify (Line jammed, Net error,
+; etc.), distinct from the 'No reply' timeout in
+; wait_net_tx_ack.
 ; ***************************************************************************************
 ; &983f referenced 6 times by &a977, &a9d4, &abc6, &ac51, &b05b, &b23a
 .send_net_packet
-    lda net_context                                                   ; 983f: ad 6d 0d    .m.            ; Load retry count from workspace
+    lda tx_retry_count                                                ; 983f: ad 6d 0d    .m.            ; Load retry count from workspace
     bne set_timeout                                                   ; 9842: d0 02       ..             ; Non-zero: use configured retry count
     lda #&ff                                                          ; 9844: a9 ff       ..             ; A=&FF: default retry count (255)
 ; &9846 referenced 1 time by &9842
@@ -7199,7 +7213,7 @@ bad_prefix = bad_str_anchor+1
 
 ; &9873 referenced 1 time by &9863
 .try_alternate_phase
-    cmp net_context                                                   ; 9873: cd 6d 0d    .m.            ; Compare retry count with alternate
+    cmp tx_retry_count                                                ; 9873: cd 6d 0d    .m.            ; Compare retry count with alternate
     bne tx_send_error                                                 ; 9876: d0 06       ..             ; Different: go to error handling
     lda #&80                                                          ; 9878: a9 80       ..             ; A=&80: set escapable flag
     sta need_release_tube                                             ; 987a: 85 98       ..             ; Mark as escapable for second phase
@@ -7280,7 +7294,7 @@ bad_prefix = bad_str_anchor+1
 .skip_template_byte
     dey                                                               ; 98ab: 88          .              ; Next offset (descending)
     bpl loop_copy_template                                            ; 98ac: 10 f0       ..             ; Loop until all 12 bytes processed
-    lda rx_poll_count                                                 ; 98ae: ad 6f 0d    .o.            ; Load pass-through control value
+    lda peek_retry_count                                              ; 98ae: ad 6f 0d    .o.            ; Load pass-through control value
     pha                                                               ; 98b1: 48          H              ; Push control value
     tya                                                               ; 98b2: 98          .              ; A=&FF (Y is &FF after loop)
     pha                                                               ; 98b3: 48          H              ; Push &FF as timeout
@@ -16028,7 +16042,6 @@ save pydis_start, pydis_end
 ;     loop_wait_ws_status:                      2
 ;     mark_not_found:                           2
 ;     net_channel_err_string:                   2
-;     net_context:                              2
 ;     next_dec_char:                            2
 ;     next_fcb_entry:                           2
 ;     open_file_for_read:                       2
@@ -16139,6 +16152,7 @@ save pydis_start, pydis_end
 ;     tx_ctrl_byte:                             2
 ;     tx_port:                                  2
 ;     tx_result_ok:                             2
+;     tx_retry_count:                           2
 ;     tx_send_error:                            2
 ;     tx_src_stn:                               2
 ;     tx_store_result:                          2
@@ -16706,6 +16720,7 @@ save pydis_start, pydis_end
 ;     parse_prot_keywords:                      1
 ;     pass_send_cmd:                            1
 ;     pass_tx_success:                          1
+;     peek_retry_count:                         1
 ;     poll_r2_osword_result:                    1
 ;     poll_r4_copro_ack:                        1
 ;     prep_send_tx_cb:                          1
@@ -16811,8 +16826,8 @@ save pydis_start, pydis_end
 ;     rotate_prot_mask:                         1
 ;     rx_error_reset:                           1
 ;     rx_palette_txcb_template:                 1
-;     rx_poll_count:                            1
 ;     rx_tube_data:                             1
+;     rx_wait_timeout:                          1
 ;     save_ps_cmd_ptr:                          1
 ;     save_registers:                           1
 ;     save_tube_state:                          1
@@ -17014,7 +17029,6 @@ save pydis_start, pydis_end
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
 ;     tx_prepare:                               1
-;     tx_retry_count:                           1
 ;     tx_src_net:                               1
 ;     tx_store_error:                           1
 ;     tx_success:                               1
