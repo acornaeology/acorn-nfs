@@ -178,9 +178,9 @@ nmi_next_lo                             = &0d4b
 nmi_next_hi                             = &0d4c
 tx_index                                = &0d4f
 tx_length                               = &0d50
-ws_0d60                                 = &0d60
+tx_complete_flag                        = &0d60
 econet_flags                            = &0d61
-ws_0d62                                 = &0d62
+econet_init_flag                        = &0d62
 tube_present                            = &0d63
 ws_0d64                                 = &0d64
 tx_op_type                              = &0d65
@@ -1396,7 +1396,7 @@ service_handler_lo = service_entry+1
     jsr adlc_full_reset                                               ; 8077: 20 69 89     i.            ; Full ADLC hardware reset
     lda #&ea                                                          ; 807a: a9 ea       ..             ; OSBYTE &EA: check Tube co-processor
     ldx #0                                                            ; 807c: a2 00       ..             ; X=0 for OSBYTE
-    stx ws_0d62                                                       ; 807e: 8e 62 0d    .b.            ; Clear Econet init flag before setup
+    stx econet_init_flag                                              ; 807e: 8e 62 0d    .b.            ; Clear Econet init flag before setup
     jsr osbyte_x0                                                     ; 8081: 20 83 8e     ..            ; Check Tube presence via OSBYTE &EA
     stx tube_present                                                  ; 8084: 8e 63 0d    .c.            ; Store Tube presence flag from OSBYTE &EA
     lda #&8f                                                          ; 8087: a9 8f       ..             ; OSBYTE &8F: issue service request
@@ -1434,8 +1434,8 @@ service_handler_lo = service_entry+1
     ldy station_id_disable_net_nmis                                   ; 80ac: ac 18 fe    ...            ; Read station ID (and disable NMIs)
     sty tx_src_stn                                                    ; 80af: 8c 22 0d    .".            ; Set own station as TX source
     lda #&80                                                          ; 80b2: a9 80       ..             ; &80 = Econet initialised
-    sta ws_0d60                                                       ; 80b4: 8d 60 0d    .`.            ; Mark TX as complete (ready)
-    sta ws_0d62                                                       ; 80b7: 8d 62 0d    .b.            ; Mark Econet as initialised
+    sta tx_complete_flag                                              ; 80b4: 8d 60 0d    .`.            ; Mark TX as complete (ready)
+    sta econet_init_flag                                              ; 80b7: 8d 62 0d    .b.            ; Mark Econet as initialised
     bit video_ula_control                                             ; 80ba: 2c 20 fe    , .            ; INTON: re-enable NMIs (&FE20 read side effect)
 ; &80bd referenced 1 time by &8092
 .adlc_init_done
@@ -2708,7 +2708,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     ldy #0                                                            ; 8641: a0 00       ..             ; Offset 0 = error byte in TX control block
     sta (nmi_tx_block),y                                              ; 8643: 91 a0       ..             ; Store error code in TX CB byte 0
     lda #&80                                                          ; 8645: a9 80       ..             ; &80 = TX complete flag
-    sta ws_0d60                                                       ; 8647: 8d 60 0d    .`.            ; Signal TX operation complete
+    sta tx_complete_flag                                              ; 8647: 8d 60 0d    .`.            ; Signal TX operation complete
     pla                                                               ; 864a: 68          h              ; Restore X saved by caller
     tax                                                               ; 864b: aa          .              ; Move to X register
     rts                                                               ; 864c: 60          `              ; Return to TX caller
@@ -3353,7 +3353,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     ldy #0                                                            ; 88d6: a0 00       ..             ; Y=0: index into TX control block
     sta (nmi_tx_block),y                                              ; 88d8: 91 a0       ..             ; Store result/error code at (nmi_tx_block),0
     lda #&80                                                          ; 88da: a9 80       ..             ; &80: completion flag for &0D3A
-    sta ws_0d60                                                       ; 88dc: 8d 60 0d    .`.            ; Signal TX complete
+    sta tx_complete_flag                                              ; 88dc: 8d 60 0d    .`.            ; Signal TX complete
     jmp discard_reset_rx                                              ; 88df: 4c f5 83    L..            ; Full ADLC reset and return to idle listen
 
 ; Unreferenced dead data (16 bytes)
@@ -3527,7 +3527,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ; flags and re-enter RX listen mode.
 ; ***************************************************************************************
 .wait_idle_and_reset
-    bit ws_0d62                                                       ; 8983: 2c 62 0d    ,b.            ; Check if Econet has been initialised
+    bit econet_init_flag                                              ; 8983: 2c 62 0d    ,b.            ; Check if Econet has been initialised
     bpl reset_enter_listen                                            ; 8986: 10 1c       ..             ; Not initialised: skip to RX listen
 ; &8988 referenced 2 times by &898d, &8994
 .poll_nmi_idle
@@ -3552,8 +3552,8 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .save_econet_state
     bit station_id_disable_net_nmis                                   ; 8996: 2c 18 fe    ,..            ; INTOFF: disable NMIs
     bit station_id_disable_net_nmis                                   ; 8999: 2c 18 fe    ,..            ; INTOFF again (belt-and-braces)
-    sta ws_0d60                                                       ; 899c: 8d 60 0d    .`.            ; TX not in progress
-    sta ws_0d62                                                       ; 899f: 8d 62 0d    .b.            ; Econet not initialised
+    sta tx_complete_flag                                              ; 899c: 8d 60 0d    .`.            ; TX not in progress
+    sta econet_init_flag                                              ; 899f: 8d 62 0d    .b.            ; Econet not initialised
     ldy #5                                                            ; 89a2: a0 05       ..             ; Y=5: service call workspace page
 ; &89a4 referenced 1 time by &8986
 .reset_enter_listen
@@ -4997,7 +4997,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     sta net_rx_ptr                                                    ; 8ec9: 85 9c       ..             ; Clear receive block pointer low
     sta nfs_workspace                                                 ; 8ecb: 85 9e       ..             ; Clear NFS workspace pointer low
     sta ws_page                                                       ; 8ecd: 85 a8       ..             ; Clear workspace page counter
-    sta ws_0d60                                                       ; 8ecf: 8d 60 0d    .`.            ; Clear workspace byte
+    sta tx_complete_flag                                              ; 8ecf: 8d 60 0d    .`.            ; Clear workspace byte
     ldy #0                                                            ; 8ed2: a0 00       ..             ; Offset 0 in receive block
     sta (net_rx_ptr),y                                                ; 8ed4: 91 9c       ..             ; Clear remote operation flag
     lda #osbyte_issue_service_request                                 ; 8ed6: a9 8f       ..             ; OSBYTE &8F: issue service request
@@ -7325,7 +7325,7 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; &98c9 referenced 3 times by &9852, &98bb, &98cc
 .poll_adlc_tx_status
-    asl ws_0d60                                                       ; 98c9: 0e 60 0d    .`.            ; Shift ws_0d60 left to poll ADLC
+    asl tx_complete_flag                                              ; 98c9: 0e 60 0d    .`.            ; Shift ws_0d60 left to poll ADLC
     bcc poll_adlc_tx_status                                           ; 98cc: 90 fb       ..             ; Bit not set: keep polling
     lda net_tx_ptr                                                    ; 98ce: a5 9a       ..             ; Copy TX pointer low to NMI TX block
     sta nmi_tx_block                                                  ; 98d0: 85 a0       ..             ; Store in NMI TX block low
@@ -9949,7 +9949,7 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a5a3: 60          `              ; Return with BCD result in A
 
 .osword_10_handler
-    asl ws_0d60                                                       ; a5a4: 0e 60 0d    .`.            ; Shift ws_0d60 left (status flag)
+    asl tx_complete_flag                                              ; a5a4: 0e 60 0d    .`.            ; Shift ws_0d60 left (status flag)
     tya                                                               ; a5a7: 98          .              ; A = Y (saved index)
     bcs setup_ws_rx_ptrs                                              ; a5a8: b0 03       ..             ; C=1: transmit active path
     sta (ws_ptr_hi),y                                                 ; a5aa: 91 ac       ..             ; C=0: store Y to parameter block
@@ -10722,7 +10722,7 @@ bridge_ws_init_data = compare_bridge_status+1
     rol econet_flags                                                  ; a886: 2e 61 0d    .a.            ; Restore l0d61 flag
 ; &a889 referenced 2 times by &a88c, &a8b3
 .loop_wait_ws_status
-    asl ws_0d60                                                       ; a889: 0e 60 0d    .`.            ; Shift ws_0d60 left (check status)
+    asl tx_complete_flag                                              ; a889: 0e 60 0d    .`.            ; Shift ws_0d60 left (check status)
     bcc loop_wait_ws_status                                           ; a88c: 90 fb       ..             ; C=0: status clear, retry
     lda #&82                                                          ; a88e: a9 82       ..             ; Control byte &82 for TX
     sta txcb_ctrl                                                     ; a890: 85 c0       ..             ; Set in TX control block
@@ -15712,7 +15712,7 @@ save pydis_start, pydis_end
 ;     save_ptr_to_os_text:                      8
 ;     tube_send_r4:                             8
 ;     tube_status_1_and_tube_control:           8
-;     ws_0d60:                                  8
+;     tx_complete_flag:                         8
 ;     zp_ptr_hi:                                8
 ;     zp_ptr_lo:                                8
 ;     alloc_fcb_slot:                           7
@@ -15791,6 +15791,7 @@ save pydis_start, pydis_end
 ;     check_net_error_code:                     4
 ;     commit_state_byte:                        4
 ;     done_poll_name_parse:                     4
+;     econet_init_flag:                         4
 ;     err_bad_station_num:                      4
 ;     error_inline:                             4
 ;     exec_addr_lo:                             4
@@ -15824,7 +15825,6 @@ save pydis_start, pydis_end
 ;     tube_reply_byte:                          4
 ;     txcb_port:                                4
 ;     video_ula_control:                        4
-;     ws_0d62:                                  4
 ;     zp_work_2:                                4
 ;     adlc_full_reset:                          3
 ;     advance_buffer_ptr:                       3

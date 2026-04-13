@@ -305,9 +305,9 @@ label(0x0D4F, "tx_index")
 label(0x0D50, "tx_length")
 
 # ANFS-specific workspace (identified from references in ROM)
-label(0x0D60, "ws_0d60")
+label(0x0D60, "tx_complete_flag")     # TX completion semaphore (b7: set by NMI handler on TX done)
 label(0x0D61, "econet_flags")         # Econet control flags (b7: port list, b2: halt)
-label(0x0D62, "ws_0d62")
+label(0x0D62, "econet_init_flag")     # Econet initialised flag (b7: NMI shim installed)
 label(0x0D63, "tube_present")         # Tube co-processor presence flag
 label(0x0D64, "ws_0d64")
 label(0x0D65, "tx_op_type")
