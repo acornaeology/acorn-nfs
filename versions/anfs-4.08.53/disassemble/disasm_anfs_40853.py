@@ -3045,20 +3045,24 @@ subroutine(0x9335, "parse_quoted_arg",
     "in the parse buffer at &0E30. Raises 'Bad string'\n"
     "on unbalanced quotes.")
 subroutine(0x9451, "init_txcb_bye",
-    title="Initialise TXCB for bye/receive on port &90",
-    description="Loads A=&90 (the FS command port) and falls\n"
-    "through to init_txcb_port, which initialises\n"
-    "the TXCB from the template, sets the port,\n"
-    "data start offset to 3, and decrements the\n"
-    "control byte. Called by recv_and_process_reply.")
+    title="Set up open receive for FS reply on port &90",
+    description="Loads A=&90 (the FS command/reply port) and\n"
+    "falls through to init_txcb_port, which creates\n"
+    "an open receive control block: the template sets\n"
+    "txcb_ctrl to &80, then DEC makes it &7F (bit 7\n"
+    "clear = awaiting reply). The NMI RX handler sets\n"
+    "bit 7 when a reply arrives on this port, which\n"
+    "wait_net_tx_ack polls for.")
 subroutine(0x9453, "init_txcb_port",
-    title="Initialise TXCB with specified port number",
+    title="Create open receive control block on specified port",
     description="Calls init_txcb to copy the 12-byte template\n"
     "into the TXCB workspace at &00C0, then stores A\n"
-    "as the transmit port (txcb_port at &C1), sets\n"
-    "txcb_start to 3 (data begins at offset 3 in the\n"
-    "packet), and decrements txcb_ctrl. Called by\n"
-    "check_and_setup_txcb.",
+    "as the port (txcb_port at &C1) and sets\n"
+    "txcb_start to 3. The DEC txcb_ctrl changes the\n"
+    "control byte from &80 to &7F (bit 7 clear),\n"
+    "creating an open receive: the NMI RX handler\n"
+    "will set bit 7 when a reply frame arrives on\n"
+    "this port, which wait_net_tx_ack polls for.",
     on_entry={"a": "port number"})
 subroutine(0x945F, "init_txcb",
     title="Initialise TX control block from ROM template",
@@ -7951,7 +7955,7 @@ comment(0x9453, "Initialise TXCB from template", inline=True)
 comment(0x9456, "Set transmit port", inline=True)
 comment(0x9458, "A=3: data start offset", inline=True)
 comment(0x945A, "Set TXCB start offset", inline=True)
-comment(0x945C, "Decrement control byte", inline=True)
+comment(0x945C, "Open receive: &80->&7F (bit 7 clear = awaiting reply)", inline=True)
 comment(0x945E, "Return", inline=True)
 comment(0x945F, "Save A", inline=True)
 comment(0x9460, "Y=&0B: template size - 1", inline=True)

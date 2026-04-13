@@ -6210,26 +6210,30 @@ ws_init_data = error_bad_station+2
     jmp check_urd_prefix                                              ; 9462: 4c 15 8e    L..            ; Simple: pass command to FS
 
 ; ***************************************************************************************
-; Initialise TXCB for bye/receive on port &90
+; Set up open receive for FS reply on port &90
 ; 
-; Loads A=&90 (the FS command port) and falls
-; through to init_txcb_port, which initialises
-; the TXCB from the template, sets the port,
-; data start offset to 3, and decrements the
-; control byte. Called by recv_and_process_reply.
+; Loads A=&90 (the FS command/reply port) and
+; falls through to init_txcb_port, which creates
+; an open receive control block: the template sets
+; txcb_ctrl to &80, then DEC makes it &7F (bit 7
+; clear = awaiting reply). The NMI RX handler sets
+; bit 7 when a reply arrives on this port, which
+; wait_net_tx_ack polls for.
 ; ***************************************************************************************
 ; &9465 referenced 1 time by &94f1
 .init_txcb_bye
     lda #&90                                                          ; 9465: a9 90       ..             ; A=&90: bye command port
 ; ***************************************************************************************
-; Initialise TXCB with specified port number
+; Create open receive control block on specified port
 ; 
 ; Calls init_txcb to copy the 12-byte template
 ; into the TXCB workspace at &00C0, then stores A
-; as the transmit port (txcb_port at &C1), sets
-; txcb_start to 3 (data begins at offset 3 in the
-; packet), and decrements txcb_ctrl. Called by
-; check_and_setup_txcb.
+; as the port (txcb_port at &C1) and sets
+; txcb_start to 3. The DEC txcb_ctrl changes the
+; control byte from &80 to &7F (bit 7 clear),
+; creating an open receive: the NMI RX handler
+; will set bit 7 when a reply frame arrives on
+; this port, which wait_net_tx_ack polls for.
 ; 
 ; On Entry:
 ;     A: port number
@@ -6240,7 +6244,7 @@ ws_init_data = error_bad_station+2
     sta txcb_port                                                     ; 946a: 85 c1       ..             ; Set transmit port
     lda #3                                                            ; 946c: a9 03       ..             ; A=3: data start offset
     sta txcb_start                                                    ; 946e: 85 c4       ..             ; Set TXCB start offset
-    dec txcb_ctrl                                                     ; 9470: c6 c0       ..             ; Decrement control byte
+    dec txcb_ctrl                                                     ; 9470: c6 c0       ..             ; Open receive: &80->&7F (bit 7 clear = awaiting reply)
     rts                                                               ; 9472: 60          `              ; Return
 
 ; ***************************************************************************************
