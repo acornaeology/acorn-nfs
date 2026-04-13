@@ -3196,11 +3196,20 @@ subroutine(0x9822, "init_tx_ptr_and_send",
     "retry logic.")
 subroutine(0x982A, "send_net_packet",
     title="Transmit Econet packet with retry",
-    description="Polls for line idle, starts transmission via\n"
-    "the ADLC, and retries on failure with a\n"
-    "configurable count and delay. Enables escape\n"
-    "handling after the first retry phase exhausts\n"
-    "its count.")
+    description="Two-phase transmit with retry. Loads retry count\n"
+    "from tx_retry_count (&0D6E, default &FF = 255;\n"
+    "0 means retry forever). Each failed attempt waits\n"
+    "in a nested delay loop: X = TXCB control byte\n"
+    "(typically &80), Y = &60; total ~61 ms at 2 MHz\n"
+    "(ROM-only fetches, unaffected by video mode).\n"
+    "Phase 1 runs the full count with escape disabled.\n"
+    "Phase 2 only activates when tx_retry_count = 0:\n"
+    "sets need_release_tube to enable escape checking\n"
+    "and retries indefinitely. With default &FF, phase\n"
+    "2 is never entered. Failures go to\n"
+    "load_reply_and_classify (Line jammed, Net error,\n"
+    "etc.), distinct from the 'No reply' timeout in\n"
+    "wait_net_tx_ack.")
 subroutine(0x987F, "init_tx_ptr_for_pass",
     title="Set up TX pointer and send pass-through packet",
     description="Copies the template into the TX buffer (skipping\n"

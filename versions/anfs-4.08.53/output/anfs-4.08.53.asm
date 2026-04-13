@@ -7089,11 +7089,20 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; Transmit Econet packet with retry
 ; 
-; Polls for line idle, starts transmission via
-; the ADLC, and retries on failure with a
-; configurable count and delay. Enables escape
-; handling after the first retry phase exhausts
-; its count.
+; Two-phase transmit with retry. Loads retry count
+; from tx_retry_count (&0D6E, default &FF = 255;
+; 0 means retry forever). Each failed attempt waits
+; in a nested delay loop: X = TXCB control byte
+; (typically &80), Y = &60; total ~61 ms at 2 MHz
+; (ROM-only fetches, unaffected by video mode).
+; Phase 1 runs the full count with escape disabled.
+; Phase 2 only activates when tx_retry_count = 0:
+; sets need_release_tube to enable escape checking
+; and retries indefinitely. With default &FF, phase
+; 2 is never entered. Failures go to
+; load_reply_and_classify (Line jammed, Net error,
+; etc.), distinct from the 'No reply' timeout in
+; wait_net_tx_ack.
 ; ***************************************************************************************
 ; &982a referenced 7 times by &a90c, &a965, &a9c2, &abb4, &ac3f, &b03b, &b216
 .send_net_packet
