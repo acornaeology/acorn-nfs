@@ -3106,25 +3106,36 @@ subroutine(0x949A, "save_net_tx_cb_vset",
     "format_filename_field, and cmd_remove.")
 subroutine(0x94C6, "prep_send_tx_cb",
     title="Build TXCB from scratch, send, and receive reply",
-    description="Full send/receive cycle: saves flags, sets\n"
-    "reply port &90, calls init_txcb to load the\n"
-    "template, computes txcb_end from X+5, then\n"
-    "dispatches based on carry: C set sends a\n"
-    "disconnect via handle_disconnect, C clear calls\n"
-    "init_tx_ptr_and_send and falls through to\n"
-    "recv_and_process_reply. Called by\n"
-    "setup_transfer_workspace.")
+    description="Full send/receive cycle comprising two separate\n"
+    "Econet transactions. Saves flags, sets reply\n"
+    "port &90, calls init_txcb, computes txcb_end\n"
+    "from X+5. C set dispatches to handle_disconnect;\n"
+    "C clear calls init_tx_ptr_and_send for a\n"
+    "client-initiated four-way handshake (scout, ACK,\n"
+    "data, ACK) to deliver the command. After TX\n"
+    "completes the ADLC returns to idle RX listen.\n"
+    "Then falls through to recv_and_process_reply\n"
+    "which waits for the server to independently\n"
+    "initiate a new four-way handshake with the\n"
+    "reply on port &90. There is no reply data in\n"
+    "the original ACK payload.")
 subroutine(0x94DC, "recv_and_process_reply",
     title="Receive FS reply and dispatch on status codes",
-    description="Calls init_txcb_bye to set up a receive TXCB\n"
-    "on port &90, then wait_net_tx_ack to wait for\n"
-    "the acknowledgment. Iterates over reply bytes:\n"
-    "zero terminates, V-set codes are adjusted by\n"
-    "+&2B, and non-zero codes dispatch to\n"
-    "store_reply_status. Handles disconnect requests\n"
-    "(C set from prep_send_tx_cb) and 'Data Lost'\n"
-    "warnings when channel status bits indicate\n"
-    "pending writes were interrupted.")
+    description="Waits for a server-initiated reply transaction.\n"
+    "After the command TX completes (a separate\n"
+    "client-initiated four-way handshake), calls\n"
+    "init_txcb_bye to set up an open receive on\n"
+    "port &90 (txcb_ctrl = &7F). The server\n"
+    "independently initiates a new four-way handshake\n"
+    "to deliver the reply; the NMI RX handler matches\n"
+    "the incoming scout against this RXCB and sets\n"
+    "bit 7 on completion. wait_net_tx_ack polls for\n"
+    "this. Iterates over reply bytes: zero terminates,\n"
+    "V-set codes are adjusted by +&2B, and non-zero\n"
+    "codes dispatch to store_reply_status. Handles\n"
+    "disconnect requests (C set from prep_send_tx_cb)\n"
+    "and 'Data Lost' warnings when channel status\n"
+    "bits indicate pending writes were interrupted.")
 subroutine(0x955A, "check_escape",
     title="Check for pending escape condition",
     description="ANDs the MOS escape flag (&FF) with the\n"

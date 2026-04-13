@@ -6353,14 +6353,19 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Build TXCB from scratch, send, and receive reply
 ; 
-; Full send/receive cycle: saves flags, sets
-; reply port &90, calls init_txcb to load the
-; template, computes txcb_end from X+5, then
-; dispatches based on carry: C set sends a
-; disconnect via handle_disconnect, C clear calls
-; init_tx_ptr_and_send and falls through to
-; recv_and_process_reply. Called by
-; setup_transfer_workspace.
+; Full send/receive cycle comprising two separate
+; Econet transactions. Saves flags, sets reply
+; port &90, calls init_txcb, computes txcb_end
+; from X+5. C set dispatches to handle_disconnect;
+; C clear calls init_tx_ptr_and_send for a
+; client-initiated four-way handshake (scout, ACK,
+; data, ACK) to deliver the command. After TX
+; completes the ADLC returns to idle RX listen.
+; Then falls through to recv_and_process_reply
+; which waits for the server to independently
+; initiate a new four-way handshake with the
+; reply on port &90. There is no reply data in
+; the original ACK payload.
 ; ***************************************************************************************
 ; &94c6 referenced 1 time by &9fb0
 .prep_send_tx_cb
@@ -6379,15 +6384,21 @@ ws_init_data = error_bad_station+2
 ; ***************************************************************************************
 ; Receive FS reply and dispatch on status codes
 ; 
-; Calls init_txcb_bye to set up a receive TXCB
-; on port &90, then wait_net_tx_ack to wait for
-; the acknowledgment. Iterates over reply bytes:
-; zero terminates, V-set codes are adjusted by
-; +&2B, and non-zero codes dispatch to
-; store_reply_status. Handles disconnect requests
-; (C set from prep_send_tx_cb) and 'Data Lost'
-; warnings when channel status bits indicate
-; pending writes were interrupted.
+; Waits for a server-initiated reply transaction.
+; After the command TX completes (a separate
+; client-initiated four-way handshake), calls
+; init_txcb_bye to set up an open receive on
+; port &90 (txcb_ctrl = &7F). The server
+; independently initiates a new four-way handshake
+; to deliver the reply; the NMI RX handler matches
+; the incoming scout against this RXCB and sets
+; bit 7 on completion. wait_net_tx_ack polls for
+; this. Iterates over reply bytes: zero terminates,
+; V-set codes are adjusted by +&2B, and non-zero
+; codes dispatch to store_reply_status. Handles
+; disconnect requests (C set from prep_send_tx_cb)
+; and 'Data Lost' warnings when channel status
+; bits indicate pending writes were interrupted.
 ; ***************************************************************************************
 ; &94dc referenced 2 times by &9a0b, &9f43
 .recv_and_process_reply
