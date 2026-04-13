@@ -1995,6 +1995,20 @@ service_handler_lo = service_entry+1
 .return_rx_complete
     rts                                                               ; 838a: 60          `              ; Return
 
+; ***************************************************************************************
+; Post-ACK frame-complete NMI handler
+; 
+; Installed by ack_tx_configure via saved_nmi_lo/hi.
+; Fires as an NMI after the ACK frame (CRC and
+; closing flag) has been fully transmitted by the
+; ADLC. Dispatches on scout_port: port != 0 goes
+; to rx_complete_update_rxcb to finalise the data
+; transfer and mark the RXCB complete; port = 0
+; with ctrl &82 (POKE) also goes to
+; rx_complete_update_rxcb; other port-0 ops go to
+; imm_op_build_reply.
+; ***************************************************************************************
+.nmi_post_ack_dispatch
     lda scout_port                                                    ; 838b: ad 31 0d    .1.            ; Load received port byte
     bne rx_complete_update_rxcb                                       ; 838e: d0 0a       ..             ; Port != 0: data transfer frame
     ldy scout_ctrl                                                    ; 8390: ac 30 0d    .0.            ; Port=0: load control byte

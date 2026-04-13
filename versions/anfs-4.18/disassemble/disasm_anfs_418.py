@@ -2301,6 +2301,17 @@ subroutine(0x834F, "advance_rx_buffer_ptr",
     "addition). If a Tube transfer is active, re-claims the Tube\n"
     "address and sends the extra RX byte via R3, incrementing the\n"
     "Tube pointer by 1.")
+subroutine(0x8396, "nmi_post_ack_dispatch",
+    title="Post-ACK frame-complete NMI handler",
+    description="Installed by ack_tx_configure via saved_nmi_lo/hi.\n"
+    "Fires as an NMI after the ACK frame (CRC and\n"
+    "closing flag) has been fully transmitted by the\n"
+    "ADLC. Dispatches on scout_port: port != 0 goes\n"
+    "to rx_complete_update_rxcb to finalise the data\n"
+    "transfer and mark the RXCB complete; port = 0\n"
+    "with ctrl &82 (POKE) also goes to\n"
+    "rx_complete_update_rxcb; other port-0 ops go to\n"
+    "imm_op_build_reply.")
 subroutine(0x83A5, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
     description="Finalises a received data transfer. Calls\n"
