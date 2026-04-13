@@ -7185,10 +7185,10 @@ bad_prefix = bad_str_anchor+1
     sta (net_tx_ptr,x)                                                ; 984f: 81 9a       ..             ; Restore control byte (overwritten by result code on retry)
     pha                                                               ; 9851: 48          H              ; Push control byte
     jsr poll_adlc_tx_status                                           ; 9852: 20 c9 98     ..            ; Poll ADLC until line idle
-    asl a                                                             ; 9855: 0a          .              ; Shift left: check bit 6 (success)
-    bpl tx_success                                                    ; 9856: 10 2a       .*             ; Bit 6 clear: transmission complete
-    asl a                                                             ; 9858: 0a          .              ; Shift left: check bit 5 (fatal)
-    beq tx_send_error                                                 ; 9859: f0 23       .#             ; Zero (bit 5 clear): fatal error
+    asl a                                                             ; 9855: 0a          .              ; ASL: bit 6 (error flag) into N
+    bpl tx_success                                                    ; 9856: 10 2a       .*             ; N=0 (bit 6 clear): success
+    asl a                                                             ; 9858: 0a          .              ; ASL: shift away error flag, keep error type
+    beq tx_send_error                                                 ; 9859: f0 23       .#             ; Z=1 (no type bits): fatal; Z=0: retryable
     jsr check_escape                                                  ; 985b: 20 70 95     p.            ; Check for escape condition
     pla                                                               ; 985e: 68          h              ; Pull control byte
     tax                                                               ; 985f: aa          .              ; Restore to X

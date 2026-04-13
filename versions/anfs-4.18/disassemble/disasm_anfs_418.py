@@ -12706,10 +12706,16 @@ comment(0x984D, "Load first byte of TX control block", inline=True)
 comment(0x984F, "Restore control byte (overwritten by result code on retry)", inline=True)
 comment(0x9851, "Push control byte", inline=True)
 comment(0x9852, "Poll ADLC until line idle", inline=True)
-comment(0x9855, "Shift left: check bit 6 (success)", inline=True)
-comment(0x9856, "Bit 6 clear: transmission complete", inline=True)
-comment(0x9858, "Shift left: check bit 5 (fatal)", inline=True)
-comment(0x9859, "Zero (bit 5 clear): fatal error", inline=True)
+# TX result code classification:
+#   &00 (00000000) = success        -> bit 6 clear -> BPL taken
+#   &40 (01000000) = line jammed    -> bit 6 set, bits 5-0 = 0 -> BEQ fatal
+#   &41 (01000001) = not listening  -> bit 6 set, bits 5-0 != 0 -> retryable
+#   &43 (01000011) = no clock       -> bit 6 set, bits 5-0 != 0 -> retryable
+#   &44 (01000100) = bad ctrl byte  -> bit 6 set, bits 5-0 != 0 -> retryable
+comment(0x9855, "ASL: bit 6 (error flag) into N", inline=True)
+comment(0x9856, "N=0 (bit 6 clear): success", inline=True)
+comment(0x9858, "ASL: shift away error flag, keep error type", inline=True)
+comment(0x9859, "Z=1 (no type bits): fatal; Z=0: retryable", inline=True)
 comment(0x985B, "Check for escape condition", inline=True)
 comment(0x985E, "Pull control byte", inline=True)
 comment(0x985F, "Restore to X", inline=True)
