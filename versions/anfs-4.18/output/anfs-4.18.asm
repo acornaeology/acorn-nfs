@@ -7182,7 +7182,7 @@ bad_prefix = bad_str_anchor+1
     lda (net_tx_ptr,x)                                                ; 984d: a1 9a       ..             ; Load first byte of TX control block
 ; &984f referenced 1 time by &9871
 .start_tx_attempt
-    sta (net_tx_ptr,x)                                                ; 984f: 81 9a       ..             ; Write control byte back to CB
+    sta (net_tx_ptr,x)                                                ; 984f: 81 9a       ..             ; Restore control byte (overwritten by result code on retry)
     pha                                                               ; 9851: 48          H              ; Push control byte
     jsr poll_adlc_tx_status                                           ; 9852: 20 c9 98     ..            ; Poll ADLC until line idle
     asl a                                                             ; 9855: 0a          .              ; Shift left: check bit 6 (success)
