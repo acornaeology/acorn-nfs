@@ -540,11 +540,11 @@ tube_cmd_lo = tube_dispatch_cmd+1
     sty tube_status_1_and_tube_control                                ; bf50: 8c e0 fe    ... :0450[2]   ; Enable Tube interrupt generation
     lda tube_ctrl_values,x                                            ; bf53: bd 18 05    ... :0453[2]   ; Look up Tube control bits for this xfer type
     sta tube_status_1_and_tube_control                                ; bf56: 8d e0 fe    ... :0456[2]   ; Apply transfer-specific control bits
-    lsr a                                                             ; bf59: 4a          J   :0459[2]   ; LSR: check bit 2 (2-byte flush needed?)
-    lsr a                                                             ; bf5a: 4a          J   :045a[2]   ; LSR: shift bit 2 to carry
-    bcc skip_r3_flush                                                 ; bf5b: 90 06       ..  :045b[2]   ; C=0: no flush needed, skip R3 reads
-    bit tube_data_register_3                                          ; bf5d: 2c e5 fe    ,.. :045d[2]   ; Dummy R3 reads: flush for 2-byte transfers
-    bit tube_data_register_3                                          ; bf60: 2c e5 fe    ,.. :0460[2]   ; Second dummy read to flush R3 FIFO
+    lsr a                                                             ; bf59: 4a          J   :0459[2]   ; LSR 1: shift ctrl bit 1 into C (discarded)
+    lsr a                                                             ; bf5a: 4a          J   :045a[2]   ; LSR 2: shift ctrl bit 2 into C (flush flag)
+    bcc skip_r3_flush                                                 ; bf5b: 90 06       ..  :045b[2]   ; C=0: not a P-to-H type (only 0/2 flush)
+    bit tube_data_register_3                                          ; bf5d: 2c e5 fe    ,.. :045d[2]   ; Drain R3 FIFO byte 1 (stale data from last xfer)
+    bit tube_data_register_3                                          ; bf60: 2c e5 fe    ,.. :0460[2]   ; Drain R3 FIFO byte 2 (2-byte FIFO ready for fresh data)
 ; &bf63 referenced 1 time by &045b[2]
 .skip_r3_flush
     jsr tube_send_r4                                                  ; bf63: 20 9e 06     .. :0463[2]   ; R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)

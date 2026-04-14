@@ -1719,6 +1719,13 @@ label(0x04C7, "tube_claim_default")
 label(0x04CE, "tube_init_reloc")
 label(0x04E1, "scan_copyright_end")
 label(0x04F7, "store_xfer_end_addr")
+# tube_ctrl_values: 8-byte table of ULA control register values
+# (writes to &FEE0) indexed by transfer type (0-7). The LSR/LSR/BCC
+# sequence at tube_transfer_setup tests bit 2 of the ctrl byte to
+# decide whether a 2-byte R3 FIFO flush is required before the final
+# R4 trigger write. Bit 2 is set only for types 0 (&86) and 2 (&96),
+# both parasite-to-host transfers -- the flush drains stale bytes
+# from the 2-byte R3 FIFO before the parasite starts filling it.
 label(0x0518, "tube_ctrl_values")
 label(0x0520, "tube_osbput")
 label(0x0527, "tube_poll_r1_wrch")
@@ -4454,11 +4461,11 @@ comment(0x044E, "Y=&18: enable Tube control register", inline=True)
 comment(0x0450, "Enable Tube interrupt generation", inline=True)
 comment(0x0453, "Look up Tube control bits for this xfer type", inline=True)
 comment(0x0456, "Apply transfer-specific control bits", inline=True)
-comment(0x0459, "LSR: check bit 2 (2-byte flush needed?)", inline=True)
-comment(0x045A, "LSR: shift bit 2 to carry", inline=True)
-comment(0x045B, "C=0: no flush needed, skip R3 reads", inline=True)
-comment(0x045D, "Dummy R3 reads: flush for 2-byte transfers", inline=True)
-comment(0x0460, "Second dummy read to flush R3 FIFO", inline=True)
+comment(0x0459, "LSR 1: shift ctrl bit 1 into C (discarded)", inline=True)
+comment(0x045A, "LSR 2: shift ctrl bit 2 into C (flush flag)", inline=True)
+comment(0x045B, "C=0: not a P-to-H type (only 0/2 flush)", inline=True)
+comment(0x045D, "Drain R3 FIFO byte 1 (stale data from last xfer)", inline=True)
+comment(0x0460, "Drain R3 FIFO byte 2 (2-byte FIFO ready for fresh data)", inline=True)
 comment(0x0463, "R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)", inline=True)
 comment(0x0466, "Poll R4 status for co-processor response", inline=True)
 comment(0x0469, "Bit 6 clear: not ready, keep polling", inline=True)
