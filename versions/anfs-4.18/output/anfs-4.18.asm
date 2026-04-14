@@ -493,6 +493,38 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .return_tube_init
     rts                                                               ; bf38: 60          `   :0434[2]   ; Return with address updated
 
+; ***************************************************************************************
+; Set up R4 transfer protocol (7-byte sequence)
+; 
+; Initiates a Tube R4 transfer by sending a 7-byte
+; protocol sequence to R4, each write BVC-polled for
+; H-to-P space. PHP/SEI at entry and PLP at return
+; protect the sequence from IRQs.
+; 
+; R4 byte sequence:
+;   1. Transfer type byte (A on entry, 0-7)
+;   2. tube_claimed_id (Econet host ownership byte,
+;      an Econet-specific addition to the standard
+;      Acorn Tube R4 protocol)
+;   3-6. 4-byte transfer address, big-endian
+;      (from (tube_data_ptr),Y=3..0)
+;   7. Trigger byte (post-LSR remnant of
+;      tube_ctrl_values[type]); parasite resumes
+;      after reading this
+; 
+; Between writes 6 and 7, if bit 2 of the ULA ctrl
+; byte is set (types 0 and 2, both parasite-to-host),
+; performs two dummy BIT reads of R3 to drain the
+; 2-byte R3 FIFO.
+; 
+; After the final write, polls R4 for the parasite
+; ack (BVC/BCS at poll_r4_copro_ack). Dispatches on
+; X (= transfer type):
+;   X=4: tube_sendw_complete (release, sync via R2,
+;        reset stack)
+;   Other: if bit 0 of ctrl byte is set, write &88
+;          to &FEE0 to release Tube NMI; PLP; RTS
+; ***************************************************************************************
 ; &bf39 referenced 1 time by &0408[2]
 .tube_transfer_setup
     php                                                               ; bf39: 08          .   :0435[2]   ; PHP: save interrupt state

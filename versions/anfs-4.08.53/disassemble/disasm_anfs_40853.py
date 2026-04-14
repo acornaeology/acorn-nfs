@@ -2007,6 +2007,36 @@ subroutine(0x0421, "clear_tube_claim",
     "address is currently claimed and no claim is in\n"
     "progress. Called after tube_release_claim (via\n"
     "fall-through) and during initial workspace setup.")
+subroutine(0x0435, "tube_transfer_setup",
+    title="Set up R4 transfer protocol (7-byte sequence)",
+    description="Initiates a Tube R4 transfer by sending a 7-byte\n"
+    "protocol sequence to R4, each write BVC-polled for\n"
+    "H-to-P space. PHP/SEI at entry and PLP at return\n"
+    "protect the sequence from IRQs.\n"
+    "\n"
+    "R4 byte sequence:\n"
+    "  1. Transfer type byte (A on entry, 0-7)\n"
+    "  2. tube_claimed_id (Econet host ownership byte,\n"
+    "     an Econet-specific addition to the standard\n"
+    "     Acorn Tube R4 protocol)\n"
+    "  3-6. 4-byte transfer address, big-endian\n"
+    "     (from (tube_data_ptr),Y=3..0)\n"
+    "  7. Trigger byte (post-LSR remnant of\n"
+    "     tube_ctrl_values[type]); parasite resumes\n"
+    "     after reading this\n"
+    "\n"
+    "Between writes 6 and 7, if bit 2 of the ULA ctrl\n"
+    "byte is set (types 0 and 2, both parasite-to-host),\n"
+    "performs two dummy BIT reads of R3 to drain the\n"
+    "2-byte R3 FIFO.\n"
+    "\n"
+    "After the final write, polls R4 for the parasite\n"
+    "ack (BVC/BCS at poll_r4_copro_ack). Dispatches on\n"
+    "X (= transfer type):\n"
+    "  X=4: tube_sendw_complete (release, sync via R2,\n"
+    "       reset stack)\n"
+    "  Other: if bit 0 of ctrl byte is set, write &88\n"
+    "         to &FEE0 to release Tube NMI; PLP; RTS")
 subroutine(0x0484, "tube_begin",
     title="Tube host startup entry (BEGIN)",
     description="Entry point via JMP from &0400. Enables interrupts, checks\n"
