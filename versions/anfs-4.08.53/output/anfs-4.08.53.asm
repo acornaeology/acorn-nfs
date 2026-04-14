@@ -413,7 +413,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; 
 ; Called by 10 sites across the Tube host and Econet
 ; code. Routes requests based on the value of A:
-;   A < &80: data transfer setup (SENDW) at &0435
+;   A < &80: R4 transfer setup at &0435 -- A is the
+;     transfer type (0-7), used both as the first
+;     R4 byte and as the index into tube_ctrl_values.
+;     Types: 0/1 = 1-byte R3 P-to-H/H-to-P,
+;     2/3 = 2-byte R3 P-to-H/H-to-P,
+;     4 = execute at address, 5 = release claim,
+;     6 = event handler, 7 = SENDW transfer+release.
 ;   &80 <= A < &C0: release -- maps A via ORA #&40
 ;     and compares with tube_claimed_id; if we own
 ;     this address, falls through to tube_release_claim
