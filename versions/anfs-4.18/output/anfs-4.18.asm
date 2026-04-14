@@ -532,17 +532,17 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .setup_data_transfer
     sty tube_data_ptr_hi                                              ; bf3b: 84 13       ..  :0437[2]   ; Save 16-bit transfer address from (X,Y)
     stx tube_data_ptr                                                 ; bf3d: 86 12       ..  :0439[2]   ; Store address pointer low byte
-    jsr tube_send_r4                                                  ; bf3f: 20 9e 06     .. :043b[2]   ; Send transfer type byte to co-processor
-    tax                                                               ; bf42: aa          .   :043e[2]   ; X = transfer type for table lookup
-    ldy #3                                                            ; bf43: a0 03       ..  :043f[2]   ; Y=3: send 4 bytes (address + claimed addr)
-    lda tube_claimed_id                                               ; bf45: a5 15       ..  :0441[2]   ; Send our claimed address + 4-byte xfer addr
-    jsr tube_send_r4                                                  ; bf47: 20 9e 06     .. :0443[2]   ; Send transfer address byte
+    jsr tube_send_r4                                                  ; bf3f: 20 9e 06     .. :043b[2]   ; R4 byte 1 of 7: transfer type (A on entry)
+    tax                                                               ; bf42: aa          .   :043e[2]   ; X = transfer type for tube_ctrl_values lookup
+    ldy #3                                                            ; bf43: a0 03       ..  :043f[2]   ; Y=3: loop counter for 4 address bytes
+    lda tube_claimed_id                                               ; bf45: a5 15       ..  :0441[2]   ; Load tube_claimed_id (Econet host ownership)
+    jsr tube_send_r4                                                  ; bf47: 20 9e 06     .. :0443[2]   ; R4 byte 2 of 7: claimed_id (Econet extension)
 ; &bf4a referenced 1 time by &044c[2]
 .send_xfer_addr_bytes
-    lda (tube_data_ptr),y                                             ; bf4a: b1 12       ..  :0446[2]   ; Load transfer address byte from (X,Y)
-    jsr tube_send_r4                                                  ; bf4c: 20 9e 06     .. :0448[2]   ; Send address byte to co-processor via R4
-    dey                                                               ; bf4f: 88          .   :044b[2]   ; Previous byte (big-endian: 3,2,1,0)
-    bpl send_xfer_addr_bytes                                          ; bf50: 10 f8       ..  :044c[2]   ; Loop for all 4 address bytes
+    lda (tube_data_ptr),y                                             ; bf4a: b1 12       ..  :0446[2]   ; Load address byte at offset Y (big-endian)
+    jsr tube_send_r4                                                  ; bf4c: 20 9e 06     .. :0448[2]   ; R4 bytes 3-6 of 7: address Y=3,2,1,0
+    dey                                                               ; bf4f: 88          .   :044b[2]   ; Y--: next address byte (3->2->1->0)
+    bpl send_xfer_addr_bytes                                          ; bf50: 10 f8       ..  :044c[2]   ; Y>=0: loop for all 4 address bytes
     ldy #&18                                                          ; bf52: a0 18       ..  :044e[2]   ; Y=&18: enable Tube control register
     sty tube_status_1_and_tube_control                                ; bf54: 8c e0 fe    ... :0450[2]   ; Enable Tube interrupt generation
     lda tube_ctrl_values,x                                            ; bf57: bd 18 05    ... :0453[2]   ; Look up Tube control bits for this xfer type
@@ -554,7 +554,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     bit tube_data_register_3                                          ; bf64: 2c e5 fe    ,.. :0460[2]   ; Second dummy read to flush R3 FIFO
 ; &bf67 referenced 1 time by &045b[2]
 .skip_r3_flush
-    jsr tube_send_r4                                                  ; bf67: 20 9e 06     .. :0463[2]   ; Trigger co-processor ack via R4
+    jsr tube_send_r4                                                  ; bf67: 20 9e 06     .. :0463[2]   ; R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)
 ; &bf6a referenced 1 time by &0469[2]
 .poll_r4_copro_ack
     bit tube_status_register_4_and_cpu_control                        ; bf6a: 2c e6 fe    ,.. :0466[2]   ; Poll R4 status for co-processor response
