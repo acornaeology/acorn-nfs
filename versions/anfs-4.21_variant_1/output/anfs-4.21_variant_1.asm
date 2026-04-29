@@ -3675,15 +3675,26 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8ea7 referenced 1 time by &8b78
 .fs_vector_table
-    equw &ff1b                                                        ; 8ea7: 1b ff       ..
-    equw &ff1e                                                        ; 8ea9: 1e ff       ..
-    equw &ff21                                                        ; 8eab: 21 ff       !.
-    equw &ff24                                                        ; 8ead: 24 ff       $.
-    equw &ff27                                                        ; 8eaf: 27 ff       '.
-    equw &ff2a                                                        ; 8eb1: 2a ff       *.
-    equw &ff2d                                                        ; 8eb3: 2d ff       -.
-    equb &22, &9c, &4a, &ab, &9e, &44, &68, &bb, &57, &e7, &bb, &42   ; 8eb5: 22 9c 4a... ".J
-    equb &4c, &a1, &41, &2f, &a0, &52, &4b, &8e                       ; 8ec1: 4c a1 41... L.A
+    equw &ff1b                                                        ; 8ea7: 1b ff       ..             ; FILEV dispatch (&FF1B)
+    equw &ff1e                                                        ; 8ea9: 1e ff       ..             ; ARGSV dispatch (&FF1E)
+    equw &ff21                                                        ; 8eab: 21 ff       !.             ; BGETV dispatch (&FF21)
+    equw &ff24                                                        ; 8ead: 24 ff       $.             ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 8eaf: 27 ff       '.             ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 8eb1: 2a ff       *.             ; FINDV dispatch (&FF2A)
+    equw &ff2d                                                        ; 8eb3: 2d ff       -.             ; FSCV dispatch (&FF2D)
+    equw &9c22                                                        ; 8eb5: 22 9c       ".             ; FILEV handler (&9C22)
+    equb &4a                                                          ; 8eb7: 4a          J              ; (ROM bank — not read)
+    equw &9eab                                                        ; 8eb8: ab 9e       ..             ; ARGSV handler (&9EAB)
+    equb &44                                                          ; 8eba: 44          D              ; (ROM bank — not read)
+    equw &bb68                                                        ; 8ebb: 68 bb       h.             ; BGETV handler (&BB68)
+    equb &57                                                          ; 8ebd: 57          W              ; (ROM bank — not read)
+    equw &bbe7                                                        ; 8ebe: e7 bb       ..             ; BPUTV handler (&BBE7)
+    equb &42                                                          ; 8ec0: 42          B              ; (ROM bank — not read)
+    equw &a14c                                                        ; 8ec1: 4c a1       L.             ; GBPBV handler (&A14C)
+    equb &41                                                          ; 8ec3: 41          A              ; (ROM bank — not read)
+    equw &a02f                                                        ; 8ec4: 2f a0       /.             ; FINDV handler (&A02F)
+    equb &52                                                          ; 8ec6: 52          R              ; (ROM bank — not read)
+    equw &8e4b                                                        ; 8ec7: 4b 8e       K.             ; FSCV handler (&8E4B)
 
 ; &8ec9 referenced 3 times by &805d, &9041, &99fd
 .sub_c8ec9
@@ -14977,7 +14988,7 @@ save pydis_start, pydis_end
 ;     Data                     = 3681 bytes (22%)
 ;
 ;     Number of instructions   = 6273
-;     Number of data bytes     = 2376 bytes
-;     Number of data words     = 14 bytes
+;     Number of data bytes     = 2362 bytes
+;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 149

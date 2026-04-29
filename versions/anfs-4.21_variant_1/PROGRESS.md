@@ -64,15 +64,21 @@ Status legend: ✅ verified accurate, 🔧 fixed, ⚠️ partial, ❌ replaced/g
 
 ### Vector handlers (filing-system)
 
-| Vector | Addr | Status | Notes |
-|--------|------|--------|-------|
-| FILEV  | &9C22 (4.18) | | reverify in 4.21 |
-| ARGSV  | &9EAB (4.18) | | reverify in 4.21 |
-| BGETV  | &BB68 (4.18) | | reverify in 4.21 |
-| BPUTV  | &BBE7 (4.18) | | reverify in 4.21 |
-| GBPBV  | &A14C (4.18) | | reverify in 4.21 |
-| FINDV  | &A02F (4.18) | | reverify in 4.21 |
-| FSCV   | &8E4B (4.18) | | reverify in 4.21 |
+Master 128 mechanism: ANFS installs &FF1B/&FF1E/.../&FF2D in the
+&0212-&021F vector slots (table at &8EA7), then plants its real
+handlers in the per-ROM extended vector table at &0D9F+ via
+write_vector_entry, reading from the lo/hi/pad table at &8EB5.
+
+| Vector | 4.18 addr | 4.21_v1 addr | Status | Notes |
+|--------|-----------|--------------|--------|-------|
+| FILEV  | &9935 | &9C22 | | LCS-mapped; carry-over comments to verify |
+| ARGSV  | &9BBE | &9EAB | | LCS-mapped |
+| BGETV  | &B7CE | &BB68 | | LCS-mapped |
+| BPUTV  | &B84D | &BBE7 | | LCS-mapped |
+| GBPBV  | &9E2F | &A14C | | LCS-mapped |
+| FINDV  | &9D4E | &A02F | | LCS-mapped |
+| FSCV   | &8E33 | &8E4B | | LCS-mapped |
+| (table) | &8E61/&8E6F | &8EA7/&8EB5 | 🔧 | dispatch+handler tables fully annotated |
 
 ### Island boundaries (subroutines spanning change blocks)
 

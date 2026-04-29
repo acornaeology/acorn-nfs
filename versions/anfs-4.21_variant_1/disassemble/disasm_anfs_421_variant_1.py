@@ -7624,15 +7624,22 @@ bank number instead). The last entry (FSCV) has no padding
 byte.""")
 
 # Part 1: extended vector dispatch addresses (7 x 2 bytes)
+# Each value is &FF1B, &FF1E, &FF21, ... &FF2D — the MOS extended
+# vector dispatch entries. These get installed at &0212-&021F by
+# loop_set_vectors and route filing-system OS calls into the per-ROM
+# extended vector table at &0D9F+, where ANFS plants the real handlers.
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
                            "GBPBV", "FINDV", "FSCV"]):
     addr = 0x8EA7 + i * 2
     word(addr)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", inline=True)
+    comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})",
+            inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad})
-# write_vector_entry reads lo/hi from svc_dispatch_lo_offset+Y.
-# With Y=&1B, that's &8E54+&1B = &8E6F.
+# write_vector_entry (&904F) reads bytes from c8e9a+Y starting at Y=&1B,
+# which means the table starts at &8E9A+&1B = &8EB5 in 4.21_v1.
+# (4.18 had this table at &8E6F; the +&46 shift comes from the longer
+# ROM title string and earlier code insertions.)
 handler_names = [
     ("FILEV",  0x9C22),
     ("ARGSV",  0x9EAB),
@@ -7642,13 +7649,13 @@ handler_names = [
     ("FINDV",  0xA02F),
     ("FSCV",   0x8E4B),
 ]
-# UNMAPPED: for i, (name, handler_addr) in enumerate(handler_names):
-# UNMAPPED:     base_addr = 0x8E6F + i * 3
-# UNMAPPED (orphan body):     word(base_addr)
-# UNMAPPED (orphan body):     comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
-# UNMAPPED (orphan body):     if i < 6:  # pad byte for all but last entry
-# UNMAPPED (orphan body):         byte(base_addr + 2, 1)
-# UNMAPPED (orphan body):         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
+for i, (name, handler_addr) in enumerate(handler_names):
+    base_addr = 0x8EB5 + i * 3
+    word(base_addr)
+    comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
+    if i < 6:  # pad byte for all but last entry
+        byte(base_addr + 2, 1)
+        comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
 # Printer server template data: "PRINT " + &01 &00 (8 bytes)
 # Read by copy_ps_data via indexed addressing from ps_template_base.
