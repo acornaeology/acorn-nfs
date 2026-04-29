@@ -2714,7 +2714,7 @@ l89c9 = reset_enter_listen+2
     equb &a3, &a4, &a4, &8a                                           ; 8a50: a3 a4 a4... ...
 
 ; ***************************************************************************************
-; Service call dispatch
+; Service call dispatch (Master 128)
 ; 
 ; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
 ; Service 1: absolute workspace claim.
@@ -2724,6 +2724,15 @@ l89c9 = reset_enter_listen+2
 ; Service 13: ROM initialisation.
 ; Service 14: ROM initialisation complete.
 ; Service 15: vectors claimed.
+; 
+; On Service 15 the ROM verifies the host OS via OSBYTE 0.
+; Only Master 128 (OS 3.2/3.5, X=3) and Master Econet Terminal
+; (OS 4.0, X=4) are supported. Any other version (OS 1.00,
+; OS 1.20, OS 2.00 BBC B+, or OS 5.0 Master Compact) gets a
+; 'Bad ROM <slot>' message printed and its workspace byte
+; cleared at &02A0 + adjusted-slot, effectively rejecting the
+; ROM. The 4.18 equivalent at &8A15 instead silently skipped
+; ROM rejection for OS 1.20 and OS 2.00.
 ; 
 ; On Entry:
 ;     A: service call number
@@ -2747,22 +2756,22 @@ l89c9 = reset_enter_listen+2
     ;     X=3, OS 3.2/3.5 (Master 128)
     ;     X=4, OS 4.0 (Master Econet Terminal)
     ;     X=5, OS 5.0 (Master Compact)
-    cpx #3                                                            ; 8a61: e0 03       ..             ; OS 1.20?
-    beq restore_rom_slot                                              ; 8a63: f0 25       .%             ; Yes: skip workspace setup
-    cpx #4                                                            ; 8a65: e0 04       ..             ; OS 2.00 (BBC B+)?
-    beq restore_rom_slot                                              ; 8a67: f0 21       .!             ; Yes: skip workspace setup
+    cpx #3                                                            ; 8a61: e0 03       ..             ; OS 3.2/3.5 (Master 128)?
+    beq restore_rom_slot                                              ; 8a63: f0 25       .%             ; Yes: target OS, skip Bad ROM message
+    cpx #4                                                            ; 8a65: e0 04       ..             ; OS 4.0 (Master Econet Terminal)?
+    beq restore_rom_slot                                              ; 8a67: f0 21       .!             ; Yes: target OS, skip Bad ROM message
     txa                                                               ; 8a69: 8a          .              ; Transfer OS version to A
-    php                                                               ; 8a6a: 08          .              ; Save flags (Z set if OS 1.00)
-    jsr print_inline                                                  ; 8a6b: 20 61 92     a.
+    php                                                               ; 8a6a: 08          .              ; Save flags (Z set if OS 1.00) across print
+    jsr print_inline                                                  ; 8a6b: 20 61 92     a.            ; Print '<CR>Bad ROM ' to mark non-Master OS
     equs &0d, "Bad ROM "                                              ; 8a6e: 0d 42 61... .Ba
 
-    lda romsel_copy                                                   ; 8a77: a5 f4       ..
-    jsr print_num_no_leading                                          ; 8a79: 20 27 b3     '.
-    jsr l91f9                                                         ; 8a7c: 20 f9 91     ..
-    ldx romsel_copy                                                   ; 8a7f: a6 f4       ..             ; Get current ROM slot number
+    lda romsel_copy                                                   ; 8a77: a5 f4       ..             ; Load this ROM's slot number
+    jsr print_num_no_leading                                          ; 8a79: 20 27 b3     '.            ; Print slot number as decimal
+    jsr l91f9                                                         ; 8a7c: 20 f9 91     ..            ; Print trailing newline (l91f9: needs review)
+    ldx romsel_copy                                                   ; 8a7f: a6 f4       ..             ; Reload ROM slot for workspace clearing
     plp                                                               ; 8a81: 28          (              ; Restore flags
-    beq clear_workspace_byte                                          ; 8a82: f0 01       ..             ; OS 1.00: skip INX
-    inx                                                               ; 8a84: e8          .              ; Adjust index for OS 3+ workspace
+    beq clear_workspace_byte                                          ; 8a82: f0 01       ..             ; OS 1.00: skip INX (table starts at slot 0)
+    inx                                                               ; 8a84: e8          .              ; Adjust index for OS 1.20/2.00/5.00 layout
 ; &8a85 referenced 1 time by &8a82
 .clear_workspace_byte
     lda #0                                                            ; 8a85: a9 00       ..             ; A=0

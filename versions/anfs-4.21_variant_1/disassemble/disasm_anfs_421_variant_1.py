@@ -1665,7 +1665,7 @@ subroutine(0x8045, "generate_event",
     on_exit={"A": "preserved", "X": "preserved", "Y": "preserved"})
 
 subroutine(0x8A54, "service_handler",
-    title="Service call dispatch",
+    title="Service call dispatch (Master 128)",
     description="Handles service calls 1, 4, 8, 9, 13, 14, and 15.\n"
     "Service 1: absolute workspace claim.\n"
     "Service 4: unrecognised star command.\n"
@@ -1673,7 +1673,16 @@ subroutine(0x8A54, "service_handler",
     "Service 9: *HELP.\n"
     "Service 13: ROM initialisation.\n"
     "Service 14: ROM initialisation complete.\n"
-    "Service 15: vectors claimed.",
+    "Service 15: vectors claimed.\n"
+    "\n"
+    "On Service 15 the ROM verifies the host OS via OSBYTE 0.\n"
+    "Only Master 128 (OS 3.2/3.5, X=3) and Master Econet Terminal\n"
+    "(OS 4.0, X=4) are supported. Any other version (OS 1.00,\n"
+    "OS 1.20, OS 2.00 BBC B+, or OS 5.0 Master Compact) gets a\n"
+    "'Bad ROM <slot>' message printed and its workspace byte\n"
+    "cleared at &02A0 + adjusted-slot, effectively rejecting the\n"
+    "ROM. The 4.18 equivalent at &8A15 instead silently skipped\n"
+    "ROM rejection for OS 1.20 and OS 2.00.",
     on_entry={"a": "service call number", "x": "ROM slot", "y": "parameter"})
 
 
@@ -5963,16 +5972,20 @@ comment(0x8A57, "No: skip vectors-claimed handling", inline=True)
 # UNMAPPED: comment(0x8A1B, "Save Y on stack", inline=True)
 comment(0x8A5A, "OSBYTE 0: read OS version", inline=True)
 comment(0x8A5C, "X=1 to request version number", inline=True)
-comment(0x8A61, "OS 1.20?", inline=True)
-comment(0x8A63, "Yes: skip workspace setup", inline=True)
-comment(0x8A65, "OS 2.00 (BBC B+)?", inline=True)
-comment(0x8A67, "Yes: skip workspace setup", inline=True)
+comment(0x8A61, "OS 3.2/3.5 (Master 128)?", inline=True)
+comment(0x8A63, "Yes: target OS, skip Bad ROM message", inline=True)
+comment(0x8A65, "OS 4.0 (Master Econet Terminal)?", inline=True)
+comment(0x8A67, "Yes: target OS, skip Bad ROM message", inline=True)
 comment(0x8A69, "Transfer OS version to A", inline=True)
-comment(0x8A6A, "Save flags (Z set if OS 1.00)", inline=True)
-comment(0x8A7F, "Get current ROM slot number", inline=True)
+comment(0x8A6A, "Save flags (Z set if OS 1.00) across print", inline=True)
+comment(0x8A6B, "Print '<CR>Bad ROM ' to mark non-Master OS", inline=True)
+comment(0x8A77, "Load this ROM's slot number", inline=True)
+comment(0x8A79, "Print slot number as decimal", inline=True)
+comment(0x8A7C, "Print trailing newline (l91f9: needs review)", inline=True)
+comment(0x8A7F, "Reload ROM slot for workspace clearing", inline=True)
 comment(0x8A81, "Restore flags", inline=True)
-comment(0x8A82, "OS 1.00: skip INX", inline=True)
-comment(0x8A84, "Adjust index for OS 3+ workspace", inline=True)
+comment(0x8A82, "OS 1.00: skip INX (table starts at slot 0)", inline=True)
+comment(0x8A84, "Adjust index for OS 1.20/2.00/5.00 layout", inline=True)
 comment(0x8A85, "A=0", inline=True)
 comment(0x8A87, "Clear workspace byte for this ROM", inline=True)
 comment(0x8A8A, "Restore ROM slot to X", inline=True)
