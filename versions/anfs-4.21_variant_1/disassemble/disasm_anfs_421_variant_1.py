@@ -3734,28 +3734,33 @@ subroutine(0xAA82, "copy_pb_byte_to_ws",
     on_entry={"c": "set to load from PB, clear to use A",
               "x": "byte count",
               "y": "PB source offset"})
-# UNMAPPED: subroutine(0xA660, "osword_13_read_station",
-# UNMAPPED:     title="OSWORD &13 sub 0: read file server station",
-# UNMAPPED:     description="Returns the current file server station and\n"
-# UNMAPPED:     "network numbers in PB[1..2]. If the NFS is not\n"
-# UNMAPPED:     "active (l0d6c bit 7 clear), returns zero in\n"
-# UNMAPPED:     "PB[0] instead.")
-# Located in 4.21_v1 at &A9DD (was &A673 in 4.18). The 4.18 prologue
-# did `BIT &0D6C / BPL` to short-circuit when the FS was inactive;
-# 4.21 drops that check and unconditionally calls process_all_fcbs.
-# The "If the NFS is not active, returns zero" sentence below is a
-# carry-over from 4.18 and may no longer hold in 4.21 — flagged
-# pending review of any wrapper that may now perform the check.
-entry(0xA9DD)
-subroutine(0xA9DD, "osword_13_set_station",
+# Located in 4.21_v1 at &A9CC (was &A660 in 4.18). Identified via the
+# OSWORD &13 dispatch lo/hi table at &A9A8/&A9BA (sub 0: lo=CB,
+# hi=A9 -> +1 = &A9CC). Like sub 1, the prologue calls sub_c8b4d for
+# the FS-active check before the body.
+entry(0xA9CC)
+subroutine(0xA9CC, "osword_13_read_station",
+    title="OSWORD &13 sub 0: read file server station",
+    description="Returns the current file server station and\n"
+    "network numbers in PB[1..2]. If the NFS is not\n"
+    "active, sub_c8b4d returns early with zero in\n"
+    "PB[0] (carrying over the 4.18 semantics).")
+# Located in 4.21_v1 at &A9DA (was &A673 in 4.18). Reached via the
+# OSWORD &13 sub-1 dispatch entry in the lo/hi table at &A9A8/&A9BA
+# (lo=D9, hi=A9 -> +1 = &A9DA). 4.18 had the FS-active check
+# (BIT &0D6C / BPL) inline; 4.21 factors it out into sub_c8b4d
+# (BIT fs_flags / BMI) called from the prologue at &A9DA, with the
+# body of the actual handler beginning at &A9DD.
+entry(0xA9DA)
+subroutine(0xA9DA, "osword_13_set_station",
     title="OSWORD &13 sub 1: set file server station",
-    description="Sets the file server station and network\n"
-    "numbers from PB[1..2]. Processes all FCBs,\n"
-    "then scans the 16-entry FCB table to\n"
-    "reassign handles matching the new station.\n"
-    "Note: 4.18 had a BIT &0D6C / BPL early-return\n"
-    "for the FS-not-active case at the routine prologue;\n"
-    "4.21 removes it and unconditionally proceeds.")
+    description="Sets the file server station and network numbers\n"
+    "from PB[1..2]. The prologue at &A9DA calls\n"
+    "sub_c8b4d to verify the FS is active, then the\n"
+    "body at &A9DD processes all FCBs and scans the\n"
+    "16-entry FCB table to reassign handles matching\n"
+    "the new station.")
+label(0xA9DD, "osword_13_set_station_body")
 subroutine(0xAA72, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
@@ -3790,20 +3795,27 @@ subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="Sets the protection mask from PB[1] via\n"
     "store_prot_mask.")
-# UNMAPPED: subroutine(0xA734, "osword_13_read_handles",
-# UNMAPPED:     title="OSWORD &13 sub 6: read FCB handle info",
-# UNMAPPED:     description="Returns the 3-byte FCB handle/port data from\n"
-# UNMAPPED:     "l1071[1..3] in PB[1..3]. If the NFS is not\n"
-# UNMAPPED:     "active, returns zero in PB[0].")
-# UNMAPPED: subroutine(0xA744, "osword_13_set_handles",
-# UNMAPPED:     title="OSWORD &13 sub 7: set FCB handles",
-# UNMAPPED:     description="Validates and assigns up to 3 FCB handles\n"
-# UNMAPPED:     "from PB[1..3]. Each handle value (&20-&2F)\n"
-# UNMAPPED:     "indexes the l1010/l1040 tables. For valid\n"
-# UNMAPPED:     "handles with bit 2 set in l1040, stores the\n"
-# UNMAPPED:     "station to l0e01+Y and FCB index to l1071+Y,\n"
-# UNMAPPED:     "then updates flag bits across all FCB entries\n"
-# UNMAPPED:     "via update_fcb_flag_bits.")
+# Located in 4.21_v1 at &AAC2 (was &A734 in 4.18). OSWORD &13 sub 6
+# from the dispatch table (lo=C1, hi=AA -> +1 = &AAC2). FS-active
+# check via sub_c8b4d in prologue.
+entry(0xAAC2)
+subroutine(0xAAC2, "osword_13_read_handles",
+    title="OSWORD &13 sub 6: read FCB handle info",
+    description="Returns the 3-byte FCB handle/port data from\n"
+    "the workspace at C271[1..3] (was l1071[1..3] in\n"
+    "4.18) into PB[1..3]. If the NFS is not active,\n"
+    "returns zero in PB[0] via the sub_c8b4d prologue.")
+# Located in 4.21_v1 at &AAD0 (was &A744 in 4.18). OSWORD &13 sub 7
+# from the dispatch table (lo=CF, hi=AA -> +1 = &AAD0).
+entry(0xAAD0)
+subroutine(0xAAD0, "osword_13_set_handles",
+    title="OSWORD &13 sub 7: set FCB handles",
+    description="Validates and assigns up to 3 FCB handles\n"
+    "from PB[1..3]. Each handle value (&20-&2F)\n"
+    "indexes the channel tables. For valid handles\n"
+    "with the appropriate flag bit, stores the\n"
+    "station and FCB index, then updates flag bits\n"
+    "across all FCB entries via update_fcb_flag_bits.")
 subroutine(0xAB43, "update_fcb_flag_bits",
     title="Update FCB flag bits across all entries",
     description="Scans all 16 FCB entries in l1060. For each\n"
