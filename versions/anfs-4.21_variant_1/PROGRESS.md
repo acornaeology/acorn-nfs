@@ -152,5 +152,39 @@ opcodes against 4.18.
   this is "variant 1" (presumably another variant supports Compact).
 - 4.21_v1 uses 65C12 `phy / ply` in place of 4.18's `tya / pha / pla / tay`.
 
+### OSWORD &13: auto-select FS instead of abort
+- 4.18: each OSWORD &13 sub-handler (read_station / set_station /
+  read_handles / set_handles) inlined a `BIT &0D6C / BPL <return>`
+  check at the prologue. If ANFS was NOT the active FS (bit 7 clear),
+  the handler aborted by returning zero in PB[0] without touching FS
+  state.
+- 4.21_v1: the check is factored into `ensure_fs_selected` at &8B4D
+  with INVERTED behaviour: `BIT fs_flags / BMI return / fall through
+  to JSR cmd_net_fs / BEQ ok / JMP error_net_checksum`. If the FS is
+  not active, it AUTO-SELECTS by calling cmd_net_fs and raises a
+  'net checksum' error on selection failure — instead of silently
+  aborting.
+- This is an observable behaviour change for software using OSWORD
+  &13: a previously safe "query if FS is active" call now triggers
+  a selection attempt.
+
+### Master 128 workspace migration
+- ANFS 4.18 used MOS RAM pages &0Dxx-&10xx for filing-system state.
+- ANFS 4.21_v1 moves the same data into the Master 128 sideways-RAM
+  workspace at &C000-&C2FF. Visible in many recovered routines:
+  - `mask_owner_access`: writes &C271 instead of &1071
+  - `parse_fs_ps_args`: stores result in &B7 instead of &B6
+  - `copy_fs_cmd_name`: writes TX buffer at &C105 instead of &0F05
+
+### 65C12 instruction adoption
+- Several recovered routines use 65C12 (Master CMOS) instructions
+  in place of NMOS 6502 idioms:
+  - `print_no_spool` family: PHY/PLY/PHX/PLX, BRA, STZ, BIT abs,X
+  - `parse_addr_arg` and `parse_fs_ps_args`: PHX/PHY in place of
+    TXA/PHA, TYA/PHA
+  - `copy_fs_cmd_name`: PHY in place of TYA/PHA
+  - `service_handler`: PHY/PLY in place of TYA/PHA, PLA/TAY
+- Net effect: tighter prologues, freeing space for the new code.
+
 (Add additional findings as they emerge, with an eye to grouping them by
 theme for the eventual CHANGES doc.)
