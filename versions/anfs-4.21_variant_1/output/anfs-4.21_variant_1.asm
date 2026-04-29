@@ -2944,7 +2944,7 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8b23 referenced 1 time by &8b52
 .cmd_net_fs
-    jsr sub_c8cad                                                     ; 8b23: 20 ad 8c     ..            ; Get workspace page for this ROM slot
+    jsr get_ws_page                                                   ; 8b23: 20 ad 8c     ..            ; Get workspace page for this ROM slot
     sta fs_load_addr_hi                                               ; 8b26: 85 b1       ..             ; Store as high byte of load address
     lda #0                                                            ; 8b28: a9 00       ..             ; A=0
     sta fs_load_addr                                                  ; 8b2a: 85 b0       ..             ; Clear low byte of load address
@@ -3311,8 +3311,22 @@ l89c9 = reset_enter_listen+2
     nop                                                               ; 8ca9: ea          .
     jmp c90c7                                                         ; 8caa: 4c c7 90    L..
 
+; ***************************************************************************************
+; Read workspace page number for current ROM slot
+; 
+; Indexes into the MOS per-ROM workspace table at
+; &0DF0 using romsel_copy (&F4) as the ROM slot.
+; Returns the allocated page number in both A and Y
+; for caller convenience. The 4.21 version also
+; OR's bit 7 of the slot flag back into A on exit
+; (ADLC-absent flag) — see &8CB7-&8CB9.
+; 
+; On Exit:
+;     A: workspace page number (with bit 7 = ADLC-absent flag)
+;     Y: workspace page number (low 7 bits)
+; ***************************************************************************************
 ; &8cad referenced 3 times by &8b23, &8cbd, &b3a0
-.sub_c8cad
+.get_ws_page
     ldy romsel_copy                                                   ; 8cad: a4 f4       ..
     lda rom_ws_pages,y                                                ; 8caf: b9 f0 0d    ...            ; Load workspace page for this slot
     tay                                                               ; 8cb2: a8          .
@@ -3342,7 +3356,7 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8cbd referenced 1 time by &8b9c
 .setup_ws_ptr
-    jsr sub_c8cad                                                     ; 8cbd: 20 ad 8c     ..            ; Get workspace page for ROM slot
+    jsr get_ws_page                                                   ; 8cbd: 20 ad 8c     ..            ; Get workspace page for ROM slot
     sty nfs_temp                                                      ; 8cc0: 84 cd       ..             ; Store page in nfs_temp
     lda #0                                                            ; 8cc2: a9 00       ..             ; A=0
     sta fs_ws_ptr                                                     ; 8cc4: 85 cc       ..             ; Clear low byte of pointer
@@ -11277,7 +11291,7 @@ labc5 = compare_bridge_status+1
 .init_spool_drive
     tya                                                               ; b39e: 98          .              ; Save Y
     pha                                                               ; b39f: 48          H              ; Push it; Is file locked?
-    jsr sub_c8cad                                                     ; b3a0: 20 ad 8c     ..            ; Get workspace page number; No: check if directory
+    jsr get_ws_page                                                   ; b3a0: 20 ad 8c     ..            ; Get workspace page number; No: check if directory
     sta addr_work                                                     ; b3a3: 85 af       ..             ; Store as spool drive page high; Skip locked file, advance index
     pla                                                               ; b3a5: 68          h              ; Restore Y; Request next file from server
     tay                                                               ; b3a6: a8          .              ; Transfer to Y
@@ -14020,6 +14034,7 @@ save pydis_start, pydis_end
 ;     exec_addr_lo:                   3
 ;     find_matching_fcb:              3
 ;     find_station_bit3:              3
+;     get_ws_page:                    3
 ;     is_decimal_digit:               3
 ;     jmp_restore_fs_ctx:             3
 ;     l0106:                          3
@@ -14059,7 +14074,6 @@ save pydis_start, pydis_end
 ;     save_text_ptr:                  3
 ;     send_disconnect_reply:          3
 ;     sub_c8900:                      3
-;     sub_c8cad:                      3
 ;     sub_ca3c4:                      3
 ;     tube_claim_c3:                  3
 ;     tx_bad_ctrl_error:              3
@@ -15292,7 +15306,6 @@ save pydis_start, pydis_end
 ;     sub_c8900
 ;     sub_c8b4d
 ;     sub_c8b52
-;     sub_c8cad
 ;     sub_c8da6
 ;     sub_c924c
 ;     sub_c9255

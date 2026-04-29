@@ -2865,14 +2865,21 @@ subroutine(0x8C93, "print_version_header",
     "CR + \"Advanced  4.08.53\" + CR. After the inline\n"
     "string, JMPs to print_station_id to append the\n"
     "local Econet station number.")
-# UNMAPPED: subroutine(0x8CB9, "get_ws_page",
-# UNMAPPED:     title="Read workspace page number for current ROM slot",
-# UNMAPPED:     description="Indexes into the MOS per-ROM workspace table at\n"
-# UNMAPPED:     "&0DF0 using romsel_copy (&F4) as the ROM slot.\n"
-# UNMAPPED:     "Returns the allocated page number in both A and Y\n"
-# UNMAPPED:     "for caller convenience.",
-# UNMAPPED:     on_exit={"a": "workspace page number",
-# UNMAPPED:     "y": "workspace page number (same as A)"})
+# Located in 4.21_v1 at &8CAD (was &8CB9 in 4.18) by following the
+# JSR site at &8B23 (which maps from 4.18 &8B1A). Already classified
+# as code (sub_c8cad with 3 callers from &8B23, &8CBD, &B3A0). The
+# 4.21 body extends the 4.18 simple lookup with a ROL/PHP/ROR/PLP
+# trick to also extract bit 7 (ADLC-absent flag) from the same byte.
+subroutine(0x8CAD, "get_ws_page",
+    title="Read workspace page number for current ROM slot",
+    description="Indexes into the MOS per-ROM workspace table at\n"
+    "&0DF0 using romsel_copy (&F4) as the ROM slot.\n"
+    "Returns the allocated page number in both A and Y\n"
+    "for caller convenience. The 4.21 version also\n"
+    "OR's bit 7 of the slot flag back into A on exit\n"
+    "(ADLC-absent flag) — see &8CB7-&8CB9.",
+    on_exit={"a": "workspace page number (with bit 7 = ADLC-absent flag)",
+             "y": "workspace page number (low 7 bits)"})
 subroutine(0x8CBD, "setup_ws_ptr",
     title="Set up zero-page pointer to workspace page",
     description="Calls get_ws_page to read the page number, stores\n"
