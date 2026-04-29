@@ -3487,20 +3487,60 @@ l89c9 = reset_enter_listen+2
     equb &0d                                                          ; 8d7c: 0d          .
     equs "J Wills"                                                    ; 8d7d: 4a 20 57... J W
     equb &0d                                                          ; 8d84: 0d          .              ; CR
-    equb &0d,   0, &5a, &a5, &bd, &a6, &bb, &a4, &bc, &48, &da, &5a   ; 8d85: 0d 00 5a... ..Z            ; Push it
-    equb &a9, &77, &8d,   7, &c0, &20, &f4, &ff, &a0,   0, &84, &b4   ; 8d91: a9 77 8d... .w.            ; OSBYTE &77: close SPOOL/EXEC; Store as pending operation marker; Y=0; Clear password entry flag
-    equb &20, &38, &bb, &9c,   7, &c0, &7a, &fa, &68, &20             ; 8d9d: 20 38 bb...  8.            ; Reset FS connection state; Restore command line offset
-; &8da7 referenced 1 time by &b3d9
-.l8da7
-    equb &d7, &93, &7a, &b1, &bb, &20, &9a, &93, &90, &24, &20, &b2   ; 8da7: d7 93 7a... ..z            ; Load first option byte; Parse station number if present; Not a digit: skip to password entry; Parse user ID string
-    equb &92, &b0, &0a, &8d,   1, &c0, &20, &21, &8e, &c8, &20, &b2   ; 8db3: 92 b0 0a... ...            ; No user ID: go to password; Store file server station low; Check and store FS network; Skip separator; Parse next argument
-    equb &92                                                          ; 8dbf: 92          .
-.skip_no_fs_addr
-    equb &f0, &13, &8d, 0, &c0, &a2, &ff                              ; 8dc0: f0 13 8d... ...            ; No FS address: skip to password; Store file server station high; X=&FF: pre-decrement for loop
-.loop_copy_logon_cmd
-    equb &e8, &bd, &c9, &a7, &9d, 5, &c1, &10, &f7, &20, &a3, &b2     ; 8dc7: e8 bd c9... ...            ; Advance index; Load logon command template byte; Store into transmit buffer; Bit 7 clear: more bytes, loop; Send logon with file server lookup
-    equb &f0,   3                                                     ; 8dd3: f0 03       ..             ; Success: skip to password entry
+    equb &0d, 0, &5a, &a5, &bd, &a6, &bb, &a4, &bc, &48, &da, &5a     ; 8d85: 0d 00 5a... ..Z            ; Push it
 
+; ***************************************************************************************
+; *I AM command handler (file server logon)
+; 
+; Closes any *SPOOL/*EXEC files via OSBYTE &77,
+; resets all file control blocks via
+; process_all_fcbs, then parses the command line
+; for an optional station number and file server
+; address. If a station number is present, stores
+; it and calls clear_if_station_match to validate.
+; Copies the logon command template from
+; cmd_table_nfs_iam into the transmit buffer and
+; sends via copy_arg_validated. Falls through to
+; cmd_pass for password entry.
+; ***************************************************************************************
+.cmd_iam
+    lda #osbyte_close_spool_exec                                      ; 8d91: a9 77       .w             ; OSBYTE &77: close SPOOL/EXEC
+    sta lc007                                                         ; 8d93: 8d 07 c0    ...            ; Store as pending operation marker
+    jsr osbyte                                                        ; 8d96: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
+    ldy #0                                                            ; 8d99: a0 00       ..             ; Y=0
+    sty fs_work_4                                                     ; 8d9b: 84 b4       ..             ; Clear password entry flag
+    jsr process_all_fcbs                                              ; 8d9d: 20 38 bb     8.            ; Reset FS connection state
+    stz lc007                                                         ; 8da0: 9c 07 c0    ...
+    ply                                                               ; 8da3: 7a          z
+    plx                                                               ; 8da4: fa          .
+    pla                                                               ; 8da5: 68          h              ; Restore command line offset
+.sub_c8da6
+l8da7 = sub_c8da6+1
+    jsr set_xfer_params                                               ; 8da6: 20 d7 93     ..
+; &8da7 referenced 1 time by &b3d9
+    ply                                                               ; 8da9: 7a          z
+    lda (fs_options),y                                                ; 8daa: b1 bb       ..             ; Load first option byte
+    jsr is_decimal_digit                                              ; 8dac: 20 9a 93     ..            ; Parse station number if present
+    bcc cmd_pass                                                      ; 8daf: 90 24       .$             ; Not a digit: skip to password entry
+    jsr parse_addr_arg                                                ; 8db1: 20 b2 92     ..            ; Parse user ID string
+    bcs skip_no_fs_addr                                               ; 8db4: b0 0a       ..             ; No user ID: go to password
+    sta lc001                                                         ; 8db6: 8d 01 c0    ...            ; Store file server station low
+    jsr clear_if_station_match                                        ; 8db9: 20 21 8e     !.            ; Check and store FS network
+    iny                                                               ; 8dbc: c8          .              ; Skip separator
+    jsr parse_addr_arg                                                ; 8dbd: 20 b2 92     ..            ; Parse next argument
+; &8dc0 referenced 1 time by &8db4
+.skip_no_fs_addr
+    beq cmd_pass                                                      ; 8dc0: f0 13       ..             ; No FS address: skip to password
+    sta pydis_end                                                     ; 8dc2: 8d 00 c0    ...            ; Store file server station high
+    ldx #&ff                                                          ; 8dc5: a2 ff       ..             ; X=&FF: pre-decrement for loop
+; &8dc7 referenced 1 time by &8dce
+.loop_copy_logon_cmd
+    inx                                                               ; 8dc7: e8          .              ; Advance index
+    lda cmd_table_nfs_iam,x                                           ; 8dc8: bd c9 a7    ...            ; Load logon command template byte
+    sta lc105,x                                                       ; 8dcb: 9d 05 c1    ...            ; Store into transmit buffer
+    bpl loop_copy_logon_cmd                                           ; 8dce: 10 f7       ..             ; Bit 7 clear: more bytes, loop
+    jsr copy_arg_validated                                            ; 8dd0: 20 a3 b2     ..            ; Send logon with file server lookup
+    beq scan_pass_prompt                                              ; 8dd3: f0 03       ..             ; Success: skip to password entry
 ; ***************************************************************************************
 ; *PASS command handler (change password)
 ; 
@@ -3513,8 +3553,10 @@ l89c9 = reset_enter_listen+2
 ; password to the file server via save_net_tx_cb and
 ; branches to send_cmd_and_dispatch for the reply.
 ; ***************************************************************************************
+; &8dd5 referenced 2 times by &8daf, &8dc0
 .cmd_pass
     jsr copy_arg_to_buf_x0                                            ; 8dd5: 20 9f b2     ..            ; Build FS command packet
+; &8dd8 referenced 1 time by &8dd3
 .scan_pass_prompt
     ldy #&ff                                                          ; 8dd8: a0 ff       ..             ; Y=&FF: pre-increment for loop
 ; &8dda referenced 1 time by &8de4
@@ -3576,7 +3618,7 @@ l89c9 = reset_enter_listen+2
 ; On Exit:
 ;     A: 0 if matched, non-zero if different
 ; ***************************************************************************************
-; &8e21 referenced 1 time by &a9ec
+; &8e21 referenced 2 times by &8db9, &a9ec
 .clear_if_station_match
     jsr init_bridge_poll                                              ; 8e21: 20 e9 ab     ..            ; Parse station number from cmd line
     eor lc001                                                         ; 8e24: 4d 01 c0    M..            ; Compare with expected station
@@ -4390,7 +4432,7 @@ l89c9 = reset_enter_listen+2
 ;     FS_LOAD_ADDR_2: parsed numeric value
 ;     C: set if a number was parsed
 ; ***************************************************************************************
-; &92b2 referenced 2 times by &a3c9, &a3de
+; &92b2 referenced 4 times by &8db1, &8dbd, &a3c9, &a3de
 .parse_addr_arg
     stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; (dead)
     lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; (dead); Save processor flags
@@ -4546,7 +4588,7 @@ l89c9 = reset_enter_listen+2
 ; On Exit:
 ;     C: set if digit/&/., clear otherwise
 ; ***************************************************************************************
-; &939a referenced 2 times by &b3c3, &b59a
+; &939a referenced 3 times by &8dac, &b3c3, &b59a
 .is_decimal_digit
     cmp #&26 ; '&'                                                    ; 939a: c9 26       .&
     beq return_from_digit_test                                        ; 939c: f0 0a       ..
@@ -4682,7 +4724,7 @@ l89c9 = reset_enter_listen+2
 ;     X: source pointer low
 ;     Y: source pointer high
 ; ***************************************************************************************
-; &93d7 referenced 5 times by &8e4b, &9c22, &a032, &a14f, &b118
+; &93d7 referenced 6 times by &8da6, &8e4b, &9c22, &a032, &a14f, &b118
 .set_xfer_params
     sta fs_last_byte_flag                                             ; 93d7: 85 bd       ..
     stx fs_crc_lo                                                     ; 93d9: 86 be       ..
@@ -4815,7 +4857,7 @@ l89c9 = reset_enter_listen+2
 ; CR is found where a filename was expected.
 ; ***************************************************************************************
 .cmd_fs_operation
-    jsr sub_c9463                                                     ; 9425: 20 63 94     c.            ; Copy command name to TX buffer
+    jsr copy_fs_cmd_name                                              ; 9425: 20 63 94     c.            ; Copy command name to TX buffer
     phx                                                               ; 9428: da          .
     jsr parse_quoted_arg                                              ; 9429: 20 83 94     ..            ; Parse filename (handles quoting)
     jsr parse_access_prefix                                           ; 942c: 20 2f b2     /.            ; Parse owner/public access prefix
@@ -4862,8 +4904,24 @@ l89c9 = reset_enter_listen+2
     ldy #0                                                            ; 945e: a0 00       ..             ; Y=0: no extra dispatch offset
     jmp send_cmd_and_dispatch                                         ; 9460: 4c 3c 8e    L<.            ; Send command and dispatch reply
 
+; ***************************************************************************************
+; Copy matched command name to TX buffer
+; 
+; Scans backwards in cmd_table_fs from the
+; current position to find the bit-7 flag byte
+; marking the start of the command name. Copies
+; each character forward into the TX buffer at
+; &C105 (was &0F05 in 4.18) until the next bit-7
+; byte (end of name), then appends a space
+; separator. Uses 65C12 PHY in 4.21 in place of
+; 4.18's TYA / PHA prologue.
+; 
+; On Exit:
+;     X: TX buffer offset past name+space
+;     Y: command line offset (restored)
+; ***************************************************************************************
 ; &9463 referenced 2 times by &9425, &94c5
-.sub_c9463
+.copy_fs_cmd_name
     phy                                                               ; 9463: 5a          Z
 ; &9464 referenced 1 time by &9468
 .loop_scan_flag
@@ -4953,7 +5011,7 @@ l89c9 = reset_enter_listen+2
 ; into the TX buffer and send the request.
 ; ***************************************************************************************
 .cmd_rename
-    jsr sub_c9463                                                     ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer; Bit 6 set: use station as port
+    jsr copy_fs_cmd_name                                              ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer; Bit 6 set: use station as port
     phx                                                               ; 94c8: da          .
     jsr sub_cb2cf                                                     ; 94c9: 20 cf b2     ..            ; Set owner-only access mask; Bit 7 clear: skip port override; Bit 7 set: load alternative port
     jsr parse_quoted_arg                                              ; 94cc: 20 83 94     ..            ; Parse first filename (quoted); Override TXCB port byte
@@ -8662,6 +8720,7 @@ la0ff = sub_ca0fe+1
     equb &80, &99, &a6, &46, &53                                      ; a7c1: 80 99 a6... ...            ; No syntax; X=&0F: scan 16 FCB entries; Load FCB flags
     equb &8b                                                          ; a7c6: 8b          .              ; Shift bits 6-7 into bits 7-0
     equb &97, &a3                                                     ; a7c7: 97 a3       ..             ; Bit 6 now in bit 7 (N flag); Bit 6 clear: skip entry
+; &a7c9 referenced 1 time by &8dc8
 .cmd_table_nfs_iam
     equs "I am"                                                       ; a7c9: 49 20 61... I a            ; *I am; Restore Y (bit mask); Test mask bits against flags
     equb &c2, &86, &8d                                                ; a7cd: c2 86 8d    ...            ; V no arg; syn 2: (<stn>) <user>...; Zero: no matching bits
@@ -10861,7 +10920,7 @@ labc5 = compare_bridge_status+1
 ;     Y: command line source offset
 ;     C: set to enable '&' validation
 ; ***************************************************************************************
-; &b2a3 referenced 2 times by &9553, &9589
+; &b2a3 referenced 3 times by &8dd0, &9553, &9589
 .copy_arg_validated
     sec                                                               ; b2a3: 38          8
 ; &b2a4 referenced 1 time by &b2b7
@@ -12717,7 +12776,7 @@ lb821 = err_net_chan_not_found+2
 ; On Entry:
 ;     Y: filter attribute (0=process all)
 ; ***************************************************************************************
-; &bb38 referenced 8 times by &9078, &9778, &9ec9, &9f0e, &9fb1, &a06b, &a175, &a9df
+; &bb38 referenced 9 times by &8d9d, &9078, &9778, &9ec9, &9f0e, &9fb1, &a06b, &a175, &a9df
 .process_all_fcbs
     phx                                                               ; bb38: da          .
     phy                                                               ; bb39: 5a          Z              ; Mask to low nibble (0-15)
@@ -13674,7 +13733,7 @@ lb821 = err_net_chan_not_found+2
 ; &bfff referenced 1 time by &a9e6
 .lbfff
     equb &ff                                                          ; bfff: ff          .
-; &c000 referenced 4 times by &9758, &a398, &b8c8, &b928
+; &c000 referenced 5 times by &8dc2, &9758, &a398, &b8c8, &b928
 .pydis_end
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
@@ -13693,8 +13752,8 @@ save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                 84
-;     lc105:                         58
-;     fs_options:                    53
+;     lc105:                         59
+;     fs_options:                    54
 ;     net_rx_ptr:                    48
 ;     econet_control23_or_status2:   45
 ;     ws_ptr_hi:                     39
@@ -13708,7 +13767,7 @@ save pydis_start, pydis_end
 ;     fs_crc_lo:                     31
 ;     lc271:                         31
 ;     osword_flag:                   29
-;     osbyte:                        27
+;     osbyte:                        28
 ;     rx_src_net:                    27
 ;     lc106:                         26
 ;     lc260:                         25
@@ -13716,9 +13775,9 @@ save pydis_start, pydis_end
 ;     fs_load_addr:                  24
 ;     port_buf_len:                  23
 ;     print_inline:                  23
+;     fs_work_4:                     22
 ;     lc2b8:                         22
 ;     always_set_v_byte:             21
-;     fs_work_4:                     21
 ;     l0101:                         20
 ;     save_net_tx_cb:                20
 ;     lc200:                         18
@@ -13761,6 +13820,7 @@ save pydis_start, pydis_end
 ;     install_nmi_handler:            9
 ;     lc220:                          9
 ;     osnewl:                         9
+;     process_all_fcbs:               9
 ;     scout_buf:                      9
 ;     tx_src_stn:                     9
 ;     txcb_end:                       9
@@ -13772,12 +13832,12 @@ save pydis_start, pydis_end
 ;     nfs_workspace_hi:               8
 ;     osword_pb_ptr:                  8
 ;     print_char_no_spool:            8
-;     process_all_fcbs:               8
 ;     romsel_copy:                    8
 ;     vdu_status:                     8
 ;     alloc_fcb_slot:                 7
 ;     finalise_and_return:            7
 ;     fs_load_addr_hi:                7
+;     lc001:                          7
 ;     lc102:                          7
 ;     lc240:                          7
 ;     lc298:                          7
@@ -13794,7 +13854,6 @@ save pydis_start, pydis_end
 ;     discard_reset_rx:               6
 ;     error_overflow:                 6
 ;     fs_crc_hi:                      6
-;     lc001:                          6
 ;     lc003:                          6
 ;     lc108:                          6
 ;     lc2d8:                          6
@@ -13802,6 +13861,7 @@ save pydis_start, pydis_end
 ;     nmi_rti:                        6
 ;     os_text_ptr_hi:                 6
 ;     send_net_packet:                6
+;     set_xfer_params:                6
 ;     spool_buf_idx:                  6
 ;     sub_c928a:                      6
 ;     wait_net_tx_ack:                6
@@ -13818,17 +13878,18 @@ save pydis_start, pydis_end
 ;     l0d71:                          5
 ;     lc002:                          5
 ;     lc004:                          5
+;     lc007:                          5
 ;     lc009:                          5
 ;     lc2cf:                          5
 ;     lc2d4:                          5
 ;     lc2d5:                          5
 ;     net_error_lookup_data:          5
 ;     prot_flags:                     5
+;     pydis_end:                      5
 ;     rx_port:                        5
 ;     scout_ctrl:                     5
 ;     scout_error:                    5
 ;     scout_port:                     5
-;     set_xfer_params:                5
 ;     strip_token_prefix:             5
 ;     svc_dispatch:                   5
 ;     table_idx:                      5
@@ -13859,10 +13920,10 @@ save pydis_start, pydis_end
 ;     loop_scan_fcb_down:             4
 ;     nmi_tx_block_hi:                4
 ;     parse_access_prefix:            4
+;     parse_addr_arg:                 4
 ;     port_match_found:               4
 ;     print_station_addr:             4
 ;     process_spool_data:             4
-;     pydis_end:                      4
 ;     read_pw_char:                   4
 ;     read_rx_attribute:              4
 ;     return_from_spool_reset:        4
@@ -13885,6 +13946,7 @@ save pydis_start, pydis_end
 ;     c9421:                          3
 ;     check_tube_irq_loop:            3
 ;     close_all_net_chans:            3
+;     copy_arg_validated:             3
 ;     data_tx_last:                   3
 ;     dispatch_rts:                   3
 ;     done_add_disp_base:             3
@@ -13898,11 +13960,11 @@ save pydis_start, pydis_end
 ;     exec_addr_lo:                   3
 ;     find_matching_fcb:              3
 ;     find_station_bit3:              3
+;     is_decimal_digit:               3
 ;     jmp_restore_fs_ctx:             3
 ;     l0106:                          3
 ;     l0355:                          3
 ;     lbffe:                          3
-;     lc007:                          3
 ;     lc008:                          3
 ;     lc100:                          3
 ;     lc1c8:                          3
@@ -13976,10 +14038,12 @@ save pydis_start, pydis_end
 ;     check_tx_in_progress:           2
 ;     classify_reply_error:           2
 ;     clear_conn_active:              2
+;     clear_if_station_match:         2
 ;     clear_result:                   2
 ;     clear_v_flag:                   2
+;     cmd_pass:                       2
 ;     cmp_5byte_handle:               2
-;     copy_arg_validated:             2
+;     copy_fs_cmd_name:               2
 ;     copy_fsopts_to_zp:              2
 ;     copy_scout_via_tube:            2
 ;     copy_workspace_to_fsopts:       2
@@ -14031,7 +14095,6 @@ save pydis_start, pydis_end
 ;     init_tx_ptr_and_send:           2
 ;     init_wipe_counters:             2
 ;     init_ws_copy_wide:              2
-;     is_decimal_digit:               2
 ;     l0103:                          2
 ;     l0104:                          2
 ;     la76d:                          2
@@ -14084,7 +14147,6 @@ save pydis_start, pydis_end
 ;     osrdch:                         2
 ;     osword:                         2
 ;     pad_with_spaces:                2
-;     parse_addr_arg:                 2
 ;     parse_cmd_arg_y0:               2
 ;     parse_dump_range:               2
 ;     parse_filename_arg:             2
@@ -14153,7 +14215,6 @@ save pydis_start, pydis_end
 ;     store_station_result:           2
 ;     store_stn_flags_restore:        2
 ;     store_tx_error:                 2
-;     sub_c9463:                      2
 ;     sub_c988f:                      2
 ;     sub_cb310:                      2
 ;     tail_update_catalogue:          2
@@ -14273,7 +14334,6 @@ save pydis_start, pydis_end
 ;     clear_c_flag:                   1
 ;     clear_escapable:                1
 ;     clear_flag_bits:                1
-;     clear_if_station_match:         1
 ;     clear_release_flag:             1
 ;     clear_single_fcb:               1
 ;     clear_svc_and_ws:               1
@@ -14286,6 +14346,7 @@ save pydis_start, pydis_end
 ;     cmd_net_fs:                     1
 ;     cmd_syntax_strings:             1
 ;     cmd_syntax_table:               1
+;     cmd_table_nfs_iam:              1
 ;     copy_addr_loop:                 1
 ;     copy_arg_and_enum:              1
 ;     copy_bcast_addr:                1
@@ -14553,6 +14614,7 @@ save pydis_start, pydis_end
 ;     loop_copy_inline_str:           1
 ;     loop_copy_lib_prefix:           1
 ;     loop_copy_limit:                1
+;     loop_copy_logon_cmd:            1
 ;     loop_copy_name:                 1
 ;     loop_copy_no_reply_msg:         1
 ;     loop_copy_offset:               1
@@ -14802,6 +14864,7 @@ save pydis_start, pydis_end
 ;     scan_fcb_entry:                 1
 ;     scan_fcb_flags:                 1
 ;     scan_nfs_port_list:             1
+;     scan_pass_prompt:               1
 ;     scan_port_list:                 1
 ;     scan_remote_keys:               1
 ;     scout_data:                     1
@@ -14868,6 +14931,7 @@ save pydis_start, pydis_end
 ;     skip_if_out_of_range:           1
 ;     skip_if_slots_done:             1
 ;     skip_next_ps_slot:              1
+;     skip_no_fs_addr:                1
 ;     skip_non_printable:             1
 ;     skip_one_and_advance5:          1
 ;     skip_restore_byte:              1
@@ -15167,12 +15231,12 @@ save pydis_start, pydis_end
 ;     sub_c8b4d
 ;     sub_c8b52
 ;     sub_c8cad
+;     sub_c8da6
 ;     sub_c8ec9
 ;     sub_c8ed2
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c928a
-;     sub_c9463
 ;     sub_c9612
 ;     sub_c988f
 ;     sub_ca0fe
@@ -15183,11 +15247,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 12888 bytes (79%)
-;     Data                     = 3496 bytes (21%)
+;     Code                     = 12956 bytes (79%)
+;     Data                     = 3428 bytes (21%)
 ;
-;     Number of instructions   = 6364
-;     Number of data bytes     = 2177 bytes
+;     Number of instructions   = 6394
+;     Number of data bytes     = 2109 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 149

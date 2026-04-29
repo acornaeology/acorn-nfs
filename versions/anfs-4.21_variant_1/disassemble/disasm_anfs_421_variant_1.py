@@ -3189,17 +3189,23 @@ subroutine(0x9446, "check_not_ampersand",
     "into the TX buffer at &0F05, calling\n"
     "strip_token_prefix on each byte and terminating\n"
     "on CR. Used by cmd_fs_operation and cmd_rename.")
-# UNMAPPED: subroutine(0x9327, "copy_fs_cmd_name",
-# UNMAPPED:     title="Copy matched command name to TX buffer",
-# UNMAPPED:     description="Scans backwards in cmd_table_fs from the\n"
-# UNMAPPED:     "current position to find the bit-7 flag byte\n"
-# UNMAPPED:     "marking the start of the command name. Copies\n"
-# UNMAPPED:     "each character forward into the TX buffer at\n"
-# UNMAPPED:     "&0F05 until the next bit-7 byte (end of name),\n"
-# UNMAPPED:     "then appends a space separator. Called by\n"
-# UNMAPPED:     "cmd_fs_operation and cmd_rename.",
-# UNMAPPED:     on_exit={"x": "TX buffer offset past name+space",
-# UNMAPPED:              "y": "command line offset (restored)"})
+# Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
+# hit &945E (which is `send_fs_request`) — the body match pushed the
+# entry 5 bytes earlier than the actual prologue. The 4.21 prologue
+# uses 65C12 PHY in place of 4.18's TYA / PHA. Already classified as
+# code (sub_c9463 with 2 callers from &9425 and &94c5).
+subroutine(0x9463, "copy_fs_cmd_name",
+    title="Copy matched command name to TX buffer",
+    description="Scans backwards in cmd_table_fs from the\n"
+    "current position to find the bit-7 flag byte\n"
+    "marking the start of the command name. Copies\n"
+    "each character forward into the TX buffer at\n"
+    "&C105 (was &0F05 in 4.18) until the next bit-7\n"
+    "byte (end of name), then appends a space\n"
+    "separator. Uses 65C12 PHY in 4.21 in place of\n"
+    "4.18's TYA / PHA prologue.",
+    on_exit={"x": "TX buffer offset past name+space",
+             "y": "command line offset (restored)"})
 subroutine(0x9483, "parse_quoted_arg",
     title="Parse possibly-quoted filename argument",
     description="Reads from the command line at (&BE),Y. Handles\n"
@@ -7480,18 +7486,23 @@ subroutine(0xA398, "cmd_fs",
     "parse_fs_ps_args and issues OSWORD &13 (sub-function 1)\n"
     "to select the new file server.",
     on_entry={"y": "command line offset in text pointer"})
-# UNMAPPED: subroutine(0x8D79, "cmd_iam",
-# UNMAPPED:     title="*I AM command handler (file server logon)",
-# UNMAPPED:     description="Closes any *SPOOL/*EXEC files via OSBYTE &77,\n"
-# UNMAPPED:     "resets all file control blocks via\n"
-# UNMAPPED:     "process_all_fcbs, then parses the command line\n"
-# UNMAPPED:     "for an optional station number and file server\n"
-# UNMAPPED:     "address. If a station number is present, stores\n"
-# UNMAPPED:     "it and calls clear_if_station_match to validate.\n"
-# UNMAPPED:     "Copies the logon command template from\n"
-# UNMAPPED:     "cmd_table_nfs_iam into the transmit buffer and\n"
-# UNMAPPED:     "sends via copy_arg_validated. Falls through to\n"
-# UNMAPPED:     "cmd_pass for password entry.")
+# Located in 4.21_v1 at &8D91 (was &8D79 in 4.18). The 4.18 prologue
+# saved Y on the stack via TYA/PHA before doing OSBYTE &77; the 4.21
+# version drops the save (caller-preserved Y, presumably). Reached
+# via PHA/PHA/RTS dispatch — needs entry().
+entry(0x8D91)
+subroutine(0x8D91, "cmd_iam",
+    title="*I AM command handler (file server logon)",
+    description="Closes any *SPOOL/*EXEC files via OSBYTE &77,\n"
+    "resets all file control blocks via\n"
+    "process_all_fcbs, then parses the command line\n"
+    "for an optional station number and file server\n"
+    "address. If a station number is present, stores\n"
+    "it and calls clear_if_station_match to validate.\n"
+    "Copies the logon command template from\n"
+    "cmd_table_nfs_iam into the transmit buffer and\n"
+    "sends via copy_arg_validated. Falls through to\n"
+    "cmd_pass for password entry.")
 subroutine(0xB0F2, "cmd_lcat",
     title="*LCat command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"
