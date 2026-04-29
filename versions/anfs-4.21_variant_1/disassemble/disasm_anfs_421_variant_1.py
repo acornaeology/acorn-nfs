@@ -3010,16 +3010,20 @@ subroutine(0x909E, "verify_ws_checksum",
     "adjust_fsopts_4bytes, and start_wipe_pass before\n"
     "workspace access.",
     on_exit={"a": "preserved", "y": "preserved"})
-# UNMAPPED: subroutine(0x8FF1, "print_station_id",
-# UNMAPPED:     title="Print Econet station number and clock status",
-# UNMAPPED:     description="Uses print_inline to output 'Econet Station ',\n"
-# UNMAPPED:     "then reads the station ID from offset 1 of the\n"
-# UNMAPPED:     "receive control block and prints it as a decimal\n"
-# UNMAPPED:     "number via print_num_no_leading. Tests ADLC\n"
-# UNMAPPED:     "status register 2 (&FEA1) to detect the Econet\n"
-# UNMAPPED:     "clock; if absent, appends ' No Clock' via a\n"
-# UNMAPPED:     "second inline string. Finishes with OSNEWL.\n"
-# UNMAPPED:     "Called by print_version_header and svc_3_auto_boot.")
+# Located in 4.21_v1 at &90C7 (was &8FF1 in 4.18). Found by searching
+# for the inline "Econet Station " string at &90CA and reading back to
+# the JSR print_inline at &90C7. Already classified as code (c90c7
+# auto-label, 2 callers from &8CAA and &8CE4).
+subroutine(0x90C7, "print_station_id",
+    title="Print Econet station number and clock status",
+    description="Uses print_inline to output 'Econet Station ',\n"
+    "then reads the station ID from offset 1 of the\n"
+    "receive control block and prints it as a decimal\n"
+    "number via print_num_no_leading. Tests ADLC\n"
+    "status register 2 (&FEA1) to detect the Econet\n"
+    "clock; if absent, appends ' No Clock' via a\n"
+    "second inline string. Finishes with OSNEWL.\n"
+    "Called by print_version_header and svc_3_auto_boot.")
 subroutine(0x91F9, "print_newline_no_spool",
     title="Print CR via OSASCI, bypassing any open *SPOOL file",
     description="Loads A=&0D and falls into print_char_no_spool. The "
@@ -3620,14 +3624,22 @@ subroutine(0xA3BB, "print_fs_info_newline",
     "the network number) then prints the station\n"
     "address followed by a newline via OSNEWL.\n"
     "Used by *FS and *PS output formatting.")
-# UNMAPPED: subroutine(0xA0A7, "parse_fs_ps_args",
-# UNMAPPED:     title="Parse station address from *FS/*PS arguments",
-# UNMAPPED:     description="Reads a station address in 'net.station' format\n"
-# UNMAPPED:     "from the command line, with the network number\n"
-# UNMAPPED:     "optional (defaults to local network). Calls\n"
-# UNMAPPED:     "init_bridge_poll to ensure the bridge routing\n"
-# UNMAPPED:     "table is populated, then validates the parsed\n"
-# UNMAPPED:     "address against known stations.")
+# Located in 4.21_v1 at &A3C4 (was &A0A7 in 4.18). Body matches with
+# 65C12 PHX/PHY replacing 4.18's TXA/PHA and TYA/PHA, plus the
+# parsed-station storage moves from fs_work_6 (&B6) to fs_work_7
+# (&B7). Already classified as code (sub_ca3c4 with 3 callers from
+# &A3A8, &B3CF, &B5A6).
+subroutine(0xA3C4, "parse_fs_ps_args",
+    title="Parse station address from *FS/*PS arguments",
+    description="Reads a station address in 'net.station' format\n"
+    "from the command line, with the network number\n"
+    "optional (defaults to local network). Calls\n"
+    "init_bridge_poll to ensure the bridge routing\n"
+    "table is populated, then validates the parsed\n"
+    "address against known stations. 4.21 version uses\n"
+    "65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and\n"
+    "stores the result in fs_work_7 (was fs_work_6 in\n"
+    "4.18).")
 subroutine(0xA3E7, "get_pb_ptr_as_index",
     title="Convert parameter block pointer to table index",
     description="Reads the first byte from the OSWORD parameter\n"

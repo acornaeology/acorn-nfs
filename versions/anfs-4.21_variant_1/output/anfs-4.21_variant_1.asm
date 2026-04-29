@@ -3309,7 +3309,7 @@ l89c9 = reset_enter_listen+2
     equs &0d, "Advanced NFS 4.21", &0d                                ; 8c96: 0d 41 64... .Ad
 
     nop                                                               ; 8ca9: ea          .
-    jmp c90c7                                                         ; 8caa: 4c c7 90    L..
+    jmp print_station_id                                              ; 8caa: 4c c7 90    L..
 
 ; ***************************************************************************************
 ; Read workspace page number for current ROM slot
@@ -3395,7 +3395,7 @@ l89c9 = reset_enter_listen+2
     jsr sub_c8b52                                                     ; 8cdd: 20 52 8b     R.            ; Select NFS as current filing system
     lda #0                                                            ; 8ce0: a9 00       ..
     sta svc_state                                                     ; 8ce2: 85 a9       ..
-    jsr c90c7                                                         ; 8ce4: 20 c7 90     ..            ; Print station number
+    jsr print_station_id                                              ; 8ce4: 20 c7 90     ..            ; Print station number
     jsr osnewl                                                        ; 8ce7: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
     ldx ws_page                                                       ; 8cea: a6 a8       ..             ; Get workspace page
     bne return_from_setup_ws_ptr                                      ; 8cec: d0 d8       ..             ; Non-zero: already initialised, return
@@ -4123,8 +4123,20 @@ l8da7 = sub_c8da6+1
     jsr error_bad_inline                                              ; 90b7: 20 a7 99     ..            ; Raise 'net checksum' error
     equs "net checksum", 0                                            ; 90ba: 6e 65 74... net
 
+; ***************************************************************************************
+; Print Econet station number and clock status
+; 
+; Uses print_inline to output 'Econet Station ',
+; then reads the station ID from offset 1 of the
+; receive control block and prints it as a decimal
+; number via print_num_no_leading. Tests ADLC
+; status register 2 (&FEA1) to detect the Econet
+; clock; if absent, appends ' No Clock' via a
+; second inline string. Finishes with OSNEWL.
+; Called by print_version_header and svc_3_auto_boot.
+; ***************************************************************************************
 ; &90c7 referenced 2 times by &8caa, &8ce4
-.c90c7
+.print_station_id
     jsr print_inline                                                  ; 90c7: 20 61 92     a.
     equs "Econet Station "                                            ; 90ca: 45 63 6f... Eco            ; Print 'Econet Station ' via inline
 
@@ -8004,7 +8016,7 @@ la0ff = sub_ca0fe+1
     lda (fs_crc_lo),y                                                 ; a3a2: b1 be       ..
     cmp #&0d                                                          ; a3a4: c9 0d       ..
     beq print_current_fs                                              ; a3a6: f0 10       ..
-    jsr sub_ca3c4                                                     ; a3a8: 20 c4 a3     ..
+    jsr parse_fs_ps_args                                              ; a3a8: 20 c4 a3     ..
     lda #1                                                            ; a3ab: a9 01       ..
     sta fs_work_4                                                     ; a3ad: 85 b4       ..
     lda #&13                                                          ; a3af: a9 13       ..
@@ -8029,8 +8041,21 @@ la0ff = sub_ca0fe+1
     jsr print_station_addr                                            ; a3be: 20 56 b5     V.
     jmp osnewl                                                        ; a3c1: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
+; ***************************************************************************************
+; Parse station address from *FS/*PS arguments
+; 
+; Reads a station address in 'net.station' format
+; from the command line, with the network number
+; optional (defaults to local network). Calls
+; init_bridge_poll to ensure the bridge routing
+; table is populated, then validates the parsed
+; address against known stations. 4.21 version uses
+; 65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and
+; stores the result in fs_work_7 (was fs_work_6 in
+; 4.18).
+; ***************************************************************************************
 ; &a3c4 referenced 3 times by &a3a8, &b3cf, &b5a6
-.sub_ca3c4
+.parse_fs_ps_args
     phx                                                               ; a3c4: da          .
     lda #0                                                            ; a3c5: a9 00       ..
     sta fs_work_4                                                     ; a3c7: 85 b4       ..
@@ -11334,7 +11359,7 @@ labc5 = compare_bridge_status+1
     jsr load_ps_server_addr                                           ; b3ca: 20 a8 b4     ..            ; Inline string terminator (NOP); Read user response character
     pla                                                               ; b3cd: 68          h
     tay                                                               ; b3ce: a8          .              ; User pressed '?'?
-    jsr sub_ca3c4                                                     ; b3cf: 20 c4 a3     ..            ; No: check for Y/N response
+    jsr parse_fs_ps_args                                              ; b3cf: 20 c4 a3     ..            ; No: check for Y/N response
     jmp store_ps_station                                              ; b3d2: 4c 77 b4    Lw.            ; Carriage return before full info; Print CR
 
 ; ***************************************************************************************
@@ -11763,7 +11788,7 @@ lb4fd = write_ps_slot_hi_link+1
     jsr load_ps_server_addr                                           ; b5a1: 20 a8 b4     ..            ; Load PS server address
     pla                                                               ; b5a4: 68          h              ; Restore Y
     tay                                                               ; b5a5: a8          .              ; Back to Y register
-    jsr sub_ca3c4                                                     ; b5a6: 20 c4 a3     ..            ; Parse FS/PS arguments
+    jsr parse_fs_ps_args                                              ; b5a6: 20 c4 a3     ..            ; Parse FS/PS arguments
     ldy #&7a ; 'z'                                                    ; b5a9: a0 7a       .z             ; Offset &7A in slot buffer
     lda fs_work_5                                                     ; b5ab: a5 b5       ..             ; Get parsed station low
     sta (work_ae),y                                                   ; b5ad: 91 ae       ..             ; Store station number low
@@ -14060,6 +14085,7 @@ save pydis_start, pydis_end
 ;     osbyte_x0:                      3
 ;     osfind:                         3
 ;     osword_pb_ptr_hi:               3
+;     parse_fs_ps_args:               3
 ;     poll_adlc_tx_status:            3
 ;     print_newline_no_spool:         3
 ;     process_match_result:           3
@@ -14074,7 +14100,6 @@ save pydis_start, pydis_end
 ;     save_text_ptr:                  3
 ;     send_disconnect_reply:          3
 ;     sub_c8900:                      3
-;     sub_ca3c4:                      3
 ;     tube_claim_c3:                  3
 ;     tx_bad_ctrl_error:              3
 ;     tx_begin:                       3
@@ -14100,7 +14125,6 @@ save pydis_start, pydis_end
 ;     c842f:                          2
 ;     c8827:                          2
 ;     c8922:                          2
-;     c90c7:                          2
 ;     c9895:                          2
 ;     ca75f:                          2
 ;     cb2f7:                          2
@@ -14238,6 +14262,7 @@ save pydis_start, pydis_end
 ;     print_hex_byte:                 2
 ;     print_num_no_leading:           2
 ;     print_printer_server_is:        2
+;     print_station_id:               2
 ;     print_version_header:           2
 ;     recv_and_process_reply:         2
 ;     release_tube:                   2
@@ -15120,7 +15145,6 @@ save pydis_start, pydis_end
 ;     c8b5a
 ;     c8cbb
 ;     c8e9a
-;     c90c7
 ;     c925d
 ;     c9298
 ;     c92af
@@ -15313,7 +15337,6 @@ save pydis_start, pydis_end
 ;     sub_c9612
 ;     sub_c988f
 ;     sub_ca0fe
-;     sub_ca3c4
 ;     sub_cb303
 ;     sub_cb310
 
