@@ -6966,14 +6966,17 @@ subroutine(0x8ED8, "svc_7_osbyte",
     "JMPs to svc_dispatch with Y=&21 to reach the\n"
     "Econet OSBYTE handler table.",
     on_entry={"a": "OSBYTE number (from osbyte_a_copy at &EF)"})
-# UNMAPPED: subroutine(0xA4EE, "svc_8_osword",
-# UNMAPPED:     title="Filing system OSWORD entry",
-# UNMAPPED:     description="Handles MOS service call 8 (unrecognised OSWORD).\n"
-# UNMAPPED:     "Filters OSWORD codes &0E-&14 by subtracting &0E (via\n"
-# UNMAPPED:     "CLC/SBC &0D) and rejecting values outside 0-6. For\n"
-# UNMAPPED:     "valid codes, calls osword_setup_handler to push the\n"
-# UNMAPPED:     "dispatch address, then copies 3 bytes from the RX\n"
-# UNMAPPED:     "buffer to osword_flag workspace.")
+# Located in 4.21_v1 at &A83B (was &A4EE in 4.18) by opcode fingerprint
+# (ratio 0.952 over 21 opcodes). Reached via PHA/PHA/RTS dispatch.
+entry(0xA83B)
+subroutine(0xA83B, "svc_8_osword",
+    title="Service 8: unrecognised OSWORD",
+    description="Handles MOS service call 8 (unrecognised OSWORD).\n"
+    "Filters OSWORD codes &0E-&14 by subtracting &0E (via\n"
+    "CLC/SBC &0D) and rejecting values outside 0-6. For\n"
+    "valid codes, calls osword_setup_handler to push the\n"
+    "dispatch address, then copies 3 bytes from the RX\n"
+    "buffer to osword_flag workspace.")
 subroutine(0x8C51, "svc_9_help",
     title="Service 9: *HELP",
     description="Handles MOS service call 9 (*HELP). First checks\n"
@@ -7217,7 +7220,9 @@ for flag_addr, or_addr, and_addr in _attr_entries:
     byte(flag_addr)
     byte(or_addr)
     byte(and_addr)
-byte(0xA83B)  # End-of-table sentinel
+# &A83B was a 1-byte sentinel in 4.18; in 4.21_v1 it's the start of
+# svc_8_osword (relocated from 4.18 &A4EE). The byte() directive has
+# been removed so py8dis classifies it as code.
 
 # Inline comments for sub-table 4
 # UNMAPPED: comment(0xA4C3, "Halt", inline=True)

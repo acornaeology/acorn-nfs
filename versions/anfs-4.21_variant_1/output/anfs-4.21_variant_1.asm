@@ -118,6 +118,7 @@ nfs_temp                    = &00cd
 rom_svc_num                 = &00ce
 fs_spool0                   = &00cf
 vdu_status                  = &00d0
+l00ed                       = &00ed
 osbyte_a_copy               = &00ef
 osword_pb_ptr               = &00f0
 osword_pb_ptr_hi            = &00f1
@@ -378,6 +379,7 @@ econet_control23_or_status2 = &fea1
 econet_data_continue_frame  = &fea2
 econet_data_terminate_frame = &fea3
 tube_data_register_3        = &fee5
+lffb0                       = &ffb0
 lffbd                       = &ffbd
 oseven                      = &ffbf
 gsinit                      = &ffc2
@@ -8674,11 +8676,24 @@ la0ff = sub_ca0fe+1
     equb &5e, &96                                                     ; a831: 5e 96       ^.             ; PB[0] = 0 (no bridge)
     equs "Space"                                                      ; a833: 53 70 61... Spa            ; Y=1
     equb &80, &41, &96                                                ; a838: 80 41 96    .A.            ; PB[1] = bridge status; Y=2
-    equb &80                                                          ; a83b: 80          .              ; End of attribute keyword table; Y=3
-    equb &18, &a5, &ef, &e9, &0d, &30, &2d, &c9,   7, &b0, &29, &aa   ; a83c: 18 a5 ef... ...            ; Load PB[3] (caller value); Zero: use default station; Compare with bridge status; Different: return unchanged; Same: confirm station; Load default from l0e01
-    equb &a0,   6, &b9, &a9,   0, &48, &b9, &ed,   0, &99, &a9,   0   ; a848: a0 06 b9... ...            ; Store to PB[3]; Return; TX 0: ctrl = &82 (immediate mode); TX 1: port = &9C (bridge discovery); TX 2: dest station = &FF (broadcast); TX 3: dest network = &FF (all nets); TX 4-9: immediate data payload
-    equb &88, &d0, &f3, &20, &64, &a8, &a0, &fa, &68, &99, &b0, &ff   ; a854: 88 d0 f3... ...            ; TX 10: &9C (port echo); TX 11: &00 (terminator); RX 0: ctrl = &7F (receive); RX 1: port = &9C (bridge discovery); RX 2: station = &00 (any); RX 3: network = &00 (any); RX 5: buf start hi (&0D) -> &0D72; RX 6: extended addr fill (&FF)
-    equb &c8, &d0, &f9, &60                                           ; a860: c8 d0 f9... ...            ; RX 7: extended addr fill (&FF); RX 9: buf end hi (&0D) -> &0D74; RX 10: extended addr fill (&FF)
+
+; ***************************************************************************************
+; Service 8: unrecognised OSWORD
+; 
+; Handles MOS service call 8 (unrecognised OSWORD).
+; Filters OSWORD codes &0E-&14 by subtracting &0E (via
+; CLC/SBC &0D) and rejecting values outside 0-6. For
+; valid codes, calls osword_setup_handler to push the
+; dispatch address, then copies 3 bytes from the RX
+; buffer to osword_flag workspace.
+; ***************************************************************************************
+.svc_8_osword
+    bra ca855                                                         ; a83b: 80 18       ..             ; End of attribute keyword table; Y=3; Load PB[3] (caller value)
+    equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...            ; Zero: use default station; Compare with bridge status; Different: return unchanged; Same: confirm station; Load default from l0e01
+
+; &a84a referenced 1 time by &a855
+.loop_ca84a
+    lda svc_state,y                                                   ; a84a: b9 a9 00    ...            ; Store to PB[3]; Return
 ; Bridge discovery init data (24 bytes)
 ; 
 ; Two 12-byte templates copied simultaneously by
@@ -8692,6 +8707,22 @@ la0ff = sub_ca0fe+1
 ; port &9C to all stations (FF.FF). The RX listens
 ; on the same port for a reply into the bridge
 ; status bytes at &0D72.
+    pha                                                               ; a84d: 48          H              ; TX 0: ctrl = &82 (immediate mode)
+    lda l00ed,y                                                       ; a84e: b9 ed 00    ...            ; TX 1: port = &9C (bridge discovery); TX 2: dest station = &FF (broadcast); TX 3: dest network = &FF (all nets)
+    sta svc_state,y                                                   ; a851: 99 a9 00    ...            ; TX 4-9: immediate data payload
+    dey                                                               ; a854: 88          .
+; &a855 referenced 1 time by &a83b
+.ca855
+    bne loop_ca84a                                                    ; a855: d0 f3       ..
+    jsr osword_setup_handler                                          ; a857: 20 64 a8     d.            ; TX 10: &9C (port echo); TX 11: &00 (terminator); RX 0: ctrl = &7F (receive)
+    ldy #&fa                                                          ; a85a: a0 fa       ..             ; RX 1: port = &9C (bridge discovery); RX 2: station = &00 (any)
+; &a85c referenced 1 time by &a861
+.loop_ca85c
+    pla                                                               ; a85c: 68          h              ; RX 3: network = &00 (any)
+    sta lffb0,y                                                       ; a85d: 99 b0 ff    ...            ; RX 5: buf start hi (&0D) -> &0D72; RX 6: extended addr fill (&FF)
+    iny                                                               ; a860: c8          .              ; RX 7: extended addr fill (&FF)
+    bne loop_ca85c                                                    ; a861: d0 f9       ..             ; RX 9: buf end hi (&0D) -> &0D74
+    rts                                                               ; a863: 60          `              ; RX 10: extended addr fill (&FF)
 
 ; ***************************************************************************************
 ; Push OSWORD handler address for RTS dispatch
@@ -8707,6 +8738,7 @@ la0ff = sub_ca0fe+1
 ; On Entry:
 ;     X: OSWORD handler index (0-6)
 ; ***************************************************************************************
+; &a864 referenced 1 time by &a857
 .osword_setup_handler
     lda la878,x                                                       ; a864: bd 78 a8    .x.            ; RX 11: extended addr fill (&FF); Check bridge status
     pha                                                               ; a867: 48          H
@@ -13592,6 +13624,7 @@ save pydis_start, pydis_end
 ;     net_tx_ptr_hi:                 14
 ;     open_port_buf:                 14
 ;     port_buf_len_hi:               14
+;     svc_state:                     14
 ;     fs_last_byte_flag:             13
 ;     lc210:                         13
 ;     osasci:                        13
@@ -13600,7 +13633,6 @@ save pydis_start, pydis_end
 ;     lc2c9:                         12
 ;     return_with_last_flag:         12
 ;     sub_cb2cf:                     12
-;     svc_state:                     12
 ;     error_bad_inline:              11
 ;     error_inline_log:              11
 ;     fs_load_addr_3:                11
@@ -14079,6 +14111,7 @@ save pydis_start, pydis_end
 ;     ca5df:                          1
 ;     ca70b:                          1
 ;     ca71c:                          1
+;     ca855:                          1
 ;     caf92:                          1
 ;     calc_peek_poke_size:            1
 ;     calc_transfer_size:             1
@@ -14277,6 +14310,7 @@ save pydis_start, pydis_end
 ;     jmp_osbyte:                     1
 ;     l0020:                          1
 ;     l0026:                          1
+;     l00ed:                          1
 ;     l02a0:                          1
 ;     l0350:                          1
 ;     l0351:                          1
@@ -14335,6 +14369,7 @@ save pydis_start, pydis_end
 ;     lc2d1:                          1
 ;     lc2d6:                          1
 ;     ld020:                          1
+;     lffb0:                          1
 ;     lffbd:                          1
 ;     library_dir_prefix:             1
 ;     library_tried:                  1
@@ -14353,6 +14388,8 @@ save pydis_start, pydis_end
 ;     loop_c8bea:                     1
 ;     loop_c9292:                     1
 ;     loop_ca0f2:                     1
+;     loop_ca84a:                     1
+;     loop_ca85c:                     1
 ;     loop_cb2b9:                     1
 ;     loop_cb316:                     1
 ;     loop_cbb3c:                     1
@@ -14551,6 +14588,7 @@ save pydis_start, pydis_end
 ;     osword_13_read_ctx_3:           1
 ;     osword_13_write_ctx_3:          1
 ;     osword_claim_codes:             1
+;     osword_setup_handler:           1
 ;     oswrch:                         1
 ;     parse_fs_dot_dir:               1
 ;     pass_send_cmd:                  1
@@ -14843,6 +14881,7 @@ save pydis_start, pydis_end
 ;     ca70b
 ;     ca71c
 ;     ca75f
+;     ca855
 ;     caf92
 ;     cb2f7
 ;     cb2f9
@@ -14851,6 +14890,7 @@ save pydis_start, pydis_end
 ;     cb625
 ;     l0020
 ;     l0026
+;     l00ed
 ;     l0100
 ;     l0101
 ;     l0102
@@ -14983,10 +15023,13 @@ save pydis_start, pydis_end
 ;     lfe34
 ;     lfe38
 ;     lfe3c
+;     lffb0
 ;     lffbd
 ;     loop_c8bea
 ;     loop_c9292
 ;     loop_ca0f2
+;     loop_ca84a
+;     loop_ca85c
 ;     loop_cb2b9
 ;     loop_cb316
 ;     loop_cbb3c
@@ -15019,11 +15062,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 12711 bytes (78%)
-;     Data                     = 3673 bytes (22%)
+;     Code                     = 12739 bytes (78%)
+;     Data                     = 3645 bytes (22%)
 ;
-;     Number of instructions   = 6277
-;     Number of data bytes     = 2354 bytes
+;     Number of instructions   = 6291
+;     Number of data bytes     = 2326 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 149
