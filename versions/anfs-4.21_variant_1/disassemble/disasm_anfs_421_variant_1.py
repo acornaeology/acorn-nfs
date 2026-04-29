@@ -613,7 +613,11 @@ label(0x91C6, "syn_rename")      # "<filename> <new filename>"
 label(0x91E0, "syn_opt_stn")     # "(<stn. id.>)"
 # UNMAPPED: label(0x9117, "syn_filename")    # "<filename>"
 label(0x91ED, "cmd_syntax_table")
-for i in range(13):
+# 12 entries (idx 0-11) in 4.21_v1; 4.18 had 13 because it included
+# syn_filename at idx 12. The Master variant drops that command, so the
+# byte that follows the table at &91F9 is now the entry point of the
+# print_no_spool helper rather than a table value.
+for i in range(12):
     byte(0x91ED + i)
 # Symbolic expressions: offset = string_start - cmd_syntax_strings - 1
 # (the print loop does INY before LDA, so offset points to byte before string)
@@ -630,6 +634,11 @@ expr(0x91F6, "syn_access - cmd_syntax_strings - 1")
 # UNMAPPED: expr(0x912C, "syn_rename - cmd_syntax_strings - 1")
 expr(0x91F8, "syn_opt_stn - cmd_syntax_strings - 1")
 # UNMAPPED: expr(0x912E, "syn_filename - cmd_syntax_strings - 1")
+label(0x9203, "save_regs_for_print_no_spool")  # shared body of print_*_no_spool
+label(0x921D, "do_print_no_spool")              # PLP/PLA/PHA + OSASCI/OSWRCH branch
+label(0x9227, "print_via_oswrch")               # OSWRCH branch from BVC at &9220
+label(0x922A, "restore_spool_and_return")       # final OSBYTE 199 + register pull/RTS
+label(0x9769, "always_set_v_byte")              # &FF byte used as `BIT $abs` to set V
 label(0x9247, "add_ascii_base")
 label(0x9269, "loop_next_char")
 label(0x926F, "load_char")
@@ -2995,6 +3004,43 @@ subroutine(0x909E, "verify_ws_checksum",
 # UNMAPPED:     "clock; if absent, appends ' No Clock' via a\n"
 # UNMAPPED:     "second inline string. Finishes with OSNEWL.\n"
 # UNMAPPED:     "Called by print_version_header and svc_3_auto_boot.")
+subroutine(0x91F9, "print_newline_no_spool",
+    title="Print CR via OSASCI, bypassing any open *SPOOL file",
+    description="Loads A=&0D and falls into print_char_no_spool. The "
+    "underlying mechanism temporarily writes 0 to the *SPOOL file "
+    "handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is not "
+    "captured by spool, then restores the previous handle on exit. "
+    "Called from service_handler (&8A7C) after the 'Bad ROM <slot>' "
+    "message, and from two other diagnostic sites (&8E10, &9D3E).")
+
+subroutine(0x91FB, "print_char_no_spool",
+    title="Print A via OSASCI, bypassing any open *SPOOL file",
+    description="Pushes the caller's flags, then forces V=1 via the "
+    "BIT &9769 / BVS trick (&9769 is a constant &FF byte in ROM). "
+    "Saves X, Y, A and a copy of the (now V=1) flags. Calls OSBYTE "
+    "&C7 with X=0, Y=0 to write 0 to the *SPOOL file handle, "
+    "returning the previous handle in X. If the previous handle was "
+    "in the NFS-issued range &21-&2F, calls OSBYTE &C7 again with "
+    "X=OLD, Y=0 to restore the spool BEFORE the print (so the print "
+    "is captured); otherwise leaves spool closed for the duration of "
+    "the print. PLPs the inner P, then routes to OSASCI (because the "
+    "BIT trick set V=1 -> BVC at &9220 not taken). Final OSBYTE &C7 "
+    "with Y=&FF either no-ops (if spool already restored) or writes "
+    "OLD back (if it was deferred). Pulls A, Y, X, P and returns.\n"
+    "\n"
+    "Eight inner-ROM callers: &925F, &92A4, &9D30, &9D5C, &B21F, "
+    "&B2F9, &B321, &B752.",
+    on_entry={"a": "byte to print as ASCII char (CR is translated by OSASCI)"})
+
+subroutine(0x9201, "print_byte_no_spool",
+    title="Print A via OSWRCH (raw, no CR translation), bypass *SPOOL",
+    description="As print_char_no_spool but the inner PHP/CLV at &9201 "
+    "forces V=0 in the saved flags, so the BVC at &9220 takes the "
+    "OSWRCH branch instead of OSASCI. Used when the caller wants to "
+    "emit a raw byte (e.g. a VDU control code) without CR translation. "
+    "Sole caller in this ROM is at &8DE6.",
+    on_entry={"a": "raw byte to print via OSWRCH"})
+
 subroutine(0x9236, "print_hex_byte",
     title="Print A as two hexadecimal digits",
     description="Saves A on the stack, shifts right four times\n"
@@ -5981,7 +6027,7 @@ comment(0x8A6A, "Save flags (Z set if OS 1.00) across print", inline=True)
 comment(0x8A6B, "Print '<CR>Bad ROM ' to mark non-Master OS", inline=True)
 comment(0x8A77, "Load this ROM's slot number", inline=True)
 comment(0x8A79, "Print slot number as decimal", inline=True)
-comment(0x8A7C, "Print trailing newline (l91f9: needs review)", inline=True)
+comment(0x8A7C, "Print trailing newline, bypassing *SPOOL", inline=True)
 comment(0x8A7F, "Reload ROM slot for workspace clearing", inline=True)
 comment(0x8A81, "Restore flags", inline=True)
 comment(0x8A82, "OS 1.00: skip INX (table starts at slot 0)", inline=True)
@@ -9758,122 +9804,51 @@ comment(0x9165, "Restore string pointer low", inline=True)
 comment(0x9166, "Store pointer low", inline=True)
 comment(0x9168, "Loop for next character", inline=True)
 
-# parse_addr_arg (&915A) — parse hex (&nn) or decimal number
-# fs_work_4 controls mode: 0=net.station, &FF=decimal-only
-comment(0x916E, "Clear accumulator", inline=True)
-comment(0x9170, "Initialise result to zero", inline=True)
-comment(0x9172, "Get first character of argument", inline=True)
-comment(0x9174, "Is it '&' (hex prefix)?", inline=True)
-comment(0x9176, "No: try decimal path", inline=True)
-comment(0x9178, "Skip '&' prefix", inline=True)
-comment(0x9179, "Get first hex digit", inline=True)
-comment(0x917B, "C always set from CMP: validate digit", inline=True)
+# &916E-&91F8 in 4.21_v1 is entirely syntax-string data and the
+# cmd_syntax_table — there is no parse_addr_arg routine here. The 4.18
+# carry-over comments for parse_addr_arg / accumulate-hex / accumulate-
+# decimal landed inside string bytes and have been removed. parse_addr_arg
+# in 4.21_v1, if it still exists, will live at a different address; finding
+# it is a separate task.
 
-# Hex digit loop — reads chars, checks for '.'/terminator
-comment(0x917D, "Advance to next character", inline=True)
-comment(0x917E, "Get next character", inline=True)
-comment(0x9180, "Is it '.' (net.station separator)?", inline=True)
-comment(0x9182, "Yes: handle dot separator", inline=True)
-comment(0x9184, "Below '!' (space/control)?", inline=True)
-comment(0x9186, "Yes: end of number", inline=True)
-
-# Hex digit validation — '0'-'9' or case-insensitive 'A'-'F'
-comment(0x9188, "Below '0'?", inline=True)
-comment(0x918A, "Not a digit: bad hex", inline=True)
-comment(0x918C, "Above '9'?", inline=True)
-comment(0x918E, "Decimal digit: extract value", inline=True)
-comment(0x9190, "Force uppercase", inline=True)
-comment(0x9192, "Map 'A'-'F' to &FA-&FF", inline=True)
-comment(0x9194, "Overflow: not A-F", inline=True)
-comment(0x9196, "Valid hex letter (A-F)?", inline=True)
-comment(0x9198, "Below A: bad hex", inline=True)
-
-# Accumulate hex digit — shift result left 4, add digit
-comment(0x919A, "Extract digit value (0-15)", inline=True)
-comment(0x919C, "Save current digit", inline=True)
-comment(0x919E, "Load running result", inline=True)
-comment(0x91A0, "Would shift overflow a byte?", inline=True)
-comment(0x91A2, "Yes: overflow error", inline=True)
-comment(0x91A4, "Shift result left 4 (x16)", inline=True)
-comment(0x91A5, "(shift 2)", inline=True)
-comment(0x91A6, "(shift 3)", inline=True)
-comment(0x91A7, "(shift 4)", inline=True)
-comment(0x91A8, "Add new hex digit", inline=True)
-comment(0x91AA, "Store updated result", inline=True)
-comment(0x91AC, "Loop for next hex digit", inline=True)
-
-# Decimal path — parse digits with multiply-by-10
-comment(0x91AE, "Get current character", inline=True)
-comment(0x91B0, "Is it '.' (net.station separator)?", inline=True)
-comment(0x91B2, "Yes: handle dot separator", inline=True)
-comment(0x91B4, "Below '!' (space/control)?", inline=True)
-comment(0x91B6, "Yes: end of number", inline=True)
-comment(0x91B8, "Is it a decimal digit?", inline=True)
-comment(0x91BB, "No: 'Bad number' error", inline=True)
-comment(0x91BD, "Extract digit value (0-9)", inline=True)
-comment(0x91BF, "Save current digit", inline=True)
-comment(0x91C1, "result * 2", inline=True)
-comment(0x91C3, "Overflow", inline=True)
-comment(0x91C5, "Load result * 2", inline=True)
-comment(0x91C7, "result * 4", inline=True)
-comment(0x91C8, "Overflow", inline=True)
-comment(0x91CA, "result * 8", inline=True)
-comment(0x91CB, "Overflow", inline=True)
-comment(0x91CD, "* 8 + * 2 = result * 10", inline=True)
-comment(0x91CF, "Overflow", inline=True)
-comment(0x91D1, "result * 10 + new digit", inline=True)
-comment(0x91D3, "Overflow", inline=True)
-comment(0x91D5, "Store updated result", inline=True)
-comment(0x91D7, "Advance to next character", inline=True)
-comment(0x91D8, "Loop (always branches)", inline=True)
-
-# End-of-number validation
-comment(0x91DA, "Check parsing mode", inline=True)
-comment(0x91DC, "Bit 7 clear: net.station mode", inline=True)
-comment(0x91DE, "Decimal-only mode: get result", inline=True)
-comment(0x91E0, "Zero: 'Bad parameter'", inline=True)
-comment(0x91E2, "Return with result in A", inline=True)
-
-# Station number validation
-comment(0x91E3, "Get parsed station number", inline=True)
-comment(0x91E5, "Station 255 is reserved", inline=True)
-comment(0x91E7, "255: 'Bad station number'", inline=True)
-comment(0x91E9, "Reload result", inline=True)
-comment(0x91EB, "Non-zero: valid station", inline=True)
-comment(0x91ED, "Zero result: check if dot was seen", inline=True)
-comment(0x91EF, "No dot and zero: 'Bad station number'", inline=True)
-comment(0x91F1, "Check character before current pos", inline=True)
-comment(0x91F2, "Load previous character", inline=True)
-comment(0x91F4, "Restore Y", inline=True)
-comment(0x91F5, "Was previous char '.'?", inline=True)
-comment(0x91F7, "No: 'Bad station number'", inline=True)
-
-# Valid station: return with C set
-comment(0x91F9, "C=1: number was parsed", inline=True)
-comment(0x91FA, "Return (result in fs_load_addr_2)", inline=True)
-
-# Dot separator — store network part, set dot-seen flag
-comment(0x91FB, "Check if dot already seen", inline=True)
-comment(0x91FD, "Already seen: 'Bad number'", inline=True)
-comment(0x91FF, "Set dot-seen flag", inline=True)
-comment(0x9201, "Get network number (before dot)", inline=True)
-comment(0x9203, "Network 255 is reserved", inline=True)
-comment(0x9205, "255: 'Bad network number'", inline=True)
-comment(0x9207, "Return to caller with network part", inline=True)
-
-# Error handlers for parse_addr_arg
-comment(0x9208, "Error code &F1", inline=True)
-comment(0x920A, "Generate 'Bad hex' error", inline=True)
-comment(0x9211, "Test parsing mode", inline=True)
-comment(0x9213, "Decimal mode: 'Bad parameter'", inline=True)
-comment(0x9215, "Error code &D0", inline=True)
-comment(0x9217, "Generate 'Bad station number' error", inline=True)
-comment(0x9229, "Error code &F0", inline=True)
-comment(0x922B, "Generate 'Bad number' error", inline=True)
-comment(0x9235, "Error code &94", inline=True)
-comment(0x9237, "Generate 'Bad parameter' error", inline=True)
-comment(0x9244, "Error code &D1", inline=True)
-comment(0x9246, "Generate 'Bad network number' error", inline=True)
+# ============================================================
+# print_*_no_spool inline comments (&91F9-&9235)
+# ============================================================
+comment(0x91F9, "A=&0D (CR) for OSASCI translation; fall through", inline=True)
+comment(0x91FB, "Save caller's flags (V from caller is irrelevant — see &91FC)", inline=True)
+comment(0x91FC, "BIT &FF unconditionally sets V=1 (bit 6 of operand)", inline=True)
+comment(0x91FF, "V=1 always, branch always taken (skips the CLV path)", inline=True)
+comment(0x9201, "Alt entry: save caller's flags BEFORE forcing V=0", inline=True)
+comment(0x9202, "Force V=0 -> OSWRCH path at &9220 (raw byte)", inline=True)
+comment(0x9203, "Save X", inline=True)
+comment(0x9204, "Save Y", inline=True)
+comment(0x9205, "Save A (the byte to print)", inline=True)
+comment(0x9206, "Save inner P — V here picks OSASCI vs OSWRCH later", inline=True)
+comment(0x9207, "OSBYTE 199 (read/write *SPOOL file handle)", inline=True)
+comment(0x9209, "X=0: handle value to write", inline=True)
+comment(0x920B, "Y=0: write mode (NEW = (OLD AND 0) EOR X = X = 0)", inline=True)
+comment(0x920D, "Closes spool; X returns OLD handle", inline=True)
+comment(0x9210, "OLD < ' '? (likely 0 = was already closed)", inline=True)
+comment(0x9212, "Yes: leave spool closed for the print", inline=True)
+comment(0x9214, "OLD >= '0'?", inline=True)
+comment(0x9216, "Yes (>= &30): leave spool closed", inline=True)
+comment(0x9218, "OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD", inline=True)
+comment(0x921B, "Clear X for the post-print restore", inline=True)
+comment(0x921D, "Restore inner P (V=1 OSASCI / V=0 OSWRCH)", inline=True)
+comment(0x921E, "Pull A (the byte)", inline=True)
+comment(0x921F, "Push it back so the final epilogue PLA still works", inline=True)
+comment(0x9220, "V=0 -> OSWRCH (raw); V=1 -> OSASCI (CR translation)", inline=True)
+comment(0x9222, "OSASCI: writes A, translating CR to CR/LF", inline=True)
+comment(0x9225, "Skip OSWRCH branch", inline=True)
+comment(0x9227, "OSWRCH: writes A as a raw byte", inline=True)
+comment(0x922A, "OSBYTE 199 again to restore spool state", inline=True)
+comment(0x922C, "Y=&FF (read mode): NEW = OLD EOR X", inline=True)
+comment(0x922E, "X=0 -> no change; X=OLD -> writes OLD back", inline=True)
+comment(0x9231, "Pull A (preserved across the call)", inline=True)
+comment(0x9232, "Pull Y", inline=True)
+comment(0x9233, "Pull X", inline=True)
+comment(0x9234, "Pull caller's original flags", inline=True)
+comment(0x9235, "Return", inline=True)
 
 # is_decimal_digit (&9244) — test if char is decimal digit
 # Also rejects '&' and '.' as non-decimal

@@ -49,6 +49,19 @@ Status legend: ✅ verified accurate, 🔧 fixed, ⚠️ partial, ❌ replaced/g
 | &8A54 | service_handler | 🔧 | done; description rewritten for Master-only Bad ROM rejection; 8 inline comments updated, 4 added |
 | &4342 | language_entry | | check ROM header |
 
+### Print helpers
+
+| Addr | Name | Status | Notes |
+|------|------|--------|-------|
+| &91F9 | print_newline_no_spool | 🔧 | renamed from auto `l91f9`; OSBYTE 199 closes/restores spool around CR via OSASCI |
+| &91FB | print_char_no_spool    | 🔧 | renamed from auto `c91fb`; A->OSASCI, BIT &9769 forces V=1 |
+| &9201 | print_byte_no_spool    | 🔧 | renamed from auto `sub_c9201`; A->OSWRCH (raw), CLV forces V=0 |
+| &9769 | always_set_v_byte      | 🔧 | named the &FF byte used by 21 BIT-test callers to set V |
+| &9203 | save_regs_for_print_no_spool | 🔧 | shared body label |
+| &921D | do_print_no_spool      | 🔧 | OSASCI/OSWRCH branch point |
+| &9227 | print_via_oswrch       | 🔧 | OSWRCH branch label |
+| &922A | restore_spool_and_return | 🔧 | epilogue label |
+
 ### Vector handlers (filing-system)
 
 | Vector | Addr | Status | Notes |
@@ -68,12 +81,17 @@ opcode-level change blocks.
 
 ## Open follow-ups
 
-- **`l91f9` (&91F9)** — JSR'd from `service_handler` (&8A7C) and 2 other
-  callers (&8E10, &9D3E). py8dis has classified it as `equb &a9 / equb &0d`
-  (i.e. data) but it's clearly an entry point. The 2 raw bytes are
-  `LDA #&0D` (load CR), then control falls into `c91fb` which is a number
-  parser — that doesn't fit calling it as "print newline". Needs proper
-  classification with `entry()` and a name. Investigate at next chunk.
+- ~~`l91f9`~~ DONE — see Print helpers table above. Resolved by recognising
+  that the cmd_syntax_table at &91ED is 12 entries in 4.21_v1 (4.18 had 13).
+  The ROM-overlapping byte at &91F9 is the entry point of the print-no-spool
+  helper, not a table value.
+- **`parse_addr_arg` location in 4.21_v1** — the 4.18 routine at &916E is
+  UNMAPPED. It may have been moved or restructured. Find it via opcode
+  fingerprinting on the multiply-by-10 / hex-prefix logic.
+- **`l976A` / `bit_test_ff` overlap** — &9769 and &976A are both &FF and
+  both used as `BIT $abs` "set V" targets. They live inside
+  `txcb_init_template`. Worth checking which callers prefer which (might
+  indicate a subtle distinction, or just historical accident).
 
 ## Related analysis
 

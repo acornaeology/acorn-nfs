@@ -2767,7 +2767,7 @@ l89c9 = reset_enter_listen+2
 
     lda romsel_copy                                                   ; 8a77: a5 f4       ..             ; Load this ROM's slot number
     jsr print_num_no_leading                                          ; 8a79: 20 27 b3     '.            ; Print slot number as decimal
-    jsr l91f9                                                         ; 8a7c: 20 f9 91     ..            ; Print trailing newline (l91f9: needs review)
+    jsr print_newline_no_spool                                        ; 8a7c: 20 f9 91     ..            ; Print trailing newline, bypassing *SPOOL
     ldx romsel_copy                                                   ; 8a7f: a6 f4       ..             ; Reload ROM slot for workspace clearing
     plp                                                               ; 8a81: 28          (              ; Restore flags
     beq clear_workspace_byte                                          ; 8a82: f0 01       ..             ; OS 1.00: skip INX (table starts at slot 0)
@@ -3242,7 +3242,7 @@ l89c9 = reset_enter_listen+2
 
 ; &8c67 referenced 1 time by &8c5a
 .check_help_topic
-    bit l9769                                                         ; 8c67: 2c 69 97    ,i.            ; Test for topic match (sets flags)
+    bit always_set_v_byte                                             ; 8c67: 2c 69 97    ,i.            ; Test for topic match (sets flags)
     cmp #&2e ; '.'                                                    ; 8c6a: c9 2e       ..             ; Is first char '.' (abbreviation)?
     bne match_help_topic                                              ; 8c6c: d0 03       ..             ; No: try topic-specific help
     jmp help_print_nfs_cmds                                           ; 8c6e: 4c bb 8b    L..            ; '.' found: show full command list
@@ -3494,7 +3494,7 @@ l89c9 = reset_enter_listen+2
     beq send_pass_to_fs                                               ; 8de0: f0 31       .1             ; Yes: no colon found, skip to send
     cmp #&3a ; ':'                                                    ; 8de2: c9 3a       .:             ; Is it ':' (password prompt)?
     bne loop_scan_colon                                               ; 8de4: d0 f4       ..             ; No: keep scanning
-    jsr sub_c9201                                                     ; 8de6: 20 01 92     ..
+    jsr print_byte_no_spool                                           ; 8de6: 20 01 92     ..
     sty fs_work_4                                                     ; 8de9: 84 b4       ..             ; Save position of colon
 ; &8deb referenced 4 times by &8dfb, &8dff, &8e02, &8e0e
 .read_pw_char
@@ -3520,7 +3520,7 @@ l89c9 = reset_enter_listen+2
     iny                                                               ; 8e0b: c8          .              ; Advance buffer pointer
     cmp #&0d                                                          ; 8e0c: c9 0d       ..             ; Is it CR (end of password)?
     bne read_pw_char                                                  ; 8e0e: d0 db       ..             ; No: read another character
-    jsr l91f9                                                         ; 8e10: 20 f9 91     ..
+    jsr print_newline_no_spool                                        ; 8e10: 20 f9 91     ..
 ; &8e13 referenced 1 time by &8de0
 .send_pass_to_fs
     tya                                                               ; 8e13: 98          .              ; Transfer string length to A
@@ -4039,23 +4039,23 @@ l89c9 = reset_enter_listen+2
 .syn_dir
     equs "<dir>"                                                      ; 9159: 3c 64 69... <di            ; Syn 5: *Lib; (push low byte); Save pointer high byte; (push high byte)
     equb 0                                                            ; 915e: 00          .
-    equs "<dir> (<number>)"                                           ; 915f: 3c 64 69... <di            ; Restore string pointer high; Store pointer high; Restore string pointer low; Store pointer low; Loop for next character; Clear accumulator
+    equs "<dir> (<number>)"                                           ; 915f: 3c 64 69... <di            ; Restore string pointer high; Store pointer high; Restore string pointer low; Store pointer low; Loop for next character
     equb 0                                                            ; 916f: 00          .
 .syn_password
-    equs "(:<CR>) <password> "                                        ; 9170: 28 3a 3c... (:<            ; Syn 7: *Pass; Initialise result to zero; Get first character of argument; Is it '&' (hex prefix)?; No: try decimal path; Skip '&' prefix; Get first hex digit; C always set from CMP: validate digit; Advance to next character; Get next character; Is it '.' (net.station separator)?; Yes: handle dot separator
+    equs "(:<CR>) <password> "                                        ; 9170: 28 3a 3c... (:<            ; Syn 7: *Pass
     equb &0d                                                          ; 9183: 0d          .
-    equs "<new password>"                                             ; 9184: 3c 6e 65... <ne            ; Syn 7 continued: new password; Below '!' (space/control)?; Yes: end of number; Below '0'?; Not a digit: bad hex; Above '9'?; Decimal digit: extract value; Force uppercase
-    equb 0                                                            ; 9192: 00          .              ; Map 'A'-'F' to &FA-&FF
-    equs "(<stn. id.>|<ps type>)"                                     ; 9193: 28 3c 73... (<s            ; Overflow: not A-F; Valid hex letter (A-F)?; Below A: bad hex; Extract digit value (0-15); Save current digit; Load running result; Would shift overflow a byte?; Yes: overflow error; Shift result left 4 (x16); (shift 2); (shift 3); (shift 4); Add new hex digit
+    equs "<new password>"                                             ; 9184: 3c 6e 65... <ne            ; Syn 7 continued: new password
+    equb 0                                                            ; 9192: 00          .
+    equs "(<stn. id.>|<ps type>)"                                     ; 9193: 28 3c 73... (<s
     equb 0                                                            ; 91a9: 00          .
 .syn_access
-    equs "<object> (L)(W)(R)(/(W)(R))"                                ; 91aa: 3c 6f 62... <ob            ; Syn 9: *Access; Store updated result; Loop for next hex digit; Get current character; Is it '.' (net.station separator)?; Yes: handle dot separator; Below '!' (space/control)?; Yes: end of number; Is it a decimal digit?; No: 'Bad number' error; Extract digit value (0-9); Save current digit; result * 2; Overflow
-    equb 0                                                            ; 91c5: 00          .              ; Load result * 2
+    equs "<object> (L)(W)(R)(/(W)(R))"                                ; 91aa: 3c 6f 62... <ob            ; Syn 9: *Access
+    equb 0                                                            ; 91c5: 00          .
 .syn_rename
-    equs "<filename> <new filename>"                                  ; 91c6: 3c 66 69... <fi            ; Syn 10: *Rename; result * 4; Overflow; result * 8; Overflow; * 8 + * 2 = result * 10; Overflow; result * 10 + new digit; Overflow; Store updated result; Advance to next character; Loop (always branches); Check parsing mode; Bit 7 clear: net.station mode; Decimal-only mode: get result
+    equs "<filename> <new filename>"                                  ; 91c6: 3c 66 69... <fi            ; Syn 10: *Rename
     equb 0                                                            ; 91df: 00          .              ; Null terminator
 .syn_opt_stn
-    equs "(<stn. id.>)"                                               ; 91e0: 28 3c 73... (<s            ; Syn 11: (station id. argument); Zero: 'Bad parameter'; Return with result in A; Get parsed station number; Station 255 is reserved; 255: 'Bad station number'; Reload result; Non-zero: valid station
+    equs "(<stn. id.>)"                                               ; 91e0: 28 3c 73... (<s            ; Syn 11: (station id. argument)
     equb 0                                                            ; 91ec: 00          .              ; Null terminator
 ; Command syntax string offset table
 ; 
@@ -4067,69 +4067,106 @@ l89c9 = reset_enter_listen+2
 ; points to the byte before the first character.
 ; &91ed referenced 1 time by &8c02
 .cmd_syntax_table
-    equb syn_iam - cmd_syntax_strings - 2                             ; 91ed: 06          .              ; Idx 0: (no syntax); Zero result: check if dot was seen
+    equb syn_iam - cmd_syntax_strings - 2                             ; 91ed: 06          .              ; Idx 0: (no syntax)
     equb &ff                                                          ; 91ee: ff          .
-    equb syn_iam - cmd_syntax_strings - 1                             ; 91ef: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."; No dot and zero: 'Bad station number'
+    equb syn_iam - cmd_syntax_strings - 1                             ; 91ef: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."
     equb syn_object - cmd_syntax_strings - 1                          ; 91f0: 34          4              ; Idx 3: "<object>"
-    equb &3d                                                          ; 91f1: 3d          =              ; Check character before current pos
-    equb &60                                                          ; 91f2: 60          `              ; Load previous character
+    equb &3d                                                          ; 91f1: 3d          =
+    equb &60                                                          ; 91f2: 60          `
     equb &66                                                          ; 91f3: 66          f
-    equb &77                                                          ; 91f4: 77          w              ; Restore Y
-    equb &9a                                                          ; 91f5: 9a          .              ; Idx 8: "(<stn.id.>|<ps type>)"; Was previous char '.'?
+    equb &77                                                          ; 91f4: 77          w
+    equb &9a                                                          ; 91f5: 9a          .              ; Idx 8: "(<stn.id.>|<ps type>)"
     equb syn_access - cmd_syntax_strings - 1                          ; 91f6: b1          .              ; Idx 9: "<object> (L)(W)(R)..."
-    equb &cd                                                          ; 91f7: cd          .              ; No: 'Bad station number'
+    equb &cd                                                          ; 91f7: cd          .
     equb syn_opt_stn - cmd_syntax_strings - 1                         ; 91f8: e7          .              ; Idx 11: "(<stn. id.>)"
-; &91f9 referenced 3 times by &8a7c, &8e10, &9d3e
-.l91f9
-    equb &a9                                                          ; 91f9: a9          .              ; C=1: number was parsed
-    equb &0d                                                          ; 91fa: 0d          .              ; Return (result in fs_load_addr_2)
 
+; ***************************************************************************************
+; Print CR via OSASCI, bypassing any open *SPOOL file
+; 
+; Loads A=&0D and falls into print_char_no_spool. The underlying mechanism temporarily
+; writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is
+; not captured by spool, then restores the previous handle on exit. Called from
+; service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two other
+; diagnostic sites (&8E10, &9D3E).
+; ***************************************************************************************
+; &91f9 referenced 3 times by &8a7c, &8e10, &9d3e
+.print_newline_no_spool
+    lda #&0d                                                          ; 91f9: a9 0d       ..             ; A=&0D (CR) for OSASCI translation; fall through
+; ***************************************************************************************
+; Print A via OSASCI, bypassing any open *SPOOL file
+; 
+; Pushes the caller's flags, then forces V=1 via the BIT &9769 / BVS trick (&9769 is a
+; constant &FF byte in ROM). Saves X, Y, A and a copy of the (now V=1) flags. Calls
+; OSBYTE &C7 with X=0, Y=0 to write 0 to the *SPOOL file handle, returning the previous
+; handle in X. If the previous handle was in the NFS-issued range &21-&2F, calls OSBYTE
+; &C7 again with X=OLD, Y=0 to restore the spool BEFORE the print (so the print is
+; captured); otherwise leaves spool closed for the duration of the print. PLPs the
+; inner P, then routes to OSASCI (because the BIT trick set V=1 -> BVC at &9220 not
+; taken). Final OSBYTE &C7 with Y=&FF either no-ops (if spool already restored) or
+; writes OLD back (if it was deferred). Pulls A, Y, X, P and returns.
+; 
+; Eight inner-ROM callers: &925F, &92A4, &9D30, &9D5C, &B21F, &B2F9, &B321, &B752.
+; 
+; On Entry:
+;     A: byte to print as ASCII char (CR is translated by OSASCI)
+; ***************************************************************************************
 ; &91fb referenced 8 times by &925f, &92a4, &9d30, &9d5c, &b21f, &b2f9, &b321, &b752
-.c91fb
-    php                                                               ; 91fb: 08          .              ; Check if dot already seen
-    bit l9769                                                         ; 91fc: 2c 69 97    ,i.            ; Already seen: 'Bad number'
-    bvs c9203                                                         ; 91ff: 70 02       p.             ; Set dot-seen flag
+.print_char_no_spool
+    php                                                               ; 91fb: 08          .              ; Save caller's flags (V from caller is irrelevant — see &91FC)
+    bit always_set_v_byte                                             ; 91fc: 2c 69 97    ,i.            ; BIT &FF unconditionally sets V=1 (bit 6 of operand)
+    bvs save_regs_for_print_no_spool                                  ; 91ff: 70 02       p.             ; V=1 always, branch always taken (skips the CLV path)
+; ***************************************************************************************
+; Print A via OSWRCH (raw, no CR translation), bypass *SPOOL
+; 
+; As print_char_no_spool but the inner PHP/CLV at &9201 forces V=0 in the saved flags,
+; so the BVC at &9220 takes the OSWRCH branch instead of OSASCI. Used when the caller
+; wants to emit a raw byte (e.g. a VDU control code) without CR translation. Sole
+; caller in this ROM is at &8DE6.
+; 
+; On Entry:
+;     A: raw byte to print via OSWRCH
+; ***************************************************************************************
 ; &9201 referenced 1 time by &8de6
-.sub_c9201
-    php                                                               ; 9201: 08          .              ; Get network number (before dot)
-    clv                                                               ; 9202: b8          .
+.print_byte_no_spool
+    php                                                               ; 9201: 08          .              ; Alt entry: save caller's flags BEFORE forcing V=0
+    clv                                                               ; 9202: b8          .              ; Force V=0 -> OSWRCH path at &9220 (raw byte)
 ; &9203 referenced 1 time by &91ff
-.c9203
-    phx                                                               ; 9203: da          .              ; Network 255 is reserved
-    phy                                                               ; 9204: 5a          Z
-    pha                                                               ; 9205: 48          H              ; 255: 'Bad network number'
-    php                                                               ; 9206: 08          .
-    lda #osbyte_read_write_spool_file_handle                          ; 9207: a9 c7       ..             ; Return to caller with network part; Error code &F1
-    ldx #0                                                            ; 9209: a2 00       ..             ; X=File handle; Generate 'Bad hex' error
-    ldy #0                                                            ; 920b: a0 00       ..
-    jsr osbyte                                                        ; 920d: 20 f4 ff     ..            ; Write *SPOOL file handle, value X=0
-    cpx #&20 ; ' '                                                    ; 9210: e0 20       .              ; X=old value of *SPOOL file handle; Test parsing mode
-    bcc c921d                                                         ; 9212: 90 09       ..             ; Decimal mode: 'Bad parameter'
-    cpx #&30 ; '0'                                                    ; 9214: e0 30       .0             ; Error code &D0
-    bcs c921d                                                         ; 9216: b0 05       ..             ; Generate 'Bad station number' error
-    jsr osbyte                                                        ; 9218: 20 f4 ff     ..
-    ldx #0                                                            ; 921b: a2 00       ..
+.save_regs_for_print_no_spool
+    phx                                                               ; 9203: da          .              ; Save X
+    phy                                                               ; 9204: 5a          Z              ; Save Y
+    pha                                                               ; 9205: 48          H              ; Save A (the byte to print)
+    php                                                               ; 9206: 08          .              ; Save inner P — V here picks OSASCI vs OSWRCH later
+    lda #osbyte_read_write_spool_file_handle                          ; 9207: a9 c7       ..             ; OSBYTE 199 (read/write *SPOOL file handle)
+    ldx #0                                                            ; 9209: a2 00       ..             ; X=0: handle value to write; X=File handle
+    ldy #0                                                            ; 920b: a0 00       ..             ; Y=0: write mode (NEW = (OLD AND 0) EOR X = X = 0)
+    jsr osbyte                                                        ; 920d: 20 f4 ff     ..            ; Closes spool; X returns OLD handle; Write *SPOOL file handle, value X=0
+    cpx #&20 ; ' '                                                    ; 9210: e0 20       .              ; OLD < ' '? (likely 0 = was already closed); X=old value of *SPOOL file handle
+    bcc do_print_no_spool                                             ; 9212: 90 09       ..             ; Yes: leave spool closed for the print
+    cpx #&30 ; '0'                                                    ; 9214: e0 30       .0             ; OLD >= '0'?
+    bcs do_print_no_spool                                             ; 9216: b0 05       ..             ; Yes (>= &30): leave spool closed
+    jsr osbyte                                                        ; 9218: 20 f4 ff     ..            ; OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD
+    ldx #0                                                            ; 921b: a2 00       ..             ; Clear X for the post-print restore
 ; &921d referenced 2 times by &9212, &9216
-.c921d
-    plp                                                               ; 921d: 28          (
-    pla                                                               ; 921e: 68          h
-    pha                                                               ; 921f: 48          H
-    bvc c9227                                                         ; 9220: 50 05       P.
-    jsr osasci                                                        ; 9222: 20 e3 ff     ..            ; Write character
-    bra c922a                                                         ; 9225: 80 03       ..
+.do_print_no_spool
+    plp                                                               ; 921d: 28          (              ; Restore inner P (V=1 OSASCI / V=0 OSWRCH)
+    pla                                                               ; 921e: 68          h              ; Pull A (the byte)
+    pha                                                               ; 921f: 48          H              ; Push it back so the final epilogue PLA still works
+    bvc print_via_oswrch                                              ; 9220: 50 05       P.             ; V=0 -> OSWRCH (raw); V=1 -> OSASCI (CR translation)
+    jsr osasci                                                        ; 9222: 20 e3 ff     ..            ; OSASCI: writes A, translating CR to CR/LF; Write character
+    bra restore_spool_and_return                                      ; 9225: 80 03       ..             ; Skip OSWRCH branch
 ; &9227 referenced 1 time by &9220
-.c9227
-    jsr oswrch                                                        ; 9227: 20 ee ff     ..            ; Write character; Error code &F0
+.print_via_oswrch
+    jsr oswrch                                                        ; 9227: 20 ee ff     ..            ; OSWRCH: writes A as a raw byte; Write character
 ; &922a referenced 1 time by &9225
-.c922a
-    lda #osbyte_read_write_spool_file_handle                          ; 922a: a9 c7       ..             ; Generate 'Bad number' error
-    ldy #&ff                                                          ; 922c: a0 ff       ..
-    jsr osbyte                                                        ; 922e: 20 f4 ff     ..            ; Read/Write *SPOOL file handle
-    pla                                                               ; 9231: 68          h
-    ply                                                               ; 9232: 7a          z
-    plx                                                               ; 9233: fa          .
-    plp                                                               ; 9234: 28          (
-    rts                                                               ; 9235: 60          `              ; Error code &94
+.restore_spool_and_return
+    lda #osbyte_read_write_spool_file_handle                          ; 922a: a9 c7       ..             ; OSBYTE 199 again to restore spool state
+    ldy #&ff                                                          ; 922c: a0 ff       ..             ; Y=&FF (read mode): NEW = OLD EOR X
+    jsr osbyte                                                        ; 922e: 20 f4 ff     ..            ; X=0 -> no change; X=OLD -> writes OLD back; Read/Write *SPOOL file handle
+    pla                                                               ; 9231: 68          h              ; Pull A (preserved across the call)
+    ply                                                               ; 9232: 7a          z              ; Pull Y
+    plx                                                               ; 9233: fa          .              ; Pull X
+    plp                                                               ; 9234: 28          (              ; Pull caller's original flags
+    rts                                                               ; 9235: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Print A as two hexadecimal digits
@@ -4151,7 +4188,7 @@ l89c9 = reset_enter_listen+2
 ; &9236 referenced 2 times by &bd90, &be38
 .print_hex_byte
     pha                                                               ; 9236: 48          H              ; Save full byte
-    lsr a                                                             ; 9237: 4a          J              ; Shift high nybble to low; Generate 'Bad parameter' error
+    lsr a                                                             ; 9237: 4a          J              ; Shift high nybble to low
     lsr a                                                             ; 9238: 4a          J              ; Continue shifting
     lsr a                                                             ; 9239: 4a          J              ; Continue shifting
     lsr a                                                             ; 923a: 4a          J              ; High nybble now in bits 0-3
@@ -4172,8 +4209,8 @@ l89c9 = reset_enter_listen+2
 .print_hex_nybble
     and #&0f                                                          ; 923f: 29 0f       ).             ; Mask to low nybble
     cmp #&0a                                                          ; 9241: c9 0a       ..             ; Digit >= &0A?
-    bcc add_ascii_base                                                ; 9243: 90 02       ..             ; No: skip letter adjustment; Error code &D1
-    adc #6                                                            ; 9245: 69 06       i.             ; Add 7 to get 'A'-'F' (6 + carry); Generate 'Bad network number' error
+    bcc add_ascii_base                                                ; 9243: 90 02       ..             ; No: skip letter adjustment
+    adc #6                                                            ; 9245: 69 06       i.             ; Add 7 to get 'A'-'F' (6 + carry)
 ; &9247 referenced 1 time by &9243
 .add_ascii_base
     adc #&30 ; '0'                                                    ; 9247: 69 30       i0             ; Add &30 for ASCII '0'-'9' or 'A'-'F'
@@ -4197,7 +4234,7 @@ l89c9 = reset_enter_listen+2
 ; &925d referenced 1 time by &9259
 .c925d
     adc #&30 ; '0'                                                    ; 925d: 69 30       i0             ; Yes: return C set (not decimal)
-    bra c91fb                                                         ; 925f: 80 9a       ..             ; Above '9'?
+    bra print_char_no_spool                                           ; 925f: 80 9a       ..             ; Above '9'?
 ; ***************************************************************************************
 ; Print inline string, high-bit terminated
 ; 
@@ -4281,7 +4318,7 @@ l89c9 = reset_enter_listen+2
     lda fs_crflag                                                     ; 929f: a5 b9       ..             ; Save processor flags; Clear bit 0 of escape flag
     pha                                                               ; 92a1: 48          H
     lda (fs_error_ptr),y                                              ; 92a2: b1 b8       ..             ; Restore processor flags; Return
-    jsr c91fb                                                         ; 92a4: 20 fb 91     ..            ; Compare 5 bytes (indices 4 down to 1); Load byte from handle buffer
+    jsr print_char_no_spool                                           ; 92a4: 20 fb 91     ..            ; Compare 5 bytes (indices 4 down to 1); Load byte from handle buffer
     pla                                                               ; 92a7: 68          h
     sta fs_crflag                                                     ; 92a8: 85 b9       ..             ; Compare with channel handle
     pla                                                               ; 92aa: 68          h              ; Mismatch: return Z=0
@@ -5128,7 +5165,7 @@ l89c9 = reset_enter_listen+2
     equb 0                                                            ; 9767: 00          .
     equb &c1                                                          ; 9768: c1          .
 ; &9769 referenced 21 times by &8c67, &91fc, &993d, &9a6a, &9e2e, &9ff0, &a3bb, &a4b8, &a65a, &a685, &a6bc, &ae02, &b327, &b3e3, &b563, &b5c3, &b604, &b694, &b8f9, &b937, &bc22
-.l9769
+.always_set_v_byte
     equb &ff                                                          ; 9769: ff          .
 .bit_test_ff
     equb &ff                                                          ; 976a: ff          .              ; Offset 6: BIT target / buffer end lo
@@ -5573,7 +5610,7 @@ l89c9 = reset_enter_listen+2
     lda (net_tx_ptr,x)                                                ; 993b: a1 9a       ..
 ; &993d referenced 2 times by &989c, &a0bd
 .classify_reply_error
-    bit l9769                                                         ; 993d: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; 993d: 2c 69 97    ,i.
 ; &9940 referenced 1 time by &9939
 .mask_error_class
     and #7                                                            ; 9940: 29 07       ).
@@ -5855,7 +5892,7 @@ l99a3 = bad_str_anchor+1
 ; &9a69 referenced 2 times by &9a48, &9a58
 .append_decimal_num
     tay                                                               ; 9a69: a8          .              ; Save number in Y for division
-    bit l9769                                                         ; 9a6a: 2c 69 97    ,i.            ; Set V: suppress leading zeros
+    bit always_set_v_byte                                             ; 9a6a: 2c 69 97    ,i.            ; Set V: suppress leading zeros
     lda #&64 ; 'd'                                                    ; 9a6d: a9 64       .d             ; A=100: hundreds digit divisor
     jsr append_decimal_digit                                          ; 9a6f: 20 7a 9a     z.            ; Extract and append hundreds digit
     lda #&0a                                                          ; 9a72: a9 0a       ..             ; A=10: tens digit divisor
@@ -6462,13 +6499,13 @@ l99a3 = bad_str_anchor+1
 ; &9d2d referenced 1 time by &9d34
 .loop_print_filename
     lda lc1ff,y                                                       ; 9d2d: b9 ff c1    ...            ; Load filename character from l10f3
-    jsr c91fb                                                         ; 9d30: 20 fb 91     ..            ; Print character via OSASCI
+    jsr print_char_no_spool                                           ; 9d30: 20 fb 91     ..            ; Print character via OSASCI
     iny                                                               ; 9d33: c8          .              ; Advance to next character
     bne loop_print_filename                                           ; 9d34: d0 f7       ..             ; Printed all 12 characters?; No: print next character
     ldy #5                                                            ; 9d36: a0 05       ..             ; Y=5: offset for access string
     jsr print_5_hex_bytes                                             ; 9d38: 20 4f 9d     O.            ; Print 5 hex bytes (access info)
     jsr print_load_exec_addrs                                         ; 9d3b: 20 44 9d     D.            ; Print load and exec addresses
-    jsr l91f9                                                         ; 9d3e: 20 f9 91     ..            ; Print newline
+    jsr print_newline_no_spool                                        ; 9d3e: 20 f9 91     ..            ; Print newline
     jmp return_with_last_flag                                         ; 9d41: 4c b4 9f    L..            ; Jump to return with last flag
 
 ; ***************************************************************************************
@@ -6512,7 +6549,7 @@ l99a3 = bad_str_anchor+1
     dex                                                               ; 9d57: ca          .              ; Decrement byte count
     bne loop_print_hex_byte                                           ; 9d58: d0 f7       ..             ; Loop until all bytes printed
     lda #&20 ; ' '                                                    ; 9d5a: a9 20       .              ; A=' ': space separator
-    jmp c91fb                                                         ; 9d5c: 4c fb 91    L..            ; Print space via OSASCI and return
+    jmp print_char_no_spool                                           ; 9d5c: 4c fb 91    L..            ; Print space via OSASCI and return
 
 ; ***************************************************************************************
 ; Copy FS options address bytes to zero page
@@ -6755,7 +6792,7 @@ l99a3 = bad_str_anchor+1
     ldy #&14                                                          ; 9e2c: a0 14       ..             ; Y=&14: delete file command
 ; &9e2e referenced 1 time by &9e27
 .send_request_vset
-    bit l9769                                                         ; 9e2e: 2c 69 97    ,i.            ; Set V flag (no directory check)
+    bit always_set_v_byte                                             ; 9e2e: 2c 69 97    ,i.            ; Set V flag (no directory check)
     jsr save_net_tx_cb_vset                                           ; 9e31: 20 8b 97     ..            ; Send request with V set
 ; &9e34 referenced 1 time by &9de3
 .skip_if_error
@@ -7067,7 +7104,7 @@ l99a3 = bad_str_anchor+1
     ldx #2                                                            ; 9fe9: a2 02       ..             ; X=2: buffer offset
     jsr copy_arg_to_buf                                               ; 9feb: 20 a1 b2     ..            ; Copy argument to TX buffer
     ldy #6                                                            ; 9fee: a0 06       ..             ; Y=6: open file command
-    bit l9769                                                         ; 9ff0: 2c 69 97    ,i.            ; Set V flag (skip directory check)
+    bit always_set_v_byte                                             ; 9ff0: 2c 69 97    ,i.            ; Set V flag (skip directory check)
     sec                                                               ; 9ff3: 38          8              ; Set carry
     ror need_release_tube                                             ; 9ff4: 66 98       f.             ; Rotate carry into escapable flag bit 7
     jsr save_net_tx_cb_vset                                           ; 9ff6: 20 8b 97     ..            ; Send open request with V set
@@ -7821,7 +7858,7 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a3bb referenced 1 time by &b474
 .print_fs_info_newline
-    bit l9769                                                         ; a3bb: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; a3bb: 2c 69 97    ,i.
     jsr print_station_addr                                            ; a3be: 20 56 b5     V.
     jmp osnewl                                                        ; a3c1: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
 
@@ -8053,7 +8090,7 @@ la0ff = sub_ca0fe+1
     lda (fs_crc_lo),y                                                 ; a4b2: b1 be       ..
     cmp #&0d                                                          ; a4b4: c9 0d       ..
     bne clear_v_flag                                                  ; a4b6: d0 05       ..
-    bit l9769                                                         ; a4b8: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; a4b8: 2c 69 97    ,i.
     bvs clear_c_flag                                                  ; a4bb: 70 01       p.
 ; &a4bd referenced 2 times by &a4b0, &a4b6
 .clear_v_flag
@@ -8330,7 +8367,7 @@ la0ff = sub_ca0fe+1
     beq loop_search_stn_bit2                                          ; a654: f0 f1       ..             ; hi-sub 6: read FCB handles; hi-sub 7: set FCB handles
     tya                                                               ; a656: 98          .              ; hi-sub 8: read RX flag
     sta lc230,x                                                       ; a657: 9d 30 c2    .0.            ; hi-sub 9: read RX port; hi-sub 10: read error flag; hi-sub 11: read context byte
-    bit l9769                                                         ; a65a: 2c 69 97    ,i.            ; hi-sub 12: read CSD path; hi-sub 13: write CSD path; hi-sub 14: read free buffers
+    bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.            ; hi-sub 12: read CSD path; hi-sub 13: write CSD path; hi-sub 14: read free buffers
 ; &a65d referenced 1 time by &a648
 .done_search_bit2
     sty lc002                                                         ; a65d: 8c 02 c0    ...            ; hi-sub 15: read 3 context bytes; hi-sub 16: write 3 context bytes; hi-sub 17: query bridge status
@@ -8369,7 +8406,7 @@ la0ff = sub_ca0fe+1
     beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..             ; Load new station byte from PB
     tya                                                               ; a681: 98          .              ; Store to l0dff
     sta lc230,x                                                       ; a682: 9d 30 c2    .0.            ; Previous byte
-    bit l9769                                                         ; a685: 2c 69 97    ,i.            ; Loop for bytes 2..1; Clear handles if station matches
+    bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.            ; Loop for bytes 2..1; Clear handles if station matches
 ; &a688 referenced 1 time by &a673
 .done_search_bit3
     sty lc003                                                         ; a688: 8c 03 c0    ...            ; X=&0F: scan 16 FCB entries
@@ -8430,7 +8467,7 @@ la0ff = sub_ca0fe+1
     beq loop_search_stn_boot                                          ; a6b6: f0 f1       ..             ; Not active: try next station; Restore flags; Test bit 3 (handle 2 active?)
     tya                                                               ; a6b8: 98          .              ; Transfer boot type to A
     sta lc230,x                                                       ; a6b9: 9d 30 c2    .0.            ; Store boot setting for station; No: check handle 3; Restore flags
-    bit l9769                                                         ; a6bc: 2c 69 97    ,i.            ; Set V flag (station match found); Set bit 5; Save updated flags
+    bit always_set_v_byte                                             ; a6bc: 2c 69 97    ,i.            ; Set V flag (station match found); Set bit 5; Save updated flags
 ; &a6bf referenced 1 time by &a6aa
 .done_search_boot
     sty lc004                                                         ; a6bf: 8c 04 c0    ...            ; Store boot type; Get FCB high byte
@@ -9679,7 +9716,7 @@ labc5 = compare_bridge_status+1
 .init_ws_copy_wide
     ldx #&0d                                                          ; adfe: a2 0d       ..
     ldy #&7c ; '|'                                                    ; ae00: a0 7c       .|
-    bit l9769                                                         ; ae02: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; ae02: 2c 69 97    ,i.
     bvs loop_copy_ws_template                                         ; ae05: 70 05       p.
 ; ***************************************************************************************
 ; Initialise workspace copy in narrow mode (27 bytes)
@@ -10489,7 +10526,7 @@ labc5 = compare_bridge_status+1
 ; &b21c referenced 1 time by &b224
 .print_chars_from_buf
     lda lc105,x                                                       ; b21c: bd 05 c1    ...
-    jsr c91fb                                                         ; b21f: 20 fb 91     ..
+    jsr print_char_no_spool                                           ; b21f: 20 fb 91     ..
     inx                                                               ; b222: e8          .
     dey                                                               ; b223: 88          .
     bne print_chars_from_buf                                          ; b224: d0 f6       ..
@@ -10733,7 +10770,7 @@ labc5 = compare_bridge_status+1
     lda #&0d                                                          ; b2f7: a9 0d       ..
 ; &b2f9 referenced 1 time by &b2e2
 .cb2f9
-    jsr c91fb                                                         ; b2f9: 20 fb 91     ..
+    jsr print_char_no_spool                                           ; b2f9: 20 fb 91     ..
     inx                                                               ; b2fc: e8          .
     bne loop_scan_entries                                             ; b2fd: d0 de       ..
     eor zp_0078                                                       ; b2ff: 45 78       Ex
@@ -10777,7 +10814,7 @@ labc5 = compare_bridge_status+1
     tay                                                               ; b31d: a8          .
     txa                                                               ; b31e: 8a          .
     ldx fs_error_ptr                                                  ; b31f: a6 b8       ..
-    jsr c91fb                                                         ; b321: 20 fb 91     ..            ; Skip to check for extra arguments
+    jsr print_char_no_spool                                           ; b321: 20 fb 91     ..            ; Skip to check for extra arguments
     stx fs_error_ptr                                                  ; b324: 86 b8       ..
     rts                                                               ; b326: 60          `
 
@@ -10794,7 +10831,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b327 referenced 2 times by &8a79, &90dd
 .print_num_no_leading
-    bit l9769                                                         ; b327: 2c 69 97    ,i.            ; Set V (suppress leading zeros)
+    bit always_set_v_byte                                             ; b327: 2c 69 97    ,i.            ; Set V (suppress leading zeros)
 ; ***************************************************************************************
 ; Print byte as 3-digit decimal via OSASCI
 ; 
@@ -11031,7 +11068,7 @@ labc5 = compare_bridge_status+1
 
 ; &b3e3 referenced 1 time by &b3c0
 .no_ps_name_given
-    bit l9769                                                         ; b3e3: 2c 69 97    ,i.            ; Print ' (Y/N) ' prompt (no '?')
+    bit always_set_v_byte                                             ; b3e3: 2c 69 97    ,i.            ; Print ' (Y/N) ' prompt (no '?')
 ; &b3e6 referenced 1 time by &b3c6
 .save_ps_cmd_ptr
     sty ws_ptr_hi                                                     ; b3e6: 84 ac       ..
@@ -11362,7 +11399,7 @@ lb4fd = write_ps_slot_hi_link+1
     jsr print_decimal_3dig                                            ; b55b: 20 2a b3     *.
     lda #&2e ; '.'                                                    ; b55e: a9 2e       ..
     jsr osasci                                                        ; b560: 20 e3 ff     ..            ; Write character 46
-    bit l9769                                                         ; b563: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; b563: 2c 69 97    ,i.
 ; &b566 referenced 1 time by &b559
 .skip_if_local_net
     bvs cb56f                                                         ; b566: 70 07       p.
@@ -11439,7 +11476,7 @@ lb4fd = write_ps_slot_hi_link+1
 
 ; &b5c3 referenced 1 time by &b597
 .no_poll_name_given
-    bit l9769                                                         ; b5c3: 2c 69 97    ,i.            ; Set V (= no explicit PS name)
+    bit always_set_v_byte                                             ; b5c3: 2c 69 97    ,i.            ; Set V (= no explicit PS name)
 ; &b5c6 referenced 1 time by &b59d
 .skip_if_no_poll_arg
     bvs done_poll_name_parse                                          ; b5c6: 70 2c       p,             ; V set (no arg): skip to send
@@ -11476,7 +11513,7 @@ lb4fd = write_ps_slot_hi_link+1
     jsr pop_requeue_ps_scan                                           ; b5fb: 20 b4 b4     ..            ; Pop and requeue PS scan
     jsr print_printer_server_is                                       ; b5fe: 20 8d b4     ..            ; Print 'Printer server '
     jsr load_ps_server_addr                                           ; b601: 20 a8 b4     ..            ; Load PS server address
-    bit l9769                                                         ; b604: 2c 69 97    ,i.            ; Set V and N flags
+    bit always_set_v_byte                                             ; b604: 2c 69 97    ,i.            ; Set V and N flags
     jsr print_station_addr                                            ; b607: 20 56 b5     V.            ; Print station address
     jsr print_inline                                                  ; b60a: 20 61 92     a.            ; Print ' "'
     equs " ", '"'                                                     ; b60d: 20 22        "
@@ -11558,7 +11595,7 @@ lb4fd = write_ps_slot_hi_link+1
     inc work_ae                                                       ; b68e: e6 ae       ..
     lda (work_ae,x)                                                   ; b690: a1 ae       ..
     sta fs_work_6                                                     ; b692: 85 b6       ..             ; Store network number
-    bit l9769                                                         ; b694: 2c 69 97    ,i.            ; Set V flag
+    bit always_set_v_byte                                             ; b694: 2c 69 97    ,i.            ; Set V flag
     jsr print_station_addr                                            ; b697: 20 56 b5     V.            ; Print client station address
 ; &b69a referenced 3 times by &b658, &b668, &b67b
 .done_poll_status_line
@@ -11710,7 +11747,7 @@ lb4fd = write_ps_slot_hi_link+1
 ; &b74f referenced 1 time by &b75c
 .loop_copy_wipe_name
     lda lc106,x                                                       ; b74f: bd 06 c1    ...
-    jsr c91fb                                                         ; b752: 20 fb 91     ..
+    jsr print_char_no_spool                                           ; b752: 20 fb 91     ..
     sta lc030,y                                                       ; b755: 99 30 c0    .0.
     iny                                                               ; b758: c8          .
     inx                                                               ; b759: e8          .
@@ -12043,7 +12080,7 @@ lb821 = err_net_chan_not_found+2
 .close_all_net_chans
     clc                                                               ; b8f8: 18          .              ; C=0: close all matching channels
 .skip_set_carry
-    bit l9769                                                         ; b8f9: 2c 69 97    ,i.            ; Branch always to scan entry; Set V flag via BIT (alternate mode)
+    bit always_set_v_byte                                             ; b8f9: 2c 69 97    ,i.            ; Branch always to scan entry; Set V flag via BIT (alternate mode)
 ; ***************************************************************************************
 ; Scan FCB slot flags from &10 downward
 ; 
@@ -12118,7 +12155,7 @@ lb821 = err_net_chan_not_found+2
 ; &b934 referenced 2 times by &ba33, &bb21
 .find_open_fcb
     ldx lc2c8                                                         ; b934: ae c8 c2    ...            ; Load current FCB index
-    bit l9769                                                         ; b937: 2c 69 97    ,i.            ; Set V flag (first pass marker)
+    bit always_set_v_byte                                             ; b937: 2c 69 97    ,i.            ; Set V flag (first pass marker)
 ; &b93a referenced 4 times by &b949, &b94f, &b96c, &b973
 .loop_find_fcb
     inx                                                               ; b93a: e8          .              ; Next FCB slot
@@ -12623,7 +12660,7 @@ lb821 = err_net_chan_not_found+2
 
 ; &bc22 referenced 1 time by &bc16
 .done_find_write_fcb
-    bit l9769                                                         ; bc22: 2c 69 97    ,i.            ; Set V flag (alternate match mode); Clear carry for addition; Load display base byte
+    bit always_set_v_byte                                             ; bc22: 2c 69 97    ,i.            ; Set V flag (alternate match mode); Clear carry for addition; Load display base byte
     jsr find_matching_fcb                                             ; bc25: 20 cf ba     ..            ; Find matching FCB for channel; Add start offset byte
     lda lc200,y                                                       ; bc28: b9 00 c2    ...            ; Load byte count for FCB; Store result in osword_flag
     cmp #&ff                                                          ; bc2b: c9 ff       ..             ; Buffer full (&FF bytes)?; Next byte
@@ -13464,1263 +13501,1263 @@ lb821 = err_net_chan_not_found+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                84
-;     lc105:                        58
-;     fs_options:                   53
-;     net_rx_ptr:                   48
-;     econet_control23_or_status2:  45
-;     ws_ptr_hi:                    39
-;     fs_load_addr_2:               38
-;     work_ae:                      38
-;     econet_data_continue_frame:   37
-;     net_tx_ptr:                   37
-;     port_ws_offset:               34
-;     fs_error_ptr:                 33
-;     econet_control1_or_status1:   32
-;     fs_crc_lo:                    31
-;     lc271:                        31
-;     osword_flag:                  29
-;     osbyte:                       27
-;     rx_src_net:                   27
-;     lc106:                        26
-;     fs_load_addr:                 24
-;     port_buf_len:                 23
-;     print_inline:                 23
-;     lc260:                        22
-;     lc2b8:                        22
-;     fs_work_4:                    21
-;     l9769:                        21
-;     l0101:                        20
-;     save_net_tx_cb:               20
-;     lc200:                        18
-;     econet_flags:                 17
-;     fs_flags:                     17
-;     lfe34:                        16
-;     open_port_buf_hi:             16
-;     os_text_ptr:                  16
-;     fs_block_offset:              15
-;     lc030:                        15
-;     lc230:                        15
-;     nmi_tx_block:                 15
-;     fs_work_5:                    14
-;     lc2c8:                        14
-;     need_release_tube:            14
-;     net_tx_ptr_hi:                14
-;     open_port_buf:                14
-;     port_buf_len_hi:              14
-;     fs_last_byte_flag:            13
-;     lc210:                        13
-;     osasci:                       13
-;     set_nmi_vector:               13
-;     ws_page:                      13
-;     lc2c9:                        12
-;     return_with_last_flag:        12
-;     sub_cb2cf:                    12
-;     error_bad_inline:             11
-;     error_inline_log:             11
-;     fs_load_addr_3:               11
-;     fs_work_6:                    11
-;     l0100:                        11
-;     nmi_error_dispatch:           11
-;     svc_state:                    11
-;     tx_result_fail:               11
-;     la76c:                        10
-;     lc103:                        10
-;     lc107:                        10
-;     net_rx_ptr_hi:                10
-;     store_rx_attribute:           10
-;     fs_crflag:                     9
-;     install_nmi_handler:           9
-;     lc220:                         9
-;     osnewl:                        9
-;     scout_buf:                     9
-;     tx_src_stn:                    9
-;     txcb_end:                      9
-;     ws_0d6a:                       9
-;     addr_work:                     8
-;     c91fb:                         8
-;     copy_arg_to_buf:               8
-;     l0406:                         8
-;     l9aa6:                         8
-;     nfs_workspace_hi:              8
-;     romsel_copy:                   8
-;     vdu_status:                    8
-;     alloc_fcb_slot:                7
-;     finalise_and_return:           7
-;     fs_load_addr_hi:               7
-;     lc102:                         7
-;     lc240:                         7
-;     lc298:                         7
-;     osword_pb_ptr:                 7
-;     reject_reply:                  7
-;     rx_buf_offset:                 7
-;     save_ptr_to_os_text:           7
-;     sub_cbb38:                     7
-;     tube_data_register_3:          7
-;     tx_complete_flag:              7
-;     tx_dst_stn:                    7
-;     txcb_ctrl:                     7
-;     txcb_start:                    7
-;     cond_save_error_code:          6
-;     discard_reset_rx:              6
-;     error_overflow:                6
-;     fs_crc_hi:                     6
-;     lc001:                         6
-;     lc108:                         6
-;     lc2d8:                         6
-;     lfe38:                         6
-;     match_station_net:             6
-;     nmi_rti:                       6
-;     os_text_ptr_hi:                6
-;     send_net_packet:               6
-;     spool_buf_idx:                 6
-;     sub_c928a:                     6
-;     wait_net_tx_ack:               6
-;     ws_0d68:                       6
-;     ws_ptr_lo:                     6
-;     attr_to_chan_index:            5
-;     close_ws_file:                 5
-;     copy_arg_to_buf_x0:            5
-;     escapable:                     5
-;     fs_spool_handle:               5
-;     fs_ws_ptr:                     5
-;     init_txcb:                     5
-;     l0102:                         5
-;     l0d71:                         5
-;     lc003:                         5
-;     lc009:                         5
-;     lc2cf:                         5
-;     lc2d4:                         5
-;     lc2d5:                         5
-;     net_error_lookup_data:         5
-;     prot_flags:                    5
-;     rx_port:                       5
-;     scout_ctrl:                    5
-;     scout_error:                   5
-;     scout_port:                    5
-;     set_xfer_params:               5
-;     strip_token_prefix:            5
-;     svc_dispatch:                  5
-;     table_idx:                     5
-;     tube_present:                  5
-;     tx_dst_net:                    5
-;     verify_ws_checksum:            5
-;     c8e9a:                         4
-;     ca5a1:                         4
-;     check_net_error_code:          4
-;     commit_state_byte:             4
-;     copy_pb_byte_to_ws:            4
-;     dispatch_svc_index:            4
-;     done_close:                    4
-;     done_poll_name_parse:          4
-;     econet_init_flag:              4
-;     error_inline:                  4
-;     fs_work_7:                     4
-;     gsinit:                        4
-;     gsread:                        4
-;     init_bridge_poll:              4
-;     lc002:                         4
-;     lc004:                         4
-;     lc005:                         4
-;     lc109:                         4
-;     lc2a8:                         4
-;     lfe3c:                         4
-;     load_ps_server_addr:           4
-;     loop_find_fcb:                 4
-;     loop_poll_tx:                  4
-;     loop_scan_fcb_down:            4
-;     nmi_tx_block_hi:               4
-;     parse_access_prefix:           4
-;     port_match_found:              4
-;     print_station_addr:            4
-;     process_spool_data:            4
-;     pydis_end:                     4
-;     read_pw_char:                  4
-;     read_rx_attribute:             4
-;     return_from_spool_reset:       4
-;     rom_ws_pages:                  4
-;     rx_ctrl:                       4
-;     saved_nmi_hi:                  4
-;     saved_nmi_lo:                  4
-;     scout_src_net:                 4
-;     store_a_to_pb_1:               4
-;     svc_return_unclaimed:          4
-;     tx_done_exit:                  4
-;     txcb_port:                     4
-;     zp_work_3:                     4
-;     adlc_full_reset:               3
-;     advance_buffer_ptr:            3
-;     advance_x_by_8:                3
-;     alloc_fcb_with_flags:          3
-;     append_byte_to_rxbuf:          3
-;     c8ace:                         3
-;     c9421:                         3
-;     check_tube_irq_loop:           3
-;     close_all_net_chans:           3
-;     data_tx_last:                  3
-;     dispatch_rts:                  3
-;     done_add_disp_base:            3
-;     done_poll_status_line:         3
-;     done_ps_name_parse:            3
-;     err_bad_hex:                   3
-;     err_bad_station_num:           3
-;     error_bad_filename:            3
-;     error_bad_hex_value:           3
-;     escape_flag:                   3
-;     exec_addr_lo:                  3
-;     find_matching_fcb:             3
-;     find_station_bit3:             3
-;     jmp_restore_fs_ctx:            3
-;     l0106:                         3
-;     l0355:                         3
-;     l91f9:                         3
-;     lbffe:                         3
-;     lc007:                         3
-;     lc008:                         3
-;     lc100:                         3
-;     lc1c8:                         3
-;     lc270:                         3
-;     lc278:                         3
-;     lc288:                         3
-;     lc2ca:                         3
-;     lc2cc:                         3
-;     lc2d0:                         3
-;     lc2f3:                         3
-;     loop_ps_delay:                 3
-;     match_fs_cmd:                  3
-;     match_rx_code:                 3
-;     next_port_slot:                3
-;     nmi_jmp_hi:                    3
-;     nmi_jmp_lo:                    3
-;     osbyte_a_copy:                 3
-;     osfind:                        3
-;     osword_pb_ptr_hi:              3
-;     poll_adlc_tx_status:           3
-;     process_match_result:          3
-;     read_filename_char:            3
-;     read_last_rx_byte:             3
-;     reload_inactive_mask:          3
-;     reset_adlc_rx_listen:          3
-;     return_from_advance_buf:       3
-;     return_from_strip_prefix:      3
-;     rx_complete_update_rxcb:       3
-;     rx_remote_addr:                3
-;     save_text_ptr:                 3
-;     send_disconnect_reply:         3
-;     sub_c8900:                     3
-;     sub_c8cad:                     3
-;     sub_c8ec9:                     3
-;     sub_ca3c4:                     3
-;     tube_claim_c3:                 3
-;     tx_bad_ctrl_error:             3
-;     tx_begin:                      3
-;     tx_econet_abort:               3
-;     write_second_tube_byte:        3
-;     ws_0d69:                       3
-;     zp_work_2:                     3
-;     ack_tx:                        2
-;     ack_tx_write_dest:             2
-;     adjust_fsopts_4bytes:          2
-;     adlc_rx_listen:                2
-;     advance_rx_buffer_ptr:         2
-;     advance_template_idx:          2
-;     advance_y_by_4:                2
-;     alloc_fcb_or_error:            2
-;     append_decimal_digit:          2
-;     append_decimal_num:            2
-;     append_drv_dot_num:            2
-;     append_error_number:           2
-;     append_space_and_num:          2
-;     build_error_block:             2
-;     c8264:                         2
-;     c842f:                         2
-;     c8827:                         2
-;     c8922:                         2
-;     c90c7:                         2
-;     c921d:                         2
-;     c9895:                         2
-;     ca75f:                         2
-;     cb2f7:                         2
-;     check_adlc_flag:               2
-;     check_and_setup_txcb:          2
-;     check_chan_char:               2
-;     check_not_ampersand:           2
-;     check_not_dir:                 2
-;     check_tx_in_progress:          2
-;     classify_reply_error:          2
-;     clear_conn_active:             2
-;     clear_result:                  2
-;     clear_v_flag:                  2
-;     cmp_5byte_handle:              2
-;     copy_arg_validated:            2
-;     copy_fsopts_to_zp:             2
-;     copy_scout_via_tube:           2
-;     copy_workspace_to_fsopts:      2
-;     credits_keyword_start:         2
-;     data_rx_tube_complete:         2
-;     data_tx_check_fifo:            2
-;     discard_handle_match:          2
-;     discard_no_match:              2
-;     discard_reset_listen:          2
-;     dispatch_fs_cmd:               2
-;     dispatch_nmi_error:            2
-;     dispatch_via_vector:           2
-;     done_advance_start:            2
-;     done_check_station:            2
-;     done_file_open:                2
-;     done_load_from_buf:            2
-;     done_osfind:                   2
-;     done_parse_num:                2
-;     done_poll_tx:                  2
-;     done_ps_slot_mark:             2
-;     done_ps_slot_scan:             2
-;     done_set_dirty_flag:           2
-;     done_strip_prefix:             2
-;     done_test_hex_space:           2
-;     done_uppercase_store:          2
-;     done_vset_station:             2
-;     enable_irq_and_poll:           2
-;     err_net_chan_invalid:          2
-;     error_bad_number:              2
-;     error_bad_param:               2
-;     error_bad_prefix:              2
-;     error_net_checksum:            2
-;     error_osargs:                  2
-;     error_outside_file:            2
-;     exec_addr_hi:                  2
-;     fallback_calc_transfer:        2
-;     find_open_fcb:                 2
-;     flip_set_station_boot:         2
-;     format_filename_field:         2
-;     get_access_bits:               2
-;     get_pb_ptr_as_index:           2
-;     get_prot_bits:                 2
-;     handle_dot_sep:                2
-;     imm_op_out_of_range:           2
-;     inc_fcb_byte_count:            2
-;     init_remote_session:           2
-;     init_spool_drive:              2
-;     init_tx_ptr_and_send:          2
-;     init_wipe_counters:            2
-;     init_ws_copy_wide:             2
-;     is_decimal_digit:              2
-;     l0103:                         2
-;     l0104:                         2
-;     la76d:                         2
-;     la76e:                         2
-;     lb821:                         2
-;     lc006:                         2
-;     lc00a:                         2
-;     lc02f:                         2
-;     lc031:                         2
-;     lc038:                         2
-;     lc101:                         2
-;     lc104:                         2
-;     lc110:                         2
-;     lc111:                         2
-;     lc1dc:                         2
-;     lc1dd:                         2
-;     lc1de:                         2
-;     lc2d7:                         2
-;     lc2d9:                         2
-;     lookup_cat_entry_0:            2
-;     lookup_chan_by_char:           2
-;     loop_copy_arg_char:            2
-;     loop_copy_ws_template:         2
-;     loop_drain_printer_buf:        2
-;     loop_dump_line:                2
-;     loop_find_pending_fcb:         2
-;     loop_next_fcb_slot:            2
-;     loop_pass_tx_delay:            2
-;     loop_pop_stack_buf:            2
-;     loop_print_hex_byte:           2
-;     loop_print_syntax:             2
-;     loop_reload_attr:              2
-;     loop_restore_workspace:        2
-;     loop_scan_disconnect:          2
-;     loop_scan_empty_fcb:           2
-;     loop_search_stn_bit2:          2
-;     loop_search_stn_bit3:          2
-;     loop_search_stn_boot:          2
-;     loop_skip_space_chars:         2
-;     loop_tx_delay:                 2
-;     loop_wait_ws_status:           2
-;     mark_not_found:                2
-;     next_dec_char:                 2
-;     osargs:                        2
-;     oscli:                         2
-;     osrdch:                        2
-;     osword:                        2
-;     pad_with_spaces:               2
-;     parse_cmd_arg_y0:              2
-;     parse_dump_range:              2
-;     parse_filename_arg:            2
-;     parse_quoted_arg:              2
-;     pass_txbuf_init_table:         2
-;     poll_nmi_idle:                 2
-;     pop_requeue_ps_scan:           2
-;     print_5_hex_bytes:             2
-;     print_cmd_table:               2
-;     print_cmd_table_loop:          2
-;     print_decimal_3dig:            2
-;     print_decimal_digit:           2
-;     print_dump_header:             2
-;     print_hex_and_space:           2
-;     print_hex_byte:                2
-;     print_num_no_leading:          2
-;     print_printer_server_is:       2
-;     print_version_header:          2
-;     recv_and_process_reply:        2
-;     release_tube:                  2
-;     restore_fs_context:            2
-;     restore_rom_slot:              2
-;     retreat_y_by_3:                2
-;     return_from_bridge_poll:       2
-;     return_from_claim_release:     2
-;     return_from_credits_check:     2
-;     return_from_digit_test:        2
-;     return_from_help_wrap:         2
-;     return_from_inc_fcb_count:     2
-;     return_from_match_rx_code:     2
-;     return_from_svc_1_workspace:   2
-;     reverse_ps_name_to_tx:         2
-;     romsel:                        2
-;     rx_extra_byte:                 2
-;     rx_wait_timeout:               2
-;     save_fcb_context:              2
-;     save_net_tx_cb_vset:           2
-;     save_ptr_to_spool_buf:         2
-;     scout_complete:                2
-;     send_ack:                      2
-;     send_and_receive:              2
-;     send_cmd_and_dispatch:         2
-;     send_data_rx_ack:              2
-;     send_disconnect_status:        2
-;     send_fs_request:               2
-;     send_request_write:            2
-;     send_save_or_access:           2
-;     send_txcb_swap_addrs:          2
-;     send_wipe_request:             2
-;     set_conn_active:               2
-;     set_nmi_rx_scout:              2
-;     set_options_ptr:               2
-;     set_text_and_xfer_ptr:         2
-;     setup_dir_display:             2
-;     setup_transfer_workspace:      2
-;     skip_entry_chars:              2
-;     skip_rename_spaces:            2
-;     skip_sep_spaces:               2
-;     start_wipe_pass:               2
-;     store_bridge_station:          2
-;     store_char_uppercase:          2
-;     store_pb_result:               2
-;     store_ptr_at_ws_y:             2
-;     store_result_check_dir:        2
-;     store_station_result:          2
-;     store_stn_flags_restore:       2
-;     store_tx_error:                2
-;     sub_c92b2:                     2
-;     sub_c9463:                     2
-;     sub_c988f:                     2
-;     sub_cb310:                     2
-;     tail_update_catalogue:         2
-;     terminate_buf:                 2
-;     try_nfs_port_list:             2
-;     tube_tx_fifo_write:            2
-;     tx_addr_base:                  2
-;     tx_ctrl_byte:                  2
-;     tx_op_type:                    2
-;     tx_port:                       2
-;     tx_result_ok:                  2
-;     tx_retry_count:                2
-;     tx_send_error:                 2
-;     tx_store_result:               2
-;     write_data_block:              2
-;     write_ps_slot_byte_ff:         2
-;     write_vector_entry:            2
-;     zp_ptr_hi:                     2
-;     zp_ptr_lo:                     2
-;     abort_if_escape:               1
-;     accept_frame:                  1
-;     accept_local_net:              1
-;     accept_scout_net:              1
-;     ack_tx_configure:              1
-;     add_ascii_base:                1
-;     add_bytes_loop:                1
-;     add_rxcb_ptr:                  1
-;     add_workspace_to_fsopts:       1
-;     adlc_init:                     1
-;     adlc_init_done:                1
-;     advance_positions:             1
-;     advance_spool_rx_idx:          1
-;     advance_x_by_4:                1
-;     alloc_fcb_for_open:            1
-;     alloc_run_channel:             1
-;     alloc_run_fcb:                 1
-;     append_space:                  1
-;     append_station_num:            1
-;     begin_prot_encode:             1
-;     boot_cmd_oscli:                1
-;     boot_load_cmd:                 1
-;     bridge_found:                  1
-;     bridge_responded:              1
-;     bridge_txcb_init_table:        1
-;     brk_ptr:                       1
-;     build_no_reply_error:          1
-;     build_simple_error:            1
-;     byte_to_2bit_index:            1
-;     c8211:                         1
-;     c8258:                         1
-;     c8434:                         1
-;     c847e:                         1
-;     c8524:                         1
-;     c881b:                         1
-;     c8a8d:                         1
-;     c8b5a:                         1
-;     c8cbb:                         1
-;     c9203:                         1
-;     c9227:                         1
-;     c922a:                         1
-;     c925d:                         1
-;     c9298:                         1
-;     c92af:                         1
-;     c95be:                         1
-;     c9827:                         1
-;     c9a0d:                         1
-;     ca0cf:                         1
-;     ca0db:                         1
-;     ca0df:                         1
-;     ca3e5:                         1
-;     ca4a0:                         1
-;     ca4f1:                         1
-;     ca4fc:                         1
-;     ca5df:                         1
-;     ca70b:                         1
-;     ca71c:                         1
-;     caf92:                         1
-;     calc_peek_poke_size:           1
-;     calc_transfer_size:            1
-;     call_fscv:                     1
-;     cat_set_lib_flag:              1
-;     cb2f9:                         1
-;     cb474:                         1
-;     cb56f:                         1
-;     cb625:                         1
-;     check_auto_boot_flag:          1
-;     check_chan_range:              1
-;     check_char_type:               1
-;     check_cmd_flags:               1
-;     check_colon_prefix:            1
-;     check_data_loss:               1
-;     check_digit_range:             1
-;     check_display_type:            1
-;     check_exec_addr:               1
-;     check_fs_dot:                  1
-;     check_fv_final_ack:            1
-;     check_handshake_bit:           1
-;     check_hash_prefix:             1
-;     check_help_topic:              1
-;     check_msg_terminator:          1
-;     check_open_mode:               1
-;     check_open_quote:              1
-;     check_poll_busy:               1
-;     check_poll_jammed:             1
-;     check_port_slot:               1
-;     check_pw_special:              1
-;     check_separator:               1
-;     check_spool_state:             1
-;     check_station_filter:          1
-;     check_tdra_status:             1
-;     check_urd_prefix:              1
-;     check_wipe_attr:               1
-;     check_wipe_dir:                1
-;     clamp_end_to_limit:            1
-;     clear_buf_after_write:         1
-;     clear_c_flag:                  1
-;     clear_escapable:               1
-;     clear_flag_bits:               1
-;     clear_release_flag:            1
-;     clear_single_fcb:              1
-;     clear_svc_and_ws:              1
-;     clear_workspace_byte:          1
-;     close_all_channels:            1
-;     close_all_fcbs:                1
-;     close_specific_chan:           1
-;     close_spool_exec:              1
-;     cmd_fs_reentry:                1
-;     cmd_net_fs:                    1
-;     cmd_syntax_strings:            1
-;     cmd_syntax_table:              1
-;     copy_addr_loop:                1
-;     copy_arg_and_enum:             1
-;     copy_bcast_addr:               1
-;     copy_from_buf_entry:           1
-;     copy_imm_params:               1
-;     copy_nmi_shim:                 1
-;     copy_pb_to_ws:                 1
-;     copy_ps_data:                  1
-;     copy_scout_bytes:              1
-;     copy_scout_to_buffer:          1
-;     copy_ws_byte_to_pb:            1
-;     copy_ws_then_fsopts:           1
-;     data_rx_complete:              1
-;     data_rx_loop:                  1
-;     data_tx_begin:                 1
-;     delay_nmi_disable:             1
-;     dir_found_send:                1
-;     dir_op_dispatch:               1
-;     dir_pass_simple:               1
-;     dispatch_imm_op:               1
-;     dispatch_ops_1_to_6:           1
-;     dispatch_osfind_op:            1
-;     dispatch_osword_op:            1
-;     dispatch_svc_with_state:       1
-;     do_fs_cmd_iteration:           1
-;     done_advance_fcb:              1
-;     done_bcd_convert:              1
-;     done_calc_offset:              1
-;     done_cap_ws_count:             1
-;     done_check_boundary:           1
-;     done_check_buf_offset:         1
-;     done_check_dump_eof:           1
-;     done_check_fcb_status:         1
-;     done_check_outside:            1
-;     done_clear_fcb_active:         1
-;     done_close_files:              1
-;     done_commit_state:             1
-;     done_credits_check:            1
-;     done_dump_eof:                 1
-;     done_end_dump_line:            1
-;     done_entry_newline:            1
-;     done_find_write_fcb:           1
-;     done_flush_fcb:                1
-;     done_found_free_slot:          1
-;     done_inc_byte_count:           1
-;     done_init_wipe:                1
-;     done_mask_hex_digit:           1
-;     done_no_reply_msg:             1
-;     done_osword_op:                1
-;     done_parse_disp_base:          1
-;     done_pass_retries:             1
-;     done_poll_name_print:          1
-;     done_poll_slot_mark:           1
-;     done_print_newline:            1
-;     done_print_separator:          1
-;     done_print_table:              1
-;     done_ps_available:             1
-;     done_ps_scan:                  1
-;     done_read_fcb_byte:            1
-;     done_restore_offset:           1
-;     done_return_flag:              1
-;     done_run_dispatch:             1
-;     done_save_context:             1
-;     done_search_bit2:              1
-;     done_search_bit3:              1
-;     done_search_boot:              1
-;     done_select_fcb:               1
-;     done_set_fcb_active:           1
-;     done_skip_filename:            1
-;     done_spool_ctrl:               1
-;     done_start_dump_addr:          1
-;     done_station_msg:              1
-;     done_suffix:                   1
-;     done_terminate_wipe_err:       1
-;     done_test_del:                 1
-;     done_test_empty_slot:          1
-;     done_test_fcb_active:          1
-;     done_test_write_flag:          1
-;     done_toggle_station:           1
-;     done_trim_spaces:              1
-;     done_write_block:              1
-;     done_ws_template_copy:         1
-;     econet_data_terminate_frame:   1
-;     err_printer_busy:              1
-;     error_bad_net_num:             1
-;     error_bad_rename:              1
-;     error_chan_not_found:          1
-;     error_chan_not_here:           1
-;     error_chan_out_of_range:       1
-;     error_end_of_file:             1
-;     error_escape_pressed:          1
-;     error_hex_overflow:            1
-;     error_invalid_chan:            1
-;     evntv:                         1
-;     ex_set_lib_flag:               1
-;     extract_digit_value:           1
-;     filev:                         1
-;     find_station_bit2:             1
-;     fixup_reply_status_a:          1
-;     flush_fcb_if_station_known:    1
-;     flush_fcb_with_init:           1
-;     fs_vector_table:               1
-;     fscv:                          1
-;     fscv_2_star_run:               1
-;     fscv_3_star_cmd:               1
-;     fsreply_3_set_csd:             1
-;     gsread_to_buf:                 1
-;     halt_spin_loop:                1
-;     handle_burst_xfer:             1
-;     handle_cat_update:             1
-;     handle_disconnect:             1
-;     handle_net_error:              1
-;     handle_spool_ctrl_byte:        1
-;     handle_tx_request:             1
-;     handshake_await_ack:           1
-;     help_print_nfs_cmds:           1
-;     help_wrap_if_serial:           1
-;     imm_op_build_reply:            1
-;     imm_op_discard:                1
-;     imm_param_base:                1
-;     immediate_op:                  1
-;     inactive_retry:                1
-;     inc_rxcb_ptr:                  1
-;     init_adlc_and_vectors:         1
-;     init_channel_table:            1
-;     init_dump_buffer:              1
-;     init_poll_counters:            1
-;     init_ps_slot_from_rx:          1
-;     init_transfer_addrs:           1
-;     init_tx_ptr_for_pass:          1
-;     init_txcb_bye:                 1
-;     init_txcb_port:                1
-;     init_ws_copy_narrow:           1
-;     install_data_rx_handler:       1
-;     install_imm_data_nmi:          1
-;     install_reply_scout:           1
-;     install_saved_handler:         1
-;     install_tube_rx:               1
-;     inx4:                          1
-;     is_dec_digit_only:             1
-;     issue_svc_15:                  1
-;     jmp_osbyte:                    1
-;     l0020:                         1
-;     l0026:                         1
-;     l02a0:                         1
-;     l0350:                         1
-;     l0351:                         1
-;     l0cff:                         1
-;     l12ac:                         1
-;     l2020:                         1
-;     l2322:                         1
-;     l4e2f:                         1
-;     l6f6e:                         1
-;     l840a:                         1
-;     l85fd:                         1
-;     l886f:                         1
-;     l8877:                         1
-;     l89c9:                         1
-;     l89ed:                         1
-;     l8a20:                         1
-;     l8da7:                         1
-;     l99a3:                         1
-;     la0ff:                         1
-;     la103:                         1
-;     la75b:                         1
-;     la871:                         1
-;     la878:                         1
-;     labc5:                         1
-;     lad20:                         1
-;     lad29:                         1
-;     lb097:                         1
-;     lb099:                         1
-;     lb4fd:                         1
-;     lbfe6:                         1
-;     lc014:                         1
-;     lc032:                         1
-;     lc0f7:                         1
-;     lc10a:                         1
-;     lc10b:                         1
-;     lc10c:                         1
-;     lc10d:                         1
-;     lc10e:                         1
-;     lc112:                         1
-;     lc113:                         1
-;     lc114:                         1
-;     lc116:                         1
-;     lc12f:                         1
-;     lc130:                         1
-;     lc1df:                         1
-;     lc1e0:                         1
-;     lc1f0:                         1
-;     lc1ff:                         1
-;     lc250:                         1
-;     lc272:                         1
-;     lc273:                         1
-;     lc274:                         1
-;     lc2cb:                         1
-;     lc2cd:                         1
-;     lc2ce:                         1
-;     lc2d1:                         1
-;     lc2d6:                         1
-;     ld020:                         1
-;     lffbd:                         1
-;     library_dir_prefix:            1
-;     library_tried:                 1
-;     load_chan_handle:              1
-;     load_char:                     1
-;     load_reply_and_classify:       1
-;     load_suffix_offset:            1
-;     load_text_ptr_and_parse:       1
-;     lookup_cat_slot_data:          1
-;     loop_add_disp_bytes:           1
-;     loop_adjust_byte:              1
-;     loop_advance_char:             1
-;     loop_append_err_suffix:        1
-;     loop_bcd_add:                  1
-;     loop_bridge_tx_delay:          1
-;     loop_c8bea:                    1
-;     loop_c9292:                    1
-;     loop_ca0f2:                    1
-;     loop_cb2b9:                    1
-;     loop_cb316:                    1
-;     loop_cbb3c:                    1
-;     loop_cbb5f:                    1
-;     loop_cbe16:                    1
-;     loop_check_exec_bytes:         1
-;     loop_check_ff_addr:            1
-;     loop_check_handles:            1
-;     loop_check_if_locked:          1
-;     loop_check_remaining:          1
-;     loop_check_sep_table:          1
-;     loop_check_vs_limit:           1
-;     loop_checksum_byte:            1
-;     loop_clear_buf:                1
-;     loop_clear_buffer:             1
-;     loop_clear_chan_table:         1
-;     loop_clear_counters:           1
-;     loop_clear_hex_accum:          1
-;     loop_cmp_file_length:          1
-;     loop_cmp_handle:               1
-;     loop_compute_diffs:            1
-;     loop_copy_addr_offset:         1
-;     loop_copy_addrs:               1
-;     loop_copy_bad_prefix:          1
-;     loop_copy_bridge_init:         1
-;     loop_copy_buf_char:            1
-;     loop_copy_cat_info:            1
-;     loop_copy_chan_err_str:        1
-;     loop_copy_channel_msg:         1
-;     loop_copy_char:                1
-;     loop_copy_cmdline_char:        1
-;     loop_copy_error:               1
-;     loop_copy_error_msg:           1
-;     loop_copy_ext_info:            1
-;     loop_copy_fcb_fields:          1
-;     loop_copy_file_info:           1
-;     loop_copy_fs_ctx:              1
-;     loop_copy_fs_num:              1
-;     loop_copy_fs_options:          1
-;     loop_copy_fsopts_4:            1
-;     loop_copy_fsopts_8:            1
-;     loop_copy_fsopts_byte:         1
-;     loop_copy_inline_str:          1
-;     loop_copy_lib_prefix:          1
-;     loop_copy_limit:               1
-;     loop_copy_name:                1
-;     loop_copy_no_reply_msg:        1
-;     loop_copy_offset:              1
-;     loop_copy_offsets:             1
-;     loop_copy_opts_to_buf:         1
-;     loop_copy_opts_to_ws:          1
-;     loop_copy_osfile_ptr:          1
-;     loop_copy_osword_data:         1
-;     loop_copy_pb_to_ws:            1
-;     loop_copy_ps_tmpl:             1
-;     loop_copy_ptr_to_buf:          1
-;     loop_copy_rename:              1
-;     loop_copy_reply_to_zp:         1
-;     loop_copy_slot_tmpl:           1
-;     loop_copy_spool_rx:            1
-;     loop_copy_spool_tx:            1
-;     loop_copy_start_addr:          1
-;     loop_copy_start_end:           1
-;     loop_copy_station_msg:         1
-;     loop_copy_suffix:              1
-;     loop_copy_template:            1
-;     loop_copy_text_ptr:            1
-;     loop_copy_to_host:             1
-;     loop_copy_to_ws:               1
-;     loop_copy_tx_hdr:              1
-;     loop_copy_txcb_init:           1
-;     loop_copy_vset_stn:            1
-;     loop_copy_wipe_err_msg:        1
-;     loop_copy_wipe_name:           1
-;     loop_copy_ws_byte:             1
-;     loop_copy_ws_page:             1
-;     loop_copy_ws_to_pb:            1
-;     loop_copy_zp_to_buf:           1
-;     loop_count_digit:              1
-;     loop_count_rxcb_slot:          1
-;     loop_dispatch_help:            1
-;     loop_divide_digit:             1
-;     loop_emit_credits:             1
-;     loop_encode_prot:              1
-;     loop_erase_pw:                 1
-;     loop_find_name_end:            1
-;     loop_gsread_char:              1
-;     loop_inc_dump_addr:            1
-;     loop_indent_spaces:            1
-;     loop_init_txcb:                1
-;     loop_mark_chan_avail:          1
-;     loop_match_char:               1
-;     loop_match_credits:            1
-;     loop_next_char:                1
-;     loop_next_dump_col:            1
-;     loop_next_entry:               1
-;     loop_next_reply:               1
-;     loop_pad_poll_name:            1
-;     loop_pad_ps_name:              1
-;     loop_pad_spaces:               1
-;     loop_parse_hex_digit:          1
-;     loop_poll_pass_tx:             1
-;     loop_poll_ws_status:           1
-;     loop_pop_ps_name:              1
-;     loop_pop_ps_slot:              1
-;     loop_print_addr_byte:          1
-;     loop_print_dump_ascii:         1
-;     loop_print_dump_hex:           1
-;     loop_print_filename:           1
-;     loop_print_poll_name:          1
-;     loop_process_fcb:              1
-;     loop_push_ps_name:             1
-;     loop_push_zero_buf:            1
-;     loop_read_dump_byte:           1
-;     loop_read_gs_string:           1
-;     loop_read_palette:             1
-;     loop_read_poll_char:           1
-;     loop_read_ps_char:             1
-;     loop_restore_ctx:              1
-;     loop_restore_name:             1
-;     loop_restore_stack:            1
-;     loop_restore_tx_buf:           1
-;     loop_restore_txbuf:            1
-;     loop_retry_tx:                 1
-;     loop_rotate_hex_accum:         1
-;     loop_save_before_match:        1
-;     loop_save_tube_bytes:          1
-;     loop_save_tx_context:          1
-;     loop_scan_channels:            1
-;     loop_scan_colon:               1
-;     loop_scan_entries:             1
-;     loop_scan_fcb_flags:           1
-;     loop_scan_fcb_slots:           1
-;     loop_scan_flag:                1
-;     loop_scan_key_range:           1
-;     loop_scan_past_word:           1
-;     loop_scan_ps_slots:            1
-;     loop_send_pb_chars:            1
-;     loop_set_vectors:              1
-;     loop_setup_addr_bytes:         1
-;     loop_shift_filename:           1
-;     loop_shift_name_right:         1
-;     loop_shift_nibble:             1
-;     loop_shift_osfile_data:        1
-;     loop_shift_str_left:           1
-;     loop_skip_filename:            1
-;     loop_skip_fn_spaces:           1
-;     loop_skip_hex_spaces:          1
-;     loop_skip_spaces:              1
-;     loop_skip_to_next:             1
-;     loop_skip_trail_spaces:        1
-;     loop_skip_trailing:            1
-;     loop_store_disp_addr:          1
-;     loop_sum_rom_bytes:            1
-;     loop_sum_ws:                   1
-;     loop_swap_and_send:            1
-;     loop_trim_trailing:            1
-;     loop_tube_delay:               1
-;     loop_verify_addrs:             1
-;     loop_wait_disc_tx_ack:         1
-;     loop_wait_tx_done:             1
-;     loop_write_to_tube:            1
-;     loop_zero_load_addr:           1
-;     mark_ws_uninit:                1
-;     mask_error_class:              1
-;     match_help_topic:              1
-;     netv:                          1
-;     next_flag_entry:               1
-;     next_hex_char:                 1
-;     next_scout_byte:               1
-;     nfs_temp:                      1
-;     nmi_data_rx_bulk:              1
-;     nmi_data_rx_skip:              1
-;     nmi_data_tx:                   1
-;     nmi_final_ack_validate:        1
-;     nmi_reply_validate:            1
-;     nmi_romsel:                    1
-;     nmi_rx_scout:                  1
-;     no_flag_match:                 1
-;     no_poll_name_given:            1
-;     no_ps_name_given:              1
-;     not_a_digit:                   1
-;     notify_new_fs:                 1
-;     open_file_for_read:            1
-;     open_file_for_run:             1
-;     osargs_dispatch:               1
-;     osargs_ptr_dispatch:           1
-;     osargs_read_op:                1
-;     osargs_write_ptr:              1
-;     osbget:                        1
-;     osbyte_yff:                    1
-;     oseven:                        1
-;     osfile:                        1
-;     osfind_close_or_open:          1
-;     osfind_with_channel:           1
-;     osword_13_read_ctx_3:          1
-;     osword_13_write_ctx_3:         1
-;     osword_claim_codes:            1
-;     oswrch:                        1
-;     parse_fs_dot_dir:              1
-;     pass_send_cmd:                 1
-;     pass_tx_success:               1
-;     peek_retry_count:              1
-;     prep_send_tx_cb:               1
-;     print_10_chars:                1
-;     print_chars_from_buf:          1
-;     print_current_fs:              1
-;     print_file_server_is:          1
-;     print_fs_info_newline:         1
-;     print_hex_nybble:              1
-;     print_indent:                  1
-;     print_load_exec_addrs:         1
-;     print_nonzero_digit:           1
-;     print_poll_jammed:             1
-;     print_ps_now:                  1
-;     print_server_is_suffix:        1
-;     print_syntax_char:             1
-;     print_table_newline:           1
-;     process_reply_code:            1
-;     prot_bit_encode_table:         1
-;     ps_tx_header_template:         1
-;     push_osword_handler_addr:      1
-;     read_cat_info:                 1
-;     read_osbyte_to_ws_x0:          1
-;     read_ps_station_addr:          1
-;     read_second_rx_byte:           1
-;     read_sr2_between_pairs:        1
-;     recv_and_update:               1
-;     recv_reply:                    1
-;     recv_reply_preserve_flags:     1
-;     reinit_ps_slot:                1
-;     request_next_wipe:             1
-;     reset_enter_listen:            1
-;     reset_spool_buf_state:         1
-;     restart_table_scan:            1
-;     restore_and_return:            1
-;     restore_catalog_entry:         1
-;     restore_filename:              1
-;     restore_regs_return:           1
-;     restore_retry_state:           1
-;     restore_svc_state:             1
-;     restore_text_ptr:              1
-;     restore_x_and_return:          1
-;     resume_caller:                 1
-;     retreat_y_by_4:                1
-;     retry_with_library:            1
-;     return_1:                      1
-;     return_2:                      1
-;     return_3:                      1
-;     return_4:                      1
-;     return_alloc_success:          1
-;     return_chan_index:             1
-;     return_from_2bit_index:        1
-;     return_from_advance_y:         1
-;     return_from_bridge_query:      1
-;     return_from_cmp_handle:        1
-;     return_from_cond_save_err:     1
-;     return_from_copy_arg:          1
-;     return_from_copy_cmd_name:     1
-;     return_from_discard_reset:     1
-;     return_from_fs_shutdown:       1
-;     return_from_match_stn:         1
-;     return_from_poll_slots:        1
-;     return_from_print_digit:       1
-;     return_from_recv_reply:        1
-;     return_from_save_text_ptr:     1
-;     return_from_setup_ws_ptr:      1
-;     return_from_skip_arg:          1
-;     return_from_station_match:     1
-;     return_from_store_digit:       1
-;     return_from_txcb_swap:         1
-;     return_from_write_ws_pair:     1
-;     return_parsed:                 1
-;     return_rx_complete:            1
-;     return_success:                1
-;     return_test_offset:            1
-;     return_with_handle:            1
-;     return_with_result:            1
-;     return_zero_uninit:            1
-;     rotate_prot_mask:              1
-;     rx_error_reset:                1
-;     rx_palette_txcb_template:      1
-;     rx_tube_data:                  1
-;     save_ps_cmd_ptr:               1
-;     save_tube_state:               1
-;     scan_fcb_flags:                1
-;     scan_nfs_port_list:            1
-;     scan_port_list:                1
-;     scan_remote_keys:              1
-;     scout_data:                    1
-;     scout_discard:                 1
-;     scout_loop_rda:                1
-;     scout_loop_second:             1
-;     scout_match_port:              1
-;     scout_page_overflow:           1
-;     scout_reject:                  1
-;     select_net_fs:                 1
-;     select_store_target:           1
-;     send_close_request:            1
-;     send_delete_request:           1
-;     send_info_request:             1
-;     send_osargs_request:           1
-;     send_osbput_data:              1
-;     send_pass_to_fs:               1
-;     send_request_nowrite:          1
-;     send_request_vset:             1
-;     send_with_swap:                1
-;     sep_table_data:                1
-;     serialise_palette_entry:       1
-;     service_handler:               1
-;     set_c_and_return:              1
-;     set_flags_bit2:                1
-;     set_flags_bit3:                1
-;     set_flags_boot:                1
-;     set_fs_select_flag:            1
-;     set_port_and_ctrl:             1
-;     set_timeout:                   1
-;     set_tube_addr:                 1
-;     set_tx_reply_flag:             1
-;     set_write_active:              1
-;     setup_csd_copy:                1
-;     setup_data_xfer:               1
-;     setup_error_copy:              1
-;     setup_ex_request:              1
-;     setup_fs_root:                 1
-;     setup_gbpb_request:            1
-;     setup_pass_txbuf:              1
-;     setup_save_access:             1
-;     setup_sr_tx:                   1
-;     setup_txcb_addrs:              1
-;     setup_txcb_transfer:           1
-;     setup_unicast_xfer:            1
-;     setup_write_access:            1
-;     setup_ws_ptr:                  1
-;     setup_ws_rx_ptrs:              1
-;     shift_and_finalise:            1
-;     show_wipe_prompt:              1
-;     skip_buf_ptr_update:           1
-;     skip_buf_setup:                1
-;     skip_clear_prot:               1
-;     skip_dot_and_spaces:           1
-;     skip_if_error:                 1
-;     skip_if_local_net:             1
-;     skip_if_modified_fcb:          1
-;     skip_if_no_match:              1
-;     skip_if_no_poll_arg:           1
-;     skip_if_no_station:            1
-;     skip_if_no_wrap:               1
-;     skip_if_not_a:                 1
-;     skip_if_not_hex:               1
-;     skip_if_out_of_range:          1
-;     skip_if_slots_done:            1
-;     skip_next_ps_slot:             1
-;     skip_non_printable:            1
-;     skip_one_and_advance5:         1
-;     skip_restore_byte:             1
-;     skip_struct_hole:              1
-;     skip_template_byte:            1
-;     skip_tube_update:              1
-;     skip_txcb_dest:                1
-;     spool_tx_retry:                1
-;     spool_tx_succeeded:            1
-;     start_data_tx:                 1
-;     start_pass_tx:                 1
-;     start_spool_retry:             1
-;     start_tx_attempt:              1
-;     store_adjusted_byte:           1
-;     store_arg_char:                1
-;     store_buf_ptr_lo:              1
-;     store_digit:                   1
-;     store_direction_flag:          1
-;     store_display_flag:            1
-;     store_fcb_flags:               1
-;     store_owner_flags:             1
-;     store_port_and_send:           1
-;     store_prot_byte:               1
-;     store_ps_station:              1
-;     store_rename_char:             1
-;     store_reply_status:            1
-;     store_result:                  1
-;     store_slot_tmpl_byte:          1
-;     store_spool_rx_byte:           1
-;     store_stack_byte:              1
-;     store_station_and_flush:       1
-;     store_station_lo:              1
-;     store_tx_ctrl_byte:            1
-;     store_tx_ptr_hi:               1
-;     store_txcb_init_byte:          1
-;     store_via_rx_ptr:              1
-;     store_ws_byte:                 1
-;     sub_c8b4d:                     1
-;     sub_c8b52:                     1
-;     sub_c8d24:                     1
-;     sub_c8ed2:                     1
-;     sub_c9201:                     1
-;     sub_c924c:                     1
-;     sub_c9255:                     1
-;     sub_c9612:                     1
-;     sub_cb303:                     1
-;     subst_rx_page_byte:            1
-;     subtract_ws_byte:              1
-;     suffix_not_listening:          1
-;     syn_opt_dir:                   1
-;     trigger_brk:                   1
-;     try_alternate_phase:           1
-;     try_library_path:              1
-;     tube_claimed_id:               1
-;     tube_write_setup:              1
-;     tx_check_tdra_ready:           1
-;     tx_ctrl_exit:                  1
-;     tx_ctrl_range_check:           1
-;     tx_ctrl_store_and_add:         1
-;     tx_data_start:                 1
-;     tx_econet_txcb_template:       1
-;     tx_error:                      1
-;     tx_fifo_not_ready:             1
-;     tx_fifo_write:                 1
-;     tx_imm_op_setup:               1
-;     tx_last_data:                  1
-;     tx_line_idle_check:            1
-;     tx_line_jammed:                1
-;     tx_no_clock_error:             1
-;     tx_prepare:                    1
-;     tx_src_net:                    1
-;     tx_store_error:                1
-;     tx_success:                    1
-;     tx_tdra_error:                 1
-;     txcb_copy_carry_clr:           1
-;     txcb_copy_carry_set:           1
-;     txcb_dest:                     1
-;     txcb_init_template:            1
-;     txcb_pos:                      1
-;     update_addr_from_offset1:      1
-;     update_addr_from_offset9:      1
-;     update_cat_position:           1
-;     use_default_station:           1
-;     use_lib_station:               1
-;     valid_osgbpb_op:               1
-;     validate_chan_close:           1
-;     validate_station:              1
-;     verify_stn_match:              1
-;     write_block_entry:             1
-;     write_error_num_and_str:       1
-;     write_key_state:               1
-;     write_second_tx_byte:          1
-;     write_two_bytes_inc_y:         1
-;     ws_copy_vclr_entry:            1
-;     ws_txcb_template_data:         1
-;     zp_0063:                       1
-;     zp_0078:                       1
+;     nfs_workspace:                 84
+;     lc105:                         58
+;     fs_options:                    53
+;     net_rx_ptr:                    48
+;     econet_control23_or_status2:   45
+;     ws_ptr_hi:                     39
+;     fs_load_addr_2:                38
+;     work_ae:                       38
+;     econet_data_continue_frame:    37
+;     net_tx_ptr:                    37
+;     port_ws_offset:                34
+;     fs_error_ptr:                  33
+;     econet_control1_or_status1:    32
+;     fs_crc_lo:                     31
+;     lc271:                         31
+;     osword_flag:                   29
+;     osbyte:                        27
+;     rx_src_net:                    27
+;     lc106:                         26
+;     fs_load_addr:                  24
+;     port_buf_len:                  23
+;     print_inline:                  23
+;     lc260:                         22
+;     lc2b8:                         22
+;     always_set_v_byte:             21
+;     fs_work_4:                     21
+;     l0101:                         20
+;     save_net_tx_cb:                20
+;     lc200:                         18
+;     econet_flags:                  17
+;     fs_flags:                      17
+;     lfe34:                         16
+;     open_port_buf_hi:              16
+;     os_text_ptr:                   16
+;     fs_block_offset:               15
+;     lc030:                         15
+;     lc230:                         15
+;     nmi_tx_block:                  15
+;     fs_work_5:                     14
+;     lc2c8:                         14
+;     need_release_tube:             14
+;     net_tx_ptr_hi:                 14
+;     open_port_buf:                 14
+;     port_buf_len_hi:               14
+;     fs_last_byte_flag:             13
+;     lc210:                         13
+;     osasci:                        13
+;     set_nmi_vector:                13
+;     ws_page:                       13
+;     lc2c9:                         12
+;     return_with_last_flag:         12
+;     sub_cb2cf:                     12
+;     error_bad_inline:              11
+;     error_inline_log:              11
+;     fs_load_addr_3:                11
+;     fs_work_6:                     11
+;     l0100:                         11
+;     nmi_error_dispatch:            11
+;     svc_state:                     11
+;     tx_result_fail:                11
+;     la76c:                         10
+;     lc103:                         10
+;     lc107:                         10
+;     net_rx_ptr_hi:                 10
+;     store_rx_attribute:            10
+;     fs_crflag:                      9
+;     install_nmi_handler:            9
+;     lc220:                          9
+;     osnewl:                         9
+;     scout_buf:                      9
+;     tx_src_stn:                     9
+;     txcb_end:                       9
+;     ws_0d6a:                        9
+;     addr_work:                      8
+;     copy_arg_to_buf:                8
+;     l0406:                          8
+;     l9aa6:                          8
+;     nfs_workspace_hi:               8
+;     print_char_no_spool:            8
+;     romsel_copy:                    8
+;     vdu_status:                     8
+;     alloc_fcb_slot:                 7
+;     finalise_and_return:            7
+;     fs_load_addr_hi:                7
+;     lc102:                          7
+;     lc240:                          7
+;     lc298:                          7
+;     osword_pb_ptr:                  7
+;     reject_reply:                   7
+;     rx_buf_offset:                  7
+;     save_ptr_to_os_text:            7
+;     sub_cbb38:                      7
+;     tube_data_register_3:           7
+;     tx_complete_flag:               7
+;     tx_dst_stn:                     7
+;     txcb_ctrl:                      7
+;     txcb_start:                     7
+;     cond_save_error_code:           6
+;     discard_reset_rx:               6
+;     error_overflow:                 6
+;     fs_crc_hi:                      6
+;     lc001:                          6
+;     lc108:                          6
+;     lc2d8:                          6
+;     lfe38:                          6
+;     match_station_net:              6
+;     nmi_rti:                        6
+;     os_text_ptr_hi:                 6
+;     send_net_packet:                6
+;     spool_buf_idx:                  6
+;     sub_c928a:                      6
+;     wait_net_tx_ack:                6
+;     ws_0d68:                        6
+;     ws_ptr_lo:                      6
+;     attr_to_chan_index:             5
+;     close_ws_file:                  5
+;     copy_arg_to_buf_x0:             5
+;     escapable:                      5
+;     fs_spool_handle:                5
+;     fs_ws_ptr:                      5
+;     init_txcb:                      5
+;     l0102:                          5
+;     l0d71:                          5
+;     lc003:                          5
+;     lc009:                          5
+;     lc2cf:                          5
+;     lc2d4:                          5
+;     lc2d5:                          5
+;     net_error_lookup_data:          5
+;     prot_flags:                     5
+;     rx_port:                        5
+;     scout_ctrl:                     5
+;     scout_error:                    5
+;     scout_port:                     5
+;     set_xfer_params:                5
+;     strip_token_prefix:             5
+;     svc_dispatch:                   5
+;     table_idx:                      5
+;     tube_present:                   5
+;     tx_dst_net:                     5
+;     verify_ws_checksum:             5
+;     c8e9a:                          4
+;     ca5a1:                          4
+;     check_net_error_code:           4
+;     commit_state_byte:              4
+;     copy_pb_byte_to_ws:             4
+;     dispatch_svc_index:             4
+;     done_close:                     4
+;     done_poll_name_parse:           4
+;     econet_init_flag:               4
+;     error_inline:                   4
+;     fs_work_7:                      4
+;     gsinit:                         4
+;     gsread:                         4
+;     init_bridge_poll:               4
+;     lc002:                          4
+;     lc004:                          4
+;     lc005:                          4
+;     lc109:                          4
+;     lc2a8:                          4
+;     lfe3c:                          4
+;     load_ps_server_addr:            4
+;     loop_find_fcb:                  4
+;     loop_poll_tx:                   4
+;     loop_scan_fcb_down:             4
+;     nmi_tx_block_hi:                4
+;     parse_access_prefix:            4
+;     port_match_found:               4
+;     print_station_addr:             4
+;     process_spool_data:             4
+;     pydis_end:                      4
+;     read_pw_char:                   4
+;     read_rx_attribute:              4
+;     return_from_spool_reset:        4
+;     rom_ws_pages:                   4
+;     rx_ctrl:                        4
+;     saved_nmi_hi:                   4
+;     saved_nmi_lo:                   4
+;     scout_src_net:                  4
+;     store_a_to_pb_1:                4
+;     svc_return_unclaimed:           4
+;     tx_done_exit:                   4
+;     txcb_port:                      4
+;     zp_work_3:                      4
+;     adlc_full_reset:                3
+;     advance_buffer_ptr:             3
+;     advance_x_by_8:                 3
+;     alloc_fcb_with_flags:           3
+;     append_byte_to_rxbuf:           3
+;     c8ace:                          3
+;     c9421:                          3
+;     check_tube_irq_loop:            3
+;     close_all_net_chans:            3
+;     data_tx_last:                   3
+;     dispatch_rts:                   3
+;     done_add_disp_base:             3
+;     done_poll_status_line:          3
+;     done_ps_name_parse:             3
+;     err_bad_hex:                    3
+;     err_bad_station_num:            3
+;     error_bad_filename:             3
+;     error_bad_hex_value:            3
+;     escape_flag:                    3
+;     exec_addr_lo:                   3
+;     find_matching_fcb:              3
+;     find_station_bit3:              3
+;     jmp_restore_fs_ctx:             3
+;     l0106:                          3
+;     l0355:                          3
+;     lbffe:                          3
+;     lc007:                          3
+;     lc008:                          3
+;     lc100:                          3
+;     lc1c8:                          3
+;     lc270:                          3
+;     lc278:                          3
+;     lc288:                          3
+;     lc2ca:                          3
+;     lc2cc:                          3
+;     lc2d0:                          3
+;     lc2f3:                          3
+;     loop_ps_delay:                  3
+;     match_fs_cmd:                   3
+;     match_rx_code:                  3
+;     next_port_slot:                 3
+;     nmi_jmp_hi:                     3
+;     nmi_jmp_lo:                     3
+;     osbyte_a_copy:                  3
+;     osfind:                         3
+;     osword_pb_ptr_hi:               3
+;     poll_adlc_tx_status:            3
+;     print_newline_no_spool:         3
+;     process_match_result:           3
+;     read_filename_char:             3
+;     read_last_rx_byte:              3
+;     reload_inactive_mask:           3
+;     reset_adlc_rx_listen:           3
+;     return_from_advance_buf:        3
+;     return_from_strip_prefix:       3
+;     rx_complete_update_rxcb:        3
+;     rx_remote_addr:                 3
+;     save_text_ptr:                  3
+;     send_disconnect_reply:          3
+;     sub_c8900:                      3
+;     sub_c8cad:                      3
+;     sub_c8ec9:                      3
+;     sub_ca3c4:                      3
+;     tube_claim_c3:                  3
+;     tx_bad_ctrl_error:              3
+;     tx_begin:                       3
+;     tx_econet_abort:                3
+;     write_second_tube_byte:         3
+;     ws_0d69:                        3
+;     zp_work_2:                      3
+;     ack_tx:                         2
+;     ack_tx_write_dest:              2
+;     adjust_fsopts_4bytes:           2
+;     adlc_rx_listen:                 2
+;     advance_rx_buffer_ptr:          2
+;     advance_template_idx:           2
+;     advance_y_by_4:                 2
+;     alloc_fcb_or_error:             2
+;     append_decimal_digit:           2
+;     append_decimal_num:             2
+;     append_drv_dot_num:             2
+;     append_error_number:            2
+;     append_space_and_num:           2
+;     build_error_block:              2
+;     c8264:                          2
+;     c842f:                          2
+;     c8827:                          2
+;     c8922:                          2
+;     c90c7:                          2
+;     c9895:                          2
+;     ca75f:                          2
+;     cb2f7:                          2
+;     check_adlc_flag:                2
+;     check_and_setup_txcb:           2
+;     check_chan_char:                2
+;     check_not_ampersand:            2
+;     check_not_dir:                  2
+;     check_tx_in_progress:           2
+;     classify_reply_error:           2
+;     clear_conn_active:              2
+;     clear_result:                   2
+;     clear_v_flag:                   2
+;     cmp_5byte_handle:               2
+;     copy_arg_validated:             2
+;     copy_fsopts_to_zp:              2
+;     copy_scout_via_tube:            2
+;     copy_workspace_to_fsopts:       2
+;     credits_keyword_start:          2
+;     data_rx_tube_complete:          2
+;     data_tx_check_fifo:             2
+;     discard_handle_match:           2
+;     discard_no_match:               2
+;     discard_reset_listen:           2
+;     dispatch_fs_cmd:                2
+;     dispatch_nmi_error:             2
+;     dispatch_via_vector:            2
+;     do_print_no_spool:              2
+;     done_advance_start:             2
+;     done_check_station:             2
+;     done_file_open:                 2
+;     done_load_from_buf:             2
+;     done_osfind:                    2
+;     done_parse_num:                 2
+;     done_poll_tx:                   2
+;     done_ps_slot_mark:              2
+;     done_ps_slot_scan:              2
+;     done_set_dirty_flag:            2
+;     done_strip_prefix:              2
+;     done_test_hex_space:            2
+;     done_uppercase_store:           2
+;     done_vset_station:              2
+;     enable_irq_and_poll:            2
+;     err_net_chan_invalid:           2
+;     error_bad_number:               2
+;     error_bad_param:                2
+;     error_bad_prefix:               2
+;     error_net_checksum:             2
+;     error_osargs:                   2
+;     error_outside_file:             2
+;     exec_addr_hi:                   2
+;     fallback_calc_transfer:         2
+;     find_open_fcb:                  2
+;     flip_set_station_boot:          2
+;     format_filename_field:          2
+;     get_access_bits:                2
+;     get_pb_ptr_as_index:            2
+;     get_prot_bits:                  2
+;     handle_dot_sep:                 2
+;     imm_op_out_of_range:            2
+;     inc_fcb_byte_count:             2
+;     init_remote_session:            2
+;     init_spool_drive:               2
+;     init_tx_ptr_and_send:           2
+;     init_wipe_counters:             2
+;     init_ws_copy_wide:              2
+;     is_decimal_digit:               2
+;     l0103:                          2
+;     l0104:                          2
+;     la76d:                          2
+;     la76e:                          2
+;     lb821:                          2
+;     lc006:                          2
+;     lc00a:                          2
+;     lc02f:                          2
+;     lc031:                          2
+;     lc038:                          2
+;     lc101:                          2
+;     lc104:                          2
+;     lc110:                          2
+;     lc111:                          2
+;     lc1dc:                          2
+;     lc1dd:                          2
+;     lc1de:                          2
+;     lc2d7:                          2
+;     lc2d9:                          2
+;     lookup_cat_entry_0:             2
+;     lookup_chan_by_char:            2
+;     loop_copy_arg_char:             2
+;     loop_copy_ws_template:          2
+;     loop_drain_printer_buf:         2
+;     loop_dump_line:                 2
+;     loop_find_pending_fcb:          2
+;     loop_next_fcb_slot:             2
+;     loop_pass_tx_delay:             2
+;     loop_pop_stack_buf:             2
+;     loop_print_hex_byte:            2
+;     loop_print_syntax:              2
+;     loop_reload_attr:               2
+;     loop_restore_workspace:         2
+;     loop_scan_disconnect:           2
+;     loop_scan_empty_fcb:            2
+;     loop_search_stn_bit2:           2
+;     loop_search_stn_bit3:           2
+;     loop_search_stn_boot:           2
+;     loop_skip_space_chars:          2
+;     loop_tx_delay:                  2
+;     loop_wait_ws_status:            2
+;     mark_not_found:                 2
+;     next_dec_char:                  2
+;     osargs:                         2
+;     oscli:                          2
+;     osrdch:                         2
+;     osword:                         2
+;     pad_with_spaces:                2
+;     parse_cmd_arg_y0:               2
+;     parse_dump_range:               2
+;     parse_filename_arg:             2
+;     parse_quoted_arg:               2
+;     pass_txbuf_init_table:          2
+;     poll_nmi_idle:                  2
+;     pop_requeue_ps_scan:            2
+;     print_5_hex_bytes:              2
+;     print_cmd_table:                2
+;     print_cmd_table_loop:           2
+;     print_decimal_3dig:             2
+;     print_decimal_digit:            2
+;     print_dump_header:              2
+;     print_hex_and_space:            2
+;     print_hex_byte:                 2
+;     print_num_no_leading:           2
+;     print_printer_server_is:        2
+;     print_version_header:           2
+;     recv_and_process_reply:         2
+;     release_tube:                   2
+;     restore_fs_context:             2
+;     restore_rom_slot:               2
+;     retreat_y_by_3:                 2
+;     return_from_bridge_poll:        2
+;     return_from_claim_release:      2
+;     return_from_credits_check:      2
+;     return_from_digit_test:         2
+;     return_from_help_wrap:          2
+;     return_from_inc_fcb_count:      2
+;     return_from_match_rx_code:      2
+;     return_from_svc_1_workspace:    2
+;     reverse_ps_name_to_tx:          2
+;     romsel:                         2
+;     rx_extra_byte:                  2
+;     rx_wait_timeout:                2
+;     save_fcb_context:               2
+;     save_net_tx_cb_vset:            2
+;     save_ptr_to_spool_buf:          2
+;     scout_complete:                 2
+;     send_ack:                       2
+;     send_and_receive:               2
+;     send_cmd_and_dispatch:          2
+;     send_data_rx_ack:               2
+;     send_disconnect_status:         2
+;     send_fs_request:                2
+;     send_request_write:             2
+;     send_save_or_access:            2
+;     send_txcb_swap_addrs:           2
+;     send_wipe_request:              2
+;     set_conn_active:                2
+;     set_nmi_rx_scout:               2
+;     set_options_ptr:                2
+;     set_text_and_xfer_ptr:          2
+;     setup_dir_display:              2
+;     setup_transfer_workspace:       2
+;     skip_entry_chars:               2
+;     skip_rename_spaces:             2
+;     skip_sep_spaces:                2
+;     start_wipe_pass:                2
+;     store_bridge_station:           2
+;     store_char_uppercase:           2
+;     store_pb_result:                2
+;     store_ptr_at_ws_y:              2
+;     store_result_check_dir:         2
+;     store_station_result:           2
+;     store_stn_flags_restore:        2
+;     store_tx_error:                 2
+;     sub_c92b2:                      2
+;     sub_c9463:                      2
+;     sub_c988f:                      2
+;     sub_cb310:                      2
+;     tail_update_catalogue:          2
+;     terminate_buf:                  2
+;     try_nfs_port_list:              2
+;     tube_tx_fifo_write:             2
+;     tx_addr_base:                   2
+;     tx_ctrl_byte:                   2
+;     tx_op_type:                     2
+;     tx_port:                        2
+;     tx_result_ok:                   2
+;     tx_retry_count:                 2
+;     tx_send_error:                  2
+;     tx_store_result:                2
+;     write_data_block:               2
+;     write_ps_slot_byte_ff:          2
+;     write_vector_entry:             2
+;     zp_ptr_hi:                      2
+;     zp_ptr_lo:                      2
+;     abort_if_escape:                1
+;     accept_frame:                   1
+;     accept_local_net:               1
+;     accept_scout_net:               1
+;     ack_tx_configure:               1
+;     add_ascii_base:                 1
+;     add_bytes_loop:                 1
+;     add_rxcb_ptr:                   1
+;     add_workspace_to_fsopts:        1
+;     adlc_init:                      1
+;     adlc_init_done:                 1
+;     advance_positions:              1
+;     advance_spool_rx_idx:           1
+;     advance_x_by_4:                 1
+;     alloc_fcb_for_open:             1
+;     alloc_run_channel:              1
+;     alloc_run_fcb:                  1
+;     append_space:                   1
+;     append_station_num:             1
+;     begin_prot_encode:              1
+;     boot_cmd_oscli:                 1
+;     boot_load_cmd:                  1
+;     bridge_found:                   1
+;     bridge_responded:               1
+;     bridge_txcb_init_table:         1
+;     brk_ptr:                        1
+;     build_no_reply_error:           1
+;     build_simple_error:             1
+;     byte_to_2bit_index:             1
+;     c8211:                          1
+;     c8258:                          1
+;     c8434:                          1
+;     c847e:                          1
+;     c8524:                          1
+;     c881b:                          1
+;     c8a8d:                          1
+;     c8b5a:                          1
+;     c8cbb:                          1
+;     c925d:                          1
+;     c9298:                          1
+;     c92af:                          1
+;     c95be:                          1
+;     c9827:                          1
+;     c9a0d:                          1
+;     ca0cf:                          1
+;     ca0db:                          1
+;     ca0df:                          1
+;     ca3e5:                          1
+;     ca4a0:                          1
+;     ca4f1:                          1
+;     ca4fc:                          1
+;     ca5df:                          1
+;     ca70b:                          1
+;     ca71c:                          1
+;     caf92:                          1
+;     calc_peek_poke_size:            1
+;     calc_transfer_size:             1
+;     call_fscv:                      1
+;     cat_set_lib_flag:               1
+;     cb2f9:                          1
+;     cb474:                          1
+;     cb56f:                          1
+;     cb625:                          1
+;     check_auto_boot_flag:           1
+;     check_chan_range:               1
+;     check_char_type:                1
+;     check_cmd_flags:                1
+;     check_colon_prefix:             1
+;     check_data_loss:                1
+;     check_digit_range:              1
+;     check_display_type:             1
+;     check_exec_addr:                1
+;     check_fs_dot:                   1
+;     check_fv_final_ack:             1
+;     check_handshake_bit:            1
+;     check_hash_prefix:              1
+;     check_help_topic:               1
+;     check_msg_terminator:           1
+;     check_open_mode:                1
+;     check_open_quote:               1
+;     check_poll_busy:                1
+;     check_poll_jammed:              1
+;     check_port_slot:                1
+;     check_pw_special:               1
+;     check_separator:                1
+;     check_spool_state:              1
+;     check_station_filter:           1
+;     check_tdra_status:              1
+;     check_urd_prefix:               1
+;     check_wipe_attr:                1
+;     check_wipe_dir:                 1
+;     clamp_end_to_limit:             1
+;     clear_buf_after_write:          1
+;     clear_c_flag:                   1
+;     clear_escapable:                1
+;     clear_flag_bits:                1
+;     clear_release_flag:             1
+;     clear_single_fcb:               1
+;     clear_svc_and_ws:               1
+;     clear_workspace_byte:           1
+;     close_all_channels:             1
+;     close_all_fcbs:                 1
+;     close_specific_chan:            1
+;     close_spool_exec:               1
+;     cmd_fs_reentry:                 1
+;     cmd_net_fs:                     1
+;     cmd_syntax_strings:             1
+;     cmd_syntax_table:               1
+;     copy_addr_loop:                 1
+;     copy_arg_and_enum:              1
+;     copy_bcast_addr:                1
+;     copy_from_buf_entry:            1
+;     copy_imm_params:                1
+;     copy_nmi_shim:                  1
+;     copy_pb_to_ws:                  1
+;     copy_ps_data:                   1
+;     copy_scout_bytes:               1
+;     copy_scout_to_buffer:           1
+;     copy_ws_byte_to_pb:             1
+;     copy_ws_then_fsopts:            1
+;     data_rx_complete:               1
+;     data_rx_loop:                   1
+;     data_tx_begin:                  1
+;     delay_nmi_disable:              1
+;     dir_found_send:                 1
+;     dir_op_dispatch:                1
+;     dir_pass_simple:                1
+;     dispatch_imm_op:                1
+;     dispatch_ops_1_to_6:            1
+;     dispatch_osfind_op:             1
+;     dispatch_osword_op:             1
+;     dispatch_svc_with_state:        1
+;     do_fs_cmd_iteration:            1
+;     done_advance_fcb:               1
+;     done_bcd_convert:               1
+;     done_calc_offset:               1
+;     done_cap_ws_count:              1
+;     done_check_boundary:            1
+;     done_check_buf_offset:          1
+;     done_check_dump_eof:            1
+;     done_check_fcb_status:          1
+;     done_check_outside:             1
+;     done_clear_fcb_active:          1
+;     done_close_files:               1
+;     done_commit_state:              1
+;     done_credits_check:             1
+;     done_dump_eof:                  1
+;     done_end_dump_line:             1
+;     done_entry_newline:             1
+;     done_find_write_fcb:            1
+;     done_flush_fcb:                 1
+;     done_found_free_slot:           1
+;     done_inc_byte_count:            1
+;     done_init_wipe:                 1
+;     done_mask_hex_digit:            1
+;     done_no_reply_msg:              1
+;     done_osword_op:                 1
+;     done_parse_disp_base:           1
+;     done_pass_retries:              1
+;     done_poll_name_print:           1
+;     done_poll_slot_mark:            1
+;     done_print_newline:             1
+;     done_print_separator:           1
+;     done_print_table:               1
+;     done_ps_available:              1
+;     done_ps_scan:                   1
+;     done_read_fcb_byte:             1
+;     done_restore_offset:            1
+;     done_return_flag:               1
+;     done_run_dispatch:              1
+;     done_save_context:              1
+;     done_search_bit2:               1
+;     done_search_bit3:               1
+;     done_search_boot:               1
+;     done_select_fcb:                1
+;     done_set_fcb_active:            1
+;     done_skip_filename:             1
+;     done_spool_ctrl:                1
+;     done_start_dump_addr:           1
+;     done_station_msg:               1
+;     done_suffix:                    1
+;     done_terminate_wipe_err:        1
+;     done_test_del:                  1
+;     done_test_empty_slot:           1
+;     done_test_fcb_active:           1
+;     done_test_write_flag:           1
+;     done_toggle_station:            1
+;     done_trim_spaces:               1
+;     done_write_block:               1
+;     done_ws_template_copy:          1
+;     econet_data_terminate_frame:    1
+;     err_printer_busy:               1
+;     error_bad_net_num:              1
+;     error_bad_rename:               1
+;     error_chan_not_found:           1
+;     error_chan_not_here:            1
+;     error_chan_out_of_range:        1
+;     error_end_of_file:              1
+;     error_escape_pressed:           1
+;     error_hex_overflow:             1
+;     error_invalid_chan:             1
+;     evntv:                          1
+;     ex_set_lib_flag:                1
+;     extract_digit_value:            1
+;     filev:                          1
+;     find_station_bit2:              1
+;     fixup_reply_status_a:           1
+;     flush_fcb_if_station_known:     1
+;     flush_fcb_with_init:            1
+;     fs_vector_table:                1
+;     fscv:                           1
+;     fscv_2_star_run:                1
+;     fscv_3_star_cmd:                1
+;     fsreply_3_set_csd:              1
+;     gsread_to_buf:                  1
+;     halt_spin_loop:                 1
+;     handle_burst_xfer:              1
+;     handle_cat_update:              1
+;     handle_disconnect:              1
+;     handle_net_error:               1
+;     handle_spool_ctrl_byte:         1
+;     handle_tx_request:              1
+;     handshake_await_ack:            1
+;     help_print_nfs_cmds:            1
+;     help_wrap_if_serial:            1
+;     imm_op_build_reply:             1
+;     imm_op_discard:                 1
+;     imm_param_base:                 1
+;     immediate_op:                   1
+;     inactive_retry:                 1
+;     inc_rxcb_ptr:                   1
+;     init_adlc_and_vectors:          1
+;     init_channel_table:             1
+;     init_dump_buffer:               1
+;     init_poll_counters:             1
+;     init_ps_slot_from_rx:           1
+;     init_transfer_addrs:            1
+;     init_tx_ptr_for_pass:           1
+;     init_txcb_bye:                  1
+;     init_txcb_port:                 1
+;     init_ws_copy_narrow:            1
+;     install_data_rx_handler:        1
+;     install_imm_data_nmi:           1
+;     install_reply_scout:            1
+;     install_saved_handler:          1
+;     install_tube_rx:                1
+;     inx4:                           1
+;     is_dec_digit_only:              1
+;     issue_svc_15:                   1
+;     jmp_osbyte:                     1
+;     l0020:                          1
+;     l0026:                          1
+;     l02a0:                          1
+;     l0350:                          1
+;     l0351:                          1
+;     l0cff:                          1
+;     l12ac:                          1
+;     l2020:                          1
+;     l2322:                          1
+;     l4e2f:                          1
+;     l6f6e:                          1
+;     l840a:                          1
+;     l85fd:                          1
+;     l886f:                          1
+;     l8877:                          1
+;     l89c9:                          1
+;     l89ed:                          1
+;     l8a20:                          1
+;     l8da7:                          1
+;     l99a3:                          1
+;     la0ff:                          1
+;     la103:                          1
+;     la75b:                          1
+;     la871:                          1
+;     la878:                          1
+;     labc5:                          1
+;     lad20:                          1
+;     lad29:                          1
+;     lb097:                          1
+;     lb099:                          1
+;     lb4fd:                          1
+;     lbfe6:                          1
+;     lc014:                          1
+;     lc032:                          1
+;     lc0f7:                          1
+;     lc10a:                          1
+;     lc10b:                          1
+;     lc10c:                          1
+;     lc10d:                          1
+;     lc10e:                          1
+;     lc112:                          1
+;     lc113:                          1
+;     lc114:                          1
+;     lc116:                          1
+;     lc12f:                          1
+;     lc130:                          1
+;     lc1df:                          1
+;     lc1e0:                          1
+;     lc1f0:                          1
+;     lc1ff:                          1
+;     lc250:                          1
+;     lc272:                          1
+;     lc273:                          1
+;     lc274:                          1
+;     lc2cb:                          1
+;     lc2cd:                          1
+;     lc2ce:                          1
+;     lc2d1:                          1
+;     lc2d6:                          1
+;     ld020:                          1
+;     lffbd:                          1
+;     library_dir_prefix:             1
+;     library_tried:                  1
+;     load_chan_handle:               1
+;     load_char:                      1
+;     load_reply_and_classify:        1
+;     load_suffix_offset:             1
+;     load_text_ptr_and_parse:        1
+;     lookup_cat_slot_data:           1
+;     loop_add_disp_bytes:            1
+;     loop_adjust_byte:               1
+;     loop_advance_char:              1
+;     loop_append_err_suffix:         1
+;     loop_bcd_add:                   1
+;     loop_bridge_tx_delay:           1
+;     loop_c8bea:                     1
+;     loop_c9292:                     1
+;     loop_ca0f2:                     1
+;     loop_cb2b9:                     1
+;     loop_cb316:                     1
+;     loop_cbb3c:                     1
+;     loop_cbb5f:                     1
+;     loop_cbe16:                     1
+;     loop_check_exec_bytes:          1
+;     loop_check_ff_addr:             1
+;     loop_check_handles:             1
+;     loop_check_if_locked:           1
+;     loop_check_remaining:           1
+;     loop_check_sep_table:           1
+;     loop_check_vs_limit:            1
+;     loop_checksum_byte:             1
+;     loop_clear_buf:                 1
+;     loop_clear_buffer:              1
+;     loop_clear_chan_table:          1
+;     loop_clear_counters:            1
+;     loop_clear_hex_accum:           1
+;     loop_cmp_file_length:           1
+;     loop_cmp_handle:                1
+;     loop_compute_diffs:             1
+;     loop_copy_addr_offset:          1
+;     loop_copy_addrs:                1
+;     loop_copy_bad_prefix:           1
+;     loop_copy_bridge_init:          1
+;     loop_copy_buf_char:             1
+;     loop_copy_cat_info:             1
+;     loop_copy_chan_err_str:         1
+;     loop_copy_channel_msg:          1
+;     loop_copy_char:                 1
+;     loop_copy_cmdline_char:         1
+;     loop_copy_error:                1
+;     loop_copy_error_msg:            1
+;     loop_copy_ext_info:             1
+;     loop_copy_fcb_fields:           1
+;     loop_copy_file_info:            1
+;     loop_copy_fs_ctx:               1
+;     loop_copy_fs_num:               1
+;     loop_copy_fs_options:           1
+;     loop_copy_fsopts_4:             1
+;     loop_copy_fsopts_8:             1
+;     loop_copy_fsopts_byte:          1
+;     loop_copy_inline_str:           1
+;     loop_copy_lib_prefix:           1
+;     loop_copy_limit:                1
+;     loop_copy_name:                 1
+;     loop_copy_no_reply_msg:         1
+;     loop_copy_offset:               1
+;     loop_copy_offsets:              1
+;     loop_copy_opts_to_buf:          1
+;     loop_copy_opts_to_ws:           1
+;     loop_copy_osfile_ptr:           1
+;     loop_copy_osword_data:          1
+;     loop_copy_pb_to_ws:             1
+;     loop_copy_ps_tmpl:              1
+;     loop_copy_ptr_to_buf:           1
+;     loop_copy_rename:               1
+;     loop_copy_reply_to_zp:          1
+;     loop_copy_slot_tmpl:            1
+;     loop_copy_spool_rx:             1
+;     loop_copy_spool_tx:             1
+;     loop_copy_start_addr:           1
+;     loop_copy_start_end:            1
+;     loop_copy_station_msg:          1
+;     loop_copy_suffix:               1
+;     loop_copy_template:             1
+;     loop_copy_text_ptr:             1
+;     loop_copy_to_host:              1
+;     loop_copy_to_ws:                1
+;     loop_copy_tx_hdr:               1
+;     loop_copy_txcb_init:            1
+;     loop_copy_vset_stn:             1
+;     loop_copy_wipe_err_msg:         1
+;     loop_copy_wipe_name:            1
+;     loop_copy_ws_byte:              1
+;     loop_copy_ws_page:              1
+;     loop_copy_ws_to_pb:             1
+;     loop_copy_zp_to_buf:            1
+;     loop_count_digit:               1
+;     loop_count_rxcb_slot:           1
+;     loop_dispatch_help:             1
+;     loop_divide_digit:              1
+;     loop_emit_credits:              1
+;     loop_encode_prot:               1
+;     loop_erase_pw:                  1
+;     loop_find_name_end:             1
+;     loop_gsread_char:               1
+;     loop_inc_dump_addr:             1
+;     loop_indent_spaces:             1
+;     loop_init_txcb:                 1
+;     loop_mark_chan_avail:           1
+;     loop_match_char:                1
+;     loop_match_credits:             1
+;     loop_next_char:                 1
+;     loop_next_dump_col:             1
+;     loop_next_entry:                1
+;     loop_next_reply:                1
+;     loop_pad_poll_name:             1
+;     loop_pad_ps_name:               1
+;     loop_pad_spaces:                1
+;     loop_parse_hex_digit:           1
+;     loop_poll_pass_tx:              1
+;     loop_poll_ws_status:            1
+;     loop_pop_ps_name:               1
+;     loop_pop_ps_slot:               1
+;     loop_print_addr_byte:           1
+;     loop_print_dump_ascii:          1
+;     loop_print_dump_hex:            1
+;     loop_print_filename:            1
+;     loop_print_poll_name:           1
+;     loop_process_fcb:               1
+;     loop_push_ps_name:              1
+;     loop_push_zero_buf:             1
+;     loop_read_dump_byte:            1
+;     loop_read_gs_string:            1
+;     loop_read_palette:              1
+;     loop_read_poll_char:            1
+;     loop_read_ps_char:              1
+;     loop_restore_ctx:               1
+;     loop_restore_name:              1
+;     loop_restore_stack:             1
+;     loop_restore_tx_buf:            1
+;     loop_restore_txbuf:             1
+;     loop_retry_tx:                  1
+;     loop_rotate_hex_accum:          1
+;     loop_save_before_match:         1
+;     loop_save_tube_bytes:           1
+;     loop_save_tx_context:           1
+;     loop_scan_channels:             1
+;     loop_scan_colon:                1
+;     loop_scan_entries:              1
+;     loop_scan_fcb_flags:            1
+;     loop_scan_fcb_slots:            1
+;     loop_scan_flag:                 1
+;     loop_scan_key_range:            1
+;     loop_scan_past_word:            1
+;     loop_scan_ps_slots:             1
+;     loop_send_pb_chars:             1
+;     loop_set_vectors:               1
+;     loop_setup_addr_bytes:          1
+;     loop_shift_filename:            1
+;     loop_shift_name_right:          1
+;     loop_shift_nibble:              1
+;     loop_shift_osfile_data:         1
+;     loop_shift_str_left:            1
+;     loop_skip_filename:             1
+;     loop_skip_fn_spaces:            1
+;     loop_skip_hex_spaces:           1
+;     loop_skip_spaces:               1
+;     loop_skip_to_next:              1
+;     loop_skip_trail_spaces:         1
+;     loop_skip_trailing:             1
+;     loop_store_disp_addr:           1
+;     loop_sum_rom_bytes:             1
+;     loop_sum_ws:                    1
+;     loop_swap_and_send:             1
+;     loop_trim_trailing:             1
+;     loop_tube_delay:                1
+;     loop_verify_addrs:              1
+;     loop_wait_disc_tx_ack:          1
+;     loop_wait_tx_done:              1
+;     loop_write_to_tube:             1
+;     loop_zero_load_addr:            1
+;     mark_ws_uninit:                 1
+;     mask_error_class:               1
+;     match_help_topic:               1
+;     netv:                           1
+;     next_flag_entry:                1
+;     next_hex_char:                  1
+;     next_scout_byte:                1
+;     nfs_temp:                       1
+;     nmi_data_rx_bulk:               1
+;     nmi_data_rx_skip:               1
+;     nmi_data_tx:                    1
+;     nmi_final_ack_validate:         1
+;     nmi_reply_validate:             1
+;     nmi_romsel:                     1
+;     nmi_rx_scout:                   1
+;     no_flag_match:                  1
+;     no_poll_name_given:             1
+;     no_ps_name_given:               1
+;     not_a_digit:                    1
+;     notify_new_fs:                  1
+;     open_file_for_read:             1
+;     open_file_for_run:              1
+;     osargs_dispatch:                1
+;     osargs_ptr_dispatch:            1
+;     osargs_read_op:                 1
+;     osargs_write_ptr:               1
+;     osbget:                         1
+;     osbyte_yff:                     1
+;     oseven:                         1
+;     osfile:                         1
+;     osfind_close_or_open:           1
+;     osfind_with_channel:            1
+;     osword_13_read_ctx_3:           1
+;     osword_13_write_ctx_3:          1
+;     osword_claim_codes:             1
+;     oswrch:                         1
+;     parse_fs_dot_dir:               1
+;     pass_send_cmd:                  1
+;     pass_tx_success:                1
+;     peek_retry_count:               1
+;     prep_send_tx_cb:                1
+;     print_10_chars:                 1
+;     print_byte_no_spool:            1
+;     print_chars_from_buf:           1
+;     print_current_fs:               1
+;     print_file_server_is:           1
+;     print_fs_info_newline:          1
+;     print_hex_nybble:               1
+;     print_indent:                   1
+;     print_load_exec_addrs:          1
+;     print_nonzero_digit:            1
+;     print_poll_jammed:              1
+;     print_ps_now:                   1
+;     print_server_is_suffix:         1
+;     print_syntax_char:              1
+;     print_table_newline:            1
+;     print_via_oswrch:               1
+;     process_reply_code:             1
+;     prot_bit_encode_table:          1
+;     ps_tx_header_template:          1
+;     push_osword_handler_addr:       1
+;     read_cat_info:                  1
+;     read_osbyte_to_ws_x0:           1
+;     read_ps_station_addr:           1
+;     read_second_rx_byte:            1
+;     read_sr2_between_pairs:         1
+;     recv_and_update:                1
+;     recv_reply:                     1
+;     recv_reply_preserve_flags:      1
+;     reinit_ps_slot:                 1
+;     request_next_wipe:              1
+;     reset_enter_listen:             1
+;     reset_spool_buf_state:          1
+;     restart_table_scan:             1
+;     restore_and_return:             1
+;     restore_catalog_entry:          1
+;     restore_filename:               1
+;     restore_regs_return:            1
+;     restore_retry_state:            1
+;     restore_spool_and_return:       1
+;     restore_svc_state:              1
+;     restore_text_ptr:               1
+;     restore_x_and_return:           1
+;     resume_caller:                  1
+;     retreat_y_by_4:                 1
+;     retry_with_library:             1
+;     return_1:                       1
+;     return_2:                       1
+;     return_3:                       1
+;     return_4:                       1
+;     return_alloc_success:           1
+;     return_chan_index:              1
+;     return_from_2bit_index:         1
+;     return_from_advance_y:          1
+;     return_from_bridge_query:       1
+;     return_from_cmp_handle:         1
+;     return_from_cond_save_err:      1
+;     return_from_copy_arg:           1
+;     return_from_copy_cmd_name:      1
+;     return_from_discard_reset:      1
+;     return_from_fs_shutdown:        1
+;     return_from_match_stn:          1
+;     return_from_poll_slots:         1
+;     return_from_print_digit:        1
+;     return_from_recv_reply:         1
+;     return_from_save_text_ptr:      1
+;     return_from_setup_ws_ptr:       1
+;     return_from_skip_arg:           1
+;     return_from_station_match:      1
+;     return_from_store_digit:        1
+;     return_from_txcb_swap:          1
+;     return_from_write_ws_pair:      1
+;     return_parsed:                  1
+;     return_rx_complete:             1
+;     return_success:                 1
+;     return_test_offset:             1
+;     return_with_handle:             1
+;     return_with_result:             1
+;     return_zero_uninit:             1
+;     rotate_prot_mask:               1
+;     rx_error_reset:                 1
+;     rx_palette_txcb_template:       1
+;     rx_tube_data:                   1
+;     save_ps_cmd_ptr:                1
+;     save_regs_for_print_no_spool:   1
+;     save_tube_state:                1
+;     scan_fcb_flags:                 1
+;     scan_nfs_port_list:             1
+;     scan_port_list:                 1
+;     scan_remote_keys:               1
+;     scout_data:                     1
+;     scout_discard:                  1
+;     scout_loop_rda:                 1
+;     scout_loop_second:              1
+;     scout_match_port:               1
+;     scout_page_overflow:            1
+;     scout_reject:                   1
+;     select_net_fs:                  1
+;     select_store_target:            1
+;     send_close_request:             1
+;     send_delete_request:            1
+;     send_info_request:              1
+;     send_osargs_request:            1
+;     send_osbput_data:               1
+;     send_pass_to_fs:                1
+;     send_request_nowrite:           1
+;     send_request_vset:              1
+;     send_with_swap:                 1
+;     sep_table_data:                 1
+;     serialise_palette_entry:        1
+;     service_handler:                1
+;     set_c_and_return:               1
+;     set_flags_bit2:                 1
+;     set_flags_bit3:                 1
+;     set_flags_boot:                 1
+;     set_fs_select_flag:             1
+;     set_port_and_ctrl:              1
+;     set_timeout:                    1
+;     set_tube_addr:                  1
+;     set_tx_reply_flag:              1
+;     set_write_active:               1
+;     setup_csd_copy:                 1
+;     setup_data_xfer:                1
+;     setup_error_copy:               1
+;     setup_ex_request:               1
+;     setup_fs_root:                  1
+;     setup_gbpb_request:             1
+;     setup_pass_txbuf:               1
+;     setup_save_access:              1
+;     setup_sr_tx:                    1
+;     setup_txcb_addrs:               1
+;     setup_txcb_transfer:            1
+;     setup_unicast_xfer:             1
+;     setup_write_access:             1
+;     setup_ws_ptr:                   1
+;     setup_ws_rx_ptrs:               1
+;     shift_and_finalise:             1
+;     show_wipe_prompt:               1
+;     skip_buf_ptr_update:            1
+;     skip_buf_setup:                 1
+;     skip_clear_prot:                1
+;     skip_dot_and_spaces:            1
+;     skip_if_error:                  1
+;     skip_if_local_net:              1
+;     skip_if_modified_fcb:           1
+;     skip_if_no_match:               1
+;     skip_if_no_poll_arg:            1
+;     skip_if_no_station:             1
+;     skip_if_no_wrap:                1
+;     skip_if_not_a:                  1
+;     skip_if_not_hex:                1
+;     skip_if_out_of_range:           1
+;     skip_if_slots_done:             1
+;     skip_next_ps_slot:              1
+;     skip_non_printable:             1
+;     skip_one_and_advance5:          1
+;     skip_restore_byte:              1
+;     skip_struct_hole:               1
+;     skip_template_byte:             1
+;     skip_tube_update:               1
+;     skip_txcb_dest:                 1
+;     spool_tx_retry:                 1
+;     spool_tx_succeeded:             1
+;     start_data_tx:                  1
+;     start_pass_tx:                  1
+;     start_spool_retry:              1
+;     start_tx_attempt:               1
+;     store_adjusted_byte:            1
+;     store_arg_char:                 1
+;     store_buf_ptr_lo:               1
+;     store_digit:                    1
+;     store_direction_flag:           1
+;     store_display_flag:             1
+;     store_fcb_flags:                1
+;     store_owner_flags:              1
+;     store_port_and_send:            1
+;     store_prot_byte:                1
+;     store_ps_station:               1
+;     store_rename_char:              1
+;     store_reply_status:             1
+;     store_result:                   1
+;     store_slot_tmpl_byte:           1
+;     store_spool_rx_byte:            1
+;     store_stack_byte:               1
+;     store_station_and_flush:        1
+;     store_station_lo:               1
+;     store_tx_ctrl_byte:             1
+;     store_tx_ptr_hi:                1
+;     store_txcb_init_byte:           1
+;     store_via_rx_ptr:               1
+;     store_ws_byte:                  1
+;     sub_c8b4d:                      1
+;     sub_c8b52:                      1
+;     sub_c8d24:                      1
+;     sub_c8ed2:                      1
+;     sub_c924c:                      1
+;     sub_c9255:                      1
+;     sub_c9612:                      1
+;     sub_cb303:                      1
+;     subst_rx_page_byte:             1
+;     subtract_ws_byte:               1
+;     suffix_not_listening:           1
+;     syn_opt_dir:                    1
+;     trigger_brk:                    1
+;     try_alternate_phase:            1
+;     try_library_path:               1
+;     tube_claimed_id:                1
+;     tube_write_setup:               1
+;     tx_check_tdra_ready:            1
+;     tx_ctrl_exit:                   1
+;     tx_ctrl_range_check:            1
+;     tx_ctrl_store_and_add:          1
+;     tx_data_start:                  1
+;     tx_econet_txcb_template:        1
+;     tx_error:                       1
+;     tx_fifo_not_ready:              1
+;     tx_fifo_write:                  1
+;     tx_imm_op_setup:                1
+;     tx_last_data:                   1
+;     tx_line_idle_check:             1
+;     tx_line_jammed:                 1
+;     tx_no_clock_error:              1
+;     tx_prepare:                     1
+;     tx_src_net:                     1
+;     tx_store_error:                 1
+;     tx_success:                     1
+;     tx_tdra_error:                  1
+;     txcb_copy_carry_clr:            1
+;     txcb_copy_carry_set:            1
+;     txcb_dest:                      1
+;     txcb_init_template:             1
+;     txcb_pos:                       1
+;     update_addr_from_offset1:       1
+;     update_addr_from_offset9:       1
+;     update_cat_position:            1
+;     use_default_station:            1
+;     use_lib_station:                1
+;     valid_osgbpb_op:                1
+;     validate_chan_close:            1
+;     validate_station:               1
+;     verify_stn_match:               1
+;     write_block_entry:              1
+;     write_error_num_and_str:        1
+;     write_key_state:                1
+;     write_second_tx_byte:           1
+;     write_two_bytes_inc_y:          1
+;     ws_copy_vclr_entry:             1
+;     ws_txcb_template_data:          1
+;     zp_0063:                        1
+;     zp_0078:                        1
 
 ; Automatically generated labels:
 ;     c8211
@@ -14739,11 +14776,6 @@ save pydis_start, pydis_end
 ;     c8cbb
 ;     c8e9a
 ;     c90c7
-;     c91fb
-;     c9203
-;     c921d
-;     c9227
-;     c922a
 ;     c925d
 ;     c9298
 ;     c92af
@@ -14798,8 +14830,6 @@ save pydis_start, pydis_end
 ;     l89ed
 ;     l8a20
 ;     l8da7
-;     l91f9
-;     l9769
 ;     l99a3
 ;     l9aa6
 ;     la0ff
@@ -14927,7 +14957,6 @@ save pydis_start, pydis_end
 ;     sub_c8d24
 ;     sub_c8ec9
 ;     sub_c8ed2
-;     sub_c9201
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c928a
@@ -14944,11 +14973,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 12701 bytes (78%)
-;     Data                     = 3683 bytes (22%)
+;     Code                     = 12703 bytes (78%)
+;     Data                     = 3681 bytes (22%)
 ;
-;     Number of instructions   = 6272
-;     Number of data bytes     = 2378 bytes
+;     Number of instructions   = 6273
+;     Number of data bytes     = 2376 bytes
 ;     Number of data words     = 14 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 149
