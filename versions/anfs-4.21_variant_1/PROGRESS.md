@@ -5,18 +5,18 @@ Tracking review and reannotation of the 4.18-derived baseline against the actual
 
 ## Current state
 
-| Metric | Value |
-|---|---|
-| Verify | byte-identical (16384 bytes) |
-| Lint | clean |
-| Active subroutines | 283 |
-| Active labels | 1274 |
-| Active comments | 6596 |
-| UNMAPPED lines | 1933 |
-| Opcode similarity vs 4.18 | 85.6% |
+| Metric | Value (initial) | Value (now) |
+|---|---|---|
+| Verify | byte-identical | byte-identical |
+| Lint | clean | clean |
+| Active subroutines | 283 | 304 |
+| Active labels | 1274 | 1281 |
+| Active comments | 6596 | 6539 |
+| UNMAPPED subs | 56 | 39 |
+| Opcode similarity vs 4.18 | 85.6% | (unchanged) |
 
-UNMAPPED breakdown: 885 comment, 250 label, 56 subroutine, 46 entry, 43 expr,
-25 byte, 17 for, 4 rts_code_ptr, 4 move, 3 word.
+Net: 21 routines named, ~57 stale carry-over comments removed, 7
+labels added.
 
 ## Strategy
 
@@ -112,6 +112,15 @@ opcodes against 4.18.
 | &9327 | &9463 | copy_fs_cmd_name | uses 65C12 PHY |
 | &AD10 | &B0A0 | cmd_cdir | shifted by 1 (RTS terminator) |
 | &916E | &92B2 | parse_addr_arg | direct manual fingerprint |
+| &AF32 | &B2CF | mask_owner_access | workspace moved &1071->&C271 |
+| &8E8C | &8ED2 | osbyte_x0_y0 | LDX #0 / LDY #0 / BEQ |
+| &8E83 | &8EC9 | osbyte_x0 | LDX #0 then falls into osbyte_yff |
+| &8CB9 | &8CAD | get_ws_page | found via JSR-following from caller |
+| &8FF1 | &90C7 | print_station_id | found via 'Econet Station' string |
+| &A0A7 | &A3C4 | parse_fs_ps_args | uses 65C12 PHX/PHY |
+| &A660 | &A9CC | osword_13_read_station | OSWORD &13 sub 0 |
+| &A734 | &AAC2 | osword_13_read_handles | OSWORD &13 sub 6 |
+| &A744 | &AAD0 | osword_13_set_handles | OSWORD &13 sub 7 |
 
 ## Deferred candidates (false positives or harder)
 
