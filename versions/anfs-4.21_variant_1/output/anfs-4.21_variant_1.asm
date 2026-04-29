@@ -2979,8 +2979,23 @@ l89c9 = reset_enter_listen+2
     bne return_from_save_text_ptr                                     ; 8b47: d0 d9       ..
     lda #0                                                            ; 8b49: a9 00       ..
     sta svc_state                                                     ; 8b4b: 85 a9       ..
+; ***************************************************************************************
+; Ensure ANFS is the active filing system
+; 
+; If bit 7 of fs_flags is set (FS already active),
+; RTS via return_from_save_text_ptr. Otherwise calls
+; cmd_net_fs to select the FS now; on failure JMPs to
+; error_net_checksum to raise the 'net checksum'
+; error. After successful selection, falls through to
+; the body at &8B5A which sets up the OSWORD parameter
+; block pointer and continues the caller's work.
+; 
+; Behaviour change from 4.18: inline `BIT &0D6C / BPL`
+; in 4.18 OSWORD handlers ABORTED when FS was inactive
+; (returning zero in PB[0]); 4.21 instead auto-selects.
+; ***************************************************************************************
 ; &8b4d referenced 5 times by &a9cc, &a9da, &aac2, &aad0, &ac4c
-.sub_c8b4d
+.ensure_fs_selected
     bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.
     bmi return_from_save_text_ptr                                     ; 8b50: 30 d0       0.
 ; &8b52 referenced 1 time by &8cdd
@@ -9029,7 +9044,7 @@ la0ff = sub_ca0fe+1
 ; PB[0] (carrying over the 4.18 semantics).
 ; ***************************************************************************************
 .osword_13_read_station
-    jsr sub_c8b4d                                                     ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
+    jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
 .read_station_bytes
     ldy #2                                                            ; a9cf: a0 02       ..             ; Load workspace high byte
 ; &a9d1 referenced 1 time by &a9d7
@@ -9051,7 +9066,7 @@ la0ff = sub_ca0fe+1
 ; the new station.
 ; ***************************************************************************************
 .osword_13_set_station
-    jsr sub_c8b4d                                                     ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
+    jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
 .osword_13_set_station_body
     ldy #0                                                            ; a9dd: a0 00       ..             ; Restore TX ptr low
     jsr process_all_fcbs                                              ; a9df: 20 38 bb     8.            ; Back to net_tx_ptr; Return
@@ -9293,7 +9308,7 @@ la0ff = sub_ca0fe+1
 ; returns zero in PB[0] via the sub_c8b4d prologue.
 ; ***************************************************************************************
 .osword_13_read_handles
-    jsr sub_c8b4d                                                     ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
+    jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
     ldy #3                                                            ; aac5: a0 03       ..             ; Narrow &11: buf start hi=page ptr; Narrow &12: buf start ext lo
 ; &aac7 referenced 1 time by &aacd
 .loop_copy_handles
@@ -9314,7 +9329,7 @@ la0ff = sub_ca0fe+1
 ; across all FCB entries via update_fcb_flag_bits.
 ; ***************************************************************************************
 .osword_13_set_handles
-    jsr sub_c8b4d                                                     ; aad0: 20 4d 8b     M.            ; Spool &05: skip (buf start hi); Spool &06: buf start ext lo
+    jsr ensure_fs_selected                                            ; aad0: 20 4d 8b     M.            ; Spool &05: skip (buf start hi); Spool &06: buf start ext lo
 .start_set_handles
     ldy #1                                                            ; aad3: a0 01       ..             ; Spool &07: buf start ext hi; Spool &08: skip (buf end lo)
 ; &aad5 referenced 1 time by &ab15
@@ -9680,7 +9695,7 @@ labc5 = compare_bridge_status+1
     cmp #1                                                            ; ac47: c9 01       ..             ; Isolate bit 0 (active flag)
     bcs handle_tx_request                                             ; ac49: b0 6c       .l             ; Y=0: TX buffer status offset
     pha                                                               ; ac4b: 48          H
-    jsr sub_c8b4d                                                     ; ac4c: 20 4d 8b     M.            ; OR with existing status byte; Save combined status
+    jsr ensure_fs_selected                                            ; ac4c: 20 4d 8b     M.            ; OR with existing status byte; Save combined status
     pla                                                               ; ac4f: 68          h              ; Store to TX buffer
     ldy #&23 ; '#'                                                    ; ac50: a0 23       .#             ; Send the packet
     jsr mask_owner_access                                             ; ac52: 20 cf b2     ..            ; Set end markers to &FF
@@ -14065,6 +14080,7 @@ save pydis_start, pydis_end
 ;     attr_to_chan_index:             5
 ;     close_ws_file:                  5
 ;     copy_arg_to_buf_x0:             5
+;     ensure_fs_selected:             5
 ;     escapable:                      5
 ;     fs_spool_handle:                5
 ;     fs_ws_ptr:                      5
@@ -14086,7 +14102,6 @@ save pydis_start, pydis_end
 ;     scout_error:                    5
 ;     scout_port:                     5
 ;     strip_token_prefix:             5
-;     sub_c8b4d:                      5
 ;     svc_dispatch:                   5
 ;     table_idx:                      5
 ;     tube_present:                   5
@@ -15433,7 +15448,6 @@ save pydis_start, pydis_end
 ;     return_5
 ;     sub_c8409
 ;     sub_c8900
-;     sub_c8b4d
 ;     sub_c8b52
 ;     sub_c8da6
 ;     sub_c924c

@@ -3761,6 +3761,27 @@ subroutine(0xA9DA, "osword_13_set_station",
     "16-entry FCB table to reassign handles matching\n"
     "the new station.")
 label(0xA9DD, "osword_13_set_station_body")
+
+# Shared FS-selection prologue used by OSWORD &13 sub-handlers. 4.18
+# inlined `BIT &0D6C / BPL <return>` (abort if FS not active); 4.21
+# factors that into ensure_fs_selected with INVERTED behaviour:
+# instead of aborting, it AUTOMATICALLY SELECTS the FS by calling
+# cmd_net_fs, raising 'net checksum' error only if selection fails.
+# 5 callers: &A9CC (read_station), &A9DA (set_station), &AAC2
+# (read_handles), &AAD0 (set_handles), &AC4C (?).
+subroutine(0x8B4D, "ensure_fs_selected",
+    title="Ensure ANFS is the active filing system",
+    description="If bit 7 of fs_flags is set (FS already active),\n"
+    "RTS via return_from_save_text_ptr. Otherwise calls\n"
+    "cmd_net_fs to select the FS now; on failure JMPs to\n"
+    "error_net_checksum to raise the 'net checksum'\n"
+    "error. After successful selection, falls through to\n"
+    "the body at &8B5A which sets up the OSWORD parameter\n"
+    "block pointer and continues the caller's work.\n"
+    "\n"
+    "Behaviour change from 4.18: inline `BIT &0D6C / BPL`\n"
+    "in 4.18 OSWORD handlers ABORTED when FS was inactive\n"
+    "(returning zero in PB[0]); 4.21 instead auto-selects.")
 subroutine(0xAA72, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
