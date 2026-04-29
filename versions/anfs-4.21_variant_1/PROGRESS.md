@@ -87,17 +87,44 @@ opcode-level change blocks.
 
 ## Open follow-ups
 
-- ~~`l91f9`~~ DONE — see Print helpers table above. Resolved by recognising
-  that the cmd_syntax_table at &91ED is 12 entries in 4.21_v1 (4.18 had 13).
-  The ROM-overlapping byte at &91F9 is the entry point of the print-no-spool
-  helper, not a table value.
-- **`parse_addr_arg` location in 4.21_v1** — the 4.18 routine at &916E is
-  UNMAPPED. It may have been moved or restructured. Find it via opcode
-  fingerprinting on the multiply-by-10 / hex-prefix logic.
+- ~~`l91f9`~~ DONE — see Print helpers table above.
+- ~~`parse_addr_arg` location~~ DONE — relocated to &92B2.
+- ~~filing-system vector handlers~~ DONE — table at &8EA7/&8EB5.
 - **`l976A` / `bit_test_ff` overlap** — &9769 and &976A are both &FF and
   both used as `BIT $abs` "set V" targets. They live inside
   `txcb_init_template`. Worth checking which callers prefer which (might
   indicate a subtle distinction, or just historical accident).
+
+## Recovered subroutines (so far)
+
+Used `src/disasm_tools/fingerprint.py` to locate routines that LCS
+mapping had abandoned. Each is verified by spot-checking the prologue
+opcodes against 4.18.
+
+| 4.18 addr | 4.21_v1 addr | Name | Notes |
+|-----------|--------------|------|-------|
+| &8B0D | &8B45 | svc_18_fs_select | ratio 1.00, exact match |
+| &A4EE | &A83B | svc_8_osword | ratio 0.95; replaced stale `byte()` |
+| &8D17 | &8D24 | check_credits_easter_egg | shifted by 3 bytes |
+| &A673 | &A9DD | osword_13_set_station | BIT/BPL prologue removed |
+| &B799 | &BB38 | process_all_fcbs | 9-byte workspace save (CHANGES §5) |
+| &8D79 | &8D91 | cmd_iam | TYA/PHA prologue removed |
+| &9327 | &9463 | copy_fs_cmd_name | uses 65C12 PHY |
+| &AD10 | &B0A0 | cmd_cdir | shifted by 1 (RTS terminator) |
+| &916E | &92B2 | parse_addr_arg | direct manual fingerprint |
+
+## Deferred candidates (false positives or harder)
+
+| 4.18 addr | Tried | Issue |
+|-----------|-------|-------|
+| &A744 osword_13_set_handles | &AAC7 | prologue diverged; entry may be earlier |
+| &88F2 tx_calc_transfer | &8910 | code rewritten, body opcodes differ |
+| &A9B0 osword_4_handler | &AD30 | first opcode differs (LDA vs TSX) |
+| &9570 check_escape | &984D | completely different code |
+| &8AA0 read_paged_rom | &8AB4 | completely different code |
+| &8FF1 print_station_id | &908D | different code (no inline string) |
+| &8028 svc5_irq_check | &BBD6 | low ratio (0.43) |
+| Various cmd_* | various | low confidence |
 
 ## Related analysis
 
