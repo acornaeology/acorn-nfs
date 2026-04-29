@@ -285,6 +285,7 @@ filename_buf                = &10f3
 l12ac                       = &12ac
 l2020                       = &2020
 l2322                       = &2322
+l4898                       = &4898
 l4e2f                       = &4e2f
 l6f6e                       = &6f6e
 lc001                       = &c001
@@ -10525,9 +10526,27 @@ labc5 = compare_bridge_status+1
     equb &c2, &c3                                                     ; b097: c2 c3       ..
 ; &b099 referenced 1 time by &b075
 .lb099
-    equs "000@XX`|"                                                   ; b099: 30 30 30... 000            ; Print 'Printer server is '; Offset &24: PS station number; Get stored station number; Non-zero: server changed
-    equb &98, &48, &20, &cf, &b2, &20, &7f, &b3, &c9, &0d, &d0, 4     ; b0a1: 98 48 20... .H             ; Print 'still '; Set owner-only access mask; Skip to optional size argument; End of line?; No: parse size argument; Clear V
-    equb &a2,   2, &d0, &0f                                           ; b0ad: a2 02 d0... ...            ; Default allocation size index = 2; Print 'now '
+    equs "000@XX`"                                                    ; b099: 30 30 30... 000            ; Print 'Printer server is '; Offset &24: PS station number; Get stored station number
+
+; ***************************************************************************************
+; *CDir command handler
+; 
+; Parses an optional allocation size argument: if absent,
+; defaults to index 2 (standard 19-entry directory, &200
+; bytes); if present, parses the decimal value and searches
+; a 26-entry threshold table to find the matching allocation
+; size index. Parses the directory name via parse_filename_arg,
+; copies it to the TX buffer, and sends FS command code &1B
+; to create the directory.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
+; ***************************************************************************************
+.cmd_cdir
+    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H            ; Non-zero: server changed; Print 'still '
+
+    equb &20, &cf, &b2, &20, &7f, &b3, &c9, &0d, &d0, 4, &a2, 2, &d0  ; b0a3: 20 cf b2...  ..            ; Set owner-only access mask; Skip to optional size argument; End of line?; No: parse size argument; Clear V; Default allocation size index = 2; Print 'now '
+    equb &0f                                                          ; b0b0: 0f          .
 .parse_cdir_size
     equb &a9, &ff, &85, &b4, &20, &b2, &92, &a2, &1b                  ; b0b1: a9 ff 85... ...            ; A=&FF: mark as decimal parse; Store decimal parse flag; Parse numeric size argument; Padding; X=&1B: top of 26-entry size table; Workspace offset 2; Y=2: workspace offset for station
 .loop_find_alloc_size
@@ -14499,6 +14518,7 @@ save pydis_start, pydis_end
 ;     l12ac:                          1
 ;     l2020:                          1
 ;     l2322:                          1
+;     l4898:                          1
 ;     l4e2f:                          1
 ;     l6f6e:                          1
 ;     l840a:                          1
@@ -15092,6 +15112,7 @@ save pydis_start, pydis_end
 ;     l12ac
 ;     l2020
 ;     l2322
+;     l4898
 ;     l4e2f
 ;     l6f6e
 ;     l840a
@@ -15247,11 +15268,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 12956 bytes (79%)
-;     Data                     = 3428 bytes (21%)
+;     Code                     = 12959 bytes (79%)
+;     Data                     = 3425 bytes (21%)
 ;
-;     Number of instructions   = 6394
-;     Number of data bytes     = 2109 bytes
+;     Number of instructions   = 6395
+;     Number of data bytes     = 2107 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1291 bytes
+;     Number of string bytes   = 1290 bytes
 ;     Number of strings        = 149

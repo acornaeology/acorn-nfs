@@ -7434,16 +7434,21 @@ subroutine(0x9776, "cmd_bye",
     "with OSBYTE &77, and closes all network channels.\n"
     "Falls through to save_net_tx_cb with function code\n"
     "&17 to send the bye request to the file server.")
-# UNMAPPED: subroutine(0xAD10, "cmd_cdir",
-# UNMAPPED:     title="*CDir command handler",
-# UNMAPPED:     description="Parses an optional allocation size argument: if absent,\n"
-# UNMAPPED:     "defaults to index 2 (standard 19-entry directory, &200\n"
-# UNMAPPED:     "bytes); if present, parses the decimal value and searches\n"
-# UNMAPPED:     "a 26-entry threshold table to find the matching allocation\n"
-# UNMAPPED:     "size index. Parses the directory name via parse_filename_arg,\n"
-# UNMAPPED:     "copies it to the TX buffer, and sends FS command code &1B\n"
-# UNMAPPED:     "to create the directory.",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
+# Located in 4.21_v1 at &B0A0 (was &AD10 in 4.18). Initial fingerprint
+# hit &B09F but the byte there is the &60 RTS terminating the previous
+# routine; cmd_cdir's TYA/PHA prologue starts at &B0A0. Reached via
+# PHA/PHA/RTS dispatch from the star-command table — needs entry().
+entry(0xB0A0)
+subroutine(0xB0A0, "cmd_cdir",
+    title="*CDir command handler",
+    description="Parses an optional allocation size argument: if absent,\n"
+    "defaults to index 2 (standard 19-entry directory, &200\n"
+    "bytes); if present, parses the decimal value and searches\n"
+    "a 26-entry threshold table to find the matching allocation\n"
+    "size index. Parses the directory name via parse_filename_arg,\n"
+    "copies it to the TX buffer, and sends FS command code &1B\n"
+    "to create the directory.",
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9512, "cmd_dir",
     title="*Dir command handler",
     description="Handles three argument syntaxes: a plain path\n"
