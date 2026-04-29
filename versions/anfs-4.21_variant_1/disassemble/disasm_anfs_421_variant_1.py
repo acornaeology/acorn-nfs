@@ -7826,16 +7826,19 @@ label(0x8E61, "svc_dispatch")
 # UNMAPPED:     on_exit={"a": "byte read from ROM"})
 # UNMAPPED: label(0x8AA0, "read_paged_rom")
 
-# sub_c8e6d / sub_c8e6f: OSBYTE with X=0 / OSBYTE with Y=&FF
-# UNMAPPED: subroutine(0x8E83, "osbyte_x0",
-# UNMAPPED:     title="OSBYTE wrapper with X=0, Y=&FF",
-# UNMAPPED:     description="Sets X=0 and falls through to osbyte_yff to also\n"
-# UNMAPPED:     "set Y=&FF. Provides a single call to execute\n"
-# UNMAPPED:     "OSBYTE with A as the function code. Used by\n"
-# UNMAPPED:     "adlc_init, init_adlc_and_vectors, and Econet\n"
-# UNMAPPED:     "OSBYTE handling.",
-# UNMAPPED:     on_entry={"a": "OSBYTE function code"},
-# UNMAPPED:     on_exit={"x": "0", "y": "&FF"})
+# Located in 4.21_v1 at &8EC9 (was &8E83 in 4.18). Single-instruction
+# `LDX #0` that falls through to osbyte_yff at &8ECB. Already
+# classified as code (sub_c8ec9 with 3 callers from &805D, &9041,
+# &99FD).
+subroutine(0x8EC9, "osbyte_x0",
+    title="OSBYTE wrapper with X=0, Y=&FF",
+    description="Sets X=0 and falls through to osbyte_yff to also\n"
+    "set Y=&FF. Provides a single call to execute\n"
+    "OSBYTE with A as the function code. Used by\n"
+    "adlc_init, init_adlc_and_vectors, and Econet\n"
+    "OSBYTE handling.",
+    on_entry={"a": "OSBYTE function code"},
+    on_exit={"x": "0", "y": "&FF"})
 subroutine(0x8ECB, "osbyte_yff",
     title="OSBYTE wrapper with Y=&FF",
     description="Sets Y=&FF and JMPs to the MOS OSBYTE entry\n"
@@ -7845,7 +7848,7 @@ subroutine(0x8ECB, "osbyte_yff",
     on_entry={"a": "OSBYTE function code",
               "x": "OSBYTE X parameter"},
     on_exit={"y": "&FF"})
-# UNMAPPED: label(0x8E83, "osbyte_x0")
+label(0x8EC9, "osbyte_x0")
 label(0x8ECB, "osbyte_yff")
 
 

@@ -472,7 +472,7 @@ rom_header_byte2 = rom_header+2
     lda #&ea                                                          ; 8056: a9 ea       ..             ; OSBYTE &EA: check Tube co-processor
     ldx #0                                                            ; 8058: a2 00       ..             ; X=0 for OSBYTE
     stx econet_init_flag                                              ; 805a: 8e 62 0d    .b.            ; Clear Econet init flag before setup
-    jsr sub_c8ec9                                                     ; 805d: 20 c9 8e     ..            ; Check Tube presence via OSBYTE &EA
+    jsr osbyte_x0                                                     ; 805d: 20 c9 8e     ..            ; Check Tube presence via OSBYTE &EA
     stx tube_present                                                  ; 8060: 8e 63 0d    .c.            ; Store Tube presence flag from OSBYTE &EA
     lda #&8f                                                          ; 8063: a9 8f       ..             ; OSBYTE &8F: issue service request
     ldx #&0c                                                          ; 8065: a2 0c       ..             ; X=&0C: NMI claim service
@@ -3771,8 +3771,24 @@ l8da7 = sub_c8da6+1
     equb &52                                                          ; 8ec6: 52          R              ; (ROM bank — not read)
     equw &8e4b                                                        ; 8ec7: 4b 8e       K.             ; FSCV handler (&8E4B)
 
+; ***************************************************************************************
+; OSBYTE wrapper with X=0, Y=&FF
+; 
+; Sets X=0 and falls through to osbyte_yff to also
+; set Y=&FF. Provides a single call to execute
+; OSBYTE with A as the function code. Used by
+; adlc_init, init_adlc_and_vectors, and Econet
+; OSBYTE handling.
+; 
+; On Entry:
+;     A: OSBYTE function code
+; 
+; On Exit:
+;     X: 0
+;     Y: &FF
+; ***************************************************************************************
 ; &8ec9 referenced 3 times by &805d, &9041, &99fd
-.sub_c8ec9
+.osbyte_x0
     ldx #0                                                            ; 8ec9: a2 00       ..
 ; ***************************************************************************************
 ; OSBYTE wrapper with Y=&FF
@@ -3942,7 +3958,7 @@ l8da7 = sub_c8da6+1
 .init_adlc_and_vectors
     jsr adlc_init                                                     ; 903c: 20 50 80     P.            ; Initialise ADLC hardware
     lda #&a8                                                          ; 903f: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table
-    jsr sub_c8ec9                                                     ; 9041: 20 c9 8e     ..            ; Read ROM pointer table address
+    jsr osbyte_x0                                                     ; 9041: 20 c9 8e     ..            ; Read ROM pointer table address
     stx fs_error_ptr                                                  ; 9044: 86 b8       ..             ; Store table pointer low
     sty fs_crflag                                                     ; 9046: 84 b9       ..             ; Store table pointer high
     ldy #&36 ; '6'                                                    ; 9048: a0 36       .6             ; Y=&36: NETV vector offset
@@ -5915,7 +5931,7 @@ l99a3 = bad_str_anchor+1
     lda #0                                                            ; 99f7: a9 00       ..             ; A=0: clear error code in RX buffer
     sta (net_rx_ptr),y                                                ; 99f9: 91 9c       ..             ; Zero the error code byte in buffer
     lda #&c6                                                          ; 99fb: a9 c6       ..             ; A=&C6: OSBYTE read spool handle
-    jsr sub_c8ec9                                                     ; 99fd: 20 c9 8e     ..            ; Read current spool file handle
+    jsr osbyte_x0                                                     ; 99fd: 20 c9 8e     ..            ; Read current spool file handle
     cpy fs_load_addr                                                  ; 9a00: c4 b0       ..             ; Compare Y result with saved handle
     beq c9a0d                                                         ; 9a02: f0 09       ..             ; Match: close the spool file
     cpx fs_load_addr                                                  ; 9a04: e4 b0       ..             ; Compare X result with saved handle
@@ -14026,6 +14042,7 @@ save pydis_start, pydis_end
 ;     nmi_jmp_hi:                     3
 ;     nmi_jmp_lo:                     3
 ;     osbyte_a_copy:                  3
+;     osbyte_x0:                      3
 ;     osfind:                         3
 ;     osword_pb_ptr_hi:               3
 ;     poll_adlc_tx_status:            3
@@ -14043,7 +14060,6 @@ save pydis_start, pydis_end
 ;     send_disconnect_reply:          3
 ;     sub_c8900:                      3
 ;     sub_c8cad:                      3
-;     sub_c8ec9:                      3
 ;     sub_ca3c4:                      3
 ;     tube_claim_c3:                  3
 ;     tx_bad_ctrl_error:              3
@@ -15278,7 +15294,6 @@ save pydis_start, pydis_end
 ;     sub_c8b52
 ;     sub_c8cad
 ;     sub_c8da6
-;     sub_c8ec9
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c928a
