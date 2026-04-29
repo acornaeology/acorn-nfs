@@ -6985,15 +6985,19 @@ subroutine(0x8C51, "svc_9_help",
     "iterates through help topics using PHA/PHA/RTS\n"
     "dispatch to print matching command groups.\n"
     "Returns with Y = ws_page (unclaimed).")
-# UNMAPPED: subroutine(0x8B0D, "svc_18_fs_select",
-# UNMAPPED:     title="Service 18: filing system selection request",
-# UNMAPPED:     description="Checks if Y=5 (Econet filing system number);\n"
-# UNMAPPED:     "returns unclaimed if not. Also returns if bit 7\n"
-# UNMAPPED:     "of &0D6C is already set, indicating the FS is\n"
-# UNMAPPED:     "already selected. Otherwise falls through to\n"
-# UNMAPPED:     "cmd_net_fs to perform the full network filing\n"
-# UNMAPPED:     "system selection sequence.",
-# UNMAPPED:     on_entry={"y": "filing system number requested"})
+# Located in 4.21_v1 at &8B45 (was &8B0D in 4.18) by opcode fingerprint.
+# Reached via PHA/PHA/RTS dispatch from the service table — no direct
+# JSR/JMP, so an explicit entry() is required to classify it as code.
+entry(0x8B45)
+subroutine(0x8B45, "svc_18_fs_select",
+    title="Service 18: filing system selection request",
+    description="Checks if Y=5 (Econet filing system number);\n"
+    "returns unclaimed if not. Also returns if bit 7\n"
+    "of &0D6C is already set, indicating the FS is\n"
+    "already selected. Otherwise falls through to\n"
+    "cmd_net_fs to perform the full network filing\n"
+    "system selection sequence.",
+    on_entry={"y": "filing system number requested"})
 
 # Extended dispatch table entries (indices 15-36).
 # These may be reached via FS command dispatch or OSWORD dispatch

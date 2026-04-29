@@ -2920,7 +2920,7 @@ l89c9 = reset_enter_listen+2
     lda os_text_ptr_hi                                                ; 8b1d: a5 f3       ..             ; Copy OS text pointer high
     sta fs_crc_hi                                                     ; 8b1f: 85 bf       ..             ; to fs_crc_hi
     pla                                                               ; 8b21: 68          h              ; Restore A
-; &8b22 referenced 1 time by &8b50
+; &8b22 referenced 2 times by &8b47, &8b50
 .return_from_save_text_ptr
     rts                                                               ; 8b22: 60          `              ; Return
 
@@ -2957,8 +2957,25 @@ l89c9 = reset_enter_listen+2
     rts                                                               ; 8b38: 60          `
 
     equb &a9, &20, &2c, &a1, &fe, &f0, &12, &a9, 3, &4c, &89, &99     ; 8b39: a9 20 2c... . ,
-    equb &c0,   5, &d0, &d9, &a9,   0, &85, &a9                       ; 8b45: c0 05 d0... ...
 
+; ***************************************************************************************
+; Service 18: filing system selection request
+; 
+; Checks if Y=5 (Econet filing system number);
+; returns unclaimed if not. Also returns if bit 7
+; of &0D6C is already set, indicating the FS is
+; already selected. Otherwise falls through to
+; cmd_net_fs to perform the full network filing
+; system selection sequence.
+; 
+; On Entry:
+;     Y: filing system number requested
+; ***************************************************************************************
+.svc_18_fs_select
+    cpy #5                                                            ; 8b45: c0 05       ..
+    bne return_from_save_text_ptr                                     ; 8b47: d0 d9       ..
+    lda #0                                                            ; 8b49: a9 00       ..
+    sta svc_state                                                     ; 8b4b: 85 a9       ..
 ; &8b4d referenced 1 time by &ac4c
 .sub_c8b4d
     bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.
@@ -13583,13 +13600,13 @@ save pydis_start, pydis_end
 ;     lc2c9:                         12
 ;     return_with_last_flag:         12
 ;     sub_cb2cf:                     12
+;     svc_state:                     12
 ;     error_bad_inline:              11
 ;     error_inline_log:              11
 ;     fs_load_addr_3:                11
 ;     fs_work_6:                     11
 ;     l0100:                         11
 ;     nmi_error_dispatch:            11
-;     svc_state:                     11
 ;     tx_result_fail:                11
 ;     la76c:                         10
 ;     lc103:                         10
@@ -13950,6 +13967,7 @@ save pydis_start, pydis_end
 ;     return_from_help_wrap:          2
 ;     return_from_inc_fcb_count:      2
 ;     return_from_match_rx_code:      2
+;     return_from_save_text_ptr:      2
 ;     return_from_svc_1_workspace:    2
 ;     reverse_ps_name_to_tx:          2
 ;     romsel:                         2
@@ -14603,7 +14621,6 @@ save pydis_start, pydis_end
 ;     return_from_poll_slots:         1
 ;     return_from_print_digit:        1
 ;     return_from_recv_reply:         1
-;     return_from_save_text_ptr:      1
 ;     return_from_setup_ws_ptr:       1
 ;     return_from_skip_arg:           1
 ;     return_from_station_match:      1
@@ -15002,11 +15019,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 12703 bytes (78%)
-;     Data                     = 3681 bytes (22%)
+;     Code                     = 12711 bytes (78%)
+;     Data                     = 3673 bytes (22%)
 ;
-;     Number of instructions   = 6273
-;     Number of data bytes     = 2362 bytes
+;     Number of instructions   = 6277
+;     Number of data bytes     = 2354 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 149
