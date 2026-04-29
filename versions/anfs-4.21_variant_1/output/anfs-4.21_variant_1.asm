@@ -3654,7 +3654,7 @@ l8da7 = sub_c8da6+1
     cmp #&0c                                                          ; 8e4e: c9 0c       ..             ; Result >= 8?
     bcs dispatch_rts                                                  ; 8e50: b0 1e       ..             ; Yes: out of range, return
     tax                                                               ; 8e52: aa          .              ; Transfer handle to X
-    jsr sub_cb2cf                                                     ; 8e53: 20 cf b2     ..            ; Look up in open files table
+    jsr mask_owner_access                                             ; 8e53: 20 cf b2     ..            ; Look up in open files table
     tya                                                               ; 8e56: 98          .              ; Transfer result to A
     ldy #&1d                                                          ; 8e57: a0 1d       ..             ; Y=&13: handle dispatch offset
     bne svc_dispatch                                                  ; 8e59: d0 06       ..             ; ALWAYS branch
@@ -3798,8 +3798,24 @@ l8da7 = sub_c8da6+1
 
     equb &fc, &ac                                                     ; 8ed0: fc ac       ..
 
+; ***************************************************************************************
+; OSBYTE wrapper with X=0, Y=0
+; 
+; Sets X=0 and Y=0 then branches to jmp_osbyte.
+; Called from the Econet OSBYTE dispatch chain to
+; handle OSBYTEs that require both X and Y cleared.
+; The unconditional BEQ (after LDY #0 sets Z)
+; reaches the JMP osbyte instruction.
+; 
+; On Entry:
+;     A: OSBYTE number
+; 
+; On Exit:
+;     X: 0
+;     Y: 0
+; ***************************************************************************************
 ; &8ed2 referenced 1 time by &9a10
-.sub_c8ed2
+.osbyte_x0_y0
     ldx #0                                                            ; 8ed2: a2 00       ..
     ldy #0                                                            ; 8ed4: a0 00       ..             ; Y=0
     beq jmp_osbyte                                                    ; 8ed6: f0 f5       ..             ; ALWAYS branch
@@ -5014,7 +5030,7 @@ l8da7 = sub_c8da6+1
 .cmd_rename
     jsr copy_fs_cmd_name                                              ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer; Bit 6 set: use station as port
     phx                                                               ; 94c8: da          .
-    jsr sub_cb2cf                                                     ; 94c9: 20 cf b2     ..            ; Set owner-only access mask; Bit 7 clear: skip port override; Bit 7 set: load alternative port
+    jsr mask_owner_access                                             ; 94c9: 20 cf b2     ..            ; Set owner-only access mask; Bit 7 clear: skip port override; Bit 7 set: load alternative port
     jsr parse_quoted_arg                                              ; 94cc: 20 83 94     ..            ; Parse first filename (quoted); Override TXCB port byte
     jsr parse_access_prefix                                           ; 94cf: 20 2f b2     /.            ; Parse access prefix
     plx                                                               ; 94d2: fa          .
@@ -5045,7 +5061,7 @@ l8da7 = sub_c8da6+1
     beq skip_rename_spaces                                            ; 94fb: f0 f6       ..             ; Yes: skip multiple spaces; Save in X; Zero: no more replies, return
     lda lc271                                                         ; 94fd: ad 71 c2    .q.            ; Save current FS options; V clear: use code directly
     pha                                                               ; 9500: 48          H              ; Push them; V set: adjust reply code (+&2B)
-    jsr sub_cb2cf                                                     ; 9501: 20 cf b2     ..            ; Reset access mask for second name; Non-zero: process reply
+    jsr mask_owner_access                                             ; 9501: 20 cf b2     ..            ; Reset access mask for second name; Non-zero: process reply
     phx                                                               ; 9504: da          .              ; Return
     jsr parse_access_prefix                                           ; 9505: 20 2f b2     /.            ; Parse access prefix for second name; Discard saved flags; X=&C0: disconnect command
     plx                                                               ; 9508: fa          .              ; Advance reply offset
@@ -5914,7 +5930,7 @@ l99a3 = bad_str_anchor+1
     lda #&c7                                                          ; 9a0e: a9 c7       ..             ; A=&C7: disable exec with OSBYTE
 ; &9a10 referenced 1 time by &9a0b
 .close_spool_exec
-    jsr sub_c8ed2                                                     ; 9a10: 20 d2 8e     ..            ; OSBYTE with X=0, Y=0 to close
+    jsr osbyte_x0_y0                                                  ; 9a10: 20 d2 8e     ..            ; OSBYTE with X=0, Y=0 to close
     ply                                                               ; 9a13: 7a          z
     lda #osfind_close                                                 ; 9a14: a9 00       ..             ; A=0: close file
     jsr osfind                                                        ; 9a16: 20 ce ff     ..            ; Close the spool/exec file; Close one or all files
@@ -6433,7 +6449,7 @@ l99a3 = bad_str_anchor+1
 
     jsr set_xfer_params                                               ; 9c22: 20 d7 93     ..            ; Set up transfer parameters
     jsr load_text_ptr_and_parse                                       ; 9c25: 20 f5 9b     ..            ; Load text pointer and parse filename
-    jsr sub_cb2cf                                                     ; 9c28: 20 cf b2     ..            ; Set owner-only access mask
+    jsr mask_owner_access                                             ; 9c28: 20 cf b2     ..            ; Set owner-only access mask
     jsr parse_access_prefix                                           ; 9c2b: 20 2f b2     /.            ; Parse access prefix from filename
     lda fs_last_byte_flag                                             ; 9c2e: a5 bd       ..             ; Load last byte flag
     bpl check_display_type                                            ; 9c30: 10 7e       .~             ; Positive (not last): display file info
@@ -7259,7 +7275,7 @@ l99a3 = bad_str_anchor+1
     jsr verify_ws_checksum                                            ; a02f: 20 9e 90     ..            ; Verify workspace checksum
     jsr set_xfer_params                                               ; a032: 20 d7 93     ..            ; Set up transfer parameters
     tax                                                               ; a035: aa          .              ; Transfer A to X
-    jsr sub_cb2cf                                                     ; a036: 20 cf b2     ..            ; Set owner-only access mask
+    jsr mask_owner_access                                             ; a036: 20 cf b2     ..            ; Set owner-only access mask
     txa                                                               ; a039: 8a          .              ; Transfer X back to A
     beq close_all_channels                                            ; a03a: f0 2f       ./             ; Zero: close file, process FCBs
     jsr save_ptr_to_os_text                                           ; a03c: 20 73 b3     s.            ; Save text pointer for OS
@@ -7512,7 +7528,7 @@ la0ff = sub_ca0fe+1
     jsr verify_ws_checksum                                            ; a14c: 20 9e 90     ..            ; Verify workspace checksum; Bit 7 set: end of this name
     jsr set_xfer_params                                               ; a14f: 20 d7 93     ..            ; Compare with command line char; Set up transfer parameters; Case-insensitive compare
     pha                                                               ; a152: 48          H              ; Push transfer type on stack
-    jsr sub_cb2cf                                                     ; a153: 20 cf b2     ..            ; Mismatch: skip to next entry; Set owner-only access mask; Match: advance command line
+    jsr mask_owner_access                                             ; a153: 20 cf b2     ..            ; Mismatch: skip to next entry; Set owner-only access mask; Match: advance command line
     pla                                                               ; a156: 68          h              ; Advance table pointer; Pull transfer type
     tax                                                               ; a157: aa          .              ; Loop for next character; Transfer to X
     beq skip_if_out_of_range                                          ; a158: f0 05       ..             ; Zero: no valid operation, return; Advance past remaining table chars
@@ -8255,7 +8271,7 @@ la0ff = sub_ca0fe+1
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
     jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.
-    jsr sub_cb2cf                                                     ; a4e7: 20 cf b2     ..
+    jsr mask_owner_access                                             ; a4e7: 20 cf b2     ..
     ora #2                                                            ; a4ea: 09 02       ..
     sta lc271                                                         ; a4ec: 8d 71 c2    .q.            ; CLC so SBC subtracts value+1
     bne ca4fc                                                         ; a4ef: d0 0b       ..             ; A = OSWORD number; ALWAYS branch
@@ -8263,7 +8279,7 @@ la0ff = sub_ca0fe+1
 ; &a4f1 referenced 1 time by &8e35
 .ca4f1
     jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; A = OSWORD - &0E (CLC+SBC = -&0E); Below &0E: not ours, return
-    jsr sub_cb2cf                                                     ; a4f4: 20 cf b2     ..            ; Index >= 7? (OSWORD > &14)
+    jsr mask_owner_access                                             ; a4f4: 20 cf b2     ..            ; Index >= 7? (OSWORD > &14)
     and #&fd                                                          ; a4f7: 29 fd       ).             ; Above &14: not ours, return
     sta lc271                                                         ; a4f9: 8d 71 c2    .q.            ; X=OSWORD handler index (0-6); Y=6: save 6 workspace bytes
 ; &a4fc referenced 1 time by &a4ef
@@ -8353,14 +8369,14 @@ la0ff = sub_ca0fe+1
     sta lc030,x                                                       ; a57e: 9d 30 c0    .0.            ; Shift high nibble down; Continue shifting; Continue shifting
     eor #&0d                                                          ; a581: 49 0d       I.             ; 4th shift: isolate high nibble; Add &51 for year offset + carry
     bne loop_restore_name                                             ; a583: d0 f5       ..             ; Convert year to BCD
-    jsr sub_cb2cf                                                     ; a585: 20 cf b2     ..            ; Store BCD year
+    jsr mask_owner_access                                             ; a585: 20 cf b2     ..            ; Store BCD year
     ora #&80                                                          ; a588: 09 80       ..
     sta lc271                                                         ; a58a: 8d 71 c2    .q.            ; Copy 7 bytes (Y=6 down to 0); Load BCD byte from workspace
     bne retry_with_library                                            ; a58d: d0 e7       ..             ; ALWAYS branch
 
 ; &a58f referenced 1 time by &a548
 .library_tried
-    jsr sub_cb2cf                                                     ; a58f: 20 cf b2     ..            ; Store to parameter block; Next byte down
+    jsr mask_owner_access                                             ; a58f: 20 cf b2     ..            ; Store to parameter block; Next byte down
 .error_bad_command
     lda #2                                                            ; a592: a9 02       ..             ; Loop for all 7 bytes
     bit lc271                                                         ; a594: 2c 71 c2    ,q.            ; Return; Save processor flags (decimal mode); X = binary count
@@ -9516,7 +9532,7 @@ labc5 = compare_bridge_status+1
     jsr sub_c8b4d                                                     ; ac4c: 20 4d 8b     M.            ; OR with existing status byte; Save combined status
     pla                                                               ; ac4f: 68          h              ; Store to TX buffer
     ldy #&23 ; '#'                                                    ; ac50: a0 23       .#             ; Send the packet
-    jsr sub_cb2cf                                                     ; ac52: 20 cf b2     ..            ; Set end markers to &FF
+    jsr mask_owner_access                                             ; ac52: 20 cf b2     ..            ; Set end markers to &FF
 ; &ac55 referenced 1 time by &ac62
 .loop_copy_txcb_init
     lda init_txcb,y                                                   ; ac55: b9 4b 97    .K.            ; Y=8: first end marker offset
@@ -10977,8 +10993,17 @@ labc5 = compare_bridge_status+1
 
     equs "Load"                                                       ; b2cb: 4c 6f 61... Loa
 
+; ***************************************************************************************
+; Clear FS selection flags from options word
+; 
+; ANDs the &C271 flags byte (was &1071 in 4.18) with
+; &1F, clearing the FS selection flag (bit 6) and
+; other high bits to retain only the 5-bit owner
+; access mask. Called before parsing to reset the
+; prefix state from a previous command. 12 callers.
+; ***************************************************************************************
 ; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
-.sub_cb2cf
+.mask_owner_access
     lda lc271                                                         ; b2cf: ad 71 c2    .q.
     and #&1f                                                          ; b2d2: 29 1f       ).
     sta lc271                                                         ; b2d4: 8d 71 c2    .q.
@@ -11941,7 +11966,7 @@ lb4fd = write_ps_slot_hi_link+1
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_wipe
-    jsr sub_cb2cf                                                     ; b6f3: 20 cf b2     ..
+    jsr mask_owner_access                                             ; b6f3: 20 cf b2     ..
     lda #0                                                            ; b6f6: a9 00       ..
     sta fs_work_5                                                     ; b6f8: 85 b5       ..
     jsr save_ptr_to_os_text                                           ; b6fa: 20 73 b3     s.
@@ -13821,8 +13846,8 @@ save pydis_start, pydis_end
 ;     set_nmi_vector:                13
 ;     ws_page:                       13
 ;     lc2c9:                         12
+;     mask_owner_access:             12
 ;     return_with_last_flag:         12
-;     sub_cb2cf:                     12
 ;     error_bad_inline:              11
 ;     error_inline_log:              11
 ;     fs_load_addr_3:                11
@@ -14781,6 +14806,7 @@ save pydis_start, pydis_end
 ;     osargs_read_op:                 1
 ;     osargs_write_ptr:               1
 ;     osbget:                         1
+;     osbyte_x0_y0:                   1
 ;     osbyte_yff:                     1
 ;     oseven:                         1
 ;     osfile:                         1
@@ -14992,7 +15018,6 @@ save pydis_start, pydis_end
 ;     store_ws_byte:                  1
 ;     sub_c8b4d:                      1
 ;     sub_c8b52:                      1
-;     sub_c8ed2:                      1
 ;     sub_c924c:                      1
 ;     sub_c9255:                      1
 ;     sub_c9612:                      1
@@ -15254,7 +15279,6 @@ save pydis_start, pydis_end
 ;     sub_c8cad
 ;     sub_c8da6
 ;     sub_c8ec9
-;     sub_c8ed2
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c928a
@@ -15262,7 +15286,6 @@ save pydis_start, pydis_end
 ;     sub_c988f
 ;     sub_ca0fe
 ;     sub_ca3c4
-;     sub_cb2cf
 ;     sub_cb303
 ;     sub_cb310
 

@@ -2931,15 +2931,18 @@ subroutine(0x8E5B, "dir_op_dispatch",
     "tx_done_os_proc to handle directory operations\n"
     "(e.g. FILEV, ARGSV) from the remote JSR service.",
     on_entry={"x": "directory operation code (0-4)"})
-# UNMAPPED: subroutine(0x8E8C, "osbyte_x0_y0",
-# UNMAPPED:     title="OSBYTE wrapper with X=0, Y=0",
-# UNMAPPED:     description="Sets X=0 and Y=0 then branches to jmp_osbyte.\n"
-# UNMAPPED:     "Called from the Econet OSBYTE dispatch chain to\n"
-# UNMAPPED:     "handle OSBYTEs that require both X and Y cleared.\n"
-# UNMAPPED:     "The unconditional BEQ (after LDY #0 sets Z)\n"
-# UNMAPPED:     "reaches the JMP osbyte instruction at &8E87.",
-# UNMAPPED:     on_entry={"a": "OSBYTE number"},
-# UNMAPPED:     on_exit={"x": "0", "y": "0"})
+# Located in 4.21_v1 at &8ED2 (was &8E8C in 4.18). Same body
+# (LDX #0 / LDY #0 / BEQ jmp_osbyte). Already classified as code
+# (sub_c8ed2 with 1 caller from &9A10).
+subroutine(0x8ED2, "osbyte_x0_y0",
+    title="OSBYTE wrapper with X=0, Y=0",
+    description="Sets X=0 and Y=0 then branches to jmp_osbyte.\n"
+    "Called from the Econet OSBYTE dispatch chain to\n"
+    "handle OSBYTEs that require both X and Y cleared.\n"
+    "The unconditional BEQ (after LDY #0 sets Z)\n"
+    "reaches the JMP osbyte instruction.",
+    on_entry={"a": "OSBYTE number"},
+    on_exit={"x": "0", "y": "0"})
 subroutine(0x8EF0, "store_ws_page_count",
     title="Record workspace page count (capped at &21)",
     description="Stores the workspace allocation from service 1\n"
@@ -4074,13 +4077,17 @@ subroutine(0xB2A3, "copy_arg_validated",
               "y": "command line source offset",
               "c": "set to enable '&' validation"})
 label(0xB2C8, "done_trim_spaces")
-# UNMAPPED: subroutine(0xAF32, "mask_owner_access",
-# UNMAPPED:     title="Clear FS selection flags from options word",
-# UNMAPPED:     description="ANDs the l1071 flags byte with &1F, clearing\n"
-# UNMAPPED:     "the FS selection flag (bit 6) and other high\n"
-# UNMAPPED:     "bits to retain only the 5-bit owner access\n"
-# UNMAPPED:     "mask. Called before parsing to reset the prefix\n"
-# UNMAPPED:     "state from a previous command.")
+# Located in 4.21_v1 at &B2CF (was &AF32 in 4.18). Same 4-instruction
+# body (LDA / AND #&1F / STA / RTS); only the workspace address moved
+# from &1071 to &C271 with the rest of fs_lib_flags. Already classified
+# as code (sub_cb2cf with 12 callers).
+subroutine(0xB2CF, "mask_owner_access",
+    title="Clear FS selection flags from options word",
+    description="ANDs the &C271 flags byte (was &1071 in 4.18) with\n"
+    "&1F, clearing the FS selection flag (bit 6) and\n"
+    "other high bits to retain only the 5-bit owner\n"
+    "access mask. Called before parsing to reset the\n"
+    "prefix state from a previous command. 12 callers.")
 subroutine(0xB2E4, "ex_print_col_sep",
     title="Print column separator or newline for *Ex/*Cat",
     description="In *Cat mode, increments a column counter modulo 4\n"
