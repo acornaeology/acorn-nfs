@@ -1,0 +1,20 @@
+{
+    "title": "Acorn ANFS 4.21 (variant 1)",
+    "size": 16384,
+    "md5": "03371d224a8f048c129335682434d025",
+    "sha256": "a51c9b2ce63d16519880a33b0561048c7172ee53cebe06e8d21da479198398cd",
+    "cpu": "65c02",
+    "machine": "BBC Master 128",
+    "links": [
+        {
+            "label": "Acorn ANFS 4.21 (variant 1) in The BBC Micro ROM Library",
+            "url": "https://tobylobster.github.io/rom_library/?md5=03371d224a8f048c129335682434d025",
+            "icon": "chip"
+        },
+        {
+            "label": "Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32592",
+            "icon": "chat"
+        }
+    ]
+}

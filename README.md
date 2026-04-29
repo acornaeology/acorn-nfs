@@ -76,6 +76,11 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
   - [Acorn ANFS 4.18 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=0926bcb6f47458f8c4aed5364ff1122d)
   - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
   - [Changes from ANFS 4.08.53](versions/anfs-4.18/CHANGES-FROM-4.08.53.md)
+- **Acorn ANFS 4.21 (variant 1)**
+  - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/4.21_variant_1.html)
+  - [Raw assembly source](versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm)
+  - [Acorn ANFS 4.21 (variant 1) in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=03371d224a8f048c129335682434d025)
+  - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
 
 ## How it works
 
@@ -109,6 +114,8 @@ uv run acorn-nfs-disasm-tool disassemble 4.08.53
 uv run acorn-nfs-disasm-tool verify 4.08.53
 uv run acorn-nfs-disasm-tool disassemble 4.18
 uv run acorn-nfs-disasm-tool verify 4.18
+uv run acorn-nfs-disasm-tool disassemble 4.21_variant_1
+uv run acorn-nfs-disasm-tool verify 4.21_variant_1
 ```
 
 ## (Re-)Assembling locally
@@ -126,6 +133,7 @@ beebasm -i versions/nfs-3.62/output/nfs-3.62.asm -o nfs-3.62.rom
 beebasm -i versions/nfs-3.65/output/nfs-3.65.asm -o nfs-3.65.rom
 beebasm -i versions/anfs-4.08.53/output/anfs-4.08.53.asm -o anfs-4.08.53.rom
 beebasm -i versions/anfs-4.18/output/anfs-4.18.asm -o anfs-4.18.rom
+beebasm -i versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm -o anfs-4.21_variant_1.rom
 ```
 
 ## References

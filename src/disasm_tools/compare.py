@@ -11,7 +11,12 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from disasm_tools.mos6502 import OPCODE_LENGTHS, OPCODE_MNEMONICS, ROM_BASE
+from disasm_tools.mos6502 import (
+    OPCODE_LENGTHS,
+    OPCODE_MNEMONICS,
+    ROM_BASE,
+    opcode_tables,
+)
 
 
 # ============================================================
@@ -21,13 +26,14 @@ from disasm_tools.mos6502 import OPCODE_LENGTHS, OPCODE_MNEMONICS, ROM_BASE
 
 @dataclass
 class Instruction:
-    """A single 6502 instruction from linear sweep disassembly."""
+    """A single 6502/65C02 instruction from linear sweep disassembly."""
 
     offset: int
     opcode: int
     operand_bytes: bytes
     length: int
     is_valid: bool
+    mnemonic_str: str = "???"
 
     @property
     def rom_address(self) -> int:
@@ -39,9 +45,7 @@ class Instruction:
 
     @property
     def mnemonic(self) -> str:
-        if not self.is_valid:
-            return "???"
-        return OPCODE_MNEMONICS[self.opcode]
+        return self.mnemonic_str
 
 
 @dataclass
@@ -114,22 +118,26 @@ def parse_rom_header(data: bytes) -> RomHeader:
 # ============================================================
 
 
-def disassemble_linear(data: bytes) -> list[Instruction]:
+def disassemble_linear(data: bytes, cpu: str = "6502") -> list[Instruction]:
     """Decompose ROM bytes into instructions using linear sweep.
 
     Invalid opcodes (length 0 in the table) are emitted as single-byte
     data items. This is a deliberate simplification: both ROMs are swept
     identically, so data tables misinterpreted as instructions will align
     correctly in the SequenceMatcher.
+
+    The cpu argument selects between 6502 and 65C02 opcode lengths.
     """
+    lengths, mnemonics = opcode_tables(cpu)
     instructions = []
     offset = 0
     while offset < len(data):
         opcode = data[offset]
-        length = OPCODE_LENGTHS[opcode]
+        length = lengths[opcode]
         if length == 0:
             instructions.append(
-                Instruction(offset, opcode, b"", 1, is_valid=False)
+                Instruction(offset, opcode, b"", 1, is_valid=False,
+                            mnemonic_str="???")
             )
             offset += 1
         elif offset + length > len(data):
@@ -137,14 +145,14 @@ def disassemble_linear(data: bytes) -> list[Instruction]:
             operand = data[offset + 1 :]
             instructions.append(
                 Instruction(offset, opcode, bytes(operand), len(operand) + 1,
-                            is_valid=False)
+                            is_valid=False, mnemonic_str="???")
             )
             break
         else:
             operand = data[offset + 1 : offset + length]
             instructions.append(
                 Instruction(offset, opcode, bytes(operand), length,
-                            is_valid=True)
+                            is_valid=True, mnemonic_str=mnemonics[opcode])
             )
             offset += length
     return instructions
@@ -230,9 +238,14 @@ def compare_headers(
 
 
 def compare_roms(
-    data_a: bytes, data_b: bytes, label_a: str, label_b: str
+    data_a: bytes, data_b: bytes, label_a: str, label_b: str,
+    cpu_a: str = "6502", cpu_b: str = "6502",
 ) -> str:
-    """Generate the full comparison report."""
+    """Generate the full comparison report.
+
+    cpu_a / cpu_b name the CPU variant to use for linear-sweep
+    disassembly of each ROM ('6502' or '65c02').
+    """
     lines = []
 
     # ---- Basic stats ----
@@ -246,8 +259,8 @@ def compare_roms(
     )
 
     # ---- Instruction decomposition ----
-    insts_a = disassemble_linear(data_a)
-    insts_b = disassemble_linear(data_b)
+    insts_a = disassemble_linear(data_a, cpu_a)
+    insts_b = disassemble_linear(data_b, cpu_b)
 
     # Opcode-only sequences (structural comparison)
     opcodes_a = [inst.opcode for inst in insts_a]
@@ -419,6 +432,18 @@ def compare_roms(
 # ============================================================
 
 
+def _read_cpu_from_rom_json(version_dirpath: Path) -> str:
+    """Read the 'cpu' field from a version's rom/rom.json (default '6502')."""
+    import json
+    rom_json_filepath = version_dirpath / "rom" / "rom.json"
+    if not rom_json_filepath.exists():
+        return "6502"
+    try:
+        return json.loads(rom_json_filepath.read_text()).get("cpu", "6502")
+    except Exception:
+        return "6502"
+
+
 def compare(version_dirpath_a, version_a, version_dirpath_b, version_b):
     """Compare two ROM versions and print the report.
 
@@ -437,7 +462,9 @@ def compare(version_dirpath_a, version_a, version_dirpath_b, version_b):
 
     data_a = rom_filepath_a.read_bytes()
     data_b = rom_filepath_b.read_bytes()
+    cpu_a = _read_cpu_from_rom_json(version_dirpath_a)
+    cpu_b = _read_cpu_from_rom_json(version_dirpath_b)
 
-    report = compare_roms(data_a, data_b, version_a, version_b)
+    report = compare_roms(data_a, data_b, version_a, version_b, cpu_a, cpu_b)
     print(report)
     return 0
