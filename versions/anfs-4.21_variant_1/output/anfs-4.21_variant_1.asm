@@ -426,9 +426,44 @@ rom_header_byte2 = rom_header+2
     equb 0                                                            ; 8019: 00          .              ; Null terminator before copyright
 .copyright_string
     equs "(C)1986 Acorn", 0                                           ; 801a: 28 43 29... (C)
-    equb &da, &5a, &ac, &65, &0d, &d0,   3, &7a, &fa, &60, &a9, &80   ; 8028: da 5a ac... .Z.            ; SR set: shift register complete; A=5: not our interrupt, pass on
-    equb &1c, &34, &fe, &9c, &65, &0d, &98, &30, &0b, &a9, &fe, &20   ; 8034: 1c 34 fe... .4.            ; Copy to A for sign test; Bit 7 set: dispatch via table; A=&FE: Econet receive event; Call event vector handler
-    equb &45, &80, &4c, &82, &85                                      ; 8040: 45 80 4c... E.L            ; Fire event (enable: *FX52,150)
+
+; ***************************************************************************************
+; Service 5: unrecognised interrupt (Master 128 dispatch)
+; 
+; Reads the deferred-work flag at &0D65; if zero, returns early via PLX/PLY/RTS.
+; Otherwise clears bit 7 of the Master 128 ACCCON register at &FE34 (TRB), zeros &0D65,
+; then dispatches either via the PHA/PHA/RTS table at dispatch_svc5 (&8048) when Y had
+; bit 7 set on entry, or fires Econet RX event &FE via generate_event and JMPs to &8582
+; (post-event handler).
+; 
+; Note: 4.18's equivalent at the same address tested VIA IFR bit 2 for shift-register
+; completion; the 4.21 version is rewritten around the Master 128's deferred-work flag
+; pattern. Detailed re-annotation deferred.
+; 
+; On Entry:
+;     A: 5 (service call number)
+;     X: ROM slot
+;     Y: parameter (high bit selects dispatch path)
+; ***************************************************************************************
+.svc5_irq_check
+    phx                                                               ; 8028: da          .
+    phy                                                               ; 8029: 5a          Z
+    ldy tx_op_type                                                    ; 802a: ac 65 0d    .e.
+    bne c8032                                                         ; 802d: d0 03       ..             ; SR set: shift register complete
+    ply                                                               ; 802f: 7a          z
+    plx                                                               ; 8030: fa          .
+    rts                                                               ; 8031: 60          `
+
+; &8032 referenced 1 time by &802d
+.c8032
+    lda #&80                                                          ; 8032: a9 80       ..             ; A=5: not our interrupt, pass on
+    trb lfe34                                                         ; 8034: 1c 34 fe    .4.
+    stz tx_op_type                                                    ; 8037: 9c 65 0d    .e.
+    tya                                                               ; 803a: 98          .              ; Copy to A for sign test
+    bmi dispatch_svc5                                                 ; 803b: 30 0b       0.             ; Bit 7 set: dispatch via table
+    lda #&fe                                                          ; 803d: a9 fe       ..             ; A=&FE: Econet receive event
+    jsr generate_event                                                ; 803f: 20 45 80     E.            ; Call event vector handler
+    jmp tx_done_exit                                                  ; 8042: 4c 82 85    L..            ; Fire event (enable: *FX52,150)
 
 ; ***************************************************************************************
 ; Generate event via event vector
@@ -445,12 +480,16 @@ rom_header_byte2 = rom_header+2
 ;     X: preserved
 ;     Y: preserved
 ; ***************************************************************************************
+; &8045 referenced 1 time by &803f
 .generate_event
     jmp (evntv)                                                       ; 8045: 6c 20 02    l .            ; Dispatch through event vector
 
+; &8048 referenced 1 time by &803b
 .dispatch_svc5
-    equb &a9, &85, &48, &b9, &b8, &84, &48                            ; 8048: a9 85 48... ..H            ; Push return addr high (&85); High byte on stack for RTS; Load dispatch target low byte; Low byte on stack for RTS
-
+    lda #&85                                                          ; 8048: a9 85       ..             ; Push return addr high (&85)
+    pha                                                               ; 804a: 48          H              ; High byte on stack for RTS
+    lda l84b8,y                                                       ; 804b: b9 b8 84    ...            ; Load dispatch target low byte
+    pha                                                               ; 804e: 48          H              ; Low byte on stack for RTS
 .svc_5_unknown_irq
     rts                                                               ; 804f: 60          `              ; RTS = dispatch to PHA'd address
 
@@ -1429,7 +1468,10 @@ l840a = sub_c8409+1
     lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..             ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84b3: 85 a6       ..             ; Store workspace offset lo
     lda #&0d                                                          ; 84b5: a9 0d       ..             ; RX buffer page = &0D
+.sub_c84b7
+l84b8 = sub_c84b7+1
     sta rx_buf_offset                                                 ; 84b7: 85 a7       ..             ; Store workspace offset hi
+; &84b8 referenced 1 time by &804b
     jmp port_match_found                                              ; 84b9: 4c 95 81    L..            ; Enter POKE data-receive path
 
 ; ***************************************************************************************
@@ -1614,7 +1656,7 @@ l840a = sub_c8409+1
     lda econet_flags                                                  ; 857a: ad 61 0d    .a.            ; Load current RX flags
     and #&fb                                                          ; 857d: 29 fb       ).             ; Clear bit 2: release halted station
     sta econet_flags                                                  ; 857f: 8d 61 0d    .a.            ; Store updated flags
-; &8582 referenced 4 times by &8554, &8560, &8568, &8578
+; &8582 referenced 5 times by &8042, &8554, &8560, &8568, &8578
 .tx_done_exit
     pla                                                               ; 8582: 68          h              ; Restore Y from stack
     tay                                                               ; 8583: a8          .              ; Transfer to Y register
@@ -13993,7 +14035,7 @@ save pydis_start, pydis_end
 ;     lc200:                         18
 ;     lc230:                         18
 ;     econet_flags:                  17
-;     lfe34:                         16
+;     lfe34:                         17
 ;     open_port_buf_hi:              16
 ;     os_text_ptr:                   16
 ;     fs_block_offset:               15
@@ -14105,6 +14147,7 @@ save pydis_start, pydis_end
 ;     svc_dispatch:                   5
 ;     table_idx:                      5
 ;     tube_present:                   5
+;     tx_done_exit:                   5
 ;     tx_dst_net:                     5
 ;     verify_ws_checksum:             5
 ;     c8e9a:                          4
@@ -14145,7 +14188,7 @@ save pydis_start, pydis_end
 ;     scout_src_net:                  4
 ;     store_a_to_pb_1:                4
 ;     svc_return_unclaimed:           4
-;     tx_done_exit:                   4
+;     tx_op_type:                     4
 ;     txcb_port:                      4
 ;     zp_work_3:                      4
 ;     adlc_full_reset:                3
@@ -14438,7 +14481,6 @@ save pydis_start, pydis_end
 ;     tube_tx_fifo_write:             2
 ;     tx_addr_base:                   2
 ;     tx_ctrl_byte:                   2
-;     tx_op_type:                     2
 ;     tx_port:                        2
 ;     tx_result_ok:                   2
 ;     tx_retry_count:                 2
@@ -14480,6 +14522,7 @@ save pydis_start, pydis_end
 ;     build_no_reply_error:           1
 ;     build_simple_error:             1
 ;     byte_to_2bit_index:             1
+;     c8032:                          1
 ;     c8211:                          1
 ;     c8258:                          1
 ;     c8434:                          1
@@ -14588,6 +14631,7 @@ save pydis_start, pydis_end
 ;     dispatch_ops_1_to_6:            1
 ;     dispatch_osfind_op:             1
 ;     dispatch_osword_op:             1
+;     dispatch_svc5:                  1
 ;     dispatch_svc_with_state:        1
 ;     do_fs_cmd_iteration:            1
 ;     done_advance_fcb:               1
@@ -14671,6 +14715,7 @@ save pydis_start, pydis_end
 ;     fscv_2_star_run:                1
 ;     fscv_3_star_cmd:                1
 ;     fsreply_3_set_csd:              1
+;     generate_event:                 1
 ;     gsread_to_buf:                  1
 ;     halt_spin_loop:                 1
 ;     handle_burst_xfer:              1
@@ -14721,6 +14766,7 @@ save pydis_start, pydis_end
 ;     l4e2f:                          1
 ;     l6f6e:                          1
 ;     l840a:                          1
+;     l84b8:                          1
 ;     l85fd:                          1
 ;     l886f:                          1
 ;     l8877:                          1
@@ -15250,6 +15296,7 @@ save pydis_start, pydis_end
 ;     zp_0078:                        1
 
 ; Automatically generated labels:
+;     c8032
 ;     c8211
 ;     c8258
 ;     c8264
@@ -15315,6 +15362,7 @@ save pydis_start, pydis_end
 ;     l4e2f
 ;     l6f6e
 ;     l840a
+;     l84b8
 ;     l85fd
 ;     l886f
 ;     l8877
@@ -15447,6 +15495,7 @@ save pydis_start, pydis_end
 ;     return_4
 ;     return_5
 ;     sub_c8409
+;     sub_c84b7
 ;     sub_c8900
 ;     sub_c8b52
 ;     sub_c8da6
@@ -15461,11 +15510,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13105 bytes (80%)
-;     Data                     = 3279 bytes (20%)
+;     Code                     = 13141 bytes (80%)
+;     Data                     = 3243 bytes (20%)
 ;
-;     Number of instructions   = 6469
-;     Number of data bytes     = 1967 bytes
+;     Number of instructions   = 6488
+;     Number of data bytes     = 1931 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1284 bytes
 ;     Number of strings        = 147

@@ -1651,20 +1651,31 @@ label(0xBFC0, "inx4")
 # ROM entry points and subroutines
 # ============================================================
 
-# UNMAPPED: subroutine(0x8028, "svc5_irq_check",
-# UNMAPPED:     title="Service 5: unrecognised interrupt (SR dispatch)",
-# UNMAPPED:     description="Tests IFR bit 2 (SR complete) to check for a\n"
-# UNMAPPED:     "shift register transfer complete. If SR is not set,\n"
-# UNMAPPED:     "returns A=5 to pass the service call on. If SR is\n"
-# UNMAPPED:     "set, saves registers, reads the VIA ACR, clears and\n"
-# UNMAPPED:     "restores the SR mode bits from ws_0d64, then dispatches\n"
-# UNMAPPED:     "the TX completion callback via the operation type stored\n"
-# UNMAPPED:     "in tx_op_type. The indexed handler performs the completion\n"
-# UNMAPPED:     "action (e.g. resuming background print spooling) before\n"
-# UNMAPPED:     "returning with A=0 to claim the service call.",
-# UNMAPPED:     on_entry={"a": "5 (service call number)",
-# UNMAPPED:               "x": "ROM slot",
-# UNMAPPED:               "y": "parameter"})
+# Located in 4.21_v1 at &8028 (same address as 4.18). The body
+# differs significantly from 4.18: instead of checking VIA IFR bit 2
+# for SR-complete, 4.21 reads the workspace byte at &0D65 (a deferred-
+# work flag), TRB &FE34 (the Master ACCCON register, clearing bit 7),
+# STZ &0D65, then dispatches through the dispatch_svc5 PHA/PHA/RTS at
+# &8048 if Y was negative on entry, or fires the Econet RX event
+# (&FE) via generate_event and JMPs to &8582 otherwise. The 4.18
+# description is preserved with caveats; full re-annotation pending.
+entry(0x8028)
+subroutine(0x8028, "svc5_irq_check",
+    title="Service 5: unrecognised interrupt (Master 128 dispatch)",
+    description="Reads the deferred-work flag at &0D65; if zero, returns "
+    "early via PLX/PLY/RTS. Otherwise clears bit 7 of the Master 128 "
+    "ACCCON register at &FE34 (TRB), zeros &0D65, then dispatches "
+    "either via the PHA/PHA/RTS table at dispatch_svc5 (&8048) when "
+    "Y had bit 7 set on entry, or fires Econet RX event &FE via "
+    "generate_event and JMPs to &8582 (post-event handler).\n"
+    "\n"
+    "Note: 4.18's equivalent at the same address tested VIA IFR bit 2 "
+    "for shift-register completion; the 4.21 version is rewritten "
+    "around the Master 128's deferred-work flag pattern. Detailed "
+    "re-annotation deferred.",
+    on_entry={"a": "5 (service call number)",
+              "x": "ROM slot",
+              "y": "parameter (high bit selects dispatch path)"})
 subroutine(0x8045, "generate_event",
     title="Generate event via event vector",
     description="Dispatches through the event vector (EVNTV)\n"
