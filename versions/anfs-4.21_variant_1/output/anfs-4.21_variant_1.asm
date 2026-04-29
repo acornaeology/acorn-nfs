@@ -4339,8 +4339,27 @@ l89c9 = reset_enter_listen+2
 .c92af
     jmp (fs_error_ptr)                                                ; 92af: 6c b8 00    l..            ; Return: Z=1 if all 5 matched; Unreachable code
 
+; ***************************************************************************************
+; Parse decimal or hex station address argument
+; 
+; Located at &92B2 in 4.21_v1 (was &916E in 4.18, +&144 shift). Reads characters from
+; the command argument at (fs_crc_lo),Y. Supports `&` prefix for hex, `.` separator for
+; net.station addresses, and plain decimal. Returns the result in fs_load_addr_2 (and
+; A). Raises 'Bad hex' / 'Bad number' / 'Bad station number' / overflow errors as
+; appropriate. The body uses the standard 6502 idioms: ASL ASL ASL ASL + ADC for hex
+; digit accumulation, and result*2 + result*8 for decimal *10. Two named callers:
+; sub_c92b2 from &A3C9 and &A3DE.
+; 
+; On Entry:
+;     Y: index into command-string buffer at (fs_crc_lo),Y
+;     A: ignored
+; 
+; On Exit:
+;     FS_LOAD_ADDR_2: parsed numeric value
+;     C: set if a number was parsed
+; ***************************************************************************************
 ; &92b2 referenced 2 times by &a3c9, &a3de
-.sub_c92b2
+.parse_addr_arg
     stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; (dead)
     lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; (dead); Save processor flags
     cmp #&26 ; '&'                                                    ; 92b6: c9 26       .&             ; Save A; Transfer X to A
@@ -7878,7 +7897,7 @@ la0ff = sub_ca0fe+1
     phx                                                               ; a3c4: da          .
     lda #0                                                            ; a3c5: a9 00       ..
     sta fs_work_4                                                     ; a3c7: 85 b4       ..
-    jsr sub_c92b2                                                     ; a3c9: 20 b2 92     ..
+    jsr parse_addr_arg                                                ; a3c9: 20 b2 92     ..
     bcs skip_if_no_station                                            ; a3cc: b0 13       ..
     sta fs_work_7                                                     ; a3ce: 85 b7       ..
     phy                                                               ; a3d0: 5a          Z
@@ -7891,7 +7910,7 @@ la0ff = sub_ca0fe+1
     sta fs_work_6                                                     ; a3da: 85 b6       ..
     ply                                                               ; a3dc: 7a          z
     iny                                                               ; a3dd: c8          .
-    jsr sub_c92b2                                                     ; a3de: 20 b2 92     ..
+    jsr parse_addr_arg                                                ; a3de: 20 b2 92     ..
 ; &a3e1 referenced 1 time by &a3cc
 .skip_if_no_station
     beq ca3e5                                                         ; a3e1: f0 02       ..
@@ -13900,6 +13919,7 @@ save pydis_start, pydis_end
 ;     osrdch:                         2
 ;     osword:                         2
 ;     pad_with_spaces:                2
+;     parse_addr_arg:                 2
 ;     parse_cmd_arg_y0:               2
 ;     parse_dump_range:               2
 ;     parse_filename_arg:             2
@@ -13967,7 +13987,6 @@ save pydis_start, pydis_end
 ;     store_station_result:           2
 ;     store_stn_flags_restore:        2
 ;     store_tx_error:                 2
-;     sub_c92b2:                      2
 ;     sub_c9463:                      2
 ;     sub_c988f:                      2
 ;     sub_cb310:                      2
@@ -14971,7 +14990,6 @@ save pydis_start, pydis_end
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c928a
-;     sub_c92b2
 ;     sub_c9463
 ;     sub_c9612
 ;     sub_c988f

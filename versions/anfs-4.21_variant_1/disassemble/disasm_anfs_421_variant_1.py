@@ -3059,13 +3059,25 @@ subroutine(0x923F, "print_hex_nybble",
     "carry set from the CMP), then ADC #&30 for the\n"
     "final '0'-'F' character. Outputs via JMP OSASCI.",
     on_entry={"a": "value (low nybble used)"})
-# UNMAPPED: subroutine(0x916E, "parse_addr_arg",
-# UNMAPPED:     title="Parse decimal or hex station address argument",
-# UNMAPPED:     description="Reads from the command argument at (&BE),Y.\n"
-# UNMAPPED:     "Supports '&' prefix for hex, '.' separator for\n"
-# UNMAPPED:     "net.station addresses, and plain decimal.\n"
-# UNMAPPED:     "Returns result in A. Raises errors for\n"
-# UNMAPPED:     "bad digits, overflow, or zero values.")
+subroutine(0x92B2, "parse_addr_arg",
+    title="Parse decimal or hex station address argument",
+    description="Located at &92B2 in 4.21_v1 (was &916E in 4.18, +&144 "
+    "shift). Reads characters from the command argument at "
+    "(fs_crc_lo),Y. Supports `&` prefix for hex, `.` separator for "
+    "net.station addresses, and plain decimal. Returns the result in "
+    "fs_load_addr_2 (and A). Raises 'Bad hex' / 'Bad number' / "
+    "'Bad station number' / overflow errors as appropriate. The body "
+    "uses the standard 6502 idioms: ASL ASL ASL ASL + ADC for hex "
+    "digit accumulation, and result*2 + result*8 for decimal *10. "
+    "Two named callers: sub_c92b2 from &A3C9 and &A3DE.",
+    on_entry={
+        "y": "index into command-string buffer at (fs_crc_lo),Y",
+        "a": "ignored",
+    },
+    on_exit={
+        "fs_load_addr_2": "parsed numeric value",
+        "c": "set if a number was parsed",
+    })
 subroutine(0x939A, "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
     description="Compares A against '&' and '.' first; if\n"
