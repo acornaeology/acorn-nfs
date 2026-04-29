@@ -2897,16 +2897,22 @@ subroutine(0x8CFF, "call_fscv",
     "entry points that issue paged ROM service requests\n"
     "via OSBYTE &8F.",
     on_entry={"a": "FSCV reason code"})
-# UNMAPPED: subroutine(0x8D17, "check_credits_easter_egg",
-# UNMAPPED:     title="Easter egg: match *HELP keyword to author credits",
-# UNMAPPED:     description="Matches the *HELP argument against a keyword\n"
-# UNMAPPED:     "embedded in the credits data at\n"
-# UNMAPPED:     "credits_keyword_start. Starts matching from offset\n"
-# UNMAPPED:     "5 in the data (X=5) and checks each byte against\n"
-# UNMAPPED:     "the command line text until a mismatch or X reaches\n"
-# UNMAPPED:     "&0D. On a full match, prints the ANFS author\n"
-# UNMAPPED:     "credits string: B Cockburn, J Dunn, B Robertson,\n"
-# UNMAPPED:     "and J Wills, each terminated by CR.")
+# Located in 4.21_v1 at &8D24 (was &8D17 in 4.18). Initial fingerprint
+# hit &8D21 but a 3-byte preamble (`STZ &0D` and a stray byte) shifts
+# the actual entry point to &8D24, where the body matches the 4.18
+# routine (LDY ws_page / LDX #5 / LDA (text_ptr),Y / CMP credits,X ...).
+# Already classified as code by py8dis (existing &8D24 reference from
+# &8C51) — only the subroutine() declaration was missing.
+subroutine(0x8D24, "check_credits_easter_egg",
+    title="Easter egg: match *HELP keyword to author credits",
+    description="Matches the *HELP argument against a keyword\n"
+    "embedded in the credits data at\n"
+    "credits_keyword_start. Starts matching from offset\n"
+    "5 in the data (X=5) and checks each byte against\n"
+    "the command line text until a mismatch or X reaches\n"
+    "&0D. On a full match, prints the ANFS author\n"
+    "credits string: B Cockburn, J Dunn, B Robertson,\n"
+    "and J Wills, each terminated by CR.")
 subroutine(0x8E21, "clear_if_station_match",
     title="Clear stored station if parsed argument matches",
     description="Parses a station number from the command line via\n"
@@ -3706,13 +3712,22 @@ subroutine(0xAA82, "copy_pb_byte_to_ws",
 # UNMAPPED:     "network numbers in PB[1..2]. If the NFS is not\n"
 # UNMAPPED:     "active (l0d6c bit 7 clear), returns zero in\n"
 # UNMAPPED:     "PB[0] instead.")
-# UNMAPPED: subroutine(0xA673, "osword_13_set_station",
-# UNMAPPED:     title="OSWORD &13 sub 1: set file server station",
-# UNMAPPED:     description="Sets the file server station and network\n"
-# UNMAPPED:     "numbers from PB[1..2]. Processes all FCBs,\n"
-# UNMAPPED:     "then scans the 16-entry FCB table to\n"
-# UNMAPPED:     "reassign handles matching the new station.\n"
-# UNMAPPED:     "If the NFS is not active, returns zero.")
+# Located in 4.21_v1 at &A9DD (was &A673 in 4.18). The 4.18 prologue
+# did `BIT &0D6C / BPL` to short-circuit when the FS was inactive;
+# 4.21 drops that check and unconditionally calls process_all_fcbs.
+# The "If the NFS is not active, returns zero" sentence below is a
+# carry-over from 4.18 and may no longer hold in 4.21 — flagged
+# pending review of any wrapper that may now perform the check.
+entry(0xA9DD)
+subroutine(0xA9DD, "osword_13_set_station",
+    title="OSWORD &13 sub 1: set file server station",
+    description="Sets the file server station and network\n"
+    "numbers from PB[1..2]. Processes all FCBs,\n"
+    "then scans the 16-entry FCB table to\n"
+    "reassign handles matching the new station.\n"
+    "Note: 4.18 had a BIT &0D6C / BPL early-return\n"
+    "for the FS-not-active case at the routine prologue;\n"
+    "4.21 removes it and unconditionally proceeds.")
 subroutine(0xAA72, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
@@ -4332,16 +4347,27 @@ subroutine(0xBB2A, "inc_fcb_byte_count",
     description="Increments l1000+X (low), cascading overflow to\n"
     "l1010+X (mid) and l1020+X (high).",
     on_entry={"x": "FCB slot index"})
-# UNMAPPED: subroutine(0xB799, "process_all_fcbs",
-# UNMAPPED:     title="Process all active FCB slots",
-# UNMAPPED:     description="Saves fs_options, fs_block_offset, and X/Y on the\n"
-# UNMAPPED:     "stack, then scans FCB slots &0F down to 0. Calls\n"
-# UNMAPPED:     "start_wipe_pass for each active entry matching the\n"
-# UNMAPPED:     "filter attribute in Y (0=match all). Restores all\n"
-# UNMAPPED:     "saved context on completion. Also contains the\n"
-# UNMAPPED:     "OSBGET/OSBPUT inline logic for reading and writing\n"
-# UNMAPPED:     "bytes through file channels.",
-# UNMAPPED:     on_entry={"y": "filter attribute (0=process all)"})
+# Located in 4.21_v1 at &BB38 (was &B799 in 4.18). The fingerprint
+# initially mis-pointed to &BB2A (which is `inc_fcb_byte_count`); the
+# real entry is &BB38, distinguishable by the 9-byte workspace save
+# loop at &BB3A (`LDX #&F7 / loop: LDA &FFBD,X / PHA / INX / BMI`) —
+# the 4.21 version preserves &FFB7-&FFBF rather than just fs_options
+# and fs_block_offset (see CHANGES-FROM-4.18 §5).
+# Already classified as code (`sub_cbb38`, 7 callers) so no entry()
+# needed.
+subroutine(0xBB38, "process_all_fcbs",
+    title="Process all active FCB slots",
+    description="Saves 9 workspace bytes (&FFB7-&FFBF) on the stack\n"
+    "via a PHX/PHY/loop preamble, then scans FCB slots\n"
+    "&0F down to 0. Calls start_wipe_pass for each\n"
+    "active entry matching the filter attribute in Y\n"
+    "(0=match all). Restores all saved context on\n"
+    "completion. Also contains the OSBGET/OSBPUT inline\n"
+    "logic for reading and writing bytes through file\n"
+    "channels. The 4.18 equivalent at &B799 saved only\n"
+    "fs_options + fs_block_offset (2 bytes); 4.21 saves\n"
+    "9 bytes to prevent cross-FCB workspace corruption.",
+    on_entry={"y": "filter attribute (0=process all)"})
 subroutine(0xBC74, "flush_fcb_if_station_known",
     title="Flush FCB byte count to server if station is set",
     description="Saves all registers, checks if the FCB has a\n"
