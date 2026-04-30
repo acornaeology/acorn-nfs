@@ -33,6 +33,7 @@ calling-convention comments to every subroutine.
 | 2026-04-30 +depth-1 | 6487 | 5102 | 78.6% | 22 |
 | 2026-04-30 +higher  | 6487 | 5420 | 83.6% | 9  |
 | 2026-04-30 +large   | 6487 | 5642 | 87.0% | 6  |
+| 2026-04-30 +deepest | 6487 | 5899 | 90.9% | 1  |
 
 ## Routines fully annotated this session
 
@@ -95,7 +96,23 @@ Large/depth-3+ routines:
   &AD64 netv_claim_release  &ADD3 osword_8_handler
   &B3D7 copy_ps_data        &B6F3 cmd_wipe (body up to prompt)
   &BD41 cmd_dump            &BEAB init_dump_buffer
-  &A3E9 byte_to_2bit_index (entry only; alt entries pending)
+  &A3E9 byte_to_2bit_index (entry + handle helper alt entries)
+  &A3FF net_1_read_handle / net_2_read_handle_entry
+  &A415 net_3_close_handle
+  &A424 mark_ws_uninit
+  &B4B4 pop_requeue_ps_scan
+  &9900 cond_save_error_code + error-build chain
+        (build_no_reply_error / classify_reply_error /
+         build_simple_error / fixup_reply_status_a)
+  &AFA6 send_disconnect_reply
+  &97CD recv_and_process_reply (the FS reply dispatch core)
+
+## Outstanding
+
+  &B3D7 copy_ps_data (49% — at threshold, not strictly below 50%
+        but the surrounding routines have stale comments mixing
+        printer-server and cmd_wipe carry-overs that need a careful
+        cleanup pass)
 
 ## Working queue
 
