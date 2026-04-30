@@ -2498,12 +2498,19 @@ subroutine(0x84F9, "imm_op_build_reply",
     "Then disables SR interrupts and configures the VIA shift\n"
     "register for shift-in mode before returning to\n"
     "idle listen.")
-# UNMAPPED: subroutine(0x8543, "tx_done_jsr",
-# UNMAPPED:     title="TX done: remote JSR execution",
-# UNMAPPED:     description="Pushes (tx_done_exit - 1) on the stack so RTS returns\n"
-# UNMAPPED:     "to tx_done_exit, then does JMP (l0d66) to call the remote\n"
-# UNMAPPED:     "JSR target routine. When that routine returns via RTS,\n"
-# UNMAPPED:     "control resumes at tx_done_exit.")
+# Located in 4.21_v1 at &8540 (was &8543 in 4.18 -- moved -3 because
+# of layout shifts in the surrounding TX-done handlers). Reached only
+# via PHA/PHA/RTS dispatch from the tx_done_dispatch table; needs an
+# explicit entry().
+entry(0x8540)
+subroutine(0x8540, "tx_done_jsr",
+    title="TX done: remote JSR execution",
+    description="Pushes (tx_done_exit - 1) on the stack so RTS returns "
+    "to tx_done_exit when the remote routine completes, then does "
+    "JMP (l0d66) to call the remote-supplied JSR target. When that "
+    "routine returns via RTS, control resumes at tx_done_exit which "
+    "tidies up TX state.",
+    on_entry={"l0d66, l0d67": "remote routine address (low, high)"})
 subroutine(0x8549, "tx_done_econet_event",
     title="TX done: fire Econet event",
     description="Handler for TX operation type &84. Loads the\n"

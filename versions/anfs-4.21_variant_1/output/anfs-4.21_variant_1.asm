@@ -1598,9 +1598,24 @@ l84b8 = sub_c84b7+1
     rts                                                               ; 853a: 60          `              ; Return
 
     equs "?HVby"                                                      ; 853b: 3f 48 56... ?HV
-    equb &a9, &85, &48, &a9, &81                                      ; 8540: a9 85 48... ..H            ; Push hi byte on stack; Push lo of (tx_done_exit-1)
-    equs "Hlf"                                                        ; 8545: 48 6c 66    Hlf            ; Push lo byte on stack; Call remote JSR; RTS to tx_done_exit
-    equb &0d                                                          ; 8548: 0d          .
+
+; ***************************************************************************************
+; TX done: remote JSR execution
+; 
+; Pushes (tx_done_exit - 1) on the stack so RTS returns to tx_done_exit when the remote
+; routine completes, then does JMP (l0d66) to call the remote-supplied JSR target. When
+; that routine returns via RTS, control resumes at tx_done_exit which tidies up TX
+; state.
+; 
+; On Entry:
+;     L0D66, L0D67: remote routine address (low, high)
+; ***************************************************************************************
+.tx_done_jsr
+    lda #&85                                                          ; 8540: a9 85       ..
+    pha                                                               ; 8542: 48          H              ; Push hi byte on stack
+    lda #&81                                                          ; 8543: a9 81       ..             ; Push lo of (tx_done_exit-1)
+    pha                                                               ; 8545: 48          H              ; Push lo byte on stack
+    jmp (exec_addr_lo)                                                ; 8546: 6c 66 0d    lf.            ; Call remote JSR; RTS to tx_done_exit
 
 ; ***************************************************************************************
 ; TX done: fire Econet event
@@ -14327,6 +14342,7 @@ save pydis_start, pydis_end
 ;     done_poll_name_parse:           4
 ;     econet_init_flag:               4
 ;     error_inline:                   4
+;     exec_addr_lo:                   4
 ;     fs_work_7:                      4
 ;     gsinit:                         4
 ;     gsread:                         4
@@ -14379,7 +14395,6 @@ save pydis_start, pydis_end
 ;     error_bad_filename:             3
 ;     error_bad_hex_value:            3
 ;     escape_flag:                    3
-;     exec_addr_lo:                   3
 ;     find_matching_fcb:              3
 ;     find_station_bit3:              3
 ;     get_ws_page:                    3
@@ -15668,11 +15683,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13141 bytes (80%)
-;     Data                     = 3243 bytes (20%)
+;     Code                     = 13150 bytes (80%)
+;     Data                     = 3234 bytes (20%)
 ;
-;     Number of instructions   = 6488
-;     Number of data bytes     = 1931 bytes
+;     Number of instructions   = 6493
+;     Number of data bytes     = 1925 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1284 bytes
-;     Number of strings        = 147
+;     Number of string bytes   = 1281 bytes
+;     Number of strings        = 146
