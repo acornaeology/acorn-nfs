@@ -3222,8 +3222,15 @@ l89c9 = reset_enter_listen+2
 ; the 'net checksum' error. Used when there is no clean BIT fs_flags / BMI shortcut for
 ; early-return.
 ; 
+; On Entry:
+;     X, Y: preserved across cmd_net_fs (as per the ensure_fs_selected calling
+; contract)
+; 
 ; On Exit:
-;     A: current FS state byte if selection succeeded, else this routine never returns
+;     A: current FS state byte if selection succeeded
+;     FS_FLAGS (&0D6C) BIT 7: set on success
+;     BEHAVIOUR: raises 'net checksum' via error_net_checksum and never returns if
+; cmd_net_fs fails
 ; ***************************************************************************************
 ; &8b52 referenced 1 time by &8cdd
 .select_fs_via_cmd_net_fs
@@ -3296,6 +3303,14 @@ l89c9 = reset_enter_listen+2
 ; and branches to print_cmd_table to display the
 ; command list. Prints the version header followed
 ; by all utility commands.
+; 
+; On Entry:
+;     Y: command-line offset (PHA/PHA/RTS dispatch contract)
+; 
+; On Exit:
+;     A, X, Y: clobbered
+;     SIDE EFFECT: writes the version header and utility command syntax list to current
+; output
 ; ***************************************************************************************
 .help_utils
     ldx #0                                                            ; 8bc0: a2 00       ..             ; X=0: utility command table offset
@@ -3307,6 +3322,14 @@ l89c9 = reset_enter_listen+2
 ; Sets X to &4A (the NFS command sub-table offset)
 ; and falls through to print_cmd_table to display
 ; the NFS command list with version header.
+; 
+; On Entry:
+;     Y: command-line offset (PHA/PHA/RTS dispatch contract)
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_cmd_table)
+;     SIDE EFFECT: writes the version header and NFS command syntax list to current
+; output
 ; ***************************************************************************************
 .help_net
     ldx #&35 ; '5'                                                    ; 8bc4: a2 35       .5             ; X=&4A: NFS command table offset
@@ -3492,6 +3515,16 @@ l89c9 = reset_enter_listen+2
 ; iterates through help topics using PHA/PHA/RTS
 ; dispatch to print matching command groups.
 ; Returns with Y = ws_page (unclaimed).
+; 
+; On Entry:
+;     A: 9 (service call number)
+;     Y: command-line offset of *HELP argument
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
+; 
+; On Exit:
+;     Y: ws_page (workspace page) -- the service call is left UNCLAIMED so MOS
+; continues to the next ROM
+;     SIDE EFFECT: any matching help text printed to current output
 ; ***************************************************************************************
 .svc_9_help
     jsr check_credits_easter_egg                                      ; 8c51: 20 24 8d     $.            ; Check for credits Easter egg
@@ -3630,6 +3663,16 @@ l89c9 = reset_enter_listen+2
 ; (ws_page = 0). If so, sets the auto-boot flag in
 ; &1071 and JMPs to cmd_fs_entry to execute the boot
 ; file.
+; 
+; On Entry:
+;     A: 3 (service call number)
+;     X: ROM slot
+;     Y: parameter (Master 128 service-call dispatch)
+; 
+; On Exit:
+;     BEHAVIOUR: on N-key down, takes over the boot: selects ANFS via cmd_net_fs, sets
+; the auto-boot flag, and JMPs to cmd_fs_entry (does not return). Otherwise returns
+; with the service call unclaimed.
 ; ***************************************************************************************
 .svc_3_autoboot
     lda #osbyte_scan_keyboard_from_16                                 ; 8cc7: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16
@@ -9590,6 +9633,14 @@ la0ff = sub_ca0fe+1
 ; valid codes, calls osword_setup_handler to push the
 ; dispatch address, then copies 3 bytes from the RX
 ; buffer to osword_flag workspace.
+; 
+; On Entry:
+;     A: OSWORD number (from osbyte_a_copy)
+;     Y: parameter passed by service-call dispatch
+; 
+; On Exit:
+;     BEHAVIOUR: OSWORD numbers outside &0E..&14 return with the service call
+; unclaimed; valid codes &0E..&14 dispatch to per-OSWORD handlers via PHA/PHA/RTS
 ; ***************************************************************************************
 .svc_8_osword
     bra ca855                                                         ; a83b: 80 18       ..             ; End of attribute keyword table; Y=3; Load PB[3] (caller value)
@@ -11557,6 +11608,14 @@ labc5 = compare_bridge_status+1
 ; stores it to the committed state location. Used
 ; to finalise a state transition after all related
 ; workspace fields have been updated.
+; 
+; On Entry:
+;     WORKING STATE BYTE (WORKSPACE): value just written by the in-progress state
+; machine
+; 
+; On Exit:
+;     COMMITTED STATE BYTE (WORKSPACE): = working state byte
+;     A: = the committed value
 ; ***************************************************************************************
 ; &b05f referenced 4 times by &9856, &987e, &98b6, &a997
 .commit_state_byte
@@ -11572,6 +11631,15 @@ labc5 = compare_bridge_status+1
 ; palette value and the display mode information
 ; in the workspace block. Used during remote
 ; screen state capture.
+; 
+; On Entry:
+;     X: palette register index (0-15)
+;     Y: destination workspace offset (palette + mode pair)
+; 
+; On Exit:
+;     WORKSPACE +Y..+Y+1: palette value, then mode bits (read via OSBYTE &0B)
+;     Y: advanced past the 2-byte pair
+;     A, X: clobbered (OSBYTE)
 ; ***************************************************************************************
 ; &b066 referenced 1 time by &b057
 .serialise_palette_entry
@@ -11593,6 +11661,15 @@ labc5 = compare_bridge_status+1
 ; Sets X=0 then falls through to read_osbyte_to_ws
 ; to issue the OSBYTE call and store the result.
 ; Used when the OSBYTE parameter X must be zero.
+; 
+; On Entry:
+;     Y: destination workspace offset
+;     OSBYTE TABLE CURSOR (WORKSPACE): next OSBYTE function code
+; 
+; On Exit:
+;     WORKSPACE +Y: OSBYTE result (Y from the call)
+;     Y: incremented past the stored byte
+;     A, X: clobbered (OSBYTE)
 ; ***************************************************************************************
 ; &b081 referenced 1 time by &b07e
 .read_osbyte_to_ws_x0
@@ -11605,6 +11682,16 @@ labc5 = compare_bridge_status+1
 ; stores the Y result in workspace at the current
 ; offset. Advances the table pointer for the next
 ; call.
+; 
+; On Entry:
+;     X: OSBYTE X parameter
+;     Y: destination workspace offset
+;     OSBYTE TABLE CURSOR: next function code to issue
+; 
+; On Exit:
+;     WORKSPACE +Y: OSBYTE Y-result
+;     Y: incremented past the stored byte
+;     A, X: clobbered
 ; ***************************************************************************************
 .read_osbyte_to_ws
     ldy osword_flag                                                   ; b083: a4 aa       ..             ; Back to network number; Read network number
@@ -11918,12 +12005,21 @@ labc5 = compare_bridge_status+1
 ; Parse access and FS selection prefix characters
 ; 
 ; Examines the first character(s) of the parsed
-; buffer at &0E30 for prefix characters: '&' sets
-; the FS selection flag (bit 6 of l1071) and strips
-; the prefix, ':' with '.' also triggers FS
+; buffer at &C030 for prefix characters: '&' sets
+; the FS selection flag (bit 6 of fs_lib_flags) and
+; strips the prefix, ':' with '.' also triggers FS
 ; selection, '#' is accepted as a channel prefix.
 ; Raises 'Bad file name' for invalid combinations
 ; like '&.' followed by CR.
+; 
+; On Entry:
+;     &C030 (PARSE BUFFER): filename string from gsread_to_buf, CR-terminated
+; 
+; On Exit:
+;     FS_LIB_FLAGS (&C271): bit 6 set if '&' or ':.' prefix observed
+;     &C030: first prefix character stripped on the &/: path
+;     BEHAVIOUR: raises 'Bad file name' via error_bad_inline for '&.<CR>' and similar
+; malformed prefixes
 ; ***************************************************************************************
 ; &b22f referenced 4 times by &942c, &94cf, &9505, &9c2b
 .parse_access_prefix
@@ -12118,6 +12214,13 @@ labc5 = compare_bridge_status+1
 ; other high bits to retain only the 5-bit owner
 ; access mask. Called before parsing to reset the
 ; prefix state from a previous command. 12 callers.
+; 
+; On Entry:
+;     FS_LIB_FLAGS (&C271): current options-word flags from a previous command
+; 
+; On Exit:
+;     FS_LIB_FLAGS: low 5 bits preserved (owner access mask); high 3 bits cleared
+;     A: = masked value
 ; ***************************************************************************************
 ; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
 .mask_owner_access
@@ -12143,6 +12246,15 @@ labc5 = compare_bridge_status+1
 ; mode (fs_spool_handle negative), prints a newline
 ; after every entry. Scans the entry data and loops
 ; back to print the next entry's characters.
+; 
+; On Entry:
+;     FS_SPOOL_HANDLE (WORKSPACE): negative selects *Ex mode (newline per entry); non-
+; negative selects *Cat mode (3 columns per row)
+;     EX_COL_COUNTER (WORKSPACE): modulo-4 column counter for *Cat mode
+; 
+; On Exit:
+;     SIDE EFFECT: writes column separator (2 spaces) or newline to current output
+;     EX_COL_COUNTER: advanced (and wrapped) for *Cat mode
 ; ***************************************************************************************
 .ex_print_col_sep
     ldy fs_spool_handle                                               ; b2e4: a4 ba       ..             ; Read fs_spool_handle (also column counter in *Cat mode)
@@ -12465,6 +12577,10 @@ labc5 = compare_bridge_status+1
 ; Called during workspace initialisation
 ; (svc_2_private_workspace) to set up the printer
 ; server template at the standard offset.
+; 
+; On Exit:
+;     RX BUFFER +&18..+&1F: 8-byte PS template
+;     Y: &20 (advanced past the copied 8 bytes)
 ; ***************************************************************************************
 .copy_ps_data_y1c
     ldy #&18                                                          ; b3d5: a0 18       ..             ; Y=&18: standard offset for the PS template; fall into copy_ps_data
@@ -12478,6 +12594,15 @@ labc5 = compare_bridge_status+1
 ; address is ps_template_base+&F8 = ps_template_data
 ; (&8E59). This 6502 trick reaches data 248 bytes
 ; past the base label using a single instruction.
+; 
+; On Entry:
+;     Y: destination offset within the RX buffer
+; 
+; On Exit:
+;     RX BUFFER +Y..+Y+7: 8-byte PS template
+;     Y: advanced by 8
+;     X: 0 (loop terminator)
+;     A: last template byte
 ; ***************************************************************************************
 ; &b3d7 referenced 1 time by &b5b6
 .copy_ps_data
@@ -12670,6 +12795,15 @@ labc5 = compare_bridge_status+1
 ; Converts the PS slot flags to a workspace index,
 ; writes slot data, and jumps back into the PS scan
 ; loop to continue processing.
+; 
+; On Entry:
+;     A: PS slot flags byte to convert into a workspace index
+;     STACK: JSR return address (which is discarded -- this routine does NOT return to
+; its caller)
+; 
+; On Exit:
+;     CONTROL FLOW: DOES NOT RETURN -- pops the JSR return address from the stack and
+; JMPs back into the PS scan loop, effectively converting the JSR into a tail-jump
 ; ***************************************************************************************
 ; &b4b4 referenced 2 times by &b41c, &b5fb
 .pop_requeue_ps_scan
@@ -13086,6 +13220,14 @@ lb4fd = write_ps_slot_hi_link+1
 ; Substitutes net_rx_ptr_hi at offsets &7D and &81
 ; (the hi bytes of the two buffer pointers) so they
 ; point into the current RX buffer page.
+; 
+; On Entry:
+;     NET_RX_PTR_HI: RX buffer page (substituted into bytes &7D and &81 of the template
+; copy)
+; 
+; On Exit:
+;     WORKSPACE +&78..+&83: 12-byte PS slot template with RX page patched in
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b6a6 referenced 1 time by &b58b
 .init_ps_slot_from_rx

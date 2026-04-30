@@ -4506,26 +4506,49 @@ subroutine(0xB05F, "commit_state_byte",
     description="Reads the working state byte from workspace and\n"
     "stores it to the committed state location. Used\n"
     "to finalise a state transition after all related\n"
-    "workspace fields have been updated.")
+    "workspace fields have been updated.",
+    on_entry={"working state byte (workspace)":
+              "value just written by the in-progress state machine"},
+    on_exit={"committed state byte (workspace)":
+             "= working state byte",
+             "a": "= the committed value"})
 subroutine(0xB066, "serialise_palette_entry",
     title="Serialise palette register to workspace",
     description="Reads the current logical colour for a palette\n"
     "register via OSBYTE &0B and stores both the\n"
     "palette value and the display mode information\n"
     "in the workspace block. Used during remote\n"
-    "screen state capture.")
+    "screen state capture.",
+    on_entry={"x": "palette register index (0-15)",
+              "y": "destination workspace offset (palette + mode pair)"},
+    on_exit={"workspace +Y..+Y+1":
+             "palette value, then mode bits (read via OSBYTE &0B)",
+             "y": "advanced past the 2-byte pair",
+             "a, x": "clobbered (OSBYTE)"})
 subroutine(0xB081, "read_osbyte_to_ws_x0",
     title="Read OSBYTE with X=0 and store to workspace",
     description="Sets X=0 then falls through to read_osbyte_to_ws\n"
     "to issue the OSBYTE call and store the result.\n"
-    "Used when the OSBYTE parameter X must be zero.")
+    "Used when the OSBYTE parameter X must be zero.",
+    on_entry={"y": "destination workspace offset",
+              "OSBYTE table cursor (workspace)":
+              "next OSBYTE function code"},
+    on_exit={"workspace +Y": "OSBYTE result (Y from the call)",
+             "y": "incremented past the stored byte",
+             "a, x": "clobbered (OSBYTE)"})
 subroutine(0xB083, "read_osbyte_to_ws",
     title="Issue OSBYTE from table and store result",
     description="Loads the OSBYTE function code from the next\n"
     "entry in the OSBYTE table, issues the call, and\n"
     "stores the Y result in workspace at the current\n"
     "offset. Advances the table pointer for the next\n"
-    "call.")
+    "call.",
+    on_entry={"x": "OSBYTE X parameter",
+              "y": "destination workspace offset",
+              "OSBYTE table cursor": "next function code to issue"},
+    on_exit={"workspace +Y": "OSBYTE Y-result",
+             "y": "incremented past the stored byte",
+             "a, x": "clobbered"})
 
 # --- cmd_ex subroutines ---
 
@@ -4564,12 +4587,19 @@ subroutine(0xB22C, "parse_filename_arg",
 subroutine(0xB22F, "parse_access_prefix",
     title="Parse access and FS selection prefix characters",
     description="Examines the first character(s) of the parsed\n"
-    "buffer at &0E30 for prefix characters: '&' sets\n"
-    "the FS selection flag (bit 6 of l1071) and strips\n"
-    "the prefix, ':' with '.' also triggers FS\n"
+    "buffer at &C030 for prefix characters: '&' sets\n"
+    "the FS selection flag (bit 6 of fs_lib_flags) and\n"
+    "strips the prefix, ':' with '.' also triggers FS\n"
     "selection, '#' is accepted as a channel prefix.\n"
     "Raises 'Bad file name' for invalid combinations\n"
-    "like '&.' followed by CR.")
+    "like '&.' followed by CR.",
+    on_entry={"&C030 (parse buffer)":
+              "filename string from gsread_to_buf, CR-terminated"},
+    on_exit={"fs_lib_flags (&C271)":
+             "bit 6 set if '&' or ':.' prefix observed",
+             "&C030": "first prefix character stripped on the &/: path",
+             "behaviour": "raises 'Bad file name' via error_bad_inline "
+             "for '&.<CR>' and similar malformed prefixes"})
 subroutine(0xB251, "strip_token_prefix",
     title="Strip first character from parsed token buffer",
     description="Shifts all bytes in the &C030 buffer left by\n"
@@ -4624,7 +4654,12 @@ subroutine(0xB2CF, "mask_owner_access",
     "&1F, clearing the FS selection flag (bit 6) and\n"
     "other high bits to retain only the 5-bit owner\n"
     "access mask. Called before parsing to reset the\n"
-    "prefix state from a previous command. 12 callers.")
+    "prefix state from a previous command. 12 callers.",
+    on_entry={"fs_lib_flags (&C271)":
+              "current options-word flags from a previous command"},
+    on_exit={"fs_lib_flags": "low 5 bits preserved (owner access mask); "
+             "high 3 bits cleared",
+             "a": "= masked value"})
 subroutine(0xB2E4, "ex_print_col_sep",
     title="Print column separator or newline for *Ex/*Cat",
     description="In *Cat mode, increments a column counter modulo 4\n"
@@ -4632,7 +4667,15 @@ subroutine(0xB2E4, "ex_print_col_sep",
     "with a newline at the end of each row. In *Ex\n"
     "mode (fs_spool_handle negative), prints a newline\n"
     "after every entry. Scans the entry data and loops\n"
-    "back to print the next entry's characters.")
+    "back to print the next entry's characters.",
+    on_entry={"fs_spool_handle (workspace)":
+              "negative selects *Ex mode (newline per entry); "
+              "non-negative selects *Cat mode (3 columns per row)",
+              "ex_col_counter (workspace)":
+              "modulo-4 column counter for *Cat mode"},
+    on_exit={"side effect": "writes column separator (2 spaces) or newline "
+             "to current output",
+             "ex_col_counter": "advanced (and wrapped) for *Cat mode"})
 
 # --- cmd_remove subroutines ---
 
@@ -4716,7 +4759,9 @@ subroutine(0xB3D5, "copy_ps_data_y1c",
     description="Sets Y=&18 and falls through to copy_ps_data.\n"
     "Called during workspace initialisation\n"
     "(svc_2_private_workspace) to set up the printer\n"
-    "server template at the standard offset.")
+    "server template at the standard offset.",
+    on_exit={"RX buffer +&18..+&1F": "8-byte PS template",
+             "y": "&20 (advanced past the copied 8 bytes)"})
 subroutine(0xB3D7, "copy_ps_data",
     title="Copy 8-byte printer server template to RX buffer",
     description="Copies 8 bytes of default printer server data\n"
@@ -4725,7 +4770,12 @@ subroutine(0xB3D7, "copy_ps_data",
     "with X starting at &F8, so the effective read\n"
     "address is ps_template_base+&F8 = ps_template_data\n"
     "(&8E59). This 6502 trick reaches data 248 bytes\n"
-    "past the base label using a single instruction.")
+    "past the base label using a single instruction.",
+    on_entry={"y": "destination offset within the RX buffer"},
+    on_exit={"RX buffer +Y..+Y+7": "8-byte PS template",
+             "y": "advanced by 8",
+             "x": "0 (loop terminator)",
+             "a": "last template byte"})
 label(0xB441, "read_ps_station_addr")
 # UNMAPPED: label(0xB0B9, "store_ps_station_addr")
 subroutine(0xB483, "print_file_server_is",
@@ -4753,7 +4803,13 @@ subroutine(0xB4B4, "pop_requeue_ps_scan",
     title="Pop return address and requeue PS slot scan",
     description="Converts the PS slot flags to a workspace index,\n"
     "writes slot data, and jumps back into the PS scan\n"
-    "loop to continue processing.")
+    "loop to continue processing.",
+    on_entry={"a": "PS slot flags byte to convert into a workspace index",
+              "stack": "JSR return address (which is discarded -- this "
+              "routine does NOT return to its caller)"},
+    on_exit={"control flow": "DOES NOT RETURN -- pops the JSR return "
+             "address from the stack and JMPs back into the PS scan "
+             "loop, effectively converting the JSR into a tail-jump"})
 subroutine(0xB51C, "write_ps_slot_byte_ff",
     title="Write buffer page byte and two &FF markers",
     description="Stores the buffer page byte at the current Y offset\n"
@@ -4800,7 +4856,12 @@ subroutine(0xB6A6, "init_ps_slot_from_rx",
     "addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).\n"
     "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
     "(the hi bytes of the two buffer pointers) so they\n"
-    "point into the current RX buffer page.")
+    "point into the current RX buffer page.",
+    on_entry={"net_rx_ptr_hi": "RX buffer page (substituted into bytes "
+              "&7D and &81 of the template copy)"},
+    on_exit={"workspace +&78..+&83":
+             "12-byte PS slot template with RX page patched in",
+             "a, x, y": "clobbered"})
 subroutine(0xB6BD, "store_char_uppercase",
     title="Convert to uppercase and store in RX buffer",
     description="If the character in A is lowercase (&61-&7A), converts\n"
@@ -9494,7 +9555,14 @@ subroutine(0x8CC7, "svc_3_autoboot",
     "station ID, then checks if this is the first boot\n"
     "(ws_page = 0). If so, sets the auto-boot flag in\n"
     "&1071 and JMPs to cmd_fs_entry to execute the boot\n"
-    "file.")
+    "file.",
+    on_entry={"a": "3 (service call number)",
+              "x": "ROM slot",
+              "y": "parameter (Master 128 service-call dispatch)"},
+    on_exit={"behaviour": "on N-key down, takes over the boot: selects "
+             "ANFS via cmd_net_fs, sets the auto-boot flag, and JMPs to "
+             "cmd_fs_entry (does not return). Otherwise returns with the "
+             "service call unclaimed."})
 subroutine(0x8C42, "svc_4_star_command",
     title="Service 4: unrecognised star command",
     description="Saves the OS text pointer, then calls match_fs_cmd\n"
@@ -9525,7 +9593,12 @@ subroutine(0xA83B, "svc_8_osword",
     "CLC/SBC &0D) and rejecting values outside 0-6. For\n"
     "valid codes, calls osword_setup_handler to push the\n"
     "dispatch address, then copies 3 bytes from the RX\n"
-    "buffer to osword_flag workspace.")
+    "buffer to osword_flag workspace.",
+    on_entry={"a": "OSWORD number (from osbyte_a_copy)",
+              "y": "parameter passed by service-call dispatch"},
+    on_exit={"behaviour": "OSWORD numbers outside &0E..&14 return with "
+             "the service call unclaimed; valid codes &0E..&14 dispatch "
+             "to per-OSWORD handlers via PHA/PHA/RTS"})
 subroutine(0x8C51, "svc_9_help",
     title="Service 9: *HELP",
     description="Handles MOS service call 9 (*HELP). First checks\n"
@@ -9536,7 +9609,13 @@ subroutine(0x8C51, "svc_9_help",
     "shortcut to list all NFS commands, otherwise\n"
     "iterates through help topics using PHA/PHA/RTS\n"
     "dispatch to print matching command groups.\n"
-    "Returns with Y = ws_page (unclaimed).")
+    "Returns with Y = ws_page (unclaimed).",
+    on_entry={"a": "9 (service call number)",
+              "y": "command-line offset of *HELP argument",
+              "os_text_ptr (&F2/&F3)": "command-line text pointer"},
+    on_exit={"y": "ws_page (workspace page) -- the service call is left "
+             "UNCLAIMED so MOS continues to the next ROM",
+             "side effect": "any matching help text printed to current output"})
 # Located in 4.21_v1 at &8B45 (was &8B0D in 4.18) by opcode fingerprint.
 # Reached via PHA/PHA/RTS dispatch from the service table — no direct
 # JSR/JMP, so an explicit entry() is required to classify it as code.
@@ -9549,8 +9628,12 @@ subroutine(0x8B52, "select_fs_via_cmd_net_fs",
     "selection; on failure (BEQ not taken), JMPs to error_net_checksum "
     "to raise the 'net checksum' error. Used when there is no clean "
     "BIT fs_flags / BMI shortcut for early-return.",
-    on_exit={"a": "current FS state byte if selection succeeded, "
-                  "else this routine never returns"})
+    on_entry={"x, y": "preserved across cmd_net_fs (as per the "
+              "ensure_fs_selected calling contract)"},
+    on_exit={"a": "current FS state byte if selection succeeded",
+             "fs_flags (&0D6C) bit 7": "set on success",
+             "behaviour": "raises 'net checksum' via error_net_checksum "
+             "and never returns if cmd_net_fs fails"})
 
 subroutine(0x924C, "print_hex_byte_no_spool",
     title="Print A as two hex digits, *SPOOL-bypassing",
@@ -10230,13 +10313,21 @@ subroutine(0x8BC4, "help_net",
     title="*HELP NET topic handler",
     description="Sets X to &4A (the NFS command sub-table offset)\n"
     "and falls through to print_cmd_table to display\n"
-    "the NFS command list with version header.")
+    "the NFS command list with version header.",
+    on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
+    on_exit={"a, x, y": "clobbered (print_cmd_table)",
+             "side effect": "writes the version header and NFS command "
+             "syntax list to current output"})
 subroutine(0x8BC0, "help_utils",
     title="*HELP UTILS topic handler",
     description="Sets X=0 to select the utility command sub-table\n"
     "and branches to print_cmd_table to display the\n"
     "command list. Prints the version header followed\n"
-    "by all utility commands.")
+    "by all utility commands.",
+    on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
+    on_exit={"a, x, y": "clobbered",
+             "side effect": "writes the version header and utility "
+             "command syntax list to current output"})
 
 
 # ============================================================
