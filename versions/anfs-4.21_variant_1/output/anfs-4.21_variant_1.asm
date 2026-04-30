@@ -3585,6 +3585,11 @@ l89c9 = reset_enter_listen+2
 ; CR + "Advanced  4.08.53" + CR. After the inline
 ; string, JMPs to print_station_id to append the
 ; local Econet station number.
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_inline + print_station_id)
+;     SIDE EFFECT: writes 'CR Advanced  4.08.53 CR Econet Station NNN[ No Clock] CR/LF'
+; to current output stream
 ; ***************************************************************************************
 ; &8c93 referenced 2 times by &8bca, &8c5c
 .print_version_header
@@ -3779,6 +3784,16 @@ l89c9 = reset_enter_listen+2
 ; &0D. On a full match, prints the ANFS author
 ; credits string: B Cockburn, J Dunn, B Robertson,
 ; and J Wills, each terminated by CR.
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): *HELP argument text pointer
+;     WS_PAGE: current workspace page (used as the Y index into (text_ptr) for the
+; comparison)
+; 
+; On Exit:
+;     BEHAVIOUR: no match: returns with no side effect (caller continues with normal
+; *HELP dispatch). Match: prints the credits string then returns; caller then claims
+; the service
 ; ***************************************************************************************
 ; &8d24 referenced 1 time by &8c51
 .check_credits_easter_egg
@@ -4417,6 +4432,16 @@ l8da7 = sub_c8da6+1
 ; closes SPOOL/EXEC files via OSBYTE &77,
 ; saves the FS workspace to page &10 shadow
 ; with checksum, and clears the selected flag.
+; 
+; On Entry:
+;     FS_FLAGS (&0D6C) BIT 7: 1 = currently selected (do the shutdown); 0 = already
+; deselected (no-op)
+; 
+; On Exit:
+;     FS_FLAGS BIT 7: cleared
+;     PAGE &10 SHADOW: checksummed snapshot of FS workspace
+;     BEHAVIOUR: open FCBs and SPOOL/EXEC files are closed; called via FSCV reason 6
+; when MOS is switching to a different filing system
 ; ***************************************************************************************
 .fscv_6_shutdown
     bit fs_flags                                                      ; 9071: 2c 6c 0d    ,l.            ; FS currently selected?
@@ -4465,9 +4490,16 @@ l8da7 = sub_c8da6+1
 ; adjust_fsopts_4bytes, and start_wipe_pass before
 ; workspace access.
 ; 
+; On Entry:
+;     NFS_TEMP LO/HI (&CC/&CD): page-aligned pointer to the workspace page to verify
+; (set up by setup_ws_ptr)
+; 
 ; On Exit:
-;     A: preserved
+;     A: preserved (PHA/PLA)
 ;     Y: preserved
+;     P (FLAGS): preserved (PHP/PLP)
+;     BEHAVIOUR: raises 'net sum' (&AA) via error_inline_log if the byte at offset &77
+; does not match the running sum of bytes 0..&76; only a control-BREAK clears the error
 ; ***************************************************************************************
 ; &909e referenced 5 times by &9eab, &a02f, &a10b, &a14c, &b99a
 .verify_ws_checksum
@@ -4507,6 +4539,14 @@ l8da7 = sub_c8da6+1
 ; clock; if absent, appends ' No Clock' via a
 ; second inline string. Finishes with OSNEWL.
 ; Called by print_version_header and svc_3_auto_boot.
+; 
+; On Entry:
+;     NET_RX_PTR (&A6/&A7): RX control block pointer (byte 1 = local station ID)
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_inline + print_num_no_leading + OSNEWL)
+;     SIDE EFFECT: writes 'Econet Station NNN' (with optional ' No Clock' suffix)
+; followed by CR/LF to current output
 ; ***************************************************************************************
 ; &90c7 referenced 2 times by &8caa, &8ce4
 .print_station_id

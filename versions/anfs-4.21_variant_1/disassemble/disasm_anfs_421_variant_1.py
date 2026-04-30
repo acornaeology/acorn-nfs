@@ -2970,7 +2970,11 @@ subroutine(0x8C93, "print_version_header",
     description="Uses an inline string after JSR print_inline:\n"
     "CR + \"Advanced  4.08.53\" + CR. After the inline\n"
     "string, JMPs to print_station_id to append the\n"
-    "local Econet station number.")
+    "local Econet station number.",
+    on_entry={},
+    on_exit={"a, x, y": "clobbered (print_inline + print_station_id)",
+             "side effect": "writes 'CR Advanced  4.08.53 CR Econet "
+             "Station NNN[ No Clock] CR/LF' to current output stream"})
 # Located in 4.21_v1 at &8CAD (was &8CB9 in 4.18) by following the
 # JSR site at &8B23 (which maps from 4.18 &8B1A). Already classified
 # as code (sub_c8cad with 3 callers from &8B23, &8CBD, &B3A0). The
@@ -3035,7 +3039,13 @@ subroutine(0x8D24, "check_credits_easter_egg",
     "the command line text until a mismatch or X reaches\n"
     "&0D. On a full match, prints the ANFS author\n"
     "credits string: B Cockburn, J Dunn, B Robertson,\n"
-    "and J Wills, each terminated by CR.")
+    "and J Wills, each terminated by CR.",
+    on_entry={"os_text_ptr (&F2/&F3)": "*HELP argument text pointer",
+              "ws_page": "current workspace page (used as the Y index "
+              "into (text_ptr) for the comparison)"},
+    on_exit={"behaviour": "no match: returns with no side effect (caller "
+             "continues with normal *HELP dispatch). Match: prints the "
+             "credits string then returns; caller then claims the service"})
 subroutine(0x8E21, "clear_if_station_match",
     title="Clear stored station if parsed argument matches",
     description="Parses a station number from the command line via\n"
@@ -3126,7 +3136,15 @@ subroutine(0x9071, "fscv_6_shutdown",
     "(bit 7 of &0D6C set), closes all open FCBs,\n"
     "closes SPOOL/EXEC files via OSBYTE &77,\n"
     "saves the FS workspace to page &10 shadow\n"
-    "with checksum, and clears the selected flag.")
+    "with checksum, and clears the selected flag.",
+    on_entry={"fs_flags (&0D6C) bit 7":
+              "1 = currently selected (do the shutdown); "
+              "0 = already deselected (no-op)"},
+    on_exit={"fs_flags bit 7": "cleared",
+             "page &10 shadow": "checksummed snapshot of FS workspace",
+             "behaviour": "open FCBs and SPOOL/EXEC files are closed; "
+             "called via FSCV reason 6 when MOS is switching to a "
+             "different filing system"})
 subroutine(0x909E, "verify_ws_checksum",
     title="Verify workspace checksum integrity",
     description="Sums bytes 0 to &76 of the workspace page via the\n"
@@ -3140,7 +3158,15 @@ subroutine(0x909E, "verify_ws_checksum",
     "Called by 5 sites across format_filename_field,\n"
     "adjust_fsopts_4bytes, and start_wipe_pass before\n"
     "workspace access.",
-    on_exit={"a": "preserved", "y": "preserved"})
+    on_entry={"nfs_temp lo/hi (&CC/&CD)":
+              "page-aligned pointer to the workspace page to verify "
+              "(set up by setup_ws_ptr)"},
+    on_exit={"a": "preserved (PHA/PLA)",
+             "y": "preserved",
+             "p (flags)": "preserved (PHP/PLP)",
+             "behaviour": "raises 'net sum' (&AA) via error_inline_log "
+             "if the byte at offset &77 does not match the running sum "
+             "of bytes 0..&76; only a control-BREAK clears the error"})
 # Located in 4.21_v1 at &90C7 (was &8FF1 in 4.18). Found by searching
 # for the inline "Econet Station " string at &90CA and reading back to
 # the JSR print_inline at &90C7. Already classified as code (c90c7
@@ -3154,7 +3180,13 @@ subroutine(0x90C7, "print_station_id",
     "status register 2 (&FEA1) to detect the Econet\n"
     "clock; if absent, appends ' No Clock' via a\n"
     "second inline string. Finishes with OSNEWL.\n"
-    "Called by print_version_header and svc_3_auto_boot.")
+    "Called by print_version_header and svc_3_auto_boot.",
+    on_entry={"net_rx_ptr (&A6/&A7)":
+              "RX control block pointer (byte 1 = local station ID)"},
+    on_exit={"a, x, y": "clobbered (print_inline + print_num_no_leading "
+             "+ OSNEWL)",
+             "side effect": "writes 'Econet Station NNN' (with optional "
+             "' No Clock' suffix) followed by CR/LF to current output"})
 subroutine(0x91F9, "print_newline_no_spool",
     title="Print CR via OSASCI, bypassing any open *SPOOL file",
     description="Loads A=&0D and falls into print_char_no_spool. The "
