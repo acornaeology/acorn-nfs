@@ -8149,7 +8149,7 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a3e7 referenced 2 times by &a405, &a415
 .get_pb_ptr_as_index
-    lda osword_pb_ptr                                                 ; a3e7: a5 f0       ..
+    lda osword_pb_ptr                                                 ; a3e7: a5 f0       ..             ; Read PB[0] (the OSWORD sub-function code in most calls); fall into byte_to_2bit_index
 ; ***************************************************************************************
 ; Convert byte to 12-byte-aligned table index
 ; 
@@ -9953,12 +9953,12 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &ad15 referenced 1 time by &ad0b
 .push_osword_handler_addr
-    lda lad29,x                                                       ; ad15: bd 29 ad    .).
-    pha                                                               ; ad18: 48          H
-    lda lad20,x                                                       ; ad19: bd 20 ad    . .
-    pha                                                               ; ad1c: 48          H
-    lda osbyte_a_copy                                                 ; ad1d: a5 ef       ..
-    rts                                                               ; ad1f: 60          `
+    lda lad29,x                                                       ; ad15: bd 29 ad    .).            ; Load handler high byte from hi-table column X
+    pha                                                               ; ad18: 48          H              ; Push for the eventual RTS dispatch
+    lda lad20,x                                                       ; ad19: bd 20 ad    . .            ; Load handler low byte from lo-table column X
+    pha                                                               ; ad1c: 48          H              ; Push lo so RTS pulls (lo, hi)+1 -> handler entry
+    lda osbyte_a_copy                                                 ; ad1d: a5 ef       ..             ; Reload original OSWORD number into A for the handler
+    rts                                                               ; ad1f: 60          `              ; RTS jumps to handler with A=OSWORD number
 
 ; &ad20 referenced 1 time by &ad19
 .lad20
@@ -10093,13 +10093,13 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &adb8 referenced 3 times by &ad6e, &ad77, &adbe
 .match_rx_code
-    cmp osword_claim_codes,x                                          ; adb8: dd c1 ad    ...            ; Print ')     '
-    beq return_from_match_rx_code                                     ; adbb: f0 03       ..
-    dex                                                               ; adbd: ca          .
-    bpl match_rx_code                                                 ; adbe: 10 f8       ..
+    cmp osword_claim_codes,x                                          ; adb8: dd c1 ad    ...            ; Compare A with table entry at index X; Print ')     '
+    beq return_from_match_rx_code                                     ; adbb: f0 03       ..             ; Match: return with Z set
+    dex                                                               ; adbd: ca          .              ; Step to next earlier table entry
+    bpl match_rx_code                                                 ; adbe: 10 f8       ..             ; Loop while X >= 0 (table walked top-down)
 ; &adc0 referenced 2 times by &adbb, &addb
 .return_from_match_rx_code
-    rts                                                               ; adc0: 60          `
+    rts                                                               ; adc0: 60          `              ; Return; Z reflects last CMP
 
 ; &adc1 referenced 1 time by &adb8
 .osword_claim_codes
@@ -10169,10 +10169,10 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &adfe referenced 2 times by &acdb, &aced
 .init_ws_copy_wide
-    ldx #&0d                                                          ; adfe: a2 0d       ..
-    ldy #&7c ; '|'                                                    ; ae00: a0 7c       .|
-    bit always_set_v_byte                                             ; ae02: 2c 69 97    ,i.
-    bvs loop_copy_ws_template                                         ; ae05: 70 05       p.
+    ldx #&0d                                                          ; adfe: a2 0d       ..             ; X=&0D: 14 template bytes to process
+    ldy #&7c ; '|'                                                    ; ae00: a0 7c       .|             ; Y=&7C: workspace destination offset for wide variant
+    bit always_set_v_byte                                             ; ae02: 2c 69 97    ,i.            ; BIT &FF unconditionally sets V (the always_set_v_byte trick)
+    bvs loop_copy_ws_template                                         ; ae05: 70 05       p.             ; V=1 always: skip the narrow-mode prologue and CLV
 ; ***************************************************************************************
 ; Initialise workspace copy in narrow mode (27 bytes)
 ; 
@@ -10183,8 +10183,8 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &ae07 referenced 1 time by &9872
 .init_ws_copy_narrow
-    ldy #&17                                                          ; ae07: a0 17       ..
-    ldx #&1a                                                          ; ae09: a2 1a       ..
+    ldy #&17                                                          ; ae07: a0 17       ..             ; Y=&17: workspace destination offset for narrow variant
+    ldx #&1a                                                          ; ae09: a2 1a       ..             ; X=&1A: 27 template bytes to process; fall into ws_copy_vclr_entry which CLVs
 ; ***************************************************************************************
 ; Template-driven workspace copy with V clear
 ; 
@@ -10197,41 +10197,41 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &ae0b referenced 1 time by &aecc
 .ws_copy_vclr_entry
-    clv                                                               ; ae0b: b8          .
+    clv                                                               ; ae0b: b8          .              ; Clear V: narrow mode (writes via nfs_workspace pointer)
 ; &ae0c referenced 2 times by &ae05, &ae2d
 .loop_copy_ws_template
-    lda ws_txcb_template_data,x                                       ; ae0c: bd 33 ae    .3.
-    cmp #&fe                                                          ; ae0f: c9 fe       ..
-    beq done_ws_template_copy                                         ; ae11: f0 1c       ..
-    cmp #&fd                                                          ; ae13: c9 fd       ..
-    beq advance_template_idx                                          ; ae15: f0 14       ..
-    cmp #&fc                                                          ; ae17: c9 fc       ..
-    bne select_store_target                                           ; ae19: d0 08       ..             ; Y=string offset for boot option X
-    lda net_rx_ptr_hi                                                 ; ae1b: a5 9d       ..             ; Load option description character
-    bvs store_tx_ptr_hi                                               ; ae1d: 70 02       p.
-    lda nfs_workspace_hi                                              ; ae1f: a5 9f       ..             ; Bit 7 set: end of option string
+    lda ws_txcb_template_data,x                                       ; ae0c: bd 33 ae    .3.            ; Read next template byte
+    cmp #&fe                                                          ; ae0f: c9 fe       ..             ; &FE: end-of-template marker?
+    beq done_ws_template_copy                                         ; ae11: f0 1c       ..             ; Yes: finalise and return
+    cmp #&fd                                                          ; ae13: c9 fd       ..             ; &FD: skip-this-offset marker?
+    beq advance_template_idx                                          ; ae15: f0 14       ..             ; Yes: advance index without storing
+    cmp #&fc                                                          ; ae17: c9 fc       ..             ; &FC: substitute-workspace-page-pointer marker?
+    bne select_store_target                                           ; ae19: d0 08       ..             ; No special marker: store this byte verbatim; Y=string offset for boot option X
+    lda net_rx_ptr_hi                                                 ; ae1b: a5 9d       ..             ; Wide path: page pointer is net_rx_ptr's high byte; Load option description character
+    bvs store_tx_ptr_hi                                               ; ae1d: 70 02       p.             ; V=1 (wide): keep the rx_ptr high byte
+    lda nfs_workspace_hi                                              ; ae1f: a5 9f       ..             ; V=0 (narrow): use nfs_workspace high byte instead; Bit 7 set: end of option string
 ; &ae21 referenced 1 time by &ae1d
 .store_tx_ptr_hi
-    sta net_tx_ptr_hi                                                 ; ae21: 85 9b       ..
+    sta net_tx_ptr_hi                                                 ; ae21: 85 9b       ..             ; Stash whichever page byte we picked into net_tx_ptr_hi
 ; &ae23 referenced 1 time by &ae19
 .select_store_target
-    bvs store_via_rx_ptr                                              ; ae23: 70 04       p.
-    sta (nfs_workspace),y                                             ; ae25: 91 9e       ..
-    bvc advance_template_idx                                          ; ae27: 50 02       P.             ; ALWAYS branch
+    bvs store_via_rx_ptr                                              ; ae23: 70 04       p.             ; V=1 (wide): store via net_rx_ptr,Y
+    sta (nfs_workspace),y                                             ; ae25: 91 9e       ..             ; V=0 (narrow): store via nfs_workspace,Y
+    bvc advance_template_idx                                          ; ae27: 50 02       P.             ; Always branch: V is still clear here; ALWAYS branch
 
 ; &ae29 referenced 1 time by &ae23
 .store_via_rx_ptr
-    sta (net_rx_ptr),y                                                ; ae29: 91 9c       ..
+    sta (net_rx_ptr),y                                                ; ae29: 91 9c       ..             ; Wide-mode store via net_rx_ptr
 ; &ae2b referenced 2 times by &ae15, &ae27
 .advance_template_idx
-    dey                                                               ; ae2b: 88          .
-    dex                                                               ; ae2c: ca          .
-    bpl loop_copy_ws_template                                         ; ae2d: 10 dd       ..
+    dey                                                               ; ae2b: 88          .              ; Step Y down (workspace offset)
+    dex                                                               ; ae2c: ca          .              ; Step X down (template index)
+    bpl loop_copy_ws_template                                         ; ae2d: 10 dd       ..             ; Loop while X >= 0
 ; &ae2f referenced 1 time by &ae11
 .done_ws_template_copy
-    iny                                                               ; ae2f: c8          .
-    sty net_tx_ptr                                                    ; ae30: 84 9a       ..             ; Offset &11: directory name
-    rts                                                               ; ae32: 60          `
+    iny                                                               ; ae2f: c8          .              ; Bump Y back to first written offset
+    sty net_tx_ptr                                                    ; ae30: 84 9a       ..             ; Save it as net_tx_ptr low for the caller; Offset &11: directory name
+    rts                                                               ; ae32: 60          `              ; Return
 
 ; &ae33 referenced 1 time by &ae0c
 .ws_txcb_template_data

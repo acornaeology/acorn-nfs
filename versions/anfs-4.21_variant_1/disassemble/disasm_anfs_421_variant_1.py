@@ -6243,6 +6243,71 @@ comment(0x93EF, "Loop while X != 0 (offset 0 is intentionally not "
         "compared)", inline=True)
 comment(0x93F1, "Return; Z reflects last EOR (set = match, clear = "
         "mismatch)", inline=True)
+
+# get_pb_ptr_as_index inline comments (1 item)
+comment(0xA3E7, "Read PB[0] (the OSWORD sub-function code in most calls); "
+        "fall into byte_to_2bit_index", inline=True)
+
+# push_osword_handler_addr inline comments (6 items)
+comment(0xAD15, "Load handler high byte from hi-table column X", inline=True)
+comment(0xAD18, "Push for the eventual RTS dispatch", inline=True)
+comment(0xAD19, "Load handler low byte from lo-table column X", inline=True)
+comment(0xAD1C, "Push lo so RTS pulls (lo, hi)+1 -> handler entry",
+        inline=True)
+comment(0xAD1D, "Reload original OSWORD number into A for the handler",
+        inline=True)
+comment(0xAD1F, "RTS jumps to handler with A=OSWORD number", inline=True)
+
+# match_rx_code inline comments (5 items, including loop)
+comment(0xADB8, "Compare A with table entry at index X", inline=True)
+comment(0xADBB, "Match: return with Z set", inline=True)
+comment(0xADBD, "Step to next earlier table entry", inline=True)
+comment(0xADBE, "Loop while X >= 0 (table walked top-down)", inline=True)
+comment(0xADC0, "Return; Z reflects last CMP", inline=True)
+
+# init_ws_copy_wide inline comments (4 items)
+comment(0xADFE, "X=&0D: 14 template bytes to process", inline=True)
+comment(0xAE00, "Y=&7C: workspace destination offset for wide variant",
+        inline=True)
+comment(0xAE02, "BIT &FF unconditionally sets V (the always_set_v_byte "
+        "trick)", inline=True)
+comment(0xAE05, "V=1 always: skip the narrow-mode prologue and CLV",
+        inline=True)
+
+# init_ws_copy_narrow inline comments (2 items)
+comment(0xAE07, "Y=&17: workspace destination offset for narrow variant",
+        inline=True)
+comment(0xAE09, "X=&1A: 27 template bytes to process; fall into "
+        "ws_copy_vclr_entry which CLVs", inline=True)
+
+# ws_copy_vclr_entry / loop_copy_ws_template inline comments (16 items)
+comment(0xAE0B, "Clear V: narrow mode (writes via nfs_workspace pointer)",
+        inline=True)
+comment(0xAE0C, "Read next template byte", inline=True)
+comment(0xAE0F, "&FE: end-of-template marker?", inline=True)
+comment(0xAE11, "Yes: finalise and return", inline=True)
+comment(0xAE13, "&FD: skip-this-offset marker?", inline=True)
+comment(0xAE15, "Yes: advance index without storing", inline=True)
+comment(0xAE17, "&FC: substitute-workspace-page-pointer marker?",
+        inline=True)
+comment(0xAE19, "No special marker: store this byte verbatim", inline=True)
+comment(0xAE1B, "Wide path: page pointer is net_rx_ptr's high byte",
+        inline=True)
+comment(0xAE1D, "V=1 (wide): keep the rx_ptr high byte", inline=True)
+comment(0xAE1F, "V=0 (narrow): use nfs_workspace high byte instead",
+        inline=True)
+comment(0xAE21, "Stash whichever page byte we picked into net_tx_ptr_hi",
+        inline=True)
+comment(0xAE23, "V=1 (wide): store via net_rx_ptr,Y", inline=True)
+comment(0xAE25, "V=0 (narrow): store via nfs_workspace,Y", inline=True)
+comment(0xAE27, "Always branch: V is still clear here", inline=True)
+comment(0xAE29, "Wide-mode store via net_rx_ptr", inline=True)
+comment(0xAE2B, "Step Y down (workspace offset)", inline=True)
+comment(0xAE2C, "Step X down (template index)", inline=True)
+comment(0xAE2D, "Loop while X >= 0", inline=True)
+comment(0xAE2F, "Bump Y back to first written offset", inline=True)
+comment(0xAE30, "Save it as net_tx_ptr low for the caller", inline=True)
+comment(0xAE32, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
