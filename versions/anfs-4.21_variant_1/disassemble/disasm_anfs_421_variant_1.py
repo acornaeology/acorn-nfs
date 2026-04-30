@@ -6992,6 +6992,44 @@ comment(0x803D, "Bit 7 clear: A=&FE = Econet RX event code", inline=True)
 comment(0x803F, "Fire the event through EVNTV", inline=True)
 comment(0x8042, "Tail-jump to tx_done_exit which restores X/Y and "
         "claims the service", inline=True)
+
+# osword_8_handler inline comments (~22 items)
+comment(0xADD3, "Y=&0E: scan 15 bytes (offsets 14..0) of the PB",
+        inline=True)
+comment(0xADD5, "Is the OSWORD number 7?", inline=True)
+comment(0xADD7, "Yes: handle as either 7 or 8 -- both copy PB to ws",
+        inline=True)
+comment(0xADD9, "Is the OSWORD number 8?", inline=True)
+comment(0xADDB, "Neither 7 nor 8: return early (other OSWORDs handled "
+        "elsewhere)", inline=True)
+comment(0xADDD, "X=&DB: workspace offset for the PB copy",
+        inline=True)
+comment(0xADDF, "Temporarily reuse nfs_workspace as the destination "
+        "low byte (high byte already points at the workspace page)",
+        inline=True)
+comment(0xADE1, "Read PB[Y]", inline=True)
+comment(0xADE3, "Write to (nfs_workspace),Y -- effectively writes to "
+        "workspace[&DB+Y]", inline=True)
+comment(0xADE5, "Step backwards through the 15 bytes", inline=True)
+comment(0xADE6, "Loop while Y >= 0", inline=True)
+comment(0xADE8, "INY: bring Y back to 0 for the next single-byte write",
+        inline=True)
+comment(0xADE9, "Decrement nfs_workspace low byte: now points at "
+        "workspace[&DA] (one before the copied region)", inline=True)
+comment(0xADEB, "Read original OSWORD number from osbyte_a_copy",
+        inline=True)
+comment(0xADED, "Store at workspace[&DA] -- so the abort packet header "
+        "carries the OSWORD number", inline=True)
+comment(0xADEF, "Restore nfs_workspace to its proper low byte (Y=0)",
+        inline=True)
+comment(0xADF1, "Y=&14: TXCB control offset", inline=True)
+comment(0xADF3, "A=&E9: status code for OSWORD-passthrough abort",
+        inline=True)
+comment(0xADF5, "Store status at TXCB[&14]", inline=True)
+comment(0xADF7, "A=1: abort code for tx_econet_abort", inline=True)
+comment(0xADF9, "Send the abort packet", inline=True)
+comment(0xADFC, "Restore nfs_workspace from X (X is unchanged across "
+        "tx_econet_abort)", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

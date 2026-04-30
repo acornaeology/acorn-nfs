@@ -10133,32 +10133,32 @@ labc5 = compare_bridge_status+1
 ; OSWORD numbers by returning immediately.
 ; ***************************************************************************************
 .osword_8_handler
-    ldy #&0e                                                          ; add3: a0 0e       ..
-    cmp #7                                                            ; add5: c9 07       ..
-    beq copy_pb_to_ws                                                 ; add7: f0 04       ..
-    cmp #8                                                            ; add9: c9 08       ..
-    bne return_from_match_rx_code                                     ; addb: d0 e3       ..
+    ldy #&0e                                                          ; add3: a0 0e       ..             ; Y=&0E: scan 15 bytes (offsets 14..0) of the PB
+    cmp #7                                                            ; add5: c9 07       ..             ; Is the OSWORD number 7?
+    beq copy_pb_to_ws                                                 ; add7: f0 04       ..             ; Yes: handle as either 7 or 8 -- both copy PB to ws
+    cmp #8                                                            ; add9: c9 08       ..             ; Is the OSWORD number 8?
+    bne return_from_match_rx_code                                     ; addb: d0 e3       ..             ; Neither 7 nor 8: return early (other OSWORDs handled elsewhere)
 ; &addd referenced 1 time by &add7
 .copy_pb_to_ws
-    ldx #&db                                                          ; addd: a2 db       ..
-    stx nfs_workspace                                                 ; addf: 86 9e       ..
+    ldx #&db                                                          ; addd: a2 db       ..             ; X=&DB: workspace offset for the PB copy
+    stx nfs_workspace                                                 ; addf: 86 9e       ..             ; Temporarily reuse nfs_workspace as the destination low byte (high byte already points at the workspace page)
 ; &ade1 referenced 1 time by &ade6
 .loop_copy_pb_to_ws
-    lda (osword_pb_ptr),y                                             ; ade1: b1 f0       ..
-    sta (nfs_workspace),y                                             ; ade3: 91 9e       ..
-    dey                                                               ; ade5: 88          .
-    bpl loop_copy_pb_to_ws                                            ; ade6: 10 f9       ..
-    iny                                                               ; ade8: c8          .
-    dec nfs_workspace                                                 ; ade9: c6 9e       ..
-    lda osbyte_a_copy                                                 ; adeb: a5 ef       ..
-    sta (nfs_workspace),y                                             ; aded: 91 9e       ..
-    sty nfs_workspace                                                 ; adef: 84 9e       ..
-    ldy #&14                                                          ; adf1: a0 14       ..
-    lda #&e9                                                          ; adf3: a9 e9       ..
-    sta (nfs_workspace),y                                             ; adf5: 91 9e       ..
-    lda #1                                                            ; adf7: a9 01       ..
-    jsr tx_econet_abort                                               ; adf9: 20 40 ad     @.
-    stx nfs_workspace                                                 ; adfc: 86 9e       ..
+    lda (osword_pb_ptr),y                                             ; ade1: b1 f0       ..             ; Read PB[Y]
+    sta (nfs_workspace),y                                             ; ade3: 91 9e       ..             ; Write to (nfs_workspace),Y -- effectively writes to workspace[&DB+Y]
+    dey                                                               ; ade5: 88          .              ; Step backwards through the 15 bytes
+    bpl loop_copy_pb_to_ws                                            ; ade6: 10 f9       ..             ; Loop while Y >= 0
+    iny                                                               ; ade8: c8          .              ; INY: bring Y back to 0 for the next single-byte write
+    dec nfs_workspace                                                 ; ade9: c6 9e       ..             ; Decrement nfs_workspace low byte: now points at workspace[&DA] (one before the copied region)
+    lda osbyte_a_copy                                                 ; adeb: a5 ef       ..             ; Read original OSWORD number from osbyte_a_copy
+    sta (nfs_workspace),y                                             ; aded: 91 9e       ..             ; Store at workspace[&DA] -- so the abort packet header carries the OSWORD number
+    sty nfs_workspace                                                 ; adef: 84 9e       ..             ; Restore nfs_workspace to its proper low byte (Y=0)
+    ldy #&14                                                          ; adf1: a0 14       ..             ; Y=&14: TXCB control offset
+    lda #&e9                                                          ; adf3: a9 e9       ..             ; A=&E9: status code for OSWORD-passthrough abort
+    sta (nfs_workspace),y                                             ; adf5: 91 9e       ..             ; Store status at TXCB[&14]
+    lda #1                                                            ; adf7: a9 01       ..             ; A=1: abort code for tx_econet_abort
+    jsr tx_econet_abort                                               ; adf9: 20 40 ad     @.            ; Send the abort packet
+    stx nfs_workspace                                                 ; adfc: 86 9e       ..             ; Restore nfs_workspace from X (X is unchanged across tx_econet_abort)
 ; ***************************************************************************************
 ; Initialise workspace copy in wide mode (14 bytes)
 ; 
