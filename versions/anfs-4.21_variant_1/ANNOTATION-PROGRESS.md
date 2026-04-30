@@ -29,6 +29,37 @@ calling-convention comments to every subroutine.
 | Date | Total code items | Inline-commented | % | Subs <50% |
 |---|---|---|---|---|
 | 2026-04-30 baseline | 6487 | 4770 | 73.5% | 71 |
+| 2026-04-30 +leaves  | 6487 | 5014 | 77.3% | 33 |
+
+## Routines fully annotated this session
+
+Bottom-up leaves first, then their callees-already-commented neighbours.
+
+  &8B45 svc_18_fs_select          &8CAD get_ws_page (completion)
+  &8EC9 osbyte_x0                 &8ED2 osbyte_x0_y0 (already done)
+  &939A is_decimal_digit          &93A2 is_dec_digit_only
+  &93AB get_access_bits           &93B5 get_prot_bits + begin_prot_encode
+  &93D3 set_text_and_xfer_ptr     &93D7 set_xfer_params
+  &93DD set_options_ptr + clear_escapable
+  &93E6 cmp_5byte_handle
+  &978A save_net_tx_cb            &978B save_net_tx_cb_vset (+shared body)
+  &98BE wait_net_tx_ack
+  &A3E7 get_pb_ptr_as_index
+  &AD15 push_osword_handler_addr
+  &ADB8 match_rx_code
+  &ADFE init_ws_copy_wide         &AE07 init_ws_copy_narrow
+  &AE0B ws_copy_vclr_entry (shared body)
+  &B21A print_10_chars + print_chars_from_buf
+  &B22A parse_cmd_arg_y0          &B251 strip_token_prefix
+  &B29F copy_arg_to_buf_x0        &B2A1 copy_arg_to_buf
+  &B2A3 copy_arg_validated
+  &B2CF mask_owner_access
+  &B3D5 copy_ps_data_y1c          &B4A8 load_ps_server_addr
+  &B51C write_ps_slot_byte_ff     &B523 write_two_bytes_inc_y
+  &B52B reverse_ps_name_to_tx
+  &B7CB prompt_yn
+  &BF71 close_ws_file
+  &BFBA advance_x_by_8 / _4 / inx4
 
 ## Working queue
 

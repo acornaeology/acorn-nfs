@@ -4918,17 +4918,17 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93f7 referenced 2 times by &9f35, &a1ac
 .set_conn_active
-    php                                                               ; 93f7: 08          .
-    pha                                                               ; 93f8: 48          H
-    phx                                                               ; 93f9: da          .
-    tsx                                                               ; 93fa: ba          .
-    lda l0102,x                                                       ; 93fb: bd 02 01    ...
-    jsr attr_to_chan_index                                            ; 93fe: 20 05 b8     ..
-    bmi c9421                                                         ; 9401: 30 1e       0.
-    lda #&40 ; '@'                                                    ; 9403: a9 40       .@
-    ora lc260,x                                                       ; 9405: 1d 60 c2    .`.
-    sta lc260,x                                                       ; 9408: 9d 60 c2    .`.
-    bne c9421                                                         ; 940b: d0 14       ..
+    php                                                               ; 93f7: 08          .              ; Save flags so the rest of the routine is transparent
+    pha                                                               ; 93f8: 48          H              ; Save A (the attribute byte we need to recover via stack)
+    phx                                                               ; 93f9: da          .              ; Save X
+    tsx                                                               ; 93fa: ba          .              ; Capture S into X to address stack from below
+    lda l0102,x                                                       ; 93fb: bd 02 01    ...            ; Re-read the original A from stack[X+2] (above PHX/PHA)
+    jsr attr_to_chan_index                                            ; 93fe: 20 05 b8     ..            ; Convert attribute byte to channel-table index
+    bmi c9421                                                         ; 9401: 30 1e       0.             ; No matching channel: skip the flag set, just restore
+    lda #&40 ; '@'                                                    ; 9403: a9 40       .@             ; A=&40: bit 6 = connection-active mask
+    ora lc260,x                                                       ; 9405: 1d 60 c2    .`.            ; OR with current status byte for this channel
+    sta lc260,x                                                       ; 9408: 9d 60 c2    .`.            ; Write back the updated status
+    bne c9421                                                         ; 940b: d0 14       ..             ; Always taken (A is non-zero after the OR with &40); join shared exit
 ; ***************************************************************************************
 ; Clear connection-active flag in channel table
 ; 
@@ -4944,22 +4944,22 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &940d referenced 2 times by &9f96, &a1a7
 .clear_conn_active
-    php                                                               ; 940d: 08          .
-    pha                                                               ; 940e: 48          H
-    phx                                                               ; 940f: da          .
-    tsx                                                               ; 9410: ba          .
-    lda l0102,x                                                       ; 9411: bd 02 01    ...
-    jsr attr_to_chan_index                                            ; 9414: 20 05 b8     ..
-    bmi c9421                                                         ; 9417: 30 08       0.
-    lda #&bf                                                          ; 9419: a9 bf       ..
-    and lc260,x                                                       ; 941b: 3d 60 c2    =`.
-    sta lc260,x                                                       ; 941e: 9d 60 c2    .`.
+    php                                                               ; 940d: 08          .              ; Save flags
+    pha                                                               ; 940e: 48          H              ; Save A
+    phx                                                               ; 940f: da          .              ; Save X
+    tsx                                                               ; 9410: ba          .              ; Capture S into X for stack-relative reads
+    lda l0102,x                                                       ; 9411: bd 02 01    ...            ; Re-read the attribute byte from stack[X+2]
+    jsr attr_to_chan_index                                            ; 9414: 20 05 b8     ..            ; Convert attribute to channel index
+    bmi c9421                                                         ; 9417: 30 08       0.             ; No matching channel: just restore
+    lda #&bf                                                          ; 9419: a9 bf       ..             ; A=&BF: bit 6 clear mask
+    and lc260,x                                                       ; 941b: 3d 60 c2    =`.            ; AND with current status byte
+    sta lc260,x                                                       ; 941e: 9d 60 c2    .`.            ; Write back the updated status
 ; &9421 referenced 3 times by &9401, &940b, &9417
 .c9421
-    plx                                                               ; 9421: fa          .
-    pla                                                               ; 9422: 68          h
-    plp                                                               ; 9423: 28          (
-    rts                                                               ; 9424: 60          `
+    plx                                                               ; 9421: fa          .              ; Restore X (saved at PHX)
+    pla                                                               ; 9422: 68          h              ; Restore A
+    plp                                                               ; 9423: 28          (              ; Restore flags
+    rts                                                               ; 9424: 60          `              ; Return; A and X preserved across the call
 
 ; ***************************************************************************************
 ; Shared *Access/*Delete/*Info/*Lib command handler

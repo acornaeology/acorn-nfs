@@ -6590,6 +6590,44 @@ comment(0x98F9, "Restore them (clearing bit 7 if we set it)", inline=True)
 comment(0x98FC, "Pull saved rx_wait_timeout into A", inline=True)
 comment(0x98FD, "If timeout reached zero, raise 'No reply'", inline=True)
 comment(0x98FF, "Reply received normally: return", inline=True)
+
+# set_conn_active inline comments (11 items)
+comment(0x93F7, "Save flags so the rest of the routine is transparent",
+        inline=True)
+comment(0x93F8, "Save A (the attribute byte we need to recover via stack)",
+        inline=True)
+comment(0x93F9, "Save X", inline=True)
+comment(0x93FA, "Capture S into X to address stack from below",
+        inline=True)
+comment(0x93FB, "Re-read the original A from stack[X+2] (above PHX/PHA)",
+        inline=True)
+comment(0x93FE, "Convert attribute byte to channel-table index", inline=True)
+comment(0x9401, "No matching channel: skip the flag set, just restore",
+        inline=True)
+comment(0x9403, "A=&40: bit 6 = connection-active mask", inline=True)
+comment(0x9405, "OR with current status byte for this channel",
+        inline=True)
+comment(0x9408, "Write back the updated status", inline=True)
+comment(0x940B, "Always taken (A is non-zero after the OR with &40); "
+        "join shared exit", inline=True)
+
+# clear_conn_active inline comments (8 body items, shares c9421 exit)
+comment(0x940D, "Save flags", inline=True)
+comment(0x940E, "Save A", inline=True)
+comment(0x940F, "Save X", inline=True)
+comment(0x9410, "Capture S into X for stack-relative reads", inline=True)
+comment(0x9411, "Re-read the attribute byte from stack[X+2]", inline=True)
+comment(0x9414, "Convert attribute to channel index", inline=True)
+comment(0x9417, "No matching channel: just restore", inline=True)
+comment(0x9419, "A=&BF: bit 6 clear mask", inline=True)
+comment(0x941B, "AND with current status byte", inline=True)
+comment(0x941E, "Write back the updated status", inline=True)
+
+# Shared exit at &9421 (4 items)
+comment(0x9421, "Restore X (saved at PHX)", inline=True)
+comment(0x9422, "Restore A", inline=True)
+comment(0x9423, "Restore flags", inline=True)
+comment(0x9424, "Return; A and X preserved across the call", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
