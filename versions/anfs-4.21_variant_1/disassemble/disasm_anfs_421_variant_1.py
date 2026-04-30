@@ -7371,6 +7371,18 @@ comment(0xA3FB, "Yes: clamp Y to 0 (out of range)", inline=True)
 comment(0xA3FD, "Mirror Y -> A so callers can test Z", inline=True)
 comment(0xA3FE, "Return; Y holds 12-byte-aligned offset, A is "
         "non-zero on success", inline=True)
+
+# copy_ps_data inline comments (5 items)
+comment(0xB3D7, "X=&F8: walks 0..7 via wraparound (loads from "
+        "&8DA7+&F8=&8E9F, the ps_template_data base)", inline=True)
+comment(0xB3D9, "Read template byte from ps_template_data + (X-&F8)",
+        inline=True)
+comment(0xB3DC, "Store into RX buffer at offset Y", inline=True)
+comment(0xB3DE, "Step destination", inline=True)
+comment(0xB3DF, "Step source -- wraps from &FF to &00 to terminate",
+        inline=True)
+comment(0xB3E0, "Loop while X != 0 (8 iterations: &F8..&FF)", inline=True)
+comment(0xB3E2, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

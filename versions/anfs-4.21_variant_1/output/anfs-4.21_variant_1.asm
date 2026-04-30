@@ -11545,15 +11545,15 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b3d7 referenced 1 time by &b5b6
 .copy_ps_data
-    ldx #&f8                                                          ; b3d7: a2 f8       ..             ; X=2: start from response byte 2
+    ldx #&f8                                                          ; b3d7: a2 f8       ..             ; X=&F8: walks 0..7 via wraparound (loads from &8DA7+&F8=&8E9F, the ps_template_data base); X=2: start from response byte 2
 ; &b3d9 referenced 1 time by &b3e0
 .loop_copy_ps_tmpl
-    lda l8da7,x                                                       ; b3d9: bd a7 8d    ...            ; Load file info character
-    sta (net_rx_ptr),y                                                ; b3dc: 91 9c       ..             ; Print file info character
-    iny                                                               ; b3de: c8          .
-    inx                                                               ; b3df: e8          .              ; Advance to next character
-    bne loop_copy_ps_tmpl                                             ; b3e0: d0 f7       ..             ; Printed all &3C info bytes?
-    rts                                                               ; b3e2: 60          `              ; No: continue printing
+    lda l8da7,x                                                       ; b3d9: bd a7 8d    ...            ; Read template byte from ps_template_data + (X-&F8); Load file info character
+    sta (net_rx_ptr),y                                                ; b3dc: 91 9c       ..             ; Store into RX buffer at offset Y; Print file info character
+    iny                                                               ; b3de: c8          .              ; Step destination
+    inx                                                               ; b3df: e8          .              ; Step source -- wraps from &FF to &00 to terminate; Advance to next character
+    bne loop_copy_ps_tmpl                                             ; b3e0: d0 f7       ..             ; Loop while X != 0 (8 iterations: &F8..&FF); Printed all &3C info bytes?
+    rts                                                               ; b3e2: 60          `              ; Return; No: continue printing
 
 ; &b3e3 referenced 1 time by &b3c0
 .no_ps_name_given
