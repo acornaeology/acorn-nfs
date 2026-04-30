@@ -6781,6 +6781,55 @@ comment(0xB31F, "Save divisor in X across the print (print_char_no_spool "
 comment(0xB321, "Print the digit, bypassing *SPOOL", inline=True)
 comment(0xB324, "Restore divisor from X", inline=True)
 comment(0xB326, "Return", inline=True)
+
+# open_file_for_read inline comments (~28 items)
+comment(0xBF78, "Save flags so caller's NZC survive", inline=True)
+comment(0xBF79, "Move command-line offset Y into A for the add",
+        inline=True)
+comment(0xBF7A, "Clear C for the 16-bit add", inline=True)
+comment(0xBF7B, "A = os_text_ptr_lo + Y (filename address low byte)",
+        inline=True)
+comment(0xBF7D, "Push it (we need to restore os_text_ptr after OSFIND)",
+        inline=True)
+comment(0xBF7E, "Move filename low into X (OSFIND wants the address in X/Y)",
+        inline=True)
+comment(0xBF7F, "A=0: zero high byte before the carry-add", inline=True)
+comment(0xBF81, "Add os_text_ptr_hi with carry from the low add",
+        inline=True)
+comment(0xBF83, "Push filename high byte for the restore", inline=True)
+comment(0xBF84, "Move filename high into Y", inline=True)
+comment(0xBF85, "A=&40: OSFIND open-for-input mode", inline=True)
+comment(0xBF87, "Open the file; returns handle in A (zero on failure)",
+        inline=True)
+comment(0xBF8A, "Copy returned handle into Y (also sets Z if zero)",
+        inline=True)
+comment(0xBF8B, "Stash the handle in ws_page for later close", inline=True)
+comment(0xBF8D, "Non-zero: open succeeded, skip error path", inline=True)
+comment(0xBF8F, "A=&D6: 'Not found' error code", inline=True)
+comment(0xBF91, "Raise the error with the inline string below; never "
+        "returns", inline=True)
+# &BF94 inline string body
+comment(0xBF9E, "Restore the saved filename high byte into "
+        "os_text_ptr_hi -- but wait, this writes the FILENAME "
+        "address into os_text_ptr; the caller intentionally moves "
+        "os_text_ptr to scan past the filename below", inline=True)
+comment(0xBFA1, "Restore filename low byte into os_text_ptr_lo (so "
+        "(os_text_ptr) now points at the filename)", inline=True)
+comment(0xBFA4, "Y=0: scan from start of filename", inline=True)
+comment(0xBFA6, "Step to next byte", inline=True)
+comment(0xBFA7, "Read filename byte", inline=True)
+comment(0xBFA9, "Hit CR? End of command line", inline=True)
+comment(0xBFAB, "Yes: filename ended at CR (no trailing spaces)",
+        inline=True)
+comment(0xBFAD, "Hit space? End of filename", inline=True)
+comment(0xBFAF, "No (still inside filename): keep scanning", inline=True)
+comment(0xBFB1, "Step past spaces", inline=True)
+comment(0xBFB2, "Read next byte", inline=True)
+comment(0xBFB4, "Still a space?", inline=True)
+comment(0xBFB6, "Yes: keep skipping", inline=True)
+comment(0xBFB8, "Done: Y points just past the filename and any spaces",
+        inline=True)
+comment(0xBFB9, "Restore caller's flags", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

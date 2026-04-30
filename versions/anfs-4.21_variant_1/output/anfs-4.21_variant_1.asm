@@ -13896,50 +13896,50 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bf78 referenced 1 time by &bd41
 .open_file_for_read
-    php                                                               ; bf78: 08          .
-    tya                                                               ; bf79: 98          .
-    clc                                                               ; bf7a: 18          .
-    adc os_text_ptr                                                   ; bf7b: 65 f2       e.
-    pha                                                               ; bf7d: 48          H
-    tax                                                               ; bf7e: aa          .
-    lda #0                                                            ; bf7f: a9 00       ..
-    adc os_text_ptr_hi                                                ; bf81: 65 f3       e.
-    pha                                                               ; bf83: 48          H
-    tay                                                               ; bf84: a8          .
-    lda #osfind_open_input                                            ; bf85: a9 40       .@
-    jsr osfind                                                        ; bf87: 20 ce ff     ..            ; Open file for input (A=64)
-    tay                                                               ; bf8a: a8          .              ; A=file handle (or zero on failure)
-    sta ws_page                                                       ; bf8b: 85 a8       ..
-    bne restore_text_ptr                                              ; bf8d: d0 0f       ..
-    lda #&d6                                                          ; bf8f: a9 d6       ..
-    jsr error_inline                                                  ; bf91: 20 c3 99     ..
+    php                                                               ; bf78: 08          .              ; Save flags so caller's NZC survive
+    tya                                                               ; bf79: 98          .              ; Move command-line offset Y into A for the add
+    clc                                                               ; bf7a: 18          .              ; Clear C for the 16-bit add
+    adc os_text_ptr                                                   ; bf7b: 65 f2       e.             ; A = os_text_ptr_lo + Y (filename address low byte)
+    pha                                                               ; bf7d: 48          H              ; Push it (we need to restore os_text_ptr after OSFIND)
+    tax                                                               ; bf7e: aa          .              ; Move filename low into X (OSFIND wants the address in X/Y)
+    lda #0                                                            ; bf7f: a9 00       ..             ; A=0: zero high byte before the carry-add
+    adc os_text_ptr_hi                                                ; bf81: 65 f3       e.             ; Add os_text_ptr_hi with carry from the low add
+    pha                                                               ; bf83: 48          H              ; Push filename high byte for the restore
+    tay                                                               ; bf84: a8          .              ; Move filename high into Y
+    lda #osfind_open_input                                            ; bf85: a9 40       .@             ; A=&40: OSFIND open-for-input mode
+    jsr osfind                                                        ; bf87: 20 ce ff     ..            ; Open the file; returns handle in A (zero on failure); Open file for input (A=64)
+    tay                                                               ; bf8a: a8          .              ; Copy returned handle into Y (also sets Z if zero); A=file handle (or zero on failure)
+    sta ws_page                                                       ; bf8b: 85 a8       ..             ; Stash the handle in ws_page for later close
+    bne restore_text_ptr                                              ; bf8d: d0 0f       ..             ; Non-zero: open succeeded, skip error path
+    lda #&d6                                                          ; bf8f: a9 d6       ..             ; A=&D6: 'Not found' error code
+    jsr error_inline                                                  ; bf91: 20 c3 99     ..            ; Raise the error with the inline string below; never returns
     equs "Not found", 0                                               ; bf94: 4e 6f 74... Not
 
 ; &bf9e referenced 1 time by &bf8d
 .restore_text_ptr
-    pla                                                               ; bf9e: 68          h
+    pla                                                               ; bf9e: 68          h              ; Restore the saved filename high byte into os_text_ptr_hi -- but wait, this writes the FILENAME address into os_text_ptr; the caller intentionally moves os_text_ptr to scan past the filename below
     sta os_text_ptr_hi                                                ; bf9f: 85 f3       ..
-    pla                                                               ; bfa1: 68          h
+    pla                                                               ; bfa1: 68          h              ; Restore filename low byte into os_text_ptr_lo (so (os_text_ptr) now points at the filename)
     sta os_text_ptr                                                   ; bfa2: 85 f2       ..
-    ldy #0                                                            ; bfa4: a0 00       ..
+    ldy #0                                                            ; bfa4: a0 00       ..             ; Y=0: scan from start of filename
 ; &bfa6 referenced 1 time by &bfaf
 .loop_skip_filename
-    iny                                                               ; bfa6: c8          .
-    lda (os_text_ptr),y                                               ; bfa7: b1 f2       ..
-    cmp #&0d                                                          ; bfa9: c9 0d       ..
-    beq done_skip_filename                                            ; bfab: f0 0b       ..
-    cmp #&20 ; ' '                                                    ; bfad: c9 20       .
-    bne loop_skip_filename                                            ; bfaf: d0 f5       ..
+    iny                                                               ; bfa6: c8          .              ; Step to next byte
+    lda (os_text_ptr),y                                               ; bfa7: b1 f2       ..             ; Read filename byte
+    cmp #&0d                                                          ; bfa9: c9 0d       ..             ; Hit CR? End of command line
+    beq done_skip_filename                                            ; bfab: f0 0b       ..             ; Yes: filename ended at CR (no trailing spaces)
+    cmp #&20 ; ' '                                                    ; bfad: c9 20       .              ; Hit space? End of filename
+    bne loop_skip_filename                                            ; bfaf: d0 f5       ..             ; No (still inside filename): keep scanning
 ; &bfb1 referenced 1 time by &bfb6
 .loop_skip_fn_spaces
-    iny                                                               ; bfb1: c8          .
-    lda (os_text_ptr),y                                               ; bfb2: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; bfb4: c9 20       .
-    beq loop_skip_fn_spaces                                           ; bfb6: f0 f9       ..
+    iny                                                               ; bfb1: c8          .              ; Step past spaces
+    lda (os_text_ptr),y                                               ; bfb2: b1 f2       ..             ; Read next byte
+    cmp #&20 ; ' '                                                    ; bfb4: c9 20       .              ; Still a space?
+    beq loop_skip_fn_spaces                                           ; bfb6: f0 f9       ..             ; Yes: keep skipping
 ; &bfb8 referenced 1 time by &bfab
 .done_skip_filename
-    plp                                                               ; bfb8: 28          (
-    rts                                                               ; bfb9: 60          `
+    plp                                                               ; bfb8: 28          (              ; Done: Y points just past the filename and any spaces
+    rts                                                               ; bfb9: 60          `              ; Restore caller's flags
 
 ; ***************************************************************************************
 ; Advance X by 8 via nested JSR chain
