@@ -3838,7 +3838,13 @@ subroutine(0xA284, "recv_reply_preserve_flags",
     description="Wrapper around recv_and_process_reply that\n"
     "saves and restores the processor status register,\n"
     "so the caller\'s flag state is not affected by\n"
-    "the reply processing.")
+    "the reply processing.",
+    on_entry={"txcb at &00C0": "open-receive control block from "
+              "init_txcb_port (caller's setup)"},
+    on_exit={"a": "FS reply status",
+             "p (flags)": "preserved across the call (PHP/PLP)",
+             "behaviour": "may BRK on FS-reported errors via "
+             "recv_and_process_reply"})
 subroutine(0xA2ED, "write_data_block",
     title="Write data block to destination or Tube",
     description="If no Tube present, copies directly from\n"
@@ -3851,7 +3857,12 @@ subroutine(0xA390, "tube_claim_c3",
     "protocol byte &C3 until the claim succeeds\n"
     "(carry set on return). Used before Tube data\n"
     "transfers to ensure exclusive access to the\n"
-    "Tube co-processor interface.")
+    "Tube co-processor interface.",
+    on_exit={"a": "&C3 (the claim protocol byte left in A)",
+             "c flag": "set (the claim succeeded -- this is the loop "
+             "termination condition)",
+             "Tube state": "exclusive claim held; matching release via "
+             "tube_addr_data_dispatch with &C2 expected from caller"})
 subroutine(0xA3BB, "print_fs_info_newline",
     title="Print station address and newline",
     description="Sets V (suppressing leading-zero padding on\n"
@@ -3915,7 +3926,13 @@ subroutine(0xA644, "find_station_bit2",
     "with bit 2 set (printer server active). Sets V\n"
     "if found, clears V if not. Falls through to\n"
     "allocate or update the matching slot with the\n"
-    "new station address and status flags.")
+    "new station address and status flags.",
+    on_entry={"&0E00, &0E01": "station, network address to look up",
+              "fs_work_6, fs_work_7": "current PS station/network for "
+              "fall-through update"},
+    on_exit={"v flag": "set if matching slot already had bit 2; clear if "
+             "newly allocated",
+             "x": "table slot index of the matched/allocated entry"})
 subroutine(0xA66F, "find_station_bit3",
     title="Find file server station in table (bit 3)",
     description="Scans the 16-entry station table for a slot\n"
@@ -3923,7 +3940,11 @@ subroutine(0xA66F, "find_station_bit3",
     "with bit 3 set (file server active). Sets V\n"
     "if found, clears V if not. Falls through to\n"
     "allocate or update the matching slot with the\n"
-    "new station address and status flags.")
+    "new station address and status flags.",
+    on_entry={"&0E00, &0E01": "FS station, network to look up"},
+    on_exit={"v flag": "set if matching slot already had bit 3; clear if "
+             "newly allocated",
+             "x": "table slot index of the matched/allocated entry"})
 subroutine(0xA6A6, "flip_set_station_boot",
     title="Set boot option for a station in the table",
     description="Scans up to 16 station table entries for one\n"
@@ -3931,7 +3952,12 @@ subroutine(0xA6A6, "flip_set_station_boot",
     "(boot-eligible). Stores the requested boot type\n"
     "in the matching entry and calls\n"
     "restore_fs_context to re-establish the filing\n"
-    "system state.")
+    "system state.",
+    on_entry={"a": "boot type code to store",
+              "&0E00, &0E01": "station, network whose boot entry to update"},
+    on_exit={"FS context": "restored from saved workspace via "
+             "restore_fs_context",
+             "a, x, y": "clobbered"})
 subroutine(0xA864, "osword_setup_handler",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD dispatch table by X to\n"
@@ -4211,7 +4237,13 @@ subroutine(0xACF8, "enable_irq_and_poll",
     "falls through to send_net_packet. Used after\n"
     "a sequence that ran with interrupts disabled\n"
     "to ensure the packet is sent with normal\n"
-    "interrupt handling active.")
+    "interrupt handling active.",
+    on_entry={"txcb at &00C0": "TX control block populated by caller",
+              "i flag": "may be set (caller had IRQs off); CLI clears it"},
+    on_exit={"i flag": "clear (interrupts enabled)",
+             "behaviour": "tail-calls send_net_packet -- result depends on "
+             "Econet TX outcome (may BRK on escape via "
+             "check_escape_and_classify)"})
 subroutine(0xACFC, "netv_handler",
     title="NETV handler: OSWORD dispatch",
     description="Installed as the NETV handler via\n"
@@ -4220,7 +4252,15 @@ subroutine(0xACFC, "netv_handler",
     "OSWORDs 0-8 via push_osword_handler_addr. OSWORDs\n"
     ">= 9 are ignored (registers restored, RTS returns\n"
     "to MOS). Address stored at netv_handler_addr\n"
-    "(&8E8A) in the extended vector data area.")
+    "(&8E8A) in the extended vector data area.",
+    on_entry={"a": "OSWORD number (read from stacked A on entry)",
+              "x, y": "PB pointer low/high (per OSWORD calling convention)",
+              "stack": "MOS-prepared NETV stack frame "
+              "(P, A, ROM-bank-select, return address)"},
+    on_exit={"a, x, y, p": "restored from stack",
+             "behaviour": "OSWORDs >= 9 are passed through unchanged "
+             "(MOS continues to next NETV ROM); OSWORDs 0-8 are dispatched "
+             "to per-call handlers and may issue Econet TX/abort packets"})
 subroutine(0xAD15, "push_osword_handler_addr",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD handler dispatch table\n"
@@ -4228,7 +4268,12 @@ subroutine(0xAD15, "push_osword_handler_addr",
     "handler's address (hi/lo) onto the stack.\n"
     "Reloads the OSWORD number from osbyte_a_copy\n"
     "so the dispatched handler can identify the\n"
-    "specific call.")
+    "specific call.",
+    on_entry={"a": "OSWORD number (0-8) -- table index",
+              "osbyte_a_copy": "saved OSWORD number for handler reload"},
+    on_exit={"stack": "(handler-1) hi byte then lo byte pushed; caller's "
+             "subsequent RTS lands on the handler",
+             "a": "OSWORD number (re-loaded for the handler's use)"})
 # UNMAPPED: subroutine(0xA9B0, "osword_4_handler",
 # UNMAPPED:     title="OSWORD 4 handler: clear carry and send abort",
 # UNMAPPED:     description="Clears the carry flag in the stacked processor\n"
@@ -4242,7 +4287,12 @@ subroutine(0xAD40, "tx_econet_abort",
     "the TX control block with control byte &80\n"
     "(immediate operation flag), and transmits the\n"
     "abort packet. Used to cleanly disconnect from\n"
-    "a remote station during error recovery.")
+    "a remote station during error recovery.",
+    on_entry={"a": "abort code (stored in workspace before TX)",
+              "&0E00, &0E01": "destination station, network"},
+    on_exit={"behaviour": "Econet abort packet sent; this is a "
+             "fire-and-forget packet (no reply expected); caller "
+             "typically returns to MOS via NETV"})
 subroutine(0xAD64, "netv_claim_release",
     title="OSWORD 7 handler: claim/release network resources",
     description="Handles OSWORD 7 (SOUND) intercepted via NETV.\n"
@@ -4269,19 +4319,33 @@ subroutine(0xADD3, "osword_8_handler",
     "storing the OSWORD number at offset &DA, setting\n"
     "control value &E9, and sending an abort packet.\n"
     "Returns via tx_econet_abort. Rejects other\n"
-    "OSWORD numbers by returning immediately.")
+    "OSWORD numbers by returning immediately.",
+    on_entry={"a": "OSWORD number (must be 7 or 8 to be processed)",
+              "PB pointer (X/Y or workspace ptr)":
+              "OSWORD parameter block (15 bytes copied to workspace +&DB)"},
+    on_exit={"NFS workspace +&DA": "= OSWORD number",
+             "NFS workspace +&DB..+&E9": "= 15 bytes copied from PB",
+             "behaviour": "abort packet sent via tx_econet_abort with "
+             "control = &E9; OSWORD numbers other than 7/8 return "
+             "immediately with no side effect"})
 subroutine(0xADFE, "init_ws_copy_wide",
     title="Initialise workspace copy in wide mode (14 bytes)",
     description="Copies 14 bytes to workspace offset &7C.\n"
     "Falls through to the template-driven copy\n"
     "loop which handles &FD (skip), &FE (end),\n"
-    "and &FC (page pointer) markers.")
+    "and &FC (page pointer) markers.",
+    on_entry={"x": "template source offset (within ws_txcb_template_data)"},
+    on_exit={"NFS workspace +&7C..": "14 bytes from template (with "
+             "&FC -> workspace page pointer substitution applied)"})
 subroutine(0xAE07, "init_ws_copy_narrow",
     title="Initialise workspace copy in narrow mode (27 bytes)",
     description="Sets up a 27-byte copy to workspace offset &17,\n"
     "then falls through to ws_copy_vclr_entry for\n"
     "the template-driven copy loop. Used for the\n"
-    "compact workspace initialisation variant.")
+    "compact workspace initialisation variant.",
+    on_entry={"x": "template source offset"},
+    on_exit={"NFS workspace +&17..": "27 bytes from template (with "
+             "marker substitution applied)"})
 subroutine(0xAE0B, "ws_copy_vclr_entry",
     title="Template-driven workspace copy with V clear",
     description="Processes a template byte array to initialise\n"
@@ -4289,7 +4353,14 @@ subroutine(0xAE0B, "ws_copy_vclr_entry",
     "the copy, &FD skips the current offset, and &FC\n"
     "substitutes the workspace page pointer. All\n"
     "other values are stored directly to the\n"
-    "workspace at the current offset.")
+    "workspace at the current offset.",
+    on_entry={"x": "template source offset",
+              "y": "destination offset within NFS workspace",
+              "v flag": "clear (controls a downstream branch in the "
+              "shared body; init_ws_copy_wide / _narrow enter with V=0)"},
+    on_exit={"NFS workspace at +Y..": "template data copied with marker "
+             "expansion (&FC -> page pointer; &FD skip; &FE end)",
+             "a, x, y": "clobbered"})
 subroutine(0xAE5A, "netv_spool_check",
     title="OSWORD 5 handler: check spool PB and reset buffer",
     description="Handles OSWORD 5 intercepted via NETV. Checks\n"

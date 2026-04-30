@@ -8354,6 +8354,14 @@ la0ff = sub_ca0fe+1
 ; saves and restores the processor status register,
 ; so the caller's flag state is not affected by
 ; the reply processing.
+; 
+; On Entry:
+;     TXCB AT &00C0: open-receive control block from init_txcb_port (caller's setup)
+; 
+; On Exit:
+;     A: FS reply status
+;     P (FLAGS): preserved across the call (PHP/PLP)
+;     BEHAVIOUR: may BRK on FS-reported errors via recv_and_process_reply
 ; ***************************************************************************************
 ; &a284 referenced 1 time by &a272
 .recv_reply_preserve_flags
@@ -8539,6 +8547,12 @@ la0ff = sub_ca0fe+1
 ; (carry set on return). Used before Tube data
 ; transfers to ensure exclusive access to the
 ; Tube co-processor interface.
+; 
+; On Exit:
+;     A: &C3 (the claim protocol byte left in A)
+;     C FLAG: set (the claim succeeded -- this is the loop termination condition)
+;     TUBE STATE: exclusive claim held; matching release via tube_addr_data_dispatch
+; with &C2 expected from caller
 ; ***************************************************************************************
 ; &a390 referenced 3 times by &a302, &a395, &a627
 .tube_claim_c3
@@ -9114,6 +9128,14 @@ la0ff = sub_ca0fe+1
 ; if found, clears V if not. Falls through to
 ; allocate or update the matching slot with the
 ; new station address and status flags.
+; 
+; On Entry:
+;     &0E00, &0E01: station, network address to look up
+;     FS_WORK_6, FS_WORK_7: current PS station/network for fall-through update
+; 
+; On Exit:
+;     V FLAG: set if matching slot already had bit 2; clear if newly allocated
+;     X: table slot index of the matched/allocated entry
 ; ***************************************************************************************
 ; &a644 referenced 1 time by &a6e9
 .find_station_bit2
@@ -9153,6 +9175,13 @@ la0ff = sub_ca0fe+1
 ; if found, clears V if not. Falls through to
 ; allocate or update the matching slot with the
 ; new station address and status flags.
+; 
+; On Entry:
+;     &0E00, &0E01: FS station, network to look up
+; 
+; On Exit:
+;     V FLAG: set if matching slot already had bit 3; clear if newly allocated
+;     X: table slot index of the matched/allocated entry
 ; ***************************************************************************************
 ; &a66f referenced 3 times by &a638, &a6a1, &a6ef
 .find_station_bit3
@@ -9214,6 +9243,14 @@ la0ff = sub_ca0fe+1
 ; in the matching entry and calls
 ; restore_fs_context to re-establish the filing
 ; system state.
+; 
+; On Entry:
+;     A: boot type code to store
+;     &0E00, &0E01: station, network whose boot entry to update
+; 
+; On Exit:
+;     FS CONTEXT: restored from saved workspace via restore_fs_context
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &a6a6 referenced 2 times by &a63e, &a6f5
 .flip_set_station_boot
@@ -10508,6 +10545,15 @@ labc5 = compare_bridge_status+1
 ; a sequence that ran with interrupts disabled
 ; to ensure the packet is sent with normal
 ; interrupt handling active.
+; 
+; On Entry:
+;     TXCB AT &00C0: TX control block populated by caller
+;     I FLAG: may be set (caller had IRQs off); CLI clears it
+; 
+; On Exit:
+;     I FLAG: clear (interrupts enabled)
+;     BEHAVIOUR: tail-calls send_net_packet -- result depends on Econet TX outcome (may
+; BRK on escape via check_escape_and_classify)
 ; ***************************************************************************************
 ; &acf8 referenced 2 times by &ac93, &ace1
 .enable_irq_and_poll
@@ -10524,6 +10570,17 @@ labc5 = compare_bridge_status+1
 ; >= 9 are ignored (registers restored, RTS returns
 ; to MOS). Address stored at netv_handler_addr
 ; (&8E8A) in the extended vector data area.
+; 
+; On Entry:
+;     A: OSWORD number (read from stacked A on entry)
+;     X, Y: PB pointer low/high (per OSWORD calling convention)
+;     STACK: MOS-prepared NETV stack frame (P, A, ROM-bank-select, return address)
+; 
+; On Exit:
+;     A, X, Y, P: restored from stack
+;     BEHAVIOUR: OSWORDs >= 9 are passed through unchanged (MOS continues to next NETV
+; ROM); OSWORDs 0-8 are dispatched to per-call handlers and may issue Econet TX/abort
+; packets
 ; ***************************************************************************************
 .netv_handler
     php                                                               ; acfc: 08          .
@@ -10562,6 +10619,15 @@ labc5 = compare_bridge_status+1
 ; Reloads the OSWORD number from osbyte_a_copy
 ; so the dispatched handler can identify the
 ; specific call.
+; 
+; On Entry:
+;     A: OSWORD number (0-8) -- table index
+;     OSBYTE_A_COPY: saved OSWORD number for handler reload
+; 
+; On Exit:
+;     STACK: (handler-1) hi byte then lo byte pushed; caller's subsequent RTS lands on
+; the handler
+;     A: OSWORD number (re-loaded for the handler's use)
 ; ***************************************************************************************
 ; &ad15 referenced 1 time by &ad0b
 .push_osword_handler_addr
@@ -10589,6 +10655,14 @@ labc5 = compare_bridge_status+1
 ; (immediate operation flag), and transmits the
 ; abort packet. Used to cleanly disconnect from
 ; a remote station during error recovery.
+; 
+; On Entry:
+;     A: abort code (stored in workspace before TX)
+;     &0E00, &0E01: destination station, network
+; 
+; On Exit:
+;     BEHAVIOUR: Econet abort packet sent; this is a fire-and-forget packet (no reply
+; expected); caller typically returns to MOS via NETV
 ; ***************************************************************************************
 ; &ad40 referenced 3 times by &8afd, &ad93, &adf9
 .tx_econet_abort
@@ -10743,6 +10817,17 @@ labc5 = compare_bridge_status+1
 ; control value &E9, and sending an abort packet.
 ; Returns via tx_econet_abort. Rejects other
 ; OSWORD numbers by returning immediately.
+; 
+; On Entry:
+;     A: OSWORD number (must be 7 or 8 to be processed)
+;     PB POINTER (X/Y OR WORKSPACE PTR): OSWORD parameter block (15 bytes copied to
+; workspace +&DB)
+; 
+; On Exit:
+;     NFS WORKSPACE +&DA: = OSWORD number
+;     NFS WORKSPACE +&DB..+&E9: = 15 bytes copied from PB
+;     BEHAVIOUR: abort packet sent via tx_econet_abort with control = &E9; OSWORD
+; numbers other than 7/8 return immediately with no side effect
 ; ***************************************************************************************
 .osword_8_handler
     ldy #&0e                                                          ; add3: a0 0e       ..             ; Y=&0E: scan 15 bytes (offsets 14..0) of the PB
@@ -10778,6 +10863,13 @@ labc5 = compare_bridge_status+1
 ; Falls through to the template-driven copy
 ; loop which handles &FD (skip), &FE (end),
 ; and &FC (page pointer) markers.
+; 
+; On Entry:
+;     X: template source offset (within ws_txcb_template_data)
+; 
+; On Exit:
+;     NFS WORKSPACE +&7C..: 14 bytes from template (with &FC -> workspace page pointer
+; substitution applied)
 ; ***************************************************************************************
 ; &adfe referenced 2 times by &acdb, &aced
 .init_ws_copy_wide
@@ -10792,6 +10884,12 @@ labc5 = compare_bridge_status+1
 ; then falls through to ws_copy_vclr_entry for
 ; the template-driven copy loop. Used for the
 ; compact workspace initialisation variant.
+; 
+; On Entry:
+;     X: template source offset
+; 
+; On Exit:
+;     NFS WORKSPACE +&17..: 27 bytes from template (with marker substitution applied)
 ; ***************************************************************************************
 ; &ae07 referenced 1 time by &9872
 .init_ws_copy_narrow
@@ -10806,6 +10904,17 @@ labc5 = compare_bridge_status+1
 ; substitutes the workspace page pointer. All
 ; other values are stored directly to the
 ; workspace at the current offset.
+; 
+; On Entry:
+;     X: template source offset
+;     Y: destination offset within NFS workspace
+;     V FLAG: clear (controls a downstream branch in the shared body; init_ws_copy_wide
+; / _narrow enter with V=0)
+; 
+; On Exit:
+;     NFS WORKSPACE AT +Y..: template data copied with marker expansion (&FC -> page
+; pointer; &FD skip; &FE end)
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &ae0b referenced 1 time by &aecc
 .ws_copy_vclr_entry
