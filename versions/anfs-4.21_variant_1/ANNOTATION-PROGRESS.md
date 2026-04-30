@@ -32,6 +32,7 @@ calling-convention comments to every subroutine.
 | 2026-04-30 +leaves  | 6487 | 5014 | 77.3% | 33 |
 | 2026-04-30 +depth-1 | 6487 | 5102 | 78.6% | 22 |
 | 2026-04-30 +higher  | 6487 | 5420 | 83.6% | 9  |
+| 2026-04-30 +large   | 6487 | 5642 | 87.0% | 6  |
 
 ## Routines fully annotated this session
 
@@ -89,6 +90,12 @@ Higher-level routines (depth 1-7+):
         4.21 routines named & annotated)
   &BE01 print_dump_header   &BE42 parse_dump_range
   &BF78 open_file_for_read
+
+Large/depth-3+ routines:
+  &AD64 netv_claim_release  &ADD3 osword_8_handler
+  &B3D7 copy_ps_data        &B6F3 cmd_wipe (body up to prompt)
+  &BD41 cmd_dump            &BEAB init_dump_buffer
+  &A3E9 byte_to_2bit_index (entry only; alt entries pending)
 
 ## Working queue
 
