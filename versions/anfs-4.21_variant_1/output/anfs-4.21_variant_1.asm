@@ -3029,6 +3029,15 @@ l89c9 = reset_enter_listen+2
 ; A=&0A to reinitialise the workspace area. Falls
 ; through to scan_remote_keys which clears svc_state
 ; and nfs_workspace.
+; 
+; On Entry:
+;     Y: command line offset (unused -- *ROFF takes no args)
+; 
+; On Exit:
+;     A, X, Y: clobbered
+;     REMOTE-OP FLAG (RX BLOCK OFFSET 0): cleared
+;     SVC_STATE, NFS_WORKSPACE: zeroed (via fall-through to scan_remote_keys /
+; clear_svc_and_ws)
 ; ***************************************************************************************
 .cmd_roff
     ldy #0                                                            ; 8aea: a0 00       ..             ; Offset 0 in receive block
@@ -3125,6 +3134,16 @@ l89c9 = reset_enter_listen+2
 ; copies the workspace page to &1000 as a shadow.
 ; Sets bit 7 of &0D6C to mark the FS as selected,
 ; then issues service call 15.
+; 
+; On Entry:
+;     Y: command line offset in text pointer (unused for *NET FS but supplied by star-
+; cmd dispatch)
+; 
+; On Exit:
+;     A, X, Y: clobbered
+;     &0D6C BIT 7: set (FS active)
+;     BEHAVIOUR: raises 'Net checksum' via error_inline_log on workspace checksum
+; mismatch
 ; ***************************************************************************************
 ; &8b23 referenced 1 time by &8b52
 .cmd_net_fs
@@ -3756,6 +3775,13 @@ l89c9 = reset_enter_listen+2
 ; cmd_table_nfs_iam into the transmit buffer and
 ; sends via copy_arg_validated. Falls through to
 ; cmd_pass for password entry.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
+; 
+; On Exit:
+;     BEHAVIOUR: falls through to cmd_pass which prompts for a password and completes
+; the logon via save_net_tx_cb; may raise 'Bad station' on parse failure
 ; ***************************************************************************************
 .cmd_iam
     lda #osbyte_close_spool_exec                                      ; 8d91: a9 77       .w             ; OSBYTE &77: close SPOOL/EXEC
@@ -3806,6 +3832,14 @@ l8da7 = sub_c8da6+1
 ; from the colon position. Sends the completed
 ; password to the file server via save_net_tx_cb and
 ; branches to send_cmd_and_dispatch for the reply.
+; 
+; On Entry:
+;     Y: command line offset in text pointer (also the entry point for cmd_iam fall-
+; through)
+; 
+; On Exit:
+;     BEHAVIOUR: completes via the FS reply path; raises 'Escape' if the user aborts
+; password entry
 ; ***************************************************************************************
 ; &8dd5 referenced 2 times by &8daf, &8dc0
 .cmd_pass
@@ -5252,6 +5286,16 @@ l8da7 = sub_c8da6+1
 ; read_filename_char to copy remaining characters and
 ; send the request. Raises 'Bad file name' if a bare
 ; CR is found where a filename was expected.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
+;     X: byte offset within cmd_table_fs identifying which of the four shared commands
+; was matched (Access, Delete, Info, or Lib)
+; 
+; On Exit:
+;     BEHAVIOUR: completes via the FS reply path; raises 'Bad file name' on malformed
+; argument and returns A = reply status from the file server, or BRKs on FS-reported
+; errors
 ; ***************************************************************************************
 .cmd_fs_operation
     jsr copy_fs_cmd_name                                              ; 9425: 20 63 94     c.            ; Copy command name to TX buffer
@@ -5433,6 +5477,13 @@ l8da7 = sub_c8da6+1
 ; raises 'Bad rename' if they differ. Falls through
 ; to read_filename_char to copy the second filename
 ; into the TX buffer and send the request.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
+; 
+; On Exit:
+;     BEHAVIOUR: completes via the FS reply path; raises 'Bad rename' if the two
+; filenames target different file servers, or 'Bad file name' on parse error
 ; ***************************************************************************************
 .cmd_rename
     jsr copy_fs_cmd_name                                              ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer; Bit 6 set: use station as port
@@ -5488,6 +5539,13 @@ l8da7 = sub_c8da6+1
 ; server, raising 'Not found' on failure, then sends
 ; the directory change (code 6) and calls
 ; find_fs_and_exit to update the active FS context.
+; 
+; On Entry:
+;     Y: command line offset in text pointer
+; 
+; On Exit:
+;     BEHAVIOUR: completes via the FS reply; on the cross-FS path, may raise 'Not
+; found' or update the active FS station to the targeted server before returning
 ; ***************************************************************************************
 .cmd_dir
     lda (fs_crc_lo),y                                                 ; 9512: b1 be       ..             ; Get first char of argument
@@ -8528,6 +8586,15 @@ la0ff = sub_ca0fe+1
 ; the network number) then prints the station
 ; address followed by a newline via OSNEWL.
 ; Used by *FS and *PS output formatting.
+; 
+; On Entry:
+;     FS_WORK_6 (&B6): network number (consumed by print_station_addr)
+;     FS_WORK_7 (&B7): station number
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_station_addr + OSNEWL)
+;     SIDE EFFECT: writes 'NN.SSS' or 'SSS' followed by CR/LF to the current output
+; stream
 ; ***************************************************************************************
 ; &a3bb referenced 1 time by &b474
 .print_fs_info_newline
@@ -8547,6 +8614,16 @@ la0ff = sub_ca0fe+1
 ; 65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and
 ; stores the result in fs_work_7 (was fs_work_6 in
 ; 4.18).
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by parse_addr_arg)
+;     Y: current command-line offset
+; 
+; On Exit:
+;     FS_WORK_7 (&B7): parsed station number
+;     FS_WORK_6 (&B6): parsed network number (0 if not specified)
+;     X, Y: preserved (saved/restored via PHX/PHY)
+;     BEHAVIOUR: raises 'Bad station' via parse_addr_arg on malformed input
 ; ***************************************************************************************
 ; &a3c4 referenced 3 times by &a3a8, &b3cf, &b5a6
 .parse_fs_ps_args

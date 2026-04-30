@@ -3857,7 +3857,13 @@ subroutine(0xA3BB, "print_fs_info_newline",
     description="Sets V (suppressing leading-zero padding on\n"
     "the network number) then prints the station\n"
     "address followed by a newline via OSNEWL.\n"
-    "Used by *FS and *PS output formatting.")
+    "Used by *FS and *PS output formatting.",
+    on_entry={"fs_work_6 (&B6)": "network number (consumed by "
+              "print_station_addr)",
+              "fs_work_7 (&B7)": "station number"},
+    on_exit={"a, x, y": "clobbered (print_station_addr + OSNEWL)",
+             "side effect": "writes 'NN.SSS' or 'SSS' followed by CR/LF "
+             "to the current output stream"})
 # Located in 4.21_v1 at &A3C4 (was &A0A7 in 4.18). Body matches with
 # 65C12 PHX/PHY replacing 4.18's TXA/PHA and TYA/PHA, plus the
 # parsed-station storage moves from fs_work_6 (&B6) to fs_work_7
@@ -3873,7 +3879,15 @@ subroutine(0xA3C4, "parse_fs_ps_args",
     "address against known stations. 4.21 version uses\n"
     "65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and\n"
     "stores the result in fs_work_7 (was fs_work_6 in\n"
-    "4.18).")
+    "4.18).",
+    on_entry={"os_text_ptr (&F2/&F3)":
+              "command-line text pointer (consumed by parse_addr_arg)",
+              "y": "current command-line offset"},
+    on_exit={"fs_work_7 (&B7)": "parsed station number",
+             "fs_work_6 (&B6)": "parsed network number (0 if not specified)",
+             "x, y": "preserved (saved/restored via PHX/PHY)",
+             "behaviour": "raises 'Bad station' via parse_addr_arg on "
+             "malformed input"})
 subroutine(0xA3E7, "get_pb_ptr_as_index",
     title="Convert parameter block pointer to table index",
     description="Reads the first byte from the OSWORD parameter\n"
@@ -9580,7 +9594,13 @@ subroutine(0x8B23, "cmd_net_fs",
     "extended vectors, sets up the channel table, and\n"
     "copies the workspace page to &1000 as a shadow.\n"
     "Sets bit 7 of &0D6C to mark the FS as selected,\n"
-    "then issues service call 15.")
+    "then issues service call 15.",
+    on_entry={"y": "command line offset in text pointer "
+              "(unused for *NET FS but supplied by star-cmd dispatch)"},
+    on_exit={"a, x, y": "clobbered",
+             "&0D6C bit 7": "set (FS active)",
+             "behaviour": "raises 'Net checksum' via error_inline_log on "
+             "workspace checksum mismatch"})
 subroutine(0xB581, "cmd_pollps",
     title="*Pollps command handler",
     description="Initialises the spool drive, copies the PS name to\n"
@@ -9643,7 +9663,12 @@ subroutine(0x8AEA, "cmd_roff",
     "(with X=0, Y=0) and calls tx_econet_abort with\n"
     "A=&0A to reinitialise the workspace area. Falls\n"
     "through to scan_remote_keys which clears svc_state\n"
-    "and nfs_workspace.")
+    "and nfs_workspace.",
+    on_entry={"y": "command line offset (unused -- *ROFF takes no args)"},
+    on_exit={"a, x, y": "clobbered",
+             "remote-op flag (RX block offset 0)": "cleared",
+             "svc_state, nfs_workspace": "zeroed (via fall-through to "
+             "scan_remote_keys / clear_svc_and_ws)"})
 
 # Sub-table 2: NFS commands
 entry(0x9425)   # *Access, *Delete, *Info, *Lib (shared entry)
@@ -9687,7 +9712,14 @@ subroutine(0x9425, "cmd_fs_operation",
     "does not start with '&', then falls through to\n"
     "read_filename_char to copy remaining characters and\n"
     "send the request. Raises 'Bad file name' if a bare\n"
-    "CR is found where a filename was expected.")
+    "CR is found where a filename was expected.",
+    on_entry={"y": "command line offset in text pointer",
+              "x": "byte offset within cmd_table_fs identifying which "
+              "of the four shared commands was matched (Access, Delete, "
+              "Info, or Lib)"},
+    on_exit={"behaviour": "completes via the FS reply path; raises "
+             "'Bad file name' on malformed argument and returns A = reply "
+             "status from the file server, or BRKs on FS-reported errors"})
 subroutine(0x9776, "cmd_bye",
     title="*Bye command handler",
     description="Closes all open file control blocks via\n"
@@ -9725,7 +9757,11 @@ subroutine(0x9512, "cmd_dir",
     "selection command (code &12) to locate the target\n"
     "server, raising 'Not found' on failure, then sends\n"
     "the directory change (code 6) and calls\n"
-    "find_fs_and_exit to update the active FS context.")
+    "find_fs_and_exit to update the active FS context.",
+    on_entry={"y": "command line offset in text pointer"},
+    on_exit={"behaviour": "completes via the FS reply; on the cross-FS "
+             "path, may raise 'Not found' or update the active FS station "
+             "to the targeted server before returning"})
 subroutine(0xB103, "cmd_ex",
     title="*Ex command handler",
     description="Unified handler for *Ex, *LCat, and *LEx. Sets the\n"
@@ -9774,7 +9810,11 @@ subroutine(0x8D91, "cmd_iam",
     "Copies the logon command template from\n"
     "cmd_table_nfs_iam into the transmit buffer and\n"
     "sends via copy_arg_validated. Falls through to\n"
-    "cmd_pass for password entry.")
+    "cmd_pass for password entry.",
+    on_entry={"y": "command line offset in text pointer"},
+    on_exit={"behaviour": "falls through to cmd_pass which prompts for "
+             "a password and completes the logon via save_net_tx_cb; "
+             "may raise 'Bad station' on parse failure"})
 subroutine(0xB0F2, "cmd_lcat",
     title="*LCat command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"
@@ -9831,7 +9871,11 @@ subroutine(0x8DD5, "cmd_pass",
     "Delete (&7F) for backspace and NAK (&15) to restart\n"
     "from the colon position. Sends the completed\n"
     "password to the file server via save_net_tx_cb and\n"
-    "branches to send_cmd_and_dispatch for the reply.")
+    "branches to send_cmd_and_dispatch for the reply.",
+    on_entry={"y": "command line offset in text pointer "
+              "(also the entry point for cmd_iam fall-through)"},
+    on_exit={"behaviour": "completes via the FS reply path; raises "
+             "'Escape' if the user aborts password entry"})
 # UNMAPPED: subroutine(0xB312, "cmd_remove", ...)
 # That address is print_decimal_digit's body in 4.21_v1, not cmd_remove.
 # The actual *Remove handler lives at a yet-to-be-located address;
@@ -9867,7 +9911,11 @@ subroutine(0x94C5, "cmd_rename",
     "file server by comparing the FS options word —\n"
     "raises 'Bad rename' if they differ. Falls through\n"
     "to read_filename_char to copy the second filename\n"
-    "into the TX buffer and send the request.")
+    "into the TX buffer and send the request.",
+    on_entry={"y": "command line offset in text pointer"},
+    on_exit={"behaviour": "completes via the FS reply path; raises "
+             "'Bad rename' if the two filenames target different file "
+             "servers, or 'Bad file name' on parse error"})
 subroutine(0xB6F3, "cmd_wipe",
     title="*Wipe command handler",
     description="Masks owner access, parses a wildcard filename, and\n"
