@@ -7060,6 +7060,40 @@ comment(0xA3E1, "C set: no station after dot -- leave fs_work_5 alone",
 comment(0xA3E3, "Store parsed station in fs_work_5", inline=True)
 comment(0xA3E5, "Restore caller's X", inline=True)
 comment(0xA3E6, "Return", inline=True)
+
+# cmd_bye inline comments (8 items)
+comment(0x9776, "Y=0: process_all_fcbs filter (0 = all FCBs)",
+        inline=True)
+comment(0x9778, "Walk all 16 FCB slots, calling start_wipe_pass on each",
+        inline=True)
+comment(0x977B, "OSBYTE &77 = close *SPOOL and *EXEC files", inline=True)
+comment(0x977D, "Close any open *SPOOL/*EXEC handles", inline=True)
+comment(0x9780, "A=&40: bit 6 of fs_flags = 'FS in active session'",
+        inline=True)
+comment(0x9782, "TRB clears bit 6: mark FS session inactive", inline=True)
+comment(0x9785, "Close every Econet client channel", inline=True)
+comment(0x9788, "Y=&17: FS function code 'Bye' (logoff request)",
+        inline=True)
+
+# cmd_fs inline comments (~14 items)
+comment(0xA398, "Read current FS station from workspace", inline=True)
+comment(0xA39B, "Save in fs_work_5 (so 'no-arg' path can print it)",
+        inline=True)
+comment(0xA39D, "Read current FS network", inline=True)
+comment(0xA3A0, "Save in fs_work_6", inline=True)
+comment(0xA3A2, "Look at the first command-line byte", inline=True)
+comment(0xA3A4, "Is it CR (no argument)?", inline=True)
+comment(0xA3A6, "Yes: print the current FS address", inline=True)
+comment(0xA3A8, "Parse 'net.station' arg into fs_work_5/6", inline=True)
+comment(0xA3AB, "A=1: OSWORD &13 sub-function 1 = set file server "
+        "station", inline=True)
+comment(0xA3AD, "Store sub-function in PB[0]", inline=True)
+comment(0xA3AF, "A=&13: OSWORD &13", inline=True)
+comment(0xA3B1, "X = lo of PB pointer (fs_work_4 = &B4)", inline=True)
+comment(0xA3B3, "Y = hi of PB pointer (=0, since fs_work_4 is in "
+        "zero page)", inline=True)
+comment(0xA3B5, "Tail-jump into OSWORD; the OS routes us back through "
+        "osword_13_set_station", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

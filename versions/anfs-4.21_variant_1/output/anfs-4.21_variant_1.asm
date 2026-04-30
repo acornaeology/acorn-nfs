@@ -5451,14 +5451,14 @@ l8da7 = sub_c8da6+1
 ; &17 to send the bye request to the file server.
 ; ***************************************************************************************
 .cmd_bye
-    ldy #0                                                            ; 9776: a0 00       ..
-    jsr process_all_fcbs                                              ; 9778: 20 38 bb     8.
-    lda #osbyte_close_spool_exec                                      ; 977b: a9 77       .w
-    jsr osbyte                                                        ; 977d: 20 f4 ff     ..            ; Close any *SPOOL and *EXEC files
-    lda #&40 ; '@'                                                    ; 9780: a9 40       .@
-    trb fs_flags                                                      ; 9782: 1c 6c 0d    .l.
-    jsr close_all_net_chans                                           ; 9785: 20 f8 b8     ..
-    ldy #&17                                                          ; 9788: a0 17       ..
+    ldy #0                                                            ; 9776: a0 00       ..             ; Y=0: process_all_fcbs filter (0 = all FCBs)
+    jsr process_all_fcbs                                              ; 9778: 20 38 bb     8.            ; Walk all 16 FCB slots, calling start_wipe_pass on each
+    lda #osbyte_close_spool_exec                                      ; 977b: a9 77       .w             ; OSBYTE &77 = close *SPOOL and *EXEC files
+    jsr osbyte                                                        ; 977d: 20 f4 ff     ..            ; Close any open *SPOOL/*EXEC handles; Close any *SPOOL and *EXEC files
+    lda #&40 ; '@'                                                    ; 9780: a9 40       .@             ; A=&40: bit 6 of fs_flags = 'FS in active session'
+    trb fs_flags                                                      ; 9782: 1c 6c 0d    .l.            ; TRB clears bit 6: mark FS session inactive
+    jsr close_all_net_chans                                           ; 9785: 20 f8 b8     ..            ; Close every Econet client channel
+    ldy #&17                                                          ; 9788: a0 17       ..             ; Y=&17: FS function code 'Bye' (logoff request)
 ; ***************************************************************************************
 ; Save FS state and send command to file server
 ; 
@@ -8066,20 +8066,20 @@ la0ff = sub_ca0fe+1
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_fs
-    lda pydis_end                                                     ; a398: ad 00 c0    ...
-    sta fs_work_5                                                     ; a39b: 85 b5       ..
-    lda lc001                                                         ; a39d: ad 01 c0    ...
-    sta fs_work_6                                                     ; a3a0: 85 b6       ..
-    lda (fs_crc_lo),y                                                 ; a3a2: b1 be       ..
-    cmp #&0d                                                          ; a3a4: c9 0d       ..
-    beq print_current_fs                                              ; a3a6: f0 10       ..
-    jsr parse_fs_ps_args                                              ; a3a8: 20 c4 a3     ..
-    lda #1                                                            ; a3ab: a9 01       ..
-    sta fs_work_4                                                     ; a3ad: 85 b4       ..
-    lda #&13                                                          ; a3af: a9 13       ..
-    ldx #<(fs_work_4)                                                 ; a3b1: a2 b4       ..
-    ldy #>(fs_work_4)                                                 ; a3b3: a0 00       ..
-    jmp osword                                                        ; a3b5: 4c f1 ff    L..            ; Read/Write NFS information (see https://beebwiki.mdfs.net/OSWORDs)
+    lda pydis_end                                                     ; a398: ad 00 c0    ...            ; Read current FS station from workspace
+    sta fs_work_5                                                     ; a39b: 85 b5       ..             ; Save in fs_work_5 (so 'no-arg' path can print it)
+    lda lc001                                                         ; a39d: ad 01 c0    ...            ; Read current FS network
+    sta fs_work_6                                                     ; a3a0: 85 b6       ..             ; Save in fs_work_6
+    lda (fs_crc_lo),y                                                 ; a3a2: b1 be       ..             ; Look at the first command-line byte
+    cmp #&0d                                                          ; a3a4: c9 0d       ..             ; Is it CR (no argument)?
+    beq print_current_fs                                              ; a3a6: f0 10       ..             ; Yes: print the current FS address
+    jsr parse_fs_ps_args                                              ; a3a8: 20 c4 a3     ..            ; Parse 'net.station' arg into fs_work_5/6
+    lda #1                                                            ; a3ab: a9 01       ..             ; A=1: OSWORD &13 sub-function 1 = set file server station
+    sta fs_work_4                                                     ; a3ad: 85 b4       ..             ; Store sub-function in PB[0]
+    lda #&13                                                          ; a3af: a9 13       ..             ; A=&13: OSWORD &13
+    ldx #<(fs_work_4)                                                 ; a3b1: a2 b4       ..             ; X = lo of PB pointer (fs_work_4 = &B4)
+    ldy #>(fs_work_4)                                                 ; a3b3: a0 00       ..             ; Y = hi of PB pointer (=0, since fs_work_4 is in zero page)
+    jmp osword                                                        ; a3b5: 4c f1 ff    L..            ; Tail-jump into OSWORD; the OS routes us back through osword_13_set_station; Read/Write NFS information (see https://beebwiki.mdfs.net/OSWORDs)
 
 ; &a3b8 referenced 1 time by &a3a6
 .print_current_fs
