@@ -4731,10 +4731,18 @@ l8da7 = sub_c8da6+1
 ; &EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
 ; unconditional forward branch.
 ; 
+; On Entry:
+;     STACK: JSR return address points one byte BEFORE the inline string (the routine
+; increments past it)
+;     INLINE STRING: ASCII bytes immediately following the JSR, terminated by a byte
+; with bit 7 set (which is the NEXT opcode)
+; 
 ; On Exit:
 ;     A: terminator byte (bit 7 set, also next opcode)
 ;     X: corrupted (by OSASCI)
 ;     Y: 0
+;     CONTROL FLOW: RTS does NOT return to JSR; instead a JMP lands on the terminator
+; byte's address as the next instruction
 ; ***************************************************************************************
 ; &9261 referenced 23 times by &8a6b, &8be0, &8c93, &90c7, &90e7, &b460, &b46c, &b483, &b48d, &b498, &b568, &b60a, &b61f, &b642, &b64f, &b65e, &b66e, &b67d, &bdac, &bdc4, &bdd0, &be04, &be21
 .print_inline
@@ -4797,10 +4805,16 @@ l8da7 = sub_c8da6+1
 ; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
 ; &B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
 ; 
+; On Entry:
+;     STACK: JSR return address points just before the inline string
+;     INLINE STRING: ASCII bytes immediately following the JSR, bit-7 terminated
+; 
 ; On Exit:
 ;     A: terminator byte (bit 7 set, also next opcode)
 ;     X: corrupted (by print_char_no_spool)
 ;     Y: 0
+;     CONTROL FLOW: JMPs onto the terminator byte; RTS does NOT return to caller's JSR
+; site
 ; ***************************************************************************************
 ; &928a referenced 6 times by &981a, &b158, &b162, &b2f0, &b75e, &b7cb
 .print_inline_no_spool
@@ -6404,6 +6418,13 @@ l99a3 = bad_str_anchor+1
 ; 
 ; On Entry:
 ;     A: error number
+;     STACK: JSR return address points just before the null-terminated error suffix
+; (the 'Bad ' prefix is prepended internally from a lookup table)
+;     INLINE STRING: NUL-terminated suffix (e.g. 'station')
+; 
+; On Exit:
+;     BEHAVIOUR: DOES NOT RETURN -- builds the 'Bad <suffix>' error message in the MOS
+; error block and triggers BRK via error_inline_log / error_block
 ; ***************************************************************************************
 ; &99a7 referenced 11 times by &90b7, &934c, &9359, &936d, &9379, &9388, &9439, &94bb, &94dc, &a5a3, &bf48
 .error_bad_inline
@@ -6431,6 +6452,12 @@ l99a3 = bad_str_anchor+1
 ; 
 ; On Entry:
 ;     A: error number
+;     STACK: JSR return address points just before the null-terminated error message
+; text
+; 
+; On Exit:
+;     &0E09: = A (logged when fs_flags bit 7 is set)
+;     BEHAVIOUR: DOES NOT RETURN -- triggers BRK via error_inline / error_block
 ; ***************************************************************************************
 ; &99c0 referenced 11 times by &9564, &9883, &a5ba, &af82, &af94, &b81f, &b895, &b8e6, &bb79, &bbb3, &bbfd
 .error_inline_log
@@ -6443,7 +6470,15 @@ l99a3 = bad_str_anchor+1
 ; passed in A. Never returns — triggers the error via JMP error_block.
 ; 
 ; On Entry:
-;     A: error number
+;     A: error number (stored in error block at &0101)
+;     STACK: JSR return address points just before the null-terminated error message
+; text
+;     INLINE STRING: NUL-terminated ASCII immediately following the JSR site
+; 
+; On Exit:
+;     BEHAVIOUR: DOES NOT RETURN -- the routine builds the MOS error block at
+; &0100..&01FE and triggers the error via JMP error_block, which transfers control to
+; BRKV
 ; ***************************************************************************************
 ; &99c3 referenced 4 times by &a444, &bd37, &bedb, &bf91
 .error_inline

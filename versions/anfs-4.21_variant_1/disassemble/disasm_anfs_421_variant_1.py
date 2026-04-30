@@ -10349,9 +10349,15 @@ The high-bit byte serves as both the string terminator and the opcode
 of the first instruction after the string. Common terminators are
 &EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
 unconditional forward branch.""",
+    on_entry={"stack": "JSR return address points one byte BEFORE the "
+              "inline string (the routine increments past it)",
+              "inline string": "ASCII bytes immediately following the JSR, "
+              "terminated by a byte with bit 7 set (which is the NEXT opcode)"},
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by OSASCI)",
-             "y": "0"})
+             "y": "0",
+             "control flow": "RTS does NOT return to JSR; instead a JMP "
+             "lands on the terminator byte's address as the next instruction"})
 
 subroutine(0x928A, "print_inline_no_spool",
     title="Print inline string, high-bit terminated, *SPOOL-bypassing",
@@ -10366,9 +10372,15 @@ arguments inside cmd_ex's directory listing).
 
 Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
 &B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).""",
+    on_entry={"stack": "JSR return address points just before the "
+              "inline string",
+              "inline string": "ASCII bytes immediately following the JSR, "
+              "bit-7 terminated"},
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by print_char_no_spool)",
-             "y": "0"})
+             "y": "0",
+             "control flow": "JMPs onto the terminator byte; RTS does NOT "
+             "return to caller's JSR site"})
 
 comment(0x9261, "Pop return address (low) — points to last byte of JSR", inline=True)
 comment(0x9264, "Pop return address (high)", inline=True)
@@ -10385,7 +10397,14 @@ subroutine(0x99C3, "error_inline",
 Pops the return address from the stack and copies the null-terminated
 inline string into the error block at &0100. The error number is
 passed in A. Never returns — triggers the error via JMP error_block.""",
-    on_entry={"a": "error number"})
+    on_entry={"a": "error number (stored in error block at &0101)",
+              "stack": "JSR return address points just before the "
+              "null-terminated error message text",
+              "inline string": "NUL-terminated ASCII immediately following "
+              "the JSR site"},
+    on_exit={"behaviour": "DOES NOT RETURN -- the routine builds the "
+             "MOS error block at &0100..&01FE and triggers the error "
+             "via JMP error_block, which transfers control to BRKV"})
 
 comment(0x99C3, "Save error number in Y", inline=True)
 comment(0x99C4, "Pop return address (low) — points to last byte of JSR", inline=True)
@@ -10396,7 +10415,12 @@ subroutine(0x99C0, "error_inline_log",
     description="""\
 Like error_inline, but first conditionally logs the error code to
 workspace via sub_c95fb before building the error block.""",
-    on_entry={"a": "error number"})
+    on_entry={"a": "error number",
+              "stack": "JSR return address points just before the "
+              "null-terminated error message text"},
+    on_exit={"&0E09": "= A (logged when fs_flags bit 7 is set)",
+             "behaviour": "DOES NOT RETURN -- triggers BRK via "
+             "error_inline / error_block"})
 
 comment(0x99C0, "Conditionally log error code to workspace", inline=True)
 
@@ -10406,7 +10430,14 @@ subroutine(0x99A7, "error_bad_inline",
 Like error_inline, but prepends 'Bad ' to the error message. Copies
 the prefix from a lookup table, then appends the null-terminated
 inline string. The error number is passed in A. Never returns.""",
-    on_entry={"a": "error number"})
+    on_entry={"a": "error number",
+              "stack": "JSR return address points just before the "
+              "null-terminated error suffix (the 'Bad ' prefix is "
+              "prepended internally from a lookup table)",
+              "inline string": "NUL-terminated suffix (e.g. 'station')"},
+    on_exit={"behaviour": "DOES NOT RETURN -- builds the 'Bad <suffix>' "
+             "error message in the MOS error block and triggers BRK via "
+             "error_inline_log / error_block"})
 
 comment(0x99A7, "Conditionally log error code to workspace", inline=True)
 comment(0x99AA, "Save error number in Y", inline=True)
