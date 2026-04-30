@@ -3051,6 +3051,18 @@ l89c9 = reset_enter_listen+2
 ; svc_state and nfs_workspace to zero via the
 ; clear_svc_and_ws entry point, which is also used
 ; directly by cmd_roff. Called by check_escape.
+; 
+; X is saved into nfs_workspace across the OSBYTE call
+; and restored each iteration -- the loop reuses A as the
+; key-code counter without needing X. clear_svc_and_ws
+; is also entered directly (label) by cmd_roff with no
+; register pre-conditions.
+; 
+; On Exit:
+;     A: 0 (when no key pressed -- the cleared path)
+;     X: may be modified by OSBYTE
+;     Y: &7F (left over from OSBYTE call setup)
+;     SVC_STATE, NFS_WORKSPACE: both zeroed when no remote key was pressed
 ; ***************************************************************************************
 ; &8b00 referenced 1 time by &986f
 .scan_remote_keys
@@ -3387,8 +3399,13 @@ l89c9 = reset_enter_listen+2
 ; align continuation lines with the syntax
 ; description column.
 ; 
+; On Entry:
+;     &0355 (CURRENT OUTPUT STREAM): 0 = VDU, 3 = printer (no-op for both); other =
+; serial
+; 
 ; On Exit:
-;     Y: preserved
+;     Y: preserved (saved/restored via PHY/PLY)
+;     A: clobbered (last char written via OSWRCH)
 ; ***************************************************************************************
 ; &8c29 referenced 1 time by &8c10
 .help_wrap_if_serial
@@ -3552,9 +3569,14 @@ l89c9 = reset_enter_listen+2
 ; page-aligned pointer used by FS initialisation and
 ; cmd_net_fs to access the private workspace.
 ; 
+; On Entry:
+;     ROMSEL_COPY (&F4): current ROM slot (consumed by get_ws_page)
+; 
 ; On Exit:
 ;     A: 0
 ;     Y: workspace page number
+;     NFS_TEMP LO/HI (&CC/&CD): &00, ws_page -> page-aligned pointer to private
+; workspace
 ; ***************************************************************************************
 ; &8cbd referenced 1 time by &8b9c
 .setup_ws_ptr
@@ -3616,6 +3638,10 @@ l89c9 = reset_enter_listen+2
 ; &8F to inform other ROMs. Sets X=&0A and branches
 ; to issue_svc_osbyte which falls through from the
 ; call_fscv subroutine.
+; 
+; On Exit:
+;     A: clobbered (FSCV reason 6 then OSBYTE &8F)
+;     X: &0A (the service number passed to OSBYTE &8F)
 ; ***************************************************************************************
 ; &8cfd referenced 1 time by &8b60
 .notify_new_fs
@@ -3843,8 +3869,13 @@ l8da7 = sub_c8da6+1
 ; by cmd_iam when processing a file server address
 ; in the logon command.
 ; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by init_bridge_poll)
+;     &0E01: expected file-server station number
+; 
 ; On Exit:
 ;     A: 0 if matched, non-zero if different
+;     &0E01: zeroed when parsed station matches
 ; ***************************************************************************************
 ; &8e21 referenced 2 times by &8db9, &a9ec
 .clear_if_station_match
@@ -4195,6 +4226,15 @@ l8da7 = sub_c8da6+1
 ; writes vector addresses and ROM ID into the
 ; extended vector table for NETV and one additional
 ; vector, then restores any previous FS context.
+; 
+; On Entry:
+;     ROMSEL_COPY (&F4): current ROM slot (written into each vector entry as the ROM ID
+; byte)
+; 
+; On Exit:
+;     A, X, Y: clobbered (falls through into write_vector_entry)
+;     EXTENDED VECTOR TABLE: NETV (and the next vector) point at this ROM's handlers;
+; &0D72 set to &FF as install marker
 ; ***************************************************************************************
 ; &903c referenced 1 time by &8b81
 .init_adlc_and_vectors
@@ -4251,6 +4291,14 @@ l8da7 = sub_c8da6+1
 ; svc_2_private_workspace during init,
 ; deselect_fs_if_active during FS teardown, and
 ; flip_set_station_boot.
+; 
+; On Entry:
+;     NET_RX_PTR (&A6/&A7): page-aligned pointer to the receive control block
+;     &0DFA..&0E01: saved 8-byte FS context to restore
+; 
+; On Exit:
+;     A, Y: clobbered (loop counter / data byte)
+;     (NET_RX_PTR)+2..+9: FS context bytes restored from &0DFA+2..+9
 ; ***************************************************************************************
 ; &9064 referenced 2 times by &907b, &a6d2
 .restore_fs_context
@@ -5231,6 +5279,14 @@ l8da7 = sub_c8da6+1
 ; into the TX buffer at &0F05, calling
 ; strip_token_prefix on each byte and terminating
 ; on CR. Used by cmd_fs_operation and cmd_rename.
+; 
+; On Entry:
+;     &0E30: first byte of the parsed filename buffer
+; 
+; On Exit:
+;     A: first byte of parse buffer (preserved unchanged on the non-error path)
+;     BEHAVIOUR: raises 'Bad filename' error and does not return if the first character
+; is '&'
 ; ***************************************************************************************
 ; &9446 referenced 2 times by &9430, &944e
 .check_not_ampersand
@@ -5265,9 +5321,16 @@ l8da7 = sub_c8da6+1
 ; separator. Uses 65C12 PHY in 4.21 in place of
 ; 4.18's TYA / PHA prologue.
 ; 
+; On Entry:
+;     X: byte offset within cmd_table_fs (just past the matched command's last name
+; char)
+;     Y: current command-line offset (saved/restored)
+; 
 ; On Exit:
 ;     X: TX buffer offset past name+space
 ;     Y: command line offset (restored)
+;     A: clobbered
+;     TX BUFFER AT &C105+: command name + trailing space
 ; ***************************************************************************************
 ; &9463 referenced 2 times by &9425, &94c5
 .copy_fs_cmd_name
@@ -5306,6 +5369,18 @@ l8da7 = sub_c8da6+1
 ; double-quote delimiters and stores the result
 ; in the parse buffer at &0E30. Raises 'Bad string'
 ; on unbalanced quotes.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (saved by
+; save_text_ptr)
+;     Y: current offset within the command line
+; 
+; On Exit:
+;     &0E30: parsed argument (without surrounding quotes)
+;     Y: advanced past the parsed argument
+;     A: clobbered (last byte read)
+;     BEHAVIOUR: raises 'Bad string' on unbalanced quotes; falls through to cmd_rename
+; on the success path
 ; ***************************************************************************************
 ; &9483 referenced 2 times by &9429, &94cc
 .parse_quoted_arg

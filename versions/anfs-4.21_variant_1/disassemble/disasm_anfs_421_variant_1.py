@@ -2907,7 +2907,17 @@ subroutine(0x8B00, "scan_remote_keys",
     "pressed. If neither key is detected, clears\n"
     "svc_state and nfs_workspace to zero via the\n"
     "clear_svc_and_ws entry point, which is also used\n"
-    "directly by cmd_roff. Called by check_escape.")
+    "directly by cmd_roff. Called by check_escape.\n"
+    "\n"
+    "X is saved into nfs_workspace across the OSBYTE call\n"
+    "and restored each iteration -- the loop reuses A as the\n"
+    "key-code counter without needing X. clear_svc_and_ws\n"
+    "is also entered directly (label) by cmd_roff with no\n"
+    "register pre-conditions.",
+    on_exit={"a": "0 (when no key pressed -- the cleared path)",
+             "x": "may be modified by OSBYTE",
+             "y": "&7F (left over from OSBYTE call setup)",
+             "svc_state, nfs_workspace": "both zeroed when no remote key was pressed"})
 subroutine(0x8B18, "save_text_ptr",
     title="Save OS text pointer for later retrieval",
     description="Copies &F2/&F3 into fs_crc_lo/fs_crc_hi. Called by\n"
@@ -2949,7 +2959,10 @@ subroutine(0x8C29, "help_wrap_if_serial",
     "newline followed by 12 spaces of indentation to\n"
     "align continuation lines with the syntax\n"
     "description column.",
-    on_exit={"y": "preserved"})
+    on_entry={"&0355 (current output stream)":
+              "0 = VDU, 3 = printer (no-op for both); other = serial"},
+    on_exit={"y": "preserved (saved/restored via PHY/PLY)",
+             "a": "clobbered (last char written via OSWRCH)"})
 subroutine(0x8C93, "print_version_header",
     title="Print ANFS version string and station number",
     description="Uses an inline string after JSR print_inline:\n"
@@ -2979,14 +2992,21 @@ subroutine(0x8CBD, "setup_ws_ptr",
     "the low byte at &CC to zero. This gives a\n"
     "page-aligned pointer used by FS initialisation and\n"
     "cmd_net_fs to access the private workspace.",
-    on_exit={"a": "0", "y": "workspace page number"})
+    on_entry={"romsel_copy (&F4)":
+              "current ROM slot (consumed by get_ws_page)"},
+    on_exit={"a": "0",
+             "y": "workspace page number",
+             "nfs_temp lo/hi (&CC/&CD)":
+             "&00, ws_page -> page-aligned pointer to private workspace"})
 subroutine(0x8CFD, "notify_new_fs",
     title="Notify OS of filing system selection",
     description="Calls FSCV with A=6 to announce the FS change,\n"
     "then issues paged ROM service call 10 via OSBYTE\n"
     "&8F to inform other ROMs. Sets X=&0A and branches\n"
     "to issue_svc_osbyte which falls through from the\n"
-    "call_fscv subroutine.")
+    "call_fscv subroutine.",
+    on_exit={"a": "clobbered (FSCV reason 6 then OSBYTE &8F)",
+             "x": "&0A (the service number passed to OSBYTE &8F)"})
 subroutine(0x8CFF, "call_fscv",
     title="Dispatch to filing system control vector (FSCV)",
     description="Indirect JMP through FSCV at &021E, providing\n"
@@ -3020,7 +3040,11 @@ subroutine(0x8E21, "clear_if_station_match",
     "matches (EOR result is zero), clears &0E01. Called\n"
     "by cmd_iam when processing a file server address\n"
     "in the logon command.",
-    on_exit={"a": "0 if matched, non-zero if different"})
+    on_entry={"os_text_ptr (&F2/&F3)":
+              "command-line text pointer (consumed by init_bridge_poll)",
+              "&0E01": "expected file-server station number"},
+    on_exit={"a": "0 if matched, non-zero if different",
+             "&0E01": "zeroed when parsed station matches"})
 label(0x8E2D, "check_urd_prefix")
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
@@ -3057,7 +3081,13 @@ subroutine(0x903C, "init_adlc_and_vectors",
     description="Reads the ROM pointer table via OSBYTE &A8,\n"
     "writes vector addresses and ROM ID into the\n"
     "extended vector table for NETV and one additional\n"
-    "vector, then restores any previous FS context.")
+    "vector, then restores any previous FS context.",
+    on_entry={"romsel_copy (&F4)":
+              "current ROM slot (written into each vector entry as the "
+              "ROM ID byte)"},
+    on_exit={"a, x, y": "clobbered (falls through into write_vector_entry)",
+             "extended vector table": "NETV (and the next vector) point at "
+             "this ROM's handlers; &0D72 set to &FF as install marker"})
 subroutine(0x904F, "write_vector_entry",
     title="Install extended vector table entries",
     description="Copies vector addresses from the dispatch table at\n"
@@ -3080,7 +3110,12 @@ subroutine(0x9064, "restore_fs_context",
     "a filing system reselection. Called by\n"
     "svc_2_private_workspace during init,\n"
     "deselect_fs_if_active during FS teardown, and\n"
-    "flip_set_station_boot.")
+    "flip_set_station_boot.",
+    on_entry={"net_rx_ptr (&A6/&A7)":
+              "page-aligned pointer to the receive control block",
+              "&0DFA..&0E01": "saved 8-byte FS context to restore"},
+    on_exit={"a, y": "clobbered (loop counter / data byte)",
+             "(net_rx_ptr)+2..+9": "FS context bytes restored from &0DFA+2..+9"})
 subroutine(0x9071, "fscv_6_shutdown",
     title="Deselect filing system and save workspace",
     description="If the filing system is currently selected\n"
@@ -3307,7 +3342,12 @@ subroutine(0x9446, "check_not_ampersand",
     "loops reading characters from the command line\n"
     "into the TX buffer at &0F05, calling\n"
     "strip_token_prefix on each byte and terminating\n"
-    "on CR. Used by cmd_fs_operation and cmd_rename.")
+    "on CR. Used by cmd_fs_operation and cmd_rename.",
+    on_entry={"&0E30": "first byte of the parsed filename buffer"},
+    on_exit={"a": "first byte of parse buffer (preserved unchanged on the "
+             "non-error path)",
+             "behaviour": "raises 'Bad filename' error and does not return "
+             "if the first character is '&'"})
 # Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
 # hit &945E (which is `send_fs_request`) — the body match pushed the
 # entry 5 bytes earlier than the actual prologue. The 4.21 prologue
@@ -3323,14 +3363,27 @@ subroutine(0x9463, "copy_fs_cmd_name",
     "byte (end of name), then appends a space\n"
     "separator. Uses 65C12 PHY in 4.21 in place of\n"
     "4.18's TYA / PHA prologue.",
+    on_entry={"x": "byte offset within cmd_table_fs (just past the matched "
+              "command's last name char)",
+              "y": "current command-line offset (saved/restored)"},
     on_exit={"x": "TX buffer offset past name+space",
-             "y": "command line offset (restored)"})
+             "y": "command line offset (restored)",
+             "a": "clobbered",
+             "TX buffer at &C105+": "command name + trailing space"})
 subroutine(0x9483, "parse_quoted_arg",
     title="Parse possibly-quoted filename argument",
     description="Reads from the command line at (&BE),Y. Handles\n"
     "double-quote delimiters and stores the result\n"
     "in the parse buffer at &0E30. Raises 'Bad string'\n"
-    "on unbalanced quotes.")
+    "on unbalanced quotes.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer (saved by save_text_ptr)",
+              "y": "current offset within the command line"},
+    on_exit={"&0E30": "parsed argument (without surrounding quotes)",
+             "y": "advanced past the parsed argument",
+             "a": "clobbered (last byte read)",
+             "behaviour": "raises 'Bad string' on unbalanced quotes; "
+             "falls through to cmd_rename on the success path"})
 subroutine(0x973D, "init_txcb_bye",
     title="Set up open receive for FS reply on port &90",
     description="Loads A=&90 (the FS command/reply port) and\n"
