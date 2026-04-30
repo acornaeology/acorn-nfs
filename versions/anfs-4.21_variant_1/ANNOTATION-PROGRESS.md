@@ -123,8 +123,14 @@ dimensions. In priority order:
 
 ## Phase A: Subroutine calling conventions (highest impact)
 
-  Only 42 / 307 subroutines (13.7%) have an `on_entry=` clause; only
-  19 / 307 (6.2%) have `on_exit=`. Every subroutine should document:
+  Coverage history (318 subroutines):
+
+    | Date       | on_entry | on_exit | Both |
+    |------------|----------|---------|------|
+    | baseline   |   31.4%  |  16.4%  |  ?   |
+    | 2026-04-30 |   54.1%  |  41.8%  | 33.0%|
+
+  Every subroutine should document:
 
     - Registers it expects on entry (A, X, Y)
     - Flags it expects on entry (C, V mostly)
@@ -135,8 +141,53 @@ dimensions. In priority order:
   Approach: walk the subroutine list ordered by call-graph depth (so
   that callers' conventions follow from callees'). For each, read the
   body, identify the calling conventions, fill in `on_entry` and
-  `on_exit`. Several hundred subs to cover; expect ~50-60 small
+  `on_exit`. ~146 subs still without on_entry; expect ~15 more small
   commits.
+
+  Done so far this session (9 commits, ~95 subs):
+
+    - tx_done dispatch family (5 subs): tx_done_jsr, _econet_event,
+      _os_proc, _halt, _continue plus advance_rx_buffer_ptr,
+      release_tube, advance_buffer_ptr.
+    - print/text-pointer/spool helpers (10 subs): save_text_ptr,
+      get_ws_page, print_newline_no_spool, get_access_bits,
+      cmp_5byte_handle, init_txcb_bye, init_txcb,
+      send_request_nowrite, send_request_write, save_ptr_to_os_text,
+      skip_to_next_arg, save_ptr_to_spool_buf, init_spool_drive,
+      load_ps_server_addr, write_ps_slot_byte_ff,
+      reverse_ps_name_to_tx, flush_and_read_char, abort_if_escape,
+      prompt_yn.
+    - Service / FS-init helpers (10 subs): scan_remote_keys,
+      help_wrap_if_serial, setup_ws_ptr, notify_new_fs,
+      clear_if_station_match, init_adlc_and_vectors,
+      restore_fs_context, check_not_ampersand, copy_fs_cmd_name,
+      parse_quoted_arg.
+    - FS messaging core (6 subs): cmd_bye, save_net_tx_cb,
+      save_net_tx_cb_vset, prep_send_tx_cb, recv_and_process_reply,
+      wait_net_tx_ack.
+    - Parse/copy/print/inx helpers (11 subs): parse_cmd_arg_y0,
+      parse_filename_arg, strip_token_prefix, copy_arg_to_buf_x0,
+      copy_arg_to_buf, print_file_server_is, print_printer_server_is,
+      print_station_addr, advance_x_by_8, advance_x_by_4, inx4.
+    - cmd_* handlers (10 subs): cmd_net_fs, cmd_roff,
+      cmd_fs_operation, cmd_dir, cmd_iam, cmd_pass, cmd_rename,
+      parse_fs_ps_args, print_fs_info_newline.
+    - OSWORD &13 sub-handlers (19 subs): read/set_station, read/
+      write_csd, read/write_ws_pair, read/write_prot, read/set_handles,
+      read_rx_flag, read_rx_port, read_error, read_context,
+      read_free_bufs, read/write_ctx_3, bridge_query, plus
+      store_osword_pb_ptr.
+    - NETV / Tube / station-table (13 subs): recv_reply_preserve_flags,
+      tube_claim_c3, find_station_bit2, find_station_bit3,
+      flip_set_station_boot, enable_irq_and_poll, netv_handler,
+      push_osword_handler_addr, tx_econet_abort, osword_8_handler,
+      init_ws_copy_wide, init_ws_copy_narrow, ws_copy_vclr_entry.
+
+  Side fix found and committed: strip_token_prefix's description
+  said "&0E30 buffer" (the 4.18 location); the body actually
+  operates on lc030 = &C030 (the 4.21 sideways-RAM workspace).
+  Updated to match. There are likely more such carry-over comments
+  to clean up in Phase F.
 
 ## Phase B: Unidentified subroutine boundaries
 
