@@ -5565,97 +5565,97 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &97cd referenced 2 times by &9d0c, &a285
 .recv_and_process_reply
-    php                                                               ; 97cd: 08          .
-    jsr init_txcb_bye                                                 ; 97ce: 20 3d 97     =.
-    jsr wait_net_tx_ack                                               ; 97d1: 20 be 98     ..
-    plp                                                               ; 97d4: 28          (
+    php                                                               ; 97cd: 08          .              ; Save flags so caller's V/C survive the receive
+    jsr init_txcb_bye                                                 ; 97ce: 20 3d 97     =.            ; Set up open RX on port &90 for the FS reply (TXCB[0] = &90, ctrl = &7F)
+    jsr wait_net_tx_ack                                               ; 97d1: 20 be 98     ..            ; Wait for the reply via the 3-level stack timer
+    plp                                                               ; 97d4: 28          (              ; Restore caller's flags
 ; &97d5 referenced 1 time by &97e9
 .loop_next_reply
-    iny                                                               ; 97d5: c8          .
-    lda (txcb_start),y                                                ; 97d6: b1 c4       ..
-    tax                                                               ; 97d8: aa          .
-    beq return_from_recv_reply                                        ; 97d9: f0 06       ..
-    bvc process_reply_code                                            ; 97db: 50 02       P.
-    adc #&2a ; '*'                                                    ; 97dd: 69 2a       i*
+    iny                                                               ; 97d5: c8          .              ; Step Y to next reply byte
+    lda (txcb_start),y                                                ; 97d6: b1 c4       ..             ; Read reply byte at txcb_start+Y
+    tax                                                               ; 97d8: aa          .              ; Stash for the dispatch tests below
+    beq return_from_recv_reply                                        ; 97d9: f0 06       ..             ; Zero terminates: return
+    bvc process_reply_code                                            ; 97db: 50 02       P.             ; V clear (caller's V): use code as-is
+    adc #&2a ; '*'                                                    ; 97dd: 69 2a       i*             ; V set: shift the code by +&2A (extended-error mapping)
 ; &97df referenced 1 time by &97db
 .process_reply_code
-    bne store_reply_status                                            ; 97df: d0 0a       ..
+    bne store_reply_status                                            ; 97df: d0 0a       ..             ; Non-zero: dispatch as an error
 ; &97e1 referenced 1 time by &97d9
 .return_from_recv_reply
-    rts                                                               ; 97e1: 60          `
+    rts                                                               ; 97e1: 60          `              ; Return
 
 ; &97e2 referenced 1 time by &97c6
 .handle_disconnect
-    pla                                                               ; 97e2: 68          h
-    ldx #&c0                                                          ; 97e3: a2 c0       ..
-    iny                                                               ; 97e5: c8          .
-    jsr send_disconnect_reply                                         ; 97e6: 20 a6 af     ..
-    bcc loop_next_reply                                               ; 97e9: 90 ea       ..
+    pla                                                               ; 97e2: 68          h              ; Pull caller's pushed return state
+    ldx #&c0                                                          ; 97e3: a2 c0       ..             ; X=&C0: 'remote disconnect' status
+    iny                                                               ; 97e5: c8          .              ; Step Y past the disconnect byte
+    jsr send_disconnect_reply                                         ; 97e6: 20 a6 af     ..            ; Send disconnect notification to remote
+    bcc loop_next_reply                                               ; 97e9: 90 ea       ..             ; C clear (success): continue scanning replies
 ; &97eb referenced 1 time by &97df
 .store_reply_status
-    stx lc009                                                         ; 97eb: 8e 09 c0    ...
-    lda lc007                                                         ; 97ee: ad 07 c0    ...
-    php                                                               ; 97f1: 08          .
-    bne check_data_loss                                               ; 97f2: d0 04       ..
-    cpx #&bf                                                          ; 97f4: e0 bf       ..
-    bne build_error_block                                             ; 97f6: d0 39       .9
+    stx lc009                                                         ; 97eb: 8e 09 c0    ...            ; Save the error code into &C009
+    lda lc007                                                         ; 97ee: ad 07 c0    ...            ; Read FS state byte at &C007
+    php                                                               ; 97f1: 08          .              ; Save flags so we can branch later
+    bne check_data_loss                                               ; 97f2: d0 04       ..             ; FS state non-zero: data-loss check needed
+    cpx #&bf                                                          ; 97f4: e0 bf       ..             ; Reply was &BF (special: not a real error)?
+    bne build_error_block                                             ; 97f6: d0 39       .9             ; No: build error block
 ; &97f8 referenced 1 time by &97f2
 .check_data_loss
-    lda #&40 ; '@'                                                    ; 97f8: a9 40       .@
-    pha                                                               ; 97fa: 48          H
-    trb fs_flags                                                      ; 97fb: 1c 6c 0d    .l.
-    ldx #&f0                                                          ; 97fe: a2 f0       ..
+    lda #&40 ; '@'                                                    ; 97f8: a9 40       .@             ; A=&40: 'channel-active' bitmask
+    pha                                                               ; 97fa: 48          H              ; Push it onto the OR-accumulator
+    trb fs_flags                                                      ; 97fb: 1c 6c 0d    .l.            ; Clear the FS-active bit (we're losing the connection)
+    ldx #&f0                                                          ; 97fe: a2 f0       ..             ; X=&F0: scan from channel offset &F0 upwards
 ; &9800 referenced 1 time by &980e
 .loop_scan_channels
-    pla                                                               ; 9800: 68          h
-    ora lc1c8,x                                                       ; 9801: 1d c8 c1    ...
-    pha                                                               ; 9804: 48          H
-    lda lc1c8,x                                                       ; 9805: bd c8 c1    ...
-    and #&c0                                                          ; 9808: 29 c0       ).
-    sta lc1c8,x                                                       ; 980a: 9d c8 c1    ...
-    inx                                                               ; 980d: e8          .
-    bmi loop_scan_channels                                            ; 980e: 30 f0       0.
-    stx lc007                                                         ; 9810: 8e 07 c0    ...
-    jsr close_all_net_chans                                           ; 9813: 20 f8 b8     ..
-    pla                                                               ; 9816: 68          h
-    ror a                                                             ; 9817: 6a          j
-    bcc c9827                                                         ; 9818: 90 0d       ..
-    jsr sub_c928a                                                     ; 981a: 20 8a 92     ..
+    pla                                                               ; 9800: 68          h              ; Pull current OR accumulator
+    ora lc1c8,x                                                       ; 9801: 1d c8 c1    ...            ; OR with channel status byte at &C1C8+X
+    pha                                                               ; 9804: 48          H              ; Push back updated accumulator
+    lda lc1c8,x                                                       ; 9805: bd c8 c1    ...            ; Reload channel byte
+    and #&c0                                                          ; 9808: 29 c0       ).             ; Mask to top 2 bits (preserve TX/RX state)
+    sta lc1c8,x                                                       ; 980a: 9d c8 c1    ...            ; Write back trimmed status
+    inx                                                               ; 980d: e8          .              ; Step channel index
+    bmi loop_scan_channels                                            ; 980e: 30 f0       0.             ; Loop while X bit 7 set (covers &F0..&FF)
+    stx lc007                                                         ; 9810: 8e 07 c0    ...            ; Clear the FS state byte (no longer active)
+    jsr close_all_net_chans                                           ; 9813: 20 f8 b8     ..            ; Force-close all client channels
+    pla                                                               ; 9816: 68          h              ; Pull final OR accumulator
+    ror a                                                             ; 9817: 6a          j              ; ROR: bit 0 (was bit 6 of any &40 byte) -> C
+    bcc c9827                                                         ; 9818: 90 0d       ..             ; Any channel was active: skip the warning
+    jsr sub_c928a                                                     ; 981a: 20 8a 92     ..            ; No active channels were lost: print 'Data Lost' warning via inline string
     equs "Data Lost"                                                  ; 981d: 44 61 74... Dat
     equb &0d                                                          ; 9826: 0d          .
 
 ; &9827 referenced 1 time by &9818
 .c9827
-    ldx lc009                                                         ; 9827: ae 09 c0    ...
-    plp                                                               ; 982a: 28          (
-    beq build_error_block                                             ; 982b: f0 04       ..
-    pla                                                               ; 982d: 68          h
-    pla                                                               ; 982e: 68          h
-    pla                                                               ; 982f: 68          h
-    rts                                                               ; 9830: 60          `
+    ldx lc009                                                         ; 9827: ae 09 c0    ...            ; Reload error code from &C009
+    plp                                                               ; 982a: 28          (              ; Restore saved flags (was bit 7 of fs_flags)
+    beq build_error_block                                             ; 982b: f0 04       ..             ; Z set (no error): build the error block anyway
+    pla                                                               ; 982d: 68          h              ; Pull caller's saved return state (3 bytes from PHP earlier)
+    pla                                                               ; 982e: 68          h              ; (2nd PLA)
+    pla                                                               ; 982f: 68          h              ; (3rd PLA)
+    rts                                                               ; 9830: 60          `              ; Return -- caller dispatched on a non-error reply
 
 ; &9831 referenced 2 times by &97f6, &982b
 .build_error_block
-    ldy #1                                                            ; 9831: a0 01       ..
-    cpx #&a8                                                          ; 9833: e0 a8       ..
-    bcs setup_error_copy                                              ; 9835: b0 04       ..
-    lda #&a8                                                          ; 9837: a9 a8       ..
-    sta (txcb_start),y                                                ; 9839: 91 c4       ..
+    ldy #1                                                            ; 9831: a0 01       ..             ; Y=1: skip past the leading TXCB control byte
+    cpx #&a8                                                          ; 9833: e0 a8       ..             ; Error code below &A8 (extended)?
+    bcs setup_error_copy                                              ; 9835: b0 04       ..             ; No (>= &A8): proceed to copy
+    lda #&a8                                                          ; 9837: a9 a8       ..             ; Yes: clamp to &A8 (truncate range)
+    sta (txcb_start),y                                                ; 9839: 91 c4       ..             ; Write clamped code back into TXCB
 ; &983b referenced 1 time by &9835
 .setup_error_copy
-    ldy #&ff                                                          ; 983b: a0 ff       ..
+    ldy #&ff                                                          ; 983b: a0 ff       ..             ; Y=&FF: INY in loop bumps to 0
 ; &983d referenced 1 time by &9845
 .loop_copy_error
-    iny                                                               ; 983d: c8          .
-    lda (txcb_start),y                                                ; 983e: b1 c4       ..
-    sta l0100,y                                                       ; 9840: 99 00 01    ...
-    eor #&0d                                                          ; 9843: 49 0d       I.
-    bne loop_copy_error                                               ; 9845: d0 f6       ..
-    sta l0100,y                                                       ; 9847: 99 00 01    ...
-    dey                                                               ; 984a: 88          .
-    tya                                                               ; 984b: 98          .
-    tax                                                               ; 984c: aa          .
-    jmp check_net_error_code                                          ; 984d: 4c df 99    L..
+    iny                                                               ; 983d: c8          .              ; Step Y
+    lda (txcb_start),y                                                ; 983e: b1 c4       ..             ; Read TXCB byte (error block content)
+    sta l0100,y                                                       ; 9840: 99 00 01    ...            ; Copy to BRK error block at &0100+Y
+    eor #&0d                                                          ; 9843: 49 0d       I.             ; EOR with CR; Z set when we just copied the terminator
+    bne loop_copy_error                                               ; 9845: d0 f6       ..             ; Not yet at CR: continue copying
+    sta l0100,y                                                       ; 9847: 99 00 01    ...            ; Write the CR terminator (Z still set so A=0; ensures cleanly terminated)
+    dey                                                               ; 984a: 88          .              ; Step Y back so it points at the CR position
+    tya                                                               ; 984b: 98          .              ; Move Y into A for the BRK
+    tax                                                               ; 984c: aa          .              ; Move Y into X (caller convention)
+    jmp check_net_error_code                                          ; 984d: 4c df 99    L..            ; Tail-jump into the BRK-dispatch error path
 
 .lang_1_remote_boot
     ldy #0                                                            ; 9850: a0 00       ..

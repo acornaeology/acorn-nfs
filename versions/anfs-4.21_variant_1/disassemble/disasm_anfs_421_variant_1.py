@@ -7903,6 +7903,101 @@ comment(0xA429, "Write '?' to workspace[Y] (the slot is now free)",
         inline=True)
 comment(0xA42B, "Restore bit 0 of econet_flags", inline=True)
 comment(0xA42E, "Return", inline=True)
+
+# recv_and_process_reply inline comments (~70 items)
+# Setup
+comment(0x97CD, "Save flags so caller's V/C survive the receive",
+        inline=True)
+comment(0x97CE, "Set up open RX on port &90 for the FS reply (TXCB[0] "
+        "= &90, ctrl = &7F)", inline=True)
+comment(0x97D1, "Wait for the reply via the 3-level stack timer",
+        inline=True)
+comment(0x97D4, "Restore caller's flags", inline=True)
+# Reply byte iteration
+comment(0x97D5, "Step Y to next reply byte", inline=True)
+comment(0x97D6, "Read reply byte at txcb_start+Y", inline=True)
+comment(0x97D8, "Stash for the dispatch tests below", inline=True)
+comment(0x97D9, "Zero terminates: return", inline=True)
+comment(0x97DB, "V clear (caller's V): use code as-is", inline=True)
+comment(0x97DD, "V set: shift the code by +&2A (extended-error mapping)",
+        inline=True)
+comment(0x97DF, "Non-zero: dispatch as an error", inline=True)
+comment(0x97E1, "Return", inline=True)
+# handle_disconnect
+comment(0x97E2, "Pull caller's pushed return state", inline=True)
+comment(0x97E3, "X=&C0: 'remote disconnect' status", inline=True)
+comment(0x97E5, "Step Y past the disconnect byte", inline=True)
+comment(0x97E6, "Send disconnect notification to remote", inline=True)
+comment(0x97E9, "C clear (success): continue scanning replies",
+        inline=True)
+# store_reply_status
+comment(0x97EB, "Save the error code into &C009", inline=True)
+comment(0x97EE, "Read FS state byte at &C007", inline=True)
+comment(0x97F1, "Save flags so we can branch later", inline=True)
+comment(0x97F2, "FS state non-zero: data-loss check needed", inline=True)
+comment(0x97F4, "Reply was &BF (special: not a real error)?",
+        inline=True)
+comment(0x97F6, "No: build error block", inline=True)
+# check_data_loss path
+comment(0x97F8, "A=&40: 'channel-active' bitmask", inline=True)
+comment(0x97FA, "Push it onto the OR-accumulator", inline=True)
+comment(0x97FB, "Clear the FS-active bit (we're losing the connection)",
+        inline=True)
+comment(0x97FE, "X=&F0: scan from channel offset &F0 upwards",
+        inline=True)
+# loop_scan_channels
+comment(0x9800, "Pull current OR accumulator", inline=True)
+comment(0x9801, "OR with channel status byte at &C1C8+X", inline=True)
+comment(0x9804, "Push back updated accumulator", inline=True)
+comment(0x9805, "Reload channel byte", inline=True)
+comment(0x9808, "Mask to top 2 bits (preserve TX/RX state)",
+        inline=True)
+comment(0x980A, "Write back trimmed status", inline=True)
+comment(0x980D, "Step channel index", inline=True)
+comment(0x980E, "Loop while X bit 7 set (covers &F0..&FF)", inline=True)
+comment(0x9810, "Clear the FS state byte (no longer active)",
+        inline=True)
+comment(0x9813, "Force-close all client channels", inline=True)
+comment(0x9816, "Pull final OR accumulator", inline=True)
+comment(0x9817, "ROR: bit 0 (was bit 6 of any &40 byte) -> C",
+        inline=True)
+comment(0x9818, "Any channel was active: skip the warning", inline=True)
+comment(0x981A, "No active channels were lost: print 'Data Lost' "
+        "warning via inline string", inline=True)
+# After warning / data-loss return
+comment(0x9827, "Reload error code from &C009", inline=True)
+comment(0x982A, "Restore saved flags (was bit 7 of fs_flags)",
+        inline=True)
+comment(0x982B, "Z set (no error): build the error block anyway",
+        inline=True)
+comment(0x982D, "Pull caller's saved return state (3 bytes from PHP "
+        "earlier)", inline=True)
+comment(0x982E, "(2nd PLA)", inline=True)
+comment(0x982F, "(3rd PLA)", inline=True)
+comment(0x9830, "Return -- caller dispatched on a non-error reply",
+        inline=True)
+# build_error_block
+comment(0x9831, "Y=1: skip past the leading TXCB control byte",
+        inline=True)
+comment(0x9833, "Error code below &A8 (extended)?", inline=True)
+comment(0x9835, "No (>= &A8): proceed to copy", inline=True)
+comment(0x9837, "Yes: clamp to &A8 (truncate range)", inline=True)
+comment(0x9839, "Write clamped code back into TXCB", inline=True)
+comment(0x983B, "Y=&FF: INY in loop bumps to 0", inline=True)
+comment(0x983D, "Step Y", inline=True)
+comment(0x983E, "Read TXCB byte (error block content)", inline=True)
+comment(0x9840, "Copy to BRK error block at &0100+Y", inline=True)
+comment(0x9843, "EOR with CR; Z set when we just copied the terminator",
+        inline=True)
+comment(0x9845, "Not yet at CR: continue copying", inline=True)
+comment(0x9847, "Write the CR terminator (Z still set so A=0; ensures "
+        "cleanly terminated)", inline=True)
+comment(0x984A, "Step Y back so it points at the CR position",
+        inline=True)
+comment(0x984B, "Move Y into A for the BRK", inline=True)
+comment(0x984C, "Move Y into X (caller convention)", inline=True)
+comment(0x984D, "Tail-jump into the BRK-dispatch error path",
+        inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
