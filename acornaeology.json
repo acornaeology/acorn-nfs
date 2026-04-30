@@ -4,6 +4,20 @@
     "description": "NFS (Network Filing System) and ANFS (Advanced Network Filing System) are Econet filing system clients for the BBC Micro, providing remote file access over Acorn's Econet local area network. They handle the full Econet protocol stack — four-way handshake, NMI-driven frame transmission and reception — and plug into the MOS filing system framework to transparently redirect file operations to a network fileserver. Both ROMs also contain Tube host code for managing second-processor communication, which is largely unrelated to the filing system functionality. NFS (versions 3.34–3.65) is an 8 KB ROM; ANFS (4.x) is its 16 KB successor, with an expanded star command set and improved error reporting.",
     "glossary": "GLOSSARY.md",
     "versions": ["3.34", "3.34B", "3.35D", "3.35K", "3.40", "3.60", "3.62", "3.65", "4.08.53", "4.18", "4.21_variant_1"],
+    "analyses": [
+        {
+            "label": "The *HELP authors easter egg",
+            "url": "docs/analysis/authors-easter-egg.md",
+            "icon": "doc",
+            "note": "Type *HELP authors and ANFS prints its credit roll. The seven-byte keyword the matcher checks is overlaid on the printed message itself — bytes 5..11 of the credits string spell 'authors'. A second byte-saving trick parks the indexed-addressing base used by copy_ps_data inside whatever happens to live at base+&F8: 'ckburn' (4.08.53), 'nn' (4.18), and a JSR operand byte (4.21)."
+        },
+        {
+            "label": "Why is ANFS 4.21 named \"variant 1\"?",
+            "url": "docs/analysis/anfs-421-variant-naming.md",
+            "icon": "doc",
+            "note": "The Service-15 host-OS gate in the 4.21 ROM accepts only Master 128 (X=3) and Master Econet Terminal (X=4), and explicitly rejects Master Compact (X=5) — making 'variant 1' likely the Master 128 / ET build, with a presumed sibling 'variant 2' for the Compact. Falsifiable hypothesis pending a second 4.21 ROM."
+        }
+    ],
     "references": [
         {
             "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
