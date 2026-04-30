@@ -3017,10 +3017,10 @@ l89c9 = reset_enter_listen+2
 ;     Y: filing system number requested
 ; ***************************************************************************************
 .svc_18_fs_select
-    cpy #5                                                            ; 8b45: c0 05       ..
-    bne return_from_save_text_ptr                                     ; 8b47: d0 d9       ..
-    lda #0                                                            ; 8b49: a9 00       ..
-    sta svc_state                                                     ; 8b4b: 85 a9       ..
+    cpy #5                                                            ; 8b45: c0 05       ..             ; Service 18 carries FS number in Y; Econet is FS 5
+    bne return_from_save_text_ptr                                     ; 8b47: d0 d9       ..             ; Not us: pass the call on (RTS via shared return)
+    lda #0                                                            ; 8b49: a9 00       ..             ; A=0 to claim the service
+    sta svc_state                                                     ; 8b4b: 85 a9       ..             ; Clear svc_state and fall into ensure_fs_selected
 ; ***************************************************************************************
 ; Ensure ANFS is the active filing system
 ; 
@@ -3860,7 +3860,7 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &8ec9 referenced 3 times by &805d, &9041, &99fd
 .osbyte_x0
-    ldx #0                                                            ; 8ec9: a2 00       ..
+    ldx #0                                                            ; 8ec9: a2 00       ..             ; Force X=0; the LDY #&FF in osbyte_yff sets Z, so the BEQ after this is unconditional
 ; ***************************************************************************************
 ; OSBYTE wrapper with Y=&FF
 ; 
@@ -4706,10 +4706,10 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &939a referenced 3 times by &8dac, &b3c3, &b59a
 .is_decimal_digit
-    cmp #&26 ; '&'                                                    ; 939a: c9 26       .&
-    beq return_from_digit_test                                        ; 939c: f0 0a       ..
-    cmp #&2e ; '.'                                                    ; 939e: c9 2e       ..
-    beq return_from_digit_test                                        ; 93a0: f0 06       ..
+    cmp #&26 ; '&'                                                    ; 939a: c9 26       .&             ; Hex prefix '&'?
+    beq return_from_digit_test                                        ; 939c: f0 0a       ..             ; Yes: treat as digit-like (carry set on exit)
+    cmp #&2e ; '.'                                                    ; 939e: c9 2e       ..             ; Network/station separator '.'?
+    beq return_from_digit_test                                        ; 93a0: f0 06       ..             ; Yes: also digit-like; else fall through to decimal test
 ; ***************************************************************************************
 ; Test for decimal digit '0'-'9'
 ; 
@@ -4727,17 +4727,17 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93a2 referenced 1 time by &92fa
 .is_dec_digit_only
-    cmp #&3a ; ':'                                                    ; 93a2: c9 3a       .:
-    bcs not_a_digit                                                   ; 93a4: b0 03       ..
-    cmp #&30 ; '0'                                                    ; 93a6: c9 30       .0
+    cmp #&3a ; ':'                                                    ; 93a2: c9 3a       .:             ; Above '9'? (CMP #':')
+    bcs not_a_digit                                                   ; 93a4: b0 03       ..             ; Yes: not a digit -- jump to clear-carry exit
+    cmp #&30 ; '0'                                                    ; 93a6: c9 30       .0             ; Below '0'? (CMP sets carry if A >= '0')
 ; &93a8 referenced 2 times by &939c, &93a0
 .return_from_digit_test
-    rts                                                               ; 93a8: 60          `
+    rts                                                               ; 93a8: 60          `              ; Carry now reflects '0'-'9' membership; return
 
 ; &93a9 referenced 1 time by &93a4
 .not_a_digit
-    clc                                                               ; 93a9: 18          .
-    rts                                                               ; 93aa: 60          `
+    clc                                                               ; 93a9: 18          .              ; Out-of-range exit: clear carry to signal not-a-digit
+    rts                                                               ; 93aa: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Read and encode directory entry access byte
@@ -4754,11 +4754,11 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93ab referenced 2 times by &9e0d, &9e39
 .get_access_bits
-    ldy #&0e                                                          ; 93ab: a0 0e       ..
-    lda (fs_options),y                                                ; 93ad: b1 bb       ..
-    and #&3f ; '?'                                                    ; 93af: 29 3f       )?
-    ldx #4                                                            ; 93b1: a2 04       ..
-    bne begin_prot_encode                                             ; 93b3: d0 04       ..             ; ALWAYS branch
+    ldy #&0e                                                          ; 93ab: a0 0e       ..             ; Y=&0E: directory entry access byte offset
+    lda (fs_options),y                                                ; 93ad: b1 bb       ..             ; Read access byte through fs_options pointer
+    and #&3f ; '?'                                                    ; 93af: 29 3f       )?             ; Mask to 6 protection bits (clears the unused top two)
+    ldx #4                                                            ; 93b1: a2 04       ..             ; X=4: encode-table column index for owner-access bits
+    bne begin_prot_encode                                             ; 93b3: d0 04       ..             ; Always taken: LDX #4 cleared Z, so BNE is unconditional; ALWAYS branch
 
 ; ***************************************************************************************
 ; Encode protection bits via lookup table
@@ -4778,22 +4778,22 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93b5 referenced 2 times by &9d17, &9e56
 .get_prot_bits
-    and #&1f                                                          ; 93b5: 29 1f       ).
-    ldx #&ff                                                          ; 93b7: a2 ff       ..
+    and #&1f                                                          ; 93b5: 29 1f       ).             ; Mask to 5 protection bits (low 5)
+    ldx #&ff                                                          ; 93b7: a2 ff       ..             ; X=&FF; INX inside the loop bumps to 0 for column 0
 ; &93b9 referenced 1 time by &93b3
 .begin_prot_encode
-    sta fs_error_ptr                                                  ; 93b9: 85 b8       ..
-    lda #0                                                            ; 93bb: a9 00       ..
+    sta fs_error_ptr                                                  ; 93b9: 85 b8       ..             ; Park source bits in fs_error_ptr -- the LSR target
+    lda #0                                                            ; 93bb: a9 00       ..             ; A=0: accumulator for encoded result
 ; &93bd referenced 1 time by &93c5
 .loop_encode_prot
-    inx                                                               ; 93bd: e8          .
-    lsr fs_error_ptr                                                  ; 93be: 46 b8       F.
-    bcc skip_clear_prot                                               ; 93c0: 90 03       ..
-    ora prot_bit_encode_table,x                                       ; 93c2: 1d c8 93    ...
+    inx                                                               ; 93bd: e8          .              ; Advance table column index
+    lsr fs_error_ptr                                                  ; 93be: 46 b8       F.             ; Shift next source bit into carry
+    bcc skip_clear_prot                                               ; 93c0: 90 03       ..             ; Source bit was 0: skip the OR for this column
+    ora prot_bit_encode_table,x                                       ; 93c2: 1d c8 93    ...            ; Source bit was 1: OR in this column's encoded mask
 ; &93c5 referenced 1 time by &93c0
 .skip_clear_prot
-    bne loop_encode_prot                                              ; 93c5: d0 f6       ..
-    rts                                                               ; 93c7: 60          `
+    bne loop_encode_prot                                              ; 93c5: d0 f6       ..             ; Continue while either fs_error_ptr or A is non-zero (loop ends when source exhausted and result still 0)
+    rts                                                               ; 93c7: 60          `              ; Return with encoded value in A
 
 ; &93c8 referenced 1 time by &93c2
 .prot_bit_encode_table

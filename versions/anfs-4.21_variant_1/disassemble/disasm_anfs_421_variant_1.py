@@ -6154,6 +6154,58 @@ comment(0x8A8D, "Restore Y parameter", inline=True)
 # UNMAPPED: comment(0x8A3C, "Restore service call number", inline=True)
 # UNMAPPED: comment(0x8A3D, "Check relocated code service dispatch", inline=True)
 comment(0x8A8E, "Save service call number", inline=True)
+
+# svc_18_fs_select inline comments (4 items)
+comment(0x8B45, "Service 18 carries FS number in Y; Econet is FS 5", inline=True)
+comment(0x8B47, "Not us: pass the call on (RTS via shared return)", inline=True)
+comment(0x8B49, "A=0 to claim the service", inline=True)
+comment(0x8B4B, "Clear svc_state and fall into ensure_fs_selected", inline=True)
+
+# osbyte_x0 inline comment (1 item)
+comment(0x8EC9, "Force X=0; the LDY #&FF in osbyte_yff sets Z, so the BEQ "
+        "after this is unconditional", inline=True)
+
+# is_decimal_digit inline comments (4 items)
+comment(0x939A, "Hex prefix '&'?", inline=True)
+comment(0x939C, "Yes: treat as digit-like (carry set on exit)", inline=True)
+comment(0x939E, "Network/station separator '.'?", inline=True)
+comment(0x93A0, "Yes: also digit-like; else fall through to decimal test",
+        inline=True)
+
+# is_dec_digit_only inline comments (6 items)
+comment(0x93A2, "Above '9'? (CMP #':')", inline=True)
+comment(0x93A4, "Yes: not a digit -- jump to clear-carry exit", inline=True)
+comment(0x93A6, "Below '0'? (CMP sets carry if A >= '0')", inline=True)
+comment(0x93A8, "Carry now reflects '0'-'9' membership; return", inline=True)
+comment(0x93A9, "Out-of-range exit: clear carry to signal not-a-digit",
+        inline=True)
+comment(0x93AA, "Return", inline=True)
+
+# get_access_bits inline comments (5 items)
+comment(0x93AB, "Y=&0E: directory entry access byte offset", inline=True)
+comment(0x93AD, "Read access byte through fs_options pointer", inline=True)
+comment(0x93AF, "Mask to 6 protection bits (clears the unused top two)",
+        inline=True)
+comment(0x93B1, "X=4: encode-table column index for owner-access bits",
+        inline=True)
+comment(0x93B3, "Always taken: LDX #4 cleared Z, so BNE is "
+        "unconditional", inline=True)
+
+# get_prot_bits / begin_prot_encode inline comments (10 items)
+comment(0x93B5, "Mask to 5 protection bits (low 5)", inline=True)
+comment(0x93B7, "X=&FF; INX inside the loop bumps to 0 for column 0",
+        inline=True)
+comment(0x93B9, "Park source bits in fs_error_ptr -- the LSR target",
+        inline=True)
+comment(0x93BB, "A=0: accumulator for encoded result", inline=True)
+comment(0x93BD, "Advance table column index", inline=True)
+comment(0x93BE, "Shift next source bit into carry", inline=True)
+comment(0x93C0, "Source bit was 0: skip the OR for this column", inline=True)
+comment(0x93C2, "Source bit was 1: OR in this column's encoded mask",
+        inline=True)
+comment(0x93C5, "Continue while either fs_error_ptr or A is non-zero "
+        "(loop ends when source exhausted and result still 0)", inline=True)
+comment(0x93C7, "Return with encoded value in A", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
