@@ -11148,7 +11148,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b2a1 referenced 8 times by &9ceb, &9e22, &9e45, &9feb, &a501, &a52e, &b13f, &b712
 .copy_arg_to_buf
-    ldy #0                                                            ; b2a1: a0 00       ..
+    ldy #0                                                            ; b2a1: a0 00       ..             ; Y=0: scan from start of command line (CLC entry skips '&' validation)
 ; ***************************************************************************************
 ; Copy command line characters to TX buffer
 ; 
@@ -11165,39 +11165,39 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b2a3 referenced 3 times by &8dd0, &9553, &9589
 .copy_arg_validated
-    sec                                                               ; b2a3: 38          8
+    sec                                                               ; b2a3: 38          8              ; Set C: this entry validates against '&'
 ; &b2a4 referenced 1 time by &b2b7
 .loop_copy_char
-    lda (fs_crc_lo),y                                                 ; b2a4: b1 be       ..
-    sta lc105,x                                                       ; b2a6: 9d 05 c1    ...
-    bcc advance_positions                                             ; b2a9: 90 08       ..
-    cmp #&21 ; '!'                                                    ; b2ab: c9 21       .!
-    eor #&26 ; '&'                                                    ; b2ad: 49 26       I&
-    beq error_bad_prefix                                              ; b2af: f0 c8       ..
+    lda (fs_crc_lo),y                                                 ; b2a4: b1 be       ..             ; Read next source byte through fs_crc_lo pointer
+    sta lc105,x                                                       ; b2a6: 9d 05 c1    ...            ; Store into TX buffer at offset X
+    bcc advance_positions                                             ; b2a9: 90 08       ..             ; Validation off (C clear): just advance positions
+    cmp #&21 ; '!'                                                    ; b2ab: c9 21       .!             ; Test against '!' to bias the EOR comparison
+    eor #&26 ; '&'                                                    ; b2ad: 49 26       I&             ; EOR with '&'; Z set iff source byte was '&'
+    beq error_bad_prefix                                              ; b2af: f0 c8       ..             ; '&' inside the argument is illegal: raise 'Bad filename'
 .restore_after_check
-    eor #&26 ; '&'                                                    ; b2b1: 49 26       I&
+    eor #&26 ; '&'                                                    ; b2b1: 49 26       I&             ; Restore A by undoing the EOR (so the loop terminator test below sees the original byte)
 ; &b2b3 referenced 1 time by &b2a9
 .advance_positions
-    inx                                                               ; b2b3: e8          .
-    iny                                                               ; b2b4: c8          .
-    eor #&0d                                                          ; b2b5: 49 0d       I.
-    bne loop_copy_char                                                ; b2b7: d0 eb       ..
+    inx                                                               ; b2b3: e8          .              ; Advance TX buffer offset
+    iny                                                               ; b2b4: c8          .              ; Advance command-line offset
+    eor #&0d                                                          ; b2b5: 49 0d       I.             ; EOR with CR; Z set iff we just stored the terminator
+    bne loop_copy_char                                                ; b2b7: d0 eb       ..             ; More to copy: continue
 ; &b2b9 referenced 1 time by &b2c6
 .loop_cb2b9
-    lda lc103,x                                                       ; b2b9: bd 03 c1    ...
-    eor #&20 ; ' '                                                    ; b2bc: 49 20       I
-    bne done_trim_spaces                                              ; b2be: d0 08       ..
-    dex                                                               ; b2c0: ca          .
-    lda #&0d                                                          ; b2c1: a9 0d       ..
-    sta lc104,x                                                       ; b2c3: 9d 04 c1    ...
-    bne loop_cb2b9                                                    ; b2c6: d0 f1       ..             ; ALWAYS branch
+    lda lc103,x                                                       ; b2b9: bd 03 c1    ...            ; Look at the byte just before the CR we stopped on
+    eor #&20 ; ' '                                                    ; b2bc: 49 20       I              ; EOR with space; Z set iff that byte was a trailing space
+    bne done_trim_spaces                                              ; b2be: d0 08       ..             ; Not a space: trim done
+    dex                                                               ; b2c0: ca          .              ; Step back over the space
+    lda #&0d                                                          ; b2c1: a9 0d       ..             ; A=&0D: replace the trailing space with CR
+    sta lc104,x                                                       ; b2c3: 9d 04 c1    ...            ; Store CR at the now-truncated end
+    bne loop_cb2b9                                                    ; b2c6: d0 f1       ..             ; Always taken (A=&0D from LDA #&0D so Z is clear); look at the next byte back; ALWAYS branch
 
 ; &b2c8 referenced 1 time by &b2be
 .done_trim_spaces
-    lda #0                                                            ; b2c8: a9 00       ..
+    lda #0                                                            ; b2c8: a9 00       ..             ; All trailing spaces consumed (or none present)
 ; &b2ca referenced 1 time by &b2e0
 .return_from_copy_arg
-    rts                                                               ; b2ca: 60          `
+    rts                                                               ; b2ca: 60          `              ; Return
 
     equs "Load"                                                       ; b2cb: 4c 6f 61... Loa
 
@@ -11524,7 +11524,7 @@ labc5 = compare_bridge_status+1
 ; server template at the standard offset.
 ; ***************************************************************************************
 .copy_ps_data_y1c
-    ldy #&18                                                          ; b3d5: a0 18       ..
+    ldy #&18                                                          ; b3d5: a0 18       ..             ; Y=&18: standard offset for the PS template; fall into copy_ps_data
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
 ; 
@@ -11697,12 +11697,12 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b4a8 referenced 4 times by &b3ca, &b41f, &b5a1, &b601
 .load_ps_server_addr
-    ldy #2                                                            ; b4a8: a0 02       ..
-    lda (nfs_workspace),y                                             ; b4aa: b1 9e       ..
-    sta fs_work_5                                                     ; b4ac: 85 b5       ..
-    iny                                                               ; b4ae: c8          .              ; Y=&03
-    lda (nfs_workspace),y                                             ; b4af: b1 9e       ..
-    sta fs_work_6                                                     ; b4b1: 85 b6       ..
+    ldy #2                                                            ; b4a8: a0 02       ..             ; Y=2: workspace offset of PS station byte
+    lda (nfs_workspace),y                                             ; b4aa: b1 9e       ..             ; Read station byte
+    sta fs_work_5                                                     ; b4ac: 85 b5       ..             ; Stash in fs_work_5 (PS station)
+    iny                                                               ; b4ae: c8          .              ; Y=3: workspace offset of PS network byte; Y=&03
+    lda (nfs_workspace),y                                             ; b4af: b1 9e       ..             ; Read network byte
+    sta fs_work_6                                                     ; b4b1: 85 b6       ..             ; Stash in fs_work_6 (PS network)
     rts                                                               ; b4b3: 60          `
 
 ; ***************************************************************************************
@@ -11797,10 +11797,10 @@ lb4fd = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; &b51c referenced 2 times by &b4f5, &b4fc
 .write_ps_slot_byte_ff
-    iny                                                               ; b51c: c8          .
-    lda addr_work                                                     ; b51d: a5 af       ..
-    sta (nfs_workspace),y                                             ; b51f: 91 9e       ..
-    lda #&ff                                                          ; b521: a9 ff       ..
+    iny                                                               ; b51c: c8          .              ; Step Y to next workspace slot byte
+    lda addr_work                                                     ; b51d: a5 af       ..             ; Load buffer page byte from addr_work
+    sta (nfs_workspace),y                                             ; b51f: 91 9e       ..             ; Write at offset Y
+    lda #&ff                                                          ; b521: a9 ff       ..             ; A=&FF: sentinel; fall into write_two_bytes_inc_y to store two of them
 ; ***************************************************************************************
 ; Write A to two consecutive workspace bytes
 ; 
@@ -11813,11 +11813,11 @@ lb4fd = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; &b523 referenced 1 time by &b4e7
 .write_two_bytes_inc_y
-    iny                                                               ; b523: c8          .
-    sta (nfs_workspace),y                                             ; b524: 91 9e       ..
-    iny                                                               ; b526: c8          .
-    sta (nfs_workspace),y                                             ; b527: 91 9e       ..
-    iny                                                               ; b529: c8          .
+    iny                                                               ; b523: c8          .              ; Step Y to next destination
+    sta (nfs_workspace),y                                             ; b524: 91 9e       ..             ; Write A at workspace offset Y
+    iny                                                               ; b526: c8          .              ; Step Y again
+    sta (nfs_workspace),y                                             ; b527: 91 9e       ..             ; Write A at the next offset (two consecutive copies)
+    iny                                                               ; b529: c8          .              ; Final INY leaves Y pointing past the second write
     rts                                                               ; b52a: 60          `
 
 ; ***************************************************************************************
@@ -11829,34 +11829,34 @@ lb4fd = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; &b52b referenced 2 times by &b416, &b588
 .reverse_ps_name_to_tx
-    ldy #&18                                                          ; b52b: a0 18       ..
+    ldy #&18                                                          ; b52b: a0 18       ..             ; Y=&18: source offset (start of PS name in RX buffer)
 ; &b52d referenced 1 time by &b533
 .loop_push_ps_name
-    lda (net_rx_ptr),y                                                ; b52d: b1 9c       ..
-    pha                                                               ; b52f: 48          H
-    iny                                                               ; b530: c8          .
-    cpy #&20 ; ' '                                                    ; b531: c0 20       .
-    bne loop_push_ps_name                                             ; b533: d0 f8       ..
-    ldy #&17                                                          ; b535: a0 17       ..
+    lda (net_rx_ptr),y                                                ; b52d: b1 9c       ..             ; Read RX byte at offset Y
+    pha                                                               ; b52f: 48          H              ; Push it (the stack reverses the order)
+    iny                                                               ; b530: c8          .              ; Step source
+    cpy #&20 ; ' '                                                    ; b531: c0 20       .              ; Reached &20 (one past the 8-byte name)?
+    bne loop_push_ps_name                                             ; b533: d0 f8       ..             ; No: continue pushing
+    ldy #&17                                                          ; b535: a0 17       ..             ; Y=&17: destination offset for the reversed name
 ; &b537 referenced 1 time by &b53d
 .loop_pop_ps_name
-    pla                                                               ; b537: 68          h
-    sta (net_rx_ptr),y                                                ; b538: 91 9c       ..
-    dey                                                               ; b53a: 88          .
-    cpy #&0f                                                          ; b53b: c0 0f       ..
-    bne loop_pop_ps_name                                              ; b53d: d0 f8       ..
-    lda net_rx_ptr_hi                                                 ; b53f: a5 9d       ..
-    sta net_tx_ptr_hi                                                 ; b541: 85 9b       ..
-    lda #&0c                                                          ; b543: a9 0c       ..
-    sta net_tx_ptr                                                    ; b545: 85 9a       ..
-    ldy #3                                                            ; b547: a0 03       ..
+    pla                                                               ; b537: 68          h              ; Pull next pushed byte (LIFO -> reversed order)
+    sta (net_rx_ptr),y                                                ; b538: 91 9c       ..             ; Store at destination offset Y
+    dey                                                               ; b53a: 88          .              ; Step destination back
+    cpy #&0f                                                          ; b53b: c0 0f       ..             ; Reached &0F (one before the destination range)?
+    bne loop_pop_ps_name                                              ; b53d: d0 f8       ..             ; No: continue popping
+    lda net_rx_ptr_hi                                                 ; b53f: a5 9d       ..             ; Copy net_rx_ptr_hi as the TX page (TX shares the same page as RX for this packet)
+    sta net_tx_ptr_hi                                                 ; b541: 85 9b       ..             ; Set net_tx_ptr_hi
+    lda #&0c                                                          ; b543: a9 0c       ..             ; TX low byte = &0C: skip past the TX header to where the reversed name lives
+    sta net_tx_ptr                                                    ; b545: 85 9a       ..             ; Set net_tx_ptr lo
+    ldy #3                                                            ; b547: a0 03       ..             ; Y=3: copy 4-byte TX header (offsets 3..0)
 ; &b549 referenced 1 time by &b54f
 .loop_copy_tx_hdr
-    lda ps_tx_header_template,y                                       ; b549: b9 52 b5    .R.
-    sta (net_tx_ptr),y                                                ; b54c: 91 9a       ..
-    dey                                                               ; b54e: 88          .
-    bpl loop_copy_tx_hdr                                              ; b54f: 10 f8       ..
-    rts                                                               ; b551: 60          `
+    lda ps_tx_header_template,y                                       ; b549: b9 52 b5    .R.            ; Read template byte
+    sta (net_tx_ptr),y                                                ; b54c: 91 9a       ..             ; Write to TX buffer at offset Y
+    dey                                                               ; b54e: 88          .              ; Step backwards
+    bpl loop_copy_tx_hdr                                              ; b54f: 10 f8       ..             ; Loop while Y >= 0
+    rts                                                               ; b551: 60          `              ; Return
 
 ; &b552 referenced 1 time by &b549
 .ps_tx_header_template

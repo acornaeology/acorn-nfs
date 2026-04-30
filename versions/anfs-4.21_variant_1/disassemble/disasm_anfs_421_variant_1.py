@@ -6404,6 +6404,101 @@ comment(0xBFC3, "Fourth INX", inline=True)
 comment(0xBFC4, "Return; caller is either an explicit JSR (so X has "
         "advanced by 4) or advance_x_by_8's fall-through (so X has "
         "advanced by 8 total)", inline=True)
+
+# copy_arg_to_buf inline comment (1 item)
+comment(0xB2A1, "Y=0: scan from start of command line (CLC entry skips "
+        "'&' validation)", inline=True)
+
+# copy_arg_validated inline comments (15 items in body)
+comment(0xB2A3, "Set C: this entry validates against '&'", inline=True)
+comment(0xB2A4, "Read next source byte through fs_crc_lo pointer",
+        inline=True)
+comment(0xB2A6, "Store into TX buffer at offset X", inline=True)
+comment(0xB2A9, "Validation off (C clear): just advance positions",
+        inline=True)
+comment(0xB2AB, "Test against '!' to bias the EOR comparison", inline=True)
+comment(0xB2AD, "EOR with '&'; Z set iff source byte was '&'", inline=True)
+comment(0xB2AF, "'&' inside the argument is illegal: raise 'Bad filename'",
+        inline=True)
+comment(0xB2B1, "Restore A by undoing the EOR (so the loop terminator "
+        "test below sees the original byte)", inline=True)
+comment(0xB2B3, "Advance TX buffer offset", inline=True)
+comment(0xB2B4, "Advance command-line offset", inline=True)
+comment(0xB2B5, "EOR with CR; Z set iff we just stored the terminator",
+        inline=True)
+comment(0xB2B7, "More to copy: continue", inline=True)
+# Trailing-space trim (4.21 addition)
+comment(0xB2B9, "Look at the byte just before the CR we stopped on",
+        inline=True)
+comment(0xB2BC, "EOR with space; Z set iff that byte was a trailing space",
+        inline=True)
+comment(0xB2BE, "Not a space: trim done", inline=True)
+comment(0xB2C0, "Step back over the space", inline=True)
+comment(0xB2C1, "A=&0D: replace the trailing space with CR", inline=True)
+comment(0xB2C3, "Store CR at the now-truncated end", inline=True)
+comment(0xB2C6, "Always taken (A=&0D from LDA #&0D so Z is clear); look "
+        "at the next byte back", inline=True)
+comment(0xB2C8, "All trailing spaces consumed (or none present)",
+        inline=True)
+comment(0xB2CA, "Return", inline=True)
+
+# copy_ps_data_y1c inline comment (1 item)
+comment(0xB3D5, "Y=&18: standard offset for the PS template; fall into "
+        "copy_ps_data", inline=True)
+
+# load_ps_server_addr inline comments (6 items)
+comment(0xB4A8, "Y=2: workspace offset of PS station byte", inline=True)
+comment(0xB4AA, "Read station byte", inline=True)
+comment(0xB4AC, "Stash in fs_work_5 (PS station)", inline=True)
+comment(0xB4AE, "Y=3: workspace offset of PS network byte", inline=True)
+comment(0xB4AF, "Read network byte", inline=True)
+comment(0xB4B1, "Stash in fs_work_6 (PS network)", inline=True)
+
+# write_ps_slot_byte_ff inline comments (4 items)
+comment(0xB51C, "Step Y to next workspace slot byte", inline=True)
+comment(0xB51D, "Load buffer page byte from addr_work", inline=True)
+comment(0xB51F, "Write at offset Y", inline=True)
+comment(0xB521, "A=&FF: sentinel; fall into write_two_bytes_inc_y to "
+        "store two of them", inline=True)
+
+# write_two_bytes_inc_y inline comments (5 items)
+comment(0xB523, "Step Y to next destination", inline=True)
+comment(0xB524, "Write A at workspace offset Y", inline=True)
+comment(0xB526, "Step Y again", inline=True)
+comment(0xB527, "Write A at the next offset (two consecutive copies)",
+        inline=True)
+comment(0xB529, "Final INY leaves Y pointing past the second write",
+        inline=True)
+
+# reverse_ps_name_to_tx inline comments (16 items)
+comment(0xB52B, "Y=&18: source offset (start of PS name in RX buffer)",
+        inline=True)
+comment(0xB52D, "Read RX byte at offset Y", inline=True)
+comment(0xB52F, "Push it (the stack reverses the order)", inline=True)
+comment(0xB530, "Step source", inline=True)
+comment(0xB531, "Reached &20 (one past the 8-byte name)?", inline=True)
+comment(0xB533, "No: continue pushing", inline=True)
+comment(0xB535, "Y=&17: destination offset for the reversed name",
+        inline=True)
+comment(0xB537, "Pull next pushed byte (LIFO -> reversed order)",
+        inline=True)
+comment(0xB538, "Store at destination offset Y", inline=True)
+comment(0xB53A, "Step destination back", inline=True)
+comment(0xB53B, "Reached &0F (one before the destination range)?",
+        inline=True)
+comment(0xB53D, "No: continue popping", inline=True)
+comment(0xB53F, "Copy net_rx_ptr_hi as the TX page (TX shares the same "
+        "page as RX for this packet)", inline=True)
+comment(0xB541, "Set net_tx_ptr_hi", inline=True)
+comment(0xB543, "TX low byte = &0C: skip past the TX header to where "
+        "the reversed name lives", inline=True)
+comment(0xB545, "Set net_tx_ptr lo", inline=True)
+comment(0xB547, "Y=3: copy 4-byte TX header (offsets 3..0)", inline=True)
+comment(0xB549, "Read template byte", inline=True)
+comment(0xB54C, "Write to TX buffer at offset Y", inline=True)
+comment(0xB54E, "Step backwards", inline=True)
+comment(0xB54F, "Loop while Y >= 0", inline=True)
+comment(0xB551, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
