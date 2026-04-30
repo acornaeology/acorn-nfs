@@ -6538,6 +6538,58 @@ comment(0x97B3, "Override TX[3] with the library station byte",
         inline=True)
 comment(0x97B6, "Restore the saved flags (V/C control downstream "
         "init_txcb behaviour)", inline=True)
+
+# wait_net_tx_ack inline comments (28 items in body)
+comment(0x98BE, "Read the configurable rx-wait timeout (&0D6E, default "
+        "&28 = ~22s on 2 MHz)", inline=True)
+comment(0x98C1, "Push it as the outermost counter (read back via "
+        "stack-X indexing later)", inline=True)
+comment(0x98C2, "Read econet_flags so we can preserve it across the wait",
+        inline=True)
+comment(0x98C5, "Push it (we'll temporarily set bit 7 to mark waiting)",
+        inline=True)
+comment(0x98C6, "Check whether net_tx_ptr_hi is non-zero (TX in flight?)",
+        inline=True)
+comment(0x98C8, "Yes: skip the flag-set; counters initialise either way",
+        inline=True)
+comment(0x98CA, "TX idle: set bit 7 of econet_flags (signal RX-only wait)",
+        inline=True)
+comment(0x98CC, "Write the modified flags back", inline=True)
+comment(0x98CF, "A=0: initial value for inner+middle counters", inline=True)
+comment(0x98D1, "Push it -- middle counter at stack[X+2]", inline=True)
+comment(0x98D2, "Push it again -- inner counter at stack[X+1]",
+        inline=True)
+comment(0x98D3, "Y=0: indirect index for net_tx_ptr poll", inline=True)
+comment(0x98D4, "Capture S into X so we can address the stack counters",
+        inline=True)
+comment(0x98D5, "Read RX/TX flags through net_tx_ptr -- bit 7 set means "
+        "complete", inline=True)
+comment(0x98D7, "Bit 7 set: reply received, exit poll", inline=True)
+comment(0x98D9, "Decrement inner counter at stack[X+1]", inline=True)
+comment(0x98DC, "Inner not zero yet: poll again", inline=True)
+comment(0x98DE, "Inner wrapped: decrement middle at stack[X+2]",
+        inline=True)
+comment(0x98E1, "Middle not zero: poll again", inline=True)
+comment(0x98E3, "Middle wrapped: decrement outer at stack[X+4] (the "
+        "saved timeout value)", inline=True)
+comment(0x98E6, "Outer not zero: poll again", inline=True)
+comment(0x98E8, "Reload the original timeout to test for timeout=0 mode",
+        inline=True)
+comment(0x98EB, "Configured timeout was non-zero: declare timeout",
+        inline=True)
+comment(0x98ED, "Timeout=0 (poll forever): check escape flag", inline=True)
+comment(0x98EF, "Escape pressed: jump to escape handler at &9895",
+        inline=True)
+comment(0x98F1, "Reset outer counter so we keep polling", inline=True)
+comment(0x98F4, "Always taken (INC's result is always non-zero here): "
+        "back to inner", inline=True)
+comment(0x98F6, "done_poll_tx: discard inner counter (PLA)", inline=True)
+comment(0x98F7, "Discard middle counter", inline=True)
+comment(0x98F8, "Pull saved econet_flags", inline=True)
+comment(0x98F9, "Restore them (clearing bit 7 if we set it)", inline=True)
+comment(0x98FC, "Pull saved rx_wait_timeout into A", inline=True)
+comment(0x98FD, "If timeout reached zero, raise 'No reply'", inline=True)
+comment(0x98FF, "Reply received normally: return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

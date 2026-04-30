@@ -5742,48 +5742,48 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &98be referenced 6 times by &97d1, &9c9f, &9dd7, &acaa, &af53, &aff5
 .wait_net_tx_ack
-    lda rx_wait_timeout                                               ; 98be: ad 6e 0d    .n.
-    pha                                                               ; 98c1: 48          H
-    lda econet_flags                                                  ; 98c2: ad 61 0d    .a.
-    pha                                                               ; 98c5: 48          H
-    lda net_tx_ptr_hi                                                 ; 98c6: a5 9b       ..
-    bne init_poll_counters                                            ; 98c8: d0 05       ..
-    ora #&80                                                          ; 98ca: 09 80       ..
-    sta econet_flags                                                  ; 98cc: 8d 61 0d    .a.
+    lda rx_wait_timeout                                               ; 98be: ad 6e 0d    .n.            ; Read the configurable rx-wait timeout (&0D6E, default &28 = ~22s on 2 MHz)
+    pha                                                               ; 98c1: 48          H              ; Push it as the outermost counter (read back via stack-X indexing later)
+    lda econet_flags                                                  ; 98c2: ad 61 0d    .a.            ; Read econet_flags so we can preserve it across the wait
+    pha                                                               ; 98c5: 48          H              ; Push it (we'll temporarily set bit 7 to mark waiting)
+    lda net_tx_ptr_hi                                                 ; 98c6: a5 9b       ..             ; Check whether net_tx_ptr_hi is non-zero (TX in flight?)
+    bne init_poll_counters                                            ; 98c8: d0 05       ..             ; Yes: skip the flag-set; counters initialise either way
+    ora #&80                                                          ; 98ca: 09 80       ..             ; TX idle: set bit 7 of econet_flags (signal RX-only wait)
+    sta econet_flags                                                  ; 98cc: 8d 61 0d    .a.            ; Write the modified flags back
 ; &98cf referenced 1 time by &98c8
 .init_poll_counters
-    lda #0                                                            ; 98cf: a9 00       ..
-    pha                                                               ; 98d1: 48          H
-    pha                                                               ; 98d2: 48          H
-    tay                                                               ; 98d3: a8          .              ; Y=&00
-    tsx                                                               ; 98d4: ba          .
+    lda #0                                                            ; 98cf: a9 00       ..             ; A=0: initial value for inner+middle counters
+    pha                                                               ; 98d1: 48          H              ; Push it -- middle counter at stack[X+2]
+    pha                                                               ; 98d2: 48          H              ; Push it again -- inner counter at stack[X+1]
+    tay                                                               ; 98d3: a8          .              ; Y=0: indirect index for net_tx_ptr poll; Y=&00
+    tsx                                                               ; 98d4: ba          .              ; Capture S into X so we can address the stack counters
 ; &98d5 referenced 4 times by &98dc, &98e1, &98e6, &98f4
 .loop_poll_tx
-    lda (net_tx_ptr),y                                                ; 98d5: b1 9a       ..
-    bmi done_poll_tx                                                  ; 98d7: 30 1d       0.
-    dec l0101,x                                                       ; 98d9: de 01 01    ...
-    bne loop_poll_tx                                                  ; 98dc: d0 f7       ..
-    dec l0102,x                                                       ; 98de: de 02 01    ...
-    bne loop_poll_tx                                                  ; 98e1: d0 f2       ..
-    dec l0104,x                                                       ; 98e3: de 04 01    ...
-    bne loop_poll_tx                                                  ; 98e6: d0 ed       ..
-    lda rx_wait_timeout                                               ; 98e8: ad 6e 0d    .n.
-    bne done_poll_tx                                                  ; 98eb: d0 09       ..
-    lda escape_flag                                                   ; 98ed: a5 ff       ..
-    bmi c9895                                                         ; 98ef: 30 a4       0.
-    inc l0104,x                                                       ; 98f1: fe 04 01    ...
-    bne loop_poll_tx                                                  ; 98f4: d0 df       ..
+    lda (net_tx_ptr),y                                                ; 98d5: b1 9a       ..             ; Read RX/TX flags through net_tx_ptr -- bit 7 set means complete
+    bmi done_poll_tx                                                  ; 98d7: 30 1d       0.             ; Bit 7 set: reply received, exit poll
+    dec l0101,x                                                       ; 98d9: de 01 01    ...            ; Decrement inner counter at stack[X+1]
+    bne loop_poll_tx                                                  ; 98dc: d0 f7       ..             ; Inner not zero yet: poll again
+    dec l0102,x                                                       ; 98de: de 02 01    ...            ; Inner wrapped: decrement middle at stack[X+2]
+    bne loop_poll_tx                                                  ; 98e1: d0 f2       ..             ; Middle not zero: poll again
+    dec l0104,x                                                       ; 98e3: de 04 01    ...            ; Middle wrapped: decrement outer at stack[X+4] (the saved timeout value)
+    bne loop_poll_tx                                                  ; 98e6: d0 ed       ..             ; Outer not zero: poll again
+    lda rx_wait_timeout                                               ; 98e8: ad 6e 0d    .n.            ; Reload the original timeout to test for timeout=0 mode
+    bne done_poll_tx                                                  ; 98eb: d0 09       ..             ; Configured timeout was non-zero: declare timeout
+    lda escape_flag                                                   ; 98ed: a5 ff       ..             ; Timeout=0 (poll forever): check escape flag
+    bmi c9895                                                         ; 98ef: 30 a4       0.             ; Escape pressed: jump to escape handler at &9895
+    inc l0104,x                                                       ; 98f1: fe 04 01    ...            ; Reset outer counter so we keep polling
+    bne loop_poll_tx                                                  ; 98f4: d0 df       ..             ; Always taken (INC's result is always non-zero here): back to inner
 ; &98f6 referenced 2 times by &98d7, &98eb
 .done_poll_tx
-    pla                                                               ; 98f6: 68          h
-    pla                                                               ; 98f7: 68          h
-    pla                                                               ; 98f8: 68          h
-    sta econet_flags                                                  ; 98f9: 8d 61 0d    .a.
-    pla                                                               ; 98fc: 68          h
-    beq build_no_reply_error                                          ; 98fd: f0 0a       ..
+    pla                                                               ; 98f6: 68          h              ; done_poll_tx: discard inner counter (PLA)
+    pla                                                               ; 98f7: 68          h              ; Discard middle counter
+    pla                                                               ; 98f8: 68          h              ; Pull saved econet_flags
+    sta econet_flags                                                  ; 98f9: 8d 61 0d    .a.            ; Restore them (clearing bit 7 if we set it)
+    pla                                                               ; 98fc: 68          h              ; Pull saved rx_wait_timeout into A
+    beq build_no_reply_error                                          ; 98fd: f0 0a       ..             ; If timeout reached zero, raise 'No reply'
 ; &98ff referenced 1 time by &9893
 .return_1
-    rts                                                               ; 98ff: 60          `
+    rts                                                               ; 98ff: 60          `              ; Reply received normally: return
 
 ; ***************************************************************************************
 ; Conditionally store error code to workspace
