@@ -8113,31 +8113,31 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a3c4 referenced 3 times by &a3a8, &b3cf, &b5a6
 .parse_fs_ps_args
-    phx                                                               ; a3c4: da          .
-    lda #0                                                            ; a3c5: a9 00       ..
-    sta fs_work_4                                                     ; a3c7: 85 b4       ..
-    jsr parse_addr_arg                                                ; a3c9: 20 b2 92     ..
-    bcs skip_if_no_station                                            ; a3cc: b0 13       ..
-    sta fs_work_7                                                     ; a3ce: 85 b7       ..
-    phy                                                               ; a3d0: 5a          Z
-    jsr init_bridge_poll                                              ; a3d1: 20 e9 ab     ..
-    eor fs_load_addr_2                                                ; a3d4: 45 b2       E.
-    beq store_station_lo                                              ; a3d6: f0 02       ..
-    lda fs_load_addr_2                                                ; a3d8: a5 b2       ..
+    phx                                                               ; a3c4: da          .              ; Save caller's X (command-line offset cursor)
+    lda #0                                                            ; a3c5: a9 00       ..             ; A=0: clear the dot-seen flag for parse_addr_arg
+    sta fs_work_4                                                     ; a3c7: 85 b4       ..             ; Store cleared dot-seen flag
+    jsr parse_addr_arg                                                ; a3c9: 20 b2 92     ..            ; Parse first number (network or standalone station)
+    bcs skip_if_no_station                                            ; a3cc: b0 13       ..             ; C set: parse_addr_arg saw an empty argument -- skip station storage
+    sta fs_work_7                                                     ; a3ce: 85 b7       ..             ; Save the network number in fs_work_7
+    phy                                                               ; a3d0: 5a          Z              ; Save Y (current command-line cursor) for after the bridge poll
+    jsr init_bridge_poll                                              ; a3d1: 20 e9 ab     ..            ; Populate the bridge routing table -- returns local network number in A
+    eor fs_load_addr_2                                                ; a3d4: 45 b2       E.             ; EOR with parsed network: Z set iff parse matched local
+    beq store_station_lo                                              ; a3d6: f0 02       ..             ; Match: keep A=0 to mark local network
+    lda fs_load_addr_2                                                ; a3d8: a5 b2       ..             ; Mismatch: A = parsed network number
 ; &a3da referenced 1 time by &a3d6
 .store_station_lo
-    sta fs_work_6                                                     ; a3da: 85 b6       ..
-    ply                                                               ; a3dc: 7a          z
-    iny                                                               ; a3dd: c8          .
-    jsr parse_addr_arg                                                ; a3de: 20 b2 92     ..
+    sta fs_work_6                                                     ; a3da: 85 b6       ..             ; Store network number into fs_work_6 (the canonical form: 0=local, non-zero=remote)
+    ply                                                               ; a3dc: 7a          z              ; Restore Y
+    iny                                                               ; a3dd: c8          .              ; Step Y past the dot separator
+    jsr parse_addr_arg                                                ; a3de: 20 b2 92     ..            ; Parse station number after the dot
 ; &a3e1 referenced 1 time by &a3cc
 .skip_if_no_station
-    beq ca3e5                                                         ; a3e1: f0 02       ..
-    sta fs_work_5                                                     ; a3e3: 85 b5       ..
+    beq ca3e5                                                         ; a3e1: f0 02       ..             ; C set: no station after dot -- leave fs_work_5 alone
+    sta fs_work_5                                                     ; a3e3: 85 b5       ..             ; Store parsed station in fs_work_5
 ; &a3e5 referenced 1 time by &a3e1
 .ca3e5
-    plx                                                               ; a3e5: fa          .
-    rts                                                               ; a3e6: 60          `
+    plx                                                               ; a3e5: fa          .              ; Restore caller's X
+    rts                                                               ; a3e6: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Convert parameter block pointer to table index

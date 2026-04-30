@@ -7030,6 +7030,36 @@ comment(0xADF7, "A=1: abort code for tx_econet_abort", inline=True)
 comment(0xADF9, "Send the abort packet", inline=True)
 comment(0xADFC, "Restore nfs_workspace from X (X is unchanged across "
         "tx_econet_abort)", inline=True)
+
+# parse_fs_ps_args inline comments (~17 items)
+comment(0xA3C4, "Save caller's X (command-line offset cursor)",
+        inline=True)
+comment(0xA3C5, "A=0: clear the dot-seen flag for parse_addr_arg",
+        inline=True)
+comment(0xA3C7, "Store cleared dot-seen flag", inline=True)
+comment(0xA3C9, "Parse first number (network or standalone station)",
+        inline=True)
+comment(0xA3CC, "C set: parse_addr_arg saw an empty argument -- skip "
+        "station storage", inline=True)
+comment(0xA3CE, "Save the network number in fs_work_7", inline=True)
+comment(0xA3D0, "Save Y (current command-line cursor) for after the "
+        "bridge poll", inline=True)
+comment(0xA3D1, "Populate the bridge routing table -- returns local "
+        "network number in A", inline=True)
+comment(0xA3D4, "EOR with parsed network: Z set iff parse matched local",
+        inline=True)
+comment(0xA3D6, "Match: keep A=0 to mark local network", inline=True)
+comment(0xA3D8, "Mismatch: A = parsed network number", inline=True)
+comment(0xA3DA, "Store network number into fs_work_6 (the canonical "
+        "form: 0=local, non-zero=remote)", inline=True)
+comment(0xA3DC, "Restore Y", inline=True)
+comment(0xA3DD, "Step Y past the dot separator", inline=True)
+comment(0xA3DE, "Parse station number after the dot", inline=True)
+comment(0xA3E1, "C set: no station after dot -- leave fs_work_5 alone",
+        inline=True)
+comment(0xA3E3, "Store parsed station in fs_work_5", inline=True)
+comment(0xA3E5, "Restore caller's X", inline=True)
+comment(0xA3E6, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
