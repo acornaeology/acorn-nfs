@@ -1425,7 +1425,15 @@ l840a = sub_c8409+1
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 8488: 4c 15 82    L..            ; Jump to discard handler
 
-    equb &cd, &b0, &92, &92, &92, &e7, &e7, &bb                       ; 848b: cd b0 92... ...
+.imm_op_dispatch_lo
+    equb <(rx_imm_peek-1)                                             ; 848b: cd          .
+    equb <(rx_imm_poke-1)                                             ; 848c: b0          .
+    equb <(rx_imm_exec-1)                                             ; 848d: 92          .
+    equb <(rx_imm_exec-1)                                             ; 848e: 92          .
+    equb <(rx_imm_exec-1)                                             ; 848f: 92          .
+    equb <(rx_imm_halt_cont-1)                                        ; 8490: e7          .
+    equb <(rx_imm_halt_cont-1)                                        ; 8491: e7          .
+    equb <(rx_imm_machine_type-1)                                     ; 8492: bb          .
 
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
@@ -14146,6 +14154,11 @@ lb821 = err_net_chan_not_found+2
     assert (255 - inkey_key_ctrl) EOR 128 == &81
     assert <(fs_work_4) == &b4
     assert <(la6fe) == &fe
+    assert <(rx_imm_exec-1) == &92
+    assert <(rx_imm_halt_cont-1) == &e7
+    assert <(rx_imm_machine_type-1) == &bb
+    assert <(rx_imm_peek-1) == &cd
+    assert <(rx_imm_poke-1) == &b0
     assert >(fs_work_4) == &00
     assert >(la6fe) == &a6
     assert copyright - rom_header == &19

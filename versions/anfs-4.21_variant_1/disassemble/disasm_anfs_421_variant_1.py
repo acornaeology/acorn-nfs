@@ -2441,20 +2441,23 @@ subroutine(0x8454, "immediate_op",
     "table. Builds the reply by storing data length,\n"
     "station/network, and control byte into the RX buffer.")
 
-# UNMAPPED: label(0x8488, "imm_op_dispatch_lo")  # Immediate op dispatch lo-byte table
-
-# Immediate operation dispatch lo-byte table (&8488-&848F)
-# Indexed by ctrl byte Y=&81-&88 via LDA imm_op_dispatch_lo-&81,Y
-# UNMAPPED: for addr in range(0x8488, 0x8490):
-# UNMAPPED (orphan body):     byte(addr)
-# UNMAPPED: expr(0x8488, "<(rx_imm_peek-1)")
-# UNMAPPED: expr(0x8489, "<(rx_imm_poke-1)")
-# UNMAPPED: expr(0x848A, "<(rx_imm_exec-1)")
-# UNMAPPED: expr(0x848B, "<(rx_imm_exec-1)")
-# UNMAPPED: expr(0x848C, "<(rx_imm_exec-1)")
-# UNMAPPED: expr(0x848D, "<(rx_imm_halt_cont-1)")
-# UNMAPPED: expr(0x848E, "<(rx_imm_halt_cont-1)")
-# UNMAPPED: expr(0x848F, "<(rx_imm_machine_type-1)")
+# Immediate operation dispatch lo-byte table.
+# In 4.21_v1 the table moved by +3 to &848B-&8492 (the &8488 area is now
+# the JMP nmi_error_dispatch trampoline). 8 lo-byte entries indexed by
+# the immediate-op control byte ($81-$88) via LDA imm_op_dispatch_lo-$81,Y.
+# Each entry is the low byte of (handler-1) so that PHA/PHA/RTS dispatch
+# lands on the handler.
+label(0x848B, "imm_op_dispatch_lo")
+for addr in range(0x848B, 0x8493):
+    byte(addr)
+expr(0x848B, "<(rx_imm_peek-1)")            # ctrl &81: PEEK
+expr(0x848C, "<(rx_imm_poke-1)")            # ctrl &82: POKE
+expr(0x848D, "<(rx_imm_exec-1)")            # ctrl &83: JSR
+expr(0x848E, "<(rx_imm_exec-1)")            # ctrl &84: UserProc
+expr(0x848F, "<(rx_imm_exec-1)")            # ctrl &85: OSProc
+expr(0x8490, "<(rx_imm_halt_cont-1)")       # ctrl &86: HALT
+expr(0x8491, "<(rx_imm_halt_cont-1)")       # ctrl &87: CONTINUE
+expr(0x8492, "<(rx_imm_machine_type-1)")    # ctrl &88: machine-type
 
 subroutine(0x8493, "rx_imm_exec",
     title="RX immediate: JSR/UserProc/OSProc setup",
