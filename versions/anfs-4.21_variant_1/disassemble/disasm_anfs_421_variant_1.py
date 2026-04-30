@@ -6881,6 +6881,92 @@ comment(0xBE21, "Print ':    ASCII data<CR><CR>' trailer via inline",
         inline=True)
 comment(0xBE35, "Inline-string fallthrough", inline=True)
 comment(0xBE36, "Return", inline=True)
+
+# parse_dump_range inline comments (~52 items)
+# Phase 1: clear the 4-byte accumulator at (work_ae)
+comment(0xBE42, "Move command-line offset Y into A for the X copy",
+        inline=True)
+comment(0xBE43, "X = current command-line offset (live cursor)",
+        inline=True)
+comment(0xBE44, "A=0: zero-fill value", inline=True)
+comment(0xBE46, "Y=0: accumulator index", inline=True)
+comment(0xBE47, "Zero accumulator byte at (work_ae)+Y", inline=True)
+comment(0xBE49, "Step accumulator", inline=True)
+comment(0xBE4A, "Done all 4 bytes?", inline=True)
+comment(0xBE4C, "No: continue clearing", inline=True)
+# Phase 2: read next character
+comment(0xBE4E, "Reload command-line offset", inline=True)
+comment(0xBE4F, "Step cursor", inline=True)
+comment(0xBE50, "Y = stepped cursor (for the indirect read)", inline=True)
+comment(0xBE51, "Read next command-line byte", inline=True)
+comment(0xBE53, "CR? (end of address)", inline=True)
+comment(0xBE55, "Yes: range parsed -- exit via space-skip", inline=True)
+comment(0xBE57, "Space?", inline=True)
+comment(0xBE59, "Yes: also a separator -- exit", inline=True)
+comment(0xBE5B, "Below '0'?", inline=True)
+comment(0xBE5D, "Yes: not hex -- raise 'Bad hex'", inline=True)
+comment(0xBE5F, "Above '9'?", inline=True)
+comment(0xBE61, "No: it's '0'-'9' -- skip the letter handling",
+        inline=True)
+comment(0xBE63, "Force uppercase via AND #&5F", inline=True)
+comment(0xBE65, "Add &B8: 'A' (=&41) becomes &F9 with C set; 'F' becomes "
+        "&FE; this maps 'A'-'F' to &FA-&FF in C", inline=True)
+comment(0xBE67, "Carry out of ADC: digit was below 'A' -> bad hex",
+        inline=True)
+comment(0xBE69, "Below &FA? (i.e. before 'A' in mapped range)",
+        inline=True)
+comment(0xBE6B, "Yes (out of [&FA,&FF]): bad hex", inline=True)
+# Mask to nibble and rotate accumulator
+comment(0xBE6D, "Keep low nibble (0-15)", inline=True)
+comment(0xBE6F, "Push the new nibble", inline=True)
+comment(0xBE70, "Push X (current command-line offset)", inline=True)
+comment(0xBE72, "X=4: rotate the 4-byte accumulator left 4 times",
+        inline=True)
+comment(0xBE74, "Y=0: byte index for the rotate", inline=True)
+comment(0xBE76, "A=0 (and C clear from TYA's flags)", inline=True)
+comment(0xBE77, "Save A onto stack so we can use PHP/PLP to round-trip "
+        "carry through the rotate", inline=True)
+comment(0xBE78, "Pull flags (effectively C clear from the TYA above; on "
+        "later iterations C carries the bit shifted out)", inline=True)
+comment(0xBE79, "Read next accumulator byte", inline=True)
+comment(0xBE7B, "ROL: shift in C from below, shift out top bit to C",
+        inline=True)
+comment(0xBE7C, "Write back", inline=True)
+comment(0xBE7E, "Save the new C", inline=True)
+comment(0xBE7F, "Pull A back (PHA earlier)", inline=True)
+comment(0xBE80, "Step accumulator byte", inline=True)
+comment(0xBE81, "Done all 4 bytes?", inline=True)
+comment(0xBE83, "No: rotate next byte", inline=True)
+comment(0xBE85, "PHA/PLP: bring saved C into flag register", inline=True)
+comment(0xBE86, "PLP", inline=True)
+comment(0xBE87, "C set: a bit fell off the top -- overflow",
+        inline=True)
+comment(0xBE89, "Step rotate counter", inline=True)
+comment(0xBE8A, "Loop while X != 0 (4 rotates total)", inline=True)
+# OR new nibble into accumulator low byte
+comment(0xBE8C, "Pull saved X (command-line offset)", inline=True)
+comment(0xBE8D, "Restore X", inline=True)
+comment(0xBE8E, "Pull saved nibble into A", inline=True)
+comment(0xBE8F, "Y=0: low byte of accumulator", inline=True)
+comment(0xBE91, "OR new nibble into accumulator[0]", inline=True)
+comment(0xBE93, "Write back", inline=True)
+comment(0xBE95, "Loop for next hex digit", inline=True)
+# Overflow exit
+comment(0xBE98, "Discard saved nibble", inline=True)
+comment(0xBE99, "Discard saved X", inline=True)
+comment(0xBE9A, "Set C: signal overflow to caller", inline=True)
+comment(0xBE9B, "Return with C=1", inline=True)
+# Bad-hex error path
+comment(0xBE9C, "Close the dump file before raising the error",
+        inline=True)
+comment(0xBE9F, "Raise 'Bad hex' error; never returns", inline=True)
+# Trailing-space skip
+comment(0xBEA2, "Step past current space", inline=True)
+comment(0xBEA3, "Read next byte", inline=True)
+comment(0xBEA5, "Still a space?", inline=True)
+comment(0xBEA7, "Yes: keep skipping", inline=True)
+comment(0xBEA9, "Clear C: signal success", inline=True)
+comment(0xBEAA, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

@@ -13647,93 +13647,93 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &be42 referenced 2 times by &beb2, &bf3e
 .parse_dump_range
-    tya                                                               ; be42: 98          .
-    tax                                                               ; be43: aa          .
-    lda #0                                                            ; be44: a9 00       ..
-    tay                                                               ; be46: a8          .              ; Y=&00
+    tya                                                               ; be42: 98          .              ; Move command-line offset Y into A for the X copy
+    tax                                                               ; be43: aa          .              ; X = current command-line offset (live cursor)
+    lda #0                                                            ; be44: a9 00       ..             ; A=0: zero-fill value
+    tay                                                               ; be46: a8          .              ; Y=0: accumulator index; Y=&00
 ; &be47 referenced 1 time by &be4c
 .loop_clear_hex_accum
-    sta (work_ae),y                                                   ; be47: 91 ae       ..
-    iny                                                               ; be49: c8          .
-    cpy #4                                                            ; be4a: c0 04       ..
-    bne loop_clear_hex_accum                                          ; be4c: d0 f9       ..
+    sta (work_ae),y                                                   ; be47: 91 ae       ..             ; Zero accumulator byte at (work_ae)+Y
+    iny                                                               ; be49: c8          .              ; Step accumulator
+    cpy #4                                                            ; be4a: c0 04       ..             ; Done all 4 bytes?
+    bne loop_clear_hex_accum                                          ; be4c: d0 f9       ..             ; No: continue clearing
 ; &be4e referenced 1 time by &be95
 .loop_parse_hex_digit
-    txa                                                               ; be4e: 8a          .
-    inx                                                               ; be4f: e8          .
-    tay                                                               ; be50: a8          .
-    lda (os_text_ptr),y                                               ; be51: b1 f2       ..
-    cmp #&0d                                                          ; be53: c9 0d       ..
-    beq done_test_hex_space                                           ; be55: f0 4c       .L
-    cmp #&20 ; ' '                                                    ; be57: c9 20       .
-    beq done_test_hex_space                                           ; be59: f0 48       .H
-    cmp #&30 ; '0'                                                    ; be5b: c9 30       .0
-    bcc error_bad_hex_value                                           ; be5d: 90 3d       .=
-    cmp #&3a ; ':'                                                    ; be5f: c9 3a       .:
-    bcc done_mask_hex_digit                                           ; be61: 90 0a       ..
-    and #&5f ; '_'                                                    ; be63: 29 5f       )_
-    adc #&b8                                                          ; be65: 69 b8       i.
-    bcs error_bad_hex_value                                           ; be67: b0 33       .3
-    cmp #&fa                                                          ; be69: c9 fa       ..
-    bcc error_bad_hex_value                                           ; be6b: 90 2f       ./
+    txa                                                               ; be4e: 8a          .              ; Reload command-line offset
+    inx                                                               ; be4f: e8          .              ; Step cursor
+    tay                                                               ; be50: a8          .              ; Y = stepped cursor (for the indirect read)
+    lda (os_text_ptr),y                                               ; be51: b1 f2       ..             ; Read next command-line byte
+    cmp #&0d                                                          ; be53: c9 0d       ..             ; CR? (end of address)
+    beq done_test_hex_space                                           ; be55: f0 4c       .L             ; Yes: range parsed -- exit via space-skip
+    cmp #&20 ; ' '                                                    ; be57: c9 20       .              ; Space?
+    beq done_test_hex_space                                           ; be59: f0 48       .H             ; Yes: also a separator -- exit
+    cmp #&30 ; '0'                                                    ; be5b: c9 30       .0             ; Below '0'?
+    bcc error_bad_hex_value                                           ; be5d: 90 3d       .=             ; Yes: not hex -- raise 'Bad hex'
+    cmp #&3a ; ':'                                                    ; be5f: c9 3a       .:             ; Above '9'?
+    bcc done_mask_hex_digit                                           ; be61: 90 0a       ..             ; No: it's '0'-'9' -- skip the letter handling
+    and #&5f ; '_'                                                    ; be63: 29 5f       )_             ; Force uppercase via AND #&5F
+    adc #&b8                                                          ; be65: 69 b8       i.             ; Add &B8: 'A' (=&41) becomes &F9 with C set; 'F' becomes &FE; this maps 'A'-'F' to &FA-&FF in C
+    bcs error_bad_hex_value                                           ; be67: b0 33       .3             ; Carry out of ADC: digit was below 'A' -> bad hex
+    cmp #&fa                                                          ; be69: c9 fa       ..             ; Below &FA? (i.e. before 'A' in mapped range)
+    bcc error_bad_hex_value                                           ; be6b: 90 2f       ./             ; Yes (out of [&FA,&FF]): bad hex
 ; &be6d referenced 1 time by &be61
 .done_mask_hex_digit
-    and #&0f                                                          ; be6d: 29 0f       ).
-    pha                                                               ; be6f: 48          H
-    txa                                                               ; be70: 8a          .
+    and #&0f                                                          ; be6d: 29 0f       ).             ; Keep low nibble (0-15)
+    pha                                                               ; be6f: 48          H              ; Push the new nibble
+    txa                                                               ; be70: 8a          .              ; Push X (current command-line offset)
     pha                                                               ; be71: 48          H
-    ldx #4                                                            ; be72: a2 04       ..
+    ldx #4                                                            ; be72: a2 04       ..             ; X=4: rotate the 4-byte accumulator left 4 times
 ; &be74 referenced 1 time by &be8a
 .loop_shift_nibble
-    ldy #0                                                            ; be74: a0 00       ..
-    tya                                                               ; be76: 98          .              ; A=&00
+    ldy #0                                                            ; be74: a0 00       ..             ; Y=0: byte index for the rotate
+    tya                                                               ; be76: 98          .              ; A=0 (and C clear from TYA's flags); A=&00
 ; &be77 referenced 1 time by &be83
 .loop_rotate_hex_accum
-    pha                                                               ; be77: 48          H
-    plp                                                               ; be78: 28          (
-    lda (work_ae),y                                                   ; be79: b1 ae       ..
-    rol a                                                             ; be7b: 2a          *
-    sta (work_ae),y                                                   ; be7c: 91 ae       ..
-    php                                                               ; be7e: 08          .
-    pla                                                               ; be7f: 68          h
-    iny                                                               ; be80: c8          .
-    cpy #4                                                            ; be81: c0 04       ..
-    bne loop_rotate_hex_accum                                         ; be83: d0 f2       ..
-    pha                                                               ; be85: 48          H
-    plp                                                               ; be86: 28          (
-    bcs error_hex_overflow                                            ; be87: b0 0f       ..
-    dex                                                               ; be89: ca          .
-    bne loop_shift_nibble                                             ; be8a: d0 e8       ..
-    pla                                                               ; be8c: 68          h
-    tax                                                               ; be8d: aa          .
-    pla                                                               ; be8e: 68          h
-    ldy #0                                                            ; be8f: a0 00       ..
-    ora (work_ae),y                                                   ; be91: 11 ae       ..
-    sta (work_ae),y                                                   ; be93: 91 ae       ..
-    jmp loop_parse_hex_digit                                          ; be95: 4c 4e be    LN.
+    pha                                                               ; be77: 48          H              ; Save A onto stack so we can use PHP/PLP to round-trip carry through the rotate
+    plp                                                               ; be78: 28          (              ; Pull flags (effectively C clear from the TYA above; on later iterations C carries the bit shifted out)
+    lda (work_ae),y                                                   ; be79: b1 ae       ..             ; Read next accumulator byte
+    rol a                                                             ; be7b: 2a          *              ; ROL: shift in C from below, shift out top bit to C
+    sta (work_ae),y                                                   ; be7c: 91 ae       ..             ; Write back
+    php                                                               ; be7e: 08          .              ; Save the new C
+    pla                                                               ; be7f: 68          h              ; Pull A back (PHA earlier)
+    iny                                                               ; be80: c8          .              ; Step accumulator byte
+    cpy #4                                                            ; be81: c0 04       ..             ; Done all 4 bytes?
+    bne loop_rotate_hex_accum                                         ; be83: d0 f2       ..             ; No: rotate next byte
+    pha                                                               ; be85: 48          H              ; PHA/PLP: bring saved C into flag register
+    plp                                                               ; be86: 28          (              ; PLP
+    bcs error_hex_overflow                                            ; be87: b0 0f       ..             ; C set: a bit fell off the top -- overflow
+    dex                                                               ; be89: ca          .              ; Step rotate counter
+    bne loop_shift_nibble                                             ; be8a: d0 e8       ..             ; Loop while X != 0 (4 rotates total)
+    pla                                                               ; be8c: 68          h              ; Pull saved X (command-line offset)
+    tax                                                               ; be8d: aa          .              ; Restore X
+    pla                                                               ; be8e: 68          h              ; Pull saved nibble into A
+    ldy #0                                                            ; be8f: a0 00       ..             ; Y=0: low byte of accumulator
+    ora (work_ae),y                                                   ; be91: 11 ae       ..             ; OR new nibble into accumulator[0]
+    sta (work_ae),y                                                   ; be93: 91 ae       ..             ; Write back
+    jmp loop_parse_hex_digit                                          ; be95: 4c 4e be    LN.            ; Loop for next hex digit
 
 ; &be98 referenced 1 time by &be87
 .error_hex_overflow
-    pla                                                               ; be98: 68          h
-    pla                                                               ; be99: 68          h
-    sec                                                               ; be9a: 38          8
-    rts                                                               ; be9b: 60          `
+    pla                                                               ; be98: 68          h              ; Discard saved nibble
+    pla                                                               ; be99: 68          h              ; Discard saved X
+    sec                                                               ; be9a: 38          8              ; Set C: signal overflow to caller
+    rts                                                               ; be9b: 60          `              ; Return with C=1
 
 ; &be9c referenced 3 times by &be5d, &be67, &be6b
 .error_bad_hex_value
-    jsr close_ws_file                                                 ; be9c: 20 71 bf     q.
-    jmp err_bad_hex                                                   ; be9f: 4c 4a 93    LJ.
+    jsr close_ws_file                                                 ; be9c: 20 71 bf     q.            ; Close the dump file before raising the error
+    jmp err_bad_hex                                                   ; be9f: 4c 4a 93    LJ.            ; Raise 'Bad hex' error; never returns
 
 ; &bea2 referenced 1 time by &bea7
 .loop_skip_hex_spaces
-    iny                                                               ; bea2: c8          .
+    iny                                                               ; bea2: c8          .              ; Step past current space
 ; &bea3 referenced 2 times by &be55, &be59
 .done_test_hex_space
-    lda (os_text_ptr),y                                               ; bea3: b1 f2       ..
-    cmp #&20 ; ' '                                                    ; bea5: c9 20       .
-    beq loop_skip_hex_spaces                                          ; bea7: f0 f9       ..
-    clc                                                               ; bea9: 18          .
-    rts                                                               ; beaa: 60          `
+    lda (os_text_ptr),y                                               ; bea3: b1 f2       ..             ; Read next byte
+    cmp #&20 ; ' '                                                    ; bea5: c9 20       .              ; Still a space?
+    beq loop_skip_hex_spaces                                          ; bea7: f0 f9       ..             ; Yes: keep skipping
+    clc                                                               ; bea9: 18          .              ; Clear C: signal success
+    rts                                                               ; beaa: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Initialise dump buffer and parse address range
