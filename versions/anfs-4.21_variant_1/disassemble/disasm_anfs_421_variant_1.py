@@ -7616,6 +7616,86 @@ comment(0xBDFC, "X=&14: balance the loop_pop_stack_buf counter",
         inline=True)
 comment(0xBDFE, "Tail-jump to clean up the 21-byte stack buffer and "
         "close the file", inline=True)
+
+# pop_requeue_ps_scan inline comments (~50 items)
+# Restore caller's stack-saved state and prepare to walk PS slots
+comment(0xB4B4, "Pull saved upper byte of ws_ptr_lo+osword_flag pair",
+        inline=True)
+comment(0xB4B5, "Save into osword_flag", inline=True)
+comment(0xB4B7, "Pull lower byte", inline=True)
+comment(0xB4B8, "Save into ws_ptr_lo", inline=True)
+comment(0xB4BA, "Push 0 -- placeholder, will be the stacked return "
+        "marker", inline=True)
+comment(0xB4BC, "Push it", inline=True)
+comment(0xB4BD, "ws_ptr_hi base = &84 (start of PS slot table area)",
+        inline=True)
+comment(0xB4BF, "Save base", inline=True)
+comment(0xB4C1, "Shift bit 0 of econet_flags into C (saved scan state)",
+        inline=True)
+comment(0xB4C4, "A=3: PS slot index counter", inline=True)
+# Slot scan loop
+comment(0xB4C6, "Convert slot index to 12-byte-aligned table offset",
+        inline=True)
+comment(0xB4C9, "Out of range (clamped to 0): all slots scanned",
+        inline=True)
+comment(0xB4CB, "A /= 2 (shift down)", inline=True)
+comment(0xB4CC, "A /= 2 again (now slot index * 4 / 4 = slot index)",
+        inline=True)
+comment(0xB4CD, "X = slot index", inline=True)
+comment(0xB4CE, "Read slot's status byte at workspace[Y]", inline=True)
+comment(0xB4D0, "Slot empty (0): scan done", inline=True)
+comment(0xB4D2, "Slot is '?' (uninitialised marker)?", inline=True)
+comment(0xB4D4, "Yes: re-init this slot's data", inline=True)
+# Skip-next-slot
+comment(0xB4D6, "Step slot index", inline=True)
+comment(0xB4D7, "Move to A for next iteration", inline=True)
+comment(0xB4D8, "Loop while X != 0 (wraps when all slots done)",
+        inline=True)
+# Re-init '?' slot
+comment(0xB4DA, "Save Y (slot table offset)", inline=True)
+comment(0xB4DB, "Push it", inline=True)
+comment(0xB4DC, "A=&7F: slot status 'busy/active'", inline=True)
+comment(0xB4DE, "Mark slot active", inline=True)
+comment(0xB4E0, "Step Y to control byte", inline=True)
+comment(0xB4E1, "A=&9E: control byte (Master 128 PS-init pattern)",
+        inline=True)
+comment(0xB4E3, "Store control byte", inline=True)
+comment(0xB4E5, "A=0: zero-fill the next two bytes", inline=True)
+comment(0xB4E7, "Write two zeros, advance Y", inline=True)
+comment(0xB4EA, "Read current ws_ptr_hi", inline=True)
+comment(0xB4EC, "Store as buffer-link low byte", inline=True)
+comment(0xB4EE, "Clear C ready for the +3", inline=True)
+comment(0xB4EF, "Save flags so the ADC's C doesn't leak", inline=True)
+comment(0xB4F0, "Bump ws_ptr_hi by 3 (next slot's base)", inline=True)
+comment(0xB4F2, "Restore flags", inline=True)
+comment(0xB4F3, "Save updated ws_ptr_hi", inline=True)
+comment(0xB4F5, "Write buffer page + two &FF sentinels", inline=True)
+comment(0xB4F8, "Read ws_ptr_hi (now updated)", inline=True)
+comment(0xB4FA, "Store as second-link byte", inline=True)
+comment(0xB4FC, "Write another buffer page + two &FF sentinels",
+        inline=True)
+comment(0xB4FF, "Continue scanning slots", inline=True)
+# Done scanning -- delay loop
+comment(0xB502, "Restore bit 0 of econet_flags via ASL (recovers from "
+        "the LSR at &B4C1)", inline=True)
+comment(0xB505, "Pull saved ws_ptr_lo", inline=True)
+comment(0xB507, "Push it back (the caller's return-resume sequence)",
+        inline=True)
+comment(0xB508, "Pull saved osword_flag", inline=True)
+comment(0xB50A, "Push it back", inline=True)
+comment(0xB50B, "A=&0A: outer counter", inline=True)
+comment(0xB50D, "Y=&0A: inner counter", inline=True)
+comment(0xB50E, "X=&0A: middle counter", inline=True)
+comment(0xB50F, "Save outer in fs_work_4", inline=True)
+comment(0xB511, "Decrement inner counter", inline=True)
+comment(0xB512, "Inner not zero: keep delaying", inline=True)
+comment(0xB514, "Decrement middle", inline=True)
+comment(0xB515, "Middle not zero: refresh inner and continue",
+        inline=True)
+comment(0xB517, "Decrement outer in fs_work_4", inline=True)
+comment(0xB519, "Outer not zero: another full sweep (~1000 cycles)",
+        inline=True)
+comment(0xB51B, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

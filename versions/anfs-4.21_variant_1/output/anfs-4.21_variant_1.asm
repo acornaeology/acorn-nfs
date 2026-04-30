@@ -11721,79 +11721,79 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b4b4 referenced 2 times by &b41c, &b5fb
 .pop_requeue_ps_scan
-    pla                                                               ; b4b4: 68          h
-    sta osword_flag                                                   ; b4b5: 85 aa       ..
-    pla                                                               ; b4b7: 68          h
-    sta ws_ptr_lo                                                     ; b4b8: 85 ab       ..
-    lda #0                                                            ; b4ba: a9 00       ..
-    pha                                                               ; b4bc: 48          H
-    lda #&84                                                          ; b4bd: a9 84       ..
-    sta ws_ptr_hi                                                     ; b4bf: 85 ac       ..
-    lsr econet_flags                                                  ; b4c1: 4e 61 0d    Na.
-    lda #3                                                            ; b4c4: a9 03       ..
+    pla                                                               ; b4b4: 68          h              ; Pull saved upper byte of ws_ptr_lo+osword_flag pair
+    sta osword_flag                                                   ; b4b5: 85 aa       ..             ; Save into osword_flag
+    pla                                                               ; b4b7: 68          h              ; Pull lower byte
+    sta ws_ptr_lo                                                     ; b4b8: 85 ab       ..             ; Save into ws_ptr_lo
+    lda #0                                                            ; b4ba: a9 00       ..             ; Push 0 -- placeholder, will be the stacked return marker
+    pha                                                               ; b4bc: 48          H              ; Push it
+    lda #&84                                                          ; b4bd: a9 84       ..             ; ws_ptr_hi base = &84 (start of PS slot table area)
+    sta ws_ptr_hi                                                     ; b4bf: 85 ac       ..             ; Save base
+    lsr econet_flags                                                  ; b4c1: 4e 61 0d    Na.            ; Shift bit 0 of econet_flags into C (saved scan state)
+    lda #3                                                            ; b4c4: a9 03       ..             ; A=3: PS slot index counter
 ; &b4c6 referenced 1 time by &b4d8
 .loop_scan_ps_slots
-    jsr byte_to_2bit_index                                            ; b4c6: 20 e9 a3     ..
-    bcs done_ps_slot_scan                                             ; b4c9: b0 37       .7
-    lsr a                                                             ; b4cb: 4a          J
-    lsr a                                                             ; b4cc: 4a          J
-    tax                                                               ; b4cd: aa          .
-    lda (nfs_workspace),y                                             ; b4ce: b1 9e       ..
-    beq done_ps_slot_scan                                             ; b4d0: f0 30       .0
-    cmp #&3f ; '?'                                                    ; b4d2: c9 3f       .?
-    beq reinit_ps_slot                                                ; b4d4: f0 04       ..
+    jsr byte_to_2bit_index                                            ; b4c6: 20 e9 a3     ..            ; Convert slot index to 12-byte-aligned table offset
+    bcs done_ps_slot_scan                                             ; b4c9: b0 37       .7             ; Out of range (clamped to 0): all slots scanned
+    lsr a                                                             ; b4cb: 4a          J              ; A /= 2 (shift down)
+    lsr a                                                             ; b4cc: 4a          J              ; A /= 2 again (now slot index * 4 / 4 = slot index)
+    tax                                                               ; b4cd: aa          .              ; X = slot index
+    lda (nfs_workspace),y                                             ; b4ce: b1 9e       ..             ; Read slot's status byte at workspace[Y]
+    beq done_ps_slot_scan                                             ; b4d0: f0 30       .0             ; Slot empty (0): scan done
+    cmp #&3f ; '?'                                                    ; b4d2: c9 3f       .?             ; Slot is '?' (uninitialised marker)?
+    beq reinit_ps_slot                                                ; b4d4: f0 04       ..             ; Yes: re-init this slot's data
 ; &b4d6 referenced 1 time by &b4ff
 .skip_next_ps_slot
-    inx                                                               ; b4d6: e8          .
-    txa                                                               ; b4d7: 8a          .
-    bne loop_scan_ps_slots                                            ; b4d8: d0 ec       ..
+    inx                                                               ; b4d6: e8          .              ; Step slot index
+    txa                                                               ; b4d7: 8a          .              ; Move to A for next iteration
+    bne loop_scan_ps_slots                                            ; b4d8: d0 ec       ..             ; Loop while X != 0 (wraps when all slots done)
 ; &b4da referenced 1 time by &b4d4
 .reinit_ps_slot
-    tya                                                               ; b4da: 98          .
-    pha                                                               ; b4db: 48          H
-    lda #&7f                                                          ; b4dc: a9 7f       ..
-    sta (nfs_workspace),y                                             ; b4de: 91 9e       ..
-    iny                                                               ; b4e0: c8          .
-    lda #&9e                                                          ; b4e1: a9 9e       ..
-    sta (nfs_workspace),y                                             ; b4e3: 91 9e       ..
-    lda #0                                                            ; b4e5: a9 00       ..
-    jsr write_two_bytes_inc_y                                         ; b4e7: 20 23 b5     #.
-    lda ws_ptr_hi                                                     ; b4ea: a5 ac       ..
-    sta (nfs_workspace),y                                             ; b4ec: 91 9e       ..
-    clc                                                               ; b4ee: 18          .
-    php                                                               ; b4ef: 08          .
-    adc #3                                                            ; b4f0: 69 03       i.
-    plp                                                               ; b4f2: 28          (
-    sta ws_ptr_hi                                                     ; b4f3: 85 ac       ..
-    jsr write_ps_slot_byte_ff                                         ; b4f5: 20 1c b5     ..
-    lda ws_ptr_hi                                                     ; b4f8: a5 ac       ..
-    sta (nfs_workspace),y                                             ; b4fa: 91 9e       ..
+    tya                                                               ; b4da: 98          .              ; Save Y (slot table offset)
+    pha                                                               ; b4db: 48          H              ; Push it
+    lda #&7f                                                          ; b4dc: a9 7f       ..             ; A=&7F: slot status 'busy/active'
+    sta (nfs_workspace),y                                             ; b4de: 91 9e       ..             ; Mark slot active
+    iny                                                               ; b4e0: c8          .              ; Step Y to control byte
+    lda #&9e                                                          ; b4e1: a9 9e       ..             ; A=&9E: control byte (Master 128 PS-init pattern)
+    sta (nfs_workspace),y                                             ; b4e3: 91 9e       ..             ; Store control byte
+    lda #0                                                            ; b4e5: a9 00       ..             ; A=0: zero-fill the next two bytes
+    jsr write_two_bytes_inc_y                                         ; b4e7: 20 23 b5     #.            ; Write two zeros, advance Y
+    lda ws_ptr_hi                                                     ; b4ea: a5 ac       ..             ; Read current ws_ptr_hi
+    sta (nfs_workspace),y                                             ; b4ec: 91 9e       ..             ; Store as buffer-link low byte
+    clc                                                               ; b4ee: 18          .              ; Clear C ready for the +3
+    php                                                               ; b4ef: 08          .              ; Save flags so the ADC's C doesn't leak
+    adc #3                                                            ; b4f0: 69 03       i.             ; Bump ws_ptr_hi by 3 (next slot's base)
+    plp                                                               ; b4f2: 28          (              ; Restore flags
+    sta ws_ptr_hi                                                     ; b4f3: 85 ac       ..             ; Save updated ws_ptr_hi
+    jsr write_ps_slot_byte_ff                                         ; b4f5: 20 1c b5     ..            ; Write buffer page + two &FF sentinels
+    lda ws_ptr_hi                                                     ; b4f8: a5 ac       ..             ; Read ws_ptr_hi (now updated)
+    sta (nfs_workspace),y                                             ; b4fa: 91 9e       ..             ; Store as second-link byte
 .write_ps_slot_hi_link
 lb4fd = write_ps_slot_hi_link+1
-    jsr write_ps_slot_byte_ff                                         ; b4fc: 20 1c b5     ..
+    jsr write_ps_slot_byte_ff                                         ; b4fc: 20 1c b5     ..            ; Write another buffer page + two &FF sentinels
 ; &b4fd referenced 1 time by &b6a8
-    jmp skip_next_ps_slot                                             ; b4ff: 4c d6 b4    L..
+    jmp skip_next_ps_slot                                             ; b4ff: 4c d6 b4    L..            ; Continue scanning slots
 
 ; &b502 referenced 2 times by &b4c9, &b4d0
 .done_ps_slot_scan
-    asl econet_flags                                                  ; b502: 0e 61 0d    .a.
-    lda ws_ptr_lo                                                     ; b505: a5 ab       ..
-    pha                                                               ; b507: 48          H
-    lda osword_flag                                                   ; b508: a5 aa       ..
-    pha                                                               ; b50a: 48          H
-    lda #&0a                                                          ; b50b: a9 0a       ..
-    tay                                                               ; b50d: a8          .              ; Y=&0a
-    tax                                                               ; b50e: aa          .              ; X=&0a
-    sta fs_work_4                                                     ; b50f: 85 b4       ..
+    asl econet_flags                                                  ; b502: 0e 61 0d    .a.            ; Restore bit 0 of econet_flags via ASL (recovers from the LSR at &B4C1)
+    lda ws_ptr_lo                                                     ; b505: a5 ab       ..             ; Pull saved ws_ptr_lo
+    pha                                                               ; b507: 48          H              ; Push it back (the caller's return-resume sequence)
+    lda osword_flag                                                   ; b508: a5 aa       ..             ; Pull saved osword_flag
+    pha                                                               ; b50a: 48          H              ; Push it back
+    lda #&0a                                                          ; b50b: a9 0a       ..             ; A=&0A: outer counter
+    tay                                                               ; b50d: a8          .              ; Y=&0A: inner counter; Y=&0a
+    tax                                                               ; b50e: aa          .              ; X=&0A: middle counter; X=&0a
+    sta fs_work_4                                                     ; b50f: 85 b4       ..             ; Save outer in fs_work_4
 ; &b511 referenced 3 times by &b512, &b515, &b519
 .loop_ps_delay
-    dey                                                               ; b511: 88          .
-    bne loop_ps_delay                                                 ; b512: d0 fd       ..
-    dex                                                               ; b514: ca          .
-    bne loop_ps_delay                                                 ; b515: d0 fa       ..
-    dec fs_work_4                                                     ; b517: c6 b4       ..
-    bne loop_ps_delay                                                 ; b519: d0 f6       ..
-    rts                                                               ; b51b: 60          `
+    dey                                                               ; b511: 88          .              ; Decrement inner counter
+    bne loop_ps_delay                                                 ; b512: d0 fd       ..             ; Inner not zero: keep delaying
+    dex                                                               ; b514: ca          .              ; Decrement middle
+    bne loop_ps_delay                                                 ; b515: d0 fa       ..             ; Middle not zero: refresh inner and continue
+    dec fs_work_4                                                     ; b517: c6 b4       ..             ; Decrement outer in fs_work_4
+    bne loop_ps_delay                                                 ; b519: d0 f6       ..             ; Outer not zero: another full sweep (~1000 cycles)
+    rts                                                               ; b51b: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Write buffer page byte and two &FF markers
