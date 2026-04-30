@@ -5788,6 +5788,15 @@ l8da7 = sub_c8da6+1
 ; with OSBYTE &77, and closes all network channels.
 ; Falls through to save_net_tx_cb with function code
 ; &17 to send the bye request to the file server.
+; 
+; On Entry:
+;     &0E00, &0E01: FS station/network (stays as the 'Bye' destination across handle
+; teardown)
+; 
+; On Exit:
+;     BEHAVIOUR: tail-call into save_net_tx_cb with Y = &17 -- completes via the FS
+; reply path and returns A = reply status, or never returns on FS-reported errors (BRK
+; via error_inline)
 ; ***************************************************************************************
 .cmd_bye
     ldy #0                                                            ; 9776: a0 00       ..             ; Y=0: process_all_fcbs filter (0 = all FCBs)
@@ -5805,6 +5814,16 @@ l8da7 = sub_c8da6+1
 ; to the TX buffer, builds the TXCB, sends the
 ; packet, and waits for the reply. V is clear
 ; for standard mode.
+; 
+; On Entry:
+;     Y: FS function code (becomes TX[1] = txcb_func)
+;     X: TX buffer payload length (prep_send_tx_cb uses X+5 as txcb_end)
+;     &0E02, &0E03: FS station/network (copied to &0F02/&0F03)
+; 
+; On Exit:
+;     A: FS reply status
+;     BEHAVIOUR: performs full send/receive via prep_send_tx_cb ->
+; recv_and_process_reply; may BRK with FS-reported error
 ; ***************************************************************************************
 ; &978a referenced 20 times by &8e3c, &9558, &957b, &958e, &9e4a, &9f2f, &9f3f, &9f8d, &a018, &a091, &a0c5, &a199, &a1bc, &a28c, &a347, &a50b, &a533, &b150, &b71b, &bcaa
 .save_net_tx_cb
@@ -5819,6 +5838,18 @@ l8da7 = sub_c8da6+1
 ; the common TXCB copy, send, and reply path.
 ; Called by check_and_setup_txcb,
 ; format_filename_field, and cmd_remove.
+; 
+; On Entry:
+;     Y: FS function code
+;     X: TX buffer payload length
+;     V FLAG: set by caller (selects this variant via the 'no CLV' fall-through from
+; save_net_tx_cb)
+;     &0E02, &0E03: FS station/network
+; 
+; On Exit:
+;     A: FS reply status
+;     BEHAVIOUR: see save_net_tx_cb -- same send/receive cycle, with V left set across
+; the txcb-copy phase
 ; ***************************************************************************************
 ; &978b referenced 2 times by &9e31, &9ff6
 .save_net_tx_cb_vset
@@ -5868,6 +5899,17 @@ l8da7 = sub_c8da6+1
 ; initiate a new four-way handshake with the
 ; reply on port &90. There is no reply data in
 ; the original ACK payload.
+; 
+; On Entry:
+;     X: TX buffer payload length (txcb_end = X + 5)
+;     Y: FS function code (already stashed by the txcb-copy entry path)
+;     C FLAG: set = disconnect path (handle_disconnect); clear = normal four-way
+; handshake send
+;     TXCB AT &00C0: destination station/network already populated
+; 
+; On Exit:
+;     A: FS reply status (or doesn't return on error)
+;     TXCB_END (&C8): TX buffer end offset
 ; ***************************************************************************************
 ; &97b7 referenced 1 time by &a2e5
 .prep_send_tx_cb
@@ -5901,6 +5943,17 @@ l8da7 = sub_c8da6+1
 ; disconnect requests (C set from prep_send_tx_cb)
 ; and 'Data Lost' warnings when channel status
 ; bits indicate pending writes were interrupted.
+; 
+; On Entry:
+;     C FLAG: set = disconnect mode (caller sent a disconnect scout; handle the
+; server's matching reply)
+;     TXCB AT &00C0: still set up by prep_send_tx_cb (port &90)
+; 
+; On Exit:
+;     A: FS reply status byte
+;     BEHAVIOUR: may BRK on FS-reported errors (via classify_reply_error /
+; build_simple_error). 'No reply' is raised if the open receive times out in
+; wait_net_tx_ack.
 ; ***************************************************************************************
 ; &97cd referenced 2 times by &9d0c, &a285
 .recv_and_process_reply
@@ -6093,6 +6146,16 @@ l8da7 = sub_c8da6+1
 ; seconds. On timeout, branches to
 ; build_no_reply_error to raise 'No reply'.
 ; Called by 6 sites across the protocol stack.
+; 
+; On Entry:
+;     TXCB AT &00C0: open-receive control block with txcb_ctrl bit 7 clear (set to &7F
+; by init_txcb_port)
+;     RX_WAIT_TIMEOUT (&0D6E): outer-loop count (default &28 ~ 22 s on 2 MHz 6502)
+; 
+; On Exit:
+;     BEHAVIOUR: returns when txcb_ctrl bit 7 becomes set (reply received); on timeout,
+; tail-jumps to build_no_reply_error which raises 'No reply' via BRK and does not
+; return
 ; ***************************************************************************************
 ; &98be referenced 6 times by &97d1, &9c9f, &9dd7, &acaa, &af53, &aff5
 .wait_net_tx_ack

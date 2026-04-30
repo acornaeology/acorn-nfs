@@ -3451,7 +3451,15 @@ subroutine(0x978A, "save_net_tx_cb",
     description="Copies station address and function code (Y)\n"
     "to the TX buffer, builds the TXCB, sends the\n"
     "packet, and waits for the reply. V is clear\n"
-    "for standard mode.")
+    "for standard mode.",
+    on_entry={"y": "FS function code (becomes TX[1] = txcb_func)",
+              "x": "TX buffer payload length "
+              "(prep_send_tx_cb uses X+5 as txcb_end)",
+              "&0E02, &0E03": "FS station/network (copied to &0F02/&0F03)"},
+    on_exit={"a": "FS reply status",
+             "behaviour":
+             "performs full send/receive via prep_send_tx_cb -> "
+             "recv_and_process_reply; may BRK with FS-reported error"})
 subroutine(0x978B, "save_net_tx_cb_vset",
     title="Save and send TXCB with V flag set",
     description="Variant of save_net_tx_cb for callers that have\n"
@@ -3460,7 +3468,16 @@ subroutine(0x978B, "save_net_tx_cb_vset",
     "txcb_copy_carry_clr which clears carry and enters\n"
     "the common TXCB copy, send, and reply path.\n"
     "Called by check_and_setup_txcb,\n"
-    "format_filename_field, and cmd_remove.")
+    "format_filename_field, and cmd_remove.",
+    on_entry={"y": "FS function code",
+              "x": "TX buffer payload length",
+              "v flag": "set by caller (selects this variant via the "
+              "'no CLV' fall-through from save_net_tx_cb)",
+              "&0E02, &0E03": "FS station/network"},
+    on_exit={"a": "FS reply status",
+             "behaviour":
+             "see save_net_tx_cb -- same send/receive cycle, "
+             "with V left set across the txcb-copy phase"})
 subroutine(0x97B7, "prep_send_tx_cb",
     title="Build TXCB from scratch, send, and receive reply",
     description="Full send/receive cycle comprising two separate\n"
@@ -3475,7 +3492,15 @@ subroutine(0x97B7, "prep_send_tx_cb",
     "which waits for the server to independently\n"
     "initiate a new four-way handshake with the\n"
     "reply on port &90. There is no reply data in\n"
-    "the original ACK payload.")
+    "the original ACK payload.",
+    on_entry={"x": "TX buffer payload length (txcb_end = X + 5)",
+              "y": "FS function code (already stashed by the txcb-copy "
+              "entry path)",
+              "c flag": "set = disconnect path (handle_disconnect); "
+              "clear = normal four-way handshake send",
+              "txcb at &00C0": "destination station/network already populated"},
+    on_exit={"a": "FS reply status (or doesn't return on error)",
+             "txcb_end (&C8)": "TX buffer end offset"})
 subroutine(0x97CD, "recv_and_process_reply",
     title="Receive FS reply and dispatch on status codes",
     description="Waits for a server-initiated reply transaction.\n"
@@ -3492,7 +3517,15 @@ subroutine(0x97CD, "recv_and_process_reply",
     "codes dispatch to store_reply_status. Handles\n"
     "disconnect requests (C set from prep_send_tx_cb)\n"
     "and 'Data Lost' warnings when channel status\n"
-    "bits indicate pending writes were interrupted.")
+    "bits indicate pending writes were interrupted.",
+    on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
+              "scout; handle the server's matching reply)",
+              "txcb at &00C0": "still set up by prep_send_tx_cb (port &90)"},
+    on_exit={"a": "FS reply status byte",
+             "behaviour":
+             "may BRK on FS-reported errors (via classify_reply_error / "
+             "build_simple_error). 'No reply' is raised if the open "
+             "receive times out in wait_net_tx_ack."})
 # UNMAPPED: subroutine(0x9570, "check_escape",
 # UNMAPPED:     title="Check for pending escape condition",
 # UNMAPPED:     description="ANDs the MOS escape flag (&FF) with the\n"
@@ -3518,7 +3551,16 @@ subroutine(0x98BE, "wait_net_tx_ack",
     "poll on a 2 MHz 6502, the default gives ~22\n"
     "seconds. On timeout, branches to\n"
     "build_no_reply_error to raise 'No reply'.\n"
-    "Called by 6 sites across the protocol stack.")
+    "Called by 6 sites across the protocol stack.",
+    on_entry={"txcb at &00C0":
+              "open-receive control block with txcb_ctrl bit 7 clear "
+              "(set to &7F by init_txcb_port)",
+              "rx_wait_timeout (&0D6E)":
+              "outer-loop count (default &28 ~ 22 s on 2 MHz 6502)"},
+    on_exit={"behaviour":
+             "returns when txcb_ctrl bit 7 becomes set (reply received); "
+             "on timeout, tail-jumps to build_no_reply_error which raises "
+             "'No reply' via BRK and does not return"})
 subroutine(0x9900, "cond_save_error_code",
     title="Conditionally store error code to workspace",
     description="Tests bit 7 of &0D6C (FS selected flag). If\n"
@@ -9570,7 +9612,13 @@ subroutine(0x9776, "cmd_bye",
     "process_all_fcbs, shuts down any *SPOOL/*EXEC files\n"
     "with OSBYTE &77, and closes all network channels.\n"
     "Falls through to save_net_tx_cb with function code\n"
-    "&17 to send the bye request to the file server.")
+    "&17 to send the bye request to the file server.",
+    on_entry={"&0E00, &0E01": "FS station/network "
+              "(stays as the 'Bye' destination across handle teardown)"},
+    on_exit={"behaviour":
+             "tail-call into save_net_tx_cb with Y = &17 -- "
+             "completes via the FS reply path and returns A = reply status, "
+             "or never returns on FS-reported errors (BRK via error_inline)"})
 # Located in 4.21_v1 at &B0A0 (was &AD10 in 4.18). Initial fingerprint
 # hit &B09F but the byte there is the &60 RTS terminating the previous
 # routine; cmd_cdir's TYA/PHA prologue starts at &B0A0. Reached via
