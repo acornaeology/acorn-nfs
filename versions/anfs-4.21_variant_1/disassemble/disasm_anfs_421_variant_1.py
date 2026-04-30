@@ -6691,6 +6691,25 @@ comment(0xB498, "Print ' server is ' via inline string", inline=True)
 comment(0xB4A6, "Inline-string fallthrough lands here", inline=True)
 comment(0xB4A7, "Return; caller now prints the actual server "
         "(file or printer) address", inline=True)
+
+# print_hex_and_space inline comments (5 items)
+comment(0xBE37, "Save A so the caller can re-use the value", inline=True)
+comment(0xBE38, "Print A as two hex digits", inline=True)
+comment(0xBE3B, "A=' ': trailing column separator", inline=True)
+comment(0xBE3D, "Print the space via OSASCI", inline=True)
+comment(0xBE40, "Restore caller's A", inline=True)
+comment(0xBE41, "Return", inline=True)
+
+# print_fs_info_newline inline comments (3 items)
+comment(0xA3BB, "Set V so print_station_addr suppresses the leading "
+        "'0.' when the network number is zero", inline=True)
+comment(0xA3BE, "Print the station/network address", inline=True)
+comment(0xA3C1, "Tail-call OSNEWL for the trailing CR/LF", inline=True)
+
+# parse_filename_arg inline comment (1 item)
+comment(0xB22C, "Read the GSREAD-style filename argument into the "
+        "&C030 buffer, then fall into parse_access_prefix",
+        inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

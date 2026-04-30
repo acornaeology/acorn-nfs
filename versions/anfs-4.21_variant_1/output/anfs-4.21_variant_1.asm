@@ -8094,9 +8094,9 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a3bb referenced 1 time by &b474
 .print_fs_info_newline
-    bit always_set_v_byte                                             ; a3bb: 2c 69 97    ,i.
-    jsr print_station_addr                                            ; a3be: 20 56 b5     V.
-    jmp osnewl                                                        ; a3c1: 4c e7 ff    L..            ; Write newline (characters 10 and 13)
+    bit always_set_v_byte                                             ; a3bb: 2c 69 97    ,i.            ; Set V so print_station_addr suppresses the leading '0.' when the network number is zero
+    jsr print_station_addr                                            ; a3be: 20 56 b5     V.            ; Print the station/network address
+    jmp osnewl                                                        ; a3c1: 4c e7 ff    L..            ; Tail-call OSNEWL for the trailing CR/LF; Write newline (characters 10 and 13)
 
 ; ***************************************************************************************
 ; Parse station address from *FS/*PS arguments
@@ -11028,7 +11028,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b22c referenced 2 times by &b13a, &b6fd
 .parse_filename_arg
-    jsr gsread_to_buf                                                 ; b22c: 20 00 9c     ..
+    jsr gsread_to_buf                                                 ; b22c: 20 00 9c     ..            ; Read the GSREAD-style filename argument into the &C030 buffer, then fall into parse_access_prefix
 ; ***************************************************************************************
 ; Parse access and FS selection prefix characters
 ; 
@@ -13622,13 +13622,13 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &be37 referenced 2 times by &bdb8, &be16
 .print_hex_and_space
-    pha                                                               ; be37: 48          H
-    jsr print_hex_byte                                                ; be38: 20 36 92     6.
-    lda #&20 ; ' '                                                    ; be3b: a9 20       .
-    jsr osasci                                                        ; be3d: 20 e3 ff     ..            ; Write character 32
+    pha                                                               ; be37: 48          H              ; Save A so the caller can re-use the value
+    jsr print_hex_byte                                                ; be38: 20 36 92     6.            ; Print A as two hex digits
+    lda #&20 ; ' '                                                    ; be3b: a9 20       .              ; A=' ': trailing column separator
+    jsr osasci                                                        ; be3d: 20 e3 ff     ..            ; Print the space via OSASCI; Write character 32
 .done_print_hex_space
-    pla                                                               ; be40: 68          h
-    rts                                                               ; be41: 60          `
+    pla                                                               ; be40: 68          h              ; Restore caller's A
+    rts                                                               ; be41: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Parse hex address for dump range
