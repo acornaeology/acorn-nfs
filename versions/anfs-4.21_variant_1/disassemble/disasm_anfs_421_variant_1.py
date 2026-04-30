@@ -7383,6 +7383,116 @@ comment(0xB3DF, "Step source -- wraps from &FF to &00 to terminate",
         inline=True)
 comment(0xB3E0, "Loop while X != 0 (8 iterations: &F8..&FF)", inline=True)
 comment(0xB3E2, "Return", inline=True)
+
+# init_dump_buffer inline comments (~50 items)
+comment(0xBEAB, "Step Y past the *Dump command name into the argument",
+        inline=True)
+comment(0xBEAC, "Save the cursor offset", inline=True)
+comment(0xBEAE, "Set bit 0 of addr_work to 1 -- 'mode' flag for "
+        "parse_dump_range below", inline=True)
+comment(0xBEB0, "Save mode flag", inline=True)
+comment(0xBEB2, "Parse the start address (max 4 hex digits)",
+        inline=True)
+comment(0xBEB5, "Overflow: too many digits", inline=True)
+comment(0xBEB7, "Save current Y (cursor after start address)",
+        inline=True)
+comment(0xBEB8, "Push it", inline=True)
+comment(0xBEB9, "Y = file handle saved in ws_page", inline=True)
+comment(0xBEBB, "X=&AA: zero-page address for OSARGS result", inline=True)
+comment(0xBEBD, "A=2: OSARGS sub-fn 2 = read sequential file extent",
+        inline=True)
+comment(0xBEBF, "Get file size into 4 bytes at &AA", inline=True)
+comment(0xBEC2, "Y=3: compare 4-byte values (high to low)", inline=True)
+comment(0xBEC4, "Read file size byte at &AA+Y", inline=True)
+comment(0xBEC7, "Compare with parsed start address (work_ae+Y)",
+        inline=True)
+comment(0xBEC9, "Mismatch: branch decides which is bigger", inline=True)
+comment(0xBECB, "Step to next byte", inline=True)
+comment(0xBECC, "Loop while Y >= 0 (covers indices 3, 2, 1, 0)",
+        inline=True)
+comment(0xBECE, "All bytes equal: start = extent (allowed); jump to "
+        "the post-validation path", inline=True)
+comment(0xBED0, "C clear: parsed_start > file_size -- reject",
+        inline=True)
+comment(0xBED2, "Y=&FF: signal 'no copy needed' to the loop below",
+        inline=True)
+comment(0xBED4, "Always taken: skip directly to advance phase",
+        inline=True)
+# Outside-file error
+comment(0xBED6, "Close the file before raising", inline=True)
+comment(0xBED9, "A=&B7: 'Outside file' error code", inline=True)
+comment(0xBEDB, "Raise via inline string; never returns", inline=True)
+# Copy/advance phase
+comment(0xBEEB, "Copy file-extent byte from osword_flag to (work_ae)",
+        inline=True)
+comment(0xBEED, "Store it (used as default end address)", inline=True)
+comment(0xBEF0, "Step Y", inline=True)
+comment(0xBEF1, "Done all 4 bytes?", inline=True)
+comment(0xBEF3, "No: continue copying", inline=True)
+comment(0xBEF5, "X=&AA: zero-page source for the OSARGS write-back",
+        inline=True)
+comment(0xBEF7, "Y = file handle", inline=True)
+comment(0xBEF9, "A=1: OSARGS sub-fn 1 = write sequential file pointer",
+        inline=True)
+comment(0xBEFB, "Set the file's read pointer to the parsed start",
+        inline=True)
+comment(0xBEFE, "Pull saved cursor offset", inline=True)
+comment(0xBEFF, "Restore into Y", inline=True)
+# Optional second argument or default-base setup
+comment(0xBF00, "Read next command-line byte", inline=True)
+comment(0xBF02, "CR (end of args)?", inline=True)
+comment(0xBF04, "No: there's a second arg -- handle below", inline=True)
+comment(0xBF06, "Y=1: copy os_text_ptr (2 bytes) to work_ae as a "
+        "displacement-base hint", inline=True)
+comment(0xBF08, "Read os_text_ptr+Y", inline=True)
+comment(0xBF0B, "Save in work_ae+Y", inline=True)
+comment(0xBF0D, "Step backwards", inline=True)
+comment(0xBF0E, "Loop while Y >= 0", inline=True)
+comment(0xBF10, "A=5: OSFILE sub-fn 5 = read catalogue info", inline=True)
+comment(0xBF12, "X = filename pointer low (work_ae)", inline=True)
+comment(0xBF14, "Y = filename pointer high (addr_work)", inline=True)
+comment(0xBF16, "Read load address into work_ae+0..3", inline=True)
+# Shift OSFILE returned data
+comment(0xBF19, "Y=2: shift 3 bytes down 2 positions to drop the "
+        "first 2 bytes (action code + a flag)", inline=True)
+comment(0xBF1B, "Read source byte", inline=True)
+comment(0xBF1D, "Y -= 2 (destination)", inline=True)
+comment(0xBF1E, "(second DEY)", inline=True)
+comment(0xBF1F, "Store at destination", inline=True)
+comment(0xBF21, "Y += 3 to advance to next source", inline=True)
+comment(0xBF22, "(second INY)", inline=True)
+comment(0xBF23, "(third INY)", inline=True)
+comment(0xBF24, "Done 6 bytes shifted?", inline=True)
+comment(0xBF26, "No: continue", inline=True)
+# Detect &FF-pad load address
+comment(0xBF28, "Y -= 2: position at high byte of load address",
+        inline=True)
+comment(0xBF29, "(second DEY)", inline=True)
+comment(0xBF2A, "Read load-address byte at Y", inline=True)
+comment(0xBF2C, "Is it &FF (signals no real load address)?", inline=True)
+comment(0xBF2E, "No: have a real load address; add it as displacement",
+        inline=True)
+comment(0xBF30, "Yes: step back to next higher byte", inline=True)
+comment(0xBF31, "Loop until Y=0", inline=True)
+comment(0xBF33, "All four bytes were &FF: zero out the load address",
+        inline=True)
+comment(0xBF35, "A=0", inline=True)
+comment(0xBF37, "Zero work_ae+Y", inline=True)
+comment(0xBF39, "Step backwards", inline=True)
+comment(0xBF3A, "Loop while Y >= 0", inline=True)
+comment(0xBF3C, "Always taken (after BPL drops out): skip second-arg "
+        "path", inline=True)
+# Second-argument path
+comment(0xBF3E, "Parse end-address argument", inline=True)
+comment(0xBF41, "Success: continue with displacement-add", inline=True)
+comment(0xBF43, "Parse error: close file then raise 'Bad address'",
+        inline=True)
+comment(0xBF46, "A=&FC: 'Bad address' error code", inline=True)
+comment(0xBF48, "Raise; never returns", inline=True)
+# Add displacement base
+comment(0xBF53, "Y=0: start of work_ae", inline=True)
+comment(0xBF55, "X=4: 4-byte add", inline=True)
+comment(0xBF57, "Clear C for the add", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

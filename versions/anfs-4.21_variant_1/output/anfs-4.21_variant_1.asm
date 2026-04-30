@@ -13746,115 +13746,115 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &beab referenced 1 time by &bd4d
 .init_dump_buffer
-    inx                                                               ; beab: e8          .
-    stx work_ae                                                       ; beac: 86 ae       ..
-    ldx #1                                                            ; beae: a2 01       ..
-    stx addr_work                                                     ; beb0: 86 af       ..
-    jsr parse_dump_range                                              ; beb2: 20 42 be     B.
-    bcs error_outside_file                                            ; beb5: b0 1f       ..
-    tya                                                               ; beb7: 98          .
-    pha                                                               ; beb8: 48          H
-    ldy ws_page                                                       ; beb9: a4 a8       ..             ; Y=file handle
-    ldx #&aa                                                          ; bebb: a2 aa       ..             ; X=zero page address for result
-    lda #2                                                            ; bebd: a9 02       ..
-    jsr osargs                                                        ; bebf: 20 da ff     ..            ; Get length of file into zero page address X (A=2)
-    ldy #3                                                            ; bec2: a0 03       ..
+    inx                                                               ; beab: e8          .              ; Step Y past the *Dump command name into the argument
+    stx work_ae                                                       ; beac: 86 ae       ..             ; Save the cursor offset
+    ldx #1                                                            ; beae: a2 01       ..             ; Set bit 0 of addr_work to 1 -- 'mode' flag for parse_dump_range below
+    stx addr_work                                                     ; beb0: 86 af       ..             ; Save mode flag
+    jsr parse_dump_range                                              ; beb2: 20 42 be     B.            ; Parse the start address (max 4 hex digits)
+    bcs error_outside_file                                            ; beb5: b0 1f       ..             ; Overflow: too many digits
+    tya                                                               ; beb7: 98          .              ; Save current Y (cursor after start address)
+    pha                                                               ; beb8: 48          H              ; Push it
+    ldy ws_page                                                       ; beb9: a4 a8       ..             ; Y = file handle saved in ws_page; Y=file handle
+    ldx #&aa                                                          ; bebb: a2 aa       ..             ; X=&AA: zero-page address for OSARGS result; X=zero page address for result
+    lda #2                                                            ; bebd: a9 02       ..             ; A=2: OSARGS sub-fn 2 = read sequential file extent
+    jsr osargs                                                        ; bebf: 20 da ff     ..            ; Get file size into 4 bytes at &AA; Get length of file into zero page address X (A=2)
+    ldy #3                                                            ; bec2: a0 03       ..             ; Y=3: compare 4-byte values (high to low)
 ; &bec4 referenced 1 time by &becc
 .loop_cmp_file_length
-    lda osword_flag,y                                                 ; bec4: b9 aa 00    ...
-    cmp (work_ae),y                                                   ; bec7: d1 ae       ..
-    bne done_check_outside                                            ; bec9: d0 05       ..
-    dey                                                               ; becb: 88          .
-    bpl loop_cmp_file_length                                          ; becc: 10 f6       ..
-    bmi done_advance_start                                            ; bece: 30 20       0              ; ALWAYS branch
+    lda osword_flag,y                                                 ; bec4: b9 aa 00    ...            ; Read file size byte at &AA+Y
+    cmp (work_ae),y                                                   ; bec7: d1 ae       ..             ; Compare with parsed start address (work_ae+Y)
+    bne done_check_outside                                            ; bec9: d0 05       ..             ; Mismatch: branch decides which is bigger
+    dey                                                               ; becb: 88          .              ; Step to next byte
+    bpl loop_cmp_file_length                                          ; becc: 10 f6       ..             ; Loop while Y >= 0 (covers indices 3, 2, 1, 0)
+    bmi done_advance_start                                            ; bece: 30 20       0              ; All bytes equal: start = extent (allowed); jump to the post-validation path; ALWAYS branch
 
 ; &bed0 referenced 1 time by &bec9
 .done_check_outside
-    bcc error_outside_file                                            ; bed0: 90 04       ..
-    ldy #&ff                                                          ; bed2: a0 ff       ..
-    bne done_advance_start                                            ; bed4: d0 1a       ..             ; ALWAYS branch
+    bcc error_outside_file                                            ; bed0: 90 04       ..             ; C clear: parsed_start > file_size -- reject
+    ldy #&ff                                                          ; bed2: a0 ff       ..             ; Y=&FF: signal 'no copy needed' to the loop below
+    bne done_advance_start                                            ; bed4: d0 1a       ..             ; Always taken: skip directly to advance phase; ALWAYS branch
 
 ; &bed6 referenced 2 times by &beb5, &bed0
 .error_outside_file
-    jsr close_ws_file                                                 ; bed6: 20 71 bf     q.
-    lda #&b7                                                          ; bed9: a9 b7       ..
-    jsr error_inline                                                  ; bedb: 20 c3 99     ..
+    jsr close_ws_file                                                 ; bed6: 20 71 bf     q.            ; Close the file before raising
+    lda #&b7                                                          ; bed9: a9 b7       ..             ; A=&B7: 'Outside file' error code
+    jsr error_inline                                                  ; bedb: 20 c3 99     ..            ; Raise via inline string; never returns
     equs "Outside file", 0                                            ; bede: 4f 75 74... Out
 
 ; &beeb referenced 1 time by &bef3
 .loop_copy_osword_data
 .loop_copy_start_addr
-    lda (work_ae),y                                                   ; beeb: b1 ae       ..
-    sta osword_flag,y                                                 ; beed: 99 aa 00    ...
+    lda (work_ae),y                                                   ; beeb: b1 ae       ..             ; Copy file-extent byte from osword_flag to (work_ae)
+    sta osword_flag,y                                                 ; beed: 99 aa 00    ...            ; Store it (used as default end address)
 ; &bef0 referenced 2 times by &bece, &bed4
 .done_advance_start
-    iny                                                               ; bef0: c8          .
-    cpy #4                                                            ; bef1: c0 04       ..
-    bne loop_copy_osword_data                                         ; bef3: d0 f6       ..
-    ldx #&aa                                                          ; bef5: a2 aa       ..             ; X=zero page address to write from
-    ldy ws_page                                                       ; bef7: a4 a8       ..             ; Y=file handle
-    lda #1                                                            ; bef9: a9 01       ..
-    jsr osargs                                                        ; befb: 20 da ff     ..            ; Write sequential file pointer from zero page address X (A=1)
-    pla                                                               ; befe: 68          h
-    tay                                                               ; beff: a8          .
-    lda (os_text_ptr),y                                               ; bf00: b1 f2       ..
-    cmp #&0d                                                          ; bf02: c9 0d       ..
-    bne done_parse_disp_base                                          ; bf04: d0 38       .8
-    ldy #1                                                            ; bf06: a0 01       ..
+    iny                                                               ; bef0: c8          .              ; Step Y
+    cpy #4                                                            ; bef1: c0 04       ..             ; Done all 4 bytes?
+    bne loop_copy_osword_data                                         ; bef3: d0 f6       ..             ; No: continue copying
+    ldx #&aa                                                          ; bef5: a2 aa       ..             ; X=&AA: zero-page source for the OSARGS write-back; X=zero page address to write from
+    ldy ws_page                                                       ; bef7: a4 a8       ..             ; Y = file handle; Y=file handle
+    lda #1                                                            ; bef9: a9 01       ..             ; A=1: OSARGS sub-fn 1 = write sequential file pointer
+    jsr osargs                                                        ; befb: 20 da ff     ..            ; Set the file's read pointer to the parsed start; Write sequential file pointer from zero page address X (A=1)
+    pla                                                               ; befe: 68          h              ; Pull saved cursor offset
+    tay                                                               ; beff: a8          .              ; Restore into Y
+    lda (os_text_ptr),y                                               ; bf00: b1 f2       ..             ; Read next command-line byte
+    cmp #&0d                                                          ; bf02: c9 0d       ..             ; CR (end of args)?
+    bne done_parse_disp_base                                          ; bf04: d0 38       .8             ; No: there's a second arg -- handle below
+    ldy #1                                                            ; bf06: a0 01       ..             ; Y=1: copy os_text_ptr (2 bytes) to work_ae as a displacement-base hint
 ; &bf08 referenced 1 time by &bf0e
 .loop_copy_osfile_ptr
-    lda os_text_ptr,y                                                 ; bf08: b9 f2 00    ...
-    sta (work_ae),y                                                   ; bf0b: 91 ae       ..
-    dey                                                               ; bf0d: 88          .
-    bpl loop_copy_osfile_ptr                                          ; bf0e: 10 f8       ..
-    lda #osfile_read_catalogue_info                                   ; bf10: a9 05       ..
-    ldx work_ae                                                       ; bf12: a6 ae       ..
-    ldy addr_work                                                     ; bf14: a4 af       ..
-    jsr osfile                                                        ; bf16: 20 dd ff     ..            ; Read catalogue information (A=5)
-    ldy #2                                                            ; bf19: a0 02       ..
+    lda os_text_ptr,y                                                 ; bf08: b9 f2 00    ...            ; Read os_text_ptr+Y
+    sta (work_ae),y                                                   ; bf0b: 91 ae       ..             ; Save in work_ae+Y
+    dey                                                               ; bf0d: 88          .              ; Step backwards
+    bpl loop_copy_osfile_ptr                                          ; bf0e: 10 f8       ..             ; Loop while Y >= 0
+    lda #osfile_read_catalogue_info                                   ; bf10: a9 05       ..             ; A=5: OSFILE sub-fn 5 = read catalogue info
+    ldx work_ae                                                       ; bf12: a6 ae       ..             ; X = filename pointer low (work_ae)
+    ldy addr_work                                                     ; bf14: a4 af       ..             ; Y = filename pointer high (addr_work)
+    jsr osfile                                                        ; bf16: 20 dd ff     ..            ; Read load address into work_ae+0..3; Read catalogue information (A=5)
+    ldy #2                                                            ; bf19: a0 02       ..             ; Y=2: shift 3 bytes down 2 positions to drop the first 2 bytes (action code + a flag)
 ; &bf1b referenced 1 time by &bf26
 .loop_shift_osfile_data
-    lda (work_ae),y                                                   ; bf1b: b1 ae       ..
-    dey                                                               ; bf1d: 88          .
-    dey                                                               ; bf1e: 88          .
-    sta (work_ae),y                                                   ; bf1f: 91 ae       ..
-    iny                                                               ; bf21: c8          .
-    iny                                                               ; bf22: c8          .
-    iny                                                               ; bf23: c8          .
-    cpy #6                                                            ; bf24: c0 06       ..
-    bne loop_shift_osfile_data                                        ; bf26: d0 f3       ..
-    dey                                                               ; bf28: 88          .
-    dey                                                               ; bf29: 88          .
+    lda (work_ae),y                                                   ; bf1b: b1 ae       ..             ; Read source byte
+    dey                                                               ; bf1d: 88          .              ; Y -= 2 (destination)
+    dey                                                               ; bf1e: 88          .              ; (second DEY)
+    sta (work_ae),y                                                   ; bf1f: 91 ae       ..             ; Store at destination
+    iny                                                               ; bf21: c8          .              ; Y += 3 to advance to next source
+    iny                                                               ; bf22: c8          .              ; (second INY)
+    iny                                                               ; bf23: c8          .              ; (third INY)
+    cpy #6                                                            ; bf24: c0 06       ..             ; Done 6 bytes shifted?
+    bne loop_shift_osfile_data                                        ; bf26: d0 f3       ..             ; No: continue
+    dey                                                               ; bf28: 88          .              ; Y -= 2: position at high byte of load address
+    dey                                                               ; bf29: 88          .              ; (second DEY)
 ; &bf2a referenced 1 time by &bf31
 .loop_check_ff_addr
-    lda (work_ae),y                                                   ; bf2a: b1 ae       ..
-    cmp #&ff                                                          ; bf2c: c9 ff       ..
-    bne done_add_disp_base                                            ; bf2e: d0 23       .#
-    dey                                                               ; bf30: 88          .
-    bne loop_check_ff_addr                                            ; bf31: d0 f7       ..
-    ldy #3                                                            ; bf33: a0 03       ..
-    lda #0                                                            ; bf35: a9 00       ..
+    lda (work_ae),y                                                   ; bf2a: b1 ae       ..             ; Read load-address byte at Y
+    cmp #&ff                                                          ; bf2c: c9 ff       ..             ; Is it &FF (signals no real load address)?
+    bne done_add_disp_base                                            ; bf2e: d0 23       .#             ; No: have a real load address; add it as displacement
+    dey                                                               ; bf30: 88          .              ; Yes: step back to next higher byte
+    bne loop_check_ff_addr                                            ; bf31: d0 f7       ..             ; Loop until Y=0
+    ldy #3                                                            ; bf33: a0 03       ..             ; All four bytes were &FF: zero out the load address
+    lda #0                                                            ; bf35: a9 00       ..             ; A=0
 ; &bf37 referenced 1 time by &bf3a
 .loop_zero_load_addr
-    sta (work_ae),y                                                   ; bf37: 91 ae       ..
-    dey                                                               ; bf39: 88          .
-    bpl loop_zero_load_addr                                           ; bf3a: 10 fb       ..
-    bmi done_add_disp_base                                            ; bf3c: 30 15       0.             ; ALWAYS branch
+    sta (work_ae),y                                                   ; bf37: 91 ae       ..             ; Zero work_ae+Y
+    dey                                                               ; bf39: 88          .              ; Step backwards
+    bpl loop_zero_load_addr                                           ; bf3a: 10 fb       ..             ; Loop while Y >= 0
+    bmi done_add_disp_base                                            ; bf3c: 30 15       0.             ; Always taken (after BPL drops out): skip second-arg path; ALWAYS branch
 
 ; &bf3e referenced 1 time by &bf04
 .done_parse_disp_base
-    jsr parse_dump_range                                              ; bf3e: 20 42 be     B.
-    bcc done_add_disp_base                                            ; bf41: 90 10       ..
-    jsr close_ws_file                                                 ; bf43: 20 71 bf     q.
-    lda #&fc                                                          ; bf46: a9 fc       ..
-    jsr error_bad_inline                                              ; bf48: 20 a7 99     ..
+    jsr parse_dump_range                                              ; bf3e: 20 42 be     B.            ; Parse end-address argument
+    bcc done_add_disp_base                                            ; bf41: 90 10       ..             ; Success: continue with displacement-add
+    jsr close_ws_file                                                 ; bf43: 20 71 bf     q.            ; Parse error: close file then raise 'Bad address'
+    lda #&fc                                                          ; bf46: a9 fc       ..             ; A=&FC: 'Bad address' error code
+    jsr error_bad_inline                                              ; bf48: 20 a7 99     ..            ; Raise; never returns
     equs "address", 0                                                 ; bf4b: 61 64 64... add
 
 ; &bf53 referenced 3 times by &bf2e, &bf3c, &bf41
 .done_add_disp_base
-    ldy #0                                                            ; bf53: a0 00       ..
-    ldx #4                                                            ; bf55: a2 04       ..
-    clc                                                               ; bf57: 18          .
+    ldy #0                                                            ; bf53: a0 00       ..             ; Y=0: start of work_ae
+    ldx #4                                                            ; bf55: a2 04       ..             ; X=4: 4-byte add
+    clc                                                               ; bf57: 18          .              ; Clear C for the add
 ; &bf58 referenced 1 time by &bf62
 .loop_add_disp_bytes
     lda (work_ae),y                                                   ; bf58: b1 ae       ..
