@@ -3518,14 +3518,82 @@ subroutine(0x8ED2, "osbyte_x0_y0",
     on_entry={"a": "OSBYTE number"},
     on_exit={"x": "0", "y": "0"})
 subroutine(0x8EF0, "store_ws_page_count",
-    title="Record workspace page count (capped at &21)",
+    title="Record workspace page count (capped at &D3)",
     description="Stores the workspace allocation from service 1\n"
     "into offset &0B of the receive control block,\n"
-    "capping the value at &21 to prevent overflow into\n"
-    "adjacent workspace areas. Called by\n"
+    "capping the value at &D3 to prevent overflow into\n"
+    "adjacent workspace areas (the 4.18 cap was &21;\n"
+    "Master 128 has its sideways-RAM workspace much\n"
+    "higher up, hence the larger limit). Called by\n"
     "svc_2_private_workspace after issuing the absolute\n"
     "workspace claim service call.",
     on_entry={"y": "workspace page count from service 1"})
+# Three PHA/PHA/RTS dispatch targets in this area, each indexed
+# from the svc_dispatch table at &89ED (lo) / &8A20 (hi):
+#   index 17 -> &8EFE  (small workspace-page helper; also reached
+#                       by a backward BCS branch from &8F35)
+#   index  3 -> &8F10  (service-2 dispatch entry: page allocation)
+#   index 22 -> &8F38  (NFS-init body: station ID + FS workspace)
+# All three need explicit entry() since they're only reached via
+# PHA/PHA/RTS dispatch, not direct JSR/JMP.
+#
+# The dispatch table comments inherited from 4.18 label index 3 as
+# "Svc 2: private workspace" and index 22 as "FSCV 2: */ (run)" but
+# the inline comments and code semantics in 4.21 disagree -- the
+# body at &8F38 looks like the bulk of svc_2's init work (station-
+# ID-from-CMOS, FS workspace zeroing, cmd_net_fs, init_adlc_and_
+# vectors). Pinning down which dispatcher actually invokes &8F38 in
+# 4.21 is left for Phase C; for now both bodies are decoded as code
+# with placeholder labels.
+entry(0x8EFE)
+entry(0x8F10)
+entry(0x8F38)
+subroutine(0x8F10, "svc_2_dispatch_entry",
+    title="Service-2 dispatch entry (workspace page allocation)",
+    description="Reached via PHA/PHA/RTS dispatch from the service\n"
+    "handler at &8ADB when MOS issues service 2 (claim\n"
+    "private workspace). Reads CMOS byte &11 to test bit\n"
+    "2 of the saved Econet status; either advances the\n"
+    "caller's first-available-page (Y) by 2 and uses it,\n"
+    "or forces page &0B as a fallback. Sets net_rx_ptr_hi\n"
+    "/ nfs_workspace_hi to the chosen page pair, clears\n"
+    "the corresponding lo bytes, and calls get_ws_page.\n"
+    "If the resulting page is >= &DC, branches to the\n"
+    "helper at &8EFE which publishes the page into\n"
+    "rom_ws_pages[romsel_copy] with bit 7 masked off.\n"
+    "\n"
+    "The full service-2 init sequence (station-ID-from-\n"
+    "CMOS, FS workspace zero, FS handle allocation,\n"
+    "cmd_net_fs, init_adlc_and_vectors) lives separately\n"
+    "at &8F38 -- see the comment block above.",
+    on_entry={"y": "first available private workspace page"})
+subroutine(0x8F38, "nfs_init_body",
+    title="NFS init body: station ID, FS workspace, cmd_net_fs",
+    description="Reached via PHA/PHA/RTS dispatch (table index 22).\n"
+    "Despite the stale 4.18 dispatch-comment label of\n"
+    "'FSCV 2: */ (run)' this body performs the full\n"
+    "service-2 init sequence:\n"
+    "  - Clears ws_page / tx_complete_flag and the\n"
+    "    receive-block remote-op flag\n"
+    "  - On warm reset (last_break_type non-zero) and\n"
+    "    fs_flags bit 4 set, calls setup_ws_ptr and zeroes\n"
+    "    the FS workspace page in a 256-byte loop\n"
+    "  - Calls copy_ps_data_y1c to install the printer-\n"
+    "    server template\n"
+    "  - Reads CMOS bytes &01..&04 via osbyte_a1, storing\n"
+    "    each into the workspace identity block at\n"
+    "    nfs_workspace+{0..3}\n"
+    "  - Reads CMOS byte &11 (Econet station): if zero,\n"
+    "    prints 'Station number in CMOS RAM invalid.\n"
+    "    Using 1 instead!' and defaults to station 1\n"
+    "  - Stores station ID into the receive block\n"
+    "  - Calls cmd_net_fs to select ANFS as the active\n"
+    "    filing system, then init_adlc_and_vectors to\n"
+    "    install NETV / FSCV / etc., handle_spool_ctrl_byte\n"
+    "    and init_bridge_poll for protection setup\n"
+    "Returns via RTS at &903B.",
+    on_entry={"net_rx_ptr, nfs_workspace": "page-aligned pointers "
+              "(set up by svc_2_dispatch_entry at &8F10)"})
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",

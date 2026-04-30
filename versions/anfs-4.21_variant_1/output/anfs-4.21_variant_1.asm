@@ -138,6 +138,7 @@ filev                       = &0212
 fscv                        = &021e
 evntv                       = &0220
 netv                        = &0224
+l028d                       = &028d
 l02a0                       = &02a0
 l0350                       = &0350
 l0351                       = &0351
@@ -371,6 +372,8 @@ lc2d8                       = &c2d8
 lc2d9                       = &c2d9
 lc2f3                       = &c2f3
 ld020                       = &d020
+lfe28                       = &fe28
+lfe2b                       = &fe2b
 romsel                      = &fe30
 lfe34                       = &fe34
 lfe38                       = &fe38
@@ -3689,7 +3692,7 @@ l89c9 = reset_enter_listen+2
 ;     BEHAVIOUR: raises 'Net checksum' via error_inline_log on workspace checksum
 ; mismatch
 ; ***************************************************************************************
-; &8b23 referenced 1 time by &8b52
+; &8b23 referenced 2 times by &8b52, &900d
 .cmd_net_fs
     jsr get_ws_page                                                   ; 8b23: 20 ad 8c     ..            ; Get workspace page for this ROM slot
     sta fs_load_addr_hi                                               ; 8b26: 85 b1       ..             ; Store as high byte of load address
@@ -4157,7 +4160,7 @@ l89c9 = reset_enter_listen+2
 ;     A: workspace page number (with bit 7 = ADLC-absent flag)
 ;     Y: workspace page number (low 7 bits)
 ; ***************************************************************************************
-; &8cad referenced 3 times by &8b23, &8cbd, &b3a0
+; &8cad referenced 4 times by &8b23, &8cbd, &8f2f, &b3a0
 .get_ws_page
     ldy romsel_copy                                                   ; 8cad: a4 f4       ..             ; Y = current ROM slot number from MOS copy at &F4
     lda rom_ws_pages,y                                                ; 8caf: b9 f0 0d    ...            ; Load workspace page for this slot
@@ -4191,7 +4194,7 @@ l89c9 = reset_enter_listen+2
 ;     NFS_TEMP LO/HI (&CC/&CD): &00, ws_page -> page-aligned pointer to private
 ; workspace
 ; ***************************************************************************************
-; &8cbd referenced 1 time by &8b9c
+; &8cbd referenced 2 times by &8b9c, &8f4f
 .setup_ws_ptr
     jsr get_ws_page                                                   ; 8cbd: 20 ad 8c     ..            ; Get workspace page for ROM slot
     sty nfs_temp                                                      ; 8cc0: 84 cd       ..             ; Store page in nfs_temp
@@ -4624,8 +4627,10 @@ ps_template_base = sub_c8da6+1
     equb &f7, &60,   5                                                ; 8e7d: f7 60 05    .`.
     equs "/      TEN,l"                                               ; 8e80: 2f 20 20... /
     equb &0d, &50, &ef, &20, &4d, &8b, &a9, 0, &a8, &4c, &2f, &a0     ; 8e8c: 0d 50 ef... .P.
-    equb &a2,   0                                                     ; 8e98: a2 00       ..
 
+; &8e98 referenced 1 time by &8fbb
+.sub_c8e98
+    ldx #0                                                            ; 8e98: a2 00       ..
 ; ***************************************************************************************
 ; OSBYTE &A1 (read Master CMOS RAM byte)
 ; 
@@ -4641,7 +4646,7 @@ ps_template_base = sub_c8da6+1
 ;     Y: CMOS byte read
 ;     X: preserved
 ; ***************************************************************************************
-; &8e9a referenced 4 times by &904f, &9055, &a0e3, &a70d
+; &8e9a referenced 10 times by &8f13, &8f60, &8f68, &8f70, &8f7a, &8f9c, &904f, &9055, &a0e3, &a70d
 .osbyte_a1
     lda #osbyte_read_cmos_ram                                         ; 8e9a: a9 a1       ..
     jmp osbyte                                                        ; 8e9c: 4c f4 ff    L..            ; Master and Compact: Read CMOS RAM/EEPROM byte X
@@ -4810,12 +4815,14 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8eef: 60          `              ; Return
 
 ; ***************************************************************************************
-; Record workspace page count (capped at &21)
+; Record workspace page count (capped at &D3)
 ; 
 ; Stores the workspace allocation from service 1
 ; into offset &0B of the receive control block,
-; capping the value at &21 to prevent overflow into
-; adjacent workspace areas. Called by
+; capping the value at &D3 to prevent overflow into
+; adjacent workspace areas (the 4.18 cap was &21;
+; Master 128 has its sideways-RAM workspace much
+; higher up, hence the larger limit). Called by
 ; svc_2_private_workspace after issuing the absolute
 ; workspace claim service call.
 ; 
@@ -4835,40 +4842,225 @@ ps_template_base = sub_c8da6+1
     ply                                                               ; 8efc: 7a          z
     rts                                                               ; 8efd: 60          `              ; Return
 
-    equb &98, &a4, &f4, &48, &29, &7f, &99, &f0, &0d, &ac, &2b, &fe   ; 8efe: 98 a4 f4... ...            ; Transfer page to A; Get current ROM slot number; Store workspace page for this slot; Load break type from hardware register
-    equb &ac, &28, &fe, &7a, &c8, &60, &5a, &a2, &11, &20, &9a, &8e   ; 8f0a: ac 28 fe... .(.
-    equb &98, &29,   4, &d0,   4, &a9, &0b, &80,   5, &7a, &98, &c8   ; 8f16: 98 29 04... .).
-    equb &c8, &5a, &85, &9d, &1a, &85, &9f, &a9,   0, &85, &9c, &85   ; 8f22: c8 5a 85... .Z.            ; A=0; Clear receive block pointer low; Clear NFS workspace pointer low
-    equb &9e, &20, &ad, &8c, &c0, &dc, &7a, &b0, &c7, &60, &a9,   0   ; 8f2e: 9e 20 ad... . .
-    equb &85, &a8, &8d, &60, &0d, &a0,   0, &91, &9c, &ad, &8d,   2   ; 8f3a: 85 a8 8d... ...            ; Clear workspace page counter; Clear workspace byte; Offset 0 in receive block; Clear remote operation flag
-    equb &d0,   7, &a9, &10, &2c, &6c, &0d, &f0, &6c, &20, &bd, &8c   ; 8f46: d0 07 a9... ...            ; OSBYTE &8F: issue service request; Zero: first ROM init, skip FS setup; Set up workspace pointers
-    equb &8d, &6c, &0d, &a8                                           ; 8f52: 8d 6c 0d... .l.            ; Clear FS flags; A=0, transfer to Y
+; &8efe referenced 1 time by &8f35
+.c8efe
+    tya                                                               ; 8efe: 98          .              ; Transfer page to A
+    ldy romsel_copy                                                   ; 8eff: a4 f4       ..             ; Get current ROM slot number
+    pha                                                               ; 8f01: 48          H
+    and #&7f                                                          ; 8f02: 29 7f       ).
+    sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...            ; Store workspace page for this slot
+    ldy lfe2b                                                         ; 8f07: ac 2b fe    .+.            ; Load break type from hardware register
+    ldy lfe28                                                         ; 8f0a: ac 28 fe    .(.
+    ply                                                               ; 8f0d: 7a          z
+    iny                                                               ; 8f0e: c8          .
+    rts                                                               ; 8f0f: 60          `
+
+; ***************************************************************************************
+; Service-2 dispatch entry (workspace page allocation)
+; 
+; Reached via PHA/PHA/RTS dispatch from the service
+; handler at &8ADB when MOS issues service 2 (claim
+; private workspace). Reads CMOS byte &11 to test bit
+; 2 of the saved Econet status; either advances the
+; caller's first-available-page (Y) by 2 and uses it,
+; or forces page &0B as a fallback. Sets net_rx_ptr_hi
+; / nfs_workspace_hi to the chosen page pair, clears
+; the corresponding lo bytes, and calls get_ws_page.
+; If the resulting page is >= &DC, branches to the
+; helper at &8EFE which publishes the page into
+; rom_ws_pages[romsel_copy] with bit 7 masked off.
+; 
+; The full service-2 init sequence (station-ID-from-
+; CMOS, FS workspace zero, FS handle allocation,
+; cmd_net_fs, init_adlc_and_vectors) lives separately
+; at &8F38 -- see the comment block above.
+; 
+; On Entry:
+;     Y: first available private workspace page
+; ***************************************************************************************
+.svc_2_dispatch_entry
+    phy                                                               ; 8f10: 5a          Z
+    ldx #&11                                                          ; 8f11: a2 11       ..
+    jsr osbyte_a1                                                     ; 8f13: 20 9a 8e     ..
+    tya                                                               ; 8f16: 98          .
+    and #4                                                            ; 8f17: 29 04       ).
+    bne c8f1f                                                         ; 8f19: d0 04       ..
+    lda #&0b                                                          ; 8f1b: a9 0b       ..
+    bra c8f24                                                         ; 8f1d: 80 05       ..
+; &8f1f referenced 1 time by &8f19
+.c8f1f
+    ply                                                               ; 8f1f: 7a          z
+    tya                                                               ; 8f20: 98          .
+    iny                                                               ; 8f21: c8          .
+    iny                                                               ; 8f22: c8          .
+    phy                                                               ; 8f23: 5a          Z
+; &8f24 referenced 1 time by &8f1d
+.c8f24
+    sta net_rx_ptr_hi                                                 ; 8f24: 85 9d       ..
+    inc a                                                             ; 8f26: 1a          .
+    sta nfs_workspace_hi                                              ; 8f27: 85 9f       ..
+    lda #0                                                            ; 8f29: a9 00       ..             ; A=0
+    sta net_rx_ptr                                                    ; 8f2b: 85 9c       ..             ; Clear receive block pointer low
+    sta nfs_workspace                                                 ; 8f2d: 85 9e       ..             ; Clear NFS workspace pointer low
+    jsr get_ws_page                                                   ; 8f2f: 20 ad 8c     ..
+    cpy #&dc                                                          ; 8f32: c0 dc       ..
+    ply                                                               ; 8f34: 7a          z
+    bcs c8efe                                                         ; 8f35: b0 c7       ..
+    rts                                                               ; 8f37: 60          `
+
+; ***************************************************************************************
+; NFS init body: station ID, FS workspace, cmd_net_fs
+; 
+; Reached via PHA/PHA/RTS dispatch (table index 22).
+; Despite the stale 4.18 dispatch-comment label of
+; 'FSCV 2: */ (run)' this body performs the full
+; service-2 init sequence:
+;   - Clears ws_page / tx_complete_flag and the
+;     receive-block remote-op flag
+;   - On warm reset (last_break_type non-zero) and
+;     fs_flags bit 4 set, calls setup_ws_ptr and zeroes
+;     the FS workspace page in a 256-byte loop
+;   - Calls copy_ps_data_y1c to install the printer-
+;     server template
+;   - Reads CMOS bytes &01..&04 via osbyte_a1, storing
+;     each into the workspace identity block at
+;     nfs_workspace+{0..3}
+;   - Reads CMOS byte &11 (Econet station): if zero,
+;     prints 'Station number in CMOS RAM invalid.
+;     Using 1 instead!' and defaults to station 1
+;   - Stores station ID into the receive block
+;   - Calls cmd_net_fs to select ANFS as the active
+;     filing system, then init_adlc_and_vectors to
+;     install NETV / FSCV / etc., handle_spool_ctrl_byte
+;     and init_bridge_poll for protection setup
+; Returns via RTS at &903B.
+; 
+; On Entry:
+;     NET_RX_PTR, NFS_WORKSPACE: page-aligned pointers (set up by svc_2_dispatch_entry
+; at &8F10)
+; ***************************************************************************************
+.nfs_init_body
+    lda #0                                                            ; 8f38: a9 00       ..
+    sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
+    sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.            ; Clear workspace byte
+    ldy #0                                                            ; 8f3f: a0 00       ..             ; Offset 0 in receive block
+    sta (net_rx_ptr),y                                                ; 8f41: 91 9c       ..             ; Clear remote operation flag
+    lda l028d                                                         ; 8f43: ad 8d 02    ...
+    bne c8f4f                                                         ; 8f46: d0 07       ..
+    lda #&10                                                          ; 8f48: a9 10       ..             ; OSBYTE &8F: issue service request
+    bit fs_flags                                                      ; 8f4a: 2c 6c 0d    ,l.
+    beq c8fbb                                                         ; 8f4d: f0 6c       .l             ; Zero: first ROM init, skip FS setup
+; &8f4f referenced 1 time by &8f46
+.c8f4f
+    jsr setup_ws_ptr                                                  ; 8f4f: 20 bd 8c     ..            ; Set up workspace pointers
+    sta fs_flags                                                      ; 8f52: 8d 6c 0d    .l.            ; Clear FS flags
+    tay                                                               ; 8f55: a8          .              ; A=0, transfer to Y
+; &8f56 referenced 1 time by &8f59
 .loop_zero_workspace
-    equb &91, &cc, &c8, &d0, &fb, &20, &d5, &b3, &a2,   1, &20, &9a   ; 8f56: 91 cc c8... ...            ; Clear byte in FS workspace; Advance index; Loop until full page zeroed
-    equb &8e, &8c,   0, &c0, &a2,   2, &20, &9a, &8e, &8c,   1, &c0   ; 8f62: 8e 8c 00... ...
-    equb &a2,   3, &20, &9a, &8e, &98, &a0,   2, &91, &9e, &a2,   4   ; 8f6e: a2 03 20... ..             ; Offset 8 in receive block; Clear protection flags
-    equb &20, &9a, &8e, &98, &a0,   3, &91, &9e, &a2,   3             ; 8f7a: 20 9a 8e...  ..            ; Initialise station identity block; Offset 2 in receive block; Store at NFS workspace offset 2; X=3: init data byte count
+    sta (fs_ws_ptr),y                                                 ; 8f56: 91 cc       ..             ; Clear byte in FS workspace
+    iny                                                               ; 8f58: c8          .              ; Advance index
+    bne loop_zero_workspace                                           ; 8f59: d0 fb       ..             ; Loop until full page zeroed
+    jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..
+    ldx #1                                                            ; 8f5e: a2 01       ..
+    jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..
+    sty pydis_end                                                     ; 8f63: 8c 00 c0    ...
+    ldx #2                                                            ; 8f66: a2 02       ..
+    jsr osbyte_a1                                                     ; 8f68: 20 9a 8e     ..
+    sty lc001                                                         ; 8f6b: 8c 01 c0    ...
+    ldx #3                                                            ; 8f6e: a2 03       ..
+    jsr osbyte_a1                                                     ; 8f70: 20 9a 8e     ..
+    tya                                                               ; 8f73: 98          .
+    ldy #2                                                            ; 8f74: a0 02       ..             ; Offset 8 in receive block
+    sta (nfs_workspace),y                                             ; 8f76: 91 9e       ..             ; Clear protection flags
+    ldx #4                                                            ; 8f78: a2 04       ..
+    jsr osbyte_a1                                                     ; 8f7a: 20 9a 8e     ..            ; Initialise station identity block
+    tya                                                               ; 8f7d: 98          .
+    ldy #3                                                            ; 8f7e: a0 03       ..             ; Offset 2 in receive block
+    sta (nfs_workspace),y                                             ; 8f80: 91 9e       ..             ; Store at NFS workspace offset 2
+    ldx #3                                                            ; 8f82: a2 03       ..             ; X=3: init data byte count
+; &8f84 referenced 1 time by &8f8b
 .loop_copy_init_data
-    equb &bd, &ee, &b0, &9d, &6c, &0d, &ca, &d0, &f7, &8e,   6, &c0   ; 8f84: bd ee b0... ...            ; Load initialisation data byte; Store in workspace; Decrement counter; More bytes: loop; Clear workspace flag
-    equb &8e,   5, &c0, &20, &64, &ae, &ca, &8e, &71, &0d, &a2, &11   ; 8f90: 8e 05 c0... ...            ; Clear workspace byte; Initialise ADLC protection table; X=&FF (underflow from X=0); Initialise workspace flag to &FF
-    equb &20, &9a, &8e, &98, &29, &40, &f0,   2, &a9, &ff, &20, &bb   ; 8f9c: 20 9a 8e...  ..
-    equb &aa                                                          ; 8fa8: aa          .
+    lda lb0ee,x                                                       ; 8f84: bd ee b0    ...            ; Load initialisation data byte
+    sta fs_flags,x                                                    ; 8f87: 9d 6c 0d    .l.            ; Store in workspace
+    dex                                                               ; 8f8a: ca          .              ; Decrement counter
+    bne loop_copy_init_data                                           ; 8f8b: d0 f7       ..             ; More bytes: loop
+    stx lc006                                                         ; 8f8d: 8e 06 c0    ...            ; Clear workspace flag
+    stx lc005                                                         ; 8f90: 8e 05 c0    ...            ; Clear workspace byte
+    jsr reset_spool_buf_state                                         ; 8f93: 20 64 ae     d.            ; Initialise ADLC protection table
+    dex                                                               ; 8f96: ca          .              ; X=&FF (underflow from X=0)
+    stx l0d71                                                         ; 8f97: 8e 71 0d    .q.            ; Initialise workspace flag to &FF
+    ldx #&11                                                          ; 8f9a: a2 11       ..
+    jsr osbyte_a1                                                     ; 8f9c: 20 9a 8e     ..
+    tya                                                               ; 8f9f: 98          .
+    and #&40 ; '@'                                                    ; 8fa0: 29 40       )@
+    beq c8fa6                                                         ; 8fa2: f0 02       ..
+    lda #&ff                                                          ; 8fa4: a9 ff       ..
+; &8fa6 referenced 1 time by &8fa2
+.c8fa6
+    jsr sub_caabb                                                     ; 8fa6: 20 bb aa     ..
+; &8fa9 referenced 1 time by &8fb6
 .loop_alloc_handles
-    equb &a5, &a8, &20, &e9, &a3, &b0, 8, &a9, &3f, &91, &9e, &e6     ; 8fa9: a5 a8 20... ..             ; Get current workspace page; Allocate FS handle page; Allocation failed: finish init; A=&3F: default handle permissions; Store handle permissions; Advance to next page
-    equb &a8, &d0, &f1                                                ; 8fb5: a8 d0 f1    ...            ; Continue allocating: loop
+    lda ws_page                                                       ; 8fa9: a5 a8       ..             ; Get current workspace page
+    jsr byte_to_2bit_index                                            ; 8fab: 20 e9 a3     ..            ; Allocate FS handle page
+    bcs done_alloc_handles                                            ; 8fae: b0 08       ..             ; Allocation failed: finish init
+    lda #&3f ; '?'                                                    ; 8fb0: a9 3f       .?             ; A=&3F: default handle permissions
+    sta (nfs_workspace),y                                             ; 8fb2: 91 9e       ..             ; Store handle permissions
+    inc ws_page                                                       ; 8fb4: e6 a8       ..             ; Advance to next page
+    bne loop_alloc_handles                                            ; 8fb6: d0 f1       ..             ; Continue allocating: loop
+; &8fb8 referenced 1 time by &8fae
 .done_alloc_handles
-    equb &20, &64, &90, &20, &98, &8e, &98, &d0                       ; 8fb8: 20 64 90...  d.            ; Restore FS context from saved state; Transfer to A; Non-zero: station ID valid
-    equs "> a"                                                        ; 8fc0: 3e 20 61    > a
-    equb &92                                                          ; 8fc3: 92          .
-    equs "Station number in CMOS RAM invalid."                        ; 8fc4: 53 74 61... Sta
-    equb &0d                                                          ; 8fe7: 0d          .
-    equs "Using 1 instead!"                                           ; 8fe8: 55 73 69... Usi
-    equb   7, &0d, &0d, &a9,   1, &80,   5, &c8, &f0, &bf, &80,   0   ; 8ff8: 07 0d 0d... ...            ; Overflow to 0: report error
-    equb &a0,   1, &91, &9c, &a2, &40, &8e, &61, &0d, &20, &23, &8b   ; 9004: a0 01 91... ...            ; Offset 1: station ID in recv block; Store station ID; X=&40: Econet flag byte; Store Econet control flag
-    equb &f0,   8, &a9, &10, &0d, &6c, &0d, &8d, &6c, &0d, &20, &3c   ; 9010: f0 08 a9... ...
-    equb &90, &a9,   3, &20, &9d, &ae, &20, &e9, &ab, &48, &4d,   1   ; 901c: 90 a9 03... ...            ; A=3: protection level; Set up Econet protection
-    equb &c0, &d0,   7, &8d,   1, &c0, &a0,   3, &91, &9c, &68, &a0   ; 9028: c0 d0 07... ...
-    equb   3, &51, &9e, &d0,   2, &91, &9e, &60                       ; 9034: 03 51 9e... .Q.
+    jsr restore_fs_context                                            ; 8fb8: 20 64 90     d.            ; Restore FS context from saved state
+; &8fbb referenced 1 time by &8f4d
+.c8fbb
+    jsr sub_c8e98                                                     ; 8fbb: 20 98 8e     ..
+    tya                                                               ; 8fbe: 98          .              ; Transfer to A
+    bne c8fff                                                         ; 8fbf: d0 3e       .>             ; Non-zero: station ID valid
+; &8fc1 referenced 1 time by &9000
+.c8fc1
+    jsr print_inline                                                  ; 8fc1: 20 61 92     a.
+    equs "Station number in CMOS RAM invalid.", &0d, "Using 1 inst"   ; 8fc4: 53 74 61... Sta
+    equs "ead!", 7, &0d, &0d                                          ; 8ff4: 65 61 64... ead
+
+    lda #1                                                            ; 8ffb: a9 01       ..
+    bra c9004                                                         ; 8ffd: 80 05       ..
+; &8fff referenced 1 time by &8fbf
+.c8fff
+    iny                                                               ; 8fff: c8          .
+    beq c8fc1                                                         ; 9000: f0 bf       ..             ; Overflow to 0: report error
+    bra c9004                                                         ; 9002: 80 00       ..
+; &9004 referenced 2 times by &8ffd, &9002
+.c9004
+    ldy #1                                                            ; 9004: a0 01       ..             ; Offset 1: station ID in recv block
+    sta (net_rx_ptr),y                                                ; 9006: 91 9c       ..             ; Store station ID
+    ldx #&40 ; '@'                                                    ; 9008: a2 40       .@             ; X=&40: Econet flag byte
+    stx econet_flags                                                  ; 900a: 8e 61 0d    .a.            ; Store Econet control flag
+    jsr cmd_net_fs                                                    ; 900d: 20 23 8b     #.
+    beq c901a                                                         ; 9010: f0 08       ..
+    lda #&10                                                          ; 9012: a9 10       ..
+    ora fs_flags                                                      ; 9014: 0d 6c 0d    .l.
+    sta fs_flags                                                      ; 9017: 8d 6c 0d    .l.
+; &901a referenced 1 time by &9010
+.c901a
+    jsr init_adlc_and_vectors                                         ; 901a: 20 3c 90     <.
+    lda #3                                                            ; 901d: a9 03       ..             ; A=3: protection level
+    jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..            ; Set up Econet protection
+    jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..
+    pha                                                               ; 9025: 48          H
+    eor lc001                                                         ; 9026: 4d 01 c0    M..
+    bne c9032                                                         ; 9029: d0 07       ..
+    sta lc001                                                         ; 902b: 8d 01 c0    ...
+    ldy #3                                                            ; 902e: a0 03       ..
+    sta (net_rx_ptr),y                                                ; 9030: 91 9c       ..
+; &9032 referenced 1 time by &9029
+.c9032
+    pla                                                               ; 9032: 68          h
+    ldy #3                                                            ; 9033: a0 03       ..
+    eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.
+    bne return_1                                                      ; 9037: d0 02       ..
+    sta (nfs_workspace),y                                             ; 9039: 91 9e       ..
+; &903b referenced 1 time by &9037
+.return_1
+    rts                                                               ; 903b: 60          `
 
 ; ***************************************************************************************
 ; Initialise ADLC and install extended vectors
@@ -4887,7 +5079,7 @@ ps_template_base = sub_c8da6+1
 ;     EXTENDED VECTOR TABLE: NETV (and the next vector) point at this ROM's handlers;
 ; &0D72 set to &FF as install marker
 ; ***************************************************************************************
-; &903c referenced 1 time by &8b81
+; &903c referenced 2 times by &8b81, &901a
 .init_adlc_and_vectors
     jsr adlc_init                                                     ; 903c: 20 50 80     P.            ; Initialise ADLC hardware
     lda #&a8                                                          ; 903f: a9 a8       ..             ; OSBYTE &A8: read ROM pointer table
@@ -4951,7 +5143,7 @@ ps_template_base = sub_c8da6+1
 ;     A, Y: clobbered (loop counter / data byte)
 ;     (NET_RX_PTR)+2..+9: FS context bytes restored from &0DFA+2..+9
 ; ***************************************************************************************
-; &9064 referenced 2 times by &907b, &a6d2
+; &9064 referenced 3 times by &8fb8, &907b, &a6d2
 .restore_fs_context
     ldy #9                                                            ; 9064: a0 09       ..             ; Y=9: end of FS context block
 ; &9066 referenced 1 time by &906e
@@ -5386,7 +5578,7 @@ ps_template_base = sub_c8da6+1
 ;     CONTROL FLOW: RTS does NOT return to JSR; instead a JMP lands on the terminator
 ; byte's address as the next instruction
 ; ***************************************************************************************
-; &9261 referenced 23 times by &8a6b, &8be0, &8c93, &90c7, &90e7, &b460, &b46c, &b483, &b48d, &b498, &b568, &b60a, &b61f, &b642, &b64f, &b65e, &b66e, &b67d, &bdac, &bdc4, &bdd0, &be04, &be21
+; &9261 referenced 24 times by &8a6b, &8be0, &8c93, &8fc1, &90c7, &90e7, &b460, &b46c, &b483, &b48d, &b498, &b568, &b60a, &b61f, &b642, &b64f, &b65e, &b66e, &b67d, &bdac, &bdc4, &bdd0, &be04, &be21
 .print_inline
     pla                                                               ; 9261: 68          h              ; Pop return address (low) — points to last byte of JSR
     sta fs_error_ptr                                                  ; 9262: 85 b8       ..             ; Yes: not a digit
@@ -6817,7 +7009,7 @@ ps_template_base = sub_c8da6+1
 .check_escape_and_classify
     lda escape_flag                                                   ; 988f: a5 ff       ..
     and need_release_tube                                             ; 9891: 25 98       %.
-    bpl return_1                                                      ; 9893: 10 6a       .j
+    bpl return_2                                                      ; 9893: 10 6a       .j
 ; &9895 referenced 2 times by &98ef, &b7df
 .c9895
     lda #osbyte_acknowledge_escape                                    ; 9895: a9 7e       .~
@@ -6913,7 +7105,7 @@ ps_template_base = sub_c8da6+1
     pla                                                               ; 98fc: 68          h              ; Pull saved rx_wait_timeout into A
     beq build_no_reply_error                                          ; 98fd: f0 0a       ..             ; If timeout reached zero, raise 'No reply'
 ; &98ff referenced 1 time by &9893
-.return_1
+.return_2
     rts                                                               ; 98ff: 60          `              ; Reply received normally: return
 
 ; ***************************************************************************************
@@ -9563,7 +9755,7 @@ la0ff = sub_ca0fe+1
 ; On Exit:
 ;     Y: byte offset (0, 6, 12, ... up to &42)
 ; ***************************************************************************************
-; &a3e9 referenced 1 time by &b4c6
+; &a3e9 referenced 2 times by &8fab, &b4c6
 .byte_to_2bit_index
     asl a                                                             ; a3e9: 0a          .              ; Multiply A by 2
     asl a                                                             ; a3ea: 0a          .              ; Multiply A by 2 again -- A is now A_orig * 4
@@ -10665,11 +10857,11 @@ la0ff = sub_ca0fe+1
     bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Next byte down; Loop for 15 bytes
     lda #&0e                                                          ; aa65: a9 0e       ..             ; Y=0
     bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Workspace low = &DA; Load OSWORD number
-    bne return_2                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
+    bne return_3                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
     lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; Workspace low = 0 (restore)
     tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Y=&14: control offset
 ; &aa71 referenced 1 time by &aa6a
-.return_2
+.return_3
     rts                                                               ; aa71: 60          `              ; Control value &E9
 
 ; ***************************************************************************************
@@ -10839,6 +11031,8 @@ la0ff = sub_ca0fe+1
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Wide &76: buf start ext hi
     lda (ws_ptr_hi),y                                                 ; aab9: b1 ac       ..             ; Wide &77: buf end lo=&7E; Wide &78: buf end hi=page ptr
+; &aabb referenced 1 time by &8fa6
+.sub_caabb
     sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.            ; Wide &79: buf end ext lo; Wide &7A: buf end ext hi; Wide &7B: zero
     sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.            ; Wide &7C: zero; Narrow stop (&FE terminator); Narrow &0C: ctrl=&80 (standard)
     rts                                                               ; aac1: 60          `              ; Narrow &0D: port=&93
@@ -11251,7 +11445,7 @@ labc5 = compare_bridge_status+1
 ; immediately
 ;     A, X, Y: clobbered when the broadcast path runs
 ; ***************************************************************************************
-; &abe9 referenced 4 times by &8e21, &a3d1, &aaa8, &aba9
+; &abe9 referenced 5 times by &8e21, &9022, &a3d1, &aaa8, &aba9
 .init_bridge_poll
     lda l0d71                                                         ; abe9: ad 71 0d    .q.            ; Load spool state
     cmp #&ff                                                          ; abec: c9 ff       ..             ; Clear low nibble
@@ -11448,7 +11642,7 @@ labc5 = compare_bridge_status+1
     ldy osword_flag                                                   ; acce: a4 aa       ..             ; No: read next palette entry
     inc osword_flag                                                   ; acd0: e6 aa       ..             ; Discard last ULA value; Clear counter
     lda (ws_ptr_hi),y                                                 ; acd2: b1 ac       ..             ; Advance workspace ptr
-    beq return_3                                                      ; acd4: f0 16       ..             ; Store extra palette info
+    beq return_4                                                      ; acd4: f0 16       ..             ; Store extra palette info
     ldy #&7d ; '}'                                                    ; acd6: a0 7d       .}
     sta (net_rx_ptr),y                                                ; acd8: 91 9c       ..             ; Advance workspace ptr again
     pha                                                               ; acda: 48          H              ; Restore original l00ad
@@ -11464,7 +11658,7 @@ labc5 = compare_bridge_status+1
     eor #&0d                                                          ; ace8: 49 0d       I.             ; X = palette register
     bne loop_send_pb_chars                                            ; acea: d0 e2       ..
 ; &acec referenced 1 time by &acd4
-.return_3
+.return_4
     rts                                                               ; acec: 60          `              ; Read OSBYTE for this mode
 
 ; &aced referenced 1 time by &accc
@@ -11980,7 +12174,7 @@ labc5 = compare_bridge_status+1
 ;     SPOOL CTRL BYTE: = &41 (ready for new data)
 ;     A, Y: clobbered
 ; ***************************************************************************************
-; &ae64 referenced 1 time by &aeb5
+; &ae64 referenced 2 times by &8f93, &aeb5
 .reset_spool_buf_state
     lda #&21 ; '!'                                                    ; ae64: a9 21       .!             ; Send request to file server
     sta spool_buf_idx                                                 ; ae66: 8d 6b 0d    .k.            ; Advance past header
@@ -12065,7 +12259,7 @@ labc5 = compare_bridge_status+1
 ;     SPOOL BUFFER: transmitted then reset to initial state
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
-; &ae9d referenced 1 time by &ae75
+; &ae9d referenced 2 times by &901f, &ae75
 .handle_spool_ctrl_byte
     ror a                                                             ; ae9d: 6a          j
     bcc check_spool_state                                             ; ae9e: 90 57       .W             ; Get flags
@@ -12564,6 +12758,8 @@ labc5 = compare_bridge_status+1
     equb &d8                                                          ; b0eb: d8          .              ; Index 23: threshold 216
     equb &e2                                                          ; b0ec: e2          .              ; Index 24: threshold 226; Read station low
     equb &ec                                                          ; b0ed: ec          .              ; Index 25: threshold 236
+; &b0ee referenced 1 time by &8f84
+.lb0ee
     equb &f6                                                          ; b0ee: f6          .              ; Store station low
     equb &ff                                                          ; b0ef: ff          .
     equb &28, &0a                                                     ; b0f0: 28 0a       (.             ; Read network number
@@ -13380,6 +13576,7 @@ labc5 = compare_bridge_status+1
 ;     RX BUFFER +&18..+&1F: 8-byte PS template
 ;     Y: &20 (advanced past the copied 8 bytes)
 ; ***************************************************************************************
+; &b3d5 referenced 1 time by &8f5b
 .copy_ps_data_y1c
     ldy #&18                                                          ; b3d5: a0 18       ..             ; Y=&18: standard offset for the PS template; fall into copy_ps_data
 ; ***************************************************************************************
@@ -14221,11 +14418,11 @@ lb4fd = write_ps_slot_hi_link+1
     ldx #1                                                            ; b7d5: a2 01       ..             ; X=1: flush input buffers
     jsr osbyte                                                        ; b7d7: 20 f4 ff     ..            ; Flush keyboard buffer before read; Flush input buffers (X non-zero)
     jsr osrdch                                                        ; b7da: 20 e0 ff     ..            ; Read character from input stream; Read a character from the current input stream
-    bcc return_4                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
+    bcc return_5                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
     jmp c9895                                                         ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
 
 ; &b7e2 referenced 1 time by &b7dd
-.return_4
+.return_5
     rts                                                               ; b7e2: 60          `              ; Return with character in A
 
 ; ***************************************************************************************
@@ -14427,13 +14624,13 @@ lb821 = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b88c: 20 14 b8     ..            ; Validate and look up channel
     and #2                                                            ; b88f: 29 02       ).             ; Test directory flag (bit 1)
-    beq return_5                                                      ; b891: f0 14       ..             ; Not a directory: return OK
+    beq return_6                                                      ; b891: f0 14       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..            ; Generate 'Is a dir.' error
     equs "Is a directory", 0                                          ; b898: 49 73 20... Is
 
 ; &b8a7 referenced 1 time by &b891
-.return_5
+.return_6
     rts                                                               ; b8a7: 60          `
 
 ; ***************************************************************************************
@@ -16062,7 +16259,7 @@ lb821 = err_net_chan_not_found+2
 ; &bfff referenced 2 times by &a9d1, &a9e6
 .lbfff
     equb &ff                                                          ; bfff: ff          .
-; &c000 referenced 5 times by &8dc2, &9758, &a398, &b8c8, &b928
+; &c000 referenced 6 times by &8dc2, &8f63, &9758, &a398, &b8c8, &b928
 .pydis_end
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
@@ -16085,10 +16282,10 @@ lb821 = err_net_chan_not_found+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                 84
+;     nfs_workspace:                 90
 ;     lc105:                         59
 ;     fs_options:                    54
-;     net_rx_ptr:                    48
+;     net_rx_ptr:                    52
 ;     econet_control23_or_status2:   45
 ;     ws_ptr_hi:                     42
 ;     fs_load_addr_2:                38
@@ -16100,26 +16297,27 @@ save pydis_start, pydis_end
 ;     lc271:                         33
 ;     econet_control1_or_status1:    32
 ;     fs_crc_lo:                     31
+;     fs_flags:                      29
 ;     osword_flag:                   29
 ;     osbyte:                        28
 ;     rx_src_net:                    27
 ;     lc106:                         26
 ;     lc260:                         25
-;     fs_flags:                      24
 ;     fs_load_addr:                  24
+;     print_inline:                  24
 ;     port_buf_len:                  23
-;     print_inline:                  23
 ;     fs_work_4:                     22
 ;     lc2b8:                         22
 ;     always_set_v_byte:             21
 ;     l0101:                         20
 ;     save_net_tx_cb:                20
+;     econet_flags:                  18
 ;     lc200:                         18
 ;     lc230:                         18
-;     econet_flags:                  17
 ;     lfe34:                         17
 ;     open_port_buf_hi:              16
 ;     os_text_ptr:                   16
+;     ws_page:                       16
 ;     fs_block_offset:               15
 ;     lc030:                         15
 ;     lc210:                         15
@@ -16135,7 +16333,6 @@ save pydis_start, pydis_end
 ;     fs_last_byte_flag:             13
 ;     osasci:                        13
 ;     set_nmi_vector:                13
-;     ws_page:                       13
 ;     lc2c9:                         12
 ;     mask_owner_access:             12
 ;     return_with_last_flag:         12
@@ -16144,19 +16341,23 @@ save pydis_start, pydis_end
 ;     fs_load_addr_3:                11
 ;     fs_work_6:                     11
 ;     l0100:                         11
+;     lc001:                         11
+;     net_rx_ptr_hi:                 11
 ;     nmi_error_dispatch:            11
 ;     tx_result_fail:                11
 ;     la76c:                         10
 ;     lc103:                         10
 ;     lc107:                         10
-;     net_rx_ptr_hi:                 10
+;     osbyte_a1:                     10
 ;     store_rx_attribute:            10
 ;     fs_crflag:                      9
 ;     install_nmi_handler:            9
 ;     lc220:                          9
+;     nfs_workspace_hi:               9
 ;     osnewl:                         9
 ;     osword_pb_ptr:                  9
 ;     process_all_fcbs:               9
+;     romsel_copy:                    9
 ;     scout_buf:                      9
 ;     tx_src_stn:                     9
 ;     txcb_end:                       9
@@ -16165,10 +16366,8 @@ save pydis_start, pydis_end
 ;     copy_arg_to_buf:                8
 ;     l0406:                          8
 ;     l9aa6:                          8
-;     lc001:                          8
-;     nfs_workspace_hi:               8
 ;     print_char_no_spool:            8
-;     romsel_copy:                    8
+;     tx_complete_flag:               8
 ;     vdu_status:                     8
 ;     alloc_fcb_slot:                 7
 ;     finalise_and_return:            7
@@ -16180,7 +16379,6 @@ save pydis_start, pydis_end
 ;     rx_buf_offset:                  7
 ;     save_ptr_to_os_text:            7
 ;     tube_data_register_3:           7
-;     tx_complete_flag:               7
 ;     tx_dst_stn:                     7
 ;     txcb_ctrl:                      7
 ;     txcb_start:                     7
@@ -16188,6 +16386,8 @@ save pydis_start, pydis_end
 ;     discard_reset_rx:               6
 ;     error_overflow:                 6
 ;     fs_crc_hi:                      6
+;     fs_ws_ptr:                      6
+;     l0d71:                          6
 ;     lc003:                          6
 ;     lc108:                          6
 ;     lc2d8:                          6
@@ -16195,6 +16395,7 @@ save pydis_start, pydis_end
 ;     nmi_rti:                        6
 ;     os_text_ptr_hi:                 6
 ;     print_inline_no_spool:          6
+;     pydis_end:                      6
 ;     send_net_packet:                6
 ;     set_xfer_params:                6
 ;     spool_buf_idx:                  6
@@ -16207,12 +16408,12 @@ save pydis_start, pydis_end
 ;     ensure_fs_selected:             5
 ;     escapable:                      5
 ;     fs_spool_handle:                5
-;     fs_ws_ptr:                      5
+;     init_bridge_poll:               5
 ;     init_txcb:                      5
 ;     l0102:                          5
-;     l0d71:                          5
 ;     lc002:                          5
 ;     lc004:                          5
+;     lc005:                          5
 ;     lc007:                          5
 ;     lc009:                          5
 ;     lc2cf:                          5
@@ -16220,7 +16421,7 @@ save pydis_start, pydis_end
 ;     lc2d5:                          5
 ;     net_error_lookup_data:          5
 ;     prot_flags:                     5
-;     pydis_end:                      5
+;     rom_ws_pages:                   5
 ;     rx_port:                        5
 ;     scout_ctrl:                     5
 ;     scout_error:                    5
@@ -16243,10 +16444,9 @@ save pydis_start, pydis_end
 ;     error_inline:                   4
 ;     exec_addr_lo:                   4
 ;     fs_work_7:                      4
+;     get_ws_page:                    4
 ;     gsinit:                         4
 ;     gsread:                         4
-;     init_bridge_poll:               4
-;     lc005:                          4
 ;     lc109:                          4
 ;     lc2a8:                          4
 ;     lfe3c:                          4
@@ -16255,7 +16455,6 @@ save pydis_start, pydis_end
 ;     loop_poll_tx:                   4
 ;     loop_scan_fcb_down:             4
 ;     nmi_tx_block_hi:                4
-;     osbyte_a1:                      4
 ;     parse_access_prefix:            4
 ;     parse_addr_arg:                 4
 ;     port_match_found:               4
@@ -16264,7 +16463,6 @@ save pydis_start, pydis_end
 ;     read_pw_char:                   4
 ;     read_rx_attribute:              4
 ;     return_from_spool_reset:        4
-;     rom_ws_pages:                   4
 ;     rx_ctrl:                        4
 ;     saved_nmi_hi:                   4
 ;     saved_nmi_lo:                   4
@@ -16296,13 +16494,13 @@ save pydis_start, pydis_end
 ;     escape_flag:                    3
 ;     find_matching_fcb:              3
 ;     find_station_bit3:              3
-;     get_ws_page:                    3
 ;     handle_invalid:                 3
 ;     is_decimal_digit:               3
 ;     jmp_restore_fs_ctx:             3
 ;     l0106:                          3
 ;     l0355:                          3
 ;     lbffe:                          3
+;     lc006:                          3
 ;     lc008:                          3
 ;     lc100:                          3
 ;     lc1c8:                          3
@@ -16332,6 +16530,7 @@ save pydis_start, pydis_end
 ;     read_last_rx_byte:              3
 ;     reload_inactive_mask:           3
 ;     reset_adlc_rx_listen:           3
+;     restore_fs_context:             3
 ;     return_from_advance_buf:        3
 ;     return_from_strip_prefix:       3
 ;     rx_complete_update_rxcb:        3
@@ -16361,10 +16560,12 @@ save pydis_start, pydis_end
 ;     append_error_number:            2
 ;     append_space_and_num:           2
 ;     build_error_block:              2
+;     byte_to_2bit_index:             2
 ;     c8264:                          2
 ;     c842f:                          2
 ;     c8827:                          2
 ;     c8922:                          2
+;     c9004:                          2
 ;     c9895:                          2
 ;     ca75f:                          2
 ;     cb2f7:                          2
@@ -16380,6 +16581,7 @@ save pydis_start, pydis_end
 ;     clear_if_station_match:         2
 ;     clear_result:                   2
 ;     clear_v_flag:                   2
+;     cmd_net_fs:                     2
 ;     cmd_pass:                       2
 ;     cmp_5byte_handle:               2
 ;     copy_fs_cmd_name:               2
@@ -16427,8 +16629,10 @@ save pydis_start, pydis_end
 ;     get_pb_ptr_as_index:            2
 ;     get_prot_bits:                  2
 ;     handle_dot_sep:                 2
+;     handle_spool_ctrl_byte:         2
 ;     imm_op_out_of_range:            2
 ;     inc_fcb_byte_count:             2
+;     init_adlc_and_vectors:          2
 ;     init_remote_session:            2
 ;     init_spool_drive:               2
 ;     init_tx_ptr_and_send:           2
@@ -16440,7 +16644,6 @@ save pydis_start, pydis_end
 ;     la76e:                          2
 ;     lb821:                          2
 ;     lbfff:                          2
-;     lc006:                          2
 ;     lc00a:                          2
 ;     lc02f:                          2
 ;     lc031:                          2
@@ -16509,7 +16712,7 @@ save pydis_start, pydis_end
 ;     print_version_header:           2
 ;     recv_and_process_reply:         2
 ;     release_tube:                   2
-;     restore_fs_context:             2
+;     reset_spool_buf_state:          2
 ;     restore_rom_slot:               2
 ;     retreat_y_by_3:                 2
 ;     return_from_bridge_poll:        2
@@ -16545,6 +16748,7 @@ save pydis_start, pydis_end
 ;     set_text_and_xfer_ptr:          2
 ;     setup_dir_display:              2
 ;     setup_transfer_workspace:       2
+;     setup_ws_ptr:                   2
 ;     skip_entry_chars:               2
 ;     skip_rename_spaces:             2
 ;     skip_sep_spaces:                2
@@ -16603,7 +16807,6 @@ save pydis_start, pydis_end
 ;     brk_ptr:                        1
 ;     build_no_reply_error:           1
 ;     build_simple_error:             1
-;     byte_to_2bit_index:             1
 ;     c8032:                          1
 ;     c8211:                          1
 ;     c8258:                          1
@@ -16614,6 +16817,16 @@ save pydis_start, pydis_end
 ;     c8a8d:                          1
 ;     c8b5a:                          1
 ;     c8cbb:                          1
+;     c8efe:                          1
+;     c8f1f:                          1
+;     c8f24:                          1
+;     c8f4f:                          1
+;     c8fa6:                          1
+;     c8fbb:                          1
+;     c8fc1:                          1
+;     c8fff:                          1
+;     c901a:                          1
+;     c9032:                          1
 ;     c925d:                          1
 ;     c9298:                          1
 ;     c92af:                          1
@@ -16686,7 +16899,6 @@ save pydis_start, pydis_end
 ;     close_specific_chan:            1
 ;     close_spool_exec:               1
 ;     cmd_fs_reentry:                 1
-;     cmd_net_fs:                     1
 ;     cmd_syntax_strings:             1
 ;     cmd_syntax_table:               1
 ;     cmd_table_nfs_iam:              1
@@ -16698,6 +16910,7 @@ save pydis_start, pydis_end
 ;     copy_nmi_shim:                  1
 ;     copy_pb_to_ws:                  1
 ;     copy_ps_data:                   1
+;     copy_ps_data_y1c:               1
 ;     copy_scout_bytes:               1
 ;     copy_scout_to_buffer:           1
 ;     copy_ws_byte_to_pb:             1
@@ -16717,6 +16930,7 @@ save pydis_start, pydis_end
 ;     dispatch_svc_with_state:        1
 ;     do_fs_cmd_iteration:            1
 ;     done_advance_fcb:               1
+;     done_alloc_handles:             1
 ;     done_bcd_convert:               1
 ;     done_calc_offset:               1
 ;     done_cap_ws_count:              1
@@ -16804,7 +17018,6 @@ save pydis_start, pydis_end
 ;     handle_cat_update:              1
 ;     handle_disconnect:              1
 ;     handle_net_error:               1
-;     handle_spool_ctrl_byte:         1
 ;     handle_tx_request:              1
 ;     handshake_await_ack:            1
 ;     help_print_nfs_cmds:            1
@@ -16815,7 +17028,6 @@ save pydis_start, pydis_end
 ;     immediate_op:                   1
 ;     inactive_retry:                 1
 ;     inc_rxcb_ptr:                   1
-;     init_adlc_and_vectors:          1
 ;     init_channel_table:             1
 ;     init_dump_buffer:               1
 ;     init_poll_counters:             1
@@ -16837,6 +17049,7 @@ save pydis_start, pydis_end
 ;     l0020:                          1
 ;     l0026:                          1
 ;     l00ed:                          1
+;     l028d:                          1
 ;     l02a0:                          1
 ;     l0350:                          1
 ;     l0351:                          1
@@ -16866,6 +17079,7 @@ save pydis_start, pydis_end
 ;     lad29:                          1
 ;     lb097:                          1
 ;     lb099:                          1
+;     lb0ee:                          1
 ;     lb4fd:                          1
 ;     lbfe6:                          1
 ;     lc014:                          1
@@ -16893,6 +17107,8 @@ save pydis_start, pydis_end
 ;     lc2d1:                          1
 ;     lc2d6:                          1
 ;     ld020:                          1
+;     lfe28:                          1
+;     lfe2b:                          1
 ;     lffb0:                          1
 ;     lffbd:                          1
 ;     library_dir_prefix:             1
@@ -16906,6 +17122,7 @@ save pydis_start, pydis_end
 ;     loop_add_disp_bytes:            1
 ;     loop_adjust_byte:               1
 ;     loop_advance_char:              1
+;     loop_alloc_handles:             1
 ;     loop_append_err_suffix:         1
 ;     loop_bcd_add:                   1
 ;     loop_bridge_tx_delay:           1
@@ -16957,6 +17174,7 @@ save pydis_start, pydis_end
 ;     loop_copy_fsopts_8:             1
 ;     loop_copy_fsopts_byte:          1
 ;     loop_copy_handles:              1
+;     loop_copy_init_data:            1
 ;     loop_copy_inline_str:           1
 ;     loop_copy_lib_prefix:           1
 ;     loop_copy_limit:                1
@@ -17081,6 +17299,7 @@ save pydis_start, pydis_end
 ;     loop_wait_tx_done:              1
 ;     loop_write_to_tube:             1
 ;     loop_zero_load_addr:            1
+;     loop_zero_workspace:            1
 ;     mark_ws_uninit:                 1
 ;     mask_error_class:               1
 ;     match_help_topic:               1
@@ -17160,7 +17379,6 @@ save pydis_start, pydis_end
 ;     reinit_ps_slot:                 1
 ;     request_next_wipe:              1
 ;     reset_enter_listen:             1
-;     reset_spool_buf_state:          1
 ;     restart_table_scan:             1
 ;     restore_and_return:             1
 ;     restore_catalog_entry:          1
@@ -17179,6 +17397,7 @@ save pydis_start, pydis_end
 ;     return_3:                       1
 ;     return_4:                       1
 ;     return_5:                       1
+;     return_6:                       1
 ;     return_alloc_success:           1
 ;     return_chan_index:              1
 ;     return_from_2bit_index:         1
@@ -17265,7 +17484,6 @@ save pydis_start, pydis_end
 ;     setup_txcb_transfer:            1
 ;     setup_unicast_xfer:             1
 ;     setup_write_access:             1
-;     setup_ws_ptr:                   1
 ;     setup_ws_rx_ptrs:               1
 ;     shift_and_finalise:             1
 ;     show_wipe_prompt:               1
@@ -17324,6 +17542,8 @@ save pydis_start, pydis_end
 ;     store_updated_status:           1
 ;     store_via_rx_ptr:               1
 ;     store_ws_byte:                  1
+;     sub_c8e98:                      1
+;     sub_caabb:                      1
 ;     subst_rx_page_byte:             1
 ;     subtract_ws_byte:               1
 ;     suffix_not_listening:           1
@@ -17393,6 +17613,17 @@ save pydis_start, pydis_end
 ;     c8ace
 ;     c8b5a
 ;     c8cbb
+;     c8efe
+;     c8f1f
+;     c8f24
+;     c8f4f
+;     c8fa6
+;     c8fbb
+;     c8fc1
+;     c8fff
+;     c9004
+;     c901a
+;     c9032
 ;     c925d
 ;     c9298
 ;     c92af
@@ -17429,6 +17660,7 @@ save pydis_start, pydis_end
 ;     l0103
 ;     l0104
 ;     l0106
+;     l028d
 ;     l02a0
 ;     l0350
 ;     l0351
@@ -17466,6 +17698,7 @@ save pydis_start, pydis_end
 ;     lad29
 ;     lb097
 ;     lb099
+;     lb0ee
 ;     lb4fd
 ;     lb821
 ;     lbfe6
@@ -17554,6 +17787,8 @@ save pydis_start, pydis_end
 ;     lc2d9
 ;     lc2f3
 ;     ld020
+;     lfe28
+;     lfe2b
 ;     lfe34
 ;     lfe38
 ;     lfe3c
@@ -17574,18 +17809,21 @@ save pydis_start, pydis_end
 ;     return_3
 ;     return_4
 ;     return_5
+;     return_6
 ;     sub_c8409
 ;     sub_c84b7
 ;     sub_c8da6
+;     sub_c8e98
 ;     sub_ca0fe
+;     sub_caabb
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13150 bytes (80%)
-;     Data                     = 3234 bytes (20%)
+;     Code                     = 13415 bytes (82%)
+;     Data                     = 2969 bytes (18%)
 ;
-;     Number of instructions   = 6493
-;     Number of data bytes     = 1925 bytes
+;     Number of instructions   = 6620
+;     Number of data bytes     = 1659 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1281 bytes
-;     Number of strings        = 146
+;     Number of string bytes   = 1282 bytes
+;     Number of strings        = 144
