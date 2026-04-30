@@ -31,6 +31,7 @@ calling-convention comments to every subroutine.
 | 2026-04-30 baseline | 6487 | 4770 | 73.5% | 71 |
 | 2026-04-30 +leaves  | 6487 | 5014 | 77.3% | 33 |
 | 2026-04-30 +depth-1 | 6487 | 5102 | 78.6% | 22 |
+| 2026-04-30 +higher  | 6487 | 5420 | 83.6% | 9  |
 
 ## Routines fully annotated this session
 
@@ -76,6 +77,18 @@ Depth-1 routines:
 Depth-2/3:
   &8C93 print_version_header (completion)
   &A3BB print_fs_info_newline
+
+Higher-level routines (depth 1-7+):
+  &8028 svc5_irq_check (completion)
+  &92B2 parse_addr_arg (full body)
+  &9776 cmd_bye             &A398 cmd_fs
+  &A3C4 parse_fs_ps_args (full body, was just declaration)
+  &AD40 tx_econet_abort     &AD64 netv_claim_release
+  &ADD3 osword_8_handler
+  &B303 print_decimal_3dig_no_spool + &B310 _digit_no_spool (NEW
+        4.21 routines named & annotated)
+  &BE01 print_dump_header   &BE42 parse_dump_range
+  &BF78 open_file_for_read
 
 ## Working queue
 

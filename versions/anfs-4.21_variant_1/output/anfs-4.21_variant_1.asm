@@ -12181,69 +12181,69 @@ lb4fd = write_ps_slot_hi_link+1
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_wipe
-    jsr mask_owner_access                                             ; b6f3: 20 cf b2     ..
-    lda #0                                                            ; b6f6: a9 00       ..
-    sta fs_work_5                                                     ; b6f8: 85 b5       ..
-    jsr save_ptr_to_os_text                                           ; b6fa: 20 73 b3     s.
-    jsr parse_filename_arg                                            ; b6fd: 20 2c b2     ,.
-    inx                                                               ; b700: e8          .
-    stx fs_work_6                                                     ; b701: 86 b6       ..
+    jsr mask_owner_access                                             ; b6f3: 20 cf b2     ..            ; Reset access flags before parsing the new argument
+    lda #0                                                            ; b6f6: a9 00       ..             ; A=0: clear the file-iteration counter
+    sta fs_work_5                                                     ; b6f8: 85 b5       ..             ; Store iteration counter (steps to next file each loop)
+    jsr save_ptr_to_os_text                                           ; b6fa: 20 73 b3     s.            ; Save text pointer for re-reading the wildcard each iteration
+    jsr parse_filename_arg                                            ; b6fd: 20 2c b2     ,.            ; Parse the wildcard filename into the &C030 buffer
+    inx                                                               ; b700: e8          .              ; Step X past the CR terminator (so X = filename length+1)
+    stx fs_work_6                                                     ; b701: 86 b6       ..             ; Save end-of-buffer offset
 ; &b703 referenced 1 time by &b73f
 .request_next_wipe
-    lda #1                                                            ; b703: a9 01       ..
-    sta lc105                                                         ; b705: 8d 05 c1    ...
-    sta lc107                                                         ; b708: 8d 07 c1    ...
-    ldx fs_work_5                                                     ; b70b: a6 b5       ..
-    stx lc106                                                         ; b70d: 8e 06 c1    ...
-    ldx #3                                                            ; b710: a2 03       ..
-    jsr copy_arg_to_buf                                               ; b712: 20 a1 b2     ..
-    ldy #3                                                            ; b715: a0 03       ..
-    lda #&80                                                          ; b717: a9 80       ..
-    sta need_release_tube                                             ; b719: 85 98       ..
-    jsr save_net_tx_cb                                                ; b71b: 20 8a 97     ..
-    lda lc105                                                         ; b71e: ad 05 c1    ...
-    bne check_wipe_attr                                               ; b721: d0 13       ..
-    lda #osbyte_flush_buffer_class                                    ; b723: a9 0f       ..
-    ldx #1                                                            ; b725: a2 01       ..
-    jsr osbyte                                                        ; b727: 20 f4 ff     ..            ; Flush input buffers (X non-zero)
-    lda #osbyte_scan_keyboard_from_16                                 ; b72a: a9 7a       .z
-    jsr osbyte                                                        ; b72c: 20 f4 ff     ..            ; Keyboard scan starting from key 16
-    ldy #0                                                            ; b72f: a0 00       ..             ; Y=key
-    lda #osbyte_write_keys_pressed                                    ; b731: a9 78       .x
-    jmp osbyte                                                        ; b733: 4c f4 ff    L..            ; Write current keys pressed (X and Y)
+    lda #1                                                            ; b703: a9 01       ..             ; FS function code byte 0 = 1 (examine)
+    sta lc105                                                         ; b705: 8d 05 c1    ...            ; TXCB[5] = 1: 'examine directory entry'
+    sta lc107                                                         ; b708: 8d 07 c1    ...            ; TXCB[7] = 1: ditto for the second buffer slot
+    ldx fs_work_5                                                     ; b70b: a6 b5       ..             ; Load current iteration index
+    stx lc106                                                         ; b70d: 8e 06 c1    ...            ; TXCB[6] = iteration index (which directory entry)
+    ldx #3                                                            ; b710: a2 03       ..             ; X=3: copy starting at TX[3] (after the FS header bytes)
+    jsr copy_arg_to_buf                                               ; b712: 20 a1 b2     ..            ; Copy the parsed filename into the TX buffer
+    ldy #3                                                            ; b715: a0 03       ..             ; Y=3: FS function code 'Examine'
+    lda #&80                                                          ; b717: a9 80       ..             ; A=&80: set bit 7 of need_release_tube to flag long-lived TX
+    sta need_release_tube                                             ; b719: 85 98       ..             ; Store flag
+    jsr save_net_tx_cb                                                ; b71b: 20 8a 97     ..            ; Send the examine request and wait for reply
+    lda lc105                                                         ; b71e: ad 05 c1    ...            ; Read FS reply byte 0 (status code)
+    bne check_wipe_attr                                               ; b721: d0 13       ..             ; Non-zero status: process the response
+    lda #osbyte_flush_buffer_class                                    ; b723: a9 0f       ..             ; OSBYTE &0F: flush input buffer class
+    ldx #1                                                            ; b725: a2 01       ..             ; X=1: flush keyboard buffer
+    jsr osbyte                                                        ; b727: 20 f4 ff     ..            ; Flush keyboard buffer (clear pending Y/N keypress); Flush input buffers (X non-zero)
+    lda #osbyte_scan_keyboard_from_16                                 ; b72a: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16 (clear keypress queue)
+    jsr osbyte                                                        ; b72c: 20 f4 ff     ..            ; Run the scan; Keyboard scan starting from key 16
+    ldy #0                                                            ; b72f: a0 00       ..             ; Y=0: no key; Y=key
+    lda #osbyte_write_keys_pressed                                    ; b731: a9 78       .x             ; OSBYTE &78: write keys-pressed state
+    jmp osbyte                                                        ; b733: 4c f4 ff    L..            ; Tail-call OSBYTE: clean up and return; Write current keys pressed (X and Y)
 
 ; &b736 referenced 1 time by &b721
 .check_wipe_attr
-    lda lc12f                                                         ; b736: ad 2f c1    ./.
+    lda lc12f                                                         ; b736: ad 2f c1    ./.            ; Read attribute byte from FS reply (TXCB[&2F])
 ; &b739 referenced 1 time by &b749
 .loop_check_if_locked
-    cmp #&4c ; 'L'                                                    ; b739: c9 4c       .L
-    bne check_wipe_dir                                                ; b73b: d0 05       ..
+    cmp #&4c ; 'L'                                                    ; b739: c9 4c       .L             ; Is it 'L' (locked)?
+    bne check_wipe_dir                                                ; b73b: d0 05       ..             ; Not locked: check for directory
 .skip_wipe_locked
-    inc fs_work_5                                                     ; b73d: e6 b5       ..
-    jmp request_next_wipe                                             ; b73f: 4c 03 b7    L..
+    inc fs_work_5                                                     ; b73d: e6 b5       ..             ; Locked: skip this file, advance to next
+    jmp request_next_wipe                                             ; b73f: 4c 03 b7    L..            ; Loop back to request the next directory entry
 
 ; &b742 referenced 1 time by &b73b
 .check_wipe_dir
-    cmp #&44 ; 'D'                                                    ; b742: c9 44       .D
-    bne show_wipe_prompt                                              ; b744: d0 05       ..
-    lda lc130                                                         ; b746: ad 30 c1    .0.
-    bne loop_check_if_locked                                          ; b749: d0 ee       ..
+    cmp #&44 ; 'D'                                                    ; b742: c9 44       .D             ; Is it 'D' (directory)?
+    bne show_wipe_prompt                                              ; b744: d0 05       ..             ; Not a directory: prompt the user
+    lda lc130                                                         ; b746: ad 30 c1    .0.            ; Directory: check second attribute byte (size)
+    bne loop_check_if_locked                                          ; b749: d0 ee       ..             ; Loop back to attribute test (re-checks if non-empty)
 ; &b74b referenced 1 time by &b744
 .show_wipe_prompt
-    ldx #1                                                            ; b74b: a2 01       ..
-    ldy fs_work_6                                                     ; b74d: a4 b6       ..
+    ldx #1                                                            ; b74b: a2 01       ..             ; X=1: scan name starting at TX[1]
+    ldy fs_work_6                                                     ; b74d: a4 b6       ..             ; Y = end-of-buffer offset (saved earlier in fs_work_6)
 ; &b74f referenced 1 time by &b75c
 .loop_copy_wipe_name
-    lda lc106,x                                                       ; b74f: bd 06 c1    ...
-    jsr print_char_no_spool                                           ; b752: 20 fb 91     ..
-    sta lc030,y                                                       ; b755: 99 30 c0    .0.
-    iny                                                               ; b758: c8          .
-    inx                                                               ; b759: e8          .
-    cpx #&0c                                                          ; b75a: e0 0c       ..
-    bne loop_copy_wipe_name                                           ; b75c: d0 f1       ..
-    jsr sub_c928a                                                     ; b75e: 20 8a 92     ..
-    plp                                                               ; b761: 28          (
+    lda lc106,x                                                       ; b74f: bd 06 c1    ...            ; Read filename byte from TX[6+X]
+    jsr print_char_no_spool                                           ; b752: 20 fb 91     ..            ; Print via *SPOOL-bypassing OSASCI
+    sta lc030,y                                                       ; b755: 99 30 c0    .0.            ; Also store into the parse buffer for later use
+    iny                                                               ; b758: c8          .              ; Step parse-buffer offset
+    inx                                                               ; b759: e8          .              ; Step TX-buffer offset
+    cpx #&0c                                                          ; b75a: e0 0c       ..             ; Reached &0C (12 chars)?
+    bne loop_copy_wipe_name                                           ; b75c: d0 f1       ..             ; No: continue copying
+    jsr sub_c928a                                                     ; b75e: 20 8a 92     ..            ; Print '(Y/N/?) ' prompt and read response
+    plp                                                               ; b761: 28          (              ; Restore caller's flags (saved by sub_c928a)
     equb &3f, &2f, &ea, &20, &cb, &b7, &c9, &3f, &d0, &1b, &a9, &0d   ; b762: 3f 2f ea... ?/.
     equb &20,   1, &92, &a2,   2                                      ; b76e: 20 01 92...  ..
 .loop_print_wipe_info

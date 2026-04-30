@@ -7266,6 +7266,79 @@ comment(0xADB0, "Patch caller's stack frame at &106+X", inline=True)
 comment(0xADB3, "Reached &DA (lower workspace bound)?", inline=True)
 comment(0xADB5, "No: keep restoring", inline=True)
 comment(0xADB7, "Return", inline=True)
+
+# cmd_wipe inline comments (~30 items in classified body)
+comment(0xB6F3, "Reset access flags before parsing the new argument",
+        inline=True)
+comment(0xB6F6, "A=0: clear the file-iteration counter", inline=True)
+comment(0xB6F8, "Store iteration counter (steps to next file each loop)",
+        inline=True)
+comment(0xB6FA, "Save text pointer for re-reading the wildcard each "
+        "iteration", inline=True)
+comment(0xB6FD, "Parse the wildcard filename into the &C030 buffer",
+        inline=True)
+comment(0xB700, "Step X past the CR terminator (so X = filename length+1)",
+        inline=True)
+comment(0xB701, "Save end-of-buffer offset", inline=True)
+# request_next_wipe
+comment(0xB703, "FS function code byte 0 = 1 (examine)", inline=True)
+comment(0xB705, "TXCB[5] = 1: 'examine directory entry'", inline=True)
+comment(0xB708, "TXCB[7] = 1: ditto for the second buffer slot",
+        inline=True)
+comment(0xB70B, "Load current iteration index", inline=True)
+comment(0xB70D, "TXCB[6] = iteration index (which directory entry)",
+        inline=True)
+comment(0xB710, "X=3: copy starting at TX[3] (after the FS header bytes)",
+        inline=True)
+comment(0xB712, "Copy the parsed filename into the TX buffer", inline=True)
+comment(0xB715, "Y=3: FS function code 'Examine'", inline=True)
+comment(0xB717, "A=&80: set bit 7 of need_release_tube to flag long-lived "
+        "TX", inline=True)
+comment(0xB719, "Store flag", inline=True)
+comment(0xB71B, "Send the examine request and wait for reply",
+        inline=True)
+comment(0xB71E, "Read FS reply byte 0 (status code)", inline=True)
+comment(0xB721, "Non-zero status: process the response", inline=True)
+# No-more-files exit path
+comment(0xB723, "OSBYTE &0F: flush input buffer class", inline=True)
+comment(0xB725, "X=1: flush keyboard buffer", inline=True)
+comment(0xB727, "Flush keyboard buffer (clear pending Y/N keypress)",
+        inline=True)
+comment(0xB72A, "OSBYTE &7A: scan keyboard from key 16 (clear keypress "
+        "queue)", inline=True)
+comment(0xB72C, "Run the scan", inline=True)
+comment(0xB72F, "Y=0: no key", inline=True)
+comment(0xB731, "OSBYTE &78: write keys-pressed state", inline=True)
+comment(0xB733, "Tail-call OSBYTE: clean up and return", inline=True)
+# check_wipe_attr loop
+comment(0xB736, "Read attribute byte from FS reply (TXCB[&2F])",
+        inline=True)
+comment(0xB739, "Is it 'L' (locked)?", inline=True)
+comment(0xB73B, "Not locked: check for directory", inline=True)
+comment(0xB73D, "Locked: skip this file, advance to next", inline=True)
+comment(0xB73F, "Loop back to request the next directory entry",
+        inline=True)
+comment(0xB742, "Is it 'D' (directory)?", inline=True)
+comment(0xB744, "Not a directory: prompt the user", inline=True)
+comment(0xB746, "Directory: check second attribute byte (size)",
+        inline=True)
+comment(0xB749, "Loop back to attribute test (re-checks if non-empty)",
+        inline=True)
+# Display filename + Y/N prompt
+comment(0xB74B, "X=1: scan name starting at TX[1]", inline=True)
+comment(0xB74D, "Y = end-of-buffer offset (saved earlier in fs_work_6)",
+        inline=True)
+comment(0xB74F, "Read filename byte from TX[6+X]", inline=True)
+comment(0xB752, "Print via *SPOOL-bypassing OSASCI", inline=True)
+comment(0xB755, "Also store into the parse buffer for later use",
+        inline=True)
+comment(0xB758, "Step parse-buffer offset", inline=True)
+comment(0xB759, "Step TX-buffer offset", inline=True)
+comment(0xB75A, "Reached &0C (12 chars)?", inline=True)
+comment(0xB75C, "No: continue copying", inline=True)
+comment(0xB75E, "Print '(Y/N/?) ' prompt and read response", inline=True)
+comment(0xB761, "Restore caller's flags (saved by sub_c928a)",
+        inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
