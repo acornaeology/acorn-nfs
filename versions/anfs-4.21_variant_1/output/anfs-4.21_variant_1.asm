@@ -942,10 +942,12 @@ rom_header_byte2 = rom_header+2
     ldy #&82                                                          ; 820c: a0 82       ..             ; High byte of &8296 handler
     jmp set_nmi_vector                                                ; 820e: 4c 0e 0d    L..            ; Install Tube handler and RTI
 
+; Page-overflow exit from nmi_data_rx_bulk: restores the Master 128 ACCCON
+; that was saved at &822A before falling through to the RXCB-update path.
 ; &8211 referenced 1 time by &823f
 .c8211
-    pla                                                               ; 8211: 68          h
-    sta lfe34                                                         ; 8212: 8d 34 fe    .4.
+    pla                                                               ; 8211: 68          h              ; Pull saved ACCCON from stack
+    sta lfe34                                                         ; 8212: 8d 34 fe    .4.            ; Restore caller's ACCCON on page-overflow exit
 ; ***************************************************************************************
 ; NMI error handler dispatch
 ; 
@@ -1003,10 +1005,13 @@ rom_header_byte2 = rom_header+2
 ; &8228 referenced 1 time by &825f
 .data_rx_loop
     bpl data_rx_complete                                              ; 8228: 10 3e       .>             ; SR2 bit7 clear: frame complete (FV)
-    lda lfe34                                                         ; 822a: ad 34 fe    .4.
-    pha                                                               ; 822d: 48          H
-    lda escapable                                                     ; 822e: a5 97       ..
-    sta lfe34                                                         ; 8230: 8d 34 fe    .4.
+; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores
+; in this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace
+; &97 holds the desired ACCCON value pre-loaded by the caller.
+    lda lfe34                                                         ; 822a: ad 34 fe    .4.            ; Save current ACCCON on stack (Master 128)
+    pha                                                               ; 822d: 48          H              ; Push ACCCON snapshot
+    lda escapable                                                     ; 822e: a5 97       ..             ; Load desired ACCCON from workspace &97
+    sta lfe34                                                         ; 8230: 8d 34 fe    .4.            ; Set ACCCON for the upcoming buffer stores
     lda econet_data_continue_frame                                    ; 8233: ad a2 fe    ...            ; Read first byte of pair from RX FIFO
     sta (open_port_buf),y                                             ; 8236: 91 a4       ..             ; Store byte to buffer
     iny                                                               ; 8238: c8          .              ; Advance buffer offset
@@ -1031,8 +1036,8 @@ rom_header_byte2 = rom_header+2
     beq c8264                                                         ; 8256: f0 0c       ..             ; No pages left: frame complete
 ; &8258 referenced 1 time by &8250
 .c8258
-    pla                                                               ; 8258: 68          h
-    sta lfe34                                                         ; 8259: 8d 34 fe    .4.
+    pla                                                               ; 8258: 68          h              ; Pull saved ACCCON from stack
+    sta lfe34                                                         ; 8259: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_sr2_loop_again
     lda econet_control23_or_status2                                   ; 825c: ad a1 fe    ...            ; Read SR2 for next iteration
     bne data_rx_loop                                                  ; 825f: d0 c7       ..             ; SR2 non-zero: more data, loop back
@@ -1040,8 +1045,8 @@ rom_header_byte2 = rom_header+2
 
 ; &8264 referenced 2 times by &8246, &8256
 .c8264
-    pla                                                               ; 8264: 68          h
-    sta lfe34                                                         ; 8265: 8d 34 fe    .4.
+    pla                                                               ; 8264: 68          h              ; Pull saved ACCCON (frame-complete path)
+    sta lfe34                                                         ; 8265: 8d 34 fe    .4.            ; Restore caller's ACCCON before completion
 ; ***************************************************************************************
 ; Data frame completion
 ; 
@@ -1512,10 +1517,14 @@ rom_header_byte2 = rom_header+2
 l840a = sub_c8409+1
     bne copy_scout_via_tube                                           ; 8409: d0 2b       .+             ; Tube active: use R3 write path
 ; &840a referenced 1 time by &8477
-    lda lfe34                                                         ; 840b: ad 34 fe    .4.
-    pha                                                               ; 840e: 48          H
-    lda escapable                                                     ; 840f: a5 97       ..
-    sta lfe34                                                         ; 8411: 8d 34 fe    .4.
+; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores.
+; The destination port buffer may live in shadow RAM; bit 0 of ACCCON (D)
+; controls whether (zp),Y addressing hits shadow vs main RAM. Workspace &97
+; holds the desired ACCCON value pre-loaded by the caller.
+    lda lfe34                                                         ; 840b: ad 34 fe    .4.            ; Save current ACCCON on stack (4.21 Master 128)
+    pha                                                               ; 840e: 48          H              ; Push ACCCON snapshot
+    lda escapable                                                     ; 840f: a5 97       ..             ; Load desired ACCCON from workspace &97
+    sta lfe34                                                         ; 8411: 8d 34 fe    .4.            ; Set ACCCON for the upcoming (open_port_buf),Y stores
     ldy port_buf_len                                                  ; 8414: a4 a2       ..             ; Y = current buffer position
 ; &8416 referenced 1 time by &8429
 .copy_scout_bytes
@@ -1533,17 +1542,17 @@ l840a = sub_c8409+1
     cpx #&0c                                                          ; 8427: e0 0c       ..             ; Done all scout data? (X reaches &0C)
     bne copy_scout_bytes                                              ; 8429: d0 eb       ..             ; No: continue copying
 .scout_copy_done
-    pla                                                               ; 842b: 68          h              ; Restore X from stack
-    sta lfe34                                                         ; 842c: 8d 34 fe    .4.
+    pla                                                               ; 842b: 68          h              ; Pull saved ACCCON from stack
+    sta lfe34                                                         ; 842c: 8d 34 fe    .4.            ; Restore caller's ACCCON before continuing
 ; &842f referenced 2 times by &8446, &8484
 .c842f
-    pla                                                               ; 842f: 68          h
+    pla                                                               ; 842f: 68          h              ; Pull saved X from stack
     tax                                                               ; 8430: aa          .              ; Transfer to X register
     jmp rx_complete_update_rxcb                                       ; 8431: 4c 95 83    L..            ; Jump to completion handler
 
 ; &8434 referenced 1 time by &846f
 .c8434
-    bcs reset_adlc_rx_listen                                          ; 8434: b0 b2       ..
+    bcs reset_adlc_rx_listen                                          ; 8434: b0 b2       ..             ; Reset ADLC if BCS condition holds
 ; &8436 referenced 2 times by &8409, &8444
 .copy_scout_via_tube
     lda scout_buf,x                                                   ; 8436: bd 2e 0d    ...            ; Tube path: load scout data byte
@@ -1646,10 +1655,12 @@ l840a = sub_c8409+1
 ; &847c referenced 1 time by &8422
 .scout_page_overflow
     inc port_buf_len                                                  ; 847c: e6 a2       ..             ; Increment port buffer length
+; Tube-path overflow exit from copy_scout_to_buffer: restores the Master 128
+; ACCCON that was saved at &840B before re-joining the scout-done path.
 ; &847e referenced 1 time by &843f
 .c847e
-    pla                                                               ; 847e: 68          h
-    sta lfe34                                                         ; 847f: 8d 34 fe    .4.
+    pla                                                               ; 847e: 68          h              ; Pull saved ACCCON from stack
+    sta lfe34                                                         ; 847f: 8d 34 fe    .4.            ; Restore caller's ACCCON on Tube-overflow exit
 .check_scout_done
     cpx #&0b                                                          ; 8482: e0 0b       ..             ; Check if scout data index reached 11
     beq c842f                                                         ; 8484: f0 a9       ..             ; Yes: loop back to continue reading
@@ -1842,16 +1853,20 @@ l84b8 = sub_c84b7+1
 ; &8512 referenced 1 time by &83e2
 .setup_sr_tx
     sta tx_op_type                                                    ; 8512: 8d 65 0d    .e.            ; Save TX operation type for SR dispatch
-    cmp #&86                                                          ; 8515: c9 86       ..
-    bcs c8524                                                         ; 8517: b0 0b       ..
-    lda ws_0d68                                                       ; 8519: ad 68 0d    .h.
-    sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.            ; Write IER to disable SR
+    cmp #&86                                                          ; 8515: c9 86       ..             ; Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup
+    bcs c8524                                                         ; 8517: b0 0b       ..             ; Skip ahead to the ACCCON IRR set
+; 4.21 differs from 4.18 here: 4.18 read/wrote system_via_acr (&FE4B) and
+; system_via_sr (&FE4A) directly; 4.21 manipulates the workspace shadow pair
+; ws_0d68/ws_0d69 instead. The shadow values are flushed to the real VIA
+; registers elsewhere in the Master 128 IRQ path.
+    lda ws_0d68                                                       ; 8519: ad 68 0d    .h.            ; Load shadow ACR/IER state
+    sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.            ; Stash a copy in ws_0d69 for later restore
     ora #&1c                                                          ; 851f: 09 1c       ..             ; SR mode 2: shift in under φ2
     sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.            ; Apply new shift register mode
 ; &8524 referenced 1 time by &8517
 .c8524
-    lda #&80                                                          ; 8524: a9 80       ..
-    tsb lfe34                                                         ; 8526: 0c 34 fe    .4.
+    lda #&80                                                          ; 8524: a9 80       ..             ; A=&80: ACCCON bit 7 (IRR -- raise interrupt)
+    tsb lfe34                                                         ; 8526: 0c 34 fe    .4.            ; TSB ACCCON: set IRR to flag a pending interrupt to MOS
 ; &8529 referenced 1 time by &84de
 .imm_op_discard
     jmp reset_adlc_rx_listen                                          ; 8529: 4c e8 83    L..            ; Return to idle listen mode
@@ -2788,10 +2803,13 @@ l85fd = intoff_test_inactive+1
 ; &87f2 referenced 2 times by &87c4, &8822
 .data_tx_check_fifo
     bvc tube_tx_fifo_write                                            ; 87f2: 50 54       PT             ; TDRA not ready -- error
-    lda lfe34                                                         ; 87f4: ad 34 fe    .4.
-    pha                                                               ; 87f7: 48          H
-    lda escapable                                                     ; 87f8: a5 97       ..
-    sta lfe34                                                         ; 87fa: 8d 34 fe    .4.
+; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y reads
+; in this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk;
+; workspace &97 holds the desired ACCCON value pre-loaded by the caller.
+    lda lfe34                                                         ; 87f4: ad 34 fe    .4.            ; Save current ACCCON on stack (Master 128)
+    pha                                                               ; 87f7: 48          H              ; Push ACCCON snapshot
+    lda escapable                                                     ; 87f8: a5 97       ..             ; Load desired ACCCON from workspace &97
+    sta lfe34                                                         ; 87fa: 8d 34 fe    .4.            ; Set ACCCON for the upcoming buffer reads
     lda (open_port_buf),y                                             ; 87fd: b1 a4       ..             ; Write data byte to TX FIFO
     sta econet_data_continue_frame                                    ; 87ff: 8d a2 fe    ...            ; Write first byte of pair to FIFO
     iny                                                               ; 8802: c8          .              ; Advance buffer offset
@@ -2811,8 +2829,8 @@ l85fd = intoff_test_inactive+1
     inc open_port_buf_hi                                              ; 8819: e6 a5       ..             ; Increment buffer high byte
 ; &881b referenced 1 time by &8813
 .c881b
-    pla                                                               ; 881b: 68          h
-    sta lfe34                                                         ; 881c: 8d 34 fe    .4.
+    pla                                                               ; 881b: 68          h              ; Pull saved ACCCON from stack
+    sta lfe34                                                         ; 881c: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_irq_loop
     bit econet_control1_or_status1                                    ; 881f: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) for tight loop
     bmi data_tx_check_fifo                                            ; 8822: 30 ce       0.             ; IRQ still set: write 2 more bytes
@@ -2820,8 +2838,8 @@ l85fd = intoff_test_inactive+1
 
 ; &8827 referenced 2 times by &8807, &8817
 .c8827
-    pla                                                               ; 8827: 68          h
-    sta lfe34                                                         ; 8828: 8d 34 fe    .4.
+    pla                                                               ; 8827: 68          h              ; Pull saved ACCCON (frame-end path)
+    sta lfe34                                                         ; 8828: 8d 34 fe    .4.            ; Restore caller's ACCCON before TX_LAST_DATA
 ; &882b referenced 3 times by &87e5, &885e, &8874
 .data_tx_last
     lda #&3f ; '?'                                                    ; 882b: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA (close data frame)
