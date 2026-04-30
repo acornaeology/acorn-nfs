@@ -3196,6 +3196,18 @@ l89c9 = reset_enter_listen+2
 ; Behaviour change from 4.18: inline `BIT &0D6C / BPL`
 ; in 4.18 OSWORD handlers ABORTED when FS was inactive
 ; (returning zero in PB[0]); 4.21 instead auto-selects.
+; 
+; On Entry:
+;     FS_FLAGS (&0D6C): bit 7 = 1 if ANFS already selected (fast path -- RTS without
+; doing anything)
+;     X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call when
+; selection happens)
+; 
+; On Exit:
+;     BEHAVIOUR: fast path: RTS with no side effects when FS already active. Selection
+; path: cmd_net_fs runs (verifies workspace checksum, installs vectors, sets bit 7) and
+; on success falls through to set up the OSWORD PB pointer; on failure (checksum
+; mismatch) raises 'net checksum' via error_net_checksum and never returns.
 ; ***************************************************************************************
 ; &8b4d referenced 5 times by &a9cc, &a9da, &aac2, &aad0, &ac4c
 .ensure_fs_selected
@@ -6757,6 +6769,16 @@ l99a3 = bad_str_anchor+1
 ; standard TXCB location in zero page), then falls
 ; through to send_net_packet for transmission with
 ; retry logic.
+; 
+; On Entry:
+;     TXCB AT &00C0: TX control block populated by caller (init_txcb + send_request_* /
+; prep_send_tx_cb path)
+; 
+; On Exit:
+;     A: TX result code (0 = success; &40 jammed; &41 not listening; etc.) -- see
+; send_net_packet
+;     BEHAVIOUR: may BRK on classified errors (Line jammed, Net error, etc.) via
+; load_reply_and_classify
 ; ***************************************************************************************
 ; &9b24 referenced 2 times by &97c9, &9dc8
 .init_tx_ptr_and_send
@@ -6781,6 +6803,17 @@ l99a3 = bad_str_anchor+1
 ; load_reply_and_classify (Line jammed, Net error,
 ; etc.), distinct from the 'No reply' timeout in
 ; wait_net_tx_ack.
+; 
+; On Entry:
+;     NET_TX_PTR (&AE/&AF): pointer to TX control block (typically &00C0 set by
+; init_tx_ptr_and_send)
+;     TX_RETRY_COUNT (&0D6D): phase-1 retry budget (default &FF; 0 = retry forever)
+; 
+; On Exit:
+;     A: TX result (0 = success; non-zero = error class consumed by the BRK path)
+;     BEHAVIOUR: phase-1 success returns A=0; phase-1 timeout with retry_count != 0
+; jumps to load_reply_and_classify (BRK); with retry_count = 0, enters phase 2 which
+; honours Escape via check_escape_and_classify
 ; ***************************************************************************************
 ; &9b2c referenced 6 times by &acf9, &ad56, &af48, &afd3, &b419, &b5f8
 .send_net_packet
@@ -6947,6 +6980,16 @@ l99a3 = bad_str_anchor+1
 ; stores result there). Returns result in A:
 ; &00=success, &40=jammed, &41=not listening,
 ; &43=no clock, &44=bad control byte.
+; 
+; On Entry:
+;     NET_TX_PTR (&AE/&AF): pointer to TX control block (set by init_tx_ptr_and_send or
+; by the pass-through path)
+;     TX_COMPLETE_FLAG: bit 7 set when ADLC is idle and ready
+; 
+; On Exit:
+;     A: TX result (&00 success / &40 jammed / &41 not listening / &43 no clock / &44
+; bad control byte)
+;     NMI_TX_BLOCK: = net_tx_ptr (snapshot for the NMI handler chain)
 ; ***************************************************************************************
 ; &9bb6 referenced 3 times by &9b3f, &9ba8, &9bb9
 .poll_adlc_tx_status
@@ -7011,6 +7054,17 @@ l99a3 = bad_str_anchor+1
 ; os_text_ptr (&00F2), resets Y to zero, then falls
 ; through to gsread_to_buf to parse the string at that
 ; address into the &0E30 buffer.
+; 
+; On Entry:
+;     FS_OPTIONS (&BB/&BC): pointer to FS options block; bytes 0/1 hold the source
+; string pointer to install into os_text_ptr
+; 
+; On Exit:
+;     OS_TEXT_PTR (&F2/&F3): = (fs_options),0/1 from entry
+;     Y: 0 (reset before GSINIT)
+;     &0E30 (PARSE BUFFER): GSREAD-expanded string, CR-terminated
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): = &0E30 (parse buffer base for downstream
+; parsers)
 ; ***************************************************************************************
 ; &9bf5 referenced 1 time by &9c25
 .load_text_ptr_and_parse
@@ -7030,6 +7084,18 @@ l99a3 = bad_str_anchor+1
 ; l0e30 buffer until end-of-string. Appends a CR
 ; terminator and sets fs_crc_lo/hi to point at &0E30
 ; for subsequent parsing routines.
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): MOS text pointer set up by caller (e.g. via
+; save_ptr_to_os_text)
+;     Y: current command-line offset (consumed by GSINIT)
+; 
+; On Exit:
+;     &0E30 (PARSE BUFFER): expanded string from GSREAD, CR-terminated
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): = &0E30
+;     Y: advanced past the parsed source
+;     BEHAVIOUR: raises 'Bad string' via MOS if GSREAD encounters a malformed quoted
+; string
 ; ***************************************************************************************
 ; &9c00 referenced 1 time by &b22c
 .gsread_to_buf
@@ -7261,6 +7327,15 @@ l99a3 = bad_str_anchor+1
 ; (fs_options) offset 9 downwards, then the file
 ; length as 3 hex bytes from offset &0C. Each group
 ; is followed by a space separator via OSASCI.
+; 
+; On Entry:
+;     FS_OPTIONS (&BB/&BC): pointer to file-info block; offsets 9..D = exec address,
+; offsets &0A..&0C = length
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_hex_byte + OSASCI)
+;     SIDE EFFECT: writes 5+3 hex bytes (with space separators) to the current output
+; stream
 ; ***************************************************************************************
 ; &9d44 referenced 1 time by &9d3b
 .print_load_exec_addrs
@@ -7305,6 +7380,16 @@ l99a3 = bad_str_anchor+1
 ; do_fs_cmd_iteration to preserve the current address
 ; state. Falls through to skip_one_and_advance5 to
 ; advance Y past the copied region.
+; 
+; On Entry:
+;     FS_OPTIONS (&BB/&BC): pointer to FS options block (offsets 2..5 = address bytes)
+;     Y: destination offset within the &00AE.. zero-page region (also indexes the
+; source via (fs_options),Y)
+; 
+; On Exit:
+;     &00AE+Y..+Y+3: 4 bytes copied from (fs_options),+2..+5
+;     Y: advanced by 5 (via skip_one_and_advance5 fall-through)
+;     A: clobbered
 ; ***************************************************************************************
 ; &9d5f referenced 2 times by &9c4e, &9c59
 .copy_fsopts_to_zp
@@ -7323,6 +7408,13 @@ l99a3 = bad_str_anchor+1
 ; a total Y increment of 5. Used to skip past a
 ; 5-byte address/length structure in the FS options
 ; block.
+; 
+; On Entry:
+;     Y: current offset
+; 
+; On Exit:
+;     Y: offset + 5
+;     A, X: preserved
 ; ***************************************************************************************
 ; &9d6b referenced 1 time by &9cd0
 .skip_one_and_advance5
@@ -7358,6 +7450,16 @@ l99a3 = bad_str_anchor+1
 ; to update the FS options block with data returned
 ; from the file server. Falls through to
 ; retreat_y_by_4.
+; 
+; On Entry:
+;     &0F02+Y..: FS reply buffer with the new option bytes
+;     FS_OPTIONS (&BB/&BC): pointer to FS options block (target of the copy)
+;     Y: current offset (controls how many bytes are copied before the loop terminates)
+; 
+; On Exit:
+;     (FS_OPTIONS)+Y..: updated from reply buffer
+;     Y: decremented by 4 (via retreat_y_by_4 fall-through)
+;     A: clobbered
 ; ***************************************************************************************
 ; &9d71 referenced 2 times by &9c51, &9c56
 .copy_workspace_to_fsopts
@@ -8819,6 +8921,21 @@ la0ff = sub_ca0fe+1
 ; against table entries with bit-7-terminated
 ; names. Returns with the matched entry address
 ; on success.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (snapshot from
+; save_text_ptr)
+;     X: starting offset within cmd_table_fs (selects which sub-table is searched: NFS
+; commands, FS commands, etc.)
+; 
+; On Exit:
+;     X: byte offset just past the matched command name in cmd_table_fs (or end-of-
+; table if no match)
+;     Y: command-line offset of the first non-name character (typically the argument
+; start)
+;     Z FLAG: set on match, clear on no-match
+;     BEHAVIOUR: case-insensitive (bit 5 mask applied) and uses bit-7 terminators to
+; delimit each table entry's name
 ; ***************************************************************************************
 ; &a45b referenced 3 times by &8c49, &8c77, &a43b
 .match_fs_cmd

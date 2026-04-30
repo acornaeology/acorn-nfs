@@ -3613,7 +3613,14 @@ subroutine(0x9B24, "init_tx_ptr_and_send",
     description="Sets net_tx_ptr/net_tx_ptr_hi to &00C0 (the\n"
     "standard TXCB location in zero page), then falls\n"
     "through to send_net_packet for transmission with\n"
-    "retry logic.")
+    "retry logic.",
+    on_entry={"txcb at &00C0":
+              "TX control block populated by caller (init_txcb +"
+              " send_request_* / prep_send_tx_cb path)"},
+    on_exit={"a": "TX result code (0 = success; &40 jammed; &41 not "
+             "listening; etc.) -- see send_net_packet",
+             "behaviour": "may BRK on classified errors (Line jammed, "
+             "Net error, etc.) via load_reply_and_classify"})
 subroutine(0x9B2C, "send_net_packet",
     title="Transmit Econet packet with retry",
     description="Two-phase transmit with retry. Loads retry count\n"
@@ -3629,7 +3636,18 @@ subroutine(0x9B2C, "send_net_packet",
     "2 is never entered. Failures go to\n"
     "load_reply_and_classify (Line jammed, Net error,\n"
     "etc.), distinct from the 'No reply' timeout in\n"
-    "wait_net_tx_ack.")
+    "wait_net_tx_ack.",
+    on_entry={"net_tx_ptr (&AE/&AF)":
+              "pointer to TX control block (typically &00C0 set by "
+              "init_tx_ptr_and_send)",
+              "tx_retry_count (&0D6D)":
+              "phase-1 retry budget (default &FF; 0 = retry forever)"},
+    on_exit={"a": "TX result (0 = success; non-zero = error class "
+             "consumed by the BRK path)",
+             "behaviour": "phase-1 success returns A=0; phase-1 timeout "
+             "with retry_count != 0 jumps to load_reply_and_classify "
+             "(BRK); with retry_count = 0, enters phase 2 which honours "
+             "Escape via check_escape_and_classify"})
 subroutine(0x9B81, "init_tx_ptr_for_pass",
     title="Set up TX pointer and send pass-through packet",
     description="Copies the template into the TX buffer (skipping\n"
@@ -3659,20 +3677,47 @@ subroutine(0x9BB6, "poll_adlc_tx_status",
     "first byte until bit 7 clears (NMI handler\n"
     "stores result there). Returns result in A:\n"
     "&00=success, &40=jammed, &41=not listening,\n"
-    "&43=no clock, &44=bad control byte.")
+    "&43=no clock, &44=bad control byte.",
+    on_entry={"net_tx_ptr (&AE/&AF)":
+              "pointer to TX control block (set by init_tx_ptr_and_send "
+              "or by the pass-through path)",
+              "tx_complete_flag": "bit 7 set when ADLC is idle and ready"},
+    on_exit={"a": "TX result (&00 success / &40 jammed / &41 not "
+             "listening / &43 no clock / &44 bad control byte)",
+             "nmi_tx_block": "= net_tx_ptr (snapshot for the NMI "
+             "handler chain)"})
 subroutine(0x9BF5, "load_text_ptr_and_parse",
     title="Copy text pointer from FS options and parse string",
     description="Reads a 2-byte address from (fs_options)+0/1 into\n"
     "os_text_ptr (&00F2), resets Y to zero, then falls\n"
     "through to gsread_to_buf to parse the string at that\n"
-    "address into the &0E30 buffer.")
+    "address into the &0E30 buffer.",
+    on_entry={"fs_options (&BB/&BC)":
+              "pointer to FS options block; bytes 0/1 hold the source "
+              "string pointer to install into os_text_ptr"},
+    on_exit={"os_text_ptr (&F2/&F3)": "= (fs_options),0/1 from entry",
+             "y": "0 (reset before GSINIT)",
+             "&0E30 (parse buffer)": "GSREAD-expanded string, "
+             "CR-terminated",
+             "fs_crc_lo, fs_crc_hi (&BE/&BF)": "= &0E30 (parse buffer "
+             "base for downstream parsers)"})
 subroutine(0x9C00, "gsread_to_buf",
     title="Parse command line via GSINIT/GSREAD into &0E30",
     description="Calls GSINIT to initialise string reading, then\n"
     "loops calling GSREAD to copy characters into the\n"
     "l0e30 buffer until end-of-string. Appends a CR\n"
     "terminator and sets fs_crc_lo/hi to point at &0E30\n"
-    "for subsequent parsing routines.")
+    "for subsequent parsing routines.",
+    on_entry={"os_text_ptr (&F2/&F3)":
+              "MOS text pointer set up by caller (e.g. via "
+              "save_ptr_to_os_text)",
+              "y": "current command-line offset (consumed by GSINIT)"},
+    on_exit={"&0E30 (parse buffer)": "expanded string from GSREAD, "
+             "CR-terminated",
+             "fs_crc_lo, fs_crc_hi (&BE/&BF)": "= &0E30",
+             "y": "advanced past the parsed source",
+             "behaviour": "raises 'Bad string' via MOS if GSREAD "
+             "encounters a malformed quoted string"})
 subroutine(0x9C3E, "do_fs_cmd_iteration",
     title="Execute one iteration of a multi-step FS command",
     description="Called by match_fs_cmd for commands that enumerate\n"
@@ -3693,7 +3738,13 @@ subroutine(0x9D44, "print_load_exec_addrs",
     description="Prints the exec address as 5 hex bytes from\n"
     "(fs_options) offset 9 downwards, then the file\n"
     "length as 3 hex bytes from offset &0C. Each group\n"
-    "is followed by a space separator via OSASCI.")
+    "is followed by a space separator via OSASCI.",
+    on_entry={"fs_options (&BB/&BC)":
+              "pointer to file-info block; offsets 9..D = exec address, "
+              "offsets &0A..&0C = length"},
+    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI)",
+             "side effect": "writes 5+3 hex bytes (with space separators) "
+             "to the current output stream"})
 subroutine(0x9D4F, "print_5_hex_bytes",
     title="Print hex byte sequence from FS options",
     description="Outputs X+1 bytes from (fs_options) starting at\n"
@@ -3710,13 +3761,23 @@ subroutine(0x9D5F, "copy_fsopts_to_zp",
     "into zero page at &00AE+Y. Used by\n"
     "do_fs_cmd_iteration to preserve the current address\n"
     "state. Falls through to skip_one_and_advance5 to\n"
-    "advance Y past the copied region.")
+    "advance Y past the copied region.",
+    on_entry={"fs_options (&BB/&BC)":
+              "pointer to FS options block (offsets 2..5 = address bytes)",
+              "y": "destination offset within the &00AE.. zero-page "
+              "region (also indexes the source via (fs_options),Y)"},
+    on_exit={"&00AE+Y..+Y+3": "4 bytes copied from (fs_options),+2..+5",
+             "y": "advanced by 5 (via skip_one_and_advance5 fall-through)",
+             "a": "clobbered"})
 subroutine(0x9D6B, "skip_one_and_advance5",
     title="Advance Y by 5",
     description="Entry point one INY before advance_y_by_4, giving\n"
     "a total Y increment of 5. Used to skip past a\n"
     "5-byte address/length structure in the FS options\n"
-    "block.")
+    "block.",
+    on_entry={"y": "current offset"},
+    on_exit={"y": "offset + 5",
+             "a, x": "preserved"})
 subroutine(0x9D6C, "advance_y_by_4",
     title="Advance Y by 4",
     description="Four consecutive INY instructions. Used as a\n"
@@ -3730,7 +3791,15 @@ subroutine(0x9D71, "copy_workspace_to_fsopts",
     "into (fs_options) at offsets &0D down to 2. Used\n"
     "to update the FS options block with data returned\n"
     "from the file server. Falls through to\n"
-    "retreat_y_by_4.")
+    "retreat_y_by_4.",
+    on_entry={"&0F02+Y..": "FS reply buffer with the new option bytes",
+              "fs_options (&BB/&BC)": "pointer to FS options block "
+              "(target of the copy)",
+              "y": "current offset (controls how many bytes are copied "
+              "before the loop terminates)"},
+    on_exit={"(fs_options)+Y..": "updated from reply buffer",
+             "y": "decremented by 4 (via retreat_y_by_4 fall-through)",
+             "a": "clobbered"})
 subroutine(0x9D7E, "retreat_y_by_4",
     title="Retreat Y by 4",
     description="Four consecutive DEY instructions. Companion to\n"
@@ -3918,7 +3987,18 @@ subroutine(0xA45B, "match_fs_cmd",
     description="Case-insensitive compare of the command line\n"
     "against table entries with bit-7-terminated\n"
     "names. Returns with the matched entry address\n"
-    "on success.")
+    "on success.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer (snapshot from save_text_ptr)",
+              "x": "starting offset within cmd_table_fs (selects which "
+              "sub-table is searched: NFS commands, FS commands, etc.)"},
+    on_exit={"x": "byte offset just past the matched command name in "
+             "cmd_table_fs (or end-of-table if no match)",
+             "y": "command-line offset of the first non-name character "
+             "(typically the argument start)",
+             "z flag": "set on match, clear on no-match",
+             "behaviour": "case-insensitive (bit 5 mask applied) and "
+             "uses bit-7 terminators to delimit each table entry's name"})
 subroutine(0xA644, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
@@ -4075,7 +4155,19 @@ subroutine(0x8B4D, "ensure_fs_selected",
     "\n"
     "Behaviour change from 4.18: inline `BIT &0D6C / BPL`\n"
     "in 4.18 OSWORD handlers ABORTED when FS was inactive\n"
-    "(returning zero in PB[0]); 4.21 instead auto-selects.")
+    "(returning zero in PB[0]); 4.21 instead auto-selects.",
+    on_entry={"fs_flags (&0D6C)":
+              "bit 7 = 1 if ANFS already selected (fast path -- "
+              "RTS without doing anything)",
+              "x, y": "OSWORD parameter block pointer (preserved across "
+              "the cmd_net_fs call when selection happens)"},
+    on_exit={"behaviour":
+             "fast path: RTS with no side effects when FS already active. "
+             "Selection path: cmd_net_fs runs (verifies workspace "
+             "checksum, installs vectors, sets bit 7) and on success "
+             "falls through to set up the OSWORD PB pointer; on failure "
+             "(checksum mismatch) raises 'net checksum' via "
+             "error_net_checksum and never returns."})
 subroutine(0xAA72, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
