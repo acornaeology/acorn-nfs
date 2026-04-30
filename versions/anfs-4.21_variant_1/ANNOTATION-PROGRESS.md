@@ -30,6 +30,7 @@ calling-convention comments to every subroutine.
 |---|---|---|---|---|
 | 2026-04-30 baseline | 6487 | 4770 | 73.5% | 71 |
 | 2026-04-30 +leaves  | 6487 | 5014 | 77.3% | 33 |
+| 2026-04-30 +depth-1 | 6487 | 5102 | 78.6% | 22 |
 
 ## Routines fully annotated this session
 
@@ -60,6 +61,21 @@ Bottom-up leaves first, then their callees-already-commented neighbours.
   &B7CB prompt_yn
   &BF71 close_ws_file
   &BFBA advance_x_by_8 / _4 / inx4
+
+Depth-1 routines:
+  &93F7 set_conn_active           &940D clear_conn_active
+  &9421 shared exit c9421
+  &97B7 prep_send_tx_cb
+  &B22F parse_access_prefix       &B22C parse_filename_arg
+  &B2E4 ex_print_col_sep (partial)
+  &B483 print_file_server_is      &B48D print_printer_server_is
+  &B498 print_server_is_suffix
+  &B556 print_station_addr
+  &BE37 print_hex_and_space
+
+Depth-2/3:
+  &8C93 print_version_header (completion)
+  &A3BB print_fs_info_newline
 
 ## Working queue
 
