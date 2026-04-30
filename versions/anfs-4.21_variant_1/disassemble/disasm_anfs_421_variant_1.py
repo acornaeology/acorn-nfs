@@ -7094,6 +7094,110 @@ comment(0xA3B3, "Y = hi of PB pointer (=0, since fs_work_4 is in "
         "zero page)", inline=True)
 comment(0xA3B5, "Tail-jump into OSWORD; the OS routes us back through "
         "osword_13_set_station", inline=True)
+
+# parse_addr_arg inline comments (~73 items)
+# Prologue: detect '&' (hex prefix) vs digit
+comment(0x92B2, "Zero the accumulator (fs_load_addr_2)", inline=True)
+comment(0x92B4, "Read first command-line byte", inline=True)
+comment(0x92B6, "Hex prefix '&'?", inline=True)
+comment(0x92B8, "No: try decimal path", inline=True)
+comment(0x92BA, "Yes: skip the '&'", inline=True)
+comment(0x92BB, "Read first hex digit", inline=True)
+comment(0x92BD, "Always taken (CMP #'&' set C if A>='&'); jump into "
+        "the hex digit-range check", inline=True)
+# Hex digit loop
+comment(0x92BF, "Step to next character", inline=True)
+comment(0x92C0, "Read next hex digit candidate", inline=True)
+comment(0x92C2, "Dot? Net.station separator", inline=True)
+comment(0x92C4, "Yes: switch to station-parsing mode", inline=True)
+comment(0x92C6, "Below '!' (CR/space)? End of argument", inline=True)
+comment(0x92C8, "Yes: number complete", inline=True)
+# Hex digit range validation
+comment(0x92CA, "Below '0'?", inline=True)
+comment(0x92CC, "Yes: not a hex digit", inline=True)
+comment(0x92CE, "Above '9'? (CMP #':')", inline=True)
+comment(0x92D0, "No (it's '0'-'9'): straight to digit extraction",
+        inline=True)
+comment(0x92D2, "Force uppercase via AND #&5F", inline=True)
+comment(0x92D4, "Map 'A'-'F' to &FA-&FF (ADC #&B8 with C from earlier "
+        "CMP #':' which set C)", inline=True)
+comment(0x92D6, "Carry out of ADC: was below 'A' -- bad hex", inline=True)
+comment(0x92D8, "Below &FA? (digit > 'F' overflowed past)", inline=True)
+comment(0x92DA, "Yes: bad hex (out of [&FA,&FF])", inline=True)
+# Extract and accumulate hex digit
+comment(0x92DC, "Mask to nibble", inline=True)
+comment(0x92DE, "Stash digit value in fs_load_addr_3", inline=True)
+comment(0x92E0, "Load accumulator", inline=True)
+comment(0x92E2, "Above 16? (would overflow when shifted left 4)",
+        inline=True)
+comment(0x92E4, "Yes: overflow", inline=True)
+comment(0x92E6, "Shift accumulator left 4 (multiply by 16)", inline=True)
+comment(0x92E7, "(shift 2)", inline=True)
+comment(0x92E8, "(shift 3)", inline=True)
+comment(0x92E9, "(shift 4)", inline=True)
+comment(0x92EA, "Add new nibble", inline=True)
+comment(0x92EC, "Save updated accumulator", inline=True)
+comment(0x92EE, "No carry: continue (always taken since accumulator "
+        "was checked < 16 above)", inline=True)
+# Decimal digit loop
+comment(0x92F0, "Read next decimal-digit candidate", inline=True)
+comment(0x92F2, "Dot? Net.station separator", inline=True)
+comment(0x92F4, "Yes: switch to station-parsing mode", inline=True)
+comment(0x92F6, "Below '!' (CR/space)?", inline=True)
+comment(0x92F8, "Yes: number complete", inline=True)
+comment(0x92FA, "Test for '0'-'9' and reject '&'/'.'", inline=True)
+comment(0x92FD, "Not a decimal digit: bad number", inline=True)
+comment(0x92FF, "Mask to nibble", inline=True)
+comment(0x9301, "Stash digit", inline=True)
+comment(0x9303, "ASL accumulator (* 2)", inline=True)
+comment(0x9305, "Overflowed: too big for byte", inline=True)
+comment(0x9307, "Reload doubled value", inline=True)
+comment(0x9309, "* 2 again (now * 4)", inline=True)
+comment(0x930A, "Overflow check", inline=True)
+comment(0x930C, "* 2 again (now * 8)", inline=True)
+comment(0x930D, "Overflow check", inline=True)
+comment(0x930F, "+ accumulator (now * 8 + * 2 = * 10)", inline=True)
+comment(0x9311, "Overflow check", inline=True)
+comment(0x9313, "+ new digit", inline=True)
+comment(0x9315, "Overflow check", inline=True)
+comment(0x9317, "Save * 10 + digit", inline=True)
+comment(0x9319, "Step input cursor", inline=True)
+comment(0x931A, "Always taken (Y wraps at 256, never zero in practice)",
+        inline=True)
+# Termination / validation
+comment(0x931C, "Read mode flag", inline=True)
+comment(0x931E, "Bit 7 clear: in net.station mode -- validate result",
+        inline=True)
+comment(0x9320, "Decimal-only mode: get result", inline=True)
+comment(0x9322, "Result is zero: bad parameter", inline=True)
+comment(0x9324, "Return with parsed result in A (decimal-only path)",
+        inline=True)
+# Station validation
+comment(0x9325, "Reload result", inline=True)
+comment(0x9327, "Station 255 is reserved (broadcast)", inline=True)
+comment(0x9329, "Yes: bad station number", inline=True)
+comment(0x932B, "Reload result for the next test", inline=True)
+comment(0x932D, "Non-zero: valid station, return", inline=True)
+comment(0x932F, "Zero result: must have followed a dot to be valid",
+        inline=True)
+comment(0x9331, "No dot was seen: bad station number", inline=True)
+comment(0x9333, "Dot seen: peek the byte before current cursor",
+        inline=True)
+comment(0x9334, "Read previous byte", inline=True)
+comment(0x9336, "Restore Y", inline=True)
+comment(0x9337, "Was previous char '.'?", inline=True)
+comment(0x9339, "No: bad station number", inline=True)
+comment(0x933B, "All checks passed: C=1 marks 'parsed successfully'",
+        inline=True)
+comment(0x933C, "Return", inline=True)
+# Dot separator handler
+comment(0x933D, "Dot already seen?", inline=True)
+comment(0x933F, "Yes: 'Bad number' (multiple dots)", inline=True)
+comment(0x9341, "Set dot-seen flag", inline=True)
+comment(0x9343, "Get parsed network number (before dot)", inline=True)
+comment(0x9345, "Network 255 is reserved", inline=True)
+comment(0x9347, "Yes: 'Bad network number'", inline=True)
+comment(0x9349, "Return; caller continues parsing the station", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

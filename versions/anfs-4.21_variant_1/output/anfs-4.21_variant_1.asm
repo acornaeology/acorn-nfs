@@ -4550,109 +4550,109 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &92b2 referenced 4 times by &8db1, &8dbd, &a3c9, &a3de
 .parse_addr_arg
-    stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; (dead)
-    lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; (dead); Save processor flags
-    cmp #&26 ; '&'                                                    ; 92b6: c9 26       .&             ; Save A; Transfer X to A
-    bne next_dec_char                                                 ; 92b8: d0 36       .6             ; Save original X; Get stack pointer
-    iny                                                               ; 92ba: c8          .              ; Read original A from stack
-    lda (fs_crc_lo),y                                                 ; 92bb: b1 be       ..
-    bcs check_digit_range                                             ; 92bd: b0 0b       ..             ; Convert to channel index
+    stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; Zero the accumulator (fs_load_addr_2); (dead)
+    lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; Read first command-line byte; (dead); Save processor flags
+    cmp #&26 ; '&'                                                    ; 92b6: c9 26       .&             ; Hex prefix '&'?; Save A; Transfer X to A
+    bne next_dec_char                                                 ; 92b8: d0 36       .6             ; No: try decimal path; Save original X; Get stack pointer
+    iny                                                               ; 92ba: c8          .              ; Yes: skip the '&'; Read original A from stack
+    lda (fs_crc_lo),y                                                 ; 92bb: b1 be       ..             ; Read first hex digit
+    bcs check_digit_range                                             ; 92bd: b0 0b       ..             ; Always taken (CMP #'&' set C if A>='&'); jump into the hex digit-range check; Convert to channel index
 ; &92bf referenced 1 time by &92ee
 .next_hex_char
-    iny                                                               ; 92bf: c8          .
-    lda (fs_crc_lo),y                                                 ; 92c0: b1 be       ..             ; No channel found: skip
-    cmp #&2e ; '.'                                                    ; 92c2: c9 2e       ..             ; Bit 6: connection active flag
-    beq handle_dot_sep                                                ; 92c4: f0 77       .w             ; Set active flag in channel table
-    cmp #&21 ; '!'                                                    ; 92c6: c9 21       .!             ; Store updated status
-    bcc done_parse_num                                                ; 92c8: 90 52       .R
+    iny                                                               ; 92bf: c8          .              ; Step to next character
+    lda (fs_crc_lo),y                                                 ; 92c0: b1 be       ..             ; Read next hex digit candidate; No channel found: skip
+    cmp #&2e ; '.'                                                    ; 92c2: c9 2e       ..             ; Dot? Net.station separator; Bit 6: connection active flag
+    beq handle_dot_sep                                                ; 92c4: f0 77       .w             ; Yes: switch to station-parsing mode; Set active flag in channel table
+    cmp #&21 ; '!'                                                    ; 92c6: c9 21       .!             ; Below '!' (CR/space)? End of argument; Store updated status
+    bcc done_parse_num                                                ; 92c8: 90 52       .R             ; Yes: number complete
 ; &92ca referenced 1 time by &92bd
 .check_digit_range
-    cmp #&30 ; '0'                                                    ; 92ca: c9 30       .0             ; ALWAYS branch to exit
-    bcc skip_if_not_hex                                               ; 92cc: 90 0c       ..             ; Save processor flags; Save A
-    cmp #&3a ; ':'                                                    ; 92ce: c9 3a       .:             ; Transfer X to A; Save original X
-    bcc extract_digit_value                                           ; 92d0: 90 0a       ..             ; Get stack pointer; Read original A from stack
-    and #&5f ; '_'                                                    ; 92d2: 29 5f       )_
-    adc #&b8                                                          ; 92d4: 69 b8       i.             ; Convert to channel index
-    bcs err_bad_hex                                                   ; 92d6: b0 72       .r             ; No channel found: skip
-    cmp #&fa                                                          ; 92d8: c9 fa       ..             ; Bit 6 clear mask (&BF = ~&40)
+    cmp #&30 ; '0'                                                    ; 92ca: c9 30       .0             ; Below '0'?; ALWAYS branch to exit
+    bcc skip_if_not_hex                                               ; 92cc: 90 0c       ..             ; Yes: not a hex digit; Save processor flags; Save A
+    cmp #&3a ; ':'                                                    ; 92ce: c9 3a       .:             ; Above '9'? (CMP #':'); Transfer X to A; Save original X
+    bcc extract_digit_value                                           ; 92d0: 90 0a       ..             ; No (it's '0'-'9'): straight to digit extraction; Get stack pointer; Read original A from stack
+    and #&5f ; '_'                                                    ; 92d2: 29 5f       )_             ; Force uppercase via AND #&5F
+    adc #&b8                                                          ; 92d4: 69 b8       i.             ; Map 'A'-'F' to &FA-&FF (ADC #&B8 with C from earlier CMP #':' which set C); Convert to channel index
+    bcs err_bad_hex                                                   ; 92d6: b0 72       .r             ; Carry out of ADC: was below 'A' -- bad hex; No channel found: skip
+    cmp #&fa                                                          ; 92d8: c9 fa       ..             ; Below &FA? (digit > 'F' overflowed past); Bit 6 clear mask (&BF = ~&40)
 ; &92da referenced 1 time by &92cc
 .skip_if_not_hex
-    bcc err_bad_hex                                                   ; 92da: 90 6e       .n             ; Clear active flag in channel table
+    bcc err_bad_hex                                                   ; 92da: 90 6e       .n             ; Yes: bad hex (out of [&FA,&FF]); Clear active flag in channel table
 ; &92dc referenced 1 time by &92d0
 .extract_digit_value
-    and #&0f                                                          ; 92dc: 29 0f       ).
-    sta fs_load_addr_3                                                ; 92de: 85 b3       ..             ; Store updated status
-    lda fs_load_addr_2                                                ; 92e0: a5 b2       ..             ; Restore X
-    cmp #&10                                                          ; 92e2: c9 10       ..             ; Transfer back to X; Restore A
-    bcs error_overflow                                                ; 92e4: b0 6d       .m             ; Restore processor flags; Return
-    asl a                                                             ; 92e6: 0a          .
-    asl a                                                             ; 92e7: 0a          .
-    asl a                                                             ; 92e8: 0a          .
-    asl a                                                             ; 92e9: 0a          .
-    adc fs_load_addr_3                                                ; 92ea: 65 b3       e.
-    sta fs_load_addr_2                                                ; 92ec: 85 b2       ..
-    bcc next_hex_char                                                 ; 92ee: 90 cf       ..
+    and #&0f                                                          ; 92dc: 29 0f       ).             ; Mask to nibble
+    sta fs_load_addr_3                                                ; 92de: 85 b3       ..             ; Stash digit value in fs_load_addr_3; Store updated status
+    lda fs_load_addr_2                                                ; 92e0: a5 b2       ..             ; Load accumulator; Restore X
+    cmp #&10                                                          ; 92e2: c9 10       ..             ; Above 16? (would overflow when shifted left 4); Transfer back to X; Restore A
+    bcs error_overflow                                                ; 92e4: b0 6d       .m             ; Yes: overflow; Restore processor flags; Return
+    asl a                                                             ; 92e6: 0a          .              ; Shift accumulator left 4 (multiply by 16)
+    asl a                                                             ; 92e7: 0a          .              ; (shift 2)
+    asl a                                                             ; 92e8: 0a          .              ; (shift 3)
+    asl a                                                             ; 92e9: 0a          .              ; (shift 4)
+    adc fs_load_addr_3                                                ; 92ea: 65 b3       e.             ; Add new nibble
+    sta fs_load_addr_2                                                ; 92ec: 85 b2       ..             ; Save updated accumulator
+    bcc next_hex_char                                                 ; 92ee: 90 cf       ..             ; No carry: continue (always taken since accumulator was checked < 16 above)
 ; &92f0 referenced 2 times by &92b8, &931a
 .next_dec_char
-    lda (fs_crc_lo),y                                                 ; 92f0: b1 be       ..
-    cmp #&2e ; '.'                                                    ; 92f2: c9 2e       ..
-    beq handle_dot_sep                                                ; 92f4: f0 47       .G
-    cmp #&21 ; '!'                                                    ; 92f6: c9 21       .!
-    bcc done_parse_num                                                ; 92f8: 90 22       ."
-    jsr is_dec_digit_only                                             ; 92fa: 20 a2 93     ..
-    bcc error_bad_number                                              ; 92fd: 90 6c       .l
-    and #&0f                                                          ; 92ff: 29 0f       ).
-    sta fs_load_addr_3                                                ; 9301: 85 b3       ..
-    asl fs_load_addr_2                                                ; 9303: 06 b2       ..
-    bcs error_overflow                                                ; 9305: b0 4c       .L
-    lda fs_load_addr_2                                                ; 9307: a5 b2       ..
-    asl a                                                             ; 9309: 0a          .
-    bcs error_overflow                                                ; 930a: b0 47       .G
-    asl a                                                             ; 930c: 0a          .
-    bcs error_overflow                                                ; 930d: b0 44       .D
-    adc fs_load_addr_2                                                ; 930f: 65 b2       e.
-    bcs error_overflow                                                ; 9311: b0 40       .@
-    adc fs_load_addr_3                                                ; 9313: 65 b3       e.
-    bcs error_overflow                                                ; 9315: b0 3c       .<
-    sta fs_load_addr_2                                                ; 9317: 85 b2       ..
-    iny                                                               ; 9319: c8          .
-    bne next_dec_char                                                 ; 931a: d0 d4       ..
+    lda (fs_crc_lo),y                                                 ; 92f0: b1 be       ..             ; Read next decimal-digit candidate
+    cmp #&2e ; '.'                                                    ; 92f2: c9 2e       ..             ; Dot? Net.station separator
+    beq handle_dot_sep                                                ; 92f4: f0 47       .G             ; Yes: switch to station-parsing mode
+    cmp #&21 ; '!'                                                    ; 92f6: c9 21       .!             ; Below '!' (CR/space)?
+    bcc done_parse_num                                                ; 92f8: 90 22       ."             ; Yes: number complete
+    jsr is_dec_digit_only                                             ; 92fa: 20 a2 93     ..            ; Test for '0'-'9' and reject '&'/'.'
+    bcc error_bad_number                                              ; 92fd: 90 6c       .l             ; Not a decimal digit: bad number
+    and #&0f                                                          ; 92ff: 29 0f       ).             ; Mask to nibble
+    sta fs_load_addr_3                                                ; 9301: 85 b3       ..             ; Stash digit
+    asl fs_load_addr_2                                                ; 9303: 06 b2       ..             ; ASL accumulator (* 2)
+    bcs error_overflow                                                ; 9305: b0 4c       .L             ; Overflowed: too big for byte
+    lda fs_load_addr_2                                                ; 9307: a5 b2       ..             ; Reload doubled value
+    asl a                                                             ; 9309: 0a          .              ; * 2 again (now * 4)
+    bcs error_overflow                                                ; 930a: b0 47       .G             ; Overflow check
+    asl a                                                             ; 930c: 0a          .              ; * 2 again (now * 8)
+    bcs error_overflow                                                ; 930d: b0 44       .D             ; Overflow check
+    adc fs_load_addr_2                                                ; 930f: 65 b2       e.             ; + accumulator (now * 8 + * 2 = * 10)
+    bcs error_overflow                                                ; 9311: b0 40       .@             ; Overflow check
+    adc fs_load_addr_3                                                ; 9313: 65 b3       e.             ; + new digit
+    bcs error_overflow                                                ; 9315: b0 3c       .<             ; Overflow check
+    sta fs_load_addr_2                                                ; 9317: 85 b2       ..             ; Save * 10 + digit
+    iny                                                               ; 9319: c8          .              ; Step input cursor
+    bne next_dec_char                                                 ; 931a: d0 d4       ..             ; Always taken (Y wraps at 256, never zero in practice)
 ; &931c referenced 2 times by &92c8, &92f8
 .done_parse_num
-    lda fs_work_4                                                     ; 931c: a5 b4       ..
-    bpl validate_station                                              ; 931e: 10 05       ..
-    lda fs_load_addr_2                                                ; 9320: a5 b2       ..
-    beq error_bad_param                                               ; 9322: f0 53       .S
-    rts                                                               ; 9324: 60          `
+    lda fs_work_4                                                     ; 931c: a5 b4       ..             ; Read mode flag
+    bpl validate_station                                              ; 931e: 10 05       ..             ; Bit 7 clear: in net.station mode -- validate result
+    lda fs_load_addr_2                                                ; 9320: a5 b2       ..             ; Decimal-only mode: get result
+    beq error_bad_param                                               ; 9322: f0 53       .S             ; Result is zero: bad parameter
+    rts                                                               ; 9324: 60          `              ; Return with parsed result in A (decimal-only path)
 
 ; &9325 referenced 1 time by &931e
 .validate_station
-    lda fs_load_addr_2                                                ; 9325: a5 b2       ..
-    cmp #&ff                                                          ; 9327: c9 ff       ..
-    beq err_bad_station_num                                           ; 9329: f0 2c       .,
-    lda fs_load_addr_2                                                ; 932b: a5 b2       ..
-    bne return_parsed                                                 ; 932d: d0 0c       ..
-    lda fs_work_4                                                     ; 932f: a5 b4       ..
-    beq err_bad_station_num                                           ; 9331: f0 24       .$
-    dey                                                               ; 9333: 88          .
-    lda (fs_crc_lo),y                                                 ; 9334: b1 be       ..
-    iny                                                               ; 9336: c8          .
-    eor #&2e ; '.'                                                    ; 9337: 49 2e       I.
-    bne err_bad_station_num                                           ; 9339: d0 1c       ..
+    lda fs_load_addr_2                                                ; 9325: a5 b2       ..             ; Reload result
+    cmp #&ff                                                          ; 9327: c9 ff       ..             ; Station 255 is reserved (broadcast)
+    beq err_bad_station_num                                           ; 9329: f0 2c       .,             ; Yes: bad station number
+    lda fs_load_addr_2                                                ; 932b: a5 b2       ..             ; Reload result for the next test
+    bne return_parsed                                                 ; 932d: d0 0c       ..             ; Non-zero: valid station, return
+    lda fs_work_4                                                     ; 932f: a5 b4       ..             ; Zero result: must have followed a dot to be valid
+    beq err_bad_station_num                                           ; 9331: f0 24       .$             ; No dot was seen: bad station number
+    dey                                                               ; 9333: 88          .              ; Dot seen: peek the byte before current cursor
+    lda (fs_crc_lo),y                                                 ; 9334: b1 be       ..             ; Read previous byte
+    iny                                                               ; 9336: c8          .              ; Restore Y
+    eor #&2e ; '.'                                                    ; 9337: 49 2e       I.             ; Was previous char '.'?
+    bne err_bad_station_num                                           ; 9339: d0 1c       ..             ; No: bad station number
 ; &933b referenced 1 time by &932d
 .return_parsed
-    sec                                                               ; 933b: 38          8
-    rts                                                               ; 933c: 60          `
+    sec                                                               ; 933b: 38          8              ; All checks passed: C=1 marks 'parsed successfully'
+    rts                                                               ; 933c: 60          `              ; Return
 
 ; &933d referenced 2 times by &92c4, &92f4
 .handle_dot_sep
-    lda fs_work_4                                                     ; 933d: a5 b4       ..
-    bne error_bad_number                                              ; 933f: d0 2a       .*
-    inc fs_work_4                                                     ; 9341: e6 b4       ..
-    lda fs_load_addr_2                                                ; 9343: a5 b2       ..
-    cmp #&ff                                                          ; 9345: c9 ff       ..
-    beq error_bad_net_num                                             ; 9347: f0 3d       .=
-    rts                                                               ; 9349: 60          `
+    lda fs_work_4                                                     ; 933d: a5 b4       ..             ; Dot already seen?
+    bne error_bad_number                                              ; 933f: d0 2a       .*             ; Yes: 'Bad number' (multiple dots)
+    inc fs_work_4                                                     ; 9341: e6 b4       ..             ; Set dot-seen flag
+    lda fs_load_addr_2                                                ; 9343: a5 b2       ..             ; Get parsed network number (before dot)
+    cmp #&ff                                                          ; 9345: c9 ff       ..             ; Network 255 is reserved
+    beq error_bad_net_num                                             ; 9347: f0 3d       .=             ; Yes: 'Bad network number'
+    rts                                                               ; 9349: 60          `              ; Return; caller continues parsing the station
 
 ; &934a referenced 3 times by &92d6, &92da, &be9f
 .err_bad_hex
