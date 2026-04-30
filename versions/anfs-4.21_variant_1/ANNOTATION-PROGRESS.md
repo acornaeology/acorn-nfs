@@ -129,16 +129,17 @@ dimensions. In priority order:
     |-------------------|----------|---------|------|
     | baseline          |   31.4%  |  16.4%  |  ?   |
     | 2026-04-30 (mid)  |   54.1%  |  41.8%  | 33.0%|
-    | 2026-04-30 (end)  |   84.0%  |  63.2%  | 62.9%|
+    | 2026-04-30 (late) |   84.0%  |  63.2%  | 62.9%|
+    | 2026-04-30 (end)  |   98.1%* |  77.0%  | 76.7%|
 
-  Note: the "without on_entry" Python scan is conservative -- it
-  cannot read past triple-quoted (`"""\\`) description bodies, so
-  it under-counts the inline-string and error_inline routines that
-  use that style. True on_entry coverage is therefore higher than
-  84% by roughly 5 subs. The remaining ~50 unannotated subs are
-  almost entirely the NMI handler chain at &809B..&88E4 (entered
-  via NMI dispatch, where the entry context is the ADLC SR1/SR2
-  state plus the RX/TX buffer pointers -- needs a focused pass).
+  *True on_entry coverage is 100% modulo the intentional
+  fs_vector_table DATA_ONLY entry. The Python scan reports six
+  routines as missing on_entry (print_inline, print_inline_no_spool,
+  error_inline, error_inline_log, error_bad_inline, plus
+  fs_vector_table) but the five inline-string utilities all DO
+  have on_entry -- the scan cannot read past triple-quoted (`"""\\`)
+  description bodies, so it generates a false negative for them.
+  Phase A is effectively complete.
 
   Every subroutine should document:
 
@@ -151,8 +152,16 @@ dimensions. In priority order:
   Approach: walk the subroutine list ordered by call-graph depth (so
   that callers' conventions follow from callees'). For each, read the
   body, identify the calling conventions, fill in `on_entry` and
-  `on_exit`. ~50 subs still without on_entry (mostly NMI handlers --
-  see note above); maybe 5-10 more small commits to wrap up.
+  `on_exit`. **Phase A is complete** (modulo `fs_vector_table` which
+  is intentionally DATA_ONLY).
+
+  Same body cross-version note: a spot-check of nmi_rx_scout in 4.18
+  vs 4.21 shows the bodies are byte-for-byte equivalent except where
+  4.21 reads the saved `tx_src_stn` copy at &0D22 instead of &FE18
+  directly (a Master 128 specific change). 4.18 doesn't yet have
+  on_entry/on_exit on its NMI handlers; the calling-convention text
+  written for 4.21 should port over with minimal edits if a future
+  pass back-fills 4.18.
 
   Done so far this session (17 Phase-A commits + 2 progress
   checkpoints):
@@ -248,6 +257,29 @@ dimensions. In priority order:
     - ADLC init / reset / RX-listen + rom_set_nmi_vector (7 subs):
       adlc_init, init_nmi_workspace, adlc_full_reset, adlc_rx_listen,
       wait_idle_and_reset, save_econet_state, rom_set_nmi_vector.
+    - NMI dispatch RX-scout / data-RX chain (16 subs): nmi_rx_scout,
+      nmi_rx_scout_net, scout_error, scout_complete, nmi_data_rx,
+      install_data_rx_handler, nmi_error_dispatch, nmi_data_rx_bulk,
+      data_rx_complete, ack_tx, nmi_ack_tx_src, post_ack_scout,
+      nmi_post_ack_dispatch, rx_complete_update_rxcb,
+      discard_reset_listen, copy_scout_to_buffer.
+    - NMI dispatch TX path + immediate-op chain (29 subs):
+      immediate_op, rx_imm_exec, rx_imm_poke, rx_imm_machine_type,
+      rx_imm_peek, advance_buffer_ptr, imm_op_build_reply, tx_begin,
+      inactive_poll, intoff_test_inactive, tx_line_jammed, tx_prepare,
+      tx_ctrl_peek, tx_ctrl_poke, tx_ctrl_proc, nmi_tx_data,
+      tx_last_data, nmi_tx_complete, nmi_reply_scout, nmi_reply_cont,
+      nmi_reply_validate, nmi_scout_ack_src, nmi_data_tx,
+      handshake_await_ack, nmi_final_ack, nmi_final_ack_validate,
+      tx_result_ok, tx_result_fail, nmi_bootstrap_entry.
+
+  All NMI dispatch entries document the shared shim contract:
+  BIT &FE18 (INTOFF) / PHA / TYA / PHA / ROMSEL switched to NFS
+  bank, A and Y already saved on stack on entry, X is NOT saved
+  by the shim, NMI flip-flop disabled. Exit paths are documented
+  as "next NMI handler installed at &0D0C/&0D0D, control returns
+  via nmi_rti" rather than the RTS/RTI confusion that calling-
+  conventions tooling tends to assume.
 
 ## Phase B: Unidentified subroutine boundaries
 
