@@ -4474,17 +4474,43 @@ l8da7 = sub_c8da6+1
     adc #&30 ; '0'                                                    ; 9247: 69 30       i0             ; Add &30 for ASCII '0'-'9' or 'A'-'F'
     jmp osasci                                                        ; 9249: 4c e3 ff    L..            ; Write character
 
+; ***************************************************************************************
+; Print A as two hex digits, *SPOOL-bypassing
+; 
+; As print_hex_byte (&9236) but emits each digit via print_char_no_spool (the *SPOOL-
+; bypassing OSASCI wrapper), so the digits don't appear in any active spool capture.
+; Saves A, extracts the high nibble (LSR x4), prints it via print_hex_nybble_no_spool,
+; then restores A and falls through for the low nibble. Sole caller: print_5_hex_bytes
+; at &9D53.
+; 
+; On Entry:
+;     A: byte to print
+; 
+; On Exit:
+;     A: preserved
+; ***************************************************************************************
 ; &924c referenced 1 time by &9d53
-.sub_c924c
+.print_hex_byte_no_spool
     pha                                                               ; 924c: 48          H
     lsr a                                                             ; 924d: 4a          J
     lsr a                                                             ; 924e: 4a          J
     lsr a                                                             ; 924f: 4a          J
     lsr a                                                             ; 9250: 4a          J
-    jsr sub_c9255                                                     ; 9251: 20 55 92     U.
+    jsr print_hex_nybble_no_spool                                     ; 9251: 20 55 92     U.
     pla                                                               ; 9254: 68          h
+; ***************************************************************************************
+; Print low nybble of A as one hex digit, *SPOOL-bypassing
+; 
+; As print_hex_nybble (&923F) but emits via the print_char_no_spool tail-call instead
+; of OSASCI directly, so the digit is not captured by any active *SPOOL file. Standard
+; AND #&0F / CMP #&0A / +6-or-not / + #&30 mapping for hex digits 0-9 / A-F. Tail-jumps
+; to print_char_no_spool via BRA.
+; 
+; On Entry:
+;     A: value (low nybble used)
+; ***************************************************************************************
 ; &9255 referenced 1 time by &9251
-.sub_c9255
+.print_hex_nybble_no_spool
     and #&0f                                                          ; 9255: 29 0f       ).
     cmp #&0a                                                          ; 9257: c9 0a       ..             ; Is it '&' (hex prefix)?
     bcc c925d                                                         ; 9259: 90 02       ..             ; Yes: return C set (not decimal)
@@ -5355,8 +5381,19 @@ l8da7 = sub_c8da6+1
     equb &20, &9a, &8e, &84, &b6, &7a, &20, &c4, &a3, &fa, &da, &a4   ; 95fe: 20 9a 8e...  ..            ; Not zero: keep polling; Decrement outer counter; Not zero: keep polling; Discard inner counter; Discard middle counter; Restore l0d61 control state
     equb &b5, &20, &12, &96, &fa, &e8, &a4, &b7                       ; 960a: b5 20 12... . .            ; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged); Test error logging flag
 
+; ***************************************************************************************
+; OSBYTE &A2 (write Master CMOS RAM byte)
+; 
+; Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / BRA c95be. Writes the Master 128
+; CMOS RAM byte indexed by X with the value in Y. Sole caller: format_filename_field at
+; &A0FE. Counterpart of osbyte_a1 at &8E9A (read).
+; 
+; On Entry:
+;     X: CMOS RAM byte index
+;     Y: value to write
+; ***************************************************************************************
 ; &9612 referenced 1 time by &a0fe
-.sub_c9612
+.osbyte_a2
     lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..
     jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Bit 7 clear: skip save; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y; Save error code to workspace
     bra c95be                                                         ; 9617: 80 a5       ..
@@ -6871,7 +6908,7 @@ l99a3 = bad_str_anchor+1
 ; &9d51 referenced 2 times by &9d4d, &9d58
 .loop_print_hex_byte
     lda (fs_options),y                                                ; 9d51: b1 bb       ..             ; Load byte from FS options at offset Y
-    jsr sub_c924c                                                     ; 9d53: 20 4c 92     L.            ; Print as 2-digit hex
+    jsr print_hex_byte_no_spool                                       ; 9d53: 20 4c 92     L.            ; Print as 2-digit hex
     dey                                                               ; 9d56: 88          .              ; Decrement byte offset
     dex                                                               ; 9d57: ca          .              ; Decrement byte count
     bne loop_print_hex_byte                                           ; 9d58: d0 f7       ..             ; Loop until all bytes printed
@@ -7628,7 +7665,7 @@ l99a3 = bad_str_anchor+1
     ldx #&11                                                          ; a0fc: a2 11       ..             ; C clear: store to workspace
 .sub_ca0fe
 la0ff = sub_ca0fe+1
-    jsr sub_c9612                                                     ; a0fe: 20 12 96     ..            ; Save carry to l0d6c bit 7
+    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Save carry to l0d6c bit 7
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Load PB pointer value
 ; &a103 referenced 1 time by &a0e8
@@ -15145,6 +15182,7 @@ save pydis_start, pydis_end
 ;     osargs_read_op:                 1
 ;     osargs_write_ptr:               1
 ;     osbget:                         1
+;     osbyte_a2:                      1
 ;     osbyte_x0_y0:                   1
 ;     osbyte_yff:                     1
 ;     oseven:                         1
@@ -15168,7 +15206,9 @@ save pydis_start, pydis_end
 ;     print_decimal_3dig_no_spool:    1
 ;     print_file_server_is:           1
 ;     print_fs_info_newline:          1
+;     print_hex_byte_no_spool:        1
 ;     print_hex_nybble:               1
+;     print_hex_nybble_no_spool:      1
 ;     print_indent:                   1
 ;     print_load_exec_addrs:          1
 ;     print_nonzero_digit:            1
@@ -15357,9 +15397,6 @@ save pydis_start, pydis_end
 ;     store_updated_status:           1
 ;     store_via_rx_ptr:               1
 ;     store_ws_byte:                  1
-;     sub_c924c:                      1
-;     sub_c9255:                      1
-;     sub_c9612:                      1
 ;     subst_rx_page_byte:             1
 ;     subtract_ws_byte:               1
 ;     suffix_not_listening:           1
@@ -15614,9 +15651,6 @@ save pydis_start, pydis_end
 ;     sub_c8409
 ;     sub_c84b7
 ;     sub_c8da6
-;     sub_c924c
-;     sub_c9255
-;     sub_c9612
 ;     sub_ca0fe
 
 ; Stats:

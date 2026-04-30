@@ -8973,6 +8973,34 @@ subroutine(0x8B52, "select_fs_via_cmd_net_fs",
     on_exit={"a": "current FS state byte if selection succeeded, "
                   "else this routine never returns"})
 
+subroutine(0x924C, "print_hex_byte_no_spool",
+    title="Print A as two hex digits, *SPOOL-bypassing",
+    description="As print_hex_byte (&9236) but emits each digit via "
+    "print_char_no_spool (the *SPOOL-bypassing OSASCI wrapper), so the "
+    "digits don't appear in any active spool capture. Saves A, "
+    "extracts the high nibble (LSR x4), prints it via "
+    "print_hex_nybble_no_spool, then restores A and falls through "
+    "for the low nibble. Sole caller: print_5_hex_bytes at &9D53.",
+    on_entry={"a": "byte to print"},
+    on_exit={"a": "preserved"})
+
+subroutine(0x9255, "print_hex_nybble_no_spool",
+    title="Print low nybble of A as one hex digit, *SPOOL-bypassing",
+    description="As print_hex_nybble (&923F) but emits via the "
+    "print_char_no_spool tail-call instead of OSASCI directly, so the "
+    "digit is not captured by any active *SPOOL file. Standard "
+    "AND #&0F / CMP #&0A / +6-or-not / + #&30 mapping for hex "
+    "digits 0-9 / A-F. Tail-jumps to print_char_no_spool via BRA.",
+    on_entry={"a": "value (low nybble used)"})
+
+subroutine(0x9612, "osbyte_a2",
+    title="OSBYTE &A2 (write Master CMOS RAM byte)",
+    description="Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / "
+    "BRA c95be. Writes the Master 128 CMOS RAM byte indexed by X "
+    "with the value in Y. Sole caller: format_filename_field at "
+    "&A0FE. Counterpart of osbyte_a1 at &8E9A (read).",
+    on_entry={"x": "CMOS RAM byte index", "y": "value to write"})
+
 subroutine(0x8B45, "svc_18_fs_select",
     title="Service 18: filing system selection request",
     description="Checks if Y=5 (Econet filing system number);\n"
