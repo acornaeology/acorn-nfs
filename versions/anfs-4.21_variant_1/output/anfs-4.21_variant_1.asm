@@ -503,6 +503,17 @@ rom_header_byte2 = rom_header+2
 ; stores the result in l0d63. Issues NMI claim service
 ; request (OSBYTE &8F, X=&0C). Falls through to
 ; init_nmi_workspace to copy the NMI shim to RAM.
+; 
+; On Entry:
+;     ROMSEL_COPY (&F4): current ROM slot (used both for the NMI claim service and as
+; the ROM ID patched into the NMI shim)
+; 
+; On Exit:
+;     L0D63: Tube state byte from OSBYTE &EA
+;     ADLC: fully reset and re-entered RX listen mode
+;     NMI WORKSPACE AT &0D00..&0D1F: shim installed via fall-through to
+; init_nmi_workspace
+;     NMI FLIP-FLOP: re-enabled via INTON before exit
 ; ***************************************************************************************
 ; &8050 referenced 1 time by &903c
 .adlc_init
@@ -534,6 +545,18 @@ rom_header_byte2 = rom_header+2
 ; station ID into tx_src_stn (&0D22). Sets
 ; tx_complete_flag and econet_init_flag to &80.
 ; Finally re-enables NMIs via INTON (&FE20 read).
+; 
+; On Entry:
+;     ROMSEL_COPY (&F4): current ROM slot (patched into the shim's self-modifying ROM-
+; bank load)
+;     ADLC STATION ID REGISTER (&FE18): hardware-strapped local station number
+; 
+; On Exit:
+;     NMI SHIM AT &0D00..&0D1F: 32 bytes copied from ROM template
+;     TX_SRC_NET, NEED_RELEASE_TUBE, TX_OP_TYPE: = 0
+;     TX_SRC_STN (&0D22): = local station ID
+;     TX_COMPLETE_FLAG, ECONET_INIT_FLAG: = &80
+;     NMI FLIP-FLOP: re-enabled via INTON read
 ; ***************************************************************************************
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8070: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
@@ -2734,6 +2757,13 @@ l8877 = check_tube_irq_loop+1
 ; NRZ encoding) and CR3=&00 (no loopback, no AEX, NRZ,
 ; no DTR). Falls through to adlc_rx_listen to re-enter
 ; RX listen mode.
+; 
+; On Exit:
+;     ADLC CR1: &C1 (TX_RESET | RX_RESET | AC)
+;     ADLC CR4: &1E (8-bit RX word, abort extend, NRZ)
+;     ADLC CR3: &00 (no loopback, no AEX, NRZ, no DTR)
+;     ADLC CR1 (AFTER FALL-THROUGH): &82 (TX_RESET | RIE) -- passive RX listen mode
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &898c referenced 3 times by &8053, &80df, &821d
 .adlc_full_reset
@@ -2753,6 +2783,12 @@ l8877 = check_tube_irq_loop+1
 ; all pending status and enable prioritised status.
 ; This is the idle state where the ADLC listens for
 ; incoming scout frames via NMI.
+; 
+; On Exit:
+;     ADLC CR1: &82 (TX_RESET | RIE -- RX interrupts on)
+;     ADLC CR2: &67 (clear status, prioritised status enabled)
+;     A, X: clobbered (control byte writes)
+;     Y: preserved
 ; ***************************************************************************************
 ; &899b referenced 2 times by &83e8, &89c7
 .adlc_rx_listen
@@ -2773,6 +2809,17 @@ l8877 = check_tube_irq_loop+1
 ; (&80BE). When the NMI handler returns to idle, falls
 ; through to save_econet_state to clear the initialised
 ; flags and re-enter RX listen mode.
+; 
+; On Entry:
+;     A: 12 (service call number)
+;     WS_0D62: Econet-initialised flag: 0 = skip wait, non-zero = wait for the NMI
+; handler to drain
+; 
+; On Exit:
+;     NMI HANDLER VECTOR (&0D0C/&0D0D): = nmi_rx_scout (&80BE) -- idle listen state
+;     WS_0D60, WS_0D62: cleared
+;     ADLC: configured for RX listen via fall-through to adlc_rx_listen
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 .wait_idle_and_reset
     bit econet_init_flag                                              ; 89a6: 2c 62 0d    ,b.            ; Check if Econet has been initialised
@@ -2796,6 +2843,15 @@ l8877 = check_tube_irq_loop+1
 ; listening. Used during NMI release (service 12) to
 ; safely tear down the Econet state before another
 ; ROM can claim the NMI workspace.
+; 
+; On Entry:
+;     A: value to store into ws_0d60 / ws_0d62 (typically 0 to clear)
+; 
+; On Exit:
+;     WS_0D60, WS_0D62: = A
+;     Y: 5 (service-call workspace page)
+;     NMI FLIP-FLOP: disabled (INTOFF read twice)
+;     BEHAVIOUR: tail-jumps to adlc_rx_listen; ADLC re-enters passive RX listen mode
 ; ***************************************************************************************
 .save_econet_state
     bit lfe38                                                         ; 89b9: 2c 38 fe    ,8.            ; INTOFF: disable NMIs
@@ -2853,6 +2909,15 @@ l89c9 = reset_enter_listen+2
 ; guaranteed falling edge on /NMI if the ADLC IRQ is
 ; already asserted, ensuring the next handler fires
 ; immediately.
+; 
+; On Entry:
+;     ROLE: this is template/data, not a callable subroutine -- the bytes here are
+; copied verbatim into RAM at &0D0E during init_nmi_workspace and run from there. The
+; NO_REFS flag is expected (no JSR target)
+; 
+; On Exit:
+;     ROLE: see on_entry -- this address never executes directly; it is the source data
+; for the RAM-resident NMI exit sequence
 ; ***************************************************************************************
 .rom_set_nmi_vector
     sty nmi_jmp_hi                                                    ; 89d8: 8c 0d 0d    ...            ; Store handler high byte at &0D0D

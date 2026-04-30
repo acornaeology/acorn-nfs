@@ -2248,7 +2248,15 @@ subroutine(0x8050, "adlc_init",
     "checks for Tube co-processor via OSBYTE &EA and\n"
     "stores the result in l0d63. Issues NMI claim service\n"
     "request (OSBYTE &8F, X=&0C). Falls through to\n"
-    "init_nmi_workspace to copy the NMI shim to RAM.")
+    "init_nmi_workspace to copy the NMI shim to RAM.",
+    on_entry={"romsel_copy (&F4)": "current ROM slot (used both for "
+              "the NMI claim service and as the ROM ID patched into "
+              "the NMI shim)"},
+    on_exit={"l0d63": "Tube state byte from OSBYTE &EA",
+             "ADLC": "fully reset and re-entered RX listen mode",
+             "NMI workspace at &0D00..&0D1F": "shim installed via "
+             "fall-through to init_nmi_workspace",
+             "NMI flip-flop": "re-enabled via INTON before exit"})
 subroutine(0x8070, "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
     description="Copies 32 bytes of NMI shim code from ROM\n"
@@ -2261,7 +2269,17 @@ subroutine(0x8070, "init_nmi_workspace",
     "need_release_tube, and tx_op_type to zero. Reads\n"
     "station ID into tx_src_stn (&0D22). Sets\n"
     "tx_complete_flag and econet_init_flag to &80.\n"
-    "Finally re-enables NMIs via INTON (&FE20 read).")
+    "Finally re-enables NMIs via INTON (&FE20 read).",
+    on_entry={"romsel_copy (&F4)": "current ROM slot (patched into "
+              "the shim's self-modifying ROM-bank load)",
+              "ADLC station ID register (&FE18)":
+              "hardware-strapped local station number"},
+    on_exit={"NMI shim at &0D00..&0D1F":
+             "32 bytes copied from ROM template",
+             "tx_src_net, need_release_tube, tx_op_type": "= 0",
+             "tx_src_stn (&0D22)": "= local station ID",
+             "tx_complete_flag, econet_init_flag": "= &80",
+             "NMI flip-flop": "re-enabled via INTON read"})
 subroutine(0x809B, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
     description="Default NMI handler for incoming scout frames. Checks if the frame\n"
@@ -2837,7 +2855,14 @@ subroutine(0x898C, "adlc_full_reset",
     "Then configures CR4=&1E (8-bit RX word, abort extend,\n"
     "NRZ encoding) and CR3=&00 (no loopback, no AEX, NRZ,\n"
     "no DTR). Falls through to adlc_rx_listen to re-enter\n"
-    "RX listen mode.")
+    "RX listen mode.",
+    on_entry={},
+    on_exit={"ADLC CR1": "&C1 (TX_RESET | RX_RESET | AC)",
+             "ADLC CR4": "&1E (8-bit RX word, abort extend, NRZ)",
+             "ADLC CR3": "&00 (no loopback, no AEX, NRZ, no DTR)",
+             "ADLC CR1 (after fall-through)": "&82 (TX_RESET | RIE) -- "
+             "passive RX listen mode",
+             "a, x, y": "clobbered"})
 subroutine(0x899B, "adlc_rx_listen",
     title="Enter RX listen mode",
     description="Configures the ADLC for passive RX listen mode.\n"
@@ -2846,7 +2871,12 @@ subroutine(0x899B, "adlc_rx_listen",
     "(CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE) to clear\n"
     "all pending status and enable prioritised status.\n"
     "This is the idle state where the ADLC listens for\n"
-    "incoming scout frames via NMI.")
+    "incoming scout frames via NMI.",
+    on_entry={},
+    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE -- RX interrupts on)",
+             "ADLC CR2": "&67 (clear status, prioritised status enabled)",
+             "a, x": "clobbered (control byte writes)",
+             "y": "preserved"})
 subroutine(0x89A6, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
     description="Service 12 handler: NMI release. Checks ws_0d62\n"
@@ -2856,7 +2886,16 @@ subroutine(0x89A6, "wait_idle_and_reset",
     "&0D0C/&0D0D against the address of nmi_rx_scout\n"
     "(&80BE). When the NMI handler returns to idle, falls\n"
     "through to save_econet_state to clear the initialised\n"
-    "flags and re-enter RX listen mode.")
+    "flags and re-enter RX listen mode.",
+    on_entry={"a": "12 (service call number)",
+              "ws_0d62": "Econet-initialised flag: 0 = skip wait, "
+              "non-zero = wait for the NMI handler to drain"},
+    on_exit={"NMI handler vector (&0D0C/&0D0D)":
+             "= nmi_rx_scout (&80BE) -- idle listen state",
+             "ws_0d60, ws_0d62": "cleared",
+             "ADLC": "configured for RX listen via fall-through to "
+             "adlc_rx_listen",
+             "a, x, y": "clobbered"})
 subroutine(0x89B9, "save_econet_state",
     title="Reset Econet flags and enter RX listen",
     description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
@@ -2866,7 +2905,14 @@ subroutine(0x89B9, "save_econet_state",
     "adlc_rx_listen to configure the ADLC for passive\n"
     "listening. Used during NMI release (service 12) to\n"
     "safely tear down the Econet state before another\n"
-    "ROM can claim the NMI workspace.")
+    "ROM can claim the NMI workspace.",
+    on_entry={"a": "value to store into ws_0d60 / ws_0d62 "
+              "(typically 0 to clear)"},
+    on_exit={"ws_0d60, ws_0d62": "= A",
+             "y": "5 (service-call workspace page)",
+             "NMI flip-flop": "disabled (INTOFF read twice)",
+             "behaviour": "tail-jumps to adlc_rx_listen; ADLC re-enters "
+             "passive RX listen mode"})
 subroutine(0x89CA, "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="An alternate NMI handler that lives in the ROM itself rather than\n"
@@ -2898,7 +2944,14 @@ subroutine(0x89D8, "rom_set_nmi_vector",
     "NMI flip-flop before RTI. The INTON creates a\n"
     "guaranteed falling edge on /NMI if the ADLC IRQ is\n"
     "already asserted, ensuring the next handler fires\n"
-    "immediately.")
+    "immediately.",
+    on_entry={"role": "this is template/data, not a callable subroutine -- "
+              "the bytes here are copied verbatim into RAM at &0D0E during "
+              "init_nmi_workspace and run from there. The NO_REFS flag is "
+              "expected (no JSR target)"},
+    on_exit={"role": "see on_entry -- this address never executes "
+             "directly; it is the source data for the RAM-resident NMI "
+             "exit sequence"})
 # UNMAPPED: label(0x8A6F, "start_rom_scan")
 subroutine(0x8B00, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
