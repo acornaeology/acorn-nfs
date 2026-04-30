@@ -592,6 +592,19 @@ rom_header_byte2 = rom_header+2
 ; Reads the first byte (destination station) from the RX FIFO and
 ; compares against our station ID. Reading &FE18 also disables NMIs
 ; (INTOFF side effect).
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry -- reached via JMP from the &0D0E shim. Shim has
+; already done BIT &FE18 (INTOFF) / PHA / TYA / PHA and switched ROMSEL to NFS bank. A
+; and Y are saved on stack; X is NOT saved by the shim.
+;     ADLC SR2: bit 0 (AP) signals address-present (incoming scout)
+;     TX_SRC_STN (&0D22): saved local station ID for compare
+; 
+; On Exit:
+;     CONTROL FLOW: exits via JMP nmi_rti -- RTI restores Y, A, ROMSEL and re-enables
+; NMI flip-flop via INTON
+;     NEXT NMI HANDLER: stays as nmi_rx_scout on no-match/error (discard path); becomes
+; nmi_rx_scout_net on station match
 ; ***************************************************************************************
 ; &809b referenced 1 time by &89d5
 .nmi_rx_scout
@@ -617,6 +630,16 @@ rom_header_byte2 = rom_header+2
 ; Checks for network match: 0 = local network (accept), &FF = broadcast
 ; (accept and flag), anything else = reject.
 ; Installs the scout data reading loop handler at &8102.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry from the &0D0E shim (installed by nmi_rx_scout after
+; a station match). A/Y stacked, X unsaved.
+;     RX_SRC_NET (&0D3E): &40 if the previous handler flagged this as broadcast
+; 
+; On Exit:
+;     CONTROL FLOW: exits via JMP nmi_rti
+;     NEXT NMI HANDLER: scout data reading loop at &8102 on accept; reverts to
+; nmi_rx_scout on reject
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -651,6 +674,16 @@ rom_header_byte2 = rom_header+2
 ; common discard path for address/network mismatches
 ; from nmi_rx_scout and scout_complete -- reached by
 ; 5 branch sites across the scout reception chain.
+; 
+; On Entry:
+;     CONTEXT: branch target from inside an NMI handler (nmi_rx_scout /
+; scout_complete). Stack and ROMSEL state are as set up by the shim.
+;     ADLC SR2: tested for AP|RDA to distinguish clean end-of-frame from unexpected
+; data
+; 
+; On Exit:
+;     CONTROL FLOW: exits via nmi_rti after either a clean discard (no ADLC change) or
+; a full ADLC reset on unexpected data; restores idle RX listen state
 ; ***************************************************************************************
 ; &80d8 referenced 5 times by &80a0, &80bb, &80ed, &8121, &8123
 .scout_error
@@ -700,6 +733,18 @@ rom_header_byte2 = rom_header+2
 ; via tx_calc_transfer, sets up the data RX handler
 ; chain, and sends a scout ACK. On no match or error,
 ; discards the frame via scout_error.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by the scout data reader at &8102 after the
+; address bytes have been consumed. A/Y stacked, X unsaved.
+;     SCOUT BUFFER AT &0D3D..&0D48: first 4 bytes filled (dst/src/stn/net) by
+; predecessor; remaining bytes read here
+;     ADLC SR2 FV BIT: set when frame closing flag received
+; 
+; On Exit:
+;     CONTROL FLOW: match path -> sends scout ACK and installs data RX handler chain.
+; Mismatch/error -> JMPs to scout_error for the discard path. Either way exits via
+; nmi_rti.
 ; ***************************************************************************************
 ; &8112 referenced 2 times by &80fb, &8106
 .scout_complete
@@ -821,6 +866,16 @@ rom_header_byte2 = rom_header+2
 ; 
 ; Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->
 ; &8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by ack_tx after the scout ACK frame has
+; been sent. A/Y stacked, X unsaved.
+;     ADLC SR2: AP signals start of the data frame
+;     OPEN_PORT_BUF (&A4/&A5): destination buffer pointer set up by scout_complete
+; 
+; On Exit:
+;     CONTROL FLOW: installs the next handler in the data RX chain via set_nmi_vector
+; then JMPs to nmi_rti
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
@@ -859,6 +914,16 @@ rom_header_byte2 = rom_header+2
 ; (more data waiting), jumps directly to nmi_data_rx_bulk
 ; to avoid NMI re-entry overhead. Otherwise installs the
 ; handler via set_nmi_vector and returns via RTI.
+; 
+; On Entry:
+;     CONTEXT: tail-jumped to from inside an NMI handler after address validation.
+; Stack/ROMSEL/NMI state per shim contract.
+;     RX_SRC_NET (TX_FLAGS) BIT 1: 0 = normal RX, 1 = Tube RX
+; 
+; On Exit:
+;     NEXT NMI HANDLER: nmi_data_rx_bulk (or Tube variant) installed at &0D0C/&0D0D
+;     CONTROL FLOW: exits via JMP nmi_rti, OR jumps directly into nmi_data_rx_bulk if
+; SR1 IRQ is already asserted (avoids the NMI re-entry round-trip)
 ; ***************************************************************************************
 ; &81f7 referenced 1 time by &88d4
 .install_data_rx_handler
@@ -888,6 +953,16 @@ rom_header_byte2 = rom_header+2
 ; tx_flags bit 7: if clear, does a full ADLC reset and returns
 ; to idle listen (RX error path); if set, jumps to tx_result_fail
 ; (TX not-listening path).
+; 
+; On Entry:
+;     CONTEXT: JMP target from various NMI handler error branches. Stack/ROMSEL/NMI
+; state per shim contract.
+;     RX_SRC_NET (TX_FLAGS) BIT 7: 0 = RX error (reset and return to listen); 1 = TX
+; error (jump to tx_result_fail)
+; 
+; On Exit:
+;     CONTROL FLOW: RX path -> ADLC full reset and RX listen, exit via nmi_rti. TX path
+; -> JMPs to tx_result_fail which sets the TX result flag and exits via nmi_rti.
 ; ***************************************************************************************
 ; &8215 referenced 11 times by &8187, &819d, &81c7, &81cf, &81d9, &81de, &81ef, &8279, &827f, &833c, &8488
 .nmi_error_dispatch
@@ -908,6 +983,18 @@ rom_header_byte2 = rom_header+2
 ; (like the scout data loop), checking SR2 between each pair.
 ; SR2 non-zero (FV or other) -> frame completion at &8278.
 ; SR2 = 0 -> RTI, wait for next NMI to continue.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by install_data_rx_handler. May also be
+; tail-jumped to directly when SR1 IRQ is already asserted on entry.
+;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): destination buffer pointer and remaining
+; length
+;     ADLC SR2: RDA (bit 7) signals data ready; FV signals frame complete
+; 
+; On Exit:
+;     CONTROL FLOW: loops reading byte pairs from the RX FIFO; exits via nmi_rti once
+; the FIFO drains (more data pending next NMI). On FV/error -> JMPs to
+; data_rx_complete.
 ; ***************************************************************************************
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
@@ -963,6 +1050,16 @@ rom_header_byte2 = rom_header+2
 ; CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
 ; If extra data available and buffer space remains, stores it.
 ; Proceeds to send the final ACK via &82E4.
+; 
+; On Entry:
+;     CONTEXT: JMP target from nmi_data_rx_bulk when SR2 indicates frame completion.
+; Stack/ROMSEL/NMI state per shim contract.
+;     ADLC SR2: FV (frame valid) and RDA bits drive the tail-byte capture
+;     RX_EXTRA_BYTE (&0D42): destination for the optional trailing byte
+; 
+; On Exit:
+;     CONTROL FLOW: tail-jumps to ack_tx (&82E4) to send the final ACK, completing the
+; four-way handshake. ack_tx exits via nmi_rti.
 ; ***************************************************************************************
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
@@ -1039,6 +1136,20 @@ rom_header_byte2 = rom_header+2
 ; After writing the address bytes to the TX FIFO, installs the next
 ; NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)
 ; and sends TX_LAST_DATA (CR2=&3F) to close the frame.
+; 
+; On Entry:
+;     CONTEXT: JMP target from data_rx_complete and similar handlers. Stack/ROMSEL/NMI
+; state per shim contract.
+;     &0D4A BIT 7: 0 = scout ACK, 1 = final ACK (-> completion path at &88C6)
+;     SCOUT BUFFER AT &0D3D..: source station/network for the ACK address header
+;     &0D4B/&0D4C: next NMI handler address (set by predecessor)
+; 
+; On Exit:
+;     ADLC CR1: &44 (TX_RESET cleared, RX_RESET set, TIE on)
+;     ADLC CR2: &A7 then &3F (TX_LAST_DATA) to close the frame
+;     NEXT NMI HANDLER: = (&0D4B/&0D4C) -- whatever the scout/data RX path saved
+;     CONTROL FLOW: exits via fall-through to nmi_ack_tx_src (continuation of TX FIFO
+; write); ultimately nmi_rti
 ; ***************************************************************************************
 ; &82df referenced 2 times by &828e, &82c5
 .ack_tx
@@ -1080,6 +1191,17 @@ rom_header_byte2 = rom_header+2
 ; start_data_tx to begin the data phase. Otherwise
 ; writes CR2=&3F (TX_LAST_DATA) and falls through to
 ; post_ack_scout for scout processing.
+; 
+; On Entry:
+;     CONTEXT: fall-through from ack_tx -- still inside the NMI dispatch chain; A/Y
+; stacked, X unsaved.
+;     RX_SRC_NET (TX_FLAGS) BIT 7: 1 = data phase follows (branch to start_data_tx); 0
+; = scout-only ACK (fall through to post_ack_scout)
+; 
+; On Exit:
+;     ADLC CR2: &3F (TX_LAST_DATA) on the scout-ACK path
+;     CONTROL FLOW: data path -> JMP start_data_tx; scout path -> fall through to
+; post_ack_scout. Both end at nmi_rti.
 ; ***************************************************************************************
 .nmi_ack_tx_src
     lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
@@ -1100,6 +1222,16 @@ rom_header_byte2 = rom_header+2
 ; find a matching listener. If a match is found, sets up the
 ; data RX handler chain for the four-way handshake data phase.
 ; If no match, discards the frame.
+; 
+; On Entry:
+;     CONTEXT: fall-through from nmi_ack_tx_src on the scout-only path, OR JMP target
+; from later handlers. Stack/ROMSEL/NMI state per shim contract.
+;     SCOUT_PORT (&0D40): port byte from the received scout
+;     OPEN RXCBS AT PORT_WS_OFFSET+...: list to match the port against
+; 
+; On Exit:
+;     CONTROL FLOW: match -> sets up data RX handler chain and exits via nmi_rti. No-
+; match -> JMPs to scout_error (discard path), also exiting via nmi_rti.
 ; ***************************************************************************************
 .post_ack_scout
     sta econet_control23_or_status2                                   ; 832d: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
@@ -1201,6 +1333,16 @@ rom_header_byte2 = rom_header+2
 ; with ctrl &82 (POKE) also goes to
 ; rx_complete_update_rxcb; other port-0 ops go to
 ; imm_op_build_reply.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by ack_tx after the final ACK has been
+; queued. Stack/ROMSEL/NMI state per shim contract.
+;     SCOUT_PORT (&0D40): drives the dispatch (0 vs non-zero)
+;     SCOUT CTRL BYTE (&0D43): tested for &82 (POKE) on the port-0 branch
+; 
+; On Exit:
+;     CONTROL FLOW: JMPs to rx_complete_update_rxcb (data transfers) or
+; imm_op_build_reply (immediate ops). All paths ultimately exit via nmi_rti.
 ; ***************************************************************************************
 .nmi_post_ack_dispatch
     lda scout_port                                                    ; 8386: ad 31 0d    .1.            ; Load received port byte
@@ -1225,6 +1367,17 @@ rom_header_byte2 = rom_header+2
 ; polls this bit to detect that the reply has
 ; arrived. Falls through to discard_reset_rx to
 ; reset the ADLC to idle RX listen mode.
+; 
+; On Entry:
+;     CONTEXT: JMP target from nmi_post_ack_dispatch. Stack/ROMSEL/NMI state per shim
+; contract.
+;     RXCB AT (PORT_WS_OFFSET): open-receive control block to mark complete
+;     SCOUT BUFFER AT &0D3D..: source station/network/port to copy into the RXCB
+; 
+; On Exit:
+;     RXCB CTRL BYTE: bit 7 set (reply complete -- wait_net_tx_ack polls this)
+;     CONTROL FLOW: falls through to discard_reset_rx (ADLC back to idle listen) and
+; exits via nmi_rti
 ; ***************************************************************************************
 ; &8395 referenced 3 times by &8389, &8390, &8431
 .rx_complete_update_rxcb
@@ -1300,6 +1453,16 @@ rom_header_byte2 = rom_header+2
 ; free it before returning. Used as the clean-up
 ; path after RXCB completion and after ADLC reset
 ; to ensure no stale Tube claims persist.
+; 
+; On Entry:
+;     CONTEXT: JMP target from RXCB-completion and ADLC-reset paths inside the NMI
+; chain. Stack/ROMSEL/NMI state per shim contract.
+;     L0D63 BIT 1: Tube available flag
+;     RX_SRC_NET (TX_FLAGS) BIT 1: Tube transfer active flag
+; 
+; On Exit:
+;     TUBE STATE: claim released via release_tube if both flags were set
+;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 ; &83f2 referenced 2 times by &83de, &83e5
 .discard_reset_listen
@@ -1325,6 +1488,17 @@ rom_header_byte2 = rom_header+2
 ; each byte. Falls through to release_tube on
 ; completion. Handles page overflow (Y wrap) by
 ; branching to scout_page_overflow.
+; 
+; On Entry:
+;     CONTEXT: called from inside an NMI handler (e.g. scout_complete) with scout
+; buffer fully populated.
+;     SCOUT BUFFER AT &0D3D+4..&0D3D+11: 8 bytes of scout payload to copy
+;     OPEN_PORT_BUF (&A4/&A5): destination buffer pointer
+;     RX_SRC_NET (TX_FLAGS) BIT 1: 0 = direct memory store; 1 = Tube R3 write
+; 
+; On Exit:
+;     OPEN_PORT_BUF: advanced by 8 (via advance_buffer_ptr for each byte)
+;     TUBE STATE: released via release_tube fall-through if Tube was claimed
 ; ***************************************************************************************
 ; &8400 referenced 1 time by &81a4
 .copy_scout_to_buffer

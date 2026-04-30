@@ -2288,13 +2288,33 @@ subroutine(0x809B, "nmi_rx_scout",
     "Tests SR2 bit0 (AP = Address Present) to detect incoming data.\n"
     "Reads the first byte (destination station) from the RX FIFO and\n"
     "compares against our station ID. Reading &FE18 also disables NMIs\n"
-    "(INTOFF side effect).")
+    "(INTOFF side effect).",
+    on_entry={"context":
+              "NMI dispatch entry -- reached via JMP from the &0D0E shim. "
+              "Shim has already done BIT &FE18 (INTOFF) / PHA / TYA / PHA "
+              "and switched ROMSEL to NFS bank. A and Y are saved on "
+              "stack; X is NOT saved by the shim.",
+              "ADLC SR2": "bit 0 (AP) signals address-present (incoming scout)",
+              "tx_src_stn (&0D22)": "saved local station ID for compare"},
+    on_exit={"control flow": "exits via JMP nmi_rti -- RTI restores Y, A, "
+             "ROMSEL and re-enables NMI flip-flop via INTON",
+             "next NMI handler": "stays as nmi_rx_scout on no-match/error "
+             "(discard path); becomes nmi_rx_scout_net on station match"})
 subroutine(0x80B8, "nmi_rx_scout_net",
     title="RX scout second byte handler",
     description="Reads the second byte of an incoming scout (destination network).\n"
     "Checks for network match: 0 = local network (accept), &FF = broadcast\n"
     "(accept and flag), anything else = reject.\n"
-    "Installs the scout data reading loop handler at &8102.")
+    "Installs the scout data reading loop handler at &8102.",
+    on_entry={"context":
+              "NMI dispatch entry from the &0D0E shim (installed by "
+              "nmi_rx_scout after a station match). A/Y stacked, X "
+              "unsaved.",
+              "rx_src_net (&0D3E)":
+              "&40 if the previous handler flagged this as broadcast"},
+    on_exit={"control flow": "exits via JMP nmi_rti",
+             "next NMI handler": "scout data reading loop at &8102 on "
+             "accept; reverts to nmi_rx_scout on reject"})
 subroutine(0x80D8, "scout_error",
     title="Scout error/discard handler",
     description="Handles scout reception errors and end-of-frame\n"
@@ -2304,7 +2324,15 @@ subroutine(0x80D8, "scout_error",
     "performs a full ADLC reset. Also serves as the\n"
     "common discard path for address/network mismatches\n"
     "from nmi_rx_scout and scout_complete -- reached by\n"
-    "5 branch sites across the scout reception chain.")
+    "5 branch sites across the scout reception chain.",
+    on_entry={"context": "branch target from inside an NMI handler "
+              "(nmi_rx_scout / scout_complete). Stack and ROMSEL "
+              "state are as set up by the shim.",
+              "ADLC SR2": "tested for AP|RDA to distinguish clean "
+              "end-of-frame from unexpected data"},
+    on_exit={"control flow": "exits via nmi_rti after either a clean "
+             "discard (no ADLC change) or a full ADLC reset on "
+             "unexpected data; restores idle RX listen state"})
 subroutine(0x8112, "scout_complete",
     title="Scout completion handler",
     description="Processes a completed scout frame. Writes CR1=&00\n"
@@ -2316,7 +2344,17 @@ subroutine(0x8112, "scout_complete",
     "a listener. On match, calculates the transfer size\n"
     "via tx_calc_transfer, sets up the data RX handler\n"
     "chain, and sends a scout ACK. On no match or error,\n"
-    "discards the frame via scout_error.")
+    "discards the frame via scout_error.",
+    on_entry={"context": "NMI dispatch entry installed by the scout "
+              "data reader at &8102 after the address bytes have been "
+              "consumed. A/Y stacked, X unsaved.",
+              "scout buffer at &0D3D..&0D48":
+              "first 4 bytes filled (dst/src/stn/net) by predecessor; "
+              "remaining bytes read here",
+              "ADLC SR2 FV bit": "set when frame closing flag received"},
+    on_exit={"control flow": "match path -> sends scout ACK and installs "
+             "data RX handler chain. Mismatch/error -> JMPs to scout_error "
+             "for the discard path. Either way exits via nmi_rti."})
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="Receives the data frame after the scout ACK has been sent.\n"
@@ -2326,7 +2364,14 @@ subroutine(0x81C2, "nmi_data_rx",
     "to read the remaining data payload into the open port buffer.\n"
     "\n"
     "Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->\n"
-    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)")
+    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)",
+    on_entry={"context": "NMI dispatch entry installed by ack_tx after "
+              "the scout ACK frame has been sent. A/Y stacked, X unsaved.",
+              "ADLC SR2": "AP signals start of the data frame",
+              "open_port_buf (&A4/&A5)":
+              "destination buffer pointer set up by scout_complete"},
+    on_exit={"control flow": "installs the next handler in the data "
+             "RX chain via set_nmi_vector then JMPs to nmi_rti"})
 subroutine(0x81F7, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="Selects between the normal bulk RX handler (&8239)\n"
@@ -2335,27 +2380,64 @@ subroutine(0x81F7, "install_data_rx_handler",
     "&8239 and checks SR1 bit 7: if IRQ is already asserted\n"
     "(more data waiting), jumps directly to nmi_data_rx_bulk\n"
     "to avoid NMI re-entry overhead. Otherwise installs the\n"
-    "handler via set_nmi_vector and returns via RTI.")
+    "handler via set_nmi_vector and returns via RTI.",
+    on_entry={"context": "tail-jumped to from inside an NMI handler "
+              "after address validation. Stack/ROMSEL/NMI state per "
+              "shim contract.",
+              "rx_src_net (tx_flags) bit 1": "0 = normal RX, 1 = Tube RX"},
+    on_exit={"next NMI handler": "nmi_data_rx_bulk (or Tube variant) "
+             "installed at &0D0C/&0D0D",
+             "control flow": "exits via JMP nmi_rti, OR jumps directly "
+             "into nmi_data_rx_bulk if SR1 IRQ is already asserted "
+             "(avoids the NMI re-entry round-trip)"})
 subroutine(0x8215, "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="Common error/abort entry used by 12 call sites. Checks\n"
     "tx_flags bit 7: if clear, does a full ADLC reset and returns\n"
     "to idle listen (RX error path); if set, jumps to tx_result_fail\n"
-    "(TX not-listening path).")
+    "(TX not-listening path).",
+    on_entry={"context": "JMP target from various NMI handler error "
+              "branches. Stack/ROMSEL/NMI state per shim contract.",
+              "rx_src_net (tx_flags) bit 7":
+              "0 = RX error (reset and return to listen); "
+              "1 = TX error (jump to tx_result_fail)"},
+    on_exit={"control flow": "RX path -> ADLC full reset and RX listen, "
+             "exit via nmi_rti. TX path -> JMPs to tx_result_fail "
+             "which sets the TX result flag and exits via nmi_rti."})
 subroutine(0x8223, "nmi_data_rx_bulk",
     title="Data frame bulk read loop",
     description="Reads data payload bytes from the RX FIFO and stores them into\n"
     "the open port buffer at (open_port_buf),Y. Reads bytes in pairs\n"
     "(like the scout data loop), checking SR2 between each pair.\n"
     "SR2 non-zero (FV or other) -> frame completion at &8278.\n"
-    "SR2 = 0 -> RTI, wait for next NMI to continue.")
+    "SR2 = 0 -> RTI, wait for next NMI to continue.",
+    on_entry={"context": "NMI dispatch entry installed by "
+              "install_data_rx_handler. May also be tail-jumped to "
+              "directly when SR1 IRQ is already asserted on entry.",
+              "open_port_buf, port_buf_len (&A2..&A5)":
+              "destination buffer pointer and remaining length",
+              "ADLC SR2": "RDA (bit 7) signals data ready; FV signals "
+              "frame complete"},
+    on_exit={"control flow": "loops reading byte pairs from the RX FIFO; "
+             "exits via nmi_rti once the FIFO drains (more data pending "
+             "next NMI). On FV/error -> JMPs to data_rx_complete."})
 subroutine(0x8268, "data_rx_complete",
     title="Data frame completion",
     description="Reached when SR2 non-zero during data RX (FV detected).\n"
     "Same pattern as scout completion (&8137): disables PSE (CR2=&84,\n"
     "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
     "If extra data available and buffer space remains, stores it.\n"
-    "Proceeds to send the final ACK via &82E4.")
+    "Proceeds to send the final ACK via &82E4.",
+    on_entry={"context": "JMP target from nmi_data_rx_bulk when SR2 "
+              "indicates frame completion. Stack/ROMSEL/NMI state per "
+              "shim contract.",
+              "ADLC SR2": "FV (frame valid) and RDA bits drive the "
+              "tail-byte capture",
+              "rx_extra_byte (&0D42)": "destination for the optional "
+              "trailing byte"},
+    on_exit={"control flow": "tail-jumps to ack_tx (&82E4) to send the "
+             "final ACK, completing the four-way handshake. ack_tx "
+             "exits via nmi_rti."})
 subroutine(0x82DF, "ack_tx",
     title="ACK transmission",
     description="Sends a scout ACK or final ACK frame as part of the four-way handshake.\n"
@@ -2366,7 +2448,20 @@ subroutine(0x82DF, "ack_tx",
     "\n"
     "After writing the address bytes to the TX FIFO, installs the next\n"
     "NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)\n"
-    "and sends TX_LAST_DATA (CR2=&3F) to close the frame.")
+    "and sends TX_LAST_DATA (CR2=&3F) to close the frame.",
+    on_entry={"context": "JMP target from data_rx_complete and similar "
+              "handlers. Stack/ROMSEL/NMI state per shim contract.",
+              "&0D4A bit 7": "0 = scout ACK, 1 = final ACK (-> "
+              "completion path at &88C6)",
+              "scout buffer at &0D3D..": "source station/network for the "
+              "ACK address header",
+              "&0D4B/&0D4C": "next NMI handler address (set by predecessor)"},
+    on_exit={"ADLC CR1": "&44 (TX_RESET cleared, RX_RESET set, TIE on)",
+             "ADLC CR2": "&A7 then &3F (TX_LAST_DATA) to close the frame",
+             "next NMI handler": "= (&0D4B/&0D4C) -- whatever the scout/"
+             "data RX path saved",
+             "control flow": "exits via fall-through to nmi_ack_tx_src "
+             "(continuation of TX FIFO write); ultimately nmi_rti"})
 subroutine(0x8316, "nmi_ack_tx_src",
     title="ACK TX continuation",
     description="Continuation of ACK frame transmission. Reads our\n"
@@ -2376,7 +2471,15 @@ subroutine(0x8316, "nmi_ack_tx_src",
     "Then checks rx_src_net bit 7: if set, branches to\n"
     "start_data_tx to begin the data phase. Otherwise\n"
     "writes CR2=&3F (TX_LAST_DATA) and falls through to\n"
-    "post_ack_scout for scout processing.")
+    "post_ack_scout for scout processing.",
+    on_entry={"context": "fall-through from ack_tx -- still inside the "
+              "NMI dispatch chain; A/Y stacked, X unsaved.",
+              "rx_src_net (tx_flags) bit 7":
+              "1 = data phase follows (branch to start_data_tx); "
+              "0 = scout-only ACK (fall through to post_ack_scout)"},
+    on_exit={"ADLC CR2": "&3F (TX_LAST_DATA) on the scout-ACK path",
+             "control flow": "data path -> JMP start_data_tx; scout "
+             "path -> fall through to post_ack_scout. Both end at nmi_rti."})
 subroutine(0x832D, "post_ack_scout",
     title="Post-ACK scout processing",
     description="Called after the scout ACK has been transmitted. Processes the\n"
@@ -2384,7 +2487,16 @@ subroutine(0x832D, "post_ack_scout",
     "Checks the port byte (&0D40) against open receive blocks to\n"
     "find a matching listener. If a match is found, sets up the\n"
     "data RX handler chain for the four-way handshake data phase.\n"
-    "If no match, discards the frame.")
+    "If no match, discards the frame.",
+    on_entry={"context": "fall-through from nmi_ack_tx_src on the "
+              "scout-only path, OR JMP target from later handlers. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "scout_port (&0D40)": "port byte from the received scout",
+              "open RXCBs at port_ws_offset+...":
+              "list to match the port against"},
+    on_exit={"control flow": "match -> sets up data RX handler chain "
+             "and exits via nmi_rti. No-match -> JMPs to scout_error "
+             "(discard path), also exiting via nmi_rti."})
 subroutine(0x833F, "advance_rx_buffer_ptr",
     title="Advance RX buffer pointer after transfer",
     description="Adds the transfer count to the RXCB buffer pointer (4-byte\n"
@@ -2412,7 +2524,16 @@ subroutine(0x8386, "nmi_post_ack_dispatch",
     "transfer and mark the RXCB complete; port = 0\n"
     "with ctrl &82 (POKE) also goes to\n"
     "rx_complete_update_rxcb; other port-0 ops go to\n"
-    "imm_op_build_reply.")
+    "imm_op_build_reply.",
+    on_entry={"context": "NMI dispatch entry installed by ack_tx after "
+              "the final ACK has been queued. Stack/ROMSEL/NMI state "
+              "per shim contract.",
+              "scout_port (&0D40)": "drives the dispatch (0 vs non-zero)",
+              "scout ctrl byte (&0D43)":
+              "tested for &82 (POKE) on the port-0 branch"},
+    on_exit={"control flow": "JMPs to rx_complete_update_rxcb (data "
+             "transfers) or imm_op_build_reply (immediate ops). All "
+             "paths ultimately exit via nmi_rti."})
 subroutine(0x8395, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
     description="Called from nmi_post_ack_dispatch after the\n"
@@ -2426,7 +2547,17 @@ subroutine(0x8395, "rx_complete_update_rxcb",
     "foreground synchronisation point: wait_net_tx_ack\n"
     "polls this bit to detect that the reply has\n"
     "arrived. Falls through to discard_reset_rx to\n"
-    "reset the ADLC to idle RX listen mode.")
+    "reset the ADLC to idle RX listen mode.",
+    on_entry={"context": "JMP target from nmi_post_ack_dispatch. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "RXCB at (port_ws_offset)":
+              "open-receive control block to mark complete",
+              "scout buffer at &0D3D..": "source station/network/port "
+              "to copy into the RXCB"},
+    on_exit={"RXCB ctrl byte": "bit 7 set (reply complete -- "
+             "wait_net_tx_ack polls this)",
+             "control flow": "falls through to discard_reset_rx (ADLC "
+             "back to idle listen) and exits via nmi_rti"})
 subroutine(0x83F2, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"
@@ -2434,7 +2565,15 @@ subroutine(0x83F2, "discard_reset_listen",
     "If a Tube claim is held, calls release_tube to\n"
     "free it before returning. Used as the clean-up\n"
     "path after RXCB completion and after ADLC reset\n"
-    "to ensure no stale Tube claims persist.")
+    "to ensure no stale Tube claims persist.",
+    on_entry={"context": "JMP target from RXCB-completion and "
+              "ADLC-reset paths inside the NMI chain. Stack/ROMSEL/NMI "
+              "state per shim contract.",
+              "l0d63 bit 1": "Tube available flag",
+              "rx_src_net (tx_flags) bit 1": "Tube transfer active flag"},
+    on_exit={"Tube state": "claim released via release_tube if both "
+             "flags were set",
+             "control flow": "exits via nmi_rti"})
 label(0x83F7, "imm_op_jump_table")
 subroutine(0x8400, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
@@ -2446,7 +2585,18 @@ subroutine(0x8400, "copy_scout_to_buffer",
     "for Tube transfers. Calls advance_buffer_ptr after\n"
     "each byte. Falls through to release_tube on\n"
     "completion. Handles page overflow (Y wrap) by\n"
-    "branching to scout_page_overflow.")
+    "branching to scout_page_overflow.",
+    on_entry={"context": "called from inside an NMI handler (e.g. "
+              "scout_complete) with scout buffer fully populated.",
+              "scout buffer at &0D3D+4..&0D3D+11":
+              "8 bytes of scout payload to copy",
+              "open_port_buf (&A4/&A5)": "destination buffer pointer",
+              "rx_src_net (tx_flags) bit 1": "0 = direct memory store; "
+              "1 = Tube R3 write"},
+    on_exit={"open_port_buf": "advanced by 8 (via advance_buffer_ptr "
+             "for each byte)",
+             "Tube state": "released via release_tube fall-through if "
+             "Tube was claimed"})
 subroutine(0x8448, "release_tube",
     title="Release Tube co-processor claim",
     description="Tests need_release_tube (&98) bit 7: if set, the\n"
