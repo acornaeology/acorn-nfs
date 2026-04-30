@@ -2914,6 +2914,8 @@ subroutine(0x8B00, "scan_remote_keys",
     "key-code counter without needing X. clear_svc_and_ws\n"
     "is also entered directly (label) by cmd_roff with no\n"
     "register pre-conditions.",
+    on_entry={"x": "preserved by being saved to nfs_workspace and "
+              "reloaded each iteration (no other preconditions)"},
     on_exit={"a": "0 (when no key pressed -- the cleared path)",
              "x": "may be modified by OSBYTE",
              "y": "&7F (left over from OSBYTE call setup)",
@@ -3005,6 +3007,8 @@ subroutine(0x8CFD, "notify_new_fs",
     "&8F to inform other ROMs. Sets X=&0A and branches\n"
     "to issue_svc_osbyte which falls through from the\n"
     "call_fscv subroutine.",
+    on_entry={"FSCV vector (&021E)": "must point at a valid handler "
+              "(installed during FS selection)"},
     on_exit={"a": "clobbered (FSCV reason 6 then OSBYTE &8F)",
              "x": "&0A (the service number passed to OSBYTE &8F)"})
 subroutine(0x8CFF, "call_fscv",
@@ -3159,6 +3163,7 @@ subroutine(0x91F9, "print_newline_no_spool",
     "captured by spool, then restores the previous handle on exit. "
     "Called from service_handler (&8A7C) after the 'Bad ROM <slot>' "
     "message, and from two other diagnostic sites (&8E10, &9D3E).",
+    on_entry={},
     on_exit={"a, x, y, p": "preserved (print_char_no_spool brackets the call "
              "with full register save/restore via PHA/PHP/PLP/PLA)",
              "side effect": "OSASCI prints CR; *SPOOL handle is briefly cleared "
@@ -3393,6 +3398,7 @@ subroutine(0x973D, "init_txcb_bye",
     "clear = awaiting reply). The NMI RX handler sets\n"
     "bit 7 when a reply arrives on this port, which\n"
     "wait_net_tx_ack polls for.",
+    on_entry={},
     on_exit={"txcb at &00C0":
              "12-byte template copied; port = &90; "
              "ctrl = &7F (open-receive, bit 7 clear = awaiting reply); "
@@ -4002,6 +4008,7 @@ subroutine(0xA390, "tube_claim_c3",
     "(carry set on return). Used before Tube data\n"
     "transfers to ensure exclusive access to the\n"
     "Tube co-processor interface.",
+    on_entry={},
     on_exit={"a": "&C3 (the claim protocol byte left in A)",
              "c flag": "set (the claim succeeded -- this is the loop "
              "termination condition)",
@@ -4254,6 +4261,8 @@ subroutine(0xAA72, "osword_13_read_csd",
     "from the RX workspace at offset &17 into\n"
     "PB[1..5]. Sets carry clear to select the\n"
     "workspace-to-PB copy direction.",
+    on_entry={"ws_ptr_hi (workspace ptr)":
+              "OSWORD parameter block pointer (set up by dispatch)"},
     on_exit={"PB[1..5]": "5-byte CSD path from RX workspace +&17"})
 subroutine(0xAA75, "osword_13_write_csd",
     title="OSWORD &13 sub 13: write CSD path",
@@ -4270,6 +4279,8 @@ subroutine(0xAA91, "osword_13_read_ws_pair",
     "nfs_workspace_hi as the page and\n"
     "copy_pb_byte_to_ws with carry clear for the\n"
     "workspace-to-PB direction.",
+    on_entry={"ws_ptr_hi (workspace ptr)":
+              "OSWORD parameter block pointer (set up by dispatch)"},
     on_exit={"PB[1..2]": "2 bytes from NFS workspace +1..+2"})
 subroutine(0xAA9D, "osword_13_write_ws_pair",
     title="OSWORD &13 sub 3: write workspace byte pair",
@@ -4285,6 +4296,8 @@ subroutine(0xAAB2, "osword_13_read_prot",
     title="OSWORD &13 sub 4: read protection mask",
     description="Returns the current protection mask (ws_0d68)\n"
     "in PB[1].",
+    on_entry={"ws_ptr_hi (workspace ptr)":
+              "OSWORD parameter block pointer"},
     on_exit={"PB[1]": "current immediate-op protection mask (ws_0d68)"})
 subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
@@ -4302,6 +4315,8 @@ subroutine(0xAAC2, "osword_13_read_handles",
     "the workspace at C271[1..3] (was l1071[1..3] in\n"
     "4.18) into PB[1..3]. If the NFS is not active,\n"
     "returns zero in PB[0] via the sub_c8b4d prologue.",
+    on_entry={"ws_ptr_hi (workspace ptr)":
+              "OSWORD parameter block pointer"},
     on_exit={"PB[1..3]": "3 bytes from fs_lib_flags+1..+3 (C271+1..+3)",
              "PB[0]": "0 if NFS not active (auto-selected in 4.21)"})
 # Located in 4.21_v1 at &AAD0 (was &A744 in 4.18). OSWORD &13 sub 7
@@ -4334,16 +4349,19 @@ subroutine(0xAB68, "osword_13_read_rx_flag",
     title="OSWORD &13 sub 8: read RX control block flag",
     description="Returns byte 1 of the current RX control\n"
     "block in PB[1].",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[1]": "RXCB[1] (current open-receive flags)"})
 subroutine(0xAB71, "osword_13_read_rx_port",
     title="OSWORD &13 sub 9: read RX port byte",
     description="Returns byte &7F of the current RX control\n"
     "block in PB[1], and stores &80 in PB[2].",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[1]": "RXCB byte at &7F",
              "PB[2]": "&80 (sentinel)"})
 subroutine(0xAB7F, "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
     description="Returns the error flag (l0e09) in PB[1].",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[1]": "last error code stored in l0e09"})
 subroutine(0xAB82, "store_a_to_pb_1",
     title="Store A to OSWORD parameter block at offset 1",
@@ -4356,6 +4374,7 @@ subroutine(0xAB82, "store_a_to_pb_1",
 subroutine(0xAB86, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
     description="Returns the context byte (l0d6d) in PB[1].",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[1]": "current context byte from l0d6d"})
 subroutine(0xAB8B, "osword_13_read_free_bufs",
     title="OSWORD &13 sub 14: read printer buffer free space",
@@ -4363,6 +4382,8 @@ subroutine(0xAB8B, "osword_13_read_free_bufs",
     "the printer spool buffer (&6F minus spool_buf_idx)\n"
     "in PB[1]. The buffer starts at offset &25 and can\n"
     "hold up to &4A bytes of spool data.",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer",
+              "spool_buf_idx": "current write position within printer buffer"},
     on_exit={"PB[1]": "free bytes in printer spool buffer "
              "(&6F minus spool_buf_idx)"})
 subroutine(0xAB93, "osword_13_read_ctx_3",
@@ -4373,6 +4394,7 @@ subroutine(0xAB93, "osword_13_read_ctx_3",
     "count (default &28 = 40), PB[3] = machine\n"
     "peek retry count (default &0A = 10). Setting\n"
     "transmit retries to 0 means retry forever.",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[1]": "tx_retry_count (default &FF; 0 = retry forever)",
              "PB[2]": "rx_wait_timeout (default &28 = 40)",
              "PB[3]": "machine peek retry count (default &0A = 10)"})
@@ -4392,6 +4414,7 @@ subroutine(0xABA9, "osword_13_bridge_query",
     "stores 0 in PB[0]. Otherwise stores l0d72\n"
     "in PB[1] and conditionally updates PB[3]\n"
     "based on station comparison.",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
     on_exit={"PB[0]": "0 if no bridge present (l0d72 = &FF)",
              "PB[1]": "bridge station number when present",
              "PB[3]": "conditionally updated based on station match"})
@@ -4579,6 +4602,7 @@ subroutine(0xAE64, "reset_spool_buf_state",
     "available data position) and the control state\n"
     "byte to &41 (ready for new data). Called after\n"
     "processing a complete spool data block.",
+    on_entry={},
     on_exit={"spool_buf_idx": "= &25 (first data position)",
              "spool ctrl byte": "= &41 (ready for new data)",
              "a, y": "clobbered"})
@@ -4696,6 +4720,8 @@ subroutine(0xB22A, "parse_cmd_arg_y0",
     description="Sets Y=0 and falls through to parse_filename_arg\n"
     "for GSREAD-based filename parsing with prefix\n"
     "character handling.",
+    on_entry={"os_text_ptr (&F2/&F3)":
+              "command-line text pointer (consumed by gsread_to_buf)"},
     on_exit={"y": "advanced past the parsed argument",
              "&C030 (parse buffer)": "the parsed (and prefix-stripped) "
              "filename, CR-terminated"})
@@ -4885,6 +4911,9 @@ subroutine(0xB3D5, "copy_ps_data_y1c",
     "Called during workspace initialisation\n"
     "(svc_2_private_workspace) to set up the printer\n"
     "server template at the standard offset.",
+    on_entry={"net_rx_ptr (&A6/&A7)":
+              "RX buffer pointer (template is written into "
+              "(net_rx_ptr)+&18..+&1F)"},
     on_exit={"RX buffer +&18..+&1F": "8-byte PS template",
              "y": "&20 (advanced past the copied 8 bytes)"})
 subroutine(0xB3D7, "copy_ps_data",
@@ -4908,12 +4937,14 @@ subroutine(0xB483, "print_file_server_is",
     description="Uses print_inline to output 'File' then falls through\n"
     "to the shared ' server is ' suffix at\n"
     "print_printer_server_is.",
+    on_entry={},
     on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
              "side effect": "writes 'File server is ' to current output stream"})
 subroutine(0xB48D, "print_printer_server_is",
     title="Print 'Printer server is ' prefix",
     description="Uses print_inline to output the full label\n"
     "'Printer server is ' with trailing space.",
+    on_entry={},
     on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
              "side effect": "writes 'Printer server is ' to current output stream"})
 subroutine(0xB4A8, "load_ps_server_addr",
@@ -5002,6 +5033,7 @@ subroutine(0xB7D3, "flush_and_read_char",
     description="Calls OSBYTE &0F to flush the input buffer, then\n"
     "OSRDCH to read a single character. Raises an escape\n"
     "error if escape was pressed (carry set on return).",
+    on_entry={},
     on_exit={"a": "character read from keyboard",
              "x, y": "clobbered (OSBYTE/OSRDCH)",
              "behaviour": "raises 'Escape' error if escape was pressed "
@@ -5065,6 +5097,7 @@ subroutine(0xB8A8, "alloc_fcb_slot",
     description="Scans FCB slots &20-&2F for an empty entry.\n"
     "Returns Z=0 with X=slot index on success, or\n"
     "Z=1 with A=0 if all slots are occupied.",
+    on_entry={"FCB table at l1060": "16-entry FCB table (slots &20-&2F)"},
     on_exit={"x": "slot index (if Z=0)", "z": "0=success, 1=no free slot"})
 subroutine(0xB8DC, "alloc_fcb_or_error",
     title="Allocate FCB slot or raise error",
@@ -5121,7 +5154,10 @@ subroutine(0xB977, "init_wipe_counters",
     "counter, and transfer flag. Stores &FF sentinels\n"
     "in l10cd/l10ce. Returns with X/Y pointing at\n"
     "workspace offset &10CA.",
-    on_exit={"x": "&CA (workspace offset low)", "y": "&10 (workspace page)"})
+    on_entry={},
+    on_exit={"x": "&CA (workspace offset low)", "y": "&10 (workspace page)",
+             "&10C0..&10CC (counters)": "zeroed",
+             "l10cd, l10ce": "= &FF (sentinel values)"})
 subroutine(0xB99A, "start_wipe_pass",
     title="Start wipe pass for current FCB",
     description="Verifies the workspace checksum, saves the station\n"
@@ -5161,6 +5197,8 @@ subroutine(0xBACF, "find_matching_fcb",
     "past slot &0F, saves context via save_fcb_context\n"
     "and restarts. Returns Z=0 if the FCB has saved\n"
     "offset data (bit 5 set).",
+    on_entry={"l10c9": "channel attribute reference to match",
+              "&0E00, &0E01": "current station/network"},
     on_exit={"x": "matching FCB index", "z": "0=has offset data, 1=no offset"})
 subroutine(0xBB2A, "inc_fcb_byte_count",
     title="Increment 3-byte FCB transfer count",
@@ -10423,6 +10461,7 @@ subroutine(0xB7CB, "prompt_yn",
     description="Prints \'Y/N) \' via inline string, flushes\n"
     "the input buffer, and reads a single character\n"
     "from the keyboard.",
+    on_entry={},
     on_exit={"A": "character read from keyboard (after the 'Y/N) ' prompt)",
              "behaviour": "may raise 'Escape' via flush_and_read_char on "
              "escape press; otherwise returns the keystroke unchanged"})

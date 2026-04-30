@@ -3067,6 +3067,10 @@ l89c9 = reset_enter_listen+2
 ; is also entered directly (label) by cmd_roff with no
 ; register pre-conditions.
 ; 
+; On Entry:
+;     X: preserved by being saved to nfs_workspace and reloaded each iteration (no
+; other preconditions)
+; 
 ; On Exit:
 ;     A: 0 (when no key pressed -- the cleared path)
 ;     X: may be modified by OSBYTE
@@ -3712,6 +3716,10 @@ l89c9 = reset_enter_listen+2
 ; &8F to inform other ROMs. Sets X=&0A and branches
 ; to issue_svc_osbyte which falls through from the
 ; call_fscv subroutine.
+; 
+; On Entry:
+;     FSCV VECTOR (&021E): must point at a valid handler (installed during FS
+; selection)
 ; 
 ; On Exit:
 ;     A: clobbered (FSCV reason 6 then OSBYTE &8F)
@@ -10093,6 +10101,9 @@ la0ff = sub_ca0fe+1
 ; PB[1..5]. Sets carry clear to select the
 ; workspace-to-PB copy direction.
 ; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by dispatch)
+; 
 ; On Exit:
 ;     PB[1..5]: 5-byte CSD path from RX workspace +&17
 ; ***************************************************************************************
@@ -10162,6 +10173,9 @@ la0ff = sub_ca0fe+1
 ; copy_pb_byte_to_ws with carry clear for the
 ; workspace-to-PB direction.
 ; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by dispatch)
+; 
 ; On Exit:
 ;     PB[1..2]: 2 bytes from NFS workspace +1..+2
 ; ***************************************************************************************
@@ -10221,6 +10235,9 @@ la0ff = sub_ca0fe+1
 ; Returns the current protection mask (ws_0d68)
 ; in PB[1].
 ; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer
+; 
 ; On Exit:
 ;     PB[1]: current immediate-op protection mask (ws_0d68)
 ; ***************************************************************************************
@@ -10254,6 +10271,9 @@ la0ff = sub_ca0fe+1
 ; the workspace at C271[1..3] (was l1071[1..3] in
 ; 4.18) into PB[1..3]. If the NFS is not active,
 ; returns zero in PB[0] via the sub_c8b4d prologue.
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer
 ; 
 ; On Exit:
 ;     PB[1..3]: 3 bytes from fs_lib_flags+1..+3 (C271+1..+3)
@@ -10418,6 +10438,9 @@ la0ff = sub_ca0fe+1
 ; Returns byte 1 of the current RX control
 ; block in PB[1].
 ; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
+; 
 ; On Exit:
 ;     PB[1]: RXCB[1] (current open-receive flags)
 ; ***************************************************************************************
@@ -10432,6 +10455,9 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns byte &7F of the current RX control
 ; block in PB[1], and stores &80 in PB[2].
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
 ; 
 ; On Exit:
 ;     PB[1]: RXCB byte at &7F
@@ -10451,6 +10477,9 @@ la0ff = sub_ca0fe+1
 ; OSWORD &13 sub 10: read error flag
 ; 
 ; Returns the error flag (l0e09) in PB[1].
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
 ; 
 ; On Exit:
 ;     PB[1]: last error code stored in l0e09
@@ -10482,6 +10511,9 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns the context byte (l0d6d) in PB[1].
 ; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
+; 
 ; On Exit:
 ;     PB[1]: current context byte from l0d6d
 ; ***************************************************************************************
@@ -10495,6 +10527,10 @@ la0ff = sub_ca0fe+1
 ; the printer spool buffer (&6F minus spool_buf_idx)
 ; in PB[1]. The buffer starts at offset &25 and can
 ; hold up to &4A bytes of spool data.
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
+;     SPOOL_BUF_IDX: current write position within printer buffer
 ; 
 ; On Exit:
 ;     PB[1]: free bytes in printer spool buffer (&6F minus spool_buf_idx)
@@ -10513,6 +10549,9 @@ la0ff = sub_ca0fe+1
 ; count (default &28 = 40), PB[3] = machine
 ; peek retry count (default &0A = 10). Setting
 ; transmit retries to 0 means retry forever.
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
 ; 
 ; On Exit:
 ;     PB[1]: tx_retry_count (default &FF; 0 = retry forever)
@@ -10558,6 +10597,9 @@ la0ff = sub_ca0fe+1
 ; stores 0 in PB[0]. Otherwise stores l0d72
 ; in PB[1] and conditionally updates PB[3]
 ; based on station comparison.
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
 ; 
 ; On Exit:
 ;     PB[0]: 0 if no bridge present (l0d72 = &FF)
@@ -12145,6 +12187,9 @@ labc5 = compare_bridge_status+1
 ; for GSREAD-based filename parsing with prefix
 ; character handling.
 ; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by gsread_to_buf)
+; 
 ; On Exit:
 ;     Y: advanced past the parsed argument
 ;     &C030 (PARSE BUFFER): the parsed (and prefix-stripped) filename, CR-terminated
@@ -12747,6 +12792,10 @@ labc5 = compare_bridge_status+1
 ; Called during workspace initialisation
 ; (svc_2_private_workspace) to set up the printer
 ; server template at the standard offset.
+; 
+; On Entry:
+;     NET_RX_PTR (&A6/&A7): RX buffer pointer (template is written into
+; (net_rx_ptr)+&18..+&1F)
 ; 
 ; On Exit:
 ;     RX BUFFER +&18..+&1F: 8-byte PS template
@@ -13812,6 +13861,9 @@ lb821 = err_net_chan_not_found+2
 ; Returns Z=0 with X=slot index on success, or
 ; Z=1 with A=0 if all slots are occupied.
 ; 
+; On Entry:
+;     FCB TABLE AT L1060: 16-entry FCB table (slots &20-&2F)
+; 
 ; On Exit:
 ;     X: slot index (if Z=0)
 ;     Z: 0=success, 1=no free slot
@@ -14050,6 +14102,8 @@ lb821 = err_net_chan_not_found+2
 ; On Exit:
 ;     X: &CA (workspace offset low)
 ;     Y: &10 (workspace page)
+;     &10C0..&10CC (COUNTERS): zeroed
+;     L10CD, L10CE: = &FF (sentinel values)
 ; ***************************************************************************************
 ; &b977 referenced 2 times by &b9ba, &ba65
 .init_wipe_counters
@@ -14295,6 +14349,10 @@ lb821 = err_net_chan_not_found+2
 ; past slot &0F, saves context via save_fcb_context
 ; and restarts. Returns Z=0 if the FCB has saved
 ; offset data (bit 5 set).
+; 
+; On Entry:
+;     L10C9: channel attribute reference to match
+;     &0E00, &0E01: current station/network
 ; 
 ; On Exit:
 ;     X: matching FCB index
