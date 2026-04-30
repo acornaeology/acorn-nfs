@@ -10542,71 +10542,71 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &afa6 referenced 3 times by &97e6, &aef0, &bce2
 .send_disconnect_reply
-    stx net_tx_ptr                                                    ; afa6: 86 9a       ..
-    sty net_tx_ptr_hi                                                 ; afa8: 84 9b       ..
-    pha                                                               ; afaa: 48          H
-    ora #0                                                            ; afab: 09 00       ..
-    beq send_disconnect_status                                        ; afad: f0 1d       ..
-    ldx #&ff                                                          ; afaf: a2 ff       ..
-    tay                                                               ; afb1: a8          .
+    stx net_tx_ptr                                                    ; afa6: 86 9a       ..             ; X = caller's TX-ptr low byte
+    sty net_tx_ptr_hi                                                 ; afa8: 84 9b       ..             ; Y = caller's TX-ptr high byte
+    pha                                                               ; afaa: 48          H              ; Save A (the disconnect status to send)
+    ora #0                                                            ; afab: 09 00       ..             ; Test if A=0 (broadcast disconnect)
+    beq send_disconnect_status                                        ; afad: f0 1d       ..             ; Yes: skip the per-station scan
+    ldx #&ff                                                          ; afaf: a2 ff       ..             ; X=&FF: scan counter -- INX in loop bumps to 0
+    tay                                                               ; afb1: a8          .              ; Y=A: status code (also used as station-table key)
 ; &afb2 referenced 2 times by &afbb, &afc5
 .loop_scan_disconnect
-    tya                                                               ; afb2: 98          .
-    inx                                                               ; afb3: e8          .
-    cmp lc230,x                                                       ; afb4: dd 30 c2    .0.
-    beq verify_stn_match                                              ; afb7: f0 08       ..
-    cpx #&0f                                                          ; afb9: e0 0f       ..
-    bne loop_scan_disconnect                                          ; afbb: d0 f5       ..
-    lda #0                                                            ; afbd: a9 00       ..
-    beq send_disconnect_status                                        ; afbf: f0 0b       ..             ; ALWAYS branch
+    tya                                                               ; afb2: 98          .              ; Restore status into A for the compare
+    inx                                                               ; afb3: e8          .              ; Step station-table index
+    cmp lc230,x                                                       ; afb4: dd 30 c2    .0.            ; Compare with table[X] at &C230 (per-station status)
+    beq verify_stn_match                                              ; afb7: f0 08       ..             ; Match: verify station address still matches
+    cpx #&0f                                                          ; afb9: e0 0f       ..             ; Reached end of 16-slot table?
+    bne loop_scan_disconnect                                          ; afbb: d0 f5       ..             ; No: keep scanning
+    lda #0                                                            ; afbd: a9 00       ..             ; All slots tested, no match: A=0
+    beq send_disconnect_status                                        ; afbf: f0 0b       ..             ; Always taken: jump to send-status; ALWAYS branch
 
 ; &afc1 referenced 1 time by &afb7
 .verify_stn_match
-    tay                                                               ; afc1: a8          .
-    jsr match_station_net                                             ; afc2: 20 25 b9     %.
-    bne loop_scan_disconnect                                          ; afc5: d0 eb       ..
-    lda lc260,x                                                       ; afc7: bd 60 c2    .`.
-    and #1                                                            ; afca: 29 01       ).
+    tay                                                               ; afc1: a8          .              ; Y = matching index
+    jsr match_station_net                                             ; afc2: 20 25 b9     %.            ; Verify station/network at this slot still matches caller
+    bne loop_scan_disconnect                                          ; afc5: d0 eb       ..             ; Mismatch: station moved, keep scanning
+    lda lc260,x                                                       ; afc7: bd 60 c2    .`.            ; Read connection-active flag at &C260+X
+    and #1                                                            ; afca: 29 01       ).             ; Mask to bit 0 (active flag)
 ; &afcc referenced 2 times by &afad, &afbf
 .send_disconnect_status
-    ldy #0                                                            ; afcc: a0 00       ..
-    ora (net_tx_ptr),y                                                ; afce: 11 9a       ..
-    pha                                                               ; afd0: 48          H
-    sta (net_tx_ptr),y                                                ; afd1: 91 9a       ..
-    jsr send_net_packet                                               ; afd3: 20 2c 9b     ,.
-    lda #&ff                                                          ; afd6: a9 ff       ..
-    ldy #8                                                            ; afd8: a0 08       ..
-    sta (net_tx_ptr),y                                                ; afda: 91 9a       ..
-    iny                                                               ; afdc: c8          .              ; Y=&09
-    sta (net_tx_ptr),y                                                ; afdd: 91 9a       ..
-    pla                                                               ; afdf: 68          h
-    tax                                                               ; afe0: aa          .
-    ldy #&d1                                                          ; afe1: a0 d1       ..
-    pla                                                               ; afe3: 68          h
-    pha                                                               ; afe4: 48          H
-    beq store_tx_ctrl_byte                                            ; afe5: f0 02       ..
-    ldy #&90                                                          ; afe7: a0 90       ..
+    ldy #0                                                            ; afcc: a0 00       ..             ; Y=0: TX[0] = control byte
+    ora (net_tx_ptr),y                                                ; afce: 11 9a       ..             ; OR active-flag bit into the status
+    pha                                                               ; afd0: 48          H              ; Save the combined status
+    sta (net_tx_ptr),y                                                ; afd1: 91 9a       ..             ; Write it to TX[0]
+    jsr send_net_packet                                               ; afd3: 20 2c 9b     ,.            ; Send the disconnect packet via four-way handshake
+    lda #&ff                                                          ; afd6: a9 ff       ..             ; A=&FF: sentinel
+    ldy #8                                                            ; afd8: a0 08       ..             ; Y=8: TX[8] / TX[9] = packet trailer markers
+    sta (net_tx_ptr),y                                                ; afda: 91 9a       ..             ; Write &FF at TX[8]
+    iny                                                               ; afdc: c8          .              ; Step Y; Y=&09
+    sta (net_tx_ptr),y                                                ; afdd: 91 9a       ..             ; Write &FF at TX[9]
+    pla                                                               ; afdf: 68          h              ; Pull the saved status
+    tax                                                               ; afe0: aa          .              ; Move into X for the test
+    ldy #&d1                                                          ; afe1: a0 d1       ..             ; Y=&D1: control byte for ack-mode TXCB[1]
+    pla                                                               ; afe3: 68          h              ; Pull caller's original A again (was double-saved)
+    pha                                                               ; afe4: 48          H              ; Push it back
+    beq store_tx_ctrl_byte                                            ; afe5: f0 02       ..             ; A=0: skip the override
+    ldy #&90                                                          ; afe7: a0 90       ..             ; Non-zero: use Y=&90 (FS reply port instead)
 ; &afe9 referenced 1 time by &afe5
 .store_tx_ctrl_byte
-    tya                                                               ; afe9: 98          .
-    ldy #1                                                            ; afea: a0 01       ..
-    sta (net_tx_ptr),y                                                ; afec: 91 9a       ..
-    txa                                                               ; afee: 8a          .              ; A=1: check printer ready
-    dey                                                               ; afef: 88          .              ; Y=&00
-    pha                                                               ; aff0: 48          H              ; Test printer server workspace flag
+    tya                                                               ; afe9: 98          .              ; Move chosen control/port into A
+    ldy #1                                                            ; afea: a0 01       ..             ; Y=1: TX[1] is the port byte
+    sta (net_tx_ptr),y                                                ; afec: 91 9a       ..             ; Write to TX[1]
+    txa                                                               ; afee: 8a          .              ; Move saved status into A; A=1: check printer ready
+    dey                                                               ; afef: 88          .              ; Y=0: TX[0] for ack poll; Y=&00
+    pha                                                               ; aff0: 48          H              ; Push the status (we'll EOR with reply below); Test printer server workspace flag
 ; &aff1 referenced 1 time by &affd
 .loop_wait_disc_tx_ack
-    lda #&7f                                                          ; aff1: a9 7f       ..
-    sta (net_tx_ptr),y                                                ; aff3: 91 9a       ..             ; Non-zero: printer available
-    jsr wait_net_tx_ack                                               ; aff5: 20 be 98     ..            ; Printer not available: error
-    pla                                                               ; aff8: 68          h              ; Initialise spool drive
-    pha                                                               ; aff9: 48          H
-    eor (net_tx_ptr),y                                                ; affa: 51 9a       Q.             ; Save pointer to spool buffer
-    ror a                                                             ; affc: 6a          j
-    bcs loop_wait_disc_tx_ack                                         ; affd: b0 f2       ..             ; Get first argument character
-    pla                                                               ; afff: 68          h
-    pla                                                               ; b000: 68          h              ; End of command line?
-    rts                                                               ; b001: 60          `
+    lda #&7f                                                          ; aff1: a9 7f       ..             ; A=&7F: marker pattern
+    sta (net_tx_ptr),y                                                ; aff3: 91 9a       ..             ; Write to TX[0]; Non-zero: printer available
+    jsr wait_net_tx_ack                                               ; aff5: 20 be 98     ..            ; Wait for the TX/RX flip; Printer not available: error
+    pla                                                               ; aff8: 68          h              ; Pull saved status (peek without consuming); Initialise spool drive
+    pha                                                               ; aff9: 48          H              ; Push it back
+    eor (net_tx_ptr),y                                                ; affa: 51 9a       Q.             ; EOR with TX[0]: zero iff reply matches saved; Save pointer to spool buffer
+    ror a                                                             ; affc: 6a          j              ; Rotate result; C set if bit 0 differs
+    bcs loop_wait_disc_tx_ack                                         ; affd: b0 f2       ..             ; C set: keep waiting; Get first argument character
+    pla                                                               ; afff: 68          h              ; Discard saved status
+    pla                                                               ; b000: 68          h              ; Discard caller's saved A; End of command line?
+    rts                                                               ; b001: 60          `              ; Return
 
 ; &b002 referenced 1 time by &af0b
 .tx_econet_txcb_template

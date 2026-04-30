@@ -7794,6 +7794,77 @@ comment(0x999E, "Null terminator -> dispatch", inline=True)
 comment(0x99A0, "Step Y", inline=True)
 comment(0x99A1, "Step X", inline=True)
 comment(0x99A2, "Loop while X != 0", inline=True)
+
+# send_disconnect_reply inline comments (~50 items in body)
+comment(0xAFA6, "X = caller's TX-ptr low byte", inline=True)
+comment(0xAFA8, "Y = caller's TX-ptr high byte", inline=True)
+comment(0xAFAA, "Save A (the disconnect status to send)", inline=True)
+comment(0xAFAB, "Test if A=0 (broadcast disconnect)", inline=True)
+comment(0xAFAD, "Yes: skip the per-station scan", inline=True)
+comment(0xAFAF, "X=&FF: scan counter -- INX in loop bumps to 0",
+        inline=True)
+comment(0xAFB1, "Y=A: status code (also used as station-table key)",
+        inline=True)
+comment(0xAFB2, "Restore status into A for the compare", inline=True)
+comment(0xAFB3, "Step station-table index", inline=True)
+comment(0xAFB4, "Compare with table[X] at &C230 (per-station status)",
+        inline=True)
+comment(0xAFB7, "Match: verify station address still matches", inline=True)
+comment(0xAFB9, "Reached end of 16-slot table?", inline=True)
+comment(0xAFBB, "No: keep scanning", inline=True)
+comment(0xAFBD, "All slots tested, no match: A=0", inline=True)
+comment(0xAFBF, "Always taken: jump to send-status", inline=True)
+# verify_stn_match
+comment(0xAFC1, "Y = matching index", inline=True)
+comment(0xAFC2, "Verify station/network at this slot still matches "
+        "caller", inline=True)
+comment(0xAFC5, "Mismatch: station moved, keep scanning", inline=True)
+comment(0xAFC7, "Read connection-active flag at &C260+X", inline=True)
+comment(0xAFCA, "Mask to bit 0 (active flag)", inline=True)
+# Send the status
+comment(0xAFCC, "Y=0: TX[0] = control byte", inline=True)
+comment(0xAFCE, "OR active-flag bit into the status", inline=True)
+comment(0xAFD0, "Save the combined status", inline=True)
+comment(0xAFD1, "Write it to TX[0]", inline=True)
+comment(0xAFD3, "Send the disconnect packet via four-way handshake",
+        inline=True)
+comment(0xAFD6, "A=&FF: sentinel", inline=True)
+comment(0xAFD8, "Y=8: TX[8] / TX[9] = packet trailer markers", inline=True)
+comment(0xAFDA, "Write &FF at TX[8]", inline=True)
+comment(0xAFDC, "Step Y", inline=True)
+comment(0xAFDD, "Write &FF at TX[9]", inline=True)
+comment(0xAFDF, "Pull the saved status", inline=True)
+comment(0xAFE0, "Move into X for the test", inline=True)
+comment(0xAFE1, "Y=&D1: control byte for ack-mode TXCB[1]", inline=True)
+comment(0xAFE3, "Pull caller's original A again (was double-saved)",
+        inline=True)
+comment(0xAFE4, "Push it back", inline=True)
+comment(0xAFE5, "A=0: skip the override", inline=True)
+comment(0xAFE7, "Non-zero: use Y=&90 (FS reply port instead)",
+        inline=True)
+# store_tx_ctrl_byte
+comment(0xAFE9, "Move chosen control/port into A", inline=True)
+comment(0xAFEA, "Y=1: TX[1] is the port byte", inline=True)
+comment(0xAFEC, "Write to TX[1]", inline=True)
+comment(0xAFEE, "Move saved status into A", inline=True)
+comment(0xAFEF, "Y=0: TX[0] for ack poll", inline=True)
+comment(0xAFF0, "Push the status (we'll EOR with reply below)",
+        inline=True)
+# Wait for ACK with bit-flip detection
+comment(0xAFF1, "A=&7F: marker pattern", inline=True)
+comment(0xAFF3, "Write to TX[0]", inline=True)
+comment(0xAFF5, "Wait for the TX/RX flip", inline=True)
+comment(0xAFF8, "Pull saved status (peek without consuming)",
+        inline=True)
+comment(0xAFF9, "Push it back", inline=True)
+comment(0xAFFA, "EOR with TX[0]: zero iff reply matches saved",
+        inline=True)
+comment(0xAFFC, "Rotate result; C set if bit 0 differs",
+        inline=True)
+comment(0xAFFD, "C set: keep waiting", inline=True)
+comment(0xAFFF, "Discard saved status", inline=True)
+comment(0xB000, "Discard caller's saved A", inline=True)
+comment(0xB001, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
