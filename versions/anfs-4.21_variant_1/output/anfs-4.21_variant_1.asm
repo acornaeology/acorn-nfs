@@ -11873,6 +11873,13 @@ labc5 = compare_bridge_status+1
 ; stack. Called before GSINIT/GSREAD sequences
 ; that need to parse from the current command
 ; line position.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): current command-line text pointer to publish
+; 
+; On Exit:
+;     A: preserved (PHA/PLA)
+;     OS_TEXT_PTR (&F2/&F3): = fs_crc_lo, fs_crc_hi on entry
 ; ***************************************************************************************
 ; &b373 referenced 7 times by &a03c, &a4e4, &a4f1, &b12e, &b3f6, &b5d4, &b6fa
 .save_ptr_to_os_text
@@ -11895,6 +11902,10 @@ labc5 = compare_bridge_status+1
 ; holding the first non-space character, or CR
 ; if the end of line is reached. Used by *CDir
 ; and *Remove to detect extra arguments.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer base
+;     Y: starting offset (where to begin scanning)
 ; 
 ; On Exit:
 ;     A: first non-space character or CR
@@ -11925,6 +11936,14 @@ labc5 = compare_bridge_status+1
 ; for use as the spool buffer pointer. Preserves A
 ; on the stack. Called by *PS and *PollPS before
 ; parsing their arguments.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer to publish as spool buf
+; pointer
+; 
+; On Exit:
+;     A: preserved (PHA/PLA)
+;     FS_OPTIONS, FS_BLOCK_OFFSET (&BB/&BC): = fs_crc_lo, fs_crc_hi on entry
 ; ***************************************************************************************
 ; &b393 referenced 2 times by &b3b9, &b590
 .save_ptr_to_spool_buf
@@ -11944,6 +11963,14 @@ labc5 = compare_bridge_status+1
 ; the spool drive page high byte (l00af), and
 ; clears the low byte (l00ae) to zero. Preserves
 ; Y on the stack.
+; 
+; On Entry:
+;     ROMSEL_COPY (&F4): ROM slot (consumed by get_ws_page)
+; 
+; On Exit:
+;     A: 0
+;     Y: preserved (PHY/PLY)
+;     L00AE, L00AF: &00, ws_page -- page-aligned spool drive ptr
 ; ***************************************************************************************
 ; &b39e referenced 2 times by &b3b6, &b583
 .init_spool_drive
@@ -12182,6 +12209,14 @@ labc5 = compare_bridge_status+1
 ; 
 ; Reads the station and network bytes from workspace
 ; offsets 2 and 3 into the station/network variables.
+; 
+; On Entry:
+;     NFS_WORKSPACE: page-aligned NFS workspace pointer (offsets 2/3 hold the saved PS
+; address)
+; 
+; On Exit:
+;     &0E00, &0E01: PS station, network
+;     A, Y: clobbered
 ; ***************************************************************************************
 ; &b4a8 referenced 4 times by &b3ca, &b41f, &b5a1, &b601
 .load_ps_server_addr
@@ -12282,6 +12317,14 @@ lb4fd = write_ps_slot_hi_link+1
 ; Stores the buffer page byte at the current Y offset
 ; in workspace, followed by two &FF sentinel bytes.
 ; Advances Y after each write.
+; 
+; On Entry:
+;     A: buffer page byte to store at workspace+Y
+;     Y: starting workspace offset
+; 
+; On Exit:
+;     A: &FF (the sentinel value left in A)
+;     Y: workspace offset advanced by 3 (one byte + two markers)
 ; ***************************************************************************************
 ; &b51c referenced 2 times by &b4f5, &b4fc
 .write_ps_slot_byte_ff
@@ -12314,6 +12357,13 @@ lb4fd = write_ps_slot_hi_link+1
 ; Copies 8 bytes from the RX buffer (offsets &1C-&23)
 ; to the TX buffer (offsets &13-&1B) in reversed byte
 ; order, pushing onto the stack then popping back.
+; 
+; On Entry:
+;     RX BUFFER AT +&1C..+&23: 8-byte printer server name from server reply
+; 
+; On Exit:
+;     TX BUFFER AT +&13..+&1B: 8-byte name in reverse byte order
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b52b referenced 2 times by &b416, &b588
 .reverse_ps_name_to_tx
@@ -12767,7 +12817,9 @@ lb4fd = write_ps_slot_hi_link+1
 ; from the keyboard.
 ; 
 ; On Exit:
-;     A: character read
+;     A: character read from keyboard (after the 'Y/N) ' prompt)
+;     BEHAVIOUR: may raise 'Escape' via flush_and_read_char on escape press; otherwise
+; returns the keystroke unchanged
 ; ***************************************************************************************
 .prompt_yn
     jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
@@ -12779,6 +12831,11 @@ lb4fd = write_ps_slot_hi_link+1
 ; Calls OSBYTE &0F to flush the input buffer, then
 ; OSRDCH to read a single character. Raises an escape
 ; error if escape was pressed (carry set on return).
+; 
+; On Exit:
+;     A: character read from keyboard
+;     X, Y: clobbered (OSBYTE/OSRDCH)
+;     BEHAVIOUR: raises 'Escape' error if escape was pressed (OSRDCH returns C set)
 ; ***************************************************************************************
 .flush_and_read_char
     lda #osbyte_flush_buffer_class                                    ; b7d3: a9 0f       ..             ; OSBYTE &0F: flush buffer class
@@ -13903,6 +13960,14 @@ lb821 = err_net_chan_not_found+2
 ; if bit 7 is clear. If escape has been pressed,
 ; falls through to the escape abort handler which
 ; acknowledges the escape via OSBYTE &7E.
+; 
+; On Entry:
+;     ESCAPE_FLAG (&FF): MOS escape pending flag (bit 7 set = escape pressed)
+; 
+; On Exit:
+;     BEHAVIOUR: returns with no side effects on the no-escape path; on escape,
+; acknowledges via OSBYTE &7E and raises 'Escape' via the error_inline chain (does not
+; return)
 ; ***************************************************************************************
 ; &bd25 referenced 1 time by &bd59
 .abort_if_escape

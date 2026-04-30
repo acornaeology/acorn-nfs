@@ -4438,7 +4438,11 @@ subroutine(0xB373, "save_ptr_to_os_text",
     "locations at &00F2/&00F3. Preserves A on the\n"
     "stack. Called before GSINIT/GSREAD sequences\n"
     "that need to parse from the current command\n"
-    "line position.")
+    "line position.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "current command-line text pointer to publish"},
+    on_exit={"a": "preserved (PHA/PLA)",
+             "os_text_ptr (&F2/&F3)": "= fs_crc_lo, fs_crc_hi on entry"})
 subroutine(0xB37F, "skip_to_next_arg",
     title="Advance past spaces to the next command argument",
     description="Scans (fs_crc_lo)+Y for space characters,\n"
@@ -4446,6 +4450,9 @@ subroutine(0xB37F, "skip_to_next_arg",
     "holding the first non-space character, or CR\n"
     "if the end of line is reached. Used by *CDir\n"
     "and *Remove to detect extra arguments.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer base",
+              "y": "starting offset (where to begin scanning)"},
     on_exit={"a": "first non-space character or CR",
              "y": "offset of that character"})
 subroutine(0xB393, "save_ptr_to_spool_buf",
@@ -4453,14 +4460,24 @@ subroutine(0xB393, "save_ptr_to_spool_buf",
     description="Saves fs_crc_lo/hi into fs_options/fs_block_offset\n"
     "for use as the spool buffer pointer. Preserves A\n"
     "on the stack. Called by *PS and *PollPS before\n"
-    "parsing their arguments.")
+    "parsing their arguments.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer to publish as spool buf pointer"},
+    on_exit={"a": "preserved (PHA/PLA)",
+             "fs_options, fs_block_offset (&BB/&BC)":
+             "= fs_crc_lo, fs_crc_hi on entry"})
 subroutine(0xB39E, "init_spool_drive",
     title="Initialise spool drive page pointers",
     description="Calls get_ws_page to read the workspace page\n"
     "number for the current ROM slot, stores it as\n"
     "the spool drive page high byte (l00af), and\n"
     "clears the low byte (l00ae) to zero. Preserves\n"
-    "Y on the stack.")
+    "Y on the stack.",
+    on_entry={"romsel_copy (&F4)":
+              "ROM slot (consumed by get_ws_page)"},
+    on_exit={"a": "0",
+             "y": "preserved (PHY/PLY)",
+             "l00ae, l00af": "&00, ws_page -- page-aligned spool drive ptr"})
 
 # --- cmd_ps subroutines ---
 
@@ -4497,7 +4514,11 @@ subroutine(0xB48D, "print_printer_server_is",
 subroutine(0xB4A8, "load_ps_server_addr",
     title="Load printer server address from workspace",
     description="Reads the station and network bytes from workspace\n"
-    "offsets 2 and 3 into the station/network variables.")
+    "offsets 2 and 3 into the station/network variables.",
+    on_entry={"nfs_workspace": "page-aligned NFS workspace pointer "
+              "(offsets 2/3 hold the saved PS address)"},
+    on_exit={"&0E00, &0E01": "PS station, network",
+             "a, y": "clobbered"})
 subroutine(0xB4B4, "pop_requeue_ps_scan",
     title="Pop return address and requeue PS slot scan",
     description="Converts the PS slot flags to a workspace index,\n"
@@ -4507,7 +4528,11 @@ subroutine(0xB51C, "write_ps_slot_byte_ff",
     title="Write buffer page byte and two &FF markers",
     description="Stores the buffer page byte at the current Y offset\n"
     "in workspace, followed by two &FF sentinel bytes.\n"
-    "Advances Y after each write.")
+    "Advances Y after each write.",
+    on_entry={"a": "buffer page byte to store at workspace+Y",
+              "y": "starting workspace offset"},
+    on_exit={"a": "&FF (the sentinel value left in A)",
+             "y": "workspace offset advanced by 3 (one byte + two markers)"})
 subroutine(0xB523, "write_two_bytes_inc_y",
     title="Write A to two consecutive workspace bytes",
     description="Stores A at the current Y offset via (nfs_workspace),Y\n"
@@ -4517,7 +4542,12 @@ subroutine(0xB52B, "reverse_ps_name_to_tx",
     title="Reverse-copy printer server name to TX buffer",
     description="Copies 8 bytes from the RX buffer (offsets &1C-&23)\n"
     "to the TX buffer (offsets &13-&1B) in reversed byte\n"
-    "order, pushing onto the stack then popping back.")
+    "order, pushing onto the stack then popping back.",
+    on_entry={"RX buffer at +&1C..+&23":
+              "8-byte printer server name from server reply"},
+    on_exit={"TX buffer at +&13..+&1B":
+             "8-byte name in reverse byte order",
+             "a, x, y": "clobbered"})
 subroutine(0xB556, "print_station_addr",
     title="Print station address as decimal net.station",
     description="If the network number is zero, prints only the\n"
@@ -4555,7 +4585,11 @@ subroutine(0xB7D3, "flush_and_read_char",
     title="Flush keyboard buffer and read one character",
     description="Calls OSBYTE &0F to flush the input buffer, then\n"
     "OSRDCH to read a single character. Raises an escape\n"
-    "error if escape was pressed (carry set on return).")
+    "error if escape was pressed (carry set on return).",
+    on_exit={"a": "character read from keyboard",
+             "x, y": "clobbered (OSBYTE/OSRDCH)",
+             "behaviour": "raises 'Escape' error if escape was pressed "
+             "(OSRDCH returns C set)"})
 # Removed in 4.18: unused_clear_ws_78 (dead code removed)
 subroutine(0xB7E3, "init_channel_table",
     title="Initialise channel allocation table",
@@ -4751,7 +4785,12 @@ subroutine(0xBD25, "abort_if_escape",
     description="Checks the escape flag byte; returns immediately\n"
     "if bit 7 is clear. If escape has been pressed,\n"
     "falls through to the escape abort handler which\n"
-    "acknowledges the escape via OSBYTE &7E.")
+    "acknowledges the escape via OSBYTE &7E.",
+    on_entry={"escape_flag (&FF)":
+              "MOS escape pending flag (bit 7 set = escape pressed)"},
+    on_exit={"behaviour": "returns with no side effects on the no-escape "
+             "path; on escape, acknowledges via OSBYTE &7E and raises "
+             "'Escape' via the error_inline chain (does not return)"})
 
 # --- cmd_dump subroutines ---
 
@@ -9844,7 +9883,9 @@ subroutine(0xB7CB, "prompt_yn",
     description="Prints \'Y/N) \' via inline string, flushes\n"
     "the input buffer, and reads a single character\n"
     "from the keyboard.",
-    on_exit={"A": "character read"})
+    on_exit={"A": "character read from keyboard (after the 'Y/N) ' prompt)",
+             "behaviour": "may raise 'Escape' via flush_and_read_char on "
+             "escape press; otherwise returns the keystroke unchanged"})
 
 # Sub-table 3: help topic handlers
 entry(0x8BC4)   # *Net (second variant)
