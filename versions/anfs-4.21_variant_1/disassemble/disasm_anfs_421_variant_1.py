@@ -7865,6 +7865,44 @@ comment(0xAFFD, "C set: keep waiting", inline=True)
 comment(0xAFFF, "Discard saved status", inline=True)
 comment(0xB000, "Discard caller's saved A", inline=True)
 comment(0xB001, "Return", inline=True)
+
+# net_1_read_handle / net_2_read_handle_entry inline comments
+comment(0xA3FF, "Y=&6F: net_rx_ptr offset for the 'inline' handle byte",
+        inline=True)
+comment(0xA401, "Read handle byte directly from RX buffer", inline=True)
+comment(0xA403, "C clear: read-handle path -- store directly to PB",
+        inline=True)
+# net_2_read_handle_entry
+comment(0xA405, "Convert PB pointer to workspace table offset",
+        inline=True)
+comment(0xA408, "Out of range: return zero (uninitialised)", inline=True)
+comment(0xA40A, "Read workspace handle byte", inline=True)
+comment(0xA40C, "Slot marked '?' (uninitialised)?", inline=True)
+comment(0xA40E, "Has a real handle: keep it and store", inline=True)
+comment(0xA410, "Force result to zero (uninitialised marker)",
+        inline=True)
+comment(0xA412, "Write into PB[0] (handle return slot)", inline=True)
+comment(0xA414, "Return", inline=True)
+
+# net_3_close_handle inline comments
+comment(0xA415, "Convert PB pointer to workspace table offset",
+        inline=True)
+comment(0xA418, "Out of range: mark as uninitialised", inline=True)
+comment(0xA41A, "Shift bit 0 of fs_flags into C (save state)",
+        inline=True)
+comment(0xA41D, "Read PB[0] (the handle to close)", inline=True)
+comment(0xA41F, "ROL: shift bit 7 of A into C", inline=True)
+comment(0xA420, "Restore C into bit 0 of fs_flags", inline=True)
+comment(0xA423, "Return; the close action is dispatched elsewhere "
+        "based on the saved C state", inline=True)
+
+# mark_ws_uninit inline comments
+comment(0xA424, "Save bit 0 of econet_flags via ROR", inline=True)
+comment(0xA427, "A='?': uninitialised marker", inline=True)
+comment(0xA429, "Write '?' to workspace[Y] (the slot is now free)",
+        inline=True)
+comment(0xA42B, "Restore bit 0 of econet_flags", inline=True)
+comment(0xA42E, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

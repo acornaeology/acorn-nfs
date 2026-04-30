@@ -8187,39 +8187,39 @@ la0ff = sub_ca0fe+1
     rts                                                               ; a3fe: 60          `              ; Return; Y holds 12-byte-aligned offset, A is non-zero on success
 
 .net_1_read_handle
-    ldy #&6f ; 'o'                                                    ; a3ff: a0 6f       .o
-    lda (net_rx_ptr),y                                                ; a401: b1 9c       ..
-    bcc store_pb_result                                               ; a403: 90 0d       ..
+    ldy #&6f ; 'o'                                                    ; a3ff: a0 6f       .o             ; Y=&6F: net_rx_ptr offset for the 'inline' handle byte
+    lda (net_rx_ptr),y                                                ; a401: b1 9c       ..             ; Read handle byte directly from RX buffer
+    bcc store_pb_result                                               ; a403: 90 0d       ..             ; C clear: read-handle path -- store directly to PB
 .net_2_read_handle_entry
-    jsr get_pb_ptr_as_index                                           ; a405: 20 e7 a3     ..
-    bcs return_zero_uninit                                            ; a408: b0 06       ..
-    lda (nfs_workspace),y                                             ; a40a: b1 9e       ..
-    cmp #&3f ; '?'                                                    ; a40c: c9 3f       .?
-    bne store_pb_result                                               ; a40e: d0 02       ..
+    jsr get_pb_ptr_as_index                                           ; a405: 20 e7 a3     ..            ; Convert PB pointer to workspace table offset
+    bcs return_zero_uninit                                            ; a408: b0 06       ..             ; Out of range: return zero (uninitialised)
+    lda (nfs_workspace),y                                             ; a40a: b1 9e       ..             ; Read workspace handle byte
+    cmp #&3f ; '?'                                                    ; a40c: c9 3f       .?             ; Slot marked '?' (uninitialised)?
+    bne store_pb_result                                               ; a40e: d0 02       ..             ; Has a real handle: keep it and store
 ; &a410 referenced 1 time by &a408
 .return_zero_uninit
-    lda #0                                                            ; a410: a9 00       ..
+    lda #0                                                            ; a410: a9 00       ..             ; Force result to zero (uninitialised marker)
 ; &a412 referenced 2 times by &a403, &a40e
 .store_pb_result
-    sta osword_pb_ptr                                                 ; a412: 85 f0       ..
-    rts                                                               ; a414: 60          `
+    sta osword_pb_ptr                                                 ; a412: 85 f0       ..             ; Write into PB[0] (handle return slot)
+    rts                                                               ; a414: 60          `              ; Return
 
 .net_3_close_handle
-    jsr get_pb_ptr_as_index                                           ; a415: 20 e7 a3     ..
-    bcc mark_ws_uninit                                                ; a418: 90 0a       ..
-    ror fs_flags                                                      ; a41a: 6e 6c 0d    nl.
-    lda osword_pb_ptr                                                 ; a41d: a5 f0       ..
-    rol a                                                             ; a41f: 2a          *
-    rol fs_flags                                                      ; a420: 2e 6c 0d    .l.
-    rts                                                               ; a423: 60          `
+    jsr get_pb_ptr_as_index                                           ; a415: 20 e7 a3     ..            ; Convert PB pointer to workspace table offset
+    bcc mark_ws_uninit                                                ; a418: 90 0a       ..             ; Out of range: mark as uninitialised
+    ror fs_flags                                                      ; a41a: 6e 6c 0d    nl.            ; Shift bit 0 of fs_flags into C (save state)
+    lda osword_pb_ptr                                                 ; a41d: a5 f0       ..             ; Read PB[0] (the handle to close)
+    rol a                                                             ; a41f: 2a          *              ; ROL: shift bit 7 of A into C
+    rol fs_flags                                                      ; a420: 2e 6c 0d    .l.            ; Restore C into bit 0 of fs_flags
+    rts                                                               ; a423: 60          `              ; Return; the close action is dispatched elsewhere based on the saved C state
 
 ; &a424 referenced 1 time by &a418
 .mark_ws_uninit
-    ror econet_flags                                                  ; a424: 6e 61 0d    na.
-    lda #&3f ; '?'                                                    ; a427: a9 3f       .?
-    sta (nfs_workspace),y                                             ; a429: 91 9e       ..
-    rol econet_flags                                                  ; a42b: 2e 61 0d    .a.
-    rts                                                               ; a42e: 60          `
+    ror econet_flags                                                  ; a424: 6e 61 0d    na.            ; Save bit 0 of econet_flags via ROR
+    lda #&3f ; '?'                                                    ; a427: a9 3f       .?             ; A='?': uninitialised marker
+    sta (nfs_workspace),y                                             ; a429: 91 9e       ..             ; Write '?' to workspace[Y] (the slot is now free)
+    rol econet_flags                                                  ; a42b: 2e 61 0d    .a.            ; Restore bit 0 of econet_flags
+    rts                                                               ; a42e: 60          `              ; Return
 
 ; &a42f referenced 1 time by &8cfa
 .fscv_3_star_cmd
