@@ -8166,25 +8166,25 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a3e9 referenced 1 time by &b4c6
 .byte_to_2bit_index
-    asl a                                                             ; a3e9: 0a          .
-    asl a                                                             ; a3ea: 0a          .
-    pha                                                               ; a3eb: 48          H
-    asl a                                                             ; a3ec: 0a          .
-    tsx                                                               ; a3ed: ba          .
-    php                                                               ; a3ee: 08          .
-    adc l0101,x                                                       ; a3ef: 7d 01 01    }..
-    ror a                                                             ; a3f2: 6a          j
-    plp                                                               ; a3f3: 28          (
-    asl a                                                             ; a3f4: 0a          .
-    tay                                                               ; a3f5: a8          .
-    pla                                                               ; a3f6: 68          h
-    cmp #&48 ; 'H'                                                    ; a3f7: c9 48       .H
-    bcc return_from_2bit_index                                        ; a3f9: 90 03       ..
-    ldy #0                                                            ; a3fb: a0 00       ..
-    tya                                                               ; a3fd: 98          .              ; A=&00
+    asl a                                                             ; a3e9: 0a          .              ; Multiply A by 2
+    asl a                                                             ; a3ea: 0a          .              ; Multiply A by 2 again -- A is now A_orig * 4
+    pha                                                               ; a3eb: 48          H              ; Stash A_orig * 4 on the stack
+    asl a                                                             ; a3ec: 0a          .              ; Multiply A by 2 -- A is now A_orig * 8 (C = bit 7 of A_orig*4)
+    tsx                                                               ; a3ed: ba          .              ; Capture S so we can read the just-pushed value
+    php                                                               ; a3ee: 08          .              ; Save the C flag from the third ASL
+    adc l0101,x                                                       ; a3ef: 7d 01 01    }..            ; ADC stack[X+1] = A_orig*4 (with C from the ASL): A = A_orig*8 + A_orig*4 + C = A_orig*12 + C
+    ror a                                                             ; a3f2: 6a          j              ; ROR halves the result, putting the new C as bit 7
+    plp                                                               ; a3f3: 28          (              ; Restore the saved C (from the third ASL)
+    asl a                                                             ; a3f4: 0a          .              ; ASL doubles the halved value (effectively undoes the ROR's divide while reusing C)
+    tay                                                               ; a3f5: a8          .              ; Y = A_orig * 12 (the 12-byte-aligned index)
+    pla                                                               ; a3f6: 68          h              ; Recover A_orig * 4 (left on the stack at &A3EB)
+    cmp #&48 ; 'H'                                                    ; a3f7: c9 48       .H             ; Above &48 (i.e. A_orig * 4 >= 72, A_orig >= 18)?
+    bcc return_from_2bit_index                                        ; a3f9: 90 03       ..             ; No: keep computed Y
+    ldy #0                                                            ; a3fb: a0 00       ..             ; Yes: clamp Y to 0 (out of range)
+    tya                                                               ; a3fd: 98          .              ; Mirror Y -> A so callers can test Z; A=&00
 ; &a3fe referenced 1 time by &a3f9
 .return_from_2bit_index
-    rts                                                               ; a3fe: 60          `
+    rts                                                               ; a3fe: 60          `              ; Return; Y holds 12-byte-aligned offset, A is non-zero on success
 
 .net_1_read_handle
     ldy #&6f ; 'o'                                                    ; a3ff: a0 6f       .o

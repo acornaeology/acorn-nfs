@@ -7339,6 +7339,38 @@ comment(0xB75C, "No: continue copying", inline=True)
 comment(0xB75E, "Print '(Y/N/?) ' prompt and read response", inline=True)
 comment(0xB761, "Restore caller's flags (saved by sub_c928a)",
         inline=True)
+
+# byte_to_2bit_index inline comments (12 items)
+# This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
+# stack-X trick is the standard 6502 idiom for adding a saved value
+# without using zero-page scratch.
+comment(0xA3E9, "Multiply A by 2", inline=True)
+comment(0xA3EA, "Multiply A by 2 again -- A is now A_orig * 4",
+        inline=True)
+comment(0xA3EB, "Stash A_orig * 4 on the stack", inline=True)
+comment(0xA3EC, "Multiply A by 2 -- A is now A_orig * 8 (C = bit 7 of "
+        "A_orig*4)", inline=True)
+comment(0xA3ED, "Capture S so we can read the just-pushed value",
+        inline=True)
+comment(0xA3EE, "Save the C flag from the third ASL", inline=True)
+comment(0xA3EF, "ADC stack[X+1] = A_orig*4 (with C from the ASL): "
+        "A = A_orig*8 + A_orig*4 + C = A_orig*12 + C", inline=True)
+comment(0xA3F2, "ROR halves the result, putting the new C as bit 7",
+        inline=True)
+comment(0xA3F3, "Restore the saved C (from the third ASL)", inline=True)
+comment(0xA3F4, "ASL doubles the halved value (effectively undoes the "
+        "ROR's divide while reusing C)", inline=True)
+comment(0xA3F5, "Y = A_orig * 12 (the 12-byte-aligned index)",
+        inline=True)
+comment(0xA3F6, "Recover A_orig * 4 (left on the stack at &A3EB)",
+        inline=True)
+comment(0xA3F7, "Above &48 (i.e. A_orig * 4 >= 72, A_orig >= 18)?",
+        inline=True)
+comment(0xA3F9, "No: keep computed Y", inline=True)
+comment(0xA3FB, "Yes: clamp Y to 0 (out of range)", inline=True)
+comment(0xA3FD, "Mirror Y -> A so callers can test Z", inline=True)
+comment(0xA3FE, "Return; Y holds 12-byte-aligned offset, A is "
+        "non-zero on success", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
