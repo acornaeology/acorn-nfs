@@ -9980,26 +9980,26 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &ad40 referenced 3 times by &8afd, &ad93, &adf9
 .tx_econet_abort
-    ldy #&d9                                                          ; ad40: a0 d9       ..
-    sta (nfs_workspace),y                                             ; ad42: 91 9e       ..
-    lda #&80                                                          ; ad44: a9 80       ..
-    ldy #&0c                                                          ; ad46: a0 0c       ..
-    sta (nfs_workspace),y                                             ; ad48: 91 9e       ..
-    lda net_tx_ptr                                                    ; ad4a: a5 9a       ..
-    pha                                                               ; ad4c: 48          H
-    lda net_tx_ptr_hi                                                 ; ad4d: a5 9b       ..
-    pha                                                               ; ad4f: 48          H
-    sty net_tx_ptr                                                    ; ad50: 84 9a       ..
-    ldx nfs_workspace_hi                                              ; ad52: a6 9f       ..
-    stx net_tx_ptr_hi                                                 ; ad54: 86 9b       ..
-    jsr send_net_packet                                               ; ad56: 20 2c 9b     ,.
-    lda #&3f ; '?'                                                    ; ad59: a9 3f       .?
-    sta (net_tx_ptr,x)                                                ; ad5b: 81 9a       ..
-    pla                                                               ; ad5d: 68          h
-    sta net_tx_ptr_hi                                                 ; ad5e: 85 9b       ..
-    pla                                                               ; ad60: 68          h
-    sta net_tx_ptr                                                    ; ad61: 85 9a       ..
-    rts                                                               ; ad63: 60          `
+    ldy #&d9                                                          ; ad40: a0 d9       ..             ; Y=&D9: workspace offset for the abort code byte
+    sta (nfs_workspace),y                                             ; ad42: 91 9e       ..             ; Store the abort code (passed in A) at workspace[&D9]
+    lda #&80                                                          ; ad44: a9 80       ..             ; A=&80: control = immediate-operation flag
+    ldy #&0c                                                          ; ad46: a0 0c       ..             ; Y=&0C: TXCB control-byte offset
+    sta (nfs_workspace),y                                             ; ad48: 91 9e       ..             ; Set TXCB[&0C] = &80 (immediate / abort)
+    lda net_tx_ptr                                                    ; ad4a: a5 9a       ..             ; Save current net_tx_ptr low (we'll repoint TX at the abort packet)
+    pha                                                               ; ad4c: 48          H              ; Push it for restore on exit
+    lda net_tx_ptr_hi                                                 ; ad4d: a5 9b       ..             ; Save net_tx_ptr high too
+    pha                                                               ; ad4f: 48          H              ; Push it
+    sty net_tx_ptr                                                    ; ad50: 84 9a       ..             ; TX low = &0C (abort packet starts at workspace[&0C])
+    ldx nfs_workspace_hi                                              ; ad52: a6 9f       ..             ; Get nfs_workspace high byte
+    stx net_tx_ptr_hi                                                 ; ad54: 86 9b       ..             ; TX high = workspace page (so net_tx_ptr now points at the abort packet in workspace)
+    jsr send_net_packet                                               ; ad56: 20 2c 9b     ,.            ; Send the abort packet via the standard TX path
+    lda #&3f ; '?'                                                    ; ad59: a9 3f       .?             ; A=&3F: TXCB status = abort-complete sentinel
+    sta (net_tx_ptr,x)                                                ; ad5b: 81 9a       ..             ; Write status via (net_tx_ptr,X) -- mark TX done
+    pla                                                               ; ad5d: 68          h              ; Pull saved net_tx_ptr high
+    sta net_tx_ptr_hi                                                 ; ad5e: 85 9b       ..             ; Restore
+    pla                                                               ; ad60: 68          h              ; Pull saved net_tx_ptr low
+    sta net_tx_ptr                                                    ; ad61: 85 9a       ..             ; Restore -- caller's TX state intact
+    rts                                                               ; ad63: 60          `              ; Return
 
 ; ***************************************************************************************
 ; OSWORD 7 handler: claim/release network resources

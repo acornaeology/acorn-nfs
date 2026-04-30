@@ -6830,6 +6830,36 @@ comment(0xBFB6, "Yes: keep skipping", inline=True)
 comment(0xBFB8, "Done: Y points just past the filename and any spaces",
         inline=True)
 comment(0xBFB9, "Restore caller's flags", inline=True)
+
+# tx_econet_abort inline comments (~16 items)
+comment(0xAD40, "Y=&D9: workspace offset for the abort code byte",
+        inline=True)
+comment(0xAD42, "Store the abort code (passed in A) at workspace[&D9]",
+        inline=True)
+comment(0xAD44, "A=&80: control = immediate-operation flag", inline=True)
+comment(0xAD46, "Y=&0C: TXCB control-byte offset", inline=True)
+comment(0xAD48, "Set TXCB[&0C] = &80 (immediate / abort)", inline=True)
+comment(0xAD4A, "Save current net_tx_ptr low (we'll repoint TX at the "
+        "abort packet)", inline=True)
+comment(0xAD4C, "Push it for restore on exit", inline=True)
+comment(0xAD4D, "Save net_tx_ptr high too", inline=True)
+comment(0xAD4F, "Push it", inline=True)
+comment(0xAD50, "TX low = &0C (abort packet starts at workspace[&0C])",
+        inline=True)
+comment(0xAD52, "Get nfs_workspace high byte", inline=True)
+comment(0xAD54, "TX high = workspace page (so net_tx_ptr now points at "
+        "the abort packet in workspace)", inline=True)
+comment(0xAD56, "Send the abort packet via the standard TX path",
+        inline=True)
+comment(0xAD59, "A=&3F: TXCB status = abort-complete sentinel",
+        inline=True)
+comment(0xAD5B, "Write status via (net_tx_ptr,X) -- mark TX done",
+        inline=True)
+comment(0xAD5D, "Pull saved net_tx_ptr high", inline=True)
+comment(0xAD5E, "Restore", inline=True)
+comment(0xAD60, "Pull saved net_tx_ptr low", inline=True)
+comment(0xAD61, "Restore -- caller's TX state intact", inline=True)
+comment(0xAD63, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
