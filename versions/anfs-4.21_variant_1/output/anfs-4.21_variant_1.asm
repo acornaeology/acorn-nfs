@@ -1099,6 +1099,21 @@ rom_header_byte2 = rom_header+2
 ; addition). If a Tube transfer is active, re-claims the Tube
 ; address and sends the extra RX byte via R3, incrementing the
 ; Tube pointer by 1.
+; 
+; Reads tx_flags bit 1 (data transfer in progress) and bit 5
+; (Tube transfer). Reads the 4-byte transfer count from
+; net_tx_ptr,Y (Y=8..&0B) and the RXCB pointer at
+; (port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y;
+; preserves X across the Tube branch (saved/restored via stack).
+; 
+; On Entry:
+;     PORT_WS_OFFSET, RX_BUF_OFFSET: RXCB workspace pointer
+;     NET_TX_PTR+8..+11: transfer count (4-byte LE)
+;     TX_FLAGS (RX_SRC_NET): bit1 transfer-active, bit5 Tube
+; 
+; On Exit:
+;     A: &FF when transfer was active, else preserved entry value
+;     RXCB BUFFER POINTER: advanced by transfer count
 ; ***************************************************************************************
 ; &833f referenced 2 times by &82e4, &8395
 .advance_rx_buffer_ptr
@@ -1354,6 +1369,16 @@ l840a = sub_c8409+1
 ; (which shifts bit 7 to 0). Called after completed
 ; RX transfers and during discard paths to ensure no
 ; stale Tube claims persist.
+; 
+; Idempotent: safe to call when the Tube has already been
+; released. Clobbers A; preserves X and Y.
+; 
+; On Entry:
+;     PROT_FLAGS: bit 7 clear if Tube claim is currently held
+; 
+; On Exit:
+;     PROT_FLAGS: bit 7 clear (LSR also shifts other bits down)
+;     A: clobbered
 ; ***************************************************************************************
 ; &8448 referenced 2 times by &83fc, &8961
 .release_tube
@@ -1583,6 +1608,11 @@ l84b8 = sub_c84b7+1
 ; byte is stored during scout data copy and data
 ; frame reception to track the current write position
 ; in the receive buffer.
+; 
+; Preserves A, X, Y (uses INC zp throughout).
+; 
+; On Exit:
+;     PORT_BUF_LEN, OPEN_PORT_BUF: incremented as 4-byte LE counter
 ; ***************************************************************************************
 ; &852c referenced 3 times by &8299, &82a7, &843c
 .advance_buffer_ptr
@@ -1624,6 +1654,20 @@ l84b8 = sub_c84b7+1
 ; remote address from l0d66/l0d67 into X/A and
 ; sets Y=8 (Econet event number), then falls
 ; through to tx_done_fire_event to call OSEVEN.
+; 
+; Reached only via PHA/PHA/RTS dispatch from
+; tx_done_dispatch_lo/hi. The dispatcher pushed the
+; caller's X and Y onto the stack before transferring
+; control, and the shared tx_done_exit at &8582 restores
+; them via PLA/TAY/PLA/TAX before returning A=0.
+; 
+; On Entry:
+;     EXEC_ADDR_LO, EXEC_ADDR_HI (L0D66/L0D67): remote routine address (low, high)
+;     STACK: caller's Y on top, then caller's X (pushed by dispatcher)
+; 
+; On Exit:
+;     A: 0 (success status)
+;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
 .tx_done_econet_event
     ldx exec_addr_lo                                                  ; 8549: ae 66 0d    .f.            ; X = remote address lo from l0d66
@@ -1640,6 +1684,17 @@ l84b8 = sub_c84b7+1
 ; Y=l0d67. This invokes an OS-level procedure on
 ; behalf of the remote station, then exits via
 ; tx_done_exit.
+; 
+; Reached only via PHA/PHA/RTS dispatch from
+; tx_done_dispatch_lo/hi.
+; 
+; On Entry:
+;     EXEC_ADDR_LO, EXEC_ADDR_HI (L0D66/L0D67): OSProc address (X low, Y high)
+;     STACK: caller's Y, then caller's X (pushed by dispatcher)
+; 
+; On Exit:
+;     A: 0 (success status)
+;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
 .tx_done_os_proc
     ldx exec_addr_lo                                                  ; 8557: ae 66 0d    .f.            ; X = remote address lo
@@ -1654,6 +1709,21 @@ l84b8 = sub_c84b7+1
 ; and spin-waits until bit 2 is cleared (by a CONTINUE
 ; from the remote station). If bit 2 is already set,
 ; skips to exit.
+; 
+; Reached only via PHA/PHA/RTS dispatch from
+; tx_done_dispatch_lo/hi. Falls through to tx_done_continue
+; after the spin completes; on the already-halted path it
+; branches directly to tx_done_exit.
+; 
+; On Entry:
+;     ECONET_FLAGS (&0D61): bit 2 = halt-active flag
+;     STACK: caller's Y, then caller's X (pushed by dispatcher)
+; 
+; On Exit:
+;     A: 0 (success status, set by tx_done_exit)
+;     ECONET_FLAGS: bit 2 may be set during spin, cleared on exit
+;     I FLAG: interrupts enabled (CLI inside the spin)
+;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
 .tx_done_halt
     lda #4                                                            ; 8563: a9 04       ..             ; A=&04: bit 2 mask for rx_flags
@@ -1674,6 +1744,20 @@ l84b8 = sub_c84b7+1
 ; 
 ; Clears bit 2 of rx_flags (&0D61), releasing any
 ; station that is halted and spinning in tx_done_halt.
+; 
+; Reached either as a fall-through from tx_done_halt or
+; directly via PHA/PHA/RTS dispatch from
+; tx_done_dispatch_lo/hi. Falls through to tx_done_exit
+; which restores X and Y from the stack and returns A=0.
+; 
+; On Entry:
+;     ECONET_FLAGS (&0D61): bit 2 may be set (from a previous HALT)
+;     STACK: caller's Y, then caller's X (pushed by dispatcher)
+; 
+; On Exit:
+;     A: 0 (success status)
+;     ECONET_FLAGS: bit 2 cleared
+;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
 .tx_done_continue
     lda econet_flags                                                  ; 857a: ad 61 0d    .a.            ; Load current RX flags

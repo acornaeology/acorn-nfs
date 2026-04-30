@@ -2372,7 +2372,18 @@ subroutine(0x833F, "advance_rx_buffer_ptr",
     description="Adds the transfer count to the RXCB buffer pointer (4-byte\n"
     "addition). If a Tube transfer is active, re-claims the Tube\n"
     "address and sends the extra RX byte via R3, incrementing the\n"
-    "Tube pointer by 1.")
+    "Tube pointer by 1.\n"
+    "\n"
+    "Reads tx_flags bit 1 (data transfer in progress) and bit 5\n"
+    "(Tube transfer). Reads the 4-byte transfer count from\n"
+    "net_tx_ptr,Y (Y=8..&0B) and the RXCB pointer at\n"
+    "(port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y;\n"
+    "preserves X across the Tube branch (saved/restored via stack).",
+    on_entry={"port_ws_offset, rx_buf_offset": "RXCB workspace pointer",
+              "net_tx_ptr+8..+11": "transfer count (4-byte LE)",
+              "tx_flags (rx_src_net)": "bit1 transfer-active, bit5 Tube"},
+    on_exit={"a": "&FF when transfer was active, else preserved entry value",
+             "rxcb buffer pointer": "advanced by transfer count"})
 subroutine(0x8386, "nmi_post_ack_dispatch",
     title="Post-ACK frame-complete NMI handler",
     description="Installed by ack_tx_configure via saved_nmi_lo/hi.\n"
@@ -2427,7 +2438,13 @@ subroutine(0x8448, "release_tube",
     "the claim, then clears the release flag via LSR\n"
     "(which shifts bit 7 to 0). Called after completed\n"
     "RX transfers and during discard paths to ensure no\n"
-    "stale Tube claims persist.")
+    "stale Tube claims persist.\n"
+    "\n"
+    "Idempotent: safe to call when the Tube has already been\n"
+    "released. Clobbers A; preserves X and Y.",
+    on_entry={"prot_flags": "bit 7 clear if Tube claim is currently held"},
+    on_exit={"prot_flags": "bit 7 clear (LSR also shifts other bits down)",
+             "a": "clobbered"})
 subroutine(0x8454, "immediate_op",
     title="Immediate operation handler (port = 0)",
     description="Checks the control byte at l0d30 for immediate\n"
@@ -2490,7 +2507,10 @@ subroutine(0x852C, "advance_buffer_ptr",
     "overflow through all four bytes. Called after each\n"
     "byte is stored during scout data copy and data\n"
     "frame reception to track the current write position\n"
-    "in the receive buffer.")
+    "in the receive buffer.\n"
+    "\n"
+    "Preserves A, X, Y (uses INC zp throughout).",
+    on_exit={"port_buf_len, open_port_buf": "incremented as 4-byte LE counter"})
 subroutine(0x84F9, "imm_op_build_reply",
     title="Build immediate operation reply header",
     description="Stores data length, source station/network, and control byte\n"
@@ -2516,23 +2536,63 @@ subroutine(0x8549, "tx_done_econet_event",
     description="Handler for TX operation type &84. Loads the\n"
     "remote address from l0d66/l0d67 into X/A and\n"
     "sets Y=8 (Econet event number), then falls\n"
-    "through to tx_done_fire_event to call OSEVEN.")
+    "through to tx_done_fire_event to call OSEVEN.\n"
+    "\n"
+    "Reached only via PHA/PHA/RTS dispatch from\n"
+    "tx_done_dispatch_lo/hi. The dispatcher pushed the\n"
+    "caller's X and Y onto the stack before transferring\n"
+    "control, and the shared tx_done_exit at &8582 restores\n"
+    "them via PLA/TAY/PLA/TAX before returning A=0.",
+    on_entry={"exec_addr_lo, exec_addr_hi (l0d66/l0d67)":
+              "remote routine address (low, high)",
+              "stack": "caller's Y on top, then caller's X (pushed by dispatcher)"},
+    on_exit={"a": "0 (success status)",
+             "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8557, "tx_done_os_proc",
     title="TX done: OSProc call",
     description="Calls the ROM service entry point with X=l0d66,\n"
     "Y=l0d67. This invokes an OS-level procedure on\n"
     "behalf of the remote station, then exits via\n"
-    "tx_done_exit.")
+    "tx_done_exit.\n"
+    "\n"
+    "Reached only via PHA/PHA/RTS dispatch from\n"
+    "tx_done_dispatch_lo/hi.",
+    on_entry={"exec_addr_lo, exec_addr_hi (l0d66/l0d67)":
+              "OSProc address (X low, Y high)",
+              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
+    on_exit={"a": "0 (success status)",
+             "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8563, "tx_done_halt",
     title="TX done: HALT",
     description="Sets bit 2 of rx_flags (&0D61), enables interrupts,\n"
     "and spin-waits until bit 2 is cleared (by a CONTINUE\n"
     "from the remote station). If bit 2 is already set,\n"
-    "skips to exit.")
+    "skips to exit.\n"
+    "\n"
+    "Reached only via PHA/PHA/RTS dispatch from\n"
+    "tx_done_dispatch_lo/hi. Falls through to tx_done_continue\n"
+    "after the spin completes; on the already-halted path it\n"
+    "branches directly to tx_done_exit.",
+    on_entry={"econet_flags (&0D61)": "bit 2 = halt-active flag",
+              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
+    on_exit={"a": "0 (success status, set by tx_done_exit)",
+             "econet_flags": "bit 2 may be set during spin, cleared on exit",
+             "i flag": "interrupts enabled (CLI inside the spin)",
+             "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x857A, "tx_done_continue",
     title="TX done: CONTINUE",
     description="Clears bit 2 of rx_flags (&0D61), releasing any\n"
-    "station that is halted and spinning in tx_done_halt.")
+    "station that is halted and spinning in tx_done_halt.\n"
+    "\n"
+    "Reached either as a fall-through from tx_done_halt or\n"
+    "directly via PHA/PHA/RTS dispatch from\n"
+    "tx_done_dispatch_lo/hi. Falls through to tx_done_exit\n"
+    "which restores X and Y from the stack and returns A=0.",
+    on_entry={"econet_flags (&0D61)": "bit 2 may be set (from a previous HALT)",
+              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
+    on_exit={"a": "0 (success status)",
+             "econet_flags": "bit 2 cleared",
+             "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8589, "tx_begin",
     title="Begin TX operation",
     description="Main TX initiation entry point (called via trampoline at &06CE).\n"
