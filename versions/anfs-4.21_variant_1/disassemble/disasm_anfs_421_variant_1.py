@@ -6860,6 +6860,27 @@ comment(0xAD5E, "Restore", inline=True)
 comment(0xAD60, "Pull saved net_tx_ptr low", inline=True)
 comment(0xAD61, "Restore -- caller's TX state intact", inline=True)
 comment(0xAD63, "Return", inline=True)
+
+# print_dump_header inline comments (14 items)
+comment(0xBE01, "Read low nibble of starting address from (work_ae),Y",
+        inline=True)
+comment(0xBE03, "Save it (we'll print it 16 times incrementing each "
+        "iteration)", inline=True)
+comment(0xBE04, "Print '<CR>Address  : ' header via inline string",
+        inline=True)
+comment(0xBE13, "X=&0F: print 16 column-number digits", inline=True)
+comment(0xBE15, "Pull the starting low nibble back into A", inline=True)
+comment(0xBE16, "Print A as two hex digits + space", inline=True)
+comment(0xBE19, "Set C ready for the increment", inline=True)
+comment(0xBE1A, "ADC #0 with C set: A += 1 (the column index increments)",
+        inline=True)
+comment(0xBE1C, "Wrap to nibble (0..15)", inline=True)
+comment(0xBE1E, "Step column counter", inline=True)
+comment(0xBE1F, "Loop while X >= 0 (16 iterations)", inline=True)
+comment(0xBE21, "Print ':    ASCII data<CR><CR>' trailer via inline",
+        inline=True)
+comment(0xBE35, "Inline-string fallthrough", inline=True)
+comment(0xBE36, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

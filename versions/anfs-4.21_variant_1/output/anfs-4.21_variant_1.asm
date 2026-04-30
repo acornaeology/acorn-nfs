@@ -13595,26 +13595,26 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &be01 referenced 2 times by &bd56, &bd88
 .print_dump_header
-    lda (work_ae),y                                                   ; be01: b1 ae       ..
-    pha                                                               ; be03: 48          H
-    jsr print_inline                                                  ; be04: 20 61 92     a.
+    lda (work_ae),y                                                   ; be01: b1 ae       ..             ; Read low nibble of starting address from (work_ae),Y
+    pha                                                               ; be03: 48          H              ; Save it (we'll print it 16 times incrementing each iteration)
+    jsr print_inline                                                  ; be04: 20 61 92     a.            ; Print '<CR>Address  : ' header via inline string
     equs &0d, "Address  : "                                           ; be07: 0d 41 64... .Ad
 
-    ldx #&0f                                                          ; be13: a2 0f       ..
-    pla                                                               ; be15: 68          h
+    ldx #&0f                                                          ; be13: a2 0f       ..             ; X=&0F: print 16 column-number digits
+    pla                                                               ; be15: 68          h              ; Pull the starting low nibble back into A
 ; &be16 referenced 1 time by &be1f
 .loop_cbe16
-    jsr print_hex_and_space                                           ; be16: 20 37 be     7.
-    sec                                                               ; be19: 38          8
-    adc #0                                                            ; be1a: 69 00       i.
-    and #&0f                                                          ; be1c: 29 0f       ).
-    dex                                                               ; be1e: ca          .
-    bpl loop_cbe16                                                    ; be1f: 10 f5       ..
-    jsr print_inline                                                  ; be21: 20 61 92     a.
+    jsr print_hex_and_space                                           ; be16: 20 37 be     7.            ; Print A as two hex digits + space
+    sec                                                               ; be19: 38          8              ; Set C ready for the increment
+    adc #0                                                            ; be1a: 69 00       i.             ; ADC #0 with C set: A += 1 (the column index increments)
+    and #&0f                                                          ; be1c: 29 0f       ).             ; Wrap to nibble (0..15)
+    dex                                                               ; be1e: ca          .              ; Step column counter
+    bpl loop_cbe16                                                    ; be1f: 10 f5       ..             ; Loop while X >= 0 (16 iterations)
+    jsr print_inline                                                  ; be21: 20 61 92     a.            ; Print ':    ASCII data<CR><CR>' trailer via inline
     equs ":    ASCII data", &0d, &0d                                  ; be24: 3a 20 20... :
 
-    nop                                                               ; be35: ea          .
-    rts                                                               ; be36: 60          `
+    nop                                                               ; be35: ea          .              ; Inline-string fallthrough
+    rts                                                               ; be36: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Print hex byte followed by space
