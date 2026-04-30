@@ -4477,7 +4477,7 @@ l8da7 = sub_c8da6+1
     sta fs_crflag                                                     ; 927f: 85 b9       ..             ; Bit set: OR in encoded value
     pla                                                               ; 9281: 68          h
     sta fs_error_ptr                                                  ; 9282: 85 b8       ..             ; More bits to process
-    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.            ; Return encoded access in A; Bit 0: &50 = %01010000 (bits 4,6)
+    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.            ; Return encoded access in A
 
 ; Protection/access bit encode table
 ; 
@@ -4496,38 +4496,57 @@ l8da7 = sub_c8da6+1
 ; exactly one output bit (pure permutation).
 ; &9287 referenced 1 time by &9271
 .resume_caller
-    jmp (fs_error_ptr)                                                ; 9287: 6c b8 00    l..            ; Jump to address of high-bit byte (resumes code); Bit 1: &20 = %00100000 (bit 5); Bit 2: &05 = %00000101 (bits 0,2); Bit 3: &02 = %00000010 (bit 1)
+    jmp (fs_error_ptr)                                                ; 9287: 6c b8 00    l..            ; Jump to address of high-bit byte (resumes code)
 
+; ***************************************************************************************
+; Print inline string, high-bit terminated, *SPOOL-bypassing
+; 
+; As print_inline (&9261), but each character is emitted via
+; print_char_no_spool instead of OSASCI directly, so the printed text
+; does not appear in any active *SPOOL capture. Used by status output
+; that should not be saved to a spool file (e.g. *Wipe '(Y/N) ' prompts,
+; *Ex column separators, the 'Bad ROM' service-handler message via the
+; recv_and_process_reply 'Data Lost' warning, and inline-string
+; arguments inside cmd_ex's directory listing).
+; 
+; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
+; &B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
+; 
+; On Exit:
+;     A: terminator byte (bit 7 set, also next opcode)
+;     X: corrupted (by print_char_no_spool)
+;     Y: 0
+; ***************************************************************************************
 ; &928a referenced 6 times by &981a, &b158, &b162, &b2f0, &b75e, &b7cb
-.sub_c928a
-    pla                                                               ; 928a: 68          h              ; Bit 4: &88 = %10001000 (bits 3,7)
-    sta fs_error_ptr                                                  ; 928b: 85 b8       ..             ; Bit 0: &04 = %00000100 (bit 2); Bit 1: &08 = %00001000 (bit 3)
-    pla                                                               ; 928d: 68          h              ; Bit 2: &80 = %10000000 (bit 7)
-    sta fs_crflag                                                     ; 928e: 85 b9       ..             ; Bit 3: &10 = %00010000 (bit 4); Bit 4: &01 = %00000001 (bit 0)
-    ldy #0                                                            ; 9290: a0 00       ..             ; Bit 5: &02 = %00000010 (bit 1); Set text pointer low
+.print_inline_no_spool
+    pla                                                               ; 928a: 68          h              ; Pop return-addr low byte (-> string pointer low)
+    sta fs_error_ptr                                                  ; 928b: 85 b8       ..             ; Save in fs_error_ptr (the loop's pointer low)
+    pla                                                               ; 928d: 68          h              ; Pop return-addr high byte
+    sta fs_crflag                                                     ; 928e: 85 b9       ..             ; Save in fs_crflag (the loop's pointer high)
+    ldy #0                                                            ; 9290: a0 00       ..             ; Y=0: indirect index for (fs_error_ptr),Y
 ; &9292 referenced 1 time by &92ad
 .loop_c9292
-    inc fs_error_ptr                                                  ; 9292: e6 b8       ..             ; Set text pointer high
-    bne c9298                                                         ; 9294: d0 02       ..             ; Store transfer byte count
-    inc fs_crflag                                                     ; 9296: e6 b9       ..             ; Store source pointer low
+    inc fs_error_ptr                                                  ; 9292: e6 b8       ..             ; Step pointer low byte to next char
+    bne c9298                                                         ; 9294: d0 02       ..             ; No carry: skip high-byte INC
+    inc fs_crflag                                                     ; 9296: e6 b9       ..             ; Page wrap: bump pointer high
 ; &9298 referenced 1 time by &9294
 .c9298
-    lda (fs_error_ptr),y                                              ; 9298: b1 b8       ..             ; Store source pointer high
-    bmi c92af                                                         ; 929a: 30 13       0.             ; Store options pointer low
-    lda fs_error_ptr                                                  ; 929c: a5 b8       ..             ; Store options pointer high
-    pha                                                               ; 929e: 48          H
-    lda fs_crflag                                                     ; 929f: a5 b9       ..             ; Save processor flags; Clear bit 0 of escape flag
-    pha                                                               ; 92a1: 48          H
-    lda (fs_error_ptr),y                                              ; 92a2: b1 b8       ..             ; Restore processor flags; Return
-    jsr print_char_no_spool                                           ; 92a4: 20 fb 91     ..            ; Compare 5 bytes (indices 4 down to 1); Load byte from handle buffer
-    pla                                                               ; 92a7: 68          h
-    sta fs_crflag                                                     ; 92a8: 85 b9       ..             ; Compare with channel handle
-    pla                                                               ; 92aa: 68          h              ; Mismatch: return Z=0
-    sta fs_error_ptr                                                  ; 92ab: 85 b8       ..             ; Next byte
-    bra loop_c9292                                                    ; 92ad: 80 e3       ..             ; Loop until all compared
+    lda (fs_error_ptr),y                                              ; 9298: b1 b8       ..             ; Read next character from inline string
+    bmi c92af                                                         ; 929a: 30 13       0.             ; Bit 7 set: terminator -- this byte is the next opcode
+    lda fs_error_ptr                                                  ; 929c: a5 b8       ..             ; Save pointer low (print_char_no_spool may clobber)
+    pha                                                               ; 929e: 48          H              ; Push it
+    lda fs_crflag                                                     ; 929f: a5 b9       ..             ; Save pointer high
+    pha                                                               ; 92a1: 48          H              ; Push it
+    lda (fs_error_ptr),y                                              ; 92a2: b1 b8       ..             ; Reload the character we're about to print
+    jsr print_char_no_spool                                           ; 92a4: 20 fb 91     ..            ; Print it via the *SPOOL-bypassing OSASCI wrapper
+    pla                                                               ; 92a7: 68          h              ; Pop pointer high back
+    sta fs_crflag                                                     ; 92a8: 85 b9       ..             ; Restore
+    pla                                                               ; 92aa: 68          h              ; Pop pointer low back
+    sta fs_error_ptr                                                  ; 92ab: 85 b8       ..             ; Restore
+    bra loop_c9292                                                    ; 92ad: 80 e3       ..             ; Always taken (BRA-style; A is non-zero from print)
 ; &92af referenced 1 time by &929a
 .c92af
-    jmp (fs_error_ptr)                                                ; 92af: 6c b8 00    l..            ; Return: Z=1 if all 5 matched; Unreachable code
+    jmp (fs_error_ptr)                                                ; 92af: 6c b8 00    l..            ; Resume execution at the terminator byte's address (JMP indirect via fs_error_ptr)
 
 ; ***************************************************************************************
 ; Parse decimal or hex station address argument
@@ -4550,8 +4569,8 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &92b2 referenced 4 times by &8db1, &8dbd, &a3c9, &a3de
 .parse_addr_arg
-    stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; Zero the accumulator (fs_load_addr_2); (dead)
-    lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; Read first command-line byte; (dead); Save processor flags
+    stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; Zero the accumulator (fs_load_addr_2)
+    lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; Read first command-line byte; Save processor flags
     cmp #&26 ; '&'                                                    ; 92b6: c9 26       .&             ; Hex prefix '&'?; Save A; Transfer X to A
     bne next_dec_char                                                 ; 92b8: d0 36       .6             ; No: try decimal path; Save original X; Get stack pointer
     iny                                                               ; 92ba: c8          .              ; Yes: skip the '&'; Read original A from stack
@@ -5620,7 +5639,7 @@ l8da7 = sub_c8da6+1
     pla                                                               ; 9816: 68          h              ; Pull final OR accumulator
     ror a                                                             ; 9817: 6a          j              ; ROR: bit 0 (was bit 6 of any &40 byte) -> C
     bcc c9827                                                         ; 9818: 90 0d       ..             ; Any channel was active: skip the warning
-    jsr sub_c928a                                                     ; 981a: 20 8a 92     ..            ; No active channels were lost: print 'Data Lost' warning via inline string
+    jsr print_inline_no_spool                                         ; 981a: 20 8a 92     ..            ; No active channels were lost: print 'Data Lost' warning via inline string
     equs "Data Lost"                                                  ; 981d: 44 61 74... Dat
     equb &0d                                                          ; 9826: 0d          .
 
@@ -10915,11 +10934,11 @@ labc5 = compare_bridge_status+1
     jsr save_net_tx_cb                                                ; b150: 20 8a 97     ..            ; Send request to file server; Outer loop counter = 10
     ldx #3                                                            ; b153: a2 03       ..             ; X=3: offset to directory title; Decrement Y (inner loop); Inner loop: 10 iterations
     jsr print_10_chars                                                ; b155: 20 1a b2     ..            ; Print directory title (10 chars); Decrement X (middle loop); Middle loop: 10 iterations
-    jsr sub_c928a                                                     ; b158: 20 8a 92     ..            ; Print '('; Decrement outer counter
+    jsr print_inline_no_spool                                         ; b158: 20 8a 92     ..            ; Print '('; Decrement outer counter
     plp                                                               ; b15b: 28          (              ; Outer loop: ~1000 delay cycles
     lda lc113                                                         ; b15c: ad 13 c1    ...            ; Return; Advance Y
     jsr print_decimal_3dig_no_spool                                   ; b15f: 20 03 b3     ..            ; Get buffer page; Store in workspace
-    jsr sub_c928a                                                     ; b162: 20 8a 92     ..            ; A=&FF
+    jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..            ; A=&FF
     and #&20 ; ' '                                                    ; b165: 29 20       )              ; Advance Y; Write byte to workspace
     jsr l2020                                                         ; b167: 20 20 20                   ; Advance Y; Write byte to workspace
     jsr l12ac                                                         ; b16a: 20 ac 12     ..            ; Advance Y; Return
@@ -11243,7 +11262,7 @@ labc5 = compare_bridge_status+1
     and #3                                                            ; b2ea: 29 03       ).             ; Wrap to 0..3 (4 columns per row)
     sta fs_spool_handle                                               ; b2ec: 85 ba       ..             ; Save the new column index
     beq cb2f7                                                         ; b2ee: f0 07       ..             ; Wrapped to 0: end of row, print newline
-    jsr sub_c928a                                                     ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
+    jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
     jsr ld020                                                         ; b2f3: 20 20 d0      .
     equb 5                                                            ; b2f6: 05          .
 
@@ -12242,7 +12261,7 @@ lb4fd = write_ps_slot_hi_link+1
     inx                                                               ; b759: e8          .              ; Step TX-buffer offset
     cpx #&0c                                                          ; b75a: e0 0c       ..             ; Reached &0C (12 chars)?
     bne loop_copy_wipe_name                                           ; b75c: d0 f1       ..             ; No: continue copying
-    jsr sub_c928a                                                     ; b75e: 20 8a 92     ..            ; Print '(Y/N/?) ' prompt and read response
+    jsr print_inline_no_spool                                         ; b75e: 20 8a 92     ..            ; Print '(Y/N/?) ' prompt and read response
     plp                                                               ; b761: 28          (              ; Restore caller's flags (saved by sub_c928a)
     equb &3f, &2f, &ea, &20, &cb, &b7, &c9, &3f, &d0, &1b, &a9, &0d   ; b762: 3f 2f ea... ?/.
     equb &20,   1, &92, &a2,   2                                      ; b76e: 20 01 92...  ..
@@ -12280,7 +12299,7 @@ lb4fd = write_ps_slot_hi_link+1
 ;     A: character read
 ; ***************************************************************************************
 .prompt_yn
-    jsr sub_c928a                                                     ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
+    jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
     eor l4e2f,y                                                       ; b7ce: 59 2f 4e    Y/N            ; Inline string body — bytes consumed by sub_c928a (above)
     and #&20 ; ' '                                                    ; b7d1: 29 20       )              ; Force lower-case (bit 5 = ' ' bit) for case-insensitive Y/N test
 ; ***************************************************************************************
@@ -14119,10 +14138,10 @@ save pydis_start, pydis_end
 ;     lfe38:                          6
 ;     nmi_rti:                        6
 ;     os_text_ptr_hi:                 6
+;     print_inline_no_spool:          6
 ;     send_net_packet:                6
 ;     set_xfer_params:                6
 ;     spool_buf_idx:                  6
-;     sub_c928a:                      6
 ;     wait_net_tx_ack:                6
 ;     ws_0d68:                        6
 ;     ws_ptr_lo:                      6
@@ -15508,7 +15527,6 @@ save pydis_start, pydis_end
 ;     sub_c8da6
 ;     sub_c924c
 ;     sub_c9255
-;     sub_c928a
 ;     sub_c9612
 ;     sub_c988f
 ;     sub_ca0fe

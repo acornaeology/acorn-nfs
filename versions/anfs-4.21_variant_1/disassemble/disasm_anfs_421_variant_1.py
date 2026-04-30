@@ -9795,6 +9795,23 @@ unconditional forward branch.""",
              "x": "corrupted (by OSASCI)",
              "y": "0"})
 
+subroutine(0x928A, "print_inline_no_spool",
+    title="Print inline string, high-bit terminated, *SPOOL-bypassing",
+    description="""\
+As print_inline (&9261), but each character is emitted via
+print_char_no_spool instead of OSASCI directly, so the printed text
+does not appear in any active *SPOOL capture. Used by status output
+that should not be saved to a spool file (e.g. *Wipe '(Y/N) ' prompts,
+*Ex column separators, the 'Bad ROM' service-handler message via the
+recv_and_process_reply 'Data Lost' warning, and inline-string
+arguments inside cmd_ex's directory listing).
+
+Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
+&B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).""",
+    on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
+             "x": "corrupted (by print_char_no_spool)",
+             "y": "0"})
+
 comment(0x9261, "Pop return address (low) — points to last byte of JSR", inline=True)
 comment(0x9264, "Pop return address (high)", inline=True)
 comment(0x9269, "Advance pointer to next character", inline=True)
@@ -11906,50 +11923,47 @@ comment(0x9286, "Protection/access bit encode table\n"
     "Indices 5-10: used by get_access_bits (6-bit input\n"
     "from directory entry offset &0E). Each entry sets\n"
     "exactly one output bit (pure permutation).")
-comment(0x9286, "Bit 0: &50 = %01010000 (bits 4,6)", inline=True)
-comment(0x9287, "Bit 1: &20 = %00100000 (bit 5)", inline=True)
-comment(0x9288, "Bit 2: &05 = %00000101 (bits 0,2)", inline=True)
-comment(0x9289, "Bit 3: &02 = %00000010 (bit 1)", inline=True)
-comment(0x928A, "Bit 4: &88 = %10001000 (bits 3,7)", inline=True)
-comment(0x928B, "Bit 0: &04 = %00000100 (bit 2)", inline=True)
-comment(0x928C, "Bit 1: &08 = %00001000 (bit 3)", inline=True)
-comment(0x928D, "Bit 2: &80 = %10000000 (bit 7)", inline=True)
-comment(0x928E, "Bit 3: &10 = %00010000 (bit 4)", inline=True)
-comment(0x928F, "Bit 4: &01 = %00000001 (bit 0)", inline=True)
-comment(0x9290, "Bit 5: &02 = %00000010 (bit 1)", inline=True)
+# &9286-&9290 stale carry-over comments removed -- they were for
+# prot_bit_encode_table entries that lived at these addresses in 4.18.
+# The actual prot_bit_encode_table in 4.21_v1 is annotated wherever it
+# now lives. Addresses &9286-&9290 here are inside print_inline's body.
 
-# set_text_and_xfer_ptr (&927D) — set OSWORD text and transfer pointers
-comment(0x9291, "Set text pointer low", inline=True)
-comment(0x9293, "Set text pointer high", inline=True)
+# Stale 4.18 carry-overs (set_text_and_xfer_ptr, set_xfer_params,
+# set_options_ptr, clear_escapable, cmp_5byte_handle) are at &93D3-
+# &93F1 in 4.21 and have already been annotated there. Removing the
+# misplaced duplicates at this address range.
 
-# set_xfer_params (&9281) — set transfer parameters
-comment(0x9295, "Store transfer byte count", inline=True)
-comment(0x9297, "Store source pointer low", inline=True)
-comment(0x9299, "Store source pointer high", inline=True)
-
-# set_options_ptr (&9287) — set options block pointer
-comment(0x929B, "Store options pointer low", inline=True)
-comment(0x929D, "Store options pointer high", inline=True)
-
-# clear_escapable (&928B) — clear escape-sensitive flag
-comment(0x929F, "Save processor flags", inline=True)
-comment(0x92A0, "Clear bit 0 of escape flag", inline=True)
-comment(0x92A2, "Restore processor flags", inline=True)
-comment(0x92A3, "Return", inline=True)
-
-# cmp_5byte_handle (&9290) — compare 5-byte channel handle
-comment(0x92A4, "Compare 5 bytes (indices 4 down to 1)", inline=True)
-comment(0x92A6, "Load byte from handle buffer", inline=True)
-comment(0x92A8, "Compare with channel handle", inline=True)
-comment(0x92AA, "Mismatch: return Z=0", inline=True)
-comment(0x92AC, "Next byte", inline=True)
-comment(0x92AD, "Loop until all compared", inline=True)
-comment(0x92AF, "Return: Z=1 if all 5 matched", inline=True)
-
-# Dead code (&929C-&92A0) — unreachable
-comment(0x92B0, "Unreachable code", inline=True)
-comment(0x92B2, "(dead)", inline=True)
-comment(0x92B4, "(dead)", inline=True)
+# print_inline_no_spool inline comments (~22 items)
+comment(0x928A, "Pop return-addr low byte (-> string pointer low)",
+        inline=True)
+comment(0x928B, "Save in fs_error_ptr (the loop's pointer low)",
+        inline=True)
+comment(0x928D, "Pop return-addr high byte", inline=True)
+comment(0x928E, "Save in fs_crflag (the loop's pointer high)",
+        inline=True)
+comment(0x9290, "Y=0: indirect index for (fs_error_ptr),Y", inline=True)
+comment(0x9292, "Step pointer low byte to next char", inline=True)
+comment(0x9294, "No carry: skip high-byte INC", inline=True)
+comment(0x9296, "Page wrap: bump pointer high", inline=True)
+comment(0x9298, "Read next character from inline string", inline=True)
+comment(0x929A, "Bit 7 set: terminator -- this byte is the next opcode",
+        inline=True)
+comment(0x929C, "Save pointer low (print_char_no_spool may clobber)",
+        inline=True)
+comment(0x929E, "Push it", inline=True)
+comment(0x929F, "Save pointer high", inline=True)
+comment(0x92A1, "Push it", inline=True)
+comment(0x92A2, "Reload the character we're about to print", inline=True)
+comment(0x92A4, "Print it via the *SPOOL-bypassing OSASCI wrapper",
+        inline=True)
+comment(0x92A7, "Pop pointer high back", inline=True)
+comment(0x92A8, "Restore", inline=True)
+comment(0x92AA, "Pop pointer low back", inline=True)
+comment(0x92AB, "Restore", inline=True)
+comment(0x92AD, "Always taken (BRA-style; A is non-zero from print)",
+        inline=True)
+comment(0x92AF, "Resume execution at the terminator byte's address "
+        "(JMP indirect via fs_error_ptr)", inline=True)
 
 # set_conn_active (&92A1) — set channel connection active flag
 comment(0x92B5, "Save processor flags", inline=True)
