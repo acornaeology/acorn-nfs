@@ -1601,6 +1601,18 @@ l840a = sub_c8409+1
 ; If accepted, dispatches via the immediate operation
 ; table. Builds the reply by storing data length,
 ; station/network, and control byte into the RX buffer.
+; 
+; On Entry:
+;     CONTEXT: JMP target from post_ack_scout when port = 0. Stack/ROMSEL/NMI state per
+; shim contract.
+;     L0D30 (SCOUT CTRL BYTE): &81-&88 selects which immediate-op handler to dispatch
+;     &0D61 (IMMEDIATE-OP ACCEPT MASK): bit per accepted op type (skipped for
+; HALT/CONTINUE)
+; 
+; On Exit:
+;     CONTROL FLOW: valid + accepted -> dispatches via the imm_op_dispatch_lo table at
+; &848B (PHA/PHA/RTS into one of rx_imm_peek/poke/exec/halt_cont/machine_type). Out of
+; range or rejected -> JMPs to scout_error (discard). Both paths exit via nmi_rti.
 ; ***************************************************************************************
 ; &8454 referenced 1 time by &8138
 .immediate_op
@@ -1666,6 +1678,15 @@ l840a = sub_c8409+1
 ; jumps to the common receive path at c81c1. Used for
 ; operation types &83 (JSR), &84 (UserProc), and
 ; &85 (OSProc).
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl bytes &83-&85.
+; Stack/ROMSEL/NMI state per shim contract.
+;     SCOUT BUFFER AT &0D32/&0D33: remote routine address (low, high)
+; 
+; On Exit:
+;     &0D66/&0D67 (EXEC_ADDR_LO/HI): remote address copied
+;     CONTROL FLOW: JMPs to common receive path at c81c1; ultimately exits via nmi_rti
 ; ***************************************************************************************
 .rx_imm_exec
     lda #0                                                            ; 8493: a9 00       ..             ; A=0: port buffer lo at page boundary
@@ -1692,6 +1713,15 @@ l840a = sub_c8409+1
 ; Sets up workspace offsets for receiving POKE data.
 ; port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to
 ; the common data-receive path at c81af.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &82.
+; Stack/ROMSEL/NMI state per shim contract.
+; 
+; On Exit:
+;     PORT_WS_OFFSET, RX_BUF_OFFSET (&A6/&A7): &2E, &0D -- workspace pointer for the
+; POKE destination
+;     CONTROL FLOW: JMPs to common data-receive path; exits via nmi_rti
 ; ***************************************************************************************
 .svc5_dispatch_lo
 .rx_imm_poke
@@ -1711,6 +1741,15 @@ l84b8 = sub_c84b7+1
 ; machine type query response. Falls through to
 ; set_rx_buf_len_hi to configure buffer dimensions,
 ; then branches to set_tx_reply_flag.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &88.
+; Stack/ROMSEL/NMI state per shim contract.
+; 
+; On Exit:
+;     REPLY BUFFER CONFIG: &88C1 / &01FC -- the ROM-resident machine-type response
+;     CONTROL FLOW: branches to set_tx_reply_flag and exits via nmi_rti once the reply
+; has been queued
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..             ; Buffer length hi = 1
@@ -1730,6 +1769,16 @@ l84b8 = sub_c84b7+1
 ; Writes &0D2E to port_ws_offset/rx_buf_offset, sets
 ; scout_status=2, then calls tx_calc_transfer to send
 ; the PEEK response data back to the requesting station.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &81.
+; Stack/ROMSEL/NMI state per shim contract.
+;     SCOUT BUFFER AT &0D2E..&0D31: PEEK source address and length supplied by remote
+; 
+; On Exit:
+;     SCOUT_STATUS (&0D31): = 2 (PEEK reply -- handled by tx state machine)
+;     CONTROL FLOW: JMPs/calls into tx_calc_transfer to begin sending the PEEK response
+; back to the requester
 ; ***************************************************************************************
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84ce: a9 2e       ..             ; Port workspace offset = &3D
@@ -1764,6 +1813,17 @@ l84b8 = sub_c84b7+1
 ; Then disables SR interrupts and configures the VIA shift
 ; register for shift-in mode before returning to
 ; idle listen.
+; 
+; On Entry:
+;     CONTEXT: JMP target from nmi_post_ack_dispatch when the post-ACK frame was an
+; immediate-op (port = 0). Stack/ROMSEL/NMI state per shim contract.
+;     SCOUT BUFFER AT &0D3D..: source station/network/ctrl from the originating scout
+; 
+; On Exit:
+;     RX BUFFER HEADER: data length + src station/network + ctrl byte populated for the
+; foreground reply path
+;     VIA SHIFT REGISTER: configured for shift-in mode
+;     CONTROL FLOW: exits via nmi_rti returning to idle listen
 ; ***************************************************************************************
 ; &84f9 referenced 1 time by &8392
 .imm_op_build_reply
@@ -1808,8 +1868,12 @@ l84b8 = sub_c84b7+1
 ; 
 ; Preserves A, X, Y (uses INC zp throughout).
 ; 
+; On Entry:
+;     PORT_BUF_LEN, OPEN_PORT_BUF (&A2..&A5): current 4-byte LE counter to increment
+; 
 ; On Exit:
 ;     PORT_BUF_LEN, OPEN_PORT_BUF: incremented as 4-byte LE counter
+;     A, X, Y: preserved (INC zp only)
 ; ***************************************************************************************
 ; &852c referenced 3 times by &8299, &82a7, &843c
 .advance_buffer_ptr
@@ -1977,6 +2041,17 @@ l84b8 = sub_c84b7+1
 ; dispatches to immediate op setup (ctrl >= &81) or normal data
 ; transfer, calculates transfer sizes, copies extra parameters,
 ; then enters the INACTIVE polling loop.
+; 
+; On Entry:
+;     CONTEXT: called from foreground via trampoline at &06CE (poll_adlc_tx_status
+; path); NOT entered via NMI shim so registers are NOT pre-saved by the shim
+;     NMI_TX_BLOCK: = net_tx_ptr -- pointer to the TXCB to transmit
+;     TXCB AT (NMI_TX_BLOCK)+&02..+&05: destination station, network and ctrl byte
+; 
+; On Exit:
+;     CONTROL FLOW: falls through to inactive_poll which spins until the line is
+; INACTIVE then transmits; completion is signalled by the NMI handler chain via
+; tx_complete_flag
 ; ***************************************************************************************
 ; &8589 referenced 3 times by &9bc3, &a92a, &ac1e
 .tx_begin
@@ -2060,6 +2135,14 @@ l84b8 = sub_c84b7+1
 ; INACTIVE bit mask (&04) into A and falls through to
 ; intoff_test_inactive to begin polling SR2 with
 ; interrupts disabled.
+; 
+; On Entry:
+;     CONTEXT: fall-through from tx_begin (foreground execution, not NMI)
+; 
+; On Exit:
+;     Y: &E7 (CR2 value for tx_prepare)
+;     STACK: 3 bytes of timeout state pushed
+;     CONTROL FLOW: falls through to intoff_test_inactive
 ; ***************************************************************************************
 .inactive_poll
     sta rx_remote_addr                                                ; 85f1: 8d 41 0d    .A.            ; Save TX index
@@ -2084,6 +2167,17 @@ l84b8 = sub_c84b7+1
 ; NMIs via &FE20 (INTON) and decrements the 3-byte
 ; timeout counter on the stack. On timeout, falls
 ; through to tx_line_jammed.
+; 
+; On Entry:
+;     CONTEXT: fall-through from inactive_poll. NOT an NMI entry -- foreground code
+; that manually disables/enables NMIs around the SR2 polling.
+;     STACK: 3-byte timeout counter (set up by inactive_poll)
+;     A: &04 (INACTIVE bit mask)
+;     Y: &E7 (CR2 value for tx_prepare)
+; 
+; On Exit:
+;     CONTROL FLOW: INACTIVE+CTS -> branches to tx_prepare to begin TX. Counter
+; exhausted -> falls through to tx_line_jammed.
 ; ***************************************************************************************
 .intoff_test_inactive
 l85fd = intoff_test_inactive+1
@@ -2126,6 +2220,16 @@ l85fd = intoff_test_inactive+1
 ; attempt, pulls the 3-byte timeout state from the
 ; stack, and stores error code &40 ('Line Jammed')
 ; in the TX control block via store_tx_error.
+; 
+; On Entry:
+;     CONTEXT: fall-through from intoff_test_inactive on timeout. Foreground execution.
+;     STACK: 3-byte timeout state to discard
+; 
+; On Exit:
+;     ADLC CR2: &07 (TX abort)
+;     TXCB[0]: = &40 ('Line Jammed' error)
+;     CONTROL FLOW: JMPs to discard_reset_rx -- ADLC back to idle listen and
+; tx_complete_flag set; foreground caller of tx_begin observes the &40 result
 ; ***************************************************************************************
 ; &8630 referenced 1 time by &862a
 .tx_line_jammed
@@ -2162,6 +2266,21 @@ l85fd = intoff_test_inactive+1
 ; dst_net, src_stn, src_net=0) to the TX FIFO. For
 ; Tube transfers, claims the Tube address; for direct
 ; transfers, sets up the buffer pointer from the TXCB.
+; 
+; On Entry:
+;     CONTEXT: branch target from intoff_test_inactive on INACTIVE+CTS detect.
+; Foreground execution with NMIs disabled (caller did INTOFF).
+;     Y: &E7 (CR2 prep value)
+;     SCOUT BUFFER AT &0D3D..&0D40: dst station, dst network, src station, src network
+; 
+; On Exit:
+;     ADLC CR2: &E7 (RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE)
+;     ADLC CR1: &44 (RX_RESET | TIE) -- TX with interrupts
+;     NEXT NMI HANDLER: = nmi_tx_data (&86E7) -- TX FIFO refill
+;     TX FIFO: loaded with the 4-byte scout address
+;     TUBE STATE: claimed (&C3) for Tube transfers
+;     CONTROL FLOW: exits to caller (foreground) -- subsequent NMIs drive the TX state
+; machine
 ; ***************************************************************************************
 ; &864a referenced 1 time by &8614
 .tx_prepare
@@ -2196,6 +2315,14 @@ l85fd = intoff_test_inactive+1
 ; Sets A=3 (scout_status for PEEK) and branches
 ; to tx_ctrl_store_and_add to store the status and
 ; perform the 4-byte transfer address addition.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from tx_ctrl_proc for ctrl byte that selects
+; PEEK
+; 
+; On Exit:
+;     A: 3 (scout_status for PEEK)
+;     CONTROL FLOW: branches to tx_ctrl_store_and_add
 ; ***************************************************************************************
 .tx_ctrl_peek
     lda #3                                                            ; 868a: a9 03       ..             ; A=3: scout_status for PEEK op
@@ -2208,6 +2335,14 @@ l85fd = intoff_test_inactive+1
 ; through to tx_ctrl_store_and_add to store the
 ; status and perform the 4-byte transfer address
 ; addition.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from tx_ctrl_proc for ctrl byte that selects
+; POKE
+; 
+; On Exit:
+;     A: 2 (scout_status for POKE)
+;     CONTROL FLOW: falls through to tx_ctrl_store_and_add
 ; ***************************************************************************************
 .tx_ctrl_poke
     lda #2                                                            ; 868e: a9 02       ..             ; Scout status = 2 (POKE transfer)
@@ -2247,6 +2382,15 @@ l85fd = intoff_test_inactive+1
 ; Sets scout_status=2 and calls tx_calc_transfer
 ; directly (no 4-byte address addition needed for
 ; procedure calls). Shared by operation types &83-&85.
+; 
+; On Entry:
+;     CONTEXT: PHA/PHA/RTS dispatch target from tx_begin's ctrl-byte switch for op
+; types &83-&85
+; 
+; On Exit:
+;     SCOUT_STATUS (RX_PORT, &0D40): = 2
+;     CONTROL FLOW: calls tx_calc_transfer to compute the transfer count, then exits to
+; the foreground caller of tx_begin
 ; ***************************************************************************************
 .tx_ctrl_proc
     cpy #&10                                                          ; 86a2: c0 10       ..             ; Compare Y with 16-byte boundary
@@ -2306,6 +2450,18 @@ l85fd = intoff_test_inactive+1
 ; After writing 2 bytes, checks if the frame is complete. If more data,
 ; tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes
 ; without returning from NMI (tight loop). Otherwise returns via RTI.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by tx_prepare. Stack/ROMSEL/NMI state per
+; shim contract.
+;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): TX source pointer and remaining length
+;     ADLC SR1: TDRA (V bit) signals FIFO has space; IRQ (N bit) signals more bytes can
+; be written
+; 
+; On Exit:
+;     CONTROL FLOW: loops writing pairs while TDRA holds; exits via nmi_rti when IRQ
+; clears (next pair will come with the next NMI). On byte-count exhaustion -> JMPs to
+; tx_last_data.
 ; ***************************************************************************************
 .nmi_tx_data
     ldy rx_remote_addr                                                ; 86e7: ac 41 0d    .A.            ; Load TX buffer index
@@ -2365,6 +2521,16 @@ l85fd = intoff_test_inactive+1
 ; nmi_rti creates the /NMI edge for the frame-complete interrupt
 ; -- essential because the ADLC IRQ may transition atomically
 ; from TDRA to frame-complete without de-asserting.
+; 
+; On Entry:
+;     CONTEXT: JMP target from inside an NMI handler (nmi_tx_data on byte-count
+; exhaustion, ack_tx for ACK closing). Stack/ROMSEL/NMI state per shim contract.
+; 
+; On Exit:
+;     ADLC CR2: &3F (TX_LAST_DATA + FLAG_IDLE)
+;     NEXT NMI HANDLER: = nmi_tx_complete (&872F)
+;     CONTROL FLOW: JMP set_nmi_vector then nmi_rti -- the INTON edge ensures the next
+; NMI fires for frame-complete
 ; ***************************************************************************************
 ; &8723 referenced 1 time by &8703
 .tx_last_data
@@ -2389,6 +2555,18 @@ l85fd = intoff_test_inactive+1
 ; (tx_result_ok), bit0=handshake data pending
 ; (handshake_await_ack), both clear=install
 ; nmi_reply_scout for scout ACK reception.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by tx_last_data (or by ack_tx for ACK
+; frames). Stack/ROMSEL/NMI state per shim contract.
+;     RX_SRC_NET (TX_FLAGS) BIT 6: 1 = broadcast (no reply expected) -> tx_result_ok
+;     RX_SRC_NET (TX_FLAGS) BIT 0: 1 = handshake data pending -> handshake_await_ack
+; 
+; On Exit:
+;     ADLC CR1: &82 (TX_RESET | RIE) -- TX to RX pivot
+;     NEXT NMI HANDLER: broadcast: tx_result_ok / handshake: nmi_final_ack / scout:
+; nmi_reply_scout
+;     CONTROL FLOW: exits via nmi_rti once the next handler is installed
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 872f: a9 82       ..             ; Jump to error handler
@@ -2416,6 +2594,15 @@ l85fd = intoff_test_inactive+1
 ; Checks SR2 bit0 (AP) for incoming data, reads the first byte
 ; (destination station) and compares to our station ID via &FE18
 ; (which also disables NMIs as a side effect).
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by nmi_tx_complete on the scout-ACK-await
+; path. Stack/ROMSEL/NMI state per shim contract.
+;     ADLC SR2 BIT 0 (AP): address-present from incoming reply scout
+; 
+; On Exit:
+;     CONTROL FLOW: match -> falls through to nmi_reply_cont for the next byte.
+; Mismatch -> JMPs to error path. Exits via nmi_rti.
 ; ***************************************************************************************
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
@@ -2437,6 +2624,15 @@ l85fd = intoff_test_inactive+1
 ; If IRQ is still set, falls through directly to &8779 without an RTI,
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive
 ; in quick succession.
+; 
+; On Entry:
+;     CONTEXT: fall-through from nmi_reply_scout after a station match.
+; Stack/ROMSEL/NMI state per shim contract.
+; 
+; On Exit:
+;     NEXT NMI HANDLER: = nmi_reply_validate (&8776)
+;     CONTROL FLOW: if SR1 IRQ still asserted, falls directly into nmi_reply_validate
+; (avoiding NMI re-entry); otherwise exits via nmi_rti and waits for next NMI
 ; ***************************************************************************************
 .nmi_reply_cont
     bit econet_control23_or_status2                                   ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
@@ -2464,6 +2660,17 @@ l85fd = intoff_test_inactive+1
 ;   4. Check SR2 bit1 (FV) at &8786 -- must see frame complete
 ; If all checks pass, the reply scout is valid and the ROM proceeds
 ; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by nmi_reply_cont (or fall-through from
+; it). Stack/ROMSEL/NMI state per shim contract.
+;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for validating the reply source
+; 
+; On Exit:
+;     ADLC CR2: &A7 (RTS) on success
+;     ADLC CR1: &44 (TX mode) on success
+;     CONTROL FLOW: validation success -> proceed to send scout ACK; validation fail ->
+; JMP nmi_error_dispatch. Exits via nmi_rti.
 ; ***************************************************************************************
 ; &8776 referenced 1 time by &876e
 .nmi_reply_validate
@@ -2507,6 +2714,17 @@ l85fd = intoff_test_inactive+1
 ; nmi_data_tx handler at &87EE. Installs the chosen
 ; handler via set_nmi_vector. Shares the tx_check_tdra
 ; entry at &87C7 with ack_tx.
+; 
+; On Entry:
+;     CONTEXT: fall-through from nmi_reply_validate after successful reply-scout
+; validation. Stack/ROMSEL/NMI state per shim contract.
+;     RX_SRC_NET (TX_FLAGS) BIT 1: selects nmi_data_tx vs the immediate-op TX data
+; handler
+; 
+; On Exit:
+;     TX FIFO: loaded with src station/network
+;     NEXT NMI HANDLER: = nmi_data_tx (or imm-op variant) for the data phase
+;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
@@ -2545,6 +2763,16 @@ l85fd = intoff_test_inactive+1
 ; asserted, writes another pair without returning from
 ; NMI (tight loop optimisation). If IRQ clears, returns
 ; via RTI.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by nmi_scout_ack_src. Stack/ROMSEL/NMI
+; state per shim contract.
+;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): TX source pointer and remaining length
+;     RX_SRC_NET (TX_FLAGS) BIT 5: 0 = direct memory; 1 = Tube R3 source
+; 
+; On Exit:
+;     CONTROL FLOW: byte count exhausted -> JMPs to tx_last_data. IRQ clears -> exits
+; via nmi_rti and waits for the next TDRA NMI.
 ; ***************************************************************************************
 ; &87e3 referenced 1 time by &87ed
 .nmi_data_tx
@@ -2665,6 +2893,15 @@ l8877 = check_tube_irq_loop+1
 ; mode to RX mode, listening for the final ACK from the
 ; remote station. Installs the nmi_final_ack handler at
 ; &887A via set_nmi_vector.
+; 
+; On Entry:
+;     CONTEXT: JMP target from nmi_tx_complete on the handshake-data-pending path.
+; Stack/ROMSEL/NMI state per shim contract.
+; 
+; On Exit:
+;     ADLC CR1: &82 (TX_RESET | RIE -- TX-to-RX pivot)
+;     NEXT NMI HANDLER: = nmi_final_ack
+;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 ; &8886 referenced 1 time by &8743
 .handshake_await_ack
@@ -2684,6 +2921,16 @@ l8877 = check_tube_irq_loop+1
 ;   &88A2: Check RDA, read src_stn/net, compare to TX dest
 ;   &88C1: Check FV for frame completion
 ; On success, stores result=0 at tx_result_ok. On failure, error &41.
+; 
+; On Entry:
+;     CONTEXT: NMI dispatch entry installed by handshake_await_ack. Stack/ROMSEL/NMI
+; state per shim contract.
+;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for validating the ACK source
+; 
+; On Exit:
+;     CONTROL FLOW: validation success -> JMPs to tx_result_ok (result = 0). Validation
+; fail -> JMPs to tx_result_fail (error &41 'not listening'). Both paths exit via
+; nmi_rti.
 ; ***************************************************************************************
 .nmi_final_ack
     lda #1                                                            ; 8892: a9 01       ..             ; A=&01: AP mask
@@ -2716,6 +2963,15 @@ l8877 = check_tube_irq_loop+1
 ; for frame completion. Any mismatch or missing FV
 ; branches to tx_result_fail. On success, falls
 ; through to tx_result_ok.
+; 
+; On Entry:
+;     CONTEXT: fall-through from nmi_final_ack after the first two address bytes have
+; been validated. Stack/ROMSEL/NMI state per shim contract.
+;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for the source-address validation
+; 
+; On Exit:
+;     CONTROL FLOW: all checks pass -> falls through to tx_result_ok. Any mismatch ->
+; JMPs to tx_result_fail. Both paths exit via nmi_rti.
 ; ***************************************************************************************
 ; &88ba referenced 1 time by &88b5
 .nmi_final_ack_validate
@@ -2746,6 +3002,15 @@ l8877 = check_tube_irq_loop+1
 ; Called from ack_tx (&82EC) for final-ACK completion
 ; and from nmi_tx_complete (&8732) for immediate-op
 ; completion where no ACK is expected.
+; 
+; On Entry:
+;     CONTEXT: JMP target from inside the NMI chain. Stack/ROMSEL/NMI state per shim
+; contract.
+; 
+; On Exit:
+;     A: 0 (TX success)
+;     CONTROL FLOW: branches to tx_store_result via BEQ (unconditional after LDA #0);
+; ultimately exits via nmi_rti
 ; ***************************************************************************************
 ; &88de referenced 2 times by &82e7, &8739
 .tx_result_ok
@@ -2759,6 +3024,15 @@ l8877 = check_tube_irq_loop+1
 ; tx_store_result. The most common TX error path — reached from
 ; 11 sites across the final-ACK validation chain when the remote
 ; station doesn't respond or the frame is malformed.
+; 
+; On Entry:
+;     CONTEXT: JMP target from various NMI validation failures. Stack/ROMSEL/NMI state
+; per shim contract.
+; 
+; On Exit:
+;     A: &41 ('not listening' TX error)
+;     CONTROL FLOW: falls through to tx_store_result; exits via nmi_rti once result is
+; stored
 ; ***************************************************************************************
 ; &88e2 referenced 11 times by &821a, &8773, &8881, &8897, &889f, &88a9, &88ae, &88bd, &88c5, &88cd, &88dc
 .tx_result_fail
@@ -3060,6 +3334,15 @@ l89c9 = reset_enter_listen+2
 ; it transitions atomically from TDRA to frame-complete without
 ; de-asserting). Without this mechanism, nmi_tx_complete would
 ; never fire after tx_last_data.
+; 
+; On Entry:
+;     CONTEXT: initial NMI vector target (set up by adlc_init via OSBYTE &8F service
+; request) before the RAM shim at &0D00..&0D1F has been populated
+;     ADLC IRQ: asserted (NMI fired)
+; 
+; On Exit:
+;     CONTROL FLOW: performs the same shim sequence as the RAM version then JMPs to
+; nmi_rx_scout (&80BE -> updated to &809B in 4.21)
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit lfe38                                                         ; 89ca: 2c 38 fe    ,8.            ; INTOFF: force /NMI high (IC97 flip-flop clear)

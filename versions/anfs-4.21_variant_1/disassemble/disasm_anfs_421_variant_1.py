@@ -2624,7 +2624,18 @@ subroutine(0x8454, "immediate_op",
     "determine if this station accepts the operation.\n"
     "If accepted, dispatches via the immediate operation\n"
     "table. Builds the reply by storing data length,\n"
-    "station/network, and control byte into the RX buffer.")
+    "station/network, and control byte into the RX buffer.",
+    on_entry={"context": "JMP target from post_ack_scout when port = 0. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "l0d30 (scout ctrl byte)":
+              "&81-&88 selects which immediate-op handler to dispatch",
+              "&0D61 (immediate-op accept mask)":
+              "bit per accepted op type (skipped for HALT/CONTINUE)"},
+    on_exit={"control flow": "valid + accepted -> dispatches via the "
+             "imm_op_dispatch_lo table at &848B (PHA/PHA/RTS into one "
+             "of rx_imm_peek/poke/exec/halt_cont/machine_type). Out of "
+             "range or rejected -> JMPs to scout_error (discard). Both "
+             "paths exit via nmi_rti."})
 
 # Immediate operation dispatch lo-byte table.
 # In 4.21_v1 the table moved by +3 to &848B-&8492 (the &8488 area is now
@@ -2651,23 +2662,54 @@ subroutine(0x8493, "rx_imm_exec",
     "into the execution address workspace at &0D66, then\n"
     "jumps to the common receive path at c81c1. Used for\n"
     "operation types &83 (JSR), &84 (UserProc), and\n"
-    "&85 (OSProc).")
+    "&85 (OSProc).",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
+              "for ctrl bytes &83-&85. Stack/ROMSEL/NMI state per shim "
+              "contract.",
+              "scout buffer at &0D32/&0D33":
+              "remote routine address (low, high)"},
+    on_exit={"&0D66/&0D67 (exec_addr_lo/hi)": "remote address copied",
+             "control flow": "JMPs to common receive path at c81c1; "
+             "ultimately exits via nmi_rti"})
 subroutine(0x84B1, "rx_imm_poke",
     title="RX immediate: POKE setup",
     description="Sets up workspace offsets for receiving POKE data.\n"
     "port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\n"
-    "the common data-receive path at c81af.")
+    "the common data-receive path at c81af.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
+              "for ctrl byte &82. Stack/ROMSEL/NMI state per shim "
+              "contract."},
+    on_exit={"port_ws_offset, rx_buf_offset (&A6/&A7)":
+             "&2E, &0D -- workspace pointer for the POKE destination",
+             "control flow": "JMPs to common data-receive path; exits "
+             "via nmi_rti"})
 subroutine(0x84BC, "rx_imm_machine_type",
     title="RX immediate: machine type query",
     description="Sets up a buffer at &88C1 (length #&01FC) for the\n"
     "machine type query response. Falls through to\n"
     "set_rx_buf_len_hi to configure buffer dimensions,\n"
-    "then branches to set_tx_reply_flag.")
+    "then branches to set_tx_reply_flag.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
+              "for ctrl byte &88. Stack/ROMSEL/NMI state per shim "
+              "contract."},
+    on_exit={"reply buffer config":
+             "&88C1 / &01FC -- the ROM-resident machine-type response",
+             "control flow": "branches to set_tx_reply_flag and exits "
+             "via nmi_rti once the reply has been queued"})
 subroutine(0x84CE, "rx_imm_peek",
     title="RX immediate: PEEK setup",
     description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
     "scout_status=2, then calls tx_calc_transfer to send\n"
-    "the PEEK response data back to the requesting station.")
+    "the PEEK response data back to the requesting station.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
+              "for ctrl byte &81. Stack/ROMSEL/NMI state per shim "
+              "contract.",
+              "scout buffer at &0D2E..&0D31":
+              "PEEK source address and length supplied by remote"},
+    on_exit={"scout_status (&0D31)":
+             "= 2 (PEEK reply -- handled by tx state machine)",
+             "control flow": "JMPs/calls into tx_calc_transfer to begin "
+             "sending the PEEK response back to the requester"})
 subroutine(0x852C, "advance_buffer_ptr",
     title="Increment 4-byte receive buffer pointer",
     description="Adds one to the counter at &A2-&A5 (port_buf_len\n"
@@ -2678,14 +2720,26 @@ subroutine(0x852C, "advance_buffer_ptr",
     "in the receive buffer.\n"
     "\n"
     "Preserves A, X, Y (uses INC zp throughout).",
-    on_exit={"port_buf_len, open_port_buf": "incremented as 4-byte LE counter"})
+    on_entry={"port_buf_len, open_port_buf (&A2..&A5)":
+              "current 4-byte LE counter to increment"},
+    on_exit={"port_buf_len, open_port_buf": "incremented as 4-byte LE counter",
+             "a, x, y": "preserved (INC zp only)"})
 subroutine(0x84F9, "imm_op_build_reply",
     title="Build immediate operation reply header",
     description="Stores data length, source station/network, and control byte\n"
     "into the RX buffer header area for port-0 immediate operations.\n"
     "Then disables SR interrupts and configures the VIA shift\n"
     "register for shift-in mode before returning to\n"
-    "idle listen.")
+    "idle listen.",
+    on_entry={"context": "JMP target from nmi_post_ack_dispatch when "
+              "the post-ACK frame was an immediate-op (port = 0). "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "scout buffer at &0D3D..":
+              "source station/network/ctrl from the originating scout"},
+    on_exit={"RX buffer header": "data length + src station/network + "
+             "ctrl byte populated for the foreground reply path",
+             "VIA shift register": "configured for shift-in mode",
+             "control flow": "exits via nmi_rti returning to idle listen"})
 # Located in 4.21_v1 at &8540 (was &8543 in 4.18 -- moved -3 because
 # of layout shifts in the surrounding TX-done handlers). Reached only
 # via PHA/PHA/RTS dispatch from the tx_done_dispatch table; needs an
@@ -2767,7 +2821,18 @@ subroutine(0x8589, "tx_begin",
     "Copies dest station/network from the TXCB to the scout buffer,\n"
     "dispatches to immediate op setup (ctrl >= &81) or normal data\n"
     "transfer, calculates transfer sizes, copies extra parameters,\n"
-    "then enters the INACTIVE polling loop.")
+    "then enters the INACTIVE polling loop.",
+    on_entry={"context": "called from foreground via trampoline at "
+              "&06CE (poll_adlc_tx_status path); NOT entered via NMI "
+              "shim so registers are NOT pre-saved by the shim",
+              "nmi_tx_block": "= net_tx_ptr -- pointer to the TXCB to "
+              "transmit",
+              "TXCB at (nmi_tx_block)+&02..+&05":
+              "destination station, network and ctrl byte"},
+    on_exit={"control flow": "falls through to inactive_poll which "
+             "spins until the line is INACTIVE then transmits; "
+             "completion is signalled by the NMI handler chain via "
+             "tx_complete_flag"})
 subroutine(0x85F1, "inactive_poll",
     title="INACTIVE polling loop",
     description="Entry point for the Econet line idle detection\n"
@@ -2776,7 +2841,12 @@ subroutine(0x85F1, "inactive_poll",
     "Y=&E7 (CR2 value for TX preparation). Loads the\n"
     "INACTIVE bit mask (&04) into A and falls through to\n"
     "intoff_test_inactive to begin polling SR2 with\n"
-    "interrupts disabled.")
+    "interrupts disabled.",
+    on_entry={"context": "fall-through from tx_begin (foreground "
+              "execution, not NMI)"},
+    on_exit={"y": "&E7 (CR2 value for tx_prepare)",
+             "stack": "3 bytes of timeout state pushed",
+             "control flow": "falls through to intoff_test_inactive"})
 subroutine(0x85FC, "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
     description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
@@ -2787,7 +2857,16 @@ subroutine(0x85FC, "intoff_test_inactive",
     "transmission. If INACTIVE is not set, re-enables\n"
     "NMIs via &FE20 (INTON) and decrements the 3-byte\n"
     "timeout counter on the stack. On timeout, falls\n"
-    "through to tx_line_jammed.")
+    "through to tx_line_jammed.",
+    on_entry={"context": "fall-through from inactive_poll. NOT an NMI "
+              "entry -- foreground code that manually disables/enables "
+              "NMIs around the SR2 polling.",
+              "stack": "3-byte timeout counter (set up by inactive_poll)",
+              "a": "&04 (INACTIVE bit mask)",
+              "y": "&E7 (CR2 value for tx_prepare)"},
+    on_exit={"control flow": "INACTIVE+CTS -> branches to tx_prepare "
+             "to begin TX. Counter exhausted -> falls through to "
+             "tx_line_jammed."})
 subroutine(0x8630, "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
     description="Reached when the INACTIVE polling loop times\n"
@@ -2795,7 +2874,15 @@ subroutine(0x8630, "tx_line_jammed",
     "CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX\n"
     "attempt, pulls the 3-byte timeout state from the\n"
     "stack, and stores error code &40 ('Line Jammed')\n"
-    "in the TX control block via store_tx_error.")
+    "in the TX control block via store_tx_error.",
+    on_entry={"context": "fall-through from intoff_test_inactive on "
+              "timeout. Foreground execution.",
+              "stack": "3-byte timeout state to discard"},
+    on_exit={"ADLC CR2": "&07 (TX abort)",
+             "TXCB[0]": "= &40 ('Line Jammed' error)",
+             "control flow": "JMPs to discard_reset_rx -- ADLC back to "
+             "idle listen and tx_complete_flag set; foreground caller "
+             "of tx_begin observes the &40 result"})
 subroutine(0x864A, "tx_prepare",
     title="TX preparation",
     description="Configures the ADLC for frame transmission.\n"
@@ -2806,7 +2893,21 @@ subroutine(0x864A, "tx_prepare",
     "Writes the 4-byte destination address (dst_stn,\n"
     "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
     "Tube transfers, claims the Tube address; for direct\n"
-    "transfers, sets up the buffer pointer from the TXCB.")
+    "transfers, sets up the buffer pointer from the TXCB.",
+    on_entry={"context": "branch target from intoff_test_inactive on "
+              "INACTIVE+CTS detect. Foreground execution with NMIs "
+              "disabled (caller did INTOFF).",
+              "y": "&E7 (CR2 prep value)",
+              "scout buffer at &0D3D..&0D40":
+              "dst station, dst network, src station, src network"},
+    on_exit={"ADLC CR2": "&E7 (RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | "
+             "2_1_BYTE | PSE)",
+             "ADLC CR1": "&44 (RX_RESET | TIE) -- TX with interrupts",
+             "next NMI handler": "= nmi_tx_data (&86E7) -- TX FIFO refill",
+             "TX FIFO": "loaded with the 4-byte scout address",
+             "Tube state": "claimed (&C3) for Tube transfers",
+             "control flow": "exits to caller (foreground) -- subsequent "
+             "NMIs drive the TX state machine"})
 # UNMAPPED: subroutine(0x8689, "tx_ctrl_machine_type",
 # UNMAPPED:     title="TX ctrl: machine type query setup",
 # UNMAPPED:     description="Handler for control byte &88. Sets scout_status=3\n"
@@ -2817,13 +2918,21 @@ subroutine(0x868A, "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
     description="Sets A=3 (scout_status for PEEK) and branches\n"
     "to tx_ctrl_store_and_add to store the status and\n"
-    "perform the 4-byte transfer address addition.")
+    "perform the 4-byte transfer address addition.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_ctrl_proc "
+              "for ctrl byte that selects PEEK"},
+    on_exit={"a": "3 (scout_status for PEEK)",
+             "control flow": "branches to tx_ctrl_store_and_add"})
 subroutine(0x868E, "tx_ctrl_poke",
     title="TX ctrl: POKE transfer setup",
     description="Sets A=2 (scout_status for POKE) and falls\n"
     "through to tx_ctrl_store_and_add to store the\n"
     "status and perform the 4-byte transfer address\n"
-    "addition.")
+    "addition.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_ctrl_proc "
+              "for ctrl byte that selects POKE"},
+    on_exit={"a": "2 (scout_status for POKE)",
+             "control flow": "falls through to tx_ctrl_store_and_add"})
 subroutine(0x8690, "tx_ctrl_store_and_add",
     title="TX ctrl: store status and add transfer address",
     description="Shared path for PEEK (A=3) and POKE (A=2).\n"
@@ -2840,14 +2949,30 @@ subroutine(0x86A2, "tx_ctrl_proc",
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="Sets scout_status=2 and calls tx_calc_transfer\n"
     "directly (no 4-byte address addition needed for\n"
-    "procedure calls). Shared by operation types &83-&85.")
+    "procedure calls). Shared by operation types &83-&85.",
+    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_begin's "
+              "ctrl-byte switch for op types &83-&85"},
+    on_exit={"scout_status (rx_port, &0D40)": "= 2",
+             "control flow": "calls tx_calc_transfer to compute the "
+             "transfer count, then exits to the foreground caller of "
+             "tx_begin"})
 subroutine(0x86E7, "nmi_tx_data",
     title="NMI TX data handler",
     description="Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the\n"
     "BIT instruction on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7).\n"
     "After writing 2 bytes, checks if the frame is complete. If more data,\n"
     "tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes\n"
-    "without returning from NMI (tight loop). Otherwise returns via RTI.")
+    "without returning from NMI (tight loop). Otherwise returns via RTI.",
+    on_entry={"context": "NMI dispatch entry installed by tx_prepare. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "open_port_buf, port_buf_len (&A2..&A5)":
+              "TX source pointer and remaining length",
+              "ADLC SR1": "TDRA (V bit) signals FIFO has space; IRQ "
+              "(N bit) signals more bytes can be written"},
+    on_exit={"control flow": "loops writing pairs while TDRA holds; "
+             "exits via nmi_rti when IRQ clears (next pair will come "
+             "with the next NMI). On byte-count exhaustion -> JMPs to "
+             "tx_last_data."})
 subroutine(0x8723, "tx_last_data",
     title="TX_LAST_DATA and frame completion",
     description="Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs\n"
@@ -2864,7 +2989,14 @@ subroutine(0x8723, "tx_last_data",
     "then falls through to nmi_rti. The INTON (BIT &FE20) in\n"
     "nmi_rti creates the /NMI edge for the frame-complete interrupt\n"
     "-- essential because the ADLC IRQ may transition atomically\n"
-    "from TDRA to frame-complete without de-asserting.")
+    "from TDRA to frame-complete without de-asserting.",
+    on_entry={"context": "JMP target from inside an NMI handler "
+              "(nmi_tx_data on byte-count exhaustion, ack_tx for "
+              "ACK closing). Stack/ROMSEL/NMI state per shim contract."},
+    on_exit={"ADLC CR2": "&3F (TX_LAST_DATA + FLAG_IDLE)",
+             "next NMI handler": "= nmi_tx_complete (&872F)",
+             "control flow": "JMP set_nmi_vector then nmi_rti -- the "
+             "INTON edge ensures the next NMI fires for frame-complete"})
 subroutine(0x872F, "nmi_tx_complete",
     title="TX completion: switch to RX mode",
     description="Called via NMI after the frame (including CRC\n"
@@ -2878,13 +3010,33 @@ subroutine(0x872F, "nmi_tx_complete",
     "Dispatches on rx_src_net flags: bit6=broadcast\n"
     "(tx_result_ok), bit0=handshake data pending\n"
     "(handshake_await_ack), both clear=install\n"
-    "nmi_reply_scout for scout ACK reception.")
+    "nmi_reply_scout for scout ACK reception.",
+    on_entry={"context": "NMI dispatch entry installed by tx_last_data "
+              "(or by ack_tx for ACK frames). Stack/ROMSEL/NMI state "
+              "per shim contract.",
+              "rx_src_net (tx_flags) bit 6": "1 = broadcast (no reply "
+              "expected) -> tx_result_ok",
+              "rx_src_net (tx_flags) bit 0": "1 = handshake data "
+              "pending -> handshake_await_ack"},
+    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE) -- TX to RX pivot",
+             "next NMI handler": "broadcast: tx_result_ok / handshake: "
+             "nmi_final_ack / scout: nmi_reply_scout",
+             "control flow": "exits via nmi_rti once the next handler "
+             "is installed"})
 subroutine(0x874B, "nmi_reply_scout",
     title="RX reply scout handler",
     description="Handles reception of the reply scout frame after transmission.\n"
     "Checks SR2 bit0 (AP) for incoming data, reads the first byte\n"
     "(destination station) and compares to our station ID via &FE18\n"
-    "(which also disables NMIs as a side effect).")
+    "(which also disables NMIs as a side effect).",
+    on_entry={"context": "NMI dispatch entry installed by "
+              "nmi_tx_complete on the scout-ACK-await path. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "ADLC SR2 bit 0 (AP)": "address-present from incoming "
+              "reply scout"},
+    on_exit={"control flow": "match -> falls through to nmi_reply_cont "
+             "for the next byte. Mismatch -> JMPs to error path. "
+             "Exits via nmi_rti."})
 subroutine(0x875F, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="Reads the second byte of the reply scout (destination network) and\n"
@@ -2893,7 +3045,13 @@ subroutine(0x875F, "nmi_reply_cont",
     "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\n"
     "If IRQ is still set, falls through directly to &8779 without an RTI,\n"
     "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
-    "in quick succession.")
+    "in quick succession.",
+    on_entry={"context": "fall-through from nmi_reply_scout after a "
+              "station match. Stack/ROMSEL/NMI state per shim contract."},
+    on_exit={"next NMI handler": "= nmi_reply_validate (&8776)",
+             "control flow": "if SR1 IRQ still asserted, falls directly "
+             "into nmi_reply_validate (avoiding NMI re-entry); "
+             "otherwise exits via nmi_rti and waits for next NMI"})
 subroutine(0x8776, "nmi_reply_validate",
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="Reads the source station and source network from the reply scout and\n"
@@ -2904,7 +3062,17 @@ subroutine(0x8776, "nmi_reply_validate",
     "  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n"
     "  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\n"
     "If all checks pass, the reply scout is valid and the ROM proceeds\n"
-    "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).")
+    "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).",
+    on_entry={"context": "NMI dispatch entry installed by nmi_reply_cont "
+              "(or fall-through from it). Stack/ROMSEL/NMI state per "
+              "shim contract.",
+              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
+              "reference for validating the reply source"},
+    on_exit={"ADLC CR2": "&A7 (RTS) on success",
+             "ADLC CR1": "&44 (TX mode) on success",
+             "control flow": "validation success -> proceed to send "
+             "scout ACK; validation fail -> JMP nmi_error_dispatch. "
+             "Exits via nmi_rti."})
 subroutine(0x87BE, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
     description="Continuation of the TX-side scout ACK. Reads our\n"
@@ -2914,7 +3082,16 @@ subroutine(0x87BE, "nmi_scout_ack_src",
     "immediate-op data NMI handler and the normal\n"
     "nmi_data_tx handler at &87EE. Installs the chosen\n"
     "handler via set_nmi_vector. Shares the tx_check_tdra\n"
-    "entry at &87C7 with ack_tx.")
+    "entry at &87C7 with ack_tx.",
+    on_entry={"context": "fall-through from nmi_reply_validate after "
+              "successful reply-scout validation. Stack/ROMSEL/NMI "
+              "state per shim contract.",
+              "rx_src_net (tx_flags) bit 1": "selects nmi_data_tx vs "
+              "the immediate-op TX data handler"},
+    on_exit={"TX FIFO": "loaded with src station/network",
+             "next NMI handler": "= nmi_data_tx (or imm-op variant) "
+             "for the data phase",
+             "control flow": "exits via nmi_rti"})
 subroutine(0x87E3, "nmi_data_tx",
     title="TX data phase: send payload",
     description="Transmits the data payload of a four-way\n"
@@ -2926,7 +3103,17 @@ subroutine(0x87E3, "nmi_data_tx",
     "frame. Otherwise tests SR1 bit 7 (IRQ): if still\n"
     "asserted, writes another pair without returning from\n"
     "NMI (tight loop optimisation). If IRQ clears, returns\n"
-    "via RTI.")
+    "via RTI.",
+    on_entry={"context": "NMI dispatch entry installed by "
+              "nmi_scout_ack_src. Stack/ROMSEL/NMI state per shim "
+              "contract.",
+              "open_port_buf, port_buf_len (&A2..&A5)":
+              "TX source pointer and remaining length",
+              "rx_src_net (tx_flags) bit 5": "0 = direct memory; "
+              "1 = Tube R3 source"},
+    on_exit={"control flow": "byte count exhausted -> JMPs to "
+             "tx_last_data. IRQ clears -> exits via nmi_rti and waits "
+             "for the next TDRA NMI."})
 subroutine(0x8886, "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
     description="Called via JMP from nmi_tx_complete when bit 0 of\n"
@@ -2934,7 +3121,13 @@ subroutine(0x8886, "handshake_await_ack",
     "CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX\n"
     "mode to RX mode, listening for the final ACK from the\n"
     "remote station. Installs the nmi_final_ack handler at\n"
-    "&887A via set_nmi_vector.")
+    "&887A via set_nmi_vector.",
+    on_entry={"context": "JMP target from nmi_tx_complete on the "
+              "handshake-data-pending path. Stack/ROMSEL/NMI state "
+              "per shim contract."},
+    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE -- TX-to-RX pivot)",
+             "next NMI handler": "= nmi_final_ack",
+             "control flow": "exits via nmi_rti"})
 subroutine(0x8892, "nmi_final_ack",
     title="RX final ACK handler",
     description="Receives the final ACK in a four-way handshake. Same validation\n"
@@ -2943,7 +3136,16 @@ subroutine(0x8892, "nmi_final_ack",
     "  &888E: Check RDA, read dest_net, validate = 0\n"
     "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
     "  &88C1: Check FV for frame completion\n"
-    "On success, stores result=0 at tx_result_ok. On failure, error &41.")
+    "On success, stores result=0 at tx_result_ok. On failure, error &41.",
+    on_entry={"context": "NMI dispatch entry installed by "
+              "handshake_await_ack. Stack/ROMSEL/NMI state per shim "
+              "contract.",
+              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
+              "reference for validating the ACK source"},
+    on_exit={"control flow": "validation success -> JMPs to "
+             "tx_result_ok (result = 0). Validation fail -> JMPs to "
+             "tx_result_fail (error &41 'not listening'). Both paths "
+             "exit via nmi_rti."})
 subroutine(0x88BA, "nmi_final_ack_validate",
     title="Final ACK validation",
     description="Continuation of nmi_final_ack. Tests SR2 for RDA,\n"
@@ -2953,7 +3155,15 @@ subroutine(0x88BA, "nmi_final_ack_validate",
     "tx_dst_net (&0D21). Finally tests SR2 bit 1 (FV)\n"
     "for frame completion. Any mismatch or missing FV\n"
     "branches to tx_result_fail. On success, falls\n"
-    "through to tx_result_ok.")
+    "through to tx_result_ok.",
+    on_entry={"context": "fall-through from nmi_final_ack after the "
+              "first two address bytes have been validated. "
+              "Stack/ROMSEL/NMI state per shim contract.",
+              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
+              "reference for the source-address validation"},
+    on_exit={"control flow": "all checks pass -> falls through to "
+             "tx_result_ok. Any mismatch -> JMPs to tx_result_fail. "
+             "Both paths exit via nmi_rti."})
 subroutine(0x88DE, "tx_result_ok",
     title="TX completion handler",
     description="Loads A=0 (success) and branches unconditionally to\n"
@@ -2962,13 +3172,24 @@ subroutine(0x88DE, "tx_result_ok",
     "can target the success path without needing to set A.\n"
     "Called from ack_tx (&82EC) for final-ACK completion\n"
     "and from nmi_tx_complete (&8732) for immediate-op\n"
-    "completion where no ACK is expected.")
+    "completion where no ACK is expected.",
+    on_entry={"context": "JMP target from inside the NMI chain. "
+              "Stack/ROMSEL/NMI state per shim contract."},
+    on_exit={"a": "0 (TX success)",
+             "control flow": "branches to tx_store_result via BEQ "
+             "(unconditional after LDA #0); ultimately exits via "
+             "nmi_rti"})
 subroutine(0x88E2, "tx_result_fail",
     title="TX failure: not listening",
     description="Loads error code &41 (not listening) and falls through to\n"
     "tx_store_result. The most common TX error path — reached from\n"
     "11 sites across the final-ACK validation chain when the remote\n"
-    "station doesn't respond or the frame is malformed.")
+    "station doesn't respond or the frame is malformed.",
+    on_entry={"context": "JMP target from various NMI validation "
+              "failures. Stack/ROMSEL/NMI state per shim contract."},
+    on_exit={"a": "&41 ('not listening' TX error)",
+             "control flow": "falls through to tx_store_result; "
+             "exits via nmi_rti once result is stored"})
 subroutine(0x88E4, "tx_store_result",
     title="TX result store and completion",
     description="Stores the TX result code (in A) at offset 0 of\n"
@@ -3082,7 +3303,14 @@ subroutine(0x89CA, "nmi_bootstrap_entry",
     "/NMI even when the ADLC IRQ is continuously asserted (e.g. when\n"
     "it transitions atomically from TDRA to frame-complete without\n"
     "de-asserting). Without this mechanism, nmi_tx_complete would\n"
-    "never fire after tx_last_data.")
+    "never fire after tx_last_data.",
+    on_entry={"context": "initial NMI vector target (set up by "
+              "adlc_init via OSBYTE &8F service request) before the "
+              "RAM shim at &0D00..&0D1F has been populated",
+              "ADLC IRQ": "asserted (NMI fired)"},
+    on_exit={"control flow": "performs the same shim sequence as the "
+             "RAM version then JMPs to nmi_rx_scout (&80BE -> updated "
+             "to &809B in 4.21)"})
 subroutine(0x89D8, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="ROM-resident version of the NMI exit sequence, also\n"
