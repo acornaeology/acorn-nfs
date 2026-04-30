@@ -5532,18 +5532,18 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &97b7 referenced 1 time by &a2e5
 .prep_send_tx_cb
-    php                                                               ; 97b7: 08          .
-    lda #&90                                                          ; 97b8: a9 90       ..
-    sta lc100                                                         ; 97ba: 8d 00 c1    ...
-    jsr init_txcb                                                     ; 97bd: 20 4b 97     K.
-    txa                                                               ; 97c0: 8a          .
-    adc #5                                                            ; 97c1: 69 05       i.
-    sta txcb_end                                                      ; 97c3: 85 c8       ..
-    plp                                                               ; 97c5: 28          (
-    bcs handle_disconnect                                             ; 97c6: b0 1a       ..
-    php                                                               ; 97c8: 08          .
-    jsr init_tx_ptr_and_send                                          ; 97c9: 20 24 9b     $.
-    plp                                                               ; 97cc: 28          (
+    php                                                               ; 97b7: 08          .              ; Save flags so C survives the init_txcb call
+    lda #&90                                                          ; 97b8: a9 90       ..             ; Reply port = &90 (FS reply port)
+    sta lc100                                                         ; 97ba: 8d 00 c1    ...            ; Stash port in TXCB[0]
+    jsr init_txcb                                                     ; 97bd: 20 4b 97     K.            ; Build the rest of the TXCB (control, dest stn/net, etc.)
+    txa                                                               ; 97c0: 8a          .              ; Move TX-buffer end pointer (returned in X) into A
+    adc #5                                                            ; 97c1: 69 05       i.             ; Add 5 bytes of slack for trailing reply data
+    sta txcb_end                                                      ; 97c3: 85 c8       ..             ; Stash the resulting end-of-buffer offset
+    plp                                                               ; 97c5: 28          (              ; Restore the original C flag from caller
+    bcs handle_disconnect                                             ; 97c6: b0 1a       ..             ; C set: this is a disconnect; jump to handle_disconnect
+    php                                                               ; 97c8: 08          .              ; Save flags again across the actual TX (TX clobbers them)
+    jsr init_tx_ptr_and_send                                          ; 97c9: 20 24 9b     $.            ; Send the four-way-handshake-initiated command packet
+    plp                                                               ; 97cc: 28          (              ; Restore caller's flags before falling into recv_and_process_reply
 ; ***************************************************************************************
 ; Receive FS reply and dispatch on status codes
 ; 
@@ -11042,21 +11042,21 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b22f referenced 4 times by &942c, &94cf, &9505, &9c2b
 .parse_access_prefix
-    lda lc030                                                         ; b22f: ad 30 c0    .0.
-    eor #&26 ; '&'                                                    ; b232: 49 26       I&
-    bne check_colon_prefix                                            ; b234: d0 46       .F
-    lda lc271                                                         ; b236: ad 71 c2    .q.
-    ora #&40 ; '@'                                                    ; b239: 09 40       .@
-    sta lc271                                                         ; b23b: 8d 71 c2    .q.
-    jsr strip_token_prefix                                            ; b23e: 20 51 b2     Q.
-    dex                                                               ; b241: ca          .
-    lda lc030                                                         ; b242: ad 30 c0    .0.
-    eor #&2e ; '.'                                                    ; b245: 49 2e       I.
-    bne check_hash_prefix                                             ; b247: d0 2c       .,
-    lda lc031                                                         ; b249: ad 31 c0    .1.
-    eor #&0d                                                          ; b24c: 49 0d       I.
-    beq error_bad_prefix                                              ; b24e: f0 29       .)
-    dex                                                               ; b250: ca          .
+    lda lc030                                                         ; b22f: ad 30 c0    .0.            ; Read first parsed-buffer character (the candidate prefix)
+    eor #&26 ; '&'                                                    ; b232: 49 26       I&             ; EOR with '&'; Z set iff the byte was '&'
+    bne check_colon_prefix                                            ; b234: d0 46       .F             ; Not '&': try ':' (and '#') instead
+    lda lc271                                                         ; b236: ad 71 c2    .q.            ; Read fs_lib_flags
+    ora #&40 ; '@'                                                    ; b239: 09 40       .@             ; Set bit 6 (URD-relative resolution flag)
+    sta lc271                                                         ; b23b: 8d 71 c2    .q.            ; Write back updated flags
+    jsr strip_token_prefix                                            ; b23e: 20 51 b2     Q.            ; Strip the '&' from the buffer (shift left + trim)
+    dex                                                               ; b241: ca          .              ; Step caller's X back to account for the consumed character
+    lda lc030                                                         ; b242: ad 30 c0    .0.            ; Re-read the (now first) buffer byte after the strip
+    eor #&2e ; '.'                                                    ; b245: 49 2e       I.             ; EOR with '.'; Z set iff '&.' pair (URD root)
+    bne check_hash_prefix                                             ; b247: d0 2c       .,             ; Not '&.': just '&' alone -- check for trailing '#'
+    lda lc031                                                         ; b249: ad 31 c0    .1.            ; It was '&.': peek the byte after the dot
+    eor #&0d                                                          ; b24c: 49 0d       I.             ; EOR with CR; Z set iff '&.<CR>' (illegal: dot needs a name to follow)
+    beq error_bad_prefix                                              ; b24e: f0 29       .)             ; '&.<CR>' is invalid: raise 'Bad filename'
+    dex                                                               ; b250: ca          .              ; Valid '&.<name>': step X back for the dot too
 ; ***************************************************************************************
 ; Strip first character from parsed token buffer
 ; 
@@ -11663,11 +11663,11 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b483 referenced 1 time by &a3b8
 .print_file_server_is
-    jsr print_inline                                                  ; b483: 20 61 92     a.
+    jsr print_inline                                                  ; b483: 20 61 92     a.            ; Print 'File' via inline string
     equs "File"                                                       ; b486: 46 69 6c... Fil
 
-    clv                                                               ; b48a: b8          .
-    bvc print_server_is_suffix                                        ; b48b: 50 0b       P.             ; ALWAYS branch
+    clv                                                               ; b48a: b8          .              ; Clear V so the BVC below is taken
+    bvc print_server_is_suffix                                        ; b48b: 50 0b       P.             ; Always taken (V was just cleared); skip the 'Printer' prologue and reach the shared ' server is ' suffix; ALWAYS branch
 
 ; ***************************************************************************************
 ; Print 'Printer server is ' prefix
@@ -11677,17 +11677,17 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b48d referenced 2 times by &b457, &b5fe
 .print_printer_server_is
-    jsr print_inline                                                  ; b48d: 20 61 92     a.
+    jsr print_inline                                                  ; b48d: 20 61 92     a.            ; Print 'Printer' via inline string
     equs "Printer"                                                    ; b490: 50 72 69... Pri
 
-    nop                                                               ; b497: ea          .
+    nop                                                               ; b497: ea          .              ; Inline-string fallthrough lands here on terminator
 ; &b498 referenced 1 time by &b48b
 .print_server_is_suffix
-    jsr print_inline                                                  ; b498: 20 61 92     a.
+    jsr print_inline                                                  ; b498: 20 61 92     a.            ; Print ' server is ' via inline string
     equs " server is "                                                ; b49b: 20 73 65...  se
 
-    nop                                                               ; b4a6: ea          .
-    rts                                                               ; b4a7: 60          `
+    nop                                                               ; b4a6: ea          .              ; Inline-string fallthrough lands here
+    rts                                                               ; b4a7: 60          `              ; Return; caller now prints the actual server (file or printer) address
 
 ; ***************************************************************************************
 ; Load printer server address from workspace

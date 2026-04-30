@@ -6628,6 +6628,69 @@ comment(0x9421, "Restore X (saved at PHX)", inline=True)
 comment(0x9422, "Restore A", inline=True)
 comment(0x9423, "Restore flags", inline=True)
 comment(0x9424, "Return; A and X preserved across the call", inline=True)
+
+# prep_send_tx_cb inline comments (12 items)
+comment(0x97B7, "Save flags so C survives the init_txcb call", inline=True)
+comment(0x97B8, "Reply port = &90 (FS reply port)", inline=True)
+comment(0x97BA, "Stash port in TXCB[0]", inline=True)
+comment(0x97BD, "Build the rest of the TXCB (control, dest stn/net, "
+        "etc.)", inline=True)
+comment(0x97C0, "Move TX-buffer end pointer (returned in X) into A",
+        inline=True)
+comment(0x97C1, "Add 5 bytes of slack for trailing reply data", inline=True)
+comment(0x97C3, "Stash the resulting end-of-buffer offset", inline=True)
+comment(0x97C5, "Restore the original C flag from caller", inline=True)
+comment(0x97C6, "C set: this is a disconnect; jump to handle_disconnect",
+        inline=True)
+comment(0x97C8, "Save flags again across the actual TX (TX clobbers them)",
+        inline=True)
+comment(0x97C9, "Send the four-way-handshake-initiated command packet",
+        inline=True)
+comment(0x97CC, "Restore caller's flags before falling into "
+        "recv_and_process_reply", inline=True)
+
+# parse_access_prefix inline comments (15 items)
+comment(0xB22F, "Read first parsed-buffer character (the candidate prefix)",
+        inline=True)
+comment(0xB232, "EOR with '&'; Z set iff the byte was '&'", inline=True)
+comment(0xB234, "Not '&': try ':' (and '#') instead", inline=True)
+comment(0xB236, "Read fs_lib_flags", inline=True)
+comment(0xB239, "Set bit 6 (URD-relative resolution flag)", inline=True)
+comment(0xB23B, "Write back updated flags", inline=True)
+comment(0xB23E, "Strip the '&' from the buffer (shift left + trim)",
+        inline=True)
+comment(0xB241, "Step caller's X back to account for the consumed "
+        "character", inline=True)
+comment(0xB242, "Re-read the (now first) buffer byte after the strip",
+        inline=True)
+comment(0xB245, "EOR with '.'; Z set iff '&.' pair (URD root)", inline=True)
+comment(0xB247, "Not '&.': just '&' alone -- check for trailing '#'",
+        inline=True)
+comment(0xB249, "It was '&.': peek the byte after the dot", inline=True)
+comment(0xB24C, "EOR with CR; Z set iff '&.<CR>' (illegal: dot needs a "
+        "name to follow)", inline=True)
+comment(0xB24E, "'&.<CR>' is invalid: raise 'Bad filename'", inline=True)
+comment(0xB250, "Valid '&.<name>': step X back for the dot too", inline=True)
+
+# print_file_server_is inline comments (3 items)
+comment(0xB483, "Print 'File' via inline string", inline=True)
+comment(0xB48A, "Clear V so the BVC below is taken", inline=True)
+comment(0xB48B, "Always taken (V was just cleared); skip the 'Printer' "
+        "prologue and reach the shared ' server is ' suffix",
+        inline=True)
+
+# print_printer_server_is inline comments (3 items)
+comment(0xB48D, "Print 'Printer' via inline string", inline=True)
+# 0xB497 is the inline-string terminator NOP that print_inline jumps
+# back to; it consumes 1 cycle and then falls into the suffix
+comment(0xB497, "Inline-string fallthrough lands here on terminator",
+        inline=True)
+
+# print_server_is_suffix inline comments (3 items)
+comment(0xB498, "Print ' server is ' via inline string", inline=True)
+comment(0xB4A6, "Inline-string fallthrough lands here", inline=True)
+comment(0xB4A7, "Return; caller now prints the actual server "
+        "(file or printer) address", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
