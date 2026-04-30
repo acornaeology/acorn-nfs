@@ -9598,6 +9598,17 @@ la0ff = sub_ca0fe+1
 ; network numbers in PB[1..2]. If the NFS is not
 ; active, sub_c8b4d returns early with zero in
 ; PB[0] (carrying over the 4.18 semantics).
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by
+; osword_13_dispatch via store_osword_pb_ptr)
+; 
+; On Exit:
+;     PB[0]: 0 if NFS not active
+;     PB[1]: FS station number
+;     PB[2]: FS network number
+;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS rather than aborting on
+; inactive FS
 ; ***************************************************************************************
 .osword_13_read_station
     jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
@@ -9620,6 +9631,15 @@ la0ff = sub_ca0fe+1
 ; body at &A9DD processes all FCBs and scans the
 ; 16-entry FCB table to reassign handles matching
 ; the new station.
+; 
+; On Entry:
+;     PB[1]: new FS station number
+;     PB[2]: new FS network number
+; 
+; On Exit:
+;     &0E00, &0E01: updated FS station/network
+;     FCB TABLE AT L1060: handles reassigned to new station
+;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS if not already active
 ; ***************************************************************************************
 .osword_13_set_station
     jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
@@ -9728,6 +9748,9 @@ la0ff = sub_ca0fe+1
 ; from the RX workspace at offset &17 into
 ; PB[1..5]. Sets carry clear to select the
 ; workspace-to-PB copy direction.
+; 
+; On Exit:
+;     PB[1..5]: 5-byte CSD path from RX workspace +&17
 ; ***************************************************************************************
 .osword_13_read_csd
     clc                                                               ; aa72: 18          .
@@ -9740,6 +9763,12 @@ la0ff = sub_ca0fe+1
 ; from PB[1..5] into the RX workspace at offset
 ; &17. Sets carry to select the PB-to-workspace
 ; copy direction.
+; 
+; On Entry:
+;     PB[1..5]: 5-byte CSD path to install
+; 
+; On Exit:
+;     RX WORKSPACE +&17..+&1B: = PB[1..5]
 ; ***************************************************************************************
 .osword_13_write_csd
     sec                                                               ; aa75: 38          8              ; Abort code = 1
@@ -9788,6 +9817,9 @@ la0ff = sub_ca0fe+1
 ; nfs_workspace_hi as the page and
 ; copy_pb_byte_to_ws with carry clear for the
 ; workspace-to-PB direction.
+; 
+; On Exit:
+;     PB[1..2]: 2 bytes from NFS workspace +1..+2
 ; ***************************************************************************************
 .osword_13_read_ws_pair
     lda nfs_workspace_hi                                              ; aa91: a5 9f       ..             ; Is it &FD? (skip marker)
@@ -9807,6 +9839,13 @@ la0ff = sub_ca0fe+1
 ; init_bridge_poll and conditionally clears
 ; the workspace byte if the bridge status
 ; changed.
+; 
+; On Entry:
+;     PB[1..2]: 2 bytes to write to NFS workspace
+; 
+; On Exit:
+;     NFS WORKSPACE +2..+3: = PB[1..2]
+;     BRIDGE POLL TABLE: refreshed via init_bridge_poll
 ; ***************************************************************************************
 .osword_13_write_ws_pair
     iny                                                               ; aa9d: c8          .              ; V=0: use nfs_workspace_hi
@@ -9837,6 +9876,9 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns the current protection mask (ws_0d68)
 ; in PB[1].
+; 
+; On Exit:
+;     PB[1]: current immediate-op protection mask (ws_0d68)
 ; ***************************************************************************************
 .osword_13_read_prot
     lda ws_0d68                                                       ; aab2: ad 68 0d    .h.            ; Wide &70: port=&00; Wide &71: skip (dest station); Wide &72: skip (dest network)
@@ -9847,6 +9889,12 @@ la0ff = sub_ca0fe+1
 ; 
 ; Sets the protection mask from PB[1] via
 ; store_prot_mask.
+; 
+; On Entry:
+;     PB[1]: new immediate-op protection mask
+; 
+; On Exit:
+;     WS_0D68, WS_0D69: updated to PB[1]
 ; ***************************************************************************************
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Wide &76: buf start ext hi
@@ -9862,6 +9910,10 @@ la0ff = sub_ca0fe+1
 ; the workspace at C271[1..3] (was l1071[1..3] in
 ; 4.18) into PB[1..3]. If the NFS is not active,
 ; returns zero in PB[0] via the sub_c8b4d prologue.
+; 
+; On Exit:
+;     PB[1..3]: 3 bytes from fs_lib_flags+1..+3 (C271+1..+3)
+;     PB[0]: 0 if NFS not active (auto-selected in 4.21)
 ; ***************************************************************************************
 .osword_13_read_handles
     jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
@@ -9883,6 +9935,13 @@ la0ff = sub_ca0fe+1
 ; with the appropriate flag bit, stores the
 ; station and FCB index, then updates flag bits
 ; across all FCB entries via update_fcb_flag_bits.
+; 
+; On Entry:
+;     PB[1..3]: three new FCB handle values (&20-&2F)
+; 
+; On Exit:
+;     FCB TABLE AT L1060: flag bits updated to reflect new handle assignments
+;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS if not active
 ; ***************************************************************************************
 .osword_13_set_handles
     jsr ensure_fs_selected                                            ; aad0: 20 4d 8b     M.            ; Spool &05: skip (buf start hi); Spool &06: buf start ext lo
@@ -10014,6 +10073,9 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns byte 1 of the current RX control
 ; block in PB[1].
+; 
+; On Exit:
+;     PB[1]: RXCB[1] (current open-receive flags)
 ; ***************************************************************************************
 .osword_13_read_rx_flag
     ldy #1                                                            ; ab68: a0 01       ..             ; A=0 for disconnect reply
@@ -10026,6 +10088,10 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns byte &7F of the current RX control
 ; block in PB[1], and stores &80 in PB[2].
+; 
+; On Exit:
+;     PB[1]: RXCB byte at &7F
+;     PB[2]: &80 (sentinel)
 ; ***************************************************************************************
 .osword_13_read_rx_port
     ldy #&7f                                                          ; ab71: a0 7f       ..             ; Restore exec flag; Store original exec flag
@@ -10041,6 +10107,9 @@ la0ff = sub_ca0fe+1
 ; OSWORD &13 sub 10: read error flag
 ; 
 ; Returns the error flag (l0e09) in PB[1].
+; 
+; On Exit:
+;     PB[1]: last error code stored in l0e09
 ; ***************************************************************************************
 .osword_13_read_error
     lda lc009                                                         ; ab7f: ad 09 c0    ...            ; Store modified flag
@@ -10068,6 +10137,9 @@ la0ff = sub_ca0fe+1
 ; OSWORD &13 sub 11: read context byte
 ; 
 ; Returns the context byte (l0d6d) in PB[1].
+; 
+; On Exit:
+;     PB[1]: current context byte from l0d6d
 ; ***************************************************************************************
 .osword_13_read_context
     lda lc008                                                         ; ab86: ad 08 c0    ...            ; Y=&2C: workspace offset for TXCB
@@ -10079,6 +10151,9 @@ la0ff = sub_ca0fe+1
 ; the printer spool buffer (&6F minus spool_buf_idx)
 ; in PB[1]. The buffer starts at offset &25 and can
 ; hold up to &4A bytes of spool data.
+; 
+; On Exit:
+;     PB[1]: free bytes in printer spool buffer (&6F minus spool_buf_idx)
 ; ***************************************************************************************
 .osword_13_read_free_bufs
     lda #&6f ; 'o'                                                    ; ab8b: a9 6f       .o             ; Store to workspace
@@ -10094,6 +10169,11 @@ la0ff = sub_ca0fe+1
 ; count (default &28 = 40), PB[3] = machine
 ; peek retry count (default &0A = 10). Setting
 ; transmit retries to 0 means retry forever.
+; 
+; On Exit:
+;     PB[1]: tx_retry_count (default &FF; 0 = retry forever)
+;     PB[2]: rx_wait_timeout (default &28 = 40)
+;     PB[3]: machine peek retry count (default &0A = 10)
 ; ***************************************************************************************
 ; &ab93 referenced 1 time by &ab9b
 .osword_13_read_ctx_3
@@ -10111,6 +10191,11 @@ la0ff = sub_ca0fe+1
 ; PB[1..3]: PB[1] = transmit retry count,
 ; PB[2] = receive poll count, PB[3] = machine
 ; peek retry count.
+; 
+; On Entry:
+;     PB[1]: new tx_retry_count (0 = retry forever)
+;     PB[2]: new rx_wait_timeout
+;     PB[3]: new machine peek retry count
 ; ***************************************************************************************
 ; &ab9e referenced 1 time by &aba6
 .osword_13_write_ctx_3
@@ -10129,6 +10214,11 @@ la0ff = sub_ca0fe+1
 ; stores 0 in PB[0]. Otherwise stores l0d72
 ; in PB[1] and conditionally updates PB[3]
 ; based on station comparison.
+; 
+; On Exit:
+;     PB[0]: 0 if no bridge present (l0d72 = &FF)
+;     PB[1]: bridge station number when present
+;     PB[3]: conditionally updated based on station match
 ; ***************************************************************************************
 .osword_13_bridge_query
     jsr init_bridge_poll                                              ; aba9: 20 e9 ab     ..            ; Is it &FD? (skip marker)
@@ -10277,6 +10367,14 @@ labc5 = compare_bridge_status+1
 ; transfer length) and adds ws_ptr_hi to compute
 ; the buffer end pointer, stored at workspace
 ; offset &20.
+; 
+; On Entry:
+;     WS_PTR_HI (WORKSPACE PTR LO/HI): OSWORD parameter block pointer
+;     PB[1]: transfer length (used to compute end pointer)
+; 
+; On Exit:
+;     NFS WORKSPACE +&1C, +&1D: PB pointer + 1 (skips the sub-function-code byte)
+;     NFS WORKSPACE +&20, +&21: PB pointer + PB[1] (end-of-buffer pointer)
 ; ***************************************************************************************
 .store_osword_pb_ptr
     ldy #&1c                                                          ; ac67: a0 1c       ..             ; A = control byte (Y); Y=1: control byte offset

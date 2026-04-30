@@ -3960,7 +3960,14 @@ subroutine(0xAC67, "store_osword_pb_ptr",
     "store_ptr_at_ws_y. Then reads PB byte 1 (the\n"
     "transfer length) and adds ws_ptr_hi to compute\n"
     "the buffer end pointer, stored at workspace\n"
-    "offset &20.")
+    "offset &20.",
+    on_entry={"ws_ptr_hi (workspace ptr lo/hi)":
+              "OSWORD parameter block pointer",
+              "PB[1]": "transfer length (used to compute end pointer)"},
+    on_exit={"NFS workspace +&1C, +&1D": "PB pointer + 1 "
+             "(skips the sub-function-code byte)",
+             "NFS workspace +&20, +&21": "PB pointer + PB[1] "
+             "(end-of-buffer pointer)"})
 subroutine(0xACAD, "store_ptr_at_ws_y",
     title="Store 16-bit pointer at workspace offset Y",
     description="Writes a 16-bit address to (nfs_workspace)+Y.\n"
@@ -3992,7 +3999,14 @@ subroutine(0xA9CC, "osword_13_read_station",
     description="Returns the current file server station and\n"
     "network numbers in PB[1..2]. If the NFS is not\n"
     "active, sub_c8b4d returns early with zero in\n"
-    "PB[0] (carrying over the 4.18 semantics).")
+    "PB[0] (carrying over the 4.18 semantics).",
+    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD parameter block pointer "
+              "(set up by osword_13_dispatch via store_osword_pb_ptr)"},
+    on_exit={"PB[0]": "0 if NFS not active",
+             "PB[1]": "FS station number",
+             "PB[2]": "FS network number",
+             "behaviour": "in 4.21, ensure_fs_selected auto-selects ANFS "
+             "rather than aborting on inactive FS"})
 # Located in 4.21_v1 at &A9DA (was &A673 in 4.18). Reached via the
 # OSWORD &13 sub-1 dispatch entry in the lo/hi table at &A9A8/&A9BA
 # (lo=D9, hi=A9 -> +1 = &A9DA). 4.18 had the FS-active check
@@ -4007,7 +4021,13 @@ subroutine(0xA9DA, "osword_13_set_station",
     "sub_c8b4d to verify the FS is active, then the\n"
     "body at &A9DD processes all FCBs and scans the\n"
     "16-entry FCB table to reassign handles matching\n"
-    "the new station.")
+    "the new station.",
+    on_entry={"PB[1]": "new FS station number",
+              "PB[2]": "new FS network number"},
+    on_exit={"&0E00, &0E01": "updated FS station/network",
+             "FCB table at l1060": "handles reassigned to new station",
+             "behaviour": "in 4.21, ensure_fs_selected auto-selects ANFS "
+             "if not already active"})
 label(0xA9DD, "osword_13_set_station_body")
 
 # Shared FS-selection prologue used by OSWORD &13 sub-handlers. 4.18
@@ -4035,35 +4055,45 @@ subroutine(0xAA72, "osword_13_read_csd",
     description="Reads 5 current selected directory path bytes\n"
     "from the RX workspace at offset &17 into\n"
     "PB[1..5]. Sets carry clear to select the\n"
-    "workspace-to-PB copy direction.")
+    "workspace-to-PB copy direction.",
+    on_exit={"PB[1..5]": "5-byte CSD path from RX workspace +&17"})
 subroutine(0xAA75, "osword_13_write_csd",
     title="OSWORD &13 sub 13: write CSD path",
     description="Writes 5 current selected directory path bytes\n"
     "from PB[1..5] into the RX workspace at offset\n"
     "&17. Sets carry to select the PB-to-workspace\n"
-    "copy direction.")
+    "copy direction.",
+    on_entry={"PB[1..5]": "5-byte CSD path to install"},
+    on_exit={"RX workspace +&17..+&1B": "= PB[1..5]"})
 subroutine(0xAA91, "osword_13_read_ws_pair",
     title="OSWORD &13 sub 2: read workspace byte pair",
     description="Reads 2 bytes from the NFS workspace page\n"
     "starting at offset 1 into PB[1..2]. Uses\n"
     "nfs_workspace_hi as the page and\n"
     "copy_pb_byte_to_ws with carry clear for the\n"
-    "workspace-to-PB direction.")
+    "workspace-to-PB direction.",
+    on_exit={"PB[1..2]": "2 bytes from NFS workspace +1..+2"})
 subroutine(0xAA9D, "osword_13_write_ws_pair",
     title="OSWORD &13 sub 3: write workspace byte pair",
     description="Writes 2 bytes from PB[1..2] into the NFS\n"
     "workspace at offsets 2 and 3. Then calls\n"
     "init_bridge_poll and conditionally clears\n"
     "the workspace byte if the bridge status\n"
-    "changed.")
+    "changed.",
+    on_entry={"PB[1..2]": "2 bytes to write to NFS workspace"},
+    on_exit={"NFS workspace +2..+3": "= PB[1..2]",
+             "bridge poll table": "refreshed via init_bridge_poll"})
 subroutine(0xAAB2, "osword_13_read_prot",
     title="OSWORD &13 sub 4: read protection mask",
     description="Returns the current protection mask (ws_0d68)\n"
-    "in PB[1].")
+    "in PB[1].",
+    on_exit={"PB[1]": "current immediate-op protection mask (ws_0d68)"})
 subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="Sets the protection mask from PB[1] via\n"
-    "store_prot_mask.")
+    "store_prot_mask.",
+    on_entry={"PB[1]": "new immediate-op protection mask"},
+    on_exit={"ws_0d68, ws_0d69": "updated to PB[1]"})
 # Located in 4.21_v1 at &AAC2 (was &A734 in 4.18). OSWORD &13 sub 6
 # from the dispatch table (lo=C1, hi=AA -> +1 = &AAC2). FS-active
 # check via sub_c8b4d in prologue.
@@ -4073,7 +4103,9 @@ subroutine(0xAAC2, "osword_13_read_handles",
     description="Returns the 3-byte FCB handle/port data from\n"
     "the workspace at C271[1..3] (was l1071[1..3] in\n"
     "4.18) into PB[1..3]. If the NFS is not active,\n"
-    "returns zero in PB[0] via the sub_c8b4d prologue.")
+    "returns zero in PB[0] via the sub_c8b4d prologue.",
+    on_exit={"PB[1..3]": "3 bytes from fs_lib_flags+1..+3 (C271+1..+3)",
+             "PB[0]": "0 if NFS not active (auto-selected in 4.21)"})
 # Located in 4.21_v1 at &AAD0 (was &A744 in 4.18). OSWORD &13 sub 7
 # from the dispatch table (lo=CF, hi=AA -> +1 = &AAD0).
 entry(0xAAD0)
@@ -4084,7 +4116,12 @@ subroutine(0xAAD0, "osword_13_set_handles",
     "indexes the channel tables. For valid handles\n"
     "with the appropriate flag bit, stores the\n"
     "station and FCB index, then updates flag bits\n"
-    "across all FCB entries via update_fcb_flag_bits.")
+    "across all FCB entries via update_fcb_flag_bits.",
+    on_entry={"PB[1..3]": "three new FCB handle values (&20-&2F)"},
+    on_exit={"FCB table at l1060": "flag bits updated to reflect new "
+             "handle assignments",
+             "behaviour": "in 4.21, ensure_fs_selected auto-selects "
+             "ANFS if not active"})
 subroutine(0xAB43, "update_fcb_flag_bits",
     title="Update FCB flag bits across all entries",
     description="Scans all 16 FCB entries in l1060. For each\n"
@@ -4098,14 +4135,18 @@ subroutine(0xAB43, "update_fcb_flag_bits",
 subroutine(0xAB68, "osword_13_read_rx_flag",
     title="OSWORD &13 sub 8: read RX control block flag",
     description="Returns byte 1 of the current RX control\n"
-    "block in PB[1].")
+    "block in PB[1].",
+    on_exit={"PB[1]": "RXCB[1] (current open-receive flags)"})
 subroutine(0xAB71, "osword_13_read_rx_port",
     title="OSWORD &13 sub 9: read RX port byte",
     description="Returns byte &7F of the current RX control\n"
-    "block in PB[1], and stores &80 in PB[2].")
+    "block in PB[1], and stores &80 in PB[2].",
+    on_exit={"PB[1]": "RXCB byte at &7F",
+             "PB[2]": "&80 (sentinel)"})
 subroutine(0xAB7F, "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
-    description="Returns the error flag (l0e09) in PB[1].")
+    description="Returns the error flag (l0e09) in PB[1].",
+    on_exit={"PB[1]": "last error code stored in l0e09"})
 subroutine(0xAB82, "store_a_to_pb_1",
     title="Store A to OSWORD parameter block at offset 1",
     description="Increments Y to 1 and stores A into the\n"
@@ -4116,13 +4157,16 @@ subroutine(0xAB82, "store_a_to_pb_1",
     on_exit={"Y": "1"})
 subroutine(0xAB86, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
-    description="Returns the context byte (l0d6d) in PB[1].")
+    description="Returns the context byte (l0d6d) in PB[1].",
+    on_exit={"PB[1]": "current context byte from l0d6d"})
 subroutine(0xAB8B, "osword_13_read_free_bufs",
     title="OSWORD &13 sub 14: read printer buffer free space",
     description="Returns the number of free bytes remaining in\n"
     "the printer spool buffer (&6F minus spool_buf_idx)\n"
     "in PB[1]. The buffer starts at offset &25 and can\n"
-    "hold up to &4A bytes of spool data.")
+    "hold up to &4A bytes of spool data.",
+    on_exit={"PB[1]": "free bytes in printer spool buffer "
+             "(&6F minus spool_buf_idx)"})
 subroutine(0xAB93, "osword_13_read_ctx_3",
     title="OSWORD &13 sub 15: read retry counts",
     description="Returns the three retry count values in\n"
@@ -4130,20 +4174,29 @@ subroutine(0xAB93, "osword_13_read_ctx_3",
     "(default &FF = 255), PB[2] = receive poll\n"
     "count (default &28 = 40), PB[3] = machine\n"
     "peek retry count (default &0A = 10). Setting\n"
-    "transmit retries to 0 means retry forever.")
+    "transmit retries to 0 means retry forever.",
+    on_exit={"PB[1]": "tx_retry_count (default &FF; 0 = retry forever)",
+             "PB[2]": "rx_wait_timeout (default &28 = 40)",
+             "PB[3]": "machine peek retry count (default &0A = 10)"})
 subroutine(0xAB9E, "osword_13_write_ctx_3",
     title="OSWORD &13 sub 16: write retry counts",
     description="Sets the three retry count values from\n"
     "PB[1..3]: PB[1] = transmit retry count,\n"
     "PB[2] = receive poll count, PB[3] = machine\n"
-    "peek retry count.")
+    "peek retry count.",
+    on_entry={"PB[1]": "new tx_retry_count (0 = retry forever)",
+              "PB[2]": "new rx_wait_timeout",
+              "PB[3]": "new machine peek retry count"})
 subroutine(0xABA9, "osword_13_bridge_query",
     title="OSWORD &13 sub 17: query bridge status",
     description="Calls init_bridge_poll, then returns the\n"
     "bridge status. If l0d72 is &FF (no bridge),\n"
     "stores 0 in PB[0]. Otherwise stores l0d72\n"
     "in PB[1] and conditionally updates PB[3]\n"
-    "based on station comparison.")
+    "based on station comparison.",
+    on_exit={"PB[0]": "0 if no bridge present (l0d72 = &FF)",
+             "PB[1]": "bridge station number when present",
+             "PB[3]": "conditionally updated based on station match"})
 subroutine(0xABE9, "init_bridge_poll",
     title="Initialise Econet bridge routing table",
     description="Checks the bridge status byte: if &FF\n"
