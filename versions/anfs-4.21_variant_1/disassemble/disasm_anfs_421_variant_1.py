@@ -6967,6 +6967,31 @@ comment(0xBEA5, "Still a space?", inline=True)
 comment(0xBEA7, "Yes: keep skipping", inline=True)
 comment(0xBEA9, "Clear C: signal success", inline=True)
 comment(0xBEAA, "Return", inline=True)
+
+# svc5_irq_check inline comments (complete the partial)
+comment(0x8028, "Save X (the ROM slot we're being called on behalf of)",
+        inline=True)
+comment(0x8029, "Save Y (the dispatch-path selector via its high bit)",
+        inline=True)
+comment(0x802A, "Read deferred-work flag at &0D65 (set by NMI when work "
+        "queued)", inline=True)
+comment(0x802D, "Non-zero: there's work to dispatch", inline=True)
+comment(0x802F, "Zero: no work; restore Y", inline=True)
+comment(0x8030, "Restore X", inline=True)
+comment(0x8031, "Return to MOS (service unclaimed)", inline=True)
+comment(0x8032, "A=&80: bit 7 -- the bit to clear in ACCCON", inline=True)
+comment(0x8034, "TRB ACCCON: clear bit 7 (release IRR mask)",
+        inline=True)
+comment(0x8037, "Zero the deferred-work flag (we're handling it now)",
+        inline=True)
+comment(0x803A, "Bring saved Y back into A so BMI can test bit 7",
+        inline=True)
+comment(0x803B, "Bit 7 of caller's Y set: dispatch via PHA/PHA/RTS table",
+        inline=True)
+comment(0x803D, "Bit 7 clear: A=&FE = Econet RX event code", inline=True)
+comment(0x803F, "Fire the event through EVNTV", inline=True)
+comment(0x8042, "Tail-jump to tx_done_exit which restores X/Y and "
+        "claims the service", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

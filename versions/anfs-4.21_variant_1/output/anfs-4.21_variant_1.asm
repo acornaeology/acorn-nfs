@@ -446,24 +446,24 @@ rom_header_byte2 = rom_header+2
 ;     Y: parameter (high bit selects dispatch path)
 ; ***************************************************************************************
 .svc5_irq_check
-    phx                                                               ; 8028: da          .
-    phy                                                               ; 8029: 5a          Z
-    ldy tx_op_type                                                    ; 802a: ac 65 0d    .e.
-    bne c8032                                                         ; 802d: d0 03       ..             ; SR set: shift register complete
-    ply                                                               ; 802f: 7a          z
-    plx                                                               ; 8030: fa          .
-    rts                                                               ; 8031: 60          `
+    phx                                                               ; 8028: da          .              ; Save X (the ROM slot we're being called on behalf of)
+    phy                                                               ; 8029: 5a          Z              ; Save Y (the dispatch-path selector via its high bit)
+    ldy tx_op_type                                                    ; 802a: ac 65 0d    .e.            ; Read deferred-work flag at &0D65 (set by NMI when work queued)
+    bne c8032                                                         ; 802d: d0 03       ..             ; SR set: shift register complete; Non-zero: there's work to dispatch
+    ply                                                               ; 802f: 7a          z              ; Zero: no work; restore Y
+    plx                                                               ; 8030: fa          .              ; Restore X
+    rts                                                               ; 8031: 60          `              ; Return to MOS (service unclaimed)
 
 ; &8032 referenced 1 time by &802d
 .c8032
-    lda #&80                                                          ; 8032: a9 80       ..             ; A=5: not our interrupt, pass on
-    trb lfe34                                                         ; 8034: 1c 34 fe    .4.
-    stz tx_op_type                                                    ; 8037: 9c 65 0d    .e.
-    tya                                                               ; 803a: 98          .              ; Copy to A for sign test
-    bmi dispatch_svc5                                                 ; 803b: 30 0b       0.             ; Bit 7 set: dispatch via table
-    lda #&fe                                                          ; 803d: a9 fe       ..             ; A=&FE: Econet receive event
-    jsr generate_event                                                ; 803f: 20 45 80     E.            ; Call event vector handler
-    jmp tx_done_exit                                                  ; 8042: 4c 82 85    L..            ; Fire event (enable: *FX52,150)
+    lda #&80                                                          ; 8032: a9 80       ..             ; A=5: not our interrupt, pass on; A=&80: bit 7 -- the bit to clear in ACCCON
+    trb lfe34                                                         ; 8034: 1c 34 fe    .4.            ; TRB ACCCON: clear bit 7 (release IRR mask)
+    stz tx_op_type                                                    ; 8037: 9c 65 0d    .e.            ; Zero the deferred-work flag (we're handling it now)
+    tya                                                               ; 803a: 98          .              ; Copy to A for sign test; Bring saved Y back into A so BMI can test bit 7
+    bmi dispatch_svc5                                                 ; 803b: 30 0b       0.             ; Bit 7 set: dispatch via table; Bit 7 of caller's Y set: dispatch via PHA/PHA/RTS table
+    lda #&fe                                                          ; 803d: a9 fe       ..             ; A=&FE: Econet receive event; Bit 7 clear: A=&FE = Econet RX event code
+    jsr generate_event                                                ; 803f: 20 45 80     E.            ; Call event vector handler; Fire the event through EVNTV
+    jmp tx_done_exit                                                  ; 8042: 4c 82 85    L..            ; Fire event (enable: *FX52,150); Tail-jump to tx_done_exit which restores X/Y and claims the service
 
 ; ***************************************************************************************
 ; Generate event via event vector
