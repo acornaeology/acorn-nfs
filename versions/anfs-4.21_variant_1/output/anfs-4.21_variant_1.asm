@@ -10014,67 +10014,67 @@ labc5 = compare_bridge_status+1
 ; frame from the saved bytes.
 ; ***************************************************************************************
 .netv_claim_release
-    ldy osword_pb_ptr_hi                                              ; ad64: a4 f1       ..
-    cmp #&81                                                          ; ad66: c9 81       ..
-    beq process_match_result                                          ; ad68: f0 13       ..
-    ldy #1                                                            ; ad6a: a0 01       ..
-    ldx #&0a                                                          ; ad6c: a2 0a       ..
-    jsr match_rx_code                                                 ; ad6e: 20 b8 ad     ..
-    beq process_match_result                                          ; ad71: f0 0a       ..
-    dey                                                               ; ad73: 88          .
-    dey                                                               ; ad74: 88          .
-    ldx #&11                                                          ; ad75: a2 11       ..
-    jsr match_rx_code                                                 ; ad77: 20 b8 ad     ..
-    beq process_match_result                                          ; ad7a: f0 01       ..
-    iny                                                               ; ad7c: c8          .
+    ldy osword_pb_ptr_hi                                              ; ad64: a4 f1       ..             ; Y = OSWORD parameter-block pointer high byte (used as an 'unrecognised' sentinel below)
+    cmp #&81                                                          ; ad66: c9 81       ..             ; Code &81? (compatibility shortcut for one specific claim type)
+    beq process_match_result                                          ; ad68: f0 13       ..             ; Yes: skip table scan, use match-result with Y already set non-zero
+    ldy #1                                                            ; ad6a: a0 01       ..             ; Y=1: state 2 marker
+    ldx #&0a                                                          ; ad6c: a2 0a       ..             ; X=&0A: scan first 11 entries (table indices 0..&0A)
+    jsr match_rx_code                                                 ; ad6e: 20 b8 ad     ..            ; Look up A in the claim code table
+    beq process_match_result                                          ; ad71: f0 0a       ..             ; Match: handle as state 2
+    dey                                                               ; ad73: 88          .              ; DEY: Y=0 (state 3 marker, two DEYs from 1)
+    dey                                                               ; ad74: 88          .              ; (second DEY)
+    ldx #&11                                                          ; ad75: a2 11       ..             ; X=&11: scan all 18 entries (state 3 also accepts the extended range)
+    jsr match_rx_code                                                 ; ad77: 20 b8 ad     ..            ; Look up A again with extended range
+    beq process_match_result                                          ; ad7a: f0 01       ..             ; Match: handle as state 3
+    iny                                                               ; ad7c: c8          .              ; INY: Y=1 again (no match found, will return below)
 ; &ad7d referenced 3 times by &ad68, &ad71, &ad7a
 .process_match_result
-    ldx #2                                                            ; ad7d: a2 02       ..
-    tya                                                               ; ad7f: 98          .
-    beq return_from_claim_release                                     ; ad80: f0 35       .5
-    php                                                               ; ad82: 08          .
-    bpl save_tube_state                                               ; ad83: 10 01       ..
-    inx                                                               ; ad85: e8          .              ; X=&03
+    ldx #2                                                            ; ad7d: a2 02       ..             ; X=2: default state code passed to tx_econet_abort
+    tya                                                               ; ad7f: 98          .              ; Move match marker (Y) into A for the BEQ test
+    beq return_from_claim_release                                     ; ad80: f0 35       .5             ; Y=0 (no match): return without action
+    php                                                               ; ad82: 08          .              ; Save flags so we can branch later on Y's sign
+    bpl save_tube_state                                               ; ad83: 10 01       ..             ; Y > 0 (state 2): skip the X bump
+    inx                                                               ; ad85: e8          .              ; State 3: X=3 (different abort code); X=&03
 ; &ad86 referenced 1 time by &ad83
 .save_tube_state
-    ldy #&dc                                                          ; ad86: a0 dc       ..
+    ldy #&dc                                                          ; ad86: a0 dc       ..             ; Y=&DC: workspace offset for tube state bytes
 ; &ad88 referenced 1 time by &ad90
 .loop_save_tube_bytes
-    lda tube_claimed_id,y                                             ; ad88: b9 15 00    ...
-    sta (nfs_workspace),y                                             ; ad8b: 91 9e       ..
-    dey                                                               ; ad8d: 88          .
-    cpy #&da                                                          ; ad8e: c0 da       ..
-    bpl loop_save_tube_bytes                                          ; ad90: 10 f6       ..
-    txa                                                               ; ad92: 8a          .
-    jsr tx_econet_abort                                               ; ad93: 20 40 ad     @.
-    plp                                                               ; ad96: 28          (
-    bpl return_from_claim_release                                     ; ad97: 10 1e       ..
-    lda #&7f                                                          ; ad99: a9 7f       ..
-    ldy #&0c                                                          ; ad9b: a0 0c       ..
-    sta (nfs_workspace),y                                             ; ad9d: 91 9e       ..
+    lda tube_claimed_id,y                                             ; ad88: b9 15 00    ...            ; Read tube_claimed_id,Y
+    sta (nfs_workspace),y                                             ; ad8b: 91 9e       ..             ; Save in workspace[&DC..]
+    dey                                                               ; ad8d: 88          .              ; Step backwards
+    cpy #&da                                                          ; ad8e: c0 da       ..             ; Done at &DA?
+    bpl loop_save_tube_bytes                                          ; ad90: 10 f6       ..             ; Loop while Y > &DA (saves &DA, &DB, &DC -- 3 bytes)
+    txa                                                               ; ad92: 8a          .              ; Move state code (2 or 3) into A for the abort
+    jsr tx_econet_abort                                               ; ad93: 20 40 ad     @.            ; Send abort with the state code
+    plp                                                               ; ad96: 28          (              ; Restore the saved flags (Y's sign)
+    bpl return_from_claim_release                                     ; ad97: 10 1e       ..             ; Y was positive (state 2): just return
+    lda #&7f                                                          ; ad99: a9 7f       ..             ; A=&7F: 'pending response' control value
+    ldy #&0c                                                          ; ad9b: a0 0c       ..             ; Y=&0C: TXCB control offset
+    sta (nfs_workspace),y                                             ; ad9d: 91 9e       ..             ; Mark TXCB as pending
 ; &ad9f referenced 1 time by &ada1
 .loop_poll_ws_status
-    lda (nfs_workspace),y                                             ; ad9f: b1 9e       ..
-    bpl loop_poll_ws_status                                           ; ada1: 10 fc       ..
-    tsx                                                               ; ada3: ba          .
-    ldy #&dd                                                          ; ada4: a0 dd       ..
-    lda (nfs_workspace),y                                             ; ada6: b1 9e       ..
-    ora #&44 ; 'D'                                                    ; ada8: 09 44       .D
-    bne store_stack_byte                                              ; adaa: d0 04       ..             ; ALWAYS branch
+    lda (nfs_workspace),y                                             ; ad9f: b1 9e       ..             ; Read TXCB status byte
+    bpl loop_poll_ws_status                                           ; ada1: 10 fc       ..             ; Bit 7 still clear: keep polling for response
+    tsx                                                               ; ada3: ba          .              ; Capture S so we can patch the caller's stack frame
+    ldy #&dd                                                          ; ada4: a0 dd       ..             ; Y=&DD: highest workspace offset for the response copy
+    lda (nfs_workspace),y                                             ; ada6: b1 9e       ..             ; Read first response byte (workspace[&DD])
+    ora #&44 ; 'D'                                                    ; ada8: 09 44       .D             ; OR with 'D' (&44): some flag bit?
+    bne store_stack_byte                                              ; adaa: d0 04       ..             ; Always taken (after ORA result is non-zero); store into stack[&106+X] then walk down; ALWAYS branch
 
 ; &adac referenced 1 time by &adb5
 .loop_restore_stack
-    dey                                                               ; adac: 88          .
-    dex                                                               ; adad: ca          .
-    lda (nfs_workspace),y                                             ; adae: b1 9e       ..
+    dey                                                               ; adac: 88          .              ; Step Y down
+    dex                                                               ; adad: ca          .              ; Step X down (stack offset)
+    lda (nfs_workspace),y                                             ; adae: b1 9e       ..             ; Read next workspace byte
 ; &adb0 referenced 1 time by &adaa
 .store_stack_byte
-    sta l0106,x                                                       ; adb0: 9d 06 01    ...            ; Get cycle number
-    cpy #&da                                                          ; adb3: c0 da       ..
-    bne loop_restore_stack                                            ; adb5: d0 f5       ..
+    sta l0106,x                                                       ; adb0: 9d 06 01    ...            ; Patch caller's stack frame at &106+X; Get cycle number
+    cpy #&da                                                          ; adb3: c0 da       ..             ; Reached &DA (lower workspace bound)?
+    bne loop_restore_stack                                            ; adb5: d0 f5       ..             ; No: keep restoring
 ; &adb7 referenced 2 times by &ad80, &ad97
 .return_from_claim_release
-    rts                                                               ; adb7: 60          `
+    rts                                                               ; adb7: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Search receive code table for match

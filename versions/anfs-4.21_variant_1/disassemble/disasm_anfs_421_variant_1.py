@@ -7198,6 +7198,74 @@ comment(0x9343, "Get parsed network number (before dot)", inline=True)
 comment(0x9345, "Network 255 is reserved", inline=True)
 comment(0x9347, "Yes: 'Bad network number'", inline=True)
 comment(0x9349, "Return; caller continues parsing the station", inline=True)
+
+# netv_claim_release inline comments (~37 items)
+comment(0xAD64, "Y = OSWORD parameter-block pointer high byte (used as "
+        "an 'unrecognised' sentinel below)", inline=True)
+comment(0xAD66, "Code &81? (compatibility shortcut for one specific "
+        "claim type)", inline=True)
+comment(0xAD68, "Yes: skip table scan, use match-result with Y already "
+        "set non-zero", inline=True)
+comment(0xAD6A, "Y=1: state 2 marker", inline=True)
+comment(0xAD6C, "X=&0A: scan first 11 entries (table indices 0..&0A)",
+        inline=True)
+comment(0xAD6E, "Look up A in the claim code table", inline=True)
+comment(0xAD71, "Match: handle as state 2", inline=True)
+comment(0xAD73, "DEY: Y=0 (state 3 marker, two DEYs from 1)", inline=True)
+comment(0xAD74, "(second DEY)", inline=True)
+comment(0xAD75, "X=&11: scan all 18 entries (state 3 also accepts "
+        "the extended range)", inline=True)
+comment(0xAD77, "Look up A again with extended range", inline=True)
+comment(0xAD7A, "Match: handle as state 3", inline=True)
+comment(0xAD7C, "INY: Y=1 again (no match found, will return below)",
+        inline=True)
+# process_match_result
+comment(0xAD7D, "X=2: default state code passed to tx_econet_abort",
+        inline=True)
+comment(0xAD7F, "Move match marker (Y) into A for the BEQ test",
+        inline=True)
+comment(0xAD80, "Y=0 (no match): return without action", inline=True)
+comment(0xAD82, "Save flags so we can branch later on Y's sign",
+        inline=True)
+comment(0xAD83, "Y > 0 (state 2): skip the X bump", inline=True)
+comment(0xAD85, "State 3: X=3 (different abort code)", inline=True)
+# save_tube_state
+comment(0xAD86, "Y=&DC: workspace offset for tube state bytes",
+        inline=True)
+comment(0xAD88, "Read tube_claimed_id,Y", inline=True)
+comment(0xAD8B, "Save in workspace[&DC..]", inline=True)
+comment(0xAD8D, "Step backwards", inline=True)
+comment(0xAD8E, "Done at &DA?", inline=True)
+comment(0xAD90, "Loop while Y > &DA (saves &DA, &DB, &DC -- 3 bytes)",
+        inline=True)
+comment(0xAD92, "Move state code (2 or 3) into A for the abort",
+        inline=True)
+comment(0xAD93, "Send abort with the state code", inline=True)
+comment(0xAD96, "Restore the saved flags (Y's sign)", inline=True)
+comment(0xAD97, "Y was positive (state 2): just return", inline=True)
+# State 3 polling path
+comment(0xAD99, "A=&7F: 'pending response' control value", inline=True)
+comment(0xAD9B, "Y=&0C: TXCB control offset", inline=True)
+comment(0xAD9D, "Mark TXCB as pending", inline=True)
+comment(0xAD9F, "Read TXCB status byte", inline=True)
+comment(0xADA1, "Bit 7 still clear: keep polling for response",
+        inline=True)
+comment(0xADA3, "Capture S so we can patch the caller's stack frame",
+        inline=True)
+comment(0xADA4, "Y=&DD: highest workspace offset for the response copy",
+        inline=True)
+comment(0xADA6, "Read first response byte (workspace[&DD])", inline=True)
+comment(0xADA8, "OR with 'D' (&44): some flag bit?", inline=True)
+comment(0xADAA, "Always taken (after ORA result is non-zero); store "
+        "into stack[&106+X] then walk down", inline=True)
+# Restore-stack loop
+comment(0xADAC, "Step Y down", inline=True)
+comment(0xADAD, "Step X down (stack offset)", inline=True)
+comment(0xADAE, "Read next workspace byte", inline=True)
+comment(0xADB0, "Patch caller's stack frame at &106+X", inline=True)
+comment(0xADB3, "Reached &DA (lower workspace bound)?", inline=True)
+comment(0xADB5, "No: keep restoring", inline=True)
+comment(0xADB7, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
