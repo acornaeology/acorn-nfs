@@ -8,3 +8,7 @@ build/
 .claude/
 versions/*/context/
 versions/*/labels/
+
+# Reference PDFs that exceed GitHub's 100 MB file-size limit -- kept
+# locally for offline lookup but not tracked.
+docs/Econet Level 3 File Server Manager's Guide.pdf
