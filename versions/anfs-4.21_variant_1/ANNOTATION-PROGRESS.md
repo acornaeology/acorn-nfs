@@ -125,10 +125,20 @@ dimensions. In priority order:
 
   Coverage history (318 subroutines):
 
-    | Date       | on_entry | on_exit | Both |
-    |------------|----------|---------|------|
-    | baseline   |   31.4%  |  16.4%  |  ?   |
-    | 2026-04-30 |   54.1%  |  41.8%  | 33.0%|
+    | Date              | on_entry | on_exit | Both |
+    |-------------------|----------|---------|------|
+    | baseline          |   31.4%  |  16.4%  |  ?   |
+    | 2026-04-30 (mid)  |   54.1%  |  41.8%  | 33.0%|
+    | 2026-04-30 (end)  |   84.0%  |  63.2%  | 62.9%|
+
+  Note: the "without on_entry" Python scan is conservative -- it
+  cannot read past triple-quoted (`"""\\`) description bodies, so
+  it under-counts the inline-string and error_inline routines that
+  use that style. True on_entry coverage is therefore higher than
+  84% by roughly 5 subs. The remaining ~50 unannotated subs are
+  almost entirely the NMI handler chain at &809B..&88E4 (entered
+  via NMI dispatch, where the entry context is the ADLC SR1/SR2
+  state plus the RX/TX buffer pointers -- needs a focused pass).
 
   Every subroutine should document:
 
@@ -141,10 +151,11 @@ dimensions. In priority order:
   Approach: walk the subroutine list ordered by call-graph depth (so
   that callers' conventions follow from callees'). For each, read the
   body, identify the calling conventions, fill in `on_entry` and
-  `on_exit`. ~146 subs still without on_entry; expect ~15 more small
-  commits.
+  `on_exit`. ~50 subs still without on_entry (mostly NMI handlers --
+  see note above); maybe 5-10 more small commits to wrap up.
 
-  Done so far this session (9 commits, ~95 subs):
+  Done so far this session (17 Phase-A commits + 2 progress
+  checkpoints):
 
     - tx_done dispatch family (5 subs): tx_done_jsr, _econet_event,
       _os_proc, _halt, _continue plus advance_rx_buffer_ptr,
@@ -183,11 +194,60 @@ dimensions. In priority order:
       push_osword_handler_addr, tx_econet_abort, osword_8_handler,
       init_ws_copy_wide, init_ws_copy_narrow, ws_copy_vclr_entry.
 
-  Side fix found and committed: strip_token_prefix's description
-  said "&0E30 buffer" (the 4.18 location); the body actually
-  operates on lc030 = &C030 (the 4.21 sideways-RAM workspace).
-  Updated to match. There are likely more such carry-over comments
-  to clean up in Phase F.
+  Side fixes found and committed:
+
+  - strip_token_prefix's description said "&0E30 buffer" (4.18
+    location); body actually operates on lc030 = &C030. Updated.
+  - parse_access_prefix's description referenced &0E30 / l1071;
+    body operates on &C030 / fs_lib_flags (&C271). Updated.
+
+  There are likely more such carry-over comments to clean up in
+  Phase F (general stale-comment cleanup).
+
+  Continued in this session (8 more commits, ~120 more subs):
+
+    - TX retry path / gsread / FS-options helpers (11 subs):
+      init_tx_ptr_and_send, send_net_packet, poll_adlc_tx_status,
+      load_text_ptr_and_parse, gsread_to_buf, print_load_exec_addrs,
+      copy_fsopts_to_zp, skip_one_and_advance5,
+      copy_workspace_to_fsopts, ensure_fs_selected, match_fs_cmd.
+    - FCB allocation / channel-and-dir checks / *Dump (12 subs):
+      init_channel_table, store_result_check_dir, check_not_dir,
+      alloc_fcb_or_error, scan_fcb_flags, find_open_fcb,
+      restore_catalog_entry, print_dump_header, close_ws_file,
+      open_file_for_read, parse_dump_range, init_dump_buffer.
+    - parse helpers / PS templates / service handlers / *HELP
+      (15 subs): commit_state_byte, serialise_palette_entry,
+      read_osbyte_to_ws_x0, read_osbyte_to_ws, parse_access_prefix,
+      mask_owner_access, ex_print_col_sep, copy_ps_data_y1c,
+      copy_ps_data, init_ps_slot_from_rx, pop_requeue_ps_scan,
+      help_net, help_utils, svc_3_autoboot, svc_8_osword,
+      svc_9_help, select_fs_via_cmd_net_fs.
+    - FS multi-step / OSGBPB / NETV-spool / bridge (19 subs):
+      init_tx_ptr_for_pass, setup_pass_txbuf, do_fs_cmd_iteration,
+      send_txcb_swap_addrs, check_and_setup_txcb,
+      format_filename_field, update_addr_from_offset9,
+      lookup_cat_entry_0, setup_transfer_workspace, write_data_block,
+      get_pb_ptr_as_index, init_bridge_poll, netv_claim_release,
+      netv_spool_check, netv_print_data, reset_spool_buf_state,
+      handle_spool_ctrl_byte, process_spool_data,
+      send_disconnect_reply.
+    - gap-fill on previously-on_exit-only subs + OSWORD &13 reads
+      (22 subs): scan_remote_keys, notify_new_fs,
+      print_newline_no_spool, init_txcb_bye, tube_claim_c3,
+      parse_cmd_arg_y0, print_file_server_is,
+      print_printer_server_is, prompt_yn, flush_and_read_char,
+      alloc_fcb_slot, init_wipe_counters, find_matching_fcb,
+      reset_spool_buf_state, copy_ps_data_y1c, plus OSWORD &13
+      read_csd, read_ws_pair, read_prot, read_handles, read_rx_flag,
+      read_rx_port, read_error, read_context, read_free_bufs,
+      read_ctx_3, bridge_query.
+    - misc service-tier (5 subs): print_version_header,
+      check_credits_easter_egg, fscv_6_shutdown, verify_ws_checksum,
+      print_station_id.
+    - ADLC init / reset / RX-listen + rom_set_nmi_vector (7 subs):
+      adlc_init, init_nmi_workspace, adlc_full_reset, adlc_rx_listen,
+      wait_idle_and_reset, save_econet_state, rom_set_nmi_vector.
 
 ## Phase B: Unidentified subroutine boundaries
 
