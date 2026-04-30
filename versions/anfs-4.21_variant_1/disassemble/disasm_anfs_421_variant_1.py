@@ -7493,6 +7493,129 @@ comment(0xBF48, "Raise; never returns", inline=True)
 comment(0xBF53, "Y=0: start of work_ae", inline=True)
 comment(0xBF55, "X=4: 4-byte add", inline=True)
 comment(0xBF57, "Clear C for the add", inline=True)
+
+# cmd_dump inline comments (~80 items)
+# Setup
+comment(0xBD41, "Open the file (handle stored in ws_page)", inline=True)
+comment(0xBD44, "X=&14: 21-byte stack buffer for dump line state",
+        inline=True)
+comment(0xBD46, "A=0: zero-fill", inline=True)
+comment(0xBD48, "Push zero", inline=True)
+comment(0xBD49, "Step counter", inline=True)
+comment(0xBD4A, "Loop while X >= 0 (21 zeros)", inline=True)
+comment(0xBD4C, "Capture stack pointer for later restore", inline=True)
+comment(0xBD4D, "Parse address range and validate against file extent",
+        inline=True)
+comment(0xBD50, "Read low nibble of starting address", inline=True)
+comment(0xBD52, "Mask high nibble (top 4 bits)", inline=True)
+comment(0xBD54, "Aligned (high nibble zero): skip the header print",
+        inline=True)
+comment(0xBD56, "Print 'Address: 00 01 ... 0F: ASCII data' header",
+        inline=True)
+# Outer line loop
+comment(0xBD59, "Test escape and abort if pressed", inline=True)
+comment(0xBD5C, "A=&FF: count counter starts here so first INC -> 0",
+        inline=True)
+comment(0xBD5E, "Save counter (-1)", inline=True)
+comment(0xBD60, "Y = file handle", inline=True)
+comment(0xBD62, "Read one byte via OSBGET (C set on EOF)", inline=True)
+comment(0xBD65, "EOF: finish off this line then exit", inline=True)
+comment(0xBD67, "Increment count counter", inline=True)
+comment(0xBD69, "Y = current count (also buffer offset)", inline=True)
+comment(0xBD6B, "Store byte in 16-byte line buffer at (work_ae)+Y",
+        inline=True)
+comment(0xBD6D, "Done all 16 bytes?", inline=True)
+comment(0xBD6F, "No: read next byte", inline=True)
+comment(0xBD71, "C clear: not EOF (clean line)", inline=True)
+# Test for early exit
+comment(0xBD72, "Save the EOF/clean flag", inline=True)
+comment(0xBD73, "Reload counter byte", inline=True)
+comment(0xBD75, "Bit 7 clear (counter is 0..&7F): bytes were read",
+        inline=True)
+comment(0xBD77, "EOF and no bytes: clean up and exit", inline=True)
+comment(0xBD79, "Restore one stack byte", inline=True)
+comment(0xBD7A, "Step", inline=True)
+comment(0xBD7B, "Loop while X >= 0 (22 pulls)", inline=True)
+comment(0xBD7D, "Tail-jump to close_ws_file", inline=True)
+# Header on 256-byte boundary
+comment(0xBD80, "Y=&10: read displayed-address byte 0", inline=True)
+comment(0xBD82, "Read low byte", inline=True)
+comment(0xBD84, "Top nibble", inline=True)
+comment(0xBD86, "Non-zero: not a 256-byte boundary, skip header",
+        inline=True)
+comment(0xBD88, "Boundary: print column header", inline=True)
+# Print 4-byte hex address
+comment(0xBD8B, "Y=&13: highest byte of 4-byte address", inline=True)
+comment(0xBD8D, "Read address byte (highest first)", inline=True)
+comment(0xBD8F, "Save it (print_hex_byte clobbers A)", inline=True)
+comment(0xBD90, "Print as 2 hex digits", inline=True)
+comment(0xBD93, "Restore A", inline=True)
+comment(0xBD94, "Step backwards", inline=True)
+comment(0xBD95, "Reached low byte (offset &0F)?", inline=True)
+comment(0xBD97, "No: continue printing", inline=True)
+# Increment 4-byte address by 16
+comment(0xBD99, "Y=&10: low byte of address", inline=True)
+comment(0xBD9A, "Clear C", inline=True)
+comment(0xBD9B, "ADC #&10: bump address by 16 bytes for next line",
+        inline=True)
+comment(0xBD9D, "Save C from the add", inline=True)
+comment(0xBD9E, "Restore C from previous step", inline=True)
+comment(0xBD9F, "Store updated address byte", inline=True)
+comment(0xBDA1, "Step Y up", inline=True)
+comment(0xBDA2, "Read next byte", inline=True)
+comment(0xBDA4, "Add carry from below", inline=True)
+comment(0xBDA6, "Save C", inline=True)
+comment(0xBDA7, "Done all 4 bytes (Y=&14)?", inline=True)
+comment(0xBDA9, "No: continue propagating", inline=True)
+comment(0xBDAB, "Restore final C", inline=True)
+comment(0xBDAC, "Print ' : ' separator before hex byte field",
+        inline=True)
+# Print 16 hex bytes
+comment(0xBDB2, "Y=0: start of buffer", inline=True)
+comment(0xBDB4, "X = byte counter (-1 initially, INC'd to 0..&0F)",
+        inline=True)
+comment(0xBDB6, "Read byte from buffer", inline=True)
+comment(0xBDB8, "Print as hex + space", inline=True)
+comment(0xBDBB, "Step buffer offset", inline=True)
+comment(0xBDBC, "Done all 16?", inline=True)
+comment(0xBDBE, "Yes: print separator before ASCII field", inline=True)
+comment(0xBDC0, "Step counter (Y was off-by-one from line read)",
+        inline=True)
+comment(0xBDC1, "Have a real byte? Print it", inline=True)
+comment(0xBDC3, "End of partial line: pad with 3 spaces", inline=True)
+comment(0xBDC4, "Print '   ' inline", inline=True)
+comment(0xBDCA, "Inline-string fallthrough", inline=True)
+comment(0xBDCB, "Restore Y", inline=True)
+comment(0xBDCC, "Continue padding the rest of the hex column",
+        inline=True)
+# Separator + ASCII field
+comment(0xBDCF, "Counter has finished -- step it once more for the "
+        "ASCII test", inline=True)
+comment(0xBDD0, "Print ': ' inline (ASCII field separator)", inline=True)
+comment(0xBDD5, "Y=0: rewind to start of line buffer", inline=True)
+comment(0xBDD7, "Skip 8 padding spaces if needed (advance_x_by_8)",
+        inline=True)
+comment(0xBDDA, "Read line buffer byte", inline=True)
+comment(0xBDDC, "Mask off bit 7 (DEL/inverted)", inline=True)
+comment(0xBDDE, "Below ' '? (control char)", inline=True)
+comment(0xBDE0, "Yes: skip to substitution", inline=True)
+comment(0xBDE2, "Substitute '.' for non-printables", inline=True)
+comment(0xBDE4, "Compare with DEL", inline=True)
+comment(0xBDE6, "Equal: also non-printable, substitute '.'", inline=True)
+comment(0xBDE8, "Print the (possibly substituted) character", inline=True)
+comment(0xBDEB, "Step Y", inline=True)
+comment(0xBDEC, "Done 16 chars?", inline=True)
+comment(0xBDEE, "Yes: end this line", inline=True)
+comment(0xBDF0, "Step counter back", inline=True)
+comment(0xBDF1, "Loop while X >= 0", inline=True)
+comment(0xBDF3, "Print newline at end of line", inline=True)
+comment(0xBDF6, "Restore EOF flag", inline=True)
+comment(0xBDF7, "EOF: tidy up and exit", inline=True)
+comment(0xBDF9, "More to dump: jump to next line", inline=True)
+comment(0xBDFC, "X=&14: balance the loop_pop_stack_buf counter",
+        inline=True)
+comment(0xBDFE, "Tail-jump to clean up the 21-byte stack buffer and "
+        "close the file", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

@@ -13445,145 +13445,145 @@ lb821 = err_net_chan_not_found+2
 ;     Y: command line offset in text pointer
 ; ***************************************************************************************
 .cmd_dump
-    jsr open_file_for_read                                            ; bd41: 20 78 bf     x.
-    ldx #&14                                                          ; bd44: a2 14       ..
-    lda #0                                                            ; bd46: a9 00       ..
+    jsr open_file_for_read                                            ; bd41: 20 78 bf     x.            ; Open the file (handle stored in ws_page)
+    ldx #&14                                                          ; bd44: a2 14       ..             ; X=&14: 21-byte stack buffer for dump line state
+    lda #0                                                            ; bd46: a9 00       ..             ; A=0: zero-fill
 ; &bd48 referenced 1 time by &bd4a
 .loop_push_zero_buf
-    pha                                                               ; bd48: 48          H
-    dex                                                               ; bd49: ca          .
-    bpl loop_push_zero_buf                                            ; bd4a: 10 fc       ..
-    tsx                                                               ; bd4c: ba          .
-    jsr init_dump_buffer                                              ; bd4d: 20 ab be     ..
-    lda (work_ae),y                                                   ; bd50: b1 ae       ..
-    and #&f0                                                          ; bd52: 29 f0       ).
-    beq loop_dump_line                                                ; bd54: f0 03       ..
-    jsr print_dump_header                                             ; bd56: 20 01 be     ..
+    pha                                                               ; bd48: 48          H              ; Push zero
+    dex                                                               ; bd49: ca          .              ; Step counter
+    bpl loop_push_zero_buf                                            ; bd4a: 10 fc       ..             ; Loop while X >= 0 (21 zeros)
+    tsx                                                               ; bd4c: ba          .              ; Capture stack pointer for later restore
+    jsr init_dump_buffer                                              ; bd4d: 20 ab be     ..            ; Parse address range and validate against file extent
+    lda (work_ae),y                                                   ; bd50: b1 ae       ..             ; Read low nibble of starting address
+    and #&f0                                                          ; bd52: 29 f0       ).             ; Mask high nibble (top 4 bits)
+    beq loop_dump_line                                                ; bd54: f0 03       ..             ; Aligned (high nibble zero): skip the header print
+    jsr print_dump_header                                             ; bd56: 20 01 be     ..            ; Print 'Address: 00 01 ... 0F: ASCII data' header
 ; &bd59 referenced 2 times by &bd54, &bdf9
 .loop_dump_line
-    jsr abort_if_escape                                               ; bd59: 20 25 bd     %.
-    lda #&ff                                                          ; bd5c: a9 ff       ..
-    sta osword_flag                                                   ; bd5e: 85 aa       ..
+    jsr abort_if_escape                                               ; bd59: 20 25 bd     %.            ; Test escape and abort if pressed
+    lda #&ff                                                          ; bd5c: a9 ff       ..             ; A=&FF: count counter starts here so first INC -> 0
+    sta osword_flag                                                   ; bd5e: 85 aa       ..             ; Save counter (-1)
 ; &bd60 referenced 1 time by &bd6f
 .loop_read_dump_byte
-    ldy ws_page                                                       ; bd60: a4 a8       ..             ; Y=file handle
-    jsr osbget                                                        ; bd62: 20 d7 ff     ..            ; Read a single byte from an open file Y
-    bcs done_check_dump_eof                                           ; bd65: b0 0b       ..
-    inc osword_flag                                                   ; bd67: e6 aa       ..
-    ldy osword_flag                                                   ; bd69: a4 aa       ..
-    sta (work_ae),y                                                   ; bd6b: 91 ae       ..
-    cpy #&0f                                                          ; bd6d: c0 0f       ..
-    bne loop_read_dump_byte                                           ; bd6f: d0 ef       ..
-    clc                                                               ; bd71: 18          .
+    ldy ws_page                                                       ; bd60: a4 a8       ..             ; Y = file handle; Y=file handle
+    jsr osbget                                                        ; bd62: 20 d7 ff     ..            ; Read one byte via OSBGET (C set on EOF); Read a single byte from an open file Y
+    bcs done_check_dump_eof                                           ; bd65: b0 0b       ..             ; EOF: finish off this line then exit
+    inc osword_flag                                                   ; bd67: e6 aa       ..             ; Increment count counter
+    ldy osword_flag                                                   ; bd69: a4 aa       ..             ; Y = current count (also buffer offset)
+    sta (work_ae),y                                                   ; bd6b: 91 ae       ..             ; Store byte in 16-byte line buffer at (work_ae)+Y
+    cpy #&0f                                                          ; bd6d: c0 0f       ..             ; Done all 16 bytes?
+    bne loop_read_dump_byte                                           ; bd6f: d0 ef       ..             ; No: read next byte
+    clc                                                               ; bd71: 18          .              ; C clear: not EOF (clean line)
 ; &bd72 referenced 1 time by &bd65
 .done_check_dump_eof
-    php                                                               ; bd72: 08          .
-    lda osword_flag                                                   ; bd73: a5 aa       ..
-    bpl done_check_boundary                                           ; bd75: 10 09       ..
-    ldx #&15                                                          ; bd77: a2 15       ..
+    php                                                               ; bd72: 08          .              ; Save the EOF/clean flag
+    lda osword_flag                                                   ; bd73: a5 aa       ..             ; Reload counter byte
+    bpl done_check_boundary                                           ; bd75: 10 09       ..             ; Bit 7 clear (counter is 0..&7F): bytes were read
+    ldx #&15                                                          ; bd77: a2 15       ..             ; EOF and no bytes: clean up and exit
 ; &bd79 referenced 2 times by &bd7b, &bdfe
 .loop_pop_stack_buf
-    pla                                                               ; bd79: 68          h
-    dex                                                               ; bd7a: ca          .
-    bpl loop_pop_stack_buf                                            ; bd7b: 10 fc       ..
-    jmp close_ws_file                                                 ; bd7d: 4c 71 bf    Lq.
+    pla                                                               ; bd79: 68          h              ; Restore one stack byte
+    dex                                                               ; bd7a: ca          .              ; Step
+    bpl loop_pop_stack_buf                                            ; bd7b: 10 fc       ..             ; Loop while X >= 0 (22 pulls)
+    jmp close_ws_file                                                 ; bd7d: 4c 71 bf    Lq.            ; Tail-jump to close_ws_file
 
 ; &bd80 referenced 1 time by &bd75
 .done_check_boundary
-    ldy #&10                                                          ; bd80: a0 10       ..
-    lda (work_ae),y                                                   ; bd82: b1 ae       ..
-    and #&f0                                                          ; bd84: 29 f0       ).
-    bne done_start_dump_addr                                          ; bd86: d0 03       ..
-    jsr print_dump_header                                             ; bd88: 20 01 be     ..
+    ldy #&10                                                          ; bd80: a0 10       ..             ; Y=&10: read displayed-address byte 0
+    lda (work_ae),y                                                   ; bd82: b1 ae       ..             ; Read low byte
+    and #&f0                                                          ; bd84: 29 f0       ).             ; Top nibble
+    bne done_start_dump_addr                                          ; bd86: d0 03       ..             ; Non-zero: not a 256-byte boundary, skip header
+    jsr print_dump_header                                             ; bd88: 20 01 be     ..            ; Boundary: print column header
 ; &bd8b referenced 1 time by &bd86
 .done_start_dump_addr
-    ldy #&13                                                          ; bd8b: a0 13       ..
+    ldy #&13                                                          ; bd8b: a0 13       ..             ; Y=&13: highest byte of 4-byte address
 ; &bd8d referenced 1 time by &bd97
 .loop_print_addr_byte
-    lda (work_ae),y                                                   ; bd8d: b1 ae       ..
-    pha                                                               ; bd8f: 48          H
-    jsr print_hex_byte                                                ; bd90: 20 36 92     6.
-    pla                                                               ; bd93: 68          h
-    dey                                                               ; bd94: 88          .
-    cpy #&0f                                                          ; bd95: c0 0f       ..
-    bne loop_print_addr_byte                                          ; bd97: d0 f4       ..
-    iny                                                               ; bd99: c8          .
-    clc                                                               ; bd9a: 18          .
-    adc #&10                                                          ; bd9b: 69 10       i.
-    php                                                               ; bd9d: 08          .
+    lda (work_ae),y                                                   ; bd8d: b1 ae       ..             ; Read address byte (highest first)
+    pha                                                               ; bd8f: 48          H              ; Save it (print_hex_byte clobbers A)
+    jsr print_hex_byte                                                ; bd90: 20 36 92     6.            ; Print as 2 hex digits
+    pla                                                               ; bd93: 68          h              ; Restore A
+    dey                                                               ; bd94: 88          .              ; Step backwards
+    cpy #&0f                                                          ; bd95: c0 0f       ..             ; Reached low byte (offset &0F)?
+    bne loop_print_addr_byte                                          ; bd97: d0 f4       ..             ; No: continue printing
+    iny                                                               ; bd99: c8          .              ; Y=&10: low byte of address
+    clc                                                               ; bd9a: 18          .              ; Clear C
+    adc #&10                                                          ; bd9b: 69 10       i.             ; ADC #&10: bump address by 16 bytes for next line
+    php                                                               ; bd9d: 08          .              ; Save C from the add
 ; &bd9e referenced 1 time by &bda9
 .loop_inc_dump_addr
-    plp                                                               ; bd9e: 28          (
-    sta (work_ae),y                                                   ; bd9f: 91 ae       ..
-    iny                                                               ; bda1: c8          .
-    lda (work_ae),y                                                   ; bda2: b1 ae       ..
-    adc #0                                                            ; bda4: 69 00       i.
-    php                                                               ; bda6: 08          .
-    cpy #&14                                                          ; bda7: c0 14       ..
-    bne loop_inc_dump_addr                                            ; bda9: d0 f3       ..
-    plp                                                               ; bdab: 28          (
-    jsr print_inline                                                  ; bdac: 20 61 92     a.
+    plp                                                               ; bd9e: 28          (              ; Restore C from previous step
+    sta (work_ae),y                                                   ; bd9f: 91 ae       ..             ; Store updated address byte
+    iny                                                               ; bda1: c8          .              ; Step Y up
+    lda (work_ae),y                                                   ; bda2: b1 ae       ..             ; Read next byte
+    adc #0                                                            ; bda4: 69 00       i.             ; Add carry from below
+    php                                                               ; bda6: 08          .              ; Save C
+    cpy #&14                                                          ; bda7: c0 14       ..             ; Done all 4 bytes (Y=&14)?
+    bne loop_inc_dump_addr                                            ; bda9: d0 f3       ..             ; No: continue propagating
+    plp                                                               ; bdab: 28          (              ; Restore final C
+    jsr print_inline                                                  ; bdac: 20 61 92     a.            ; Print ' : ' separator before hex byte field
     equs " : "                                                        ; bdaf: 20 3a 20     :
 
-    ldy #0                                                            ; bdb2: a0 00       ..
-    ldx osword_flag                                                   ; bdb4: a6 aa       ..
+    ldy #0                                                            ; bdb2: a0 00       ..             ; Y=0: start of buffer
+    ldx osword_flag                                                   ; bdb4: a6 aa       ..             ; X = byte counter (-1 initially, INC'd to 0..&0F)
 ; &bdb6 referenced 1 time by &bdc1
 .loop_print_dump_hex
-    lda (work_ae),y                                                   ; bdb6: b1 ae       ..
-    jsr print_hex_and_space                                           ; bdb8: 20 37 be     7.
+    lda (work_ae),y                                                   ; bdb6: b1 ae       ..             ; Read byte from buffer
+    jsr print_hex_and_space                                           ; bdb8: 20 37 be     7.            ; Print as hex + space
 ; &bdbb referenced 1 time by &bdcc
 .loop_next_dump_col
-    iny                                                               ; bdbb: c8          .
-    cpy #&10                                                          ; bdbc: c0 10       ..
-    beq done_print_separator                                          ; bdbe: f0 0f       ..
-    dex                                                               ; bdc0: ca          .
-    bpl loop_print_dump_hex                                           ; bdc1: 10 f3       ..
-    phy                                                               ; bdc3: 5a          Z
-    jsr print_inline                                                  ; bdc4: 20 61 92     a.
+    iny                                                               ; bdbb: c8          .              ; Step buffer offset
+    cpy #&10                                                          ; bdbc: c0 10       ..             ; Done all 16?
+    beq done_print_separator                                          ; bdbe: f0 0f       ..             ; Yes: print separator before ASCII field
+    dex                                                               ; bdc0: ca          .              ; Step counter (Y was off-by-one from line read)
+    bpl loop_print_dump_hex                                           ; bdc1: 10 f3       ..             ; Have a real byte? Print it
+    phy                                                               ; bdc3: 5a          Z              ; End of partial line: pad with 3 spaces
+    jsr print_inline                                                  ; bdc4: 20 61 92     a.            ; Print '   ' inline
     equs "   "                                                        ; bdc7: 20 20 20
 
-    nop                                                               ; bdca: ea          .
-    ply                                                               ; bdcb: 7a          z
-    jmp loop_next_dump_col                                            ; bdcc: 4c bb bd    L..
+    nop                                                               ; bdca: ea          .              ; Inline-string fallthrough
+    ply                                                               ; bdcb: 7a          z              ; Restore Y
+    jmp loop_next_dump_col                                            ; bdcc: 4c bb bd    L..            ; Continue padding the rest of the hex column
 
 ; &bdcf referenced 1 time by &bdbe
 .done_print_separator
-    dex                                                               ; bdcf: ca          .
-    jsr print_inline                                                  ; bdd0: 20 61 92     a.
+    dex                                                               ; bdcf: ca          .              ; Counter has finished -- step it once more for the ASCII test
+    jsr print_inline                                                  ; bdd0: 20 61 92     a.            ; Print ': ' inline (ASCII field separator)
     equs ": "                                                         ; bdd3: 3a 20       :
 
-    ldy #0                                                            ; bdd5: a0 00       ..
-    jsr advance_x_by_8                                                ; bdd7: 20 ba bf     ..
+    ldy #0                                                            ; bdd5: a0 00       ..             ; Y=0: rewind to start of line buffer
+    jsr advance_x_by_8                                                ; bdd7: 20 ba bf     ..            ; Skip 8 padding spaces if needed (advance_x_by_8)
 ; &bdda referenced 1 time by &bdf1
 .loop_print_dump_ascii
-    lda (work_ae),y                                                   ; bdda: b1 ae       ..
-    and #&7f                                                          ; bddc: 29 7f       ).
-    cmp #&20 ; ' '                                                    ; bdde: c9 20       .
-    bcs done_test_del                                                 ; bde0: b0 02       ..
+    lda (work_ae),y                                                   ; bdda: b1 ae       ..             ; Read line buffer byte
+    and #&7f                                                          ; bddc: 29 7f       ).             ; Mask off bit 7 (DEL/inverted)
+    cmp #&20 ; ' '                                                    ; bdde: c9 20       .              ; Below ' '? (control char)
+    bcs done_test_del                                                 ; bde0: b0 02       ..             ; Yes: skip to substitution
 ; &bde2 referenced 1 time by &bde6
 .skip_non_printable
-    lda #&2e ; '.'                                                    ; bde2: a9 2e       ..
+    lda #&2e ; '.'                                                    ; bde2: a9 2e       ..             ; Substitute '.' for non-printables
 ; &bde4 referenced 1 time by &bde0
 .done_test_del
-    cmp #&7f                                                          ; bde4: c9 7f       ..
-    beq skip_non_printable                                            ; bde6: f0 fa       ..
-    jsr osasci                                                        ; bde8: 20 e3 ff     ..            ; Write character
-    iny                                                               ; bdeb: c8          .
-    cpy #&10                                                          ; bdec: c0 10       ..
-    beq done_end_dump_line                                            ; bdee: f0 03       ..
-    dex                                                               ; bdf0: ca          .
-    bpl loop_print_dump_ascii                                         ; bdf1: 10 e7       ..
+    cmp #&7f                                                          ; bde4: c9 7f       ..             ; Compare with DEL
+    beq skip_non_printable                                            ; bde6: f0 fa       ..             ; Equal: also non-printable, substitute '.'
+    jsr osasci                                                        ; bde8: 20 e3 ff     ..            ; Print the (possibly substituted) character; Write character
+    iny                                                               ; bdeb: c8          .              ; Step Y
+    cpy #&10                                                          ; bdec: c0 10       ..             ; Done 16 chars?
+    beq done_end_dump_line                                            ; bdee: f0 03       ..             ; Yes: end this line
+    dex                                                               ; bdf0: ca          .              ; Step counter back
+    bpl loop_print_dump_ascii                                         ; bdf1: 10 e7       ..             ; Loop while X >= 0
 ; &bdf3 referenced 1 time by &bdee
 .done_end_dump_line
-    jsr osnewl                                                        ; bdf3: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    plp                                                               ; bdf6: 28          (
-    bcs done_dump_eof                                                 ; bdf7: b0 03       ..
-    jmp loop_dump_line                                                ; bdf9: 4c 59 bd    LY.
+    jsr osnewl                                                        ; bdf3: 20 e7 ff     ..            ; Print newline at end of line; Write newline (characters 10 and 13)
+    plp                                                               ; bdf6: 28          (              ; Restore EOF flag
+    bcs done_dump_eof                                                 ; bdf7: b0 03       ..             ; EOF: tidy up and exit
+    jmp loop_dump_line                                                ; bdf9: 4c 59 bd    LY.            ; More to dump: jump to next line
 
 ; &bdfc referenced 1 time by &bdf7
 .done_dump_eof
-    ldx #&14                                                          ; bdfc: a2 14       ..
-    jmp loop_pop_stack_buf                                            ; bdfe: 4c 79 bd    Ly.
+    ldx #&14                                                          ; bdfc: a2 14       ..             ; X=&14: balance the loop_pop_stack_buf counter
+    jmp loop_pop_stack_buf                                            ; bdfe: 4c 79 bd    Ly.            ; Tail-jump to clean up the 21-byte stack buffer and close the file
 
 ; ***************************************************************************************
 ; Print hex dump column header line
