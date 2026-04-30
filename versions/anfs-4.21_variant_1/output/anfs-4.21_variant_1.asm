@@ -10918,7 +10918,7 @@ labc5 = compare_bridge_status+1
     jsr sub_c928a                                                     ; b158: 20 8a 92     ..            ; Print '('; Decrement outer counter
     plp                                                               ; b15b: 28          (              ; Outer loop: ~1000 delay cycles
     lda lc113                                                         ; b15c: ad 13 c1    ...            ; Return; Advance Y
-    jsr sub_cb303                                                     ; b15f: 20 03 b3     ..            ; Get buffer page; Store in workspace
+    jsr print_decimal_3dig_no_spool                                   ; b15f: 20 03 b3     ..            ; Get buffer page; Store in workspace
     jsr sub_c928a                                                     ; b162: 20 8a 92     ..            ; A=&FF
     and #&20 ; ' '                                                    ; b165: 29 20       )              ; Advance Y; Write byte to workspace
     jsr l2020                                                         ; b167: 20 20 20                   ; Advance Y; Write byte to workspace
@@ -11257,48 +11257,55 @@ labc5 = compare_bridge_status+1
     bne loop_scan_entries                                             ; b2fd: d0 de       ..
     eor zp_0078                                                       ; b2ff: 45 78       Ex
     adc zp_0063                                                       ; b301: 65 63       ec
-; &b303 referenced 1 time by &b15f
-.sub_cb303
-    tay                                                               ; b303: a8          .
-    lda #&64 ; 'd'                                                    ; b304: a9 64       .d
-    jsr sub_cb310                                                     ; b306: 20 10 b3     ..
-    lda #&0a                                                          ; b309: a9 0a       ..
-    jsr sub_cb310                                                     ; b30b: 20 10 b3     ..
-    lda #1                                                            ; b30e: a9 01       ..
-; &b310 referenced 2 times by &b306, &b30b
-.sub_cb310
-    sta fs_error_ptr                                                  ; b310: 85 b8       ..
 ; ***************************************************************************************
-; *Remove command handler
+; Print 3-digit decimal via *SPOOL-bypassing print
 ; 
-; Like *Delete but suppresses the 'Not found' error,
-; making it suitable for use in programs where a missing
-; file should not cause an unexpected error. Validates
-; that exactly one argument is present — raises 'Syntax'
-; if extra arguments follow. Parses the filename via
-; parse_filename_arg, copies it to the TX buffer, and
-; sends FS command code &14 with the V flag set via BIT
-; for save_net_tx_cb_vset dispatch.
+; As print_decimal_3dig (&B32A) but each digit is emitted via print_char_no_spool,
+; which closes the *SPOOL handle around OSASCI so the digit doesn't appear in any
+; active capture. Always prints all three digits (no leading-zero suppression).
 ; 
 ; On Entry:
-;     Y: command line offset in text pointer
+;     A: value 0-255
 ; ***************************************************************************************
-.cmd_remove
-    tya                                                               ; b312: 98          .              ; Save command line offset
-    ldx #&2f ; '/'                                                    ; b313: a2 2f       ./
-    sec                                                               ; b315: 38          8
+; &b303 referenced 1 time by &b15f
+.print_decimal_3dig_no_spool
+    tay                                                               ; b303: a8          .              ; Y = value to convert (digits read off via successive divisions)
+    lda #&64 ; 'd'                                                    ; b304: a9 64       .d             ; Divisor for hundreds digit
+    jsr print_decimal_digit_no_spool                                  ; b306: 20 10 b3     ..            ; Print hundreds digit
+    lda #&0a                                                          ; b309: a9 0a       ..             ; Divisor for tens digit
+    jsr print_decimal_digit_no_spool                                  ; b30b: 20 10 b3     ..            ; Print tens digit
+    lda #1                                                            ; b30e: a9 01       ..             ; Divisor for units digit (always print at least the units to avoid the empty 0 case)
+; ***************************************************************************************
+; Print one decimal digit, *SPOOL-bypassing
+; 
+; As print_decimal_digit (&B338) but emits via print_char_no_spool. fs_error_ptr is
+; used as scratch storage for the divisor and is preserved across the print.
+; 
+; On Entry:
+;     A: divisor (100, 10, or 1)
+;     Y: value to divide
+; 
+; On Exit:
+;     Y: remainder after division
+; ***************************************************************************************
+; &b310 referenced 2 times by &b306, &b30b
+.print_decimal_digit_no_spool
+    sta fs_error_ptr                                                  ; b310: 85 b8       ..             ; Stash divisor in fs_error_ptr (the SBC target below)
+    tya                                                               ; b312: 98          .              ; Convert remaining value to A
+    ldx #&2f ; '/'                                                    ; b313: a2 2f       ./             ; X = '0'-1: digit counter, INX in the loop steps to '0' first
+    sec                                                               ; b315: 38          8              ; Set carry for SBC
 ; &b316 referenced 1 time by &b319
 .loop_cb316
-    inx                                                               ; b316: e8          .
-    sbc fs_error_ptr                                                  ; b317: e5 b8       ..
-    bcs loop_cb316                                                    ; b319: b0 fb       ..
-    adc fs_error_ptr                                                  ; b31b: 65 b8       e.
-    tay                                                               ; b31d: a8          .
-    txa                                                               ; b31e: 8a          .
-    ldx fs_error_ptr                                                  ; b31f: a6 b8       ..
-    jsr print_char_no_spool                                           ; b321: 20 fb 91     ..            ; Skip to check for extra arguments
-    stx fs_error_ptr                                                  ; b324: 86 b8       ..
-    rts                                                               ; b326: 60          `
+    inx                                                               ; b316: e8          .              ; Step quotient digit
+    sbc fs_error_ptr                                                  ; b317: e5 b8       ..             ; Subtract divisor
+    bcs loop_cb316                                                    ; b319: b0 fb       ..             ; No underflow: keep dividing
+    adc fs_error_ptr                                                  ; b31b: 65 b8       e.             ; Underflow: add divisor back to recover the remainder
+    tay                                                               ; b31d: a8          .              ; Remainder -> Y, ready for the next digit
+    txa                                                               ; b31e: 8a          .              ; Move digit ('0'-'9') from X into A for printing
+    ldx fs_error_ptr                                                  ; b31f: a6 b8       ..             ; Save divisor in X across the print (print_char_no_spool preserves X is not guaranteed)
+    jsr print_char_no_spool                                           ; b321: 20 fb 91     ..            ; Print the digit, bypassing *SPOOL; Skip to check for extra arguments
+    stx fs_error_ptr                                                  ; b324: 86 b8       ..             ; Restore divisor from X
+    rts                                                               ; b326: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Print decimal number with leading zero suppression
@@ -14416,6 +14423,7 @@ save pydis_start, pydis_end
 ;     print_cmd_table_loop:           2
 ;     print_decimal_3dig:             2
 ;     print_decimal_digit:            2
+;     print_decimal_digit_no_spool:   2
 ;     print_dump_header:              2
 ;     print_hex_and_space:            2
 ;     print_hex_byte:                 2
@@ -14474,7 +14482,6 @@ save pydis_start, pydis_end
 ;     store_stn_flags_restore:        2
 ;     store_tx_error:                 2
 ;     sub_c988f:                      2
-;     sub_cb310:                      2
 ;     tail_update_catalogue:          2
 ;     terminate_buf:                  2
 ;     try_nfs_port_list:              2
@@ -15047,6 +15054,7 @@ save pydis_start, pydis_end
 ;     print_byte_no_spool:            1
 ;     print_chars_from_buf:           1
 ;     print_current_fs:               1
+;     print_decimal_3dig_no_spool:    1
 ;     print_file_server_is:           1
 ;     print_fs_info_newline:          1
 ;     print_hex_nybble:               1
@@ -15241,7 +15249,6 @@ save pydis_start, pydis_end
 ;     sub_c924c:                      1
 ;     sub_c9255:                      1
 ;     sub_c9612:                      1
-;     sub_cb303:                      1
 ;     subst_rx_page_byte:             1
 ;     subtract_ws_byte:               1
 ;     suffix_not_listening:           1
@@ -15505,8 +15512,6 @@ save pydis_start, pydis_end
 ;     sub_c9612
 ;     sub_c988f
 ;     sub_ca0fe
-;     sub_cb303
-;     sub_cb310
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes

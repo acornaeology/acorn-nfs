@@ -6750,6 +6750,37 @@ comment(0xB2EC, "Save the new column index", inline=True)
 comment(0xB2EE, "Wrapped to 0: end of row, print newline", inline=True)
 comment(0xB2F0, "Mid-row: print 2-space column separator via inline",
         inline=True)
+
+# print_decimal_3dig inline comments (5 items)
+comment(0xB303, "Y = value to convert (digits read off via successive "
+        "divisions)", inline=True)
+comment(0xB304, "Divisor for hundreds digit", inline=True)
+comment(0xB306, "Print hundreds digit", inline=True)
+comment(0xB309, "Divisor for tens digit", inline=True)
+comment(0xB30B, "Print tens digit", inline=True)
+comment(0xB30E, "Divisor for units digit (always print at least the "
+        "units to avoid the empty 0 case)", inline=True)
+
+# print_decimal_digit inline comments (the body at &B310-&B326)
+comment(0xB310, "Stash divisor in fs_error_ptr (the SBC target below)",
+        inline=True)
+# &B312 was previously misnamed cmd_remove; it's actually TYA
+comment(0xB313, "X = '0'-1: digit counter, INX in the loop steps to '0' "
+        "first", inline=True)
+comment(0xB315, "Set carry for SBC", inline=True)
+comment(0xB316, "Step quotient digit", inline=True)
+comment(0xB317, "Subtract divisor", inline=True)
+comment(0xB319, "No underflow: keep dividing", inline=True)
+comment(0xB31B, "Underflow: add divisor back to recover the remainder",
+        inline=True)
+comment(0xB31D, "Remainder -> Y, ready for the next digit", inline=True)
+comment(0xB31E, "Move digit ('0'-'9') from X into A for printing",
+        inline=True)
+comment(0xB31F, "Save divisor in X across the print (print_char_no_spool "
+        "preserves X is not guaranteed)", inline=True)
+comment(0xB321, "Print the digit, bypassing *SPOOL", inline=True)
+comment(0xB324, "Restore divisor from X", inline=True)
+comment(0xB326, "Return", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
@@ -8080,7 +8111,10 @@ label(0xA398, "cmd_fs")
 label(0xB0F2, "cmd_lcat")
 label(0xB0F8, "cmd_lex")
 label(0x8DD5, "cmd_pass")
-label(0xB312, "cmd_remove")
+# &B312 in 4.21_v1 is print_decimal_digit's body, not cmd_remove
+# (4.18's cmd_remove was at a different address that didn't carry
+# over). Real cmd_remove location pending fingerprint.
+# UNMAPPED: label(0xB312, "cmd_remove")
 label(0x94C5, "cmd_rename")
 label(0xB6F3, "cmd_wipe")
 
@@ -8197,17 +8231,32 @@ subroutine(0x8DD5, "cmd_pass",
     "from the colon position. Sends the completed\n"
     "password to the file server via save_net_tx_cb and\n"
     "branches to send_cmd_and_dispatch for the reply.")
-subroutine(0xB312, "cmd_remove",
-    title="*Remove command handler",
-    description="Like *Delete but suppresses the 'Not found' error,\n"
-    "making it suitable for use in programs where a missing\n"
-    "file should not cause an unexpected error. Validates\n"
-    "that exactly one argument is present — raises 'Syntax'\n"
-    "if extra arguments follow. Parses the filename via\n"
-    "parse_filename_arg, copies it to the TX buffer, and\n"
-    "sends FS command code &14 with the V flag set via BIT\n"
-    "for save_net_tx_cb_vset dispatch.",
-    on_entry={"y": "command line offset in text pointer"})
+# UNMAPPED: subroutine(0xB312, "cmd_remove", ...)
+# That address is print_decimal_digit's body in 4.21_v1, not cmd_remove.
+# The actual *Remove handler lives at a yet-to-be-located address;
+# fingerprinting deferred to a later session.
+
+# 4.21 has TWO copies of the print-decimal pair: an OSASCI version at
+# &B32A/&B338 (the LCS-mapped 4.18 carry-over with leading-zero
+# suppression), and a no-spool variant at &B303/&B310 that uses
+# print_char_no_spool instead so status output bypasses any open
+# *SPOOL file. The no-spool variant has no leading-zero suppression.
+subroutine(0xB303, "print_decimal_3dig_no_spool",
+    title="Print 3-digit decimal via *SPOOL-bypassing print",
+    description="As print_decimal_3dig (&B32A) but each digit is "
+    "emitted via print_char_no_spool, which closes the *SPOOL "
+    "handle around OSASCI so the digit doesn't appear in any "
+    "active capture. Always prints all three digits (no "
+    "leading-zero suppression).",
+    on_entry={"a": "value 0-255"})
+subroutine(0xB310, "print_decimal_digit_no_spool",
+    title="Print one decimal digit, *SPOOL-bypassing",
+    description="As print_decimal_digit (&B338) but emits via "
+    "print_char_no_spool. fs_error_ptr is used as scratch "
+    "storage for the divisor and is preserved across the print.",
+    on_entry={"a": "divisor (100, 10, or 1)",
+              "y": "value to divide"},
+    on_exit={"y": "remainder after division"})
 subroutine(0x94C5, "cmd_rename",
     title="*Rename command handler",
     description="Parses two space-separated filenames from the\n"
@@ -8977,7 +9026,7 @@ comment(0xA767, "Boot command address high (&A3xx)", inline=True)
 comment(0xA769, "Execute boot command via OSCLI", inline=True)
 
 # cmd_remove (&AF46) — *Remove: delete file from server
-comment(0xB312, "Save command line offset", inline=True)
+comment(0xB312, "Convert remaining value to A", inline=True)
 # UNMAPPED: comment(0xAF67, "Push onto stack", inline=True)
 comment(0xB321, "Skip to check for extra arguments", inline=True)
 # UNMAPPED: comment(0xAF6B, "End of line?", inline=True)
