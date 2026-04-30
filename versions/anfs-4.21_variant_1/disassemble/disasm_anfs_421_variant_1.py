@@ -4317,13 +4317,20 @@ subroutine(0xB22A, "parse_cmd_arg_y0",
     title="Parse command argument from offset zero",
     description="Sets Y=0 and falls through to parse_filename_arg\n"
     "for GSREAD-based filename parsing with prefix\n"
-    "character handling.")
+    "character handling.",
+    on_exit={"y": "advanced past the parsed argument",
+             "&C030 (parse buffer)": "the parsed (and prefix-stripped) "
+             "filename, CR-terminated"})
 subroutine(0xB22C, "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
     description="Calls gsread_to_buf to read the command line\n"
     "string into the &0E30 buffer, then falls through\n"
     "to parse_access_prefix to process '&', ':', '.',\n"
-    "and '#' prefix characters.")
+    "and '#' prefix characters.",
+    on_entry={"y": "current command-line offset (consumed by gsread_to_buf)"},
+    on_exit={"y": "advanced past the parsed argument",
+             "&C030 (parse buffer)": "the parsed filename, CR-terminated; "
+             "fs_lib_flags updated for '&'/':' prefix handling"})
 subroutine(0xB22F, "parse_access_prefix",
     title="Parse access and FS selection prefix characters",
     description="Examines the first character(s) of the parsed\n"
@@ -4335,23 +4342,37 @@ subroutine(0xB22F, "parse_access_prefix",
     "like '&.' followed by CR.")
 subroutine(0xB251, "strip_token_prefix",
     title="Strip first character from parsed token buffer",
-    description="Shifts all bytes in the &0E30 buffer left by\n"
+    description="Shifts all bytes in the &C030 buffer left by\n"
     "one position (removing the first character),\n"
     "then trims any trailing spaces by replacing\n"
     "them with CR terminators. Used after consuming\n"
-    "a prefix character like '&' or ':'.")
+    "a prefix character like '&' or ':'.",
+    on_entry={"&C030 (parse buffer)":
+              "first byte will be discarded; buffer is CR-terminated"},
+    on_exit={"x": "preserved (saved/restored via PHA/PLA)",
+             "a": "clobbered",
+             "&C030 (parse buffer)": "shifted left by one byte; "
+             "any trailing spaces replaced by CR"})
 subroutine(0xB29F, "copy_arg_to_buf_x0",
     title="Copy argument to TX buffer from offset zero",
     description="Sets X=0 and falls through to copy_arg_to_buf\n"
     "then copy_arg_validated. Provides the simplest\n"
     "entry point for copying a single parsed argument\n"
-    "into the TX buffer at position zero.")
+    "into the TX buffer at position zero.",
+    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer (already snapshot)"},
+    on_exit={"x": "TX buffer offset just past the copied argument",
+             "y": "advanced past the source argument",
+             "TX buffer at &C105+0..": "argument bytes (CR-terminated)"})
 subroutine(0xB2A1, "copy_arg_to_buf",
     title="Copy argument to TX buffer with Y=0",
     description="Sets Y=0 and falls through to copy_arg_validated\n"
     "with carry set, enabling '&' character validation.\n"
     "X must already contain the destination offset\n"
-    "within the TX buffer.")
+    "within the TX buffer.",
+    on_entry={"x": "destination offset within the TX buffer"},
+    on_exit={"x": "TX buffer offset just past the copied argument",
+             "y": "advanced past the source argument"})
 subroutine(0xB2A3, "copy_arg_validated",
     title="Copy command line characters to TX buffer",
     description="Copies characters from (fs_crc_lo)+Y to l0f05+X\n"
@@ -4464,11 +4485,15 @@ subroutine(0xB483, "print_file_server_is",
     title="Print 'File server ' prefix",
     description="Uses print_inline to output 'File' then falls through\n"
     "to the shared ' server is ' suffix at\n"
-    "print_printer_server_is.")
+    "print_printer_server_is.",
+    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
+             "side effect": "writes 'File server is ' to current output stream"})
 subroutine(0xB48D, "print_printer_server_is",
     title="Print 'Printer server is ' prefix",
     description="Uses print_inline to output the full label\n"
-    "'Printer server is ' with trailing space.")
+    "'Printer server is ' with trailing space.",
+    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
+             "side effect": "writes 'Printer server is ' to current output stream"})
 subroutine(0xB4A8, "load_ps_server_addr",
     title="Load printer server address from workspace",
     description="Reads the station and network bytes from workspace\n"
@@ -4498,7 +4523,13 @@ subroutine(0xB556, "print_station_addr",
     description="If the network number is zero, prints only the\n"
     "station number. Otherwise prints network.station\n"
     "separated by a dot. V flag controls padding with\n"
-    "leading spaces for column alignment.")
+    "leading spaces for column alignment.",
+    on_entry={"fs_work_6 (&B6)": "network number (0 = local, no 'NN.' printed)",
+              "fs_work_7 (&B7)": "station number (printed as 3-digit decimal)",
+              "v flag": "set = no leading-space padding; "
+              "clear = pad to align in a column"},
+    on_exit={"a, x, y": "clobbered (print_decimal_3dig and OSASCI)",
+             "side effect": "writes 'NNN.SSS' or 'SSS' to current output"})
 
 # --- cmd_pollps subroutines ---
 
@@ -4766,18 +4797,30 @@ subroutine(0xBFBA, "advance_x_by_8",
     title="Advance X by 8 via nested JSR chain",
     description="Calls advance_x_by_4 (which itself JSRs inx4 then\n"
     "falls through to inx4), then falls through to inx4\n"
-    "for a total of 4+4=8 INX operations.")
+    "for a total of 4+4=8 INX operations.",
+    on_entry={"x": "value to advance"},
+    on_exit={"x": "input + 8",
+             "a, y": "preserved",
+             "n, z flags": "reflect new X (last INX)"})
 subroutine(0xBFBD, "advance_x_by_4",
     title="Advance X by 4 via JSR and fall-through",
     description="JSRs to inx4 for 4 INX operations, then falls\n"
     "through to inx4 for another 4 — but when called\n"
     "directly (not from advance_x_by_8), the caller\n"
-    "returns after the first inx4, yielding X+4.")
+    "returns after the first inx4, yielding X+4.",
+    on_entry={"x": "value to advance"},
+    on_exit={"x": "input + 4 (+8 when reached via fall-through from "
+             "advance_x_by_8)",
+             "a, y": "preserved"})
 subroutine(0xBFC0, "inx4",
     title="Increment X four times",
     description="Four consecutive INX instructions. Used as a\n"
     "building block by advance_x_by_4 and\n"
-    "advance_x_by_8 via JSR/fall-through chaining.")
+    "advance_x_by_8 via JSR/fall-through chaining.",
+    on_entry={"x": "value to advance"},
+    on_exit={"x": "input + 4",
+             "a, y": "preserved",
+             "n, z flags": "reflect new X"})
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x049B, "send_next_rom_page")
 
 # ============================================================

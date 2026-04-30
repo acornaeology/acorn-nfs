@@ -11451,6 +11451,10 @@ labc5 = compare_bridge_status+1
 ; Sets Y=0 and falls through to parse_filename_arg
 ; for GSREAD-based filename parsing with prefix
 ; character handling.
+; 
+; On Exit:
+;     Y: advanced past the parsed argument
+;     &C030 (PARSE BUFFER): the parsed (and prefix-stripped) filename, CR-terminated
 ; ***************************************************************************************
 ; &b22a referenced 2 times by &9fe6, &a4fc
 .parse_cmd_arg_y0
@@ -11462,6 +11466,14 @@ labc5 = compare_bridge_status+1
 ; string into the &0E30 buffer, then falls through
 ; to parse_access_prefix to process '&', ':', '.',
 ; and '#' prefix characters.
+; 
+; On Entry:
+;     Y: current command-line offset (consumed by gsread_to_buf)
+; 
+; On Exit:
+;     Y: advanced past the parsed argument
+;     &C030 (PARSE BUFFER): the parsed filename, CR-terminated; fs_lib_flags updated
+; for '&'/':' prefix handling
 ; ***************************************************************************************
 ; &b22c referenced 2 times by &b13a, &b6fd
 .parse_filename_arg
@@ -11497,11 +11509,20 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; Strip first character from parsed token buffer
 ; 
-; Shifts all bytes in the &0E30 buffer left by
+; Shifts all bytes in the &C030 buffer left by
 ; one position (removing the first character),
 ; then trims any trailing spaces by replacing
 ; them with CR terminators. Used after consuming
 ; a prefix character like '&' or ':'.
+; 
+; On Entry:
+;     &C030 (PARSE BUFFER): first byte will be discarded; buffer is CR-terminated
+; 
+; On Exit:
+;     X: preserved (saved/restored via PHA/PLA)
+;     A: clobbered
+;     &C030 (PARSE BUFFER): shifted left by one byte; any trailing spaces replaced by
+; CR
 ; ***************************************************************************************
 ; &b251 referenced 5 times by &9459, &94ee, &94f3, &b23e, &b293
 .strip_token_prefix
@@ -11571,6 +11592,14 @@ labc5 = compare_bridge_status+1
 ; then copy_arg_validated. Provides the simplest
 ; entry point for copying a single parsed argument
 ; into the TX buffer at position zero.
+; 
+; On Entry:
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (already snapshot)
+; 
+; On Exit:
+;     X: TX buffer offset just past the copied argument
+;     Y: advanced past the source argument
+;     TX BUFFER AT &C105+0..: argument bytes (CR-terminated)
 ; ***************************************************************************************
 ; &b29f referenced 5 times by &8dd5, &8e38, &9c39, &9e29, &a5df
 .copy_arg_to_buf_x0
@@ -11582,6 +11611,13 @@ labc5 = compare_bridge_status+1
 ; with carry set, enabling '&' character validation.
 ; X must already contain the destination offset
 ; within the TX buffer.
+; 
+; On Entry:
+;     X: destination offset within the TX buffer
+; 
+; On Exit:
+;     X: TX buffer offset just past the copied argument
+;     Y: advanced past the source argument
 ; ***************************************************************************************
 ; &b2a1 referenced 8 times by &9ceb, &9e22, &9e45, &9feb, &a501, &a52e, &b13f, &b712
 .copy_arg_to_buf
@@ -12104,6 +12140,10 @@ labc5 = compare_bridge_status+1
 ; Uses print_inline to output 'File' then falls through
 ; to the shared ' server is ' suffix at
 ; print_printer_server_is.
+; 
+; On Exit:
+;     A, X, Y: clobbered (OSASCI via print_inline)
+;     SIDE EFFECT: writes 'File server is ' to current output stream
 ; ***************************************************************************************
 ; &b483 referenced 1 time by &a3b8
 .print_file_server_is
@@ -12118,6 +12158,10 @@ labc5 = compare_bridge_status+1
 ; 
 ; Uses print_inline to output the full label
 ; 'Printer server is ' with trailing space.
+; 
+; On Exit:
+;     A, X, Y: clobbered (OSASCI via print_inline)
+;     SIDE EFFECT: writes 'Printer server is ' to current output stream
 ; ***************************************************************************************
 ; &b48d referenced 2 times by &b457, &b5fe
 .print_printer_server_is
@@ -12316,6 +12360,15 @@ lb4fd = write_ps_slot_hi_link+1
 ; station number. Otherwise prints network.station
 ; separated by a dot. V flag controls padding with
 ; leading spaces for column alignment.
+; 
+; On Entry:
+;     FS_WORK_6 (&B6): network number (0 = local, no 'NN.' printed)
+;     FS_WORK_7 (&B7): station number (printed as 3-digit decimal)
+;     V FLAG: set = no leading-space padding; clear = pad to align in a column
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_decimal_3dig and OSASCI)
+;     SIDE EFFECT: writes 'NNN.SSS' or 'SSS' to current output
 ; ***************************************************************************************
 ; &b556 referenced 4 times by &a3be, &b607, &b63f, &b697
 .print_station_addr
@@ -14384,6 +14437,14 @@ lb821 = err_net_chan_not_found+2
 ; Calls advance_x_by_4 (which itself JSRs inx4 then
 ; falls through to inx4), then falls through to inx4
 ; for a total of 4+4=8 INX operations.
+; 
+; On Entry:
+;     X: value to advance
+; 
+; On Exit:
+;     X: input + 8
+;     A, Y: preserved
+;     N, Z FLAGS: reflect new X (last INX)
 ; ***************************************************************************************
 ; &bfba referenced 3 times by &9eda, &ac32, &bdd7
 .advance_x_by_8
@@ -14395,6 +14456,13 @@ lb821 = err_net_chan_not_found+2
 ; through to inx4 for another 4 — but when called
 ; directly (not from advance_x_by_8), the caller
 ; returns after the first inx4, yielding X+4.
+; 
+; On Entry:
+;     X: value to advance
+; 
+; On Exit:
+;     X: input + 4 (+8 when reached via fall-through from advance_x_by_8)
+;     A, Y: preserved
 ; ***************************************************************************************
 ; &bfbd referenced 1 time by &bfba
 .advance_x_by_4
@@ -14405,6 +14473,14 @@ lb821 = err_net_chan_not_found+2
 ; Four consecutive INX instructions. Used as a
 ; building block by advance_x_by_4 and
 ; advance_x_by_8 via JSR/fall-through chaining.
+; 
+; On Entry:
+;     X: value to advance
+; 
+; On Exit:
+;     X: input + 4
+;     A, Y: preserved
+;     N, Z FLAGS: reflect new X
 ; ***************************************************************************************
 ; &bfc0 referenced 1 time by &bfbd
 .inx4
