@@ -3080,8 +3080,12 @@ l89c9 = reset_enter_listen+2
 ; iterative help topic matching. Preserves A via
 ; PHA/PLA.
 ; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): the OS text pointer to snapshot
+; 
 ; On Exit:
 ;     A: preserved
+;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): snapshot of os_text_ptr at call time
 ; ***************************************************************************************
 ; &8b18 referenced 3 times by &8c46, &8c71, &a603
 .save_text_ptr
@@ -3515,6 +3519,9 @@ l89c9 = reset_enter_listen+2
 ; for caller convenience. The 4.21 version also
 ; OR's bit 7 of the slot flag back into A on exit
 ; (ADLC-absent flag) — see &8CB7-&8CB9.
+; 
+; On Entry:
+;     ROMSEL_COPY (&F4): current ROM slot (used as table index)
 ; 
 ; On Exit:
 ;     A: workspace page number (with bit 7 = ADLC-absent flag)
@@ -4453,6 +4460,12 @@ l8da7 = sub_c8da6+1
 ; not captured by spool, then restores the previous handle on exit. Called from
 ; service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two other
 ; diagnostic sites (&8E10, &9D3E).
+; 
+; On Exit:
+;     A, X, Y, P: preserved (print_char_no_spool brackets the call with full register
+; save/restore via PHA/PHP/PLP/PLA)
+;     SIDE EFFECT: OSASCI prints CR; *SPOOL handle is briefly cleared and restored if
+; it was an NFS-issued handle (&21-&2F)
 ; ***************************************************************************************
 ; &91f9 referenced 3 times by &8a7c, &8e10, &9d3e
 .print_newline_no_spool
@@ -4958,8 +4971,13 @@ l8da7 = sub_c8da6+1
 ; bit encode table at &9286. Called by
 ; check_and_setup_txcb for owner and public access.
 ; 
+; On Entry:
+;     FS_OPTIONS (&BB/&BC): pointer to start of directory entry (access byte is read at
+; offset &0E)
+; 
 ; On Exit:
 ;     A: encoded access flags
+;     X: &FF + bits-set (left in this state by get_prot_bits fall-through)
 ; ***************************************************************************************
 ; &93ab referenced 2 times by &9e0d, &9e39
 .get_access_bits
@@ -5089,8 +5107,14 @@ l8da7 = sub_c8da6+1
 ; send_txcb_swap_addrs and check_and_setup_txcb
 ; to verify station/handle identity.
 ; 
+; On Entry:
+;     L00AF+1..+4: first 5-byte handle buffer (offset 0 is skipped)
+;     FS_LOAD_ADDR_3+1..+4: second 5-byte handle buffer
+; 
 ; On Exit:
-;     Z: set if all 5 bytes match
+;     Z: set if bytes 1..4 match (byte 0 is not compared)
+;     A: EOR of last compared bytes
+;     X: 0 if all matched, else mismatch index
 ; ***************************************************************************************
 ; &93e6 referenced 2 times by &9c85, &9d88
 .cmp_5byte_handle
@@ -5544,6 +5568,10 @@ l8da7 = sub_c8da6+1
 ; clear = awaiting reply). The NMI RX handler sets
 ; bit 7 when a reply arrives on this port, which
 ; wait_net_tx_ack polls for.
+; 
+; On Exit:
+;     TXCB AT &00C0: 12-byte template copied; port = &90; ctrl = &7F (open-receive, bit
+; 7 clear = awaiting reply); start = 3
 ; ***************************************************************************************
 ; &973d referenced 1 time by &97ce
 .init_txcb_bye
@@ -5582,6 +5610,14 @@ l8da7 = sub_c8da6+1
 ; Preserves A via PHA/PLA. Called by 4 sites
 ; including cmd_pass, init_txcb_port,
 ; prep_send_tx_cb, and send_wipe_request.
+; 
+; On Entry:
+;     &0E00, &0E01: destination station, network (also written to txcb_dest)
+; 
+; On Exit:
+;     A: preserved
+;     X, Y: clobbered (Y left at &FF on loop exit)
+;     TXCB AT &00C0..&00CB: 12-byte template loaded; bytes 2/3 are dst station/network
 ; ***************************************************************************************
 ; &974b referenced 5 times by &8e15, &973f, &97bd, &ac55, &bccb
 .init_txcb
@@ -5639,6 +5675,10 @@ l8da7 = sub_c8da6+1
 ; processing path. The carry flag controls whether
 ; a disconnect is sent on certain reply codes.
 ; Called by setup_transfer_workspace.
+; 
+; On Entry:
+;     Y: FS function code (stored as TX[1] = txcb_func by txcb_copy_carry_set)
+;     A: saved on stack at entry (consumed by the txcb send/receive path)
 ; ***************************************************************************************
 ; &976f referenced 1 time by &a231
 .send_request_nowrite
@@ -5655,6 +5695,10 @@ l8da7 = sub_c8da6+1
 ; reply processing path with carry clear (write
 ; mode). Called by do_fs_cmd_iteration and
 ; send_txcb_swap_addrs.
+; 
+; On Entry:
+;     Y: FS function code (stored as TX[1] = txcb_func by txcb_copy_carry_clr)
+;     A: request payload byte (used by the txcb send path)
 ; ***************************************************************************************
 ; &9773 referenced 2 times by &9c45, &9cf9
 .send_request_write

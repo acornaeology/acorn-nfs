@@ -2915,7 +2915,10 @@ subroutine(0x8B18, "save_text_ptr",
     "command matches, and by match_fs_cmd during\n"
     "iterative help topic matching. Preserves A via\n"
     "PHA/PLA.",
-    on_exit={"a": "preserved"})
+    on_entry={"os_text_ptr (&F2/&F3)": "the OS text pointer to snapshot"},
+    on_exit={"a": "preserved",
+             "fs_crc_lo, fs_crc_hi (&BE/&BF)":
+             "snapshot of os_text_ptr at call time"})
 subroutine(0x8BC6, "print_cmd_table",
     title="Print *HELP command listing with optional header",
     description="If V flag is set, saves X/Y, calls\n"
@@ -2966,6 +2969,7 @@ subroutine(0x8CAD, "get_ws_page",
     "for caller convenience. The 4.21 version also\n"
     "OR's bit 7 of the slot flag back into A on exit\n"
     "(ADLC-absent flag) — see &8CB7-&8CB9.",
+    on_entry={"romsel_copy (&F4)": "current ROM slot (used as table index)"},
     on_exit={"a": "workspace page number (with bit 7 = ADLC-absent flag)",
              "y": "workspace page number (low 7 bits)"})
 subroutine(0x8CBD, "setup_ws_ptr",
@@ -3119,7 +3123,11 @@ subroutine(0x91F9, "print_newline_no_spool",
     "handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is not "
     "captured by spool, then restores the previous handle on exit. "
     "Called from service_handler (&8A7C) after the 'Bad ROM <slot>' "
-    "message, and from two other diagnostic sites (&8E10, &9D3E).")
+    "message, and from two other diagnostic sites (&8E10, &9D3E).",
+    on_exit={"a, x, y, p": "preserved (print_char_no_spool brackets the call "
+             "with full register save/restore via PHA/PHP/PLP/PLA)",
+             "side effect": "OSASCI prints CR; *SPOOL handle is briefly cleared "
+             "and restored if it was an NFS-issued handle (&21-&2F)"})
 
 subroutine(0x91FB, "print_char_no_spool",
     title="Print A via OSASCI, bypassing any open *SPOOL file",
@@ -3213,7 +3221,12 @@ subroutine(0x93AB, "get_access_bits",
     "begin_prot_encode to map through the protection\n"
     "bit encode table at &9286. Called by\n"
     "check_and_setup_txcb for owner and public access.",
-    on_exit={"a": "encoded access flags"})
+    on_entry={"fs_options (&BB/&BC)":
+              "pointer to start of directory entry "
+              "(access byte is read at offset &0E)"},
+    on_exit={"a": "encoded access flags",
+             "x": "&FF + bits-set (left in this state by get_prot_bits "
+             "fall-through)"})
 subroutine(0x93B5, "get_prot_bits",
     title="Encode protection bits via lookup table",
     description="Masks A to 5 bits (AND #&1F), sets X=&FF to\n"
@@ -3261,7 +3274,11 @@ subroutine(0x93E6, "cmp_5byte_handle",
     "all 5 bytes match (Z=1). Called by\n"
     "send_txcb_swap_addrs and check_and_setup_txcb\n"
     "to verify station/handle identity.",
-    on_exit={"z": "set if all 5 bytes match"})
+    on_entry={"l00af+1..+4": "first 5-byte handle buffer (offset 0 is skipped)",
+              "fs_load_addr_3+1..+4": "second 5-byte handle buffer"},
+    on_exit={"z": "set if bytes 1..4 match (byte 0 is not compared)",
+             "a": "EOR of last compared bytes",
+             "x": "0 if all matched, else mismatch index"})
 subroutine(0x93F7, "set_conn_active",
     title="Set connection-active flag in channel table",
     description="Saves registers on the stack, recovers the\n"
@@ -3322,7 +3339,11 @@ subroutine(0x973D, "init_txcb_bye",
     "txcb_ctrl to &80, then DEC makes it &7F (bit 7\n"
     "clear = awaiting reply). The NMI RX handler sets\n"
     "bit 7 when a reply arrives on this port, which\n"
-    "wait_net_tx_ack polls for.")
+    "wait_net_tx_ack polls for.",
+    on_exit={"txcb at &00C0":
+             "12-byte template copied; port = &90; "
+             "ctrl = &7F (open-receive, bit 7 clear = awaiting reply); "
+             "start = 3"})
 subroutine(0x973F, "init_txcb_port",
     title="Create open receive control block on specified port",
     description="Calls init_txcb to copy the 12-byte template\n"
@@ -3342,7 +3363,13 @@ subroutine(0x974B, "init_txcb",
     "station/network from &0E00 into txcb_dest (&C2).\n"
     "Preserves A via PHA/PLA. Called by 4 sites\n"
     "including cmd_pass, init_txcb_port,\n"
-    "prep_send_tx_cb, and send_wipe_request.")
+    "prep_send_tx_cb, and send_wipe_request.",
+    on_entry={"&0E00, &0E01": "destination station, network "
+              "(also written to txcb_dest)"},
+    on_exit={"a": "preserved",
+             "x, y": "clobbered (Y left at &FF on loop exit)",
+             "txcb at &00C0..&00CB":
+             "12-byte template loaded; bytes 2/3 are dst station/network"})
 subroutine(0x976F, "send_request_nowrite",
     title="Send read-only FS request (carry set)",
     description="Pushes A and sets carry to indicate no-write\n"
@@ -3350,7 +3377,11 @@ subroutine(0x976F, "send_request_nowrite",
     "enter the common TXCB copy, send, and reply\n"
     "processing path. The carry flag controls whether\n"
     "a disconnect is sent on certain reply codes.\n"
-    "Called by setup_transfer_workspace.")
+    "Called by setup_transfer_workspace.",
+    on_entry={"y": "FS function code (stored as TX[1] = txcb_func by "
+              "txcb_copy_carry_set)",
+              "a": "saved on stack at entry (consumed by the txcb "
+              "send/receive path)"})
 subroutine(0x9773, "send_request_write",
     title="Send read-write FS request (V clear)",
     description="Clears V flag and branches unconditionally to\n"
@@ -3358,7 +3389,10 @@ subroutine(0x9773, "send_request_write",
     "CLV) to enter the common TXCB copy, send, and\n"
     "reply processing path with carry clear (write\n"
     "mode). Called by do_fs_cmd_iteration and\n"
-    "send_txcb_swap_addrs.")
+    "send_txcb_swap_addrs.",
+    on_entry={"y": "FS function code (stored as TX[1] = txcb_func by "
+              "txcb_copy_carry_clr)",
+              "a": "request payload byte (used by the txcb send path)"})
 subroutine(0x978A, "save_net_tx_cb",
     title="Save FS state and send command to file server",
     description="Copies station address and function code (Y)\n"
