@@ -114,6 +114,153 @@ Large/depth-3+ routines:
         printer-server and cmd_wipe carry-overs that need a careful
         cleanup pass)
 
+
+# Comprehensive remaining work plan (post-audit, 2026-04-30)
+
+The simple "add inline comments" pass is mostly done (90.9% coverage).
+But the audit reveals significant remaining work across multiple
+dimensions. In priority order:
+
+## Phase A: Subroutine calling conventions (highest impact)
+
+  Only 42 / 307 subroutines (13.7%) have an `on_entry=` clause; only
+  19 / 307 (6.2%) have `on_exit=`. Every subroutine should document:
+
+    - Registers it expects on entry (A, X, Y)
+    - Flags it expects on entry (C, V mostly)
+    - Registers it returns on exit
+    - Flags it returns
+    - Any side effects (workspace bytes touched, stack consumed, etc.)
+
+  Approach: walk the subroutine list ordered by call-graph depth (so
+  that callers' conventions follow from callees'). For each, read the
+  body, identify the calling conventions, fill in `on_entry` and
+  `on_exit`. Several hundred subs to cover; expect ~50-60 small
+  commits.
+
+## Phase B: Unidentified subroutine boundaries
+
+  Subroutines reached only via PHA/PHA/RTS dispatch or via tail-jumps
+  may not have an explicit `subroutine()` declaration. Search criteria:
+
+    - Code immediately after an RTS/JMP/BRA/BRK that has any incoming
+      JSR/JMP/branch reference but no `subroutine()` call.
+    - Labels with high in-degree (>=3 incoming refs) that aren't
+      currently subs.
+    - Auto-generated `cXXXX` / `lXXXX` labels in the listing.
+
+  Need a small audit script to enumerate these. For each candidate:
+  determine if it's a real subroutine entry, name it, document it.
+
+## Phase C: Recover remaining UNMAPPED 4.18 routines
+
+  From `git log` and grep of UNMAPPED subroutine() blocks: the
+  carry-over still has unrecovered routines whose 4.18 names are
+  known. Use `src/disasm_tools/fingerprint.py` and the JSR-following
+  technique. Expected candidates (from the 4.18 driver):
+
+    svc_2_private_workspace, cmd_close, cmd_print, cmd_prot,
+    cmd_type, cmd_unprot, read_paged_rom, set_jsr_protection,
+    tx_done_jsr, tx_ctrl_machine_type, tx_calc_transfer,
+    check_escape, osword_4_handler, osword_13_set_handles
+    (location verified -- already done), osword_13_read_handles
+    (also done).
+
+  Add tracking table; check each.
+
+## Phase D: Data classification review
+
+  481 EQUB / 14 EQUW / 147 EQUS / 0 EQUD lines emitted. Audit:
+
+  Long EQUB runs (top candidates for re-classification):
+    &AE33: 39 EQUBs   ws_txcb_template_data (template byte stream)
+    &B0D5: 28 EQUBs   CDir allocation size threshold table
+    &ADC1: 18 EQUBs   osword_claim_codes (one byte per claim type)
+    &88F0: 16 EQUBs   dead data after rom_set_nmi_vector
+    &91ED: 12 EQUBs   cmd_syntax_table (12-entry index table)
+    &9A9A: 12 EQUBs   net_error_lookup_data
+    &9B75: 12 EQUBs   ?
+    &B002: 12 EQUBs   tx_econet_txcb_template
+    &B00E: 12 EQUBs   rx_palette_txcb_template
+    &B575: 12 EQUBs   ps_slot_txcb_template
+    &93C8: 11 EQUBs   prot_bit_encode_table
+
+  For each: confirm the byte-vs-word-vs-string classification matches
+  the actual access pattern. Tables of addresses should be EQUW.
+  Tables that hold paired (lo, hi) bytes for PHA/PHA/RTS dispatch
+  should ideally be split as `equb <(target_label)` / `equb >(target_
+  label)` so renames flow through.
+
+  Also: every EQUB / EQUW / EQUS line should have a comment explaining
+  its role in domain terms, not just `; data byte`.
+
+## Phase E: Address tables -> symbolic via <() / >()
+
+  Where a 2-byte address appears as raw `equw &XXXX` or as paired
+  `equb &lo / equb &hi`, replace with `equw label` or
+  `equb <(label) / equb >(label)`. Beebasm's `<()` and `>()` operators
+  extract low / high bytes symbolically, so renames or relocations
+  flow through cleanly.
+
+  Audit: search for every `equw &[0-9A-F]{4}` and every adjacent
+  pair of `equb` whose values match a known label.
+
+## Phase F: Stale UNMAPPED comment cleanup
+
+  ~1900 UNMAPPED lines remain in the driver. Categories:
+
+    - References to dead-range addresses (&0016-&0057, &0400-&06FF)
+      that were 4.18's relocated code -- can be deleted entirely.
+    - Carry-over comments at addresses where 4.21 has different code
+      (especially around the rewritten Master 128 init paths).
+    - Carry-over for routines we've since recovered at new addresses
+      -- can be deleted now that the new declaration exists.
+
+  Approach: sweep through the driver by section, deleting stale
+  UNMAPPED lines. Be careful not to delete still-relevant entries
+  pointing at recovery candidates (see Phase C).
+
+## Phase G: Last 9.1% inline-comment coverage
+
+  Currently 5899 / 6487. The remainder lives in routines that
+  haven't been walked end-to-end (typically partial-coverage subs)
+  or in data tables that need EQUB-by-EQUB comments (Phase D).
+
+  Mostly falls out of phases D and E above; final sweep at the end
+  to mop up isolated gaps.
+
+## Phase H: Audit pass against the audit-tool flag categories
+
+  Walk each flag category from `audit --summary`, validating that
+  the flag is correct (or fixing the routine if not):
+
+    BRANCH_ESCAPE (91): a branch targets outside the routine extent.
+      Often correct (shared exits, fall-through targets) but worth
+      verifying each.
+    NO_REFS (59): no incoming refs found. Likely PHA/PHA/RTS
+      dispatch or dead code. Each should have a description that
+      explains how it's reached.
+    FALL_THROUGH (131): last item isn't a clean exit. Fine if the
+      next subroutine is the documented fall-through target.
+    FALL_THROUGH_ENTRY (27): only reachable via fall-through.
+      Check description explicitly mentions this.
+    DATA_ONLY (1): fs_vector_table -- intentional, leave alone.
+
+## Phase I: rom.json links
+
+  Once the CHANGES doc is drafted (Phase J), populate
+  `address_links` and `glossary_links` in `rom/rom.json` so the
+  website can render cross-references. Lint validates these.
+
+## Phase J: CHANGES-FROM-4.18.md
+
+  The publishable deliverable. Only after phases A through H above
+  are at >= 95% coverage on the relevant dimension and the audit is
+  clean. Synthesises everything from `PROGRESS.md`,
+  `docs/analysis/anfs-421-variant-naming.md`, the per-routine commit
+  messages, and the audit findings into a structured changes
+  document following the established 4.18 example.
+
 ## Working queue
 
 Sorted by `context --summary` output (lowest-density leaves first).
