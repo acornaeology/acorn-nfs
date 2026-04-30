@@ -3560,6 +3560,23 @@ subroutine(0x9E82, "format_filename_field",
     "name from either the command line or the l0f05\n"
     "reply buffer depending on the value in l0f03.\n"
     "Truncates or pads to exactly 12 characters.")
+subroutine(0x9FB6, "finalise_and_return",
+    title="Clear receive-attribute and restore caller's X/Y",
+    description="Common 7-byte exit sequence used at the end of "
+    "format_filename_field, several FS reply handlers, and "
+    "match_fs_cmd. Saves A across a call to store_rx_attribute(0) "
+    "(which clears the receive-attribute byte), then restores X "
+    "from fs_options and Y from fs_block_offset before returning. "
+    "Effectively: 'finish processing, clear network state, restore "
+    "caller's pointers'.\n"
+    "\n"
+    "One JSR caller (match_fs_cmd at &A599) plus 6 branch entries "
+    "from format_filename_field's various exit paths.",
+    on_entry={"a": "result code to return"},
+    on_exit={"a": "preserved",
+             "x": "fs_options low byte",
+             "y": "fs_block_offset low byte"})
+
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
@@ -8945,6 +8962,17 @@ subroutine(0x8C51, "svc_9_help",
 # Reached via PHA/PHA/RTS dispatch from the service table — no direct
 # JSR/JMP, so an explicit entry() is required to classify it as code.
 entry(0x8B45)
+subroutine(0x8B52, "select_fs_via_cmd_net_fs",
+    title="Force ANFS selection (raise net checksum on failure)",
+    description="Tail-fragment of ensure_fs_selected used directly by "
+    "svc_3_autoboot when an autoboot needs to force-select ANFS as "
+    "the active filing system. Calls cmd_net_fs to perform the actual "
+    "selection; on failure (BEQ not taken), JMPs to error_net_checksum "
+    "to raise the 'net checksum' error. Used when there is no clean "
+    "BIT fs_flags / BMI shortcut for early-return.",
+    on_exit={"a": "current FS state byte if selection succeeded, "
+                  "else this routine never returns"})
+
 subroutine(0x8B45, "svc_18_fs_select",
     title="Service 18: filing system selection request",
     description="Checks if Y=5 (Econet filing system number);\n"
@@ -9445,6 +9473,40 @@ subroutine(0xB0F8, "cmd_lex",
     "l1071, then branches to ex_set_lib_flag inside cmd_ex\n"
     "to examine the library directory with one entry per line.",
     on_entry={"y": "command line offset in text pointer"})
+subroutine(0x8D02, "issue_svc_15",
+    title="Issue OSBYTE 143 service 15 (vectors-claimed) request",
+    description="Tail-call wrapper that loads X=&0F (service number 15) "
+    "and tail-jumps to OSBYTE 143 (issue paged ROM service request), "
+    "which broadcasts service 15 to all sideways ROMs. ANFS calls "
+    "this from svc_2_private_workspace after claiming its workspace, "
+    "to give other ROMs a chance to react.",
+    on_entry={"a": "OSBYTE result is irrelevant -- this is fire-and-forget"})
+
+subroutine(0x8E9A, "osbyte_a1",
+    title="OSBYTE &A1 (read Master CMOS RAM byte)",
+    description="Loads A=&A1 and tail-jumps to OSBYTE -- reads the "
+    "Master 128 CMOS RAM byte indexed by X. Two callers: format_"
+    "filename_field (&A0E3) and flip_set_station_boot (&A70D). The "
+    "5 bytes A9 A1 4C F4 FF also serve as the leading slot of the "
+    "vector-dispatch table that write_vector_entry reads via "
+    "LDA c8e9a,Y -- a deliberate dual-use byte sequence.",
+    on_entry={"x": "CMOS RAM byte index"},
+    on_exit={"y": "CMOS byte read", "x": "preserved"})
+
+subroutine(0x988F, "check_escape_and_classify",
+    title="Acknowledge escape (if pressed) and classify reply",
+    description="If escape_flag bit 7 is clear OR need_release_tube bit "
+    "7 is clear (so AND result has bit 7 clear), returns immediately "
+    "via return_1. Otherwise acknowledges escape via OSBYTE &7E "
+    "(clears the escape condition and runs escape effects), loads "
+    "A=6 (a synthesized 'Escape' error class), and tail-jumps to "
+    "classify_reply_error to build the 'Escape' BRK error block.\n"
+    "\n"
+    "Two callers: cmd_pass (&8DEF) for password-entry escape, and "
+    "send_net_packet (&9B48) for in-flight TX escape.",
+    on_entry={},
+    on_exit={"a": "preserved (return) or never returns (escape path)"})
+
 subroutine(0x8DD5, "cmd_pass",
     title="*PASS command handler (change password)",
     description="Builds the FS command packet via copy_arg_to_buf_x0,\n"

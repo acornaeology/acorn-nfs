@@ -3059,8 +3059,20 @@ l89c9 = reset_enter_listen+2
 .ensure_fs_selected
     bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.
     bmi return_from_save_text_ptr                                     ; 8b50: 30 d0       0.
+; ***************************************************************************************
+; Force ANFS selection (raise net checksum on failure)
+; 
+; Tail-fragment of ensure_fs_selected used directly by svc_3_autoboot when an autoboot
+; needs to force-select ANFS as the active filing system. Calls cmd_net_fs to perform
+; the actual selection; on failure (BEQ not taken), JMPs to error_net_checksum to raise
+; the 'net checksum' error. Used when there is no clean BIT fs_flags / BMI shortcut for
+; early-return.
+; 
+; On Exit:
+;     A: current FS state byte if selection succeeded, else this routine never returns
+; ***************************************************************************************
 ; &8b52 referenced 1 time by &8cdd
-.sub_c8b52
+.select_fs_via_cmd_net_fs
     jsr cmd_net_fs                                                    ; 8b52: 20 23 8b     #.
     beq c8b5a                                                         ; 8b55: f0 03       ..             ; Match: checksum valid
     jmp error_net_checksum                                            ; 8b57: 4c b5 90    L..            ; Mismatch: raise checksum error
@@ -3468,7 +3480,7 @@ l89c9 = reset_enter_listen+2
     jsr osbyte                                                        ; 8cda: 20 f4 ff     ..            ; Write current keys pressed (X and Y)
 ; &8cdd referenced 1 time by &8ccd
 .select_net_fs
-    jsr sub_c8b52                                                     ; 8cdd: 20 52 8b     R.            ; Select NFS as current filing system
+    jsr select_fs_via_cmd_net_fs                                      ; 8cdd: 20 52 8b     R.            ; Select NFS as current filing system
     lda #0                                                            ; 8ce0: a9 00       ..
     sta svc_state                                                     ; 8ce2: 85 a9       ..
     jsr print_station_id                                              ; 8ce4: 20 c7 90     ..            ; Print station number
@@ -3511,6 +3523,17 @@ l89c9 = reset_enter_listen+2
 .call_fscv
     jmp (fscv)                                                        ; 8cff: 6c 1e 02    l..            ; Dispatch via FSCV
 
+; ***************************************************************************************
+; Issue OSBYTE 143 service 15 (vectors-claimed) request
+; 
+; Tail-call wrapper that loads X=&0F (service number 15) and tail-jumps to OSBYTE 143
+; (issue paged ROM service request), which broadcasts service 15 to all sideways ROMs.
+; ANFS calls this from svc_2_private_workspace after claiming its workspace, to give
+; other ROMs a chance to react.
+; 
+; On Entry:
+;     A: OSBYTE result is irrelevant -- this is fire-and-forget
+; ***************************************************************************************
 ; &8d02 referenced 1 time by &8bb1
 .issue_svc_15
     ldx #&0f                                                          ; 8d02: a2 0f       ..             ; X=&0F: service 15 parameter
@@ -3664,7 +3687,7 @@ l8da7 = sub_c8da6+1
 .read_pw_char
     lda #&ff                                                          ; 8deb: a9 ff       ..             ; A=&FF: mark as escapable
     sta need_release_tube                                             ; 8ded: 85 98       ..             ; Set escape flag
-    jsr sub_c988f                                                     ; 8def: 20 8f 98     ..            ; Check for escape condition
+    jsr check_escape_and_classify                                     ; 8def: 20 8f 98     ..            ; Check for escape condition
     jsr osrdch                                                        ; 8df2: 20 e0 ff     ..            ; Read a character from the current input stream
     cmp #&15                                                          ; 8df5: c9 15       ..             ; A=character read
     bne check_pw_special                                              ; 8df7: d0 0b       ..             ; Not NAK (&15): check other chars
@@ -3807,8 +3830,23 @@ l8da7 = sub_c8da6+1
     equb &0d, &50, &ef, &20, &4d, &8b, &a9, 0, &a8, &4c, &2f, &a0     ; 8e8c: 0d 50 ef... .P.
     equb &a2,   0                                                     ; 8e98: a2 00       ..
 
+; ***************************************************************************************
+; OSBYTE &A1 (read Master CMOS RAM byte)
+; 
+; Loads A=&A1 and tail-jumps to OSBYTE -- reads the Master 128 CMOS RAM byte indexed by
+; X. Two callers: format_filename_field (&A0E3) and flip_set_station_boot (&A70D). The
+; 5 bytes A9 A1 4C F4 FF also serve as the leading slot of the vector-dispatch table
+; that write_vector_entry reads via LDA c8e9a,Y -- a deliberate dual-use byte sequence.
+; 
+; On Entry:
+;     X: CMOS RAM byte index
+; 
+; On Exit:
+;     Y: CMOS byte read
+;     X: preserved
+; ***************************************************************************************
 ; &8e9a referenced 4 times by &904f, &9055, &a0e3, &a70d
-.c8e9a
+.osbyte_a1
     lda #osbyte_read_cmos_ram                                         ; 8e9a: a9 a1       ..
     jmp osbyte                                                        ; 8e9c: 4c f4 ff    L..            ; Master and Compact: Read CMOS RAM/EEPROM byte X
 
@@ -4075,10 +4113,10 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &904f referenced 2 times by &8b88, &9061
 .write_vector_entry
-    lda c8e9a,y                                                       ; 904f: b9 9a 8e    ...            ; Load vector address low byte
+    lda osbyte_a1,y                                                   ; 904f: b9 9a 8e    ...            ; Load vector address low byte
     sta (fs_error_ptr),y                                              ; 9052: 91 b8       ..             ; Store into extended vector table
     iny                                                               ; 9054: c8          .              ; Advance to high byte
-    lda c8e9a,y                                                       ; 9055: b9 9a 8e    ...            ; Load vector address high byte
+    lda osbyte_a1,y                                                   ; 9055: b9 9a 8e    ...            ; Load vector address high byte
     sta (fs_error_ptr),y                                              ; 9058: 91 b8       ..             ; Store into extended vector table
     iny                                                               ; 905a: c8          .              ; Advance to ROM ID byte
     lda romsel_copy                                                   ; 905b: a5 f4       ..             ; Load current ROM slot number
@@ -5730,8 +5768,23 @@ l8da7 = sub_c8da6+1
     jsr error_inline_log                                              ; 9883: 20 c0 99     ..
     equs "Remoted", 7, 0                                              ; 9886: 52 65 6d... Rem
 
+; ***************************************************************************************
+; Acknowledge escape (if pressed) and classify reply
+; 
+; If escape_flag bit 7 is clear OR need_release_tube bit 7 is clear (so AND result has
+; bit 7 clear), returns immediately via return_1. Otherwise acknowledges escape via
+; OSBYTE &7E (clears the escape condition and runs escape effects), loads A=6 (a
+; synthesized 'Escape' error class), and tail-jumps to classify_reply_error to build
+; the 'Escape' BRK error block.
+; 
+; Two callers: cmd_pass (&8DEF) for password-entry escape, and send_net_packet (&9B48)
+; for in-flight TX escape.
+; 
+; On Exit:
+;     A: preserved (return) or never returns (escape path)
+; ***************************************************************************************
 ; &988f referenced 2 times by &8def, &9b48
-.sub_c988f
+.check_escape_and_classify
     lda escape_flag                                                   ; 988f: a5 ff       ..
     and need_release_tube                                             ; 9891: 25 98       %.
     bpl return_1                                                      ; 9893: 10 6a       .j
@@ -6332,7 +6385,7 @@ l99a3 = bad_str_anchor+1
     bpl tx_success                                                    ; 9b43: 10 2a       .*             ; N=0 (bit 6 clear): success
     asl a                                                             ; 9b45: 0a          .              ; ASL: shift away error flag, keep error type
     beq tx_send_error                                                 ; 9b46: f0 23       .#             ; Z=1 (no type bits): fatal; Z=0: retryable
-    jsr sub_c988f                                                     ; 9b48: 20 8f 98     ..            ; Check for escape condition
+    jsr check_escape_and_classify                                     ; 9b48: 20 8f 98     ..            ; Check for escape condition
     pla                                                               ; 9b4b: 68          h              ; Pull control byte
     tax                                                               ; 9b4c: aa          .              ; Restore to X
     pla                                                               ; 9b4d: 68          h              ; Pull timeout
@@ -7334,6 +7387,26 @@ l99a3 = bad_str_anchor+1
 ; &9fb4 referenced 12 times by &9c36, &9d41, &9e36, &9f38, &9f54, &9f77, &9fae, &a09c, &a15f, &a63b, &a641, &a6fb
 .return_with_last_flag
     lda fs_last_byte_flag                                             ; 9fb4: a5 bd       ..             ; Load last byte flag
+; ***************************************************************************************
+; Clear receive-attribute and restore caller's X/Y
+; 
+; Common 7-byte exit sequence used at the end of format_filename_field, several FS
+; reply handlers, and match_fs_cmd. Saves A across a call to store_rx_attribute(0)
+; (which clears the receive-attribute byte), then restores X from fs_options and Y from
+; fs_block_offset before returning. Effectively: 'finish processing, clear network
+; state, restore caller's pointers'.
+; 
+; One JSR caller (match_fs_cmd at &A599) plus 6 branch entries from
+; format_filename_field's various exit paths.
+; 
+; On Entry:
+;     A: result code to return
+; 
+; On Exit:
+;     A: preserved
+;     X: fs_options low byte
+;     Y: fs_block_offset low byte
+; ***************************************************************************************
 ; &9fb6 referenced 7 times by &9e7f, &9fcb, &9fd2, &a068, &a1ec, &a53b, &a599
 .finalise_and_return
     pha                                                               ; 9fb6: 48          H              ; Push result on stack
@@ -7534,7 +7607,7 @@ l99a3 = bad_str_anchor+1
     phy                                                               ; a0df: 5a          Z
     phx                                                               ; a0e0: da          .              ; Out of range: Y=0
     ldx #&11                                                          ; a0e1: a2 11       ..             ; A=&00
-    jsr c8e9a                                                         ; a0e3: 20 9a 8e     ..            ; Return with A=index, Y=index; Y=&6F: source offset
+    jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..            ; Return with A=index, Y=index; Y=&6F: source offset
     plx                                                               ; a0e6: fa          .              ; Load byte from RX buffer
     tya                                                               ; a0e7: 98          .
     and la103,x                                                       ; a0e8: 3d 03 a1    =..            ; C clear: store directly; Get index from PB pointer
@@ -8800,7 +8873,7 @@ la0ff = sub_ca0fe+1
 ; &a70b referenced 1 time by &a6f9
 .ca70b
     ldx #&11                                                          ; a70b: a2 11       ..             ; Y=1; A=1
-    jsr c8e9a                                                         ; a70d: 20 9a 8e     ..            ; Set ws_ptr_lo = 1; X=1: copy 2 bytes
+    jsr osbyte_a1                                                     ; a70d: 20 9a 8e     ..            ; Set ws_ptr_lo = 1; X=1: copy 2 bytes
     tya                                                               ; a710: 98          .              ; C=0: workspace-to-PB direction
     and #2                                                            ; a711: 29 02       ).             ; Copy via copy_pb_byte_to_ws
     beq ca71c                                                         ; a713: f0 07       ..             ; Y=1: first PB data byte; Load PB[1]
@@ -14195,7 +14268,6 @@ save pydis_start, pydis_end
 ;     tx_done_exit:                   5
 ;     tx_dst_net:                     5
 ;     verify_ws_checksum:             5
-;     c8e9a:                          4
 ;     ca5a1:                          4
 ;     check_net_error_code:           4
 ;     commit_state_byte:              4
@@ -14218,6 +14290,7 @@ save pydis_start, pydis_end
 ;     loop_poll_tx:                   4
 ;     loop_scan_fcb_down:             4
 ;     nmi_tx_block_hi:                4
+;     osbyte_a1:                      4
 ;     parse_access_prefix:            4
 ;     parse_addr_arg:                 4
 ;     port_match_found:               4
@@ -14334,6 +14407,7 @@ save pydis_start, pydis_end
 ;     check_adlc_flag:                2
 ;     check_and_setup_txcb:           2
 ;     check_chan_char:                2
+;     check_escape_and_classify:      2
 ;     check_not_ampersand:            2
 ;     check_not_dir:                  2
 ;     check_tx_in_progress:           2
@@ -14519,7 +14593,6 @@ save pydis_start, pydis_end
 ;     store_station_result:           2
 ;     store_stn_flags_restore:        2
 ;     store_tx_error:                 2
-;     sub_c988f:                      2
 ;     tail_update_catalogue:          2
 ;     terminate_buf:                  2
 ;     try_nfs_port_list:              2
@@ -15187,6 +15260,7 @@ save pydis_start, pydis_end
 ;     scout_match_port:               1
 ;     scout_page_overflow:            1
 ;     scout_reject:                   1
+;     select_fs_via_cmd_net_fs:       1
 ;     select_net_fs:                  1
 ;     select_store_target:            1
 ;     send_close_request:             1
@@ -15283,7 +15357,6 @@ save pydis_start, pydis_end
 ;     store_updated_status:           1
 ;     store_via_rx_ptr:               1
 ;     store_ws_byte:                  1
-;     sub_c8b52:                      1
 ;     sub_c924c:                      1
 ;     sub_c9255:                      1
 ;     sub_c9612:                      1
@@ -15356,7 +15429,6 @@ save pydis_start, pydis_end
 ;     c8ace
 ;     c8b5a
 ;     c8cbb
-;     c8e9a
 ;     c925d
 ;     c9298
 ;     c92af
@@ -15541,12 +15613,10 @@ save pydis_start, pydis_end
 ;     return_5
 ;     sub_c8409
 ;     sub_c84b7
-;     sub_c8b52
 ;     sub_c8da6
 ;     sub_c924c
 ;     sub_c9255
 ;     sub_c9612
-;     sub_c988f
 ;     sub_ca0fe
 
 ; Stats:
