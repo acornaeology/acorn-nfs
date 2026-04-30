@@ -3652,7 +3652,13 @@ subroutine(0x9B81, "init_tx_ptr_for_pass",
     title="Set up TX pointer and send pass-through packet",
     description="Copies the template into the TX buffer (skipping\n"
     "&FD markers), saves original values on stack,\n"
-    "then polls the ADLC and retries until complete.")
+    "then polls the ADLC and retries until complete.",
+    on_entry={"net_tx_ptr (&AE/&AF)":
+              "TX-pointer pair to set up before falling through to "
+              "setup_pass_txbuf"},
+    on_exit={"a": "TX result (from poll_adlc_tx_status)",
+             "stack": "consumed -- the template's saved bytes are "
+             "popped back into the TX buffer before return"})
 subroutine(0x9B89, "setup_pass_txbuf",
     title="Initialise TX buffer from pass-through template",
     description="Copies 12 bytes from pass_txbuf_init_table into the\n"
@@ -3660,7 +3666,14 @@ subroutine(0x9B89, "setup_pass_txbuf",
     "stack for later restoration. Skips offsets marked &FD\n"
     "in the template. Starts transmission via\n"
     "poll_adlc_tx_status and retries on failure, restoring\n"
-    "the original TX buffer contents when done.")
+    "the original TX buffer contents when done.",
+    on_entry={"TX buffer at &00C0..":
+              "current TX control block (12 bytes saved/restored)"},
+    on_exit={"a": "TX result (from poll_adlc_tx_status)",
+             "TX buffer at &00C0..":
+             "restored to entry contents after the pass-through send",
+             "behaviour": "raises BRK via load_reply_and_classify on "
+             "non-recoverable TX errors"})
 subroutine(0x9BB6, "poll_adlc_tx_status",
     title="Wait for TX ready, then start new transmission",
     description="Polls tx_complete_flag via ASL (testing bit 7)\n"
@@ -3726,13 +3739,30 @@ subroutine(0x9C3E, "do_fs_cmd_iteration",
     "FS options and workspace state (order depends on the\n"
     "cycle flag at offset 6). Copies 4 address bytes,\n"
     "formats the filename field, sends via\n"
-    "send_txcb_swap_addrs, and receives the reply.")
+    "send_txcb_swap_addrs, and receives the reply.",
+    on_entry={"fs_options (&BB/&BC)":
+              "FS options block (offsets 2..5 = current address; "
+              "offset 6 = cycle flag)",
+              "&0E00, &0E01": "destination station/network",
+              "y": "FS function code (matches send_request_write contract)"},
+    on_exit={"a": "FS reply status",
+             "behaviour": "may BRK on FS-reported errors via "
+             "recv_and_process_reply; otherwise the FS options block has "
+             "been updated with the next-iteration address state"})
 subroutine(0x9C85, "send_txcb_swap_addrs",
     title="Send TXCB and swap start/end addresses",
     description="If the 5-byte handle matches, returns\n"
     "immediately. Otherwise sets port &92, copies\n"
     "addresses, sends, waits for acknowledgment,\n"
-    "and retries on address mismatch.")
+    "and retries on address mismatch.",
+    on_entry={"l00af+1..+4": "current 5-byte handle to compare against "
+              "fs_load_addr_3+1..+4 (via cmp_5byte_handle)",
+              "fs_options (&BB/&BC)": "FS options block"},
+    on_exit={"a": "FS reply status (or unchanged if handles matched -- "
+             "the routine returns early when no work is needed)",
+             "behaviour": "retries on address mismatch by swapping start "
+             "and end address pairs; raises BRK via the FS-reply "
+             "classifier on persistent errors"})
 subroutine(0x9D44, "print_load_exec_addrs",
     title="Print exec address and file length in hex",
     description="Prints the exec address as 5 hex bytes from\n"
@@ -3820,14 +3850,29 @@ subroutine(0x9D87, "check_and_setup_txcb",
     "returns. Otherwise computes start/end addresses\n"
     "with overflow clamping, sets the port and control\n"
     "byte, sends the packet, and dispatches on the\n"
-    "reply sub-operation code.")
+    "reply sub-operation code.",
+    on_entry={"l00af, fs_load_addr_3": "5-byte handle pair to compare; "
+              "match returns early without sending",
+              "fs_options (&BB/&BC)": "options block holding start/end "
+              "addresses to be installed in the TXCB"},
+    on_exit={"a": "FS reply sub-operation code (drives downstream "
+             "dispatch)",
+             "behaviour": "early-returns when the handle is unchanged; "
+             "otherwise sends the data-transfer request and dispatches "
+             "into the reply handler"})
 subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
     description="Builds a 12-character space-padded filename at\n"
     "&10F3 for directory listing output. Sources the\n"
     "name from either the command line or the l0f05\n"
     "reply buffer depending on the value in l0f03.\n"
-    "Truncates or pads to exactly 12 characters.")
+    "Truncates or pads to exactly 12 characters.",
+    on_entry={"l0f03": "non-zero selects command-line source; "
+              "zero selects l0f05 reply-buffer source",
+              "fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "command-line text pointer (used when l0f03 selects it)"},
+    on_exit={"&10F3..&10FE": "12-character space-padded filename",
+             "a, x, y": "clobbered"})
 subroutine(0x9FB6, "finalise_and_return",
     title="Clear receive-attribute and restore caller's X/Y",
     description="Common 7-byte exit sequence used at the end of "
@@ -3850,7 +3895,14 @@ subroutine(0xA12C, "update_addr_from_offset9",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
     "high address / exec address field), then falls\n"
     "through to update_addr_from_offset1 to process\n"
-    "offset 1 (the low address / load address field).")
+    "offset 1 (the low address / load address field).",
+    on_entry={"fs_options (&BB/&BC)": "FS options block to update",
+              "&0E0A..&0E0D": "4-byte workspace addend",
+              "fs_load_addr_2 bit 7":
+              "1 = subtract from FS options; 0 = add"},
+    on_exit={"(fs_options)+9..+&0C": "exec address adjusted",
+             "(fs_options)+1..+4": "load address adjusted",
+             "a, x, y, c flag": "clobbered (4-byte arithmetic loop)"})
 subroutine(0xA131, "update_addr_from_offset1",
     title="Update low address field in FS options",
     description="Sets Y=1 and falls through to\n"
@@ -3881,6 +3933,8 @@ subroutine(0xA1EF, "lookup_cat_entry_0",
     description="Loads the channel handle from (fs_options) at\n"
     "offset 0, then falls through to lookup_cat_slot_data\n"
     "to find the corresponding FCB entry.",
+    on_entry={"fs_options (&BB/&BC)":
+              "FS options block; byte 0 = channel handle"},
     on_exit={"a": "FCB flag byte from &1030+X",
              "x": "channel slot index"})
 subroutine(0xA1F3, "lookup_cat_slot_data",
@@ -3901,7 +3955,18 @@ subroutine(0xA1FA, "setup_transfer_workspace",
     "odd=write), selects port &91 or &92 accordingly,\n"
     "and sends the FS request. Then configures the TXCB\n"
     "address pairs for the actual data transfer phase\n"
-    "and dispatches to the appropriate handler.")
+    "and dispatches to the appropriate handler.",
+    on_entry={"fs_options (&BB/&BC)":
+              "FS options block (offsets 0..8 hold channel handle, "
+              "addresses, and the operation code)",
+              "(fs_options)+0": "channel handle",
+              "(fs_options) operation code byte":
+              "even = read (port &91); odd = write (port &92)"},
+    on_exit={"a": "FS reply status from the data-transfer phase",
+             "txcb at &00C0": "configured for the transfer with the "
+             "appropriate port and address pair",
+             "behaviour": "may BRK on FS-reported errors via the reply "
+             "classifier; success returns A = reply status"})
 subroutine(0xA284, "recv_reply_preserve_flags",
     title="Receive and process reply, preserving flags",
     description="Wrapper around recv_and_process_reply that\n"
@@ -3919,7 +3984,17 @@ subroutine(0xA2ED, "write_data_block",
     description="If no Tube present, copies directly from\n"
     "the l0f05 buffer via (fs_crc_lo). If Tube\n"
     "is active, claims the Tube, sets up the\n"
-    "transfer address, and writes via R3.")
+    "transfer address, and writes via R3.",
+    on_entry={"l0f05..": "data block to transfer (typically returned by "
+              "the FS reply path)",
+              "fs_crc_lo, fs_crc_hi (&BE/&BF)":
+              "destination pointer for the non-Tube path",
+              "Tube state flag (workspace)":
+              "selects direct-memory vs Tube-R3 transfer"},
+    on_exit={"a, x, y": "clobbered",
+             "side effect": "block copied to caller-specified address "
+             "(direct memory or via Tube R3); Tube claim is matched with "
+             "release on the Tube path"})
 subroutine(0xA390, "tube_claim_c3",
     title="Claim the Tube via protocol &C3",
     description="Loops calling tube_addr_data_dispatch with\n"
@@ -3973,7 +4048,12 @@ subroutine(0xA3E7, "get_pb_ptr_as_index",
     description="Reads the first byte from the OSWORD parameter\n"
     "block pointer and falls through to\n"
     "byte_to_2bit_index to produce a 12-byte-aligned\n"
-    "table index in Y.")
+    "table index in Y.",
+    on_entry={"ws_ptr_hi (workspace ptr)":
+              "OSWORD parameter block pointer; PB[0] is the table "
+              "selector"},
+    on_exit={"a": "PB[0] (preserved through byte_to_2bit_index)",
+             "y": "byte offset (0, 6, 12, ... up to &42)"})
 subroutine(0xA3E9, "byte_to_2bit_index",
     title="Convert byte to 12-byte-aligned table index",
     description="Computes Y = A * 6 (via A*12/2) for indexing\n"
@@ -4322,7 +4402,13 @@ subroutine(0xABE9, "init_bridge_poll",
     "packet and polls for replies. Each reply\n"
     "adds a network routing entry to the bridge\n"
     "table. Skips the broadcast if the table has\n"
-    "already been populated from a previous call.")
+    "already been populated from a previous call.",
+    on_entry={"bridge_status (&0D72)":
+              "&FF = needs init (broadcast and populate); "
+              "any other value = already initialised (no-op)"},
+    on_exit={"bridge routing table": "populated on first call; "
+             "subsequent calls return immediately",
+             "a, x, y": "clobbered when the broadcast path runs"})
 subroutine(0xACF8, "enable_irq_and_poll",
     title="Enable interrupts and send Econet packet",
     description="Executes CLI to re-enable interrupts, then\n"
@@ -4394,7 +4480,14 @@ subroutine(0xAD64, "netv_claim_release",
     "workspace and sends an abort with the state\n"
     "code. For state 3 matches, also polls workspace\n"
     "for a response and restores the caller's stack\n"
-    "frame from the saved bytes.")
+    "frame from the saved bytes.",
+    on_entry={"a": "OSWORD 7 number (validated by caller)",
+              "PB pointer (X/Y)": "OSWORD parameter block from MOS"},
+    on_exit={"behaviour": "no match: returns with the OSWORD pass-through "
+             "path. Match path: sends an Econet abort with the state "
+             "code; for state 3, polls workspace for the remote response "
+             "and restores caller's stack frame -- caller does NOT see "
+             "this routine's RTS, control resumes deeper up the stack"})
 subroutine(0xADB8, "match_rx_code",
     title="Search receive code table for match",
     description="Scans a table of receive operation codes\n"
@@ -4459,7 +4552,13 @@ subroutine(0xAE5A, "netv_spool_check",
     "if X-1 matches osword_pb_ptr and bit 0 of\n"
     "&00D0 is clear. If both conditions are met,\n"
     "falls through to reset_spool_buf_state to\n"
-    "reinitialise the spool buffer for new data.")
+    "reinitialise the spool buffer for new data.",
+    on_entry={"x": "OSWORD parameter block low byte (X-1 compared "
+              "against osword_pb_ptr)",
+              "&00D0 bit 0": "must be clear for the reset to apply"},
+    on_exit={"behaviour": "no match: returns with OSWORD passed through. "
+             "Match path: spool buffer reset via fall-through (pointer "
+             "set to &25, control state to &41)"})
 subroutine(0xAE6F, "netv_print_data",
     title="OSWORD 1-3 handler: drain printer buffer",
     description="Handles OSWORDs 1-3 intercepted via NETV.\n"
@@ -4467,13 +4566,22 @@ subroutine(0xAE6F, "netv_print_data",
     "&91, buffer 3) into the receive buffer, sending\n"
     "packets via process_spool_data when the buffer\n"
     "exceeds &6E bytes. When X>1, routes to\n"
-    "handle_spool_ctrl_byte for spool state control.")
+    "handle_spool_ctrl_byte for spool state control.",
+    on_entry={"x": "1 = drain printer buffer; >1 = control byte path",
+              "spool_buf at workspace +&25..":
+              "accumulator buffer (drained when full)"},
+    on_exit={"behaviour": "X=1: buffer drained via OSBYTE &91 into the "
+             "RX buffer; transmits via process_spool_data once the buffer "
+             "exceeds &6E bytes. X>1: tail-jumps to handle_spool_ctrl_byte"})
 subroutine(0xAE64, "reset_spool_buf_state",
     title="Reset spool buffer to initial state",
     description="Sets the spool buffer pointer to &25 (first\n"
     "available data position) and the control state\n"
     "byte to &41 (ready for new data). Called after\n"
-    "processing a complete spool data block.")
+    "processing a complete spool data block.",
+    on_exit={"spool_buf_idx": "= &25 (first data position)",
+             "spool ctrl byte": "= &41 (ready for new data)",
+             "a, y": "clobbered"})
 subroutine(0xAE94, "append_byte_to_rxbuf",
     title="Append byte to receive buffer",
     description="Stores A in the receive buffer at the current\n"
@@ -4487,20 +4595,37 @@ subroutine(0xAE9D, "handle_spool_ctrl_byte",
     "for mode selection (print vs spool), appends\n"
     "the byte to the buffer, calls process_spool_data\n"
     "to transmit the accumulated data, and resets\n"
-    "the buffer state ready for the next block.")
+    "the buffer state ready for the next block.",
+    on_entry={"a": "control byte (bit 0 selects mode: 0 = print, "
+              "1 = spool)",
+              "spool buffer (workspace)":
+              "accumulated data ready to transmit"},
+    on_exit={"spool buffer": "transmitted then reset to initial state",
+             "a, x, y": "clobbered"})
 subroutine(0xAEB8, "process_spool_data",
     title="Transmit accumulated spool buffer data",
     description="Copies the workspace state to the TX control\n"
     "block, sends a disconnect reply if the previous\n"
     "transfer requires acknowledgment, then handles\n"
     "the spool output sequence by setting up and\n"
-    "sending the pass-through TX buffer.")
+    "sending the pass-through TX buffer.",
+    on_entry={"spool buffer (workspace)": "data to transmit",
+              "txcb shadow (workspace)":
+              "TX state to copy into &00C0..&00CB"},
+    on_exit={"a": "TX result (from setup_pass_txbuf)",
+             "behaviour": "may issue a disconnect reply for the previous "
+             "transfer before sending; raises BRK on persistent TX errors"})
 subroutine(0xAFA6, "send_disconnect_reply",
     title="Send Econet disconnect reply packet",
     description="Sets up the TX pointer, copies station\n"
     "addresses, matches the station in the table,\n"
     "and sends the response. Waits for\n"
-    "acknowledgment before returning.")
+    "acknowledgment before returning.",
+    on_entry={"&0E00, &0E01": "station/network of the remote that "
+              "originated the request"},
+    on_exit={"a": "TX result code",
+             "behaviour": "sends the disconnect reply via the pass-"
+             "through TX buffer; waits for ACK before returning"})
 subroutine(0xB05F, "commit_state_byte",
     title="Copy current state byte to committed state",
     description="Reads the working state byte from workspace and\n"
