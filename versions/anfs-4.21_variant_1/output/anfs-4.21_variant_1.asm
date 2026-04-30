@@ -3365,8 +3365,8 @@ l89c9 = reset_enter_listen+2
 .version_string_cr
     equs &0d, "Advanced NFS 4.21", &0d                                ; 8c96: 0d 41 64... .Ad
 
-    nop                                                               ; 8ca9: ea          .
-    jmp print_station_id                                              ; 8caa: 4c c7 90    L..
+    nop                                                               ; 8ca9: ea          .              ; Inline-string fallthrough lands here on terminator
+    jmp print_station_id                                              ; 8caa: 4c c7 90    L..            ; Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)
 
 ; ***************************************************************************************
 ; Read workspace page number for current ROM slot
@@ -11236,14 +11236,14 @@ labc5 = compare_bridge_status+1
 ; back to print the next entry's characters.
 ; ***************************************************************************************
 .ex_print_col_sep
-    ldy fs_spool_handle                                               ; b2e4: a4 ba       ..
-    bmi cb2f7                                                         ; b2e6: 30 0f       0.
-    iny                                                               ; b2e8: c8          .
-    tya                                                               ; b2e9: 98          .
-    and #3                                                            ; b2ea: 29 03       ).
-    sta fs_spool_handle                                               ; b2ec: 85 ba       ..
-    beq cb2f7                                                         ; b2ee: f0 07       ..
-    jsr sub_c928a                                                     ; b2f0: 20 8a 92     ..
+    ldy fs_spool_handle                                               ; b2e4: a4 ba       ..             ; Read fs_spool_handle (also column counter in *Cat mode)
+    bmi cb2f7                                                         ; b2e6: 30 0f       0.             ; Negative: *Ex mode (one-per-line) -- skip column logic, just print newline
+    iny                                                               ; b2e8: c8          .              ; Bump column counter
+    tya                                                               ; b2e9: 98          .              ; Get the new value into A
+    and #3                                                            ; b2ea: 29 03       ).             ; Wrap to 0..3 (4 columns per row)
+    sta fs_spool_handle                                               ; b2ec: 85 ba       ..             ; Save the new column index
+    beq cb2f7                                                         ; b2ee: f0 07       ..             ; Wrapped to 0: end of row, print newline
+    jsr sub_c928a                                                     ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
     jsr ld020                                                         ; b2f3: 20 20 d0      .
     equb 5                                                            ; b2f6: 05          .
 

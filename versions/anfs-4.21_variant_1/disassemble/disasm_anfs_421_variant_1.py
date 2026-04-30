@@ -6730,6 +6730,26 @@ comment(0xB571, "Restore caller's V (so print_decimal_3dig honours its "
         "own leading-zero suppression)", inline=True)
 comment(0xB572, "Tail-call print_decimal_3dig for the station number",
         inline=True)
+
+# print_version_header inline comments (3 items)
+# 0x8C93 already has 'Print version string via inline' inline comment
+comment(0x8CA9, "Inline-string fallthrough lands here on terminator",
+        inline=True)
+comment(0x8CAA, "Tail-call print_station_id to append ' Econet "
+        "Station <n>' (and ' No Clock' if appropriate)", inline=True)
+
+# ex_print_col_sep inline comments (8 items in body)
+comment(0xB2E4, "Read fs_spool_handle (also column counter in *Cat mode)",
+        inline=True)
+comment(0xB2E6, "Negative: *Ex mode (one-per-line) -- skip column logic, "
+        "just print newline", inline=True)
+comment(0xB2E8, "Bump column counter", inline=True)
+comment(0xB2E9, "Get the new value into A", inline=True)
+comment(0xB2EA, "Wrap to 0..3 (4 columns per row)", inline=True)
+comment(0xB2EC, "Save the new column index", inline=True)
+comment(0xB2EE, "Wrapped to 0: end of row, print newline", inline=True)
+comment(0xB2F0, "Mid-row: print 2-space column separator via inline",
+        inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
