@@ -3384,15 +3384,15 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8cad referenced 3 times by &8b23, &8cbd, &b3a0
 .get_ws_page
-    ldy romsel_copy                                                   ; 8cad: a4 f4       ..
+    ldy romsel_copy                                                   ; 8cad: a4 f4       ..             ; Y = current ROM slot number from MOS copy at &F4
     lda rom_ws_pages,y                                                ; 8caf: b9 f0 0d    ...            ; Load workspace page for this slot
-    tay                                                               ; 8cb2: a8          .
-    rol a                                                             ; 8cb3: 2a          *
-    php                                                               ; 8cb4: 08          .
-    ror a                                                             ; 8cb5: 6a          j
-    plp                                                               ; 8cb6: 28          (
-    bpl c8cbb                                                         ; 8cb7: 10 02       ..
-    ora #&80                                                          ; 8cb9: 09 80       ..
+    tay                                                               ; 8cb2: a8          .              ; Hold a copy of the slot byte in Y while we test bit 6
+    rol a                                                             ; 8cb3: 2a          *              ; ROL puts pre-ROL bit 6 into the post-ROL N flag (and pre-ROL bit 7 into C)
+    php                                                               ; 8cb4: 08          .              ; Save those flags so the upcoming ROR doesn't lose N
+    ror a                                                             ; 8cb5: 6a          j              ; ROR restores A to its original value (using the saved C)
+    plp                                                               ; 8cb6: 28          (              ; Restore the ROL flags: N is now pre-ROL bit 6
+    bpl c8cbb                                                         ; 8cb7: 10 02       ..             ; Bit 6 clear: skip the OR (no ADLC-absent flag)
+    ora #&80                                                          ; 8cb9: 09 80       ..             ; Bit 6 set: re-set bit 7 in the returned page byte (the ADLC-absent flag uses bit 7 in callers)
 ; &8cbb referenced 1 time by &8cb7
 .c8cbb
     tay                                                               ; 8cbb: a8          .              ; Transfer to Y
@@ -11212,10 +11212,10 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
 .mask_owner_access
-    lda lc271                                                         ; b2cf: ad 71 c2    .q.
-    and #&1f                                                          ; b2d2: 29 1f       ).
-    sta lc271                                                         ; b2d4: 8d 71 c2    .q.
-    rts                                                               ; b2d7: 60          `
+    lda lc271                                                         ; b2cf: ad 71 c2    .q.            ; Read fs_lib_flags (now at &C271 in 4.21)
+    and #&1f                                                          ; b2d2: 29 1f       ).             ; Keep only the 5-bit owner access mask
+    sta lc271                                                         ; b2d4: 8d 71 c2    .q.            ; Store back, clearing FS-selection and other high bits
+    rts                                                               ; b2d7: 60          `              ; Return
 
     equs "Run"                                                        ; b2d8: 52 75 6e    Run
     equb &a2, 0                                                       ; b2db: a2 00       ..
@@ -12273,9 +12273,9 @@ lb4fd = write_ps_slot_hi_link+1
 ;     A: character read
 ; ***************************************************************************************
 .prompt_yn
-    jsr sub_c928a                                                     ; b7cb: 20 8a 92     ..
-    eor l4e2f,y                                                       ; b7ce: 59 2f 4e    Y/N
-    and #&20 ; ' '                                                    ; b7d1: 29 20       )
+    jsr sub_c928a                                                     ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
+    eor l4e2f,y                                                       ; b7ce: 59 2f 4e    Y/N            ; Inline string body — bytes consumed by sub_c928a (above)
+    and #&20 ; ' '                                                    ; b7d1: 29 20       )              ; Force lower-case (bit 5 = ' ' bit) for case-insensitive Y/N test
 ; ***************************************************************************************
 ; Flush keyboard buffer and read one character
 ; 
@@ -13875,9 +13875,9 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bf71 referenced 5 times by &bd2a, &bd7d, &be9c, &bed6, &bf43
 .close_ws_file
-    ldy ws_page                                                       ; bf71: a4 a8       ..
-    lda #osfind_close                                                 ; bf73: a9 00       ..
-    jmp osfind                                                        ; bf75: 4c ce ff    L..            ; Close one or all files
+    ldy ws_page                                                       ; bf71: a4 a8       ..             ; Y = saved file handle from ws_page
+    lda #osfind_close                                                 ; bf73: a9 00       ..             ; A=0: OSFIND close
+    jmp osfind                                                        ; bf75: 4c ce ff    L..            ; Tail-call OSFIND to close the handle; Close one or all files
 
 ; ***************************************************************************************
 ; Open file for reading via OSFIND
@@ -13943,7 +13943,7 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bfba referenced 3 times by &9eda, &ac32, &bdd7
 .advance_x_by_8
-    jsr advance_x_by_4                                                ; bfba: 20 bd bf     ..
+    jsr advance_x_by_4                                                ; bfba: 20 bd bf     ..            ; First INX-by-4 via JSR; falls into advance_x_by_4 for the second four
 ; ***************************************************************************************
 ; Advance X by 4 via JSR and fall-through
 ; 
@@ -13954,7 +13954,7 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bfbd referenced 1 time by &bfba
 .advance_x_by_4
-    jsr inx4                                                          ; bfbd: 20 c0 bf     ..
+    jsr inx4                                                          ; bfbd: 20 c0 bf     ..            ; JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four
 ; ***************************************************************************************
 ; Increment X four times
 ; 
@@ -13964,11 +13964,11 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; &bfc0 referenced 1 time by &bfbd
 .inx4
-    inx                                                               ; bfc0: e8          .
-    inx                                                               ; bfc1: e8          .
-    inx                                                               ; bfc2: e8          .
-    inx                                                               ; bfc3: e8          .
-    rts                                                               ; bfc4: 60          `
+    inx                                                               ; bfc0: e8          .              ; First INX
+    inx                                                               ; bfc1: e8          .              ; Second INX
+    inx                                                               ; bfc2: e8          .              ; Third INX
+    inx                                                               ; bfc3: e8          .              ; Fourth INX
+    rts                                                               ; bfc4: 60          `              ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
 
     equb &ff, &ff                                                     ; bfc5: ff ff       ..
     equb &ff                                                          ; bfc7: ff          .

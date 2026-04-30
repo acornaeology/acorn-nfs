@@ -6355,6 +6355,55 @@ comment(0xB274, "Return", inline=True)
 # copy_arg_to_buf_x0 inline comment (1 item)
 comment(0xB29F, "X=0: place the argument at the start of the TX buffer; "
         "fall into copy_arg_to_buf", inline=True)
+
+# get_ws_page: complete the existing partial annotation
+comment(0x8CAD, "Y = current ROM slot number from MOS copy at &F4",
+        inline=True)
+comment(0x8CB2, "Hold a copy of the slot byte in Y while we test bit 6",
+        inline=True)
+comment(0x8CB3, "ROL puts pre-ROL bit 6 into the post-ROL N flag (and "
+        "pre-ROL bit 7 into C)", inline=True)
+comment(0x8CB4, "Save those flags so the upcoming ROR doesn't lose N",
+        inline=True)
+comment(0x8CB5, "ROR restores A to its original value (using the saved "
+        "C)", inline=True)
+comment(0x8CB6, "Restore the ROL flags: N is now pre-ROL bit 6", inline=True)
+comment(0x8CB7, "Bit 6 clear: skip the OR (no ADLC-absent flag)",
+        inline=True)
+comment(0x8CB9, "Bit 6 set: re-set bit 7 in the returned page byte (the "
+        "ADLC-absent flag uses bit 7 in callers)", inline=True)
+
+# mask_owner_access inline comments (4 items)
+comment(0xB2CF, "Read fs_lib_flags (now at &C271 in 4.21)", inline=True)
+comment(0xB2D2, "Keep only the 5-bit owner access mask", inline=True)
+comment(0xB2D4, "Store back, clearing FS-selection and other high bits",
+        inline=True)
+comment(0xB2D7, "Return", inline=True)
+
+# prompt_yn inline comments (3 items)
+comment(0xB7CB, "Print 'Y/N) ' via the inline-string helper", inline=True)
+comment(0xB7CE, "Inline string body — bytes consumed by sub_c928a (above)",
+        inline=True)
+comment(0xB7D1, "Force lower-case (bit 5 = ' ' bit) for case-insensitive "
+        "Y/N test", inline=True)
+
+# close_ws_file inline comments (3 items)
+comment(0xBF71, "Y = saved file handle from ws_page", inline=True)
+comment(0xBF73, "A=0: OSFIND close", inline=True)
+comment(0xBF75, "Tail-call OSFIND to close the handle", inline=True)
+
+# advance_x_by_8 / advance_x_by_4 / inx4 inline comments
+comment(0xBFBA, "First INX-by-4 via JSR; falls into advance_x_by_4 for "
+        "the second four", inline=True)
+comment(0xBFBD, "JSR inx4 (4 INX); RTS returns here, then falls into "
+        "inx4 again for the implicit second four", inline=True)
+comment(0xBFC0, "First INX", inline=True)
+comment(0xBFC1, "Second INX", inline=True)
+comment(0xBFC2, "Third INX", inline=True)
+comment(0xBFC3, "Fourth INX", inline=True)
+comment(0xBFC4, "Return; caller is either an explicit JSR (so X has "
+        "advanced by 4) or advance_x_by_8's fall-through (so X has "
+        "advanced by 8 total)", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
