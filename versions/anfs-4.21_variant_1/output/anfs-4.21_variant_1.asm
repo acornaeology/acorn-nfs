@@ -4823,8 +4823,8 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93d3 referenced 2 times by &a42f, &b0fe
 .set_text_and_xfer_ptr
-    stx os_text_ptr                                                   ; 93d3: 86 f2       ..
-    sty os_text_ptr_hi                                                ; 93d5: 84 f3       ..
+    stx os_text_ptr                                                   ; 93d3: 86 f2       ..             ; Save text pointer low byte (where caller wants OS to scan from)
+    sty os_text_ptr_hi                                                ; 93d5: 84 f3       ..             ; Save text pointer high byte; fall through to set_xfer_params
 ; ***************************************************************************************
 ; Set FS transfer byte count and source pointer
 ; 
@@ -4842,9 +4842,9 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93d7 referenced 6 times by &8da6, &8e4b, &9c22, &a032, &a14f, &b118
 .set_xfer_params
-    sta fs_last_byte_flag                                             ; 93d7: 85 bd       ..
-    stx fs_crc_lo                                                     ; 93d9: 86 be       ..
-    sty fs_crc_hi                                                     ; 93db: 84 bf       ..
+    sta fs_last_byte_flag                                             ; 93d7: 85 bd       ..             ; Stash transfer byte count (in A)
+    stx fs_crc_lo                                                     ; 93d9: 86 be       ..             ; Source pointer low byte
+    sty fs_crc_hi                                                     ; 93db: 84 bf       ..             ; Source pointer high byte; fall through to set_options_ptr
 ; ***************************************************************************************
 ; Set FS options pointer and clear escape flag
 ; 
@@ -4861,14 +4861,14 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93dd referenced 2 times by &9eb0, &bd15
 .set_options_ptr
-    stx fs_options                                                    ; 93dd: 86 bb       ..
-    sty fs_block_offset                                               ; 93df: 84 bc       ..
+    stx fs_options                                                    ; 93dd: 86 bb       ..             ; Options pointer low byte (parameter block base)
+    sty fs_block_offset                                               ; 93df: 84 bc       ..             ; Options pointer high byte; fall through to clear_escapable
 ; &93e1 referenced 1 time by &9b72
 .clear_escapable
-    php                                                               ; 93e1: 08          .
-    lsr need_release_tube                                             ; 93e2: 46 98       F.
-    plp                                                               ; 93e4: 28          (
-    rts                                                               ; 93e5: 60          `
+    php                                                               ; 93e1: 08          .              ; Save flags so the LSR doesn't disturb caller's NZC
+    lsr need_release_tube                                             ; 93e2: 46 98       F.             ; Shift bit 0 of need_release_tube into carry, clearing the bit
+    plp                                                               ; 93e4: 28          (              ; Restore caller's flags
+    rts                                                               ; 93e5: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Compare 5-byte handle buffers for equality
@@ -4885,17 +4885,17 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &93e6 referenced 2 times by &9c85, &9d88
 .cmp_5byte_handle
-    ldx #4                                                            ; 93e6: a2 04       ..
+    ldx #4                                                            ; 93e6: a2 04       ..             ; X=4: loop from offset 4 down to 1 (skips offset 0)
 ; &93e8 referenced 1 time by &93ef
 .loop_cmp_handle
-    lda addr_work,x                                                   ; 93e8: b5 af       ..
-    eor fs_load_addr_3,x                                              ; 93ea: 55 b3       U.
-    bne return_from_cmp_handle                                        ; 93ec: d0 03       ..
-    dex                                                               ; 93ee: ca          .
-    bne loop_cmp_handle                                               ; 93ef: d0 f7       ..
+    lda addr_work,x                                                   ; 93e8: b5 af       ..             ; Load saved-handle byte from addr_work[X]
+    eor fs_load_addr_3,x                                              ; 93ea: 55 b3       U.             ; EOR with parsed handle byte; Z set iff bytes match
+    bne return_from_cmp_handle                                        ; 93ec: d0 03       ..             ; Mismatch: bail out with Z clear
+    dex                                                               ; 93ee: ca          .              ; Decrement to next byte
+    bne loop_cmp_handle                                               ; 93ef: d0 f7       ..             ; Loop while X != 0 (offset 0 is intentionally not compared)
 ; &93f1 referenced 1 time by &93ec
 .return_from_cmp_handle
-    rts                                                               ; 93f1: 60          `
+    rts                                                               ; 93f1: 60          `              ; Return; Z reflects last EOR (set = match, clear = mismatch)
 
 .fscv_7_read_handles
     ldx #&20 ; ' '                                                    ; 93f2: a2 20       .

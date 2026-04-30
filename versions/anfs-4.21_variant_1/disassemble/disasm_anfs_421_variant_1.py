@@ -6206,6 +6206,43 @@ comment(0x93C2, "Source bit was 1: OR in this column's encoded mask",
 comment(0x93C5, "Continue while either fs_error_ptr or A is non-zero "
         "(loop ends when source exhausted and result still 0)", inline=True)
 comment(0x93C7, "Return with encoded value in A", inline=True)
+
+# set_text_and_xfer_ptr inline comments (2 items)
+comment(0x93D3, "Save text pointer low byte (where caller wants OS to "
+        "scan from)", inline=True)
+comment(0x93D5, "Save text pointer high byte; fall through to "
+        "set_xfer_params", inline=True)
+
+# set_xfer_params inline comments (3 items)
+comment(0x93D7, "Stash transfer byte count (in A)", inline=True)
+comment(0x93D9, "Source pointer low byte", inline=True)
+comment(0x93DB, "Source pointer high byte; fall through to set_options_ptr",
+        inline=True)
+
+# set_options_ptr / clear_escapable inline comments (4 items shared)
+comment(0x93DD, "Options pointer low byte (parameter block base)",
+        inline=True)
+comment(0x93DF, "Options pointer high byte; fall through to clear_escapable",
+        inline=True)
+comment(0x93E1, "Save flags so the LSR doesn't disturb caller's NZC",
+        inline=True)
+comment(0x93E2, "Shift bit 0 of need_release_tube into carry, clearing "
+        "the bit", inline=True)
+comment(0x93E4, "Restore caller's flags", inline=True)
+comment(0x93E5, "Return", inline=True)
+
+# cmp_5byte_handle inline comments (7 items)
+comment(0x93E6, "X=4: loop from offset 4 down to 1 (skips offset 0)",
+        inline=True)
+comment(0x93E8, "Load saved-handle byte from addr_work[X]", inline=True)
+comment(0x93EA, "EOR with parsed handle byte; Z set iff bytes match",
+        inline=True)
+comment(0x93EC, "Mismatch: bail out with Z clear", inline=True)
+comment(0x93EE, "Decrement to next byte", inline=True)
+comment(0x93EF, "Loop while X != 0 (offset 0 is intentionally not "
+        "compared)", inline=True)
+comment(0x93F1, "Return; Z reflects last EOR (set = match, clear = "
+        "mismatch)", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
