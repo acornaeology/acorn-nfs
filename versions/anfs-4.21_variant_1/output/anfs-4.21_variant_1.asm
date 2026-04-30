@@ -5469,7 +5469,7 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &978a referenced 20 times by &8e3c, &9558, &957b, &958e, &9e4a, &9f2f, &9f3f, &9f8d, &a018, &a091, &a0c5, &a199, &a1bc, &a28c, &a347, &a50b, &a533, &b150, &b71b, &bcaa
 .save_net_tx_cb
-    clv                                                               ; 978a: b8          .
+    clv                                                               ; 978a: b8          .              ; Clear V: standard send mode (callers set V via save_net_tx_cb_vset for the lib-flag variant)
 ; ***************************************************************************************
 ; Save and send TXCB with V flag set
 ; 
@@ -5483,36 +5483,36 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &978b referenced 2 times by &9e31, &9ff6
 .save_net_tx_cb_vset
-    lda lc002                                                         ; 978b: ad 02 c0    ...
-    sta lc102                                                         ; 978e: 8d 02 c1    ...
+    lda lc002                                                         ; 978b: ad 02 c0    ...            ; Read FS station from &C002 (saved from selection time)
+    sta lc102                                                         ; 978e: 8d 02 c1    ...            ; Copy into TX buffer at &C102 (dest station for header)
 ; &9791 referenced 1 time by &9774
 .txcb_copy_carry_clr
-    clc                                                               ; 9791: 18          .
+    clc                                                               ; 9791: 18          .              ; Clear C: caller wants four-way handshake (not disconnect)
 ; &9792 referenced 1 time by &9771
 .txcb_copy_carry_set
-    php                                                               ; 9792: 08          .
-    sty lc101                                                         ; 9793: 8c 01 c1    ...
-    ldy #1                                                            ; 9796: a0 01       ..
+    php                                                               ; 9792: 08          .              ; Save flags so we can keep V across the loop
+    sty lc101                                                         ; 9793: 8c 01 c1    ...            ; Save Y -- the entry function code -- into TX[1]
+    ldy #1                                                            ; 9796: a0 01       ..             ; Y=1: copy 2 bytes (network/control) starting at index 1
 ; &9798 referenced 1 time by &979f
 .loop_copy_vset_stn
-    lda lc003,y                                                       ; 9798: b9 03 c0    ...
-    sta lc103,y                                                       ; 979b: 99 03 c1    ...
-    dey                                                               ; 979e: 88          .
-    bpl loop_copy_vset_stn                                            ; 979f: 10 f7       ..
-    bit lc271                                                         ; 97a1: 2c 71 c2    ,q.
-    bvs use_lib_station                                               ; 97a4: 70 0a       p.
-    bpl done_vset_station                                             ; 97a6: 10 0e       ..
-    lda lc004                                                         ; 97a8: ad 04 c0    ...
-    sta lc103                                                         ; 97ab: 8d 03 c1    ...
-    bvc done_vset_station                                             ; 97ae: 50 06       P.             ; ALWAYS branch
+    lda lc003,y                                                       ; 9798: b9 03 c0    ...            ; Read source byte at &C003+Y
+    sta lc103,y                                                       ; 979b: 99 03 c1    ...            ; Write to TX buffer at &C103+Y
+    dey                                                               ; 979e: 88          .              ; Step backwards
+    bpl loop_copy_vset_stn                                            ; 979f: 10 f7       ..             ; Loop while Y >= 0 (covers indices 1, 0)
+    bit lc271                                                         ; 97a1: 2c 71 c2    ,q.            ; Test fs_lib_flags: bit 6 = use library, bit 7 = *-prefix-stripped
+    bvs use_lib_station                                               ; 97a4: 70 0a       p.             ; V (bit 6) set: use the library station instead
+    bpl done_vset_station                                             ; 97a6: 10 0e       ..             ; Neither bit set: leave the FS station copy intact
+    lda lc004                                                         ; 97a8: ad 04 c0    ...            ; Bit 7 (FS-prefix) set: substitute the saved-prefix station from &C004
+    sta lc103                                                         ; 97ab: 8d 03 c1    ...            ; Override TX[3]'s station byte
+    bvc done_vset_station                                             ; 97ae: 50 06       P.             ; Always taken: V was clear when we entered (BVS at &97A4 didn't fire); ALWAYS branch
 
 ; &97b0 referenced 1 time by &97a4
 .use_lib_station
-    lda lc002                                                         ; 97b0: ad 02 c0    ...
-    sta lc103                                                         ; 97b3: 8d 03 c1    ...
+    lda lc002                                                         ; 97b0: ad 02 c0    ...            ; use_lib_station: substitute the library station from &C002 (the original FS station, but bit 6 of fs_lib_flags redirects via lib path)
+    sta lc103                                                         ; 97b3: 8d 03 c1    ...            ; Override TX[3] with the library station byte
 ; &97b6 referenced 2 times by &97a6, &97ae
 .done_vset_station
-    plp                                                               ; 97b6: 28          (
+    plp                                                               ; 97b6: 28          (              ; Restore the saved flags (V/C control downstream init_txcb behaviour)
 ; ***************************************************************************************
 ; Build TXCB from scratch, send, and receive reply
 ; 

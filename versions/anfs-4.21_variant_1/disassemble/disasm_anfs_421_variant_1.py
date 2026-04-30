@@ -6499,6 +6499,45 @@ comment(0xB54C, "Write to TX buffer at offset Y", inline=True)
 comment(0xB54E, "Step backwards", inline=True)
 comment(0xB54F, "Loop while Y >= 0", inline=True)
 comment(0xB551, "Return", inline=True)
+
+# save_net_tx_cb inline comment (1 item)
+comment(0x978A, "Clear V: standard send mode (callers set V via "
+        "save_net_tx_cb_vset for the lib-flag variant)", inline=True)
+
+# save_net_tx_cb_vset inline comments (15 items, including shared body)
+comment(0x978B, "Read FS station from &C002 (saved from selection time)",
+        inline=True)
+comment(0x978E, "Copy into TX buffer at &C102 (dest station for header)",
+        inline=True)
+comment(0x9791, "Clear C: caller wants four-way handshake (not "
+        "disconnect)", inline=True)
+comment(0x9792, "Save flags so we can keep V across the loop", inline=True)
+comment(0x9793, "Save Y -- the entry function code -- into TX[1]",
+        inline=True)
+comment(0x9796, "Y=1: copy 2 bytes (network/control) starting at index 1",
+        inline=True)
+comment(0x9798, "Read source byte at &C003+Y", inline=True)
+comment(0x979B, "Write to TX buffer at &C103+Y", inline=True)
+comment(0x979E, "Step backwards", inline=True)
+comment(0x979F, "Loop while Y >= 0 (covers indices 1, 0)", inline=True)
+comment(0x97A1, "Test fs_lib_flags: bit 6 = use library, bit 7 = "
+        "*-prefix-stripped", inline=True)
+comment(0x97A4, "V (bit 6) set: use the library station instead",
+        inline=True)
+comment(0x97A6, "Neither bit set: leave the FS station copy intact",
+        inline=True)
+comment(0x97A8, "Bit 7 (FS-prefix) set: substitute the saved-prefix "
+        "station from &C004", inline=True)
+comment(0x97AB, "Override TX[3]'s station byte", inline=True)
+comment(0x97AE, "Always taken: V was clear when we entered (BVS at "
+        "&97A4 didn't fire)", inline=True)
+comment(0x97B0, "use_lib_station: substitute the library station from "
+        "&C002 (the original FS station, but bit 6 of fs_lib_flags "
+        "redirects via lib path)", inline=True)
+comment(0x97B3, "Override TX[3] with the library station byte",
+        inline=True)
+comment(0x97B6, "Restore the saved flags (V/C control downstream "
+        "init_txcb behaviour)", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
