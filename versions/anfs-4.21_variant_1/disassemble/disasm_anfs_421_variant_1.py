@@ -6308,6 +6308,53 @@ comment(0xAE2D, "Loop while X >= 0", inline=True)
 comment(0xAE2F, "Bump Y back to first written offset", inline=True)
 comment(0xAE30, "Save it as net_tx_ptr low for the caller", inline=True)
 comment(0xAE32, "Return", inline=True)
+
+# print_10_chars / print_chars_from_buf inline comments
+comment(0xB21A, "Y=10: ten characters to print (fixed-width field)",
+        inline=True)
+comment(0xB21C, "Read next character from reply buffer at offset X",
+        inline=True)
+comment(0xB21F, "Print via OSASCI, bypassing the *SPOOL file", inline=True)
+comment(0xB222, "Step buffer offset", inline=True)
+comment(0xB223, "Step character counter", inline=True)
+comment(0xB224, "Loop until Y=0", inline=True)
+comment(0xB226, "Return; X points just past the last printed byte",
+        inline=True)
+
+# parse_cmd_arg_y0 inline comment (1 item)
+comment(0xB22A, "Y=0: scan from start of command line", inline=True)
+
+# strip_token_prefix inline comments (16 items)
+comment(0xB251, "Save caller's X (TX buffer offset)", inline=True)
+comment(0xB252, "Push it", inline=True)
+comment(0xB253, "X=&FF: INX in loop bumps to 0 for first byte", inline=True)
+comment(0xB255, "Step to next byte position", inline=True)
+comment(0xB256, "Read byte X+1 (the next character)", inline=True)
+comment(0xB259, "Store it back at byte X (shifting left by one)",
+        inline=True)
+comment(0xB25C, "EOR with CR; Z set if we just shifted the terminator",
+        inline=True)
+comment(0xB25E, "More to shift: continue", inline=True)
+comment(0xB260, "X is now the buffer length (excluding CR)", inline=True)
+comment(0xB261, "Empty after shift: skip trim, restore X, return",
+        inline=True)
+comment(0xB263, "Read last buffer byte (X-1 because we count from 0)",
+        inline=True)
+comment(0xB266, "EOR with space; Z set iff it's a trailing space",
+        inline=True)
+comment(0xB268, "Not a space: trim done, restore X, return", inline=True)
+comment(0xB26A, "It is a space: replace with CR (truncate the string)",
+        inline=True)
+comment(0xB26C, "Store CR at the now-trimmed position", inline=True)
+comment(0xB26F, "Step backwards", inline=True)
+comment(0xB270, "Loop while X > 0", inline=True)
+comment(0xB272, "Restore caller's TX buffer offset", inline=True)
+comment(0xB273, "Transfer back to X", inline=True)
+comment(0xB274, "Return", inline=True)
+
+# copy_arg_to_buf_x0 inline comment (1 item)
+comment(0xB29F, "X=0: place the argument at the start of the TX buffer; "
+        "fall into copy_arg_to_buf", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

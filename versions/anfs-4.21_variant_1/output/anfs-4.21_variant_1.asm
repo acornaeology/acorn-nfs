@@ -10983,7 +10983,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b21a referenced 1 time by &b155
 .print_10_chars
-    ldy #&0a                                                          ; b21a: a0 0a       ..
+    ldy #&0a                                                          ; b21a: a0 0a       ..             ; Y=10: ten characters to print (fixed-width field)
 ; ***************************************************************************************
 ; Print Y characters from buffer via OSASCI
 ; 
@@ -10998,12 +10998,12 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b21c referenced 1 time by &b224
 .print_chars_from_buf
-    lda lc105,x                                                       ; b21c: bd 05 c1    ...
-    jsr print_char_no_spool                                           ; b21f: 20 fb 91     ..
-    inx                                                               ; b222: e8          .
-    dey                                                               ; b223: 88          .
-    bne print_chars_from_buf                                          ; b224: d0 f6       ..
-    rts                                                               ; b226: 60          `
+    lda lc105,x                                                       ; b21c: bd 05 c1    ...            ; Read next character from reply buffer at offset X
+    jsr print_char_no_spool                                           ; b21f: 20 fb 91     ..            ; Print via OSASCI, bypassing the *SPOOL file
+    inx                                                               ; b222: e8          .              ; Step buffer offset
+    dey                                                               ; b223: 88          .              ; Step character counter
+    bne print_chars_from_buf                                          ; b224: d0 f6       ..             ; Loop until Y=0
+    rts                                                               ; b226: 60          `              ; Return; X points just past the last printed byte
 
 .jmp_osnewl
     equb &4c, &f9, &91                                                ; b227: 4c f9 91    L..
@@ -11017,7 +11017,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b22a referenced 2 times by &9fe6, &a4fc
 .parse_cmd_arg_y0
-    ldy #0                                                            ; b22a: a0 00       ..
+    ldy #0                                                            ; b22a: a0 00       ..             ; Y=0: scan from start of command line
 ; ***************************************************************************************
 ; Parse filename via GSREAD with prefix handling
 ; 
@@ -11068,34 +11068,34 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b251 referenced 5 times by &9459, &94ee, &94f3, &b23e, &b293
 .strip_token_prefix
-    txa                                                               ; b251: 8a          .
-    pha                                                               ; b252: 48          H
-    ldx #&ff                                                          ; b253: a2 ff       ..
+    txa                                                               ; b251: 8a          .              ; Save caller's X (TX buffer offset)
+    pha                                                               ; b252: 48          H              ; Push it
+    ldx #&ff                                                          ; b253: a2 ff       ..             ; X=&FF: INX in loop bumps to 0 for first byte
 ; &b255 referenced 1 time by &b25e
 .loop_shift_str_left
-    inx                                                               ; b255: e8          .
-    lda lc031,x                                                       ; b256: bd 31 c0    .1.
-    sta lc030,x                                                       ; b259: 9d 30 c0    .0.
-    eor #&0d                                                          ; b25c: 49 0d       I.
-    bne loop_shift_str_left                                           ; b25e: d0 f5       ..
-    txa                                                               ; b260: 8a          .
-    beq done_strip_prefix                                             ; b261: f0 0f       ..
+    inx                                                               ; b255: e8          .              ; Step to next byte position
+    lda lc031,x                                                       ; b256: bd 31 c0    .1.            ; Read byte X+1 (the next character)
+    sta lc030,x                                                       ; b259: 9d 30 c0    .0.            ; Store it back at byte X (shifting left by one)
+    eor #&0d                                                          ; b25c: 49 0d       I.             ; EOR with CR; Z set if we just shifted the terminator
+    bne loop_shift_str_left                                           ; b25e: d0 f5       ..             ; More to shift: continue
+    txa                                                               ; b260: 8a          .              ; X is now the buffer length (excluding CR)
+    beq done_strip_prefix                                             ; b261: f0 0f       ..             ; Empty after shift: skip trim, restore X, return
 ; &b263 referenced 1 time by &b270
 .loop_trim_trailing
-    lda lc02f,x                                                       ; b263: bd 2f c0    ./.
-    eor #&20 ; ' '                                                    ; b266: 49 20       I
-    bne done_strip_prefix                                             ; b268: d0 08       ..
-    lda #&0d                                                          ; b26a: a9 0d       ..
-    sta lc02f,x                                                       ; b26c: 9d 2f c0    ./.
-    dex                                                               ; b26f: ca          .
-    bne loop_trim_trailing                                            ; b270: d0 f1       ..
+    lda lc02f,x                                                       ; b263: bd 2f c0    ./.            ; Read last buffer byte (X-1 because we count from 0)
+    eor #&20 ; ' '                                                    ; b266: 49 20       I              ; EOR with space; Z set iff it's a trailing space
+    bne done_strip_prefix                                             ; b268: d0 08       ..             ; Not a space: trim done, restore X, return
+    lda #&0d                                                          ; b26a: a9 0d       ..             ; It is a space: replace with CR (truncate the string)
+    sta lc02f,x                                                       ; b26c: 9d 2f c0    ./.            ; Store CR at the now-trimmed position
+    dex                                                               ; b26f: ca          .              ; Step backwards
+    bne loop_trim_trailing                                            ; b270: d0 f1       ..             ; Loop while X > 0
 ; &b272 referenced 2 times by &b261, &b268
 .done_strip_prefix
-    pla                                                               ; b272: 68          h
-    tax                                                               ; b273: aa          .
+    pla                                                               ; b272: 68          h              ; Restore caller's TX buffer offset
+    tax                                                               ; b273: aa          .              ; Transfer back to X
 ; &b274 referenced 3 times by &b277, &b27e, &b289
 .return_from_strip_prefix
-    rts                                                               ; b274: 60          `
+    rts                                                               ; b274: 60          `              ; Return
 
 ; &b275 referenced 1 time by &b247
 .check_hash_prefix
@@ -11137,7 +11137,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b29f referenced 5 times by &8dd5, &8e38, &9c39, &9e29, &a5df
 .copy_arg_to_buf_x0
-    ldx #0                                                            ; b29f: a2 00       ..
+    ldx #0                                                            ; b29f: a2 00       ..             ; X=0: place the argument at the start of the TX buffer; fall into copy_arg_to_buf
 ; ***************************************************************************************
 ; Copy argument to TX buffer with Y=0
 ; 
