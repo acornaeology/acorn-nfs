@@ -4371,7 +4371,6 @@ l89c9 = reset_enter_listen+2
     equs "B Cockburn"                                                 ; 8d5f: 42 20 43... B C
     equb &0d                                                          ; 8d69: 0d          .
     equs "J Du"                                                       ; 8d6a: 4a 20 44... J D
-.ps_template_base
     equs "nn"                                                         ; 8d6e: 6e 6e       nn
     equb &0d                                                          ; 8d70: 0d          .
     equs "B Robertson"                                                ; 8d71: 42 20 52... B R
@@ -4413,7 +4412,7 @@ l89c9 = reset_enter_listen+2
     plx                                                               ; 8da4: fa          .
     pla                                                               ; 8da5: 68          h              ; Restore command line offset
 .sub_c8da6
-l8da7 = sub_c8da6+1
+ps_template_base = sub_c8da6+1
     jsr set_xfer_params                                               ; 8da6: 20 d7 93     ..
 ; &8da7 referenced 1 time by &b3d9
     ply                                                               ; 8da9: 7a          z
@@ -4652,7 +4651,7 @@ l8da7 = sub_c8da6+1
 ; Default printer server configuration data, read
 ; indirectly by copy_ps_data via LDA ps_template_base,X
 ; with X=&F8..&FF (reaching ps_template_base+&F8 =
-; &8E59). Contains "PRINT " (6 bytes) as the default
+; &8E9F). Contains "PRINT " (6 bytes) as the default
 ; printer server name, followed by &01 and &00 as
 ; default status bytes. Absent from NFS versions;
 ; unique to ANFS.
@@ -13391,8 +13390,11 @@ labc5 = compare_bridge_status+1
 ; Uses indexed addressing: LDA ps_template_base,X
 ; with X starting at &F8, so the effective read
 ; address is ps_template_base+&F8 = ps_template_data
-; (&8E59). This 6502 trick reaches data 248 bytes
-; past the base label using a single instruction.
+; (&8E9F). The 6502 trick reaches data 248 bytes past
+; the base label in a single instruction; in 4.21 the
+; base address (&8DA7) deliberately falls inside the
+; operand byte of a JSR instruction at &8DA6 -- see
+; docs/analysis/authors-easter-egg.md.
 ; 
 ; On Entry:
 ;     Y: destination offset within the RX buffer
@@ -13408,7 +13410,7 @@ labc5 = compare_bridge_status+1
     ldx #&f8                                                          ; b3d7: a2 f8       ..             ; X=&F8: walks 0..7 via wraparound (loads from &8DA7+&F8=&8E9F, the ps_template_data base); X=2: start from response byte 2
 ; &b3d9 referenced 1 time by &b3e0
 .loop_copy_ps_tmpl
-    lda l8da7,x                                                       ; b3d9: bd a7 8d    ...            ; Read template byte from ps_template_data + (X-&F8); Load file info character
+    lda ps_template_base,x                                            ; b3d9: bd a7 8d    ...            ; Read template byte from ps_template_data + (X-&F8); Load file info character
     sta (net_rx_ptr),y                                                ; b3dc: 91 9c       ..             ; Store into RX buffer at offset Y; Print file info character
     iny                                                               ; b3de: c8          .              ; Step destination
     inx                                                               ; b3df: e8          .              ; Step source -- wraps from &FF to &00 to terminate; Advance to next character
@@ -16853,7 +16855,6 @@ save pydis_start, pydis_end
 ;     l89c9:                          1
 ;     l89ed:                          1
 ;     l8a20:                          1
-;     l8da7:                          1
 ;     l99a3:                          1
 ;     la0ff:                          1
 ;     la103:                          1
@@ -17145,6 +17146,7 @@ save pydis_start, pydis_end
 ;     print_via_oswrch:               1
 ;     process_reply_code:             1
 ;     prot_bit_encode_table:          1
+;     ps_template_base:               1
 ;     ps_tx_header_template:          1
 ;     push_osword_handler_addr:       1
 ;     read_cat_info:                  1
@@ -17448,7 +17450,6 @@ save pydis_start, pydis_end
 ;     l89c9
 ;     l89ed
 ;     l8a20
-;     l8da7
 ;     l99a3
 ;     l9aa6
 ;     la0ff

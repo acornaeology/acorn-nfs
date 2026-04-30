@@ -562,7 +562,13 @@ label(0x8D33, "done_credits_check")
 label(0x8D39, "loop_emit_credits")
 label(0x8D44, "return_from_credits_check")
 label(0x8D45, "credits_keyword_start")
-label(0x8D6E, "ps_template_base")
+# ps_template_base is the indexed-addressing anchor used by copy_ps_data
+# (LDA ps_template_base,X with X=&F8..&FF, reaching ps_template_data at
+# &8E9F). It deliberately lands inside a JSR instruction's operand byte
+# rather than at a free-standing address -- see docs/analysis/
+# authors-easter-egg.md. In 4.18 the anchor instead landed inside the
+# 'nn' of "J Dunn" in the credits string at &8D61.
+label(0x8DA7, "ps_template_base")
 label(0x8DC0, "skip_no_fs_addr")
 label(0x8DC7, "loop_copy_logon_cmd")
 label(0x8DD8, "scan_pass_prompt")
@@ -5386,8 +5392,11 @@ subroutine(0xB3D7, "copy_ps_data",
     "Uses indexed addressing: LDA ps_template_base,X\n"
     "with X starting at &F8, so the effective read\n"
     "address is ps_template_base+&F8 = ps_template_data\n"
-    "(&8E59). This 6502 trick reaches data 248 bytes\n"
-    "past the base label using a single instruction.",
+    "(&8E9F). The 6502 trick reaches data 248 bytes past\n"
+    "the base label in a single instruction; in 4.21 the\n"
+    "base address (&8DA7) deliberately falls inside the\n"
+    "operand byte of a JSR instruction at &8DA6 -- see\n"
+    "docs/analysis/authors-easter-egg.md.",
     on_entry={"y": "destination offset within the RX buffer"},
     on_exit={"RX buffer +Y..+Y+7": "8-byte PS template",
              "y": "advanced by 8",
@@ -9774,14 +9783,14 @@ comment(0x8E70, "Dispatch via RTS", inline=True)
 
 # Printer server template data (8 bytes). Read indirectly by
 # copy_ps_data via LDA ps_template_base,X with X=&F8..&FF,
-# reaching ps_template_base+&F8 = &8E59. Default PS name
+# reaching ps_template_base+&F8 = &8E9F. Default PS name
 # "PRINT " followed by status bytes &01, &00.
 comment(0x8E9F, "Printer server template (8 bytes)\n"
     "\n"
     "Default printer server configuration data, read\n"
     "indirectly by copy_ps_data via LDA ps_template_base,X\n"
     "with X=&F8..&FF (reaching ps_template_base+&F8 =\n"
-    "&8E59). Contains \"PRINT \" (6 bytes) as the default\n"
+    "&8E9F). Contains \"PRINT \" (6 bytes) as the default\n"
     "printer server name, followed by &01 and &00 as\n"
     "default status bytes. Absent from NFS versions;\n"
     "unique to ANFS.")
