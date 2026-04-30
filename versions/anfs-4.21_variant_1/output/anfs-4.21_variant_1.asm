@@ -13292,6 +13292,15 @@ lb4fd = write_ps_slot_hi_link+1
 ; available channel slots based on the count from
 ; the receive buffer. Sets the first slot to &C0
 ; (active channel marker).
+; 
+; On Entry:
+;     RX BUFFER (CHANNEL COUNT): byte at the conventional offset gives the number of
+; channels to mark available
+; 
+; On Exit:
+;     CHANNEL TABLE (256 BYTES): cleared, then first N slots marked available; slot 0 =
+; &C0 (active channel marker)
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b7e3 referenced 1 time by &8b9f
 .init_channel_table
@@ -13445,6 +13454,13 @@ lb821 = err_net_chan_not_found+2
 ; buffer, then tests the directory flag (bit 1). Raises
 ; 'Is a dir.' error if the attribute refers to a
 ; directory rather than a file.
+; 
+; On Entry:
+;     A: channel attribute byte to store and check
+; 
+; On Exit:
+;     BEHAVIOUR: raises 'Is a dir.' via the error_inline chain if bit 1 is set;
+; otherwise falls through to check_not_dir which returns normally
 ; ***************************************************************************************
 ; &b886 referenced 2 times by &bb6d, &bbf3
 .store_result_check_dir
@@ -13456,6 +13472,13 @@ lb821 = err_net_chan_not_found+2
 ; Calls check_chan_char to validate the channel, then
 ; tests the directory flag (bit 1). Raises 'Is a dir.'
 ; error if the channel refers to a directory.
+; 
+; On Entry:
+;     A: channel character (validated by check_chan_char)
+; 
+; On Exit:
+;     BEHAVIOUR: raises 'Net channel' if char is invalid, or 'Is a dir.' if it points
+; at a directory; otherwise returns with X = channel index
 ; ***************************************************************************************
 ; &b88c referenced 2 times by &9ef5, &a170
 .check_not_dir
@@ -13522,6 +13545,15 @@ lb821 = err_net_chan_not_found+2
 ; Calls alloc_fcb_slot and raises 'No more FCBs'
 ; if no free slot is available. Preserves the
 ; caller's argument on the stack.
+; 
+; On Entry:
+;     A: caller's argument byte (saved/restored via PHA/PLA across the alloc call)
+; 
+; On Exit:
+;     X: newly allocated FCB slot index (&20-&2F)
+;     A: preserved
+;     BEHAVIOUR: raises 'No more FCBs' via error_bad_inline if all slots are full and
+; never returns in that case
 ; ***************************************************************************************
 ; &b8dc referenced 2 times by &9fd9, &a522
 .alloc_fcb_or_error
@@ -13559,6 +13591,16 @@ lb821 = err_net_chan_not_found+2
 ; Iterates through FCB slots starting at &10,
 ; checking each slot's flags byte. Returns when
 ; all slots have been processed.
+; 
+; On Entry:
+;     FCB TABLE AT L1060: 16-entry FCB table whose flag bytes are scanned
+;     &0E00, &0E01: current station/network for the match step (consumed by
+; match_station_net via fall-through)
+; 
+; On Exit:
+;     X: last scanned FCB index
+;     Z FLAG: set if a matching slot was found (via fall-through into
+; match_station_net)
 ; ***************************************************************************************
 ; &b8fc referenced 1 time by &a099
 .scan_fcb_flags
@@ -13623,6 +13665,14 @@ lb821 = err_net_chan_not_found+2
 ; the end. On the first pass finds active entries
 ; matching the station; on the second pass finds
 ; empty slots for new allocations.
+; 
+; On Entry:
+;     X: starting FCB index (search wraps)
+;     &0E00, &0E01: station/network to match against existing entries
+; 
+; On Exit:
+;     X: FCB slot index of the matched (active) or first empty slot
+;     Z FLAG: match status (set when an entry was found)
 ; ***************************************************************************************
 ; &b934 referenced 2 times by &ba33, &bb21
 .find_open_fcb
@@ -13900,6 +13950,14 @@ lb821 = err_net_chan_not_found+2
 ; Copies 13 bytes from the context buffer at &10D9
 ; back to the TX buffer at &0F00. Falls through to
 ; find_matching_fcb.
+; 
+; On Entry:
+;     &10D9..&10E5: saved 13-byte catalog context (snapshot from save_fcb_context)
+; 
+; On Exit:
+;     &0F00..&0F0C: restored from saved context
+;     BEHAVIOUR: falls through to find_matching_fcb -- caller receives that routine's
+; outputs (X = matching FCB, Z flag indicates whether the FCB has saved offset data)
 ; ***************************************************************************************
 ; &bac0 referenced 1 time by &bcb5
 .restore_catalog_entry
@@ -14583,6 +14641,14 @@ lb821 = err_net_chan_not_found+2
 ; column numbers (00-0F), each separated by a space.
 ; Provides the column alignment header for *Dump
 ; output.
+; 
+; On Entry:
+;     DUMP_ADDR (WORKSPACE): current 4-byte starting address printed as the row label
+; 
+; On Exit:
+;     A, X, Y: clobbered (print_hex_byte + OSASCI loop)
+;     SIDE EFFECT: writes 'AAAAAAAA  00 01 02 ... 0F' followed by CR/LF to the current
+; output stream
 ; ***************************************************************************************
 ; &be01 referenced 2 times by &bd56, &bd88
 .print_dump_header
@@ -14635,6 +14701,15 @@ lb821 = err_net_chan_not_found+2
 ; into a 4-byte accumulator, stopping at CR or
 ; space. Each digit shifts the accumulator left
 ; by 4 bits before ORing in the new nybble.
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
+;     Y: current command-line offset
+; 
+; On Exit:
+;     4-BYTE ACCUMULATOR (WORKSPACE): parsed hex address
+;     Y: advanced past the parsed digits
+;     A: first non-hex character (CR or space)
 ; ***************************************************************************************
 ; &be42 referenced 2 times by &beb2, &bf3e
 .parse_dump_range
@@ -14734,6 +14809,18 @@ lb821 = err_net_chan_not_found+2
 ; defaults to the file extent. Validates both addresses
 ; against the file size, raising 'Outside file' if either
 ; exceeds the extent.
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
+;     Y: command-line offset of the address arguments
+;     WS_PAGE: open file handle from open_file_for_read (file extent is queried via
+; OSARGS A=&FF)
+; 
+; On Exit:
+;     DUMP_START, DUMP_END (WORKSPACE): parsed address range (end defaults to file
+; extent if not supplied)
+;     BEHAVIOUR: raises 'Outside file' via error_inline if either address exceeds the
+; open file's extent
 ; ***************************************************************************************
 ; &beab referenced 1 time by &bd4d
 .init_dump_buffer
@@ -14870,6 +14957,14 @@ lb821 = err_net_chan_not_found+2
 ; 
 ; Loads the file handle from ws_page and closes it
 ; via OSFIND with A=0.
+; 
+; On Entry:
+;     WS_PAGE (WORKSPACE): file handle to close (saved by open_file_for_read)
+; 
+; On Exit:
+;     A, X, Y: clobbered (OSFIND)
+;     WS_PAGE: preserved (only read, not written)
+;     SIDE EFFECT: OSFIND closes the handle on the ANFS server
 ; ***************************************************************************************
 ; &bf71 referenced 5 times by &bd2a, &bd7d, &be9c, &bed6, &bf43
 .close_ws_file
@@ -14884,6 +14979,15 @@ lb821 = err_net_chan_not_found+2
 ; pointer plus the Y offset, calls OSFIND with A=&40
 ; (open for input). Stores the handle in ws_page.
 ; Raises 'Not found' if the returned handle is zero.
+; 
+; On Entry:
+;     OS_TEXT_PTR (&F2/&F3): command-line text pointer base
+;     Y: offset within the command line of the filename to open
+; 
+; On Exit:
+;     WS_PAGE (WORKSPACE): FS file handle (raises 'Not found' via error_inline if
+; OSFIND returns 0)
+;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &bf78 referenced 1 time by &bd41
 .open_file_for_read

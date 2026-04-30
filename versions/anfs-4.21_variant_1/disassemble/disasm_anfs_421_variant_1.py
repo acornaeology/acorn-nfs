@@ -4826,7 +4826,13 @@ subroutine(0xB7E3, "init_channel_table",
     description="Clears all 256 bytes of the table, then marks\n"
     "available channel slots based on the count from\n"
     "the receive buffer. Sets the first slot to &C0\n"
-    "(active channel marker).")
+    "(active channel marker).",
+    on_entry={"RX buffer (channel count)":
+              "byte at the conventional offset gives the number of "
+              "channels to mark available"},
+    on_exit={"channel table (256 bytes)": "cleared, then first N slots "
+             "marked available; slot 0 = &C0 (active channel marker)",
+             "a, x, y": "clobbered"})
 subroutine(0xB805, "attr_to_chan_index",
     title="Convert channel attribute to table index",
     description="Subtracts &20 from the attribute byte and clamps\n"
@@ -4854,12 +4860,20 @@ subroutine(0xB886, "store_result_check_dir",
     description="Writes the current channel attribute to the receive\n"
     "buffer, then tests the directory flag (bit 1). Raises\n"
     "'Is a dir.' error if the attribute refers to a\n"
-    "directory rather than a file.")
+    "directory rather than a file.",
+    on_entry={"a": "channel attribute byte to store and check"},
+    on_exit={"behaviour": "raises 'Is a dir.' via the error_inline chain "
+             "if bit 1 is set; otherwise falls through to check_not_dir "
+             "which returns normally"})
 subroutine(0xB88C, "check_not_dir",
     title="Validate channel is not a directory",
     description="Calls check_chan_char to validate the channel, then\n"
     "tests the directory flag (bit 1). Raises 'Is a dir.'\n"
-    "error if the channel refers to a directory.")
+    "error if the channel refers to a directory.",
+    on_entry={"a": "channel character (validated by check_chan_char)"},
+    on_exit={"behaviour": "raises 'Net channel' if char is invalid, or "
+             "'Is a dir.' if it points at a directory; otherwise returns "
+             "with X = channel index"})
 subroutine(0xB8A8, "alloc_fcb_slot",
     title="Allocate a free file control block slot",
     description="Scans FCB slots &20-&2F for an empty entry.\n"
@@ -4870,7 +4884,13 @@ subroutine(0xB8DC, "alloc_fcb_or_error",
     title="Allocate FCB slot or raise error",
     description="Calls alloc_fcb_slot and raises 'No more FCBs'\n"
     "if no free slot is available. Preserves the\n"
-    "caller's argument on the stack.")
+    "caller's argument on the stack.",
+    on_entry={"a": "caller's argument byte (saved/restored via PHA/PLA "
+              "across the alloc call)"},
+    on_exit={"x": "newly allocated FCB slot index (&20-&2F)",
+             "a": "preserved",
+             "behaviour": "raises 'No more FCBs' via error_bad_inline if "
+             "all slots are full and never returns in that case"})
 subroutine(0xB8F8, "close_all_net_chans",
     title="Close all network channels for current station",
     description="Scans FCB slots &0F down to 0, closing those\n"
@@ -4881,7 +4901,14 @@ subroutine(0xB8FC, "scan_fcb_flags",
     title="Scan FCB slot flags from &10 downward",
     description="Iterates through FCB slots starting at &10,\n"
     "checking each slot's flags byte. Returns when\n"
-    "all slots have been processed.")
+    "all slots have been processed.",
+    on_entry={"FCB table at l1060": "16-entry FCB table whose flag bytes "
+              "are scanned",
+              "&0E00, &0E01": "current station/network for the match step "
+              "(consumed by match_station_net via fall-through)"},
+    on_exit={"x": "last scanned FCB index",
+             "z flag": "set if a matching slot was found "
+             "(via fall-through into match_station_net)"})
 subroutine(0xB925, "match_station_net",
     title="Check FCB slot matches current station/network",
     description="Compares the station and network numbers in the\n"
@@ -4895,7 +4922,13 @@ subroutine(0xB934, "find_open_fcb",
     description="Scans from the current index, wrapping around at\n"
     "the end. On the first pass finds active entries\n"
     "matching the station; on the second pass finds\n"
-    "empty slots for new allocations.")
+    "empty slots for new allocations.",
+    on_entry={"x": "starting FCB index (search wraps)",
+              "&0E00, &0E01": "station/network to match against existing "
+              "entries"},
+    on_exit={"x": "FCB slot index of the matched (active) or first "
+             "empty slot",
+             "z flag": "match status (set when an entry was found)"})
 subroutine(0xB977, "init_wipe_counters",
     title="Initialise byte counters for wipe/transfer",
     description="Clears the pass counter, byte counter, offset\n"
@@ -4925,7 +4958,14 @@ subroutine(0xBAC0, "restore_catalog_entry",
     title="Restore saved catalog entry to TX buffer",
     description="Copies 13 bytes from the context buffer at &10D9\n"
     "back to the TX buffer at &0F00. Falls through to\n"
-    "find_matching_fcb.")
+    "find_matching_fcb.",
+    on_entry={"&10D9..&10E5":
+              "saved 13-byte catalog context (snapshot from "
+              "save_fcb_context)"},
+    on_exit={"&0F00..&0F0C": "restored from saved context",
+             "behaviour": "falls through to find_matching_fcb -- caller "
+             "receives that routine's outputs (X = matching FCB, Z flag "
+             "indicates whether the FCB has saved offset data)"})
 subroutine(0xBACF, "find_matching_fcb",
     title="Find FCB slot matching channel attribute",
     description="Scans FCB slots 0-&0F for an active entry whose\n"
@@ -5029,7 +5069,12 @@ subroutine(0xBE01, "print_dump_header",
     description="Outputs the starting address followed by 16 hex\n"
     "column numbers (00-0F), each separated by a space.\n"
     "Provides the column alignment header for *Dump\n"
-    "output.")
+    "output.",
+    on_entry={"dump_addr (workspace)":
+              "current 4-byte starting address printed as the row label"},
+    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI loop)",
+             "side effect": "writes 'AAAAAAAA  00 01 02 ... 0F' followed "
+             "by CR/LF to the current output stream"})
 subroutine(0xBE37, "print_hex_and_space",
     title="Print hex byte followed by space",
     description="Saves A, prints it as a 2-digit hex value via\n"
@@ -5040,13 +5085,23 @@ subroutine(0xBE37, "print_hex_and_space",
 subroutine(0xBF71, "close_ws_file",
     title="Close file handle stored in workspace",
     description="Loads the file handle from ws_page and closes it\n"
-    "via OSFIND with A=0.")
+    "via OSFIND with A=0.",
+    on_entry={"ws_page (workspace)": "file handle to close (saved by "
+              "open_file_for_read)"},
+    on_exit={"a, x, y": "clobbered (OSFIND)",
+             "ws_page": "preserved (only read, not written)",
+             "side effect": "OSFIND closes the handle on the ANFS server"})
 subroutine(0xBF78, "open_file_for_read",
     title="Open file for reading via OSFIND",
     description="Computes the filename address from the command text\n"
     "pointer plus the Y offset, calls OSFIND with A=&40\n"
     "(open for input). Stores the handle in ws_page.\n"
-    "Raises 'Not found' if the returned handle is zero.")
+    "Raises 'Not found' if the returned handle is zero.",
+    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer base",
+              "y": "offset within the command line of the filename to open"},
+    on_exit={"ws_page (workspace)": "FS file handle (raises 'Not found' "
+             "via error_inline if OSFIND returns 0)",
+             "a, x, y": "clobbered"})
 label(0xBF9E, "restore_text_ptr")
 label(0xBFB8, "done_skip_filename")
 subroutine(0xBE42, "parse_dump_range",
@@ -5054,14 +5109,27 @@ subroutine(0xBE42, "parse_dump_range",
     description="Reads up to 4 hex digits from the command line\n"
     "into a 4-byte accumulator, stopping at CR or\n"
     "space. Each digit shifts the accumulator left\n"
-    "by 4 bits before ORing in the new nybble.")
+    "by 4 bits before ORing in the new nybble.",
+    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer",
+              "y": "current command-line offset"},
+    on_exit={"4-byte accumulator (workspace)": "parsed hex address",
+             "y": "advanced past the parsed digits",
+             "a": "first non-hex character (CR or space)"})
 subroutine(0xBEAB, "init_dump_buffer",
     title="Initialise dump buffer and parse address range",
     description="Parses the start and end addresses from the command\n"
     "line via parse_dump_range. If no end address is given,\n"
     "defaults to the file extent. Validates both addresses\n"
     "against the file size, raising 'Outside file' if either\n"
-    "exceeds the extent.")
+    "exceeds the extent.",
+    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer",
+              "y": "command-line offset of the address arguments",
+              "ws_page": "open file handle from open_file_for_read "
+              "(file extent is queried via OSARGS A=&FF)"},
+    on_exit={"dump_start, dump_end (workspace)": "parsed address range "
+             "(end defaults to file extent if not supplied)",
+             "behaviour": "raises 'Outside file' via error_inline if "
+             "either address exceeds the open file's extent"})
 subroutine(0xBFBA, "advance_x_by_8",
     title="Advance X by 8 via nested JSR chain",
     description="Calls advance_x_by_4 (which itself JSRs inx4 then\n"
