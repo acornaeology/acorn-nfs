@@ -11875,24 +11875,24 @@ lb4fd = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; &b556 referenced 4 times by &a3be, &b607, &b63f, &b697
 .print_station_addr
-    php                                                               ; b556: 08          .
-    lda fs_work_6                                                     ; b557: a5 b6       ..
-    beq skip_if_local_net                                             ; b559: f0 0b       ..
-    jsr print_decimal_3dig                                            ; b55b: 20 2a b3     *.
-    lda #&2e ; '.'                                                    ; b55e: a9 2e       ..
-    jsr osasci                                                        ; b560: 20 e3 ff     ..            ; Write character 46
-    bit always_set_v_byte                                             ; b563: 2c 69 97    ,i.
+    php                                                               ; b556: 08          .              ; Save caller's V (controls leading-zero padding via the BVS at &B566)
+    lda fs_work_6                                                     ; b557: a5 b6       ..             ; Read network number (fs_work_6)
+    beq skip_if_local_net                                             ; b559: f0 0b       ..             ; Network 0 means local: skip the 'NN.' prefix
+    jsr print_decimal_3dig                                            ; b55b: 20 2a b3     *.            ; Network non-zero: print as 3-digit decimal
+    lda #&2e ; '.'                                                    ; b55e: a9 2e       ..             ; A='.': separator between network and station
+    jsr osasci                                                        ; b560: 20 e3 ff     ..            ; Print the dot; Write character 46
+    bit always_set_v_byte                                             ; b563: 2c 69 97    ,i.            ; Set V so the next BVS branches over the padding (we just printed digits, no padding needed)
 ; &b566 referenced 1 time by &b559
 .skip_if_local_net
-    bvs cb56f                                                         ; b566: 70 07       p.
-    jsr print_inline                                                  ; b568: 20 61 92     a.
+    bvs cb56f                                                         ; b566: 70 07       p.             ; V set: skip leading-space padding
+    jsr print_inline                                                  ; b568: 20 61 92     a.            ; V clear (caller wanted padding): print 4 leading spaces via inline string
     equs "    "                                                       ; b56b: 20 20 20...
 
 ; &b56f referenced 1 time by &b566
 .cb56f
-    lda fs_work_5                                                     ; b56f: a5 b5       ..
-    plp                                                               ; b571: 28          (
-    jmp print_decimal_3dig                                            ; b572: 4c 2a b3    L*.
+    lda fs_work_5                                                     ; b56f: a5 b5       ..             ; Read station number (fs_work_5)
+    plp                                                               ; b571: 28          (              ; Restore caller's V (so print_decimal_3dig honours its own leading-zero suppression)
+    jmp print_decimal_3dig                                            ; b572: 4c 2a b3    L*.            ; Tail-call print_decimal_3dig for the station number
 
 .ps_slot_txcb_template
     equb &80                                                          ; b575: 80          .

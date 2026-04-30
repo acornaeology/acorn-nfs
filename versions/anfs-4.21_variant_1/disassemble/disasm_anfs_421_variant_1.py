@@ -6710,6 +6710,26 @@ comment(0xA3C1, "Tail-call OSNEWL for the trailing CR/LF", inline=True)
 comment(0xB22C, "Read the GSREAD-style filename argument into the "
         "&C030 buffer, then fall into parse_access_prefix",
         inline=True)
+
+# print_station_addr inline comments (12 items)
+comment(0xB556, "Save caller's V (controls leading-zero padding via the "
+        "BVS at &B566)", inline=True)
+comment(0xB557, "Read network number (fs_work_6)", inline=True)
+comment(0xB559, "Network 0 means local: skip the 'NN.' prefix", inline=True)
+comment(0xB55B, "Network non-zero: print as 3-digit decimal", inline=True)
+comment(0xB55E, "A='.': separator between network and station",
+        inline=True)
+comment(0xB560, "Print the dot", inline=True)
+comment(0xB563, "Set V so the next BVS branches over the padding "
+        "(we just printed digits, no padding needed)", inline=True)
+comment(0xB566, "V set: skip leading-space padding", inline=True)
+comment(0xB568, "V clear (caller wanted padding): print 4 leading spaces "
+        "via inline string", inline=True)
+comment(0xB56F, "Read station number (fs_work_5)", inline=True)
+comment(0xB571, "Restore caller's V (so print_decimal_3dig honours its "
+        "own leading-zero suppression)", inline=True)
+comment(0xB572, "Tail-call print_decimal_3dig for the station number",
+        inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
