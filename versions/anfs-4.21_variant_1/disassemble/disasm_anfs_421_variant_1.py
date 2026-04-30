@@ -7696,6 +7696,104 @@ comment(0xB517, "Decrement outer in fs_work_4", inline=True)
 comment(0xB519, "Outer not zero: another full sweep (~1000 cycles)",
         inline=True)
 comment(0xB51B, "Return", inline=True)
+
+# cond_save_error_code inline comments (4 items)
+comment(0x9900, "Test bit 7 of fs_flags (FS-active flag)", inline=True)
+comment(0x9903, "FS not active: skip the save", inline=True)
+comment(0x9905, "FS active: store error code at &C009 (last-error byte)",
+        inline=True)
+comment(0x9908, "Return", inline=True)
+
+# build_no_reply_error inline comments (~15 items)
+comment(0x9909, "X=8: net_error_lookup_data offset for 'No reply' "
+        "message", inline=True)
+comment(0x990B, "Y = message offset within the string table (&9AA6 "
+        "base)", inline=True)
+comment(0x990E, "X=0: error-text buffer index", inline=True)
+comment(0x9910, "Zero the &0100 length byte (length will be filled in "
+        "later)", inline=True)
+comment(0x9913, "Read first message byte (the error code)", inline=True)
+comment(0x9916, "Conditionally save it as last-error", inline=True)
+comment(0x9919, "Read next message byte", inline=True)
+comment(0x991C, "Append to error-text buffer at &0101+X", inline=True)
+comment(0x991F, "Null terminator: message done", inline=True)
+comment(0x9921, "Step buffer index", inline=True)
+comment(0x9922, "Step source offset", inline=True)
+comment(0x9923, "Loop while Y != 0 (Y wraps at 256, not expected)",
+        inline=True)
+comment(0x9925, "Append ' on drive <num>' or similar context",
+        inline=True)
+comment(0x9928, "A=0: null terminator", inline=True)
+comment(0x992A, "Store at end of message", inline=True)
+comment(0x992D, "Tail-jump to dispatch the BRK error", inline=True)
+
+# fixup_reply_status_a inline comments (5 items)
+comment(0x9930, "Read FS reply status byte at (net_tx_ptr,X)",
+        inline=True)
+comment(0x9932, "Status 'A'? (Acknowledge with no error)", inline=True)
+comment(0x9934, "Not 'A': pass through unchanged", inline=True)
+comment(0x9936, "Substitute 'B' for 'A' (handle ACK as a soft error)",
+        inline=True)
+comment(0x9938, "Clear V to take the standard mask path", inline=True)
+comment(0x9939, "Always taken: use the standard masked-error path",
+        inline=True)
+
+# classify_reply_error inline comments (~15 items)
+comment(0x993B, "Read FS reply status byte", inline=True)
+comment(0x993D, "BIT $always_set_v_byte: force V=1 (extended-error "
+        "path)", inline=True)
+comment(0x9940, "Mask to 3 bits (error class 0..7)", inline=True)
+comment(0x9942, "Save error class on stack", inline=True)
+comment(0x9943, "Class 2 = 'station-related' family?", inline=True)
+comment(0x9945, "No: build a simple one-line error", inline=True)
+comment(0x9947, "Class 2 yes: save flags so we can branch on V later",
+        inline=True)
+comment(0x9948, "X = error class (=2)", inline=True)
+comment(0x9949, "Y = lookup-table offset", inline=True)
+comment(0x994C, "Read first message byte (error code)", inline=True)
+comment(0x994F, "Conditionally save it", inline=True)
+comment(0x9952, "X=0: text-buffer index", inline=True)
+comment(0x9954, "Zero length byte", inline=True)
+comment(0x9957, "Read message byte", inline=True)
+comment(0x995A, "Append to buffer", inline=True)
+comment(0x995D, "Null terminator -- station message done", inline=True)
+comment(0x9963, "Append ' on drive <num>' suffix", inline=True)
+comment(0x9966, "Restore the saved class flags", inline=True)
+comment(0x9967, "V was set: use 'not listening' suffix", inline=True)
+comment(0x9969, "A=&A4: 'station <n> not available' error code",
+        inline=True)
+comment(0x996B, "Save the alternative error code", inline=True)
+comment(0x996E, "Patch error-text buffer length byte", inline=True)
+comment(0x9971, "Y=&0B: lookup index for the listening-station suffix",
+        inline=True)
+comment(0x9973, "Always taken (Y is non-zero); jump to load_suffix_offset",
+        inline=True)
+comment(0x9975, "V was clear: 'not listening' suffix variant",
+        inline=True)
+comment(0x9977, "Read suffix offset from lookup", inline=True)
+comment(0x997A, "Y = suffix offset", inline=True)
+comment(0x997B, "Read suffix byte", inline=True)
+comment(0x997E, "Append", inline=True)
+comment(0x9981, "Null: suffix done", inline=True)
+comment(0x9983, "Step Y", inline=True)
+comment(0x9984, "Step X", inline=True)
+comment(0x9985, "Loop while X != 0 (max 255 chars)", inline=True)
+comment(0x9987, "Always taken (Z still set from BEQ): final terminator "
+        "check", inline=True)
+
+# build_simple_error inline comments
+comment(0x9989, "X = error class", inline=True)
+comment(0x998A, "Y = lookup-table offset", inline=True)
+comment(0x998D, "X=0: buffer index", inline=True)
+comment(0x998F, "Zero length", inline=True)
+comment(0x9992, "Read first message byte (error code)", inline=True)
+comment(0x9995, "Conditionally save it", inline=True)
+comment(0x9998, "Read next message byte", inline=True)
+comment(0x999B, "Append to buffer", inline=True)
+comment(0x999E, "Null terminator -> dispatch", inline=True)
+comment(0x99A0, "Step Y", inline=True)
+comment(0x99A1, "Step X", inline=True)
+comment(0x99A2, "Loop while X != 0", inline=True)
 comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)

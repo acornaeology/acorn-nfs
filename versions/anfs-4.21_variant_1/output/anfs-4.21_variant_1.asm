@@ -5800,123 +5800,123 @@ l8da7 = sub_c8da6+1
 ; ***************************************************************************************
 ; &9900 referenced 6 times by &9916, &994f, &996b, &9995, &99a7, &99c0
 .cond_save_error_code
-    bit fs_flags                                                      ; 9900: 2c 6c 0d    ,l.
-    bpl return_from_cond_save_err                                     ; 9903: 10 03       ..
-    sta lc009                                                         ; 9905: 8d 09 c0    ...
+    bit fs_flags                                                      ; 9900: 2c 6c 0d    ,l.            ; Test bit 7 of fs_flags (FS-active flag)
+    bpl return_from_cond_save_err                                     ; 9903: 10 03       ..             ; FS not active: skip the save
+    sta lc009                                                         ; 9905: 8d 09 c0    ...            ; FS active: store error code at &C009 (last-error byte)
 ; &9908 referenced 1 time by &9903
 .return_from_cond_save_err
-    rts                                                               ; 9908: 60          `
+    rts                                                               ; 9908: 60          `              ; Return
 
 ; &9909 referenced 1 time by &98fd
 .build_no_reply_error
-    ldx #8                                                            ; 9909: a2 08       ..
-    ldy net_error_lookup_data,x                                       ; 990b: bc 9a 9a    ...
-    ldx #0                                                            ; 990e: a2 00       ..
-    stx l0100                                                         ; 9910: 8e 00 01    ...
-    lda l9aa6,y                                                       ; 9913: b9 a6 9a    ...
-    jsr cond_save_error_code                                          ; 9916: 20 00 99     ..
+    ldx #8                                                            ; 9909: a2 08       ..             ; X=8: net_error_lookup_data offset for 'No reply' message
+    ldy net_error_lookup_data,x                                       ; 990b: bc 9a 9a    ...            ; Y = message offset within the string table (&9AA6 base)
+    ldx #0                                                            ; 990e: a2 00       ..             ; X=0: error-text buffer index
+    stx l0100                                                         ; 9910: 8e 00 01    ...            ; Zero the &0100 length byte (length will be filled in later)
+    lda l9aa6,y                                                       ; 9913: b9 a6 9a    ...            ; Read first message byte (the error code)
+    jsr cond_save_error_code                                          ; 9916: 20 00 99     ..            ; Conditionally save it as last-error
 ; &9919 referenced 1 time by &9923
 .loop_copy_no_reply_msg
-    lda l9aa6,y                                                       ; 9919: b9 a6 9a    ...
-    sta l0101,x                                                       ; 991c: 9d 01 01    ...
-    beq done_no_reply_msg                                             ; 991f: f0 04       ..
-    inx                                                               ; 9921: e8          .
-    iny                                                               ; 9922: c8          .
-    bne loop_copy_no_reply_msg                                        ; 9923: d0 f4       ..
+    lda l9aa6,y                                                       ; 9919: b9 a6 9a    ...            ; Read next message byte
+    sta l0101,x                                                       ; 991c: 9d 01 01    ...            ; Append to error-text buffer at &0101+X
+    beq done_no_reply_msg                                             ; 991f: f0 04       ..             ; Null terminator: message done
+    inx                                                               ; 9921: e8          .              ; Step buffer index
+    iny                                                               ; 9922: c8          .              ; Step source offset
+    bne loop_copy_no_reply_msg                                        ; 9923: d0 f4       ..             ; Loop while Y != 0 (Y wraps at 256, not expected)
 ; &9925 referenced 1 time by &991f
 .done_no_reply_msg
-    jsr append_drv_dot_num                                            ; 9925: 20 3a 9a     :.
-    lda #0                                                            ; 9928: a9 00       ..
-    sta l0101,x                                                       ; 992a: 9d 01 01    ...
-    jmp check_net_error_code                                          ; 992d: 4c df 99    L..
+    jsr append_drv_dot_num                                            ; 9925: 20 3a 9a     :.            ; Append ' on drive <num>' or similar context
+    lda #0                                                            ; 9928: a9 00       ..             ; A=0: null terminator
+    sta l0101,x                                                       ; 992a: 9d 01 01    ...            ; Store at end of message
+    jmp check_net_error_code                                          ; 992d: 4c df 99    L..            ; Tail-jump to dispatch the BRK error
 
 ; &9930 referenced 1 time by &9bb3
 .fixup_reply_status_a
-    lda (net_tx_ptr,x)                                                ; 9930: a1 9a       ..
-    cmp #&41 ; 'A'                                                    ; 9932: c9 41       .A
-    bne skip_if_not_a                                                 ; 9934: d0 02       ..
-    lda #&42 ; 'B'                                                    ; 9936: a9 42       .B
+    lda (net_tx_ptr,x)                                                ; 9930: a1 9a       ..             ; Read FS reply status byte at (net_tx_ptr,X)
+    cmp #&41 ; 'A'                                                    ; 9932: c9 41       .A             ; Status 'A'? (Acknowledge with no error)
+    bne skip_if_not_a                                                 ; 9934: d0 02       ..             ; Not 'A': pass through unchanged
+    lda #&42 ; 'B'                                                    ; 9936: a9 42       .B             ; Substitute 'B' for 'A' (handle ACK as a soft error)
 ; &9938 referenced 1 time by &9934
 .skip_if_not_a
-    clv                                                               ; 9938: b8          .
-    bvc mask_error_class                                              ; 9939: 50 05       P.             ; ALWAYS branch
+    clv                                                               ; 9938: b8          .              ; Clear V to take the standard mask path
+    bvc mask_error_class                                              ; 9939: 50 05       P.             ; Always taken: use the standard masked-error path; ALWAYS branch
 
 ; &993b referenced 1 time by &9b6c
 .load_reply_and_classify
-    lda (net_tx_ptr,x)                                                ; 993b: a1 9a       ..
+    lda (net_tx_ptr,x)                                                ; 993b: a1 9a       ..             ; Read FS reply status byte
 ; &993d referenced 2 times by &989c, &a0bd
 .classify_reply_error
-    bit always_set_v_byte                                             ; 993d: 2c 69 97    ,i.
+    bit always_set_v_byte                                             ; 993d: 2c 69 97    ,i.            ; BIT $always_set_v_byte: force V=1 (extended-error path)
 ; &9940 referenced 1 time by &9939
 .mask_error_class
-    and #7                                                            ; 9940: 29 07       ).
-    pha                                                               ; 9942: 48          H
-    cmp #2                                                            ; 9943: c9 02       ..
-    bne build_simple_error                                            ; 9945: d0 42       .B
-    php                                                               ; 9947: 08          .
-    tax                                                               ; 9948: aa          .
-    ldy net_error_lookup_data,x                                       ; 9949: bc 9a 9a    ...
-    lda l9aa6,y                                                       ; 994c: b9 a6 9a    ...
-    jsr cond_save_error_code                                          ; 994f: 20 00 99     ..
-    ldx #0                                                            ; 9952: a2 00       ..
-    stx l0100                                                         ; 9954: 8e 00 01    ...
+    and #7                                                            ; 9940: 29 07       ).             ; Mask to 3 bits (error class 0..7)
+    pha                                                               ; 9942: 48          H              ; Save error class on stack
+    cmp #2                                                            ; 9943: c9 02       ..             ; Class 2 = 'station-related' family?
+    bne build_simple_error                                            ; 9945: d0 42       .B             ; No: build a simple one-line error
+    php                                                               ; 9947: 08          .              ; Class 2 yes: save flags so we can branch on V later
+    tax                                                               ; 9948: aa          .              ; X = error class (=2)
+    ldy net_error_lookup_data,x                                       ; 9949: bc 9a 9a    ...            ; Y = lookup-table offset
+    lda l9aa6,y                                                       ; 994c: b9 a6 9a    ...            ; Read first message byte (error code)
+    jsr cond_save_error_code                                          ; 994f: 20 00 99     ..            ; Conditionally save it
+    ldx #0                                                            ; 9952: a2 00       ..             ; X=0: text-buffer index
+    stx l0100                                                         ; 9954: 8e 00 01    ...            ; Zero length byte
 ; &9957 referenced 1 time by &9961
 .loop_copy_station_msg
-    lda l9aa6,y                                                       ; 9957: b9 a6 9a    ...
-    sta l0101,x                                                       ; 995a: 9d 01 01    ...
-    beq done_station_msg                                              ; 995d: f0 04       ..
+    lda l9aa6,y                                                       ; 9957: b9 a6 9a    ...            ; Read message byte
+    sta l0101,x                                                       ; 995a: 9d 01 01    ...            ; Append to buffer
+    beq done_station_msg                                              ; 995d: f0 04       ..             ; Null terminator -- station message done
     iny                                                               ; 995f: c8          .
     inx                                                               ; 9960: e8          .
     bne loop_copy_station_msg                                         ; 9961: d0 f4       ..
 ; &9963 referenced 1 time by &995d
 .done_station_msg
-    jsr append_drv_dot_num                                            ; 9963: 20 3a 9a     :.
-    plp                                                               ; 9966: 28          (
-    bvs suffix_not_listening                                          ; 9967: 70 0c       p.
-    lda #&a4                                                          ; 9969: a9 a4       ..
-    jsr cond_save_error_code                                          ; 996b: 20 00 99     ..
-    sta l0101                                                         ; 996e: 8d 01 01    ...
-    ldy #&0b                                                          ; 9971: a0 0b       ..
-    bne load_suffix_offset                                            ; 9973: d0 02       ..             ; ALWAYS branch
+    jsr append_drv_dot_num                                            ; 9963: 20 3a 9a     :.            ; Append ' on drive <num>' suffix
+    plp                                                               ; 9966: 28          (              ; Restore the saved class flags
+    bvs suffix_not_listening                                          ; 9967: 70 0c       p.             ; V was set: use 'not listening' suffix
+    lda #&a4                                                          ; 9969: a9 a4       ..             ; A=&A4: 'station <n> not available' error code
+    jsr cond_save_error_code                                          ; 996b: 20 00 99     ..            ; Save the alternative error code
+    sta l0101                                                         ; 996e: 8d 01 01    ...            ; Patch error-text buffer length byte
+    ldy #&0b                                                          ; 9971: a0 0b       ..             ; Y=&0B: lookup index for the listening-station suffix
+    bne load_suffix_offset                                            ; 9973: d0 02       ..             ; Always taken (Y is non-zero); jump to load_suffix_offset; ALWAYS branch
 
 ; &9975 referenced 1 time by &9967
 .suffix_not_listening
-    ldy #9                                                            ; 9975: a0 09       ..
+    ldy #9                                                            ; 9975: a0 09       ..             ; V was clear: 'not listening' suffix variant
 ; &9977 referenced 1 time by &9973
 .load_suffix_offset
-    lda net_error_lookup_data,y                                       ; 9977: b9 9a 9a    ...
-    tay                                                               ; 997a: a8          .
+    lda net_error_lookup_data,y                                       ; 9977: b9 9a 9a    ...            ; Read suffix offset from lookup
+    tay                                                               ; 997a: a8          .              ; Y = suffix offset
 ; &997b referenced 1 time by &9985
 .loop_copy_suffix
-    lda l9aa6,y                                                       ; 997b: b9 a6 9a    ...
-    sta l0101,x                                                       ; 997e: 9d 01 01    ...
-    beq done_suffix                                                   ; 9981: f0 04       ..
-    iny                                                               ; 9983: c8          .
-    inx                                                               ; 9984: e8          .
-    bne loop_copy_suffix                                              ; 9985: d0 f4       ..
+    lda l9aa6,y                                                       ; 997b: b9 a6 9a    ...            ; Read suffix byte
+    sta l0101,x                                                       ; 997e: 9d 01 01    ...            ; Append
+    beq done_suffix                                                   ; 9981: f0 04       ..             ; Null: suffix done
+    iny                                                               ; 9983: c8          .              ; Step Y
+    inx                                                               ; 9984: e8          .              ; Step X
+    bne loop_copy_suffix                                              ; 9985: d0 f4       ..             ; Loop while X != 0 (max 255 chars)
 ; &9987 referenced 1 time by &9981
 .done_suffix
-    beq check_msg_terminator                                          ; 9987: f0 15       ..
+    beq check_msg_terminator                                          ; 9987: f0 15       ..             ; Always taken (Z still set from BEQ): final terminator check
 ; &9989 referenced 1 time by &9945
 .build_simple_error
-    tax                                                               ; 9989: aa          .
-    ldy net_error_lookup_data,x                                       ; 998a: bc 9a 9a    ...
-    ldx #0                                                            ; 998d: a2 00       ..
-    stx l0100                                                         ; 998f: 8e 00 01    ...
-    lda l9aa6,y                                                       ; 9992: b9 a6 9a    ...
-    jsr cond_save_error_code                                          ; 9995: 20 00 99     ..
+    tax                                                               ; 9989: aa          .              ; X = error class
+    ldy net_error_lookup_data,x                                       ; 998a: bc 9a 9a    ...            ; Y = lookup-table offset
+    ldx #0                                                            ; 998d: a2 00       ..             ; X=0: buffer index
+    stx l0100                                                         ; 998f: 8e 00 01    ...            ; Zero length
+    lda l9aa6,y                                                       ; 9992: b9 a6 9a    ...            ; Read first message byte (error code)
+    jsr cond_save_error_code                                          ; 9995: 20 00 99     ..            ; Conditionally save it
 ; &9998 referenced 1 time by &99a2
 .loop_copy_error_msg
-    lda l9aa6,y                                                       ; 9998: b9 a6 9a    ...
-    sta l0101,x                                                       ; 999b: 9d 01 01    ...
+    lda l9aa6,y                                                       ; 9998: b9 a6 9a    ...            ; Read next message byte
+    sta l0101,x                                                       ; 999b: 9d 01 01    ...            ; Append to buffer
 ; &999e referenced 1 time by &9987
 .check_msg_terminator
-    beq check_net_error_code                                          ; 999e: f0 3f       .?
-    iny                                                               ; 99a0: c8          .
-    inx                                                               ; 99a1: e8          .
+    beq check_net_error_code                                          ; 999e: f0 3f       .?             ; Null terminator -> dispatch
+    iny                                                               ; 99a0: c8          .              ; Step Y
+    inx                                                               ; 99a1: e8          .              ; Step X
 .bad_str_anchor
 l99a3 = bad_str_anchor+1
-    bne loop_copy_error_msg                                           ; 99a2: d0 f4       ..
+    bne loop_copy_error_msg                                           ; 99a2: d0 f4       ..             ; Loop while X != 0
 ; &99a3 referenced 1 time by &99b4
     equs "Bad"                                                        ; 99a4: 42 61 64    Bad
 
