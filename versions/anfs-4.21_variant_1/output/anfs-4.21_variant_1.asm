@@ -765,7 +765,7 @@ rom_header_byte2 = rom_header+2
 .port_match_found
     lda #3                                                            ; 8195: a9 03       ..             ; Match found: set scout_status = 3
     sta rx_port                                                       ; 8197: 8d 40 0d    .@.            ; Record match for completion handler
-    jsr sub_c8900                                                     ; 819a: 20 00 89     ..            ; Calculate transfer parameters
+    jsr tx_calc_transfer                                              ; 819a: 20 00 89     ..            ; Calculate transfer parameters
     bcc nmi_error_dispatch                                            ; 819d: 90 76       .v             ; C=0: no Tube claimed -- discard
     bit rx_src_net                                                    ; 819f: 2c 3e 0d    ,>.            ; Check broadcast flag for ACK path
     bvc send_data_rx_ack                                              ; 81a2: 50 03       P.             ; Not broadcast -- normal ACK path
@@ -1508,7 +1508,7 @@ l84b8 = sub_c84b7+1
     sta rx_buf_offset                                                 ; 84d4: 85 a7       ..             ; Store workspace offset hi
     lda #2                                                            ; 84d6: a9 02       ..             ; Scout status = 2 (PEEK response)
     sta rx_port                                                       ; 84d8: 8d 40 0d    .@.            ; Store scout status
-    jsr sub_c8900                                                     ; 84db: 20 00 89     ..            ; Calculate transfer size for response
+    jsr tx_calc_transfer                                              ; 84db: 20 00 89     ..            ; Calculate transfer size for response
     bcc imm_op_discard                                                ; 84de: 90 49       .I             ; C=0: transfer not set up, discard
 ; &84e0 referenced 1 time by &84cc
 .set_tx_reply_flag
@@ -1983,7 +1983,7 @@ l85fd = intoff_test_inactive+1
     sta port_ws_offset                                                ; 86d7: 85 a6       ..             ; Store low byte
     lda nmi_tx_block_hi                                               ; 86d9: a5 a1       ..             ; Copy TX block pointer high byte
     sta rx_buf_offset                                                 ; 86db: 85 a7       ..             ; Store high byte
-    jsr sub_c8900                                                     ; 86dd: 20 00 89     ..            ; Calculate transfer size from RXCB
+    jsr tx_calc_transfer                                              ; 86dd: 20 00 89     ..            ; Calculate transfer size from RXCB
 ; &86e0 referenced 1 time by &86c9
 .tx_ctrl_exit
     plp                                                               ; 86e0: 28          (              ; Restore processor status from stack
@@ -2505,8 +2505,27 @@ l8877 = check_tube_irq_loop+1
     equb 1                                                            ; 88fe: 01          .
     equb &81                                                          ; 88ff: 81          .              ; Dead data: &81
 
+; ***************************************************************************************
+; Calculate transfer size and reclaim Tube buffer
+; 
+; Inspects RXCB[6..7] (buffer end address byte 2 and high) to detect a Tube buffer
+; (high=&FF, byte 2 in [&FE,&FF]). For Tube buffers, computes the 4-byte transfer size
+; by subtracting RXCB[8..&B] (start) from RXCB[4..7] (end), stores the result via
+; (port_ws_offset),Y, and re-claims the Tube via JSR &0406 with claim type &C2. For
+; non-Tube buffers, falls through to fallback_calc_transfer which does a 1-byte size
+; subtraction without the Tube reclaim.
+; 
+; Three callers: scout_complete (&819A), rx_imm_peek (&84DB), tx_ctrl_proc (&86DD).
+; 
+; On Entry:
+;     Y: 0 -- caller convention
+; 
+; On Exit:
+;     A: transfer status
+;     C: set if Tube address claimed, clear otherwise
+; ***************************************************************************************
 ; &8900 referenced 3 times by &819a, &84db, &86dd
-.sub_c8900
+.tx_calc_transfer
     lda lfe34                                                         ; 8900: ad 34 fe    .4.
     ora #8                                                            ; 8903: 09 08       ..
     sta escapable                                                     ; 8905: 85 97       ..
@@ -14282,10 +14301,10 @@ save pydis_start, pydis_end
 ;     rx_remote_addr:                 3
 ;     save_text_ptr:                  3
 ;     send_disconnect_reply:          3
-;     sub_c8900:                      3
 ;     tube_claim_c3:                  3
 ;     tx_bad_ctrl_error:              3
 ;     tx_begin:                       3
+;     tx_calc_transfer:               3
 ;     tx_econet_abort:                3
 ;     update_fcb_flag_bits:           3
 ;     write_second_tube_byte:         3
@@ -15522,7 +15541,6 @@ save pydis_start, pydis_end
 ;     return_5
 ;     sub_c8409
 ;     sub_c84b7
-;     sub_c8900
 ;     sub_c8b52
 ;     sub_c8da6
 ;     sub_c924c

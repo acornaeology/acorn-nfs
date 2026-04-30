@@ -2740,18 +2740,25 @@ subroutine(0x88E4, "tx_store_result",
     "discard_reset_rx for a full ADLC reset and return\n"
     "to idle RX listen mode.",
     on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"})
-# UNMAPPED: subroutine(0x88F2, "tx_calc_transfer",
-# UNMAPPED:     title="Calculate transfer size",
-# UNMAPPED:     description="Computes the data transfer byte count from the\n"
-# UNMAPPED:     "RXCB buffer pointers. Reads the 4-byte buffer end\n"
-# UNMAPPED:     "address from (port_ws_offset) and checks for Tube\n"
-# UNMAPPED:     "addresses (&FExx/&FFxx). For Tube transfers, claims\n"
-# UNMAPPED:     "the Tube address and sets the transfer flag in\n"
-# UNMAPPED:     "rx_src_net. Subtracts the buffer start from the\n"
-# UNMAPPED:     "buffer end to compute the byte count, storing it in\n"
-# UNMAPPED:     "port_buf_len/port_buf_len_hi. Also copies the buffer\n"
-# UNMAPPED:     "start address to open_port_buf for the RX/TX handlers\n"
-# UNMAPPED:     "to use as their working pointer.")
+# Located in 4.21_v1 at &8900 (was at &88F2 in 4.18). Reached via 3
+# JSR sites; not preceded by a clean RTS/JMP boundary which is why
+# the carry-over fingerprint missed it.
+subroutine(0x8900, "tx_calc_transfer",
+    title="Calculate transfer size and reclaim Tube buffer",
+    description="Inspects RXCB[6..7] (buffer end address byte 2 and "
+    "high) to detect a Tube buffer (high=&FF, byte 2 in [&FE,&FF]). "
+    "For Tube buffers, computes the 4-byte transfer size by "
+    "subtracting RXCB[8..&B] (start) from RXCB[4..7] (end), stores "
+    "the result via (port_ws_offset),Y, and re-claims the Tube via "
+    "JSR &0406 with claim type &C2. For non-Tube buffers, falls "
+    "through to fallback_calc_transfer which does a 1-byte size "
+    "subtraction without the Tube reclaim.\n"
+    "\n"
+    "Three callers: scout_complete (&819A), rx_imm_peek (&84DB), "
+    "tx_ctrl_proc (&86DD).",
+    on_entry={"y": "0 -- caller convention"},
+    on_exit={"a": "transfer status",
+             "c": "set if Tube address claimed, clear otherwise"})
 subroutine(0x898C, "adlc_full_reset",
     title="ADLC full reset",
     description="Performs a full ADLC hardware reset. Writes\n"
