@@ -4701,6 +4701,15 @@ ps_template_base = sub_c8da6+1
     plp                                                               ; 90b3: 28          (              ; Restore processor status
     rts                                                               ; 90b4: 60          `              ; Return (checksum valid)
 
+; ***************************************************************************************
+; Raise 'net checksum' BRK error
+; 
+; Loads error code &AA and tail-calls error_bad_inline with the inline
+; string 'net checksum'. Reached when ensure_fs_selected (auto-select
+; path) cannot bring ANFS up, or when verify_ws_checksum detects that
+; the saved workspace checksum at offset &77 doesn't match the live
+; sum -- only resettable by a control BREAK. Never returns.
+; ***************************************************************************************
 ; &90b5 referenced 2 times by &8b57, &90af
 .error_net_checksum
     lda #&aa                                                          ; 90b5: a9 aa       ..             ; Error number &AA
@@ -5217,6 +5226,14 @@ ps_template_base = sub_c8da6+1
     beq error_bad_net_num                                             ; 9347: f0 3d       .=             ; Yes: 'Bad network number'
     rts                                                               ; 9349: 60          `              ; Return; caller continues parsing the station
 
+; ***************************************************************************************
+; Raise 'Bad hex' BRK error
+; 
+; Loads error code &F1 and tail-calls error_bad_inline with the inline
+; string 'hex' -- error_bad_inline prepends 'Bad ' to produce the final
+; 'Bad hex' message. Called from parse_addr_arg and the *DUMP / *LIST
+; hex parsers when a digit is out of range. Never returns.
+; ***************************************************************************************
 ; &934a referenced 3 times by &92d6, &92da, &be9f
 .err_bad_hex
     lda #&f1                                                          ; 934a: a9 f1       ..
@@ -5552,6 +5569,14 @@ ps_template_base = sub_c8da6+1
     jsr check_not_ampersand                                           ; 9430: 20 46 94     F.            ; Reject '&' character in filename
     cmp #&0d                                                          ; 9433: c9 0d       ..             ; End of line?
     bne read_filename_char                                            ; 9435: d0 17       ..             ; No: copy filename chars to buffer
+; ***************************************************************************************
+; Raise 'Bad file name' BRK error
+; 
+; Loads error code &CC and tail-calls error_bad_inline with the inline
+; string 'file name' -- error_bad_inline prepends 'Bad ' to produce the
+; final 'Bad file name' message. Used by check_not_ampersand and other
+; filename validators. Never returns.
+; ***************************************************************************************
 ; &9437 referenced 3 times by &944b, &953e, &b279
 .error_bad_filename
     lda #&cc                                                          ; 9437: a9 cc       ..             ; Error number &CC
@@ -9169,7 +9194,7 @@ la0ff = sub_ca0fe+1
 
     bit fs_flags                                                      ; a4dc: 2c 6c 0d    ,l.
     bvs fscv_2_star_run                                               ; a4df: 70 03       p.
-    jmp ca5a1                                                         ; a4e1: 4c a1 a5    L..
+    jmp error_bad_command                                             ; a4e1: 4c a1 a5    L..
 
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
@@ -9229,13 +9254,13 @@ la0ff = sub_ca0fe+1
 .try_library_path
     lda lc030                                                         ; a53e: ad 30 c0    .0.            ; Return; X=0: start of TX control block
     cmp #&24 ; '$'                                                    ; a541: c9 24       .$             ; Y=&10: length of TXCB to save
-    beq ca5a1                                                         ; a543: f0 5c       .\             ; Save current TX control block
+    beq error_bad_command                                             ; a543: f0 5c       .\             ; Save current TX control block
     lda lc271                                                         ; a545: ad 71 c2    .q.            ; Load seconds from clock workspace
     bmi library_tried                                                 ; a548: 30 45       0E             ; Convert binary to BCD
     rol a                                                             ; a54a: 2a          *
     rol a                                                             ; a54b: 2a          *
     bmi restore_filename                                              ; a54c: 30 2a       0*             ; Store BCD seconds
-    bcs ca5a1                                                         ; a54e: b0 51       .Q             ; Load minutes from clock workspace
+    bcs error_bad_command                                             ; a54e: b0 51       .Q             ; Load minutes from clock workspace
     ldx #&ff                                                          ; a550: a2 ff       ..
 ; &a552 referenced 1 time by &a558
 .loop_find_name_end
@@ -9283,16 +9308,24 @@ la0ff = sub_ca0fe+1
 .error_bad_command
     lda #2                                                            ; a592: a9 02       ..             ; Loop for all 7 bytes
     bit lc271                                                         ; a594: 2c 71 c2    ,q.            ; Return; Save processor flags (decimal mode); X = binary count
-    bne ca5a1                                                         ; a597: d0 08       ..             ; Zero: result is 0, skip loop
+    bne error_bad_command                                             ; a597: d0 08       ..             ; Zero: result is 0, skip loop
     jsr finalise_and_return                                           ; a599: 20 b6 9f     ..            ; Set decimal mode for BCD add; Start BCD result at 0
     lda #&0b                                                          ; a59c: a9 0b       ..             ; Clear carry for BCD add; Add 1 in decimal mode
-    jmp call_fscv                                                     ; a59e: 4c ff 8c    L..            ; Count down binary value; Loop until zero
+    jmp call_fscv                                                     ; a59e: 4c ff 8c    L..            ; Count down binary value
 
+; ***************************************************************************************
+; Raise 'Bad command' BRK error
+; 
+; Loads error code &FE and tail-calls error_bad_inline with the inline
+; string 'command' -- error_bad_inline prepends 'Bad ' to produce the
+; final 'Bad command' message. Used by the FS command parser when no
+; table entry matches the user's input. Never returns.
+; ***************************************************************************************
 ; &a5a1 referenced 4 times by &a4e1, &a543, &a54e, &a597
-.ca5a1
-    lda #&fe                                                          ; a5a1: a9 fe       ..             ; Restore flags (clears decimal mode)
-    jsr error_bad_inline                                              ; a5a3: 20 a7 99     ..            ; Return with BCD result in A; Shift ws_0d60 left (status flag)
-    equs "command", 0                                                 ; a5a6: 63 6f 6d... com            ; A = Y (saved index); C=1: transmit active path; C=0: store Y to parameter block; Return (transmit not active); Set workspace high byte
+.error_bad_command
+    lda #&fe                                                          ; a5a1: a9 fe       ..             ; Error code &FE
+    jsr error_bad_inline                                              ; a5a3: 20 a7 99     ..            ; Raise 'Bad command' error
+    equs "command", 0                                                 ; a5a6: 63 6f 6d... com
 
 ; &a5ae referenced 1 time by &a51c
 .check_exec_addr
@@ -11395,6 +11428,13 @@ labc5 = compare_bridge_status+1
     bne start_spool_retry                                             ; af7a: d0 8a       ..
     cpx #1                                                            ; af7c: e0 01       ..
     bne caf92                                                         ; af7e: d0 12       ..
+; ***************************************************************************************
+; Raise 'Printer busy' error
+; 
+; Loads error code &A6 and tail-calls error_inline_log with the inline
+; string 'Printer busy'. Called when an attempt is made to enable a
+; printer server while one is already active. Never returns.
+; ***************************************************************************************
 ; &af80 referenced 1 time by &b3b3
 .err_printer_busy
     lda #&a6                                                          ; af80: a9 a6       ..
@@ -13383,6 +13423,20 @@ lb4fd = write_ps_slot_hi_link+1
     bcc err_net_chan_invalid                                          ; b816: 90 04       ..             ; Yes: invalid channel character
     cmp #&30 ; '0'                                                    ; b818: c9 30       .0             ; Below '0'?
     bcc lookup_chan_by_char                                           ; b81a: 90 2b       .+             ; In range &20-&2F: look up channel
+; ***************************************************************************************
+; Raise 'Net channel' error (saving channel char on stack)
+; 
+; Pushes the bad channel character on the stack, then falls through to
+; error_chan_not_found which loads error code &DE and tail-calls
+; error_inline_log with the inline string 'Net channel'. The PHA at
+; entry differs from the &B81D error_chan_not_found alt-entry: this
+; form is reached when the caller has the channel character in A and
+; wants it preserved on the stack for the error handler to inspect.
+; Never returns -- error_inline_log triggers a BRK.
+; 
+; On Entry:
+;     A: channel character (saved on stack)
+; ***************************************************************************************
 ; &b81c referenced 2 times by &9ec2, &b816
 .err_net_chan_invalid
     pha                                                               ; b81c: 48          H              ; Save channel character
@@ -15246,7 +15300,6 @@ save pydis_start, pydis_end
 ;     tx_done_exit:                   5
 ;     tx_dst_net:                     5
 ;     verify_ws_checksum:             5
-;     ca5a1:                          4
 ;     check_net_error_code:           4
 ;     commit_state_byte:              4
 ;     copy_pb_byte_to_ws:             4
@@ -15254,6 +15307,7 @@ save pydis_start, pydis_end
 ;     done_close:                     4
 ;     done_poll_name_parse:           4
 ;     econet_init_flag:               4
+;     error_bad_command:              4
 ;     error_inline:                   4
 ;     exec_addr_lo:                   4
 ;     fs_work_7:                      4
@@ -16454,7 +16508,6 @@ save pydis_start, pydis_end
 ;     ca4a0
 ;     ca4f1
 ;     ca4fc
-;     ca5a1
 ;     ca5df
 ;     ca70b
 ;     ca71c

@@ -3211,6 +3211,14 @@ subroutine(0x909E, "verify_ws_checksum",
     on_exit={"a": "preserved (PHA/PLA)",
              "y": "preserved",
              "p (flags)": "preserved (PHP/PLP)"})
+subroutine(0x90B5, "error_net_checksum",
+    title="Raise 'net checksum' BRK error",
+    description="""\
+Loads error code &AA and tail-calls error_bad_inline with the inline
+string 'net checksum'. Reached when ensure_fs_selected (auto-select
+path) cannot bring ANFS up, or when verify_ws_checksum detects that
+the saved workspace checksum at offset &77 doesn't match the live
+sum -- only resettable by a control BREAK. Never returns.""")
 # Located in 4.21_v1 at &90C7 (was &8FF1 in 4.18). Found by searching
 # for the inline "Econet Station " string at &90CA and reading back to
 # the JSR print_inline at &90C7. Already classified as code (c90c7
@@ -3301,6 +3309,13 @@ subroutine(0x92B2, "parse_addr_arg",
         "a": "ignored",
     },
     on_exit={"c": "set if a number was parsed"})
+subroutine(0x934A, "err_bad_hex",
+    title="Raise 'Bad hex' BRK error",
+    description="""\
+Loads error code &F1 and tail-calls error_bad_inline with the inline
+string 'hex' -- error_bad_inline prepends 'Bad ' to produce the final
+'Bad hex' message. Called from parse_addr_arg and the *DUMP / *LIST
+hex parsers when a digit is out of range. Never returns.""")
 subroutine(0x939A, "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
     description="Compares A against '&' and '.' first; if\n"
@@ -3400,6 +3415,13 @@ subroutine(0x940D, "clear_conn_active",
     "attr_to_chan_index to find the slot. Shares the\n"
     "done_conn_flag exit with set_conn_active.",
     on_entry={"a": "channel attribute byte"})
+subroutine(0x9437, "error_bad_filename",
+    title="Raise 'Bad file name' BRK error",
+    description="""\
+Loads error code &CC and tail-calls error_bad_inline with the inline
+string 'file name' -- error_bad_inline prepends 'Bad ' to produce the
+final 'Bad file name' message. Used by check_not_ampersand and other
+filename validators. Never returns.""")
 subroutine(0x9446, "check_not_ampersand",
     title="Reject '&' as filename character",
     description="Loads the first character from the parse buffer\n"
@@ -3972,6 +3994,13 @@ subroutine(0xA45B, "match_fs_cmd",
              "y": "command-line offset of the first non-name character "
              "(typically the argument start)",
              "z flag": "set on match, clear on no-match"})
+subroutine(0xA5A1, "error_bad_command",
+    title="Raise 'Bad command' BRK error",
+    description="""\
+Loads error code &FE and tail-calls error_bad_inline with the inline
+string 'command' -- error_bad_inline prepends 'Bad ' to produce the
+final 'Bad command' message. Used by the FS command parser when no
+table entry matches the user's input. Never returns.""")
 subroutine(0xA644, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
@@ -4380,6 +4409,12 @@ subroutine(0xAEB8, "process_spool_data",
     "the spool output sequence by setting up and\n"
     "sending the pass-through TX buffer.",
     on_exit={"a": "TX result (from setup_pass_txbuf)"})
+subroutine(0xAF80, "err_printer_busy",
+    title="Raise 'Printer busy' error",
+    description="""\
+Loads error code &A6 and tail-calls error_inline_log with the inline
+string 'Printer busy'. Called when an attempt is made to enable a
+printer server while one is already active. Never returns.""")
 subroutine(0xAFA6, "send_disconnect_reply",
     title="Send Econet disconnect reply packet",
     description="Sets up the TX pointer, copies station\n"
@@ -4717,6 +4752,17 @@ subroutine(0xB814, "check_chan_char",
     "converted to a table index via attr_to_chan_index.\n"
     "Raises 'Net channel' error if invalid.",
     on_entry={"a": "channel character"})
+subroutine(0xB81C, "err_net_chan_invalid",
+    title="Raise 'Net channel' error (saving channel char on stack)",
+    description="""\
+Pushes the bad channel character on the stack, then falls through to
+error_chan_not_found which loads error code &DE and tail-calls
+error_inline_log with the inline string 'Net channel'. The PHA at
+entry differs from the &B81D error_chan_not_found alt-entry: this
+form is reached when the caller has the channel character in A and
+wants it preserved on the stack for the error handler to inspect.
+Never returns -- error_inline_log triggers a BRK.""",
+    on_entry={"a": "channel character (saved on stack)"})
 subroutine(0xB847, "lookup_chan_by_char",
     title="Look up channel by character code",
     description="Converts the character to a table index via\n"
@@ -12630,19 +12676,12 @@ comment(0xA59A, "Start BCD result at 0", inline=True)
 comment(0xA59C, "Clear carry for BCD add", inline=True)
 comment(0xA59D, "Add 1 in decimal mode", inline=True)
 comment(0xA59F, "Count down binary value", inline=True)
-comment(0xA5A0, "Loop until zero", inline=True)
-comment(0xA5A2, "Restore flags (clears decimal mode)", inline=True)
-comment(0xA5A3, "Return with BCD result in A", inline=True)
+comment(0xA5A1, "Error code &FE", inline=True)
+comment(0xA5A3, "Raise 'Bad command' error", inline=True)
 
 # OSWORD &10 handler (&A58B): transmit
-comment(0xA5A4, "Shift ws_0d60 left (status flag)", inline=True)
-comment(0xA5A7, "A = Y (saved index)", inline=True)
-comment(0xA5A8, "C=1: transmit active path", inline=True)
-comment(0xA5AA, "C=0: store Y to parameter block", inline=True)
-comment(0xA5AC, "Return (transmit not active)", inline=True)
 
 # Transmit active: set up and begin
-comment(0xA5AD, "Set workspace high byte", inline=True)
 comment(0xA5AF, "Copy to ws_ptr_lo", inline=True)
 comment(0xA5B1, "Also set as NMI TX block high", inline=True)
 comment(0xA5B3, "Low byte = &6F", inline=True)
