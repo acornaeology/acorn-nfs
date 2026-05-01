@@ -2379,6 +2379,17 @@ subroutine(0x82DF, "ack_tx",
     "After writing the address bytes to the TX FIFO, installs the next\n"
     "NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)\n"
     "and sends TX_LAST_DATA (CR2=&3F) to close the frame.")
+subroutine(0x82F8, "ack_tx_write_dest",
+    title="Save next NMI vector and write dest stn to ADLC",
+    description="""\
+Saves (A=lo, Y=hi) of the next NMI handler into saved_nmi_lo /
+saved_nmi_hi, then loads the dest-station byte from scout_buf and
+tests SR1 bit 6 (TDRA) via BIT econet_control1_or_status1.
+TDRA-clear branches to dispatch_nmi_error to abort the ACK
+sequence. Two callers: send_data_rx_ack's tail JMP (&81B5) and
+imm_op_build_reply at &84F6.""",
+    on_entry={"a": "low byte of next NMI handler",
+              "y": "high byte of next NMI handler"})
 subroutine(0x8316, "nmi_ack_tx_src",
     title="ACK TX continuation",
     description="Continuation of ACK frame transmission. Reads our\n"
@@ -2548,6 +2559,18 @@ subroutine(0x84CE, "rx_imm_peek",
     description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
     "scout_status=2, then calls tx_calc_transfer to send\n"
     "the PEEK response data back to the requesting station.")
+subroutine(0x8512, "setup_sr_tx",
+    title="Save TX op type and configure shift-register mode",
+    description="""\
+Stores the TX operation type in tx_op_type. If the op code is
+>= &86 (HALT / CONTINUE / machine-type), branches forward to the
+ACCCON IRR set without touching the shift register. Otherwise the
+4.21 path loads the workspace shadow at ws_0d68, copies it to
+ws_0d69 (preserved-for-restore), ORs in the SR-mode-2 bits, and
+writes back to ws_0d68. (4.18 wrote system_via_acr / system_via_sr
+directly; 4.21 manipulates the shadow so the Master IRQ path
+flushes them later.) Single caller (&83E2 in scout_complete).""",
+    on_entry={"a": "TX operation type"})
 subroutine(0x852C, "advance_buffer_ptr",
     title="Increment 4-byte receive buffer pointer",
     description="Adds one to the counter at &A2-&A5 (port_buf_len\n"
@@ -2669,6 +2692,15 @@ subroutine(0x85FC, "intoff_test_inactive",
     "through to tx_line_jammed.",
     on_entry={"a": "&04 (INACTIVE bit mask)",
               "y": "&E7 (CR2 value for tx_prepare)"})
+subroutine(0x862C, "tx_bad_ctrl_error",
+    title="Raise TX 'Bad control byte' (&44) error",
+    description="""\
+Loads error code &44 ('Bad control') and ALWAYS-branches to
+store_tx_error which records it in the TX control block and
+finishes the TX attempt. Reached from three early-validation
+sites in tx_begin (&859E, &85CE, &85D2) when the operation type
+is out of range.""",
+    on_exit={"a": "&44 (TX 'Bad control' error code)"})
 subroutine(0x8630, "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
     description="Reached when the INACTIVE polling loop times\n"
@@ -2810,6 +2842,14 @@ subroutine(0x87BE, "nmi_scout_ack_src",
     "nmi_data_tx handler at &87EE. Installs the chosen\n"
     "handler via set_nmi_vector. Shares the tx_check_tdra\n"
     "entry at &87C7 with ack_tx.")
+subroutine(0x87CE, "data_tx_begin",
+    title="Begin data-frame TX: install nmi_data_tx or alt",
+    description="""\
+Tests bit 1 of rx_src_net (tx_flags): if set (immediate-op path),
+branches to install_imm_data_nmi to use the alternative handler.
+Otherwise installs the normal nmi_data_tx handler at &87E3 by
+writing (lo=&EB, hi=&87) into the NMI vector, then continues into
+the TX setup. Single caller (&8339 inside ack_tx).""")
 subroutine(0x87E3, "nmi_data_tx",
     title="TX data phase: send payload",
     description="Transmits the data payload of a four-way\n"
@@ -3031,6 +3071,14 @@ subroutine(0x8BD5, "print_cmd_table_loop",
     "help_wrap_if_serial to handle line continuation\n"
     "on serial output streams. Preserves Y.",
     on_entry={"x": "offset into cmd_table_fs"})
+subroutine(0x8C06, "loop_print_syntax",
+    title="Per-character body of *HELP syntax string emit",
+    description="""\
+INY / load cmd_syntax_strings,Y / detect terminator (0) or line-
+break (CR), otherwise print the character. Two callers: the BNE
+at &8C13 (continue with current char) and the BEQ at &8C19
+(fall-through from the line-wrap path).""",
+    on_entry={"y": "current index into cmd_syntax_strings"})
 subroutine(0x8C25, "done_print_table",
     title="Cleanup epilogue for print_cmd_table",
     description="""\
@@ -3146,6 +3194,18 @@ sends the command as a normal FS request. Single caller (the FS
 command-name post-match path at &9597). This is the BIT-test
 prologue that 4.18 bundled into a single check_escape-style
 helper but 4.21 splits across the two halves.""")
+subroutine(0x8E3C, "send_cmd_and_dispatch",
+    title="Send FS command and dispatch the reply",
+    description="""\
+JSRs save_net_tx_cb to set up and transmit the command, then reads
+the reply function code from lc103. If zero, branches to the no-
+reply path (dispatch_rts). Otherwise loads lc105 (first reply
+byte), Y=&25 (the dispatch offset for the standard reply table),
+and continues into the reply-dispatch chain. Two callers: the
+fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and
+the JMP from send_fs_request (&9460).""",
+    on_entry={"y": "extra dispatch offset (0 from send_fs_request, "
+              "non-zero for some specialised paths)"})
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
     description="Validates X < 5 and sets Y=&0E as the directory\n"
@@ -3495,6 +3555,13 @@ subroutine(0x93DD, "set_options_ptr",
     "format_filename_field and send_and_receive.",
     on_entry={"x": "options pointer low",
               "y": "options pointer high"})
+subroutine(0x93E1, "clear_escapable",
+    title="Clear bit 0 of need_release_tube preserving flags",
+    description="""\
+PHP / LSR need_release_tube / PLP / RTS. Shifts bit 0 of
+need_release_tube into carry while clearing it, then restores the
+caller's flags so the operation is invisible to NZC-sensitive
+code. Single caller (&9B72 in the recv-and-classify reply path).""")
 subroutine(0x93E6, "cmp_5byte_handle",
     title="Compare 5-byte handle buffers for equality",
     description="Loops X from 4 down to 1, comparing each byte\n"
@@ -3557,6 +3624,12 @@ and &950F (cmd_fs_operation's filename pickup).""",
     on_entry={"a": "current character to copy",
               "x": "TX-buffer write index"},
     on_exit={"x": "advanced past the CR terminator"})
+subroutine(0x945E, "send_fs_request",
+    title="Send FS command with no extra dispatch offset",
+    description="""\
+Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps
+to send_cmd_and_dispatch. Two callers: read_filename_char's BEQ
+on CR (&9457) and the *RUN argument-handling tail at &9537.""")
 # Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
 # hit &945E (which is `send_fs_request`) — the body match pushed the
 # entry 5 bytes earlier than the actual prologue. The 4.21 prologue
@@ -4011,6 +4084,15 @@ subroutine(0x9D87, "check_and_setup_txcb",
     "reply sub-operation code.",
     on_exit={"a": "FS reply sub-operation code (drives downstream "
              "dispatch)"})
+subroutine(0x9DDC, "dispatch_osword_op",
+    title="OSWORD &13 sub-operation triage (1-7)",
+    description="""\
+Stores the sub-operation code in lc105 and triages by value:
+0..6 -> dispatch_ops_1_to_6; 7 -> setup_dir_display (the *INFO
+expansion); >7 -> skip_if_error (which routes through
+finalise_and_return). Single caller (&9CB2 in the OSWORD &13
+handler entry).""",
+    on_entry={"a": "OSWORD sub-op code"})
 subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
     description="Builds a 12-character space-padded filename at\n"
@@ -4065,6 +4147,16 @@ A=0 (close all channels) loads A=5 (close-all return code) and
 falls through. Single caller (the OSFIND vector table at &9EED).""",
     on_entry={"a": "OSFIND function code (0=close-all, 1=close-one, "
               ">=2 = open variants)"})
+subroutine(0x9FCF, "clear_result",
+    title="Set A=0 and finalise",
+    description="""\
+Loads A=0 and falls through to shift_and_finalise (LSR A / BPL
+finalise_and_return). The LSR-then-BPL is the standard FS-handler
+'success exit with carry clear' idiom. Two callers: the post-
+return path at &9FD6 and the catalogue tail at tail_update_
+catalogue (&A329).""",
+    on_exit={"a": "0",
+             "c": "0 (LSR of 0)"})
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
@@ -4139,6 +4231,14 @@ subroutine(0xA2ED, "write_data_block",
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.",
     on_exit={"a, x, y": "clobbered"})
+subroutine(0xA329, "tail_update_catalogue",
+    title="Catalogue-update exit (JMP clear_result)",
+    description="""\
+Single-instruction tail: JMP clear_result -- shared exit for the
+catalogue-update paths after they have finished writing the new
+entry. Two callers: &A300 (the success path) and &A38D (the
+no-change path). Never returns directly (clear_result loads A=0
+and tail-falls into finalise_and_return).""")
 subroutine(0xA390, "tube_claim_c3",
     title="Claim the Tube via protocol &C3",
     description="Loops calling tube_addr_data_dispatch with\n"
@@ -5136,6 +5236,14 @@ subroutine(0xBA09, "save_fcb_context",
     "find_open_fcb, and sends directory requests. Falls\n"
     "through to restore_catalog_entry.",
     on_entry={"y": "filter attribute (0=process all)"})
+subroutine(0xBAB7, "loop_restore_workspace",
+    title="Pop 13 saved workspace bytes back to fs_load_addr+",
+    description="""\
+Y=0..&0C loop: PLA / STA fs_load_addr,Y / INY / CPY #&0D / BNE.
+Restores the 13-byte FS-options block that save_fcb_context pushed
+on the stack, undoing the protection the wipe/scan path put in
+place. Two callers: the JMP at &BA1B (close-and-restore exit) and
+the BNE retry at &BABE.""")
 subroutine(0xBAC0, "restore_catalog_entry",
     title="Restore saved catalog entry to TX buffer",
     description="Copies 13 bytes from the context buffer at &10D9\n"
@@ -5243,6 +5351,23 @@ subroutine(0xBD25, "abort_if_escape",
 
 # --- cmd_dump subroutines ---
 
+subroutine(0xBD59, "loop_dump_line",
+    title="*DUMP per-line read loop",
+    description="""\
+Body of cmd_dump's outer line loop. Calls abort_if_escape, then
+reads up to 16 bytes from the open file via OSBGET into the line
+buffer at (work_ae). On EOF mid-line, breaks to clean-up; on a
+full line, falls through to the formatting and print stage.
+Reachable from the alignment branch at &BD54 and the per-line tail
+at &BDF9.""")
+subroutine(0xBD79, "loop_pop_stack_buf",
+    title="Drain saved bytes off stack and close",
+    description="""\
+Pulls X+1 bytes off the 6502 stack (clearing the temporary 21-byte
+buffer cmd_dump uses to render each line) and tail-jumps to
+close_ws_file. Reached from the in-line BPL at &BD7B and the
+fall-through tail at &BDFE.""",
+    on_entry={"x": "stack-byte count - 1 (caller sets it to &14 or &15)"})
 subroutine(0xBE01, "print_dump_header",
     title="Print hex dump column header line",
     description="Outputs the starting address followed by 16 hex\n"
