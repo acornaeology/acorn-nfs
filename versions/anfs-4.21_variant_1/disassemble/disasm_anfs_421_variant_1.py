@@ -1496,7 +1496,6 @@ label(0xA42F, "fscv_3_star_cmd")
 label(0xA440, "cmd_fs_reentry")
 label(0xA442, "error_syntax")
 label(0xA45B, "match_fs_cmd")
-label(0xA592, "error_bad_command")
 label(0xA638, "fsreply_3_set_csd")
 label(0xA644, "find_station_bit2")
 label(0xA66F, "find_station_bit3")
@@ -2307,6 +2306,18 @@ subroutine(0x8112, "scout_complete",
     "via tx_calc_transfer, sets up the data RX handler\n"
     "chain, and sends a scout ACK. On no match or error,\n"
     "discards the frame via scout_error.")
+subroutine(0x81A7, "send_data_rx_ack",
+    title="Send scout ACK and arm data-RX continuation",
+    description="""\
+Switches the ADLC to TX mode for the scout ACK frame: writes
+CR1=&44 (RX_RESET | TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA |
+PSE), then loads (A,Y) = (&B8, &81) -- the address of data_rx_setup
+at &81B8 minus 1 -- and JMPs to ack_tx_write_dest which actually
+emits the TX frame and installs the new NMI handler. Two callers:
+the dispatch in scout_complete at &81A2 and the immediate-op POKE
+path at &84AE (jmp_send_data_rx_ack).""",
+    on_exit={"a": "&B8 (low byte of data_rx_setup-1)",
+             "y": "&81 (high byte of data_rx_setup-1)"})
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="Receives the data frame after the scout ACK has been sent.\n"
@@ -2413,6 +2424,30 @@ subroutine(0x8395, "rx_complete_update_rxcb",
     "polls this bit to detect that the reply has\n"
     "arrived. Falls through to discard_reset_rx to\n"
     "reset the ADLC to idle RX listen mode.")
+subroutine(0x83E5, "discard_reset_rx",
+    title="Discard scout, reset ADLC, install RX-scout NMI",
+    description="""\
+Three-stage idle-restore chain. Calls discard_reset_listen to
+abandon any in-flight scout and release a held Tube claim, then
+falls through to reset_adlc_rx_listen which calls adlc_rx_listen
+(reset CR1/CR2 and re-arm RX), then falls through to
+set_nmi_rx_scout which installs nmi_rx_scout as the active NMI
+handler and JMPs out via set_nmi_vector. Used as the standard
+'something went wrong, get back to listening' exit.""")
+subroutine(0x83E8, "reset_adlc_rx_listen",
+    title="Reset ADLC and install RX-scout NMI",
+    description="""\
+Tail of the discard_reset_rx chain entered directly when no scout
+needs discarding. Calls adlc_rx_listen to reset CR1/CR2 to RX-only
+mode, then falls through to set_nmi_rx_scout. Two inbound JSRs
+plus one fall-through (from discard_reset_rx).""")
+subroutine(0x83EB, "set_nmi_rx_scout",
+    title="Install nmi_rx_scout as NMI handler",
+    description="""\
+Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since
+set_nmi_vector adds 1) and JMPs to set_nmi_vector. Tail of the
+discard_reset_rx / reset_adlc_rx_listen chain. Two callers: &80CB
+(after init) and &80E2 (after error).""")
 subroutine(0x83F2, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"
@@ -2723,6 +2758,15 @@ subroutine(0x875F, "nmi_reply_cont",
     "If IRQ is still set, falls through directly to &8779 without an RTI,\n"
     "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
     "in quick succession.")
+subroutine(0x8773, "reject_reply",
+    title="Abandon reply scout (1-instruction trampoline)",
+    description="""\
+Single JMP tx_result_fail. Acts as a near-target for the BPL/BNE
+exits scattered through nmi_reply_scout, nmi_reply_validate, and
+nmi_scout_ack_src that need to abort the reply path -- the
+unconditional JMP at &8773 takes them to tx_result_fail (which
+stores the error and returns to idle). Seven inbound refs in total
+(one JSR plus six branches).""")
 subroutine(0x8776, "nmi_reply_validate",
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="Reads the source station and source network from the reply scout and\n"
@@ -3434,6 +3478,19 @@ subroutine(0x9446, "check_not_ampersand",
     "on CR. Used by cmd_fs_operation and cmd_rename.",
     on_exit={"a": "first byte of parse buffer (preserved unchanged on the "
              "non-error path)"})
+subroutine(0x944E, "read_filename_char",
+    title="Loop reading filename chars into TX buffer",
+    description="""\
+Per-character loop body of the filename-copy logic in
+check_not_ampersand. JSRs check_not_ampersand to reject '&', stores
+the byte at lc105+X (TX buffer area), increments X, and either
+branches to send_fs_request on CR or strips a BASIC token prefix
+via strip_token_prefix and re-enters the loop. Three callers: the
+loop's own BRA at &945C, plus &9435 (cmd_rename's first-arg copy)
+and &950F (cmd_fs_operation's filename pickup).""",
+    on_entry={"a": "current character to copy",
+              "x": "TX-buffer write index"},
+    on_exit={"x": "advanced past the CR terminator"})
 # Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
 # hit &945E (which is `send_fs_request`) — the body match pushed the
 # entry 5 bytes earlier than the actual prologue. The 4.21 prologue
@@ -3752,6 +3809,21 @@ subroutine(0x9C85, "send_txcb_swap_addrs",
     "and retries on address mismatch.",
     on_exit={"a": "FS reply status (or unchanged if handles matched -- "
              "the routine returns early when no work is needed)"})
+subroutine(0x9CB5, "setup_dir_display",
+    title="Compute display deltas and prep FS info request",
+    description="""\
+Iterates 4 times over paired (lo, hi) address words in the FS options
+block at offsets &0E and &0A (loop body advances Y by 5 each pass).
+For each pair, computes (high - low), saves both originals to
+workspace at &00A6+Y (port_ws_offset region), and overwrites the
+options entry with the difference so the caller can render 'load
+addr', 'exec addr', 'length', etc. without redoing the subtraction.
+Then copies 9 bytes of FS-options metadata into the TX buffer at
+&C103, sets need_release_tube as the escapable flag, and stores FS
+port &91 (info request) at &C102. Final tail-call dispatches the
+request via send_request_write.""",
+    on_exit={"a": "&91 (FS port for info request)",
+             "x, y": "clobbered"})
 subroutine(0x9D44, "print_load_exec_addrs",
     title="Print exec address and file length in hex",
     description="Prints the exec address as 5 hex bytes from\n"
@@ -3838,6 +3910,17 @@ subroutine(0x9E82, "format_filename_field",
     "reply buffer depending on the value in l0f03.\n"
     "Truncates or pads to exactly 12 characters.",
     on_exit={"a, x, y": "clobbered"})
+subroutine(0x9FB4, "return_with_last_flag",
+    title="Load last-byte flag and finalise",
+    description="""\
+Loads fs_last_byte_flag (&BD) into A and falls through to
+finalise_and_return, which clears the receive-attribute byte and
+restores caller's X/Y. The 12 inbound refs are mostly fall-through
+exits from FS reply handlers that need to return the last-byte
+status to their caller; only one site (&9FAE) reaches it via JSR.""",
+    on_exit={"a": "fs_last_byte_flag",
+             "x": "fs_options (restored by finalise_and_return)",
+             "y": "fs_block_offset (restored by finalise_and_return)"})
 subroutine(0x9FB6, "finalise_and_return",
     title="Clear receive-attribute and restore caller's X/Y",
     description="Common 7-byte exit sequence used at the end of "

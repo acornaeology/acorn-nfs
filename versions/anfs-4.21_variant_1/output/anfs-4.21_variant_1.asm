@@ -774,6 +774,21 @@ rom_header_byte2 = rom_header+2
     bvc send_data_rx_ack                                              ; 81a2: 50 03       P.             ; Not broadcast -- normal ACK path
     jmp copy_scout_to_buffer                                          ; 81a4: 4c 00 84    L..            ; Broadcast: different completion path
 
+; ***************************************************************************************
+; Send scout ACK and arm data-RX continuation
+; 
+; Switches the ADLC to TX mode for the scout ACK frame: writes
+; CR1=&44 (RX_RESET | TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA |
+; PSE), then loads (A,Y) = (&B8, &81) -- the address of data_rx_setup
+; at &81B8 minus 1 -- and JMPs to ack_tx_write_dest which actually
+; emits the TX frame and installs the new NMI handler. Two callers:
+; the dispatch in scout_complete at &81A2 and the immediate-op POKE
+; path at &84AE (jmp_send_data_rx_ack).
+; 
+; On Exit:
+;     A: &B8 (low byte of data_rx_setup-1)
+;     Y: &81 (high byte of data_rx_setup-1)
+; ***************************************************************************************
 ; &81a7 referenced 2 times by &81a2, &84ae
 .send_data_rx_ack
     lda #&44 ; 'D'                                                    ; 81a7: a9 44       .D             ; CR1=&44: RX_RESET | TIE
@@ -1258,12 +1273,39 @@ rom_header_byte2 = rom_header+2
     tya                                                               ; 83e1: 98          .              ; Pass slot index as callback parameter
     jmp setup_sr_tx                                                   ; 83e2: 4c 12 85    L..            ; Jump to TX completion with slot index
 
+; ***************************************************************************************
+; Discard scout, reset ADLC, install RX-scout NMI
+; 
+; Three-stage idle-restore chain. Calls discard_reset_listen to
+; abandon any in-flight scout and release a held Tube claim, then
+; falls through to reset_adlc_rx_listen which calls adlc_rx_listen
+; (reset CR1/CR2 and re-arm RX), then falls through to
+; set_nmi_rx_scout which installs nmi_rx_scout as the active NMI
+; handler and JMPs out via set_nmi_vector. Used as the standard
+; 'something went wrong, get back to listening' exit.
+; ***************************************************************************************
 ; &83e5 referenced 6 times by &8220, &83af, &83d0, &83dc, &8883, &88ed
 .discard_reset_rx
     jsr discard_reset_listen                                          ; 83e5: 20 f2 83     ..            ; Discard scout and reset RX listen
+; ***************************************************************************************
+; Reset ADLC and install RX-scout NMI
+; 
+; Tail of the discard_reset_rx chain entered directly when no scout
+; needs discarding. Calls adlc_rx_listen to reset CR1/CR2 to RX-only
+; mode, then falls through to set_nmi_rx_scout. Two inbound JSRs
+; plus one fall-through (from discard_reset_rx).
+; ***************************************************************************************
 ; &83e8 referenced 3 times by &80e5, &8434, &8529
 .reset_adlc_rx_listen
     jsr adlc_rx_listen                                                ; 83e8: 20 9b 89     ..            ; Reset ADLC and return to RX listen
+; ***************************************************************************************
+; Install nmi_rx_scout as NMI handler
+; 
+; Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since
+; set_nmi_vector adds 1) and JMPs to set_nmi_vector. Tail of the
+; discard_reset_rx / reset_adlc_rx_listen chain. Two callers: &80CB
+; (after init) and &80E2 (after error).
+; ***************************************************************************************
 ; &83eb referenced 2 times by &80cb, &80e2
 .set_nmi_rx_scout
     lda #&9b                                                          ; 83eb: a9 9b       ..             ; A=&BE: low byte of nmi_rx_scout
@@ -2299,6 +2341,16 @@ l840a = sub_c8409+1
     bmi nmi_reply_validate                                            ; 876e: 30 06       0.             ; IRQ set -- fall through to &8779 without RTI
     jmp install_nmi_handler                                           ; 8770: 4c 11 0d    L..            ; IRQ not set -- install handler and RTI
 
+; ***************************************************************************************
+; Abandon reply scout (1-instruction trampoline)
+; 
+; Single JMP tx_result_fail. Acts as a near-target for the BPL/BNE
+; exits scattered through nmi_reply_scout, nmi_reply_validate, and
+; nmi_scout_ack_src that need to abort the reply path -- the
+; unconditional JMP at &8773 takes them to tx_result_fail (which
+; stores the error and returns to idle). Seven inbound refs in total
+; (one JSR plus six branches).
+; ***************************************************************************************
 ; &8773 referenced 7 times by &8758, &8762, &8767, &8779, &8781, &8789, &8790
 .reject_reply
     jmp tx_result_fail                                                ; 8773: 4c e2 88    L..            ; Store error and return to idle
@@ -5605,6 +5657,24 @@ ps_template_base = sub_c8da6+1
     beq error_bad_filename                                            ; 944b: f0 ea       ..             ; Yes: invalid filename
     rts                                                               ; 944d: 60          `              ; Return
 
+; ***************************************************************************************
+; Loop reading filename chars into TX buffer
+; 
+; Per-character loop body of the filename-copy logic in
+; check_not_ampersand. JSRs check_not_ampersand to reject '&', stores
+; the byte at lc105+X (TX buffer area), increments X, and either
+; branches to send_fs_request on CR or strips a BASIC token prefix
+; via strip_token_prefix and re-enters the loop. Three callers: the
+; loop's own BRA at &945C, plus &9435 (cmd_rename's first-arg copy)
+; and &950F (cmd_fs_operation's filename pickup).
+; 
+; On Entry:
+;     A: current character to copy
+;     X: TX-buffer write index
+; 
+; On Exit:
+;     X: advanced past the CR terminator
+; ***************************************************************************************
 ; &944e referenced 3 times by &9435, &945c, &950f
 .read_filename_char
     jsr check_not_ampersand                                           ; 944e: 20 46 94     F.            ; Reject '&' in current char
@@ -7382,6 +7452,24 @@ l99a3 = bad_str_anchor+1
     beq setup_dir_display                                             ; 9cb0: f0 03       ..             ; Z set: directory entry display
     jmp dispatch_osword_op                                            ; 9cb2: 4c dc 9d    L..            ; Non-zero: jump to OSWORD dispatch
 
+; ***************************************************************************************
+; Compute display deltas and prep FS info request
+; 
+; Iterates 4 times over paired (lo, hi) address words in the FS options
+; block at offsets &0E and &0A (loop body advances Y by 5 each pass).
+; For each pair, computes (high - low), saves both originals to
+; workspace at &00A6+Y (port_ws_offset region), and overwrites the
+; options entry with the difference so the caller can render 'load
+; addr', 'exec addr', 'length', etc. without redoing the subtraction.
+; Then copies 9 bytes of FS-options metadata into the TX buffer at
+; &C103, sets need_release_tube as the escapable flag, and stores FS
+; port &91 (info request) at &C102. Final tail-call dispatches the
+; request via send_request_write.
+; 
+; On Exit:
+;     A: &91 (FS port for info request)
+;     X, Y: clobbered
+; ***************************************************************************************
 ; &9cb5 referenced 2 times by &9cb0, &9de5
 .setup_dir_display
     ldx #4                                                            ; 9cb5: a2 04       ..             ; X=4: loop counter for 4 iterations
@@ -8048,6 +8136,20 @@ l99a3 = bad_str_anchor+1
 ; &9fb1 referenced 1 time by &9eba
 .close_all_fcbs
     jsr process_all_fcbs                                              ; 9fb1: 20 38 bb     8.            ; Process all matching FCBs first
+; ***************************************************************************************
+; Load last-byte flag and finalise
+; 
+; Loads fs_last_byte_flag (&BD) into A and falls through to
+; finalise_and_return, which clears the receive-attribute byte and
+; restores caller's X/Y. The 12 inbound refs are mostly fall-through
+; exits from FS reply handlers that need to return the last-byte
+; status to their caller; only one site (&9FAE) reaches it via JSR.
+; 
+; On Exit:
+;     A: fs_last_byte_flag
+;     X: fs_options (restored by finalise_and_return)
+;     Y: fs_block_offset (restored by finalise_and_return)
+; ***************************************************************************************
 ; &9fb4 referenced 12 times by &9c36, &9d41, &9e36, &9f38, &9f54, &9f77, &9fae, &a09c, &a15f, &a63b, &a641, &a6fb
 .return_with_last_flag
     lda fs_last_byte_flag                                             ; 9fb4: a5 bd       ..             ; Load last byte flag
@@ -9305,7 +9407,6 @@ la0ff = sub_ca0fe+1
 ; &a58f referenced 1 time by &a548
 .library_tried
     jsr mask_owner_access                                             ; a58f: 20 cf b2     ..            ; Store to parameter block; Next byte down
-.error_bad_command
     lda #2                                                            ; a592: a9 02       ..             ; Loop for all 7 bytes
     bit lc271                                                         ; a594: 2c 71 c2    ,q.            ; Return; Save processor flags (decimal mode); X = binary count
     bne error_bad_command                                             ; a597: d0 08       ..             ; Zero: result is 0, skip loop
