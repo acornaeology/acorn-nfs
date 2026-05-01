@@ -3272,8 +3272,8 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8b4d referenced 5 times by &a9cc, &a9da, &aac2, &aad0, &ac4c
 .ensure_fs_selected
-    bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.
-    bmi return_from_save_text_ptr                                     ; 8b50: 30 d0       0.
+    bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.            ; Test fs_flags bit 7 (ANFS active)
+    bmi return_from_save_text_ptr                                     ; 8b50: 30 d0       0.             ; Already active: tail-RTS via shared exit
 ; ***************************************************************************************
 ; Force ANFS selection (raise net checksum on failure)
 ; 
@@ -3292,9 +3292,9 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; &8b52 referenced 1 time by &8cdd
 .select_fs_via_cmd_net_fs
-    jsr cmd_net_fs                                                    ; 8b52: 20 23 8b     #.
-    beq c8b5a                                                         ; 8b55: f0 03       ..             ; Match: checksum valid
-    jmp error_net_checksum                                            ; 8b57: 4c b5 90    L..            ; Mismatch: raise checksum error
+    jsr cmd_net_fs                                                    ; 8b52: 20 23 8b     #.            ; Auto-select ANFS via the *NFS handler
+    beq c8b5a                                                         ; 8b55: f0 03       ..             ; Z=1 (A=0): selection succeeded
+    jmp error_net_checksum                                            ; 8b57: 4c b5 90    L..            ; Otherwise raise 'net checksum' error
 
 ; &8b5a referenced 1 time by &8b55
 .c8b5a

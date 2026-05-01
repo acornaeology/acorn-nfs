@@ -8596,8 +8596,14 @@ comment(0x8B31, "Decrement index", inline=True)
 comment(0x8B32, "Loop until all bytes summed", inline=True)
 comment(0x8B34, "Y=&77: checksum storage offset", inline=True)
 comment(0x8B36, "Compare with stored checksum", inline=True)
-comment(0x8B55, "Match: checksum valid", inline=True)
-comment(0x8B57, "Mismatch: raise checksum error", inline=True)
+comment(0x8B4D, "Test fs_flags bit 7 (ANFS active)", inline=True)
+comment(0x8B50, "Already active: tail-RTS via shared exit",
+        inline=True)
+comment(0x8B52, "Auto-select ANFS via the *NFS handler",
+        inline=True)
+comment(0x8B55, "Z=1 (A=0): selection succeeded", inline=True)
+comment(0x8B57, "Otherwise raise 'net checksum' error",
+        inline=True)
 comment(0x8B60, "Call FSCV with A=6 (new FS)", inline=True)
 comment(0x8B63, "Y=9: end of FS context block", inline=True)
 comment(0x8B65, "Load byte from receive block", inline=True)
