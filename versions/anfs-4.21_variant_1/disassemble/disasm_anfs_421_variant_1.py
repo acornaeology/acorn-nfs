@@ -30,32 +30,9 @@ _output_dirpath = Path(os.environ.get(
 load(0x8000, _rom_filepath, "65c02")
 trace.cpu.default_subroutine_hook = None
 
-# ============================================================
-# Relocated code blocks
-# ============================================================
-# The ANFS ROM copies code from ROM into RAM at initialisation.
-# These blocks execute at different addresses than their storage locations.
-# move(dest, src, length) tells py8dis the runtime address for each block.
-#
-# The page copy loop (&BE9C) copies 256 bytes of pages 4, 5, 6
-# using DEY/BNE wrapping through &FF..&01. In 4.18 the page 4 source
-# is at &BF04, so bytes &04FC-&04FF come from MOS ROM (unreferenced).
-#
-# The workspace init (&BEB8) copies X=&41 downto 0 (BPL) = 66 bytes.
-
-# BRK handler + NMI workspace init code (&BEC3 -> &0016-&0057)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): move(0x0016, 0xBEC3, 0x42)
-
-# NMI handler / page 4-6 relocated code
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): move(0x0400, 0xBF04, 0xFC)     # Page 4: 252 bytes (&04FC-&04FF from MOS, unreferenced)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): move(0x0500, 0xBC94, 0x100)    # Page 5: Tube host code
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): move(0x0600, 0xBD94, 0x100)    # Page 6: Econet protocol handlers
-
-# ROM-address labels for move() block origins (referenced by copy routines)
-# UNMAPPED: label(0xBEC3, "reloc_zp_src")        # ROM source of zero-page relocated code
-# UNMAPPED: label(0xBF04, "reloc_p4_src")        # ROM source of page 4 code
-# UNMAPPED: label(0xBC94, "reloc_p5_src")        # ROM source of page 5 code
-# UNMAPPED: label(0xBD94, "reloc_p6_src")        # ROM source of page 6 code
+# No relocated code blocks: this build keeps its filing-system
+# workspace in sideways RAM at &C000-&C2FF instead of copying into
+# MOS RAM pages.
 
 byte(0xBFC7)  # Force padding byte onto its own line for annotation
 
@@ -568,8 +545,7 @@ label(0x8D45, "credits_keyword_start")
 # (LDA ps_template_base,X with X=&F8..&FF, reaching ps_template_data at
 # &8E9F). It deliberately lands inside a JSR instruction's operand byte
 # rather than at a free-standing address -- see docs/analysis/
-# authors-easter-egg.md. In 4.18 the anchor instead landed inside the
-# 'nn' of "J Dunn" in the credits string at &8D61.
+# authors-easter-egg.md.
 label(0x8DA7, "ps_template_base")
 label(0x8DC0, "skip_no_fs_addr")
 label(0x8DC7, "loop_copy_logon_cmd")
@@ -594,9 +570,8 @@ label(0x8FA9, "loop_alloc_handles")
 # Split the 3 workspace init bytes into individual entries.
 # ws_init_data label overlaps the JMP operand high byte at &8F48;
 # the actual data bytes at &8F49-&8F4B are read via LDA ws_init_data,X
-# with X=3..1 (X=0 never read due to BNE loop exit).
-# NB: In 4.08.53 the store base was net_context (&0D6D); in 4.18 it
-# changed to fs_flags (&0D6C), shifting all three targets down by one.
+# with X=3..1 (X=0 never read due to BNE loop exit). The store base
+# is fs_flags (&0D6C).
 # UNMAPPED: for i in range(3):
 # UNMAPPED:     byte(0x8F49 + i)
 # UNMAPPED: label(0x8F4C, "store_station_id")
@@ -621,10 +596,8 @@ label(0x91C6, "syn_rename")      # "<filename> <new filename>"
 label(0x91E0, "syn_opt_stn")     # "(<stn. id.>)"
 # UNMAPPED: label(0x9117, "syn_filename")    # "<filename>"
 label(0x91ED, "cmd_syntax_table")
-# 12 entries (idx 0-11) in 4.21_v1; 4.18 had 13 because it included
-# syn_filename at idx 12. The Master variant drops that command, so the
-# byte that follows the table at &91F9 is now the entry point of the
-# print_no_spool helper rather than a table value.
+# 12 entries (idx 0-11). The byte at &91F9 immediately after the
+# table is the entry point of the print_no_spool helper.
 for i in range(12):
     byte(0x91ED + i)
 # Symbolic expressions: offset = string_start - cmd_syntax_strings - 1
@@ -991,7 +964,6 @@ label(0xA726, "check_auto_boot_flag")
 # UNMAPPED: label(0xA3F2, "cmd_table_fs_hi")
 label(0xA7C9, "cmd_table_nfs_iam")
 label(0xBEEB, "loop_copy_osword_data")
-# Removed in 4.18: loop_copy_osword_flag (copy-back loop eliminated)
 label(0xA870, "return_from_osword_setup")
 # UNMAPPED: comment(0xA523, """\
 # UNMAPPED: OSWORD dispatch table (7 entries, split lo/hi).
