@@ -491,7 +491,7 @@ rom_header_byte2 = rom_header+2
 .dispatch_svc5
     lda #&85                                                          ; 8048: a9 85       ..             ; Push return addr high (&85)
     pha                                                               ; 804a: 48          H              ; High byte on stack for RTS
-    lda l84b8,y                                                       ; 804b: b9 b8 84    ...            ; Load dispatch target low byte
+    lda tx_done_dispatch_lo-&83,y                                     ; 804b: b9 b8 84    ...            ; Load dispatch target low byte
     pha                                                               ; 804e: 48          H              ; Low byte on stack for RTS
 .svc_5_unknown_irq
     rts                                                               ; 804f: 60          `              ; RTS = dispatch to PHA'd address
@@ -1505,8 +1505,6 @@ l840a = sub_c8409+1
     lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..             ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84b3: 85 a6       ..             ; Store workspace offset lo
     lda #&0d                                                          ; 84b5: a9 0d       ..             ; RX buffer page = &0D
-.sub_c84b7
-l84b8 = sub_c84b7+1
     sta rx_buf_offset                                                 ; 84b7: 85 a7       ..             ; Store workspace offset hi
 ; &84b8 referenced 1 time by &804b
     jmp port_match_found                                              ; 84b9: 4c 95 81    L..            ; Enter POKE data-receive path
@@ -1635,7 +1633,21 @@ l84b8 = sub_c84b7+1
 .return_from_advance_buf
     rts                                                               ; 853a: 60          `              ; Return
 
-    equs "?HVby"                                                      ; 853b: 3f 48 56... ?HV
+; TX done dispatch table (lo bytes)
+; 
+; Low bytes of PHA/PHA/RTS dispatch targets for TX
+; operation types &83-&87. Read by the dispatch at
+; &804B via LDA tx_done_dispatch_lo-&83,Y (operand
+; &84B8). The dispatch trampoline pushes &85 as the
+; high byte, so targets are &85xx+1. Entries for
+; Y < &83 read from preceding code bytes and are not
+; valid operation types.
+.tx_done_dispatch_lo
+    equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?
+    equb <(tx_done_econet_event-1)                                    ; 853c: 48          H
+    equb <(tx_done_os_proc-1)                                         ; 853d: 56          V
+    equb <(tx_done_halt-1)                                            ; 853e: 62          b
+    equb <(tx_done_continue-1)                                        ; 853f: 79          y
 
 ; ***************************************************************************************
 ; TX done: remote JSR execution
@@ -15043,6 +15055,11 @@ lb821 = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &bb
     assert <(rx_imm_peek-1) == &cd
     assert <(rx_imm_poke-1) == &b0
+    assert <(tx_done_continue-1) == &79
+    assert <(tx_done_econet_event-1) == &48
+    assert <(tx_done_halt-1) == &62
+    assert <(tx_done_jsr-1) == &3f
+    assert <(tx_done_os_proc-1) == &56
     assert >(fs_work_4) == &00
     assert >(la6fe) == &a6
     assert copyright - rom_header == &19
@@ -15835,7 +15852,6 @@ save pydis_start, pydis_end
 ;     l4e2f:                          1
 ;     l6f6e:                          1
 ;     l840a:                          1
-;     l84b8:                          1
 ;     l85fd:                          1
 ;     l886f:                          1
 ;     l8877:                          1
@@ -16332,6 +16348,7 @@ save pydis_start, pydis_end
 ;     tx_ctrl_range_check:            1
 ;     tx_ctrl_store_and_add:          1
 ;     tx_data_start:                  1
+;     tx_done_dispatch_lo-&83:        1
 ;     tx_econet_txcb_template:        1
 ;     tx_error:                       1
 ;     tx_fifo_not_ready:              1
@@ -16449,7 +16466,6 @@ save pydis_start, pydis_end
 ;     l4e2f
 ;     l6f6e
 ;     l840a
-;     l84b8
 ;     l85fd
 ;     l886f
 ;     l8877
@@ -16586,7 +16602,6 @@ save pydis_start, pydis_end
 ;     return_6
 ;     return_7
 ;     sub_c8409
-;     sub_c84b7
 ;     sub_c8da6
 ;     sub_c8e98
 ;     sub_ca0fe
@@ -16598,7 +16613,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2950 bytes (18%)
 ;
 ;     Number of instructions   = 6631
-;     Number of data bytes     = 1641 bytes
+;     Number of data bytes     = 1646 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1281 bytes
-;     Number of strings        = 144
+;     Number of string bytes   = 1276 bytes
+;     Number of strings        = 143

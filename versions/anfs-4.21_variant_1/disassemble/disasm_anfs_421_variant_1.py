@@ -503,6 +503,7 @@ expr_label(0x83ED, "imm_op_dispatch_lo-&81")  # = &847E - &81
 label(0x83FF, "return_from_discard_reset")
 label(0x84AE, "jmp_send_data_rx_ack")
 label(0x84BE, "set_rx_buf_len_hi")
+expr_label(0x84B8, "tx_done_dispatch_lo-&83")  # = &853B - &83
 label(0x853A, "return_from_advance_buf")
 label(0x85F8, "reload_inactive_mask")
 # UNMAPPED: label(0x8600, "intoff_disable_nmi_op")
@@ -1380,7 +1381,7 @@ label(0x83E5, "discard_reset_rx")
 label(0x83E8, "reset_adlc_rx_listen")
 label(0x83EB, "set_nmi_rx_scout")
 label(0x8512, "setup_sr_tx")
-# UNMAPPED: label(0x853E, "tx_done_dispatch_lo")
+label(0x853B, "tx_done_dispatch_lo")
 label(0x8549, "tx_done_econet_event")
 label(0x8551, "tx_done_fire_event")
 label(0x8B00, "scan_remote_keys")
@@ -6007,17 +6008,18 @@ comment(0x8543, "Push lo of (tx_done_exit-1)", inline=True)
 comment(0x8545, "Push lo byte on stack", inline=True)
 comment(0x8546, "Call remote JSR; RTS to tx_done_exit", inline=True)
 
-# tx_done_dispatch_lo (&8534): 5-byte dispatch table.
+# tx_done_dispatch_lo (&853B): 5-byte dispatch table.
 # Low bytes of PHA/PHA/RTS targets for TX operation types &83-&87.
-# Read by LDA set_rx_buf_len_hi,Y at &8064 (hi byte always &85).
-# UNMAPPED: comment(0x853E, "TX done dispatch table (lo bytes)\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
-# UNMAPPED:     "operation types &83-&87. Read by the dispatch at\n"
-# UNMAPPED:     "&8064 via LDA set_rx_buf_len_hi,Y (base &84BB\n"
-# UNMAPPED:     "+ Y). High byte is always &85, so targets are\n"
-# UNMAPPED:     "&85xx+1. Entries for Y < &83 read from preceding\n"
-# UNMAPPED:     "code bytes and are not valid operation types.")
+# Read by LDA tx_done_dispatch_lo-&83,Y at &804B (hi byte always &85).
+comment(0x853B, "TX done dispatch table (lo bytes)\n"
+    "\n"
+    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
+    "operation types &83-&87. Read by the dispatch at\n"
+    "&804B via LDA tx_done_dispatch_lo-&83,Y (operand\n"
+    "&84B8). The dispatch trampoline pushes &85 as the\n"
+    "high byte, so targets are &85xx+1. Entries for\n"
+    "Y < &83 read from preceding code bytes and are not\n"
+    "valid operation types.")
 
 # tx_done_econet_event (&8542): TX operation type &84 handler.
 comment(0x8549, "X = remote address lo from l0d66", inline=True)
@@ -10091,15 +10093,15 @@ entry(0xBB68)   # File operation handler
 
 # TX done dispatch table (5 bytes) and event handler (8 bytes)
 entry(0x8549)   # tx_done_econet_event: TX operation type &84 handler
-# UNMAPPED: for i in range(5):
-# UNMAPPED:     byte(0x853E + i)
+for i in range(5):
+    byte(0x853B + i)
 
 # Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
-# UNMAPPED: expr(0x853E, "<(tx_done_jsr-1)")
-# UNMAPPED: expr(0x853F, "<(tx_done_econet_event-1)")
-# UNMAPPED: expr(0x8540, "<(tx_done_os_proc-1)")
-# UNMAPPED: expr(0x8541, "<(tx_done_halt-1)")
-# UNMAPPED: expr(0x8542, "<(tx_done_continue-1)")
+expr(0x853B, "<(tx_done_jsr-1)")          # op &83: remote JSR
+expr(0x853C, "<(tx_done_econet_event-1)") # op &84: fire Econet event
+expr(0x853D, "<(tx_done_os_proc-1)")      # op &85: OSProc call
+expr(0x853E, "<(tx_done_halt-1)")         # op &86: HALT
+expr(0x853F, "<(tx_done_continue-1)")     # op &87: CONTINUE
 
 # TX ctrl dispatch table (8 bytes) and machine type handler (4 bytes)
 # UNMAPPED: entry(0x8689)   # tx_ctrl_machine_type: ctrl &88 handler
