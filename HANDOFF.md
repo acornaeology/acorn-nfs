@@ -12,16 +12,22 @@ listed below.
    work plan**. Current state, coverage history, 10 phases (A..J),
    per-phase todo lists. **This is the source of truth.**
 2. `versions/anfs-4.21_variant_1/OPEN-ISSUES.md` — **register of
-   unresolved questions** about this ROM (currently a cluster of
-   related puzzles around `svc_dispatch` and its CMP/SBC chain).
-   Read before re-entering Phase C work.
+   unresolved questions** about this ROM. Currently a cluster of
+   four related puzzles (O-1..O-4) around `svc_dispatch` and its
+   CMP/SBC chain that resolve together. Read before re-entering
+   Phase C work.
 3. `versions/anfs-4.21_variant_1/PROGRESS.md` — earlier per-routine
    review log + cross-version findings (Master OS gate, OSWORD &13
    auto-select, workspace migration, 65C12 adoption, variant naming).
-4. `docs/techniques/README.md` and the four numbered papers in that
+4. `docs/analysis/` — published analyses linked from the website:
+   - `authors-easter-egg.md` — *HELP authors trigger and the
+     keyword-overlapping-message trick across 4.08.53 / 4.18 / 4.21
+   - `anfs-421-variant-naming.md` — falsifiable hypothesis for why
+     this ROM is "variant 1"
+5. `docs/techniques/README.md` and the four numbered papers in that
    directory — describe the address-recovery techniques we built and
    when to apply each.
-5. `CLAUDE.md` and `DISASSEMBLY.md` at the repo root — project-wide
+6. `CLAUDE.md` and `DISASSEMBLY.md` at the repo root — project-wide
    conventions and tool reference.
 
 The `memory/` system (auto-loaded into context) already carries the
@@ -44,18 +50,86 @@ applying a 4.18 → 4.21 address map via `generate_421_variant_1.py`
 
 ---
 
+## Heads-up: tools may be moving out of this repo
+
+The user is currently extracting the disassembly assistance tooling
+(currently under `src/disasm_tools/` — `blockmatch.py`,
+`fingerprint.py`, `audit.py`, `lint.py`, `verify.py`, `cfg.py`,
+`asm_extract.py`, `compare.py`, etc.) into a **dedicated package**.
+By the time you start, the layout may have changed: imports may move
+to a new top-level package name, the `acorn-nfs-disasm-tool` CLI
+entry-point may be renamed, or the modules may be installed as a
+dependency rather than living in-tree.
+
+**Before doing anything else:**
+
+- `git log --oneline -20` to see what landed since this handoff was
+  written.
+- `cat pyproject.toml` to see the current package layout / scripts.
+- `uv run acorn-nfs-disasm-tool --help` to confirm the CLI still
+  works under that name. If it doesn't, look for the renamed entry
+  point or run the moved modules directly.
+- Confirm `uv run acorn-nfs-disasm-tool verify 4.21_variant_1` and
+  `lint 4.21_variant_1` still pass before changing any 4.21 driver
+  content. If they don't, the tooling extraction is mid-flight and
+  the user will tell you what to do — don't try to fix it yourself
+  unless asked.
+
+The 4.21 driver script itself
+(`versions/anfs-4.21_variant_1/disassemble/disasm_anfs_421_variant_1.py`)
+should be unaffected: it uses the py8dis DSL, not the disasm-tools
+package.
+
+---
+
 ## Current state (snapshot at handoff)
 
 - `git status` clean. Working tree consistent with HEAD.
-- 67 commits ahead of `origin/master` — **never push, the user does
-  that themselves**. (The user has just rewritten history with
-  `git filter-repo` to drop a 113 MB PDF and re-set the upstream;
-  it's a fast-forward from the remote's POV.)
+- 8 commits ahead of `origin/master` — **never push, the user does
+  that themselves**.
 - ROM verifies byte-identical (16384 bytes); lint clean.
-- 318 subroutines, 1281 labels, 7753 comments, 90.9% inline coverage
-  (5899 of 6487 code items).
+- **320 subroutines, 1281 labels, 7791 comments**, 90.3% inline
+  coverage (5989 of 6630 code items).
 - Audit baseline: 0 NO_DESCRIPTION, 0 AUTO_NAME, 0 undeclared JSR
   targets, 1 DATA_ONLY (intentional — `fs_vector_table`).
+- Calling-convention coverage (after the recent overcook trim):
+  **on_entry on 192 / 320 subs (60.0%); on_exit on 165 / 320 (51.6%)**.
+  This is post-trim, where every dict has been filtered down to
+  registers and flags only — see "Conventions" below.
+- Recently published: `docs/analysis/authors-easter-egg.md` (with
+  `acornaeology.json` analyses link wired through to the website).
+
+---
+
+## Recent session highlights (what changed since the previous handoff)
+
+The previous handoff was at commit `a1e82ae`. Since then:
+
+1. **Phase A bulk pass complete.** Calling conventions were added
+   across the ROM, then trimmed — see "Conventions" below.
+2. **Authors easter egg analysis written** and wired into
+   `acornaeology.json` so it appears on the live site.
+3. **Stale `ps_template_base` label fixed** — was at &8D6E (4.18
+   carry-over with no instruction reference), now at the live
+   address &8DA7.
+4. **EQUB block at &8EFE..&903B reclassified as code.** Three
+   PHA/PHA/RTS-reachable routines recovered:
+   - `&8EFE` (entry)
+   - `&8F10` `svc_2_private_workspace_pages` (4-instruction Y-cap)
+   - `&8F38` `nfs_init_body` (~92-byte ANFS bring-up sequence:
+     CMOS station read, printer-server template install, NETV /
+     FSCV / FILEV install, station-zero error)
+5. **&8D09 reclassified as code** — the actual svc 1 dispatch
+   target (a short CMOS-byte-&11 / Y-bump routine).
+6. **Open issues registered.** `OPEN-ISSUES.md` records four
+   related puzzles (O-1..O-4) about which dispatch path actually
+   reaches `nfs_init_body`. The "companion ROM" hypothesis is
+   **explicitly ruled out** — do not chase it again.
+7. **Overcooked on_entry/on_exit dicts trimmed.** A one-shot AST
+   script stripped narrative entries (e.g. `'workspace'`, `'ptr'`,
+   `'side_effect'`) from 212 subroutine() calls, removing 368
+   entries. **New rule, going forward:** on_entry / on_exit hold
+   ONLY register and flag keys.
 
 ---
 
@@ -63,26 +137,34 @@ applying a 4.18 → 4.21 address map via `generate_421_variant_1.py`
 
 | Phase | What | Status |
 |-------|------|--------|
-| A | Subroutine calling conventions (`on_entry` / `on_exit`) | **Biggest gap** — only 32% have on_entry, 17% have on_exit. ~198 subs need work. |
-| B | Identify undeclared subroutines via `audit --undeclared` | **Done** (10 recovered) |
-| C | Recover remaining UNMAPPED 4.18 routines | Partial — `tx_calc_transfer`, `tx_done_jsr` done. Still: `svc_2_private_workspace`, `cmd_close`, `cmd_print`, `cmd_prot`, `cmd_type`, `cmd_unprot`, `read_paged_rom`, `set_jsr_protection`, `tx_ctrl_machine_type`, `check_escape`, `osword_4_handler` |
+| A | Subroutine calling conventions (`on_entry` / `on_exit`) | **Bulk pass done.** Now 60.0% / 51.6% under the registers-and-flags-only rule. Remaining gap is the legitimately-no-register-state subs and a few that still need a flag/register noted. |
+| B | Identify undeclared subroutines via `audit --undeclared` | **Done** (0 undeclared remaining) |
+| C | Recover remaining UNMAPPED 4.18 routines | Partial. Done: `tx_calc_transfer`, `tx_done_jsr`, `&8EFE`, `svc_2_private_workspace_pages`, `nfs_init_body`, `&8D09`. Still: `cmd_close`, `cmd_print`, `cmd_prot`, `cmd_type`, `cmd_unprot`, `read_paged_rom`, `set_jsr_protection`, `tx_ctrl_machine_type`, `check_escape`, `osword_4_handler`. **Outstanding mystery: O-1 in OPEN-ISSUES.md.** |
 | D | Long EQUB runs → reclassify as EQUW/EQUS where appropriate | Pending. 11 candidates over 8 bytes (top: &AE33 39 EQUBs, &B0D5 28, &ADC1 18, &88F0 16). |
-| E | Address tables → symbolic via `<()` / `>()` operators | Partial — `imm_op_dispatch_lo` done (&848B). More tables: `tx_done_dispatch_*` (&853E in 4.18, moved in 4.21), `tx_ctrl_dispatch_*` (&8681), star-command dispatch tables, others. |
-| F | Stale UNMAPPED comment cleanup (~1900 lines) | Pending |
-| G | Last 9.1% inline-comment coverage | Pending — partly falls out of D and E |
-| H | Audit-tool flag review (BRANCH_ESCAPE 91, NO_REFS 59, FALL_THROUGH 131, FALL_THROUGH_ENTRY 27) | Pending |
+| E | Address tables → symbolic via `<()` / `>()` operators | Partial — `imm_op_dispatch_lo` done (&848B). More tables remain: `tx_done_dispatch_*`, `tx_ctrl_dispatch_*`, star-command dispatch tables, the svc_dispatch lo/hi pair at &89ED/&8A20, others. |
+| F | Stale UNMAPPED comment cleanup | Pending |
+| G | Last 9.7% inline-comment coverage | Pending — partly falls out of D and E. Top candidates: `ensure_fs_selected` (&8B4D, 0%), `osbyte_a2` (&9612, 33%), `issue_svc_15` (&8D02, 21%), `svc_2_private_workspace_pages` (&8F10, 12%), `print_hex_byte_no_spool` (&924C, 0%), `check_escape_and_classify` (&988F, 9%), `nfs_init_body` (&8F38, 48%), `copy_ps_data` (&B3D7, 49%). |
+| H | Audit-tool flag review (BRANCH_ESCAPE 92, NO_REFS 61, FALL_THROUGH 136, FALL_THROUGH_ENTRY 27) | Pending |
 | I | `rom.json` `address_links` and `glossary_links` | Pending — depends on J |
 | J | `versions/anfs-4.21_variant_1/CHANGES-FROM-4.18.md` | **Final deliverable.** Don't draft until A-H are at >= 95% coverage on each dimension. |
 
-**Recommended next phase: A** (calling conventions). It's the largest
-remaining dimension and high leverage — every subroutine should
-document on_entry / on_exit / side effects. Best worked
-bottom-up (leaves first); see ANNOTATION-PROGRESS.md for the audit
-listing of leaves still missing this.
+**Recommended next phase:** continue **C** (the remaining UNMAPPED
+4.18 routines) and **G** (low-coverage subs) in tandem — they
+overlap, since recovered routines need fresh inline comments. Phase
+**E** is also high-leverage: every dispatch table you make symbolic
+removes a class of fragile `equb &XX` lines.
+
+If you do touch Phase A again, the goal is no longer raw coverage
+percentage but **correctness under the registers-only rule**: scan
+for any subs whose code clearly takes/returns A/X/Y but lacks the
+matching dict entry.
 
 ---
 
 ## Key tools (CLI under `uv run acorn-nfs-disasm-tool`)
+
+> The CLI name may change once the tool extraction lands — see
+> "Heads-up" above.
 
 | Subcommand | What |
 |---|---|
@@ -99,10 +181,10 @@ listing of leaves still missing this.
 | `compare <ver1> <ver2>` | Cross-version comparison (uses 65C02 sweep when rom.json says cpu='65c02') |
 
 Python modules (for ad-hoc work):
-- `src/disasm_tools/fingerprint.py` — locate a routine in version B
-  by sliding-window opcode similarity (ignores the existing address
+- `fingerprint` module — locate a routine in version B by
+  sliding-window opcode similarity (ignores the existing address
   map; useful when LCS consumed source bytes for unrelated mappings).
-- `src/disasm_tools/blockmatch.py` — primary LCS + supplementary
+- `blockmatch` module — primary LCS + supplementary
   seed-and-extend (BLAST/minimap2-style) opcode-level address mapping.
 
 ---
@@ -114,35 +196,48 @@ These are non-negotiable per the user's standing instructions:
 1. **Inline comments express domain meaning, not mnemonic.** `LDA #&0D`
    should be commented as "Load CR (newline) for OSASCI", never
    "Load &0D into A".
-2. **Every subroutine needs a description AND calling convention**:
+2. **Every subroutine needs a description.** Use:
    `subroutine(addr, name, title=..., description="...", on_entry={...},
-   on_exit={...})`. Use lowercase register names ('a', 'x', 'y').
-   Document side effects in the description (workspace bytes touched,
-   stack consumed, V/C semantics, etc.).
-3. **Address tables should be symbolic.** Replace `equb &XX` with
+   on_exit={...})`.
+3. **on_entry / on_exit hold ONLY register and flag keys.** Allowed
+   keys: `'a'`, `'x'`, `'y'`, `'p'`, `'s'`, `'c'`, `'n'`, `'v'`,
+   `'z'`, `'d'`, `'i'`, `'b'`. Parenthesised qualifiers like
+   `'c (set)'` are fine. **Do NOT** add narrative keys (`'workspace'`,
+   `'ptr'`, `'service'`, `'side_effect'`, etc.) — those belong in
+   the description. The good examples are &8028 and &8045; the
+   anti-pattern was the pre-trim &8070. If a sub's calling
+   convention is genuinely "no register state", omit on_entry /
+   on_exit entirely.
+4. **Side effects (workspace bytes, stack consumption, V/C semantics
+   beyond a simple flag, vectors touched) belong in the description**,
+   not in on_entry / on_exit.
+5. **Address tables should be symbolic.** Replace `equb &XX` with
    `equb <(label-1)` / `equb >(label-1)` for PHA/PHA/RTS dispatch
    tables, or `equw label` for absolute pointers. The
-   `imm_op_dispatch_lo` table at &848B is the canonical example
-   (committed earlier in this session).
-4. **Naming: use `_filepath`, `_dirpath`, `_dirname`, `_filename`
+   `imm_op_dispatch_lo` table at &848B is the canonical example.
+6. **Naming: use `_filepath`, `_dirpath`, `_dirname`, `_filename`
    suffixes** (not `_dir`, `_file`).
-5. **Acorn `&XXXX` notation in docs and Markdown; Python `0xXXXX` in
+7. **Acorn `&XXXX` notation in docs and Markdown; Python `0xXXXX` in
    scripts.**
-6. **No emojis** in commit messages, code comments, or any committed
+8. **No emojis** in commit messages, code comments, or any committed
    file. Avoid using them anywhere unless explicitly requested.
-7. **Don't reference yourself, "Claude", Anthropic, or the LLM model**
+9. **Don't reference yourself, "Claude", Anthropic, or the LLM model**
    in commit messages or comments.
-8. **Never push.** Leave `git push` to the user.
-9. **Verify + lint after every chunk.** Both must pass before
-   committing.
-10. **Small commits, frequent commits.** One routine or one small
+10. **Never push.** Leave `git push` to the user.
+11. **Verify + lint after every chunk.** Both must pass before
+    committing.
+12. **Small commits, frequent commits.** One routine or one small
     cluster per commit. Match the cadence in the recent git log.
-11. **Don't draft `CHANGES-FROM-4.18.md` (Phase J) until phases A-H
+13. **Don't draft `CHANGES-FROM-4.18.md` (Phase J) until phases A-H
     are substantially complete.** The user explicitly does not want a
     premature CHANGES doc.
-12. **No commenting noise.** Don't write `; load A` or `; jump`. Don't
+14. **No commenting noise.** Don't write `; load A` or `; jump`. Don't
     add comments where the well-named identifier already says it. Only
     comment the *why* and the *domain meaning*.
+15. **Annotations live in `comment(addr, "...")` calls, not Python
+    `#` comments** in the driver. Python comments don't appear in
+    the generated `.asm`. Use block triple-quoted strings for
+    multi-line `comment()` calls.
 
 ---
 
@@ -163,6 +258,8 @@ These are non-negotiable per the user's standing instructions:
   aborted with zero-status when FS was inactive).
 - **65C12 adoption** in many routines: PHX/PHY/PLX/PLY, BRA, STZ,
   TSB/TRB, BIT abs,X.
+- **ACCCON save/restore** brackets the NMI data-copy paths (see the
+  Phase G commit, `eb32468`).
 - **Two parallel print families**: standard via OSASCI, and
   `print_*_no_spool` via `print_char_no_spool` which brackets OSBYTE
   199 (read/write *SPOOL handle) around the print to bypass any active
@@ -191,6 +288,19 @@ them. Summary:
 5. **No page-relocation copy loop** (the 4.18 &BE94 area).
 6. **Variant naming**: see `docs/analysis/anfs-421-variant-naming.md`
    for the falsifiable hypothesis.
+7. **Dispatch-table reshape**: 4.18's svc dispatch table layout
+   shifted in 4.21; `dir_op_dispatch` now sets `Y=&18` (not `&0E`),
+   moving its reachable indices from 15..19 to 25..29. Some 4.18
+   labels (e.g. `svc_1_abs_workspace`, `ps_template_base` at the
+   wrong address) survived as carry-overs and have been moved or
+   demoted — see commits `915eaf5`, `569bf49`. **Outstanding:** the
+   real path that reaches `nfs_init_body` at &8F38 is the subject
+   of OPEN-ISSUES O-1.
+8. **ANFS bring-up code path moved**: the body that did "first-time
+   ANFS init" inline at the end of 4.18's `svc_2_private_workspace`
+   (&8EB8) has been split out / re-routed in 4.21 — `nfs_init_body`
+   at &8F38 now contains the equivalent work, reachable only via
+   PHA/PHA/RTS dispatch.
 
 ---
 
@@ -204,7 +314,8 @@ them. Summary:
 2. **PHA/PHA/RTS dispatch routines have no JSR caller** — won't be
    found by `--undeclared` (which scans JSR sites). Use
    `audit --sub <addr>` once you suspect an address is a sub entry,
-   or decode the dispatch table directly.
+   or decode the dispatch table directly. The recent &8EFE / &8F10 /
+   &8F38 / &8D09 recoveries are examples.
 3. **Address shifts can be small but consequential**: e.g.
    `tx_done_jsr` moved from 4.18 &8543 to 4.21 &8540 (-3 bytes), and
    `osword_13_set_station`'s body landing was off by 3 bytes from the
@@ -212,9 +323,10 @@ them. Summary:
    routine).
 4. **EQUB classification can be wrong.** `byte()` directives carried
    over from 4.18 may force 4.21 code-bearing bytes to data
-   classification. The `imm_op_dispatch_lo` table at &848B was an
-   example — fix is `for addr in range(...): byte(addr)` followed by
-   `expr(addr, "<(label-1)")`.
+   classification. `imm_op_dispatch_lo` at &848B and the
+   &8EFE..&903B block are both examples — fix is to remove the
+   `byte()` carryovers and add `entry(addr)` markers so py8dis
+   walks the bytes as code.
 5. **Dual-use bytes**: e.g. `osbyte_a1` at &8E9A — its 5 bytes (`A9 A1
    4C F4 FF`) are both the routine's code AND the leading entries of
    a vector-dispatch data table read by `write_vector_entry` via
@@ -224,6 +336,17 @@ them. Summary:
    spot wildly inappropriate inline comments (e.g. `Bit 4: &88 =
    %10001000` on a routine that prints text), strip them — they're
    from 4.18 mappings that landed on different code.
+7. **Don't speculate about "companion ROMs" issuing services to this
+   one.** The user has explicitly ruled this out as the explanation
+   for unreachable dispatch entries. If a dispatch index has no
+   apparent caller, record it in OPEN-ISSUES.md and move on — don't
+   invent inter-ROM service flows. See O-1 for the full list of
+   ruled-out hypotheses.
+8. **Python `col_offset` is byte-based, not char-based.** If you
+   write an AST-driven cleanup script over the driver, encode the
+   source to UTF-8 bytes and index by byte offset. The em-dash `—`
+   (3 bytes UTF-8) in some descriptions will silently corrupt
+   char-indexed edits.
 
 ---
 
@@ -231,24 +354,32 @@ them. Summary:
 
 When you start a session:
 
-1. `git log --oneline -5` to see the last few commits.
-2. `cat versions/anfs-4.21_variant_1/ANNOTATION-PROGRESS.md` to read
+1. `git log --oneline -10` to see the last few commits.
+2. Verify the toolchain still works (see "Heads-up" above) — the
+   user may have moved tools out into a dedicated package.
+3. `cat versions/anfs-4.21_variant_1/ANNOTATION-PROGRESS.md` to read
    the plan.
-3. `uv run acorn-nfs-disasm-tool context 4.21_variant_1 --summary` to
-   see current coverage stats and candidates.
-4. Pick a phase from the plan; do small batches; commit per batch
+4. `cat versions/anfs-4.21_variant_1/OPEN-ISSUES.md` if you're going
+   to be doing dispatch-table work or recovering anything around the
+   svc_dispatch chain.
+5. `uv run acorn-nfs-disasm-tool context 4.21_variant_1 --summary`
+   to see current coverage stats and candidates.
+6. Pick a phase from the plan; do small batches; commit per batch
    after `verify` + `lint` pass.
-5. End the session with a coverage snapshot row in
+7. End the session with a coverage snapshot row in
    `ANNOTATION-PROGRESS.md` and an updated todo list.
 
 If you find new structural patterns worth recording (new dispatch
 table style, new behaviour change between versions, new annotation
 gotcha), add a note to `PROGRESS.md` under "Findings" or open an
-analysis doc in `docs/analysis/`.
+analysis doc in `docs/analysis/` (and link it from
+`acornaeology.json` so it appears on the website).
 
 If you build a new generic tool (something that benefits future
 versions, not just this one), put it under `src/disasm_tools/` and
-write a short paper for `docs/techniques/`.
+write a short paper for `docs/techniques/`. **But check first**
+whether the tool extraction has happened — if the package has moved,
+contributions go to the new package, not back here.
 
 ---
 
@@ -257,16 +388,18 @@ write a short paper for `docs/techniques/`.
 - Don't start writing `CHANGES-FROM-4.18.md` (Phase J) until phases
   A-H are substantially done. The user has been clear about this.
 - Don't push to the remote.
+- Don't add narrative keys to on_entry / on_exit dicts. Registers
+  and flags only.
+- Don't speculate about companion ROMs to explain unreachable
+  dispatch entries — record the puzzle in OPEN-ISSUES.md instead.
 - Don't delete `docs/Econet Level 3 File Server Manager's Guide.pdf`
   if you find it on disk — it was history-stripped via filter-repo
   for being too large. The `.gitignore` already keeps it untracked.
 - Don't add emojis or self-references to anything you commit.
-- Don't try to do all 198 calling conventions in one massive commit.
-  Small batches (10-20 subs each) with verify + lint between is the
-  established cadence.
+- Don't try to do all remaining work in one massive commit. Small
+  batches with verify + lint between is the established cadence.
 - Don't change tool behaviour without checking that other versions
-  still verify (the `mos6502.py` / `compare.py` / `blockmatch.py`
-  changes from this session are designed to be additive — preserve
-  that property).
+  still verify — and bear in mind the tool extraction may be in
+  flight.
 
 Good luck.
