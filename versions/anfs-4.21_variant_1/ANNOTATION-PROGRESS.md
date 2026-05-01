@@ -33,6 +33,7 @@ calling-convention comments to every subroutine.
 | 2026-04-30 +higher  | 6487 | 5420 | 83.6% | 9  |
 | 2026-04-30 +large   | 6487 | 5642 | 87.0% | 6  |
 | 2026-04-30 +deepest | 6487 | 5899 | 90.9% | 1  |
+| 2026-05-01 Phase E+G | 6633 | 5988 | 90.3% | -  |
 
 ## Routines fully annotated this session
 
@@ -346,6 +347,17 @@ dimensions. In priority order:
 
   Audit: search for every `equw &[0-9A-F]{4}` and every adjacent
   pair of `equb` whose values match a known label.
+
+  Done: imm_op_dispatch_lo at &848B (PEEK/POKE/JSR/HALT/CONT/MachineType
+  for ctrl bytes &81-&88); tx_done_dispatch_lo at &853B (5 entries for
+  TX op types &83-&87, dispatcher reads via expr_label `tx_done_
+  dispatch_lo-&83` at &84B8); tx_ctrl_dispatch_lo at &867E (8 entries
+  for TX ctrl bytes &81-&88, operand &85FD lands mid-instruction
+  inside intoff_test_inactive). The latter required moving
+  tx_ctrl_machine_type from the 4.18 carry-over &8689 to the 4.21
+  &8686 (-3 byte shift). Remaining: svc_dispatch lo/hi pair at
+  &89ED/&8A20 (blocked by O-1), star-command dispatch tables, plus
+  smaller `equw` candidates.
 
 ## Phase F: Stale UNMAPPED comment cleanup
 
