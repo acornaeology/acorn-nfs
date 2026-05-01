@@ -2617,6 +2617,17 @@ subroutine(0x857A, "tx_done_continue",
     "which restores X and Y from the stack and returns A=0.",
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
+subroutine(0x8582, "tx_done_exit",
+    title="Shared TX-done exit: restore X/Y, return A=0",
+    description="""\
+Common cleanup tail used by every entry in the tx_done_dispatch
+table. Pulls the saved Y and X off the stack (the dispatcher pushed
+them before the PHA/PHA/RTS jump), loads A=0 (success status), and
+RTS to the caller. Five inbound refs: a tail-jump from &8042 (the
+SVC 5 IRQ-check path), plus the JMPs at &8554, &8560, &8568, and
+the fall-through at &8578.""",
+    on_exit={"a": "0 (success status)",
+             "x, y": "restored from stack"})
 subroutine(0x8589, "tx_begin",
     title="Begin TX operation",
     description="Main TX initiation entry point (called via trampoline at &06CE).\n"
@@ -3087,7 +3098,16 @@ subroutine(0x8E21, "clear_if_station_match",
     "by cmd_iam when processing a file server address\n"
     "in the logon command.",
     on_exit={"a": "0 if matched, non-zero if different"})
-label(0x8E2D, "check_urd_prefix")
+subroutine(0x8E2D, "check_urd_prefix",
+    title="Branch to *RUN handler if first arg char is '&'",
+    description="""\
+Reads the first character of the parsed command text via
+(fs_crc_lo),Y. If it equals '&' (the URD prefix marker), JMPs to
+cmd_run_via_urd; otherwise falls through to pass_send_cmd which
+sends the command as a normal FS request. Single caller (the FS
+command-name post-match path at &9597). This is the BIT-test
+prologue that 4.18 bundled into a single check_escape-style
+helper but 4.21 splits across the two halves.""")
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
     description="Validates X < 5 and sets Y=&0E as the directory\n"
@@ -3691,6 +3711,43 @@ subroutine(0x9900, "cond_save_error_code",
     "classification chain and by error_inline_log.",
     on_entry={"a": "error code to store"})
 # UNMAPPED: label(0x971E, "close_exec_via_y")
+subroutine(0x9930, "fixup_reply_status_a",
+    title="Substitute 'B' for 'A' in reply status byte",
+    description="""\
+Reads the FS reply status byte at (net_tx_ptr,X). If it is 'A'
+(Acknowledge with no error), substitutes 'B' so downstream code
+treats it as a soft error. CLV before falling through into
+mask_error_class to ensure the no-extended-error path is taken.""",
+    on_entry={"x": "indirect index into net_tx_ptr"},
+    on_exit={"a": "reply status byte (with A->B substitution)",
+             "v": "0 (clear)"})
+subroutine(0x993B, "load_reply_and_classify",
+    title="Load reply byte and classify error",
+    description="""\
+Single-byte prologue to classify_reply_error: LDA (net_tx_ptr,X)
+reads the FS reply status byte, then falls through. Single caller
+(&9B6C, after a recv-and-classify path that already has X set).""",
+    on_entry={"x": "indirect index into net_tx_ptr"})
+subroutine(0x993D, "classify_reply_error",
+    title="Classify FS reply error code",
+    description="""\
+Forces V=1 via `BIT always_set_v_byte` (signals the extended-error
+path), masks the error code in A to 3 bits (the error class 0..7),
+saves the class on the stack, and dispatches: class 2 ('station-
+related') gets a multi-line build_no_reply_error path; other
+classes go to build_simple_error. Two callers: raise_escape_error
+(with A=6) and the FS reply dispatch at &A0BD.""",
+    on_entry={"a": "error code byte"})
+subroutine(0x99DF, "check_net_error_code",
+    title="Translate net error: 'OK' -> return, 'FS error' -> append",
+    description="""\
+Reads the receive-attribute byte. If non-zero, the network returned
+an error -- branch to handle_net_error. Otherwise pop the saved
+error number from the stack: if it is &DE (file server error code),
+branch to append_error_number to add the FS-specific code to the
+error text; otherwise tail-jump to &0100 (the BRK error block) to
+trigger the BRK and let MOS dispatch the error. Three JSR sites
+(&984D, &992D, &999E) plus the &BD02 jmp from cmd_dump.""")
 subroutine(0x9A3A, "append_drv_dot_num",
     title="Append 'net.station' decimal string to error text",
     description="Reads network and station numbers from the TX\n"
@@ -4078,6 +4135,23 @@ subroutine(0xA3E9, "byte_to_2bit_index",
     "preventing out-of-bounds access.",
     on_entry={"a": "table entry number"},
     on_exit={"y": "byte offset (0, 6, 12, ... up to &42)"})
+subroutine(0xA42F, "fscv_3_star_cmd",
+    title="FSCV reason 3: process *<command> via FS",
+    description="""\
+Sets up text and transfer pointers via set_text_and_xfer_ptr, marks
+spool / Tube state as inactive (fs_spool_handle = need_release_tube
+= &FF), then calls match_fs_cmd with X=&35, Y=0 to look up the user's
+text in the FS command table. The match-or-error result feeds into
+the FS dispatch chain that follows. Single caller (the FSCV vector
+table at &8CFA).""")
+subroutine(0xA440, "cmd_fs_reentry",
+    title="FS-command re-entry guard (BVC dispatch_fs_cmd)",
+    description="""\
+Single-instruction prologue: BVC dispatch_fs_cmd. Reached as the
+fall-through target after a *RUN failure -- if V is clear (the
+re-entry path is permitted) it branches into dispatch_fs_cmd to
+re-attempt the command; otherwise falls through to error_syntax to
+raise 'Syntax'. Single caller (the FS dispatch table at &8C4E).""")
 subroutine(0xA45B, "match_fs_cmd",
     title="Match command name against FS command table",
     description="Case-insensitive compare of the command line\n"
@@ -4109,6 +4183,14 @@ Loads error code &FE and tail-calls error_bad_inline with the inline
 string 'command' -- error_bad_inline prepends 'Bad ' to produce the
 final 'Bad command' message. Used by the FS command parser when no
 table entry matches the user's input. Never returns.""")
+subroutine(0xA638, "fsreply_3_set_csd",
+    title="FS reply handler: select CSD station",
+    description="""\
+Single-instruction wrapper: JSR find_station_bit3 to record the
+new current-selected-directory (CSD) station in the table, then
+JMP return_with_last_flag to clean up and return. Single caller
+(the FS reply dispatch at &9594).""",
+    on_exit={"a": "fs_last_byte_flag (loaded by return_with_last_flag)"})
 subroutine(0xA644, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
