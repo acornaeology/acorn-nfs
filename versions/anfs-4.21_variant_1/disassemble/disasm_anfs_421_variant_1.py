@@ -2564,12 +2564,12 @@ subroutine(0x8512, "setup_sr_tx",
     description="""\
 Stores the TX operation type in tx_op_type. If the op code is
 >= &86 (HALT / CONTINUE / machine-type), branches forward to the
-ACCCON IRR set without touching the shift register. Otherwise the
-4.21 path loads the workspace shadow at ws_0d68, copies it to
-ws_0d69 (preserved-for-restore), ORs in the SR-mode-2 bits, and
-writes back to ws_0d68. (4.18 wrote system_via_acr / system_via_sr
-directly; 4.21 manipulates the shadow so the Master IRQ path
-flushes them later.) Single caller (&83E2 in scout_complete).""",
+ACCCON IRR set without touching the shift register. Otherwise
+loads the workspace shadow at ws_0d68, copies it to ws_0d69
+(preserved for later restore), ORs in the SR-mode-2 bits, and
+writes back to ws_0d68. The shadow is flushed to the real VIA
+ACR/SR registers later in the Master IRQ path. Single caller
+(&83E2 in scout_complete).""",
     on_entry={"a": "TX operation type"})
 subroutine(0x852C, "advance_buffer_ptr",
     title="Increment 4-byte receive buffer pointer",
@@ -3199,9 +3199,7 @@ Reads the first character of the parsed command text via
 (fs_crc_lo),Y. If it equals '&' (the URD prefix marker), JMPs to
 cmd_run_via_urd; otherwise falls through to pass_send_cmd which
 sends the command as a normal FS request. Single caller (the FS
-command-name post-match path at &9597). This is the BIT-test
-prologue that 4.18 bundled into a single check_escape-style
-helper but 4.21 splits across the two halves.""")
+command-name post-match path at &9597).""")
 subroutine(0x8E3C, "send_cmd_and_dispatch",
     title="Send FS command and dispatch the reply",
     description="""\
@@ -3794,12 +3792,6 @@ subroutine(0x97CD, "recv_and_process_reply",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
               "scout; handle the server's matching reply)"},
     on_exit={"a": "FS reply status byte"})
-# In 4.18 check_escape (&9570) bundled the BIT-test prologue and the
-# escape-acknowledge action. In 4.21 they have been split: the action
-# half lives at &9895 as raise_escape_error (below); the BIT-test
-# prologue lives wherever the FS-options test is now performed at
-# each call site. The two callers (&98EF and &B7DF) JSR raise_escape_
-# error directly after their own escape check.
 subroutine(0x9895, "raise_escape_error",
     title="Acknowledge escape and raise classified error",
     description="""\
@@ -6743,8 +6735,7 @@ comment(0x867D, "RTS dispatches to control-byte handler", inline=True)
 # operands at &85FC and &85FF were chosen so this table happens to fit).
 # High byte pushed by the dispatcher is always &86, so targets are
 # &86xx + 1. tx_ctrl_machine_type (entry &88) sits at &8686, the 4 bytes
-# immediately after the table -- 3 bytes earlier than 4.18's &8689,
-# matching the upstream layout shifts in this region.
+# immediately after the table.
 comment(0x867E, "TX ctrl dispatch table (lo bytes)\n"
     "\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
@@ -10678,7 +10669,7 @@ expr(0x853E, "<(tx_done_halt-1)")         # op &86: HALT
 expr(0x853F, "<(tx_done_continue-1)")     # op &87: CONTINUE
 
 # TX ctrl dispatch table (8 bytes at &867E) and machine type handler
-# (4 bytes at &8686). 4.21 shifted both -3 bytes from 4.18.
+# (4 bytes at &8686).
 entry(0x8686)   # tx_ctrl_machine_type: ctrl &88 handler
 for i in range(8):
     byte(0x867E + i)
@@ -13012,11 +13003,7 @@ comment(0x925D, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
 comment(0x925F, "Tail-jump to *SPOOL-bypassing print", inline=True)
 
 # &9261-&9290: print_inline body. Inline comments live with the
-# subroutine declaration earlier in the file. The 4.18 carry-over
-# comments that previously lived in this block (is_decimal_digit,
-# get_access_bits, get_prot_bits, prot_bit_encode_table) all referred
-# to routines that have moved or been replaced in 4.21 -- the actual
-# bodies have already been annotated at their current addresses.
+# subroutine declaration earlier in the file.
 
 # print_inline_no_spool inline comments (~22 items)
 comment(0x928A, "Pop return-addr low byte (-> string pointer low)",
