@@ -4311,9 +4311,21 @@ l89c9 = reset_enter_listen+2
     lda #osbyte_issue_service_request                                 ; 8d04: a9 8f       ..             ; OSBYTE &8F: issue service request
     jmp osbyte                                                        ; 8d06: 4c f4 ff    L..            ; Issue paged ROM service call
 
-    equb &5a, &a2, &11, &20, &9a, &8e, &98, &7a, &29, 1, &f0, 6, &c0  ; 8d09: 5a a2 11... Z..
-    equb &10, &b0,   2, &a0, &10                                      ; 8d16: 10 b0 02... ...
-    equs "`i .Boot"                                                   ; 8d1b: 60 69 20... `i
+    phy                                                               ; 8d09: 5a          Z
+    ldx #&11                                                          ; 8d0a: a2 11       ..
+    jsr osbyte_a1                                                     ; 8d0c: 20 9a 8e     ..
+    tya                                                               ; 8d0f: 98          .
+    ply                                                               ; 8d10: 7a          z
+    and #1                                                            ; 8d11: 29 01       ).
+    beq return_1                                                      ; 8d13: f0 06       ..
+    cpy #&10                                                          ; 8d15: c0 10       ..
+    bcs return_1                                                      ; 8d17: b0 02       ..
+    ldy #&10                                                          ; 8d19: a0 10       ..
+; &8d1b referenced 2 times by &8d13, &8d17
+.return_1
+    rts                                                               ; 8d1b: 60          `
+
+    equs "i .Boot"                                                    ; 8d1c: 69 20 2e... i .
     equb &0d                                                          ; 8d23: 0d          .
 
 ; ***************************************************************************************
@@ -4646,7 +4658,7 @@ ps_template_base = sub_c8da6+1
 ;     Y: CMOS byte read
 ;     X: preserved
 ; ***************************************************************************************
-; &8e9a referenced 10 times by &8f13, &8f60, &8f68, &8f70, &8f7a, &8f9c, &904f, &9055, &a0e3, &a70d
+; &8e9a referenced 11 times by &8d0c, &8f13, &8f60, &8f68, &8f70, &8f7a, &8f9c, &904f, &9055, &a0e3, &a70d
 .osbyte_a1
     lda #osbyte_read_cmos_ram                                         ; 8e9a: a9 a1       ..
     jmp osbyte                                                        ; 8e9c: 4c f4 ff    L..            ; Master and Compact: Read CMOS RAM/EEPROM byte X
@@ -4856,7 +4868,7 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8f0f: 60          `
 
 ; ***************************************************************************************
-; Service-2 dispatch entry (workspace page allocation)
+; Service 2: claim private workspace (page allocation)
 ; 
 ; Reached via PHA/PHA/RTS dispatch from the service
 ; handler at &8ADB when MOS issues service 2 (claim
@@ -4870,15 +4882,17 @@ ps_template_base = sub_c8da6+1
 ; helper at &8EFE which publishes the page into
 ; rom_ws_pages[romsel_copy] with bit 7 masked off.
 ; 
-; The full service-2 init sequence (station-ID-from-
-; CMOS, FS workspace zero, FS handle allocation,
-; cmd_net_fs, init_adlc_and_vectors) lives separately
-; at &8F38 -- see the comment block above.
+; Note: this routine is short and only does the
+; page-allocation part of the 4.18 svc_2. The rest
+; (station ID, FS workspace zero, cmd_net_fs,
+; init_adlc_and_vectors) is at &8F38, reached via
+; service 39 -- presumably issued by a sibling ROM
+; as part of a multi-ROM boot sequence.
 ; 
 ; On Entry:
 ;     Y: first available private workspace page
 ; ***************************************************************************************
-.svc_2_dispatch_entry
+.svc_2_private_workspace
     phy                                                               ; 8f10: 5a          Z
     ldx #&11                                                          ; 8f11: a2 11       ..
     jsr osbyte_a1                                                     ; 8f13: 20 9a 8e     ..
@@ -4909,17 +4923,22 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8f37: 60          `
 
 ; ***************************************************************************************
-; NFS init body: station ID, FS workspace, cmd_net_fs
+; Service 39: full NFS initialisation
 ; 
-; Reached via PHA/PHA/RTS dispatch (table index 22).
-; Despite the stale 4.18 dispatch-comment label of
-; 'FSCV 2: */ (run)' this body performs the full
-; service-2 init sequence:
+; Reached via PHA/PHA/RTS dispatch (table index 22)
+; when the service handler receives service number
+; 39 (&27). No code in this ROM issues service 39, so
+; the trigger must be external -- presumably a sister
+; Master 128 ROM (e.g. an ANFS variant 2 / Compact
+; build) coordinating boot sequencing with this ROM.
+; 
+; The body is what 4.18's svc_2_private_workspace did
+; after page allocation: a complete ANFS bring-up.
 ;   - Clears ws_page / tx_complete_flag and the
 ;     receive-block remote-op flag
 ;   - On warm reset (last_break_type non-zero) and
-;     fs_flags bit 4 set, calls setup_ws_ptr and zeroes
-;     the FS workspace page in a 256-byte loop
+;     fs_flags bit 4 set, calls setup_ws_ptr and
+;     zeroes the FS workspace page in a 256-byte loop
 ;   - Calls copy_ps_data_y1c to install the printer-
 ;     server template
 ;   - Reads CMOS bytes &01..&04 via osbyte_a1, storing
@@ -4936,10 +4955,10 @@ ps_template_base = sub_c8da6+1
 ; Returns via RTS at &903B.
 ; 
 ; On Entry:
-;     NET_RX_PTR, NFS_WORKSPACE: page-aligned pointers (set up by svc_2_dispatch_entry
-; at &8F10)
+;     NET_RX_PTR, NFS_WORKSPACE: page-aligned pointers (set up earlier by
+; svc_2_private_workspace at &8F10)
 ; ***************************************************************************************
-.nfs_init_body
+.svc_39_nfs_init
     lda #0                                                            ; 8f38: a9 00       ..
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
     sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.            ; Clear workspace byte
@@ -5056,10 +5075,10 @@ ps_template_base = sub_c8da6+1
     pla                                                               ; 9032: 68          h
     ldy #3                                                            ; 9033: a0 03       ..
     eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.
-    bne return_1                                                      ; 9037: d0 02       ..
+    bne return_2                                                      ; 9037: d0 02       ..
     sta (nfs_workspace),y                                             ; 9039: 91 9e       ..
 ; &903b referenced 1 time by &9037
-.return_1
+.return_2
     rts                                                               ; 903b: 60          `
 
 ; ***************************************************************************************
@@ -7009,7 +7028,7 @@ ps_template_base = sub_c8da6+1
 .check_escape_and_classify
     lda escape_flag                                                   ; 988f: a5 ff       ..
     and need_release_tube                                             ; 9891: 25 98       %.
-    bpl return_2                                                      ; 9893: 10 6a       .j
+    bpl return_3                                                      ; 9893: 10 6a       .j
 ; &9895 referenced 2 times by &98ef, &b7df
 .c9895
     lda #osbyte_acknowledge_escape                                    ; 9895: a9 7e       .~
@@ -7105,7 +7124,7 @@ ps_template_base = sub_c8da6+1
     pla                                                               ; 98fc: 68          h              ; Pull saved rx_wait_timeout into A
     beq build_no_reply_error                                          ; 98fd: f0 0a       ..             ; If timeout reached zero, raise 'No reply'
 ; &98ff referenced 1 time by &9893
-.return_2
+.return_3
     rts                                                               ; 98ff: 60          `              ; Reply received normally: return
 
 ; ***************************************************************************************
@@ -10857,11 +10876,11 @@ la0ff = sub_ca0fe+1
     bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Next byte down; Loop for 15 bytes
     lda #&0e                                                          ; aa65: a9 0e       ..             ; Y=0
     bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Workspace low = &DA; Load OSWORD number
-    bne return_3                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
+    bne return_4                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
     lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; Workspace low = 0 (restore)
     tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Y=&14: control offset
 ; &aa71 referenced 1 time by &aa6a
-.return_3
+.return_4
     rts                                                               ; aa71: 60          `              ; Control value &E9
 
 ; ***************************************************************************************
@@ -11642,7 +11661,7 @@ labc5 = compare_bridge_status+1
     ldy osword_flag                                                   ; acce: a4 aa       ..             ; No: read next palette entry
     inc osword_flag                                                   ; acd0: e6 aa       ..             ; Discard last ULA value; Clear counter
     lda (ws_ptr_hi),y                                                 ; acd2: b1 ac       ..             ; Advance workspace ptr
-    beq return_4                                                      ; acd4: f0 16       ..             ; Store extra palette info
+    beq return_5                                                      ; acd4: f0 16       ..             ; Store extra palette info
     ldy #&7d ; '}'                                                    ; acd6: a0 7d       .}
     sta (net_rx_ptr),y                                                ; acd8: 91 9c       ..             ; Advance workspace ptr again
     pha                                                               ; acda: 48          H              ; Restore original l00ad
@@ -11658,7 +11677,7 @@ labc5 = compare_bridge_status+1
     eor #&0d                                                          ; ace8: 49 0d       I.             ; X = palette register
     bne loop_send_pb_chars                                            ; acea: d0 e2       ..
 ; &acec referenced 1 time by &acd4
-.return_4
+.return_5
     rts                                                               ; acec: 60          `              ; Read OSBYTE for this mode
 
 ; &aced referenced 1 time by &accc
@@ -14418,11 +14437,11 @@ lb4fd = write_ps_slot_hi_link+1
     ldx #1                                                            ; b7d5: a2 01       ..             ; X=1: flush input buffers
     jsr osbyte                                                        ; b7d7: 20 f4 ff     ..            ; Flush keyboard buffer before read; Flush input buffers (X non-zero)
     jsr osrdch                                                        ; b7da: 20 e0 ff     ..            ; Read character from input stream; Read a character from the current input stream
-    bcc return_5                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
+    bcc return_6                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
     jmp c9895                                                         ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
 
 ; &b7e2 referenced 1 time by &b7dd
-.return_5
+.return_6
     rts                                                               ; b7e2: 60          `              ; Return with character in A
 
 ; ***************************************************************************************
@@ -14624,13 +14643,13 @@ lb821 = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b88c: 20 14 b8     ..            ; Validate and look up channel
     and #2                                                            ; b88f: 29 02       ).             ; Test directory flag (bit 1)
-    beq return_6                                                      ; b891: f0 14       ..             ; Not a directory: return OK
+    beq return_7                                                      ; b891: f0 14       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..            ; Generate 'Is a dir.' error
     equs "Is a directory", 0                                          ; b898: 49 73 20... Is
 
 ; &b8a7 referenced 1 time by &b891
-.return_6
+.return_7
     rts                                                               ; b8a7: 60          `
 
 ; ***************************************************************************************
@@ -16344,11 +16363,11 @@ save pydis_start, pydis_end
 ;     lc001:                         11
 ;     net_rx_ptr_hi:                 11
 ;     nmi_error_dispatch:            11
+;     osbyte_a1:                     11
 ;     tx_result_fail:                11
 ;     la76c:                         10
 ;     lc103:                         10
 ;     lc107:                         10
-;     osbyte_a1:                     10
 ;     store_rx_attribute:            10
 ;     fs_crflag:                      9
 ;     install_nmi_handler:            9
@@ -16715,6 +16734,7 @@ save pydis_start, pydis_end
 ;     reset_spool_buf_state:          2
 ;     restore_rom_slot:               2
 ;     retreat_y_by_3:                 2
+;     return_1:                       2
 ;     return_from_bridge_poll:        2
 ;     return_from_claim_release:      2
 ;     return_from_credits_check:      2
@@ -17392,12 +17412,12 @@ save pydis_start, pydis_end
 ;     resume_caller:                  1
 ;     retreat_y_by_4:                 1
 ;     retry_with_library:             1
-;     return_1:                       1
 ;     return_2:                       1
 ;     return_3:                       1
 ;     return_4:                       1
 ;     return_5:                       1
 ;     return_6:                       1
+;     return_7:                       1
 ;     return_alloc_success:           1
 ;     return_chan_index:              1
 ;     return_from_2bit_index:         1
@@ -17810,6 +17830,7 @@ save pydis_start, pydis_end
 ;     return_4
 ;     return_5
 ;     return_6
+;     return_7
 ;     sub_c8409
 ;     sub_c84b7
 ;     sub_c8da6
@@ -17819,11 +17840,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13415 bytes (82%)
-;     Data                     = 2969 bytes (18%)
+;     Code                     = 13434 bytes (82%)
+;     Data                     = 2950 bytes (18%)
 ;
-;     Number of instructions   = 6620
-;     Number of data bytes     = 1659 bytes
+;     Number of instructions   = 6631
+;     Number of data bytes     = 1641 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1282 bytes
+;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 144

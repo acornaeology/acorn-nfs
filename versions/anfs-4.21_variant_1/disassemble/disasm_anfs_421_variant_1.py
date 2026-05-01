@@ -3530,26 +3530,45 @@ subroutine(0x8EF0, "store_ws_page_count",
     on_entry={"y": "workspace page count from service 1"})
 # Three PHA/PHA/RTS dispatch targets in this area, each indexed
 # from the svc_dispatch table at &89ED (lo) / &8A20 (hi):
-#   index 17 -> &8EFE  (small workspace-page helper; also reached
-#                       by a backward BCS branch from &8F35)
-#   index  3 -> &8F10  (service-2 dispatch entry: page allocation)
-#   index 22 -> &8F38  (NFS-init body: station ID + FS workspace)
-# All three need explicit entry() since they're only reached via
-# PHA/PHA/RTS dispatch, not direct JSR/JMP.
 #
-# The dispatch table comments inherited from 4.18 label index 3 as
-# "Svc 2: private workspace" and index 22 as "FSCV 2: */ (run)" but
-# the inline comments and code semantics in 4.21 disagree -- the
-# body at &8F38 looks like the bulk of svc_2's init work (station-
-# ID-from-CMOS, FS workspace zeroing, cmd_net_fs, init_adlc_and_
-# vectors). Pinning down which dispatcher actually invokes &8F38 in
-# 4.21 is left for Phase C; for now both bodies are decoded as code
-# with placeholder labels.
+#   index 17 -> &8EFE  (helper reached by service 34 dispatch AND by
+#                       a backward BCS branch from &8F35 inside the
+#                       service-2 prologue)
+#   index  3 -> &8F10  (service 2: private workspace -- prologue)
+#   index 22 -> &8F38  (service 39: full NFS init body)
+#
+# The dispatch indices are derived by tracing the service handler at
+# &8AB0..&8ACE which maps service number -> X via a CMP/SBC chain;
+# svc_dispatch then computes table index = X + Y_caller + 1. With
+# Y=0 from the service handler, table index = svc_dispatch_X + 1.
+# By that route:
+#   svc  1 -> table[2]  -> &8D09
+#   svc  2 -> table[3]  -> &8F10
+#   svc 18 -> table[14] -> &8B45  (svc_18_fs_select)
+#   svc 24 -> table[15] -> &969A
+#   svc 33 -> table[16] -> &8EE9  (mis-labelled svc_1_abs_workspace
+#                                  in this driver -- separate cleanup)
+#   svc 34 -> table[17] -> &8EFE
+#   svc 35 -> table[18] -> &8EF0  (= store_ws_page_count, but reached
+#                                  only via dispatch, not JSR -- the
+#                                  description's claim that 4.21
+#                                  svc_2 calls it via JSR is also
+#                                  stale 4.18 phrasing)
+#   svc 39 -> table[22] -> &8F38
+#
+# Services 33-41 are non-standard (above the &0E.&12 range that MOS
+# defines). Nothing in this ROM issues OSBYTE &8F with X = 33-41, so
+# these handlers are receivers for services issued by some other
+# ROM in the Master 128 ecosystem -- most plausibly a sister ANFS
+# variant (the "variant 2" hypothesis from the variant-naming doc)
+# coordinating with this one across a multi-ROM boot. None of the
+# 4.18 dispatch-table comments ("Lang n", "FSCV n", "FS reply n",
+# "*NET n") apply to 4.21; that scheme is a 4.18-only labelling.
 entry(0x8EFE)
 entry(0x8F10)
 entry(0x8F38)
-subroutine(0x8F10, "svc_2_dispatch_entry",
-    title="Service-2 dispatch entry (workspace page allocation)",
+subroutine(0x8F10, "svc_2_private_workspace",
+    title="Service 2: claim private workspace (page allocation)",
     description="Reached via PHA/PHA/RTS dispatch from the service\n"
     "handler at &8ADB when MOS issues service 2 (claim\n"
     "private workspace). Reads CMOS byte &11 to test bit\n"
@@ -3562,22 +3581,29 @@ subroutine(0x8F10, "svc_2_dispatch_entry",
     "helper at &8EFE which publishes the page into\n"
     "rom_ws_pages[romsel_copy] with bit 7 masked off.\n"
     "\n"
-    "The full service-2 init sequence (station-ID-from-\n"
-    "CMOS, FS workspace zero, FS handle allocation,\n"
-    "cmd_net_fs, init_adlc_and_vectors) lives separately\n"
-    "at &8F38 -- see the comment block above.",
+    "Note: this routine is short and only does the\n"
+    "page-allocation part of the 4.18 svc_2. The rest\n"
+    "(station ID, FS workspace zero, cmd_net_fs,\n"
+    "init_adlc_and_vectors) is at &8F38, reached via\n"
+    "service 39 -- presumably issued by a sibling ROM\n"
+    "as part of a multi-ROM boot sequence.",
     on_entry={"y": "first available private workspace page"})
-subroutine(0x8F38, "nfs_init_body",
-    title="NFS init body: station ID, FS workspace, cmd_net_fs",
-    description="Reached via PHA/PHA/RTS dispatch (table index 22).\n"
-    "Despite the stale 4.18 dispatch-comment label of\n"
-    "'FSCV 2: */ (run)' this body performs the full\n"
-    "service-2 init sequence:\n"
+subroutine(0x8F38, "svc_39_nfs_init",
+    title="Service 39: full NFS initialisation",
+    description="Reached via PHA/PHA/RTS dispatch (table index 22)\n"
+    "when the service handler receives service number\n"
+    "39 (&27). No code in this ROM issues service 39, so\n"
+    "the trigger must be external -- presumably a sister\n"
+    "Master 128 ROM (e.g. an ANFS variant 2 / Compact\n"
+    "build) coordinating boot sequencing with this ROM.\n"
+    "\n"
+    "The body is what 4.18's svc_2_private_workspace did\n"
+    "after page allocation: a complete ANFS bring-up.\n"
     "  - Clears ws_page / tx_complete_flag and the\n"
     "    receive-block remote-op flag\n"
     "  - On warm reset (last_break_type non-zero) and\n"
-    "    fs_flags bit 4 set, calls setup_ws_ptr and zeroes\n"
-    "    the FS workspace page in a 256-byte loop\n"
+    "    fs_flags bit 4 set, calls setup_ws_ptr and\n"
+    "    zeroes the FS workspace page in a 256-byte loop\n"
     "  - Calls copy_ps_data_y1c to install the printer-\n"
     "    server template\n"
     "  - Reads CMOS bytes &01..&04 via osbyte_a1, storing\n"
@@ -3593,7 +3619,7 @@ subroutine(0x8F38, "nfs_init_body",
     "    and init_bridge_poll for protection setup\n"
     "Returns via RTS at &903B.",
     on_entry={"net_rx_ptr, nfs_workspace": "page-aligned pointers "
-              "(set up by svc_2_dispatch_entry at &8F10)"})
+              "(set up earlier by svc_2_private_workspace at &8F10)"})
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
@@ -10179,94 +10205,73 @@ comment(0x976B, "Offset 7: txcb_pos = &FF", inline=True)
 comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # ============================================================
-# Service dispatch table (&89CA/&89EF)
+# Service dispatch table (&89ED/&8A20)
 # ============================================================
-# 37-entry PHA/PHA/RTS dispatch table used by svc_dispatch.
-# Indices 0-14: service dispatch (index = mapped service code + 1).
-# Indices 15-36: extended dispatch for FS commands and OSWORD routing.
-# Service codes 1-12 map directly; 18 maps to index 14 via SBC #5.
-# Indices 1, 7, 11 point to dispatch_rts (RTS = no-op).
+# 37-entry PHA/PHA/RTS dispatch table used by svc_dispatch (4.21
+# moved both halves: lo from 4.18's &89CA to &89ED; hi from &89EF
+# to &8A20). svc_dispatch reads:
+#     LDA l8a20,X    ; high byte
+#     PHA
+#     LDA l89ed,X    ; low byte
+#     PHA
+#     ... RTS lands at (table_entry + 1).
+#
+# Reachable indices and their service-handler-derived service#
+# (verified against 4.21's CMP/SBC chain at &8AB0..&8ACE):
+#     idx  svc#   target     role
+#       1   0     &8E70     no-op (RTS)
+#       2   1     &8D09     workspace claim helper (CMOS-bit-0)
+#       3   2     &8F10     svc_2_private_workspace (page alloc)
+#       4   3     &8CC7     svc_3_autoboot
+#       5   4     &8C42     svc_4_star_command
+#       6   5     &8028     svc5_irq_check
+#       7   6     &8E70     no-op (RTS)
+#       8   7     &8ED8     svc_7_osbyte
+#       9   8     &A83C     svc_8_osword
+#      10   9     &8C51     svc_9_help
+#      11  10     &8E70     no-op (RTS)
+#      12  11     &806C     svc 11 (NMI release)
+#      13  12     &89A6     wait_idle_and_reset
+#      14  18     &8B45     svc_18_fs_select
+#      15  24     &969A     ...
+#      16  33     &8EE9     ...
+#      17  34     &8EFE     workspace-page helper
+#      18  35     &8EF0     store_ws_page_count
+#      19  36     &8E71
+#      20  37     &8E73
+#      21  38     &8E8A
+#      22  39     &8F38     svc_39_nfs_init (full ANFS init body)
+#      23  40     &959A
+#      24  41     &9630
+# Indices 25-36 are reachable only via dir_op_dispatch (Y=&18) and
+# the FS-reply / OSBYTE callers at &8E49 / &8E59 / &8EE6 -- those
+# don't go through service-number mapping at all.
+#
+# The 4.18 dispatch-comment list ("Lang n", "FSCV n", "FS reply n",
+# "*NET n") is a 4.18-only labelling that does NOT match 4.21's
+# actual usage of the same indices. Removed here -- the per-handler
+# subroutine() declarations above carry the correct semantics for
+# the slots that have been recovered, and remaining slots are dead
+# / unstudied data classification.
 
-# UNMAPPED: comment(0x89CA, """\
-# UNMAPPED: Service dispatch table (37 entries, split lo/hi).
-# UNMAPPED: PHA/PHA/RTS dispatch used by svc_dispatch.
-# UNMAPPED: Indices 0-14: service calls (index = service + 1).
-# UNMAPPED: Indices 15-36: FS command and OSWORD routing.
-# UNMAPPED: Indices 1, 7, 11 point to return_4 (no-op RTS).""")
-
-# UNMAPPED: label(0x89CA, "svc_dispatch_lo")
-# UNMAPPED: label(0x89EF, "svc_dispatch_hi")
-
-# Mark dispatch table entries as symbolic address pairs.
-# Skip index 0 (outside ROM range, unused dispatch slot).
-# UNMAPPED: for i in range(1, 37):
-# UNMAPPED:     rts_code_ptr(0x89CA + i, 0x89EF + i)
-
-# Inline comments describing each dispatch slot's purpose.
-# Applied to both lo and hi byte entries with "lo - " / "hi - " prefix.
-svc_dispatch_comments = [
-    # Index 0: dummy entry
-    "dummy entry (outside ROM range)",
-    # Service calls (Y=&00, indices 1-14)
-    "Svc 0: already claimed (no-op)",
-    "Svc 1: absolute workspace",
-    "Svc 2: private workspace",
-    "Svc 3: auto-boot",
-    "Svc 4: unrecognised star command",
-    "Svc 5: unrecognised interrupt",
-    "Svc 6: BRK (no-op)",
-    "Svc 7: unrecognised OSBYTE",
-    "Svc 8: unrecognised OSWORD",
-    "Svc 9: *HELP",
-    "Svc 10: static workspace (no-op)",
-    "Svc 11: NMI release (reclaim NMIs)",
-    "Svc 12: NMI claim (save NMI state)",
-    "Svc 18: filing system selection",
-    # Language entry handlers (Y=&0E, indices 15-19)
-    "Lang 0: no language / Tube",
-    "Lang 1: normal startup",
-    "Lang 2: softkey byte (Electron)",
-    "Lang 3: softkey length (Electron)",
-    "Lang 4: remote validated",
-    # FSCV handlers (Y=&13, indices 20-27)
-    "FSCV 0: *OPT",
-    "FSCV 1: EOF check",
-    "FSCV 2: */ (run)",
-    "FSCV 3: unrecognised star command",
-    "FSCV 4: *RUN",
-    "FSCV 5: *CAT",
-    "FSCV 6: shutdown",
-    "FSCV 7: read handle range",
-    # FS reply handlers (Y=&17, indices 28-33)
-    "FS reply: print directory name",
-    "FS reply: copy handles + boot",
-    "FS reply: copy handles",
-    "FS reply: set CSD handle",
-    "FS reply: notify + execute",
-    "FS reply: set library handle",
-    # *NET sub-command handlers (Y=&21, indices 34-36)
-    "*NET1: read handle from packet",
-    "*NET2: read handle from workspace",
-    "*NET3: close handle",
-]
-# UNMAPPED: for i, body in enumerate(svc_dispatch_comments):
-# UNMAPPED:     comment(0x89CA + i, f"lo - {body}", inline=True)
-# UNMAPPED:     comment(0x89EF + i, f"hi - {body}", inline=True)
-
-# Service dispatch targets — already labelled
-# Index 6 (svc 5): &8023 = svc5_irq_check (unrecognised interrupt)
-# Index 12 (svc 11): &8085 = svc_11_nmi_claim (NMI claim)
-# Index 13 (svc 12): &8979 = wait_idle_and_reset (NMI release)
-
-# Service dispatch targets — new entry points
-entry(0x8EE9)   # Index 2 (svc 1): absolute workspace claim
-# UNMAPPED: entry(0x8EB8)   # Index 3 (svc 2): private workspace
-entry(0x8CC7)   # Index 4 (svc 3): auto-boot
-entry(0x8C42)   # Index 5 (svc 4): unrecognised star command
-entry(0x8ED8)   # Index 8 (svc 7): unrecognised OSBYTE
-# UNMAPPED: entry(0xA4EE)   # Index 9 (svc 8): unrecognised OSWORD
-entry(0x8C51)   # Index 10 (svc 9): *HELP
-# UNMAPPED: entry(0x8B0D)   # Index 14 (svc 18): filing system selection
+# Service dispatch entry points -- these are the targets reached
+# via svc_dispatch from the service handler at &8ADB. Each needs
+# entry() because PHA/PHA/RTS dispatch leaves no code-flow trace
+# for py8dis to follow.
+entry(0x8D09)   # idx  2  (svc 1): workspace claim helper (CMOS bit 0)
+# entry(0x8F10) declared above (svc_2_private_workspace, idx 3)
+entry(0x8CC7)   # idx  4  (svc 3): auto-boot
+entry(0x8C42)   # idx  5  (svc 4): unrecognised star command
+entry(0x8ED8)   # idx  8  (svc 7): unrecognised OSBYTE
+entry(0x8C51)   # idx 10  (svc 9): *HELP
+# entry(0x8F38) declared above (svc_39_nfs_init, idx 22)
+#
+# Open issue: the existing label(0x8EE9, "svc_1_abs_workspace") is
+# a stale 4.18 carry-over -- in 4.21, table[2] (svc 1) actually
+# points to &8D09, not &8EE9. &8EE9 is reached via service 33
+# (idx 16) and does something different. Renaming/relabelling that
+# is a separate cleanup pass (Phase C continuation).
+entry(0x8EE9)   # idx 16 (svc 33): mislabelled svc_1_abs_workspace
 
 label(0x8EE9, "svc_1_abs_workspace")
 # UNMAPPED: label(0x8EB8, "svc_2_private_workspace")
