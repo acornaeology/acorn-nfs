@@ -11,13 +11,17 @@ listed below.
 1. `versions/anfs-4.21_variant_1/ANNOTATION-PROGRESS.md` — **the live
    work plan**. Current state, coverage history, 10 phases (A..J),
    per-phase todo lists. **This is the source of truth.**
-2. `versions/anfs-4.21_variant_1/PROGRESS.md` — earlier per-routine
+2. `versions/anfs-4.21_variant_1/OPEN-ISSUES.md` — **register of
+   unresolved questions** about this ROM (currently a cluster of
+   related puzzles around `svc_dispatch` and its CMP/SBC chain).
+   Read before re-entering Phase C work.
+3. `versions/anfs-4.21_variant_1/PROGRESS.md` — earlier per-routine
    review log + cross-version findings (Master OS gate, OSWORD &13
    auto-select, workspace migration, 65C12 adoption, variant naming).
-3. `docs/techniques/README.md` and the four numbered papers in that
+4. `docs/techniques/README.md` and the four numbered papers in that
    directory — describe the address-recovery techniques we built and
    when to apply each.
-4. `CLAUDE.md` and `DISASSEMBLY.md` at the repo root — project-wide
+5. `CLAUDE.md` and `DISASSEMBLY.md` at the repo root — project-wide
    conventions and tool reference.
 
 The `memory/` system (auto-loaded into context) already carries the
