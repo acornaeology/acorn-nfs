@@ -4968,13 +4968,13 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; &924c referenced 1 time by &9d53
 .print_hex_byte_no_spool
-    pha                                                               ; 924c: 48          H
-    lsr a                                                             ; 924d: 4a          J
+    pha                                                               ; 924c: 48          H              ; Save full byte
+    lsr a                                                             ; 924d: 4a          J              ; Shift high nybble to low (LSR x4)
     lsr a                                                             ; 924e: 4a          J
     lsr a                                                             ; 924f: 4a          J
     lsr a                                                             ; 9250: 4a          J
-    jsr print_hex_nybble_no_spool                                     ; 9251: 20 55 92     U.
-    pla                                                               ; 9254: 68          h
+    jsr print_hex_nybble_no_spool                                     ; 9251: 20 55 92     U.            ; Print high nybble as hex digit
+    pla                                                               ; 9254: 68          h              ; Restore full byte; fall through for low nybble
 ; ***************************************************************************************
 ; Print low nybble of A as one hex digit, *SPOOL-bypassing
 ; 
@@ -4988,14 +4988,14 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; &9255 referenced 1 time by &9251
 .print_hex_nybble_no_spool
-    and #&0f                                                          ; 9255: 29 0f       ).
-    cmp #&0a                                                          ; 9257: c9 0a       ..             ; Is it '&' (hex prefix)?
-    bcc c925d                                                         ; 9259: 90 02       ..             ; Yes: return C set (not decimal)
-    adc #6                                                            ; 925b: 69 06       i.             ; Is it '.' (separator)?
+    and #&0f                                                          ; 9255: 29 0f       ).             ; Mask to low nybble
+    cmp #&0a                                                          ; 9257: c9 0a       ..             ; Digit >= &0A?
+    bcc c925d                                                         ; 9259: 90 02       ..             ; No: skip letter adjustment
+    adc #6                                                            ; 925b: 69 06       i.             ; Add 7 to get 'A'-'F' (6 + carry)
 ; &925d referenced 1 time by &9259
 .c925d
-    adc #&30 ; '0'                                                    ; 925d: 69 30       i0             ; Yes: return C set (not decimal)
-    bra print_char_no_spool                                           ; 925f: 80 9a       ..             ; Above '9'?
+    adc #&30 ; '0'                                                    ; 925d: 69 30       i0             ; Add &30 for ASCII '0'-'9' or 'A'-'F'
+    bra print_char_no_spool                                           ; 925f: 80 9a       ..             ; Tail-jump to *SPOOL-bypassing print
 ; ***************************************************************************************
 ; Print inline string, high-bit terminated
 ; 
@@ -5014,46 +5014,31 @@ ps_template_base = sub_c8da6+1
 ; &9261 referenced 24 times by &8a6b, &8be0, &8c93, &8fc1, &90c7, &90e7, &b460, &b46c, &b483, &b48d, &b498, &b568, &b60a, &b61f, &b642, &b64f, &b65e, &b66e, &b67d, &bdac, &bdc4, &bdd0, &be04, &be21
 .print_inline
     pla                                                               ; 9261: 68          h              ; Pop return address (low) — points to last byte of JSR
-    sta fs_error_ptr                                                  ; 9262: 85 b8       ..             ; Yes: not a digit
-    pla                                                               ; 9264: 68          h              ; Pop return address (high); Below '0'? C clear if so
-    sta fs_crflag                                                     ; 9265: 85 b9       ..             ; Return: C set if '0'-'9'
-    ldy #0                                                            ; 9267: a0 00       ..             ; C=0: not a digit; Return
+    sta fs_error_ptr                                                  ; 9262: 85 b8       ..
+    pla                                                               ; 9264: 68          h              ; Pop return address (high)
+    sta fs_crflag                                                     ; 9265: 85 b9       ..
+    ldy #0                                                            ; 9267: a0 00       ..
 ; &9269 referenced 1 time by &9284
 .loop_next_char
-    inc fs_error_ptr                                                  ; 9269: e6 b8       ..             ; Advance pointer to next character; Offset &0E in directory entry
-    bne load_char                                                     ; 926b: d0 02       ..             ; Load raw access byte
-    inc fs_crflag                                                     ; 926d: e6 b9       ..             ; Mask to 6 access bits
+    inc fs_error_ptr                                                  ; 9269: e6 b8       ..             ; Advance pointer to next character
+    bne load_char                                                     ; 926b: d0 02       ..
+    inc fs_crflag                                                     ; 926d: e6 b9       ..
 ; &926f referenced 1 time by &926b
 .load_char
-    lda (fs_error_ptr),y                                              ; 926f: b1 b8       ..             ; Load next byte from inline string; X=4: start encoding at bit 4
-    bmi resume_caller                                                 ; 9271: 30 14       0.             ; Bit 7 set? Done — this byte is the next opcode; ALWAYS branch to encoder
-    lda fs_error_ptr                                                  ; 9273: a5 b8       ..             ; Mask to 5 protection bits
-    pha                                                               ; 9275: 48          H              ; X=&FF: start encoding at bit 0
-    lda fs_crflag                                                     ; 9276: a5 b9       ..             ; Save remaining bits
+    lda (fs_error_ptr),y                                              ; 926f: b1 b8       ..             ; Load next byte from inline string
+    bmi resume_caller                                                 ; 9271: 30 14       0.             ; Bit 7 set? Done — this byte is the next opcode
+    lda fs_error_ptr                                                  ; 9273: a5 b8       ..
+    pha                                                               ; 9275: 48          H
+    lda fs_crflag                                                     ; 9276: a5 b9       ..
     pha                                                               ; 9278: 48          H
-    lda (fs_error_ptr),y                                              ; 9279: b1 b8       ..             ; Reload character (pointer may have been clobbered); Clear encoded result
-    jsr osasci                                                        ; 927b: 20 e3 ff     ..            ; Print character via OSASCI; Advance to next table position; Write character; Shift out lowest source bit
-    pla                                                               ; 927e: 68          h              ; Bit clear: skip this position
-    sta fs_crflag                                                     ; 927f: 85 b9       ..             ; Bit set: OR in encoded value
+    lda (fs_error_ptr),y                                              ; 9279: b1 b8       ..             ; Reload character (pointer may have been clobbered)
+    jsr osasci                                                        ; 927b: 20 e3 ff     ..            ; Print character via OSASCI; Write character
+    pla                                                               ; 927e: 68          h
+    sta fs_crflag                                                     ; 927f: 85 b9       ..
     pla                                                               ; 9281: 68          h
-    sta fs_error_ptr                                                  ; 9282: 85 b8       ..             ; More bits to process
-    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.            ; Return encoded access in A
+    sta fs_error_ptr                                                  ; 9282: 85 b8       ..
+    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.
 
-; Protection/access bit encode table
-; 
-; 11-entry lookup table used by get_prot_bits and
-; get_access_bits to remap attribute bits between
-; the file server protocol format and the local
-; representation. The encoding loop shifts out each
-; source bit; for each set bit, the corresponding
-; table entry is ORed into the result.
-; 
-; Indices 0-4: used by get_prot_bits (5-bit input).
-; Some entries set multiple output bits (expansion).
-; 
-; Indices 5-10: used by get_access_bits (6-bit input
-; from directory entry offset &0E). Each entry sets
-; exactly one output bit (pure permutation).
 ; &9287 referenced 1 time by &9271
 .resume_caller
     jmp (fs_error_ptr)                                                ; 9287: 6c b8 00    l..            ; Jump to address of high-bit byte (resumes code)

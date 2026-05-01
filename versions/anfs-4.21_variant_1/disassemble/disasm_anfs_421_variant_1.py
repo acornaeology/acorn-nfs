@@ -12427,66 +12427,27 @@ comment(0x9233, "Pull X", inline=True)
 comment(0x9234, "Pull caller's original flags", inline=True)
 comment(0x9235, "Return", inline=True)
 
-# is_decimal_digit (&9244) — test if char is decimal digit
-# Also rejects '&' and '.' as non-decimal
-comment(0x9258, "Is it '&' (hex prefix)?", inline=True)
-comment(0x925A, "Yes: return C set (not decimal)", inline=True)
-comment(0x925C, "Is it '.' (separator)?", inline=True)
-comment(0x925E, "Yes: return C set (not decimal)", inline=True)
-# is_dec_digit_only entry — pure digit test
-comment(0x9260, "Above '9'?", inline=True)
-comment(0x9262, "Yes: not a digit", inline=True)
-comment(0x9264, "Below '0'? C clear if so", inline=True)
-comment(0x9266, "Return: C set if '0'-'9'", inline=True)
-comment(0x9267, "C=0: not a digit", inline=True)
-comment(0x9268, "Return", inline=True)
+# print_hex_byte_no_spool (&924C) — *SPOOL-bypassing two-digit hex print
+comment(0x924C, "Save full byte", inline=True)
+comment(0x924D, "Shift high nybble to low (LSR x4)", inline=True)
+comment(0x9251, "Print high nybble as hex digit", inline=True)
+comment(0x9254, "Restore full byte; fall through for low nybble",
+        inline=True)
 
-# get_access_bits (&9255) — encode directory access byte
-comment(0x9269, "Offset &0E in directory entry", inline=True)
-comment(0x926B, "Load raw access byte", inline=True)
-comment(0x926D, "Mask to 6 access bits", inline=True)
-comment(0x926F, "X=4: start encoding at bit 4", inline=True)
-comment(0x9271, "ALWAYS branch to encoder", inline=True)
+# print_hex_nybble_no_spool (&9255) — *SPOOL-bypassing single hex digit
+comment(0x9255, "Mask to low nybble", inline=True)
+comment(0x9257, "Digit >= &0A?", inline=True)
+comment(0x9259, "No: skip letter adjustment", inline=True)
+comment(0x925B, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
+comment(0x925D, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
+comment(0x925F, "Tail-jump to *SPOOL-bypassing print", inline=True)
 
-# get_prot_bits (&925F) — encode protection attribute
-comment(0x9273, "Mask to 5 protection bits", inline=True)
-comment(0x9275, "X=&FF: start encoding at bit 0", inline=True)
-
-# Shared encoder loop — maps source bits via lookup table
-comment(0x9277, "Save remaining bits", inline=True)
-comment(0x9279, "Clear encoded result", inline=True)
-comment(0x927B, "Advance to next table position", inline=True)
-comment(0x927C, "Shift out lowest source bit", inline=True)
-comment(0x927E, "Bit clear: skip this position", inline=True)
-comment(0x9280, "Bit set: OR in encoded value", inline=True)
-comment(0x9283, "More bits to process", inline=True)
-comment(0x9285, "Return encoded access in A", inline=True)
-
-# prot_bit_encode_table (&9286) — bit remapping table
-comment(0x9286, "Protection/access bit encode table\n"
-    "\n"
-    "11-entry lookup table used by get_prot_bits and\n"
-    "get_access_bits to remap attribute bits between\n"
-    "the file server protocol format and the local\n"
-    "representation. The encoding loop shifts out each\n"
-    "source bit; for each set bit, the corresponding\n"
-    "table entry is ORed into the result.\n"
-    "\n"
-    "Indices 0-4: used by get_prot_bits (5-bit input).\n"
-    "Some entries set multiple output bits (expansion).\n"
-    "\n"
-    "Indices 5-10: used by get_access_bits (6-bit input\n"
-    "from directory entry offset &0E). Each entry sets\n"
-    "exactly one output bit (pure permutation).")
-# &9286-&9290 stale carry-over comments removed -- they were for
-# prot_bit_encode_table entries that lived at these addresses in 4.18.
-# The actual prot_bit_encode_table in 4.21_v1 is annotated wherever it
-# now lives. Addresses &9286-&9290 here are inside print_inline's body.
-
-# Stale 4.18 carry-overs (set_text_and_xfer_ptr, set_xfer_params,
-# set_options_ptr, clear_escapable, cmp_5byte_handle) are at &93D3-
-# &93F1 in 4.21 and have already been annotated there. Removing the
-# misplaced duplicates at this address range.
+# &9261-&9290: print_inline body. Inline comments live with the
+# subroutine declaration earlier in the file. The 4.18 carry-over
+# comments that previously lived in this block (is_decimal_digit,
+# get_access_bits, get_prot_bits, prot_bit_encode_table) all referred
+# to routines that have moved or been replaced in 4.21 -- the actual
+# bodies have already been annotated at their current addresses.
 
 # print_inline_no_spool inline comments (~22 items)
 comment(0x928A, "Pop return-addr low byte (-> string pointer low)",
