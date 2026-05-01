@@ -2306,6 +2306,17 @@ subroutine(0x8112, "scout_complete",
     "via tx_calc_transfer, sets up the data RX handler\n"
     "chain, and sends a scout ACK. On no match or error,\n"
     "discards the frame via scout_error.")
+subroutine(0x8195, "port_match_found",
+    title="Scout matched: arm data RX, ACK or discard",
+    description="""\
+Sets scout_status=3 (match found) at rx_port, calls
+tx_calc_transfer to compute the transfer parameters from the RXCB,
+and triages: C=0 (no Tube claimed) -> nmi_error_dispatch to
+discard; C=1 -> check broadcast flag in rx_src_net (V), branch to
+send_data_rx_ack on a unicast or fall through to a discard path
+on broadcast. Four inbound refs (one JSR from &84B9 and three
+branches from the scout_complete dispatch).""",
+    on_exit={"a": "3 (scout_status)"})
 subroutine(0x81A7, "send_data_rx_ack",
     title="Send scout ACK and arm data-RX continuation",
     description="""\
@@ -2991,6 +3002,13 @@ subroutine(0x8B18, "save_text_ptr",
     "iterative help topic matching. Preserves A via\n"
     "PHA/PLA.",
     on_exit={"a": "preserved"})
+subroutine(0x8BBB, "help_print_nfs_cmds",
+    title="*HELP NFS topic: print NFS-specific commands",
+    description="""\
+Loads X=&35 (the offset of the first NFS-specific command in
+cmd_table_fs) and tail-falls into print_cmd_table to emit the
+listing. Single caller (the *HELP topic dispatch at &8C6E).""",
+    on_exit={"x": "&35 + advance through the table"})
 subroutine(0x8BC6, "print_cmd_table",
     title="Print *HELP command listing with optional header",
     description="If V flag is set, saves X/Y, calls\n"
@@ -3013,6 +3031,16 @@ subroutine(0x8BD5, "print_cmd_table_loop",
     "help_wrap_if_serial to handle line continuation\n"
     "on serial output streams. Preserves Y.",
     on_entry={"x": "offset into cmd_table_fs"})
+subroutine(0x8C25, "done_print_table",
+    title="Cleanup epilogue for print_cmd_table",
+    description="""\
+Pops the saved P and Y registers off the stack and RTS. Used as
+the shared exit for print_cmd_table after it has emitted a help
+listing or detected end-of-table. Single caller (the BEQ at &8BDD
+in print_cmd_table when V was set on entry, indicating the saved
+state needs restoring).""",
+    on_exit={"y": "restored from stack",
+             "p (flags)": "restored from stack"})
 subroutine(0x8C29, "help_wrap_if_serial",
     title="Wrap *HELP syntax lines for serial output",
     description="Checks the output destination via &0355. Returns\n"
@@ -3023,6 +3051,16 @@ subroutine(0x8C29, "help_wrap_if_serial",
     "description column.",
     on_exit={"y": "preserved (saved/restored via PHY/PLY)",
              "a": "clobbered (last char written via OSWRCH)"})
+subroutine(0x8C64, "svc_return_unclaimed",
+    title="Restore Y and return service-call unclaimed",
+    description="""\
+Reloads Y from ws_page (the saved command-line offset) and RTS to
+the caller without clearing A -- preserving the original service
+number so the next ROM in the chain sees the unclaimed call.
+Reached from the four service-handler escape paths at &8C4C,
+&8C91, &8CD5, and &95BE that hand a request back to MOS without
+acting on it.""",
+    on_exit={"y": "ws_page (restored command-line offset)"})
 subroutine(0x8C93, "print_version_header",
     title="Print ANFS version string and station number",
     description="Uses an inline string after JSR print_inline:\n"
@@ -3981,6 +4019,14 @@ subroutine(0x9E82, "format_filename_field",
     "reply buffer depending on the value in l0f03.\n"
     "Truncates or pads to exactly 12 characters.",
     on_exit={"a, x, y": "clobbered"})
+subroutine(0x9FB1, "close_all_fcbs",
+    title="Close all FCBs (process_all_fcbs + finalise)",
+    description="""\
+Single-instruction wrapper: JSR process_all_fcbs to walk every FCB
+slot and close each open file in turn, then fall through to
+return_with_last_flag (which loads fs_last_byte_flag and finalises
+caller state). Single caller (the OSFIND close-all path at &9EBA).""",
+    on_exit={"a": "fs_last_byte_flag (loaded by return_with_last_flag)"})
 subroutine(0x9FB4, "return_with_last_flag",
     title="Load last-byte flag and finalise",
     description="""\
@@ -4009,6 +4055,16 @@ subroutine(0x9FB6, "finalise_and_return",
              "x": "fs_options low byte",
              "y": "fs_block_offset low byte"})
 
+subroutine(0x9FC2, "osfind_close_or_open",
+    title="OSFIND dispatch: close-all, close-one, or open",
+    description="""\
+Triages the OSFIND function-code in A. If A >= 2 (open for input/
+output/update), branches to done_file_open. Otherwise transfers A
+to Y and tests: A=1 (close one channel) goes to done_file_open;
+A=0 (close all channels) loads A=5 (close-all return code) and
+falls through. Single caller (the OSFIND vector table at &9EED).""",
+    on_entry={"a": "OSFIND function code (0=close-all, 1=close-one, "
+              ">=2 = open variants)"})
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
@@ -4183,6 +4239,29 @@ Loads error code &FE and tail-calls error_bad_inline with the inline
 string 'command' -- error_bad_inline prepends 'Bad ' to produce the
 final 'Bad command' message. Used by the FS command parser when no
 table entry matches the user's input. Never returns.""")
+subroutine(0xA5AE, "check_exec_addr",
+    title="Validate exec address is non-zero",
+    description="""\
+Iterates X = 3..0 over the 4-byte exec-address copy at lc106..lc109,
+incrementing each byte. If any byte becomes non-zero (BNE),
+branches forward to ca5df (the OSCLI dispatch path). When all four
+INC operations leave a zero result the address was &FFFFFFFF + 1 =
+0 -- not a valid exec address -- and the routine falls through to
+the no-exec-address handler. Single caller (&A51C in the *RUN
+handler).""",
+    on_entry={"a": "exec address bytes already in lc106..lc109"},
+    on_exit={"x": "0 if no valid exec; non-zero branch otherwise"})
+subroutine(0xA5C3, "alloc_run_channel",
+    title="Allocate FCB slot for *RUN target file",
+    description="""\
+Loads the saved OSWORD parameter byte at lc105, calls alloc_fcb_slot
+to obtain a free channel index in A, transfers it into Y, then
+clears the per-channel attribute byte at lc260,X. Used by the
+*RUN argument-handling path at &A538 once the file is opened, to
+reserve a channel for the running program.""",
+    on_exit={"a": "channel attribute byte (cleared to 0)",
+             "x": "FCB slot index",
+             "y": "FCB slot index (copy of X)"})
 subroutine(0xA638, "fsreply_3_set_csd",
     title="FS reply handler: select CSD station",
     description="""\
@@ -5062,6 +5141,15 @@ subroutine(0xBAC0, "restore_catalog_entry",
     description="Copies 13 bytes from the context buffer at &10D9\n"
     "back to the TX buffer at &0F00. Falls through to\n"
     "find_matching_fcb.")
+subroutine(0xBACC, "loop_save_before_match",
+    title="Save FCB context, fall into find_matching_fcb",
+    description="""\
+Single-instruction wrapper at the top of the per-iteration FCB
+search retry: JSR save_fcb_context to preserve the current attempt's
+state (offset, station, network), then fall through into
+find_matching_fcb. Single caller (the BNE retry at &BAEB). Used
+once the first scan past slot &0F has failed and the search needs
+to restart from slot 0 with the saved context restored.""")
 subroutine(0xBACF, "find_matching_fcb",
     title="Find FCB slot matching channel attribute",
     description="Scans FCB slots 0-&0F for an active entry whose\n"
