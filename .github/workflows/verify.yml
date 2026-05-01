@@ -48,10 +48,10 @@ jobs:
           make -C /tmp/beebasm/build -j$(nproc)
           sudo cp /tmp/beebasm/build/beebasm /usr/local/bin/
 
-      # Resolve which prefix and which driver-script identifier the
-      # version uses. anfs- versions start with 4.x, the rest are nfs-.
-      # The driver-script filename takes the version_id with all dots
-      # removed (3.34 -> 334, 4.08.53 -> 40853).
+      # Resolve the driver-script path for the lint step (lint takes
+      # it as a positional argument). anfs- versions start with 4.x,
+      # the rest are nfs-; the filename uses the version with all
+      # dots removed (3.34 -> 334, 4.08.53 -> 40853).
       - name: Compute driver path
         id: driver
         run: |
@@ -63,12 +63,8 @@ jobs:
           ver_no_dots="${ver//./}"
           echo "path=versions/${prefix}-${ver}/disassemble/disasm_${prefix}_${ver_no_dots}.py" >> "$GITHUB_OUTPUT"
 
-      # py8dis is invoked directly via the per-version driver script.
-      # fantasm operates on the .json/.asm artefacts py8dis emits.
-      # `fantasm disassemble VID` is filed as fantasm#2 — once it
-      # lands the driver-script invocation collapses to a fantasm call.
       - name: Disassemble Acorn NFS ${{ matrix.version }}
-        run: uv run python ${{ steps.driver.outputs.path }}
+        run: uv run fantasm disassemble ${{ matrix.version }}
 
       - name: Lint Acorn NFS ${{ matrix.version }}
         run: uv run fantasm lint ${{ matrix.version }} ${{ steps.driver.outputs.path }}

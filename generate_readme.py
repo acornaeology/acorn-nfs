@@ -51,17 +51,12 @@ def main():
                 "path": f"versions/{version_dirname}/{doc['path']}",
             })
 
-        ver_no_dots = version_id.replace(".", "").lower()
-        driver_filename = f"disasm_{prefix}_{ver_no_dots}.py"
-        driver_path = f"versions/{version_dirname}/disassemble/{driver_filename}"
-
         versions.append({
             "id": version_id,
             "title": rom_meta.get("title", f"{manifest['name']} {version_id}"),
             "site_url": f"{SITE_URL}/{slug}/{version_id}.html",
             "asm_path": f"versions/{version_dirname}/output/{prefix}-{version_id}.asm",
             "rom_filename": f"{prefix}-{version_id}.rom",
-            "driver_path": driver_path,
             "links": rom_meta.get("links", []),
             "docs": docs,
         })

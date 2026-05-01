@@ -20,7 +20,7 @@ The general-purpose disassembly tooling is provided by [fantasm](https://pypi.or
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| (driver script) | Generate `.asm` and `.json` from ROM | `uv run python versions/nfs-3.34/disassemble/disasm_nfs_334.py` |
+| `fantasm disassemble` | Run py8dis driver to generate `.asm` and `.json` | `uv run fantasm disassemble 3.34` |
 | `fantasm verify` | Reassemble and byte-compare against original ROM | `uv run fantasm verify 3.34` |
 | `fantasm lint` | Validate annotation addresses in driver script | `uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py` |
 | `fantasm compare` | Compare two ROM versions (byte and opcode level) | `uv run fantasm compare 3.34 3.34B` |
@@ -104,7 +104,7 @@ The `move()` calls need manual updating. Find new source addresses by examining 
 Run:
 
 ```sh
-uv run python versions/<PREFIX>-<VER>/disassemble/disasm_<PREFIX>_<VER_NO_DOTS>.py
+uv run fantasm disassemble <VER>
 uv run fantasm verify <VER>
 ```
 

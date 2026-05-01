@@ -11,13 +11,13 @@ Annotated disassembly of Acorn NFS and ANFS (Network Filing System / Advanced Ne
 Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
 
 ```sh
-uv sync                                                          # Install dependencies
-uv run python versions/nfs-3.34/disassemble/disasm_nfs_334.py    # Generate .asm and .json from ROM
-uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py  # Validate annotation addresses
-uv run fantasm verify 3.34                                       # Reassemble and byte-compare against original ROM
+uv sync                                                                       # Install dependencies (incl. fantasm)
+uv run fantasm disassemble 3.34                                               # Run py8dis driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
+uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py     # Validate annotation addresses
+uv run fantasm verify 3.34                                                    # Reassemble and byte-compare against original ROM
 ```
 
-Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output — catching stale addresses carried over from other versions. CI runs the driver script, then `fantasm lint`, then `fantasm verify` on every push.
+Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output — catching stale addresses carried over from other versions. CI runs `fantasm disassemble`, then `fantasm lint`, then `fantasm verify` on every push.
 
 ## Architecture
 

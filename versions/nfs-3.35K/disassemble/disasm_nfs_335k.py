@@ -30,11 +30,11 @@ init(assembler_name="beebasm", lower_case=True)
 _script_dirpath = Path(__file__).resolve().parent
 _version_dirpath = _script_dirpath.parent
 _rom_filepath = os.environ.get(
-    "ACORN_NFS_ROM",
+    "FANTASM_ROM",
     str(_version_dirpath / "rom" / "nfs-3.35K.rom"),
 )
 _output_dirpath = Path(os.environ.get(
-    "ACORN_NFS_OUTPUT",
+    "FANTASM_OUTPUT_DIR",
     str(_version_dirpath / "output"),
 ))
 

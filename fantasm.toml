@@ -14,25 +14,11 @@ base_address = 0x8000
 # 128 / Compact variant, nfs is the original BBC B / B+ release.
 prefixes = ["anfs", "nfs"]
 
-# Project-wide workspace regions that aren't tied to a relocation
-# block. Per-version [[versions.entry]] reloc_blocks add their
-# destinations to the effective regions automatically, so the &0016,
-# &0400, &0500, &0600 workspace pages don't need to live here.
-# These regions are project-wide. Per-version reloc destinations are
-# auto-merged on top by VersionGraph.effective_regions, so the
-# &0016, &0400, &0500, &0600 workspace pages don't need to live here.
-# The duplication between this list and the JSON's external_labels
-# falls away once fantasm#3 lands.
-[memory]
-regions = [
-    { start = 0x0000, end = 0x00FF },   # BBC OS zero page (NFS uses pieces of it)
-    { start = 0x0100, end = 0x01FF },   # 6502 stack page (error block / stack-indexed frame)
-    { start = 0x0200, end = 0x03FF },   # MOS vectors + page-3 OS workspace
-    { start = 0x0700, end = 0x07FF },   # Tube VDU relay workspace
-    { start = 0x0CFF, end = 0x0DFF },   # NMI base + workspace
-    { start = 0x0E00, end = 0x0FFF },   # NFS extended workspace (page E + F)
-    { start = 0x1000, end = 0x10FF },   # ANFS 128/Compact extended workspace
-]
+# Workspace addresses NFS / ANFS use are declared via the per-version
+# driver's external_label() calls; fantasm 0.4.0's lint reads them
+# from the JSON. Per-version reloc_blocks below give the version
+# graph its dest pages for `addresses map` / `backfill` / `compose`
+# operations.
 
 # === NFS chain (linear: 3.34 root, each successor a child of the prior) =====
 
