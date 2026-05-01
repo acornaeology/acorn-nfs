@@ -3584,6 +3584,15 @@ subroutine(0x93E6, "cmp_5byte_handle",
     on_exit={"z": "set if bytes 1..4 match (byte 0 is not compared)",
              "a": "EOR of last compared bytes",
              "x": "0 if all matched, else mismatch index"})
+subroutine(0x93F2, "fscv_7_read_handles",
+    title="FSCV reason 7: report FCB handle range",
+    description="""\
+Returns the FCB handle range to the caller: `X=&20` (lowest valid
+handle) and `Y=&2F` (highest valid handle), then `RTS`. Reached
+via the FSCV vector with reason code 7. Used by the OS to discover
+which handle values this filing system claims.""",
+    on_exit={"x": "&20 (first valid FCB handle)",
+             "y": "&2F (last valid FCB handle)"})
 subroutine(0x93F7, "set_conn_active",
     title="Set connection-active flag in channel table",
     description="Saves registers on the stack, recovers the\n"
@@ -3783,6 +3792,21 @@ subroutine(0x97CD, "recv_and_process_reply",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
               "scout; handle the server's matching reply)"},
     on_exit={"a": "FS reply status byte"})
+subroutine(0x9850, "lang_1_remote_boot",
+    title="Language reply 1: remote-boot init / continue",
+    description="""\
+Reads the reply byte at `(net_rx_ptr),0`. If zero, branches to
+[`init_remote_session`](address:9859) to (re)initialise the
+remote session. Otherwise falls through to `done_commit_state`
+which finalises the boot state byte for the active session.""")
+subroutine(0x987E, "lang_3_execute_at_0100",
+    title="Language reply 3: raise 'Remoted' error at &0100",
+    description="""\
+Calls [`commit_state_byte`](address:B05F) to record the new state,
+loads `A=0` and tail-calls [`error_inline_log`](address:99C0) with
+the inline string `Remoted` followed by `&07` (BEL). Used by
+remote-language replies that need to abort the current operation
+with a terminal beep + error. Never returns.""")
 subroutine(0x9895, "raise_escape_error",
     title="Acknowledge escape and raise classified error",
     description="""\
@@ -3793,6 +3817,22 @@ classify_reply_error which builds the Escape error. Reached from
 (cmd_wipe's per-iteration escape check). Never returns -- the
 classify_reply_error path triggers BRK.""",
     on_exit={"a": "6 (Escape error code passed to classify_reply_error)"})
+subroutine(0x989F, "lang_4_remote_validated",
+    title="Language reply 4: validate remote session and apply",
+    description="""\
+Reads the first reply byte at `(net_rx_ptr),0`. If zero, branches
+to [`init_remote_session`](address:9859) to set up a fresh remote
+session. Otherwise reads the validation byte at offset `&80` and
+the local stored value at workspace offset `&0E`; on mismatch,
+the remote session is rejected.""")
+subroutine(0x98AF, "lang_0_insert_remote_key",
+    title="Language reply 0: insert remote keypress",
+    description="""\
+Reads the keycode from the reply at `(net_rx_ptr),&82` into `Y`,
+sets `X=0`, calls [`commit_state_byte`](address:B05F) to record
+the state change, and issues `OSBYTE &99` (insert into keyboard
+buffer) to deliver the keypress to the local machine.""",
+    on_entry={"a": "ignored (entry from reply dispatch)"})
 subroutine(0x98BE, "wait_net_tx_ack",
     title="Wait for reply on open receive with timeout",
     description="Despite the name, this does not wait for a TX\n"
@@ -4536,6 +4576,28 @@ subroutine(0xA6A6, "flip_set_station_boot",
     "system state.",
     on_entry={"a": "boot type code to store"},
     on_exit={"a, x, y": "clobbered"})
+subroutine(0xA6D5, "fsreply_1_copy_handles_boot",
+    title="FS reply 1: copy boot handles + flag boot pending",
+    description="""\
+Closes all network channels via
+[`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`
+(`TSB &0D6C`, marking the boot-pending state), then loads the
+boot type from the FS reply at `lc108` and stores it into both the
+current-boot-type slot (`lc005`) and the FCB-flags table. Pushes
+the boot type for the fall-through into `fsreply_2_copy_handles`
+which copies the per-handle table.""")
+subroutine(0xA6E5, "fsreply_2_copy_handles",
+    title="FS reply 2: copy per-station handle table",
+    description="""\
+Iterates over the 16-entry station table, looking up each station
+by network and bit number via
+[`find_station_bit2`](address:A644) and
+[`find_station_bit3`](address:A66F), then setting the matching
+slot's boot configuration via
+[`flip_set_station_boot`](address:A6A6). Restores the saved boot-
+type via `PLP`/`PLA`. Reached only via the FS reply dispatch
+table.""",
+    on_entry={"a": "boot-type byte (saved on stack at entry)"})
 subroutine(0xA764, "boot_cmd_oscli",
     title="Look up boot command in la75b table and OSCLI it",
     description="""\
@@ -4565,6 +4627,17 @@ subroutine(0xA901, "bin_to_bcd",
     "conversion.",
     on_entry={"a": "binary value (0-99)"},
     on_exit={"a": "BCD equivalent"})
+subroutine(0xAC47, "osword_14_handler",
+    title="OSWORD &14 handler: bridge poll / station status",
+    description="""\
+Triages by `A`: `A < 1` (`CMP #1` / `BCC`) saves `A`, calls
+[`ensure_fs_selected`](address:8B4D) to bring ANFS up if needed,
+restores `A`, then sets `Y=&23` and calls
+[`mask_owner_access`](address:B2CF) to clear FS-selection bits
+before the bridge-poll body runs. `A >= 1` routes to
+`handle_tx_request` for an alternative TX path.""",
+    on_entry={"a": "OSWORD &14 sub-function code",
+              "x, y": "OSWORD parameter block pointer (low, high)"})
 subroutine(0xAC67, "store_osword_pb_ptr",
     title="Store workspace pointer+1 to NFS workspace",
     description="Computes ws_ptr_hi + 1 and stores the resulting\n"
@@ -4594,6 +4667,27 @@ subroutine(0xAA82, "copy_pb_byte_to_ws",
     on_entry={"c": "set to load from PB, clear to use A",
               "x": "byte count",
               "y": "PB source offset"})
+subroutine(0xA910, "osword_10_handler",
+    title="OSWORD &10 handler: send network packet",
+    description="""\
+Initiates a TX by setting `tx_complete_flag` via `ASL` (clearing
+the flag and propagating bit 7 to carry), then dispatches:
+`C=1` (set if no TX in progress) routes to
+`setup_ws_rx_ptrs` to configure the receive-side workspace
+pointers from `net_rx_ptr_hi`; `C=0` (TX in progress) stores
+`Y=&20` (TX-buffer status offset) and marks the packet as pending
+(`&FF`) in the workspace.""",
+    on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
+    on_exit={"a": "0 = success, &FF = TX pending"})
+subroutine(0xA985, "osword_12_handler",
+    title="OSWORD &12 handler: receive packet from workspace",
+    description="""\
+Reads `net_rx_ptr_hi` into `ws_ptr_lo`, sets `Y=&7F` and reads the
+status byte from the RX block, then `Y=&80` to flag the packet as
+processed. The body proceeds to copy the packet payload from the
+RX buffer into the OSWORD parameter block via
+[`copy_pb_byte_to_ws`](address:AA82).""",
+    on_entry={"x, y": "OSWORD parameter block pointer (low, high)"})
 entry(0xA9CC)
 subroutine(0xA9CC, "osword_13_read_station",
     title="OSWORD &13 sub 0: read file server station",
@@ -4924,6 +5018,16 @@ subroutine(0xAFA6, "send_disconnect_reply",
     "and sends the response. Waits for\n"
     "acknowledgment before returning.",
     on_exit={"a": "TX result code"})
+subroutine(0xB01A, "lang_2_save_palette_vdu",
+    title="Language reply 2: save palette / VDU state",
+    description="""\
+Reached via the language-reply dispatch table when a remote sends
+reply code 2 ('save palette and VDU state'). Saves the current
+template byte from `osword_flag` on the stack, sets up the
+workspace pointer (`nfs_workspace`) to the appropriate offset, and
+copies the palette / VDU state from MOS workspace at `&0350` into
+the workspace transmit buffer for forwarding back to the
+station.""")
 subroutine(0xB05F, "commit_state_byte",
     title="Copy current state byte to committed state",
     description="Reads the working state byte from workspace and\n"
@@ -4964,6 +5068,14 @@ subroutine(0xB083, "read_osbyte_to_ws",
 
 # --- cmd_ex subroutines ---
 
+subroutine(0xB118, "fscv_5_cat",
+    title="FSCV reason 5: catalogue (*CAT)",
+    description="""\
+Sets up transfer parameters via [`set_xfer_params`](address:93D7),
+clears the library bit in `fs_lib_flags` (`lc271`) via the
+`ROR`/`CLC`/`ROL` idiom that uses carry to preserve other flags,
+and falls through to `cat_set_lib_flag` to issue the FS examine
+request. Reached via the FSCV vector with reason code 5.""")
 subroutine(0xB21A, "print_10_chars",
     title="Print 10 characters from reply buffer",
     description="Sets Y=10 and falls through to\n"
