@@ -1529,8 +1529,6 @@ label(0xB6A5, "return_from_poll_slots")
 label(0xB6A6, "init_ps_slot_from_rx")
 label(0xB6BD, "store_char_uppercase")
 label(0xB7D3, "flush_and_read_char")
-# Removed in 4.18: return_from_flush_read, unused_clear_ws_78,
-# loop_clear_ws_78 (dead code removed)
 label(0xB7E3, "init_channel_table")
 label(0xB805, "attr_to_chan_index")
 label(0xB814, "check_chan_char")
@@ -1630,28 +1628,17 @@ label(0xBFC0, "inx4")
 # ROM entry points and subroutines
 # ============================================================
 
-# Located in 4.21_v1 at &8028 (same address as 4.18). The body
-# differs significantly from 4.18: instead of checking VIA IFR bit 2
-# for SR-complete, 4.21 reads the workspace byte at &0D65 (a deferred-
-# work flag), TRB &FE34 (the Master ACCCON register, clearing bit 7),
-# STZ &0D65, then dispatches through the dispatch_svc5 PHA/PHA/RTS at
-# &8048 if Y was negative on entry, or fires the Econet RX event
-# (&FE) via generate_event and JMPs to &8582 otherwise. The 4.18
-# description is preserved with caveats; full re-annotation pending.
 entry(0x8028)
 subroutine(0x8028, "svc5_irq_check",
     title="Service 5: unrecognised interrupt (Master 128 dispatch)",
-    description="Reads the deferred-work flag at &0D65; if zero, returns "
-    "early via PLX/PLY/RTS. Otherwise clears bit 7 of the Master 128 "
-    "ACCCON register at &FE34 (TRB), zeros &0D65, then dispatches "
-    "either via the PHA/PHA/RTS table at dispatch_svc5 (&8048) when "
-    "Y had bit 7 set on entry, or fires Econet RX event &FE via "
-    "generate_event and JMPs to &8582 (post-event handler).\n"
-    "\n"
-    "Note: 4.18's equivalent at the same address tested VIA IFR bit 2 "
-    "for shift-register completion; the 4.21 version is rewritten "
-    "around the Master 128's deferred-work flag pattern. Detailed "
-    "re-annotation deferred.",
+    description="""\
+Reads the deferred-work flag at `&0D65`; if zero, returns early via
+`PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`
+register at `&FE34` (`TRB`), zeros `&0D65`, then dispatches either
+via the PHA/PHA/RTS table at [`dispatch_svc5`](address:8048) when
+`Y` had bit 7 set on entry, or fires Econet RX event `&FE` via
+[`generate_event`](address:8045) and `JMP`s to
+[`tx_done_exit`](address:8582) otherwise.""",
     on_entry={"a": "5 (service call number)",
               "x": "ROM slot",
               "y": "parameter (high bit selects dispatch path)"})
@@ -1665,23 +1652,25 @@ subroutine(0x8045, "generate_event",
 
 subroutine(0x8A54, "service_handler",
     title="Service call dispatch (Master 128)",
-    description="Handles service calls 1, 4, 8, 9, 13, 14, and 15.\n"
-    "Service 1: absolute workspace claim.\n"
-    "Service 4: unrecognised star command.\n"
-    "Service 8: unrecognised OSWORD.\n"
-    "Service 9: *HELP.\n"
-    "Service 13: ROM initialisation.\n"
-    "Service 14: ROM initialisation complete.\n"
-    "Service 15: vectors claimed.\n"
-    "\n"
-    "On Service 15 the ROM verifies the host OS via OSBYTE 0.\n"
-    "Only Master 128 (OS 3.2/3.5, X=3) and Master Econet Terminal\n"
-    "(OS 4.0, X=4) are supported. Any other version (OS 1.00,\n"
-    "OS 1.20, OS 2.00 BBC B+, or OS 5.0 Master Compact) gets a\n"
-    "'Bad ROM <slot>' message printed and its workspace byte\n"
-    "cleared at &02A0 + adjusted-slot, effectively rejecting the\n"
-    "ROM. The 4.18 equivalent at &8A15 instead silently skipped\n"
-    "ROM rejection for OS 1.20 and OS 2.00.",
+    description="""\
+Handles service calls 1, 4, 8, 9, 13, 14, and 15.
+
+| Call | Meaning                          |
+|-----:|----------------------------------|
+|    1 | Absolute workspace claim         |
+|    4 | Unrecognised `*` command         |
+|    8 | Unrecognised OSWORD              |
+|    9 | `*HELP`                          |
+|   13 | ROM initialisation               |
+|   14 | ROM initialisation complete      |
+|   15 | Vectors claimed                  |
+
+On service 15 the ROM verifies the host OS via OSBYTE 0. Only Master
+128 (OS 3.2 / 3.5, `X=3`) and Master Econet Terminal (OS 4.0, `X=4`)
+are supported. Any other version (OS 1.00, OS 1.20, OS 2.00 BBC B+,
+or OS 5.0 Master Compact) gets a `Bad ROM <slot>` message printed
+and its workspace byte cleared at `&02A0 + adjusted-slot`,
+effectively rejecting the ROM.""",
     on_entry={"a": "service call number", "x": "ROM slot", "y": "parameter"})
 
 
@@ -2490,11 +2479,10 @@ subroutine(0x8454, "immediate_op",
     "station/network, and control byte into the RX buffer.")
 
 # Immediate operation dispatch lo-byte table.
-# In 4.21_v1 the table moved by +3 to &848B-&8492 (the &8488 area is now
-# the JMP nmi_error_dispatch trampoline). 8 lo-byte entries indexed by
-# the immediate-op control byte ($81-$88) via LDA imm_op_dispatch_lo-$81,Y.
-# Each entry is the low byte of (handler-1) so that PHA/PHA/RTS dispatch
-# lands on the handler.
+# 8 lo-byte entries at &848B-&8492 indexed by the immediate-op
+# control byte (&81-&88) via LDA imm_op_dispatch_lo-&81,Y. Each
+# entry is the low byte of (handler-1) so PHA/PHA/RTS dispatch lands
+# on the handler.
 label(0x848B, "imm_op_dispatch_lo")
 for addr in range(0x848B, 0x8493):
     byte(addr)
@@ -2561,18 +2549,17 @@ subroutine(0x84F9, "imm_op_build_reply",
     "Then disables SR interrupts and configures the VIA shift\n"
     "register for shift-in mode before returning to\n"
     "idle listen.")
-# Located in 4.21_v1 at &8540 (was &8543 in 4.18 -- moved -3 because
-# of layout shifts in the surrounding TX-done handlers). Reached only
-# via PHA/PHA/RTS dispatch from the tx_done_dispatch table; needs an
-# explicit entry().
+# Reached only via PHA/PHA/RTS dispatch from the tx_done_dispatch
+# table; needs an explicit entry().
 entry(0x8540)
 subroutine(0x8540, "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="Pushes (tx_done_exit - 1) on the stack so RTS returns "
-    "to tx_done_exit when the remote routine completes, then does "
-    "JMP (l0d66) to call the remote-supplied JSR target. When that "
-    "routine returns via RTS, control resumes at tx_done_exit which "
-    "tidies up TX state.")
+    description="""\
+Pushes ([`tx_done_exit`](address:8582) `- 1`) on the stack so `RTS`
+returns to [`tx_done_exit`](address:8582) when the remote routine
+completes, then does `JMP (l0d66)` to call the remote-supplied JSR
+target. When that routine returns via `RTS`, control resumes at
+[`tx_done_exit`](address:8582) which tidies up TX state.""")
 subroutine(0x8549, "tx_done_econet_event",
     title="TX done: fire Econet event",
     description="Handler for TX operation type &84. Loads the\n"
@@ -2887,9 +2874,6 @@ subroutine(0x88E4, "tx_store_result",
     "discard_reset_rx for a full ADLC reset and return\n"
     "to idle RX listen mode.",
     on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"})
-# Located in 4.21_v1 at &8900 (was at &88F2 in 4.18). Reached via 3
-# JSR sites; not preceded by a clean RTS/JMP boundary which is why
-# the carry-over fingerprint missed it.
 subroutine(0x8900, "tx_calc_transfer",
     title="Calculate transfer size and reclaim Tube buffer",
     description="Inspects RXCB[6..7] (buffer end address byte 2 and "
@@ -3097,19 +3081,14 @@ subroutine(0x8C93, "print_version_header",
     "local Econet station number.",
     on_entry={},
     on_exit={"a, x, y": "clobbered (print_inline + print_station_id)"})
-# Located in 4.21_v1 at &8CAD (was &8CB9 in 4.18) by following the
-# JSR site at &8B23 (which maps from 4.18 &8B1A). Already classified
-# as code (sub_c8cad with 3 callers from &8B23, &8CBD, &B3A0). The
-# 4.21 body extends the 4.18 simple lookup with a ROL/PHP/ROR/PLP
-# trick to also extract bit 7 (ADLC-absent flag) from the same byte.
 subroutine(0x8CAD, "get_ws_page",
     title="Read workspace page number for current ROM slot",
-    description="Indexes into the MOS per-ROM workspace table at\n"
-    "&0DF0 using romsel_copy (&F4) as the ROM slot.\n"
-    "Returns the allocated page number in both A and Y\n"
-    "for caller convenience. The 4.21 version also\n"
-    "OR's bit 7 of the slot flag back into A on exit\n"
-    "(ADLC-absent flag) — see &8CB7-&8CB9.",
+    description="""\
+Indexes into the MOS per-ROM workspace table at `&0DF0` using
+`romsel_copy` (`&F4`) as the ROM slot. Returns the allocated page
+number in both `A` and `Y` for caller convenience. A `ROL`/`PHP`/
+`ROR`/`PLP` trick at `&8CB7`–`&8CB9` also folds bit 7 of the slot
+flag back into `A` on exit (the ADLC-absent flag).""",
     on_exit={"a": "workspace page number (with bit 7 = ADLC-absent flag)",
              "y": "workspace page number (low 7 bits)"})
 subroutine(0x8CBD, "setup_ws_ptr",
@@ -3139,12 +3118,6 @@ subroutine(0x8CFF, "call_fscv",
     "entry points that issue paged ROM service requests\n"
     "via OSBYTE &8F.",
     on_entry={"a": "FSCV reason code"})
-# Located in 4.21_v1 at &8D24 (was &8D17 in 4.18). Initial fingerprint
-# hit &8D21 but a 3-byte preamble (`STZ &0D` and a stray byte) shifts
-# the actual entry point to &8D24, where the body matches the 4.18
-# routine (LDY ws_page / LDX #5 / LDA (text_ptr),Y / CMP credits,X ...).
-# Already classified as code by py8dis (existing &8D24 reference from
-# &8C51) — only the subroutine() declaration was missing.
 subroutine(0x8D24, "check_credits_easter_egg",
     title="Easter egg: match *HELP keyword to author credits",
     description="Matches the *HELP argument against a keyword\n"
@@ -3200,9 +3173,6 @@ read CMOS RAM byte 0 -- the file-system / language byte holding the
 default boot mode and FS selection. Single caller (&8FBB, inside
 nfs_init_body's CMOS-read sequence).""",
     on_exit={"y": "CMOS byte 0 (returned by OSBYTE &A1)"})
-# Located in 4.21_v1 at &8ED2 (was &8E8C in 4.18). Same body
-# (LDX #0 / LDY #0 / BEQ jmp_osbyte). Already classified as code
-# (sub_c8ed2 with 1 caller from &9A10).
 subroutine(0x8ED2, "osbyte_x0_y0",
     title="OSBYTE wrapper with X=0, Y=0",
     description="Sets X=0 and Y=0 then branches to jmp_osbyte.\n"
@@ -3214,14 +3184,12 @@ subroutine(0x8ED2, "osbyte_x0_y0",
     on_exit={"x": "0", "y": "0"})
 subroutine(0x8EF0, "store_ws_page_count",
     title="Record workspace page count (capped at &D3)",
-    description="Stores the workspace allocation from service 1\n"
-    "into offset &0B of the receive control block,\n"
-    "capping the value at &D3 to prevent overflow into\n"
-    "adjacent workspace areas (the 4.18 cap was &21;\n"
-    "Master 128 has its sideways-RAM workspace much\n"
-    "higher up, hence the larger limit). Called by\n"
-    "svc_2_private_workspace after issuing the absolute\n"
-    "workspace claim service call.",
+    description="""\
+Stores the workspace allocation from service 1 into offset `&0B` of
+the receive control block, capping the value at `&D3` to prevent
+overflow into adjacent workspace areas. Called by
+[`svc_2_private_workspace_pages`](address:8F10) after issuing the
+absolute workspace claim service call.""",
     on_entry={"y": "workspace page count from service 1"})
 # Three PHA/PHA/RTS dispatch targets in this area, each reached only
 # via the svc_dispatch table at &89ED (lo) / &8A20 (hi). All three
@@ -3243,67 +3211,60 @@ subroutine(0x8EF0, "store_ws_page_count",
 #
 # Open question (Phase C continuation): exactly which dispatch path
 # invokes &8F38, and how the page-allocation work at &8F10 is
-# composed with it. The body at &8F38 clearly performs the role of
-# 4.18's svc_2_private_workspace second-half, so the natural
-# expectation is that some dispatch chain reaches it during MOS
-# service 2 handling. Pinning down the precise svc_dispatch
-# (X, Y) pair that picks index 22 is left as future work; for now
-# both halves are decoded as code with conservative names.
+# composed with it. Pinning down the precise svc_dispatch (X, Y) pair
+# that picks index 22 is left as future work (OPEN-ISSUES O-1); for
+# now both halves are decoded as code with conservative names.
 entry(0x8EFE)
 entry(0x8F10)
 entry(0x8F38)
 subroutine(0x8F10, "svc_2_private_workspace_pages",
     title="Service-2 page-allocation prologue",
-    description="Reads CMOS byte &11 to test bit 2 of the saved\n"
-    "Econet status; either advances the caller's first-\n"
-    "available-page (Y) by 2 and uses it, or forces\n"
-    "page &0B as a fallback. Sets net_rx_ptr_hi /\n"
-    "nfs_workspace_hi to the chosen page pair, clears\n"
-    "the corresponding lo bytes, and calls get_ws_page.\n"
-    "If the resulting page is >= &DC, branches to the\n"
-    "helper at &8EFE which publishes the page into\n"
-    "rom_ws_pages[romsel_copy] with bit 7 masked off.\n"
-    "\n"
-    "This routine handles only the workspace-page\n"
-    "allocation half of 4.18's svc_2_private_workspace.\n"
-    "The remainder (station ID, FS workspace zero,\n"
-    "cmd_net_fs, init_adlc_and_vectors) lives at &8F38\n"
-    "and is dispatched separately -- see the comment\n"
-    "block above.",
+    description="""\
+Reads CMOS byte `&11` to test bit 2 of the saved Econet status;
+either advances the caller's first-available-page (`Y`) by 2 and
+uses it, or forces page `&0B` as a fallback. Sets `net_rx_ptr_hi` /
+`nfs_workspace_hi` to the chosen page pair, clears the corresponding
+lo bytes, and calls [`get_ws_page`](address:8CAD). If the resulting
+page is `>= &DC`, branches to the helper at
+[`&8EFE`](address:8EFE?hex) which publishes the page into
+`rom_ws_pages[romsel_copy]` with bit 7 masked off.
+
+This routine handles only the workspace-page allocation half of
+service 2. The bring-up remainder (station ID, FS workspace zero,
+`cmd_net_fs`, [`init_adlc_and_vectors`](address:903C)) lives at
+[`nfs_init_body`](address:8F38) and is dispatched separately – see
+the comment block above.""",
     on_entry={"y": "first available private workspace page"})
 subroutine(0x8F38, "nfs_init_body",
     title="ANFS initialisation body",
-    description="Reached only via PHA/PHA/RTS dispatch (table index\n"
-    "22 in the svc_dispatch table at &89ED/&8A20). The\n"
-    "body carries out the bring-up sequence that 4.18\n"
-    "did inside svc_2_private_workspace after page\n"
-    "allocation:\n"
-    "  - Clears ws_page / tx_complete_flag and the\n"
-    "    receive-block remote-op flag\n"
-    "  - On warm reset (last_break_type non-zero) and\n"
-    "    fs_flags bit 4 set, calls setup_ws_ptr and\n"
-    "    zeroes the FS workspace page in a 256-byte loop\n"
-    "  - Calls copy_ps_data_y1c to install the printer-\n"
-    "    server template\n"
-    "  - Reads CMOS bytes &01..&04 via osbyte_a1, storing\n"
-    "    each into the workspace identity block at\n"
-    "    nfs_workspace+{0..3}\n"
-    "  - Reads CMOS byte &11 (Econet station): if zero,\n"
-    "    prints 'Station number in CMOS RAM invalid.\n"
-    "    Using 1 instead!' and defaults to station 1\n"
-    "  - Stores station ID into the receive block\n"
-    "  - Calls cmd_net_fs to select ANFS as the active\n"
-    "    filing system, then init_adlc_and_vectors to\n"
-    "    install NETV / FSCV / etc., handle_spool_ctrl_byte\n"
-    "    and init_bridge_poll for protection setup\n"
-    "Returns via RTS at &903B.\n"
-    "\n"
-    "TODO (Phase C): identify the exact svc_dispatch\n"
-    "(X, Y) pair that reaches index 22. The natural\n"
-    "expectation is that this is the second half of\n"
-    "service-2 handling and is invoked by MOS during\n"
-    "the standard private-workspace claim, but the\n"
-    "concrete trigger has not yet been pinned down.")
+    description="""\
+Reached only via PHA/PHA/RTS dispatch (table index 22 in the
+svc_dispatch table at `&89ED` / `&8A20`). Carries out the bring-up
+sequence after page allocation:
+
+- Clears `ws_page` / `tx_complete_flag` and the receive-block
+  remote-op flag.
+- On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4
+  set, calls [`setup_ws_ptr`](address:8CBD) and zeroes the FS
+  workspace page in a 256-byte loop.
+- Calls [`copy_ps_data_y1c`](address:B3D5) to install the printer-
+  server template.
+- Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into
+  the workspace identity block at `nfs_workspace+{0..3}`.
+- Reads CMOS byte `&11` (Econet station): if zero, prints
+  `Station number in CMOS RAM invalid. Using 1 instead!` and
+  defaults to station 1.
+- Stores station ID into the receive block.
+- Calls `cmd_net_fs` to select ANFS as the active filing system,
+  then [`init_adlc_and_vectors`](address:903C) to install NETV /
+  FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`
+  for protection setup.
+
+Returns via `RTS` at `&903B`.
+
+TODO (Phase C): identify the exact svc_dispatch `(X, Y)` pair that
+reaches index 22 (OPEN-ISSUES O-1). The concrete trigger has not
+yet been pinned down.""")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
