@@ -3071,6 +3071,14 @@ subroutine(0x8BD5, "print_cmd_table_loop",
     "help_wrap_if_serial to handle line continuation\n"
     "on serial output streams. Preserves Y.",
     on_entry={"x": "offset into cmd_table_fs"})
+subroutine(0x8BD8, "loop_next_entry",
+    title="*HELP table walker per-entry body",
+    description="""\
+Loads la76c,X (the cmd_table_fs entry byte). Bit 7 clear ->
+print_indent (continue with this entry); bit 7 set -> JMP
+done_print_table (end of table reached). Single caller (the BNE
+retry at &8C22 in print_cmd_table's outer loop).""",
+    on_entry={"x": "current cmd_table_fs offset"})
 subroutine(0x8C06, "loop_print_syntax",
     title="Per-character body of *HELP syntax string emit",
     description="""\
@@ -3463,6 +3471,12 @@ subroutine(0x923F, "print_hex_nybble",
     "carry set from the CMP), then ADC #&30 for the\n"
     "final '0'-'F' character. Outputs via JMP OSASCI.",
     on_entry={"a": "value (low nybble used)"})
+subroutine(0x9269, "loop_next_char",
+    title="print_inline pointer-advance step",
+    description="""\
+INC fs_error_ptr (lo); on overflow INC fs_crflag (hi). Single
+caller (the loop tail at &9284 inside print_inline). Falls through
+to load_char which reads the next inline-string byte.""")
 subroutine(0x92B2, "parse_addr_arg",
     title="Parse decimal or hex station address argument",
     description="Located at &92B2 in 4.21_v1 (was &916E in 4.18, +&144 "
@@ -4157,6 +4171,14 @@ return path at &9FD6 and the catalogue tail at tail_update_
 catalogue (&A329).""",
     on_exit={"a": "0",
              "c": "0 (LSR of 0)"})
+subroutine(0x9D0C, "recv_reply",
+    title="Receive FS reply and stash result byte",
+    description="""\
+JSRs recv_and_process_reply, then falls through to store_result
+(STX lc108; LDY #&0E to point at the protection-bits offset).
+Single caller (the dispatch at &9C82).""",
+    on_exit={"x": "FS result byte (also written to lc108)",
+             "y": "&0E (FS options offset for protection)"})
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
@@ -4189,6 +4211,17 @@ subroutine(0xA134, "adjust_fsopts_4bytes",
     on_entry={"y": "FS options offset for first byte",
               "c": "carry input for first byte"})
 label(0xA1EA, "return_success")
+subroutine(0xA145, "store_adjusted_byte",
+    title="Store adjusted byte and step the loop",
+    description="""\
+Tail of the address-adjustment 4-byte loop: STA (fs_options),Y /
+INY / INX / BNE loop_adjust_byte / RTS. The BNE retries until X
+has cycled through all 4 bytes; once X overflows back to 0 the
+loop exits and the RTS returns. Single caller (the loop-body fall-
+through at &A13F).""",
+    on_entry={"a": "byte to store",
+              "y": "current FS-options index",
+              "x": "remaining-byte counter"})
 subroutine(0xA1EF, "lookup_cat_entry_0",
     title="Look up channel from FS options offset 0",
     description="Loads the channel handle from (fs_options) at\n"
@@ -4224,6 +4257,15 @@ subroutine(0xA284, "recv_reply_preserve_flags",
     "the reply processing.",
     on_exit={"a": "FS reply status",
              "p (flags)": "preserved across the call (PHP/PLP)"})
+subroutine(0xA29F, "write_block_entry",
+    title="Pre-write Tube-station check, fall into write_data_block",
+    description="""\
+Y=4 (FS-options offset for station). If tube_present is zero
+(no Tube co-pro), branch forward to store_station_result and skip
+the next compare; otherwise CMP (fs_options),Y to validate the
+caller's station matches the saved Tube station. Falls through to
+write_data_block. Single caller (&A16A in the OSWORD write path).""",
+    on_entry={"y": "ignored (forced to 4)"})
 subroutine(0xA2ED, "write_data_block",
     title="Write data block to destination or Tube",
     description="If no Tube present, copies directly from\n"
@@ -4321,6 +4363,14 @@ subroutine(0xA45B, "match_fs_cmd",
              "y": "command-line offset of the first non-name character "
              "(typically the argument start)",
              "z flag": "set on match, clear on no-match"})
+subroutine(0xA4A2, "loop_skip_trail_spaces",
+    title="Skip trailing spaces from FS command-line args",
+    description="""\
+Reads (fs_crc_lo),Y; on space, falls through to the per-char
+advance; non-space exits to check_cmd_flags. Shared body with
+skip_dot_and_spaces at &A4A8 (alt-entry that also accepts dots).
+Single caller (the BNE retry at &A4A9).""",
+    on_entry={"y": "current command-line offset"})
 subroutine(0xA4F1, "cmd_run_via_urd",
     title="*RUN entry for URD-prefixed argument",
     description="""\
@@ -4402,6 +4452,14 @@ subroutine(0xA6A6, "flip_set_station_boot",
     "system state.",
     on_entry={"a": "boot type code to store"},
     on_exit={"a, x, y": "clobbered"})
+subroutine(0xA764, "boot_cmd_oscli",
+    title="Look up boot command in la75b table and OSCLI it",
+    description="""\
+Loads X = la75b,Y (the low byte of the boot-command address),
+sets Y=&A7 (high byte = &A7xx area where the boot strings live),
+then JMPs to oscli with (X,Y) pointing at a CR-terminated command
+string. Single caller (&A5D4 in the *RUN-then-* boot dispatch).""",
+    on_entry={"y": "boot-command index"})
 subroutine(0xA864, "osword_setup_handler",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD dispatch table by X to\n"
@@ -5025,6 +5083,12 @@ subroutine(0xB3D7, "copy_ps_data",
              "a": "last template byte"})
 label(0xB441, "read_ps_station_addr")
 # UNMAPPED: label(0xB0B9, "store_ps_station_addr")
+subroutine(0xB477, "store_ps_station",
+    title="Write printer-server station number into NFS workspace",
+    description="""\
+Stores fs_work_5/fs_work_6 (the parsed station/network bytes) into
+nfs_workspace offsets 2 and 3 (the printer-server slot's station/
+net pair). Single caller (cmd_ps's parse-success path at &B3D2).""")
 subroutine(0xB483, "print_file_server_is",
     title="Print 'File server ' prefix",
     description="Uses print_inline to output 'File' then falls through\n"
@@ -5049,6 +5113,14 @@ subroutine(0xB4B4, "pop_requeue_ps_scan",
     "writes slot data, and jumps back into the PS scan\n"
     "loop to continue processing.",
     on_entry={"a": "PS slot flags byte to convert into a workspace index"})
+subroutine(0xB4D6, "skip_next_ps_slot",
+    title="Advance to next PS slot, wrap if all 256 done",
+    description="""\
+INX / TXA / BNE loop_scan_ps_slots. Slot index in X advances; the
+BNE re-enters the scan unless X has wrapped to zero (all 256
+slots scanned). Single caller (the no-match path at &B4FF in the
+PS slot scanner).""",
+    on_entry={"x": "current slot index"})
 subroutine(0xB51C, "write_ps_slot_byte_ff",
     title="Write buffer page byte and two &FF markers",
     description="Stores the buffer page byte at the current Y offset\n"
@@ -5100,6 +5172,14 @@ subroutine(0xB6BD, "store_char_uppercase",
 
 # --- cmd_wipe subroutines ---
 
+subroutine(0xB703, "request_next_wipe",
+    title="Build 'examine directory' TXCB for next wipe iteration",
+    description="""\
+Issues FS function-code 1 ('examine directory entry') for the
+current iteration in fs_work_5. Writes the function code into
+TXCB[5] and TXCB[7], copies the iteration index to TXCB[6], and
+falls through to the TXCB-build / send sequence. Single caller
+(the BNE retry at &B73F that loops cmd_wipe over each match).""")
 subroutine(0xB7D3, "flush_and_read_char",
     title="Flush keyboard buffer and read one character",
     description="Calls OSBYTE &0F to flush the input buffer, then\n"
@@ -5294,6 +5374,14 @@ subroutine(0xBB38, "process_all_fcbs",
     "fs_options + fs_block_offset (2 bytes); 4.21 saves\n"
     "9 bytes to prevent cross-FCB workspace corruption.",
     on_entry={"y": "filter attribute (0=process all)"})
+subroutine(0xBC65, "done_inc_byte_count",
+    title="Increment FCB byte count, clear rx attr, restore caller",
+    description="""\
+JSRs inc_fcb_byte_count for the active FCB, then A=0 / JSR
+store_rx_attribute (clears the receive-attribute byte). Pulls
+saved X back into X (caller's value), discards the saved data byte
+on the stack and returns. Single caller (the OSBPUT/PRINT path at
+&BC1F).""")
 subroutine(0xBC74, "flush_fcb_if_station_known",
     title="Flush FCB byte count to server if station is set",
     description="Saves all registers, checks if the FCB has a\n"
@@ -5368,6 +5456,15 @@ buffer cmd_dump uses to render each line) and tail-jumps to
 close_ws_file. Reached from the in-line BPL at &BD7B and the
 fall-through tail at &BDFE.""",
     on_entry={"x": "stack-byte count - 1 (caller sets it to &14 or &15)"})
+subroutine(0xBDBB, "loop_next_dump_col",
+    title="*DUMP per-column advance and end-of-line check",
+    description="""\
+INY (next buffer offset), CPY #&10. End -> done_print_separator.
+Otherwise DEX (decrement byte counter); BPL loop_print_dump_hex
+to print the next byte. Single caller (the BPL at &BDCC after
+short-line padding).""",
+    on_entry={"x": "remaining bytes - 1",
+              "y": "buffer offset"})
 subroutine(0xBE01, "print_dump_header",
     title="Print hex dump column header line",
     description="Outputs the starting address followed by 16 hex\n"
@@ -5406,6 +5503,14 @@ subroutine(0xBE42, "parse_dump_range",
     on_entry={"y": "current command-line offset"},
     on_exit={"y": "advanced past the parsed digits",
              "a": "first non-hex character (CR or space)"})
+subroutine(0xBE4E, "loop_parse_hex_digit",
+    title="*DUMP / *LIST hex-address parser per-character body",
+    description="""\
+Reload command-line offset from X, INX (step cursor), TAY (use as
+indirect index), read (os_text_ptr),Y. Branches: CR -> done; space
+-> end of token; otherwise validate hex digit and shift it into the
+4-byte accumulator. Single caller (the BNE retry at &BE95).""",
+    on_entry={"x": "current command-line offset"})
 subroutine(0xBEAB, "init_dump_buffer",
     title="Initialise dump buffer and parse address range",
     description="Parses the start and end addresses from the command\n"
