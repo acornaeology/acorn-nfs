@@ -16,7 +16,7 @@ For project overview and build instructions, see [README.md](README.md). For arc
 
 ## Quick reference: CLI tools
 
-The general-purpose disassembly tooling is provided by [fantasm](https://pypi.org/project/fantasm/), invoked via `uv run fantasm <command>`. Disassembly itself happens by running the version's driver script directly.
+The general-purpose disassembly tooling is provided by [fantasm](https://acornaeology.github.io/fantasm/), invoked via `uv run fantasm <command>`. The command-by-command reference is at <https://acornaeology.github.io/fantasm/cli.html>; the workflow guide at <https://acornaeology.github.io/fantasm/workflows.html> covers cross-version patterns NFS uses heavily (`backfill`, `annotations diff`, `addresses map`).
 
 | Command | Description | Example |
 |---------|-------------|---------|

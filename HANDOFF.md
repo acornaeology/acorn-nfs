@@ -55,9 +55,12 @@ applying a 4.18 → 4.21 address map via `generate_421_variant_1.py`
 The general-purpose disassembly tooling — block matching, opcode
 fingerprinting, audit, lint, verify, cfg, asm-extract, compare — lives
 in the [fantasm](https://pypi.org/project/fantasm/) package, declared
-as a regular project dependency in `pyproject.toml`. Use:
+as a regular project dependency in `pyproject.toml`. Full fantasm
+reference (user guide, CLI reference, API reference, workflows) is
+published at <https://acornaeology.github.io/fantasm/>. Use:
 
-- `uv run fantasm --help` for the full command surface.
+- `uv run fantasm --help` for the full command surface (or the docs
+  for the same with prose).
 - `uv run fantasm verify 4.21_variant_1` and
   `uv run fantasm lint 4.21_variant_1 versions/anfs-4.21_variant_1/disassemble/disasm_anfs_421_variant_1.py`
   to confirm the 4.21 driver still passes before changing any driver content.
@@ -365,8 +368,9 @@ analysis doc in `docs/analysis/` (and link it from
 
 If you build a new generic tool (something that benefits future
 versions, not just this one), contribute it to the
-[fantasm](https://pypi.org/project/fantasm/) package rather than this
-repo, and consider writing a short paper for `docs/techniques/` here.
+[fantasm](https://acornaeology.github.io/fantasm/) package rather
+than this repo, and consider writing a short paper for
+`docs/techniques/` here.
 
 ---
 

@@ -23,7 +23,9 @@ Verification is the primary correctness check: the generated assembly must reass
 
 ### CLI: fantasm
 
-The general-purpose 6502 disassembly tooling lives in the [fantasm](https://pypi.org/project/fantasm/) package, declared as a regular project dependency in `pyproject.toml`. Subcommands include `verify`, `lint`, `compare`, `asm extract`, `audit summary|detail|undeclared`, `cfg depth|leaves|roots|sub`, `sub insert`, `comments check`, `backfill`, and `promote`. Run `uv run fantasm --help` for the full surface.
+The general-purpose 6502 disassembly tooling lives in the [fantasm](https://pypi.org/project/fantasm/) package, declared as a regular project dependency in `pyproject.toml`. Subcommands include `disassemble`, `verify`, `lint`, `compare`, `asm extract`, `audit summary|detail|undeclared`, `cfg depth|leaves|roots|sub`, `sub insert`, `comments check`, `backfill`, and `promote`. Run `uv run fantasm --help` for the full surface.
+
+**Full fantasm reference: <https://acornaeology.github.io/fantasm/>** — the user guide covers every subcommand, the `fantasm.toml` schema, the version-graph workflows (the bit NFS uses heavily), and the importable `fantasm.api`. Reach for it before guessing.
 
 ### Disassembly driver
 
