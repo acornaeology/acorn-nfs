@@ -27,13 +27,13 @@ The output is verified by reassembling with [beebasm](https://github.com/stardot
 
 ## Disassembling locally
 
-Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
+Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+). The disassembly drivers are run directly with Python; verification uses the [fantasm](https://pypi.org/project/fantasm/) CLI.
 
 ```sh
 uv sync
 {% for version in versions -%}
-uv run acorn-nfs-disasm-tool disassemble {{ version.id }}
-uv run acorn-nfs-disasm-tool verify {{ version.id }}
+uv run python {{ version.driver_path }}
+uv run fantasm verify {{ version.id }}
 {% endfor -%}
 ```
 

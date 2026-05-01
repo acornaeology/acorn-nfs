@@ -17,12 +17,11 @@ calling-convention comments to every subroutine.
 
 ## Tooling
 
-- `context <ver> --summary` — global coverage stats and candidate list
-- `context <ver> --sub <name>` — write per-routine context file
-- `cfg <ver> --leaves` — list leaf subroutines (no outgoing calls)
-- `cfg <ver> --sub <name>` — show callers/callees of a routine
-- `extract <ver> <addr> [end]` — assembly listing for a region
-- `audit <ver> --sub <name>` — full report including refs and extent
+- `fantasm audit summary <ver>` — global stats and per-sub flags
+- `fantasm audit detail <ver> <name>` — full report on a routine
+- `fantasm cfg leaves <ver>` — list leaf subroutines (no outgoing calls)
+- `fantasm cfg sub <ver> <name>` — show callers/callees of a routine
+- `fantasm asm extract <ver> <addr> [end]` — assembly listing for a region
 
 ## Coverage snapshots
 
@@ -299,7 +298,7 @@ dimensions. In priority order:
 
   From `git log` and grep of UNMAPPED subroutine() blocks: the
   carry-over still has unrecovered routines whose 4.18 names are
-  known. Use `src/disasm_tools/fingerprint.py` and the JSR-following
+  known. Use `fantasm.api.fingerprint` and the JSR-following
   technique. Expected candidates (from the 4.18 driver):
 
     svc_2_private_workspace, cmd_close, cmd_print, cmd_prot,
@@ -374,8 +373,8 @@ dimensions. In priority order:
 
 ## Phase H: Audit pass against the audit-tool flag categories
 
-  Walk each flag category from `audit --summary`, validating that
-  the flag is correct (or fixing the routine if not):
+  Walk each flag category from `fantasm audit summary`, validating
+  that the flag is correct (or fixing the routine if not):
 
     BRANCH_ESCAPE (91): a branch targets outside the routine extent.
       Often correct (shared exits, fall-through targets) but worth
@@ -406,7 +405,7 @@ dimensions. In priority order:
 
 ## Working queue
 
-Sorted by `context --summary` output (lowest-density leaves first).
+Sorted by `fantasm audit summary` output (lowest-density leaves first).
 Strike through as completed.
 
 ### Leaves (no outgoing calls)

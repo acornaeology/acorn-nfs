@@ -11,31 +11,31 @@ Annotated disassembly of Acorn NFS and ANFS (Network Filing System / Advanced Ne
 Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
 
 ```sh
-uv sync                            # Install dependencies
-uv run acorn-nfs-disasm-tool disassemble 3.34  # Generate .asm and .json from ROM
-uv run acorn-nfs-disasm-tool lint 3.34         # Validate annotation addresses
-uv run acorn-nfs-disasm-tool verify 3.34       # Reassemble and byte-compare against original ROM
+uv sync                                                          # Install dependencies
+uv run python versions/nfs-3.34/disassemble/disasm_nfs_334.py    # Generate .asm and .json from ROM
+uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py  # Validate annotation addresses
+uv run fantasm verify 3.34                                       # Reassemble and byte-compare against original ROM
 ```
 
-Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output — catching stale addresses carried over from other versions. CI runs `disassemble`, `lint`, then `verify` on every push.
+Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output — catching stale addresses carried over from other versions. CI runs the driver script, then `fantasm lint`, then `fantasm verify` on every push.
 
 ## Architecture
 
-### CLI entry point
+### CLI: fantasm
 
-`src/disasm_tools/cli.py` — subcommands: `disassemble`, `correlate`, `verify`, `lint`, `compare`, `extract`, `audit`, `cfg`, `context`, `backfill`, `labels`, `rename-labels`, `insert-point`. Sets env vars `ACORN_NFS_ROM` and `ACORN_NFS_OUTPUT` before invoking version-specific scripts.
+The general-purpose 6502 disassembly tooling lives in the [fantasm](https://pypi.org/project/fantasm/) package, declared as a regular project dependency in `pyproject.toml`. Subcommands include `verify`, `lint`, `compare`, `asm extract`, `audit summary|detail|undeclared`, `cfg depth|leaves|roots|sub`, `sub insert`, `comments check`, `backfill`, and `promote`. Run `uv run fantasm --help` for the full surface.
 
 ### Disassembly driver
 
-`versions/nfs-3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens.
+`versions/nfs-3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens. Run the driver directly with `uv run python <driver-path>` to regenerate `.asm` and `.json` outputs.
 
 ### Lint
 
-`src/disasm_tools/lint.py` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
+`uv run fantasm lint <VER> <DRIVER_PATH>` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
 
 ### Verification
 
-`src/disasm_tools/verify.py` — assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
+`uv run fantasm verify <VER>` — assembles the generated `.asm` with beebasm and does a byte-for-byte comparison against the original ROM.
 
 ### Correlation tools
 
@@ -48,7 +48,7 @@ Each ROM version lives under `versions/<prefix>-<version>/` where prefix is `nfs
 - `disassemble/` — py8dis driver script and correlation tools
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
 
-Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`3.34`, `4.08.53`). The `resolve_version_dirpath()` helper in `src/disasm_tools/paths.py` maps them to the prefixed directory by probing for `anfs-{id}` then `nfs-{id}`. The `rom_prefix()` helper extracts the prefix from the directory name.
+Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`3.34`, `4.08.53`). fantasm and the project's own scripts resolve a version ID to its prefixed directory by probing for `anfs-{id}` then `nfs-{id}`.
 
 ### Glossary
 

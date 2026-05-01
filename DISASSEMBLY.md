@@ -16,19 +16,20 @@ For project overview and build instructions, see [README.md](README.md). For arc
 
 ## Quick reference: CLI tools
 
-All tools are invoked via `uv run acorn-nfs-disasm-tool <command>`.
+The general-purpose disassembly tooling is provided by [fantasm](https://pypi.org/project/fantasm/), invoked via `uv run fantasm <command>`. Disassembly itself happens by running the version's driver script directly.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `disassemble` | Generate `.asm` and `.json` from ROM | `... disassemble 3.34` |
-| `verify` | Reassemble and byte-compare against original ROM | `... verify 3.34` |
-| `lint` | Validate annotation addresses in driver script | `... lint 3.34` |
-| `compare` | Compare two ROM versions (byte and opcode level) | `... compare 3.34 3.34B` |
-| `extract` | Extract assembly section by address range or label | `... extract 3.34 &8069 &809E` |
-| `audit` | Audit subroutine annotations (summary, detail, flags) | `... audit 3.34 --summary` |
-| `correlate` | Cross-reference labels against DNFS 3.60 source | `... correlate 3.34` |
+| (driver script) | Generate `.asm` and `.json` from ROM | `uv run python versions/nfs-3.34/disassemble/disasm_nfs_334.py` |
+| `fantasm verify` | Reassemble and byte-compare against original ROM | `uv run fantasm verify 3.34` |
+| `fantasm lint` | Validate annotation addresses in driver script | `uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py` |
+| `fantasm compare` | Compare two ROM versions (byte and opcode level) | `uv run fantasm compare 3.34 3.34B` |
+| `fantasm asm extract` | Extract assembly section by address range or label | `uv run fantasm asm extract 3.34 &8069 &809E` |
+| `fantasm audit summary` | Subroutine annotation summary | `uv run fantasm audit summary 3.34` |
+| `fantasm audit detail` | Detail report for a single subroutine | `uv run fantasm audit detail 3.34 prepare_fs_cmd` |
+| `fantasm audit undeclared` | List JSR targets without `subroutine()` declarations | `uv run fantasm audit undeclared 3.34` |
 
-The `extract` command accepts hex addresses in multiple formats (`&80EA`, `$80EA`, `0x80EA`) as well as label names.
+The `asm extract` command accepts hex addresses in multiple formats (`&80EA`, `$80EA`, `0x80EA`) as well as label names. Cross-referencing labels against DNFS 3.60 source is handled by the per-version correlation scripts under `versions/nfs-3.34/disassemble/`.
 
 
 ## Producing a new version disassembly
@@ -50,12 +51,12 @@ versions/<VER>/
 
 Update `acornaeology.json` to add the new version to the versions array.
 
-Naming convention: version "3.35D" becomes script `disasm_nfs_335d.py` and ROM `nfs-3.35D.rom`. The CLI resolves these via `src/disasm_tools/cli.py`.
+Naming convention: version "3.35D" becomes script `disasm_nfs_335d.py` and ROM `nfs-3.35D.rom`.
 
 ### Step 2: Run initial comparison
 
 ```sh
-uv run acorn-nfs-disasm-tool compare <BASE> <NEW>
+uv run fantasm compare <BASE> <NEW>
 ```
 
 This gives similarity statistics. Key thresholds:
@@ -103,8 +104,8 @@ The `move()` calls need manual updating. Find new source addresses by examining 
 Run:
 
 ```sh
-uv run acorn-nfs-disasm-tool disassemble <VER>
-uv run acorn-nfs-disasm-tool verify <VER>
+uv run python versions/<PREFIX>-<VER>/disassemble/disasm_<PREFIX>_<VER_NO_DOTS>.py
+uv run fantasm verify <VER>
 ```
 
 #### py8dis AssertionError: "Nothing loaded at address 0xNNNN"
@@ -142,10 +143,10 @@ Lines marked `# UNMAPPED:` are from the base version where the code was deleted 
 
 ### Step 5: Annotate new code
 
-Use the comparison output to identify inserted code blocks. For each, use `extract` to examine the assembly:
+Use the comparison output to identify inserted code blocks. For each, use `asm extract` to examine the assembly:
 
 ```sh
-uv run acorn-nfs-disasm-tool extract <VER> &80EA &8120
+uv run fantasm asm extract <VER> &80EA &8120
 ```
 
 What to annotate:
@@ -245,7 +246,7 @@ The audit tool systematically verifies subroutine boundaries, descriptions, and 
 ### Summary mode
 
 ```sh
-uv run acorn-nfs-disasm-tool audit <VER> --summary
+uv run fantasm audit summary <VER>
 ```
 
 Shows all subroutines with computed flags:
@@ -264,9 +265,9 @@ Flags: 69 BRANCH_ESCAPE, 6 DATA_ONLY, 73 FALL_THROUGH, 28 FALL_THROUGH_ENTRY, 47
 Full report for a single subroutine, including description, extent, caller references, escaping branches, and the assembly listing:
 
 ```sh
-uv run acorn-nfs-disasm-tool audit <VER> --sub prepare_fs_cmd
-uv run acorn-nfs-disasm-tool audit <VER> --sub 0x8350
-uv run acorn-nfs-disasm-tool audit <VER> --sub '&8350'
+uv run fantasm audit detail <VER> prepare_fs_cmd
+uv run fantasm audit detail <VER> 0x8350
+uv run fantasm audit detail <VER> '&8350'
 ```
 
 The detail view shows everything needed to verify a description: the code itself, who calls it, what it falls through to, and which branches escape.
@@ -276,7 +277,7 @@ The detail view shows everything needed to verify a description: the code itself
 Filter the summary to show only subroutines with a specific flag:
 
 ```sh
-uv run acorn-nfs-disasm-tool audit <VER> --flag FALL_THROUGH_ENTRY
+uv run fantasm audit summary <VER> --flag FALL_THROUGH_ENTRY
 ```
 
 ### Audit flags
@@ -293,10 +294,10 @@ uv run acorn-nfs-disasm-tool audit <VER> --flag FALL_THROUGH_ENTRY
 
 ### Recommended audit workflow
 
-1. Run `--summary` to see flag counts and plan the work
+1. Run `audit summary` to see flag counts and plan the work
 2. Pick the smallest unreviewed flag category
-3. For each subroutine in the category, run `--sub` to read the description and code
-4. Fix any issues in the driver script, then disassemble and verify
+3. For each subroutine in the category, run `audit detail` to read the description and code
+4. Fix any issues in the driver script, then re-run the driver and verify
 5. Track progress so you can interrupt and resume across sessions
 6. After all flagged subroutines, check unflagged ones (those with no flags at all)
 
@@ -371,13 +372,13 @@ Both link types are validated by the lint tool in CI.
 
 ## Tools reference
 
-| Tool | Source | Purpose |
-|------|--------|---------|
-| CLI entry point | `src/disasm_tools/cli.py` | Dispatches all subcommands |
-| Verify | `src/disasm_tools/verify.py` | beebasm reassembly and byte comparison |
-| Lint | `src/disasm_tools/lint.py` | Validate annotation addresses and doc links |
-| Compare | `src/disasm_tools/compare.py` | Binary comparison with SequenceMatcher |
-| Extract | `src/disasm_tools/asm_extract.py` | Extract assembly sections by address or label |
-| Audit | `src/disasm_tools/audit.py` | Subroutine annotation audit (flags, extents, refs) |
-| Opcode tables | `src/disasm_tools/mos6502.py` | 6502 instruction lengths |
+| Tool | Provided by | Purpose |
+|------|-------------|---------|
+| `fantasm verify` | fantasm | beebasm reassembly and byte comparison |
+| `fantasm lint` | fantasm | Validate annotation addresses and doc links |
+| `fantasm compare` | fantasm | Binary comparison with SequenceMatcher |
+| `fantasm asm extract` | fantasm | Extract assembly sections by address or label |
+| `fantasm audit` | fantasm | Subroutine annotation audit (flags, extents, refs) |
+| `fantasm cfg` | fantasm | Call-graph queries (depth/leaves/roots/sub) |
+| `fantasm.api.mos6502` | fantasm | 6502 / 65C02 instruction lengths and mnemonics |
 | Generate script | `generate_335d.py` (project root) | Template for address mapping and script generation |

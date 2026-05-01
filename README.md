@@ -90,32 +90,32 @@ The output is verified by reassembling with [beebasm](https://github.com/stardot
 
 ## Disassembling locally
 
-Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+).
+Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stardot/beebasm) (v1.10+). The disassembly drivers are run directly with Python; verification uses the [fantasm](https://pypi.org/project/fantasm/) CLI.
 
 ```sh
 uv sync
-uv run acorn-nfs-disasm-tool disassemble 3.34
-uv run acorn-nfs-disasm-tool verify 3.34
-uv run acorn-nfs-disasm-tool disassemble 3.34B
-uv run acorn-nfs-disasm-tool verify 3.34B
-uv run acorn-nfs-disasm-tool disassemble 3.35D
-uv run acorn-nfs-disasm-tool verify 3.35D
-uv run acorn-nfs-disasm-tool disassemble 3.35K
-uv run acorn-nfs-disasm-tool verify 3.35K
-uv run acorn-nfs-disasm-tool disassemble 3.40
-uv run acorn-nfs-disasm-tool verify 3.40
-uv run acorn-nfs-disasm-tool disassemble 3.60
-uv run acorn-nfs-disasm-tool verify 3.60
-uv run acorn-nfs-disasm-tool disassemble 3.62
-uv run acorn-nfs-disasm-tool verify 3.62
-uv run acorn-nfs-disasm-tool disassemble 3.65
-uv run acorn-nfs-disasm-tool verify 3.65
-uv run acorn-nfs-disasm-tool disassemble 4.08.53
-uv run acorn-nfs-disasm-tool verify 4.08.53
-uv run acorn-nfs-disasm-tool disassemble 4.18
-uv run acorn-nfs-disasm-tool verify 4.18
-uv run acorn-nfs-disasm-tool disassemble 4.21_variant_1
-uv run acorn-nfs-disasm-tool verify 4.21_variant_1
+uv run python versions/nfs-3.34/disassemble/disasm_nfs_334.py
+uv run fantasm verify 3.34
+uv run python versions/nfs-3.34B/disassemble/disasm_nfs_334b.py
+uv run fantasm verify 3.34B
+uv run python versions/nfs-3.35D/disassemble/disasm_nfs_335d.py
+uv run fantasm verify 3.35D
+uv run python versions/nfs-3.35K/disassemble/disasm_nfs_335k.py
+uv run fantasm verify 3.35K
+uv run python versions/nfs-3.40/disassemble/disasm_nfs_340.py
+uv run fantasm verify 3.40
+uv run python versions/nfs-3.60/disassemble/disasm_nfs_360.py
+uv run fantasm verify 3.60
+uv run python versions/nfs-3.62/disassemble/disasm_nfs_362.py
+uv run fantasm verify 3.62
+uv run python versions/nfs-3.65/disassemble/disasm_nfs_365.py
+uv run fantasm verify 3.65
+uv run python versions/anfs-4.08.53/disassemble/disasm_anfs_40853.py
+uv run fantasm verify 4.08.53
+uv run python versions/anfs-4.18/disassemble/disasm_anfs_418.py
+uv run fantasm verify 4.18
+uv run python versions/anfs-4.21_variant_1/disassemble/disasm_anfs_421_variant_1.py
+uv run fantasm verify 4.21_variant_1
 ```
 
 ## (Re-)Assembling locally

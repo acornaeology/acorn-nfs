@@ -1,0 +1,148 @@
+# fantasm project configuration. See docs/configuration.md for the schema.
+
+[project]
+name = "acorn-nfs"
+
+[rom]
+# Default CPU is NMOS 6502; ANFS 4.21+ overrides to 65c02 in its
+# driver script. fantasm's audit/cfg/etc. read this default.
+cpu = "6502"
+base_address = 0x8000
+
+[versions]
+# anfs/ ROMs and nfs/ ROMs share this repo: anfs is the BBC Master
+# 128 / Compact variant, nfs is the original BBC B / B+ release.
+prefixes = ["anfs", "nfs"]
+
+# Project-wide workspace regions that aren't tied to a relocation
+# block. Per-version [[versions.entry]] reloc_blocks add their
+# destinations to the effective regions automatically, so the &0016,
+# &0400, &0500, &0600 workspace pages don't need to live here.
+# These regions are project-wide. Per-version reloc destinations are
+# auto-merged on top by VersionGraph.effective_regions, so the
+# &0016, &0400, &0500, &0600 workspace pages don't need to live here.
+# The duplication between this list and the JSON's external_labels
+# falls away once fantasm#3 lands.
+[memory]
+regions = [
+    { start = 0x0000, end = 0x00FF },   # BBC OS zero page (NFS uses pieces of it)
+    { start = 0x0100, end = 0x01FF },   # 6502 stack page (error block / stack-indexed frame)
+    { start = 0x0200, end = 0x03FF },   # MOS vectors + page-3 OS workspace
+    { start = 0x0700, end = 0x07FF },   # Tube VDU relay workspace
+    { start = 0x0CFF, end = 0x0DFF },   # NMI base + workspace
+    { start = 0x0E00, end = 0x0FFF },   # NFS extended workspace (page E + F)
+    { start = 0x1000, end = 0x10FF },   # ANFS 128/Compact extended workspace
+]
+
+# === NFS chain (linear: 3.34 root, each successor a child of the prior) =====
+
+[[versions.entry]]
+id = "3.34"
+reloc_blocks = [
+    { source = 0x9307, dest = 0x0016, length = 0x61 },
+    { source = 0x934C, dest = 0x0400, length = 0x100 },
+    { source = 0x944C, dest = 0x0500, length = 0x100 },
+    { source = 0x954C, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.34B"
+parents = ["3.34"]
+reloc_blocks = [
+    { source = 0x9308, dest = 0x0016, length = 0x61 },
+    { source = 0x934D, dest = 0x0400, length = 0x100 },
+    { source = 0x944D, dest = 0x0500, length = 0x100 },
+    { source = 0x954D, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.35D"
+parents = ["3.34B"]
+reloc_blocks = [
+    { source = 0x931A, dest = 0x0016, length = 0x61 },
+    { source = 0x935F, dest = 0x0400, length = 0x100 },
+    { source = 0x945F, dest = 0x0500, length = 0x100 },
+    { source = 0x955F, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.35K"
+parents = ["3.35D"]
+reloc_blocks = [
+    { source = 0x9315, dest = 0x0016, length = 0x61 },
+    { source = 0x935A, dest = 0x0400, length = 0x100 },
+    { source = 0x945A, dest = 0x0500, length = 0x100 },
+    { source = 0x955A, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.40"
+parents = ["3.35K"]
+reloc_blocks = [
+    { source = 0x931C, dest = 0x0016, length = 0x61 },
+    { source = 0x935D, dest = 0x0400, length = 0x100 },
+    { source = 0x9456, dest = 0x0500, length = 0x100 },
+    { source = 0x9556, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.60"
+parents = ["3.40"]
+reloc_blocks = [
+    { source = 0x9321, dest = 0x0016, length = 0x61 },
+    { source = 0x9362, dest = 0x0400, length = 0x100 },
+    { source = 0x9462, dest = 0x0500, length = 0x100 },
+    { source = 0x9562, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.62"
+parents = ["3.60"]
+reloc_blocks = [
+    { source = 0x9321, dest = 0x0016, length = 0x61 },
+    { source = 0x9362, dest = 0x0400, length = 0x100 },
+    { source = 0x9462, dest = 0x0500, length = 0x100 },
+    { source = 0x9562, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "3.65"
+parents = ["3.62"]
+reloc_blocks = [
+    { source = 0x9324, dest = 0x0016, length = 0x61 },
+    { source = 0x9365, dest = 0x0400, length = 0x100 },
+    { source = 0x9465, dest = 0x0500, length = 0x100 },
+    { source = 0x9565, dest = 0x0600, length = 0x100 },
+]
+
+# === ANFS variants ==========================================================
+#
+# ANFS is the BBC Master / Compact variant of NFS. The relationship
+# back to the NFS chain isn't expressed here yet — 4.08.53 is left as
+# an independent root until the lineage is investigated.
+
+[[versions.entry]]
+id = "4.08.53"
+reloc_blocks = [
+    { source = 0xBEBF, dest = 0x0016, length = 0x42 },
+    { source = 0xBF00, dest = 0x0400, length = 0x100 },
+    { source = 0xBC90, dest = 0x0500, length = 0x100 },
+    { source = 0xBD90, dest = 0x0600, length = 0x100 },
+]
+
+[[versions.entry]]
+id = "4.18"
+parents = ["4.08.53"]
+reloc_blocks = [
+    { source = 0xBEC3, dest = 0x0016, length = 0x42 },
+    { source = 0xBF04, dest = 0x0400, length = 0xFC },
+    { source = 0xBC94, dest = 0x0500, length = 0x100 },
+    { source = 0xBD94, dest = 0x0600, length = 0x100 },
+]
+
+# 4.21_variant_1 has no relocation: the workspace pages (&0016,
+# &0400-&06FF) are dead in this build. The driver loads with
+# load(0x8000, ROM, "65c02").
+[[versions.entry]]
+id = "4.21_variant_1"
+parents = ["4.18"]

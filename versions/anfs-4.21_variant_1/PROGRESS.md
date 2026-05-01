@@ -25,17 +25,17 @@ labels added.
 2. **Outwards from islands** — subroutines that fell entirely within an
    LCS-equal region carry over reliably; verify their boundaries, then walk
    their callees.
-3. **CFG-driven walk** — use `acorn-nfs-disasm-tool cfg <ver> --sub <name>`
+3. **CFG-driven walk** — use `fantasm cfg sub <ver> <name>`
    to find callees/callers. Mark each routine reviewed in the table below.
 4. **Small chunks, frequent commits.** Stop at natural boundaries.
 
 ## Tools
 
-- `extract <ver> <addr> [end]` — assembly listing for a region
-- `extract 4.18 <addr>` and `extract 4.21_variant_1 <addr>` — side-by-side
-- `cfg <ver> --sub <name>` — caller/callee graph for a routine
-- `audit <ver> --sub <addr|name>` — full report on a routine
-- `compare 4.18 4.21_variant_1 > /tmp/cmp.txt` — equal/replace/insert regions
+- `fantasm asm extract <ver> <addr> [end]` — assembly listing for a region
+- `fantasm asm extract 4.18 <addr>` and `fantasm asm extract 4.21_variant_1 <addr>` — side-by-side
+- `fantasm cfg sub <ver> <name>` — caller/callee graph for a routine
+- `fantasm audit detail <ver> <addr|name>` — full report on a routine
+- `fantasm compare 4.18 4.21_variant_1 > /tmp/cmp.txt` — equal/replace/insert regions
 
 ## Review log
 
@@ -97,9 +97,9 @@ opcode-level change blocks.
 
 ## Recovered subroutines (so far)
 
-Used `src/disasm_tools/fingerprint.py` to locate routines that LCS
-mapping had abandoned. Each is verified by spot-checking the prologue
-opcodes against 4.18.
+Used `fantasm.api.fingerprint` to locate routines that LCS mapping had
+abandoned. Each is verified by spot-checking the prologue opcodes
+against 4.18.
 
 | 4.18 addr | 4.21_v1 addr | Name | Notes |
 |-----------|--------------|------|-------|

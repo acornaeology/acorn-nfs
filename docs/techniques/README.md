@@ -21,11 +21,11 @@ how the routine is reached at runtime:
 For the underlying algorithmic foundation that the supplementary block-matcher
 uses, see [00-seed-and-extend.md](00-seed-and-extend.md).
 
-The accompanying tools live in `src/disasm_tools/`:
+The accompanying tools are provided by the [fantasm](https://pypi.org/project/fantasm/) package:
 
-- `blockmatch.py` — primary LCS + supplementary seed-and-extend
-- `fingerprint.py` — sliding-window single-routine fingerprint match
-- `mos6502.py` — opcode length / mnemonic tables (6502 and 65C02)
+- `fantasm.api.blockmatch` — primary LCS + supplementary seed-and-extend
+- `fantasm.api.fingerprint` — sliding-window single-routine fingerprint match
+- `fantasm.api.mos6502` — opcode length / mnemonic tables (6502 and 65C02)
 
 All techniques produce candidate addresses; **always verify** by spot-checking
 the prologue opcodes against the source version before declaring the

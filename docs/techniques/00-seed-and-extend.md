@@ -102,7 +102,7 @@ short or has been edited.
 `k = 8` is more selective: fewer seeds, fewer false positives, but small
 relocated blocks won't seed.
 
-Default in `disasm_tools/blockmatch.py` is `k = 6`.
+Default in `fantasm.api.blockmatch` is `k = 6`.
 
 ## What this misses
 
@@ -121,10 +121,10 @@ Default in `disasm_tools/blockmatch.py` is `k = 6`.
 
 ## Validation
 
-The implementation in `src/disasm_tools/blockmatch.py` ships with a
-synthetic test: given `A = X || Y` and `B = Y || X` (a true block
-swap), the primary pass picks one half and the supplementary pass
-recovers the other at ratio 1.0.
+The `fantasm.api.blockmatch` implementation ships with a synthetic
+test: given `A = X || Y` and `B = Y || X` (a true block swap), the
+primary pass picks one half and the supplementary pass recovers the
+other at ratio 1.0.
 
 On real ROM pairs:
 
@@ -144,7 +144,7 @@ unrelated targets in 4.21.
 
 ## References
 
-* `src/disasm_tools/blockmatch.py` — implementation
+* `fantasm.api.blockmatch` — implementation in the fantasm package
 * Altschul et al., *Basic local alignment search tool*, J. Mol. Biol., 1990
   — original BLAST paper, the inspiration for this seed-and-extend pattern
 * Li, *Minimap2: pairwise alignment for nucleotide sequences*, Bioinformatics,

@@ -51,7 +51,7 @@ def fingerprint(insts_a, src_start, src_end, insts_b, *,
     return deduped
 ```
 
-The implementation lives in `src/disasm_tools/fingerprint.py` and reads ROM
+The implementation lives in `fantasm.api.fingerprint` and reads ROM
 bytes plus the per-version `cpu` field from each `rom.json`.
 
 ## Choosing the signature length

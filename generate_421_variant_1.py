@@ -25,8 +25,7 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-from disasm_tools.blockmatch import build_full_address_map  # noqa: E402
+from fantasm.api.blockmatch import build_full_address_map
 
 # ============================================================
 # Configuration
