@@ -2254,15 +2254,7 @@ subroutine(0x8050, "adlc_init",
     "checks for Tube co-processor via OSBYTE &EA and\n"
     "stores the result in l0d63. Issues NMI claim service\n"
     "request (OSBYTE &8F, X=&0C). Falls through to\n"
-    "init_nmi_workspace to copy the NMI shim to RAM.",
-    on_entry={"romsel_copy (&F4)": "current ROM slot (used both for "
-              "the NMI claim service and as the ROM ID patched into "
-              "the NMI shim)"},
-    on_exit={"l0d63": "Tube state byte from OSBYTE &EA",
-             "ADLC": "fully reset and re-entered RX listen mode",
-             "NMI workspace at &0D00..&0D1F": "shim installed via "
-             "fall-through to init_nmi_workspace",
-             "NMI flip-flop": "re-enabled via INTON before exit"})
+    "init_nmi_workspace to copy the NMI shim to RAM.")
 subroutine(0x8070, "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
     description="Copies 32 bytes of NMI shim code from ROM\n"
@@ -2275,17 +2267,7 @@ subroutine(0x8070, "init_nmi_workspace",
     "need_release_tube, and tx_op_type to zero. Reads\n"
     "station ID into tx_src_stn (&0D22). Sets\n"
     "tx_complete_flag and econet_init_flag to &80.\n"
-    "Finally re-enables NMIs via INTON (&FE20 read).",
-    on_entry={"romsel_copy (&F4)": "current ROM slot (patched into "
-              "the shim's self-modifying ROM-bank load)",
-              "ADLC station ID register (&FE18)":
-              "hardware-strapped local station number"},
-    on_exit={"NMI shim at &0D00..&0D1F":
-             "32 bytes copied from ROM template",
-             "tx_src_net, need_release_tube, tx_op_type": "= 0",
-             "tx_src_stn (&0D22)": "= local station ID",
-             "tx_complete_flag, econet_init_flag": "= &80",
-             "NMI flip-flop": "re-enabled via INTON read"})
+    "Finally re-enables NMIs via INTON (&FE20 read).")
 subroutine(0x809B, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
     description="Default NMI handler for incoming scout frames. Checks if the frame\n"
@@ -2294,33 +2276,13 @@ subroutine(0x809B, "nmi_rx_scout",
     "Tests SR2 bit0 (AP = Address Present) to detect incoming data.\n"
     "Reads the first byte (destination station) from the RX FIFO and\n"
     "compares against our station ID. Reading &FE18 also disables NMIs\n"
-    "(INTOFF side effect).",
-    on_entry={"context":
-              "NMI dispatch entry -- reached via JMP from the &0D0E shim. "
-              "Shim has already done BIT &FE18 (INTOFF) / PHA / TYA / PHA "
-              "and switched ROMSEL to NFS bank. A and Y are saved on "
-              "stack; X is NOT saved by the shim.",
-              "ADLC SR2": "bit 0 (AP) signals address-present (incoming scout)",
-              "tx_src_stn (&0D22)": "saved local station ID for compare"},
-    on_exit={"control flow": "exits via JMP nmi_rti -- RTI restores Y, A, "
-             "ROMSEL and re-enables NMI flip-flop via INTON",
-             "next NMI handler": "stays as nmi_rx_scout on no-match/error "
-             "(discard path); becomes nmi_rx_scout_net on station match"})
+    "(INTOFF side effect).")
 subroutine(0x80B8, "nmi_rx_scout_net",
     title="RX scout second byte handler",
     description="Reads the second byte of an incoming scout (destination network).\n"
     "Checks for network match: 0 = local network (accept), &FF = broadcast\n"
     "(accept and flag), anything else = reject.\n"
-    "Installs the scout data reading loop handler at &8102.",
-    on_entry={"context":
-              "NMI dispatch entry from the &0D0E shim (installed by "
-              "nmi_rx_scout after a station match). A/Y stacked, X "
-              "unsaved.",
-              "rx_src_net (&0D3E)":
-              "&40 if the previous handler flagged this as broadcast"},
-    on_exit={"control flow": "exits via JMP nmi_rti",
-             "next NMI handler": "scout data reading loop at &8102 on "
-             "accept; reverts to nmi_rx_scout on reject"})
+    "Installs the scout data reading loop handler at &8102.")
 subroutine(0x80D8, "scout_error",
     title="Scout error/discard handler",
     description="Handles scout reception errors and end-of-frame\n"
@@ -2330,15 +2292,7 @@ subroutine(0x80D8, "scout_error",
     "performs a full ADLC reset. Also serves as the\n"
     "common discard path for address/network mismatches\n"
     "from nmi_rx_scout and scout_complete -- reached by\n"
-    "5 branch sites across the scout reception chain.",
-    on_entry={"context": "branch target from inside an NMI handler "
-              "(nmi_rx_scout / scout_complete). Stack and ROMSEL "
-              "state are as set up by the shim.",
-              "ADLC SR2": "tested for AP|RDA to distinguish clean "
-              "end-of-frame from unexpected data"},
-    on_exit={"control flow": "exits via nmi_rti after either a clean "
-             "discard (no ADLC change) or a full ADLC reset on "
-             "unexpected data; restores idle RX listen state"})
+    "5 branch sites across the scout reception chain.")
 subroutine(0x8112, "scout_complete",
     title="Scout completion handler",
     description="Processes a completed scout frame. Writes CR1=&00\n"
@@ -2350,17 +2304,7 @@ subroutine(0x8112, "scout_complete",
     "a listener. On match, calculates the transfer size\n"
     "via tx_calc_transfer, sets up the data RX handler\n"
     "chain, and sends a scout ACK. On no match or error,\n"
-    "discards the frame via scout_error.",
-    on_entry={"context": "NMI dispatch entry installed by the scout "
-              "data reader at &8102 after the address bytes have been "
-              "consumed. A/Y stacked, X unsaved.",
-              "scout buffer at &0D3D..&0D48":
-              "first 4 bytes filled (dst/src/stn/net) by predecessor; "
-              "remaining bytes read here",
-              "ADLC SR2 FV bit": "set when frame closing flag received"},
-    on_exit={"control flow": "match path -> sends scout ACK and installs "
-             "data RX handler chain. Mismatch/error -> JMPs to scout_error "
-             "for the discard path. Either way exits via nmi_rti."})
+    "discards the frame via scout_error.")
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="Receives the data frame after the scout ACK has been sent.\n"
@@ -2370,14 +2314,7 @@ subroutine(0x81C2, "nmi_data_rx",
     "to read the remaining data payload into the open port buffer.\n"
     "\n"
     "Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->\n"
-    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)",
-    on_entry={"context": "NMI dispatch entry installed by ack_tx after "
-              "the scout ACK frame has been sent. A/Y stacked, X unsaved.",
-              "ADLC SR2": "AP signals start of the data frame",
-              "open_port_buf (&A4/&A5)":
-              "destination buffer pointer set up by scout_complete"},
-    on_exit={"control flow": "installs the next handler in the data "
-             "RX chain via set_nmi_vector then JMPs to nmi_rti"})
+    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)")
 subroutine(0x81F7, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="Selects between the normal bulk RX handler (&8239)\n"
@@ -2386,64 +2323,27 @@ subroutine(0x81F7, "install_data_rx_handler",
     "&8239 and checks SR1 bit 7: if IRQ is already asserted\n"
     "(more data waiting), jumps directly to nmi_data_rx_bulk\n"
     "to avoid NMI re-entry overhead. Otherwise installs the\n"
-    "handler via set_nmi_vector and returns via RTI.",
-    on_entry={"context": "tail-jumped to from inside an NMI handler "
-              "after address validation. Stack/ROMSEL/NMI state per "
-              "shim contract.",
-              "rx_src_net (tx_flags) bit 1": "0 = normal RX, 1 = Tube RX"},
-    on_exit={"next NMI handler": "nmi_data_rx_bulk (or Tube variant) "
-             "installed at &0D0C/&0D0D",
-             "control flow": "exits via JMP nmi_rti, OR jumps directly "
-             "into nmi_data_rx_bulk if SR1 IRQ is already asserted "
-             "(avoids the NMI re-entry round-trip)"})
+    "handler via set_nmi_vector and returns via RTI.")
 subroutine(0x8215, "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="Common error/abort entry used by 12 call sites. Checks\n"
     "tx_flags bit 7: if clear, does a full ADLC reset and returns\n"
     "to idle listen (RX error path); if set, jumps to tx_result_fail\n"
-    "(TX not-listening path).",
-    on_entry={"context": "JMP target from various NMI handler error "
-              "branches. Stack/ROMSEL/NMI state per shim contract.",
-              "rx_src_net (tx_flags) bit 7":
-              "0 = RX error (reset and return to listen); "
-              "1 = TX error (jump to tx_result_fail)"},
-    on_exit={"control flow": "RX path -> ADLC full reset and RX listen, "
-             "exit via nmi_rti. TX path -> JMPs to tx_result_fail "
-             "which sets the TX result flag and exits via nmi_rti."})
+    "(TX not-listening path).")
 subroutine(0x8223, "nmi_data_rx_bulk",
     title="Data frame bulk read loop",
     description="Reads data payload bytes from the RX FIFO and stores them into\n"
     "the open port buffer at (open_port_buf),Y. Reads bytes in pairs\n"
     "(like the scout data loop), checking SR2 between each pair.\n"
     "SR2 non-zero (FV or other) -> frame completion at &8278.\n"
-    "SR2 = 0 -> RTI, wait for next NMI to continue.",
-    on_entry={"context": "NMI dispatch entry installed by "
-              "install_data_rx_handler. May also be tail-jumped to "
-              "directly when SR1 IRQ is already asserted on entry.",
-              "open_port_buf, port_buf_len (&A2..&A5)":
-              "destination buffer pointer and remaining length",
-              "ADLC SR2": "RDA (bit 7) signals data ready; FV signals "
-              "frame complete"},
-    on_exit={"control flow": "loops reading byte pairs from the RX FIFO; "
-             "exits via nmi_rti once the FIFO drains (more data pending "
-             "next NMI). On FV/error -> JMPs to data_rx_complete."})
+    "SR2 = 0 -> RTI, wait for next NMI to continue.")
 subroutine(0x8268, "data_rx_complete",
     title="Data frame completion",
     description="Reached when SR2 non-zero during data RX (FV detected).\n"
     "Same pattern as scout completion (&8137): disables PSE (CR2=&84,\n"
     "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
     "If extra data available and buffer space remains, stores it.\n"
-    "Proceeds to send the final ACK via &82E4.",
-    on_entry={"context": "JMP target from nmi_data_rx_bulk when SR2 "
-              "indicates frame completion. Stack/ROMSEL/NMI state per "
-              "shim contract.",
-              "ADLC SR2": "FV (frame valid) and RDA bits drive the "
-              "tail-byte capture",
-              "rx_extra_byte (&0D42)": "destination for the optional "
-              "trailing byte"},
-    on_exit={"control flow": "tail-jumps to ack_tx (&82E4) to send the "
-             "final ACK, completing the four-way handshake. ack_tx "
-             "exits via nmi_rti."})
+    "Proceeds to send the final ACK via &82E4.")
 subroutine(0x82DF, "ack_tx",
     title="ACK transmission",
     description="Sends a scout ACK or final ACK frame as part of the four-way handshake.\n"
@@ -2454,20 +2354,7 @@ subroutine(0x82DF, "ack_tx",
     "\n"
     "After writing the address bytes to the TX FIFO, installs the next\n"
     "NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)\n"
-    "and sends TX_LAST_DATA (CR2=&3F) to close the frame.",
-    on_entry={"context": "JMP target from data_rx_complete and similar "
-              "handlers. Stack/ROMSEL/NMI state per shim contract.",
-              "&0D4A bit 7": "0 = scout ACK, 1 = final ACK (-> "
-              "completion path at &88C6)",
-              "scout buffer at &0D3D..": "source station/network for the "
-              "ACK address header",
-              "&0D4B/&0D4C": "next NMI handler address (set by predecessor)"},
-    on_exit={"ADLC CR1": "&44 (TX_RESET cleared, RX_RESET set, TIE on)",
-             "ADLC CR2": "&A7 then &3F (TX_LAST_DATA) to close the frame",
-             "next NMI handler": "= (&0D4B/&0D4C) -- whatever the scout/"
-             "data RX path saved",
-             "control flow": "exits via fall-through to nmi_ack_tx_src "
-             "(continuation of TX FIFO write); ultimately nmi_rti"})
+    "and sends TX_LAST_DATA (CR2=&3F) to close the frame.")
 subroutine(0x8316, "nmi_ack_tx_src",
     title="ACK TX continuation",
     description="Continuation of ACK frame transmission. Reads our\n"
@@ -2477,15 +2364,7 @@ subroutine(0x8316, "nmi_ack_tx_src",
     "Then checks rx_src_net bit 7: if set, branches to\n"
     "start_data_tx to begin the data phase. Otherwise\n"
     "writes CR2=&3F (TX_LAST_DATA) and falls through to\n"
-    "post_ack_scout for scout processing.",
-    on_entry={"context": "fall-through from ack_tx -- still inside the "
-              "NMI dispatch chain; A/Y stacked, X unsaved.",
-              "rx_src_net (tx_flags) bit 7":
-              "1 = data phase follows (branch to start_data_tx); "
-              "0 = scout-only ACK (fall through to post_ack_scout)"},
-    on_exit={"ADLC CR2": "&3F (TX_LAST_DATA) on the scout-ACK path",
-             "control flow": "data path -> JMP start_data_tx; scout "
-             "path -> fall through to post_ack_scout. Both end at nmi_rti."})
+    "post_ack_scout for scout processing.")
 subroutine(0x832D, "post_ack_scout",
     title="Post-ACK scout processing",
     description="Called after the scout ACK has been transmitted. Processes the\n"
@@ -2493,16 +2372,7 @@ subroutine(0x832D, "post_ack_scout",
     "Checks the port byte (&0D40) against open receive blocks to\n"
     "find a matching listener. If a match is found, sets up the\n"
     "data RX handler chain for the four-way handshake data phase.\n"
-    "If no match, discards the frame.",
-    on_entry={"context": "fall-through from nmi_ack_tx_src on the "
-              "scout-only path, OR JMP target from later handlers. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "scout_port (&0D40)": "port byte from the received scout",
-              "open RXCBs at port_ws_offset+...":
-              "list to match the port against"},
-    on_exit={"control flow": "match -> sets up data RX handler chain "
-             "and exits via nmi_rti. No-match -> JMPs to scout_error "
-             "(discard path), also exiting via nmi_rti."})
+    "If no match, discards the frame.")
 subroutine(0x833F, "advance_rx_buffer_ptr",
     title="Advance RX buffer pointer after transfer",
     description="Adds the transfer count to the RXCB buffer pointer (4-byte\n"
@@ -2515,11 +2385,7 @@ subroutine(0x833F, "advance_rx_buffer_ptr",
     "net_tx_ptr,Y (Y=8..&0B) and the RXCB pointer at\n"
     "(port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y;\n"
     "preserves X across the Tube branch (saved/restored via stack).",
-    on_entry={"port_ws_offset, rx_buf_offset": "RXCB workspace pointer",
-              "net_tx_ptr+8..+11": "transfer count (4-byte LE)",
-              "tx_flags (rx_src_net)": "bit1 transfer-active, bit5 Tube"},
-    on_exit={"a": "&FF when transfer was active, else preserved entry value",
-             "rxcb buffer pointer": "advanced by transfer count"})
+    on_exit={"a": "&FF when transfer was active, else preserved entry value"})
 subroutine(0x8386, "nmi_post_ack_dispatch",
     title="Post-ACK frame-complete NMI handler",
     description="Installed by ack_tx_configure via saved_nmi_lo/hi.\n"
@@ -2530,16 +2396,7 @@ subroutine(0x8386, "nmi_post_ack_dispatch",
     "transfer and mark the RXCB complete; port = 0\n"
     "with ctrl &82 (POKE) also goes to\n"
     "rx_complete_update_rxcb; other port-0 ops go to\n"
-    "imm_op_build_reply.",
-    on_entry={"context": "NMI dispatch entry installed by ack_tx after "
-              "the final ACK has been queued. Stack/ROMSEL/NMI state "
-              "per shim contract.",
-              "scout_port (&0D40)": "drives the dispatch (0 vs non-zero)",
-              "scout ctrl byte (&0D43)":
-              "tested for &82 (POKE) on the port-0 branch"},
-    on_exit={"control flow": "JMPs to rx_complete_update_rxcb (data "
-             "transfers) or imm_op_build_reply (immediate ops). All "
-             "paths ultimately exit via nmi_rti."})
+    "imm_op_build_reply.")
 subroutine(0x8395, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
     description="Called from nmi_post_ack_dispatch after the\n"
@@ -2553,17 +2410,7 @@ subroutine(0x8395, "rx_complete_update_rxcb",
     "foreground synchronisation point: wait_net_tx_ack\n"
     "polls this bit to detect that the reply has\n"
     "arrived. Falls through to discard_reset_rx to\n"
-    "reset the ADLC to idle RX listen mode.",
-    on_entry={"context": "JMP target from nmi_post_ack_dispatch. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "RXCB at (port_ws_offset)":
-              "open-receive control block to mark complete",
-              "scout buffer at &0D3D..": "source station/network/port "
-              "to copy into the RXCB"},
-    on_exit={"RXCB ctrl byte": "bit 7 set (reply complete -- "
-             "wait_net_tx_ack polls this)",
-             "control flow": "falls through to discard_reset_rx (ADLC "
-             "back to idle listen) and exits via nmi_rti"})
+    "reset the ADLC to idle RX listen mode.")
 subroutine(0x83F2, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"
@@ -2571,15 +2418,7 @@ subroutine(0x83F2, "discard_reset_listen",
     "If a Tube claim is held, calls release_tube to\n"
     "free it before returning. Used as the clean-up\n"
     "path after RXCB completion and after ADLC reset\n"
-    "to ensure no stale Tube claims persist.",
-    on_entry={"context": "JMP target from RXCB-completion and "
-              "ADLC-reset paths inside the NMI chain. Stack/ROMSEL/NMI "
-              "state per shim contract.",
-              "l0d63 bit 1": "Tube available flag",
-              "rx_src_net (tx_flags) bit 1": "Tube transfer active flag"},
-    on_exit={"Tube state": "claim released via release_tube if both "
-             "flags were set",
-             "control flow": "exits via nmi_rti"})
+    "to ensure no stale Tube claims persist.")
 label(0x83F7, "imm_op_jump_table")
 subroutine(0x8400, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
@@ -2591,18 +2430,7 @@ subroutine(0x8400, "copy_scout_to_buffer",
     "for Tube transfers. Calls advance_buffer_ptr after\n"
     "each byte. Falls through to release_tube on\n"
     "completion. Handles page overflow (Y wrap) by\n"
-    "branching to scout_page_overflow.",
-    on_entry={"context": "called from inside an NMI handler (e.g. "
-              "scout_complete) with scout buffer fully populated.",
-              "scout buffer at &0D3D+4..&0D3D+11":
-              "8 bytes of scout payload to copy",
-              "open_port_buf (&A4/&A5)": "destination buffer pointer",
-              "rx_src_net (tx_flags) bit 1": "0 = direct memory store; "
-              "1 = Tube R3 write"},
-    on_exit={"open_port_buf": "advanced by 8 (via advance_buffer_ptr "
-             "for each byte)",
-             "Tube state": "released via release_tube fall-through if "
-             "Tube was claimed"})
+    "branching to scout_page_overflow.")
 subroutine(0x8448, "release_tube",
     title="Release Tube co-processor claim",
     description="Tests need_release_tube (&98) bit 7: if set, the\n"
@@ -2616,9 +2444,7 @@ subroutine(0x8448, "release_tube",
     "\n"
     "Idempotent: safe to call when the Tube has already been\n"
     "released. Clobbers A; preserves X and Y.",
-    on_entry={"prot_flags": "bit 7 clear if Tube claim is currently held"},
-    on_exit={"prot_flags": "bit 7 clear (LSR also shifts other bits down)",
-             "a": "clobbered"})
+    on_exit={"a": "clobbered"})
 subroutine(0x8454, "immediate_op",
     title="Immediate operation handler (port = 0)",
     description="Checks the control byte at l0d30 for immediate\n"
@@ -2630,18 +2456,7 @@ subroutine(0x8454, "immediate_op",
     "determine if this station accepts the operation.\n"
     "If accepted, dispatches via the immediate operation\n"
     "table. Builds the reply by storing data length,\n"
-    "station/network, and control byte into the RX buffer.",
-    on_entry={"context": "JMP target from post_ack_scout when port = 0. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "l0d30 (scout ctrl byte)":
-              "&81-&88 selects which immediate-op handler to dispatch",
-              "&0D61 (immediate-op accept mask)":
-              "bit per accepted op type (skipped for HALT/CONTINUE)"},
-    on_exit={"control flow": "valid + accepted -> dispatches via the "
-             "imm_op_dispatch_lo table at &848B (PHA/PHA/RTS into one "
-             "of rx_imm_peek/poke/exec/halt_cont/machine_type). Out of "
-             "range or rejected -> JMPs to scout_error (discard). Both "
-             "paths exit via nmi_rti."})
+    "station/network, and control byte into the RX buffer.")
 
 # Immediate operation dispatch lo-byte table.
 # In 4.21_v1 the table moved by +3 to &848B-&8492 (the &8488 area is now
@@ -2668,54 +2483,23 @@ subroutine(0x8493, "rx_imm_exec",
     "into the execution address workspace at &0D66, then\n"
     "jumps to the common receive path at c81c1. Used for\n"
     "operation types &83 (JSR), &84 (UserProc), and\n"
-    "&85 (OSProc).",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
-              "for ctrl bytes &83-&85. Stack/ROMSEL/NMI state per shim "
-              "contract.",
-              "scout buffer at &0D32/&0D33":
-              "remote routine address (low, high)"},
-    on_exit={"&0D66/&0D67 (exec_addr_lo/hi)": "remote address copied",
-             "control flow": "JMPs to common receive path at c81c1; "
-             "ultimately exits via nmi_rti"})
+    "&85 (OSProc).")
 subroutine(0x84B1, "rx_imm_poke",
     title="RX immediate: POKE setup",
     description="Sets up workspace offsets for receiving POKE data.\n"
     "port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\n"
-    "the common data-receive path at c81af.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
-              "for ctrl byte &82. Stack/ROMSEL/NMI state per shim "
-              "contract."},
-    on_exit={"port_ws_offset, rx_buf_offset (&A6/&A7)":
-             "&2E, &0D -- workspace pointer for the POKE destination",
-             "control flow": "JMPs to common data-receive path; exits "
-             "via nmi_rti"})
+    "the common data-receive path at c81af.")
 subroutine(0x84BC, "rx_imm_machine_type",
     title="RX immediate: machine type query",
     description="Sets up a buffer at &88C1 (length #&01FC) for the\n"
     "machine type query response. Falls through to\n"
     "set_rx_buf_len_hi to configure buffer dimensions,\n"
-    "then branches to set_tx_reply_flag.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
-              "for ctrl byte &88. Stack/ROMSEL/NMI state per shim "
-              "contract."},
-    on_exit={"reply buffer config":
-             "&88C1 / &01FC -- the ROM-resident machine-type response",
-             "control flow": "branches to set_tx_reply_flag and exits "
-             "via nmi_rti once the reply has been queued"})
+    "then branches to set_tx_reply_flag.")
 subroutine(0x84CE, "rx_imm_peek",
     title="RX immediate: PEEK setup",
     description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
     "scout_status=2, then calls tx_calc_transfer to send\n"
-    "the PEEK response data back to the requesting station.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from immediate_op "
-              "for ctrl byte &81. Stack/ROMSEL/NMI state per shim "
-              "contract.",
-              "scout buffer at &0D2E..&0D31":
-              "PEEK source address and length supplied by remote"},
-    on_exit={"scout_status (&0D31)":
-             "= 2 (PEEK reply -- handled by tx state machine)",
-             "control flow": "JMPs/calls into tx_calc_transfer to begin "
-             "sending the PEEK response back to the requester"})
+    "the PEEK response data back to the requesting station.")
 subroutine(0x852C, "advance_buffer_ptr",
     title="Increment 4-byte receive buffer pointer",
     description="Adds one to the counter at &A2-&A5 (port_buf_len\n"
@@ -2726,26 +2510,14 @@ subroutine(0x852C, "advance_buffer_ptr",
     "in the receive buffer.\n"
     "\n"
     "Preserves A, X, Y (uses INC zp throughout).",
-    on_entry={"port_buf_len, open_port_buf (&A2..&A5)":
-              "current 4-byte LE counter to increment"},
-    on_exit={"port_buf_len, open_port_buf": "incremented as 4-byte LE counter",
-             "a, x, y": "preserved (INC zp only)"})
+    on_exit={"a, x, y": "preserved (INC zp only)"})
 subroutine(0x84F9, "imm_op_build_reply",
     title="Build immediate operation reply header",
     description="Stores data length, source station/network, and control byte\n"
     "into the RX buffer header area for port-0 immediate operations.\n"
     "Then disables SR interrupts and configures the VIA shift\n"
     "register for shift-in mode before returning to\n"
-    "idle listen.",
-    on_entry={"context": "JMP target from nmi_post_ack_dispatch when "
-              "the post-ACK frame was an immediate-op (port = 0). "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "scout buffer at &0D3D..":
-              "source station/network/ctrl from the originating scout"},
-    on_exit={"RX buffer header": "data length + src station/network + "
-             "ctrl byte populated for the foreground reply path",
-             "VIA shift register": "configured for shift-in mode",
-             "control flow": "exits via nmi_rti returning to idle listen"})
+    "idle listen.")
 # Located in 4.21_v1 at &8540 (was &8543 in 4.18 -- moved -3 because
 # of layout shifts in the surrounding TX-done handlers). Reached only
 # via PHA/PHA/RTS dispatch from the tx_done_dispatch table; needs an
@@ -2757,8 +2529,7 @@ subroutine(0x8540, "tx_done_jsr",
     "to tx_done_exit when the remote routine completes, then does "
     "JMP (l0d66) to call the remote-supplied JSR target. When that "
     "routine returns via RTS, control resumes at tx_done_exit which "
-    "tidies up TX state.",
-    on_entry={"l0d66, l0d67": "remote routine address (low, high)"})
+    "tidies up TX state.")
 subroutine(0x8549, "tx_done_econet_event",
     title="TX done: fire Econet event",
     description="Handler for TX operation type &84. Loads the\n"
@@ -2771,9 +2542,6 @@ subroutine(0x8549, "tx_done_econet_event",
     "caller's X and Y onto the stack before transferring\n"
     "control, and the shared tx_done_exit at &8582 restores\n"
     "them via PLA/TAY/PLA/TAX before returning A=0.",
-    on_entry={"exec_addr_lo, exec_addr_hi (l0d66/l0d67)":
-              "remote routine address (low, high)",
-              "stack": "caller's Y on top, then caller's X (pushed by dispatcher)"},
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8557, "tx_done_os_proc",
@@ -2785,9 +2553,6 @@ subroutine(0x8557, "tx_done_os_proc",
     "\n"
     "Reached only via PHA/PHA/RTS dispatch from\n"
     "tx_done_dispatch_lo/hi.",
-    on_entry={"exec_addr_lo, exec_addr_hi (l0d66/l0d67)":
-              "OSProc address (X low, Y high)",
-              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8563, "tx_done_halt",
@@ -2801,10 +2566,7 @@ subroutine(0x8563, "tx_done_halt",
     "tx_done_dispatch_lo/hi. Falls through to tx_done_continue\n"
     "after the spin completes; on the already-halted path it\n"
     "branches directly to tx_done_exit.",
-    on_entry={"econet_flags (&0D61)": "bit 2 = halt-active flag",
-              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
     on_exit={"a": "0 (success status, set by tx_done_exit)",
-             "econet_flags": "bit 2 may be set during spin, cleared on exit",
              "i flag": "interrupts enabled (CLI inside the spin)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x857A, "tx_done_continue",
@@ -2816,10 +2578,7 @@ subroutine(0x857A, "tx_done_continue",
     "directly via PHA/PHA/RTS dispatch from\n"
     "tx_done_dispatch_lo/hi. Falls through to tx_done_exit\n"
     "which restores X and Y from the stack and returns A=0.",
-    on_entry={"econet_flags (&0D61)": "bit 2 may be set (from a previous HALT)",
-              "stack": "caller's Y, then caller's X (pushed by dispatcher)"},
     on_exit={"a": "0 (success status)",
-             "econet_flags": "bit 2 cleared",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8589, "tx_begin",
     title="Begin TX operation",
@@ -2827,18 +2586,7 @@ subroutine(0x8589, "tx_begin",
     "Copies dest station/network from the TXCB to the scout buffer,\n"
     "dispatches to immediate op setup (ctrl >= &81) or normal data\n"
     "transfer, calculates transfer sizes, copies extra parameters,\n"
-    "then enters the INACTIVE polling loop.",
-    on_entry={"context": "called from foreground via trampoline at "
-              "&06CE (poll_adlc_tx_status path); NOT entered via NMI "
-              "shim so registers are NOT pre-saved by the shim",
-              "nmi_tx_block": "= net_tx_ptr -- pointer to the TXCB to "
-              "transmit",
-              "TXCB at (nmi_tx_block)+&02..+&05":
-              "destination station, network and ctrl byte"},
-    on_exit={"control flow": "falls through to inactive_poll which "
-             "spins until the line is INACTIVE then transmits; "
-             "completion is signalled by the NMI handler chain via "
-             "tx_complete_flag"})
+    "then enters the INACTIVE polling loop.")
 subroutine(0x85F1, "inactive_poll",
     title="INACTIVE polling loop",
     description="Entry point for the Econet line idle detection\n"
@@ -2848,11 +2596,7 @@ subroutine(0x85F1, "inactive_poll",
     "INACTIVE bit mask (&04) into A and falls through to\n"
     "intoff_test_inactive to begin polling SR2 with\n"
     "interrupts disabled.",
-    on_entry={"context": "fall-through from tx_begin (foreground "
-              "execution, not NMI)"},
-    on_exit={"y": "&E7 (CR2 value for tx_prepare)",
-             "stack": "3 bytes of timeout state pushed",
-             "control flow": "falls through to intoff_test_inactive"})
+    on_exit={"y": "&E7 (CR2 value for tx_prepare)"})
 subroutine(0x85FC, "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
     description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
@@ -2864,15 +2608,8 @@ subroutine(0x85FC, "intoff_test_inactive",
     "NMIs via &FE20 (INTON) and decrements the 3-byte\n"
     "timeout counter on the stack. On timeout, falls\n"
     "through to tx_line_jammed.",
-    on_entry={"context": "fall-through from inactive_poll. NOT an NMI "
-              "entry -- foreground code that manually disables/enables "
-              "NMIs around the SR2 polling.",
-              "stack": "3-byte timeout counter (set up by inactive_poll)",
-              "a": "&04 (INACTIVE bit mask)",
-              "y": "&E7 (CR2 value for tx_prepare)"},
-    on_exit={"control flow": "INACTIVE+CTS -> branches to tx_prepare "
-             "to begin TX. Counter exhausted -> falls through to "
-             "tx_line_jammed."})
+    on_entry={"a": "&04 (INACTIVE bit mask)",
+              "y": "&E7 (CR2 value for tx_prepare)"})
 subroutine(0x8630, "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
     description="Reached when the INACTIVE polling loop times\n"
@@ -2880,15 +2617,7 @@ subroutine(0x8630, "tx_line_jammed",
     "CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX\n"
     "attempt, pulls the 3-byte timeout state from the\n"
     "stack, and stores error code &40 ('Line Jammed')\n"
-    "in the TX control block via store_tx_error.",
-    on_entry={"context": "fall-through from intoff_test_inactive on "
-              "timeout. Foreground execution.",
-              "stack": "3-byte timeout state to discard"},
-    on_exit={"ADLC CR2": "&07 (TX abort)",
-             "TXCB[0]": "= &40 ('Line Jammed' error)",
-             "control flow": "JMPs to discard_reset_rx -- ADLC back to "
-             "idle listen and tx_complete_flag set; foreground caller "
-             "of tx_begin observes the &40 result"})
+    "in the TX control block via store_tx_error.")
 subroutine(0x864A, "tx_prepare",
     title="TX preparation",
     description="Configures the ADLC for frame transmission.\n"
@@ -2900,20 +2629,7 @@ subroutine(0x864A, "tx_prepare",
     "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
     "Tube transfers, claims the Tube address; for direct\n"
     "transfers, sets up the buffer pointer from the TXCB.",
-    on_entry={"context": "branch target from intoff_test_inactive on "
-              "INACTIVE+CTS detect. Foreground execution with NMIs "
-              "disabled (caller did INTOFF).",
-              "y": "&E7 (CR2 prep value)",
-              "scout buffer at &0D3D..&0D40":
-              "dst station, dst network, src station, src network"},
-    on_exit={"ADLC CR2": "&E7 (RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | "
-             "2_1_BYTE | PSE)",
-             "ADLC CR1": "&44 (RX_RESET | TIE) -- TX with interrupts",
-             "next NMI handler": "= nmi_tx_data (&86E7) -- TX FIFO refill",
-             "TX FIFO": "loaded with the 4-byte scout address",
-             "Tube state": "claimed (&C3) for Tube transfers",
-             "control flow": "exits to caller (foreground) -- subsequent "
-             "NMIs drive the TX state machine"})
+    on_entry={"y": "&E7 (CR2 prep value)"})
 # UNMAPPED: subroutine(0x8689, "tx_ctrl_machine_type",
 # UNMAPPED:     title="TX ctrl: machine type query setup",
 # UNMAPPED:     description="Handler for control byte &88. Sets scout_status=3\n"
@@ -2925,20 +2641,14 @@ subroutine(0x868A, "tx_ctrl_peek",
     description="Sets A=3 (scout_status for PEEK) and branches\n"
     "to tx_ctrl_store_and_add to store the status and\n"
     "perform the 4-byte transfer address addition.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_ctrl_proc "
-              "for ctrl byte that selects PEEK"},
-    on_exit={"a": "3 (scout_status for PEEK)",
-             "control flow": "branches to tx_ctrl_store_and_add"})
+    on_exit={"a": "3 (scout_status for PEEK)"})
 subroutine(0x868E, "tx_ctrl_poke",
     title="TX ctrl: POKE transfer setup",
     description="Sets A=2 (scout_status for POKE) and falls\n"
     "through to tx_ctrl_store_and_add to store the\n"
     "status and perform the 4-byte transfer address\n"
     "addition.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_ctrl_proc "
-              "for ctrl byte that selects POKE"},
-    on_exit={"a": "2 (scout_status for POKE)",
-             "control flow": "falls through to tx_ctrl_store_and_add"})
+    on_exit={"a": "2 (scout_status for POKE)"})
 subroutine(0x8690, "tx_ctrl_store_and_add",
     title="TX ctrl: store status and add transfer address",
     description="Shared path for PEEK (A=3) and POKE (A=2).\n"
@@ -2955,30 +2665,14 @@ subroutine(0x86A2, "tx_ctrl_proc",
     title="TX ctrl: JSR/UserProc/OSProc setup",
     description="Sets scout_status=2 and calls tx_calc_transfer\n"
     "directly (no 4-byte address addition needed for\n"
-    "procedure calls). Shared by operation types &83-&85.",
-    on_entry={"context": "PHA/PHA/RTS dispatch target from tx_begin's "
-              "ctrl-byte switch for op types &83-&85"},
-    on_exit={"scout_status (rx_port, &0D40)": "= 2",
-             "control flow": "calls tx_calc_transfer to compute the "
-             "transfer count, then exits to the foreground caller of "
-             "tx_begin"})
+    "procedure calls). Shared by operation types &83-&85.")
 subroutine(0x86E7, "nmi_tx_data",
     title="NMI TX data handler",
     description="Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the\n"
     "BIT instruction on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7).\n"
     "After writing 2 bytes, checks if the frame is complete. If more data,\n"
     "tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes\n"
-    "without returning from NMI (tight loop). Otherwise returns via RTI.",
-    on_entry={"context": "NMI dispatch entry installed by tx_prepare. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "open_port_buf, port_buf_len (&A2..&A5)":
-              "TX source pointer and remaining length",
-              "ADLC SR1": "TDRA (V bit) signals FIFO has space; IRQ "
-              "(N bit) signals more bytes can be written"},
-    on_exit={"control flow": "loops writing pairs while TDRA holds; "
-             "exits via nmi_rti when IRQ clears (next pair will come "
-             "with the next NMI). On byte-count exhaustion -> JMPs to "
-             "tx_last_data."})
+    "without returning from NMI (tight loop). Otherwise returns via RTI.")
 subroutine(0x8723, "tx_last_data",
     title="TX_LAST_DATA and frame completion",
     description="Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs\n"
@@ -2995,14 +2689,7 @@ subroutine(0x8723, "tx_last_data",
     "then falls through to nmi_rti. The INTON (BIT &FE20) in\n"
     "nmi_rti creates the /NMI edge for the frame-complete interrupt\n"
     "-- essential because the ADLC IRQ may transition atomically\n"
-    "from TDRA to frame-complete without de-asserting.",
-    on_entry={"context": "JMP target from inside an NMI handler "
-              "(nmi_tx_data on byte-count exhaustion, ack_tx for "
-              "ACK closing). Stack/ROMSEL/NMI state per shim contract."},
-    on_exit={"ADLC CR2": "&3F (TX_LAST_DATA + FLAG_IDLE)",
-             "next NMI handler": "= nmi_tx_complete (&872F)",
-             "control flow": "JMP set_nmi_vector then nmi_rti -- the "
-             "INTON edge ensures the next NMI fires for frame-complete"})
+    "from TDRA to frame-complete without de-asserting.")
 subroutine(0x872F, "nmi_tx_complete",
     title="TX completion: switch to RX mode",
     description="Called via NMI after the frame (including CRC\n"
@@ -3016,33 +2703,13 @@ subroutine(0x872F, "nmi_tx_complete",
     "Dispatches on rx_src_net flags: bit6=broadcast\n"
     "(tx_result_ok), bit0=handshake data pending\n"
     "(handshake_await_ack), both clear=install\n"
-    "nmi_reply_scout for scout ACK reception.",
-    on_entry={"context": "NMI dispatch entry installed by tx_last_data "
-              "(or by ack_tx for ACK frames). Stack/ROMSEL/NMI state "
-              "per shim contract.",
-              "rx_src_net (tx_flags) bit 6": "1 = broadcast (no reply "
-              "expected) -> tx_result_ok",
-              "rx_src_net (tx_flags) bit 0": "1 = handshake data "
-              "pending -> handshake_await_ack"},
-    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE) -- TX to RX pivot",
-             "next NMI handler": "broadcast: tx_result_ok / handshake: "
-             "nmi_final_ack / scout: nmi_reply_scout",
-             "control flow": "exits via nmi_rti once the next handler "
-             "is installed"})
+    "nmi_reply_scout for scout ACK reception.")
 subroutine(0x874B, "nmi_reply_scout",
     title="RX reply scout handler",
     description="Handles reception of the reply scout frame after transmission.\n"
     "Checks SR2 bit0 (AP) for incoming data, reads the first byte\n"
     "(destination station) and compares to our station ID via &FE18\n"
-    "(which also disables NMIs as a side effect).",
-    on_entry={"context": "NMI dispatch entry installed by "
-              "nmi_tx_complete on the scout-ACK-await path. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "ADLC SR2 bit 0 (AP)": "address-present from incoming "
-              "reply scout"},
-    on_exit={"control flow": "match -> falls through to nmi_reply_cont "
-             "for the next byte. Mismatch -> JMPs to error path. "
-             "Exits via nmi_rti."})
+    "(which also disables NMIs as a side effect).")
 subroutine(0x875F, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="Reads the second byte of the reply scout (destination network) and\n"
@@ -3051,13 +2718,7 @@ subroutine(0x875F, "nmi_reply_cont",
     "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\n"
     "If IRQ is still set, falls through directly to &8779 without an RTI,\n"
     "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
-    "in quick succession.",
-    on_entry={"context": "fall-through from nmi_reply_scout after a "
-              "station match. Stack/ROMSEL/NMI state per shim contract."},
-    on_exit={"next NMI handler": "= nmi_reply_validate (&8776)",
-             "control flow": "if SR1 IRQ still asserted, falls directly "
-             "into nmi_reply_validate (avoiding NMI re-entry); "
-             "otherwise exits via nmi_rti and waits for next NMI"})
+    "in quick succession.")
 subroutine(0x8776, "nmi_reply_validate",
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="Reads the source station and source network from the reply scout and\n"
@@ -3068,17 +2729,7 @@ subroutine(0x8776, "nmi_reply_validate",
     "  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n"
     "  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\n"
     "If all checks pass, the reply scout is valid and the ROM proceeds\n"
-    "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).",
-    on_entry={"context": "NMI dispatch entry installed by nmi_reply_cont "
-              "(or fall-through from it). Stack/ROMSEL/NMI state per "
-              "shim contract.",
-              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
-              "reference for validating the reply source"},
-    on_exit={"ADLC CR2": "&A7 (RTS) on success",
-             "ADLC CR1": "&44 (TX mode) on success",
-             "control flow": "validation success -> proceed to send "
-             "scout ACK; validation fail -> JMP nmi_error_dispatch. "
-             "Exits via nmi_rti."})
+    "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).")
 subroutine(0x87BE, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
     description="Continuation of the TX-side scout ACK. Reads our\n"
@@ -3088,16 +2739,7 @@ subroutine(0x87BE, "nmi_scout_ack_src",
     "immediate-op data NMI handler and the normal\n"
     "nmi_data_tx handler at &87EE. Installs the chosen\n"
     "handler via set_nmi_vector. Shares the tx_check_tdra\n"
-    "entry at &87C7 with ack_tx.",
-    on_entry={"context": "fall-through from nmi_reply_validate after "
-              "successful reply-scout validation. Stack/ROMSEL/NMI "
-              "state per shim contract.",
-              "rx_src_net (tx_flags) bit 1": "selects nmi_data_tx vs "
-              "the immediate-op TX data handler"},
-    on_exit={"TX FIFO": "loaded with src station/network",
-             "next NMI handler": "= nmi_data_tx (or imm-op variant) "
-             "for the data phase",
-             "control flow": "exits via nmi_rti"})
+    "entry at &87C7 with ack_tx.")
 subroutine(0x87E3, "nmi_data_tx",
     title="TX data phase: send payload",
     description="Transmits the data payload of a four-way\n"
@@ -3109,17 +2751,7 @@ subroutine(0x87E3, "nmi_data_tx",
     "frame. Otherwise tests SR1 bit 7 (IRQ): if still\n"
     "asserted, writes another pair without returning from\n"
     "NMI (tight loop optimisation). If IRQ clears, returns\n"
-    "via RTI.",
-    on_entry={"context": "NMI dispatch entry installed by "
-              "nmi_scout_ack_src. Stack/ROMSEL/NMI state per shim "
-              "contract.",
-              "open_port_buf, port_buf_len (&A2..&A5)":
-              "TX source pointer and remaining length",
-              "rx_src_net (tx_flags) bit 5": "0 = direct memory; "
-              "1 = Tube R3 source"},
-    on_exit={"control flow": "byte count exhausted -> JMPs to "
-             "tx_last_data. IRQ clears -> exits via nmi_rti and waits "
-             "for the next TDRA NMI."})
+    "via RTI.")
 subroutine(0x8886, "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
     description="Called via JMP from nmi_tx_complete when bit 0 of\n"
@@ -3127,13 +2759,7 @@ subroutine(0x8886, "handshake_await_ack",
     "CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX\n"
     "mode to RX mode, listening for the final ACK from the\n"
     "remote station. Installs the nmi_final_ack handler at\n"
-    "&887A via set_nmi_vector.",
-    on_entry={"context": "JMP target from nmi_tx_complete on the "
-              "handshake-data-pending path. Stack/ROMSEL/NMI state "
-              "per shim contract."},
-    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE -- TX-to-RX pivot)",
-             "next NMI handler": "= nmi_final_ack",
-             "control flow": "exits via nmi_rti"})
+    "&887A via set_nmi_vector.")
 subroutine(0x8892, "nmi_final_ack",
     title="RX final ACK handler",
     description="Receives the final ACK in a four-way handshake. Same validation\n"
@@ -3142,16 +2768,7 @@ subroutine(0x8892, "nmi_final_ack",
     "  &888E: Check RDA, read dest_net, validate = 0\n"
     "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
     "  &88C1: Check FV for frame completion\n"
-    "On success, stores result=0 at tx_result_ok. On failure, error &41.",
-    on_entry={"context": "NMI dispatch entry installed by "
-              "handshake_await_ack. Stack/ROMSEL/NMI state per shim "
-              "contract.",
-              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
-              "reference for validating the ACK source"},
-    on_exit={"control flow": "validation success -> JMPs to "
-             "tx_result_ok (result = 0). Validation fail -> JMPs to "
-             "tx_result_fail (error &41 'not listening'). Both paths "
-             "exit via nmi_rti."})
+    "On success, stores result=0 at tx_result_ok. On failure, error &41.")
 subroutine(0x88BA, "nmi_final_ack_validate",
     title="Final ACK validation",
     description="Continuation of nmi_final_ack. Tests SR2 for RDA,\n"
@@ -3161,15 +2778,7 @@ subroutine(0x88BA, "nmi_final_ack_validate",
     "tx_dst_net (&0D21). Finally tests SR2 bit 1 (FV)\n"
     "for frame completion. Any mismatch or missing FV\n"
     "branches to tx_result_fail. On success, falls\n"
-    "through to tx_result_ok.",
-    on_entry={"context": "fall-through from nmi_final_ack after the "
-              "first two address bytes have been validated. "
-              "Stack/ROMSEL/NMI state per shim contract.",
-              "tx_dst_stn, tx_dst_net (&0D20/&0D21)":
-              "reference for the source-address validation"},
-    on_exit={"control flow": "all checks pass -> falls through to "
-             "tx_result_ok. Any mismatch -> JMPs to tx_result_fail. "
-             "Both paths exit via nmi_rti."})
+    "through to tx_result_ok.")
 subroutine(0x88DE, "tx_result_ok",
     title="TX completion handler",
     description="Loads A=0 (success) and branches unconditionally to\n"
@@ -3179,23 +2788,14 @@ subroutine(0x88DE, "tx_result_ok",
     "Called from ack_tx (&82EC) for final-ACK completion\n"
     "and from nmi_tx_complete (&8732) for immediate-op\n"
     "completion where no ACK is expected.",
-    on_entry={"context": "JMP target from inside the NMI chain. "
-              "Stack/ROMSEL/NMI state per shim contract."},
-    on_exit={"a": "0 (TX success)",
-             "control flow": "branches to tx_store_result via BEQ "
-             "(unconditional after LDA #0); ultimately exits via "
-             "nmi_rti"})
+    on_exit={"a": "0 (TX success)"})
 subroutine(0x88E2, "tx_result_fail",
     title="TX failure: not listening",
     description="Loads error code &41 (not listening) and falls through to\n"
     "tx_store_result. The most common TX error path — reached from\n"
     "11 sites across the final-ACK validation chain when the remote\n"
     "station doesn't respond or the frame is malformed.",
-    on_entry={"context": "JMP target from various NMI validation "
-              "failures. Stack/ROMSEL/NMI state per shim contract."},
-    on_exit={"a": "&41 ('not listening' TX error)",
-             "control flow": "falls through to tx_store_result; "
-             "exits via nmi_rti once result is stored"})
+    on_exit={"a": "&41 ('not listening' TX error)"})
 subroutine(0x88E4, "tx_store_result",
     title="TX result store and completion",
     description="Stores the TX result code (in A) at offset 0 of\n"
@@ -3234,12 +2834,7 @@ subroutine(0x898C, "adlc_full_reset",
     "no DTR). Falls through to adlc_rx_listen to re-enter\n"
     "RX listen mode.",
     on_entry={},
-    on_exit={"ADLC CR1": "&C1 (TX_RESET | RX_RESET | AC)",
-             "ADLC CR4": "&1E (8-bit RX word, abort extend, NRZ)",
-             "ADLC CR3": "&00 (no loopback, no AEX, NRZ, no DTR)",
-             "ADLC CR1 (after fall-through)": "&82 (TX_RESET | RIE) -- "
-             "passive RX listen mode",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0x899B, "adlc_rx_listen",
     title="Enter RX listen mode",
     description="Configures the ADLC for passive RX listen mode.\n"
@@ -3250,9 +2845,7 @@ subroutine(0x899B, "adlc_rx_listen",
     "This is the idle state where the ADLC listens for\n"
     "incoming scout frames via NMI.",
     on_entry={},
-    on_exit={"ADLC CR1": "&82 (TX_RESET | RIE -- RX interrupts on)",
-             "ADLC CR2": "&67 (clear status, prioritised status enabled)",
-             "a, x": "clobbered (control byte writes)",
+    on_exit={"a, x": "clobbered (control byte writes)",
              "y": "preserved"})
 subroutine(0x89A6, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
@@ -3264,15 +2857,8 @@ subroutine(0x89A6, "wait_idle_and_reset",
     "(&80BE). When the NMI handler returns to idle, falls\n"
     "through to save_econet_state to clear the initialised\n"
     "flags and re-enter RX listen mode.",
-    on_entry={"a": "12 (service call number)",
-              "ws_0d62": "Econet-initialised flag: 0 = skip wait, "
-              "non-zero = wait for the NMI handler to drain"},
-    on_exit={"NMI handler vector (&0D0C/&0D0D)":
-             "= nmi_rx_scout (&80BE) -- idle listen state",
-             "ws_0d60, ws_0d62": "cleared",
-             "ADLC": "configured for RX listen via fall-through to "
-             "adlc_rx_listen",
-             "a, x, y": "clobbered"})
+    on_entry={"a": "12 (service call number)"},
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0x89B9, "save_econet_state",
     title="Reset Econet flags and enter RX listen",
     description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
@@ -3285,11 +2871,7 @@ subroutine(0x89B9, "save_econet_state",
     "ROM can claim the NMI workspace.",
     on_entry={"a": "value to store into ws_0d60 / ws_0d62 "
               "(typically 0 to clear)"},
-    on_exit={"ws_0d60, ws_0d62": "= A",
-             "y": "5 (service-call workspace page)",
-             "NMI flip-flop": "disabled (INTOFF read twice)",
-             "behaviour": "tail-jumps to adlc_rx_listen; ADLC re-enters "
-             "passive RX listen mode"})
+    on_exit={"y": "5 (service-call workspace page)"})
 subroutine(0x89CA, "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="An alternate NMI handler that lives in the ROM itself rather than\n"
@@ -3309,14 +2891,7 @@ subroutine(0x89CA, "nmi_bootstrap_entry",
     "/NMI even when the ADLC IRQ is continuously asserted (e.g. when\n"
     "it transitions atomically from TDRA to frame-complete without\n"
     "de-asserting). Without this mechanism, nmi_tx_complete would\n"
-    "never fire after tx_last_data.",
-    on_entry={"context": "initial NMI vector target (set up by "
-              "adlc_init via OSBYTE &8F service request) before the "
-              "RAM shim at &0D00..&0D1F has been populated",
-              "ADLC IRQ": "asserted (NMI fired)"},
-    on_exit={"control flow": "performs the same shim sequence as the "
-             "RAM version then JMPs to nmi_rx_scout (&80BE -> updated "
-             "to &809B in 4.21)"})
+    "never fire after tx_last_data.")
 subroutine(0x89D8, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="ROM-resident version of the NMI exit sequence, also\n"
@@ -3328,14 +2903,7 @@ subroutine(0x89D8, "rom_set_nmi_vector",
     "NMI flip-flop before RTI. The INTON creates a\n"
     "guaranteed falling edge on /NMI if the ADLC IRQ is\n"
     "already asserted, ensuring the next handler fires\n"
-    "immediately.",
-    on_entry={"role": "this is template/data, not a callable subroutine -- "
-              "the bytes here are copied verbatim into RAM at &0D0E during "
-              "init_nmi_workspace and run from there. The NO_REFS flag is "
-              "expected (no JSR target)"},
-    on_exit={"role": "see on_entry -- this address never executes "
-             "directly; it is the source data for the RAM-resident NMI "
-             "exit sequence"})
+    "immediately.")
 # UNMAPPED: label(0x8A6F, "start_rom_scan")
 subroutine(0x8B00, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
@@ -3355,8 +2923,7 @@ subroutine(0x8B00, "scan_remote_keys",
               "reloaded each iteration (no other preconditions)"},
     on_exit={"a": "0 (when no key pressed -- the cleared path)",
              "x": "may be modified by OSBYTE",
-             "y": "&7F (left over from OSBYTE call setup)",
-             "svc_state, nfs_workspace": "both zeroed when no remote key was pressed"})
+             "y": "&7F (left over from OSBYTE call setup)"})
 subroutine(0x8B18, "save_text_ptr",
     title="Save OS text pointer for later retrieval",
     description="Copies &F2/&F3 into fs_crc_lo/fs_crc_hi. Called by\n"
@@ -3364,10 +2931,7 @@ subroutine(0x8B18, "save_text_ptr",
     "command matches, and by match_fs_cmd during\n"
     "iterative help topic matching. Preserves A via\n"
     "PHA/PLA.",
-    on_entry={"os_text_ptr (&F2/&F3)": "the OS text pointer to snapshot"},
-    on_exit={"a": "preserved",
-             "fs_crc_lo, fs_crc_hi (&BE/&BF)":
-             "snapshot of os_text_ptr at call time"})
+    on_exit={"a": "preserved"})
 subroutine(0x8BC6, "print_cmd_table",
     title="Print *HELP command listing with optional header",
     description="If V flag is set, saves X/Y, calls\n"
@@ -3398,8 +2962,6 @@ subroutine(0x8C29, "help_wrap_if_serial",
     "newline followed by 12 spaces of indentation to\n"
     "align continuation lines with the syntax\n"
     "description column.",
-    on_entry={"&0355 (current output stream)":
-              "0 = VDU, 3 = printer (no-op for both); other = serial"},
     on_exit={"y": "preserved (saved/restored via PHY/PLY)",
              "a": "clobbered (last char written via OSWRCH)"})
 subroutine(0x8C93, "print_version_header",
@@ -3409,9 +2971,7 @@ subroutine(0x8C93, "print_version_header",
     "string, JMPs to print_station_id to append the\n"
     "local Econet station number.",
     on_entry={},
-    on_exit={"a, x, y": "clobbered (print_inline + print_station_id)",
-             "side effect": "writes 'CR Advanced  4.08.53 CR Econet "
-             "Station NNN[ No Clock] CR/LF' to current output stream"})
+    on_exit={"a, x, y": "clobbered (print_inline + print_station_id)"})
 # Located in 4.21_v1 at &8CAD (was &8CB9 in 4.18) by following the
 # JSR site at &8B23 (which maps from 4.18 &8B1A). Already classified
 # as code (sub_c8cad with 3 callers from &8B23, &8CBD, &B3A0). The
@@ -3425,7 +2985,6 @@ subroutine(0x8CAD, "get_ws_page",
     "for caller convenience. The 4.21 version also\n"
     "OR's bit 7 of the slot flag back into A on exit\n"
     "(ADLC-absent flag) — see &8CB7-&8CB9.",
-    on_entry={"romsel_copy (&F4)": "current ROM slot (used as table index)"},
     on_exit={"a": "workspace page number (with bit 7 = ADLC-absent flag)",
              "y": "workspace page number (low 7 bits)"})
 subroutine(0x8CBD, "setup_ws_ptr",
@@ -3435,12 +2994,8 @@ subroutine(0x8CBD, "setup_ws_ptr",
     "the low byte at &CC to zero. This gives a\n"
     "page-aligned pointer used by FS initialisation and\n"
     "cmd_net_fs to access the private workspace.",
-    on_entry={"romsel_copy (&F4)":
-              "current ROM slot (consumed by get_ws_page)"},
     on_exit={"a": "0",
-             "y": "workspace page number",
-             "nfs_temp lo/hi (&CC/&CD)":
-             "&00, ws_page -> page-aligned pointer to private workspace"})
+             "y": "workspace page number"})
 subroutine(0x8CFD, "notify_new_fs",
     title="Notify OS of filing system selection",
     description="Calls FSCV with A=6 to announce the FS change,\n"
@@ -3448,8 +3003,6 @@ subroutine(0x8CFD, "notify_new_fs",
     "&8F to inform other ROMs. Sets X=&0A and branches\n"
     "to issue_svc_osbyte which falls through from the\n"
     "call_fscv subroutine.",
-    on_entry={"FSCV vector (&021E)": "must point at a valid handler "
-              "(installed during FS selection)"},
     on_exit={"a": "clobbered (FSCV reason 6 then OSBYTE &8F)",
              "x": "&0A (the service number passed to OSBYTE &8F)"})
 subroutine(0x8CFF, "call_fscv",
@@ -3476,13 +3029,7 @@ subroutine(0x8D24, "check_credits_easter_egg",
     "the command line text until a mismatch or X reaches\n"
     "&0D. On a full match, prints the ANFS author\n"
     "credits string: B Cockburn, J Dunn, B Robertson,\n"
-    "and J Wills, each terminated by CR.",
-    on_entry={"os_text_ptr (&F2/&F3)": "*HELP argument text pointer",
-              "ws_page": "current workspace page (used as the Y index "
-              "into (text_ptr) for the comparison)"},
-    on_exit={"behaviour": "no match: returns with no side effect (caller "
-             "continues with normal *HELP dispatch). Match: prints the "
-             "credits string then returns; caller then claims the service"})
+    "and J Wills, each terminated by CR.")
 subroutine(0x8E21, "clear_if_station_match",
     title="Clear stored station if parsed argument matches",
     description="Parses a station number from the command line via\n"
@@ -3491,11 +3038,7 @@ subroutine(0x8E21, "clear_if_station_match",
     "matches (EOR result is zero), clears &0E01. Called\n"
     "by cmd_iam when processing a file server address\n"
     "in the logon command.",
-    on_entry={"os_text_ptr (&F2/&F3)":
-              "command-line text pointer (consumed by init_bridge_poll)",
-              "&0E01": "expected file-server station number"},
-    on_exit={"a": "0 if matched, non-zero if different",
-             "&0E01": "zeroed when parsed station matches"})
+    on_exit={"a": "0 if matched, non-zero if different"})
 label(0x8E2D, "check_urd_prefix")
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
@@ -3608,9 +3151,7 @@ subroutine(0x8F38, "nfs_init_body",
     "expectation is that this is the second half of\n"
     "service-2 handling and is invoked by MOS during\n"
     "the standard private-workspace claim, but the\n"
-    "concrete trigger has not yet been pinned down.",
-    on_entry={"net_rx_ptr, nfs_workspace": "page-aligned pointers "
-              "(set up earlier by svc_2_private_workspace_pages)"})
+    "concrete trigger has not yet been pinned down.")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
@@ -3618,12 +3159,7 @@ subroutine(0x903C, "init_adlc_and_vectors",
     "writes vector addresses and ROM ID into the\n"
     "extended vector table for NETV and one additional\n"
     "vector, then restores any previous FS context.",
-    on_entry={"romsel_copy (&F4)":
-              "current ROM slot (written into each vector entry as the "
-              "ROM ID byte)"},
-    on_exit={"a, x, y": "clobbered (falls through into write_vector_entry)",
-             "extended vector table": "NETV (and the next vector) point at "
-             "this ROM's handlers; &0D72 set to &FF as install marker"})
+    on_exit={"a, x, y": "clobbered (falls through into write_vector_entry)"})
 subroutine(0x904F, "write_vector_entry",
     title="Install extended vector table entries",
     description="Copies vector addresses from the dispatch table at\n"
@@ -3647,26 +3183,14 @@ subroutine(0x9064, "restore_fs_context",
     "svc_2_private_workspace during init,\n"
     "deselect_fs_if_active during FS teardown, and\n"
     "flip_set_station_boot.",
-    on_entry={"net_rx_ptr (&A6/&A7)":
-              "page-aligned pointer to the receive control block",
-              "&0DFA..&0E01": "saved 8-byte FS context to restore"},
-    on_exit={"a, y": "clobbered (loop counter / data byte)",
-             "(net_rx_ptr)+2..+9": "FS context bytes restored from &0DFA+2..+9"})
+    on_exit={"a, y": "clobbered (loop counter / data byte)"})
 subroutine(0x9071, "fscv_6_shutdown",
     title="Deselect filing system and save workspace",
     description="If the filing system is currently selected\n"
     "(bit 7 of &0D6C set), closes all open FCBs,\n"
     "closes SPOOL/EXEC files via OSBYTE &77,\n"
     "saves the FS workspace to page &10 shadow\n"
-    "with checksum, and clears the selected flag.",
-    on_entry={"fs_flags (&0D6C) bit 7":
-              "1 = currently selected (do the shutdown); "
-              "0 = already deselected (no-op)"},
-    on_exit={"fs_flags bit 7": "cleared",
-             "page &10 shadow": "checksummed snapshot of FS workspace",
-             "behaviour": "open FCBs and SPOOL/EXEC files are closed; "
-             "called via FSCV reason 6 when MOS is switching to a "
-             "different filing system"})
+    "with checksum, and clears the selected flag.")
 subroutine(0x909E, "verify_ws_checksum",
     title="Verify workspace checksum integrity",
     description="Sums bytes 0 to &76 of the workspace page via the\n"
@@ -3680,15 +3204,9 @@ subroutine(0x909E, "verify_ws_checksum",
     "Called by 5 sites across format_filename_field,\n"
     "adjust_fsopts_4bytes, and start_wipe_pass before\n"
     "workspace access.",
-    on_entry={"nfs_temp lo/hi (&CC/&CD)":
-              "page-aligned pointer to the workspace page to verify "
-              "(set up by setup_ws_ptr)"},
     on_exit={"a": "preserved (PHA/PLA)",
              "y": "preserved",
-             "p (flags)": "preserved (PHP/PLP)",
-             "behaviour": "raises 'net sum' (&AA) via error_inline_log "
-             "if the byte at offset &77 does not match the running sum "
-             "of bytes 0..&76; only a control-BREAK clears the error"})
+             "p (flags)": "preserved (PHP/PLP)"})
 # Located in 4.21_v1 at &90C7 (was &8FF1 in 4.18). Found by searching
 # for the inline "Econet Station " string at &90CA and reading back to
 # the JSR print_inline at &90C7. Already classified as code (c90c7
@@ -3703,12 +3221,8 @@ subroutine(0x90C7, "print_station_id",
     "clock; if absent, appends ' No Clock' via a\n"
     "second inline string. Finishes with OSNEWL.\n"
     "Called by print_version_header and svc_3_auto_boot.",
-    on_entry={"net_rx_ptr (&A6/&A7)":
-              "RX control block pointer (byte 1 = local station ID)"},
     on_exit={"a, x, y": "clobbered (print_inline + print_num_no_leading "
-             "+ OSNEWL)",
-             "side effect": "writes 'Econet Station NNN' (with optional "
-             "' No Clock' suffix) followed by CR/LF to current output"})
+             "+ OSNEWL)"})
 subroutine(0x91F9, "print_newline_no_spool",
     title="Print CR via OSASCI, bypassing any open *SPOOL file",
     description="Loads A=&0D and falls into print_char_no_spool. The "
@@ -3719,9 +3233,7 @@ subroutine(0x91F9, "print_newline_no_spool",
     "message, and from two other diagnostic sites (&8E10, &9D3E).",
     on_entry={},
     on_exit={"a, x, y, p": "preserved (print_char_no_spool brackets the call "
-             "with full register save/restore via PHA/PHP/PLP/PLA)",
-             "side effect": "OSASCI prints CR; *SPOOL handle is briefly cleared "
-             "and restored if it was an NFS-issued handle (&21-&2F)"})
+             "with full register save/restore via PHA/PHP/PLP/PLA)"})
 
 subroutine(0x91FB, "print_char_no_spool",
     title="Print A via OSASCI, bypassing any open *SPOOL file",
@@ -3784,10 +3296,7 @@ subroutine(0x92B2, "parse_addr_arg",
         "y": "index into command-string buffer at (fs_crc_lo),Y",
         "a": "ignored",
     },
-    on_exit={
-        "fs_load_addr_2": "parsed numeric value",
-        "c": "set if a number was parsed",
-    })
+    on_exit={"c": "set if a number was parsed"})
 subroutine(0x939A, "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
     description="Compares A against '&' and '.' first; if\n"
@@ -3815,9 +3324,6 @@ subroutine(0x93AB, "get_access_bits",
     "begin_prot_encode to map through the protection\n"
     "bit encode table at &9286. Called by\n"
     "check_and_setup_txcb for owner and public access.",
-    on_entry={"fs_options (&BB/&BC)":
-              "pointer to start of directory entry "
-              "(access byte is read at offset &0E)"},
     on_exit={"a": "encoded access flags",
              "x": "&FF + bits-set (left in this state by get_prot_bits "
              "fall-through)"})
@@ -3868,8 +3374,6 @@ subroutine(0x93E6, "cmp_5byte_handle",
     "all 5 bytes match (Z=1). Called by\n"
     "send_txcb_swap_addrs and check_and_setup_txcb\n"
     "to verify station/handle identity.",
-    on_entry={"l00af+1..+4": "first 5-byte handle buffer (offset 0 is skipped)",
-              "fs_load_addr_3+1..+4": "second 5-byte handle buffer"},
     on_exit={"z": "set if bytes 1..4 match (byte 0 is not compared)",
              "a": "EOR of last compared bytes",
              "x": "0 if all matched, else mismatch index"})
@@ -3902,11 +3406,8 @@ subroutine(0x9446, "check_not_ampersand",
     "into the TX buffer at &0F05, calling\n"
     "strip_token_prefix on each byte and terminating\n"
     "on CR. Used by cmd_fs_operation and cmd_rename.",
-    on_entry={"&0E30": "first byte of the parsed filename buffer"},
     on_exit={"a": "first byte of parse buffer (preserved unchanged on the "
-             "non-error path)",
-             "behaviour": "raises 'Bad filename' error and does not return "
-             "if the first character is '&'"})
+             "non-error path)"})
 # Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
 # hit &945E (which is `send_fs_request`) — the body match pushed the
 # entry 5 bytes earlier than the actual prologue. The 4.21 prologue
@@ -3927,22 +3428,16 @@ subroutine(0x9463, "copy_fs_cmd_name",
               "y": "current command-line offset (saved/restored)"},
     on_exit={"x": "TX buffer offset past name+space",
              "y": "command line offset (restored)",
-             "a": "clobbered",
-             "TX buffer at &C105+": "command name + trailing space"})
+             "a": "clobbered"})
 subroutine(0x9483, "parse_quoted_arg",
     title="Parse possibly-quoted filename argument",
     description="Reads from the command line at (&BE),Y. Handles\n"
     "double-quote delimiters and stores the result\n"
     "in the parse buffer at &0E30. Raises 'Bad string'\n"
     "on unbalanced quotes.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer (saved by save_text_ptr)",
-              "y": "current offset within the command line"},
-    on_exit={"&0E30": "parsed argument (without surrounding quotes)",
-             "y": "advanced past the parsed argument",
-             "a": "clobbered (last byte read)",
-             "behaviour": "raises 'Bad string' on unbalanced quotes; "
-             "falls through to cmd_rename on the success path"})
+    on_entry={"y": "current offset within the command line"},
+    on_exit={"y": "advanced past the parsed argument",
+             "a": "clobbered (last byte read)"})
 subroutine(0x973D, "init_txcb_bye",
     title="Set up open receive for FS reply on port &90",
     description="Loads A=&90 (the FS command/reply port) and\n"
@@ -3952,11 +3447,7 @@ subroutine(0x973D, "init_txcb_bye",
     "clear = awaiting reply). The NMI RX handler sets\n"
     "bit 7 when a reply arrives on this port, which\n"
     "wait_net_tx_ack polls for.",
-    on_entry={},
-    on_exit={"txcb at &00C0":
-             "12-byte template copied; port = &90; "
-             "ctrl = &7F (open-receive, bit 7 clear = awaiting reply); "
-             "start = 3"})
+    on_entry={})
 subroutine(0x973F, "init_txcb_port",
     title="Create open receive control block on specified port",
     description="Calls init_txcb to copy the 12-byte template\n"
@@ -3977,12 +3468,8 @@ subroutine(0x974B, "init_txcb",
     "Preserves A via PHA/PLA. Called by 4 sites\n"
     "including cmd_pass, init_txcb_port,\n"
     "prep_send_tx_cb, and send_wipe_request.",
-    on_entry={"&0E00, &0E01": "destination station, network "
-              "(also written to txcb_dest)"},
     on_exit={"a": "preserved",
-             "x, y": "clobbered (Y left at &FF on loop exit)",
-             "txcb at &00C0..&00CB":
-             "12-byte template loaded; bytes 2/3 are dst station/network"})
+             "x, y": "clobbered (Y left at &FF on loop exit)"})
 subroutine(0x976F, "send_request_nowrite",
     title="Send read-only FS request (carry set)",
     description="Pushes A and sets carry to indicate no-write\n"
@@ -4014,12 +3501,8 @@ subroutine(0x978A, "save_net_tx_cb",
     "for standard mode.",
     on_entry={"y": "FS function code (becomes TX[1] = txcb_func)",
               "x": "TX buffer payload length "
-              "(prep_send_tx_cb uses X+5 as txcb_end)",
-              "&0E02, &0E03": "FS station/network (copied to &0F02/&0F03)"},
-    on_exit={"a": "FS reply status",
-             "behaviour":
-             "performs full send/receive via prep_send_tx_cb -> "
-             "recv_and_process_reply; may BRK with FS-reported error"})
+              "(prep_send_tx_cb uses X+5 as txcb_end)"},
+    on_exit={"a": "FS reply status"})
 subroutine(0x978B, "save_net_tx_cb_vset",
     title="Save and send TXCB with V flag set",
     description="Variant of save_net_tx_cb for callers that have\n"
@@ -4032,12 +3515,8 @@ subroutine(0x978B, "save_net_tx_cb_vset",
     on_entry={"y": "FS function code",
               "x": "TX buffer payload length",
               "v flag": "set by caller (selects this variant via the "
-              "'no CLV' fall-through from save_net_tx_cb)",
-              "&0E02, &0E03": "FS station/network"},
-    on_exit={"a": "FS reply status",
-             "behaviour":
-             "see save_net_tx_cb -- same send/receive cycle, "
-             "with V left set across the txcb-copy phase"})
+              "'no CLV' fall-through from save_net_tx_cb)"},
+    on_exit={"a": "FS reply status"})
 subroutine(0x97B7, "prep_send_tx_cb",
     title="Build TXCB from scratch, send, and receive reply",
     description="Full send/receive cycle comprising two separate\n"
@@ -4057,10 +3536,8 @@ subroutine(0x97B7, "prep_send_tx_cb",
               "y": "FS function code (already stashed by the txcb-copy "
               "entry path)",
               "c flag": "set = disconnect path (handle_disconnect); "
-              "clear = normal four-way handshake send",
-              "txcb at &00C0": "destination station/network already populated"},
-    on_exit={"a": "FS reply status (or doesn't return on error)",
-             "txcb_end (&C8)": "TX buffer end offset"})
+              "clear = normal four-way handshake send"},
+    on_exit={"a": "FS reply status (or doesn't return on error)"})
 subroutine(0x97CD, "recv_and_process_reply",
     title="Receive FS reply and dispatch on status codes",
     description="Waits for a server-initiated reply transaction.\n"
@@ -4079,13 +3556,8 @@ subroutine(0x97CD, "recv_and_process_reply",
     "and 'Data Lost' warnings when channel status\n"
     "bits indicate pending writes were interrupted.",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
-              "scout; handle the server's matching reply)",
-              "txcb at &00C0": "still set up by prep_send_tx_cb (port &90)"},
-    on_exit={"a": "FS reply status byte",
-             "behaviour":
-             "may BRK on FS-reported errors (via classify_reply_error / "
-             "build_simple_error). 'No reply' is raised if the open "
-             "receive times out in wait_net_tx_ack."})
+              "scout; handle the server's matching reply)"},
+    on_exit={"a": "FS reply status byte"})
 # UNMAPPED: subroutine(0x9570, "check_escape",
 # UNMAPPED:     title="Check for pending escape condition",
 # UNMAPPED:     description="ANDs the MOS escape flag (&FF) with the\n"
@@ -4111,16 +3583,7 @@ subroutine(0x98BE, "wait_net_tx_ack",
     "poll on a 2 MHz 6502, the default gives ~22\n"
     "seconds. On timeout, branches to\n"
     "build_no_reply_error to raise 'No reply'.\n"
-    "Called by 6 sites across the protocol stack.",
-    on_entry={"txcb at &00C0":
-              "open-receive control block with txcb_ctrl bit 7 clear "
-              "(set to &7F by init_txcb_port)",
-              "rx_wait_timeout (&0D6E)":
-              "outer-loop count (default &28 ~ 22 s on 2 MHz 6502)"},
-    on_exit={"behaviour":
-             "returns when txcb_ctrl bit 7 becomes set (reply received); "
-             "on timeout, tail-jumps to build_no_reply_error which raises "
-             "'No reply' via BRK and does not return"})
+    "Called by 6 sites across the protocol stack.")
 subroutine(0x9900, "cond_save_error_code",
     title="Conditionally store error code to workspace",
     description="Tests bit 7 of &0D6C (FS selected flag). If\n"
@@ -4174,13 +3637,8 @@ subroutine(0x9B24, "init_tx_ptr_and_send",
     "standard TXCB location in zero page), then falls\n"
     "through to send_net_packet for transmission with\n"
     "retry logic.",
-    on_entry={"txcb at &00C0":
-              "TX control block populated by caller (init_txcb +"
-              " send_request_* / prep_send_tx_cb path)"},
     on_exit={"a": "TX result code (0 = success; &40 jammed; &41 not "
-             "listening; etc.) -- see send_net_packet",
-             "behaviour": "may BRK on classified errors (Line jammed, "
-             "Net error, etc.) via load_reply_and_classify"})
+             "listening; etc.) -- see send_net_packet"})
 subroutine(0x9B2C, "send_net_packet",
     title="Transmit Econet packet with retry",
     description="Two-phase transmit with retry. Loads retry count\n"
@@ -4197,28 +3655,14 @@ subroutine(0x9B2C, "send_net_packet",
     "load_reply_and_classify (Line jammed, Net error,\n"
     "etc.), distinct from the 'No reply' timeout in\n"
     "wait_net_tx_ack.",
-    on_entry={"net_tx_ptr (&AE/&AF)":
-              "pointer to TX control block (typically &00C0 set by "
-              "init_tx_ptr_and_send)",
-              "tx_retry_count (&0D6D)":
-              "phase-1 retry budget (default &FF; 0 = retry forever)"},
     on_exit={"a": "TX result (0 = success; non-zero = error class "
-             "consumed by the BRK path)",
-             "behaviour": "phase-1 success returns A=0; phase-1 timeout "
-             "with retry_count != 0 jumps to load_reply_and_classify "
-             "(BRK); with retry_count = 0, enters phase 2 which honours "
-             "Escape via check_escape_and_classify"})
+             "consumed by the BRK path)"})
 subroutine(0x9B81, "init_tx_ptr_for_pass",
     title="Set up TX pointer and send pass-through packet",
     description="Copies the template into the TX buffer (skipping\n"
     "&FD markers), saves original values on stack,\n"
     "then polls the ADLC and retries until complete.",
-    on_entry={"net_tx_ptr (&AE/&AF)":
-              "TX-pointer pair to set up before falling through to "
-              "setup_pass_txbuf"},
-    on_exit={"a": "TX result (from poll_adlc_tx_status)",
-             "stack": "consumed -- the template's saved bytes are "
-             "popped back into the TX buffer before return"})
+    on_exit={"a": "TX result (from poll_adlc_tx_status)"})
 subroutine(0x9B89, "setup_pass_txbuf",
     title="Initialise TX buffer from pass-through template",
     description="Copies 12 bytes from pass_txbuf_init_table into the\n"
@@ -4227,13 +3671,7 @@ subroutine(0x9B89, "setup_pass_txbuf",
     "in the template. Starts transmission via\n"
     "poll_adlc_tx_status and retries on failure, restoring\n"
     "the original TX buffer contents when done.",
-    on_entry={"TX buffer at &00C0..":
-              "current TX control block (12 bytes saved/restored)"},
-    on_exit={"a": "TX result (from poll_adlc_tx_status)",
-             "TX buffer at &00C0..":
-             "restored to entry contents after the pass-through send",
-             "behaviour": "raises BRK via load_reply_and_classify on "
-             "non-recoverable TX errors"})
+    on_exit={"a": "TX result (from poll_adlc_tx_status)"})
 subroutine(0x9BB6, "poll_adlc_tx_status",
     title="Wait for TX ready, then start new transmission",
     description="Polls tx_complete_flag via ASL (testing bit 7)\n"
@@ -4251,29 +3689,15 @@ subroutine(0x9BB6, "poll_adlc_tx_status",
     "stores result there). Returns result in A:\n"
     "&00=success, &40=jammed, &41=not listening,\n"
     "&43=no clock, &44=bad control byte.",
-    on_entry={"net_tx_ptr (&AE/&AF)":
-              "pointer to TX control block (set by init_tx_ptr_and_send "
-              "or by the pass-through path)",
-              "tx_complete_flag": "bit 7 set when ADLC is idle and ready"},
     on_exit={"a": "TX result (&00 success / &40 jammed / &41 not "
-             "listening / &43 no clock / &44 bad control byte)",
-             "nmi_tx_block": "= net_tx_ptr (snapshot for the NMI "
-             "handler chain)"})
+             "listening / &43 no clock / &44 bad control byte)"})
 subroutine(0x9BF5, "load_text_ptr_and_parse",
     title="Copy text pointer from FS options and parse string",
     description="Reads a 2-byte address from (fs_options)+0/1 into\n"
     "os_text_ptr (&00F2), resets Y to zero, then falls\n"
     "through to gsread_to_buf to parse the string at that\n"
     "address into the &0E30 buffer.",
-    on_entry={"fs_options (&BB/&BC)":
-              "pointer to FS options block; bytes 0/1 hold the source "
-              "string pointer to install into os_text_ptr"},
-    on_exit={"os_text_ptr (&F2/&F3)": "= (fs_options),0/1 from entry",
-             "y": "0 (reset before GSINIT)",
-             "&0E30 (parse buffer)": "GSREAD-expanded string, "
-             "CR-terminated",
-             "fs_crc_lo, fs_crc_hi (&BE/&BF)": "= &0E30 (parse buffer "
-             "base for downstream parsers)"})
+    on_exit={"y": "0 (reset before GSINIT)"})
 subroutine(0x9C00, "gsread_to_buf",
     title="Parse command line via GSINIT/GSREAD into &0E30",
     description="Calls GSINIT to initialise string reading, then\n"
@@ -4281,16 +3705,8 @@ subroutine(0x9C00, "gsread_to_buf",
     "l0e30 buffer until end-of-string. Appends a CR\n"
     "terminator and sets fs_crc_lo/hi to point at &0E30\n"
     "for subsequent parsing routines.",
-    on_entry={"os_text_ptr (&F2/&F3)":
-              "MOS text pointer set up by caller (e.g. via "
-              "save_ptr_to_os_text)",
-              "y": "current command-line offset (consumed by GSINIT)"},
-    on_exit={"&0E30 (parse buffer)": "expanded string from GSREAD, "
-             "CR-terminated",
-             "fs_crc_lo, fs_crc_hi (&BE/&BF)": "= &0E30",
-             "y": "advanced past the parsed source",
-             "behaviour": "raises 'Bad string' via MOS if GSREAD "
-             "encounters a malformed quoted string"})
+    on_entry={"y": "current command-line offset (consumed by GSINIT)"},
+    on_exit={"y": "advanced past the parsed source"})
 subroutine(0x9C3E, "do_fs_cmd_iteration",
     title="Execute one iteration of a multi-step FS command",
     description="Called by match_fs_cmd for commands that enumerate\n"
@@ -4300,41 +3716,23 @@ subroutine(0x9C3E, "do_fs_cmd_iteration",
     "cycle flag at offset 6). Copies 4 address bytes,\n"
     "formats the filename field, sends via\n"
     "send_txcb_swap_addrs, and receives the reply.",
-    on_entry={"fs_options (&BB/&BC)":
-              "FS options block (offsets 2..5 = current address; "
-              "offset 6 = cycle flag)",
-              "&0E00, &0E01": "destination station/network",
-              "y": "FS function code (matches send_request_write contract)"},
-    on_exit={"a": "FS reply status",
-             "behaviour": "may BRK on FS-reported errors via "
-             "recv_and_process_reply; otherwise the FS options block has "
-             "been updated with the next-iteration address state"})
+    on_entry={"y": "FS function code (matches send_request_write contract)"},
+    on_exit={"a": "FS reply status"})
 subroutine(0x9C85, "send_txcb_swap_addrs",
     title="Send TXCB and swap start/end addresses",
     description="If the 5-byte handle matches, returns\n"
     "immediately. Otherwise sets port &92, copies\n"
     "addresses, sends, waits for acknowledgment,\n"
     "and retries on address mismatch.",
-    on_entry={"l00af+1..+4": "current 5-byte handle to compare against "
-              "fs_load_addr_3+1..+4 (via cmp_5byte_handle)",
-              "fs_options (&BB/&BC)": "FS options block"},
     on_exit={"a": "FS reply status (or unchanged if handles matched -- "
-             "the routine returns early when no work is needed)",
-             "behaviour": "retries on address mismatch by swapping start "
-             "and end address pairs; raises BRK via the FS-reply "
-             "classifier on persistent errors"})
+             "the routine returns early when no work is needed)"})
 subroutine(0x9D44, "print_load_exec_addrs",
     title="Print exec address and file length in hex",
     description="Prints the exec address as 5 hex bytes from\n"
     "(fs_options) offset 9 downwards, then the file\n"
     "length as 3 hex bytes from offset &0C. Each group\n"
     "is followed by a space separator via OSASCI.",
-    on_entry={"fs_options (&BB/&BC)":
-              "pointer to file-info block; offsets 9..D = exec address, "
-              "offsets &0A..&0C = length"},
-    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI)",
-             "side effect": "writes 5+3 hex bytes (with space separators) "
-             "to the current output stream"})
+    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI)"})
 subroutine(0x9D4F, "print_5_hex_bytes",
     title="Print hex byte sequence from FS options",
     description="Outputs X+1 bytes from (fs_options) starting at\n"
@@ -4352,12 +3750,9 @@ subroutine(0x9D5F, "copy_fsopts_to_zp",
     "do_fs_cmd_iteration to preserve the current address\n"
     "state. Falls through to skip_one_and_advance5 to\n"
     "advance Y past the copied region.",
-    on_entry={"fs_options (&BB/&BC)":
-              "pointer to FS options block (offsets 2..5 = address bytes)",
-              "y": "destination offset within the &00AE.. zero-page "
+    on_entry={"y": "destination offset within the &00AE.. zero-page "
               "region (also indexes the source via (fs_options),Y)"},
-    on_exit={"&00AE+Y..+Y+3": "4 bytes copied from (fs_options),+2..+5",
-             "y": "advanced by 5 (via skip_one_and_advance5 fall-through)",
+    on_exit={"y": "advanced by 5 (via skip_one_and_advance5 fall-through)",
              "a": "clobbered"})
 subroutine(0x9D6B, "skip_one_and_advance5",
     title="Advance Y by 5",
@@ -4382,13 +3777,9 @@ subroutine(0x9D71, "copy_workspace_to_fsopts",
     "to update the FS options block with data returned\n"
     "from the file server. Falls through to\n"
     "retreat_y_by_4.",
-    on_entry={"&0F02+Y..": "FS reply buffer with the new option bytes",
-              "fs_options (&BB/&BC)": "pointer to FS options block "
-              "(target of the copy)",
-              "y": "current offset (controls how many bytes are copied "
+    on_entry={"y": "current offset (controls how many bytes are copied "
               "before the loop terminates)"},
-    on_exit={"(fs_options)+Y..": "updated from reply buffer",
-             "y": "decremented by 4 (via retreat_y_by_4 fall-through)",
+    on_exit={"y": "decremented by 4 (via retreat_y_by_4 fall-through)",
              "a": "clobbered"})
 subroutine(0x9D7E, "retreat_y_by_4",
     title="Retreat Y by 4",
@@ -4411,15 +3802,8 @@ subroutine(0x9D87, "check_and_setup_txcb",
     "with overflow clamping, sets the port and control\n"
     "byte, sends the packet, and dispatches on the\n"
     "reply sub-operation code.",
-    on_entry={"l00af, fs_load_addr_3": "5-byte handle pair to compare; "
-              "match returns early without sending",
-              "fs_options (&BB/&BC)": "options block holding start/end "
-              "addresses to be installed in the TXCB"},
     on_exit={"a": "FS reply sub-operation code (drives downstream "
-             "dispatch)",
-             "behaviour": "early-returns when the handle is unchanged; "
-             "otherwise sends the data-transfer request and dispatches "
-             "into the reply handler"})
+             "dispatch)"})
 subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
     description="Builds a 12-character space-padded filename at\n"
@@ -4427,12 +3811,7 @@ subroutine(0x9E82, "format_filename_field",
     "name from either the command line or the l0f05\n"
     "reply buffer depending on the value in l0f03.\n"
     "Truncates or pads to exactly 12 characters.",
-    on_entry={"l0f03": "non-zero selects command-line source; "
-              "zero selects l0f05 reply-buffer source",
-              "fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer (used when l0f03 selects it)"},
-    on_exit={"&10F3..&10FE": "12-character space-padded filename",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0x9FB6, "finalise_and_return",
     title="Clear receive-attribute and restore caller's X/Y",
     description="Common 7-byte exit sequence used at the end of "
@@ -4456,13 +3835,7 @@ subroutine(0xA12C, "update_addr_from_offset9",
     "high address / exec address field), then falls\n"
     "through to update_addr_from_offset1 to process\n"
     "offset 1 (the low address / load address field).",
-    on_entry={"fs_options (&BB/&BC)": "FS options block to update",
-              "&0E0A..&0E0D": "4-byte workspace addend",
-              "fs_load_addr_2 bit 7":
-              "1 = subtract from FS options; 0 = add"},
-    on_exit={"(fs_options)+9..+&0C": "exec address adjusted",
-             "(fs_options)+1..+4": "load address adjusted",
-             "a, x, y, c flag": "clobbered (4-byte arithmetic loop)"})
+    on_exit={"a, x, y, c flag": "clobbered (4-byte arithmetic loop)"})
 subroutine(0xA131, "update_addr_from_offset1",
     title="Update low address field in FS options",
     description="Sets Y=1 and falls through to\n"
@@ -4493,8 +3866,6 @@ subroutine(0xA1EF, "lookup_cat_entry_0",
     description="Loads the channel handle from (fs_options) at\n"
     "offset 0, then falls through to lookup_cat_slot_data\n"
     "to find the corresponding FCB entry.",
-    on_entry={"fs_options (&BB/&BC)":
-              "FS options block; byte 0 = channel handle"},
     on_exit={"a": "FCB flag byte from &1030+X",
              "x": "channel slot index"})
 subroutine(0xA1F3, "lookup_cat_slot_data",
@@ -4516,45 +3887,22 @@ subroutine(0xA1FA, "setup_transfer_workspace",
     "and sends the FS request. Then configures the TXCB\n"
     "address pairs for the actual data transfer phase\n"
     "and dispatches to the appropriate handler.",
-    on_entry={"fs_options (&BB/&BC)":
-              "FS options block (offsets 0..8 hold channel handle, "
-              "addresses, and the operation code)",
-              "(fs_options)+0": "channel handle",
-              "(fs_options) operation code byte":
-              "even = read (port &91); odd = write (port &92)"},
-    on_exit={"a": "FS reply status from the data-transfer phase",
-             "txcb at &00C0": "configured for the transfer with the "
-             "appropriate port and address pair",
-             "behaviour": "may BRK on FS-reported errors via the reply "
-             "classifier; success returns A = reply status"})
+    on_exit={"a": "FS reply status from the data-transfer phase"})
 subroutine(0xA284, "recv_reply_preserve_flags",
     title="Receive and process reply, preserving flags",
     description="Wrapper around recv_and_process_reply that\n"
     "saves and restores the processor status register,\n"
     "so the caller\'s flag state is not affected by\n"
     "the reply processing.",
-    on_entry={"txcb at &00C0": "open-receive control block from "
-              "init_txcb_port (caller's setup)"},
     on_exit={"a": "FS reply status",
-             "p (flags)": "preserved across the call (PHP/PLP)",
-             "behaviour": "may BRK on FS-reported errors via "
-             "recv_and_process_reply"})
+             "p (flags)": "preserved across the call (PHP/PLP)"})
 subroutine(0xA2ED, "write_data_block",
     title="Write data block to destination or Tube",
     description="If no Tube present, copies directly from\n"
     "the l0f05 buffer via (fs_crc_lo). If Tube\n"
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.",
-    on_entry={"l0f05..": "data block to transfer (typically returned by "
-              "the FS reply path)",
-              "fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "destination pointer for the non-Tube path",
-              "Tube state flag (workspace)":
-              "selects direct-memory vs Tube-R3 transfer"},
-    on_exit={"a, x, y": "clobbered",
-             "side effect": "block copied to caller-specified address "
-             "(direct memory or via Tube R3); Tube claim is matched with "
-             "release on the Tube path"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xA390, "tube_claim_c3",
     title="Claim the Tube via protocol &C3",
     description="Loops calling tube_addr_data_dispatch with\n"
@@ -4565,21 +3913,14 @@ subroutine(0xA390, "tube_claim_c3",
     on_entry={},
     on_exit={"a": "&C3 (the claim protocol byte left in A)",
              "c flag": "set (the claim succeeded -- this is the loop "
-             "termination condition)",
-             "Tube state": "exclusive claim held; matching release via "
-             "tube_addr_data_dispatch with &C2 expected from caller"})
+             "termination condition)"})
 subroutine(0xA3BB, "print_fs_info_newline",
     title="Print station address and newline",
     description="Sets V (suppressing leading-zero padding on\n"
     "the network number) then prints the station\n"
     "address followed by a newline via OSNEWL.\n"
     "Used by *FS and *PS output formatting.",
-    on_entry={"fs_work_6 (&B6)": "network number (consumed by "
-              "print_station_addr)",
-              "fs_work_7 (&B7)": "station number"},
-    on_exit={"a, x, y": "clobbered (print_station_addr + OSNEWL)",
-             "side effect": "writes 'NN.SSS' or 'SSS' followed by CR/LF "
-             "to the current output stream"})
+    on_exit={"a, x, y": "clobbered (print_station_addr + OSNEWL)"})
 # Located in 4.21_v1 at &A3C4 (was &A0A7 in 4.18). Body matches with
 # 65C12 PHX/PHY replacing 4.18's TXA/PHA and TYA/PHA, plus the
 # parsed-station storage moves from fs_work_6 (&B6) to fs_work_7
@@ -4596,23 +3937,14 @@ subroutine(0xA3C4, "parse_fs_ps_args",
     "65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and\n"
     "stores the result in fs_work_7 (was fs_work_6 in\n"
     "4.18).",
-    on_entry={"os_text_ptr (&F2/&F3)":
-              "command-line text pointer (consumed by parse_addr_arg)",
-              "y": "current command-line offset"},
-    on_exit={"fs_work_7 (&B7)": "parsed station number",
-             "fs_work_6 (&B6)": "parsed network number (0 if not specified)",
-             "x, y": "preserved (saved/restored via PHX/PHY)",
-             "behaviour": "raises 'Bad station' via parse_addr_arg on "
-             "malformed input"})
+    on_entry={"y": "current command-line offset"},
+    on_exit={"x, y": "preserved (saved/restored via PHX/PHY)"})
 subroutine(0xA3E7, "get_pb_ptr_as_index",
     title="Convert parameter block pointer to table index",
     description="Reads the first byte from the OSWORD parameter\n"
     "block pointer and falls through to\n"
     "byte_to_2bit_index to produce a 12-byte-aligned\n"
     "table index in Y.",
-    on_entry={"ws_ptr_hi (workspace ptr)":
-              "OSWORD parameter block pointer; PB[0] is the table "
-              "selector"},
     on_exit={"a": "PB[0] (preserved through byte_to_2bit_index)",
              "y": "byte offset (0, 6, 12, ... up to &42)"})
 subroutine(0xA3E9, "byte_to_2bit_index",
@@ -4629,17 +3961,13 @@ subroutine(0xA45B, "match_fs_cmd",
     "against table entries with bit-7-terminated\n"
     "names. Returns with the matched entry address\n"
     "on success.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer (snapshot from save_text_ptr)",
-              "x": "starting offset within cmd_table_fs (selects which "
+    on_entry={"x": "starting offset within cmd_table_fs (selects which "
               "sub-table is searched: NFS commands, FS commands, etc.)"},
     on_exit={"x": "byte offset just past the matched command name in "
              "cmd_table_fs (or end-of-table if no match)",
              "y": "command-line offset of the first non-name character "
              "(typically the argument start)",
-             "z flag": "set on match, clear on no-match",
-             "behaviour": "case-insensitive (bit 5 mask applied) and "
-             "uses bit-7 terminators to delimit each table entry's name"})
+             "z flag": "set on match, clear on no-match"})
 subroutine(0xA644, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
@@ -4648,9 +3976,6 @@ subroutine(0xA644, "find_station_bit2",
     "if found, clears V if not. Falls through to\n"
     "allocate or update the matching slot with the\n"
     "new station address and status flags.",
-    on_entry={"&0E00, &0E01": "station, network address to look up",
-              "fs_work_6, fs_work_7": "current PS station/network for "
-              "fall-through update"},
     on_exit={"v flag": "set if matching slot already had bit 2; clear if "
              "newly allocated",
              "x": "table slot index of the matched/allocated entry"})
@@ -4662,7 +3987,6 @@ subroutine(0xA66F, "find_station_bit3",
     "if found, clears V if not. Falls through to\n"
     "allocate or update the matching slot with the\n"
     "new station address and status flags.",
-    on_entry={"&0E00, &0E01": "FS station, network to look up"},
     on_exit={"v flag": "set if matching slot already had bit 3; clear if "
              "newly allocated",
              "x": "table slot index of the matched/allocated entry"})
@@ -4674,11 +3998,8 @@ subroutine(0xA6A6, "flip_set_station_boot",
     "in the matching entry and calls\n"
     "restore_fs_context to re-establish the filing\n"
     "system state.",
-    on_entry={"a": "boot type code to store",
-              "&0E00, &0E01": "station, network whose boot entry to update"},
-    on_exit={"FS context": "restored from saved workspace via "
-             "restore_fs_context",
-             "a, x, y": "clobbered"})
+    on_entry={"a": "boot type code to store"},
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xA864, "osword_setup_handler",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD dispatch table by X to\n"
@@ -4707,14 +4028,7 @@ subroutine(0xAC67, "store_osword_pb_ptr",
     "store_ptr_at_ws_y. Then reads PB byte 1 (the\n"
     "transfer length) and adds ws_ptr_hi to compute\n"
     "the buffer end pointer, stored at workspace\n"
-    "offset &20.",
-    on_entry={"ws_ptr_hi (workspace ptr lo/hi)":
-              "OSWORD parameter block pointer",
-              "PB[1]": "transfer length (used to compute end pointer)"},
-    on_exit={"NFS workspace +&1C, +&1D": "PB pointer + 1 "
-             "(skips the sub-function-code byte)",
-             "NFS workspace +&20, +&21": "PB pointer + PB[1] "
-             "(end-of-buffer pointer)"})
+    "offset &20.")
 subroutine(0xACAD, "store_ptr_at_ws_y",
     title="Store 16-bit pointer at workspace offset Y",
     description="Writes a 16-bit address to (nfs_workspace)+Y.\n"
@@ -4746,14 +4060,7 @@ subroutine(0xA9CC, "osword_13_read_station",
     description="Returns the current file server station and\n"
     "network numbers in PB[1..2]. If the NFS is not\n"
     "active, sub_c8b4d returns early with zero in\n"
-    "PB[0] (carrying over the 4.18 semantics).",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD parameter block pointer "
-              "(set up by osword_13_dispatch via store_osword_pb_ptr)"},
-    on_exit={"PB[0]": "0 if NFS not active",
-             "PB[1]": "FS station number",
-             "PB[2]": "FS network number",
-             "behaviour": "in 4.21, ensure_fs_selected auto-selects ANFS "
-             "rather than aborting on inactive FS"})
+    "PB[0] (carrying over the 4.18 semantics).")
 # Located in 4.21_v1 at &A9DA (was &A673 in 4.18). Reached via the
 # OSWORD &13 sub-1 dispatch entry in the lo/hi table at &A9A8/&A9BA
 # (lo=D9, hi=A9 -> +1 = &A9DA). 4.18 had the FS-active check
@@ -4768,13 +4075,7 @@ subroutine(0xA9DA, "osword_13_set_station",
     "sub_c8b4d to verify the FS is active, then the\n"
     "body at &A9DD processes all FCBs and scans the\n"
     "16-entry FCB table to reassign handles matching\n"
-    "the new station.",
-    on_entry={"PB[1]": "new FS station number",
-              "PB[2]": "new FS network number"},
-    on_exit={"&0E00, &0E01": "updated FS station/network",
-             "FCB table at l1060": "handles reassigned to new station",
-             "behaviour": "in 4.21, ensure_fs_selected auto-selects ANFS "
-             "if not already active"})
+    "the new station.")
 label(0xA9DD, "osword_13_set_station_body")
 
 # Shared FS-selection prologue used by OSWORD &13 sub-handlers. 4.18
@@ -4797,68 +4098,42 @@ subroutine(0x8B4D, "ensure_fs_selected",
     "Behaviour change from 4.18: inline `BIT &0D6C / BPL`\n"
     "in 4.18 OSWORD handlers ABORTED when FS was inactive\n"
     "(returning zero in PB[0]); 4.21 instead auto-selects.",
-    on_entry={"fs_flags (&0D6C)":
-              "bit 7 = 1 if ANFS already selected (fast path -- "
-              "RTS without doing anything)",
-              "x, y": "OSWORD parameter block pointer (preserved across "
-              "the cmd_net_fs call when selection happens)"},
-    on_exit={"behaviour":
-             "fast path: RTS with no side effects when FS already active. "
-             "Selection path: cmd_net_fs runs (verifies workspace "
-             "checksum, installs vectors, sets bit 7) and on success "
-             "falls through to set up the OSWORD PB pointer; on failure "
-             "(checksum mismatch) raises 'net checksum' via "
-             "error_net_checksum and never returns."})
+    on_entry={"x, y": "OSWORD parameter block pointer (preserved across "
+              "the cmd_net_fs call when selection happens)"})
 subroutine(0xAA72, "osword_13_read_csd",
     title="OSWORD &13 sub 12: read CSD path",
     description="Reads 5 current selected directory path bytes\n"
     "from the RX workspace at offset &17 into\n"
     "PB[1..5]. Sets carry clear to select the\n"
-    "workspace-to-PB copy direction.",
-    on_entry={"ws_ptr_hi (workspace ptr)":
-              "OSWORD parameter block pointer (set up by dispatch)"},
-    on_exit={"PB[1..5]": "5-byte CSD path from RX workspace +&17"})
+    "workspace-to-PB copy direction.")
 subroutine(0xAA75, "osword_13_write_csd",
     title="OSWORD &13 sub 13: write CSD path",
     description="Writes 5 current selected directory path bytes\n"
     "from PB[1..5] into the RX workspace at offset\n"
     "&17. Sets carry to select the PB-to-workspace\n"
-    "copy direction.",
-    on_entry={"PB[1..5]": "5-byte CSD path to install"},
-    on_exit={"RX workspace +&17..+&1B": "= PB[1..5]"})
+    "copy direction.")
 subroutine(0xAA91, "osword_13_read_ws_pair",
     title="OSWORD &13 sub 2: read workspace byte pair",
     description="Reads 2 bytes from the NFS workspace page\n"
     "starting at offset 1 into PB[1..2]. Uses\n"
     "nfs_workspace_hi as the page and\n"
     "copy_pb_byte_to_ws with carry clear for the\n"
-    "workspace-to-PB direction.",
-    on_entry={"ws_ptr_hi (workspace ptr)":
-              "OSWORD parameter block pointer (set up by dispatch)"},
-    on_exit={"PB[1..2]": "2 bytes from NFS workspace +1..+2"})
+    "workspace-to-PB direction.")
 subroutine(0xAA9D, "osword_13_write_ws_pair",
     title="OSWORD &13 sub 3: write workspace byte pair",
     description="Writes 2 bytes from PB[1..2] into the NFS\n"
     "workspace at offsets 2 and 3. Then calls\n"
     "init_bridge_poll and conditionally clears\n"
     "the workspace byte if the bridge status\n"
-    "changed.",
-    on_entry={"PB[1..2]": "2 bytes to write to NFS workspace"},
-    on_exit={"NFS workspace +2..+3": "= PB[1..2]",
-             "bridge poll table": "refreshed via init_bridge_poll"})
+    "changed.")
 subroutine(0xAAB2, "osword_13_read_prot",
     title="OSWORD &13 sub 4: read protection mask",
     description="Returns the current protection mask (ws_0d68)\n"
-    "in PB[1].",
-    on_entry={"ws_ptr_hi (workspace ptr)":
-              "OSWORD parameter block pointer"},
-    on_exit={"PB[1]": "current immediate-op protection mask (ws_0d68)"})
+    "in PB[1].")
 subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="Sets the protection mask from PB[1] via\n"
-    "store_prot_mask.",
-    on_entry={"PB[1]": "new immediate-op protection mask"},
-    on_exit={"ws_0d68, ws_0d69": "updated to PB[1]"})
+    "store_prot_mask.")
 # Located in 4.21_v1 at &AAC2 (was &A734 in 4.18). OSWORD &13 sub 6
 # from the dispatch table (lo=C1, hi=AA -> +1 = &AAC2). FS-active
 # check via sub_c8b4d in prologue.
@@ -4868,11 +4143,7 @@ subroutine(0xAAC2, "osword_13_read_handles",
     description="Returns the 3-byte FCB handle/port data from\n"
     "the workspace at C271[1..3] (was l1071[1..3] in\n"
     "4.18) into PB[1..3]. If the NFS is not active,\n"
-    "returns zero in PB[0] via the sub_c8b4d prologue.",
-    on_entry={"ws_ptr_hi (workspace ptr)":
-              "OSWORD parameter block pointer"},
-    on_exit={"PB[1..3]": "3 bytes from fs_lib_flags+1..+3 (C271+1..+3)",
-             "PB[0]": "0 if NFS not active (auto-selected in 4.21)"})
+    "returns zero in PB[0] via the sub_c8b4d prologue.")
 # Located in 4.21_v1 at &AAD0 (was &A744 in 4.18). OSWORD &13 sub 7
 # from the dispatch table (lo=CF, hi=AA -> +1 = &AAD0).
 entry(0xAAD0)
@@ -4883,12 +4154,7 @@ subroutine(0xAAD0, "osword_13_set_handles",
     "indexes the channel tables. For valid handles\n"
     "with the appropriate flag bit, stores the\n"
     "station and FCB index, then updates flag bits\n"
-    "across all FCB entries via update_fcb_flag_bits.",
-    on_entry={"PB[1..3]": "three new FCB handle values (&20-&2F)"},
-    on_exit={"FCB table at l1060": "flag bits updated to reflect new "
-             "handle assignments",
-             "behaviour": "in 4.21, ensure_fs_selected auto-selects "
-             "ANFS if not active"})
+    "across all FCB entries via update_fcb_flag_bits.")
 subroutine(0xAB43, "update_fcb_flag_bits",
     title="Update FCB flag bits across all entries",
     description="Scans all 16 FCB entries in l1060. For each\n"
@@ -4902,21 +4168,14 @@ subroutine(0xAB43, "update_fcb_flag_bits",
 subroutine(0xAB68, "osword_13_read_rx_flag",
     title="OSWORD &13 sub 8: read RX control block flag",
     description="Returns byte 1 of the current RX control\n"
-    "block in PB[1].",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[1]": "RXCB[1] (current open-receive flags)"})
+    "block in PB[1].")
 subroutine(0xAB71, "osword_13_read_rx_port",
     title="OSWORD &13 sub 9: read RX port byte",
     description="Returns byte &7F of the current RX control\n"
-    "block in PB[1], and stores &80 in PB[2].",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[1]": "RXCB byte at &7F",
-             "PB[2]": "&80 (sentinel)"})
+    "block in PB[1], and stores &80 in PB[2].")
 subroutine(0xAB7F, "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
-    description="Returns the error flag (l0e09) in PB[1].",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[1]": "last error code stored in l0e09"})
+    description="Returns the error flag (l0e09) in PB[1].")
 subroutine(0xAB82, "store_a_to_pb_1",
     title="Store A to OSWORD parameter block at offset 1",
     description="Increments Y to 1 and stores A into the\n"
@@ -4927,19 +4186,13 @@ subroutine(0xAB82, "store_a_to_pb_1",
     on_exit={"Y": "1"})
 subroutine(0xAB86, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
-    description="Returns the context byte (l0d6d) in PB[1].",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[1]": "current context byte from l0d6d"})
+    description="Returns the context byte (l0d6d) in PB[1].")
 subroutine(0xAB8B, "osword_13_read_free_bufs",
     title="OSWORD &13 sub 14: read printer buffer free space",
     description="Returns the number of free bytes remaining in\n"
     "the printer spool buffer (&6F minus spool_buf_idx)\n"
     "in PB[1]. The buffer starts at offset &25 and can\n"
-    "hold up to &4A bytes of spool data.",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer",
-              "spool_buf_idx": "current write position within printer buffer"},
-    on_exit={"PB[1]": "free bytes in printer spool buffer "
-             "(&6F minus spool_buf_idx)"})
+    "hold up to &4A bytes of spool data.")
 subroutine(0xAB93, "osword_13_read_ctx_3",
     title="OSWORD &13 sub 15: read retry counts",
     description="Returns the three retry count values in\n"
@@ -4947,31 +4200,20 @@ subroutine(0xAB93, "osword_13_read_ctx_3",
     "(default &FF = 255), PB[2] = receive poll\n"
     "count (default &28 = 40), PB[3] = machine\n"
     "peek retry count (default &0A = 10). Setting\n"
-    "transmit retries to 0 means retry forever.",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[1]": "tx_retry_count (default &FF; 0 = retry forever)",
-             "PB[2]": "rx_wait_timeout (default &28 = 40)",
-             "PB[3]": "machine peek retry count (default &0A = 10)"})
+    "transmit retries to 0 means retry forever.")
 subroutine(0xAB9E, "osword_13_write_ctx_3",
     title="OSWORD &13 sub 16: write retry counts",
     description="Sets the three retry count values from\n"
     "PB[1..3]: PB[1] = transmit retry count,\n"
     "PB[2] = receive poll count, PB[3] = machine\n"
-    "peek retry count.",
-    on_entry={"PB[1]": "new tx_retry_count (0 = retry forever)",
-              "PB[2]": "new rx_wait_timeout",
-              "PB[3]": "new machine peek retry count"})
+    "peek retry count.")
 subroutine(0xABA9, "osword_13_bridge_query",
     title="OSWORD &13 sub 17: query bridge status",
     description="Calls init_bridge_poll, then returns the\n"
     "bridge status. If l0d72 is &FF (no bridge),\n"
     "stores 0 in PB[0]. Otherwise stores l0d72\n"
     "in PB[1] and conditionally updates PB[3]\n"
-    "based on station comparison.",
-    on_entry={"ws_ptr_hi (workspace ptr)": "OSWORD PB pointer"},
-    on_exit={"PB[0]": "0 if no bridge present (l0d72 = &FF)",
-             "PB[1]": "bridge station number when present",
-             "PB[3]": "conditionally updated based on station match"})
+    "based on station comparison.")
 subroutine(0xABE9, "init_bridge_poll",
     title="Initialise Econet bridge routing table",
     description="Checks the bridge status byte: if &FF\n"
@@ -4980,12 +4222,7 @@ subroutine(0xABE9, "init_bridge_poll",
     "adds a network routing entry to the bridge\n"
     "table. Skips the broadcast if the table has\n"
     "already been populated from a previous call.",
-    on_entry={"bridge_status (&0D72)":
-              "&FF = needs init (broadcast and populate); "
-              "any other value = already initialised (no-op)"},
-    on_exit={"bridge routing table": "populated on first call; "
-             "subsequent calls return immediately",
-             "a, x, y": "clobbered when the broadcast path runs"})
+    on_exit={"a, x, y": "clobbered when the broadcast path runs"})
 subroutine(0xACF8, "enable_irq_and_poll",
     title="Enable interrupts and send Econet packet",
     description="Executes CLI to re-enable interrupts, then\n"
@@ -4993,12 +4230,8 @@ subroutine(0xACF8, "enable_irq_and_poll",
     "a sequence that ran with interrupts disabled\n"
     "to ensure the packet is sent with normal\n"
     "interrupt handling active.",
-    on_entry={"txcb at &00C0": "TX control block populated by caller",
-              "i flag": "may be set (caller had IRQs off); CLI clears it"},
-    on_exit={"i flag": "clear (interrupts enabled)",
-             "behaviour": "tail-calls send_net_packet -- result depends on "
-             "Econet TX outcome (may BRK on escape via "
-             "check_escape_and_classify)"})
+    on_entry={"i flag": "may be set (caller had IRQs off); CLI clears it"},
+    on_exit={"i flag": "clear (interrupts enabled)"})
 subroutine(0xACFC, "netv_handler",
     title="NETV handler: OSWORD dispatch",
     description="Installed as the NETV handler via\n"
@@ -5009,13 +4242,8 @@ subroutine(0xACFC, "netv_handler",
     "to MOS). Address stored at netv_handler_addr\n"
     "(&8E8A) in the extended vector data area.",
     on_entry={"a": "OSWORD number (read from stacked A on entry)",
-              "x, y": "PB pointer low/high (per OSWORD calling convention)",
-              "stack": "MOS-prepared NETV stack frame "
-              "(P, A, ROM-bank-select, return address)"},
-    on_exit={"a, x, y, p": "restored from stack",
-             "behaviour": "OSWORDs >= 9 are passed through unchanged "
-             "(MOS continues to next NETV ROM); OSWORDs 0-8 are dispatched "
-             "to per-call handlers and may issue Econet TX/abort packets"})
+              "x, y": "PB pointer low/high (per OSWORD calling convention)"},
+    on_exit={"a, x, y, p": "restored from stack"})
 subroutine(0xAD15, "push_osword_handler_addr",
     title="Push OSWORD handler address for RTS dispatch",
     description="Indexes the OSWORD handler dispatch table\n"
@@ -5024,11 +4252,8 @@ subroutine(0xAD15, "push_osword_handler_addr",
     "Reloads the OSWORD number from osbyte_a_copy\n"
     "so the dispatched handler can identify the\n"
     "specific call.",
-    on_entry={"a": "OSWORD number (0-8) -- table index",
-              "osbyte_a_copy": "saved OSWORD number for handler reload"},
-    on_exit={"stack": "(handler-1) hi byte then lo byte pushed; caller's "
-             "subsequent RTS lands on the handler",
-             "a": "OSWORD number (re-loaded for the handler's use)"})
+    on_entry={"a": "OSWORD number (0-8) -- table index"},
+    on_exit={"a": "OSWORD number (re-loaded for the handler's use)"})
 # UNMAPPED: subroutine(0xA9B0, "osword_4_handler",
 # UNMAPPED:     title="OSWORD 4 handler: clear carry and send abort",
 # UNMAPPED:     description="Clears the carry flag in the stacked processor\n"
@@ -5043,11 +4268,7 @@ subroutine(0xAD40, "tx_econet_abort",
     "(immediate operation flag), and transmits the\n"
     "abort packet. Used to cleanly disconnect from\n"
     "a remote station during error recovery.",
-    on_entry={"a": "abort code (stored in workspace before TX)",
-              "&0E00, &0E01": "destination station, network"},
-    on_exit={"behaviour": "Econet abort packet sent; this is a "
-             "fire-and-forget packet (no reply expected); caller "
-             "typically returns to MOS via NETV"})
+    on_entry={"a": "abort code (stored in workspace before TX)"})
 subroutine(0xAD64, "netv_claim_release",
     title="OSWORD 7 handler: claim/release network resources",
     description="Handles OSWORD 7 (SOUND) intercepted via NETV.\n"
@@ -5058,13 +4279,7 @@ subroutine(0xAD64, "netv_claim_release",
     "code. For state 3 matches, also polls workspace\n"
     "for a response and restores the caller's stack\n"
     "frame from the saved bytes.",
-    on_entry={"a": "OSWORD 7 number (validated by caller)",
-              "PB pointer (X/Y)": "OSWORD parameter block from MOS"},
-    on_exit={"behaviour": "no match: returns with the OSWORD pass-through "
-             "path. Match path: sends an Econet abort with the state "
-             "code; for state 3, polls workspace for the remote response "
-             "and restores caller's stack frame -- caller does NOT see "
-             "this routine's RTS, control resumes deeper up the stack"})
+    on_entry={"a": "OSWORD 7 number (validated by caller)"})
 subroutine(0xADB8, "match_rx_code",
     title="Search receive code table for match",
     description="Scans a table of receive operation codes\n"
@@ -5082,32 +4297,21 @@ subroutine(0xADD3, "osword_8_handler",
     "control value &E9, and sending an abort packet.\n"
     "Returns via tx_econet_abort. Rejects other\n"
     "OSWORD numbers by returning immediately.",
-    on_entry={"a": "OSWORD number (must be 7 or 8 to be processed)",
-              "PB pointer (X/Y or workspace ptr)":
-              "OSWORD parameter block (15 bytes copied to workspace +&DB)"},
-    on_exit={"NFS workspace +&DA": "= OSWORD number",
-             "NFS workspace +&DB..+&E9": "= 15 bytes copied from PB",
-             "behaviour": "abort packet sent via tx_econet_abort with "
-             "control = &E9; OSWORD numbers other than 7/8 return "
-             "immediately with no side effect"})
+    on_entry={"a": "OSWORD number (must be 7 or 8 to be processed)"})
 subroutine(0xADFE, "init_ws_copy_wide",
     title="Initialise workspace copy in wide mode (14 bytes)",
     description="Copies 14 bytes to workspace offset &7C.\n"
     "Falls through to the template-driven copy\n"
     "loop which handles &FD (skip), &FE (end),\n"
     "and &FC (page pointer) markers.",
-    on_entry={"x": "template source offset (within ws_txcb_template_data)"},
-    on_exit={"NFS workspace +&7C..": "14 bytes from template (with "
-             "&FC -> workspace page pointer substitution applied)"})
+    on_entry={"x": "template source offset (within ws_txcb_template_data)"})
 subroutine(0xAE07, "init_ws_copy_narrow",
     title="Initialise workspace copy in narrow mode (27 bytes)",
     description="Sets up a 27-byte copy to workspace offset &17,\n"
     "then falls through to ws_copy_vclr_entry for\n"
     "the template-driven copy loop. Used for the\n"
     "compact workspace initialisation variant.",
-    on_entry={"x": "template source offset"},
-    on_exit={"NFS workspace +&17..": "27 bytes from template (with "
-             "marker substitution applied)"})
+    on_entry={"x": "template source offset"})
 subroutine(0xAE0B, "ws_copy_vclr_entry",
     title="Template-driven workspace copy with V clear",
     description="Processes a template byte array to initialise\n"
@@ -5120,9 +4324,7 @@ subroutine(0xAE0B, "ws_copy_vclr_entry",
               "y": "destination offset within NFS workspace",
               "v flag": "clear (controls a downstream branch in the "
               "shared body; init_ws_copy_wide / _narrow enter with V=0)"},
-    on_exit={"NFS workspace at +Y..": "template data copied with marker "
-             "expansion (&FC -> page pointer; &FD skip; &FE end)",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xAE5A, "netv_spool_check",
     title="OSWORD 5 handler: check spool PB and reset buffer",
     description="Handles OSWORD 5 intercepted via NETV. Checks\n"
@@ -5131,11 +4333,7 @@ subroutine(0xAE5A, "netv_spool_check",
     "falls through to reset_spool_buf_state to\n"
     "reinitialise the spool buffer for new data.",
     on_entry={"x": "OSWORD parameter block low byte (X-1 compared "
-              "against osword_pb_ptr)",
-              "&00D0 bit 0": "must be clear for the reset to apply"},
-    on_exit={"behaviour": "no match: returns with OSWORD passed through. "
-             "Match path: spool buffer reset via fall-through (pointer "
-             "set to &25, control state to &41)"})
+              "against osword_pb_ptr)"})
 subroutine(0xAE6F, "netv_print_data",
     title="OSWORD 1-3 handler: drain printer buffer",
     description="Handles OSWORDs 1-3 intercepted via NETV.\n"
@@ -5144,12 +4342,7 @@ subroutine(0xAE6F, "netv_print_data",
     "packets via process_spool_data when the buffer\n"
     "exceeds &6E bytes. When X>1, routes to\n"
     "handle_spool_ctrl_byte for spool state control.",
-    on_entry={"x": "1 = drain printer buffer; >1 = control byte path",
-              "spool_buf at workspace +&25..":
-              "accumulator buffer (drained when full)"},
-    on_exit={"behaviour": "X=1: buffer drained via OSBYTE &91 into the "
-             "RX buffer; transmits via process_spool_data once the buffer "
-             "exceeds &6E bytes. X>1: tail-jumps to handle_spool_ctrl_byte"})
+    on_entry={"x": "1 = drain printer buffer; >1 = control byte path"})
 subroutine(0xAE64, "reset_spool_buf_state",
     title="Reset spool buffer to initial state",
     description="Sets the spool buffer pointer to &25 (first\n"
@@ -5157,9 +4350,7 @@ subroutine(0xAE64, "reset_spool_buf_state",
     "byte to &41 (ready for new data). Called after\n"
     "processing a complete spool data block.",
     on_entry={},
-    on_exit={"spool_buf_idx": "= &25 (first data position)",
-             "spool ctrl byte": "= &41 (ready for new data)",
-             "a, y": "clobbered"})
+    on_exit={"a, y": "clobbered"})
 subroutine(0xAE94, "append_byte_to_rxbuf",
     title="Append byte to receive buffer",
     description="Stores A in the receive buffer at the current\n"
@@ -5175,11 +4366,8 @@ subroutine(0xAE9D, "handle_spool_ctrl_byte",
     "to transmit the accumulated data, and resets\n"
     "the buffer state ready for the next block.",
     on_entry={"a": "control byte (bit 0 selects mode: 0 = print, "
-              "1 = spool)",
-              "spool buffer (workspace)":
-              "accumulated data ready to transmit"},
-    on_exit={"spool buffer": "transmitted then reset to initial state",
-             "a, x, y": "clobbered"})
+              "1 = spool)"},
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xAEB8, "process_spool_data",
     title="Transmit accumulated spool buffer data",
     description="Copies the workspace state to the TX control\n"
@@ -5187,34 +4375,21 @@ subroutine(0xAEB8, "process_spool_data",
     "transfer requires acknowledgment, then handles\n"
     "the spool output sequence by setting up and\n"
     "sending the pass-through TX buffer.",
-    on_entry={"spool buffer (workspace)": "data to transmit",
-              "txcb shadow (workspace)":
-              "TX state to copy into &00C0..&00CB"},
-    on_exit={"a": "TX result (from setup_pass_txbuf)",
-             "behaviour": "may issue a disconnect reply for the previous "
-             "transfer before sending; raises BRK on persistent TX errors"})
+    on_exit={"a": "TX result (from setup_pass_txbuf)"})
 subroutine(0xAFA6, "send_disconnect_reply",
     title="Send Econet disconnect reply packet",
     description="Sets up the TX pointer, copies station\n"
     "addresses, matches the station in the table,\n"
     "and sends the response. Waits for\n"
     "acknowledgment before returning.",
-    on_entry={"&0E00, &0E01": "station/network of the remote that "
-              "originated the request"},
-    on_exit={"a": "TX result code",
-             "behaviour": "sends the disconnect reply via the pass-"
-             "through TX buffer; waits for ACK before returning"})
+    on_exit={"a": "TX result code"})
 subroutine(0xB05F, "commit_state_byte",
     title="Copy current state byte to committed state",
     description="Reads the working state byte from workspace and\n"
     "stores it to the committed state location. Used\n"
     "to finalise a state transition after all related\n"
     "workspace fields have been updated.",
-    on_entry={"working state byte (workspace)":
-              "value just written by the in-progress state machine"},
-    on_exit={"committed state byte (workspace)":
-             "= working state byte",
-             "a": "= the committed value"})
+    on_exit={"a": "= the committed value"})
 subroutine(0xB066, "serialise_palette_entry",
     title="Serialise palette register to workspace",
     description="Reads the current logical colour for a palette\n"
@@ -5224,20 +4399,15 @@ subroutine(0xB066, "serialise_palette_entry",
     "screen state capture.",
     on_entry={"x": "palette register index (0-15)",
               "y": "destination workspace offset (palette + mode pair)"},
-    on_exit={"workspace +Y..+Y+1":
-             "palette value, then mode bits (read via OSBYTE &0B)",
-             "y": "advanced past the 2-byte pair",
+    on_exit={"y": "advanced past the 2-byte pair",
              "a, x": "clobbered (OSBYTE)"})
 subroutine(0xB081, "read_osbyte_to_ws_x0",
     title="Read OSBYTE with X=0 and store to workspace",
     description="Sets X=0 then falls through to read_osbyte_to_ws\n"
     "to issue the OSBYTE call and store the result.\n"
     "Used when the OSBYTE parameter X must be zero.",
-    on_entry={"y": "destination workspace offset",
-              "OSBYTE table cursor (workspace)":
-              "next OSBYTE function code"},
-    on_exit={"workspace +Y": "OSBYTE result (Y from the call)",
-             "y": "incremented past the stored byte",
+    on_entry={"y": "destination workspace offset"},
+    on_exit={"y": "incremented past the stored byte",
              "a, x": "clobbered (OSBYTE)"})
 subroutine(0xB083, "read_osbyte_to_ws",
     title="Issue OSBYTE from table and store result",
@@ -5247,10 +4417,8 @@ subroutine(0xB083, "read_osbyte_to_ws",
     "offset. Advances the table pointer for the next\n"
     "call.",
     on_entry={"x": "OSBYTE X parameter",
-              "y": "destination workspace offset",
-              "OSBYTE table cursor": "next function code to issue"},
-    on_exit={"workspace +Y": "OSBYTE Y-result",
-             "y": "incremented past the stored byte",
+              "y": "destination workspace offset"},
+    on_exit={"y": "incremented past the stored byte",
              "a, x": "clobbered"})
 
 # --- cmd_ex subroutines ---
@@ -5274,11 +4442,7 @@ subroutine(0xB22A, "parse_cmd_arg_y0",
     description="Sets Y=0 and falls through to parse_filename_arg\n"
     "for GSREAD-based filename parsing with prefix\n"
     "character handling.",
-    on_entry={"os_text_ptr (&F2/&F3)":
-              "command-line text pointer (consumed by gsread_to_buf)"},
-    on_exit={"y": "advanced past the parsed argument",
-             "&C030 (parse buffer)": "the parsed (and prefix-stripped) "
-             "filename, CR-terminated"})
+    on_exit={"y": "advanced past the parsed argument"})
 subroutine(0xB22C, "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
     description="Calls gsread_to_buf to read the command line\n"
@@ -5286,9 +4450,7 @@ subroutine(0xB22C, "parse_filename_arg",
     "to parse_access_prefix to process '&', ':', '.',\n"
     "and '#' prefix characters.",
     on_entry={"y": "current command-line offset (consumed by gsread_to_buf)"},
-    on_exit={"y": "advanced past the parsed argument",
-             "&C030 (parse buffer)": "the parsed filename, CR-terminated; "
-             "fs_lib_flags updated for '&'/':' prefix handling"})
+    on_exit={"y": "advanced past the parsed argument"})
 subroutine(0xB22F, "parse_access_prefix",
     title="Parse access and FS selection prefix characters",
     description="Examines the first character(s) of the parsed\n"
@@ -5297,14 +4459,7 @@ subroutine(0xB22F, "parse_access_prefix",
     "strips the prefix, ':' with '.' also triggers FS\n"
     "selection, '#' is accepted as a channel prefix.\n"
     "Raises 'Bad file name' for invalid combinations\n"
-    "like '&.' followed by CR.",
-    on_entry={"&C030 (parse buffer)":
-              "filename string from gsread_to_buf, CR-terminated"},
-    on_exit={"fs_lib_flags (&C271)":
-             "bit 6 set if '&' or ':.' prefix observed",
-             "&C030": "first prefix character stripped on the &/: path",
-             "behaviour": "raises 'Bad file name' via error_bad_inline "
-             "for '&.<CR>' and similar malformed prefixes"})
+    "like '&.' followed by CR.")
 subroutine(0xB251, "strip_token_prefix",
     title="Strip first character from parsed token buffer",
     description="Shifts all bytes in the &C030 buffer left by\n"
@@ -5312,23 +4467,16 @@ subroutine(0xB251, "strip_token_prefix",
     "then trims any trailing spaces by replacing\n"
     "them with CR terminators. Used after consuming\n"
     "a prefix character like '&' or ':'.",
-    on_entry={"&C030 (parse buffer)":
-              "first byte will be discarded; buffer is CR-terminated"},
     on_exit={"x": "preserved (saved/restored via PHA/PLA)",
-             "a": "clobbered",
-             "&C030 (parse buffer)": "shifted left by one byte; "
-             "any trailing spaces replaced by CR"})
+             "a": "clobbered"})
 subroutine(0xB29F, "copy_arg_to_buf_x0",
     title="Copy argument to TX buffer from offset zero",
     description="Sets X=0 and falls through to copy_arg_to_buf\n"
     "then copy_arg_validated. Provides the simplest\n"
     "entry point for copying a single parsed argument\n"
     "into the TX buffer at position zero.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer (already snapshot)"},
     on_exit={"x": "TX buffer offset just past the copied argument",
-             "y": "advanced past the source argument",
-             "TX buffer at &C105+0..": "argument bytes (CR-terminated)"})
+             "y": "advanced past the source argument"})
 subroutine(0xB2A1, "copy_arg_to_buf",
     title="Copy argument to TX buffer with Y=0",
     description="Sets Y=0 and falls through to copy_arg_validated\n"
@@ -5360,11 +4508,7 @@ subroutine(0xB2CF, "mask_owner_access",
     "other high bits to retain only the 5-bit owner\n"
     "access mask. Called before parsing to reset the\n"
     "prefix state from a previous command. 12 callers.",
-    on_entry={"fs_lib_flags (&C271)":
-              "current options-word flags from a previous command"},
-    on_exit={"fs_lib_flags": "low 5 bits preserved (owner access mask); "
-             "high 3 bits cleared",
-             "a": "= masked value"})
+    on_exit={"a": "= masked value"})
 subroutine(0xB2E4, "ex_print_col_sep",
     title="Print column separator or newline for *Ex/*Cat",
     description="In *Cat mode, increments a column counter modulo 4\n"
@@ -5372,15 +4516,7 @@ subroutine(0xB2E4, "ex_print_col_sep",
     "with a newline at the end of each row. In *Ex\n"
     "mode (fs_spool_handle negative), prints a newline\n"
     "after every entry. Scans the entry data and loops\n"
-    "back to print the next entry's characters.",
-    on_entry={"fs_spool_handle (workspace)":
-              "negative selects *Ex mode (newline per entry); "
-              "non-negative selects *Cat mode (3 columns per row)",
-              "ex_col_counter (workspace)":
-              "modulo-4 column counter for *Cat mode"},
-    on_exit={"side effect": "writes column separator (2 spaces) or newline "
-             "to current output",
-             "ex_col_counter": "advanced (and wrapped) for *Cat mode"})
+    "back to print the next entry's characters.")
 
 # --- cmd_remove subroutines ---
 
@@ -5417,10 +4553,7 @@ subroutine(0xB373, "save_ptr_to_os_text",
     "stack. Called before GSINIT/GSREAD sequences\n"
     "that need to parse from the current command\n"
     "line position.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "current command-line text pointer to publish"},
-    on_exit={"a": "preserved (PHA/PLA)",
-             "os_text_ptr (&F2/&F3)": "= fs_crc_lo, fs_crc_hi on entry"})
+    on_exit={"a": "preserved (PHA/PLA)"})
 subroutine(0xB37F, "skip_to_next_arg",
     title="Advance past spaces to the next command argument",
     description="Scans (fs_crc_lo)+Y for space characters,\n"
@@ -5428,9 +4561,7 @@ subroutine(0xB37F, "skip_to_next_arg",
     "holding the first non-space character, or CR\n"
     "if the end of line is reached. Used by *CDir\n"
     "and *Remove to detect extra arguments.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer base",
-              "y": "starting offset (where to begin scanning)"},
+    on_entry={"y": "starting offset (where to begin scanning)"},
     on_exit={"a": "first non-space character or CR",
              "y": "offset of that character"})
 subroutine(0xB393, "save_ptr_to_spool_buf",
@@ -5439,11 +4570,7 @@ subroutine(0xB393, "save_ptr_to_spool_buf",
     "for use as the spool buffer pointer. Preserves A\n"
     "on the stack. Called by *PS and *PollPS before\n"
     "parsing their arguments.",
-    on_entry={"fs_crc_lo, fs_crc_hi (&BE/&BF)":
-              "command-line text pointer to publish as spool buf pointer"},
-    on_exit={"a": "preserved (PHA/PLA)",
-             "fs_options, fs_block_offset (&BB/&BC)":
-             "= fs_crc_lo, fs_crc_hi on entry"})
+    on_exit={"a": "preserved (PHA/PLA)"})
 subroutine(0xB39E, "init_spool_drive",
     title="Initialise spool drive page pointers",
     description="Calls get_ws_page to read the workspace page\n"
@@ -5451,11 +4578,8 @@ subroutine(0xB39E, "init_spool_drive",
     "the spool drive page high byte (l00af), and\n"
     "clears the low byte (l00ae) to zero. Preserves\n"
     "Y on the stack.",
-    on_entry={"romsel_copy (&F4)":
-              "ROM slot (consumed by get_ws_page)"},
     on_exit={"a": "0",
-             "y": "preserved (PHY/PLY)",
-             "l00ae, l00af": "&00, ws_page -- page-aligned spool drive ptr"})
+             "y": "preserved (PHY/PLY)"})
 
 # --- cmd_ps subroutines ---
 
@@ -5465,11 +4589,7 @@ subroutine(0xB3D5, "copy_ps_data_y1c",
     "Called during workspace initialisation\n"
     "(svc_2_private_workspace) to set up the printer\n"
     "server template at the standard offset.",
-    on_entry={"net_rx_ptr (&A6/&A7)":
-              "RX buffer pointer (template is written into "
-              "(net_rx_ptr)+&18..+&1F)"},
-    on_exit={"RX buffer +&18..+&1F": "8-byte PS template",
-             "y": "&20 (advanced past the copied 8 bytes)"})
+    on_exit={"y": "&20 (advanced past the copied 8 bytes)"})
 subroutine(0xB3D7, "copy_ps_data",
     title="Copy 8-byte printer server template to RX buffer",
     description="Copies 8 bytes of default printer server data\n"
@@ -5483,8 +4603,7 @@ subroutine(0xB3D7, "copy_ps_data",
     "operand byte of a JSR instruction at &8DA6 -- see\n"
     "docs/analysis/authors-easter-egg.md.",
     on_entry={"y": "destination offset within the RX buffer"},
-    on_exit={"RX buffer +Y..+Y+7": "8-byte PS template",
-             "y": "advanced by 8",
+    on_exit={"y": "advanced by 8",
              "x": "0 (loop terminator)",
              "a": "last template byte"})
 label(0xB441, "read_ps_station_addr")
@@ -5495,34 +4614,24 @@ subroutine(0xB483, "print_file_server_is",
     "to the shared ' server is ' suffix at\n"
     "print_printer_server_is.",
     on_entry={},
-    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
-             "side effect": "writes 'File server is ' to current output stream"})
+    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)"})
 subroutine(0xB48D, "print_printer_server_is",
     title="Print 'Printer server is ' prefix",
     description="Uses print_inline to output the full label\n"
     "'Printer server is ' with trailing space.",
     on_entry={},
-    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)",
-             "side effect": "writes 'Printer server is ' to current output stream"})
+    on_exit={"a, x, y": "clobbered (OSASCI via print_inline)"})
 subroutine(0xB4A8, "load_ps_server_addr",
     title="Load printer server address from workspace",
     description="Reads the station and network bytes from workspace\n"
     "offsets 2 and 3 into the station/network variables.",
-    on_entry={"nfs_workspace": "page-aligned NFS workspace pointer "
-              "(offsets 2/3 hold the saved PS address)"},
-    on_exit={"&0E00, &0E01": "PS station, network",
-             "a, y": "clobbered"})
+    on_exit={"a, y": "clobbered"})
 subroutine(0xB4B4, "pop_requeue_ps_scan",
     title="Pop return address and requeue PS slot scan",
     description="Converts the PS slot flags to a workspace index,\n"
     "writes slot data, and jumps back into the PS scan\n"
     "loop to continue processing.",
-    on_entry={"a": "PS slot flags byte to convert into a workspace index",
-              "stack": "JSR return address (which is discarded -- this "
-              "routine does NOT return to its caller)"},
-    on_exit={"control flow": "DOES NOT RETURN -- pops the JSR return "
-             "address from the stack and JMPs back into the PS scan "
-             "loop, effectively converting the JSR into a tail-jump"})
+    on_entry={"a": "PS slot flags byte to convert into a workspace index"})
 subroutine(0xB51C, "write_ps_slot_byte_ff",
     title="Write buffer page byte and two &FF markers",
     description="Stores the buffer page byte at the current Y offset\n"
@@ -5542,23 +4651,16 @@ subroutine(0xB52B, "reverse_ps_name_to_tx",
     description="Copies 8 bytes from the RX buffer (offsets &1C-&23)\n"
     "to the TX buffer (offsets &13-&1B) in reversed byte\n"
     "order, pushing onto the stack then popping back.",
-    on_entry={"RX buffer at +&1C..+&23":
-              "8-byte printer server name from server reply"},
-    on_exit={"TX buffer at +&13..+&1B":
-             "8-byte name in reverse byte order",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xB556, "print_station_addr",
     title="Print station address as decimal net.station",
     description="If the network number is zero, prints only the\n"
     "station number. Otherwise prints network.station\n"
     "separated by a dot. V flag controls padding with\n"
     "leading spaces for column alignment.",
-    on_entry={"fs_work_6 (&B6)": "network number (0 = local, no 'NN.' printed)",
-              "fs_work_7 (&B7)": "station number (printed as 3-digit decimal)",
-              "v flag": "set = no leading-space padding; "
+    on_entry={"v flag": "set = no leading-space padding; "
               "clear = pad to align in a column"},
-    on_exit={"a, x, y": "clobbered (print_decimal_3dig and OSASCI)",
-             "side effect": "writes 'NNN.SSS' or 'SSS' to current output"})
+    on_exit={"a, x, y": "clobbered (print_decimal_3dig and OSASCI)"})
 
 # --- cmd_pollps subroutines ---
 
@@ -5570,11 +4672,7 @@ subroutine(0xB6A6, "init_ps_slot_from_rx",
     "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
     "(the hi bytes of the two buffer pointers) so they\n"
     "point into the current RX buffer page.",
-    on_entry={"net_rx_ptr_hi": "RX buffer page (substituted into bytes "
-              "&7D and &81 of the template copy)"},
-    on_exit={"workspace +&78..+&83":
-             "12-byte PS slot template with RX page patched in",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xB6BD, "store_char_uppercase",
     title="Convert to uppercase and store in RX buffer",
     description="If the character in A is lowercase (&61-&7A), converts\n"
@@ -5592,9 +4690,7 @@ subroutine(0xB7D3, "flush_and_read_char",
     "error if escape was pressed (carry set on return).",
     on_entry={},
     on_exit={"a": "character read from keyboard",
-             "x, y": "clobbered (OSBYTE/OSRDCH)",
-             "behaviour": "raises 'Escape' error if escape was pressed "
-             "(OSRDCH returns C set)"})
+             "x, y": "clobbered (OSBYTE/OSRDCH)"})
 # Removed in 4.18: unused_clear_ws_78 (dead code removed)
 subroutine(0xB7E3, "init_channel_table",
     title="Initialise channel allocation table",
@@ -5602,12 +4698,7 @@ subroutine(0xB7E3, "init_channel_table",
     "available channel slots based on the count from\n"
     "the receive buffer. Sets the first slot to &C0\n"
     "(active channel marker).",
-    on_entry={"RX buffer (channel count)":
-              "byte at the conventional offset gives the number of "
-              "channels to mark available"},
-    on_exit={"channel table (256 bytes)": "cleared, then first N slots "
-             "marked available; slot 0 = &C0 (active channel marker)",
-             "a, x, y": "clobbered"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xB805, "attr_to_chan_index",
     title="Convert channel attribute to table index",
     description="Subtracts &20 from the attribute byte and clamps\n"
@@ -5636,25 +4727,18 @@ subroutine(0xB886, "store_result_check_dir",
     "buffer, then tests the directory flag (bit 1). Raises\n"
     "'Is a dir.' error if the attribute refers to a\n"
     "directory rather than a file.",
-    on_entry={"a": "channel attribute byte to store and check"},
-    on_exit={"behaviour": "raises 'Is a dir.' via the error_inline chain "
-             "if bit 1 is set; otherwise falls through to check_not_dir "
-             "which returns normally"})
+    on_entry={"a": "channel attribute byte to store and check"})
 subroutine(0xB88C, "check_not_dir",
     title="Validate channel is not a directory",
     description="Calls check_chan_char to validate the channel, then\n"
     "tests the directory flag (bit 1). Raises 'Is a dir.'\n"
     "error if the channel refers to a directory.",
-    on_entry={"a": "channel character (validated by check_chan_char)"},
-    on_exit={"behaviour": "raises 'Net channel' if char is invalid, or "
-             "'Is a dir.' if it points at a directory; otherwise returns "
-             "with X = channel index"})
+    on_entry={"a": "channel character (validated by check_chan_char)"})
 subroutine(0xB8A8, "alloc_fcb_slot",
     title="Allocate a free file control block slot",
     description="Scans FCB slots &20-&2F for an empty entry.\n"
     "Returns Z=0 with X=slot index on success, or\n"
     "Z=1 with A=0 if all slots are occupied.",
-    on_entry={"FCB table at l1060": "16-entry FCB table (slots &20-&2F)"},
     on_exit={"x": "slot index (if Z=0)", "z": "0=success, 1=no free slot"})
 subroutine(0xB8DC, "alloc_fcb_or_error",
     title="Allocate FCB slot or raise error",
@@ -5664,9 +4748,7 @@ subroutine(0xB8DC, "alloc_fcb_or_error",
     on_entry={"a": "caller's argument byte (saved/restored via PHA/PLA "
               "across the alloc call)"},
     on_exit={"x": "newly allocated FCB slot index (&20-&2F)",
-             "a": "preserved",
-             "behaviour": "raises 'No more FCBs' via error_bad_inline if "
-             "all slots are full and never returns in that case"})
+             "a": "preserved"})
 subroutine(0xB8F8, "close_all_net_chans",
     title="Close all network channels for current station",
     description="Scans FCB slots &0F down to 0, closing those\n"
@@ -5678,10 +4760,6 @@ subroutine(0xB8FC, "scan_fcb_flags",
     description="Iterates through FCB slots starting at &10,\n"
     "checking each slot's flags byte. Returns when\n"
     "all slots have been processed.",
-    on_entry={"FCB table at l1060": "16-entry FCB table whose flag bytes "
-              "are scanned",
-              "&0E00, &0E01": "current station/network for the match step "
-              "(consumed by match_station_net via fall-through)"},
     on_exit={"x": "last scanned FCB index",
              "z flag": "set if a matching slot was found "
              "(via fall-through into match_station_net)"})
@@ -5699,9 +4777,7 @@ subroutine(0xB934, "find_open_fcb",
     "the end. On the first pass finds active entries\n"
     "matching the station; on the second pass finds\n"
     "empty slots for new allocations.",
-    on_entry={"x": "starting FCB index (search wraps)",
-              "&0E00, &0E01": "station/network to match against existing "
-              "entries"},
+    on_entry={"x": "starting FCB index (search wraps)"},
     on_exit={"x": "FCB slot index of the matched (active) or first "
              "empty slot",
              "z flag": "match status (set when an entry was found)"})
@@ -5712,9 +4788,8 @@ subroutine(0xB977, "init_wipe_counters",
     "in l10cd/l10ce. Returns with X/Y pointing at\n"
     "workspace offset &10CA.",
     on_entry={},
-    on_exit={"x": "&CA (workspace offset low)", "y": "&10 (workspace page)",
-             "&10C0..&10CC (counters)": "zeroed",
-             "l10cd, l10ce": "= &FF (sentinel values)"})
+    on_exit={"x": "&CA (workspace offset low)",
+             "y": "&10 (workspace page)"})
 subroutine(0xB99A, "start_wipe_pass",
     title="Start wipe pass for current FCB",
     description="Verifies the workspace checksum, saves the station\n"
@@ -5737,14 +4812,7 @@ subroutine(0xBAC0, "restore_catalog_entry",
     title="Restore saved catalog entry to TX buffer",
     description="Copies 13 bytes from the context buffer at &10D9\n"
     "back to the TX buffer at &0F00. Falls through to\n"
-    "find_matching_fcb.",
-    on_entry={"&10D9..&10E5":
-              "saved 13-byte catalog context (snapshot from "
-              "save_fcb_context)"},
-    on_exit={"&0F00..&0F0C": "restored from saved context",
-             "behaviour": "falls through to find_matching_fcb -- caller "
-             "receives that routine's outputs (X = matching FCB, Z flag "
-             "indicates whether the FCB has saved offset data)"})
+    "find_matching_fcb.")
 subroutine(0xBACF, "find_matching_fcb",
     title="Find FCB slot matching channel attribute",
     description="Scans FCB slots 0-&0F for an active entry whose\n"
@@ -5754,8 +4822,6 @@ subroutine(0xBACF, "find_matching_fcb",
     "past slot &0F, saves context via save_fcb_context\n"
     "and restarts. Returns Z=0 if the FCB has saved\n"
     "offset data (bit 5 set).",
-    on_entry={"l10c9": "channel attribute reference to match",
-              "&0E00, &0E01": "current station/network"},
     on_exit={"x": "matching FCB index", "z": "0=has offset data, 1=no offset"})
 subroutine(0xBB2A, "inc_fcb_byte_count",
     title="Increment 3-byte FCB transfer count",
@@ -5836,12 +4902,7 @@ subroutine(0xBD25, "abort_if_escape",
     description="Checks the escape flag byte; returns immediately\n"
     "if bit 7 is clear. If escape has been pressed,\n"
     "falls through to the escape abort handler which\n"
-    "acknowledges the escape via OSBYTE &7E.",
-    on_entry={"escape_flag (&FF)":
-              "MOS escape pending flag (bit 7 set = escape pressed)"},
-    on_exit={"behaviour": "returns with no side effects on the no-escape "
-             "path; on escape, acknowledges via OSBYTE &7E and raises "
-             "'Escape' via the error_inline chain (does not return)"})
+    "acknowledges the escape via OSBYTE &7E.")
 
 # --- cmd_dump subroutines ---
 
@@ -5851,11 +4912,7 @@ subroutine(0xBE01, "print_dump_header",
     "column numbers (00-0F), each separated by a space.\n"
     "Provides the column alignment header for *Dump\n"
     "output.",
-    on_entry={"dump_addr (workspace)":
-              "current 4-byte starting address printed as the row label"},
-    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI loop)",
-             "side effect": "writes 'AAAAAAAA  00 01 02 ... 0F' followed "
-             "by CR/LF to the current output stream"})
+    on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI loop)"})
 subroutine(0xBE37, "print_hex_and_space",
     title="Print hex byte followed by space",
     description="Saves A, prints it as a 2-digit hex value via\n"
@@ -5867,22 +4924,15 @@ subroutine(0xBF71, "close_ws_file",
     title="Close file handle stored in workspace",
     description="Loads the file handle from ws_page and closes it\n"
     "via OSFIND with A=0.",
-    on_entry={"ws_page (workspace)": "file handle to close (saved by "
-              "open_file_for_read)"},
-    on_exit={"a, x, y": "clobbered (OSFIND)",
-             "ws_page": "preserved (only read, not written)",
-             "side effect": "OSFIND closes the handle on the ANFS server"})
+    on_exit={"a, x, y": "clobbered (OSFIND)"})
 subroutine(0xBF78, "open_file_for_read",
     title="Open file for reading via OSFIND",
     description="Computes the filename address from the command text\n"
     "pointer plus the Y offset, calls OSFIND with A=&40\n"
     "(open for input). Stores the handle in ws_page.\n"
     "Raises 'Not found' if the returned handle is zero.",
-    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer base",
-              "y": "offset within the command line of the filename to open"},
-    on_exit={"ws_page (workspace)": "FS file handle (raises 'Not found' "
-             "via error_inline if OSFIND returns 0)",
-             "a, x, y": "clobbered"})
+    on_entry={"y": "offset within the command line of the filename to open"},
+    on_exit={"a, x, y": "clobbered"})
 label(0xBF9E, "restore_text_ptr")
 label(0xBFB8, "done_skip_filename")
 subroutine(0xBE42, "parse_dump_range",
@@ -5891,10 +4941,8 @@ subroutine(0xBE42, "parse_dump_range",
     "into a 4-byte accumulator, stopping at CR or\n"
     "space. Each digit shifts the accumulator left\n"
     "by 4 bits before ORing in the new nybble.",
-    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer",
-              "y": "current command-line offset"},
-    on_exit={"4-byte accumulator (workspace)": "parsed hex address",
-             "y": "advanced past the parsed digits",
+    on_entry={"y": "current command-line offset"},
+    on_exit={"y": "advanced past the parsed digits",
              "a": "first non-hex character (CR or space)"})
 subroutine(0xBEAB, "init_dump_buffer",
     title="Initialise dump buffer and parse address range",
@@ -5903,14 +4951,7 @@ subroutine(0xBEAB, "init_dump_buffer",
     "defaults to the file extent. Validates both addresses\n"
     "against the file size, raising 'Outside file' if either\n"
     "exceeds the extent.",
-    on_entry={"os_text_ptr (&F2/&F3)": "command-line text pointer",
-              "y": "command-line offset of the address arguments",
-              "ws_page": "open file handle from open_file_for_read "
-              "(file extent is queried via OSARGS A=&FF)"},
-    on_exit={"dump_start, dump_end (workspace)": "parsed address range "
-             "(end defaults to file extent if not supplied)",
-             "behaviour": "raises 'Outside file' via error_inline if "
-             "either address exceeds the open file's extent"})
+    on_entry={"y": "command-line offset of the address arguments"})
 subroutine(0xBFBA, "advance_x_by_8",
     title="Advance X by 8 via nested JSR chain",
     description="Calls advance_x_by_4 (which itself JSRs inx4 then\n"
@@ -10298,11 +9339,7 @@ subroutine(0x8CC7, "svc_3_autoboot",
     "file.",
     on_entry={"a": "3 (service call number)",
               "x": "ROM slot",
-              "y": "parameter (Master 128 service-call dispatch)"},
-    on_exit={"behaviour": "on N-key down, takes over the boot: selects "
-             "ANFS via cmd_net_fs, sets the auto-boot flag, and JMPs to "
-             "cmd_fs_entry (does not return). Otherwise returns with the "
-             "service call unclaimed."})
+              "y": "parameter (Master 128 service-call dispatch)"})
 subroutine(0x8C42, "svc_4_star_command",
     title="Service 4: unrecognised star command",
     description="Saves the OS text pointer, then calls match_fs_cmd\n"
@@ -10335,10 +9372,7 @@ subroutine(0xA83B, "svc_8_osword",
     "dispatch address, then copies 3 bytes from the RX\n"
     "buffer to osword_flag workspace.",
     on_entry={"a": "OSWORD number (from osbyte_a_copy)",
-              "y": "parameter passed by service-call dispatch"},
-    on_exit={"behaviour": "OSWORD numbers outside &0E..&14 return with "
-             "the service call unclaimed; valid codes &0E..&14 dispatch "
-             "to per-OSWORD handlers via PHA/PHA/RTS"})
+              "y": "parameter passed by service-call dispatch"})
 subroutine(0x8C51, "svc_9_help",
     title="Service 9: *HELP",
     description="Handles MOS service call 9 (*HELP). First checks\n"
@@ -10351,11 +9385,9 @@ subroutine(0x8C51, "svc_9_help",
     "dispatch to print matching command groups.\n"
     "Returns with Y = ws_page (unclaimed).",
     on_entry={"a": "9 (service call number)",
-              "y": "command-line offset of *HELP argument",
-              "os_text_ptr (&F2/&F3)": "command-line text pointer"},
+              "y": "command-line offset of *HELP argument"},
     on_exit={"y": "ws_page (workspace page) -- the service call is left "
-             "UNCLAIMED so MOS continues to the next ROM",
-             "side effect": "any matching help text printed to current output"})
+             "UNCLAIMED so MOS continues to the next ROM"})
 # Located in 4.21_v1 at &8B45 (was &8B0D in 4.18) by opcode fingerprint.
 # Reached via PHA/PHA/RTS dispatch from the service table — no direct
 # JSR/JMP, so an explicit entry() is required to classify it as code.
@@ -10370,10 +9402,7 @@ subroutine(0x8B52, "select_fs_via_cmd_net_fs",
     "BIT fs_flags / BMI shortcut for early-return.",
     on_entry={"x, y": "preserved across cmd_net_fs (as per the "
               "ensure_fs_selected calling contract)"},
-    on_exit={"a": "current FS state byte if selection succeeded",
-             "fs_flags (&0D6C) bit 7": "set on success",
-             "behaviour": "raises 'net checksum' via error_net_checksum "
-             "and never returns if cmd_net_fs fails"})
+    on_exit={"a": "current FS state byte if selection succeeded"})
 
 subroutine(0x924C, "print_hex_byte_no_spool",
     title="Print A as two hex digits, *SPOOL-bypassing",
@@ -10704,10 +9733,7 @@ subroutine(0x8B23, "cmd_net_fs",
     "then issues service call 15.",
     on_entry={"y": "command line offset in text pointer "
               "(unused for *NET FS but supplied by star-cmd dispatch)"},
-    on_exit={"a, x, y": "clobbered",
-             "&0D6C bit 7": "set (FS active)",
-             "behaviour": "raises 'Net checksum' via error_inline_log on "
-             "workspace checksum mismatch"})
+    on_exit={"a, x, y": "clobbered"})
 subroutine(0xB581, "cmd_pollps",
     title="*Pollps command handler",
     description="Initialises the spool drive, copies the PS name to\n"
@@ -10772,10 +9798,7 @@ subroutine(0x8AEA, "cmd_roff",
     "through to scan_remote_keys which clears svc_state\n"
     "and nfs_workspace.",
     on_entry={"y": "command line offset (unused -- *ROFF takes no args)"},
-    on_exit={"a, x, y": "clobbered",
-             "remote-op flag (RX block offset 0)": "cleared",
-             "svc_state, nfs_workspace": "zeroed (via fall-through to "
-             "scan_remote_keys / clear_svc_and_ws)"})
+    on_exit={"a, x, y": "clobbered"})
 
 # Sub-table 2: NFS commands
 entry(0x9425)   # *Access, *Delete, *Info, *Lib (shared entry)
@@ -10823,23 +9846,14 @@ subroutine(0x9425, "cmd_fs_operation",
     on_entry={"y": "command line offset in text pointer",
               "x": "byte offset within cmd_table_fs identifying which "
               "of the four shared commands was matched (Access, Delete, "
-              "Info, or Lib)"},
-    on_exit={"behaviour": "completes via the FS reply path; raises "
-             "'Bad file name' on malformed argument and returns A = reply "
-             "status from the file server, or BRKs on FS-reported errors"})
+              "Info, or Lib)"})
 subroutine(0x9776, "cmd_bye",
     title="*Bye command handler",
     description="Closes all open file control blocks via\n"
     "process_all_fcbs, shuts down any *SPOOL/*EXEC files\n"
     "with OSBYTE &77, and closes all network channels.\n"
     "Falls through to save_net_tx_cb with function code\n"
-    "&17 to send the bye request to the file server.",
-    on_entry={"&0E00, &0E01": "FS station/network "
-              "(stays as the 'Bye' destination across handle teardown)"},
-    on_exit={"behaviour":
-             "tail-call into save_net_tx_cb with Y = &17 -- "
-             "completes via the FS reply path and returns A = reply status, "
-             "or never returns on FS-reported errors (BRK via error_inline)"})
+    "&17 to send the bye request to the file server.")
 # Located in 4.21_v1 at &B0A0 (was &AD10 in 4.18). Initial fingerprint
 # hit &B09F but the byte there is the &60 RTS terminating the previous
 # routine; cmd_cdir's TYA/PHA prologue starts at &B0A0. Reached via
@@ -10865,10 +9879,7 @@ subroutine(0x9512, "cmd_dir",
     "server, raising 'Not found' on failure, then sends\n"
     "the directory change (code 6) and calls\n"
     "find_fs_and_exit to update the active FS context.",
-    on_entry={"y": "command line offset in text pointer"},
-    on_exit={"behaviour": "completes via the FS reply; on the cross-FS "
-             "path, may raise 'Not found' or update the active FS station "
-             "to the targeted server before returning"})
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB103, "cmd_ex",
     title="*Ex command handler",
     description="Unified handler for *Ex, *LCat, and *LEx. Sets the\n"
@@ -10918,10 +9929,7 @@ subroutine(0x8D91, "cmd_iam",
     "cmd_table_nfs_iam into the transmit buffer and\n"
     "sends via copy_arg_validated. Falls through to\n"
     "cmd_pass for password entry.",
-    on_entry={"y": "command line offset in text pointer"},
-    on_exit={"behaviour": "falls through to cmd_pass which prompts for "
-             "a password and completes the logon via save_net_tx_cb; "
-             "may raise 'Bad station' on parse failure"})
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB0F2, "cmd_lcat",
     title="*LCat command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"
@@ -10980,9 +9988,7 @@ subroutine(0x8DD5, "cmd_pass",
     "password to the file server via save_net_tx_cb and\n"
     "branches to send_cmd_and_dispatch for the reply.",
     on_entry={"y": "command line offset in text pointer "
-              "(also the entry point for cmd_iam fall-through)"},
-    on_exit={"behaviour": "completes via the FS reply path; raises "
-             "'Escape' if the user aborts password entry"})
+              "(also the entry point for cmd_iam fall-through)"})
 # UNMAPPED: subroutine(0xB312, "cmd_remove", ...)
 # That address is print_decimal_digit's body in 4.21_v1, not cmd_remove.
 # The actual *Remove handler lives at a yet-to-be-located address;
@@ -11019,10 +10025,7 @@ subroutine(0x94C5, "cmd_rename",
     "raises 'Bad rename' if they differ. Falls through\n"
     "to read_filename_char to copy the second filename\n"
     "into the TX buffer and send the request.",
-    on_entry={"y": "command line offset in text pointer"},
-    on_exit={"behaviour": "completes via the FS reply path; raises "
-             "'Bad rename' if the two filenames target different file "
-             "servers, or 'Bad file name' on parse error"})
+    on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB6F3, "cmd_wipe",
     title="*Wipe command handler",
     description="Masks owner access, parses a wildcard filename, and\n"
@@ -11039,9 +10042,7 @@ subroutine(0xB7CB, "prompt_yn",
     "the input buffer, and reads a single character\n"
     "from the keyboard.",
     on_entry={},
-    on_exit={"A": "character read from keyboard (after the 'Y/N) ' prompt)",
-             "behaviour": "may raise 'Escape' via flush_and_read_char on "
-             "escape press; otherwise returns the keystroke unchanged"})
+    on_exit={"A": "character read from keyboard (after the 'Y/N) ' prompt)"})
 
 # Sub-table 3: help topic handlers
 entry(0x8BC4)   # *Net (second variant)
@@ -11056,9 +10057,7 @@ subroutine(0x8BC4, "help_net",
     "and falls through to print_cmd_table to display\n"
     "the NFS command list with version header.",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
-    on_exit={"a, x, y": "clobbered (print_cmd_table)",
-             "side effect": "writes the version header and NFS command "
-             "syntax list to current output"})
+    on_exit={"a, x, y": "clobbered (print_cmd_table)"})
 subroutine(0x8BC0, "help_utils",
     title="*HELP UTILS topic handler",
     description="Sets X=0 to select the utility command sub-table\n"
@@ -11066,9 +10065,7 @@ subroutine(0x8BC0, "help_utils",
     "command list. Prints the version header followed\n"
     "by all utility commands.",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
-    on_exit={"a, x, y": "clobbered",
-             "side effect": "writes the version header and utility "
-             "command syntax list to current output"})
+    on_exit={"a, x, y": "clobbered"})
 
 
 # ============================================================
@@ -11341,15 +10338,9 @@ The high-bit byte serves as both the string terminator and the opcode
 of the first instruction after the string. Common terminators are
 &EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
 unconditional forward branch.""",
-    on_entry={"stack": "JSR return address points one byte BEFORE the "
-              "inline string (the routine increments past it)",
-              "inline string": "ASCII bytes immediately following the JSR, "
-              "terminated by a byte with bit 7 set (which is the NEXT opcode)"},
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by OSASCI)",
-             "y": "0",
-             "control flow": "RTS does NOT return to JSR; instead a JMP "
-             "lands on the terminator byte's address as the next instruction"})
+             "y": "0"})
 
 subroutine(0x928A, "print_inline_no_spool",
     title="Print inline string, high-bit terminated, *SPOOL-bypassing",
@@ -11364,15 +10355,9 @@ arguments inside cmd_ex's directory listing).
 
 Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
 &B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).""",
-    on_entry={"stack": "JSR return address points just before the "
-              "inline string",
-              "inline string": "ASCII bytes immediately following the JSR, "
-              "bit-7 terminated"},
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by print_char_no_spool)",
-             "y": "0",
-             "control flow": "JMPs onto the terminator byte; RTS does NOT "
-             "return to caller's JSR site"})
+             "y": "0"})
 
 comment(0x9261, "Pop return address (low) — points to last byte of JSR", inline=True)
 comment(0x9264, "Pop return address (high)", inline=True)
@@ -11389,14 +10374,7 @@ subroutine(0x99C3, "error_inline",
 Pops the return address from the stack and copies the null-terminated
 inline string into the error block at &0100. The error number is
 passed in A. Never returns — triggers the error via JMP error_block.""",
-    on_entry={"a": "error number (stored in error block at &0101)",
-              "stack": "JSR return address points just before the "
-              "null-terminated error message text",
-              "inline string": "NUL-terminated ASCII immediately following "
-              "the JSR site"},
-    on_exit={"behaviour": "DOES NOT RETURN -- the routine builds the "
-             "MOS error block at &0100..&01FE and triggers the error "
-             "via JMP error_block, which transfers control to BRKV"})
+    on_entry={"a": "error number (stored in error block at &0101)"})
 
 comment(0x99C3, "Save error number in Y", inline=True)
 comment(0x99C4, "Pop return address (low) — points to last byte of JSR", inline=True)
@@ -11407,12 +10385,7 @@ subroutine(0x99C0, "error_inline_log",
     description="""\
 Like error_inline, but first conditionally logs the error code to
 workspace via sub_c95fb before building the error block.""",
-    on_entry={"a": "error number",
-              "stack": "JSR return address points just before the "
-              "null-terminated error message text"},
-    on_exit={"&0E09": "= A (logged when fs_flags bit 7 is set)",
-             "behaviour": "DOES NOT RETURN -- triggers BRK via "
-             "error_inline / error_block"})
+    on_entry={"a": "error number"})
 
 comment(0x99C0, "Conditionally log error code to workspace", inline=True)
 
@@ -11422,14 +10395,7 @@ subroutine(0x99A7, "error_bad_inline",
 Like error_inline, but prepends 'Bad ' to the error message. Copies
 the prefix from a lookup table, then appends the null-terminated
 inline string. The error number is passed in A. Never returns.""",
-    on_entry={"a": "error number",
-              "stack": "JSR return address points just before the "
-              "null-terminated error suffix (the 'Bad ' prefix is "
-              "prepended internally from a lookup table)",
-              "inline string": "NUL-terminated suffix (e.g. 'station')"},
-    on_exit={"behaviour": "DOES NOT RETURN -- builds the 'Bad <suffix>' "
-             "error message in the MOS error block and triggers BRK via "
-             "error_inline_log / error_block"})
+    on_entry={"a": "error number"})
 
 comment(0x99A7, "Conditionally log error code to workspace", inline=True)
 comment(0x99AA, "Save error number in Y", inline=True)

@@ -506,17 +506,6 @@ rom_header_byte2 = rom_header+2
 ; stores the result in l0d63. Issues NMI claim service
 ; request (OSBYTE &8F, X=&0C). Falls through to
 ; init_nmi_workspace to copy the NMI shim to RAM.
-; 
-; On Entry:
-;     ROMSEL_COPY (&F4): current ROM slot (used both for the NMI claim service and as
-; the ROM ID patched into the NMI shim)
-; 
-; On Exit:
-;     L0D63: Tube state byte from OSBYTE &EA
-;     ADLC: fully reset and re-entered RX listen mode
-;     NMI WORKSPACE AT &0D00..&0D1F: shim installed via fall-through to
-; init_nmi_workspace
-;     NMI FLIP-FLOP: re-enabled via INTON before exit
 ; ***************************************************************************************
 ; &8050 referenced 1 time by &903c
 .adlc_init
@@ -548,18 +537,6 @@ rom_header_byte2 = rom_header+2
 ; station ID into tx_src_stn (&0D22). Sets
 ; tx_complete_flag and econet_init_flag to &80.
 ; Finally re-enables NMIs via INTON (&FE20 read).
-; 
-; On Entry:
-;     ROMSEL_COPY (&F4): current ROM slot (patched into the shim's self-modifying ROM-
-; bank load)
-;     ADLC STATION ID REGISTER (&FE18): hardware-strapped local station number
-; 
-; On Exit:
-;     NMI SHIM AT &0D00..&0D1F: 32 bytes copied from ROM template
-;     TX_SRC_NET, NEED_RELEASE_TUBE, TX_OP_TYPE: = 0
-;     TX_SRC_STN (&0D22): = local station ID
-;     TX_COMPLETE_FLAG, ECONET_INIT_FLAG: = &80
-;     NMI FLIP-FLOP: re-enabled via INTON read
 ; ***************************************************************************************
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8070: a0 20       .              ; Copy 32 bytes of NMI shim from ROM to &0D00
@@ -595,19 +572,6 @@ rom_header_byte2 = rom_header+2
 ; Reads the first byte (destination station) from the RX FIFO and
 ; compares against our station ID. Reading &FE18 also disables NMIs
 ; (INTOFF side effect).
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry -- reached via JMP from the &0D0E shim. Shim has
-; already done BIT &FE18 (INTOFF) / PHA / TYA / PHA and switched ROMSEL to NFS bank. A
-; and Y are saved on stack; X is NOT saved by the shim.
-;     ADLC SR2: bit 0 (AP) signals address-present (incoming scout)
-;     TX_SRC_STN (&0D22): saved local station ID for compare
-; 
-; On Exit:
-;     CONTROL FLOW: exits via JMP nmi_rti -- RTI restores Y, A, ROMSEL and re-enables
-; NMI flip-flop via INTON
-;     NEXT NMI HANDLER: stays as nmi_rx_scout on no-match/error (discard path); becomes
-; nmi_rx_scout_net on station match
 ; ***************************************************************************************
 ; &809b referenced 1 time by &89d5
 .nmi_rx_scout
@@ -633,16 +597,6 @@ rom_header_byte2 = rom_header+2
 ; Checks for network match: 0 = local network (accept), &FF = broadcast
 ; (accept and flag), anything else = reject.
 ; Installs the scout data reading loop handler at &8102.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry from the &0D0E shim (installed by nmi_rx_scout after
-; a station match). A/Y stacked, X unsaved.
-;     RX_SRC_NET (&0D3E): &40 if the previous handler flagged this as broadcast
-; 
-; On Exit:
-;     CONTROL FLOW: exits via JMP nmi_rti
-;     NEXT NMI HANDLER: scout data reading loop at &8102 on accept; reverts to
-; nmi_rx_scout on reject
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -677,16 +631,6 @@ rom_header_byte2 = rom_header+2
 ; common discard path for address/network mismatches
 ; from nmi_rx_scout and scout_complete -- reached by
 ; 5 branch sites across the scout reception chain.
-; 
-; On Entry:
-;     CONTEXT: branch target from inside an NMI handler (nmi_rx_scout /
-; scout_complete). Stack and ROMSEL state are as set up by the shim.
-;     ADLC SR2: tested for AP|RDA to distinguish clean end-of-frame from unexpected
-; data
-; 
-; On Exit:
-;     CONTROL FLOW: exits via nmi_rti after either a clean discard (no ADLC change) or
-; a full ADLC reset on unexpected data; restores idle RX listen state
 ; ***************************************************************************************
 ; &80d8 referenced 5 times by &80a0, &80bb, &80ed, &8121, &8123
 .scout_error
@@ -736,18 +680,6 @@ rom_header_byte2 = rom_header+2
 ; via tx_calc_transfer, sets up the data RX handler
 ; chain, and sends a scout ACK. On no match or error,
 ; discards the frame via scout_error.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by the scout data reader at &8102 after the
-; address bytes have been consumed. A/Y stacked, X unsaved.
-;     SCOUT BUFFER AT &0D3D..&0D48: first 4 bytes filled (dst/src/stn/net) by
-; predecessor; remaining bytes read here
-;     ADLC SR2 FV BIT: set when frame closing flag received
-; 
-; On Exit:
-;     CONTROL FLOW: match path -> sends scout ACK and installs data RX handler chain.
-; Mismatch/error -> JMPs to scout_error for the discard path. Either way exits via
-; nmi_rti.
 ; ***************************************************************************************
 ; &8112 referenced 2 times by &80fb, &8106
 .scout_complete
@@ -869,16 +801,6 @@ rom_header_byte2 = rom_header+2
 ; 
 ; Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->
 ; &8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by ack_tx after the scout ACK frame has
-; been sent. A/Y stacked, X unsaved.
-;     ADLC SR2: AP signals start of the data frame
-;     OPEN_PORT_BUF (&A4/&A5): destination buffer pointer set up by scout_complete
-; 
-; On Exit:
-;     CONTROL FLOW: installs the next handler in the data RX chain via set_nmi_vector
-; then JMPs to nmi_rti
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
@@ -917,16 +839,6 @@ rom_header_byte2 = rom_header+2
 ; (more data waiting), jumps directly to nmi_data_rx_bulk
 ; to avoid NMI re-entry overhead. Otherwise installs the
 ; handler via set_nmi_vector and returns via RTI.
-; 
-; On Entry:
-;     CONTEXT: tail-jumped to from inside an NMI handler after address validation.
-; Stack/ROMSEL/NMI state per shim contract.
-;     RX_SRC_NET (TX_FLAGS) BIT 1: 0 = normal RX, 1 = Tube RX
-; 
-; On Exit:
-;     NEXT NMI HANDLER: nmi_data_rx_bulk (or Tube variant) installed at &0D0C/&0D0D
-;     CONTROL FLOW: exits via JMP nmi_rti, OR jumps directly into nmi_data_rx_bulk if
-; SR1 IRQ is already asserted (avoids the NMI re-entry round-trip)
 ; ***************************************************************************************
 ; &81f7 referenced 1 time by &88d4
 .install_data_rx_handler
@@ -958,16 +870,6 @@ rom_header_byte2 = rom_header+2
 ; tx_flags bit 7: if clear, does a full ADLC reset and returns
 ; to idle listen (RX error path); if set, jumps to tx_result_fail
 ; (TX not-listening path).
-; 
-; On Entry:
-;     CONTEXT: JMP target from various NMI handler error branches. Stack/ROMSEL/NMI
-; state per shim contract.
-;     RX_SRC_NET (TX_FLAGS) BIT 7: 0 = RX error (reset and return to listen); 1 = TX
-; error (jump to tx_result_fail)
-; 
-; On Exit:
-;     CONTROL FLOW: RX path -> ADLC full reset and RX listen, exit via nmi_rti. TX path
-; -> JMPs to tx_result_fail which sets the TX result flag and exits via nmi_rti.
 ; ***************************************************************************************
 ; &8215 referenced 11 times by &8187, &819d, &81c7, &81cf, &81d9, &81de, &81ef, &8279, &827f, &833c, &8488
 .nmi_error_dispatch
@@ -988,18 +890,6 @@ rom_header_byte2 = rom_header+2
 ; (like the scout data loop), checking SR2 between each pair.
 ; SR2 non-zero (FV or other) -> frame completion at &8278.
 ; SR2 = 0 -> RTI, wait for next NMI to continue.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by install_data_rx_handler. May also be
-; tail-jumped to directly when SR1 IRQ is already asserted on entry.
-;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): destination buffer pointer and remaining
-; length
-;     ADLC SR2: RDA (bit 7) signals data ready; FV signals frame complete
-; 
-; On Exit:
-;     CONTROL FLOW: loops reading byte pairs from the RX FIFO; exits via nmi_rti once
-; the FIFO drains (more data pending next NMI). On FV/error -> JMPs to
-; data_rx_complete.
 ; ***************************************************************************************
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
@@ -1058,16 +948,6 @@ rom_header_byte2 = rom_header+2
 ; CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
 ; If extra data available and buffer space remains, stores it.
 ; Proceeds to send the final ACK via &82E4.
-; 
-; On Entry:
-;     CONTEXT: JMP target from nmi_data_rx_bulk when SR2 indicates frame completion.
-; Stack/ROMSEL/NMI state per shim contract.
-;     ADLC SR2: FV (frame valid) and RDA bits drive the tail-byte capture
-;     RX_EXTRA_BYTE (&0D42): destination for the optional trailing byte
-; 
-; On Exit:
-;     CONTROL FLOW: tail-jumps to ack_tx (&82E4) to send the final ACK, completing the
-; four-way handshake. ack_tx exits via nmi_rti.
 ; ***************************************************************************************
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
@@ -1144,20 +1024,6 @@ rom_header_byte2 = rom_header+2
 ; After writing the address bytes to the TX FIFO, installs the next
 ; NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)
 ; and sends TX_LAST_DATA (CR2=&3F) to close the frame.
-; 
-; On Entry:
-;     CONTEXT: JMP target from data_rx_complete and similar handlers. Stack/ROMSEL/NMI
-; state per shim contract.
-;     &0D4A BIT 7: 0 = scout ACK, 1 = final ACK (-> completion path at &88C6)
-;     SCOUT BUFFER AT &0D3D..: source station/network for the ACK address header
-;     &0D4B/&0D4C: next NMI handler address (set by predecessor)
-; 
-; On Exit:
-;     ADLC CR1: &44 (TX_RESET cleared, RX_RESET set, TIE on)
-;     ADLC CR2: &A7 then &3F (TX_LAST_DATA) to close the frame
-;     NEXT NMI HANDLER: = (&0D4B/&0D4C) -- whatever the scout/data RX path saved
-;     CONTROL FLOW: exits via fall-through to nmi_ack_tx_src (continuation of TX FIFO
-; write); ultimately nmi_rti
 ; ***************************************************************************************
 ; &82df referenced 2 times by &828e, &82c5
 .ack_tx
@@ -1199,17 +1065,6 @@ rom_header_byte2 = rom_header+2
 ; start_data_tx to begin the data phase. Otherwise
 ; writes CR2=&3F (TX_LAST_DATA) and falls through to
 ; post_ack_scout for scout processing.
-; 
-; On Entry:
-;     CONTEXT: fall-through from ack_tx -- still inside the NMI dispatch chain; A/Y
-; stacked, X unsaved.
-;     RX_SRC_NET (TX_FLAGS) BIT 7: 1 = data phase follows (branch to start_data_tx); 0
-; = scout-only ACK (fall through to post_ack_scout)
-; 
-; On Exit:
-;     ADLC CR2: &3F (TX_LAST_DATA) on the scout-ACK path
-;     CONTROL FLOW: data path -> JMP start_data_tx; scout path -> fall through to
-; post_ack_scout. Both end at nmi_rti.
 ; ***************************************************************************************
 .nmi_ack_tx_src
     lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
@@ -1230,16 +1085,6 @@ rom_header_byte2 = rom_header+2
 ; find a matching listener. If a match is found, sets up the
 ; data RX handler chain for the four-way handshake data phase.
 ; If no match, discards the frame.
-; 
-; On Entry:
-;     CONTEXT: fall-through from nmi_ack_tx_src on the scout-only path, OR JMP target
-; from later handlers. Stack/ROMSEL/NMI state per shim contract.
-;     SCOUT_PORT (&0D40): port byte from the received scout
-;     OPEN RXCBS AT PORT_WS_OFFSET+...: list to match the port against
-; 
-; On Exit:
-;     CONTROL FLOW: match -> sets up data RX handler chain and exits via nmi_rti. No-
-; match -> JMPs to scout_error (discard path), also exiting via nmi_rti.
 ; ***************************************************************************************
 .post_ack_scout
     sta econet_control23_or_status2                                   ; 832d: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
@@ -1269,14 +1114,8 @@ rom_header_byte2 = rom_header+2
 ; (port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y;
 ; preserves X across the Tube branch (saved/restored via stack).
 ; 
-; On Entry:
-;     PORT_WS_OFFSET, RX_BUF_OFFSET: RXCB workspace pointer
-;     NET_TX_PTR+8..+11: transfer count (4-byte LE)
-;     TX_FLAGS (RX_SRC_NET): bit1 transfer-active, bit5 Tube
-; 
 ; On Exit:
 ;     A: &FF when transfer was active, else preserved entry value
-;     RXCB BUFFER POINTER: advanced by transfer count
 ; ***************************************************************************************
 ; &833f referenced 2 times by &82e4, &8395
 .advance_rx_buffer_ptr
@@ -1341,16 +1180,6 @@ rom_header_byte2 = rom_header+2
 ; with ctrl &82 (POKE) also goes to
 ; rx_complete_update_rxcb; other port-0 ops go to
 ; imm_op_build_reply.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by ack_tx after the final ACK has been
-; queued. Stack/ROMSEL/NMI state per shim contract.
-;     SCOUT_PORT (&0D40): drives the dispatch (0 vs non-zero)
-;     SCOUT CTRL BYTE (&0D43): tested for &82 (POKE) on the port-0 branch
-; 
-; On Exit:
-;     CONTROL FLOW: JMPs to rx_complete_update_rxcb (data transfers) or
-; imm_op_build_reply (immediate ops). All paths ultimately exit via nmi_rti.
 ; ***************************************************************************************
 .nmi_post_ack_dispatch
     lda scout_port                                                    ; 8386: ad 31 0d    .1.            ; Load received port byte
@@ -1375,17 +1204,6 @@ rom_header_byte2 = rom_header+2
 ; polls this bit to detect that the reply has
 ; arrived. Falls through to discard_reset_rx to
 ; reset the ADLC to idle RX listen mode.
-; 
-; On Entry:
-;     CONTEXT: JMP target from nmi_post_ack_dispatch. Stack/ROMSEL/NMI state per shim
-; contract.
-;     RXCB AT (PORT_WS_OFFSET): open-receive control block to mark complete
-;     SCOUT BUFFER AT &0D3D..: source station/network/port to copy into the RXCB
-; 
-; On Exit:
-;     RXCB CTRL BYTE: bit 7 set (reply complete -- wait_net_tx_ack polls this)
-;     CONTROL FLOW: falls through to discard_reset_rx (ADLC back to idle listen) and
-; exits via nmi_rti
 ; ***************************************************************************************
 ; &8395 referenced 3 times by &8389, &8390, &8431
 .rx_complete_update_rxcb
@@ -1461,16 +1279,6 @@ rom_header_byte2 = rom_header+2
 ; free it before returning. Used as the clean-up
 ; path after RXCB completion and after ADLC reset
 ; to ensure no stale Tube claims persist.
-; 
-; On Entry:
-;     CONTEXT: JMP target from RXCB-completion and ADLC-reset paths inside the NMI
-; chain. Stack/ROMSEL/NMI state per shim contract.
-;     L0D63 BIT 1: Tube available flag
-;     RX_SRC_NET (TX_FLAGS) BIT 1: Tube transfer active flag
-; 
-; On Exit:
-;     TUBE STATE: claim released via release_tube if both flags were set
-;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 ; &83f2 referenced 2 times by &83de, &83e5
 .discard_reset_listen
@@ -1496,17 +1304,6 @@ rom_header_byte2 = rom_header+2
 ; each byte. Falls through to release_tube on
 ; completion. Handles page overflow (Y wrap) by
 ; branching to scout_page_overflow.
-; 
-; On Entry:
-;     CONTEXT: called from inside an NMI handler (e.g. scout_complete) with scout
-; buffer fully populated.
-;     SCOUT BUFFER AT &0D3D+4..&0D3D+11: 8 bytes of scout payload to copy
-;     OPEN_PORT_BUF (&A4/&A5): destination buffer pointer
-;     RX_SRC_NET (TX_FLAGS) BIT 1: 0 = direct memory store; 1 = Tube R3 write
-; 
-; On Exit:
-;     OPEN_PORT_BUF: advanced by 8 (via advance_buffer_ptr for each byte)
-;     TUBE STATE: released via release_tube fall-through if Tube was claimed
 ; ***************************************************************************************
 ; &8400 referenced 1 time by &81a4
 .copy_scout_to_buffer
@@ -1582,11 +1379,7 @@ l840a = sub_c8409+1
 ; Idempotent: safe to call when the Tube has already been
 ; released. Clobbers A; preserves X and Y.
 ; 
-; On Entry:
-;     PROT_FLAGS: bit 7 clear if Tube claim is currently held
-; 
 ; On Exit:
-;     PROT_FLAGS: bit 7 clear (LSR also shifts other bits down)
 ;     A: clobbered
 ; ***************************************************************************************
 ; &8448 referenced 2 times by &83fc, &8961
@@ -1613,18 +1406,6 @@ l840a = sub_c8409+1
 ; If accepted, dispatches via the immediate operation
 ; table. Builds the reply by storing data length,
 ; station/network, and control byte into the RX buffer.
-; 
-; On Entry:
-;     CONTEXT: JMP target from post_ack_scout when port = 0. Stack/ROMSEL/NMI state per
-; shim contract.
-;     L0D30 (SCOUT CTRL BYTE): &81-&88 selects which immediate-op handler to dispatch
-;     &0D61 (IMMEDIATE-OP ACCEPT MASK): bit per accepted op type (skipped for
-; HALT/CONTINUE)
-; 
-; On Exit:
-;     CONTROL FLOW: valid + accepted -> dispatches via the imm_op_dispatch_lo table at
-; &848B (PHA/PHA/RTS into one of rx_imm_peek/poke/exec/halt_cont/machine_type). Out of
-; range or rejected -> JMPs to scout_error (discard). Both paths exit via nmi_rti.
 ; ***************************************************************************************
 ; &8454 referenced 1 time by &8138
 .immediate_op
@@ -1692,15 +1473,6 @@ l840a = sub_c8409+1
 ; jumps to the common receive path at c81c1. Used for
 ; operation types &83 (JSR), &84 (UserProc), and
 ; &85 (OSProc).
-; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl bytes &83-&85.
-; Stack/ROMSEL/NMI state per shim contract.
-;     SCOUT BUFFER AT &0D32/&0D33: remote routine address (low, high)
-; 
-; On Exit:
-;     &0D66/&0D67 (EXEC_ADDR_LO/HI): remote address copied
-;     CONTROL FLOW: JMPs to common receive path at c81c1; ultimately exits via nmi_rti
 ; ***************************************************************************************
 .rx_imm_exec
     lda #0                                                            ; 8493: a9 00       ..             ; A=0: port buffer lo at page boundary
@@ -1727,15 +1499,6 @@ l840a = sub_c8409+1
 ; Sets up workspace offsets for receiving POKE data.
 ; port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to
 ; the common data-receive path at c81af.
-; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &82.
-; Stack/ROMSEL/NMI state per shim contract.
-; 
-; On Exit:
-;     PORT_WS_OFFSET, RX_BUF_OFFSET (&A6/&A7): &2E, &0D -- workspace pointer for the
-; POKE destination
-;     CONTROL FLOW: JMPs to common data-receive path; exits via nmi_rti
 ; ***************************************************************************************
 .svc5_dispatch_lo
 .rx_imm_poke
@@ -1755,15 +1518,6 @@ l84b8 = sub_c84b7+1
 ; machine type query response. Falls through to
 ; set_rx_buf_len_hi to configure buffer dimensions,
 ; then branches to set_tx_reply_flag.
-; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &88.
-; Stack/ROMSEL/NMI state per shim contract.
-; 
-; On Exit:
-;     REPLY BUFFER CONFIG: &88C1 / &01FC -- the ROM-resident machine-type response
-;     CONTROL FLOW: branches to set_tx_reply_flag and exits via nmi_rti once the reply
-; has been queued
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..             ; Buffer length hi = 1
@@ -1783,16 +1537,6 @@ l84b8 = sub_c84b7+1
 ; Writes &0D2E to port_ws_offset/rx_buf_offset, sets
 ; scout_status=2, then calls tx_calc_transfer to send
 ; the PEEK response data back to the requesting station.
-; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from immediate_op for ctrl byte &81.
-; Stack/ROMSEL/NMI state per shim contract.
-;     SCOUT BUFFER AT &0D2E..&0D31: PEEK source address and length supplied by remote
-; 
-; On Exit:
-;     SCOUT_STATUS (&0D31): = 2 (PEEK reply -- handled by tx state machine)
-;     CONTROL FLOW: JMPs/calls into tx_calc_transfer to begin sending the PEEK response
-; back to the requester
 ; ***************************************************************************************
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84ce: a9 2e       ..             ; Port workspace offset = &3D
@@ -1827,17 +1571,6 @@ l84b8 = sub_c84b7+1
 ; Then disables SR interrupts and configures the VIA shift
 ; register for shift-in mode before returning to
 ; idle listen.
-; 
-; On Entry:
-;     CONTEXT: JMP target from nmi_post_ack_dispatch when the post-ACK frame was an
-; immediate-op (port = 0). Stack/ROMSEL/NMI state per shim contract.
-;     SCOUT BUFFER AT &0D3D..: source station/network/ctrl from the originating scout
-; 
-; On Exit:
-;     RX BUFFER HEADER: data length + src station/network + ctrl byte populated for the
-; foreground reply path
-;     VIA SHIFT REGISTER: configured for shift-in mode
-;     CONTROL FLOW: exits via nmi_rti returning to idle listen
 ; ***************************************************************************************
 ; &84f9 referenced 1 time by &8392
 .imm_op_build_reply
@@ -1886,11 +1619,7 @@ l84b8 = sub_c84b7+1
 ; 
 ; Preserves A, X, Y (uses INC zp throughout).
 ; 
-; On Entry:
-;     PORT_BUF_LEN, OPEN_PORT_BUF (&A2..&A5): current 4-byte LE counter to increment
-; 
 ; On Exit:
-;     PORT_BUF_LEN, OPEN_PORT_BUF: incremented as 4-byte LE counter
 ;     A, X, Y: preserved (INC zp only)
 ; ***************************************************************************************
 ; &852c referenced 3 times by &8299, &82a7, &843c
@@ -1915,9 +1644,6 @@ l84b8 = sub_c84b7+1
 ; routine completes, then does JMP (l0d66) to call the remote-supplied JSR target. When
 ; that routine returns via RTS, control resumes at tx_done_exit which tidies up TX
 ; state.
-; 
-; On Entry:
-;     L0D66, L0D67: remote routine address (low, high)
 ; ***************************************************************************************
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..
@@ -1939,10 +1665,6 @@ l84b8 = sub_c84b7+1
 ; caller's X and Y onto the stack before transferring
 ; control, and the shared tx_done_exit at &8582 restores
 ; them via PLA/TAY/PLA/TAX before returning A=0.
-; 
-; On Entry:
-;     EXEC_ADDR_LO, EXEC_ADDR_HI (L0D66/L0D67): remote routine address (low, high)
-;     STACK: caller's Y on top, then caller's X (pushed by dispatcher)
 ; 
 ; On Exit:
 ;     A: 0 (success status)
@@ -1967,10 +1689,6 @@ l84b8 = sub_c84b7+1
 ; Reached only via PHA/PHA/RTS dispatch from
 ; tx_done_dispatch_lo/hi.
 ; 
-; On Entry:
-;     EXEC_ADDR_LO, EXEC_ADDR_HI (L0D66/L0D67): OSProc address (X low, Y high)
-;     STACK: caller's Y, then caller's X (pushed by dispatcher)
-; 
 ; On Exit:
 ;     A: 0 (success status)
 ;     X, Y: restored from stack via tx_done_exit
@@ -1994,13 +1712,8 @@ l84b8 = sub_c84b7+1
 ; after the spin completes; on the already-halted path it
 ; branches directly to tx_done_exit.
 ; 
-; On Entry:
-;     ECONET_FLAGS (&0D61): bit 2 = halt-active flag
-;     STACK: caller's Y, then caller's X (pushed by dispatcher)
-; 
 ; On Exit:
 ;     A: 0 (success status, set by tx_done_exit)
-;     ECONET_FLAGS: bit 2 may be set during spin, cleared on exit
 ;     I FLAG: interrupts enabled (CLI inside the spin)
 ;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
@@ -2029,13 +1742,8 @@ l84b8 = sub_c84b7+1
 ; tx_done_dispatch_lo/hi. Falls through to tx_done_exit
 ; which restores X and Y from the stack and returns A=0.
 ; 
-; On Entry:
-;     ECONET_FLAGS (&0D61): bit 2 may be set (from a previous HALT)
-;     STACK: caller's Y, then caller's X (pushed by dispatcher)
-; 
 ; On Exit:
 ;     A: 0 (success status)
-;     ECONET_FLAGS: bit 2 cleared
 ;     X, Y: restored from stack via tx_done_exit
 ; ***************************************************************************************
 .tx_done_continue
@@ -2059,17 +1767,6 @@ l84b8 = sub_c84b7+1
 ; dispatches to immediate op setup (ctrl >= &81) or normal data
 ; transfer, calculates transfer sizes, copies extra parameters,
 ; then enters the INACTIVE polling loop.
-; 
-; On Entry:
-;     CONTEXT: called from foreground via trampoline at &06CE (poll_adlc_tx_status
-; path); NOT entered via NMI shim so registers are NOT pre-saved by the shim
-;     NMI_TX_BLOCK: = net_tx_ptr -- pointer to the TXCB to transmit
-;     TXCB AT (NMI_TX_BLOCK)+&02..+&05: destination station, network and ctrl byte
-; 
-; On Exit:
-;     CONTROL FLOW: falls through to inactive_poll which spins until the line is
-; INACTIVE then transmits; completion is signalled by the NMI handler chain via
-; tx_complete_flag
 ; ***************************************************************************************
 ; &8589 referenced 3 times by &9bc3, &a92a, &ac1e
 .tx_begin
@@ -2154,13 +1851,8 @@ l84b8 = sub_c84b7+1
 ; intoff_test_inactive to begin polling SR2 with
 ; interrupts disabled.
 ; 
-; On Entry:
-;     CONTEXT: fall-through from tx_begin (foreground execution, not NMI)
-; 
 ; On Exit:
 ;     Y: &E7 (CR2 value for tx_prepare)
-;     STACK: 3 bytes of timeout state pushed
-;     CONTROL FLOW: falls through to intoff_test_inactive
 ; ***************************************************************************************
 .inactive_poll
     sta rx_remote_addr                                                ; 85f1: 8d 41 0d    .A.            ; Save TX index
@@ -2187,15 +1879,8 @@ l84b8 = sub_c84b7+1
 ; through to tx_line_jammed.
 ; 
 ; On Entry:
-;     CONTEXT: fall-through from inactive_poll. NOT an NMI entry -- foreground code
-; that manually disables/enables NMIs around the SR2 polling.
-;     STACK: 3-byte timeout counter (set up by inactive_poll)
 ;     A: &04 (INACTIVE bit mask)
 ;     Y: &E7 (CR2 value for tx_prepare)
-; 
-; On Exit:
-;     CONTROL FLOW: INACTIVE+CTS -> branches to tx_prepare to begin TX. Counter
-; exhausted -> falls through to tx_line_jammed.
 ; ***************************************************************************************
 .intoff_test_inactive
 l85fd = intoff_test_inactive+1
@@ -2238,16 +1923,6 @@ l85fd = intoff_test_inactive+1
 ; attempt, pulls the 3-byte timeout state from the
 ; stack, and stores error code &40 ('Line Jammed')
 ; in the TX control block via store_tx_error.
-; 
-; On Entry:
-;     CONTEXT: fall-through from intoff_test_inactive on timeout. Foreground execution.
-;     STACK: 3-byte timeout state to discard
-; 
-; On Exit:
-;     ADLC CR2: &07 (TX abort)
-;     TXCB[0]: = &40 ('Line Jammed' error)
-;     CONTROL FLOW: JMPs to discard_reset_rx -- ADLC back to idle listen and
-; tx_complete_flag set; foreground caller of tx_begin observes the &40 result
 ; ***************************************************************************************
 ; &8630 referenced 1 time by &862a
 .tx_line_jammed
@@ -2286,19 +1961,7 @@ l85fd = intoff_test_inactive+1
 ; transfers, sets up the buffer pointer from the TXCB.
 ; 
 ; On Entry:
-;     CONTEXT: branch target from intoff_test_inactive on INACTIVE+CTS detect.
-; Foreground execution with NMIs disabled (caller did INTOFF).
 ;     Y: &E7 (CR2 prep value)
-;     SCOUT BUFFER AT &0D3D..&0D40: dst station, dst network, src station, src network
-; 
-; On Exit:
-;     ADLC CR2: &E7 (RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE)
-;     ADLC CR1: &44 (RX_RESET | TIE) -- TX with interrupts
-;     NEXT NMI HANDLER: = nmi_tx_data (&86E7) -- TX FIFO refill
-;     TX FIFO: loaded with the 4-byte scout address
-;     TUBE STATE: claimed (&C3) for Tube transfers
-;     CONTROL FLOW: exits to caller (foreground) -- subsequent NMIs drive the TX state
-; machine
 ; ***************************************************************************************
 ; &864a referenced 1 time by &8614
 .tx_prepare
@@ -2334,13 +1997,8 @@ l85fd = intoff_test_inactive+1
 ; to tx_ctrl_store_and_add to store the status and
 ; perform the 4-byte transfer address addition.
 ; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from tx_ctrl_proc for ctrl byte that selects
-; PEEK
-; 
 ; On Exit:
 ;     A: 3 (scout_status for PEEK)
-;     CONTROL FLOW: branches to tx_ctrl_store_and_add
 ; ***************************************************************************************
 .tx_ctrl_peek
     lda #3                                                            ; 868a: a9 03       ..             ; A=3: scout_status for PEEK op
@@ -2354,13 +2012,8 @@ l85fd = intoff_test_inactive+1
 ; status and perform the 4-byte transfer address
 ; addition.
 ; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from tx_ctrl_proc for ctrl byte that selects
-; POKE
-; 
 ; On Exit:
 ;     A: 2 (scout_status for POKE)
-;     CONTROL FLOW: falls through to tx_ctrl_store_and_add
 ; ***************************************************************************************
 .tx_ctrl_poke
     lda #2                                                            ; 868e: a9 02       ..             ; Scout status = 2 (POKE transfer)
@@ -2400,15 +2053,6 @@ l85fd = intoff_test_inactive+1
 ; Sets scout_status=2 and calls tx_calc_transfer
 ; directly (no 4-byte address addition needed for
 ; procedure calls). Shared by operation types &83-&85.
-; 
-; On Entry:
-;     CONTEXT: PHA/PHA/RTS dispatch target from tx_begin's ctrl-byte switch for op
-; types &83-&85
-; 
-; On Exit:
-;     SCOUT_STATUS (RX_PORT, &0D40): = 2
-;     CONTROL FLOW: calls tx_calc_transfer to compute the transfer count, then exits to
-; the foreground caller of tx_begin
 ; ***************************************************************************************
 .tx_ctrl_proc
     cpy #&10                                                          ; 86a2: c0 10       ..             ; Compare Y with 16-byte boundary
@@ -2468,18 +2112,6 @@ l85fd = intoff_test_inactive+1
 ; After writing 2 bytes, checks if the frame is complete. If more data,
 ; tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes
 ; without returning from NMI (tight loop). Otherwise returns via RTI.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by tx_prepare. Stack/ROMSEL/NMI state per
-; shim contract.
-;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): TX source pointer and remaining length
-;     ADLC SR1: TDRA (V bit) signals FIFO has space; IRQ (N bit) signals more bytes can
-; be written
-; 
-; On Exit:
-;     CONTROL FLOW: loops writing pairs while TDRA holds; exits via nmi_rti when IRQ
-; clears (next pair will come with the next NMI). On byte-count exhaustion -> JMPs to
-; tx_last_data.
 ; ***************************************************************************************
 .nmi_tx_data
     ldy rx_remote_addr                                                ; 86e7: ac 41 0d    .A.            ; Load TX buffer index
@@ -2539,16 +2171,6 @@ l85fd = intoff_test_inactive+1
 ; nmi_rti creates the /NMI edge for the frame-complete interrupt
 ; -- essential because the ADLC IRQ may transition atomically
 ; from TDRA to frame-complete without de-asserting.
-; 
-; On Entry:
-;     CONTEXT: JMP target from inside an NMI handler (nmi_tx_data on byte-count
-; exhaustion, ack_tx for ACK closing). Stack/ROMSEL/NMI state per shim contract.
-; 
-; On Exit:
-;     ADLC CR2: &3F (TX_LAST_DATA + FLAG_IDLE)
-;     NEXT NMI HANDLER: = nmi_tx_complete (&872F)
-;     CONTROL FLOW: JMP set_nmi_vector then nmi_rti -- the INTON edge ensures the next
-; NMI fires for frame-complete
 ; ***************************************************************************************
 ; &8723 referenced 1 time by &8703
 .tx_last_data
@@ -2573,18 +2195,6 @@ l85fd = intoff_test_inactive+1
 ; (tx_result_ok), bit0=handshake data pending
 ; (handshake_await_ack), both clear=install
 ; nmi_reply_scout for scout ACK reception.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by tx_last_data (or by ack_tx for ACK
-; frames). Stack/ROMSEL/NMI state per shim contract.
-;     RX_SRC_NET (TX_FLAGS) BIT 6: 1 = broadcast (no reply expected) -> tx_result_ok
-;     RX_SRC_NET (TX_FLAGS) BIT 0: 1 = handshake data pending -> handshake_await_ack
-; 
-; On Exit:
-;     ADLC CR1: &82 (TX_RESET | RIE) -- TX to RX pivot
-;     NEXT NMI HANDLER: broadcast: tx_result_ok / handshake: nmi_final_ack / scout:
-; nmi_reply_scout
-;     CONTROL FLOW: exits via nmi_rti once the next handler is installed
 ; ***************************************************************************************
 .nmi_tx_complete
     lda #&82                                                          ; 872f: a9 82       ..             ; Jump to error handler
@@ -2612,15 +2222,6 @@ l85fd = intoff_test_inactive+1
 ; Checks SR2 bit0 (AP) for incoming data, reads the first byte
 ; (destination station) and compares to our station ID via &FE18
 ; (which also disables NMIs as a side effect).
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by nmi_tx_complete on the scout-ACK-await
-; path. Stack/ROMSEL/NMI state per shim contract.
-;     ADLC SR2 BIT 0 (AP): address-present from incoming reply scout
-; 
-; On Exit:
-;     CONTROL FLOW: match -> falls through to nmi_reply_cont for the next byte.
-; Mismatch -> JMPs to error path. Exits via nmi_rti.
 ; ***************************************************************************************
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
@@ -2642,15 +2243,6 @@ l85fd = intoff_test_inactive+1
 ; If IRQ is still set, falls through directly to &8779 without an RTI,
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive
 ; in quick succession.
-; 
-; On Entry:
-;     CONTEXT: fall-through from nmi_reply_scout after a station match.
-; Stack/ROMSEL/NMI state per shim contract.
-; 
-; On Exit:
-;     NEXT NMI HANDLER: = nmi_reply_validate (&8776)
-;     CONTROL FLOW: if SR1 IRQ still asserted, falls directly into nmi_reply_validate
-; (avoiding NMI re-entry); otherwise exits via nmi_rti and waits for next NMI
 ; ***************************************************************************************
 .nmi_reply_cont
     bit econet_control23_or_status2                                   ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
@@ -2678,17 +2270,6 @@ l85fd = intoff_test_inactive+1
 ;   4. Check SR2 bit1 (FV) at &8786 -- must see frame complete
 ; If all checks pass, the reply scout is valid and the ROM proceeds
 ; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by nmi_reply_cont (or fall-through from
-; it). Stack/ROMSEL/NMI state per shim contract.
-;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for validating the reply source
-; 
-; On Exit:
-;     ADLC CR2: &A7 (RTS) on success
-;     ADLC CR1: &44 (TX mode) on success
-;     CONTROL FLOW: validation success -> proceed to send scout ACK; validation fail ->
-; JMP nmi_error_dispatch. Exits via nmi_rti.
 ; ***************************************************************************************
 ; &8776 referenced 1 time by &876e
 .nmi_reply_validate
@@ -2732,17 +2313,6 @@ l85fd = intoff_test_inactive+1
 ; nmi_data_tx handler at &87EE. Installs the chosen
 ; handler via set_nmi_vector. Shares the tx_check_tdra
 ; entry at &87C7 with ack_tx.
-; 
-; On Entry:
-;     CONTEXT: fall-through from nmi_reply_validate after successful reply-scout
-; validation. Stack/ROMSEL/NMI state per shim contract.
-;     RX_SRC_NET (TX_FLAGS) BIT 1: selects nmi_data_tx vs the immediate-op TX data
-; handler
-; 
-; On Exit:
-;     TX FIFO: loaded with src station/network
-;     NEXT NMI HANDLER: = nmi_data_tx (or imm-op variant) for the data phase
-;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
@@ -2781,16 +2351,6 @@ l85fd = intoff_test_inactive+1
 ; asserted, writes another pair without returning from
 ; NMI (tight loop optimisation). If IRQ clears, returns
 ; via RTI.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by nmi_scout_ack_src. Stack/ROMSEL/NMI
-; state per shim contract.
-;     OPEN_PORT_BUF, PORT_BUF_LEN (&A2..&A5): TX source pointer and remaining length
-;     RX_SRC_NET (TX_FLAGS) BIT 5: 0 = direct memory; 1 = Tube R3 source
-; 
-; On Exit:
-;     CONTROL FLOW: byte count exhausted -> JMPs to tx_last_data. IRQ clears -> exits
-; via nmi_rti and waits for the next TDRA NMI.
 ; ***************************************************************************************
 ; &87e3 referenced 1 time by &87ed
 .nmi_data_tx
@@ -2914,15 +2474,6 @@ l8877 = check_tube_irq_loop+1
 ; mode to RX mode, listening for the final ACK from the
 ; remote station. Installs the nmi_final_ack handler at
 ; &887A via set_nmi_vector.
-; 
-; On Entry:
-;     CONTEXT: JMP target from nmi_tx_complete on the handshake-data-pending path.
-; Stack/ROMSEL/NMI state per shim contract.
-; 
-; On Exit:
-;     ADLC CR1: &82 (TX_RESET | RIE -- TX-to-RX pivot)
-;     NEXT NMI HANDLER: = nmi_final_ack
-;     CONTROL FLOW: exits via nmi_rti
 ; ***************************************************************************************
 ; &8886 referenced 1 time by &8743
 .handshake_await_ack
@@ -2942,16 +2493,6 @@ l8877 = check_tube_irq_loop+1
 ;   &88A2: Check RDA, read src_stn/net, compare to TX dest
 ;   &88C1: Check FV for frame completion
 ; On success, stores result=0 at tx_result_ok. On failure, error &41.
-; 
-; On Entry:
-;     CONTEXT: NMI dispatch entry installed by handshake_await_ack. Stack/ROMSEL/NMI
-; state per shim contract.
-;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for validating the ACK source
-; 
-; On Exit:
-;     CONTROL FLOW: validation success -> JMPs to tx_result_ok (result = 0). Validation
-; fail -> JMPs to tx_result_fail (error &41 'not listening'). Both paths exit via
-; nmi_rti.
 ; ***************************************************************************************
 .nmi_final_ack
     lda #1                                                            ; 8892: a9 01       ..             ; A=&01: AP mask
@@ -2984,15 +2525,6 @@ l8877 = check_tube_irq_loop+1
 ; for frame completion. Any mismatch or missing FV
 ; branches to tx_result_fail. On success, falls
 ; through to tx_result_ok.
-; 
-; On Entry:
-;     CONTEXT: fall-through from nmi_final_ack after the first two address bytes have
-; been validated. Stack/ROMSEL/NMI state per shim contract.
-;     TX_DST_STN, TX_DST_NET (&0D20/&0D21): reference for the source-address validation
-; 
-; On Exit:
-;     CONTROL FLOW: all checks pass -> falls through to tx_result_ok. Any mismatch ->
-; JMPs to tx_result_fail. Both paths exit via nmi_rti.
 ; ***************************************************************************************
 ; &88ba referenced 1 time by &88b5
 .nmi_final_ack_validate
@@ -3024,14 +2556,8 @@ l8877 = check_tube_irq_loop+1
 ; and from nmi_tx_complete (&8732) for immediate-op
 ; completion where no ACK is expected.
 ; 
-; On Entry:
-;     CONTEXT: JMP target from inside the NMI chain. Stack/ROMSEL/NMI state per shim
-; contract.
-; 
 ; On Exit:
 ;     A: 0 (TX success)
-;     CONTROL FLOW: branches to tx_store_result via BEQ (unconditional after LDA #0);
-; ultimately exits via nmi_rti
 ; ***************************************************************************************
 ; &88de referenced 2 times by &82e7, &8739
 .tx_result_ok
@@ -3046,14 +2572,8 @@ l8877 = check_tube_irq_loop+1
 ; 11 sites across the final-ACK validation chain when the remote
 ; station doesn't respond or the frame is malformed.
 ; 
-; On Entry:
-;     CONTEXT: JMP target from various NMI validation failures. Stack/ROMSEL/NMI state
-; per shim contract.
-; 
 ; On Exit:
 ;     A: &41 ('not listening' TX error)
-;     CONTROL FLOW: falls through to tx_store_result; exits via nmi_rti once result is
-; stored
 ; ***************************************************************************************
 ; &88e2 referenced 11 times by &821a, &8773, &8881, &8897, &889f, &88a9, &88ae, &88bd, &88c5, &88cd, &88dc
 .tx_result_fail
@@ -3228,10 +2748,6 @@ l8877 = check_tube_irq_loop+1
 ; RX listen mode.
 ; 
 ; On Exit:
-;     ADLC CR1: &C1 (TX_RESET | RX_RESET | AC)
-;     ADLC CR4: &1E (8-bit RX word, abort extend, NRZ)
-;     ADLC CR3: &00 (no loopback, no AEX, NRZ, no DTR)
-;     ADLC CR1 (AFTER FALL-THROUGH): &82 (TX_RESET | RIE) -- passive RX listen mode
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &898c referenced 3 times by &8053, &80df, &821d
@@ -3254,8 +2770,6 @@ l8877 = check_tube_irq_loop+1
 ; incoming scout frames via NMI.
 ; 
 ; On Exit:
-;     ADLC CR1: &82 (TX_RESET | RIE -- RX interrupts on)
-;     ADLC CR2: &67 (clear status, prioritised status enabled)
 ;     A, X: clobbered (control byte writes)
 ;     Y: preserved
 ; ***************************************************************************************
@@ -3281,13 +2795,8 @@ l8877 = check_tube_irq_loop+1
 ; 
 ; On Entry:
 ;     A: 12 (service call number)
-;     WS_0D62: Econet-initialised flag: 0 = skip wait, non-zero = wait for the NMI
-; handler to drain
 ; 
 ; On Exit:
-;     NMI HANDLER VECTOR (&0D0C/&0D0D): = nmi_rx_scout (&80BE) -- idle listen state
-;     WS_0D60, WS_0D62: cleared
-;     ADLC: configured for RX listen via fall-through to adlc_rx_listen
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 .wait_idle_and_reset
@@ -3317,10 +2826,7 @@ l8877 = check_tube_irq_loop+1
 ;     A: value to store into ws_0d60 / ws_0d62 (typically 0 to clear)
 ; 
 ; On Exit:
-;     WS_0D60, WS_0D62: = A
 ;     Y: 5 (service-call workspace page)
-;     NMI FLIP-FLOP: disabled (INTOFF read twice)
-;     BEHAVIOUR: tail-jumps to adlc_rx_listen; ADLC re-enters passive RX listen mode
 ; ***************************************************************************************
 .save_econet_state
     bit lfe38                                                         ; 89b9: 2c 38 fe    ,8.            ; INTOFF: disable NMIs
@@ -3355,15 +2861,6 @@ l89c9 = reset_enter_listen+2
 ; it transitions atomically from TDRA to frame-complete without
 ; de-asserting). Without this mechanism, nmi_tx_complete would
 ; never fire after tx_last_data.
-; 
-; On Entry:
-;     CONTEXT: initial NMI vector target (set up by adlc_init via OSBYTE &8F service
-; request) before the RAM shim at &0D00..&0D1F has been populated
-;     ADLC IRQ: asserted (NMI fired)
-; 
-; On Exit:
-;     CONTROL FLOW: performs the same shim sequence as the RAM version then JMPs to
-; nmi_rx_scout (&80BE -> updated to &809B in 4.21)
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit lfe38                                                         ; 89ca: 2c 38 fe    ,8.            ; INTOFF: force /NMI high (IC97 flip-flop clear)
@@ -3387,15 +2884,6 @@ l89c9 = reset_enter_listen+2
 ; guaranteed falling edge on /NMI if the ADLC IRQ is
 ; already asserted, ensuring the next handler fires
 ; immediately.
-; 
-; On Entry:
-;     ROLE: this is template/data, not a callable subroutine -- the bytes here are
-; copied verbatim into RAM at &0D0E during init_nmi_workspace and run from there. The
-; NO_REFS flag is expected (no JSR target)
-; 
-; On Exit:
-;     ROLE: see on_entry -- this address never executes directly; it is the source data
-; for the RAM-resident NMI exit sequence
 ; ***************************************************************************************
 .rom_set_nmi_vector
     sty nmi_jmp_hi                                                    ; 89d8: 8c 0d 0d    ...            ; Store handler high byte at &0D0D
@@ -3578,9 +3066,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered
-;     REMOTE-OP FLAG (RX BLOCK OFFSET 0): cleared
-;     SVC_STATE, NFS_WORKSPACE: zeroed (via fall-through to scan_remote_keys /
-; clear_svc_and_ws)
 ; ***************************************************************************************
 .cmd_roff
     ldy #0                                                            ; 8aea: a0 00       ..             ; Offset 0 in receive block
@@ -3618,7 +3103,6 @@ l89c9 = reset_enter_listen+2
 ;     A: 0 (when no key pressed -- the cleared path)
 ;     X: may be modified by OSBYTE
 ;     Y: &7F (left over from OSBYTE call setup)
-;     SVC_STATE, NFS_WORKSPACE: both zeroed when no remote key was pressed
 ; ***************************************************************************************
 ; &8b00 referenced 1 time by &986f
 .scan_remote_keys
@@ -3648,12 +3132,8 @@ l89c9 = reset_enter_listen+2
 ; iterative help topic matching. Preserves A via
 ; PHA/PLA.
 ; 
-; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): the OS text pointer to snapshot
-; 
 ; On Exit:
 ;     A: preserved
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): snapshot of os_text_ptr at call time
 ; ***************************************************************************************
 ; &8b18 referenced 3 times by &8c46, &8c71, &a603
 .save_text_ptr
@@ -3688,9 +3168,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered
-;     &0D6C BIT 7: set (FS active)
-;     BEHAVIOUR: raises 'Net checksum' via error_inline_log on workspace checksum
-; mismatch
 ; ***************************************************************************************
 ; &8b23 referenced 2 times by &8b52, &900d
 .cmd_net_fs
@@ -3745,16 +3222,8 @@ l89c9 = reset_enter_listen+2
 ; (returning zero in PB[0]); 4.21 instead auto-selects.
 ; 
 ; On Entry:
-;     FS_FLAGS (&0D6C): bit 7 = 1 if ANFS already selected (fast path -- RTS without
-; doing anything)
 ;     X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call when
 ; selection happens)
-; 
-; On Exit:
-;     BEHAVIOUR: fast path: RTS with no side effects when FS already active. Selection
-; path: cmd_net_fs runs (verifies workspace checksum, installs vectors, sets bit 7) and
-; on success falls through to set up the OSWORD PB pointer; on failure (checksum
-; mismatch) raises 'net checksum' via error_net_checksum and never returns.
 ; ***************************************************************************************
 ; &8b4d referenced 5 times by &a9cc, &a9da, &aac2, &aad0, &ac4c
 .ensure_fs_selected
@@ -3775,9 +3244,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A: current FS state byte if selection succeeded
-;     FS_FLAGS (&0D6C) BIT 7: set on success
-;     BEHAVIOUR: raises 'net checksum' via error_net_checksum and never returns if
-; cmd_net_fs fails
 ; ***************************************************************************************
 ; &8b52 referenced 1 time by &8cdd
 .select_fs_via_cmd_net_fs
@@ -3856,8 +3322,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered
-;     SIDE EFFECT: writes the version header and utility command syntax list to current
-; output
 ; ***************************************************************************************
 .help_utils
     ldx #0                                                            ; 8bc0: a2 00       ..             ; X=0: utility command table offset
@@ -3875,8 +3339,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_cmd_table)
-;     SIDE EFFECT: writes the version header and NFS command syntax list to current
-; output
 ; ***************************************************************************************
 .help_net
     ldx #&35 ; '5'                                                    ; 8bc4: a2 35       .5             ; X=&4A: NFS command table offset
@@ -4000,10 +3462,6 @@ l89c9 = reset_enter_listen+2
 ; align continuation lines with the syntax
 ; description column.
 ; 
-; On Entry:
-;     &0355 (CURRENT OUTPUT STREAM): 0 = VDU, 3 = printer (no-op for both); other =
-; serial
-; 
 ; On Exit:
 ;     Y: preserved (saved/restored via PHY/PLY)
 ;     A: clobbered (last char written via OSWRCH)
@@ -4066,12 +3524,10 @@ l89c9 = reset_enter_listen+2
 ; On Entry:
 ;     A: 9 (service call number)
 ;     Y: command-line offset of *HELP argument
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
 ; 
 ; On Exit:
 ;     Y: ws_page (workspace page) -- the service call is left UNCLAIMED so MOS
 ; continues to the next ROM
-;     SIDE EFFECT: any matching help text printed to current output
 ; ***************************************************************************************
 .svc_9_help
     jsr check_credits_easter_egg                                      ; 8c51: 20 24 8d     $.            ; Check for credits Easter egg
@@ -4131,8 +3587,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_inline + print_station_id)
-;     SIDE EFFECT: writes 'CR Advanced  4.08.53 CR Econet Station NNN[ No Clock] CR/LF'
-; to current output stream
 ; ***************************************************************************************
 ; &8c93 referenced 2 times by &8bca, &8c5c
 .print_version_header
@@ -4152,9 +3606,6 @@ l89c9 = reset_enter_listen+2
 ; for caller convenience. The 4.21 version also
 ; OR's bit 7 of the slot flag back into A on exit
 ; (ADLC-absent flag) — see &8CB7-&8CB9.
-; 
-; On Entry:
-;     ROMSEL_COPY (&F4): current ROM slot (used as table index)
 ; 
 ; On Exit:
 ;     A: workspace page number (with bit 7 = ADLC-absent flag)
@@ -4185,14 +3636,9 @@ l89c9 = reset_enter_listen+2
 ; page-aligned pointer used by FS initialisation and
 ; cmd_net_fs to access the private workspace.
 ; 
-; On Entry:
-;     ROMSEL_COPY (&F4): current ROM slot (consumed by get_ws_page)
-; 
 ; On Exit:
 ;     A: 0
 ;     Y: workspace page number
-;     NFS_TEMP LO/HI (&CC/&CD): &00, ws_page -> page-aligned pointer to private
-; workspace
 ; ***************************************************************************************
 ; &8cbd referenced 2 times by &8b9c, &8f4f
 .setup_ws_ptr
@@ -4220,11 +3666,6 @@ l89c9 = reset_enter_listen+2
 ;     A: 3 (service call number)
 ;     X: ROM slot
 ;     Y: parameter (Master 128 service-call dispatch)
-; 
-; On Exit:
-;     BEHAVIOUR: on N-key down, takes over the boot: selects ANFS via cmd_net_fs, sets
-; the auto-boot flag, and JMPs to cmd_fs_entry (does not return). Otherwise returns
-; with the service call unclaimed.
 ; ***************************************************************************************
 .svc_3_autoboot
     lda #osbyte_scan_keyboard_from_16                                 ; 8cc7: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16
@@ -4264,10 +3705,6 @@ l89c9 = reset_enter_listen+2
 ; &8F to inform other ROMs. Sets X=&0A and branches
 ; to issue_svc_osbyte which falls through from the
 ; call_fscv subroutine.
-; 
-; On Entry:
-;     FSCV VECTOR (&021E): must point at a valid handler (installed during FS
-; selection)
 ; 
 ; On Exit:
 ;     A: clobbered (FSCV reason 6 then OSBYTE &8F)
@@ -4339,16 +3776,6 @@ l89c9 = reset_enter_listen+2
 ; &0D. On a full match, prints the ANFS author
 ; credits string: B Cockburn, J Dunn, B Robertson,
 ; and J Wills, each terminated by CR.
-; 
-; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): *HELP argument text pointer
-;     WS_PAGE: current workspace page (used as the Y index into (text_ptr) for the
-; comparison)
-; 
-; On Exit:
-;     BEHAVIOUR: no match: returns with no side effect (caller continues with normal
-; *HELP dispatch). Match: prints the credits string then returns; caller then claims
-; the service
 ; ***************************************************************************************
 ; &8d24 referenced 1 time by &8c51
 .check_credits_easter_egg
@@ -4410,10 +3837,6 @@ l89c9 = reset_enter_listen+2
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
-; 
-; On Exit:
-;     BEHAVIOUR: falls through to cmd_pass which prompts for a password and completes
-; the logon via save_net_tx_cb; may raise 'Bad station' on parse failure
 ; ***************************************************************************************
 .cmd_iam
     lda #osbyte_close_spool_exec                                      ; 8d91: a9 77       .w             ; OSBYTE &77: close SPOOL/EXEC
@@ -4468,10 +3891,6 @@ ps_template_base = sub_c8da6+1
 ; On Entry:
 ;     Y: command line offset in text pointer (also the entry point for cmd_iam fall-
 ; through)
-; 
-; On Exit:
-;     BEHAVIOUR: completes via the FS reply path; raises 'Escape' if the user aborts
-; password entry
 ; ***************************************************************************************
 ; &8dd5 referenced 2 times by &8daf, &8dc0
 .cmd_pass
@@ -4535,13 +3954,8 @@ ps_template_base = sub_c8da6+1
 ; by cmd_iam when processing a file server address
 ; in the logon command.
 ; 
-; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by init_bridge_poll)
-;     &0E01: expected file-server station number
-; 
 ; On Exit:
 ;     A: 0 if matched, non-zero if different
-;     &0E01: zeroed when parsed station matches
 ; ***************************************************************************************
 ; &8e21 referenced 2 times by &8db9, &a9ec
 .clear_if_station_match
@@ -4954,10 +4368,6 @@ ps_template_base = sub_c8da6+1
 ; service-2 handling and is invoked by MOS during
 ; the standard private-workspace claim, but the
 ; concrete trigger has not yet been pinned down.
-; 
-; On Entry:
-;     NET_RX_PTR, NFS_WORKSPACE: page-aligned pointers (set up earlier by
-; svc_2_private_workspace_pages)
 ; ***************************************************************************************
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..
@@ -5090,14 +4500,8 @@ ps_template_base = sub_c8da6+1
 ; extended vector table for NETV and one additional
 ; vector, then restores any previous FS context.
 ; 
-; On Entry:
-;     ROMSEL_COPY (&F4): current ROM slot (written into each vector entry as the ROM ID
-; byte)
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (falls through into write_vector_entry)
-;     EXTENDED VECTOR TABLE: NETV (and the next vector) point at this ROM's handlers;
-; &0D72 set to &FF as install marker
 ; ***************************************************************************************
 ; &903c referenced 2 times by &8b81, &901a
 .init_adlc_and_vectors
@@ -5155,13 +4559,8 @@ ps_template_base = sub_c8da6+1
 ; deselect_fs_if_active during FS teardown, and
 ; flip_set_station_boot.
 ; 
-; On Entry:
-;     NET_RX_PTR (&A6/&A7): page-aligned pointer to the receive control block
-;     &0DFA..&0E01: saved 8-byte FS context to restore
-; 
 ; On Exit:
 ;     A, Y: clobbered (loop counter / data byte)
-;     (NET_RX_PTR)+2..+9: FS context bytes restored from &0DFA+2..+9
 ; ***************************************************************************************
 ; &9064 referenced 3 times by &8fb8, &907b, &a6d2
 .restore_fs_context
@@ -5183,16 +4582,6 @@ ps_template_base = sub_c8da6+1
 ; closes SPOOL/EXEC files via OSBYTE &77,
 ; saves the FS workspace to page &10 shadow
 ; with checksum, and clears the selected flag.
-; 
-; On Entry:
-;     FS_FLAGS (&0D6C) BIT 7: 1 = currently selected (do the shutdown); 0 = already
-; deselected (no-op)
-; 
-; On Exit:
-;     FS_FLAGS BIT 7: cleared
-;     PAGE &10 SHADOW: checksummed snapshot of FS workspace
-;     BEHAVIOUR: open FCBs and SPOOL/EXEC files are closed; called via FSCV reason 6
-; when MOS is switching to a different filing system
 ; ***************************************************************************************
 .fscv_6_shutdown
     bit fs_flags                                                      ; 9071: 2c 6c 0d    ,l.            ; FS currently selected?
@@ -5241,16 +4630,10 @@ ps_template_base = sub_c8da6+1
 ; adjust_fsopts_4bytes, and start_wipe_pass before
 ; workspace access.
 ; 
-; On Entry:
-;     NFS_TEMP LO/HI (&CC/&CD): page-aligned pointer to the workspace page to verify
-; (set up by setup_ws_ptr)
-; 
 ; On Exit:
 ;     A: preserved (PHA/PLA)
 ;     Y: preserved
 ;     P (FLAGS): preserved (PHP/PLP)
-;     BEHAVIOUR: raises 'net sum' (&AA) via error_inline_log if the byte at offset &77
-; does not match the running sum of bytes 0..&76; only a control-BREAK clears the error
 ; ***************************************************************************************
 ; &909e referenced 5 times by &9eab, &a02f, &a10b, &a14c, &b99a
 .verify_ws_checksum
@@ -5291,13 +4674,8 @@ ps_template_base = sub_c8da6+1
 ; second inline string. Finishes with OSNEWL.
 ; Called by print_version_header and svc_3_auto_boot.
 ; 
-; On Entry:
-;     NET_RX_PTR (&A6/&A7): RX control block pointer (byte 1 = local station ID)
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_inline + print_num_no_leading + OSNEWL)
-;     SIDE EFFECT: writes 'Econet Station NNN' (with optional ' No Clock' suffix)
-; followed by CR/LF to current output
 ; ***************************************************************************************
 ; &90c7 referenced 2 times by &8caa, &8ce4
 .print_station_id
@@ -5400,8 +4778,6 @@ ps_template_base = sub_c8da6+1
 ; On Exit:
 ;     A, X, Y, P: preserved (print_char_no_spool brackets the call with full register
 ; save/restore via PHA/PHP/PLP/PLA)
-;     SIDE EFFECT: OSASCI prints CR; *SPOOL handle is briefly cleared and restored if
-; it was an NFS-issued handle (&21-&2F)
 ; ***************************************************************************************
 ; &91f9 referenced 3 times by &8a7c, &8e10, &9d3e
 .print_newline_no_spool
@@ -5585,18 +4961,10 @@ ps_template_base = sub_c8da6+1
 ; &EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
 ; unconditional forward branch.
 ; 
-; On Entry:
-;     STACK: JSR return address points one byte BEFORE the inline string (the routine
-; increments past it)
-;     INLINE STRING: ASCII bytes immediately following the JSR, terminated by a byte
-; with bit 7 set (which is the NEXT opcode)
-; 
 ; On Exit:
 ;     A: terminator byte (bit 7 set, also next opcode)
 ;     X: corrupted (by OSASCI)
 ;     Y: 0
-;     CONTROL FLOW: RTS does NOT return to JSR; instead a JMP lands on the terminator
-; byte's address as the next instruction
 ; ***************************************************************************************
 ; &9261 referenced 24 times by &8a6b, &8be0, &8c93, &8fc1, &90c7, &90e7, &b460, &b46c, &b483, &b48d, &b498, &b568, &b60a, &b61f, &b642, &b64f, &b65e, &b66e, &b67d, &bdac, &bdc4, &bdd0, &be04, &be21
 .print_inline
@@ -5659,16 +5027,10 @@ ps_template_base = sub_c8da6+1
 ; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
 ; &B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
 ; 
-; On Entry:
-;     STACK: JSR return address points just before the inline string
-;     INLINE STRING: ASCII bytes immediately following the JSR, bit-7 terminated
-; 
 ; On Exit:
 ;     A: terminator byte (bit 7 set, also next opcode)
 ;     X: corrupted (by print_char_no_spool)
 ;     Y: 0
-;     CONTROL FLOW: JMPs onto the terminator byte; RTS does NOT return to caller's JSR
-; site
 ; ***************************************************************************************
 ; &928a referenced 6 times by &981a, &b158, &b162, &b2f0, &b75e, &b7cb
 .print_inline_no_spool
@@ -5717,7 +5079,6 @@ ps_template_base = sub_c8da6+1
 ;     A: ignored
 ; 
 ; On Exit:
-;     FS_LOAD_ADDR_2: parsed numeric value
 ;     C: set if a number was parsed
 ; ***************************************************************************************
 ; &92b2 referenced 4 times by &8db1, &8dbd, &a3c9, &a3de
@@ -5921,10 +5282,6 @@ ps_template_base = sub_c8da6+1
 ; bit encode table at &9286. Called by
 ; check_and_setup_txcb for owner and public access.
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): pointer to start of directory entry (access byte is read at
-; offset &0E)
-; 
 ; On Exit:
 ;     A: encoded access flags
 ;     X: &FF + bits-set (left in this state by get_prot_bits fall-through)
@@ -6057,10 +5414,6 @@ ps_template_base = sub_c8da6+1
 ; send_txcb_swap_addrs and check_and_setup_txcb
 ; to verify station/handle identity.
 ; 
-; On Entry:
-;     L00AF+1..+4: first 5-byte handle buffer (offset 0 is skipped)
-;     FS_LOAD_ADDR_3+1..+4: second 5-byte handle buffer
-; 
 ; On Exit:
 ;     Z: set if bytes 1..4 match (byte 0 is not compared)
 ;     A: EOR of last compared bytes
@@ -6159,11 +5512,6 @@ ps_template_base = sub_c8da6+1
 ;     Y: command line offset in text pointer
 ;     X: byte offset within cmd_table_fs identifying which of the four shared commands
 ; was matched (Access, Delete, Info, or Lib)
-; 
-; On Exit:
-;     BEHAVIOUR: completes via the FS reply path; raises 'Bad file name' on malformed
-; argument and returns A = reply status from the file server, or BRKs on FS-reported
-; errors
 ; ***************************************************************************************
 .cmd_fs_operation
     jsr copy_fs_cmd_name                                              ; 9425: 20 63 94     c.            ; Copy command name to TX buffer
@@ -6192,13 +5540,8 @@ ps_template_base = sub_c8da6+1
 ; strip_token_prefix on each byte and terminating
 ; on CR. Used by cmd_fs_operation and cmd_rename.
 ; 
-; On Entry:
-;     &0E30: first byte of the parsed filename buffer
-; 
 ; On Exit:
 ;     A: first byte of parse buffer (preserved unchanged on the non-error path)
-;     BEHAVIOUR: raises 'Bad filename' error and does not return if the first character
-; is '&'
 ; ***************************************************************************************
 ; &9446 referenced 2 times by &9430, &944e
 .check_not_ampersand
@@ -6242,7 +5585,6 @@ ps_template_base = sub_c8da6+1
 ;     X: TX buffer offset past name+space
 ;     Y: command line offset (restored)
 ;     A: clobbered
-;     TX BUFFER AT &C105+: command name + trailing space
 ; ***************************************************************************************
 ; &9463 referenced 2 times by &9425, &94c5
 .copy_fs_cmd_name
@@ -6283,16 +5625,11 @@ ps_template_base = sub_c8da6+1
 ; on unbalanced quotes.
 ; 
 ; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (saved by
-; save_text_ptr)
 ;     Y: current offset within the command line
 ; 
 ; On Exit:
-;     &0E30: parsed argument (without surrounding quotes)
 ;     Y: advanced past the parsed argument
 ;     A: clobbered (last byte read)
-;     BEHAVIOUR: raises 'Bad string' on unbalanced quotes; falls through to cmd_rename
-; on the success path
 ; ***************************************************************************************
 ; &9483 referenced 2 times by &9429, &94cc
 .parse_quoted_arg
@@ -6348,10 +5685,6 @@ ps_template_base = sub_c8da6+1
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
-; 
-; On Exit:
-;     BEHAVIOUR: completes via the FS reply path; raises 'Bad rename' if the two
-; filenames target different file servers, or 'Bad file name' on parse error
 ; ***************************************************************************************
 .cmd_rename
     jsr copy_fs_cmd_name                                              ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer; Bit 6 set: use station as port
@@ -6410,10 +5743,6 @@ ps_template_base = sub_c8da6+1
 ; 
 ; On Entry:
 ;     Y: command line offset in text pointer
-; 
-; On Exit:
-;     BEHAVIOUR: completes via the FS reply; on the cross-FS path, may raise 'Not
-; found' or update the active FS station to the targeted server before returning
 ; ***************************************************************************************
 .cmd_dir
     lda (fs_crc_lo),y                                                 ; 9512: b1 be       ..             ; Get first char of argument
@@ -6569,10 +5898,6 @@ ps_template_base = sub_c8da6+1
 ; clear = awaiting reply). The NMI RX handler sets
 ; bit 7 when a reply arrives on this port, which
 ; wait_net_tx_ack polls for.
-; 
-; On Exit:
-;     TXCB AT &00C0: 12-byte template copied; port = &90; ctrl = &7F (open-receive, bit
-; 7 clear = awaiting reply); start = 3
 ; ***************************************************************************************
 ; &973d referenced 1 time by &97ce
 .init_txcb_bye
@@ -6612,13 +5937,9 @@ ps_template_base = sub_c8da6+1
 ; including cmd_pass, init_txcb_port,
 ; prep_send_tx_cb, and send_wipe_request.
 ; 
-; On Entry:
-;     &0E00, &0E01: destination station, network (also written to txcb_dest)
-; 
 ; On Exit:
 ;     A: preserved
 ;     X, Y: clobbered (Y left at &FF on loop exit)
-;     TXCB AT &00C0..&00CB: 12-byte template loaded; bytes 2/3 are dst station/network
 ; ***************************************************************************************
 ; &974b referenced 5 times by &8e15, &973f, &97bd, &ac55, &bccb
 .init_txcb
@@ -6714,15 +6035,6 @@ ps_template_base = sub_c8da6+1
 ; with OSBYTE &77, and closes all network channels.
 ; Falls through to save_net_tx_cb with function code
 ; &17 to send the bye request to the file server.
-; 
-; On Entry:
-;     &0E00, &0E01: FS station/network (stays as the 'Bye' destination across handle
-; teardown)
-; 
-; On Exit:
-;     BEHAVIOUR: tail-call into save_net_tx_cb with Y = &17 -- completes via the FS
-; reply path and returns A = reply status, or never returns on FS-reported errors (BRK
-; via error_inline)
 ; ***************************************************************************************
 .cmd_bye
     ldy #0                                                            ; 9776: a0 00       ..             ; Y=0: process_all_fcbs filter (0 = all FCBs)
@@ -6744,12 +6056,9 @@ ps_template_base = sub_c8da6+1
 ; On Entry:
 ;     Y: FS function code (becomes TX[1] = txcb_func)
 ;     X: TX buffer payload length (prep_send_tx_cb uses X+5 as txcb_end)
-;     &0E02, &0E03: FS station/network (copied to &0F02/&0F03)
 ; 
 ; On Exit:
 ;     A: FS reply status
-;     BEHAVIOUR: performs full send/receive via prep_send_tx_cb ->
-; recv_and_process_reply; may BRK with FS-reported error
 ; ***************************************************************************************
 ; &978a referenced 20 times by &8e3c, &9558, &957b, &958e, &9e4a, &9f2f, &9f3f, &9f8d, &a018, &a091, &a0c5, &a199, &a1bc, &a28c, &a347, &a50b, &a533, &b150, &b71b, &bcaa
 .save_net_tx_cb
@@ -6770,12 +6079,9 @@ ps_template_base = sub_c8da6+1
 ;     X: TX buffer payload length
 ;     V FLAG: set by caller (selects this variant via the 'no CLV' fall-through from
 ; save_net_tx_cb)
-;     &0E02, &0E03: FS station/network
 ; 
 ; On Exit:
 ;     A: FS reply status
-;     BEHAVIOUR: see save_net_tx_cb -- same send/receive cycle, with V left set across
-; the txcb-copy phase
 ; ***************************************************************************************
 ; &978b referenced 2 times by &9e31, &9ff6
 .save_net_tx_cb_vset
@@ -6831,11 +6137,9 @@ ps_template_base = sub_c8da6+1
 ;     Y: FS function code (already stashed by the txcb-copy entry path)
 ;     C FLAG: set = disconnect path (handle_disconnect); clear = normal four-way
 ; handshake send
-;     TXCB AT &00C0: destination station/network already populated
 ; 
 ; On Exit:
 ;     A: FS reply status (or doesn't return on error)
-;     TXCB_END (&C8): TX buffer end offset
 ; ***************************************************************************************
 ; &97b7 referenced 1 time by &a2e5
 .prep_send_tx_cb
@@ -6873,13 +6177,9 @@ ps_template_base = sub_c8da6+1
 ; On Entry:
 ;     C FLAG: set = disconnect mode (caller sent a disconnect scout; handle the
 ; server's matching reply)
-;     TXCB AT &00C0: still set up by prep_send_tx_cb (port &90)
 ; 
 ; On Exit:
 ;     A: FS reply status byte
-;     BEHAVIOUR: may BRK on FS-reported errors (via classify_reply_error /
-; build_simple_error). 'No reply' is raised if the open receive times out in
-; wait_net_tx_ack.
 ; ***************************************************************************************
 ; &97cd referenced 2 times by &9d0c, &a285
 .recv_and_process_reply
@@ -7072,16 +6372,6 @@ ps_template_base = sub_c8da6+1
 ; seconds. On timeout, branches to
 ; build_no_reply_error to raise 'No reply'.
 ; Called by 6 sites across the protocol stack.
-; 
-; On Entry:
-;     TXCB AT &00C0: open-receive control block with txcb_ctrl bit 7 clear (set to &7F
-; by init_txcb_port)
-;     RX_WAIT_TIMEOUT (&0D6E): outer-loop count (default &28 ~ 22 s on 2 MHz 6502)
-; 
-; On Exit:
-;     BEHAVIOUR: returns when txcb_ctrl bit 7 becomes set (reply received); on timeout,
-; tail-jumps to build_no_reply_error which raises 'No reply' via BRK and does not
-; return
 ; ***************************************************************************************
 ; &98be referenced 6 times by &97d1, &9c9f, &9dd7, &acaa, &af53, &aff5
 .wait_net_tx_ack
@@ -7272,13 +6562,6 @@ l99a3 = bad_str_anchor+1
 ; 
 ; On Entry:
 ;     A: error number
-;     STACK: JSR return address points just before the null-terminated error suffix
-; (the 'Bad ' prefix is prepended internally from a lookup table)
-;     INLINE STRING: NUL-terminated suffix (e.g. 'station')
-; 
-; On Exit:
-;     BEHAVIOUR: DOES NOT RETURN -- builds the 'Bad <suffix>' error message in the MOS
-; error block and triggers BRK via error_inline_log / error_block
 ; ***************************************************************************************
 ; &99a7 referenced 11 times by &90b7, &934c, &9359, &936d, &9379, &9388, &9439, &94bb, &94dc, &a5a3, &bf48
 .error_bad_inline
@@ -7306,12 +6589,6 @@ l99a3 = bad_str_anchor+1
 ; 
 ; On Entry:
 ;     A: error number
-;     STACK: JSR return address points just before the null-terminated error message
-; text
-; 
-; On Exit:
-;     &0E09: = A (logged when fs_flags bit 7 is set)
-;     BEHAVIOUR: DOES NOT RETURN -- triggers BRK via error_inline / error_block
 ; ***************************************************************************************
 ; &99c0 referenced 11 times by &9564, &9883, &a5ba, &af82, &af94, &b81f, &b895, &b8e6, &bb79, &bbb3, &bbfd
 .error_inline_log
@@ -7325,14 +6602,6 @@ l99a3 = bad_str_anchor+1
 ; 
 ; On Entry:
 ;     A: error number (stored in error block at &0101)
-;     STACK: JSR return address points just before the null-terminated error message
-; text
-;     INLINE STRING: NUL-terminated ASCII immediately following the JSR site
-; 
-; On Exit:
-;     BEHAVIOUR: DOES NOT RETURN -- the routine builds the MOS error block at
-; &0100..&01FE and triggers the error via JMP error_block, which transfers control to
-; BRKV
 ; ***************************************************************************************
 ; &99c3 referenced 4 times by &a444, &bd37, &bedb, &bf91
 .error_inline
@@ -7612,15 +6881,9 @@ l99a3 = bad_str_anchor+1
 ; through to send_net_packet for transmission with
 ; retry logic.
 ; 
-; On Entry:
-;     TXCB AT &00C0: TX control block populated by caller (init_txcb + send_request_* /
-; prep_send_tx_cb path)
-; 
 ; On Exit:
 ;     A: TX result code (0 = success; &40 jammed; &41 not listening; etc.) -- see
 ; send_net_packet
-;     BEHAVIOUR: may BRK on classified errors (Line jammed, Net error, etc.) via
-; load_reply_and_classify
 ; ***************************************************************************************
 ; &9b24 referenced 2 times by &97c9, &9dc8
 .init_tx_ptr_and_send
@@ -7646,16 +6909,8 @@ l99a3 = bad_str_anchor+1
 ; etc.), distinct from the 'No reply' timeout in
 ; wait_net_tx_ack.
 ; 
-; On Entry:
-;     NET_TX_PTR (&AE/&AF): pointer to TX control block (typically &00C0 set by
-; init_tx_ptr_and_send)
-;     TX_RETRY_COUNT (&0D6D): phase-1 retry budget (default &FF; 0 = retry forever)
-; 
 ; On Exit:
 ;     A: TX result (0 = success; non-zero = error class consumed by the BRK path)
-;     BEHAVIOUR: phase-1 success returns A=0; phase-1 timeout with retry_count != 0
-; jumps to load_reply_and_classify (BRK); with retry_count = 0, enters phase 2 which
-; honours Escape via check_escape_and_classify
 ; ***************************************************************************************
 ; &9b2c referenced 6 times by &acf9, &ad56, &af48, &afd3, &b419, &b5f8
 .send_net_packet
@@ -7752,14 +7007,8 @@ l99a3 = bad_str_anchor+1
 ; &FD markers), saves original values on stack,
 ; then polls the ADLC and retries until complete.
 ; 
-; On Entry:
-;     NET_TX_PTR (&AE/&AF): TX-pointer pair to set up before falling through to
-; setup_pass_txbuf
-; 
 ; On Exit:
 ;     A: TX result (from poll_adlc_tx_status)
-;     STACK: consumed -- the template's saved bytes are popped back into the TX buffer
-; before return
 ; ***************************************************************************************
 ; &9b81 referenced 1 time by &8e18
 .init_tx_ptr_for_pass
@@ -7777,13 +7026,8 @@ l99a3 = bad_str_anchor+1
 ; poll_adlc_tx_status and retries on failure, restoring
 ; the original TX buffer contents when done.
 ; 
-; On Entry:
-;     TX BUFFER AT &00C0..: current TX control block (12 bytes saved/restored)
-; 
 ; On Exit:
 ;     A: TX result (from poll_adlc_tx_status)
-;     TX BUFFER AT &00C0..: restored to entry contents after the pass-through send
-;     BEHAVIOUR: raises BRK via load_reply_and_classify on non-recoverable TX errors
 ; ***************************************************************************************
 ; &9b89 referenced 1 time by &af45
 .setup_pass_txbuf
@@ -7840,15 +7084,9 @@ l99a3 = bad_str_anchor+1
 ; &00=success, &40=jammed, &41=not listening,
 ; &43=no clock, &44=bad control byte.
 ; 
-; On Entry:
-;     NET_TX_PTR (&AE/&AF): pointer to TX control block (set by init_tx_ptr_and_send or
-; by the pass-through path)
-;     TX_COMPLETE_FLAG: bit 7 set when ADLC is idle and ready
-; 
 ; On Exit:
 ;     A: TX result (&00 success / &40 jammed / &41 not listening / &43 no clock / &44
 ; bad control byte)
-;     NMI_TX_BLOCK: = net_tx_ptr (snapshot for the NMI handler chain)
 ; ***************************************************************************************
 ; &9bb6 referenced 3 times by &9b3f, &9ba8, &9bb9
 .poll_adlc_tx_status
@@ -7914,16 +7152,8 @@ l99a3 = bad_str_anchor+1
 ; through to gsread_to_buf to parse the string at that
 ; address into the &0E30 buffer.
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): pointer to FS options block; bytes 0/1 hold the source
-; string pointer to install into os_text_ptr
-; 
 ; On Exit:
-;     OS_TEXT_PTR (&F2/&F3): = (fs_options),0/1 from entry
 ;     Y: 0 (reset before GSINIT)
-;     &0E30 (PARSE BUFFER): GSREAD-expanded string, CR-terminated
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): = &0E30 (parse buffer base for downstream
-; parsers)
 ; ***************************************************************************************
 ; &9bf5 referenced 1 time by &9c25
 .load_text_ptr_and_parse
@@ -7945,16 +7175,10 @@ l99a3 = bad_str_anchor+1
 ; for subsequent parsing routines.
 ; 
 ; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): MOS text pointer set up by caller (e.g. via
-; save_ptr_to_os_text)
 ;     Y: current command-line offset (consumed by GSINIT)
 ; 
 ; On Exit:
-;     &0E30 (PARSE BUFFER): expanded string from GSREAD, CR-terminated
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): = &0E30
 ;     Y: advanced past the parsed source
-;     BEHAVIOUR: raises 'Bad string' via MOS if GSREAD encounters a malformed quoted
-; string
 ; ***************************************************************************************
 ; &9c00 referenced 1 time by &b22c
 .gsread_to_buf
@@ -8007,15 +7231,10 @@ l99a3 = bad_str_anchor+1
 ; send_txcb_swap_addrs, and receives the reply.
 ; 
 ; On Entry:
-;     FS_OPTIONS (&BB/&BC): FS options block (offsets 2..5 = current address; offset 6
-; = cycle flag)
-;     &0E00, &0E01: destination station/network
 ;     Y: FS function code (matches send_request_write contract)
 ; 
 ; On Exit:
 ;     A: FS reply status
-;     BEHAVIOUR: may BRK on FS-reported errors via recv_and_process_reply; otherwise
-; the FS options block has been updated with the next-iteration address state
 ; ***************************************************************************************
 ; &9c3e referenced 1 time by &a615
 .do_fs_cmd_iteration
@@ -8067,16 +7286,9 @@ l99a3 = bad_str_anchor+1
 ; addresses, sends, waits for acknowledgment,
 ; and retries on address mismatch.
 ; 
-; On Entry:
-;     L00AF+1..+4: current 5-byte handle to compare against fs_load_addr_3+1..+4 (via
-; cmp_5byte_handle)
-;     FS_OPTIONS (&BB/&BC): FS options block
-; 
 ; On Exit:
 ;     A: FS reply status (or unchanged if handles matched -- the routine returns early
 ; when no work is needed)
-;     BEHAVIOUR: retries on address mismatch by swapping start and end address pairs;
-; raises BRK via the FS-reply classifier on persistent errors
 ; ***************************************************************************************
 ; &9c85 referenced 2 times by &9c74, &a26f
 .send_txcb_swap_addrs
@@ -8209,14 +7421,8 @@ l99a3 = bad_str_anchor+1
 ; length as 3 hex bytes from offset &0C. Each group
 ; is followed by a space separator via OSASCI.
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): pointer to file-info block; offsets 9..D = exec address,
-; offsets &0A..&0C = length
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_hex_byte + OSASCI)
-;     SIDE EFFECT: writes 5+3 hex bytes (with space separators) to the current output
-; stream
 ; ***************************************************************************************
 ; &9d44 referenced 1 time by &9d3b
 .print_load_exec_addrs
@@ -8263,12 +7469,10 @@ l99a3 = bad_str_anchor+1
 ; advance Y past the copied region.
 ; 
 ; On Entry:
-;     FS_OPTIONS (&BB/&BC): pointer to FS options block (offsets 2..5 = address bytes)
 ;     Y: destination offset within the &00AE.. zero-page region (also indexes the
 ; source via (fs_options),Y)
 ; 
 ; On Exit:
-;     &00AE+Y..+Y+3: 4 bytes copied from (fs_options),+2..+5
 ;     Y: advanced by 5 (via skip_one_and_advance5 fall-through)
 ;     A: clobbered
 ; ***************************************************************************************
@@ -8333,12 +7537,9 @@ l99a3 = bad_str_anchor+1
 ; retreat_y_by_4.
 ; 
 ; On Entry:
-;     &0F02+Y..: FS reply buffer with the new option bytes
-;     FS_OPTIONS (&BB/&BC): pointer to FS options block (target of the copy)
 ;     Y: current offset (controls how many bytes are copied before the loop terminates)
 ; 
 ; On Exit:
-;     (FS_OPTIONS)+Y..: updated from reply buffer
 ;     Y: decremented by 4 (via retreat_y_by_4 fall-through)
 ;     A: clobbered
 ; ***************************************************************************************
@@ -8404,16 +7605,8 @@ l99a3 = bad_str_anchor+1
 ; byte, sends the packet, and dispatches on the
 ; reply sub-operation code.
 ; 
-; On Entry:
-;     L00AF, FS_LOAD_ADDR_3: 5-byte handle pair to compare; match returns early without
-; sending
-;     FS_OPTIONS (&BB/&BC): options block holding start/end addresses to be installed
-; in the TXCB
-; 
 ; On Exit:
 ;     A: FS reply sub-operation code (drives downstream dispatch)
-;     BEHAVIOUR: early-returns when the handle is unchanged; otherwise sends the data-
-; transfer request and dispatches into the reply handler
 ; ***************************************************************************************
 ; &9d87 referenced 2 times by &9d09, &a26a
 .check_and_setup_txcb
@@ -8596,14 +7789,7 @@ l99a3 = bad_str_anchor+1
 ; reply buffer depending on the value in l0f03.
 ; Truncates or pads to exactly 12 characters.
 ; 
-; On Entry:
-;     L0F03: non-zero selects command-line source; zero selects l0f05 reply-buffer
-; source
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (used when l0f03
-; selects it)
-; 
 ; On Exit:
-;     &10F3..&10FE: 12-character space-padded filename
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; Unreachable dead code (3 bytes)
@@ -9090,14 +8276,7 @@ la0ff = sub_ca0fe+1
 ; through to update_addr_from_offset1 to process
 ; offset 1 (the low address / load address field).
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): FS options block to update
-;     &0E0A..&0E0D: 4-byte workspace addend
-;     FS_LOAD_ADDR_2 BIT 7: 1 = subtract from FS options; 0 = add
-; 
 ; On Exit:
-;     (FS_OPTIONS)+9..+&0C: exec address adjusted
-;     (FS_OPTIONS)+1..+4: load address adjusted
 ;     A, X, Y, C FLAG: clobbered (4-byte arithmetic loop)
 ; ***************************************************************************************
 ; &a12c referenced 1 time by &a277
@@ -9269,9 +8448,6 @@ la0ff = sub_ca0fe+1
 ; offset 0, then falls through to lookup_cat_slot_data
 ; to find the corresponding FCB entry.
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): FS options block; byte 0 = channel handle
-; 
 ; On Exit:
 ;     A: FCB flag byte from &1030+X
 ;     X: channel slot index
@@ -9313,18 +8489,8 @@ la0ff = sub_ca0fe+1
 ; address pairs for the actual data transfer phase
 ; and dispatches to the appropriate handler.
 ; 
-; On Entry:
-;     FS_OPTIONS (&BB/&BC): FS options block (offsets 0..8 hold channel handle,
-; addresses, and the operation code)
-;     (FS_OPTIONS)+0: channel handle
-;     (FS_OPTIONS) OPERATION CODE BYTE: even = read (port &91); odd = write (port &92)
-; 
 ; On Exit:
 ;     A: FS reply status from the data-transfer phase
-;     TXCB AT &00C0: configured for the transfer with the appropriate port and address
-; pair
-;     BEHAVIOUR: may BRK on FS-reported errors via the reply classifier; success
-; returns A = reply status
 ; ***************************************************************************************
 ; &a1fa referenced 2 times by &a19d, &bd18
 .setup_transfer_workspace
@@ -9420,13 +8586,9 @@ la0ff = sub_ca0fe+1
 ; so the caller's flag state is not affected by
 ; the reply processing.
 ; 
-; On Entry:
-;     TXCB AT &00C0: open-receive control block from init_txcb_port (caller's setup)
-; 
 ; On Exit:
 ;     A: FS reply status
 ;     P (FLAGS): preserved across the call (PHP/PLP)
-;     BEHAVIOUR: may BRK on FS-reported errors via recv_and_process_reply
 ; ***************************************************************************************
 ; &a284 referenced 1 time by &a272
 .recv_reply_preserve_flags
@@ -9500,15 +8662,8 @@ la0ff = sub_ca0fe+1
 ; is active, claims the Tube, sets up the
 ; transfer address, and writes via R3.
 ; 
-; On Entry:
-;     L0F05..: data block to transfer (typically returned by the FS reply path)
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): destination pointer for the non-Tube path
-;     TUBE STATE FLAG (WORKSPACE): selects direct-memory vs Tube-R3 transfer
-; 
 ; On Exit:
 ;     A, X, Y: clobbered
-;     SIDE EFFECT: block copied to caller-specified address (direct memory or via Tube
-; R3); Tube claim is matched with release on the Tube path
 ; ***************************************************************************************
 ; &a2ed referenced 2 times by &a29d, &a365
 .write_data_block
@@ -9626,8 +8781,6 @@ la0ff = sub_ca0fe+1
 ; On Exit:
 ;     A: &C3 (the claim protocol byte left in A)
 ;     C FLAG: set (the claim succeeded -- this is the loop termination condition)
-;     TUBE STATE: exclusive claim held; matching release via tube_addr_data_dispatch
-; with &C2 expected from caller
 ; ***************************************************************************************
 ; &a390 referenced 3 times by &a302, &a395, &a627
 .tube_claim_c3
@@ -9676,14 +8829,8 @@ la0ff = sub_ca0fe+1
 ; address followed by a newline via OSNEWL.
 ; Used by *FS and *PS output formatting.
 ; 
-; On Entry:
-;     FS_WORK_6 (&B6): network number (consumed by print_station_addr)
-;     FS_WORK_7 (&B7): station number
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_station_addr + OSNEWL)
-;     SIDE EFFECT: writes 'NN.SSS' or 'SSS' followed by CR/LF to the current output
-; stream
 ; ***************************************************************************************
 ; &a3bb referenced 1 time by &b474
 .print_fs_info_newline
@@ -9705,14 +8852,10 @@ la0ff = sub_ca0fe+1
 ; 4.18).
 ; 
 ; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by parse_addr_arg)
 ;     Y: current command-line offset
 ; 
 ; On Exit:
-;     FS_WORK_7 (&B7): parsed station number
-;     FS_WORK_6 (&B6): parsed network number (0 if not specified)
 ;     X, Y: preserved (saved/restored via PHX/PHY)
-;     BEHAVIOUR: raises 'Bad station' via parse_addr_arg on malformed input
 ; ***************************************************************************************
 ; &a3c4 referenced 3 times by &a3a8, &b3cf, &b5a6
 .parse_fs_ps_args
@@ -9749,10 +8892,6 @@ la0ff = sub_ca0fe+1
 ; block pointer and falls through to
 ; byte_to_2bit_index to produce a 12-byte-aligned
 ; table index in Y.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer; PB[0] is the table
-; selector
 ; 
 ; On Exit:
 ;     A: PB[0] (preserved through byte_to_2bit_index)
@@ -9869,8 +9008,6 @@ la0ff = sub_ca0fe+1
 ; on success.
 ; 
 ; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (snapshot from
-; save_text_ptr)
 ;     X: starting offset within cmd_table_fs (selects which sub-table is searched: NFS
 ; commands, FS commands, etc.)
 ; 
@@ -9880,8 +9017,6 @@ la0ff = sub_ca0fe+1
 ;     Y: command-line offset of the first non-name character (typically the argument
 ; start)
 ;     Z FLAG: set on match, clear on no-match
-;     BEHAVIOUR: case-insensitive (bit 5 mask applied) and uses bit-7 terminators to
-; delimit each table entry's name
 ; ***************************************************************************************
 ; &a45b referenced 3 times by &8c49, &8c77, &a43b
 .match_fs_cmd
@@ -10227,10 +9362,6 @@ la0ff = sub_ca0fe+1
 ; allocate or update the matching slot with the
 ; new station address and status flags.
 ; 
-; On Entry:
-;     &0E00, &0E01: station, network address to look up
-;     FS_WORK_6, FS_WORK_7: current PS station/network for fall-through update
-; 
 ; On Exit:
 ;     V FLAG: set if matching slot already had bit 2; clear if newly allocated
 ;     X: table slot index of the matched/allocated entry
@@ -10273,9 +9404,6 @@ la0ff = sub_ca0fe+1
 ; if found, clears V if not. Falls through to
 ; allocate or update the matching slot with the
 ; new station address and status flags.
-; 
-; On Entry:
-;     &0E00, &0E01: FS station, network to look up
 ; 
 ; On Exit:
 ;     V FLAG: set if matching slot already had bit 3; clear if newly allocated
@@ -10344,10 +9472,8 @@ la0ff = sub_ca0fe+1
 ; 
 ; On Entry:
 ;     A: boot type code to store
-;     &0E00, &0E01: station, network whose boot entry to update
 ; 
 ; On Exit:
-;     FS CONTEXT: restored from saved workspace via restore_fs_context
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &a6a6 referenced 2 times by &a63e, &a6f5
@@ -10540,10 +9666,6 @@ la0ff = sub_ca0fe+1
 ; On Entry:
 ;     A: OSWORD number (from osbyte_a_copy)
 ;     Y: parameter passed by service-call dispatch
-; 
-; On Exit:
-;     BEHAVIOUR: OSWORD numbers outside &0E..&14 return with the service call
-; unclaimed; valid codes &0E..&14 dispatch to per-OSWORD handlers via PHA/PHA/RTS
 ; ***************************************************************************************
 .svc_8_osword
     bra ca855                                                         ; a83b: 80 18       ..             ; End of attribute keyword table; Y=3; Load PB[3] (caller value)
@@ -10741,17 +9863,6 @@ la0ff = sub_ca0fe+1
 ; network numbers in PB[1..2]. If the NFS is not
 ; active, sub_c8b4d returns early with zero in
 ; PB[0] (carrying over the 4.18 semantics).
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by
-; osword_13_dispatch via store_osword_pb_ptr)
-; 
-; On Exit:
-;     PB[0]: 0 if NFS not active
-;     PB[1]: FS station number
-;     PB[2]: FS network number
-;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS rather than aborting on
-; inactive FS
 ; ***************************************************************************************
 .osword_13_read_station
     jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
@@ -10774,15 +9885,6 @@ la0ff = sub_ca0fe+1
 ; body at &A9DD processes all FCBs and scans the
 ; 16-entry FCB table to reassign handles matching
 ; the new station.
-; 
-; On Entry:
-;     PB[1]: new FS station number
-;     PB[2]: new FS network number
-; 
-; On Exit:
-;     &0E00, &0E01: updated FS station/network
-;     FCB TABLE AT L1060: handles reassigned to new station
-;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS if not already active
 ; ***************************************************************************************
 .osword_13_set_station
     jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
@@ -10891,12 +9993,6 @@ la0ff = sub_ca0fe+1
 ; from the RX workspace at offset &17 into
 ; PB[1..5]. Sets carry clear to select the
 ; workspace-to-PB copy direction.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by dispatch)
-; 
-; On Exit:
-;     PB[1..5]: 5-byte CSD path from RX workspace +&17
 ; ***************************************************************************************
 .osword_13_read_csd
     clc                                                               ; aa72: 18          .
@@ -10909,12 +10005,6 @@ la0ff = sub_ca0fe+1
 ; from PB[1..5] into the RX workspace at offset
 ; &17. Sets carry to select the PB-to-workspace
 ; copy direction.
-; 
-; On Entry:
-;     PB[1..5]: 5-byte CSD path to install
-; 
-; On Exit:
-;     RX WORKSPACE +&17..+&1B: = PB[1..5]
 ; ***************************************************************************************
 .osword_13_write_csd
     sec                                                               ; aa75: 38          8              ; Abort code = 1
@@ -10963,12 +10053,6 @@ la0ff = sub_ca0fe+1
 ; nfs_workspace_hi as the page and
 ; copy_pb_byte_to_ws with carry clear for the
 ; workspace-to-PB direction.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer (set up by dispatch)
-; 
-; On Exit:
-;     PB[1..2]: 2 bytes from NFS workspace +1..+2
 ; ***************************************************************************************
 .osword_13_read_ws_pair
     lda nfs_workspace_hi                                              ; aa91: a5 9f       ..             ; Is it &FD? (skip marker)
@@ -10988,13 +10072,6 @@ la0ff = sub_ca0fe+1
 ; init_bridge_poll and conditionally clears
 ; the workspace byte if the bridge status
 ; changed.
-; 
-; On Entry:
-;     PB[1..2]: 2 bytes to write to NFS workspace
-; 
-; On Exit:
-;     NFS WORKSPACE +2..+3: = PB[1..2]
-;     BRIDGE POLL TABLE: refreshed via init_bridge_poll
 ; ***************************************************************************************
 .osword_13_write_ws_pair
     iny                                                               ; aa9d: c8          .              ; V=0: use nfs_workspace_hi
@@ -11025,12 +10102,6 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns the current protection mask (ws_0d68)
 ; in PB[1].
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer
-; 
-; On Exit:
-;     PB[1]: current immediate-op protection mask (ws_0d68)
 ; ***************************************************************************************
 .osword_13_read_prot
     lda ws_0d68                                                       ; aab2: ad 68 0d    .h.            ; Wide &70: port=&00; Wide &71: skip (dest station); Wide &72: skip (dest network)
@@ -11041,12 +10112,6 @@ la0ff = sub_ca0fe+1
 ; 
 ; Sets the protection mask from PB[1] via
 ; store_prot_mask.
-; 
-; On Entry:
-;     PB[1]: new immediate-op protection mask
-; 
-; On Exit:
-;     WS_0D68, WS_0D69: updated to PB[1]
 ; ***************************************************************************************
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Wide &76: buf start ext hi
@@ -11064,13 +10129,6 @@ la0ff = sub_ca0fe+1
 ; the workspace at C271[1..3] (was l1071[1..3] in
 ; 4.18) into PB[1..3]. If the NFS is not active,
 ; returns zero in PB[0] via the sub_c8b4d prologue.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD parameter block pointer
-; 
-; On Exit:
-;     PB[1..3]: 3 bytes from fs_lib_flags+1..+3 (C271+1..+3)
-;     PB[0]: 0 if NFS not active (auto-selected in 4.21)
 ; ***************************************************************************************
 .osword_13_read_handles
     jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
@@ -11092,13 +10150,6 @@ la0ff = sub_ca0fe+1
 ; with the appropriate flag bit, stores the
 ; station and FCB index, then updates flag bits
 ; across all FCB entries via update_fcb_flag_bits.
-; 
-; On Entry:
-;     PB[1..3]: three new FCB handle values (&20-&2F)
-; 
-; On Exit:
-;     FCB TABLE AT L1060: flag bits updated to reflect new handle assignments
-;     BEHAVIOUR: in 4.21, ensure_fs_selected auto-selects ANFS if not active
 ; ***************************************************************************************
 .osword_13_set_handles
     jsr ensure_fs_selected                                            ; aad0: 20 4d 8b     M.            ; Spool &05: skip (buf start hi); Spool &06: buf start ext lo
@@ -11230,12 +10281,6 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns byte 1 of the current RX control
 ; block in PB[1].
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[1]: RXCB[1] (current open-receive flags)
 ; ***************************************************************************************
 .osword_13_read_rx_flag
     ldy #1                                                            ; ab68: a0 01       ..             ; A=0 for disconnect reply
@@ -11248,13 +10293,6 @@ la0ff = sub_ca0fe+1
 ; 
 ; Returns byte &7F of the current RX control
 ; block in PB[1], and stores &80 in PB[2].
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[1]: RXCB byte at &7F
-;     PB[2]: &80 (sentinel)
 ; ***************************************************************************************
 .osword_13_read_rx_port
     ldy #&7f                                                          ; ab71: a0 7f       ..             ; Restore exec flag; Store original exec flag
@@ -11270,12 +10308,6 @@ la0ff = sub_ca0fe+1
 ; OSWORD &13 sub 10: read error flag
 ; 
 ; Returns the error flag (l0e09) in PB[1].
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[1]: last error code stored in l0e09
 ; ***************************************************************************************
 .osword_13_read_error
     lda lc009                                                         ; ab7f: ad 09 c0    ...            ; Store modified flag
@@ -11303,12 +10335,6 @@ la0ff = sub_ca0fe+1
 ; OSWORD &13 sub 11: read context byte
 ; 
 ; Returns the context byte (l0d6d) in PB[1].
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[1]: current context byte from l0d6d
 ; ***************************************************************************************
 .osword_13_read_context
     lda lc008                                                         ; ab86: ad 08 c0    ...            ; Y=&2C: workspace offset for TXCB
@@ -11320,13 +10346,6 @@ la0ff = sub_ca0fe+1
 ; the printer spool buffer (&6F minus spool_buf_idx)
 ; in PB[1]. The buffer starts at offset &25 and can
 ; hold up to &4A bytes of spool data.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-;     SPOOL_BUF_IDX: current write position within printer buffer
-; 
-; On Exit:
-;     PB[1]: free bytes in printer spool buffer (&6F minus spool_buf_idx)
 ; ***************************************************************************************
 .osword_13_read_free_bufs
     lda #&6f ; 'o'                                                    ; ab8b: a9 6f       .o             ; Store to workspace
@@ -11342,14 +10361,6 @@ la0ff = sub_ca0fe+1
 ; count (default &28 = 40), PB[3] = machine
 ; peek retry count (default &0A = 10). Setting
 ; transmit retries to 0 means retry forever.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[1]: tx_retry_count (default &FF; 0 = retry forever)
-;     PB[2]: rx_wait_timeout (default &28 = 40)
-;     PB[3]: machine peek retry count (default &0A = 10)
 ; ***************************************************************************************
 ; &ab93 referenced 1 time by &ab9b
 .osword_13_read_ctx_3
@@ -11367,11 +10378,6 @@ la0ff = sub_ca0fe+1
 ; PB[1..3]: PB[1] = transmit retry count,
 ; PB[2] = receive poll count, PB[3] = machine
 ; peek retry count.
-; 
-; On Entry:
-;     PB[1]: new tx_retry_count (0 = retry forever)
-;     PB[2]: new rx_wait_timeout
-;     PB[3]: new machine peek retry count
 ; ***************************************************************************************
 ; &ab9e referenced 1 time by &aba6
 .osword_13_write_ctx_3
@@ -11390,14 +10396,6 @@ la0ff = sub_ca0fe+1
 ; stores 0 in PB[0]. Otherwise stores l0d72
 ; in PB[1] and conditionally updates PB[3]
 ; based on station comparison.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR): OSWORD PB pointer
-; 
-; On Exit:
-;     PB[0]: 0 if no bridge present (l0d72 = &FF)
-;     PB[1]: bridge station number when present
-;     PB[3]: conditionally updated based on station match
 ; ***************************************************************************************
 .osword_13_bridge_query
     jsr init_bridge_poll                                              ; aba9: 20 e9 ab     ..            ; Is it &FD? (skip marker)
@@ -11456,13 +10454,7 @@ labc5 = compare_bridge_status+1
 ; table. Skips the broadcast if the table has
 ; already been populated from a previous call.
 ; 
-; On Entry:
-;     BRIDGE_STATUS (&0D72): &FF = needs init (broadcast and populate); any other value
-; = already initialised (no-op)
-; 
 ; On Exit:
-;     BRIDGE ROUTING TABLE: populated on first call; subsequent calls return
-; immediately
 ;     A, X, Y: clobbered when the broadcast path runs
 ; ***************************************************************************************
 ; &abe9 referenced 5 times by &8e21, &9022, &a3d1, &aaa8, &aba9
@@ -11555,14 +10547,6 @@ labc5 = compare_bridge_status+1
 ; transfer length) and adds ws_ptr_hi to compute
 ; the buffer end pointer, stored at workspace
 ; offset &20.
-; 
-; On Entry:
-;     WS_PTR_HI (WORKSPACE PTR LO/HI): OSWORD parameter block pointer
-;     PB[1]: transfer length (used to compute end pointer)
-; 
-; On Exit:
-;     NFS WORKSPACE +&1C, +&1D: PB pointer + 1 (skips the sub-function-code byte)
-;     NFS WORKSPACE +&20, +&21: PB pointer + PB[1] (end-of-buffer pointer)
 ; ***************************************************************************************
 .store_osword_pb_ptr
     ldy #&1c                                                          ; ac67: a0 1c       ..             ; A = control byte (Y); Y=1: control byte offset
@@ -11698,13 +10682,10 @@ labc5 = compare_bridge_status+1
 ; interrupt handling active.
 ; 
 ; On Entry:
-;     TXCB AT &00C0: TX control block populated by caller
 ;     I FLAG: may be set (caller had IRQs off); CLI clears it
 ; 
 ; On Exit:
 ;     I FLAG: clear (interrupts enabled)
-;     BEHAVIOUR: tail-calls send_net_packet -- result depends on Econet TX outcome (may
-; BRK on escape via check_escape_and_classify)
 ; ***************************************************************************************
 ; &acf8 referenced 2 times by &ac93, &ace1
 .enable_irq_and_poll
@@ -11725,13 +10706,9 @@ labc5 = compare_bridge_status+1
 ; On Entry:
 ;     A: OSWORD number (read from stacked A on entry)
 ;     X, Y: PB pointer low/high (per OSWORD calling convention)
-;     STACK: MOS-prepared NETV stack frame (P, A, ROM-bank-select, return address)
 ; 
 ; On Exit:
 ;     A, X, Y, P: restored from stack
-;     BEHAVIOUR: OSWORDs >= 9 are passed through unchanged (MOS continues to next NETV
-; ROM); OSWORDs 0-8 are dispatched to per-call handlers and may issue Econet TX/abort
-; packets
 ; ***************************************************************************************
 .netv_handler
     php                                                               ; acfc: 08          .
@@ -11773,11 +10750,8 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: OSWORD number (0-8) -- table index
-;     OSBYTE_A_COPY: saved OSWORD number for handler reload
 ; 
 ; On Exit:
-;     STACK: (handler-1) hi byte then lo byte pushed; caller's subsequent RTS lands on
-; the handler
 ;     A: OSWORD number (re-loaded for the handler's use)
 ; ***************************************************************************************
 ; &ad15 referenced 1 time by &ad0b
@@ -11809,11 +10783,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: abort code (stored in workspace before TX)
-;     &0E00, &0E01: destination station, network
-; 
-; On Exit:
-;     BEHAVIOUR: Econet abort packet sent; this is a fire-and-forget packet (no reply
-; expected); caller typically returns to MOS via NETV
 ; ***************************************************************************************
 ; &ad40 referenced 3 times by &8afd, &ad93, &adf9
 .tx_econet_abort
@@ -11852,13 +10821,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: OSWORD 7 number (validated by caller)
-;     PB POINTER (X/Y): OSWORD parameter block from MOS
-; 
-; On Exit:
-;     BEHAVIOUR: no match: returns with the OSWORD pass-through path. Match path: sends
-; an Econet abort with the state code; for state 3, polls workspace for the remote
-; response and restores caller's stack frame -- caller does NOT see this routine's RTS,
-; control resumes deeper up the stack
 ; ***************************************************************************************
 .netv_claim_release
     ldy osword_pb_ptr_hi                                              ; ad64: a4 f1       ..             ; Y = OSWORD parameter-block pointer high byte (used as an 'unrecognised' sentinel below)
@@ -11981,14 +10943,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: OSWORD number (must be 7 or 8 to be processed)
-;     PB POINTER (X/Y OR WORKSPACE PTR): OSWORD parameter block (15 bytes copied to
-; workspace +&DB)
-; 
-; On Exit:
-;     NFS WORKSPACE +&DA: = OSWORD number
-;     NFS WORKSPACE +&DB..+&E9: = 15 bytes copied from PB
-;     BEHAVIOUR: abort packet sent via tx_econet_abort with control = &E9; OSWORD
-; numbers other than 7/8 return immediately with no side effect
 ; ***************************************************************************************
 .osword_8_handler
     ldy #&0e                                                          ; add3: a0 0e       ..             ; Y=&0E: scan 15 bytes (offsets 14..0) of the PB
@@ -12027,10 +10981,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     X: template source offset (within ws_txcb_template_data)
-; 
-; On Exit:
-;     NFS WORKSPACE +&7C..: 14 bytes from template (with &FC -> workspace page pointer
-; substitution applied)
 ; ***************************************************************************************
 ; &adfe referenced 2 times by &acdb, &aced
 .init_ws_copy_wide
@@ -12048,9 +10998,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     X: template source offset
-; 
-; On Exit:
-;     NFS WORKSPACE +&17..: 27 bytes from template (with marker substitution applied)
 ; ***************************************************************************************
 ; &ae07 referenced 1 time by &9872
 .init_ws_copy_narrow
@@ -12073,8 +11020,6 @@ labc5 = compare_bridge_status+1
 ; / _narrow enter with V=0)
 ; 
 ; On Exit:
-;     NFS WORKSPACE AT +Y..: template data copied with marker expansion (&FC -> page
-; pointer; &FD skip; &FE end)
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &ae0b referenced 1 time by &aecc
@@ -12168,11 +11113,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     X: OSWORD parameter block low byte (X-1 compared against osword_pb_ptr)
-;     &00D0 BIT 0: must be clear for the reset to apply
-; 
-; On Exit:
-;     BEHAVIOUR: no match: returns with OSWORD passed through. Match path: spool buffer
-; reset via fall-through (pointer set to &25, control state to &41)
 ; ***************************************************************************************
 .netv_spool_check
     dex                                                               ; ae5a: ca          .
@@ -12190,8 +11130,6 @@ labc5 = compare_bridge_status+1
 ; processing a complete spool data block.
 ; 
 ; On Exit:
-;     SPOOL_BUF_IDX: = &25 (first data position)
-;     SPOOL CTRL BYTE: = &41 (ready for new data)
 ;     A, Y: clobbered
 ; ***************************************************************************************
 ; &ae64 referenced 2 times by &8f93, &aeb5
@@ -12216,12 +11154,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     X: 1 = drain printer buffer; >1 = control byte path
-;     SPOOL_BUF AT WORKSPACE +&25..: accumulator buffer (drained when full)
-; 
-; On Exit:
-;     BEHAVIOUR: X=1: buffer drained via OSBYTE &91 into the RX buffer; transmits via
-; process_spool_data once the buffer exceeds &6E bytes. X>1: tail-jumps to
-; handle_spool_ctrl_byte
 ; ***************************************************************************************
 .netv_print_data
     cpy #4                                                            ; ae6f: c0 04       ..             ; Advance Y; Get entry data byte
@@ -12273,10 +11205,8 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: control byte (bit 0 selects mode: 0 = print, 1 = spool)
-;     SPOOL BUFFER (WORKSPACE): accumulated data ready to transmit
 ; 
 ; On Exit:
-;     SPOOL BUFFER: transmitted then reset to initial state
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &ae9d referenced 2 times by &901f, &ae75
@@ -12306,14 +11236,8 @@ labc5 = compare_bridge_status+1
 ; the spool output sequence by setting up and
 ; sending the pass-through TX buffer.
 ; 
-; On Entry:
-;     SPOOL BUFFER (WORKSPACE): data to transmit
-;     TXCB SHADOW (WORKSPACE): TX state to copy into &00C0..&00CB
-; 
 ; On Exit:
 ;     A: TX result (from setup_pass_txbuf)
-;     BEHAVIOUR: may issue a disconnect reply for the previous transfer before sending;
-; raises BRK on persistent TX errors
 ; ***************************************************************************************
 ; &aeb8 referenced 4 times by &ae8f, &aeb2, &aefb, &af69
 .process_spool_data
@@ -12461,13 +11385,8 @@ labc5 = compare_bridge_status+1
 ; and sends the response. Waits for
 ; acknowledgment before returning.
 ; 
-; On Entry:
-;     &0E00, &0E01: station/network of the remote that originated the request
-; 
 ; On Exit:
 ;     A: TX result code
-;     BEHAVIOUR: sends the disconnect reply via the pass-through TX buffer; waits for
-; ACK before returning
 ; ***************************************************************************************
 ; &afa6 referenced 3 times by &97e6, &aef0, &bce2
 .send_disconnect_reply
@@ -12614,12 +11533,7 @@ labc5 = compare_bridge_status+1
 ; to finalise a state transition after all related
 ; workspace fields have been updated.
 ; 
-; On Entry:
-;     WORKING STATE BYTE (WORKSPACE): value just written by the in-progress state
-; machine
-; 
 ; On Exit:
-;     COMMITTED STATE BYTE (WORKSPACE): = working state byte
 ;     A: = the committed value
 ; ***************************************************************************************
 ; &b05f referenced 4 times by &9856, &987e, &98b6, &a997
@@ -12642,7 +11556,6 @@ labc5 = compare_bridge_status+1
 ;     Y: destination workspace offset (palette + mode pair)
 ; 
 ; On Exit:
-;     WORKSPACE +Y..+Y+1: palette value, then mode bits (read via OSBYTE &0B)
 ;     Y: advanced past the 2-byte pair
 ;     A, X: clobbered (OSBYTE)
 ; ***************************************************************************************
@@ -12669,10 +11582,8 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     Y: destination workspace offset
-;     OSBYTE TABLE CURSOR (WORKSPACE): next OSBYTE function code
 ; 
 ; On Exit:
-;     WORKSPACE +Y: OSBYTE result (Y from the call)
 ;     Y: incremented past the stored byte
 ;     A, X: clobbered (OSBYTE)
 ; ***************************************************************************************
@@ -12691,10 +11602,8 @@ labc5 = compare_bridge_status+1
 ; On Entry:
 ;     X: OSBYTE X parameter
 ;     Y: destination workspace offset
-;     OSBYTE TABLE CURSOR: next function code to issue
 ; 
 ; On Exit:
-;     WORKSPACE +Y: OSBYTE Y-result
 ;     Y: incremented past the stored byte
 ;     A, X: clobbered
 ; ***************************************************************************************
@@ -12982,12 +11891,8 @@ labc5 = compare_bridge_status+1
 ; for GSREAD-based filename parsing with prefix
 ; character handling.
 ; 
-; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer (consumed by gsread_to_buf)
-; 
 ; On Exit:
 ;     Y: advanced past the parsed argument
-;     &C030 (PARSE BUFFER): the parsed (and prefix-stripped) filename, CR-terminated
 ; ***************************************************************************************
 ; &b22a referenced 2 times by &9fe6, &a4fc
 .parse_cmd_arg_y0
@@ -13005,8 +11910,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Exit:
 ;     Y: advanced past the parsed argument
-;     &C030 (PARSE BUFFER): the parsed filename, CR-terminated; fs_lib_flags updated
-; for '&'/':' prefix handling
 ; ***************************************************************************************
 ; &b22c referenced 2 times by &b13a, &b6fd
 .parse_filename_arg
@@ -13021,15 +11924,6 @@ labc5 = compare_bridge_status+1
 ; selection, '#' is accepted as a channel prefix.
 ; Raises 'Bad file name' for invalid combinations
 ; like '&.' followed by CR.
-; 
-; On Entry:
-;     &C030 (PARSE BUFFER): filename string from gsread_to_buf, CR-terminated
-; 
-; On Exit:
-;     FS_LIB_FLAGS (&C271): bit 6 set if '&' or ':.' prefix observed
-;     &C030: first prefix character stripped on the &/: path
-;     BEHAVIOUR: raises 'Bad file name' via error_bad_inline for '&.<CR>' and similar
-; malformed prefixes
 ; ***************************************************************************************
 ; &b22f referenced 4 times by &942c, &94cf, &9505, &9c2b
 .parse_access_prefix
@@ -13057,14 +11951,9 @@ labc5 = compare_bridge_status+1
 ; them with CR terminators. Used after consuming
 ; a prefix character like '&' or ':'.
 ; 
-; On Entry:
-;     &C030 (PARSE BUFFER): first byte will be discarded; buffer is CR-terminated
-; 
 ; On Exit:
 ;     X: preserved (saved/restored via PHA/PLA)
 ;     A: clobbered
-;     &C030 (PARSE BUFFER): shifted left by one byte; any trailing spaces replaced by
-; CR
 ; ***************************************************************************************
 ; &b251 referenced 5 times by &9459, &94ee, &94f3, &b23e, &b293
 .strip_token_prefix
@@ -13135,13 +12024,9 @@ labc5 = compare_bridge_status+1
 ; entry point for copying a single parsed argument
 ; into the TX buffer at position zero.
 ; 
-; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer (already snapshot)
-; 
 ; On Exit:
 ;     X: TX buffer offset just past the copied argument
 ;     Y: advanced past the source argument
-;     TX BUFFER AT &C105+0..: argument bytes (CR-terminated)
 ; ***************************************************************************************
 ; &b29f referenced 5 times by &8dd5, &8e38, &9c39, &9e29, &a5df
 .copy_arg_to_buf_x0
@@ -13225,11 +12110,7 @@ labc5 = compare_bridge_status+1
 ; access mask. Called before parsing to reset the
 ; prefix state from a previous command. 12 callers.
 ; 
-; On Entry:
-;     FS_LIB_FLAGS (&C271): current options-word flags from a previous command
-; 
 ; On Exit:
-;     FS_LIB_FLAGS: low 5 bits preserved (owner access mask); high 3 bits cleared
 ;     A: = masked value
 ; ***************************************************************************************
 ; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
@@ -13256,15 +12137,6 @@ labc5 = compare_bridge_status+1
 ; mode (fs_spool_handle negative), prints a newline
 ; after every entry. Scans the entry data and loops
 ; back to print the next entry's characters.
-; 
-; On Entry:
-;     FS_SPOOL_HANDLE (WORKSPACE): negative selects *Ex mode (newline per entry); non-
-; negative selects *Cat mode (3 columns per row)
-;     EX_COL_COUNTER (WORKSPACE): modulo-4 column counter for *Cat mode
-; 
-; On Exit:
-;     SIDE EFFECT: writes column separator (2 spaces) or newline to current output
-;     EX_COL_COUNTER: advanced (and wrapped) for *Cat mode
 ; ***************************************************************************************
 .ex_print_col_sep
     ldy fs_spool_handle                                               ; b2e4: a4 ba       ..             ; Read fs_spool_handle (also column counter in *Cat mode)
@@ -13432,12 +12304,8 @@ labc5 = compare_bridge_status+1
 ; that need to parse from the current command
 ; line position.
 ; 
-; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): current command-line text pointer to publish
-; 
 ; On Exit:
 ;     A: preserved (PHA/PLA)
-;     OS_TEXT_PTR (&F2/&F3): = fs_crc_lo, fs_crc_hi on entry
 ; ***************************************************************************************
 ; &b373 referenced 7 times by &a03c, &a4e4, &a4f1, &b12e, &b3f6, &b5d4, &b6fa
 .save_ptr_to_os_text
@@ -13462,7 +12330,6 @@ labc5 = compare_bridge_status+1
 ; and *Remove to detect extra arguments.
 ; 
 ; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer base
 ;     Y: starting offset (where to begin scanning)
 ; 
 ; On Exit:
@@ -13495,13 +12362,8 @@ labc5 = compare_bridge_status+1
 ; on the stack. Called by *PS and *PollPS before
 ; parsing their arguments.
 ; 
-; On Entry:
-;     FS_CRC_LO, FS_CRC_HI (&BE/&BF): command-line text pointer to publish as spool buf
-; pointer
-; 
 ; On Exit:
 ;     A: preserved (PHA/PLA)
-;     FS_OPTIONS, FS_BLOCK_OFFSET (&BB/&BC): = fs_crc_lo, fs_crc_hi on entry
 ; ***************************************************************************************
 ; &b393 referenced 2 times by &b3b9, &b590
 .save_ptr_to_spool_buf
@@ -13522,13 +12384,9 @@ labc5 = compare_bridge_status+1
 ; clears the low byte (l00ae) to zero. Preserves
 ; Y on the stack.
 ; 
-; On Entry:
-;     ROMSEL_COPY (&F4): ROM slot (consumed by get_ws_page)
-; 
 ; On Exit:
 ;     A: 0
 ;     Y: preserved (PHY/PLY)
-;     L00AE, L00AF: &00, ws_page -- page-aligned spool drive ptr
 ; ***************************************************************************************
 ; &b39e referenced 2 times by &b3b6, &b583
 .init_spool_drive
@@ -13588,12 +12446,7 @@ labc5 = compare_bridge_status+1
 ; (svc_2_private_workspace) to set up the printer
 ; server template at the standard offset.
 ; 
-; On Entry:
-;     NET_RX_PTR (&A6/&A7): RX buffer pointer (template is written into
-; (net_rx_ptr)+&18..+&1F)
-; 
 ; On Exit:
-;     RX BUFFER +&18..+&1F: 8-byte PS template
 ;     Y: &20 (advanced past the copied 8 bytes)
 ; ***************************************************************************************
 ; &b3d5 referenced 1 time by &8f5b
@@ -13617,7 +12470,6 @@ labc5 = compare_bridge_status+1
 ;     Y: destination offset within the RX buffer
 ; 
 ; On Exit:
-;     RX BUFFER +Y..+Y+7: 8-byte PS template
 ;     Y: advanced by 8
 ;     X: 0 (loop terminator)
 ;     A: last template byte
@@ -13749,7 +12601,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered (OSASCI via print_inline)
-;     SIDE EFFECT: writes 'File server is ' to current output stream
 ; ***************************************************************************************
 ; &b483 referenced 1 time by &a3b8
 .print_file_server_is
@@ -13767,7 +12618,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered (OSASCI via print_inline)
-;     SIDE EFFECT: writes 'Printer server is ' to current output stream
 ; ***************************************************************************************
 ; &b48d referenced 2 times by &b457, &b5fe
 .print_printer_server_is
@@ -13789,12 +12639,7 @@ labc5 = compare_bridge_status+1
 ; Reads the station and network bytes from workspace
 ; offsets 2 and 3 into the station/network variables.
 ; 
-; On Entry:
-;     NFS_WORKSPACE: page-aligned NFS workspace pointer (offsets 2/3 hold the saved PS
-; address)
-; 
 ; On Exit:
-;     &0E00, &0E01: PS station, network
 ;     A, Y: clobbered
 ; ***************************************************************************************
 ; &b4a8 referenced 4 times by &b3ca, &b41f, &b5a1, &b601
@@ -13816,12 +12661,6 @@ labc5 = compare_bridge_status+1
 ; 
 ; On Entry:
 ;     A: PS slot flags byte to convert into a workspace index
-;     STACK: JSR return address (which is discarded -- this routine does NOT return to
-; its caller)
-; 
-; On Exit:
-;     CONTROL FLOW: DOES NOT RETURN -- pops the JSR return address from the stack and
-; JMPs back into the PS scan loop, effectively converting the JSR into a tail-jump
 ; ***************************************************************************************
 ; &b4b4 referenced 2 times by &b41c, &b5fb
 .pop_requeue_ps_scan
@@ -13946,11 +12785,7 @@ lb4fd = write_ps_slot_hi_link+1
 ; to the TX buffer (offsets &13-&1B) in reversed byte
 ; order, pushing onto the stack then popping back.
 ; 
-; On Entry:
-;     RX BUFFER AT +&1C..+&23: 8-byte printer server name from server reply
-; 
 ; On Exit:
-;     TX BUFFER AT +&13..+&1B: 8-byte name in reverse byte order
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b52b referenced 2 times by &b416, &b588
@@ -14000,13 +12835,10 @@ lb4fd = write_ps_slot_hi_link+1
 ; leading spaces for column alignment.
 ; 
 ; On Entry:
-;     FS_WORK_6 (&B6): network number (0 = local, no 'NN.' printed)
-;     FS_WORK_7 (&B7): station number (printed as 3-digit decimal)
 ;     V FLAG: set = no leading-space padding; clear = pad to align in a column
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_decimal_3dig and OSASCI)
-;     SIDE EFFECT: writes 'NNN.SSS' or 'SSS' to current output
 ; ***************************************************************************************
 ; &b556 referenced 4 times by &a3be, &b607, &b63f, &b697
 .print_station_addr
@@ -14239,12 +13071,7 @@ lb4fd = write_ps_slot_hi_link+1
 ; (the hi bytes of the two buffer pointers) so they
 ; point into the current RX buffer page.
 ; 
-; On Entry:
-;     NET_RX_PTR_HI: RX buffer page (substituted into bytes &7D and &81 of the template
-; copy)
-; 
 ; On Exit:
-;     WORKSPACE +&78..+&83: 12-byte PS slot template with RX page patched in
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b6a6 referenced 1 time by &b58b
@@ -14414,8 +13241,6 @@ lb4fd = write_ps_slot_hi_link+1
 ; 
 ; On Exit:
 ;     A: character read from keyboard (after the 'Y/N) ' prompt)
-;     BEHAVIOUR: may raise 'Escape' via flush_and_read_char on escape press; otherwise
-; returns the keystroke unchanged
 ; ***************************************************************************************
 .prompt_yn
     jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
@@ -14431,7 +13256,6 @@ lb4fd = write_ps_slot_hi_link+1
 ; On Exit:
 ;     A: character read from keyboard
 ;     X, Y: clobbered (OSBYTE/OSRDCH)
-;     BEHAVIOUR: raises 'Escape' error if escape was pressed (OSRDCH returns C set)
 ; ***************************************************************************************
 .flush_and_read_char
     lda #osbyte_flush_buffer_class                                    ; b7d3: a9 0f       ..             ; OSBYTE &0F: flush buffer class
@@ -14453,13 +13277,7 @@ lb4fd = write_ps_slot_hi_link+1
 ; the receive buffer. Sets the first slot to &C0
 ; (active channel marker).
 ; 
-; On Entry:
-;     RX BUFFER (CHANNEL COUNT): byte at the conventional offset gives the number of
-; channels to mark available
-; 
 ; On Exit:
-;     CHANNEL TABLE (256 BYTES): cleared, then first N slots marked available; slot 0 =
-; &C0 (active channel marker)
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &b7e3 referenced 1 time by &8b9f
@@ -14617,10 +13435,6 @@ lb821 = err_net_chan_not_found+2
 ; 
 ; On Entry:
 ;     A: channel attribute byte to store and check
-; 
-; On Exit:
-;     BEHAVIOUR: raises 'Is a dir.' via the error_inline chain if bit 1 is set;
-; otherwise falls through to check_not_dir which returns normally
 ; ***************************************************************************************
 ; &b886 referenced 2 times by &bb6d, &bbf3
 .store_result_check_dir
@@ -14635,10 +13449,6 @@ lb821 = err_net_chan_not_found+2
 ; 
 ; On Entry:
 ;     A: channel character (validated by check_chan_char)
-; 
-; On Exit:
-;     BEHAVIOUR: raises 'Net channel' if char is invalid, or 'Is a dir.' if it points
-; at a directory; otherwise returns with X = channel index
 ; ***************************************************************************************
 ; &b88c referenced 2 times by &9ef5, &a170
 .check_not_dir
@@ -14659,9 +13469,6 @@ lb821 = err_net_chan_not_found+2
 ; Scans FCB slots &20-&2F for an empty entry.
 ; Returns Z=0 with X=slot index on success, or
 ; Z=1 with A=0 if all slots are occupied.
-; 
-; On Entry:
-;     FCB TABLE AT L1060: 16-entry FCB table (slots &20-&2F)
 ; 
 ; On Exit:
 ;     X: slot index (if Z=0)
@@ -14715,8 +13522,6 @@ lb821 = err_net_chan_not_found+2
 ; On Exit:
 ;     X: newly allocated FCB slot index (&20-&2F)
 ;     A: preserved
-;     BEHAVIOUR: raises 'No more FCBs' via error_bad_inline if all slots are full and
-; never returns in that case
 ; ***************************************************************************************
 ; &b8dc referenced 2 times by &9fd9, &a522
 .alloc_fcb_or_error
@@ -14754,11 +13559,6 @@ lb821 = err_net_chan_not_found+2
 ; Iterates through FCB slots starting at &10,
 ; checking each slot's flags byte. Returns when
 ; all slots have been processed.
-; 
-; On Entry:
-;     FCB TABLE AT L1060: 16-entry FCB table whose flag bytes are scanned
-;     &0E00, &0E01: current station/network for the match step (consumed by
-; match_station_net via fall-through)
 ; 
 ; On Exit:
 ;     X: last scanned FCB index
@@ -14831,7 +13631,6 @@ lb821 = err_net_chan_not_found+2
 ; 
 ; On Entry:
 ;     X: starting FCB index (search wraps)
-;     &0E00, &0E01: station/network to match against existing entries
 ; 
 ; On Exit:
 ;     X: FCB slot index of the matched (active) or first empty slot
@@ -14901,8 +13700,6 @@ lb821 = err_net_chan_not_found+2
 ; On Exit:
 ;     X: &CA (workspace offset low)
 ;     Y: &10 (workspace page)
-;     &10C0..&10CC (COUNTERS): zeroed
-;     L10CD, L10CE: = &FF (sentinel values)
 ; ***************************************************************************************
 ; &b977 referenced 2 times by &b9ba, &ba65
 .init_wipe_counters
@@ -15115,14 +13912,6 @@ lb821 = err_net_chan_not_found+2
 ; Copies 13 bytes from the context buffer at &10D9
 ; back to the TX buffer at &0F00. Falls through to
 ; find_matching_fcb.
-; 
-; On Entry:
-;     &10D9..&10E5: saved 13-byte catalog context (snapshot from save_fcb_context)
-; 
-; On Exit:
-;     &0F00..&0F0C: restored from saved context
-;     BEHAVIOUR: falls through to find_matching_fcb -- caller receives that routine's
-; outputs (X = matching FCB, Z flag indicates whether the FCB has saved offset data)
 ; ***************************************************************************************
 ; &bac0 referenced 1 time by &bcb5
 .restore_catalog_entry
@@ -15148,10 +13937,6 @@ lb821 = err_net_chan_not_found+2
 ; past slot &0F, saves context via save_fcb_context
 ; and restarts. Returns Z=0 if the FCB has saved
 ; offset data (bit 5 set).
-; 
-; On Entry:
-;     L10C9: channel attribute reference to match
-;     &0E00, &0E01: current station/network
 ; 
 ; On Exit:
 ;     X: matching FCB index
@@ -15623,14 +14408,6 @@ lb821 = err_net_chan_not_found+2
 ; if bit 7 is clear. If escape has been pressed,
 ; falls through to the escape abort handler which
 ; acknowledges the escape via OSBYTE &7E.
-; 
-; On Entry:
-;     ESCAPE_FLAG (&FF): MOS escape pending flag (bit 7 set = escape pressed)
-; 
-; On Exit:
-;     BEHAVIOUR: returns with no side effects on the no-escape path; on escape,
-; acknowledges via OSBYTE &7E and raises 'Escape' via the error_inline chain (does not
-; return)
 ; ***************************************************************************************
 ; &bd25 referenced 1 time by &bd59
 .abort_if_escape
@@ -15811,13 +14588,8 @@ lb821 = err_net_chan_not_found+2
 ; Provides the column alignment header for *Dump
 ; output.
 ; 
-; On Entry:
-;     DUMP_ADDR (WORKSPACE): current 4-byte starting address printed as the row label
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (print_hex_byte + OSASCI loop)
-;     SIDE EFFECT: writes 'AAAAAAAA  00 01 02 ... 0F' followed by CR/LF to the current
-; output stream
 ; ***************************************************************************************
 ; &be01 referenced 2 times by &bd56, &bd88
 .print_dump_header
@@ -15872,11 +14644,9 @@ lb821 = err_net_chan_not_found+2
 ; by 4 bits before ORing in the new nybble.
 ; 
 ; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
 ;     Y: current command-line offset
 ; 
 ; On Exit:
-;     4-BYTE ACCUMULATOR (WORKSPACE): parsed hex address
 ;     Y: advanced past the parsed digits
 ;     A: first non-hex character (CR or space)
 ; ***************************************************************************************
@@ -15980,16 +14750,7 @@ lb821 = err_net_chan_not_found+2
 ; exceeds the extent.
 ; 
 ; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer
 ;     Y: command-line offset of the address arguments
-;     WS_PAGE: open file handle from open_file_for_read (file extent is queried via
-; OSARGS A=&FF)
-; 
-; On Exit:
-;     DUMP_START, DUMP_END (WORKSPACE): parsed address range (end defaults to file
-; extent if not supplied)
-;     BEHAVIOUR: raises 'Outside file' via error_inline if either address exceeds the
-; open file's extent
 ; ***************************************************************************************
 ; &beab referenced 1 time by &bd4d
 .init_dump_buffer
@@ -16127,13 +14888,8 @@ lb821 = err_net_chan_not_found+2
 ; Loads the file handle from ws_page and closes it
 ; via OSFIND with A=0.
 ; 
-; On Entry:
-;     WS_PAGE (WORKSPACE): file handle to close (saved by open_file_for_read)
-; 
 ; On Exit:
 ;     A, X, Y: clobbered (OSFIND)
-;     WS_PAGE: preserved (only read, not written)
-;     SIDE EFFECT: OSFIND closes the handle on the ANFS server
 ; ***************************************************************************************
 ; &bf71 referenced 5 times by &bd2a, &bd7d, &be9c, &bed6, &bf43
 .close_ws_file
@@ -16150,12 +14906,9 @@ lb821 = err_net_chan_not_found+2
 ; Raises 'Not found' if the returned handle is zero.
 ; 
 ; On Entry:
-;     OS_TEXT_PTR (&F2/&F3): command-line text pointer base
 ;     Y: offset within the command line of the filename to open
 ; 
 ; On Exit:
-;     WS_PAGE (WORKSPACE): FS file handle (raises 'Not found' via error_inline if
-; OSFIND returns 0)
 ;     A, X, Y: clobbered
 ; ***************************************************************************************
 ; &bf78 referenced 1 time by &bd41
