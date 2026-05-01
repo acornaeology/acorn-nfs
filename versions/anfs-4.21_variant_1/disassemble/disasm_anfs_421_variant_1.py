@@ -3096,6 +3096,14 @@ subroutine(0x8E5B, "dir_op_dispatch",
     "tx_done_os_proc to handle directory operations\n"
     "(e.g. FILEV, ARGSV) from the remote JSR service.",
     on_entry={"x": "directory operation code (0-4)"})
+subroutine(0x8E98, "read_cmos_byte_0",
+    title="Read CMOS RAM byte 0 (Master 128)",
+    description="""\
+Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to
+read CMOS RAM byte 0 -- the file-system / language byte holding the
+default boot mode and FS selection. Single caller (&8FBB, inside
+nfs_init_body's CMOS-read sequence).""",
+    on_exit={"y": "CMOS byte 0 (returned by OSBYTE &A1)"})
 # Located in 4.21_v1 at &8ED2 (was &8E8C in 4.18). Same body
 # (LDX #0 / LDY #0 / BEQ jmp_osbyte). Already classified as code
 # (sub_c8ed2 with 1 caller from &9A10).
@@ -3641,16 +3649,22 @@ subroutine(0x97CD, "recv_and_process_reply",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
               "scout; handle the server's matching reply)"},
     on_exit={"a": "FS reply status byte"})
-# UNMAPPED: subroutine(0x9570, "check_escape",
-# UNMAPPED:     title="Check for pending escape condition",
-# UNMAPPED:     description="ANDs the MOS escape flag (&FF) with the\n"
-# UNMAPPED:     "escapable flag at &97. If bit 7 of the result\n"
-# UNMAPPED:     "is clear (no escape or escape disabled), returns\n"
-# UNMAPPED:     "immediately. Otherwise enters raise_escape_error:\n"
-# UNMAPPED:     "acknowledges the escape via OSBYTE &7E, then\n"
-# UNMAPPED:     "jumps to classify_reply_error with A=6 to raise\n"
-# UNMAPPED:     "the Escape error. Called by cmd_pass and\n"
-# UNMAPPED:     "send_net_packet.")
+# In 4.18 check_escape (&9570) bundled the BIT-test prologue and the
+# escape-acknowledge action. In 4.21 they have been split: the action
+# half lives at &9895 as raise_escape_error (below); the BIT-test
+# prologue lives wherever the FS-options test is now performed at
+# each call site. The two callers (&98EF and &B7DF) JSR raise_escape_
+# error directly after their own escape check.
+subroutine(0x9895, "raise_escape_error",
+    title="Acknowledge escape and raise classified error",
+    description="""\
+Issues OSBYTE &7E (acknowledge_escape -- clears the escape condition
+and runs any registered escape effects), loads A=6, and tail-jumps to
+classify_reply_error which builds the Escape error. Reached from
+&98EF (after recv_and_process_reply detects escape) and &B7DF
+(cmd_wipe's per-iteration escape check). Never returns -- the
+classify_reply_error path triggers BRK.""",
+    on_exit={"a": "6 (Escape error code passed to classify_reply_error)"})
 subroutine(0x98BE, "wait_net_tx_ack",
     title="Wait for reply on open receive with timeout",
     description="Despite the name, this does not wait for a TX\n"
@@ -4077,6 +4091,17 @@ subroutine(0xA45B, "match_fs_cmd",
              "y": "command-line offset of the first non-name character "
              "(typically the argument start)",
              "z flag": "set on match, clear on no-match"})
+subroutine(0xA4F1, "cmd_run_via_urd",
+    title="*RUN entry for URD-prefixed argument",
+    description="""\
+Reached from cmd_fs_operation at &8E35 when the first character of
+the *RUN argument is '&' (the URD = User Root Directory prefix).
+Saves the OS text pointer via save_ptr_to_os_text, masks the access
+bits via mask_owner_access, clears bit 1 of the result, and stores
+into fs_lib_flags (lc271). Falls through to ca4fc which calls
+parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument.
+Single caller; never returns directly (continues into the run
+flow).""")
 subroutine(0xA5A1, "error_bad_command",
     title="Raise 'Bad command' BRK error",
     description="""\
@@ -4250,6 +4275,15 @@ subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="Sets the protection mask from PB[1] via\n"
     "store_prot_mask.")
+subroutine(0xAABB, "set_via_shadow_pair",
+    title="Store A in both shadow ACR/IER bytes",
+    description="""\
+Single caller during nfs_init_body (&8FA6): copies A to both
+ws_0d68 (shadow ACR) and ws_0d69 (shadow IER), then RTS. The
+caller picks A=0 or A=&FF based on FS-options bit 6, so the helper
+is just a 2-store-and-return convenience to keep the init body
+flat.""",
+    on_entry={"a": "value to mirror into both shadow VIA bytes"})
 # Located in 4.21_v1 at &AAC2 (was &A734 in 4.18). OSWORD &13 sub 6
 # from the dispatch table (lo=C1, hi=AA -> +1 = &AAC2). FS-active
 # check via sub_c8b4d in prologue.
@@ -12657,23 +12691,13 @@ comment(0x92E5, "Return", inline=True)
 # Entry: validate OSWORD number and dispatch
 comment(0xA4EE, "CLC so SBC subtracts value+1", inline=True)
 comment(0xA4EF, "A = OSWORD number", inline=True)
-comment(0xA4F1, "A = OSWORD - &0E (CLC+SBC = -&0E)", inline=True)
-comment(0xA4F3, "Below &0E: not ours, return", inline=True)
-comment(0xA4F5, "Index >= 7? (OSWORD > &14)", inline=True)
-comment(0xA4F7, "Above &14: not ours, return", inline=True)
-comment(0xA4F9, "X=OSWORD handler index (0-6)", inline=True)
-comment(0xA509, "Set up dispatch and save state", inline=True)
-comment(0xA4FA, "Y=6: save 6 workspace bytes", inline=True)
-
-comment(0xA4FC, "Load current workspace byte", inline=True)
-# Copy osword_flag to parameter block on return
-comment(0xA4FF, "Save on stack", inline=True)
-comment(0xA50C, "Y=&FA: restore 6 workspace bytes", inline=True)
-comment(0xA50E, "Restore saved workspace byte", inline=True)
-comment(0xA500, "Load OSWORD parameter byte", inline=True)
-comment(0xA50F, "Store to osword_flag workspace", inline=True)
-comment(0xA512, "Next byte", inline=True)
-comment(0xA503, "Copy parameter to workspace", inline=True)
+comment(0xA4F1, "Save current OS text pointer", inline=True)
+comment(0xA4F4, "Mask access bits", inline=True)
+comment(0xA4F7, "Clear bit 1 of mask", inline=True)
+comment(0xA4F9, "Save into fs_lib_flags", inline=True)
+comment(0xA4FC, "Begin parsing the *RUN argument", inline=True)
+comment(0xA4FF, "X=1: TX-buffer write index for argument", inline=True)
+comment(0xA501, "Copy argument to TX buffer", inline=True)
 comment(0xA515, "Return from svc_8_osword", inline=True)
 comment(0xA513, "Loop until all 6 restored", inline=True)
 comment(0xA506, "Next byte down", inline=True)

@@ -4070,7 +4070,7 @@ ps_template_base = sub_c8da6+1
     lda (fs_crc_lo),y                                                 ; 8e2f: b1 be       ..             ; Load first character of command text
     cmp #&26 ; '&'                                                    ; 8e31: c9 26       .&             ; Is it '&' (URD prefix)?
     bne pass_send_cmd                                                 ; 8e33: d0 03       ..             ; No: send as normal FS command
-    jmp ca4f1                                                         ; 8e35: 4c f1 a4    L..            ; Yes: route via *RUN for URD prefix handling
+    jmp cmd_run_via_urd                                               ; 8e35: 4c f1 a4    L..            ; Yes: route via *RUN for URD prefix handling
 
 ; &8e38 referenced 1 time by &8e33
 .pass_send_cmd
@@ -4151,8 +4151,19 @@ ps_template_base = sub_c8da6+1
     equs "/      TEN,l"                                               ; 8e80: 2f 20 20... /
     equb &0d, &50, &ef, &20, &4d, &8b, &a9, 0, &a8, &4c, &2f, &a0     ; 8e8c: 0d 50 ef... .P.
 
+; ***************************************************************************************
+; Read CMOS RAM byte 0 (Master 128)
+; 
+; Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to
+; read CMOS RAM byte 0 -- the file-system / language byte holding the
+; default boot mode and FS selection. Single caller (&8FBB, inside
+; nfs_init_body's CMOS-read sequence).
+; 
+; On Exit:
+;     Y: CMOS byte 0 (returned by OSBYTE &A1)
+; ***************************************************************************************
 ; &8e98 referenced 1 time by &8fbb
-.sub_c8e98
+.read_cmos_byte_0
     ldx #0                                                            ; 8e98: a2 00       ..
 ; ***************************************************************************************
 ; OSBYTE &A1 (read Master CMOS RAM byte)
@@ -4524,7 +4535,7 @@ ps_template_base = sub_c8da6+1
     lda #&ff                                                          ; 8fa4: a9 ff       ..
 ; &8fa6 referenced 1 time by &8fa2
 .c8fa6
-    jsr sub_caabb                                                     ; 8fa6: 20 bb aa     ..
+    jsr set_via_shadow_pair                                           ; 8fa6: 20 bb aa     ..
 ; &8fa9 referenced 1 time by &8fb6
 .loop_alloc_handles
     lda ws_page                                                       ; 8fa9: a5 a8       ..             ; Get current workspace page
@@ -4539,7 +4550,7 @@ ps_template_base = sub_c8da6+1
     jsr restore_fs_context                                            ; 8fb8: 20 64 90     d.            ; Restore FS context from saved state
 ; &8fbb referenced 1 time by &8f4d
 .c8fbb
-    jsr sub_c8e98                                                     ; 8fbb: 20 98 8e     ..
+    jsr read_cmos_byte_0                                              ; 8fbb: 20 98 8e     ..
     tya                                                               ; 8fbe: 98          .              ; Transfer to A
     bne c8fff                                                         ; 8fbf: d0 3e       .>             ; Non-zero: station ID valid
 ; &8fc1 referenced 1 time by &9000
@@ -6455,8 +6466,21 @@ ps_template_base = sub_c8da6+1
     lda escape_flag                                                   ; 988f: a5 ff       ..
     and need_release_tube                                             ; 9891: 25 98       %.
     bpl return_3                                                      ; 9893: 10 6a       .j
+; ***************************************************************************************
+; Acknowledge escape and raise classified error
+; 
+; Issues OSBYTE &7E (acknowledge_escape -- clears the escape condition
+; and runs any registered escape effects), loads A=6, and tail-jumps to
+; classify_reply_error which builds the Escape error. Reached from
+; &98EF (after recv_and_process_reply detects escape) and &B7DF
+; (cmd_wipe's per-iteration escape check). Never returns -- the
+; classify_reply_error path triggers BRK.
+; 
+; On Exit:
+;     A: 6 (Escape error code passed to classify_reply_error)
+; ***************************************************************************************
 ; &9895 referenced 2 times by &98ef, &b7df
-.c9895
+.raise_escape_error
     lda #osbyte_acknowledge_escape                                    ; 9895: a9 7e       .~
     jsr osbyte                                                        ; 9897: 20 f4 ff     ..            ; Clear escape condition and perform escape effects
     lda #6                                                            ; 989a: a9 06       ..
@@ -6528,7 +6552,7 @@ ps_template_base = sub_c8da6+1
     lda rx_wait_timeout                                               ; 98e8: ad 6e 0d    .n.            ; Reload the original timeout to test for timeout=0 mode
     bne done_poll_tx                                                  ; 98eb: d0 09       ..             ; Configured timeout was non-zero: declare timeout
     lda escape_flag                                                   ; 98ed: a5 ff       ..             ; Timeout=0 (poll forever): check escape flag
-    bmi c9895                                                         ; 98ef: 30 a4       0.             ; Escape pressed: jump to escape handler at &9895
+    bmi raise_escape_error                                            ; 98ef: 30 a4       0.             ; Escape pressed: jump to escape handler at &9895
     inc l0104,x                                                       ; 98f1: fe 04 01    ...            ; Reset outer counter so we keep polling
     bne loop_poll_tx                                                  ; 98f4: d0 df       ..             ; Always taken (INC's result is always non-zero here): back to inner
 ; &98f6 referenced 2 times by &98d7, &98eb
@@ -9306,25 +9330,37 @@ la0ff = sub_ca0fe+1
     sta lc271                                                         ; a4ec: 8d 71 c2    .q.            ; CLC so SBC subtracts value+1
     bne ca4fc                                                         ; a4ef: d0 0b       ..             ; A = OSWORD number; ALWAYS branch
 
+; ***************************************************************************************
+; *RUN entry for URD-prefixed argument
+; 
+; Reached from cmd_fs_operation at &8E35 when the first character of
+; the *RUN argument is '&' (the URD = User Root Directory prefix).
+; Saves the OS text pointer via save_ptr_to_os_text, masks the access
+; bits via mask_owner_access, clears bit 1 of the result, and stores
+; into fs_lib_flags (lc271). Falls through to ca4fc which calls
+; parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument.
+; Single caller; never returns directly (continues into the run
+; flow).
+; ***************************************************************************************
 ; &a4f1 referenced 1 time by &8e35
-.ca4f1
-    jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; A = OSWORD - &0E (CLC+SBC = -&0E); Below &0E: not ours, return
-    jsr mask_owner_access                                             ; a4f4: 20 cf b2     ..            ; Index >= 7? (OSWORD > &14)
-    and #&fd                                                          ; a4f7: 29 fd       ).             ; Above &14: not ours, return
-    sta lc271                                                         ; a4f9: 8d 71 c2    .q.            ; X=OSWORD handler index (0-6); Y=6: save 6 workspace bytes
+.cmd_run_via_urd
+    jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; Save current OS text pointer
+    jsr mask_owner_access                                             ; a4f4: 20 cf b2     ..            ; Mask access bits
+    and #&fd                                                          ; a4f7: 29 fd       ).             ; Clear bit 1 of mask
+    sta lc271                                                         ; a4f9: 8d 71 c2    .q.            ; Save into fs_lib_flags
 ; &a4fc referenced 1 time by &a4ef
 .ca4fc
-    jsr parse_cmd_arg_y0                                              ; a4fc: 20 2a b2     *.            ; Load current workspace byte
+    jsr parse_cmd_arg_y0                                              ; a4fc: 20 2a b2     *.            ; Begin parsing the *RUN argument
 ; &a4ff referenced 1 time by &a576
 .open_file_for_run
-    ldx #1                                                            ; a4ff: a2 01       ..             ; Save on stack; Load OSWORD parameter byte
-    jsr copy_arg_to_buf                                               ; a501: 20 a1 b2     ..            ; Copy parameter to workspace
+    ldx #1                                                            ; a4ff: a2 01       ..             ; X=1: TX-buffer write index for argument
+    jsr copy_arg_to_buf                                               ; a501: 20 a1 b2     ..            ; Copy argument to TX buffer
     lda #2                                                            ; a504: a9 02       ..
     sta lc105                                                         ; a506: 8d 05 c1    ...            ; Next byte down; Loop for all 6 bytes
-    ldy #&12                                                          ; a509: a0 12       ..             ; Set up dispatch and save state
-    jsr save_net_tx_cb                                                ; a50b: 20 8a 97     ..            ; Y=&FA: restore 6 workspace bytes
-    lda lc105                                                         ; a50e: ad 05 c1    ...            ; Restore saved workspace byte; Store to osword_flag workspace
-    cmp #1                                                            ; a511: c9 01       ..             ; Next byte
+    ldy #&12                                                          ; a509: a0 12       ..
+    jsr save_net_tx_cb                                                ; a50b: 20 8a 97     ..
+    lda lc105                                                         ; a50e: ad 05 c1    ...
+    cmp #1                                                            ; a511: c9 01       ..
     bne try_library_path                                              ; a513: d0 29       .)             ; Loop until all 6 restored
     ldx #3                                                            ; a515: a2 03       ..             ; Return from svc_8_osword; X = OSWORD index (0-6); Load handler address high byte
 ; &a517 referenced 1 time by &a520
@@ -10280,8 +10316,20 @@ la0ff = sub_ca0fe+1
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Wide &76: buf start ext hi
     lda (ws_ptr_hi),y                                                 ; aab9: b1 ac       ..             ; Wide &77: buf end lo=&7E; Wide &78: buf end hi=page ptr
+; ***************************************************************************************
+; Store A in both shadow ACR/IER bytes
+; 
+; Single caller during nfs_init_body (&8FA6): copies A to both
+; ws_0d68 (shadow ACR) and ws_0d69 (shadow IER), then RTS. The
+; caller picks A=0 or A=&FF based on FS-options bit 6, so the helper
+; is just a 2-store-and-return convenience to keep the init body
+; flat.
+; 
+; On Entry:
+;     A: value to mirror into both shadow VIA bytes
+; ***************************************************************************************
 ; &aabb referenced 1 time by &8fa6
-.sub_caabb
+.set_via_shadow_pair
     sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.            ; Wide &79: buf end ext lo; Wide &7A: buf end ext hi; Wide &7B: zero
     sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.            ; Wide &7C: zero; Narrow stop (&FE terminator); Narrow &0C: ctrl=&80 (standard)
     rts                                                               ; aac1: 60          `              ; Narrow &0D: port=&93
@@ -13434,7 +13482,7 @@ lb4fd = write_ps_slot_hi_link+1
     jsr osbyte                                                        ; b7d7: 20 f4 ff     ..            ; Flush keyboard buffer before read; Flush input buffers (X non-zero)
     jsr osrdch                                                        ; b7da: 20 e0 ff     ..            ; Read character from input stream; Read a character from the current input stream
     bcc return_6                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
-    jmp c9895                                                         ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
+    jmp raise_escape_error                                            ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
 
 ; &b7e2 referenced 1 time by &b7dd
 .return_6
@@ -15534,7 +15582,6 @@ save pydis_start, pydis_end
 ;     c8827:                          2
 ;     c8922:                          2
 ;     c9004:                          2
-;     c9895:                          2
 ;     ca75f:                          2
 ;     cb2f7:                          2
 ;     check_adlc_flag:                2
@@ -15678,6 +15725,7 @@ save pydis_start, pydis_end
 ;     print_printer_server_is:        2
 ;     print_station_id:               2
 ;     print_version_header:           2
+;     raise_escape_error:             2
 ;     recv_and_process_reply:         2
 ;     release_tube:                   2
 ;     reset_spool_buf_state:          2
@@ -15807,7 +15855,6 @@ save pydis_start, pydis_end
 ;     ca0df:                          1
 ;     ca3e5:                          1
 ;     ca4a0:                          1
-;     ca4f1:                          1
 ;     ca4fc:                          1
 ;     ca5df:                          1
 ;     ca70b:                          1
@@ -15868,6 +15915,7 @@ save pydis_start, pydis_end
 ;     close_specific_chan:            1
 ;     close_spool_exec:               1
 ;     cmd_fs_reentry:                 1
+;     cmd_run_via_urd:                1
 ;     cmd_syntax_strings:             1
 ;     cmd_syntax_table:               1
 ;     cmd_table_nfs_iam:              1
@@ -16336,6 +16384,7 @@ save pydis_start, pydis_end
 ;     ps_tx_header_template:          1
 ;     push_osword_handler_addr:       1
 ;     read_cat_info:                  1
+;     read_cmos_byte_0:               1
 ;     read_osbyte_to_ws_x0:           1
 ;     read_ps_station_addr:           1
 ;     read_second_rx_byte:            1
@@ -16437,6 +16486,7 @@ save pydis_start, pydis_end
 ;     set_timeout:                    1
 ;     set_tube_addr:                  1
 ;     set_tx_reply_flag:              1
+;     set_via_shadow_pair:            1
 ;     set_write_active:               1
 ;     setup_csd_copy:                 1
 ;     setup_data_xfer:                1
@@ -16510,8 +16560,6 @@ save pydis_start, pydis_end
 ;     store_updated_status:           1
 ;     store_via_rx_ptr:               1
 ;     store_ws_byte:                  1
-;     sub_c8e98:                      1
-;     sub_caabb:                      1
 ;     subst_rx_page_byte:             1
 ;     subtract_ws_byte:               1
 ;     suffix_not_listening:           1
@@ -16600,14 +16648,12 @@ save pydis_start, pydis_end
 ;     c9421
 ;     c95be
 ;     c9827
-;     c9895
 ;     c9a0d
 ;     ca0cf
 ;     ca0db
 ;     ca0df
 ;     ca3e5
 ;     ca4a0
-;     ca4f1
 ;     ca4fc
 ;     ca5df
 ;     ca70b
@@ -16780,9 +16826,7 @@ save pydis_start, pydis_end
 ;     return_7
 ;     sub_c8409
 ;     sub_c8da6
-;     sub_c8e98
 ;     sub_ca0fe
-;     sub_caabb
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
