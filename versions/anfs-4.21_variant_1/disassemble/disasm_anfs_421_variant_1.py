@@ -3328,10 +3328,6 @@ string 'net checksum'. Reached when ensure_fs_selected (auto-select
 path) cannot bring ANFS up, or when verify_ws_checksum detects that
 the saved workspace checksum at offset &77 doesn't match the live
 sum -- only resettable by a control BREAK. Never returns.""")
-# Located in 4.21_v1 at &90C7 (was &8FF1 in 4.18). Found by searching
-# for the inline "Econet Station " string at &90CA and reading back to
-# the JSR print_inline at &90C7. Already classified as code (c90c7
-# auto-label, 2 callers from &8CAA and &8CE4).
 subroutine(0x90C7, "print_station_id",
     title="Print Econet station number and clock status",
     description="Uses print_inline to output 'Econet Station ',\n"
@@ -3410,15 +3406,15 @@ caller (the loop tail at &9284 inside print_inline). Falls through
 to load_char which reads the next inline-string byte.""")
 subroutine(0x92B2, "parse_addr_arg",
     title="Parse decimal or hex station address argument",
-    description="Located at &92B2 in 4.21_v1 (was &916E in 4.18, +&144 "
-    "shift). Reads characters from the command argument at "
-    "(fs_crc_lo),Y. Supports `&` prefix for hex, `.` separator for "
-    "net.station addresses, and plain decimal. Returns the result in "
-    "fs_load_addr_2 (and A). Raises 'Bad hex' / 'Bad number' / "
-    "'Bad station number' / overflow errors as appropriate. The body "
-    "uses the standard 6502 idioms: ASL ASL ASL ASL + ADC for hex "
-    "digit accumulation, and result*2 + result*8 for decimal *10. "
-    "Two named callers: sub_c92b2 from &A3C9 and &A3DE.",
+    description="""\
+Reads characters from the command argument at `(fs_crc_lo),Y`.
+Supports `&` prefix for hex, `.` separator for net.station
+addresses, and plain decimal. Returns the result in `fs_load_addr_2`
+(and `A`). Raises [`Bad hex`](address:934A?hex), `Bad number`,
+[`Bad station number`](address:9357?hex), and overflow errors as
+appropriate. The body uses the standard 6502 idioms: `ASL ASL ASL
+ASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`
+for decimal `*10`. Two named callers: from `&A3C9` and `&A3DE`.""",
     on_entry={
         "y": "index into command-string buffer at (fs_crc_lo),Y",
         "a": "ignored",
@@ -3575,21 +3571,13 @@ subroutine(0x945E, "send_fs_request",
 Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps
 to send_cmd_and_dispatch. Two callers: read_filename_char's BEQ
 on CR (&9457) and the *RUN argument-handling tail at &9537.""")
-# Located in 4.21_v1 at &9463 (was &9327 in 4.18). Initial fingerprint
-# hit &945E (which is `send_fs_request`) — the body match pushed the
-# entry 5 bytes earlier than the actual prologue. The 4.21 prologue
-# uses 65C12 PHY in place of 4.18's TYA / PHA. Already classified as
-# code (sub_c9463 with 2 callers from &9425 and &94c5).
 subroutine(0x9463, "copy_fs_cmd_name",
     title="Copy matched command name to TX buffer",
-    description="Scans backwards in cmd_table_fs from the\n"
-    "current position to find the bit-7 flag byte\n"
-    "marking the start of the command name. Copies\n"
-    "each character forward into the TX buffer at\n"
-    "&C105 (was &0F05 in 4.18) until the next bit-7\n"
-    "byte (end of name), then appends a space\n"
-    "separator. Uses 65C12 PHY in 4.21 in place of\n"
-    "4.18's TYA / PHA prologue.",
+    description="""\
+Scans backwards in `cmd_table_fs` from the current position to find
+the bit-7 flag byte marking the start of the command name. Copies
+each character forward into the TX buffer at `&C105` until the next
+bit-7 byte (end of name), then appends a space separator.""",
     on_entry={"x": "byte offset within cmd_table_fs (just past the matched "
               "command's last name char)",
               "y": "current command-line offset (saved/restored)"},
@@ -4224,22 +4212,15 @@ subroutine(0xA3BB, "print_fs_info_newline",
     "address followed by a newline via OSNEWL.\n"
     "Used by *FS and *PS output formatting.",
     on_exit={"a, x, y": "clobbered (print_station_addr + OSNEWL)"})
-# Located in 4.21_v1 at &A3C4 (was &A0A7 in 4.18). Body matches with
-# 65C12 PHX/PHY replacing 4.18's TXA/PHA and TYA/PHA, plus the
-# parsed-station storage moves from fs_work_6 (&B6) to fs_work_7
-# (&B7). Already classified as code (sub_ca3c4 with 3 callers from
-# &A3A8, &B3CF, &B5A6).
 subroutine(0xA3C4, "parse_fs_ps_args",
     title="Parse station address from *FS/*PS arguments",
-    description="Reads a station address in 'net.station' format\n"
-    "from the command line, with the network number\n"
-    "optional (defaults to local network). Calls\n"
-    "init_bridge_poll to ensure the bridge routing\n"
-    "table is populated, then validates the parsed\n"
-    "address against known stations. 4.21 version uses\n"
-    "65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and\n"
-    "stores the result in fs_work_7 (was fs_work_6 in\n"
-    "4.18).",
+    description="""\
+Reads a station address in `net.station` format from the command
+line, with the network number optional (defaults to local network).
+Calls [`init_bridge_poll`](address:AC4C) to ensure the bridge
+routing table is populated, then validates the parsed address
+against known stations. The parsed-station value is stored in
+`fs_work_7` (`&B7`).""",
     on_entry={"y": "current command-line offset"},
     on_exit={"x, y": "preserved (saved/restored via PHX/PHY)"})
 subroutine(0xA3E7, "get_pb_ptr_as_index",
@@ -4435,54 +4416,40 @@ subroutine(0xAA82, "copy_pb_byte_to_ws",
     on_entry={"c": "set to load from PB, clear to use A",
               "x": "byte count",
               "y": "PB source offset"})
-# Located in 4.21_v1 at &A9CC (was &A660 in 4.18). Identified via the
-# OSWORD &13 dispatch lo/hi table at &A9A8/&A9BA (sub 0: lo=CB,
-# hi=A9 -> +1 = &A9CC). Like sub 1, the prologue calls sub_c8b4d for
-# the FS-active check before the body.
 entry(0xA9CC)
 subroutine(0xA9CC, "osword_13_read_station",
     title="OSWORD &13 sub 0: read file server station",
-    description="Returns the current file server station and\n"
-    "network numbers in PB[1..2]. If the NFS is not\n"
-    "active, sub_c8b4d returns early with zero in\n"
-    "PB[0] (carrying over the 4.18 semantics).")
-# Located in 4.21_v1 at &A9DA (was &A673 in 4.18). Reached via the
-# OSWORD &13 sub-1 dispatch entry in the lo/hi table at &A9A8/&A9BA
-# (lo=D9, hi=A9 -> +1 = &A9DA). 4.18 had the FS-active check
-# (BIT &0D6C / BPL) inline; 4.21 factors it out into sub_c8b4d
-# (BIT fs_flags / BMI) called from the prologue at &A9DA, with the
-# body of the actual handler beginning at &A9DD.
+    description="""\
+Returns the current file server station and network numbers in
+`PB[1..2]`. If ANFS is not active,
+[`ensure_fs_selected`](address:8B4D) auto-selects it (raising `net
+checksum` on failure) before the body runs.""")
 entry(0xA9DA)
 subroutine(0xA9DA, "osword_13_set_station",
     title="OSWORD &13 sub 1: set file server station",
-    description="Sets the file server station and network numbers\n"
-    "from PB[1..2]. The prologue at &A9DA calls\n"
-    "sub_c8b4d to verify the FS is active, then the\n"
-    "body at &A9DD processes all FCBs and scans the\n"
-    "16-entry FCB table to reassign handles matching\n"
-    "the new station.")
+    description="""\
+Sets the file server station and network numbers from `PB[1..2]`.
+The prologue at `&A9DA` calls
+[`ensure_fs_selected`](address:8B4D) to verify ANFS is active
+(auto-selecting it if not), then the body at
+[`osword_13_set_station_body`](address:A9DD) processes all FCBs
+and scans the 16-entry FCB table to reassign handles matching the
+new station.""")
 label(0xA9DD, "osword_13_set_station_body")
 
-# Shared FS-selection prologue used by OSWORD &13 sub-handlers. 4.18
-# inlined `BIT &0D6C / BPL <return>` (abort if FS not active); 4.21
-# factors that into ensure_fs_selected with INVERTED behaviour:
-# instead of aborting, it AUTOMATICALLY SELECTS the FS by calling
-# cmd_net_fs, raising 'net checksum' error only if selection fails.
+# Shared FS-selection prologue used by all OSWORD &13 sub-handlers.
 # 5 callers: &A9CC (read_station), &A9DA (set_station), &AAC2
-# (read_handles), &AAD0 (set_handles), &AC4C (?).
+# (read_handles), &AAD0 (set_handles), &AC4C (init_bridge_poll site).
 subroutine(0x8B4D, "ensure_fs_selected",
     title="Ensure ANFS is the active filing system",
-    description="If bit 7 of fs_flags is set (FS already active),\n"
-    "RTS via return_from_save_text_ptr. Otherwise calls\n"
-    "cmd_net_fs to select the FS now; on failure JMPs to\n"
-    "error_net_checksum to raise the 'net checksum'\n"
-    "error. After successful selection, falls through to\n"
-    "the body at &8B5A which sets up the OSWORD parameter\n"
-    "block pointer and continues the caller's work.\n"
-    "\n"
-    "Behaviour change from 4.18: inline `BIT &0D6C / BPL`\n"
-    "in 4.18 OSWORD handlers ABORTED when FS was inactive\n"
-    "(returning zero in PB[0]); 4.21 instead auto-selects.",
+    description="""\
+If bit 7 of `fs_flags` is set (ANFS already active), `RTS` via
+`return_from_save_text_ptr`. Otherwise calls `cmd_net_fs` to select
+ANFS now; on failure, `JMP`s to
+[`error_net_checksum`](address:90B5) to raise the `net checksum`
+error. After successful selection, falls through to the body at
+`&8B5A` which sets up the OSWORD parameter block pointer and
+continues the caller's work.""",
     on_entry={"x, y": "OSWORD parameter block pointer (preserved across "
               "the cmd_net_fs call when selection happens)"})
 subroutine(0xAA72, "osword_13_read_csd",
@@ -4528,18 +4495,14 @@ caller picks A=0 or A=&FF based on FS-options bit 6, so the helper
 is just a 2-store-and-return convenience to keep the init body
 flat.""",
     on_entry={"a": "value to mirror into both shadow VIA bytes"})
-# Located in 4.21_v1 at &AAC2 (was &A734 in 4.18). OSWORD &13 sub 6
-# from the dispatch table (lo=C1, hi=AA -> +1 = &AAC2). FS-active
-# check via sub_c8b4d in prologue.
 entry(0xAAC2)
 subroutine(0xAAC2, "osword_13_read_handles",
     title="OSWORD &13 sub 6: read FCB handle info",
-    description="Returns the 3-byte FCB handle/port data from\n"
-    "the workspace at C271[1..3] (was l1071[1..3] in\n"
-    "4.18) into PB[1..3]. If the NFS is not active,\n"
-    "returns zero in PB[0] via the sub_c8b4d prologue.")
-# Located in 4.21_v1 at &AAD0 (was &A744 in 4.18). OSWORD &13 sub 7
-# from the dispatch table (lo=CF, hi=AA -> +1 = &AAD0).
+    description="""\
+Returns the 3-byte FCB handle/port data from the workspace at
+`C271[1..3]` into `PB[1..3]`. If ANFS is not active,
+[`ensure_fs_selected`](address:8B4D) auto-selects it before the
+body runs.""")
 entry(0xAAD0)
 subroutine(0xAAD0, "osword_13_set_handles",
     title="OSWORD &13 sub 7: set FCB handles",
