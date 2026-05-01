@@ -2290,6 +2290,17 @@ the dispatch in scout_complete at &81A2 and the immediate-op POKE
 path at &84AE (jmp_send_data_rx_ack).""",
     on_exit={"a": "&B8 (low byte of data_rx_setup-1)",
              "y": "&81 (high byte of data_rx_setup-1)"})
+subroutine(0x81B8, "data_rx_setup",
+    title="NMI handler: switch ADLC to RX for the data frame",
+    description="""\
+NMI continuation entry installed by
+[`send_data_rx_ack`](address:81A7) (which pushes
+`(&81B8 - 1)` on the stack and routes it through
+[`ack_tx_write_dest`](address:82F8)). When the next NMI fires,
+this body writes `CR1 = &82` (`TX_RESET | RIE`) to switch the
+ADLC from scout-ACK TX mode to data-frame RX mode, then `JMP`s to
+`install_nmi_handler` to install
+[`nmi_data_rx`](address:81C2) as the next NMI handler.""")
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="Receives the data frame after the scout ACK has been sent.\n"
@@ -2300,6 +2311,23 @@ subroutine(0x81C2, "nmi_data_rx",
     "\n"
     "Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->\n"
     "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)")
+subroutine(0x81D6, "nmi_data_rx_net",
+    title="NMI handler: validate dest-net byte of data frame",
+    description="""\
+NMI continuation entry installed by [`nmi_data_rx`](address:81C2)
+once the AP and dest-station bytes have validated. Polls SR2
+(`BIT econet_control23_or_status2`); on no RDA, branches to
+[`nmi_error_dispatch`](address:8215). Otherwise reads the dest-
+network byte from the ADLC FIFO and falls through to the
+control/port skip step.""",
+    on_exit={"a": "dest-network byte (validated against local)"})
+subroutine(0x81EC, "nmi_data_rx_skip",
+    title="NMI handler: skip control + port bytes",
+    description="""\
+NMI continuation entry that consumes the control and port bytes of
+the data frame (already known from the scout) and proceeds to the
+bulk-data-read continuation. Polls SR2 for RDA on entry; on no
+RDA, branches to [`nmi_error_dispatch`](address:8215).""")
 subroutine(0x81F7, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="Selects between the normal bulk RX handler (&8239)\n"
@@ -2329,6 +2357,15 @@ subroutine(0x8268, "data_rx_complete",
     "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
     "If extra data available and buffer space remains, stores it.\n"
     "Proceeds to send the final ACK via &82E4.")
+subroutine(0x8291, "nmi_data_rx_tube",
+    title="NMI handler: data-frame RX into Tube buffer",
+    description="""\
+NMI continuation entry for the Tube data-RX path. Polls SR2 for
+RDA, reads the next data byte from the ADLC RX FIFO, and writes it
+to the Tube data register, advancing the Tube transfer pointer
+each iteration. Tests for end-of-frame via FV and either continues
+the tight inner loop or returns via `RTI`. Reached only via the
+NMI vector after `install_tube_rx` configures the handler.""")
 subroutine(0x82DF, "ack_tx",
     title="ACK transmission",
     description="Sends a scout ACK or final ACK frame as part of the four-way handshake.\n"
@@ -2821,6 +2858,16 @@ subroutine(0x87E3, "nmi_data_tx",
     "asserted, writes another pair without returning from\n"
     "NMI (tight loop optimisation). If IRQ clears, returns\n"
     "via RTI.")
+subroutine(0x8845, "nmi_data_tx_tube",
+    title="NMI handler: TX FIFO write from Tube buffer",
+    description="""\
+NMI continuation handler used during TX of a Tube-sourced data
+frame. Tests SR1 TDRA via `BIT
+econet_control1_or_status1`, writes the next pair of bytes from
+the Tube buffer to the ADLC TX FIFO (the `tube_tx_fifo_write`
+shared body at `&8848`), and either continues the tight inner loop
+on a continuing IRQ or returns via `RTI`. Reached only via the NMI
+vector after [`tx_prepare`](address:864A) installs it.""")
 subroutine(0x8886, "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
     description="Called via JMP from nmi_tx_complete when bit 0 of\n"
@@ -2838,6 +2885,17 @@ subroutine(0x8892, "nmi_final_ack",
     "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
     "  &88C1: Check FV for frame completion\n"
     "On success, stores result=0 at tx_result_ok. On failure, error &41.")
+subroutine(0x88A6, "nmi_final_ack_net",
+    title="NMI handler: final-ACK source-net validation",
+    description="""\
+NMI continuation entry installed by `nmi_final_ack`. Polls SR2 for
+RDA, reads the source-network byte from the ADLC RX FIFO, and
+compares with the original TX destination network (`tx_dst_net`,
+`&0D21`). On mismatch, branches to
+[`tx_result_fail`](address:88E2). On match, falls through into
+[`nmi_final_ack_validate`](address:88BA) for the source-station
+check. Reached only via the NMI vector (no static caller).""",
+    on_exit={"a": "source-network byte read from FIFO"})
 subroutine(0x88BA, "nmi_final_ack_validate",
     title="Final ACK validation",
     description="Continuation of nmi_final_ack. Tests SR2 for RDA,\n"
@@ -3118,6 +3176,18 @@ subroutine(0x8CFF, "call_fscv",
     "entry points that issue paged ROM service requests\n"
     "via OSBYTE &8F.",
     on_entry={"a": "FSCV reason code"})
+subroutine(0x8D09, "svc_dispatch_idx_2",
+    title="svc_dispatch table[2] handler",
+    description="""\
+Reached only via PHA/PHA/RTS dispatch from the
+[`svc_dispatch`](address:89ED?hex) table at index 2. Pushes `Y`
+onto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the
+Econet station-flags byte), calls [`osbyte_a1`](address:8E9A) to
+read it, then ANDs the result with `&01` (bit 0 = "use page &0B
+fallback") and pulls `Y` back. Used by the workspace-allocation
+path to discover whether the user has overridden the default
+private workspace base.""",
+    on_exit={"a": "0 or 1 (CMOS bit 0 of station-flags byte)"})
 subroutine(0x8D24, "check_credits_easter_egg",
     title="Easter egg: match *HELP keyword to author credits",
     description="Matches the *HELP argument against a keyword\n"
@@ -3899,6 +3969,20 @@ subroutine(0x9C00, "gsread_to_buf",
     "for subsequent parsing routines.",
     on_entry={"y": "current command-line offset (consumed by GSINIT)"},
     on_exit={"y": "advanced past the parsed source"})
+subroutine(0x9C22, "filev_handler",
+    title="FILEV vector handler: OSFILE",
+    description="""\
+Reached via the FILEV vector at `&0212`. Sets up transfer
+parameters via [`set_xfer_params`](address:93D7), loads the OS text
+pointer and parses the filename via
+[`load_text_ptr_and_parse`](address:9BF5),
+[`mask_owner_access`](address:B2CF) clears the FS-selection bits,
+and [`parse_access_prefix`](address:B22F) records any access-byte
+prefix. Routes by `fs_last_byte_flag` bit: positive (read /
+display) goes to `check_display_type`; negative (write / save)
+falls into the create-new-file path.""",
+    on_entry={"a": "OSFILE function code",
+              "x, y": "control-block pointer (low, high)"})
 subroutine(0x9C3E, "do_fs_cmd_iteration",
     title="Execute one iteration of a multi-step FS command",
     description="Called by match_fs_cmd for commands that enumerate\n"
@@ -4064,6 +4148,17 @@ subroutine(0x9FB6, "finalise_and_return",
              "x": "fs_options low byte",
              "y": "fs_block_offset low byte"})
 
+subroutine(0x9EAB, "argsv_handler",
+    title="ARGSV vector handler: OSARGS",
+    description="""\
+Reached via the ARGSV vector at `&0214`. Verifies the FS workspace
+checksum, stores the result as the last-byte flag, and sets the FS
+options pointer. Routes by `A`: positive (`bit 7 clear`) dispatches
+to a sub-operation table; bit 6 vs bit 5 of `A` then selects
+between read-and-write paths via further branching.""",
+    on_entry={"a": "OSARGS function code",
+              "x": "control-block low byte",
+              "y": "channel handle"})
 subroutine(0x9FC2, "osfind_close_or_open",
     title="OSFIND dispatch: close-all, close-one, or open",
     description="""\
@@ -4092,6 +4187,27 @@ JSRs recv_and_process_reply, then falls through to store_result
 Single caller (the dispatch at &9C82).""",
     on_exit={"x": "FS result byte (also written to lc108)",
              "y": "&0E (FS options offset for protection)"})
+subroutine(0xA0A9, "fscv_0_opt_entry",
+    title="FSCV reason 0: read OSARGS",
+    description="""\
+Handles OSARGS via the FSCV vector. If `A=0` (initialise dot-seen
+flag) clears the flag and proceeds. Compares `X` against 4 (number
+of args): out-of-range exits via the OSARGS dispatch chain to a
+shared error path; otherwise dispatches to the per-argument
+handler. Reached via the FSCV vector with reason code 0.""",
+    on_entry={"a": "OSARGS sub-function (0 = initialise)",
+              "x": "argument index (0-3)"})
+subroutine(0xA10B, "fscv_1_eof",
+    title="FSCV reason 1: EOF check",
+    description="""\
+Verifies the FS workspace checksum, then loads the channel's
+block-offset byte (`fs_block_offset`, `&BC`), pushes it on the
+stack and stores the per-channel attribute reference in `lc2c9`.
+The body proceeds to compare the buffer byte count with the file
+length to decide whether the channel is at EOF. Reached via the
+FSCV vector with reason code 1.""",
+    on_entry={"y": "channel handle"},
+    on_exit={"a": "0 = not at EOF, non-zero = EOF"})
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
     description="Calls add_workspace_to_fsopts for offset 9 (the\n"
@@ -4135,6 +4251,18 @@ through at &A13F).""",
     on_entry={"a": "byte to store",
               "y": "current FS-options index",
               "x": "remaining-byte counter"})
+subroutine(0xA14C, "gbpbv_handler",
+    title="GBPBV vector handler: OSGBPB",
+    description="""\
+Reached via the GBPBV vector at `&021C` after the
+[`fs_vector_table`](address:8EA7) has copied the entry. Verifies
+the FS workspace checksum, sets up transfer parameters, masks the
+access prefix, and dispatches the OSGBPB sub-operation in `A`
+(`1`=PUT-bytes-with-pointer, `2`=PUT-bytes, `3`=GET-bytes-with-
+pointer, `4`=GET-bytes, `5`=read-disc-title, `6`=read-CSD, `7`=read
+library, `8`=read-files-in-CSD).""",
+    on_entry={"a": "OSGBPB function code (1-8)",
+              "x, y": "control-block pointer (low, high)"})
 subroutine(0xA1EF, "lookup_cat_entry_0",
     title="Look up channel from FS options offset 0",
     description="Loads the channel handle from (fs_options) at\n"
@@ -4170,6 +4298,13 @@ subroutine(0xA284, "recv_reply_preserve_flags",
     "the reply processing.",
     on_exit={"a": "FS reply status",
              "p (flags)": "preserved across the call (PHP/PLP)"})
+subroutine(0xA28A, "send_osbput_data",
+    title="Send OSBPUT data block to file server",
+    description="""\
+Sets `Y=&15` (TX buffer size for OSBPUT data) and calls
+[`save_net_tx_cb`](address:978A) to dispatch the TX. Then copies
+the display flag from `lc005` to `lc116` (TX header continuation).
+Single caller in the OSBPUT-buffered-write path.""")
 subroutine(0xA29F, "write_block_entry",
     title="Pre-write Tube-station check, fall into write_data_block",
     description="""\
@@ -4239,6 +4374,31 @@ subroutine(0xA3E9, "byte_to_2bit_index",
     "preventing out-of-bounds access.",
     on_entry={"a": "table entry number"},
     on_exit={"y": "byte offset (0, 6, 12, ... up to &42)"})
+subroutine(0xA3FF, "net_1_read_handle",
+    title="FS reply: read handle byte (no workspace lookup)",
+    description="""\
+Reads the inline handle byte directly from the RX buffer at
+`(net_rx_ptr),Y` with `Y=&6F`, then branches into the shared
+PB-store path. Used when the caller wants the raw handle byte from
+the FS reply rather than the workspace-tracked value.""",
+    on_exit={"a": "handle byte from RX buffer"})
+subroutine(0xA405, "net_2_read_handle_entry",
+    title="FS reply: read handle byte from workspace table",
+    description="""\
+Calls [`get_pb_ptr_as_index`](address:A3E7) to convert the OSWORD
+parameter-block pointer to a workspace-table index. On out-of-range
+(`C=1`), returns zero. Otherwise reads the handle byte from
+`nfs_workspace,Y`; if the slot is `?` (uninitialised marker), falls
+through to the zero-return path; otherwise stores the real handle
+into PB[0].""")
+subroutine(0xA415, "net_3_close_handle",
+    title="FS reply: close handle entry",
+    description="""\
+Calls [`get_pb_ptr_as_index`](address:A3E7) to look up the
+workspace slot. On out-of-range, marks the workspace as
+uninitialised. Otherwise rotates `fs_flags` bit 0 into carry (state
+save), reads PB[0] (the handle to close), and proceeds with the
+close path.""")
 subroutine(0xA42F, "fscv_3_star_cmd",
     title="FSCV reason 3: process *<command> via FS",
     description="""\
@@ -4277,6 +4437,16 @@ advance; non-space exits to check_cmd_flags. Shared body with
 skip_dot_and_spaces at &A4A8 (alt-entry that also accepts dots).
 Single caller (the BNE retry at &A4A9).""",
     on_entry={"y": "current command-line offset"})
+subroutine(0xA4E4, "fscv_2_star_run",
+    title="FSCV reason 2: handle *RUN",
+    description="""\
+Saves the OS text pointer via
+[`save_ptr_to_os_text`](address:B373), calls
+[`mask_owner_access`](address:B2CF) to clear the FS-selection bit,
+ORs in bit 1 (the *RUN-in-progress flag), and stores back to
+`fs_lib_flags` (`lc271`). Falls through to the run-handling chain
+that opens the file and starts execution. Reached via the FSCV
+vector dispatch with reason code 2.""")
 subroutine(0xA4F1, "cmd_run_via_urd",
     title="*RUN entry for URD-prefixed argument",
     description="""\
@@ -4326,6 +4496,14 @@ new current-selected-directory (CSD) station in the table, then
 JMP return_with_last_flag to clean up and return. Single caller
 (the FS reply dispatch at &9594).""",
     on_exit={"a": "fs_last_byte_flag (loaded by return_with_last_flag)"})
+subroutine(0xA63E, "fsreply_5_set_lib",
+    title="FS reply handler: set library station",
+    description="""\
+Two-instruction wrapper: `JSR
+`[`flip_set_station_boot`](address:A6A6) to record the new library
+station, then `JMP`
+[`return_with_last_flag`](address:9FB4). Reached only via the FS
+reply dispatch table.""")
 subroutine(0xA644, "find_station_bit2",
     title="Find printer server station in table (bit 2)",
     description="Scans the 16-entry station table for a slot\n"
@@ -5247,6 +5425,31 @@ all saved context on completion. Also contains the OSBGET/OSBPUT
 inline logic for reading and writing bytes through file
 channels.""",
     on_entry={"y": "filter attribute (0=process all)"})
+subroutine(0xBB68, "bgetv_handler",
+    title="BGETV vector handler: read byte from open file",
+    description="""\
+Reached via the BGETV vector at `&021A`, which the
+[`fs_vector_table`](address:8EA7) entries copy into the MOS extended
+vector area. Saves caller's `Y` in `lc2c9` (channel attribute slot),
+pushes `X`, calls
+[`store_result_check_dir`](address:B886) to validate the channel,
+then either reads a byte from the FCB buffer (returning it in `A`
+with `C=0`) or signals end-of-file (`C=1`).""",
+    on_entry={"y": "channel handle"},
+    on_exit={"a": "byte read (when C=0)",
+             "c": "0 = byte returned, 1 = EOF / error"})
+subroutine(0xBBE7, "bputv_handler",
+    title="BPUTV vector handler: write byte to open file",
+    description="""\
+Reached via the BPUTV vector at `&0218`. Saves caller's `Y` in
+`lc2c9`, pushes the data byte and `X`, then routes to the FCB
+buffer-write path: stores the byte in the channel's transmit
+buffer, increments the byte count via
+[`inc_fcb_byte_count`](address:BB2A), and exits via
+[`done_inc_byte_count`](address:BC65).""",
+    on_entry={"a": "byte to write",
+              "y": "channel handle"},
+    on_exit={"c": "0 = written, 1 = error"})
 subroutine(0xBC65, "done_inc_byte_count",
     title="Increment FCB byte count, clear rx attr, restore caller",
     description="""\
