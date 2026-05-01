@@ -4868,31 +4868,29 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8f0f: 60          `
 
 ; ***************************************************************************************
-; Service 2: claim private workspace (page allocation)
+; Service-2 page-allocation prologue
 ; 
-; Reached via PHA/PHA/RTS dispatch from the service
-; handler at &8ADB when MOS issues service 2 (claim
-; private workspace). Reads CMOS byte &11 to test bit
-; 2 of the saved Econet status; either advances the
-; caller's first-available-page (Y) by 2 and uses it,
-; or forces page &0B as a fallback. Sets net_rx_ptr_hi
-; / nfs_workspace_hi to the chosen page pair, clears
+; Reads CMOS byte &11 to test bit 2 of the saved
+; Econet status; either advances the caller's first-
+; available-page (Y) by 2 and uses it, or forces
+; page &0B as a fallback. Sets net_rx_ptr_hi /
+; nfs_workspace_hi to the chosen page pair, clears
 ; the corresponding lo bytes, and calls get_ws_page.
 ; If the resulting page is >= &DC, branches to the
 ; helper at &8EFE which publishes the page into
 ; rom_ws_pages[romsel_copy] with bit 7 masked off.
 ; 
-; Note: this routine is short and only does the
-; page-allocation part of the 4.18 svc_2. The rest
-; (station ID, FS workspace zero, cmd_net_fs,
-; init_adlc_and_vectors) is at &8F38, reached via
-; service 39 -- presumably issued by a sibling ROM
-; as part of a multi-ROM boot sequence.
+; This routine handles only the workspace-page
+; allocation half of 4.18's svc_2_private_workspace.
+; The remainder (station ID, FS workspace zero,
+; cmd_net_fs, init_adlc_and_vectors) lives at &8F38
+; and is dispatched separately -- see the comment
+; block above.
 ; 
 ; On Entry:
 ;     Y: first available private workspace page
 ; ***************************************************************************************
-.svc_2_private_workspace
+.svc_2_private_workspace_pages
     phy                                                               ; 8f10: 5a          Z
     ldx #&11                                                          ; 8f11: a2 11       ..
     jsr osbyte_a1                                                     ; 8f13: 20 9a 8e     ..
@@ -4923,17 +4921,13 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8f37: 60          `
 
 ; ***************************************************************************************
-; Service 39: full NFS initialisation
+; ANFS initialisation body
 ; 
-; Reached via PHA/PHA/RTS dispatch (table index 22)
-; when the service handler receives service number
-; 39 (&27). No code in this ROM issues service 39, so
-; the trigger must be external -- presumably a sister
-; Master 128 ROM (e.g. an ANFS variant 2 / Compact
-; build) coordinating boot sequencing with this ROM.
-; 
-; The body is what 4.18's svc_2_private_workspace did
-; after page allocation: a complete ANFS bring-up.
+; Reached only via PHA/PHA/RTS dispatch (table index
+; 22 in the svc_dispatch table at &89ED/&8A20). The
+; body carries out the bring-up sequence that 4.18
+; did inside svc_2_private_workspace after page
+; allocation:
 ;   - Clears ws_page / tx_complete_flag and the
 ;     receive-block remote-op flag
 ;   - On warm reset (last_break_type non-zero) and
@@ -4954,11 +4948,18 @@ ps_template_base = sub_c8da6+1
 ;     and init_bridge_poll for protection setup
 ; Returns via RTS at &903B.
 ; 
+; TODO (Phase C): identify the exact svc_dispatch
+; (X, Y) pair that reaches index 22. The natural
+; expectation is that this is the second half of
+; service-2 handling and is invoked by MOS during
+; the standard private-workspace claim, but the
+; concrete trigger has not yet been pinned down.
+; 
 ; On Entry:
 ;     NET_RX_PTR, NFS_WORKSPACE: page-aligned pointers (set up earlier by
-; svc_2_private_workspace at &8F10)
+; svc_2_private_workspace_pages)
 ; ***************************************************************************************
-.svc_39_nfs_init
+.nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
     sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.            ; Clear workspace byte
