@@ -79,51 +79,16 @@ aren't set).
 ## Current state (snapshot at handoff)
 
 - `git status` clean. Working tree consistent with HEAD.
-- 8 commits ahead of `origin/master` — **never push, the user does
-  that themselves**.
+- **Never push** — leave `git push` to the user.
 - ROM verifies byte-identical (16384 bytes); lint clean.
 - **320 subroutines, 1281 labels, 7791 comments**, 90.3% inline
   coverage (5989 of 6630 code items).
 - Audit baseline: 0 NO_DESCRIPTION, 0 AUTO_NAME, 0 undeclared JSR
   targets, 1 DATA_ONLY (intentional — `fs_vector_table`).
-- Calling-convention coverage (after the recent overcook trim):
+- Calling-convention coverage:
   **on_entry on 192 / 320 subs (60.0%); on_exit on 165 / 320 (51.6%)**.
-  This is post-trim, where every dict has been filtered down to
-  registers and flags only — see "Conventions" below.
-- Recently published: `docs/analysis/authors-easter-egg.md` (with
-  `acornaeology.json` analyses link wired through to the website).
-
----
-
-## Recent session highlights (what changed since the previous handoff)
-
-The previous handoff was at commit `a1e82ae`. Since then:
-
-1. **Phase A bulk pass complete.** Calling conventions were added
-   across the ROM, then trimmed — see "Conventions" below.
-2. **Authors easter egg analysis written** and wired into
-   `acornaeology.json` so it appears on the live site.
-3. **Stale `ps_template_base` label fixed** — was at &8D6E (4.18
-   carry-over with no instruction reference), now at the live
-   address &8DA7.
-4. **EQUB block at &8EFE..&903B reclassified as code.** Three
-   PHA/PHA/RTS-reachable routines recovered:
-   - `&8EFE` (entry)
-   - `&8F10` `svc_2_private_workspace_pages` (4-instruction Y-cap)
-   - `&8F38` `nfs_init_body` (~92-byte ANFS bring-up sequence:
-     CMOS station read, printer-server template install, NETV /
-     FSCV / FILEV install, station-zero error)
-5. **&8D09 reclassified as code** — the actual svc 1 dispatch
-   target (a short CMOS-byte-&11 / Y-bump routine).
-6. **Open issues registered.** `OPEN-ISSUES.md` records four
-   related puzzles (O-1..O-4) about which dispatch path actually
-   reaches `nfs_init_body`. The "companion ROM" hypothesis is
-   **explicitly ruled out** — do not chase it again.
-7. **Overcooked on_entry/on_exit dicts trimmed.** A one-shot AST
-   script stripped narrative entries (e.g. `'workspace'`, `'ptr'`,
-   `'side_effect'`) from 212 subroutine() calls, removing 368
-   entries. **New rule, going forward:** on_entry / on_exit hold
-   ONLY register and flag keys.
+  All dicts are filtered to registers and flags only — see
+  "Conventions" below.
 
 ---
 
@@ -132,7 +97,7 @@ The previous handoff was at commit `a1e82ae`. Since then:
 | Phase | What | Status |
 |-------|------|--------|
 | A | Subroutine calling conventions (`on_entry` / `on_exit`) | **Bulk pass done.** Now 60.0% / 51.6% under the registers-and-flags-only rule. Remaining gap is the legitimately-no-register-state subs and a few that still need a flag/register noted. |
-| B | Identify undeclared subroutines via `audit --undeclared` | **Done** (0 undeclared remaining) |
+| B | Identify undeclared subroutines via `audit undeclared` | **Done** (0 undeclared remaining) |
 | C | Recover remaining UNMAPPED 4.18 routines | Partial. Done: `tx_calc_transfer`, `tx_done_jsr`, `&8EFE`, `svc_2_private_workspace_pages`, `nfs_init_body`, `&8D09`. Still: `cmd_close`, `cmd_print`, `cmd_prot`, `cmd_type`, `cmd_unprot`, `read_paged_rom`, `set_jsr_protection`, `tx_ctrl_machine_type`, `check_escape`, `osword_4_handler`. **Outstanding mystery: O-1 in OPEN-ISSUES.md.** |
 | D | Long EQUB runs → reclassify as EQUW/EQUS where appropriate | Pending. 11 candidates over 8 bytes (top: &AE33 39 EQUBs, &B0D5 28, &ADC1 18, &88F0 16). |
 | E | Address tables → symbolic via `<()` / `>()` operators | Partial — `imm_op_dispatch_lo` done (&848B). More tables remain: `tx_done_dispatch_*`, `tx_ctrl_dispatch_*`, star-command dispatch tables, the svc_dispatch lo/hi pair at &89ED/&8A20, others. |
@@ -194,10 +159,9 @@ These are non-negotiable per the user's standing instructions:
    `'z'`, `'d'`, `'i'`, `'b'`. Parenthesised qualifiers like
    `'c (set)'` are fine. **Do NOT** add narrative keys (`'workspace'`,
    `'ptr'`, `'service'`, `'side_effect'`, etc.) — those belong in
-   the description. The good examples are &8028 and &8045; the
-   anti-pattern was the pre-trim &8070. If a sub's calling
-   convention is genuinely "no register state", omit on_entry /
-   on_exit entirely.
+   the description. &8028 and &8045 are good examples. If a sub's
+   calling convention is genuinely "no register state", omit
+   on_entry / on_exit entirely.
 4. **Side effects (workspace bytes, stack consumption, V/C semantics
    beyond a simple flag, vectors touched) belong in the description**,
    not in on_entry / on_exit.
@@ -248,8 +212,7 @@ These are non-negotiable per the user's standing instructions:
   aborted with zero-status when FS was inactive).
 - **65C12 adoption** in many routines: PHX/PHY/PLX/PLY, BRA, STZ,
   TSB/TRB, BIT abs,X.
-- **ACCCON save/restore** brackets the NMI data-copy paths (see the
-  Phase G commit, `eb32468`).
+- **ACCCON save/restore** brackets the NMI data-copy paths.
 - **Two parallel print families**: standard via OSASCI, and
   `print_*_no_spool` via `print_char_no_spool` which brackets OSBYTE
   199 (read/write *SPOOL handle) around the print to bypass any active
@@ -283,9 +246,8 @@ them. Summary:
    moving its reachable indices from 15..19 to 25..29. Some 4.18
    labels (e.g. `svc_1_abs_workspace`, `ps_template_base` at the
    wrong address) survived as carry-overs and have been moved or
-   demoted — see commits `915eaf5`, `569bf49`. **Outstanding:** the
-   real path that reaches `nfs_init_body` at &8F38 is the subject
-   of OPEN-ISSUES O-1.
+   demoted. **Outstanding:** the real path that reaches
+   `nfs_init_body` at &8F38 is the subject of OPEN-ISSUES O-1.
 8. **ANFS bring-up code path moved**: the body that did "first-time
    ANFS init" inline at the end of 4.18's `svc_2_private_workspace`
    (&8EB8) has been split out / re-routed in 4.21 — `nfs_init_body`
@@ -304,8 +266,8 @@ them. Summary:
 2. **PHA/PHA/RTS dispatch routines have no JSR caller** — won't be
    found by `audit undeclared` (which scans JSR sites). Use
    `audit detail <ver> <addr>` once you suspect an address is a sub
-   entry, or decode the dispatch table directly. The recent &8EFE /
-   &8F10 / &8F38 / &8D09 recoveries are examples.
+   entry, or decode the dispatch table directly. &8EFE / &8F10 /
+   &8F38 / &8D09 are examples that needed this approach.
 3. **Address shifts can be small but consequential**: e.g.
    `tx_done_jsr` moved from 4.18 &8543 to 4.21 &8540 (-3 bytes), and
    `osword_13_set_station`'s body landing was off by 3 bytes from the
