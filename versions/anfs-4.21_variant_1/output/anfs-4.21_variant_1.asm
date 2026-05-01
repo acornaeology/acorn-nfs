@@ -433,15 +433,13 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Service 5: unrecognised interrupt (Master 128 dispatch)
 ; 
-; Reads the deferred-work flag at &0D65; if zero, returns early via PLX/PLY/RTS.
-; Otherwise clears bit 7 of the Master 128 ACCCON register at &FE34 (TRB), zeros &0D65,
-; then dispatches either via the PHA/PHA/RTS table at dispatch_svc5 (&8048) when Y had
-; bit 7 set on entry, or fires Econet RX event &FE via generate_event and JMPs to &8582
-; (post-event handler).
-; 
-; Note: 4.18's equivalent at the same address tested VIA IFR bit 2 for shift-register
-; completion; the 4.21 version is rewritten around the Master 128's deferred-work flag
-; pattern. Detailed re-annotation deferred.
+; Reads the deferred-work flag at `&0D65`; if zero, returns early via
+; `PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`
+; register at `&FE34` (`TRB`), zeros `&0D65`, then dispatches either
+; via the PHA/PHA/RTS table at [`dispatch_svc5`](address:8048) when
+; `Y` had bit 7 set on entry, or fires Econet RX event `&FE` via
+; [`generate_event`](address:8045) and `JMP`s to
+; [`tx_done_exit`](address:8582) otherwise.
 ; 
 ; On Entry:
 ;     A: 5 (service call number)
@@ -1659,12 +1657,12 @@ l840a = sub_c8409+1
 ; 
 ; Stores the TX operation type in tx_op_type. If the op code is
 ; >= &86 (HALT / CONTINUE / machine-type), branches forward to the
-; ACCCON IRR set without touching the shift register. Otherwise the
-; 4.21 path loads the workspace shadow at ws_0d68, copies it to
-; ws_0d69 (preserved-for-restore), ORs in the SR-mode-2 bits, and
-; writes back to ws_0d68. (4.18 wrote system_via_acr / system_via_sr
-; directly; 4.21 manipulates the shadow so the Master IRQ path
-; flushes them later.) Single caller (&83E2 in scout_complete).
+; ACCCON IRR set without touching the shift register. Otherwise
+; loads the workspace shadow at ws_0d68, copies it to ws_0d69
+; (preserved for later restore), ORs in the SR-mode-2 bits, and
+; writes back to ws_0d68. The shadow is flushed to the real VIA
+; ACR/SR registers later in the Master IRQ path. Single caller
+; (&83E2 in scout_complete).
 ; 
 ; On Entry:
 ;     A: TX operation type
@@ -1674,10 +1672,6 @@ l840a = sub_c8409+1
     sta tx_op_type                                                    ; 8512: 8d 65 0d    .e.            ; Save TX operation type for SR dispatch
     cmp #&86                                                          ; 8515: c9 86       ..             ; Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup
     bcs c8524                                                         ; 8517: b0 0b       ..             ; Skip ahead to the ACCCON IRR set
-; 4.21 differs from 4.18 here: 4.18 read/wrote system_via_acr (&FE4B) and
-; system_via_sr (&FE4A) directly; 4.21 manipulates the workspace shadow pair
-; ws_0d68/ws_0d69 instead. The shadow values are flushed to the real VIA
-; registers elsewhere in the Master 128 IRQ path.
     lda ws_0d68                                                       ; 8519: ad 68 0d    .h.            ; Load shadow ACR/IER state
     sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.            ; Stash a copy in ws_0d69 for later restore
     ora #&1c                                                          ; 851f: 09 1c       ..             ; SR mode 2: shift in under φ2
@@ -1737,10 +1731,11 @@ l840a = sub_c8409+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ; 
-; Pushes (tx_done_exit - 1) on the stack so RTS returns to tx_done_exit when the remote
-; routine completes, then does JMP (l0d66) to call the remote-supplied JSR target. When
-; that routine returns via RTS, control resumes at tx_done_exit which tidies up TX
-; state.
+; Pushes ([`tx_done_exit`](address:8582) `- 1`) on the stack so `RTS`
+; returns to [`tx_done_exit`](address:8582) when the remote routine
+; completes, then does `JMP (l0d66)` to call the remote-supplied JSR
+; target. When that routine returns via `RTS`, control resumes at
+; [`tx_done_exit`](address:8582) which tidies up TX state.
 ; ***************************************************************************************
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..
@@ -3094,22 +3089,23 @@ l89c9 = reset_enter_listen+2
 ; Service call dispatch (Master 128)
 ; 
 ; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
-; Service 1: absolute workspace claim.
-; Service 4: unrecognised star command.
-; Service 8: unrecognised OSWORD.
-; Service 9: *HELP.
-; Service 13: ROM initialisation.
-; Service 14: ROM initialisation complete.
-; Service 15: vectors claimed.
 ; 
-; On Service 15 the ROM verifies the host OS via OSBYTE 0.
-; Only Master 128 (OS 3.2/3.5, X=3) and Master Econet Terminal
-; (OS 4.0, X=4) are supported. Any other version (OS 1.00,
-; OS 1.20, OS 2.00 BBC B+, or OS 5.0 Master Compact) gets a
-; 'Bad ROM <slot>' message printed and its workspace byte
-; cleared at &02A0 + adjusted-slot, effectively rejecting the
-; ROM. The 4.18 equivalent at &8A15 instead silently skipped
-; ROM rejection for OS 1.20 and OS 2.00.
+; | Call | Meaning                          |
+; |-----:|----------------------------------|
+; |    1 | Absolute workspace claim         |
+; |    4 | Unrecognised `*` command         |
+; |    8 | Unrecognised OSWORD              |
+; |    9 | `*HELP`                          |
+; |   13 | ROM initialisation               |
+; |   14 | ROM initialisation complete      |
+; |   15 | Vectors claimed                  |
+; 
+; On service 15 the ROM verifies the host OS via OSBYTE 0. Only Master
+; 128 (OS 3.2 / 3.5, `X=3`) and Master Econet Terminal (OS 4.0, `X=4`)
+; are supported. Any other version (OS 1.00, OS 1.20, OS 2.00 BBC B+,
+; or OS 5.0 Master Compact) gets a `Bad ROM <slot>` message printed
+; and its workspace byte cleared at `&02A0 + adjusted-slot`,
+; effectively rejecting the ROM.
 ; 
 ; On Entry:
 ;     A: service call number
@@ -3384,17 +3380,13 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; Ensure ANFS is the active filing system
 ; 
-; If bit 7 of fs_flags is set (FS already active),
-; RTS via return_from_save_text_ptr. Otherwise calls
-; cmd_net_fs to select the FS now; on failure JMPs to
-; error_net_checksum to raise the 'net checksum'
-; error. After successful selection, falls through to
-; the body at &8B5A which sets up the OSWORD parameter
-; block pointer and continues the caller's work.
-; 
-; Behaviour change from 4.18: inline `BIT &0D6C / BPL`
-; in 4.18 OSWORD handlers ABORTED when FS was inactive
-; (returning zero in PB[0]); 4.21 instead auto-selects.
+; If bit 7 of `fs_flags` is set (ANFS already active), `RTS` via
+; `return_from_save_text_ptr`. Otherwise calls `cmd_net_fs` to select
+; ANFS now; on failure, `JMP`s to
+; [`error_net_checksum`](address:90B5) to raise the `net checksum`
+; error. After successful selection, falls through to the body at
+; `&8B5A` which sets up the OSWORD parameter block pointer and
+; continues the caller's work.
 ; 
 ; On Entry:
 ;     X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call when
@@ -3407,11 +3399,13 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; Force ANFS selection (raise net checksum on failure)
 ; 
-; Tail-fragment of ensure_fs_selected used directly by svc_3_autoboot when an autoboot
-; needs to force-select ANFS as the active filing system. Calls cmd_net_fs to perform
-; the actual selection; on failure (BEQ not taken), JMPs to error_net_checksum to raise
-; the 'net checksum' error. Used when there is no clean BIT fs_flags / BMI shortcut for
-; early-return.
+; Tail-fragment of [`ensure_fs_selected`](address:8B4D) used directly
+; by `svc_3_autoboot` when an autoboot needs to force-select ANFS as
+; the active filing system. Calls `cmd_net_fs` to perform the actual
+; selection; on failure (`BEQ` not taken), `JMP`s to
+; [`error_net_checksum`](address:90B5) to raise the `net checksum`
+; error. Used when there is no clean `BIT fs_flags` / `BMI` shortcut
+; for early-return.
 ; 
 ; On Entry:
 ;     X, Y: preserved across cmd_net_fs (as per the ensure_fs_selected calling
@@ -3833,12 +3827,11 @@ l89c9 = reset_enter_listen+2
 ; ***************************************************************************************
 ; Read workspace page number for current ROM slot
 ; 
-; Indexes into the MOS per-ROM workspace table at
-; &0DF0 using romsel_copy (&F4) as the ROM slot.
-; Returns the allocated page number in both A and Y
-; for caller convenience. The 4.21 version also
-; OR's bit 7 of the slot flag back into A on exit
-; (ADLC-absent flag) — see &8CB7-&8CB9.
+; Indexes into the MOS per-ROM workspace table at `&0DF0` using
+; `romsel_copy` (`&F4`) as the ROM slot. Returns the allocated page
+; number in both `A` and `Y` for caller convenience. A `ROL`/`PHP`/
+; `ROR`/`PLP` trick at `&8CB7`–`&8CB9` also folds bit 7 of the slot
+; flag back into `A` on exit (the ADLC-absent flag).
 ; 
 ; On Exit:
 ;     A: workspace page number (with bit 7 = ADLC-absent flag)
@@ -4207,9 +4200,7 @@ ps_template_base = sub_c8da6+1
 ; (fs_crc_lo),Y. If it equals '&' (the URD prefix marker), JMPs to
 ; cmd_run_via_urd; otherwise falls through to pass_send_cmd which
 ; sends the command as a normal FS request. Single caller (the FS
-; command-name post-match path at &9597). This is the BIT-test
-; prologue that 4.18 bundled into a single check_escape-style
-; helper but 4.21 splits across the two halves.
+; command-name post-match path at &9597).
 ; ***************************************************************************************
 ; &8e2d referenced 1 time by &9597
 .check_urd_prefix
@@ -4513,14 +4504,11 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Record workspace page count (capped at &D3)
 ; 
-; Stores the workspace allocation from service 1
-; into offset &0B of the receive control block,
-; capping the value at &D3 to prevent overflow into
-; adjacent workspace areas (the 4.18 cap was &21;
-; Master 128 has its sideways-RAM workspace much
-; higher up, hence the larger limit). Called by
-; svc_2_private_workspace after issuing the absolute
-; workspace claim service call.
+; Stores the workspace allocation from service 1 into offset `&0B` of
+; the receive control block, capping the value at `&D3` to prevent
+; overflow into adjacent workspace areas. Called by
+; [`svc_2_private_workspace_pages`](address:8F10) after issuing the
+; absolute workspace claim service call.
 ; 
 ; On Entry:
 ;     Y: workspace page count from service 1
@@ -4554,22 +4542,20 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Service-2 page-allocation prologue
 ; 
-; Reads CMOS byte &11 to test bit 2 of the saved
-; Econet status; either advances the caller's first-
-; available-page (Y) by 2 and uses it, or forces
-; page &0B as a fallback. Sets net_rx_ptr_hi /
-; nfs_workspace_hi to the chosen page pair, clears
-; the corresponding lo bytes, and calls get_ws_page.
-; If the resulting page is >= &DC, branches to the
-; helper at &8EFE which publishes the page into
-; rom_ws_pages[romsel_copy] with bit 7 masked off.
+; Reads CMOS byte `&11` to test bit 2 of the saved Econet status;
+; either advances the caller's first-available-page (`Y`) by 2 and
+; uses it, or forces page `&0B` as a fallback. Sets `net_rx_ptr_hi` /
+; `nfs_workspace_hi` to the chosen page pair, clears the corresponding
+; lo bytes, and calls [`get_ws_page`](address:8CAD). If the resulting
+; page is `>= &DC`, branches to the helper at
+; [`&8EFE`](address:8EFE?hex) which publishes the page into
+; `rom_ws_pages[romsel_copy]` with bit 7 masked off.
 ; 
-; This routine handles only the workspace-page
-; allocation half of 4.18's svc_2_private_workspace.
-; The remainder (station ID, FS workspace zero,
-; cmd_net_fs, init_adlc_and_vectors) lives at &8F38
-; and is dispatched separately -- see the comment
-; block above.
+; This routine handles only the workspace-page allocation half of
+; service 2. The bring-up remainder (station ID, FS workspace zero,
+; `cmd_net_fs`, [`init_adlc_and_vectors`](address:903C)) lives at
+; [`nfs_init_body`](address:8F38) and is dispatched separately – see
+; the comment block above.
 ; 
 ; On Entry:
 ;     Y: first available private workspace page
@@ -4607,37 +4593,33 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; ANFS initialisation body
 ; 
-; Reached only via PHA/PHA/RTS dispatch (table index
-; 22 in the svc_dispatch table at &89ED/&8A20). The
-; body carries out the bring-up sequence that 4.18
-; did inside svc_2_private_workspace after page
-; allocation:
-;   - Clears ws_page / tx_complete_flag and the
-;     receive-block remote-op flag
-;   - On warm reset (last_break_type non-zero) and
-;     fs_flags bit 4 set, calls setup_ws_ptr and
-;     zeroes the FS workspace page in a 256-byte loop
-;   - Calls copy_ps_data_y1c to install the printer-
-;     server template
-;   - Reads CMOS bytes &01..&04 via osbyte_a1, storing
-;     each into the workspace identity block at
-;     nfs_workspace+{0..3}
-;   - Reads CMOS byte &11 (Econet station): if zero,
-;     prints 'Station number in CMOS RAM invalid.
-;     Using 1 instead!' and defaults to station 1
-;   - Stores station ID into the receive block
-;   - Calls cmd_net_fs to select ANFS as the active
-;     filing system, then init_adlc_and_vectors to
-;     install NETV / FSCV / etc., handle_spool_ctrl_byte
-;     and init_bridge_poll for protection setup
-; Returns via RTS at &903B.
+; Reached only via PHA/PHA/RTS dispatch (table index 22 in the
+; svc_dispatch table at `&89ED` / `&8A20`). Carries out the bring-up
+; sequence after page allocation:
 ; 
-; TODO (Phase C): identify the exact svc_dispatch
-; (X, Y) pair that reaches index 22. The natural
-; expectation is that this is the second half of
-; service-2 handling and is invoked by MOS during
-; the standard private-workspace claim, but the
-; concrete trigger has not yet been pinned down.
+; - Clears `ws_page` / `tx_complete_flag` and the receive-block
+;   remote-op flag.
+; - On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4
+;   set, calls [`setup_ws_ptr`](address:8CBD) and zeroes the FS
+;   workspace page in a 256-byte loop.
+; - Calls [`copy_ps_data_y1c`](address:B3D5) to install the printer-
+;   server template.
+; - Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into
+;   the workspace identity block at `nfs_workspace+{0..3}`.
+; - Reads CMOS byte `&11` (Econet station): if zero, prints
+;   `Station number in CMOS RAM invalid. Using 1 instead!` and
+;   defaults to station 1.
+; - Stores station ID into the receive block.
+; - Calls `cmd_net_fs` to select ANFS as the active filing system,
+;   then [`init_adlc_and_vectors`](address:903C) to install NETV /
+;   FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`
+;   for protection setup.
+; 
+; Returns via `RTS` at `&903B`.
+; 
+; TODO (Phase C): identify the exact svc_dispatch `(X, Y)` pair that
+; reaches index 22 (OPEN-ISSUES O-1). The concrete trigger has not
+; yet been pinned down.
 ; ***************************************************************************************
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..
@@ -5188,11 +5170,13 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Print A as two hex digits, *SPOOL-bypassing
 ; 
-; As print_hex_byte (&9236) but emits each digit via print_char_no_spool (the *SPOOL-
-; bypassing OSASCI wrapper), so the digits don't appear in any active spool capture.
-; Saves A, extracts the high nibble (LSR x4), prints it via print_hex_nybble_no_spool,
-; then restores A and falls through for the low nibble. Sole caller: print_5_hex_bytes
-; at &9D53.
+; As [`print_hex_byte`](address:9236) but emits each digit via
+; [`print_char_no_spool`](address:91FB) (the *SPOOL-bypassing OSASCI
+; wrapper), so the digits don't appear in any active spool capture.
+; Saves `A`, extracts the high nibble (`LSR` x4), prints it via
+; [`print_hex_nybble_no_spool`](address:9255), then restores `A` and
+; falls through for the low nibble. Sole caller:
+; [`print_5_hex_bytes`](address:9D4F) at `&9D53`.
 ; 
 ; On Entry:
 ;     A: byte to print
@@ -5337,13 +5321,14 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Parse decimal or hex station address argument
 ; 
-; Located at &92B2 in 4.21_v1 (was &916E in 4.18, +&144 shift). Reads characters from
-; the command argument at (fs_crc_lo),Y. Supports `&` prefix for hex, `.` separator for
-; net.station addresses, and plain decimal. Returns the result in fs_load_addr_2 (and
-; A). Raises 'Bad hex' / 'Bad number' / 'Bad station number' / overflow errors as
-; appropriate. The body uses the standard 6502 idioms: ASL ASL ASL ASL + ADC for hex
-; digit accumulation, and result*2 + result*8 for decimal *10. Two named callers:
-; sub_c92b2 from &A3C9 and &A3DE.
+; Reads characters from the command argument at `(fs_crc_lo),Y`.
+; Supports `&` prefix for hex, `.` separator for net.station
+; addresses, and plain decimal. Returns the result in `fs_load_addr_2`
+; (and `A`). Raises [`Bad hex`](address:934A?hex), `Bad number`,
+; [`Bad station number`](address:9357?hex), and overflow errors as
+; appropriate. The body uses the standard 6502 idioms: `ASL ASL ASL
+; ASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`
+; for decimal `*10`. Two named callers: from `&A3C9` and `&A3DE`.
 ; 
 ; On Entry:
 ;     Y: index into command-string buffer at (fs_crc_lo),Y
@@ -5887,14 +5872,10 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Copy matched command name to TX buffer
 ; 
-; Scans backwards in cmd_table_fs from the
-; current position to find the bit-7 flag byte
-; marking the start of the command name. Copies
-; each character forward into the TX buffer at
-; &C105 (was &0F05 in 4.18) until the next bit-7
-; byte (end of name), then appends a space
-; separator. Uses 65C12 PHY in 4.21 in place of
-; 4.18's TYA / PHA prologue.
+; Scans backwards in `cmd_table_fs` from the current position to find
+; the bit-7 flag byte marking the start of the command name. Copies
+; each character forward into the TX buffer at `&C105` until the next
+; bit-7 byte (end of name), then appends a space separator.
 ; 
 ; On Entry:
 ;     X: byte offset within cmd_table_fs (just past the matched command's last name
@@ -9349,15 +9330,12 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; Parse station address from *FS/*PS arguments
 ; 
-; Reads a station address in 'net.station' format
-; from the command line, with the network number
-; optional (defaults to local network). Calls
-; init_bridge_poll to ensure the bridge routing
-; table is populated, then validates the parsed
-; address against known stations. 4.21 version uses
-; 65C12 PHX/PHY in place of TXA/PHA, TYA/PHA, and
-; stores the result in fs_work_7 (was fs_work_6 in
-; 4.18).
+; Reads a station address in `net.station` format from the command
+; line, with the network number optional (defaults to local network).
+; Calls [`init_bridge_poll`](address:AC4C) to ensure the bridge
+; routing table is populated, then validates the parsed address
+; against known stations. The parsed-station value is stored in
+; `fs_work_7` (`&B7`).
 ; 
 ; On Entry:
 ;     Y: current command-line offset
@@ -10469,10 +10447,10 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 0: read file server station
 ; 
-; Returns the current file server station and
-; network numbers in PB[1..2]. If the NFS is not
-; active, sub_c8b4d returns early with zero in
-; PB[0] (carrying over the 4.18 semantics).
+; Returns the current file server station and network numbers in
+; `PB[1..2]`. If ANFS is not active,
+; [`ensure_fs_selected`](address:8B4D) auto-selects it (raising `net
+; checksum` on failure) before the body runs.
 ; ***************************************************************************************
 .osword_13_read_station
     jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
@@ -10489,12 +10467,13 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 1: set file server station
 ; 
-; Sets the file server station and network numbers
-; from PB[1..2]. The prologue at &A9DA calls
-; sub_c8b4d to verify the FS is active, then the
-; body at &A9DD processes all FCBs and scans the
-; 16-entry FCB table to reassign handles matching
-; the new station.
+; Sets the file server station and network numbers from `PB[1..2]`.
+; The prologue at `&A9DA` calls
+; [`ensure_fs_selected`](address:8B4D) to verify ANFS is active
+; (auto-selecting it if not), then the body at
+; [`osword_13_set_station_body`](address:A9DD) processes all FCBs
+; and scans the 16-entry FCB table to reassign handles matching the
+; new station.
 ; ***************************************************************************************
 .osword_13_set_station
     jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
@@ -10747,10 +10726,10 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 6: read FCB handle info
 ; 
-; Returns the 3-byte FCB handle/port data from
-; the workspace at C271[1..3] (was l1071[1..3] in
-; 4.18) into PB[1..3]. If the NFS is not active,
-; returns zero in PB[0] via the sub_c8b4d prologue.
+; Returns the 3-byte FCB handle/port data from the workspace at
+; `C271[1..3]` into `PB[1..3]`. If ANFS is not active,
+; [`ensure_fs_selected`](address:8B4D) auto-selects it before the
+; body runs.
 ; ***************************************************************************************
 .osword_13_read_handles
     jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
@@ -12733,14 +12712,13 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; Clear FS selection flags from options word
 ; 
-; ANDs the &C271 flags byte (was &1071 in 4.18) with
-; &1F, clearing the FS selection flag (bit 6) and
-; other high bits to retain only the 5-bit owner
-; access mask. Called before parsing to reset the
-; prefix state from a previous command. 12 callers.
+; `AND`s the `&C271` (`fs_lib_flags`) byte with `&1F`, clearing the
+; FS selection flag (bit 6) and other high bits to retain only the
+; 5-bit owner-access mask. Called before parsing to reset the prefix
+; state from a previous command. 12 callers.
 ; 
 ; On Exit:
-;     A: = masked value
+;     A: masked value
 ; ***************************************************************************************
 ; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
 .mask_owner_access
@@ -14705,16 +14683,13 @@ lb821 = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Process all active FCB slots
 ; 
-; Saves 9 workspace bytes (&FFB7-&FFBF) on the stack
-; via a PHX/PHY/loop preamble, then scans FCB slots
-; &0F down to 0. Calls start_wipe_pass for each
-; active entry matching the filter attribute in Y
-; (0=match all). Restores all saved context on
-; completion. Also contains the OSBGET/OSBPUT inline
-; logic for reading and writing bytes through file
-; channels. The 4.18 equivalent at &B799 saved only
-; fs_options + fs_block_offset (2 bytes); 4.21 saves
-; 9 bytes to prevent cross-FCB workspace corruption.
+; Saves 9 workspace bytes (`&FFB7`–`&FFBF`) on the stack via a
+; `PHX`/`PHY`/loop preamble, then scans FCB slots `&0F` down to 0.
+; Calls [`start_wipe_pass`](address:B99A) for each active entry
+; matching the filter attribute in `Y` (`0` = match all). Restores
+; all saved context on completion. Also contains the OSBGET/OSBPUT
+; inline logic for reading and writing bytes through file
+; channels.
 ; 
 ; On Entry:
 ;     Y: filter attribute (0=process all)

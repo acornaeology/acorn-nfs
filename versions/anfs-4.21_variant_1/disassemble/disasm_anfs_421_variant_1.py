@@ -4860,18 +4860,14 @@ subroutine(0xB2A3, "copy_arg_validated",
               "y": "command line source offset",
               "c": "set to enable '&' validation"})
 label(0xB2C8, "done_trim_spaces")
-# Located in 4.21_v1 at &B2CF (was &AF32 in 4.18). Same 4-instruction
-# body (LDA / AND #&1F / STA / RTS); only the workspace address moved
-# from &1071 to &C271 with the rest of fs_lib_flags. Already classified
-# as code (sub_cb2cf with 12 callers).
 subroutine(0xB2CF, "mask_owner_access",
     title="Clear FS selection flags from options word",
-    description="ANDs the &C271 flags byte (was &1071 in 4.18) with\n"
-    "&1F, clearing the FS selection flag (bit 6) and\n"
-    "other high bits to retain only the 5-bit owner\n"
-    "access mask. Called before parsing to reset the\n"
-    "prefix state from a previous command. 12 callers.",
-    on_exit={"a": "= masked value"})
+    description="""\
+`AND`s the `&C271` (`fs_lib_flags`) byte with `&1F`, clearing the
+FS selection flag (bit 6) and other high bits to retain only the
+5-bit owner-access mask. Called before parsing to reset the prefix
+state from a previous command. 12 callers.""",
+    on_exit={"a": "masked value"})
 subroutine(0xB2E4, "ex_print_col_sep",
     title="Print column separator or newline for *Ex/*Cat",
     description="In *Cat mode, increments a column counter modulo 4\n"
@@ -5076,7 +5072,6 @@ subroutine(0xB7D3, "flush_and_read_char",
     on_entry={},
     on_exit={"a": "character read from keyboard",
              "x, y": "clobbered (OSBYTE/OSRDCH)"})
-# Removed in 4.18: unused_clear_ws_78 (dead code removed)
 subroutine(0xB7E3, "init_channel_table",
     title="Initialise channel allocation table",
     description="Clears all 256 bytes of the table, then marks\n"
@@ -5241,26 +5236,16 @@ subroutine(0xBB2A, "inc_fcb_byte_count",
     description="Increments l1000+X (low), cascading overflow to\n"
     "l1010+X (mid) and l1020+X (high).",
     on_entry={"x": "FCB slot index"})
-# Located in 4.21_v1 at &BB38 (was &B799 in 4.18). The fingerprint
-# initially mis-pointed to &BB2A (which is `inc_fcb_byte_count`); the
-# real entry is &BB38, distinguishable by the 9-byte workspace save
-# loop at &BB3A (`LDX #&F7 / loop: LDA &FFBD,X / PHA / INX / BMI`) —
-# the 4.21 version preserves &FFB7-&FFBF rather than just fs_options
-# and fs_block_offset (see CHANGES-FROM-4.18 §5).
-# Already classified as code (`sub_cbb38`, 7 callers) so no entry()
-# needed.
 subroutine(0xBB38, "process_all_fcbs",
     title="Process all active FCB slots",
-    description="Saves 9 workspace bytes (&FFB7-&FFBF) on the stack\n"
-    "via a PHX/PHY/loop preamble, then scans FCB slots\n"
-    "&0F down to 0. Calls start_wipe_pass for each\n"
-    "active entry matching the filter attribute in Y\n"
-    "(0=match all). Restores all saved context on\n"
-    "completion. Also contains the OSBGET/OSBPUT inline\n"
-    "logic for reading and writing bytes through file\n"
-    "channels. The 4.18 equivalent at &B799 saved only\n"
-    "fs_options + fs_block_offset (2 bytes); 4.21 saves\n"
-    "9 bytes to prevent cross-FCB workspace corruption.",
+    description="""\
+Saves 9 workspace bytes (`&FFB7`–`&FFBF`) on the stack via a
+`PHX`/`PHY`/loop preamble, then scans FCB slots `&0F` down to 0.
+Calls [`start_wipe_pass`](address:B99A) for each active entry
+matching the filter attribute in `Y` (`0` = match all). Restores
+all saved context on completion. Also contains the OSBGET/OSBPUT
+inline logic for reading and writing bytes through file
+channels.""",
     on_entry={"y": "filter attribute (0=process all)"})
 subroutine(0xBC65, "done_inc_byte_count",
     title="Increment FCB byte count, clear rx attr, restore caller",
@@ -5541,7 +5526,6 @@ subroutine(0xBFC0, "inx4",
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0487, "C=0, A!=0: re-init path", inline=True)
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0489, "Z=1 from C=0 path: just acknowledge", inline=True)
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x048C, "Read last break type from OS workspace", inline=True)
-# 4.18 uses LDX &028D directly instead of OSBYTE &FD
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x048F, "Soft break (X=0): re-init Tube and restart", inline=True)
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0491, "Claim address &FF (startup = highest prio)", inline=True)
 # UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0493, "Request address claim from Tube system", inline=True)
@@ -6435,11 +6419,6 @@ comment(0x8512, "Save TX operation type for SR dispatch", inline=True)
 comment(0x8515, "Op codes >= &86 (HALT/CONTINUE/machine-type) skip "
                 "the SR setup", inline=True)
 comment(0x8517, "Skip ahead to the ACCCON IRR set", inline=True)
-comment(0x8519, """\
-4.21 differs from 4.18 here: 4.18 read/wrote system_via_acr (&FE4B) and
-system_via_sr (&FE4A) directly; 4.21 manipulates the workspace shadow pair
-ws_0d68/ws_0d69 instead. The shadow values are flushed to the real VIA
-registers elsewhere in the Master 128 IRQ path.""")
 comment(0x8519, "Load shadow ACR/IER state", inline=True)
 comment(0x851C, "Stash a copy in ws_0d69 for later restore", inline=True)
 comment(0x851F, "SR mode 2: shift in under φ2", inline=True)
@@ -9700,11 +9679,10 @@ comment(0x976B, "Offset 7: txcb_pos = &FF", inline=True)
 comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # ============================================================
-# Service dispatch table (&89ED/&8A20)
+# Service dispatch table (&89ED / &8A20)
 # ============================================================
-# PHA/PHA/RTS dispatch table used by svc_dispatch. 4.21 moved both
-# halves vs 4.18: the lo half is at &89ED (was &89CA in 4.18); the
-# hi half is at &8A20 (was &89EF). svc_dispatch reads:
+# PHA/PHA/RTS dispatch table used by svc_dispatch. The lo half is
+# at &89ED, the hi half at &8A20. svc_dispatch reads:
 #     LDA l8a20,X    ; high byte
 #     PHA
 #     LDA l89ed,X    ; low byte
@@ -9734,11 +9712,6 @@ comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
 #      13  &89A6     wait_idle_and_reset
 #      14  &8B45     svc_18_fs_select
 #      22  &8F38     nfs_init_body (full ANFS init -- see above)
-#
-# The 4.18 dispatch-comment scheme ("Lang n", "FSCV n", "FS reply
-# n", "*NET n") does NOT match 4.21's usage of these slots and has
-# been removed. Most indices >= 15 are still unstudied; recover
-# them as needed.
 
 # Service dispatch entry points -- targets reached via svc_dispatch
 # from the service handler at &8ADB. Each needs entry() because
@@ -9751,12 +9724,10 @@ entry(0x8ED8)   # idx  8  svc_7 unrecognised OSBYTE
 entry(0x8C51)   # idx 10  svc_9 *HELP
 # entry(0x8F38) declared above (nfs_init_body)
 #
-# Open issue: the existing label(0x8EE9, "svc_1_abs_workspace")
-# is a stale 4.18 carry-over -- in 4.21, table[2] is &8D09 (the
-# real svc 1 handler), and &8EE9 is reached via a different
-# dispatch slot whose semantics have not yet been pinned down.
-# Rename / relabel as part of Phase C continuation.
-entry(0x8EE9)   # mislabelled svc_1_abs_workspace
+# &8EE9 is reached via PHA/PHA/RTS dispatch but the precise slot is
+# OPEN-ISSUES O-2 (the carried-over `svc_1_abs_workspace` label here
+# does not match the live dispatch).
+entry(0x8EE9)
 
 label(0x8EE9, "svc_1_abs_workspace")
 # UNMAPPED: label(0x8EB8, "svc_2_private_workspace")
@@ -9823,8 +9794,7 @@ subroutine(0x8ED8, "svc_7_osbyte",
     "JMPs to svc_dispatch with Y=&21 to reach the\n"
     "Econet OSBYTE handler table.",
     on_entry={"a": "OSBYTE number (from osbyte_a_copy at &EF)"})
-# Located in 4.21_v1 at &A83B (was &A4EE in 4.18) by opcode fingerprint
-# (ratio 0.952 over 21 opcodes). Reached via PHA/PHA/RTS dispatch.
+# Reached via PHA/PHA/RTS dispatch.
 entry(0xA83B)
 subroutine(0xA83B, "svc_8_osword",
     title="Service 8: unrecognised OSWORD",
@@ -9851,30 +9821,34 @@ subroutine(0x8C51, "svc_9_help",
               "y": "command-line offset of *HELP argument"},
     on_exit={"y": "ws_page (workspace page) -- the service call is left "
              "UNCLAIMED so MOS continues to the next ROM"})
-# Located in 4.21_v1 at &8B45 (was &8B0D in 4.18) by opcode fingerprint.
-# Reached via PHA/PHA/RTS dispatch from the service table — no direct
-# JSR/JMP, so an explicit entry() is required to classify it as code.
+# Reached via PHA/PHA/RTS dispatch from the service table; needs an
+# explicit entry() because there is no JSR/JMP source for py8dis to
+# follow.
 entry(0x8B45)
 subroutine(0x8B52, "select_fs_via_cmd_net_fs",
     title="Force ANFS selection (raise net checksum on failure)",
-    description="Tail-fragment of ensure_fs_selected used directly by "
-    "svc_3_autoboot when an autoboot needs to force-select ANFS as "
-    "the active filing system. Calls cmd_net_fs to perform the actual "
-    "selection; on failure (BEQ not taken), JMPs to error_net_checksum "
-    "to raise the 'net checksum' error. Used when there is no clean "
-    "BIT fs_flags / BMI shortcut for early-return.",
+    description="""\
+Tail-fragment of [`ensure_fs_selected`](address:8B4D) used directly
+by `svc_3_autoboot` when an autoboot needs to force-select ANFS as
+the active filing system. Calls `cmd_net_fs` to perform the actual
+selection; on failure (`BEQ` not taken), `JMP`s to
+[`error_net_checksum`](address:90B5) to raise the `net checksum`
+error. Used when there is no clean `BIT fs_flags` / `BMI` shortcut
+for early-return.""",
     on_entry={"x, y": "preserved across cmd_net_fs (as per the "
               "ensure_fs_selected calling contract)"},
     on_exit={"a": "current FS state byte if selection succeeded"})
 
 subroutine(0x924C, "print_hex_byte_no_spool",
     title="Print A as two hex digits, *SPOOL-bypassing",
-    description="As print_hex_byte (&9236) but emits each digit via "
-    "print_char_no_spool (the *SPOOL-bypassing OSASCI wrapper), so the "
-    "digits don't appear in any active spool capture. Saves A, "
-    "extracts the high nibble (LSR x4), prints it via "
-    "print_hex_nybble_no_spool, then restores A and falls through "
-    "for the low nibble. Sole caller: print_5_hex_bytes at &9D53.",
+    description="""\
+As [`print_hex_byte`](address:9236) but emits each digit via
+[`print_char_no_spool`](address:91FB) (the *SPOOL-bypassing OSASCI
+wrapper), so the digits don't appear in any active spool capture.
+Saves `A`, extracts the high nibble (`LSR` x4), prints it via
+[`print_hex_nybble_no_spool`](address:9255), then restores `A` and
+falls through for the low nibble. Sole caller:
+[`print_5_hex_bytes`](address:9D4F) at `&9D53`.""",
     on_entry={"a": "byte to print"},
     on_exit={"a": "preserved"})
 
@@ -10123,9 +10097,7 @@ for flag_addr, or_addr, and_addr in _attr_entries:
     byte(flag_addr)
     byte(or_addr)
     byte(and_addr)
-# &A83B was a 1-byte sentinel in 4.18; in 4.21_v1 it's the start of
-# svc_8_osword (relocated from 4.18 &A4EE). The byte() directive has
-# been removed so py8dis classifies it as code.
+# &A83B is the start of svc_8_osword.
 
 # Inline comments for sub-table 4
 # UNMAPPED: comment(0xA4C3, "Halt", inline=True)
@@ -10290,9 +10262,8 @@ label(0xA398, "cmd_fs")
 label(0xB0F2, "cmd_lcat")
 label(0xB0F8, "cmd_lex")
 label(0x8DD5, "cmd_pass")
-# &B312 in 4.21_v1 is print_decimal_digit's body, not cmd_remove
-# (4.18's cmd_remove was at a different address that didn't carry
-# over). Real cmd_remove location pending fingerprint.
+# cmd_remove location pending fingerprint -- &B312 is print_decimal_
+# digit's body, not cmd_remove.
 # UNMAPPED: label(0xB312, "cmd_remove")
 label(0x94C5, "cmd_rename")
 label(0xB6F3, "cmd_wipe")
@@ -10317,10 +10288,8 @@ subroutine(0x9776, "cmd_bye",
     "with OSBYTE &77, and closes all network channels.\n"
     "Falls through to save_net_tx_cb with function code\n"
     "&17 to send the bye request to the file server.")
-# Located in 4.21_v1 at &B0A0 (was &AD10 in 4.18). Initial fingerprint
-# hit &B09F but the byte there is the &60 RTS terminating the previous
-# routine; cmd_cdir's TYA/PHA prologue starts at &B0A0. Reached via
-# PHA/PHA/RTS dispatch from the star-command table — needs entry().
+# Reached via PHA/PHA/RTS dispatch from the star-command table; needs
+# an explicit entry().
 entry(0xB0A0)
 subroutine(0xB0A0, "cmd_cdir",
     title="*CDir command handler",
@@ -10375,10 +10344,7 @@ subroutine(0xA398, "cmd_fs",
     "parse_fs_ps_args and issues OSWORD &13 (sub-function 1)\n"
     "to select the new file server.",
     on_entry={"y": "command line offset in text pointer"})
-# Located in 4.21_v1 at &8D91 (was &8D79 in 4.18). The 4.18 prologue
-# saved Y on the stack via TYA/PHA before doing OSBYTE &77; the 4.21
-# version drops the save (caller-preserved Y, presumably). Reached
-# via PHA/PHA/RTS dispatch — needs entry().
+# Reached via PHA/PHA/RTS dispatch; needs an explicit entry().
 entry(0x8D91)
 subroutine(0x8D91, "cmd_iam",
     title="*I AM command handler (file server logon)",
@@ -10453,15 +10419,14 @@ subroutine(0x8DD5, "cmd_pass",
     on_entry={"y": "command line offset in text pointer "
               "(also the entry point for cmd_iam fall-through)"})
 # UNMAPPED: subroutine(0xB312, "cmd_remove", ...)
-# That address is print_decimal_digit's body in 4.21_v1, not cmd_remove.
-# The actual *Remove handler lives at a yet-to-be-located address;
-# fingerprinting deferred to a later session.
+# &B312 is print_decimal_digit's body, not cmd_remove. The actual
+# *Remove handler lives at a yet-to-be-located address.
 
-# 4.21 has TWO copies of the print-decimal pair: an OSASCI version at
-# &B32A/&B338 (the LCS-mapped 4.18 carry-over with leading-zero
-# suppression), and a no-spool variant at &B303/&B310 that uses
-# print_char_no_spool instead so status output bypasses any open
-# *SPOOL file. The no-spool variant has no leading-zero suppression.
+# Two copies of the print-decimal pair: an OSASCI version at &B32A /
+# &B338 with leading-zero suppression, and a no-spool variant at
+# &B303 / &B310 that uses print_char_no_spool so status output
+# bypasses any open *SPOOL file. The no-spool variant has no
+# leading-zero suppression.
 subroutine(0xB303, "print_decimal_3dig_no_spool",
     title="Print 3-digit decimal via *SPOOL-bypassing print",
     description="As print_decimal_3dig (&B32A) but each digit is "
@@ -10598,7 +10563,6 @@ entry(0xA985)   # 552-byte undecoded block (largest remaining)
 entry(0xACFC)   # 68-byte undecoded block
 # entry(0xAA9F) removed — classified as data via byte() declarations
 entry(0xBBE7)   # 21-byte file handler block
-# Removed in 4.18: entry(0xB42F) — dead code removed
 
 # Page 5 relocated code — ANFS-specific entry points
 # Runtime addresses for undecoded blocks in page 5 source (&BC90)
@@ -10641,11 +10605,9 @@ for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
     comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})",
             inline=True)
 
-# Part 2: handler address entries (7 x {lo, hi, pad})
-# write_vector_entry (&904F) reads bytes from c8e9a+Y starting at Y=&1B,
-# which means the table starts at &8E9A+&1B = &8EB5 in 4.21_v1.
-# (4.18 had this table at &8E6F; the +&46 shift comes from the longer
-# ROM title string and earlier code insertions.)
+# Part 2: handler address entries (7 x {lo, hi, pad}).
+# write_vector_entry (&904F) reads bytes from c8e9a+Y starting at
+# Y=&1B, so the table starts at &8E9A+&1B = &8EB5.
 handler_names = [
     ("FILEV",  0x9C22),
     ("ARGSV",  0x9EAB),
@@ -10762,10 +10724,6 @@ label(0x8E61, "svc_dispatch")
 # UNMAPPED:     on_exit={"a": "byte read from ROM"})
 # UNMAPPED: label(0x8AA0, "read_paged_rom")
 
-# Located in 4.21_v1 at &8EC9 (was &8E83 in 4.18). Single-instruction
-# `LDX #0` that falls through to osbyte_yff at &8ECB. Already
-# classified as code (sub_c8ec9 with 3 callers from &805D, &9041,
-# &99FD).
 subroutine(0x8EC9, "osbyte_x0",
     title="OSBYTE wrapper with X=0, Y=&FF",
     description="Sets X=0 and falls through to osbyte_yff to also\n"
@@ -12837,12 +12795,8 @@ comment(0x9165, "Restore string pointer low", inline=True)
 comment(0x9166, "Store pointer low", inline=True)
 comment(0x9168, "Loop for next character", inline=True)
 
-# &916E-&91F8 in 4.21_v1 is entirely syntax-string data and the
-# cmd_syntax_table — there is no parse_addr_arg routine here. The 4.18
-# carry-over comments for parse_addr_arg / accumulate-hex / accumulate-
-# decimal landed inside string bytes and have been removed. parse_addr_arg
-# in 4.21_v1, if it still exists, will live at a different address; finding
-# it is a separate task.
+# &916E-&91F8 is entirely syntax-string data and the cmd_syntax_table
+# -- no parse_addr_arg routine here.
 
 # ============================================================
 # print_*_no_spool inline comments (&91F9-&9235)
