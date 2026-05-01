@@ -1895,7 +1895,6 @@ l840a = sub_c8409+1
 ;     Y: &E7 (CR2 value for tx_prepare)
 ; ***************************************************************************************
 .intoff_test_inactive
-l85fd = intoff_test_inactive+1
     bit lfe38                                                         ; 85fc: 2c 38 fe    ,8.            ; INTOFF -- disable NMIs
 ; &85fd referenced 1 time by &8679
     bit lfe38                                                         ; 85ff: 2c 38 fe    ,8.            ; INTOFF again (belt-and-braces)
@@ -1996,11 +1995,44 @@ l85fd = intoff_test_inactive+1
     sta rx_ctrl                                                       ; 8673: 8d 3f 0d    .?.            ; Store expected transfer length
     lda #&86                                                          ; 8676: a9 86       ..             ; Push high byte of return address (&9C)
     pha                                                               ; 8678: 48          H              ; Push high byte for PHA/PHA/RTS dispatch
-    lda l85fd,y                                                       ; 8679: b9 fd 85    ...            ; Look up handler address low from table
+    lda tx_ctrl_dispatch_lo-&81,y                                     ; 8679: b9 fd 85    ...            ; Look up handler address low from table
     pha                                                               ; 867c: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 867d: 60          `              ; RTS dispatches to control-byte handler
 
-    equb &89, &8d, &cf, &cf, &cf, &df, &df, &85, &a9, 3, &d0, &48     ; 867e: 89 8d cf... ...            ; Skip address addition, store status
+; TX ctrl dispatch table (lo bytes)
+; 
+; Low bytes of PHA/PHA/RTS dispatch targets for TX
+; control byte types &81-&88. Read by the dispatch at
+; &8679 via LDA tx_ctrl_dispatch_lo-&81,Y (operand
+; &85FD, mid-instruction inside intoff_test_inactive).
+; High byte is always &86, so targets are &86xx+1.
+; Last entry (&88) dispatches to tx_ctrl_machine_type
+; at &8686, the 4 bytes immediately after the table.
+.tx_ctrl_dispatch_lo
+    equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .
+    equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .
+    equb <(proc_op_status2-1)                                         ; 8680: cf          .
+    equb <(proc_op_status2-1)                                         ; 8681: cf          .
+    equb <(proc_op_status2-1)                                         ; 8682: cf          .
+    equb <(tx_ctrl_exit-1)                                            ; 8683: df          .
+    equb <(tx_ctrl_exit-1)                                            ; 8684: df          .
+    equb <(tx_ctrl_machine_type-1)                                    ; 8685: 85          .
+
+; ***************************************************************************************
+; TX ctrl: machine type query setup
+; 
+; Handler for control byte &88. Sets scout_status=3
+; and branches to store_status_copy_ptr, skipping
+; the 4-byte address addition (no address parameters
+; needed for a machine type query). Reached only via
+; PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo entry &88.
+; 
+; On Exit:
+;     A: 3 (scout_status for machine type query)
+; ***************************************************************************************
+.tx_ctrl_machine_type
+    lda #3                                                            ; 8686: a9 03       ..             ; A=3: scout_status for machine type query
+    bne store_status_copy_ptr                                         ; 8688: d0 48       .H             ; Skip address addition, store status; ALWAYS branch
 
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
@@ -2097,6 +2129,7 @@ l85fd = intoff_test_inactive+1
     sta rx_src_net                                                    ; 86cd: 8d 3e 0d    .>.            ; Clear tx_flags
 .proc_op_status2
     lda #2                                                            ; 86d0: a9 02       ..             ; scout_status=2: data transfer pending
+; &86d2 referenced 1 time by &8688
 .store_status_copy_ptr
     sta rx_port                                                       ; 86d2: 8d 40 0d    .@.            ; Store scout status
 ; &86d5 referenced 1 time by &86a7
@@ -15050,11 +15083,16 @@ lb821 = err_net_chan_not_found+2
     assert (255 - inkey_key_ctrl) EOR 128 == &81
     assert <(fs_work_4) == &b4
     assert <(la6fe) == &fe
+    assert <(proc_op_status2-1) == &cf
     assert <(rx_imm_exec-1) == &92
     assert <(rx_imm_halt_cont-1) == &e7
     assert <(rx_imm_machine_type-1) == &bb
     assert <(rx_imm_peek-1) == &cd
     assert <(rx_imm_poke-1) == &b0
+    assert <(tx_ctrl_exit-1) == &df
+    assert <(tx_ctrl_machine_type-1) == &85
+    assert <(tx_ctrl_peek-1) == &89
+    assert <(tx_ctrl_poke-1) == &8d
     assert <(tx_done_continue-1) == &79
     assert <(tx_done_econet_event-1) == &48
     assert <(tx_done_halt-1) == &62
@@ -15852,7 +15890,6 @@ save pydis_start, pydis_end
 ;     l4e2f:                          1
 ;     l6f6e:                          1
 ;     l840a:                          1
-;     l85fd:                          1
 ;     l886f:                          1
 ;     l8877:                          1
 ;     l89c9:                          1
@@ -16326,6 +16363,7 @@ save pydis_start, pydis_end
 ;     store_stack_byte:               1
 ;     store_station_and_flush:        1
 ;     store_station_lo:               1
+;     store_status_copy_ptr:          1
 ;     store_tx_ctrl_byte:             1
 ;     store_tx_ptr_hi:                1
 ;     store_txcb_init_byte:           1
@@ -16344,6 +16382,7 @@ save pydis_start, pydis_end
 ;     tube_claimed_id:                1
 ;     tube_write_setup:               1
 ;     tx_check_tdra_ready:            1
+;     tx_ctrl_dispatch_lo-&81:        1
 ;     tx_ctrl_exit:                   1
 ;     tx_ctrl_range_check:            1
 ;     tx_ctrl_store_and_add:          1
@@ -16466,7 +16505,6 @@ save pydis_start, pydis_end
 ;     l4e2f
 ;     l6f6e
 ;     l840a
-;     l85fd
 ;     l886f
 ;     l8877
 ;     l89c9
@@ -16609,11 +16647,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13434 bytes (82%)
-;     Data                     = 2950 bytes (18%)
+;     Code                     = 13438 bytes (82%)
+;     Data                     = 2946 bytes (18%)
 ;
-;     Number of instructions   = 6631
-;     Number of data bytes     = 1646 bytes
+;     Number of instructions   = 6633
+;     Number of data bytes     = 1642 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1276 bytes
 ;     Number of strings        = 143

@@ -504,6 +504,7 @@ label(0x83FF, "return_from_discard_reset")
 label(0x84AE, "jmp_send_data_rx_ack")
 label(0x84BE, "set_rx_buf_len_hi")
 expr_label(0x84B8, "tx_done_dispatch_lo-&83")  # = &853B - &83
+expr_label(0x85FD, "tx_ctrl_dispatch_lo-&81")  # = &867E - &81
 label(0x853A, "return_from_advance_buf")
 label(0x85F8, "reload_inactive_mask")
 # UNMAPPED: label(0x8600, "intoff_disable_nmi_op")
@@ -1917,8 +1918,8 @@ label(0x862C, "tx_bad_ctrl_error")
 label(0x863C, "tx_no_clock_error")
 label(0x863E, "store_tx_error")
 label(0x8697, "add_bytes_loop")
-# UNMAPPED: label(0x8681, "tx_ctrl_dispatch_lo")
-# UNMAPPED: label(0x8689, "tx_ctrl_machine_type")
+label(0x867E, "tx_ctrl_dispatch_lo")
+label(0x8686, "tx_ctrl_machine_type")
 label(0x86A9, "setup_data_xfer")
 label(0x86BF, "copy_bcast_addr")
 label(0x86CB, "setup_unicast_xfer")
@@ -2631,12 +2632,14 @@ subroutine(0x864A, "tx_prepare",
     "Tube transfers, claims the Tube address; for direct\n"
     "transfers, sets up the buffer pointer from the TXCB.",
     on_entry={"y": "&E7 (CR2 prep value)"})
-# UNMAPPED: subroutine(0x8689, "tx_ctrl_machine_type",
-# UNMAPPED:     title="TX ctrl: machine type query setup",
-# UNMAPPED:     description="Handler for control byte &88. Sets scout_status=3\n"
-# UNMAPPED:     "and branches to store_status_copy_ptr, skipping\n"
-# UNMAPPED:     "the 4-byte address addition (no address parameters\n"
-# UNMAPPED:     "needed for a machine type query).")
+subroutine(0x8686, "tx_ctrl_machine_type",
+    title="TX ctrl: machine type query setup",
+    description="Handler for control byte &88. Sets scout_status=3\n"
+    "and branches to store_status_copy_ptr, skipping\n"
+    "the 4-byte address addition (no address parameters\n"
+    "needed for a machine type query). Reached only via\n"
+    "PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo entry &88.",
+    on_exit={"a": "3 (scout_status for machine type query)"})
 subroutine(0x868A, "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
     description="Sets A=3 (scout_status for PEEK) and branches\n"
@@ -6171,22 +6174,24 @@ comment(0x8679, "Look up handler address low from table", inline=True)
 comment(0x867C, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x867D, "RTS dispatches to control-byte handler", inline=True)
 
-# tx_ctrl_dispatch_lo (&8677): 8-byte dispatch table.
-# Low bytes of PHA/PHA/RTS targets for TX control byte handlers
-# &81-&88. Read by LDA intoff_disable_nmi_op,Y at &867C (base
-# intoff_test_inactive+1 + Y). High byte always &86, targets are &86xx+1.
-# The last entry (&88) dispatches to tx_ctrl_machine_type at
-# &867F, which is the 4 bytes immediately after the table.
-# UNMAPPED: comment(0x8681, "TX ctrl dispatch table (lo bytes)\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
-# UNMAPPED:     "control byte types &81-&88. Read by the dispatch\n"
-# UNMAPPED:     "at &867C via LDA intoff_disable_nmi_op,Y (base\n"
-# UNMAPPED:     "intoff_test_inactive+1). High byte is always &86,\n"
-# UNMAPPED:     "so targets are &86xx+1. Last entry dispatches to\n"
-# UNMAPPED:     "tx_ctrl_machine_type at &867F, immediately after\n"
-# UNMAPPED:     "the table.")
-# UNMAPPED: comment(0x8689, "scout_status=3 (machine type query)", inline=True)
+# tx_ctrl_dispatch_lo (&867E): 8-byte dispatch table for control bytes
+# &81-&88. The dispatch base operand is &85FD = tx_ctrl_dispatch_lo - &81,
+# which lands mid-instruction inside intoff_test_inactive (the BIT &FE38
+# operands at &85FC and &85FF were chosen so this table happens to fit).
+# High byte pushed by the dispatcher is always &86, so targets are
+# &86xx + 1. tx_ctrl_machine_type (entry &88) sits at &8686, the 4 bytes
+# immediately after the table -- 3 bytes earlier than 4.18's &8689,
+# matching the upstream layout shifts in this region.
+comment(0x867E, "TX ctrl dispatch table (lo bytes)\n"
+    "\n"
+    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
+    "control byte types &81-&88. Read by the dispatch at\n"
+    "&8679 via LDA tx_ctrl_dispatch_lo-&81,Y (operand\n"
+    "&85FD, mid-instruction inside intoff_test_inactive).\n"
+    "High byte is always &86, so targets are &86xx+1.\n"
+    "Last entry (&88) dispatches to tx_ctrl_machine_type\n"
+    "at &8686, the 4 bytes immediately after the table.")
+comment(0x8686, "A=3: scout_status for machine type query", inline=True)
 comment(0x8688, "Skip address addition, store status", inline=True)
 comment(0x868A, "A=3: scout_status for PEEK op", inline=True)
 comment(0x868E, "Scout status = 2 (POKE transfer)", inline=True)
@@ -10103,20 +10108,21 @@ expr(0x853D, "<(tx_done_os_proc-1)")      # op &85: OSProc call
 expr(0x853E, "<(tx_done_halt-1)")         # op &86: HALT
 expr(0x853F, "<(tx_done_continue-1)")     # op &87: CONTINUE
 
-# TX ctrl dispatch table (8 bytes) and machine type handler (4 bytes)
-# UNMAPPED: entry(0x8689)   # tx_ctrl_machine_type: ctrl &88 handler
-# UNMAPPED: for i in range(8):
-# UNMAPPED:     byte(0x8681 + i)
+# TX ctrl dispatch table (8 bytes at &867E) and machine type handler
+# (4 bytes at &8686). 4.21 shifted both -3 bytes from 4.18.
+entry(0x8686)   # tx_ctrl_machine_type: ctrl &88 handler
+for i in range(8):
+    byte(0x867E + i)
 
 # Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
-# UNMAPPED: expr(0x8681, "<(tx_ctrl_peek-1)")
-# UNMAPPED: expr(0x8682, "<(tx_ctrl_poke-1)")
-# UNMAPPED: expr(0x8683, "<(proc_op_status2-1)")
-# UNMAPPED: expr(0x8684, "<(proc_op_status2-1)")
-# UNMAPPED: expr(0x8685, "<(proc_op_status2-1)")
-# UNMAPPED: expr(0x8686, "<(tx_ctrl_exit-1)")
-# UNMAPPED: expr(0x8687, "<(tx_ctrl_exit-1)")
-# UNMAPPED: expr(0x8688, "<(tx_ctrl_machine_type-1)")
+expr(0x867E, "<(tx_ctrl_peek-1)")          # ctrl &81: PEEK
+expr(0x867F, "<(tx_ctrl_poke-1)")          # ctrl &82: POKE
+expr(0x8680, "<(proc_op_status2-1)")       # ctrl &83: JSR
+expr(0x8681, "<(proc_op_status2-1)")       # ctrl &84: UserProc
+expr(0x8682, "<(proc_op_status2-1)")       # ctrl &85: OSProc
+expr(0x8683, "<(tx_ctrl_exit-1)")          # ctrl &86: HALT
+expr(0x8684, "<(tx_ctrl_exit-1)")          # ctrl &87: CONTINUE
+expr(0x8685, "<(tx_ctrl_machine_type-1)")  # ctrl &88: machine type
 
 # Dead data between tx_store_result and tx_calc_transfer (16 bytes)
 # Unreferenced and unreachable — force to individual data bytes.
