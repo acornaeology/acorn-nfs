@@ -8884,6 +8884,71 @@ comment(0xB094, "Store at (nfs_workspace,X)", inline=True)
 comment(0xB096, "Return", inline=True)
 comment(0xB0A0, "JMP (l4898,X) -- never executed; see cmd_cdir", inline=True)
 
+# Final small-routine sweep: the long tail of 1-4 uncommented items
+# spread across mid-tier helpers.
+comment(0xA83B, "BRA ca855 -- skip past 22-byte caller-cleanup frame", inline=True)
+comment(0xA84A, "Read svc_state[Y] (frame slot)", inline=True)
+comment(0xA854, "DEY -- next slot", inline=True)
+comment(0xA855, "Loop until Y wraps", inline=True)
+
+comment(0x90C7, "Print 'Station ' inline string", inline=True)
+comment(0x90D9, "Y=1: PB station-byte offset", inline=True)
+comment(0x90DB, "Read RX[1] = station number", inline=True)
+comment(0x90DD, "Print as decimal (no leading zeros)", inline=True)
+
+comment(0x8BC8, "PHX -- save X (cmd-table offset)", inline=True)
+comment(0x8BC9, "PHY -- save Y (text-pointer offset)", inline=True)
+comment(0x8BCD, "PLY -- restore Y", inline=True)
+comment(0x8BCE, "PLX -- restore X", inline=True)
+
+comment(0xB2DB, "X=0: scan from start of TX entry", inline=True)
+comment(0xB2DD, "Read entry byte at lc105+X", inline=True)
+comment(0xB2E0, "Bit 7 set: end-of-entries -> return", inline=True)
+comment(0xB2E2, "Non-printable: take CR-newline path at cb2f9", inline=True)
+
+comment(0xAF80, "A=&A6: 'Printer busy' error code", inline=True)
+comment(0xAF82, "Raise via error_inline_log (never returns)", inline=True)
+comment(0xAF92, "A=&A7: 'Printer jammed' error code", inline=True)
+comment(0xAF94, "Raise via error_inline_log (never returns)", inline=True)
+
+comment(0xA901, "PHP -- save caller flags (D may be in any state)", inline=True)
+comment(0xA902, "TAX -- save A across decimal-mode arithmetic", inline=True)
+comment(0xA905, "SED -- enter decimal mode", inline=True)
+comment(0xA90E, "PLP -- restore caller flags (incl. D)", inline=True)
+
+comment(0xAE94, "Y = spool_buf_idx", inline=True)
+comment(0xAE97, "Store A at (net_rx_ptr)+Y", inline=True)
+comment(0xAE99, "Advance spool_buf_idx", inline=True)
+comment(0xAE9C, "Return", inline=True)
+
+comment(0x9895, "A=&7E: OSBYTE &7E = acknowledge Escape", inline=True)
+comment(0x989A, "A=6: error class for 'Escape'", inline=True)
+comment(0x989C, "JMP classify_reply_error (never returns)", inline=True)
+
+comment(0x9262, "Store as fs_error_ptr (return-addr saved)", inline=True)
+comment(0x9265, "Store as fs_crflag (entry flag)", inline=True)
+comment(0x9267, "Y=0: start scanning at offset 0", inline=True)
+
+comment(0x924E, "LSR / LSR / LSR -- shift hi nibble down to lo", inline=True)
+comment(0x924F, "(continued)", inline=True)
+comment(0x9250, "(continued)", inline=True)
+
+comment(0xABBE, "Advance Y", inline=True)
+comment(0xABC7, "Non-zero: take return path", inline=True)
+comment(0xABD0, "Return", inline=True)
+
+comment(0xA4DC, "BIT fs_flags -- test bit 6", inline=True)
+comment(0xA4DF, "Bit 6 set: take fscv_2_star_run", inline=True)
+comment(0xA4E1, "Bit 6 clear: raise 'Bad command'", inline=True)
+
+comment(0x987E, "Commit the language-reply state byte", inline=True)
+comment(0x9881, "A=0: 'Bad' error code", inline=True)
+comment(0x9883, "Raise via error_inline_log (never returns)", inline=True)
+
+comment(0x8088, "Y=1: tx_src_stn offset in NMI block", inline=True)
+comment(0x808A, "Read TX source station from (net_rx_ptr)+1", inline=True)
+comment(0x808C, "Store as tx_src_stn", inline=True)
+
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
 # stack-X trick is the standard 6502 idiom for adding a saved value
