@@ -348,24 +348,28 @@ dimensions. In priority order:
     - osword_13_set_handles (&AAD0).
     - osword_13_read_handles (&AAC2).
 
-  Outstanding (the user-callable star commands and a couple of
-  service-handler internals):
+  Done (2026-05-02):
 
-    - cmd_close
-    - cmd_print
-    - cmd_prot
-    - cmd_type
-    - cmd_unprot
-    - read_paged_rom
-    - set_jsr_protection
-    - osword_4_handler
+    - cmd_prot at &B6D2 (with cmd_unprot at &B6D6 sharing body):
+      Master 128 stores protection in CMOS bit 6 of byte &11; no
+      keyword arguments any more, the wrapper just toggles the bit.
+    - osword_4_handler at &AD32: reached via OSWORD dispatch
+      table; clears caller's C, stores Y to nfs_workspace+&DA,
+      falls into tx_econet_abort.
 
-  Approach: for each, fingerprint against the 4.18 driver's
-  subroutine body, locate the matching block in 4.21, declare with
-  `subroutine()`, add inline comments. Many of these are reached
-  via the star-command dispatch table at &A3F1 (lo) / &A3F2 (hi)
-  -- promoting them resolves PHA/PHA/RTS targets and gives the
-  table entries useful symbolic forms (overlaps with Phase E).
+  Confirmed REMOVED in 4.21 (no equivalent code exists):
+
+    - cmd_close, cmd_print, cmd_type -- Master MOS provides these
+      as built-ins, so the NFS ROM no longer wraps them.
+    - read_paged_rom -- no JMP osrdsc (`4C B9 FF`) anywhere.
+    - set_jsr_protection -- svc5_irq_check rewritten around the
+      Master deferred-work flag at &0D65; the JSR-protection
+      mechanism is gone. The shared SR-shadow-update body lives
+      at setup_sr_tx (&8512) for unrelated TX-prep work.
+
+  Removals captured in CHANGES-FROM-4.18-NOTES.md.
+
+  **Phase C complete.**
 
 ## Phase D: Data classification review
 
