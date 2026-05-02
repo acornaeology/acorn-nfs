@@ -3231,7 +3231,11 @@ l89c9 = reset_enter_listen+2
     eor (fs_load_addr),y                                              ; 8b36: 51 b0       Q.             ; Compare with stored checksum
     rts                                                               ; 8b38: 60          `
 
-    equb &a9, &20, &2c, &a1, &fe, &f0, &12, &a9, 3, &4c, &89, &99     ; 8b39: a9 20 2c... . ,
+    lda #&20 ; ' '                                                    ; 8b39: a9 20       .
+    bit econet_control23_or_status2                                   ; 8b3b: 2c a1 fe    ,..
+    beq select_fs_via_cmd_net_fs                                      ; 8b3e: f0 12       ..
+    lda #3                                                            ; 8b40: a9 03       ..
+    jmp build_simple_error                                            ; 8b42: 4c 89 99    L..
 
 ; ***************************************************************************************
 ; Service 18: filing system selection request
@@ -3275,7 +3279,7 @@ l89c9 = reset_enter_listen+2
 ; contract)
 ;
 ; On Exit: A: current FS state byte if selection succeeded
-; &8b52 referenced 1 time by &8cdd
+; &8b52 referenced 2 times by &8b3e, &8cdd
 .select_fs_via_cmd_net_fs
     jsr cmd_net_fs                                                    ; 8b52: 20 23 8b     #.            ; Auto-select ANFS via the *NFS handler
     beq c8b5a                                                         ; 8b55: f0 03       ..             ; Z=1 (A=0): selection succeeded
@@ -4006,6 +4010,7 @@ ps_template_base = sub_c8da6+1
     ldy #&25 ; '%'                                                    ; 8e47: a0 25       .%             ; Y=&25: logon dispatch offset
     bne svc_dispatch                                                  ; 8e49: d0 16       ..             ; ALWAYS branch
 
+.fscv_handler
     jsr set_xfer_params                                               ; 8e4b: 20 d7 93     ..            ; Parse reply as decimal number
     cmp #&0c                                                          ; 8e4e: c9 0c       ..             ; Result >= 8?
     bcs dispatch_rts                                                  ; 8e50: b0 1e       ..             ; Yes: out of range, return
@@ -4084,7 +4089,7 @@ ps_template_base = sub_c8da6+1
     jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.
     lda #0                                                            ; 8e92: a9 00       ..
     tay                                                               ; 8e94: a8          .              ; Y=&00
-    jmp ca02f                                                         ; 8e95: 4c 2f a0    L/.
+    jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.
 
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
@@ -4135,26 +4140,26 @@ ps_template_base = sub_c8da6+1
 ; byte.
 ; &8ea7 referenced 1 time by &8b78
 .fs_vector_table
-    equw &ff1b                                                        ; 8ea7: 1b ff       ..             ; FILEV dispatch (&FF1B)
-    equw &ff1e                                                        ; 8ea9: 1e ff       ..             ; ARGSV dispatch (&FF1E)
-    equw &ff21                                                        ; 8eab: 21 ff       !.             ; BGETV dispatch (&FF21)
-    equw &ff24                                                        ; 8ead: 24 ff       $.             ; BPUTV dispatch (&FF24)
-    equw &ff27                                                        ; 8eaf: 27 ff       '.             ; GBPBV dispatch (&FF27)
-    equw &ff2a                                                        ; 8eb1: 2a ff       *.             ; FINDV dispatch (&FF2A)
-    equw &ff2d                                                        ; 8eb3: 2d ff       -.             ; FSCV dispatch (&FF2D)
-    equw &9c22                                                        ; 8eb5: 22 9c       ".             ; FILEV handler (&9C22)
+    equw ev_filev                                                     ; 8ea7: 1b ff       ..             ; FILEV dispatch
+    equw ev_argsv                                                     ; 8ea9: 1e ff       ..             ; ARGSV dispatch
+    equw ev_bgetv                                                     ; 8eab: 21 ff       !.             ; BGETV dispatch
+    equw ev_bputv                                                     ; 8ead: 24 ff       $.             ; BPUTV dispatch
+    equw ev_gbpbv                                                     ; 8eaf: 27 ff       '.             ; GBPBV dispatch
+    equw ev_findv                                                     ; 8eb1: 2a ff       *.             ; FINDV dispatch
+    equw ev_fscv                                                      ; 8eb3: 2d ff       -.             ; FSCV dispatch
+    equw filev_handler                                                ; 8eb5: 22 9c       ".             ; FILEV handler
     equb &4a                                                          ; 8eb7: 4a          J              ; (ROM bank — not read)
-    equw &9eab                                                        ; 8eb8: ab 9e       ..             ; ARGSV handler (&9EAB)
+    equw argsv_handler                                                ; 8eb8: ab 9e       ..             ; ARGSV handler
     equb &44                                                          ; 8eba: 44          D              ; (ROM bank — not read)
-    equw &bb68                                                        ; 8ebb: 68 bb       h.             ; BGETV handler (&BB68)
+    equw bgetv_handler                                                ; 8ebb: 68 bb       h.             ; BGETV handler
     equb &57                                                          ; 8ebd: 57          W              ; (ROM bank — not read)
-    equw &bbe7                                                        ; 8ebe: e7 bb       ..             ; BPUTV handler (&BBE7)
+    equw bputv_handler                                                ; 8ebe: e7 bb       ..             ; BPUTV handler
     equb &42                                                          ; 8ec0: 42          B              ; (ROM bank — not read)
-    equw &a14c                                                        ; 8ec1: 4c a1       L.             ; GBPBV handler (&A14C)
+    equw gbpbv_handler                                                ; 8ec1: 4c a1       L.             ; GBPBV handler
     equb &41                                                          ; 8ec3: 41          A              ; (ROM bank — not read)
-    equw &a02f                                                        ; 8ec4: 2f a0       /.             ; FINDV handler (&A02F)
+    equw findv_handler                                                ; 8ec4: 2f a0       /.             ; FINDV handler
     equb &52                                                          ; 8ec6: 52          R              ; (ROM bank — not read)
-    equw &8e4b                                                        ; 8ec7: 4b 8e       K.             ; FSCV handler (&8E4B)
+    equw fscv_handler                                                 ; 8ec7: 4b 8e       K.             ; FSCV handler
 
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=&FF
@@ -6604,7 +6609,7 @@ l968f = sub_c968e+1
 ; &9987 referenced 1 time by &9981
 .done_suffix
     beq check_msg_terminator                                          ; 9987: f0 15       ..             ; Always taken (Z still set from BEQ): final terminator check
-; &9989 referenced 1 time by &9945
+; &9989 referenced 2 times by &8b42, &9945
 .build_simple_error
     tax                                                               ; 9989: aa          .              ; X = error class
     ldy net_error_lookup_data,x                                       ; 998a: bc 9a 9a    ...            ; Y = lookup-table offset
@@ -8157,7 +8162,7 @@ l99a3 = bad_str_anchor+1
     jsr alloc_fcb_slot                                                ; a02a: 20 a8 b8     ..            ; Allocate FCB slot for channel
     bne store_fcb_flags                                               ; a02d: d0 33       .3             ; Non-zero: FCB allocated, store flags
 ; &a02f referenced 1 time by &8e95
-.ca02f
+.findv_handler
     jsr verify_ws_checksum                                            ; a02f: 20 9e 90     ..            ; Verify workspace checksum
     jsr set_xfer_params                                               ; a032: 20 d7 93     ..            ; Set up transfer parameters
     tax                                                               ; a035: aa          .              ; Transfer A to X
@@ -15315,7 +15320,14 @@ lb821 = err_net_chan_not_found+2
     assert >(svc_9_help-1) == &8c
     assert >(svc_dispatch_idx_2-1) == &8d
     assert >(wait_idle_and_reset-1) == &89
+    assert argsv_handler == &9eab
+    assert bgetv_handler == &bb68
+    assert bputv_handler == &bbe7
     assert copyright - rom_header == &19
+    assert filev_handler == &9c22
+    assert findv_handler == &a02f
+    assert fscv_handler == &8e4b
+    assert gbpbv_handler == &a14c
     assert syn_access - cmd_syntax_strings - 1 == &b1
     assert syn_iam - cmd_syntax_strings - 1 == &07
     assert syn_iam - cmd_syntax_strings - 2 == &06
@@ -15330,7 +15342,7 @@ save pydis_start, pydis_end
 ;     fs_options:                    54
 ;     net_rx_ptr:                    52
 ;     ws_ptr_hi:                     48
-;     econet_control23_or_status2:   45
+;     econet_control23_or_status2:   46
 ;     work_ae:                       45
 ;     fs_load_addr_2:                38
 ;     econet_data_continue_frame:    37
@@ -15614,6 +15626,7 @@ save pydis_start, pydis_end
 ;     append_error_number:            2
 ;     append_space_and_num:           2
 ;     build_error_block:              2
+;     build_simple_error:             2
 ;     c8264:                          2
 ;     c842f:                          2
 ;     c8827:                          2
@@ -15797,6 +15810,7 @@ save pydis_start, pydis_end
 ;     save_ptr_to_spool_buf:          2
 ;     save_txcb_and_convert:          2
 ;     scout_complete:                 2
+;     select_fs_via_cmd_net_fs:       2
 ;     send_ack:                       2
 ;     send_and_receive:               2
 ;     send_data_rx_ack:               2
@@ -15874,7 +15888,6 @@ save pydis_start, pydis_end
 ;     bridge_txcb_init_table:         1
 ;     brk_ptr:                        1
 ;     build_no_reply_error:           1
-;     build_simple_error:             1
 ;     c8032:                          1
 ;     c8211:                          1
 ;     c8258:                          1
@@ -15913,7 +15926,6 @@ save pydis_start, pydis_end
 ;     c9827:                          1
 ;     c9984:                          1
 ;     c9a0d:                          1
-;     ca02f:                          1
 ;     ca0cf:                          1
 ;     ca0db:                          1
 ;     ca0df:                          1
@@ -16095,6 +16107,7 @@ save pydis_start, pydis_end
 ;     extract_digit_value:            1
 ;     filev:                          1
 ;     find_station_bit2:              1
+;     findv_handler:                  1
 ;     fixup_reply_status_a:           1
 ;     flush_fcb_if_station_known:     1
 ;     flush_fcb_with_init:            1
@@ -16555,7 +16568,6 @@ save pydis_start, pydis_end
 ;     scout_match_port:               1
 ;     scout_page_overflow:            1
 ;     scout_reject:                   1
-;     select_fs_via_cmd_net_fs:       1
 ;     select_net_fs:                  1
 ;     select_store_target:            1
 ;     send_close_request:             1
@@ -16773,7 +16785,6 @@ save pydis_start, pydis_end
 ;     c9827
 ;     c9984
 ;     c9a0d
-;     ca02f
 ;     ca0cf
 ;     ca0db
 ;     ca0df
@@ -16983,11 +16994,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14373 bytes (88%)
-;     Data                     = 2011 bytes (12%)
+;     Code                     = 14385 bytes (88%)
+;     Data                     = 1999 bytes (12%)
 ;
-;     Number of instructions   = 7075
-;     Number of data bytes     = 706 bytes
+;     Number of instructions   = 7080
+;     Number of data bytes     = 694 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1277 bytes
 ;     Number of strings        = 147

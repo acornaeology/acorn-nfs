@@ -9299,13 +9299,19 @@ string(0xA782, 2)    # "PS"
 byte(0xA784)
 byte(0xA7C6)
 
-# Sub-table 1: utility commands
+# cmd_table_fs (&A76C onwards) -- star-command dispatch entry points.
 # Table stores address-1 for PHA/PHA/RTS dispatch; actual targets are +1.
-entry(0xBD41)   # *Dump
-entry(0x8B23)   # *Net (select NFS)
+# Sub-table 1: utility commands (*Net / *Pollps / *Prot / *PS / *Roff /
+#                                *Unprot / *Wdump).
+entry(0x8B39)   # *Net (Econet hardware check, then cmd_net_fs)
+# entry(0x8B23) was previously labelled "*Net" but is actually cmd_net_fs
+# (reached via JSR from &8B52 / &900D); the *Net dispatch goes to &8B39.
 entry(0xB581)   # *Pollps
+entry(0xB6D2)   # *Prot
 entry(0xB3AC)   # *PS
 entry(0x8AEA)   # *Roff
+entry(0xB6D6)   # *Unprot (alias of *Prot, falls into shared body)
+entry(0xBD41)   # *Wdump (alias of *Dump)
 
 # Mark dispatch address words as symbolic label expressions.
 # Each entry: (addr, target_label). Uses EQUW (little-endian word).
@@ -9843,34 +9849,41 @@ not read at runtime (write_vector_entry writes the current ROM
 bank number instead). The last entry (FSCV) has no padding
 byte.""")
 
+# Add labels for the handler targets that don't already have a sub
+# declaration (so the symbolic equw renders as a name).
+label(0xA02F, "findv_handler")
+label(0x8E4B, "fscv_handler")
+
 # Part 1: extended vector dispatch addresses (7 x 2 bytes)
 # Each value is &FF1B, &FF1E, &FF21, ... &FF2D — the MOS extended
 # vector dispatch entries. These get installed at &0212-&021F by
 # loop_set_vectors and route filing-system OS calls into the per-ROM
 # extended vector table at &0D9F+, where ANFS plants the real handlers.
-for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV",
-                           "GBPBV", "FINDV", "FSCV"]):
+_ev_dispatch = ["ev_filev", "ev_argsv", "ev_bgetv", "ev_bputv",
+                "ev_gbpbv", "ev_findv", "ev_fscv"]
+for i, ev in enumerate(_ev_dispatch):
     addr = 0x8EA7 + i * 2
     word(addr)
-    comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})",
-            inline=True)
+    expr(addr, ev)
+    comment(addr, "%s dispatch" % ev[3:].upper(), inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad}).
 # write_vector_entry (&904F) reads bytes from c8e9a+Y starting at
 # Y=&1B, so the table starts at &8E9A+&1B = &8EB5.
 handler_names = [
-    ("FILEV",  0x9C22),
-    ("ARGSV",  0x9EAB),
-    ("BGETV",  0xBB68),
-    ("BPUTV",  0xBBE7),
-    ("GBPBV",  0xA14C),
-    ("FINDV",  0xA02F),
-    ("FSCV",   0x8E4B),
+    ("FILEV",  "filev_handler"),
+    ("ARGSV",  "argsv_handler"),
+    ("BGETV",  "bgetv_handler"),
+    ("BPUTV",  "bputv_handler"),
+    ("GBPBV",  "gbpbv_handler"),
+    ("FINDV",  "findv_handler"),
+    ("FSCV",   "fscv_handler"),
 ]
-for i, (name, handler_addr) in enumerate(handler_names):
+for i, (name, handler_label) in enumerate(handler_names):
     base_addr = 0x8EB5 + i * 3
     word(base_addr)
-    comment(base_addr, f"{name} handler (&{handler_addr:04X})", inline=True)
+    expr(base_addr, handler_label)
+    comment(base_addr, "%s handler" % name, inline=True)
     if i < 6:  # pad byte for all but last entry
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
