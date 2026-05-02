@@ -36,6 +36,18 @@ trace.cpu.default_subroutine_hook = None
 
 byte(0xBFC7)  # Force padding byte onto its own line for annotation
 
+data_banner(0xBFC5, "rom_tail_padding",
+    title="ROM-tail FF padding (33 bytes &BFC5-&BFE5)",
+    description="""\
+33 bytes of `&FF` at the end of the ROM image, between the last
+real subroutine ([`inx4`](address:BFC0)) and the sideways-RAM
+scratch workspace at [`lbfe6`](address:BFE6) onwards. As ROM
+content this is unreferenced filler; once the image is loaded
+into a sideways-RAM bank these bytes become part of the
+writable workspace overlay (none of the indexed-access sites
+read this specific span at runtime, so the `&FF` content is
+effectively don't-care).""")
+
 # acorn.bbc() provides OS vectors, entry points, zero page labels.
 # acorn.is_sideways_rom() provides ROM header labels.
 acorn.bbc()
@@ -48,6 +60,13 @@ acorn.is_sideways_rom()
 # by a byte with bit 7 set. The high-bit byte is the opcode of the next
 # instruction — the routine jumps there via JMP (fs_error_ptr).
 hook_subroutine(0x9261, "print_inline", stringhi_hook)
+
+# print_inline_no_spool (&928A) follows the same calling convention as
+# print_inline but routes characters through print_char_no_spool so they
+# don't enter any active *SPOOL capture. Hooked so py8dis classifies the
+# inline strings as data and resumes tracing at the high-bit terminator
+# (which doubles as the next opcode).
+hook_subroutine(0x928A, "print_inline_no_spool", stringhi_hook)
 
 # error_inline (&96BE) builds a BRK error block from a null-terminated inline
 # string following the JSR. The error number is passed in A. Never returns.
@@ -621,7 +640,16 @@ label(0x9571, "dir_found_send")
 label(0x9597, "dir_pass_simple")
 label(0x974E, "loop_init_txcb")
 label(0x975E, "skip_txcb_dest")
-label(0x9763, "txcb_init_template")
+data_banner(0x9763, "txcb_init_template",
+    title="TXCB initialisation template (12 bytes)",
+    description="""\
+Copied by [`init_txcb`](address:974B) into the TXCB workspace at
+`&00C0`. For offsets 0-1 the destination station bytes are also
+copied from the FS-options destination pair into `txcb_dest`. The
+`&FF` byte at offset 6 ([`always_set_v_byte`](address:9769))
+serves double duty: it is part of this template AND a `BIT $abs`
+target used by 22 callers to set V and N flags without clobbering
+A.""")
 for i in range(12):
     byte(0x9763 + i)
 label(0x976A, "bit_test_ff")
@@ -677,7 +705,14 @@ label(0x9A54, "append_station_num")
 label(0x9A81, "loop_count_digit")
 label(0x9A91, "store_digit")
 label(0x9A99, "return_from_store_digit")
-label(0x9A9A, "net_error_lookup_data")
+data_banner(0x9A9A, "net_error_lookup_data",
+    title="Net-error code -> message-table offset (12 bytes)",
+    description="""\
+Maps Econet error codes (`&A0`-`&A8`: line jammed, net error, not
+listening, etc.) to byte offsets in `error_msg_table`. Indexed by
+the error code minus `err_line_jammed` (`&A0`); the result is
+added to `error_msg_table`'s base to find the per-error message
+string.""")
 for i in range(12):
     byte(0x9A9A + i)
 # Symbolic offsets into error_msg_table
@@ -688,7 +723,15 @@ label(0x9B58, "loop_tx_delay")
 label(0x9B60, "try_alternate_phase")
 label(0x9B6B, "tx_send_error")
 label(0x9B6F, "tx_success")
-label(0x9B75, "pass_txbuf_init_table")
+data_banner(0x9B75, "pass_txbuf_init_table",
+    title="Pass-through TX buffer template (12 bytes)",
+    description="""\
+Overlaid onto the TX control block by `setup_pass_txbuf` for
+pass-through operations. Offsets marked `&FD` are skipped,
+preserving the existing destination station and network. Buffer
+addresses point into the NMI workspace area at
+[`rx_src_stn`](address:0D3D?hex) onwards. Original TX buffer
+values are pushed on the stack and restored after transmission.""")
 for i in range(12):
     byte(0x9B75 + i)
 label(0x9B8B, "loop_copy_template")
@@ -986,9 +1029,16 @@ label(0xADAC, "loop_restore_stack")
 label(0xADB0, "store_stack_byte")
 label(0xADB7, "return_from_claim_release")
 label(0xADC0, "return_from_match_rx_code")
-label(0xADC1, "osword_claim_codes")
+data_banner(0xADC1, "osword_claim_codes",
+    title="OSWORD per-claim-code lookup table (18 bytes)",
+    description="""\
+Looked up by [`match_rx_code`](address:ADB8) when an Econet RX
+event triggers an OSWORD-related claim. The X register selects an
+18-byte slice; bytes encode the claim type (immediate-op,
+broadcast, port-specific) used by the dispatcher to decide which
+handler chain to install. Per-byte inline comments document each
+entry.""")
 
-# Split the 18-byte claim codes table into individual bytes for annotation.
 for i in range(18):
     byte(0xADC1 + i)
 label(0xADDD, "copy_pb_to_ws")
@@ -999,9 +1049,20 @@ label(0xAE23, "select_store_target")
 label(0xAE29, "store_via_rx_ptr")
 label(0xAE2B, "advance_template_idx")
 label(0xAE2F, "done_ws_template_copy")
-label(0xAE33, "ws_txcb_template_data")
+data_banner(0xAE33, "ws_txcb_template_data",
+    title="Workspace TXCB template (39 bytes, three overlapping regions)",
+    description="""\
+Three overlapping copy regions indexed by different callers:
 
-# Split the 39-byte workspace TXCB template into individual bytes.
+| Caller | X / Y / V | Range | Destination |
+|---|---|---|---|
+| Wide   | `X=&0D`, `Y=&7C`, `V=1` | bytes 0..13  | `ws+&6F..&7C` via `net_rx_ptr` |
+| Narrow | `X=&1A`, `Y=&17`, `V=0` | bytes 14..26 | `ws+&0C..&17` via `nfs_workspace` |
+| Vclr   | `X=&26`, `Y=&20`, `V=0` | bytes 27..38 | `ws+&15..&20` via `nfs_workspace` |
+
+Per-byte inline comments below describe each entry's role in the
+TXCB it ends up in.""")
+
 # Three overlapping regions indexed by different callers:
 #   Wide  (X=&0D, Y=&7C, V=1): bytes [0..13]  → ws+&6F..&7C via net_rx_ptr
 #   Narrow (X=&1A, Y=&17, V=0): bytes [14..26] → ws+&0C..&17 via nfs_workspace
@@ -1028,7 +1089,14 @@ label(0xAFC1, "verify_stn_match")
 label(0xAFCC, "send_disconnect_status")
 label(0xAFE9, "store_tx_ctrl_byte")
 label(0xAFF1, "loop_wait_disc_tx_ack")
-label(0xB002, "tx_econet_txcb_template")
+data_banner(0xB002, "tx_econet_txcb_template",
+    title="Spool / disconnect TX control-block template (12 bytes)",
+    description="""\
+12-byte Econet TXCB initialisation template used by the spool /
+disconnect TX paths. Copied into the workspace TXCB at offsets
+`&21..&2C` via `(net_rx_ptr),Y`. Destination station and network
+are filled in afterwards by the caller. Per-byte inline comments
+identify each TXCB field.""")
 
 # Split the 12-byte spool TX control block template into individual bytes.
 # Simple copy (no marker processing) to workspace offset &21..&2C via
@@ -1116,9 +1184,22 @@ for i in range(4):
     byte(0xB552 + i)
 
 label(0xB566, "skip_if_local_net")
-label(0xB575, "ps_slot_txcb_template")
+data_banner(0xB575, "ps_slot_txcb_template",
+    title="Printer-server slot TXCB template (12 bytes)",
+    description="""\
+12-byte Econet TXCB template for printer-server slot buffers.
+Copied by [`init_ps_slot_from_rx`](address:B6A6) into workspace
+offsets `&78`-`&83` via indexed addressing from
+`write_ps_slot_link_addr` (`write_ps_slot_hi_link+1`). Substitutes
+`net_rx_ptr_hi` at offsets `&7D` and `&81` (the hi bytes of the
+two buffer pointers) so they point into the current RX buffer
+page.
 
-# Split the 12-byte PS slot TXCB template into individual bytes.
+Structure: 4-byte header (control, port, station, network)
+followed by two 4-byte buffer descriptors (lo address, hi page,
+end lo, end hi). End bytes `&FF` are placeholders filled in later
+by the caller.""")
+
 for i in range(12):
     byte(0xB575 + i)
 label(0xB5C3, "no_poll_name_given")
@@ -6321,17 +6402,16 @@ comment(0x88E6, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x88E8, "A=&80: TX-complete signal for tx_complete_flag", inline=True)
 comment(0x88EA, "Signal TX complete", inline=True)
 comment(0x88ED, "Full ADLC reset and return to idle listen", inline=True)
-# Unreferenced dead data: 16 bytes between JMP at &88DF and
-# tx_calc_transfer at &88F2. No code or data reference points here.
-comment(0x88F0, "Unreferenced dead data (16 bytes)\n"
-    "\n"
-    "16 bytes between the JMP\n"
-    "[`discard_reset_rx`](address:83E5) at &88ED and\n"
-    "[`tx_calc_transfer`](address:8900). Unreachable as\n"
-    "code (after an unconditional JMP) and unreferenced as\n"
-    "data. No label, index, or indirect pointer targets any\n"
-    "address in the &88F0-&88FF range. Likely an unused\n"
-    "remnant from development.")
+data_banner(0x88F0, "rom_gap_88f0",
+    title="Unreferenced 16-byte gap between TX-error path and tx_calc_transfer",
+    description="""\
+16 dead bytes between the `JMP `[`discard_reset_rx`](address:83E5)
+at `&88ED` and [`tx_calc_transfer`](address:8900). Unreachable as
+code (it sits past an unconditional JMP) and unreferenced as
+data — no label, index, or indirect pointer targets any address
+in the `&88F0`-`&88FF` range. Likely an unused remnant from
+development; declared as a banner so the listing makes the gap
+visible rather than letting it merge into either neighbour.""")
 comment(0x88F0, "Dead data: &0E", inline=True)
 comment(0x88F3, "Dead data: &0A", inline=True)
 comment(0x88F4, "Dead data: &0A", inline=True)
@@ -9635,8 +9715,18 @@ for i in range(16):
 entry(0x84BE)   # After dispatch table data
 entry(0x84CE)   # After &84BB block
 entry(0x88F0)   # 16 bytes after NMI code
+entry(0xA874)   # osword_0e_handler — reached via OSWORD dispatch table
 entry(0xA910)   # 118-byte undecoded block
+entry(0xA92D)   # osword_11_handler — reached via OSWORD dispatch table
 entry(0xA985)   # 552-byte undecoded block (largest remaining)
+entry(0xA99A)   # osword_13_dispatch — reached via OSWORD dispatch table
+entry(0xB357)   # 28-byte block, JSRs into mask_owner_access / parse_cmd_arg_y0 / copy_arg_to_buf, JMPs to &8E3C
+entry(0x9619)   # CMOS-bit setter helpers — reached via *Spool/*Spooloff style dispatch
+entry(0x9623)   # second entry of the &9619 helper (clear bit 0 of CMOS &11)
+entry(0x9630)   # 31-byte block: command-line walker that JSRs &95C8/&9670/&95C1/&965F
+entry(0x959A)   # 21-byte block: LDA(&F2),Y / CMP #&0D loop with JSRs to &95C8/&95DA/&95C1
+entry(0x96BD)   # 41-byte block: filename walker (skip 2 mystery bytes &96BB-BC and start at INY)
+entry(0x96F5)   # 39-byte block: SBC chain — separate routine reached from &96BD body
 entry(0xACFC)   # 68-byte undecoded block
 # entry(0xAA9F) removed — classified as data via byte() declarations
 entry(0xBBE7)   # 21-byte file handler block
@@ -9905,20 +9995,17 @@ comment(0xB0CD, "Copy directory name to TX buffer", inline=True)
 comment(0xB0D0, "Y=&1B: *CDir FS command code", inline=True)
 comment(0xB0D2, "Send command to file server", inline=True)
 
-# cdir_alloc_size_table (&AD32): *CDir allocation size thresholds.
-# Table base is at cdir_dispatch_col+2 (overlapping the JMP operand high
-# byte at &AD2F). The search loop (LDX #&1B / DEX / CMP table,X /
-# BCC) scans indices 26 down to 0; index 0 reads &94 from the JMP
-# but is unreachable because index 1 (threshold &00) always matches.
-# Result X (1-26) is the allocation size class sent to the FS.
-comment(0xB0D5, "*CDir allocation size threshold table\n"
-    "\n"
-    "26 thresholds dividing 0-255 into size classes.\n"
-    "Table base (cdir_dispatch_col+2) overlaps with\n"
-    "the JMP high byte (entry 0, never reached). Searched\n"
-    "from index 26 down to 0; the result index (1-26)\n"
-    "is stored as the directory allocation size class.\n"
-    "Default when no size argument given: index 2.")
+data_banner(0xB0D5, "cdir_alloc_size_table",
+    title="*CDir allocation size threshold table (26 entries)",
+    description="""\
+26 thresholds dividing 0-255 into size classes for the *CDir
+directory-size argument. Table base is at `cdir_dispatch_col+2`
+(overlapping the JMP operand high byte at `&B0D4`); the search
+loop (`LDX #&1B` / `DEX` / `CMP table,X` / `BCC`) scans indices
+26 down to 0. Index 0 reads `&94` from the JMP and is unreachable
+because index 1 (threshold `&00`) always matches first. The
+resulting `X` (1-26) is the allocation size class sent to the
+file server. Default when no size argument is given: index 2.""")
 comment(0xB0D5, "Index 1: threshold 0 (catch-all)", inline=True)
 comment(0xB0D6, "Index 2: threshold 10 (default)", inline=True)
 comment(0xB0D7, "Index 3: threshold 20", inline=True)
