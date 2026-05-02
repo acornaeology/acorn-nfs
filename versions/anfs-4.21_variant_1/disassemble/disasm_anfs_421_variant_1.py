@@ -204,31 +204,14 @@ label(0x00FD, "brk_ptr")
 label(0x00FF, "escape_flag")
 
 # Page 1 — Stack page
-# UNMAPPED: label(0x0100, "error_block")
-# UNMAPPED: label(0x0101, "error_text")
-# UNMAPPED: label(0x0102, "stack_page_2")         # Stack-relative access at SP+2
-# UNMAPPED: label(0x0103, "stack_page_3")         # Stack-relative access at SP+3
-# UNMAPPED: label(0x0104, "stack_page_4")         # Stack-relative access at SP+4
-# UNMAPPED: label(0x0106, "stack_page_6")         # Stack-relative access at SP+6
-# UNMAPPED: label(0x0128, "tube_osword_pb")       # Tube host: OSWORD parameter block
 
 # Page 2 — OS workspace
-# UNMAPPED: label(0x026A, "vdu_queue_count")      # OSBYTE &DA: 256 - VDU queue items
-# UNMAPPED: label(0x028D, "last_break_type")      # OSBYTE &FD: last BREAK type
-# UNMAPPED: label(0x02A0, "rom_type_table")       # Paged ROM type table (16 entries)
 
 # Page 3 — VDU variables
-# UNMAPPED: label(0x0350, "vdu_screen_mode")
-# UNMAPPED: label(0x0351, "vdu_display_start_hi") # 6845 screen display start address hi
-# UNMAPPED: label(0x0355, "vdu_mode")             # Current screen mode
 
 # Page 7 — String buffer
-# UNMAPPED: label(0x0700, "string_buf")
-# UNMAPPED: label(0x072C, "tube_vdu_stream_end")  # Tube VDU relay: end-of-stream target
-# UNMAPPED: label(0x072E, "tube_vdu_normal_byte") # Tube VDU relay: normal byte target
 
 # Page &0C — NMI shim write base
-# UNMAPPED: label(0x0CFF, "nmi_code_base")
 
 # ============================================================
 # Page &0D — NMI handler workspace (&0D00-&0DFF)
@@ -423,7 +406,6 @@ label(0x10D9, "fcb_ctx_save")         # FCB context save buffer (13 bytes)
 label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 
 # Other
-# UNMAPPED: label(0x6F6E, "false_ref_6f6e")       # (false ref from inline string data)
 
 # ============================================================
 # Entry points for relocated code
@@ -445,8 +427,6 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 # Data and shared-tail label renames (Phase 3b)
 label(0x8001, "rom_header_byte1")
 label(0x8002, "rom_header_byte2")
-# UNMAPPED: label(0x8032, "save_registers")
-# UNMAPPED: label(0x805D, "set_jsr_protection")
 label(0x806C, "econet_restore")
 label(0x809A, "adlc_init_done")
 label(0x83D4, "loop_count_rxcb_slot")
@@ -458,19 +438,13 @@ expr_label(0x84B8, "tx_done_dispatch_lo-&83")  # = &853B - &83
 expr_label(0x85FD, "tx_ctrl_dispatch_lo-&81")  # = &867E - &81
 label(0x853A, "return_from_advance_buf")
 label(0x85F8, "reload_inactive_mask")
-# UNMAPPED: label(0x8600, "intoff_disable_nmi_op")
 label(0x87C4, "tx_check_tdra_ready")
 label(0x87EF, "check_tdra_status")
 label(0x8924, "check_tx_in_progress")
 label(0x8A85, "clear_workspace_byte")
 label(0x8A8A, "restore_rom_slot")
-# UNMAPPED: label(0x8A3C, "dispatch_service")
 label(0x8A9A, "set_adlc_absent")
 label(0x8AA1, "check_adlc_flag")
-# UNMAPPED: label(0x8A62, "handle_vectors_claimed")
-# UNMAPPED: label(0x8A6E, "init_rom_scan")
-# UNMAPPED: label(0x8A71, "loop_scan_net_roms")
-# UNMAPPED: label(0x8A98, "next_rom_slot")
 label(0x8AA9, "dispatch_svc_with_state")
 label(0x8AD0, "dispatch_svc_index")
 label(0x8AE1, "restore_svc_state")
@@ -486,16 +460,9 @@ label(0x8BA4, "loop_copy_ws_page")
 label(0x8BD2, "print_table_newline")
 label(0x8BD8, "loop_next_entry")
 label(0x8BE0, "print_indent")
-# UNMAPPED: label(0x8BC0, "loop_print_name")
 label(0x8BF4, "loop_pad_spaces")
 label(0x8C06, "loop_print_syntax")
 label(0x8C16, "print_syntax_char")
-# UNMAPPED: label(0x8BF6, "print_shared_prefix")
-# UNMAPPED: label(0x8C00, "loop_next_shared")
-# UNMAPPED: label(0x8C06, "loop_print_shared")
-# UNMAPPED: label(0x8C12, "print_last_char")
-# UNMAPPED: label(0x8C1F, "skip_syntax_bytes")
-# UNMAPPED: label(0x8C24, "done_shared_cmds")
 label(0x8C1C, "done_entry_newline")
 label(0x8C25, "done_print_table")
 label(0x8C3A, "loop_indent_spaces")
@@ -529,7 +496,6 @@ label(0x8DEB, "read_pw_char")
 label(0x8DFD, "loop_erase_pw")
 label(0x8E04, "check_pw_special")
 label(0x8E13, "send_pass_to_fs")
-# UNMAPPED: label(0x8E54, "svc_dispatch_lo_offset")
 label(0x8E70, "dispatch_rts")
 label(0x8ECD, "jmp_osbyte")
 label(0x8EEF, "return_from_svc_1_workspace")
@@ -537,18 +503,12 @@ label(0x8EF8, "done_cap_ws_count")
 label(0x8F56, "loop_zero_workspace")
 label(0x8F84, "loop_copy_init_data")
 label(0x8FA9, "loop_alloc_handles")
-# UNMAPPED: label(0x8F40, "read_station_id")
-# UNMAPPED: label(0x8F46, "error_bad_station")
-# UNMAPPED: label(0x8F48, "ws_init_data")
 
 # Split the 3 workspace init bytes into individual entries.
 # ws_init_data label overlaps the JMP operand high byte at &8F48;
 # the actual data bytes at &8F49-&8F4B are read via LDA ws_init_data,X
 # with X=3..1 (X=0 never read due to BNE loop exit). The store base
 # is fs_flags (&0D6C).
-# UNMAPPED: for i in range(3):
-# UNMAPPED:     byte(0x8F49 + i)
-# UNMAPPED: label(0x8F4C, "store_station_id")
 label(0x9066, "loop_restore_ctx")
 label(0x9083, "loop_checksum_byte")
 label(0x908D, "loop_copy_to_ws")
@@ -560,15 +520,11 @@ label(0x90F8, "cmd_syntax_strings")
 label(0x90F8, "syn_opt_dir")     # "(<dir>)"
 label(0x9100, "syn_iam")         # "(<stn. id.>) <user id.>..."
 label(0x912D, "syn_object")      # "<object>"
-# UNMAPPED: label(0x9060, "syn_file_offset") # "<filename> (<offset>...)"
 label(0x9159, "syn_dir")         # "<dir>"
-# UNMAPPED: label(0x9089, "syn_dir_num")     # "<dir> (<number>)"
 label(0x9170, "syn_password")    # "(:<CR>) <password>..."
-# UNMAPPED: label(0x90BD, "syn_ps_type")     # "(<stn. id.>|<ps type>)"
 label(0x91AA, "syn_access")      # "<object> (L)(W)(R)..."
 label(0x91C6, "syn_rename")      # "<filename> <new filename>"
 label(0x91E0, "syn_opt_stn")     # "(<stn. id.>)"
-# UNMAPPED: label(0x9117, "syn_filename")    # "<filename>"
 label(0x91ED, "cmd_syntax_table")
 # 12 entries (idx 0-11). The byte at &91F9 immediately after the
 # table is the entry point of the print_no_spool helper.
@@ -577,18 +533,10 @@ for i in range(12):
 # Symbolic expressions: offset = string_start - cmd_syntax_strings - 1
 # (the print loop does INY before LDA, so offset points to byte before string)
 expr(0x91ED, "syn_iam - cmd_syntax_strings - 2")
-# UNMAPPED: expr(0x9123, "(syn_opt_dir - cmd_syntax_strings - 1) AND &FF")
 expr(0x91EF, "syn_iam - cmd_syntax_strings - 1")
 expr(0x91F0, "syn_object - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x9126, "syn_file_offset - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x9127, "syn_dir - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x9128, "syn_dir_num - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x9129, "syn_password - cmd_syntax_strings - 1")
-# UNMAPPED (broken ref): expr(0x91F5, "syn_ps_type - cmd_syntax_strings - 1")
 expr(0x91F6, "syn_access - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x912C, "syn_rename - cmd_syntax_strings - 1")
 expr(0x91F8, "syn_opt_stn - cmd_syntax_strings - 1")
-# UNMAPPED: expr(0x912E, "syn_filename - cmd_syntax_strings - 1")
 label(0x9203, "save_regs_for_print_no_spool")  # shared body of print_*_no_spool
 label(0x921D, "do_print_no_spool")              # PLP/PLA/PHA + OSASCI/OSWRCH branch
 label(0x9227, "print_via_oswrch")               # OSWRCH branch from BVC at &9220
@@ -622,7 +570,6 @@ for i in range(11):
 label(0x93E8, "loop_cmp_handle")
 label(0x93F1, "return_from_cmp_handle")
 label(0x93F2, "fscv_7_read_handles")
-# UNMAPPED: label(0x92E1, "done_conn_flag")
 label(0x9464, "loop_scan_flag")
 label(0x946D, "loop_copy_name")
 label(0x9479, "append_space")
@@ -659,7 +606,6 @@ label(0x97E2, "handle_disconnect")
 label(0x97EB, "store_reply_status")
 label(0x97F8, "check_data_loss")
 label(0x9800, "loop_scan_channels")
-# UNMAPPED: label(0x9547, "reload_reply_status")
 label(0x9831, "build_error_block")
 label(0x983B, "setup_error_copy")
 label(0x983D, "loop_copy_error")
@@ -692,7 +638,6 @@ label(0x99CC, "write_error_num_and_str")
 label(0x99D6, "loop_copy_inline_str")
 label(0x99E9, "trigger_brk")
 label(0x99EC, "handle_net_error")
-# UNMAPPED: label(0x971F, "close_exec_file")
 label(0x9A10, "close_spool_exec")
 label(0x9A19, "done_close_files")
 label(0x9A21, "loop_copy_channel_msg")
@@ -705,18 +650,6 @@ label(0x9A9A, "net_error_lookup_data")
 for i in range(12):
     byte(0x9A9A + i)
 # Symbolic offsets into error_msg_table
-# UNMAPPED (broken ref): expr(0x9A9A, "error_msg_table - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9A9B, "msg_net_error - error_msg_table")
-# UNMAPPED: expr(0x97AF, "msg_station - error_msg_table")
-# UNMAPPED: expr(0x97B0, "msg_no_clock - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9A9E, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9A9F, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9AA0, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9AA1, "msg_bad_option - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9AA2, "msg_no_reply - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9AA3, "msg_not_listening - error_msg_table")
-# UNMAPPED: expr(0x97B7, "msg_on_channel - error_msg_table")
-# UNMAPPED (broken ref): expr(0x9AA5, "msg_not_present - error_msg_table")
 label(0x9B33, "set_timeout")
 label(0x9B3C, "start_tx_attempt")
 label(0x9B52, "loop_retry_tx")
@@ -805,7 +738,6 @@ label(0x9F79, "osargs_write_ptr")
 label(0x9F80, "loop_copy_ptr_to_buf")
 label(0x9FB1, "close_all_fcbs")
 label(0x9FC2, "osfind_close_or_open")
-# UNMAPPED: label(0x9CE0, "loop_copy_reply_data")
 label(0x9FCD, "done_file_open")
 label(0x9FCF, "clear_result")
 label(0x9FD1, "shift_and_finalise")
@@ -862,7 +794,6 @@ label(0xA38D, "done_write_block")
 label(0xA3B8, "print_current_fs")
 label(0xA3DA, "store_station_lo")
 label(0xA3E1, "skip_if_no_station")
-# UNMAPPED: label(0xA0C9, "done_parse_fs_ps")
 label(0xA3FF, "net_1_read_handle")
 label(0xA405, "net_2_read_handle_entry")
 label(0xA410, "return_zero_uninit")
@@ -877,9 +808,6 @@ label(0xA480, "loop_skip_to_next")
 label(0xA485, "check_separator")
 label(0xA48B, "loop_check_sep_table")
 label(0xA497, "sep_table_data")
-# UNMAPPED: for i in range(9):
-# UNMAPPED (orphan body):     byte(0xA497 + i)
-# UNMAPPED: label(0xA185, "separator_matched")
 label(0xA4A2, "loop_skip_trail_spaces")
 label(0xA4A8, "skip_dot_and_spaces")
 label(0xA4AC, "check_cmd_flags")
@@ -907,7 +835,6 @@ label(0xA5AE, "check_exec_addr")
 label(0xA5B0, "loop_check_exec_bytes")
 label(0xA5C3, "alloc_run_channel")
 label(0xA5D7, "library_dir_prefix")
-# UNMAPPED: label(0xA299, "setup_oscli_arg")
 label(0xA5E8, "loop_read_gs_string")
 label(0xA5EE, "loop_skip_trailing")
 label(0xA633, "dispatch_via_vector")
@@ -926,37 +853,17 @@ label(0xA6D2, "jmp_restore_fs_ctx")
 label(0xA6D5, "fsreply_1_copy_handles_boot")
 label(0xA6E5, "fsreply_2_copy_handles")
 label(0xA726, "check_auto_boot_flag")
-# UNMAPPED: label(0xA3DF, "boot_oscli_lo_table")
 
 # Split the 4-byte boot OSCLI address table into individual bytes.
 # Low bytes of boot command string addresses in page &A3.
 # Indexed by boot option (1-3); entry 0 is a don't-care (BEQ skips).
-# UNMAPPED: for i in range(4):
-# UNMAPPED:     byte(0xA3DF + i)
-# UNMAPPED: label(0xA3E3, "load_boot_type")
-# UNMAPPED: label(0xA3F1, "cmd_table_fs_lo")
-# UNMAPPED: label(0xA3F2, "cmd_table_fs_hi")
 label(0xA7C9, "cmd_table_nfs_iam")
 label(0xBEEB, "loop_copy_osword_data")
 label(0xA870, "return_from_osword_setup")
-# UNMAPPED: comment(0xA523, """\
-# UNMAPPED: OSWORD dispatch table (7 entries, split lo/hi).
-# UNMAPPED: PHA/PHA/RTS dispatch used by svc_8_osword.
-# UNMAPPED: Maps OSWORD codes &0E-&14 to handler routines.""")
 
-# UNMAPPED: label(0xA523, "osword_dispatch_lo_table")
-# UNMAPPED: label(0xA52A, "osword_dispatch_hi_table")
 
 # Mark OSWORD dispatch table entries as symbolic address pairs.
-# UNMAPPED: for i in range(7):
-# UNMAPPED:     rts_code_ptr(0xA523 + i, 0xA52A + i)
 
-# UNMAPPED: comment(0xA523, "lo-&0E: Read clock", inline=True)
-# UNMAPPED: comment(0xA523, "lo-&13: Misc operations", inline=True)
-# UNMAPPED: comment(0xA52B, "hi-&0E: Read clock", inline=True)
-# UNMAPPED: comment(0xA52C, "hi-&0F: (unimplemented)", inline=True)
-# UNMAPPED: comment(0xA52D, "hi-&10: Transmit", inline=True)
-# UNMAPPED: comment(0xA52F, "hi-&12: Read station info", inline=True)
 comment(0xA874, "hi-&14: Bridge/net config", inline=True)
 
 label(0xA874, "osword_0e_handler")
@@ -979,20 +886,13 @@ label(0xA981, "osword_11_done")
 label(0xA985, "osword_12_handler")
 label(0xA99A, "osword_13_dispatch")
 label(0xA9A7, "return_from_osword_13")
-# UNMAPPED: label(0xA63C, "osword_13_lo_table")
-# UNMAPPED: label(0xA64E, "osword_13_hi_table")
 
 # OSWORD &13 PHA/PHA/RTS dispatch table (18 entries, sub-codes 0-&11).
-# UNMAPPED: for i in range(18):
-# UNMAPPED:     rts_code_ptr(0xA63C + i, 0xA64E + i)
 
 # Entry points for handlers in the &A663-&A6EA region (currently data).
-# UNMAPPED: entry(0xA660)   # Sub 0
-# UNMAPPED: entry(0xA673)   # Sub 1
 entry(0xAA72)   # Sub 12
 entry(0xAA75)   # Sub 13
 
-# UNMAPPED: label(0xA665, "nfs_inactive_exit")
 label(0xA9CF, "read_station_bytes")
 label(0xA9D1, "loop_copy_station")
 label(0xA9E4, "loop_store_station")
@@ -1005,7 +905,6 @@ label(0xAA76, "setup_csd_copy")
 label(0xAA88, "copy_ws_byte_to_pb")
 label(0xAAB1, "return_from_write_ws_pair")
 label(0xAAC7, "loop_copy_handles")
-# UNMAPPED: label(0xA749, "return_zero_in_pb")
 label(0xAAD3, "start_set_handles")
 label(0xAAD5, "validate_handle")
 label(0xAAE5, "handle_invalid")
@@ -1020,7 +919,6 @@ label(0xAB62, "next_flag_entry")
 label(0xAB82, "store_a_to_pb_1")
 label(0xABBB, "bridge_found")
 label(0xABC4, "compare_bridge_status")
-# UNMAPPED: label(0xA841, "bridge_ws_init_data")
 label(0xABCB, "use_default_station")
 label(0xABCE, "store_bridge_station")
 label(0xABD0, "return_from_bridge_query")
@@ -1029,8 +927,6 @@ label(0xABDD, "bridge_rxcb_init_data")
 for i in range(4):
     byte(0xABD1 + i)
 # bytes 4-9 are "BRIDGE" — leave as equs
-# UNMAPPED: for i in range(14):
-# UNMAPPED:     byte(0xA857 + i)
 label(0xABF9, "loop_copy_bridge_init")
 label(0xAC0D, "loop_wait_ws_status")
 label(0xAC21, "loop_wait_tx_done")
@@ -1045,30 +941,10 @@ label(0xACCE, "loop_send_pb_chars")
 label(0xACE4, "loop_bridge_tx_delay")
 label(0xACED, "handle_burst_xfer")
 label(0xAD0E, "restore_regs_return")
-# UNMAPPED: label(0xA99E, "osword_handler_lo_table")
-# UNMAPPED: label(0xA9A7, "osword_handler_hi_table")
 
 # OSWORD handler PHA/PHA/RTS dispatch table (9 entries, OSWORDs 0-8).
 # Dispatched via push_osword_handler_addr (&A981). Each pair of lo/hi bytes
 # encodes handler_address-1 for the PHA/PHA/RTS idiom.
-# UNMAPPED: for i in range(9):
-# UNMAPPED:     rts_code_ptr(0xA99E + i, 0xA9A7 + i)
-# UNMAPPED: comment(0xA99E, "OSWORD handler dispatch table\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "9-entry PHA/PHA/RTS table for OSWORD numbers\n"
-# UNMAPPED:     "0-8. push_osword_handler_addr indexes by the\n"
-# UNMAPPED:     "OSWORD number, pushes the handler address-1,\n"
-# UNMAPPED:     "then RTS dispatches to the handler with the\n"
-# UNMAPPED:     "OSWORD number reloaded in A.")
-# UNMAPPED: comment(0xA9A7, "hi OSWORD 0: no-op (RTS)", inline=True)
-# UNMAPPED: comment(0xA9A8, "hi OSWORD 1: printer spool data", inline=True)
-# UNMAPPED: comment(0xA9A9, "hi OSWORD 2: printer spool data", inline=True)
-# UNMAPPED: comment(0xA9AA, "hi OSWORD 3: printer spool data", inline=True)
-# UNMAPPED: comment(0xA9AB, "hi OSWORD 4: clear carry + abort", inline=True)
-# UNMAPPED: comment(0xA9AC, "hi OSWORD 5: spool buffer check", inline=True)
-# UNMAPPED: comment(0xA9AD, "hi OSWORD 6: no-op (RTS)", inline=True)
-# UNMAPPED: comment(0xA9AE, "hi OSWORD 7: claim/release handler", inline=True)
-# UNMAPPED: comment(0xA9AF, "hi OSWORD 8: copy PB + abort", inline=True)
 
 label(0xAD64, "netv_claim_release")
 label(0xAD7D, "process_match_result")
@@ -1116,7 +992,6 @@ label(0xAF37, "store_spool_rx_byte")
 label(0xAF39, "advance_spool_rx_idx")
 label(0xAF60, "spool_tx_succeeded")
 label(0xAF75, "spool_tx_retry")
-# UNMAPPED: label(0xAC10, "error_printer_jammed")
 label(0xAFB2, "loop_scan_disconnect")
 label(0xAFC1, "verify_stn_match")
 label(0xAFCC, "send_disconnect_status")
@@ -1138,16 +1013,12 @@ for i in range(12):
     byte(0xB00E + i)
 label(0xB01A, "lang_2_save_palette_vdu")
 label(0xB031, "loop_read_palette")
-# UNMAPPED: label(0xAD0D, "osbyte_mode_read_codes")
 
 # Split the 3-byte OSBYTE code table into individual bytes.
 # Indexed by read_osbyte_to_ws to read display mode state.
-# UNMAPPED: for i in range(3):
-# UNMAPPED:     byte(0xAD0D + i)
 label(0xB0B1, "parse_cdir_size")
 label(0xB0BA, "loop_find_alloc_size")
 label(0xB0C0, "done_cdir_size")
-# UNMAPPED: label(0xAD43, "cdir_alloc_size_table")
 
 # Split the 27-byte *CDir allocation size threshold table into
 # individual bytes for annotation. Table base (cdir_dispatch_col+2) overlaps
@@ -1161,8 +1032,6 @@ label(0xB121, "cat_set_lib_flag")
 label(0xB12E, "setup_ex_request")
 label(0xB14A, "store_owner_flags")
 label(0xB17B, "print_public_label")
-# UNMAPPED: label(0xADED, "send_dir_info_req")
-# UNMAPPED: label(0xAE1C, "loop_print_option_str")
 label(0xB1BF, "print_dir_header")
 label(0xB1E7, "setup_ex_pagination")
 label(0xB207, "loop_scan_entry_data")
@@ -1176,16 +1045,10 @@ label(0xB279, "error_bad_prefix")
 label(0xB27C, "check_colon_prefix")
 label(0xB28B, "set_fs_select_flag")
 label(0xB298, "option_str_offset_data")
-# UNMAPPED: label(0xAEFF, "roff_off_string")
 label(0xB2A4, "loop_copy_char")
 label(0xB2B1, "restore_after_check")
 label(0xB2B3, "advance_positions")
-# UNMAPPED: label(0xAF3E, "fsreply_0_print_dir")
 label(0xB2DD, "loop_scan_entries")
-# UNMAPPED: label(0xAF5A, "print_col_newline")
-# UNMAPPED: label(0xAF5C, "print_entry_char")
-# UNMAPPED: label(0xAF5F, "next_col_entry")
-# UNMAPPED: label(0xAF72, "done_extra_arg_check")
 label(0xB33F, "loop_divide_digit")
 label(0xB34F, "print_nonzero_digit")
 label(0xB37E, "loop_advance_char")
@@ -1201,13 +1064,11 @@ label(0xB429, "loop_pop_ps_slot")
 label(0xB44F, "done_ps_slot_mark")
 label(0xB457, "done_ps_scan")
 label(0xB46C, "print_ps_now")
-# UNMAPPED: label(0xB0B6, "done_ps_status_msg")
 label(0xB477, "store_ps_station")
 label(0xB498, "print_server_is_suffix")
 label(0xB4C6, "loop_scan_ps_slots")
 label(0xB4D6, "skip_next_ps_slot")
 label(0xB4DA, "reinit_ps_slot")
-# UNMAPPED: label(0xB13F, "write_ps_slot_link_addr")
 label(0xB502, "done_ps_slot_scan")
 label(0xB511, "loop_ps_delay")
 label(0xB52D, "loop_push_ps_name")
@@ -1220,7 +1081,6 @@ for i in range(4):
     byte(0xB552 + i)
 
 label(0xB566, "skip_if_local_net")
-# UNMAPPED: label(0xB1B1, "print_station_only")
 label(0xB575, "ps_slot_txcb_template")
 
 # Split the 12-byte PS slot TXCB template into individual bytes.
@@ -1233,7 +1093,6 @@ label(0xB5E6, "loop_read_poll_char")
 label(0xB5F4, "done_poll_name_parse")
 label(0xB611, "loop_print_poll_name")
 label(0xB61F, "done_poll_name_print")
-# UNMAPPED: label(0xB267, "loop_pop_poll_slot")
 label(0xB65A, "check_poll_jammed")
 label(0xB65E, "print_poll_jammed")
 label(0xB66A, "check_poll_busy")
@@ -1243,12 +1102,7 @@ label(0xB6A8, "loop_copy_slot_tmpl")
 label(0xB6B3, "subst_rx_page_byte")
 label(0xB6B5, "store_slot_tmpl_byte")
 label(0xB6CB, "done_uppercase_store")
-# UNMAPPED: label(0xB316, "parse_prot_keywords")
 label(0xB6EE, "loop_match_prot_attr")
-# UNMAPPED: label(0xB32C, "prot_check_arg_end")
-# UNMAPPED: label(0xB335, "done_prot_args")
-# UNMAPPED: label(0xB336, "store_prot_mask")
-# UNMAPPED: label(0xB347, "loop_match_unprot_attr")
 label(0xB703, "request_next_wipe")
 label(0xB736, "check_wipe_attr")
 label(0xB739, "loop_check_if_locked")
@@ -1270,7 +1124,6 @@ label(0xB7F6, "loop_mark_chan_avail")
 label(0xB80F, "error_chan_out_of_range")
 label(0xB811, "return_chan_index")
 label(0xB81D, "error_chan_not_found")
-# UNMAPPED: label(0xB487, "net_channel_err_string")
 label(0xB85B, "error_chan_not_here")
 label(0xB866, "loop_copy_chan_err_str")
 label(0xB879, "loop_append_err_suffix")
@@ -1319,7 +1172,6 @@ label(0xBC65, "done_inc_byte_count")
 label(0xBCEF, "loop_copy_wipe_err_msg")
 label(0xBCFC, "done_terminate_wipe_err")
 label(0xBD05, "done_toggle_station")
-# UNMAPPED: label(0xB9A0, "open_and_read_file")
 
 
 label(0x83E5, "discard_reset_rx")
@@ -1336,19 +1188,16 @@ label(0x8BC6, "print_cmd_table")
 label(0x8BD5, "print_cmd_table_loop")
 label(0x8C29, "help_wrap_if_serial")
 label(0x8C93, "print_version_header")
-# UNMAPPED: label(0x8CB9, "get_ws_page")
 label(0x8CBD, "setup_ws_ptr")
 label(0x8CFD, "notify_new_fs")
 label(0x8CFF, "call_fscv")
 label(0x8D02, "issue_svc_15")
-# UNMAPPED: label(0x8D17, "check_credits_easter_egg")
 label(0x8E21, "clear_if_station_match")
 label(0x8E2C, "return_from_station_match")
 label(0x8E38, "pass_send_cmd")
 label(0x8E3C, "send_cmd_and_dispatch")
 label(0x8E5B, "dir_op_dispatch")
 label(0x8E6A, "push_dispatch_lo")
-# UNMAPPED: label(0x8E8C, "osbyte_x0_y0")
 label(0x8EF0, "store_ws_page_count")
 label(0x903C, "init_adlc_and_vectors")
 label(0x904F, "write_vector_entry")
@@ -1356,10 +1205,8 @@ label(0x9064, "restore_fs_context")
 label(0x9071, "fscv_6_shutdown")
 label(0x909E, "verify_ws_checksum")
 label(0x90B5, "error_net_checksum")
-# UNMAPPED: label(0x8FF1, "print_station_id")
 label(0x9236, "print_hex_byte")
 label(0x923F, "print_hex_nybble")
-# UNMAPPED: label(0x916E, "parse_addr_arg")
 label(0x934A, "err_bad_hex")
 label(0x9357, "err_bad_station_num")
 label(0x939A, "is_decimal_digit")
@@ -1377,7 +1224,6 @@ label(0x9437, "error_bad_filename")
 label(0x9446, "check_not_ampersand")
 label(0x944E, "read_filename_char")
 label(0x945E, "send_fs_request")
-# UNMAPPED: label(0x9327, "copy_fs_cmd_name")
 label(0x9483, "parse_quoted_arg")
 label(0x973D, "init_txcb_bye")
 label(0x973F, "init_txcb_port")
@@ -1388,8 +1234,6 @@ label(0x978A, "save_net_tx_cb")
 label(0x978B, "save_net_tx_cb_vset")
 label(0x97B7, "prep_send_tx_cb")
 label(0x97CD, "recv_and_process_reply")
-# UNMAPPED: label(0x9570, "check_escape")
-# UNMAPPED: label(0x9576, "raise_escape_error")
 label(0x98BE, "wait_net_tx_ack")
 label(0x9900, "cond_save_error_code")
 label(0x9930, "fixup_reply_status_a")
@@ -1432,7 +1276,6 @@ label(0xA2ED, "write_data_block")
 label(0xA329, "tail_update_catalogue")
 label(0xA390, "tube_claim_c3")
 label(0xA3BB, "print_fs_info_newline")
-# UNMAPPED: label(0xA0A7, "parse_fs_ps_args")
 label(0xA3E7, "get_pb_ptr_as_index")
 label(0xA3E9, "byte_to_2bit_index")
 label(0xA3FE, "return_from_2bit_index")
@@ -1475,7 +1318,6 @@ label(0xB29F, "copy_arg_to_buf_x0")
 label(0xB2A1, "copy_arg_to_buf")
 label(0xB2A3, "copy_arg_validated")
 label(0xB2CA, "return_from_copy_arg")
-# UNMAPPED: label(0xAF32, "mask_owner_access")
 label(0xB2E4, "ex_print_col_sep")
 label(0xB327, "print_num_no_leading")
 label(0xB32A, "print_decimal_3dig")
@@ -1509,7 +1351,6 @@ label(0xB81F, "err_net_chan_not_found")
 label(0xB847, "lookup_chan_by_char")
 label(0xB886, "store_result_check_dir")
 label(0xB88C, "check_not_dir")
-# UNMAPPED: label(0xB508, "return_from_dir_check")
 label(0xB8A8, "alloc_fcb_slot")
 label(0xB8DC, "alloc_fcb_or_error")
 label(0xB8F8, "close_all_net_chans")
@@ -1524,19 +1365,8 @@ label(0xBAC0, "restore_catalog_entry")
 label(0xBACF, "find_matching_fcb")
 label(0xBB2A, "inc_fcb_byte_count")
 label(0xBB37, "return_from_inc_fcb_count")
-# UNMAPPED: label(0xB799, "process_all_fcbs")
 label(0xBCBC, "send_wipe_request")
 label(0xBD15, "send_and_receive")
-# UNMAPPED: label(0xB9AA, "loop_read_print_byte")
-# UNMAPPED: label(0xB9B6, "done_print_escape")
-# UNMAPPED: label(0xB9C5, "done_store_prev_char")
-# UNMAPPED: label(0xB9C7, "loop_write_char")
-# UNMAPPED: label(0xB9CD, "done_handle_line_end")
-# UNMAPPED: label(0xB9DA, "done_normalise_crlf")
-# UNMAPPED: label(0xB9E7, "done_write_newline")
-# UNMAPPED: label(0xB9ED, "done_check_cr_lf")
-# UNMAPPED: label(0xB9F4, "done_check_lf_cr")
-# UNMAPPED: label(0xB9F9, "done_consume_pair")
 label(0xBD25, "abort_if_escape")
 label(0xBD2A, "error_escape_pressed")
 label(0xBD48, "loop_push_zero_buf")
@@ -1563,7 +1393,6 @@ label(0xBF78, "open_file_for_read")
 label(0xBE40, "done_print_hex_space")
 label(0xBFA6, "loop_skip_filename")
 label(0xBFB1, "loop_skip_fn_spaces")
-# UNMAPPED: label(0xBB0B, "osasci_offset")
 label(0xBE42, "parse_dump_range")
 label(0xBE47, "loop_clear_hex_accum")
 label(0xBE4E, "loop_parse_hex_digit")
@@ -1591,10 +1420,6 @@ label(0xBF68, "loop_store_disp_addr")
 label(0xBFBA, "advance_x_by_8")
 label(0xBFBD, "advance_x_by_4")
 label(0xBFC0, "inx4")
-# UNMAPPED: label(0xBE62, "tube_vdu_dispatch")
-# UNMAPPED: label(0xBE73, "loop_poll_r1_vdu_rom")
-# UNMAPPED: label(0xBE9E, "loop_copy_reloc_pages")
-# UNMAPPED: label(0xBEB8, "loop_copy_zp_workspace")
 
 # ============================================================
 # ROM entry points and subroutines
@@ -1665,7 +1490,6 @@ effectively rejecting the ROM.""",
 # ============================================================
 # About 27% of NFS 3.65 main ROM opcodes match in ANFS.
 
-# UNMAPPED: label(0x8004, "service_handler_lo")
 label(0x801A, "copyright_string")
 label(0x8048, "dispatch_svc5")
 label(0x804F, "svc_5_unknown_irq")
@@ -1791,10 +1615,8 @@ label(0x8848, "tube_tx_fifo_write")
 label(0x8860, "write_second_tube_byte")
 label(0x886A, "tube_tx_inc_byte2")
 label(0x886E, "tube_tx_inc_byte3")
-# UNMAPPED: label(0x8861, "tube_tx_inc_operand")
 label(0x8872, "tube_tx_inc_byte4")
 label(0x8876, "check_tube_irq_loop")
-# UNMAPPED: label(0x8869, "tube_tx_sr1_operand")
 label(0x887E, "tx_tdra_error")
 label(0x88A6, "nmi_final_ack_net")
 label(0x88D7, "check_fv_final_ack")
@@ -1806,7 +1628,6 @@ label(0x898B, "nmi_shim_rom_src")
 label(0x89A6, "wait_idle_and_reset")
 label(0x89AB, "poll_nmi_idle")
 label(0x89C7, "reset_enter_listen")
-# UNMAPPED: label(0x89A6, "listen_jmp_hi")
 
 # Entry points from NFS 3.65 correspondence
 entry(0x804F)
@@ -1849,16 +1670,6 @@ entry(0x89D8)
 # ============================================================
 
 
-# UNMAPPED: subroutine(0x805D, "set_jsr_protection",
-# UNMAPPED:     title="Set JSR protection and dispatch via table",
-# UNMAPPED:     description=
-# UNMAPPED:     "Validates the TX operation type in Y against the\n"
-# UNMAPPED:     "dispatch table range, saves the current JSR protection\n"
-# UNMAPPED:     "mask, sets protection bits 2-4, then dispatches through\n"
-# UNMAPPED:     "the PHA/RTS trampoline using the table at\n"
-# UNMAPPED:     "set_rx_buf_len_hi. If Y >= &86, skips the protection\n"
-# UNMAPPED:     "setup and dispatches directly.",
-# UNMAPPED:     on_entry={"y": "TX operation type (dispatch index)"})
 
 comment(0x8000, """\
 ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
@@ -2684,7 +2495,6 @@ subroutine(0x89D8, "rom_set_nmi_vector",
     "guaranteed falling edge on /NMI if the ADLC IRQ is\n"
     "already asserted, ensuring the next handler fires\n"
     "immediately.")
-# UNMAPPED: label(0x8A6F, "start_rom_scan")
 subroutine(0x8B00, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
     description="Uses OSBYTE &7A with Y=&7F to check whether\n"
@@ -3514,7 +3324,6 @@ subroutine(0x9900, "cond_save_error_code",
     "is active. Called internally by the error\n"
     "classification chain and by error_inline_log.",
     on_entry={"a": "error code to store"})
-# UNMAPPED: label(0x971E, "close_exec_via_y")
 subroutine(0x9930, "fixup_reply_status_a",
     title="Substitute 'B' for 'A' in reply status byte",
     description="""\
@@ -4917,7 +4726,6 @@ subroutine(0xB3D7, "copy_ps_data",
              "x": "0 (loop terminator)",
              "a": "last template byte"})
 label(0xB441, "read_ps_station_addr")
-# UNMAPPED: label(0xB0B9, "store_ps_station_addr")
 subroutine(0xB477, "store_ps_station",
     title="Write printer-server station number into NFS workspace",
     description="""\
@@ -5401,52 +5209,17 @@ subroutine(0xBFC0, "inx4",
 # Inline comments (from NFS 3.65 correspondence)
 # ============================================================
 
-# Tube R2 command dispatch table: 12 entries mapping R2 command
-# codes 0-11 to handler addresses in pages 5-6.
-_tube_r2_entries = [
-]
-# UNMAPPED: for addr, target_label, desc in _tube_r2_entries:
-# UNMAPPED (orphan body):     word(addr)
-# UNMAPPED (orphan body):     expr(addr, target_label)
-# UNMAPPED (orphan body):     comment(addr, desc, inline=True)
-_tube_ctrl_entries = [
-]
-# UNMAPPED: for addr, desc in _tube_ctrl_entries:
-# UNMAPPED (orphan body):     byte(addr)
-# UNMAPPED (orphan body):     comment(addr, desc, inline=True)
 comment(0x8003, "JMP service_handler", inline=True)
 comment(0x8006, "ROM type: service + language", inline=True)
 comment(0x8019, "Null terminator before copyright", inline=True)
-# UNMAPPED: comment(0x8028, "A=4: SR bit mask for IFR test", inline=True)
-# UNMAPPED: comment(0x802A, "Test IFR bit 2: SR complete", inline=True)
 comment(0x802D, "SR set: shift register complete", inline=True)
 comment(0x8032, "A=5: not our interrupt, pass on", inline=True)
-# UNMAPPED: comment(0x8031, "Return service code 5 to MOS", inline=True)
-# UNMAPPED: comment(0x8032, "Save X on stack", inline=True)
-# UNMAPPED: comment(0x8033, "Push saved X", inline=True)
-# UNMAPPED: comment(0x8034, "Save Y on stack", inline=True)
-# UNMAPPED: comment(0x8035, "Push saved Y", inline=True)
-# UNMAPPED: comment(0x8036, "Read ACR for shift register restore", inline=True)
-# UNMAPPED: comment(0x8039, "Clear SR mode bits (2-4)", inline=True)
-# UNMAPPED: comment(0x803B, "Restore saved SR mode from ws_0d64", inline=True)
-# UNMAPPED: comment(0x803E, "Write restored ACR to system VIA", inline=True)
-# UNMAPPED: comment(0x8041, "Read SR to clear shift register IRQ", inline=True)
-# UNMAPPED: comment(0x8044, "A=4: SR bit mask", inline=True)
-# UNMAPPED: comment(0x8046, "Clear SR interrupt flag in IFR", inline=True)
-# UNMAPPED: comment(0x8049, "Disable SR interrupt in IER", inline=True)
-# UNMAPPED: comment(0x804C, "Load TX operation type for dispatch", inline=True)
 comment(0x803A, "Copy to A for sign test", inline=True)
 comment(0x803B, "Bit 7 set: dispatch via table", inline=True)
 comment(0x803D, "A=&FE: Econet receive event", inline=True)
 comment(0x8042, "Fire event (enable: *FX52,150)", inline=True)
 comment(0x8045, "Dispatch through event vector", inline=True)
 comment(0x803F, "Call event vector handler", inline=True)
-# UNMAPPED: comment(0x805D, "Y >= &86: above dispatch range", inline=True)
-# UNMAPPED: comment(0x805F, "Out of range: skip protection", inline=True)
-# UNMAPPED: comment(0x8061, "Save current JSR protection mask", inline=True)
-# UNMAPPED: comment(0x8064, "Backup to saved_jsr_mask", inline=True)
-# UNMAPPED: comment(0x8067, "Set protection bits 2-4", inline=True)
-# UNMAPPED: comment(0x8069, "Apply protection during dispatch", inline=True)
 comment(0x8048, "Push return addr high (&85)", inline=True)
 comment(0x804A, "High byte on stack for RTS", inline=True)
 comment(0x804B, "Load dispatch target low byte", inline=True)
@@ -5475,8 +5248,6 @@ comment(0x807D, "Self-modifying code: ROM bank at &0D07", inline=True)
 comment(0x8080, "Clear source network (Y=0 from copy loop)", inline=True)
 comment(0x8083, "Clear Tube release flag", inline=True)
 comment(0x8085, "Clear TX operation type", inline=True)
-# UNMAPPED: comment(0x80AC, "Read station ID (and disable NMIs)", inline=True)
-# UNMAPPED: comment(0x80AF, "Set own station as TX source", inline=True)
 comment(0x808F, "&80 = Econet initialised", inline=True)
 comment(0x8091, "Mark TX as complete (ready)", inline=True)
 comment(0x8094, "Mark Econet as initialised", inline=True)
@@ -5506,7 +5277,6 @@ comment(0x80CB, "Return to idle scout listening", inline=True)
 comment(0x80CE, "Network = 0 (local): clear tx_flags", inline=True)
 comment(0x80D1, "Store Y offset for scout data buffer", inline=True)
 comment(0x80D3, "Install scout data handler (&8102)", inline=True)
-# UNMAPPED: comment(0x80F8, "High byte of scout data handler", inline=True)
 comment(0x80D5, "Install scout data loop and RTI", inline=True)
 comment(0x80D8, "Read SR2", inline=True)
 comment(0x80DB, "Test AP (b0) | RDA (b7)", inline=True)
@@ -6026,7 +5796,6 @@ comment(0x8534, "Increment buffer pointer low byte", inline=True)
 comment(0x8536, "No overflow: done", inline=True)
 comment(0x8538, "Increment buffer pointer high byte", inline=True)
 comment(0x853A, "Return", inline=True)
-# UNMAPPED: comment(0x8543, "Hi byte of tx_done_exit-1", inline=True)
 comment(0x8542, "Push hi byte on stack", inline=True)
 comment(0x8543, "Push lo of (tx_done_exit-1)", inline=True)
 comment(0x8545, "Push lo byte on stack", inline=True)
@@ -6490,28 +6259,21 @@ comment(0x88F0, "Unreferenced dead data (16 bytes)\n"
     "in the &88E2-&88F1 range. Likely unused remnant from\n"
     "development.")
 comment(0x88F0, "Dead data: &0E", inline=True)
-# UNMAPPED: comment(0x88E3, "Dead data: &0E", inline=True)
-# UNMAPPED: comment(0x88E4, "Dead data: &0A", inline=True)
 comment(0x88F3, "Dead data: &0A", inline=True)
 comment(0x88F4, "Dead data: &0A", inline=True)
 comment(0x88F5, "Dead data: &06", inline=True)
-# UNMAPPED: comment(0x88E8, "Dead data: &06", inline=True)
 comment(0x88F7, "Dead data: &0A", inline=True)
 comment(0x88F8, "Dead data: &81", inline=True)
-# UNMAPPED: comment(0x88EB, "Dead data: &00", inline=True)
 comment(0x88FA, "Dead data: &00", inline=True)
 comment(0x88FB, "Dead data: &00", inline=True)
 comment(0x88FC, "Dead data: &00", inline=True)
 comment(0x88FD, "Dead data: &01", inline=True)
-# UNMAPPED: comment(0x88F0, "Dead data: &01", inline=True)
 comment(0x88FF, "Dead data: &81", inline=True)
-# UNMAPPED: comment(0x88F2, "Y=7: offset to RXCB buffer addr byte 3", inline=True)
 comment(0x8909, "Read RXCB[7] (buffer addr high byte)", inline=True)
 comment(0x890B, "Compare to &FF", inline=True)
 comment(0x890D, "Not &FF: normal buffer, skip Tube check", inline=True)
 comment(0x8910, "Read RXCB[6] (buffer addr byte 2)", inline=True)
 comment(0x8912, "Check if addr byte 2 >= &FE (Tube range)", inline=True)
-# UNMAPPED: comment(0x88FF, "Tube/IO address: use fallback path", inline=True)
 comment(0x8924, "Transmit in progress?", inline=True)
 comment(0x8927, "No: fallback path", inline=True)
 comment(0x8929, "Load TX flags for transfer setup", inline=True)
@@ -6617,22 +6379,11 @@ comment(0x89E9, "Return from interrupt", inline=True)
 # Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo.
 # The NMI shim copy (Y=1..&20) ends at &89C6; these 3 bytes at
 # &89BD-&89BF are outside the copy range and unreferenced.
-# UNMAPPED: comment(0x89C7, "Unreferenced dead data (3 bytes)\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "3 bytes between the RTI at &89C6 (end of the NMI\n"
-# UNMAPPED:     "shim ROM source) and svc_dispatch_lo at &89CA.\n"
-# UNMAPPED:     "The init copy loop (Y=1..&20) copies &89A7-&89C6\n"
-# UNMAPPED:     "to &0D00-&0D1F; these bytes are outside that range\n"
-# UNMAPPED:     "and unreferenced. Likely unused development remnant.")
-# UNMAPPED: comment(0x89C7, "Dead data: &01", inline=True)
-# UNMAPPED: comment(0x89C8, "Dead data: &00", inline=True)
 
 # Inline comments: service/infrastructure layer (&8A0B-&9130)
 comment(0x8A54, "Save service call number", inline=True)
 comment(0x8A55, "Is it service 15 (vectors claimed)?", inline=True)
 comment(0x8A57, "No: skip vectors-claimed handling", inline=True)
-# UNMAPPED: comment(0x8A1A, "Save Y parameter", inline=True)
-# UNMAPPED: comment(0x8A1B, "Save Y on stack", inline=True)
 comment(0x8A5A, "OSBYTE 0: read OS version", inline=True)
 comment(0x8A5C, "X=1 to request version number", inline=True)
 comment(0x8A61, "OS 3.2/3.5 (Master 128)?", inline=True)
@@ -6653,9 +6404,6 @@ comment(0x8A85, "A=0", inline=True)
 comment(0x8A87, "Clear workspace byte for this ROM", inline=True)
 comment(0x8A8A, "Restore ROM slot to X", inline=True)
 comment(0x8A8D, "Restore Y parameter", inline=True)
-# UNMAPPED: comment(0x8A3B, "Transfer to Y", inline=True)
-# UNMAPPED: comment(0x8A3C, "Restore service call number", inline=True)
-# UNMAPPED: comment(0x8A3D, "Check relocated code service dispatch", inline=True)
 comment(0x8A8E, "Save service call number", inline=True)
 
 # svc_18_fs_select inline comments (4 items)
@@ -8506,9 +8254,6 @@ comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
 comment(0x8A96, "Mask relevant status bits", inline=True)
 comment(0x8A98, "Non-zero: ADLC absent, set flag", inline=True)
-# UNMAPPED: comment(0x8A4C, "Read ADLC status register 2", inline=True)
-# UNMAPPED: comment(0x8A4F, "Mask relevant status bits", inline=True)
-# UNMAPPED: comment(0x8A51, "Zero: ADLC present, skip", inline=True)
 comment(0x8A9A, "Shift bit 7 into carry", inline=True)
 comment(0x8A9D, "Set carry to mark ADLC absent", inline=True)
 comment(0x8A9E, "Rotate carry into bit 7 of slot flag", inline=True)
@@ -8517,34 +8262,6 @@ comment(0x8AA4, "Shift bit 7 (ADLC absent) into carry", inline=True)
 comment(0x8AA5, "Restore service call number", inline=True)
 comment(0x8AA6, "ADLC present: continue dispatch", inline=True)
 comment(0x8AA8, "ADLC absent: decline service, return", inline=True)
-# UNMAPPED: comment(0x8A62, "Service 15 (vectors claimed)?", inline=True)
-# UNMAPPED: comment(0x8A64, "No: handle other services", inline=True)
-# UNMAPPED: comment(0x8A66, "Already initialised?", inline=True)
-# UNMAPPED: comment(0x8A69, "Yes: skip first-time init", inline=True)
-# UNMAPPED: comment(0x8A6B, "X=1 (mark as initialised)", inline=True)
-# UNMAPPED: comment(0x8A6C, "Set ROM present flag", inline=True)
-# UNMAPPED: comment(0x8A6F, "A=service call number; use as ROM counter", inline=True)
-# UNMAPPED: comment(0x8A71, "Point to ROM header copyright offset", inline=True)
-# UNMAPPED: comment(0x8A73, "Set high byte of OSRDSC pointer", inline=True)
-# UNMAPPED: comment(0x8A75, "Offset &0C: copyright string offset", inline=True)
-# UNMAPPED: comment(0x8A77, "Set low byte of OSRDSC pointer", inline=True)
-# UNMAPPED: comment(0x8A79, "Read next ROM title char", inline=True)
-# UNMAPPED: comment(0x8A7C, "First char 'N'?", inline=True)
-# UNMAPPED: comment(0x8A7E, "No: not a NET ROM, try next", inline=True)
-# UNMAPPED: comment(0x8A80, "Read next ROM title char", inline=True)
-# UNMAPPED: comment(0x8A83, "Second char 'E'?", inline=True)
-# UNMAPPED: comment(0x8A85, "No: not a NET ROM, try next", inline=True)
-# UNMAPPED: comment(0x8A87, "Read next ROM title char", inline=True)
-# UNMAPPED: comment(0x8A8A, "Third char 'T'?", inline=True)
-# UNMAPPED: comment(0x8A8C, "No: not a NET ROM, try next", inline=True)
-# UNMAPPED: comment(0x8A8E, "X=ROM slot for indexed store", inline=True)
-# UNMAPPED: comment(0x8A90, "Load its slot flag byte", inline=True)
-# UNMAPPED: comment(0x8A93, "Set bit 7 to mark as NET ROM", inline=True)
-# UNMAPPED: comment(0x8A95, "Store updated flag", inline=True)
-# UNMAPPED: comment(0x8A98, "Previous ROM slot", inline=True)
-# UNMAPPED: comment(0x8A9A, "More ROMs to check: loop", inline=True)
-# UNMAPPED: comment(0x8A9C, "A=&0F: restore service call number", inline=True)
-# UNMAPPED: comment(0x8AA0, "Advance read pointer to next byte", inline=True)
 comment(0x8AA9, "Transfer service number to X", inline=True)
 comment(0x8AAA, "Save current service state", inline=True)
 comment(0x8AAC, "Push old state", inline=True)
@@ -8599,12 +8316,6 @@ comment(0x8B1D, "Copy OS text pointer high", inline=True)
 comment(0x8B1F, "to fs_crc_hi", inline=True)
 comment(0x8B21, "Restore A", inline=True)
 comment(0x8B22, "Return", inline=True)
-# UNMAPPED: comment(0x8B0D, "Y=5 (Econet filing system)?", inline=True)
-# UNMAPPED: comment(0x8B0F, "No: not ours, return unclaimed", inline=True)
-# UNMAPPED: comment(0x8B11, "A=0: clear service state", inline=True)
-# UNMAPPED: comment(0x8B15, "Already selected?", inline=True)
-# UNMAPPED: comment(0x8B13, "Reset service processing state", inline=True)
-# UNMAPPED: comment(0x8B18, "Yes (bit 7 set): return unclaimed", inline=True)
 comment(0x8B23, "Get workspace page for this ROM slot", inline=True)
 comment(0x8B26, "Store as high byte of load address", inline=True)
 comment(0x8B28, "A=0", inline=True)
@@ -8647,7 +8358,6 @@ comment(0x8B8B, "A=0", inline=True)
 comment(0x8B8D, "Clear FS state byte", inline=True)
 comment(0x8B90, "Clear workspace byte", inline=True)
 comment(0x8B93, "Clear workspace byte", inline=True)
-# UNMAPPED: comment(0x8B6A, "Clear service state", inline=True)
 comment(0x8B96, "Clear receive attribute byte", inline=True)
 comment(0x8B99, "Clear workspace byte", inline=True)
 comment(0x8B9C, "Set up workspace pointers", inline=True)
@@ -8658,23 +8368,12 @@ comment(0x8BA6, "Store to page &10 shadow copy", inline=True)
 comment(0x8BA9, "Decrement index", inline=True)
 comment(0x8BAA, "Loop until all bytes copied", inline=True)
 comment(0x8BAC, "A=&80: FS selected flag", inline=True)
-# UNMAPPED: comment(0x8B84, "Set bit 7 of FS flags", inline=True)
-# UNMAPPED: comment(0x8B87, "Store updated flags", inline=True)
-# UNMAPPED: comment(0x8B8A, "Issue service 15 (FS initialised)", inline=True)
 comment(0x8BBB, "X=&4A: NFS command table offset", inline=True)
 comment(0x8BBD, "Print help for NFS commands", inline=True)
 comment(0x8BC0, "X=0: utility command table offset", inline=True)
 comment(0x8BC4, "X=&4A: NFS command table offset", inline=True)
 comment(0x8BC6, "V clear: need to print header first", inline=True)
-# UNMAPPED: comment(0x8B9A, "Save X (table offset)", inline=True)
-# UNMAPPED: comment(0x8B9B, "Push it", inline=True)
-# UNMAPPED: comment(0x8B9C, "Save Y", inline=True)
-# UNMAPPED: comment(0x8B9D, "Push it", inline=True)
 comment(0x8BCA, "Print version string header", inline=True)
-# UNMAPPED: comment(0x8BA1, "Restore Y", inline=True)
-# UNMAPPED: comment(0x8BA2, "Transfer to Y", inline=True)
-# UNMAPPED: comment(0x8BA3, "Restore X", inline=True)
-# UNMAPPED: comment(0x8BA4, "Transfer to X", inline=True)
 comment(0x8BCF, "Clear overflow flag", inline=True)
 comment(0x8BD5, "Save Y (command line offset)", inline=True)
 comment(0x8BD6, "Push it", inline=True)
@@ -8683,8 +8382,6 @@ comment(0x8BD8, "Load byte from command table", inline=True)
 comment(0x8BDB, "Bit 7 clear: valid entry, continue", inline=True)
 comment(0x8BDD, "End of table: finish up", inline=True)
 comment(0x8BE0, "Print two-space indent", inline=True)
-# UNMAPPED: comment(0x8BBB, "Y=9: max command name length", inline=True)
-# UNMAPPED: comment(0x8BBD, "Load first byte of command name", inline=True)
 comment(0x8BED, "Advance table pointer", inline=True)
 comment(0x8BEE, "Decrement padding counter", inline=True)
 comment(0x8BEF, "Load next character", inline=True)
@@ -8694,8 +8391,6 @@ comment(0x8BF9, "Decrement remaining pad count", inline=True)
 comment(0x8BFA, "More padding needed: loop", inline=True)
 comment(0x8BFC, "Load syntax descriptor byte", inline=True)
 comment(0x8BFF, "Mask to get syntax string index", inline=True)
-# UNMAPPED: comment(0x8BD7, "Index &0E: shared commands?", inline=True)
-# UNMAPPED: comment(0x8BD9, "Yes: handle shared commands list", inline=True)
 comment(0x8C01, "Use index as Y", inline=True)
 comment(0x8C02, "Look up syntax string offset", inline=True)
 comment(0x8C05, "Transfer offset to Y", inline=True)
@@ -8707,29 +8402,6 @@ comment(0x8C0E, "No: print the character", inline=True)
 comment(0x8C10, "Handle line wrap in syntax output", inline=True)
 comment(0x8C13, "Continue with next character", inline=True)
 comment(0x8C19, "Continue with next character", inline=True)
-# UNMAPPED: comment(0x8BF6, "Save table pointer", inline=True)
-# UNMAPPED: comment(0x8BF7, "Push it", inline=True)
-# UNMAPPED: comment(0x8BF8, "Print opening parenthesis", inline=True)
-# UNMAPPED: comment(0x8BFC, "Y=0: shared command counter", inline=True)
-# UNMAPPED: comment(0x8BFE, "X=&D3: shared command table start", inline=True)
-# UNMAPPED: comment(0x8C00, "Load byte from shared command table", inline=True)
-# UNMAPPED: comment(0x8C03, "Bit 7 set: end of shared commands", inline=True)
-# UNMAPPED: comment(0x8C05, "Back up one position", inline=True)
-# UNMAPPED: comment(0x8C06, "Advance to next character", inline=True)
-# UNMAPPED: comment(0x8C07, "Load command name character", inline=True)
-# UNMAPPED: comment(0x8C0A, "Bit 7 set: end of this name", inline=True)
-# UNMAPPED: comment(0x8C0F, "Print more characters of name", inline=True)
-# UNMAPPED: comment(0x8C12, "Strip bit 7 from final character", inline=True)
-# UNMAPPED: comment(0x8C17, "Count this shared command", inline=True)
-# UNMAPPED: comment(0x8C18, "Printed 4 commands?", inline=True)
-# UNMAPPED: comment(0x8C1A, "No: continue on same line", inline=True)
-# UNMAPPED: comment(0x8C1C, "Handle line wrap after 4 commands", inline=True)
-# UNMAPPED: comment(0x8C1F, "X += 3: skip syntax descriptor and address", inline=True)
-# UNMAPPED: comment(0x8C20, "(continued)", inline=True)
-# UNMAPPED: comment(0x8C21, "(continued)", inline=True)
-# UNMAPPED: comment(0x8C22, "Loop for more shared commands", inline=True)
-# UNMAPPED: comment(0x8C24, "Restore original table pointer", inline=True)
-# UNMAPPED: comment(0x8C25, "Transfer to X", inline=True)
 comment(0x8C1F, "X += 3: skip syntax descriptor and address", inline=True)
 comment(0x8C20, "(continued)", inline=True)
 comment(0x8C21, "(continued)", inline=True)
@@ -8742,14 +8414,10 @@ comment(0x8C29, "Read output stream type", inline=True)
 comment(0x8C2C, "Stream 0 (VDU): no wrapping", inline=True)
 comment(0x8C2E, "Stream 3 (printer)?", inline=True)
 comment(0x8C30, "Yes: no wrapping", inline=True)
-# UNMAPPED: comment(0x8C3C, "Save Y", inline=True)
-# UNMAPPED: comment(0x8C3D, "Push it", inline=True)
 comment(0x8C36, "Y=&0B: indent width - 1", inline=True)
 comment(0x8C38, "Space character", inline=True)
 comment(0x8C3D, "Decrement indent counter", inline=True)
 comment(0x8C3E, "More spaces needed: loop", inline=True)
-# UNMAPPED: comment(0x8C4B, "Restore Y", inline=True)
-# UNMAPPED: comment(0x8C4C, "Transfer to Y", inline=True)
 comment(0x8C41, "Return", inline=True)
 comment(0x8C42, "X=0: start of utility command table", inline=True)
 comment(0x8C44, "Get command line offset", inline=True)
@@ -8790,9 +8458,6 @@ comment(0x8C8C, "Restore flags from before match", inline=True)
 comment(0x8C8D, "End of command line?", inline=True)
 comment(0x8C8F, "No: try matching next topic", inline=True)
 comment(0x8C93, "Print version string via inline", inline=True)
-# UNMAPPED: comment(0x8CB5, "NOP (string terminator)", inline=True)
-# UNMAPPED: comment(0x8CB6, "Print station number after version", inline=True)
-# UNMAPPED: comment(0x8CB9, "Get current ROM slot number", inline=True)
 comment(0x8CAF, "Load workspace page for this slot", inline=True)
 comment(0x8CBB, "Transfer to Y", inline=True)
 comment(0x8CBC, "Return with page in A and Y", inline=True)
@@ -8819,12 +8484,9 @@ comment(0x8CF6, "X=&0F: boot filename address low", inline=True)
 comment(0x8CF8, "Y=&8D: boot filename address high", inline=True)
 comment(0x8CFA, "Execute boot file", inline=True)
 comment(0x8CFD, "A=6: notify new filing system", inline=True)
-# UNMAPPED: comment(0x8CFE, "Call FSCV", inline=True)
-# UNMAPPED: comment(0x8D01, "X=&0A: service 10 parameter", inline=True)
 comment(0x8CFF, "Dispatch via FSCV", inline=True)
 comment(0x8D02, "X=&0F: service 15 parameter", inline=True)
 comment(0x8D04, "OSBYTE &8F: issue service request", inline=True)
-# UNMAPPED: comment(0x8D17, "Get command line offset", inline=True)
 comment(0x8D26, "X=5: start of credits keyword", inline=True)
 comment(0x8D28, "Load character from command line", inline=True)
 comment(0x8D2A, "Compare with credits keyword", inline=True)
@@ -8840,17 +8502,13 @@ comment(0x8D3C, "Zero terminator: done printing", inline=True)
 comment(0x8D41, "Advance string pointer", inline=True)
 comment(0x8D42, "Continue printing", inline=True)
 comment(0x8D44, "Return", inline=True)
-# UNMAPPED: comment(0x8D79, "Save Y (command line offset)", inline=True)
 comment(0x8D8E, "Push it", inline=True)
 comment(0x8D91, "OSBYTE &77: close SPOOL/EXEC", inline=True)
 comment(0x8D93, "Store as pending operation marker", inline=True)
 comment(0x8D99, "Y=0", inline=True)
 comment(0x8D9B, "Clear password entry flag", inline=True)
 comment(0x8D9D, "Reset FS connection state", inline=True)
-# UNMAPPED: comment(0x8D8A, "A=0", inline=True)
-# UNMAPPED: comment(0x8D8C, "Clear pending operation marker", inline=True)
 comment(0x8DA5, "Restore command line offset", inline=True)
-# UNMAPPED: comment(0x8D90, "Transfer to Y", inline=True)
 comment(0x8DAA, "Load first option byte", inline=True)
 comment(0x8DAC, "Parse station number if present", inline=True)
 comment(0x8DAF, "Not a digit: skip to password entry", inline=True)
@@ -8898,8 +8556,6 @@ comment(0x8E13, "Transfer string length to A", inline=True)
 comment(0x8E14, "Save string length", inline=True)
 comment(0x8E15, "Set up transmit control block", inline=True)
 comment(0x8E18, "Send to file server and get reply", inline=True)
-# UNMAPPED: comment(0x8E02, "Restore string length", inline=True)
-# UNMAPPED: comment(0x8E03, "Transfer to X (byte count)", inline=True)
 comment(0x8E1C, "Include terminator", inline=True)
 comment(0x8E1D, "Y=0", inline=True)
 comment(0x8E21, "Parse station number from cmd line", inline=True)
@@ -8955,31 +8611,19 @@ comment(0x8E9F, "Printer server template (8 bytes)\n"
     "unique to ANFS.")
 comment(0x8E9F, "PS template: default name \"PRINT \"", inline=True)
 
-# UNMAPPED: comment(0x8E83, "X=0", inline=True)
 comment(0x8ECB, "Y=&FF", inline=True)
 comment(0x8ECD, "Execute OSBYTE and return", inline=True)
 
 # NETV handler address pair at &8E8A. Read by write_vector_entry
 # via LDA svc_dispatch_lo_offset,Y at Y=&36/&37. Interleaved
 # with OSBYTE wrapper code at svc_dispatch_lo_offset + &30..&35.
-# UNMAPPED: comment(0x8E8A, "NETV handler address\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "2-byte handler address for the NETV extended\n"
-# UNMAPPED:     "vector, read by write_vector_entry at Y=&36\n"
-# UNMAPPED:     "from svc_dispatch_lo_offset. Points to\n"
-# UNMAPPED:     "netv_handler which dispatches OSWORDs\n"
-# UNMAPPED:     "0-8 to Econet handlers. Interleaved with the\n"
-# UNMAPPED:     "OSBYTE wrapper code in the data area.")
 
-# UNMAPPED: comment(0x8E8C, "X=0", inline=True)
 comment(0x8ED4, "Y=0", inline=True)
 comment(0x8ED8, "Get original OSBYTE A parameter", inline=True)
 comment(0x8EDA, "Subtract &31 (map &32-&35 to 1-4)", inline=True)
 comment(0x8EDC, "In range 0-3?", inline=True)
 comment(0x8EDE, "No: not ours, return unclaimed", inline=True)
 comment(0x8EE0, "Transfer to X as dispatch index", inline=True)
-# UNMAPPED: comment(0x8E9B, "A=0: claim the service call", inline=True)
-# UNMAPPED: comment(0x8E9D, "Set return value to 0 (claimed)", inline=True)
 comment(0x8EE3, "Transfer Y to A (OSBYTE Y param)", inline=True)
 comment(0x8EE4, "Y=&21: OSBYTE dispatch offset", inline=True)
 comment(0x8EE6, "Dispatch to OSBYTE handler via table", inline=True)
@@ -8994,10 +8638,6 @@ comment(0x8EF6, "Cap at &21", inline=True)
 comment(0x8EF8, "Offset &0B in receive block", inline=True)
 comment(0x8EFA, "Store workspace page count", inline=True)
 comment(0x8EFD, "Return", inline=True)
-# UNMAPPED: comment(0x8EB8, "Store Y as receive block page", inline=True)
-# UNMAPPED: comment(0x8EBA, "Advance to next page", inline=True)
-# UNMAPPED: comment(0x8EBB, "Store as NFS workspace page", inline=True)
-# UNMAPPED: comment(0x8EBD, "Advance to next page", inline=True)
 comment(0x8EFE, "Transfer page to A", inline=True)
 comment(0x8EFF, "Get current ROM slot number", inline=True)
 comment(0x8F04, "Store workspace page for this slot", inline=True)
@@ -9010,31 +8650,17 @@ comment(0x8F3C, "Clear workspace byte", inline=True)
 comment(0x8F3F, "Offset 0 in receive block", inline=True)
 comment(0x8F41, "Clear remote operation flag", inline=True)
 comment(0x8F48, "OSBYTE &8F: issue service request", inline=True)
-# UNMAPPED: comment(0x8ED8, "X=1: workspace claim service", inline=True)
-# UNMAPPED: comment(0x8EDA, "Y=&0E: requested pages", inline=True)
-# UNMAPPED: comment(0x8EDF, "Record final workspace allocation", inline=True)
-# UNMAPPED: comment(0x8EE2, "Load ROM present flag", inline=True)
 comment(0x8F4D, "Zero: first ROM init, skip FS setup", inline=True)
 comment(0x8F4F, "Set up workspace pointers", inline=True)
 comment(0x8F52, "Clear FS flags", inline=True)
 comment(0x8F55, "A=0, transfer to Y", inline=True)
 comment(0x8F56, "Clear byte in FS workspace", inline=True)
-# UNMAPPED: comment(0x8EF0, "Clear byte in NFS workspace", inline=True)
 comment(0x8F58, "Advance index", inline=True)
 comment(0x8F59, "Loop until full page zeroed", inline=True)
 comment(0x8F74, "Offset 8 in receive block", inline=True)
 comment(0x8F76, "Clear protection flags", inline=True)
 comment(0x8F7A, "Initialise station identity block", inline=True)
 comment(0x8F7E, "Offset 2 in receive block", inline=True)
-# UNMAPPED: comment(0x8EFE, "A=&FE: default station ID marker", inline=True)
-# UNMAPPED: comment(0x8F00, "Store default station low", inline=True)
-# UNMAPPED: comment(0x8F03, "Store into receive block", inline=True)
-# UNMAPPED: comment(0x8F05, "A=0", inline=True)
-# UNMAPPED: comment(0x8F07, "Clear station high byte", inline=True)
-# UNMAPPED: comment(0x8F0B, "Store into receive block", inline=True)
-# UNMAPPED: comment(0x8F0D, "Offset 3 in NFS workspace", inline=True)
-# UNMAPPED: comment(0x8F0F, "Clear NFS workspace byte 3", inline=True)
-# UNMAPPED: comment(0x8F12, "A=&EB: default listen state", inline=True)
 comment(0x8F80, "Store at NFS workspace offset 2", inline=True)
 comment(0x8F82, "X=3: init data byte count", inline=True)
 comment(0x8F84, "Load initialisation data byte", inline=True)
@@ -9046,18 +8672,6 @@ comment(0x8F90, "Clear workspace byte", inline=True)
 # ws_init_data (&8F48): 3 workspace initialisation bytes.
 # Label overlaps last byte of JMP at &8F46 (classic 6502 trick).
 # Loop reads ws_init_data+X with X=3,2,1, storing to fs_flags+X.
-# UNMAPPED: comment(0x8F49, "Workspace init data\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "3 bytes read via LDA ws_init_data,X with X=3\n"
-# UNMAPPED:     "down to 1. ws_init_data at &8F48 overlaps the\n"
-# UNMAPPED:     "high byte of JMP err_bad_station_num; byte at\n"
-# UNMAPPED:     "&8F48 itself (&92) is never read (BNE exits\n"
-# UNMAPPED:     "when X=0). Stores to tx_retry_count (&0D6D),\n"
-# UNMAPPED:     "rx_wait_timeout (&0D6E), peek_retry_count\n"
-# UNMAPPED:     "(&0D6F).")
-# UNMAPPED: comment(0x8F49, "tx_retry_count: init=&FF (255 retries)", inline=True)
-# UNMAPPED: comment(0x8F4A, "rx_wait_timeout: init=&28 (40, reply wait)", inline=True)
-# UNMAPPED: comment(0x8F4B, "peek_retry_count: init=&0A (10, peek retries)", inline=True)
 comment(0x8F93, "Initialise ADLC protection table", inline=True)
 comment(0x8F96, "X=&FF (underflow from X=0)", inline=True)
 comment(0x8FA9, "Get current workspace page", inline=True)
@@ -9069,11 +8683,8 @@ comment(0x8FB2, "Store handle permissions", inline=True)
 comment(0x8FB4, "Advance to next page", inline=True)
 comment(0x8FB6, "Continue allocating: loop", inline=True)
 comment(0x8FB8, "Restore FS context from saved state", inline=True)
-# UNMAPPED: comment(0x8F40, "Read station ID from hardware", inline=True)
 comment(0x8FBE, "Transfer to A", inline=True)
 comment(0x8FBF, "Non-zero: station ID valid", inline=True)
-# UNMAPPED: comment(0x8F46, "Station 0: report error", inline=True)
-# UNMAPPED: comment(0x8F4C, "Increment station ID", inline=True)
 comment(0x9000, "Overflow to 0: report error", inline=True)
 comment(0x9004, "Offset 1: station ID in recv block", inline=True)
 comment(0x9006, "Store station ID", inline=True)
@@ -9100,10 +8711,6 @@ comment(0x905D, "Store ROM ID in extended vector", inline=True)
 comment(0x905F, "Advance to next vector entry", inline=True)
 comment(0x9060, "Decrement vector counter", inline=True)
 comment(0x9061, "More vectors to set: loop", inline=True)
-# UNMAPPED: comment(0x8F84, "X=&FF", inline=True)
-# UNMAPPED: comment(0x8F84, "Restore FS state if previously active", inline=True)
-# UNMAPPED: comment(0x8F87, "Get workspace page for ROM slot", inline=True)
-# UNMAPPED: comment(0x8F8A, "Advance Y past workspace page", inline=True)
 comment(0x9063, "Return", inline=True)
 comment(0x9064, "Y=9: end of FS context block", inline=True)
 comment(0x9066, "Load FS context byte", inline=True)
@@ -9115,8 +8722,6 @@ comment(0x9070, "Return", inline=True)
 comment(0x9071, "FS currently selected?", inline=True)
 comment(0x9074, "No (bit 7 clear): return", inline=True)
 comment(0x9076, "Y=0", inline=True)
-# UNMAPPED: comment(0x8FA0, "Reset FS connection state", inline=True)
-# UNMAPPED: comment(0x8FA3, "OSBYTE &77: close SPOOL/EXEC", inline=True)
 comment(0x907B, "Restore FS context to receive block", inline=True)
 comment(0x907E, "Y=&76: checksum range end", inline=True)
 comment(0x9080, "A=0: checksum accumulator", inline=True)
@@ -9135,8 +8740,6 @@ comment(0x909A, "Store updated flags", inline=True)
 comment(0x909D, "Return", inline=True)
 comment(0x909E, "Save processor status", inline=True)
 comment(0x909F, "Save A", inline=True)
-# UNMAPPED: comment(0x8FCD, "Transfer Y to A", inline=True)
-# UNMAPPED: comment(0x8FCE, "Save Y", inline=True)
 comment(0x90A1, "Y=&76: checksum range end", inline=True)
 comment(0x90A3, "A=0: checksum accumulator", inline=True)
 comment(0x90A5, "Clear carry for addition", inline=True)
@@ -9146,18 +8749,12 @@ comment(0x90A9, "Loop until all bytes summed", inline=True)
 comment(0x90AB, "Y=&77: checksum storage offset", inline=True)
 comment(0x90AD, "Compare with stored checksum", inline=True)
 comment(0x90AF, "Mismatch: raise checksum error", inline=True)
-# UNMAPPED: comment(0x8FDF, "Restore Y", inline=True)
-# UNMAPPED: comment(0x8FE0, "Transfer to Y", inline=True)
 comment(0x90B2, "Restore A", inline=True)
 comment(0x90B3, "Restore processor status", inline=True)
 comment(0x90B4, "Return (checksum valid)", inline=True)
 comment(0x90B5, "Error number &AA", inline=True)
 comment(0x90B7, "Raise 'net checksum' error", inline=True)
-# UNMAPPED: comment(0x8FF1, "Print 'Econet Station ' prefix", inline=True)
 comment(0x90CC, "Print 'Econet Station ' via inline", inline=True)
-# UNMAPPED: comment(0x9003, "Y=1: station number offset in RX block", inline=True)
-# UNMAPPED: comment(0x9005, "Load station ID from receive block", inline=True)
-# UNMAPPED: comment(0x9007, "Print station number as decimal", inline=True)
 comment(0x90E0, "Space character", inline=True)
 comment(0x90E2, "Check ADLC status register 2", inline=True)
 comment(0x90E5, "Clock present: skip warning", inline=True)
@@ -9177,35 +8774,19 @@ comment(0x90F8, "*HELP command syntax strings\n"
     "cmd_syntax_table via the low 5 bits of each\n"
     "command's syntax descriptor byte.")
 comment(0x90F8, "Syn 1: *Dir, *LCat, *LEx, *Wipe", inline=True)
-# UNMAPPED: comment(0x9029, "Null terminator", inline=True)
 comment(0x9100, "Syn 2: *I Am (login)", inline=True)
 comment(0x9118, "Line break", inline=True)
-# UNMAPPED: comment(0x9043, "Syn 2 continued: password clause", inline=True)
-# UNMAPPED: comment(0x9056, "Null terminator", inline=True)
 comment(0x912D, "Syn 3: *Delete, *FS, *Remove", inline=True)
-# UNMAPPED: comment(0x905F, "Null terminator", inline=True)
-# UNMAPPED: comment(0x9060, "Syn 4: *Dump", inline=True)
-# UNMAPPED: comment(0x9075, "Line break", inline=True)
 comment(0x914C, "Syn 4 continued: address clause", inline=True)
 comment(0x9158, "Null terminator", inline=True)
 comment(0x9159, "Syn 5: *Lib", inline=True)
-# UNMAPPED: comment(0x9088, "Null terminator", inline=True)
-# UNMAPPED: comment(0x9089, "Syn 6: *CDir", inline=True)
-# UNMAPPED: comment(0x9099, "Null terminator", inline=True)
 comment(0x9170, "Syn 7: *Pass", inline=True)
-# UNMAPPED: comment(0x90AD, "Line break", inline=True)
 comment(0x9184, "Syn 7 continued: new password", inline=True)
-# UNMAPPED: comment(0x90BC, "Null terminator", inline=True)
-# UNMAPPED: comment(0x90BD, "Syn 8: *PS, *Pollps", inline=True)
-# UNMAPPED: comment(0x90D3, "Null terminator", inline=True)
 comment(0x91AA, "Syn 9: *Access", inline=True)
-# UNMAPPED: comment(0x90EF, "Null terminator", inline=True)
 comment(0x91C6, "Syn 10: *Rename", inline=True)
 comment(0x91DF, "Null terminator", inline=True)
 comment(0x91E0, "Syn 11: (station id. argument)", inline=True)
 comment(0x91EC, "Null terminator", inline=True)
-# UNMAPPED: comment(0x9117, "Syn 12: *Print, *Type", inline=True)
-# UNMAPPED: comment(0x9121, "Null terminator", inline=True)
 
 # cmd_syntax_table (&910E): 13-entry offset table for *HELP syntax.
 # Each byte is an offset into cmd_syntax_strings (&9022). The print
@@ -9220,18 +8801,11 @@ comment(0x91ED, "Command syntax string offset table\n"
     "loop at &8BD5 does INY before LDA, so each offset\n"
     "points to the byte before the first character.")
 comment(0x91ED, "Idx 0: (no syntax)", inline=True)
-# UNMAPPED: comment(0x9123, "Idx 1: \"(<dir>)\" (Y wraps via &FF)", inline=True)
 comment(0x91EF, "Idx 2: \"(<stn.id.>) <user id.>...\"", inline=True)
 comment(0x91F0, "Idx 3: \"<object>\"", inline=True)
-# UNMAPPED: comment(0x9126, "Idx 4: \"<filename> (<offset>...)\"", inline=True)
-# UNMAPPED: comment(0x9127, "Idx 5: \"<dir>\"", inline=True)
-# UNMAPPED: comment(0x9128, "Idx 6: \"<dir> (<number>)\"", inline=True)
-# UNMAPPED: comment(0x9129, "Idx 7: \"(:<CR>) <password>...\"", inline=True)
 comment(0x91F5, "Idx 8: \"(<stn.id.>|<ps type>)\"", inline=True)
 comment(0x91F6, "Idx 9: \"<object> (L)(W)(R)...\"", inline=True)
-# UNMAPPED: comment(0x912C, "Idx 10: \"<filename> <new filename>\"", inline=True)
 comment(0x91F8, "Idx 11: \"(<stn. id.>)\"", inline=True)
-# UNMAPPED: comment(0x912E, "Idx 12: \"<filename>\"", inline=True)
 
 comment(0x9236, "Save full byte", inline=True)
 comment(0x9237, "Shift high nybble to low", inline=True)
@@ -9257,16 +8831,9 @@ comment(0x9763, "TXCB initialisation template (12 bytes)\n"
     "AND a BIT target used by 22 callers to set the\n"
     "V and N flags without clobbering A.")
 comment(0x9763, "Offset 0: txcb_ctrl = &80 (transmit)", inline=True)
-# UNMAPPED: comment(0x948C, "Offset 1: txcb_port = &99 (FS reply)", inline=True)
-# UNMAPPED: comment(0x948D, "Offset 2: txcb_dest lo (overwritten)", inline=True)
-# UNMAPPED: comment(0x948E, "Offset 3: txcb_dest hi (overwritten)", inline=True)
 comment(0x9765, "Offset 4: txcb_start = 0", inline=True)
-# UNMAPPED: comment(0x9490, "Offset 5: buffer start hi (page &0F)", inline=True)
 comment(0x976A, "Offset 6: BIT target / buffer end lo", inline=True)
 comment(0x976B, "Offset 7: txcb_pos = &FF", inline=True)
-# UNMAPPED: comment(0x9493, "Offset 8: txcb_end = &FF", inline=True)
-# UNMAPPED: comment(0x9494, "Offset 9: buffer end hi (page &0F)", inline=True)
-# UNMAPPED: comment(0x9495, "Offset 10: extended addr fill (&FF)", inline=True)
 comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # ============================================================
@@ -9321,13 +8888,10 @@ entry(0x8C51)   # idx 10  svc_9 *HELP
 entry(0x8EE9)
 
 label(0x8EE9, "svc_1_abs_workspace")
-# UNMAPPED: label(0x8EB8, "svc_2_private_workspace")
 label(0x8CC7, "svc_3_autoboot")
 label(0x8C42, "svc_4_star_command")
 label(0x8ED8, "svc_7_osbyte")
-# UNMAPPED: label(0xA4EE, "svc_8_osword")
 label(0x8C51, "svc_9_help")
-# UNMAPPED: label(0x8B0D, "svc_18_fs_select")
 
 subroutine(0x8EE9, "svc_1_abs_workspace",
     title="Service 1: absolute workspace claim",
@@ -9339,19 +8903,6 @@ subroutine(0x8EE9, "svc_1_abs_workspace",
     "lowers it.",
     on_entry={"y": "current highest workspace page claim"},
     on_exit={"y": ">= &16 (NFS minimum requirement)"})
-# UNMAPPED: subroutine(0x8EB8, "svc_2_private_workspace",
-# UNMAPPED:     title="Service 2: claim private workspace and initialise NFS",
-# UNMAPPED:     description="Handles MOS service call 2 (private workspace\n"
-# UNMAPPED:     "claim). Allocates two workspace pages starting\n"
-# UNMAPPED:     "at Y: the receive block page (net_rx_ptr_hi) and\n"
-# UNMAPPED:     "NFS workspace page (nfs_workspace_hi), plus a\n"
-# UNMAPPED:     "per-ROM workspace page stored at &0DF0+ROM slot.\n"
-# UNMAPPED:     "Zeroes all workspace, initialises the station ID\n"
-# UNMAPPED:     "from the Econet hardware register at &FE18,\n"
-# UNMAPPED:     "allocates FS handle pages, copies initial state\n"
-# UNMAPPED:     "to page &10, and falls through to\n"
-# UNMAPPED:     "init_adlc_and_vectors.",
-# UNMAPPED:     on_entry={"y": "first available private workspace page"})
 subroutine(0x8CC7, "svc_3_autoboot",
     title="Service 3: auto-boot on reset",
     description="Scans the keyboard via OSBYTE &7A for the 'N' key\n"
@@ -9486,7 +9037,6 @@ entry(0xA42F)
 entry(0xB118)
 entry(0x9071)
 entry(0x93F2)
-# UNMAPPED: entry(0xAF3E)
 entry(0xA6D5)
 entry(0xA6E5)
 entry(0xA638)
@@ -9505,81 +9055,29 @@ entry(0xA415)
 # Flag byte: bit 7 = end of name, bit 6 = set V if no arg,
 # bits 0-4 = syntax string index into cmd_syntax_table.
 
-# UNMAPPED: comment(0xA3F0, """\
-# UNMAPPED: Star command table (4 interleaved sub-tables).
-# UNMAPPED: Each entry: ASCII name + flag byte (&80+) +
-# UNMAPPED: dispatch address word (PHA/PHA/RTS, addr-1).
-# UNMAPPED: Sub-tables separated by &80 sentinel bytes.
-# UNMAPPED: Flag byte: bit 7 = end of name marker,
-# UNMAPPED: bit 6 = set V on return if no argument,
-# UNMAPPED: bits 0-4 = *HELP syntax string index.
-# UNMAPPED: 1: Utility cmds  2: NFS commands
-# UNMAPPED: 3: Help topics  4: Copro/attributes""")
 
-# UNMAPPED: label(0xA3F0, "cmd_table_fs")
 label(0xA7A1, "cmd_table_nfs")
-# UNMAPPED: label(0xA4B2, "cmd_table_help")
-# UNMAPPED: label(0xA4C3, "cmd_table_copro")
 
 # Force short command name fragments to display as equs strings.
 # py8dis auto-classifies these as equb when adjacent to flag bytes.
-# UNMAPPED: string(0xA3F0, 1)    # "C" (first char of *Close)
-# UNMAPPED: string(0xA3F1, 1)    # "l" (dispatch lo base byte of *Close)
 string(0xA782, 2)    # "PS"
 byte(0xA784)
-# UNMAPPED: string(0xA45F, 2)    # "Ex"
-# UNMAPPED: byte(0xA461)
-# UNMAPPED: string(0xA46B, 2)    # "FS"
 byte(0xA7C6)
 
 # Sub-table 1: utility commands
 # Table stores address-1 for PHA/PHA/RTS dispatch; actual targets are +1.
-# UNMAPPED: entry(0xB994)   # *Close
 entry(0xBD41)   # *Dump
 entry(0x8B23)   # *Net (select NFS)
 entry(0xB581)   # *Pollps
-# UNMAPPED: entry(0xB99D)   # *Print
-# UNMAPPED: entry(0xB30C)   # *Prot
 entry(0xB3AC)   # *PS
-# UNMAPPED: entry(0xB99A)   # *Type
-# UNMAPPED: entry(0xB33D)   # *Unprot
 entry(0x8AEA)   # *Roff
 
 # Mark dispatch address words as symbolic label expressions.
 # Each entry: (addr, target_label). Uses EQUW (little-endian word).
 _cmd_entries = [
     # Sub-table 1: utility commands
-# UNMAPPED:     (0xA3F6, "cmd_close"),
-# UNMAPPED:     (0xA3FD, "cmd_dump"),
-# UNMAPPED:     (0xA403, "cmd_net_fs"),
-# UNMAPPED:     (0xA40C, "cmd_pollps"),
-# UNMAPPED:     (0xA414, "cmd_print"),
-# UNMAPPED:     (0xA41B, "cmd_prot"),
-# UNMAPPED:     (0xA420, "cmd_ps"),
-# UNMAPPED:     (0xA427, "cmd_roff"),
-# UNMAPPED:     (0xA42E, "cmd_type"),
-# UNMAPPED:     (0xA437, "cmd_unprot"),
     # Sub-table 2: NFS commands
-# UNMAPPED:     (0xA441, "cmd_fs_operation"),   # *Access
-# UNMAPPED:     (0xA447, "cmd_bye"),
-# UNMAPPED:     (0xA44E, "cmd_cdir"),
-# UNMAPPED:     (0xA457, "cmd_fs_operation"),   # *Delete
-# UNMAPPED:     (0xA45D, "cmd_dir"),
-# UNMAPPED:     (0xA462, "cmd_ex"),
-# UNMAPPED:     (0xA469, "cmd_flip"),
-# UNMAPPED:     (0xA46E, "cmd_fs"),
-# UNMAPPED:     (0xA475, "cmd_fs_operation"),   # *Info
-# UNMAPPED:     (0xA47C, "cmd_iam"),
-# UNMAPPED:     (0xA483, "cmd_lcat"),
-# UNMAPPED:     (0xA489, "cmd_lex"),
-# UNMAPPED:     (0xA48F, "cmd_fs_operation"),   # *Lib
-# UNMAPPED:     (0xA496, "cmd_pass"),
-# UNMAPPED:     (0xA49F, "cmd_remove"),
-# UNMAPPED:     (0xA4A8, "cmd_rename"),
-# UNMAPPED:     (0xA4AF, "cmd_wipe"),
     # Sub-table 3: help topic handlers
-# UNMAPPED:     (0xA4B8, "help_net"),
-# UNMAPPED:     (0xA4C0, "help_utils"),
     # Sub-table 4 (copro) skipped — targets outside ROM range
 ]
 for addr, target_label in _cmd_entries:
@@ -9593,65 +9091,27 @@ for addr, target_label in _cmd_entries:
 # Sentinels: sub-table terminators.
 
 # Sub-table 1: utility commands (&A3D8-&A421)
-# UNMAPPED: comment(0xA3F0, "*Close (first char)", inline=True)
-# UNMAPPED: comment(0xA3F1, "*Close cont (dispatch lo base)", inline=True)
-# UNMAPPED: comment(0xA3F2, "*Close cont (dispatch hi base)", inline=True)
-# UNMAPPED: comment(0xA3F5, "No syntax", inline=True)
-# UNMAPPED: comment(0xA3F8, "*Dump", inline=True)
 comment(0xA76C, "*Net (select NFS)", inline=True)
 comment(0xA76F, "No syntax", inline=True)
-# UNMAPPED: comment(0xA405, "*Pollps", inline=True)
 comment(0xA778, "Syn 8: (<stn. id.>|<ps type>)", inline=True)
-# UNMAPPED: comment(0xA40E, "*Print", inline=True)
-# UNMAPPED: comment(0xA413, "V no arg; syn 12: <filename>", inline=True)
 comment(0xA77B, "*Prot", inline=True)
-# UNMAPPED: comment(0xA41A, "Syn 14: (attribute keywords)", inline=True)
 comment(0xA782, "*PS; syn 8: (<stn. id.>|<ps type>)", inline=True)
-# UNMAPPED: comment(0xA422, "*Roff", inline=True)
 comment(0xA78B, "No syntax", inline=True)
-# UNMAPPED: comment(0xA429, "*Type", inline=True)
-# UNMAPPED: comment(0xA42D, "V no arg; syn 12: <filename>", inline=True)
 comment(0xA78E, "*Unprot", inline=True)
-# UNMAPPED: comment(0xA436, "Syn 14: (attribute keywords)", inline=True)
-# UNMAPPED: comment(0xA439, "End of utility sub-table", inline=True)
 
 # Sub-table 2: NFS commands (&A422-&A499)
 comment(0xA7A1, "*Access", inline=True)
 comment(0xA7A7, "V no arg; syn 9: <obj> (L)(W)(R)...", inline=True)
-# UNMAPPED: comment(0xA443, "*Bye", inline=True)
-# UNMAPPED: comment(0xA446, "No syntax", inline=True)
-# UNMAPPED: comment(0xA449, "*Cdir", inline=True)
-# UNMAPPED: comment(0xA44D, "V no arg; syn 6: <dir> (<number>)", inline=True)
-# UNMAPPED: comment(0xA450, "*Delete", inline=True)
-# UNMAPPED: comment(0xA456, "V no arg; syn 3: <object>", inline=True)
 comment(0xA7B7, "*Dir", inline=True)
 comment(0xA7BA, "Syn 1: (<dir>)", inline=True)
-# UNMAPPED: comment(0xA45F, "*Ex; syn 1: (<dir>)", inline=True)
-# UNMAPPED: comment(0xA464, "*Flip", inline=True)
 comment(0xA7C1, "No syntax", inline=True)
-# UNMAPPED: comment(0xA46B, "*FS; syn 11: (<stn. id.>)", inline=True)
-# UNMAPPED: comment(0xA470, "*Info", inline=True)
-# UNMAPPED: comment(0xA474, "V no arg; syn 3: <object>", inline=True)
 comment(0xA7C9, "*I am", inline=True)
 comment(0xA7CD, "V no arg; syn 2: (<stn>) <user>...", inline=True)
-# UNMAPPED: comment(0xA47E, "*Lcat", inline=True)
-# UNMAPPED: comment(0xA482, "Syn 1: (<dir>)", inline=True)
-# UNMAPPED: comment(0xA485, "*Lex", inline=True)
-# UNMAPPED: comment(0xA488, "Syn 1: (<dir>)", inline=True)
-# UNMAPPED: comment(0xA48B, "*Lib", inline=True)
-# UNMAPPED: comment(0xA48E, "V no arg; syn 5: <dir>", inline=True)
-# UNMAPPED: comment(0xA491, "*Pass", inline=True)
 comment(0xA7E7, "V no arg; syn 7: <pass> ...", inline=True)
-# UNMAPPED: comment(0xA498, "*Remove", inline=True)
-# UNMAPPED: comment(0xA4A2, "V no arg; syn 3: <object>", inline=True)
-# UNMAPPED: comment(0xA4A1, "*Rename", inline=True)
-# UNMAPPED: comment(0xA4A7, "V no arg; syn 10: <file> <new file>", inline=True)
 comment(0xA7F3, "*Wipe", inline=True)
 comment(0xA7FA, "End of NFS sub-table", inline=True)
 
 # Sub-table 3: help topic handlers (&A49A-&A4AA)
-# UNMAPPED: comment(0xA4B4, "*Net (local)", inline=True)
-# UNMAPPED: comment(0xA4B7, "No syntax", inline=True)
 comment(0xA803, "*Utils", inline=True)
 comment(0xA808, "No syntax", inline=True)
 comment(0xA80B, "End of help topic sub-table", inline=True)
@@ -9665,24 +9125,10 @@ comment(0xA80B, "End of help topic sub-table", inline=True)
 # *Unprot ANDs the hi byte to clear the corresponding bit.
 # Protection bits: 0=Peek, 1=Poke, 2=JSR, 3=Proc, 4=Utils, 5=Halt.
 
-# UNMAPPED: comment(0xA4C3, """\
-# UNMAPPED: Protection attribute keyword table. Each entry:
-# UNMAPPED: ASCII name + flag byte (&80+) + OR mask + AND mask.
-# UNMAPPED: Used by *Prot (ORA lo byte) and *Unprot (AND hi
-# UNMAPPED: byte) to set/clear individual protection bits.
-# UNMAPPED: Also listed by *HELP Prot/*HELP Unprot via the
-# UNMAPPED: shared commands handler (syntax index 14).
-# UNMAPPED: Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt""")
 
 # Split multi-byte equb groups so each byte gets its own line.
 _attr_entries = [
     # (flag_addr, or_addr, and_addr)
-# UNMAPPED:     (0xA4C7, 0xA4C8, 0xA4C9),   # Halt
-# UNMAPPED:     (0xA4CD, 0xA4CE, 0xA4CF),   # JSR
-# UNMAPPED:     (0xA4D4, 0xA4D5, 0xA4D6),   # Peek
-# UNMAPPED:     (0xA4DB, 0xA4DC, 0xA4DD),   # Poke
-# UNMAPPED:     (0xA4E2, 0xA4E3, 0xA4E4),   # Proc
-# UNMAPPED:     (0xA4EA, 0xA4EB, 0xA4EC),   # Utils
 ]
 for flag_addr, or_addr, and_addr in _attr_entries:
     byte(flag_addr)
@@ -9691,49 +9137,14 @@ for flag_addr, or_addr, and_addr in _attr_entries:
 # &A83B is the start of svc_8_osword.
 
 # Inline comments for sub-table 4
-# UNMAPPED: comment(0xA4C3, "Halt", inline=True)
-# UNMAPPED: comment(0xA4C7, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
-# UNMAPPED: comment(0xA4C8, "*Prot OR mask: bit 5", inline=True)
-# UNMAPPED: comment(0xA4C9, "*Unprot AND mask: ~bit 5", inline=True)
-# UNMAPPED: comment(0xA4CA, "JSR", inline=True)
-# UNMAPPED: comment(0xA4CD, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
-# UNMAPPED: comment(0xA4CE, "*Prot OR mask: bit 2", inline=True)
-# UNMAPPED: comment(0xA4CF, "*Unprot AND mask: ~bit 2", inline=True)
-# UNMAPPED: comment(0xA4D0, "Peek", inline=True)
-# UNMAPPED: comment(0xA4D4, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
-# UNMAPPED: comment(0xA4D5, "*Prot OR mask: bit 0", inline=True)
-# UNMAPPED: comment(0xA4D6, "*Unprot AND mask: ~bit 0", inline=True)
-# UNMAPPED: comment(0xA4D7, "Poke", inline=True)
-# UNMAPPED: comment(0xA4DB, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
-# UNMAPPED: comment(0xA4DC, "*Prot OR mask: bit 1", inline=True)
-# UNMAPPED: comment(0xA4DD, "*Unprot AND mask: ~bit 1", inline=True)
-# UNMAPPED: comment(0xA4DE, "Proc", inline=True)
-# UNMAPPED: comment(0xA4E2, "Flag &FC: V no arg, syn 28 (unused)", inline=True)
-# UNMAPPED: comment(0xA4E3, "*Prot OR mask: bit 3", inline=True)
-# UNMAPPED: comment(0xA4E4, "*Unprot AND mask: ~bit 3", inline=True)
-# UNMAPPED: comment(0xA4E5, "Utils", inline=True)
-# UNMAPPED: comment(0xA4EA, "Flag &A9: syn 9 (unused)", inline=True)
-# UNMAPPED: comment(0xA4EB, "*Prot OR mask: bit 4", inline=True)
-# UNMAPPED: comment(0xA4EC, "*Unprot AND mask: ~bit 4", inline=True)
 comment(0xA83B, "End of attribute keyword table", inline=True)
 
-# UNMAPPED: label(0xB994, "cmd_close")
 label(0xBD41, "cmd_dump")
 label(0x8B23, "cmd_net_fs")
 label(0xB581, "cmd_pollps")
-# UNMAPPED: label(0xB99D, "cmd_print")
-# UNMAPPED: label(0xB30C, "cmd_prot")
 label(0xB3AC, "cmd_ps")
-# UNMAPPED: label(0xB99A, "cmd_type")
-# UNMAPPED: label(0xB33D, "cmd_unprot")
 label(0x8AEA, "cmd_roff")
 
-# UNMAPPED: subroutine(0xB994, "cmd_close",
-# UNMAPPED:     title="*Close command handler",
-# UNMAPPED:     description="Loads A=0 and Y=0, then jumps to OSFIND to close\n"
-# UNMAPPED:     "all open files on the current file server (equivalent\n"
-# UNMAPPED:     "to CLOSE#0). Files open on other file servers are\n"
-# UNMAPPED:     "not affected.")
 subroutine(0xBD41, "cmd_dump",
     title="*Dump command handler",
     description="Opens the file via open_file_for_read, allocates a\n"
@@ -9770,16 +9181,6 @@ subroutine(0xB581, "cmd_pollps",
     "'ready', 'busy' (with client station), or 'jammed'.\n"
     "Marks processed slots with &3F.",
     on_entry={"y": "command line offset in text pointer"})
-# UNMAPPED: subroutine(0xB99D, "cmd_print",
-# UNMAPPED:     title="*Print command handler",
-# UNMAPPED:     description="Sets V flag (distinguishing from *Type which clears V),\n"
-# UNMAPPED:     "then opens the file for reading. Loops reading bytes\n"
-# UNMAPPED:     "via OSBGET, checking for escape between each. In type\n"
-# UNMAPPED:     "mode (V clear), normalises CR/LF pairs to single\n"
-# UNMAPPED:     "newlines by tracking the previous character. In print\n"
-# UNMAPPED:     "mode (V set), outputs all bytes raw via OSWRCH. Closes\n"
-# UNMAPPED:     "the file and prints a final newline on EOF.",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
 # cmd_prot at &B6D2 / cmd_unprot at &B6D6 are dispatched via the
 # star-cmd table at &A77F (Prot) and &A794 (Unprot). They share a
 # common body starting at &B6D8. Both need entry() because the
@@ -9845,12 +9246,10 @@ subroutine(0x8AEA, "cmd_roff",
 # Sub-table 2: NFS commands
 entry(0x9425)   # *Access, *Delete, *Info, *Lib (shared entry)
 entry(0x9776)   # *Bye
-# UNMAPPED: entry(0xAD10)   # *Cdir
 entry(0x9512)   # *Dir
 entry(0xB103)   # *Ex
 entry(0xA69A)   # *Flip
 entry(0xA398)   # *FS
-# UNMAPPED: entry(0x8D79)   # *I am
 entry(0xB0F2)   # *Lcat
 entry(0xB0F8)   # *Lex
 entry(0x8DD5)   # *Pass
@@ -9860,18 +9259,15 @@ entry(0xB6F3)   # *Wipe
 
 label(0x9425, "cmd_fs_operation")
 label(0x9776, "cmd_bye")
-# UNMAPPED: label(0xAD10, "cmd_cdir")
 label(0x9512, "cmd_dir")
 label(0xB103, "cmd_ex")
 label(0xA69A, "cmd_flip")
 label(0xA398, "cmd_fs")
-# UNMAPPED: label(0x8D79, "cmd_iam")
 label(0xB0F2, "cmd_lcat")
 label(0xB0F8, "cmd_lex")
 label(0x8DD5, "cmd_pass")
 # cmd_remove location pending fingerprint -- &B312 is print_decimal_
 # digit's body, not cmd_remove.
-# UNMAPPED: label(0xB312, "cmd_remove")
 label(0x94C5, "cmd_rename")
 label(0xB6F3, "cmd_wipe")
 
@@ -10025,7 +9421,6 @@ subroutine(0x8DD5, "cmd_pass",
     "branches to send_cmd_and_dispatch for the reply.",
     on_entry={"y": "command line offset in text pointer "
               "(also the entry point for cmd_iam fall-through)"})
-# UNMAPPED: subroutine(0xB312, "cmd_remove", ...)
 # &B312 is print_decimal_digit's body, not cmd_remove. The actual
 # *Remove handler lives at a yet-to-be-located address.
 
@@ -10158,8 +9553,6 @@ for i in range(16):
     byte(0x88F0 + i)
 
 # Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo (3 bytes)
-# UNMAPPED: for i in range(3):
-# UNMAPPED:     byte(0x89C7 + i)
 
 # Smaller undecoded blocks with valid first opcodes
 entry(0x84BE)   # After dispatch table data
@@ -10231,67 +9624,41 @@ for i, (name, handler_addr) in enumerate(handler_names):
 # Printer server template data: "PRINT " + &01 &00 (8 bytes)
 # Read by copy_ps_data via indexed addressing from ps_template_base.
 label(0x8E9F, "ps_template_data")
-# UNMAPPED: byte(0x8E5F)
-# UNMAPPED: byte(0x8E60)
 
 # NETV handler address pair at &8E8A (read by write_vector_entry)
-# UNMAPPED: label(0x8E8A, "netv_handler_addr")
 label(0xACFC, "netv_handler")
-# UNMAPPED: word(0x8E8A)
-# UNMAPPED: expr(0x8E8A, "netv_handler")
 
 # Command syntax help strings (&900D-&910C)
 label(0x90F7, "syntax_strings")
 
 # Error message table (&97B9)
-# UNMAPPED: label(0x97B9, "error_msg_table")
 label(0x9AB3, "msg_net_error")
 label(0x9ABE, "msg_station")
-# UNMAPPED: label(0x97DA, "msg_no_clock")
 label(0x9AD1, "msg_escape")
 label(0x9AD9, "msg_bad_option")
-# UNMAPPED: label(0x97F8, "msg_no_reply")
-# UNMAPPED: label(0x980F, "msg_not_listening")
 label(0x9B0B, "msg_on_channel")
 label(0x9B17, "msg_not_present")
 # Split error number and null terminator bytes
-# UNMAPPED: byte(0x97B9)   # error &A0
-# UNMAPPED: byte(0x97DA)   # null
 byte(0x9AC8)   # error &A3
 byte(0x9AD0)   # null
 byte(0x9AD1)   # error &11
-# UNMAPPED: byte(0x97EB)   # null
 byte(0x9AD9)   # error &CB
-# UNMAPPED: byte(0x97F8)   # null
 byte(0x9AE6)   # error &A5
-# UNMAPPED: byte(0x980E)   # null
 byte(0x9B0A)   # null
 byte(0x9B16)   # null
-# UNMAPPED: byte(0x9836)   # null
 
 # Credits string — force each CR (&0D) onto its own line and
 # ensure "nn" (end of "J Dunn") displays as equs not equb.
-# UNMAPPED: label(0x8CA3, "version_string")
-# UNMAPPED: label(0x8D39, "credits_string")
 byte(0x8D45)
 comment(0x8D45, "CR", inline=True)
 byte(0x8D5E)
 comment(0x8D5E, "CR", inline=True)
-# UNMAPPED: byte(0x8D5C)
-# UNMAPPED: comment(0x8D5C, "CR", inline=True)
 string(0x8D6E, 2)
-# UNMAPPED: byte(0x8D63)
-# UNMAPPED: comment(0x8D63, "CR", inline=True)
-# UNMAPPED: byte(0x8D6F)
-# UNMAPPED: comment(0x8D6F, "CR", inline=True)
 byte(0x8D84)
 comment(0x8D84, "CR", inline=True)
-# UNMAPPED: byte(0x8D78)
-# UNMAPPED: comment(0x8D78, "String terminator", inline=True)
 
 # Boot command strings
 label(0xA740, "boot_load_cmd")
-# UNMAPPED: label(0xA3D7, "boot_exec_cmd")
 
 
 # ============================================================
@@ -10316,16 +9683,6 @@ subroutine(0x8E61, "svc_dispatch",
 label(0x8E61, "svc_dispatch")
 
 # sub_c8a97: read byte from paged ROM via OSRDSC
-# UNMAPPED: subroutine(0x8AA0, "read_paged_rom",
-# UNMAPPED:     title="Read next byte from paged ROM via OSRDSC",
-# UNMAPPED:     description="Increments the read pointer at osrdsc_ptr (&F6)\n"
-# UNMAPPED:     "first, then calls OSRDSC (&FFB9) with the ROM\n"
-# UNMAPPED:     "number from error_block (&0100) in Y. Called\n"
-# UNMAPPED:     "three times by service_handler during ROM\n"
-# UNMAPPED:     "identification to read the copyright string and\n"
-# UNMAPPED:     "ROM type byte.",
-# UNMAPPED:     on_exit={"a": "byte read from ROM"})
-# UNMAPPED: label(0x8AA0, "read_paged_rom")
 
 subroutine(0x8EC9, "osbyte_x0",
     title="OSBYTE wrapper with X=0, Y=&FF",
@@ -10442,7 +9799,6 @@ comment(0x99DD, "Loop until null terminator", inline=True)
 comment(0x99DF, "Read receive attribute byte", inline=True)
 
 # "Bad " prefix table
-# UNMAPPED: label(0x96B4, "bad_prefix")
 
 
 # ============================================================
@@ -10450,8 +9806,6 @@ comment(0x99DF, "Read receive attribute byte", inline=True)
 # ============================================================
 
 # cmd_cdir (&ACFE) — *CDir: create directory
-# UNMAPPED: comment(0xAD10, "Save command line offset", inline=True)
-# UNMAPPED: comment(0xAD11, "Push onto stack", inline=True)
 comment(0xB0A3, "Set owner-only access mask", inline=True)
 comment(0xB0A6, "Skip to optional size argument", inline=True)
 comment(0xB0A9, "End of line?", inline=True)
@@ -10491,30 +9845,18 @@ comment(0xB0D5, "*CDir allocation size threshold table\n"
 comment(0xB0D5, "Index 1: threshold 0 (catch-all)", inline=True)
 comment(0xB0D6, "Index 2: threshold 10 (default)", inline=True)
 comment(0xB0D7, "Index 3: threshold 20", inline=True)
-# UNMAPPED: comment(0xAD47, "Index 4: threshold 29", inline=True)
-# UNMAPPED: comment(0xAD48, "Index 5: threshold 39", inline=True)
-# UNMAPPED: comment(0xAD49, "Index 6: threshold 49", inline=True)
-# UNMAPPED: comment(0xAD4A, "Index 7: threshold 59", inline=True)
 comment(0xB0DC, "Index 8: threshold 69", inline=True)
-# UNMAPPED: comment(0xAD4C, "Index 9: threshold 79", inline=True)
 comment(0xB0DE, "Index 10: threshold 88", inline=True)
 comment(0xB0DF, "Index 11: threshold 98", inline=True)
 comment(0xB0E0, "Index 12: threshold 108", inline=True)
-# UNMAPPED: comment(0xAD50, "Index 13: threshold 118", inline=True)
-# UNMAPPED: comment(0xAD51, "Index 14: threshold 128", inline=True)
 comment(0xB0E3, "Index 15: threshold 138", inline=True)
 comment(0xB0E4, "Index 16: threshold 148", inline=True)
-# UNMAPPED: comment(0xAD54, "Index 17: threshold 157", inline=True)
 comment(0xB0E6, "Index 18: threshold 167", inline=True)
 comment(0xB0E7, "Index 19: threshold 177", inline=True)
-# UNMAPPED: comment(0xAD57, "Index 20: threshold 187", inline=True)
 comment(0xB0E9, "Index 21: threshold 197", inline=True)
-# UNMAPPED: comment(0xAD59, "Index 22: threshold 207", inline=True)
 comment(0xB0EB, "Index 23: threshold 216", inline=True)
 comment(0xB0EC, "Index 24: threshold 226", inline=True)
 comment(0xB0ED, "Index 25: threshold 236", inline=True)
-# UNMAPPED: comment(0xAD5D, "Index 26: threshold 246", inline=True)
-# UNMAPPED: comment(0xAD5E, "Unused (index 27, never accessed)", inline=True)
 
 # cmd_lcat (&AD4D) — *LCat: library catalogue
 comment(0xB0F2, "Rotate carry into lib flag bit 7", inline=True)
@@ -10549,12 +9891,8 @@ comment(0xB6F0, "Tail-call OSBYTE", inline=True)
 
 # cmd_fs_operation (&92D2) — shared handler for *Access, *Delete, *Info, *Lib
 comment(0x9425, "Copy command name to TX buffer", inline=True)
-# UNMAPPED: comment(0x92E9, "Save buffer position", inline=True)
-# UNMAPPED: comment(0x92EA, "Push it", inline=True)
 comment(0x9429, "Parse filename (handles quoting)", inline=True)
 comment(0x942C, "Parse owner/public access prefix", inline=True)
-# UNMAPPED: comment(0x92F1, "Restore buffer position", inline=True)
-# UNMAPPED: comment(0x92F2, "Transfer to X", inline=True)
 comment(0x9430, "Reject '&' character in filename", inline=True)
 comment(0x9433, "End of line?", inline=True)
 comment(0x9435, "No: copy filename chars to buffer", inline=True)
@@ -10570,11 +9908,8 @@ comment(0x9454, "Advance buffer pointer", inline=True)
 comment(0x9455, "End of line?", inline=True)
 comment(0x9457, "Yes: send request to file server", inline=True)
 comment(0x9459, "Strip BASIC token prefix byte", inline=True)
-# UNMAPPED: comment(0x931F, "Continue reading filename chars", inline=True)
 comment(0x945E, "Y=0: no extra dispatch offset", inline=True)
 comment(0x9460, "Send command and dispatch reply", inline=True)
-# UNMAPPED: comment(0x9327, "Save command line offset", inline=True)
-# UNMAPPED: comment(0x9328, "Push it", inline=True)
 comment(0x9464, "Scan backwards in command table", inline=True)
 comment(0x9465, "Load table byte", inline=True)
 comment(0x9468, "Bit 7 clear: keep scanning", inline=True)
@@ -10591,8 +9926,6 @@ comment(0x947B, "Append space after command name", inline=True)
 comment(0x947E, "Advance buffer pointer", inline=True)
 comment(0x947F, "Transfer length to A", inline=True)
 comment(0x9480, "And to X (buffer position)", inline=True)
-# UNMAPPED: comment(0x9346, "Restore command line offset", inline=True)
-# UNMAPPED: comment(0x9347, "Transfer to Y", inline=True)
 comment(0x9482, "Return", inline=True)
 comment(0x9483, "A=0: no quote mode", inline=True)
 comment(0x9486, "Clear quote tracking flag", inline=True)
@@ -10624,13 +9957,9 @@ comment(0x94BB, "Raise 'Bad string' error", inline=True)
 
 # cmd_rename (&9377) — *Rename: rename file on server
 comment(0x94C5, "Copy 'Rename ' to TX buffer", inline=True)
-# UNMAPPED: comment(0x938E, "Save buffer position", inline=True)
-# UNMAPPED: comment(0x938F, "Push it", inline=True)
 comment(0x94C9, "Set owner-only access mask", inline=True)
 comment(0x94CC, "Parse first filename (quoted)", inline=True)
 comment(0x94CF, "Parse access prefix", inline=True)
-# UNMAPPED: comment(0x9399, "Restore buffer position", inline=True)
-# UNMAPPED: comment(0x939A, "Transfer to X", inline=True)
 comment(0x94D3, "Load next parsed character", inline=True)
 comment(0x94D6, "End of line?", inline=True)
 comment(0x94D8, "No: store character", inline=True)
@@ -10641,7 +9970,6 @@ comment(0x94E9, "Advance buffer pointer", inline=True)
 comment(0x94EA, "Space (name separator)?", inline=True)
 comment(0x94EC, "Yes: first name complete", inline=True)
 comment(0x94EE, "Strip BASIC token prefix byte", inline=True)
-# UNMAPPED: comment(0x93B9, "Continue copying first filename", inline=True)
 comment(0x94F3, "Strip token from next char", inline=True)
 comment(0x94F6, "Load next parsed character", inline=True)
 comment(0x94F9, "Still a space?", inline=True)
@@ -10649,11 +9977,7 @@ comment(0x94FB, "Yes: skip multiple spaces", inline=True)
 comment(0x94FD, "Save current FS options", inline=True)
 comment(0x9500, "Push them", inline=True)
 comment(0x9501, "Reset access mask for second name", inline=True)
-# UNMAPPED: comment(0x93CD, "Save buffer position", inline=True)
-# UNMAPPED: comment(0x93CE, "Push it", inline=True)
 comment(0x9505, "Parse access prefix for second name", inline=True)
-# UNMAPPED: comment(0x93D2, "Restore buffer position", inline=True)
-# UNMAPPED: comment(0x93D3, "Transfer to X", inline=True)
 comment(0x9509, "Restore original FS options", inline=True)
 comment(0x950A, "Options changed (cross-FS)?", inline=True)
 comment(0x950D, "Yes: error (can't rename across FS)", inline=True)
@@ -10801,34 +10125,13 @@ comment(0xA740, "CTRL pressed: cancel boot, return", inline=True)
 # Entry 0 is never used (BEQ at &A3CE exits before lookup).
 # Entry 2 cleverly points into "L.!BOOT" at &A3B9 = "!BOOT"
 # which MOS treats as *RUN !BOOT.
-# UNMAPPED: comment(0xA3DF, "Boot option OSCLI address table\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "Low bytes of boot command string addresses,\n"
-# UNMAPPED:     "all in page &A3. Indexed by boot option 0-3\n"
-# UNMAPPED:     "(option 0 is never reached due to BEQ).\n"
-# UNMAPPED:     "Entry 2 reuses the tail of 'L.!BOOT' to\n"
-# UNMAPPED:     "get '!BOOT' (*RUN equivalent).")
-# UNMAPPED: comment(0xA3E3, "Load boot type", inline=True)
-# UNMAPPED: comment(0xA3E6, "Type 0: no command, just return", inline=True)
 comment(0xA764, "Look up boot command address low", inline=True)
 comment(0xA767, "Boot command address high (&A3xx)", inline=True)
 comment(0xA769, "Execute boot command via OSCLI", inline=True)
 
 # cmd_remove (&AF46) — *Remove: delete file from server
 comment(0xB312, "Convert remaining value to A", inline=True)
-# UNMAPPED: comment(0xAF67, "Push onto stack", inline=True)
 comment(0xB321, "Skip to check for extra arguments", inline=True)
-# UNMAPPED: comment(0xAF6B, "End of line?", inline=True)
-# UNMAPPED: comment(0xAF6D, "Yes: single arg, proceed", inline=True)
-# UNMAPPED: comment(0xAF6F, "No: extra args, syntax error", inline=True)
-# UNMAPPED: comment(0xAF72, "Restore command line offset", inline=True)
-# UNMAPPED: comment(0xAF73, "Transfer to Y", inline=True)
-# UNMAPPED: comment(0xAF74, "Save text pointer for parsing", inline=True)
-# UNMAPPED: comment(0xAF77, "Parse filename argument", inline=True)
-# UNMAPPED: comment(0xAF7A, "Copy filename to TX buffer", inline=True)
-# UNMAPPED: comment(0xAF7D, "Y=&14: *Delete FS command code", inline=True)
-# UNMAPPED: comment(0xAF7F, "Set V flag (via BIT #&FF)", inline=True)
-# UNMAPPED: comment(0xAF82, "Send to FS with V-flag dispatch", inline=True)
 
 # print_num_no_leading / print_decimal_3dig / print_decimal_digit
 # Decimal number printing utility (&AF65-&AF94)
@@ -10902,71 +10205,26 @@ comment(0xB3A9, "Clear spool drive page low", inline=True)
 comment(0xB3AB, "Return", inline=True)
 
 # cmd_close (&B97F) — *Close: close all files
-# UNMAPPED: comment(0xB994, "A=0: close all open files", inline=True)
 
 # cmd_type (&B985) — *Type: display file contents
-# UNMAPPED: comment(0xB99A, "Clear V for unconditional BVC", inline=True)
 
 # cmd_print (&B988) — *Print: send file to printer
-# UNMAPPED: comment(0xB99D, "Set V flag (= print mode)", inline=True)
 
 # open_and_read_file (&B98B) — shared entry for Print/Type
-# UNMAPPED: comment(0xB9A0, "Open file for reading", inline=True)
-# UNMAPPED: comment(0xB9A5, "A = 0", inline=True)
-# UNMAPPED: comment(0xB9A7, "Clear previous-character tracker", inline=True)
-# UNMAPPED: comment(0xB9A9, "Save V flag (print/type mode)", inline=True)
-# UNMAPPED: comment(0xB9AD, "Branch if not end of file", inline=True)
-# UNMAPPED: comment(0xB9AF, "EOF: restore processor status", inline=True)
-# UNMAPPED: comment(0xB9B0, "Close the file", inline=True)
 
 # Process character
-# UNMAPPED: comment(0xB9B6, "Check for escape key pressed", inline=True)
-# UNMAPPED: comment(0xB9B9, "Restore V (print/type mode)", inline=True)
-# UNMAPPED: comment(0xB9BA, "Re-save for next iteration", inline=True)
-# UNMAPPED: comment(0xB9BB, "Print mode: skip CR/LF handling", inline=True)
-# UNMAPPED: comment(0xB9BD, "Is it a carriage return?", inline=True)
-# UNMAPPED: comment(0xB9BF, "Yes: handle line ending", inline=True)
-# UNMAPPED: comment(0xB9C1, "Is it a line feed?", inline=True)
-# UNMAPPED: comment(0xB9C3, "Yes: handle line ending", inline=True)
 
 # Output character
-# UNMAPPED: comment(0xB9C5, "Save as previous character", inline=True)
-# UNMAPPED: comment(0xB9CA, "Loop for next byte", inline=True)
 
 # CR/LF handling in type mode
-# UNMAPPED: comment(0xB9CD, "Save the CR or LF character", inline=True)
-# UNMAPPED: comment(0xB9CE, "Check output destination flag", inline=True)
-# UNMAPPED: comment(0xB9D1, "Zero: normalise line endings", inline=True)
-# UNMAPPED: comment(0xB9D3, "Non-zero: output raw", inline=True)
-# UNMAPPED: comment(0xB9D5, "Clear previous-character tracker", inline=True)
-# UNMAPPED: comment(0xB9D7, "Retrieve CR/LF", inline=True)
-# UNMAPPED: comment(0xB9D8, "Output it directly; ALWAYS branch", inline=True)
 
 # Line ending normalisation (l00ad tracks previous char)
-# UNMAPPED: comment(0xB9DA, "Get previous character", inline=True)
-# UNMAPPED: comment(0xB9DC, "Was previous a CR?", inline=True)
-# UNMAPPED: comment(0xB9DE, "Yes: check for CR+LF pair", inline=True)
-# UNMAPPED: comment(0xB9E0, "Was previous a LF?", inline=True)
-# UNMAPPED: comment(0xB9E2, "Yes: check for LF+CR pair", inline=True)
-# UNMAPPED: comment(0xB9E4, "Retrieve CR/LF from stack", inline=True)
-# UNMAPPED: comment(0xB9E5, "Save as previous character", inline=True)
-# UNMAPPED: comment(0xB9EA, "Loop for next byte", inline=True)
 
 # Previous was CR — check for CR+LF pair
-# UNMAPPED: comment(0xB9ED, "Retrieve current character", inline=True)
-# UNMAPPED: comment(0xB9EE, "Is it LF? (CR+LF pair)", inline=True)
-# UNMAPPED: comment(0xB9F0, "Yes: consume LF, no extra newline", inline=True)
-# UNMAPPED: comment(0xB9F2, "No: output extra newline", inline=True)
 
 # Previous was LF — check for LF+CR pair
-# UNMAPPED: comment(0xB9F4, "Retrieve current character", inline=True)
-# UNMAPPED: comment(0xB9F5, "Is it CR? (LF+CR pair)", inline=True)
-# UNMAPPED: comment(0xB9F7, "No: output extra newline", inline=True)
 
 # Consume paired character
-# UNMAPPED: comment(0xB9F9, "Pair consumed: A = 0", inline=True)
-# UNMAPPED: comment(0xB9FB, "Clear previous-character tracker", inline=True)
-# UNMAPPED: comment(0xB9FD, "Loop for next byte; ALWAYS branch", inline=True)
 
 # abort_if_escape (&B9EA) — abort file read on Escape
 comment(0xBD25, "Test bit 7 of escape flag", inline=True)
@@ -11051,7 +10309,6 @@ comment(0xB601, "Load PS server address", inline=True)
 comment(0xB604, "Set V and N flags", inline=True)
 comment(0xB607, "Print station address", inline=True)
 comment(0xB60A, "Print ' \"'", inline=True)
-# UNMAPPED: comment(0xB251, "Y=&18: name field offset in RX buffer", inline=True)
 
 # Display PS name from RX buffer
 comment(0xB611, "Get character from name field", inline=True)
@@ -11061,10 +10318,8 @@ comment(0xB61A, "Next character", inline=True)
 comment(0xB61B, "Past end of name field?", inline=True)
 comment(0xB61D, "No: continue printing name", inline=True)
 comment(0xB61F, "Print '\"' + CR", inline=True)
-# UNMAPPED: comment(0xB266, "Padding byte", inline=True)
 
 # Poll each printer slot
-# UNMAPPED: comment(0xB267, "Get slot offset from stack", inline=True)
 comment(0xB626, "Zero: all slots done, return", inline=True)
 comment(0xB628, "Save slot offset", inline=True)
 comment(0xB629, "Transfer to Y", inline=True)
@@ -11085,11 +10340,9 @@ comment(0xB63F, "Print station address (V=0)", inline=True)
 comment(0xB642, "Print ' is '", inline=True)
 
 # Display printer status
-# UNMAPPED: comment(0xB28B, "X=0 for indirect indexed access", inline=True)
 comment(0xB64B, "Read printer status byte", inline=True)
 comment(0xB64D, "Non-zero: not ready", inline=True)
 comment(0xB64F, "Print 'ready'", inline=True)
-# UNMAPPED: comment(0xB299, "Clear V", inline=True)
 comment(0xB65A, "Status = 2?", inline=True)
 comment(0xB65C, "No: check for busy", inline=True)
 comment(0xB65E, "Print 'jammed'", inline=True)
@@ -11099,14 +10352,11 @@ comment(0xB66C, "Not 1 or 2: default to jammed", inline=True)
 comment(0xB66E, "Print 'busy'", inline=True)
 
 # Display client station for busy printer
-# UNMAPPED: comment(0xB2B7, "Advance past status byte", inline=True)
 comment(0xB677, "Read client station number", inline=True)
 comment(0xB679, "Store station low", inline=True)
 comment(0xB67B, "Zero: no client info, skip", inline=True)
 comment(0xB67D, "Print ' with station '", inline=True)
-# UNMAPPED: comment(0xB2C8, "Advance pointer to network byte", inline=True)
 comment(0xB692, "Store network number", inline=True)
-# UNMAPPED: comment(0xB2CA, "Load client network number", inline=True)
 comment(0xB694, "Set V flag", inline=True)
 comment(0xB697, "Print client station address", inline=True)
 
@@ -11193,15 +10443,10 @@ comment(0xB158, "Print '('", inline=True)
 # Directory header: cycle number and access
 comment(0xADB2, "Get cycle number", inline=True)
 comment(0xADB8, "Print ')     '", inline=True)
-# UNMAPPED: comment(0xADD3, "Get owner/public flag", inline=True)
-# UNMAPPED: comment(0xADD6, "Non-zero: public access", inline=True)
 comment(0xB170, "Print 'Owner' + CR", inline=True)
-# UNMAPPED: comment(0xADE1, "Skip public; ALWAYS branch", inline=True)
 comment(0xB17B, "Print 'Public' + CR", inline=True)
 
 # Directory info: option, dir name, lib name
-# UNMAPPED: comment(0xADED, "Get flags", inline=True)
-# UNMAPPED: comment(0xADF0, "Save flags", inline=True)
 comment(0xB189, "Mask owner access bits", inline=True)
 comment(0xB18C, "Y=&15: FS command for dir info", inline=True)
 comment(0xB18E, "Send request to file server", inline=True)
@@ -11209,7 +10454,6 @@ comment(0xB191, "Advance X past header", inline=True)
 comment(0xB192, "Y=&10: print 16 chars", inline=True)
 comment(0xB194, "Print file entry", inline=True)
 comment(0xB197, "Print '    Option '", inline=True)
-# UNMAPPED: comment(0xAE0D, "Get option byte", inline=True)
 comment(0xB1A8, "Transfer to X for table lookup", inline=True)
 comment(0xB1A9, "Print option as hex", inline=True)
 comment(0xB1AC, "Print ' ('", inline=True)
@@ -14370,7 +13614,6 @@ comment(0xB88F, "Test directory flag (bit 1)", inline=True)
 comment(0xB891, "Not a directory: return OK", inline=True)
 comment(0xB893, "Error code &A8", inline=True)
 comment(0xB895, "Generate 'Is a dir.' error", inline=True)
-# UNMAPPED: comment(0xB508, "Return", inline=True)
 
 # alloc_fcb_slot: find free FCB slot in &20-&2F range
 comment(0xB8A8, "Save channel attribute", inline=True)
@@ -14720,10 +13963,6 @@ comment(0xBB34, "Increment byte count high", inline=True)
 comment(0xBB37, "Return", inline=True)
 
 # process_all_fcbs: iterate all FCBs, flush matching ones
-# UNMAPPED: comment(0xB799, "Save X", inline=True)
-# UNMAPPED: comment(0xB79A, "Push X to stack", inline=True)
-# UNMAPPED: comment(0xB79B, "Save Y", inline=True)
-# UNMAPPED: comment(0xB79C, "Push Y to stack", inline=True)
 comment(0xBB3A, "X=&F7: save 9 workspace bytes (&F7..&FF)", inline=True)
 comment(0xBB3F, "Push fs_options", inline=True)
 comment(0xBB40, "Next byte", inline=True)
@@ -14738,19 +13977,13 @@ comment(0xBB4E, "Compare with FCB attribute ref", inline=True)
 comment(0xBB51, "No match: skip this FCB", inline=True)
 comment(0xBB53, "Save filter attribute", inline=True)
 comment(0xBB54, "Flush pending data for this FCB", inline=True)
-# UNMAPPED: comment(0xB7BA, "Restore filter", inline=True)
-# UNMAPPED: comment(0xB7BB, "Y = filter attribute", inline=True)
 comment(0xBB58, "Previous FCB index", inline=True)
 comment(0xBB5B, "More slots: continue loop", inline=True)
 comment(0xBB5D, "X=8: restore 9 workspace bytes", inline=True)
 comment(0xBB5F, "Restore fs_block_offset", inline=True)
 comment(0xBB60, "Restore workspace byte", inline=True)
-# UNMAPPED: comment(0xB7C9, "Restore Y", inline=True)
 comment(0xBB62, "Next byte down", inline=True)
-# UNMAPPED: comment(0xB7CA, "Y restored", inline=True)
 comment(0xBB63, "More bytes: continue restoring", inline=True)
-# UNMAPPED: comment(0xB7CB, "Restore X", inline=True)
-# UNMAPPED: comment(0xB7CC, "X restored", inline=True)
 comment(0xBB67, "Return", inline=True)
 
 # OSBGET handler: read byte from buffered file channel
@@ -14891,13 +14124,9 @@ comment(0xBC73, "Return", inline=True)
 comment(0xBCBB, "Return", inline=True)
 comment(0xBC74, "Save A", inline=True)
 
-# UNMAPPED: comment(0xB8DB, "Transfer X to A", inline=True)
 # send_wipe_request: send data byte to server via network
-# UNMAPPED: comment(0xB8DC, "Save X", inline=True)
 comment(0xBCBC, "Store reply port", inline=True)
-# UNMAPPED: comment(0xB8DD, "Transfer Y to A", inline=True)
 comment(0xBCBF, "Store data byte", inline=True)
-# UNMAPPED: comment(0xB8DE, "Save Y (channel index)", inline=True)
 comment(0xBCC2, "Save Y", inline=True)
 comment(0xBC77, "Load station for this channel", inline=True)
 comment(0xBCC3, "Push Y to stack", inline=True)
@@ -14905,13 +14134,9 @@ comment(0xBC7A, "Non-zero: station known, skip init", inline=True)
 comment(0xBCC4, "Save X", inline=True)
 comment(0xBC7C, "Save A", inline=True)
 comment(0xBCC5, "Push X to stack", inline=True)
-# UNMAPPED: comment(0xB8E5, "Transfer X to A", inline=True)
 comment(0xBCC6, "Function code &90", inline=True)
-# UNMAPPED: comment(0xB8E6, "Save X", inline=True)
 comment(0xBCC8, "Store in send buffer", inline=True)
-# UNMAPPED: comment(0xB8E7, "Transfer Y to A", inline=True)
 comment(0xBCCB, "Initialise TX control block", inline=True)
-# UNMAPPED: comment(0xB8E8, "Save Y (channel index)", inline=True)
 comment(0xBCCE, "TX start address low = &DC", inline=True)
 comment(0xBC7F, "Load station for this channel", inline=True)
 comment(0xBCD0, "Set TX start in control block", inline=True)
@@ -14925,15 +14150,10 @@ comment(0xBC88, "Restore station from stack", inline=True)
 comment(0xBCD8, "Store reply port in buffer", inline=True)
 comment(0xBC89, "Store station in command buffer", inline=True)
 comment(0xBCDB, "TX control = &C0", inline=True)
-# UNMAPPED: comment(0xB8F6, "X=station number", inline=True)
 comment(0xBCDD, "Y=0: no timeout", inline=True)
-# UNMAPPED: comment(0xB8F7, "Restore Y from stack", inline=True)
 comment(0xBCDF, "Load reply port for addressing", inline=True)
-# UNMAPPED: comment(0xB8F8, "Y=channel index", inline=True)
 comment(0xBCE2, "Send packet to server", inline=True)
-# UNMAPPED: comment(0xB8F9, "Re-save Y on stack", inline=True)
 comment(0xBCE5, "Load reply status", inline=True)
-# UNMAPPED: comment(0xB8FA, "A=station number", inline=True)
 comment(0xBCE8, "Zero: success", inline=True)
 comment(0xBC8E, "Save station for later restore", inline=True)
 
@@ -14969,13 +14189,9 @@ comment(0xBCB2, "Send close/wipe request to server", inline=True)
 # Success: toggle station bit and return
 comment(0xBCB5, "Restore catalog state after flush", inline=True)
 comment(0xBD05, "Load channel attribute index", inline=True)
-# UNMAPPED: comment(0xB925, "Restore Y", inline=True)
 comment(0xBD08, "Load station number for channel", inline=True)
-# UNMAPPED: comment(0xB926, "Y restored", inline=True)
 comment(0xBD0B, "Toggle bit 0 (alternate station)", inline=True)
-# UNMAPPED: comment(0xB927, "Restore X", inline=True)
 comment(0xBD0D, "Update station number", inline=True)
-# UNMAPPED: comment(0xB928, "X restored", inline=True)
 comment(0xBD10, "Restore X", inline=True)
 comment(0xBCBA, "Restore A", inline=True)
 comment(0xBD11, "X restored", inline=True)
@@ -15024,12 +14240,8 @@ comment(0x9A06, "No match: skip spool close", inline=True)
 comment(0x9A08, "Push A (preserved)", inline=True)
 comment(0x9A09, "A=&C6: disable spool with OSBYTE", inline=True)
 comment(0x9A0B, "ALWAYS branch to close spool", inline=True)
-# UNMAPPED: comment(0x971E, "Transfer Y to A for stack save", inline=True)
-# UNMAPPED: comment(0x971F, "Push A (preserved)", inline=True)
 comment(0x9A0E, "A=&C7: disable exec with OSBYTE", inline=True)
 comment(0x9A10, "OSBYTE with X=0, Y=0 to close", inline=True)
-# UNMAPPED: comment(0x9725, "Pull saved handle", inline=True)
-# UNMAPPED: comment(0x9726, "Transfer to Y for OSFIND", inline=True)
 comment(0x9A14, "A=0: close file", inline=True)
 comment(0x9A16, "Close the spool/exec file", inline=True)
 comment(0x9A19, "Pull saved X (error text index)", inline=True)
@@ -15117,47 +14329,25 @@ comment(0x9A9A, "Network error lookup table (12 bytes)\n"
     "after the station address in compound errors.")
 comment(0x9A9A, "Class 0: &A0 \"Line jammed\"", inline=True)
 comment(0x9A9B, "Class 1: &A1 \"Net error\"", inline=True)
-# UNMAPPED: comment(0x97AF, "Class 2: &A2 \"Station\"", inline=True)
-# UNMAPPED: comment(0x97B0, "Class 3: &A3 \"No clock\"", inline=True)
 comment(0x9A9E, "Class 4: &11 \"Escape\"", inline=True)
 comment(0x9A9F, "Class 5: &11 \"Escape\" (duplicate)", inline=True)
 comment(0x9AA0, "Class 6: &11 \"Escape\" (duplicate)", inline=True)
 comment(0x9AA1, "Class 7: &CB \"Bad option\"", inline=True)
 comment(0x9AA2, "Index 8: &A5 \"No reply from station\"", inline=True)
 comment(0x9AA3, "Index 9: \" not listening\" suffix", inline=True)
-# UNMAPPED: comment(0x97B7, "Index 10: \" on channel\" suffix", inline=True)
 comment(0x9AA5, "Index 11: \" not present\" suffix", inline=True)
 
 # error_msg_table (&97A4) — error number + string entries
-# UNMAPPED: comment(0x97B9, "Network error message table\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "Each entry is [error_number][string...][null].\n"
-# UNMAPPED:     "The error number is the BRK error code stored in\n"
-# UNMAPPED:     "the error block at &0100. Entries 0-6 are complete\n"
-# UNMAPPED:     "error messages. The last 3 are suffix strings\n"
-# UNMAPPED:     "(no error number) appended to class 2 \"Station\"\n"
-# UNMAPPED:     "errors to form compound messages like\n"
-# UNMAPPED:     "\"Station 1.254 not listening\".")
-# UNMAPPED: comment(0x97B9, "Error &A0: Line jammed", inline=True)
 comment(0x9AB2, "Null terminator", inline=True)
 comment(0x9AB3, "Error &A1: Net error", inline=True)
-# UNMAPPED: comment(0x97D0, "Null terminator", inline=True)
 comment(0x9ABE, "Error &A2: Station", inline=True)
-# UNMAPPED: comment(0x97D9, "Null terminator", inline=True)
-# UNMAPPED: comment(0x97DA, "Error &A3: No clock", inline=True)
 comment(0x9AD0, "Null terminator", inline=True)
 comment(0x9AD1, "Error &11: Escape", inline=True)
-# UNMAPPED: comment(0x97EB, "Null terminator", inline=True)
 comment(0x9AD9, "Error &CB: Bad option", inline=True)
-# UNMAPPED: comment(0x97F7, "Null terminator", inline=True)
-# UNMAPPED: comment(0x97F8, "Error &A5: No reply from station", inline=True)
-# UNMAPPED: comment(0x980E, "Null terminator", inline=True)
-# UNMAPPED: comment(0x980F, "Suffix: \" not listening\"", inline=True)
 comment(0x9B0A, "Null terminator", inline=True)
 comment(0x9B0B, "Suffix: \" on channel\"", inline=True)
 comment(0x9B16, "Null terminator", inline=True)
 comment(0x9B17, "Suffix: \" not present\"", inline=True)
-# UNMAPPED: comment(0x9836, "Null terminator", inline=True)
 
 # init_tx_ptr_and_send: init TX pointer and send packet (&9822-&982A)
 comment(0x9B24, "X=&C0: TX control block base (low)", inline=True)
@@ -15230,14 +14420,8 @@ comment(0x9B75, "Pass-through TX buffer template (12 bytes)\n"
 comment(0x9B75, "Offset 0: ctrl = &88 (immediate TX)", inline=True)
 comment(0x9B76, "Offset 1: port = &00 (immediate op)", inline=True)
 comment(0x9B77, "Offset 2: &FD skip (preserve dest stn)", inline=True)
-# UNMAPPED: comment(0x988B, "Offset 3: &FD skip (preserve dest net)", inline=True)
-# UNMAPPED: comment(0x988C, "Offset 4: buf start lo (&3A)", inline=True)
 comment(0x9B7A, "Offset 5: buf start hi (&0D) -> &0D3A", inline=True)
-# UNMAPPED: comment(0x988E, "Offset 6: extended addr fill (&FF)", inline=True)
-# UNMAPPED: comment(0x988F, "Offset 7: extended addr fill (&FF)", inline=True)
 comment(0x9B7D, "Offset 8: buf end lo (&3E)", inline=True)
-# UNMAPPED: comment(0x9891, "Offset 9: buf end hi (&0D) -> &0D3E", inline=True)
-# UNMAPPED: comment(0x9892, "Offset 10: extended addr fill (&FF)", inline=True)
 comment(0x9B80, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # init_tx_ptr_for_pass: set up TX pointer for pass-through (&987F-&9886)
@@ -15837,12 +15021,6 @@ comment(0x9FC6, "Transfer to Y (Y=0 or 1)", inline=True)
 comment(0x9FC7, "Non-zero (1 = read pointer): copy data", inline=True)
 comment(0x9FC9, "A=5: return code for close-all", inline=True)
 comment(0x9FCB, "ALWAYS branch to finalise", inline=True)
-# UNMAPPED: comment(0x9CE0, "Load reply data byte at Y", inline=True)
-# UNMAPPED: comment(0x9CE3, "Store in FS options", inline=True)
-# UNMAPPED: comment(0x9CE5, "Decrement index", inline=True)
-# UNMAPPED: comment(0x9CE6, "Loop until all bytes copied", inline=True)
-# UNMAPPED: comment(0x9CE8, "Clear zero page work low", inline=True)
-# UNMAPPED: comment(0x9CEA, "Clear zero page work high", inline=True)
 comment(0x9FCD, "Z set: jump to clear A and return", inline=True)
 comment(0x9FCF, "A=0: clear result", inline=True)
 comment(0x9FD1, "Shift right (always positive)", inline=True)
@@ -16302,36 +15480,6 @@ comment(0xA397, "Return (tube claimed)", inline=True)
 
 # tube_init_reloc continued: copy relocated blocks (&BE94-&BEC2)
 # Copies pages 4/5/6 code and zero-page workspace from ROM to RAM
-# UNMAPPED: comment(0xBE94, "Resume normal ROM address space\n"
-# UNMAPPED:     "\n"
-# UNMAPPED:     "The preceding 512 bytes are the source data for\n"
-# UNMAPPED:     "two relocated code blocks (see move() calls):\n"
-# UNMAPPED:     "  page 5 source -> &0500-&05FF (Tube host code)\n"
-# UNMAPPED:     "  page 6 source -> &0600-&06FF (Econet handlers)\n"
-# UNMAPPED:     "py8dis assembles those blocks at their runtime\n"
-# UNMAPPED:     "addresses (&0500/&0600) via org directives. This\n"
-# UNMAPPED:     "org restores the origin to the actual ROM address\n"
-# UNMAPPED:     "for the remaining non-relocated code.")
-# UNMAPPED: comment(0xBE94, "Store BRK vector high byte", inline=True)
-# UNMAPPED: comment(0xBE97, "A=&8E: Tube control register value", inline=True)
-# UNMAPPED: comment(0xBE99, "Write Tube control register", inline=True)
-# UNMAPPED: comment(0xBE9C, "Y=0: copy 256 bytes per page", inline=True)
-# UNMAPPED: comment(0xBE9E, "Load page 4 source byte", inline=True)
-# UNMAPPED: comment(0xBEA1, "Store to page 4 destination", inline=True)
-# UNMAPPED: comment(0xBEA4, "Load page 5 source byte", inline=True)
-# UNMAPPED: comment(0xBEA7, "Store to page 5 destination", inline=True)
-# UNMAPPED: comment(0xBEAA, "Load page 6 source byte", inline=True)
-# UNMAPPED: comment(0xBEAD, "Store to page 6 destination", inline=True)
-# UNMAPPED: comment(0xBEB0, "Decrement byte counter", inline=True)
-# UNMAPPED: comment(0xBEB1, "Non-zero: continue copying", inline=True)
-# UNMAPPED: comment(0xBEB3, "Clear tube claim state", inline=True)
-# UNMAPPED: comment(0xBEB6, "X=&41: copy 66 bytes of ZP workspace", inline=True)
-# UNMAPPED: comment(0xBEB8, "Load ZP source byte from ROM", inline=True)
-# UNMAPPED: comment(0xBEBB, "Store to NMI workspace at &16+X", inline=True)
-# UNMAPPED: comment(0xBEBD, "Decrement byte counter", inline=True)
-# UNMAPPED: comment(0xBEBE, "More bytes: continue copying", inline=True)
-# UNMAPPED: comment(0xBEC0, "A=0: return success", inline=True)
-# UNMAPPED: comment(0xBEC2, "Return to caller", inline=True)
 
 # ============================================================
 # Generate disassembly
