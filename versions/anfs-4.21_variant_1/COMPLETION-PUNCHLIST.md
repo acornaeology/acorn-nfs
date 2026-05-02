@@ -164,11 +164,23 @@ Stop-light dashboard at the bottom of each session update.
 |--------|------|-------|
 | 1 - O-2/3/4 quick wins        | #17 | DONE |
 | 2 - cmd_table_fs symbolic     | #18 | DONE |
-| 3 - top-20 routine walk       | #19 | pending |
+| 3 - top-20 routine walk       | #19 | DONE |
 | 4 - per-string banners        | #20 | DONE |
-| 5 - O-1 dispatch trace        | #21 | pending |
-| 6 - osbyte_a2 dead-code fate  | #22 | pending |
-| 7 - selective auto-rename     | #23 | pending |
+| 5 - O-1 dispatch trace        | #21 | DONE (arithmetic resolved; MOS trigger open) |
+| 6 - osbyte_a2 dead-code fate  | #22 | DONE (it's not dead -- annotated as dispatch targets) |
+| 7 - selective auto-rename     | #23 | DONE |
+
+## Final state (2026-05-02 evening, end of long-haul push)
+
+| Metric              | Value           |
+|---------------------|-----------------|
+| Verify              | byte-identical  |
+| Lint                | clean           |
+| `comments check`    | zero findings   |
+| `data runs --unannotated` | empty     |
+| Inline density      | 100.0 % (7087 / 7087) |
+| Subroutines         | 459             |
+| Open issues         | 1 (O-1's MOS trigger; arithmetic resolved) |
 
 ## Session log
 
@@ -202,3 +214,53 @@ Stop-light dashboard at the bottom of each session update.
 State after Buckets 1/2/4: density 87.4 % / 459 subs / verify
 byte-identical / lint and comments-check clean / `data runs
 --unannotated` empty.
+
+### 2026-05-02 (Buckets 3, 5, 6, 7 -- the long haul)
+
+Walked every remaining partial-coverage routine in nine commit
+batches (3a..3i), plus tackled the recovered code in the
+osbyte_a2 grouping (Bucket 6), the nfs_init_body dispatch trace
+(Bucket 5), and the strategic auto-label renames (Bucket 7).
+
+- **Bucket 3 (top-20 walk):** 9 commits adding ~480 inline
+  comments across roughly 60 routines, in roughly impact order:
+  request_next_wipe response tail (45 items); the small wins
+  cluster (cmd_dir / cmd_pollps / init_dump_buffer /
+  tx_calc_transfer / service_handler -- 60 items); a 10-routine
+  dispatch-target batch (lang/osword_4/find_station/fscv/
+  err_bad/cmd_fs_reentry -- ~70 items); a 7-routine svc_2 /
+  lang_1 / strip_token_prefix tail / alloc_run_channel /
+  osword_setup / osword_13_set_handles / store_ptr_at_ws_y batch
+  (~65 items); cmd_run_via_urd / init_bridge_poll / copy_ps_data
+  / fscv_5_cat / fsreply_2 (~125 items); 12 mid-tier helpers
+  (select_fs / loop_next_char / osword / netv / cmd_net_check_hw
+  etc -- ~75 items); the lang_2 / serialise_palette / read_osbyte
+  / handle_spool_ctrl_byte tails (~40 items); a final 14-routine
+  small-routine sweep (~50 items).
+- **Bucket 6 (osbyte_a2 dead-code fate):** decided it's *not*
+  dead -- the 126 items at &9612..&973C include the recovered
+  CMOS-bit helpers (&9619 / &9623, no static callers but
+  dispatch-table reachable), parse_object_argument (&9630, idx
+  &18), match_on_suffix (&969A, idx &0F), and the *HELP <topic>
+  ON file-load loop. Walked all of it (~125 items).
+- **Bucket 5 (O-1):** traced the dispatch arithmetic. The only
+  way to reach idx 22 = nfs_init_body in svc_dispatch is via
+  service_handler's CMP/SBC chain with input `&27` (= 39
+  decimal), producing X = 21, then svc_dispatch's `INX/DEY/BPL`
+  loop adds 1. The MOS-side trigger that issues service `&27`
+  remains unidentified, but the dispatch math is solid and the
+  body is real code. Updated nfs_init_body's description and
+  marked O-1 as PARTIALLY RESOLVED in OPEN-ISSUES.md.
+- **Bucket 5 also:** walked nfs_init_body itself (48 items).
+- **Bucket 7 (selective auto-rename):** renamed 8 cXXXX labels at
+  routine junction points where a semantic name aids
+  understanding. The other ~80 auto-labels stay as cXXXX (1-3
+  instruction continuation pads).
+- **Two stale-block cleanups along the way:** ~210 lines of 4.18
+  process_spool_data / parse_access_prefix / cmd_ps / copy_ps_data
+  comments (lines 11930..12135) and a separate ~80-line
+  cmd_table_fs / handle-mgmt block (in Bucket 2). All 4.18
+  carry-overs at addresses now occupied by different 4.21 code,
+  detectable as duplicates of real annotations.
+
+Final state: 100.0 % inline density, all checks clean.

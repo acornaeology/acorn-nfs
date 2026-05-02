@@ -23,7 +23,12 @@ and remove the entry from here.
 
 ### O-1: What dispatch path reaches `nfs_init_body` at &8F38?
 
-**Status:** unresolved (Phase C continuation).
+**Status:** PARTIALLY RESOLVED (2026-05-02). The dispatch arithmetic
+is now traced cleanly; the routine's description in the driver
+spells out the X-final = 22 → table[22] math. The open piece is
+just the MOS-side trigger: which OS event issues service `&27` (=
+39 decimal) in practice. This is captured in nfs_init_body's
+description and is not blocking annotation work.
 
 **What's known:**
 
