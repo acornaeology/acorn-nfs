@@ -2870,23 +2870,128 @@ l89c9 = reset_enter_listen+2
     rti                                                               ; 89e9: 40          @              ; Return from interrupt
 
     equb 5, 0, &21                                                    ; 89ea: 05 00 21    ..!
+; ***************************************************************************************
+; svc_dispatch low-byte table (51 entries)
+;
+; Low-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &89ED,X.
+; Paired with the high-byte half at svc_dispatch_hi. Index 0 is a placeholder (&E905 --
+; never reached); indices 1..50 cover service handlers, language reply handlers, FSCV
+; reasons, FS reply handlers, and the net-handle / OSWORD &13 trampolines. Per-entry
+; inline comments name each target.
 ; &89ed referenced 1 time by &8e6a
-.l89ed
-    equb 4, &6f, 8, &0f, &c6                                          ; 89ed: 04 6f 08... .o.
-    equs "A'o"                                                        ; 89f2: 41 27 6f    A'o
-    equb &d7                                                          ; 89f5: d7          .
-    equs ";Pok"                                                       ; 89f6: 3b 50 6f... ;Po
-    equb &a5, &44, &99, &e8, &fd, &ef, &70, &72, &89, &37, &99, &2f   ; 89fa: a5 44 99... .D.
-    equb &ae, &4f, &19, &7d, &9e, &a8, &0a, &f0, &2e, &f0, &17, &70   ; 8a06: ae 4f 19... .O.
-    equb &f1, &6f, &fd, &56, &db, &da, &d4, &e4, &37, &f0, &3d, &fe   ; 8a12: f1 6f fd... .o.
-    equb   4, &14                                                     ; 8a1e: 04 14       ..
+.svc_dispatch_lo
+    equb 4                                                            ; 89ed: 04          .              ; idx &00: placeholder (target &E905, never reached)
+    equb <(dispatch_rts-1)                                            ; 89ee: 6f          o              ; idx &01: dispatch_rts (no-op (RTS only))
+    equb <(svc_dispatch_idx_2-1)                                      ; 89ef: 08          .              ; idx &02: svc_dispatch_idx_2 (workspace claim helper (CMOS bit 0))
+    equb <(svc_2_private_workspace_pages-1)                           ; 89f0: 0f          .              ; idx &03: svc_2_private_workspace_pages (svc 2 prologue)
+    equb <(svc_3_autoboot-1)                                          ; 89f1: c6          .              ; idx &04: svc_3_autoboot (svc 3 auto-boot)
+    equb <(svc_4_star_command-1)                                      ; 89f2: 41          A              ; idx &05: svc_4_star_command (svc 4 unrecognised *cmd)
+    equb <(svc5_irq_check-1)                                          ; 89f3: 27          '              ; idx &06: svc5_irq_check (svc 5 IRQ check)
+    equb <(dispatch_rts-1)                                            ; 89f4: 6f          o              ; idx &07: dispatch_rts (no-op (RTS only))
+    equb <(svc_7_osbyte-1)                                            ; 89f5: d7          .              ; idx &08: svc_7_osbyte (svc 7 unrecognised OSBYTE)
+    equb <(svc_8_osword_disp-1)                                       ; 89f6: 3b          ;              ; idx &09: svc_8_osword_disp (svc 8 dispatched entry)
+    equb <(svc_9_help-1)                                              ; 89f7: 50          P              ; idx &0A: svc_9_help (svc 9 *HELP)
+    equb <(dispatch_rts-1)                                            ; 89f8: 6f          o              ; idx &0B: dispatch_rts (no-op (RTS only))
+    equb <(econet_restore-1)                                          ; 89f9: 6b          k              ; idx &0C: econet_restore (svc 11 NMI release)
+    equb <(wait_idle_and_reset-1)                                     ; 89fa: a5          .              ; idx &0D: wait_idle_and_reset (svc 13 wait+reset)
+    equb <(svc_18_fs_select-1)                                        ; 89fb: 44          D              ; idx &0E: svc_18_fs_select (svc 18 FS select)
+    equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (*HELP 'ON ' suffix matcher)
+    equb <(svc_1_abs_workspace-1)                                     ; 89fd: e8          .              ; idx &10: svc_1_abs_workspace (svc 1 absolute workspace claim)
+    equb <(c8efe-1)                                                   ; 89fe: fd          .              ; idx &11: c8efe (workspace bookkeeping helper)
+    equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (store workspace page count)
+    equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; idx &13: noop_dey_rts (DEY / RTS stub)
+    equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; idx &14: copy_template_to_zp (copy 11-byte template to (&F2),Y)
+    equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; idx &15: check_help_continuation (BIT &0D6C / BVC / JMP &A02F)
+    equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; idx &16: nfs_init_body (ANFS init (full))
+    equb <(parse_filename_validate-1)                                 ; 8a04: 99          .              ; idx &17: parse_filename_validate (filename arg validator)
+    equb <(parse_object_argument-1)                                   ; 8a05: 2f          /              ; idx &18: parse_object_argument (object argument parser)
+    equb <(lang_0_insert_remote_key-1)                                ; 8a06: ae          .              ; idx &19: lang_0_insert_remote_key (language reply 0)
+    equb <(lang_1_remote_boot-1)                                      ; 8a07: 4f          O              ; idx &1A: lang_1_remote_boot (language reply 1)
+    equb <(lang_2_save_palette_vdu-1)                                 ; 8a08: 19          .              ; idx &1B: lang_2_save_palette_vdu (language reply 2)
+    equb <(lang_3_execute_at_0100-1)                                  ; 8a09: 7d          }              ; idx &1C: lang_3_execute_at_0100 (language reply 3)
+    equb <(lang_4_remote_validated-1)                                 ; 8a0a: 9e          .              ; idx &1D: lang_4_remote_validated (language reply 4)
+    equb <(fscv_0_opt_entry-1)                                        ; 8a0b: a8          .              ; idx &1E: fscv_0_opt_entry (FSCV 0: *OPT)
+    equb <(fscv_1_eof-1)                                              ; 8a0c: 0a          .              ; idx &1F: fscv_1_eof (FSCV 1: EOF)
+    equb <(cmd_run_via_urd-1)                                         ; 8a0d: f0          .              ; idx &20: cmd_run_via_urd (FSCV 2: *RUN)
+    equb <(fscv_3_star_cmd-1)                                         ; 8a0e: 2e          .              ; idx &21: fscv_3_star_cmd (FSCV 3: *cmd)
+    equb <(cmd_run_via_urd-1)                                         ; 8a0f: f0          .              ; idx &22: cmd_run_via_urd (FSCV 4: *RUN (alias))
+    equb <(fscv_5_cat-1)                                              ; 8a10: 17          .              ; idx &23: fscv_5_cat (FSCV 5: *CAT)
+    equb <(fscv_6_shutdown-1)                                         ; 8a11: 70          p              ; idx &24: fscv_6_shutdown (FSCV 6: shutdown)
+    equb <(fscv_7_read_handles-1)                                     ; 8a12: f1          .              ; idx &25: fscv_7_read_handles (FSCV 7: read handles)
+    equb <(dispatch_rts-1)                                            ; 8a13: 6f          o              ; idx &26: dispatch_rts (no-op (RTS only))
+    equb <(ps_scan_resume-1)                                          ; 8a14: fd          .              ; idx &27: ps_scan_resume (PS scan tail (after pop_requeue))
+    equb <(cmd_info_dispatch-1)                                       ; 8a15: 56          V              ; idx &28: cmd_info_dispatch (*Info dispatch)
+    equb <(check_urd_present-1)                                       ; 8a16: db          .              ; idx &29: check_urd_present (URD-present check)
+    equb <(ex_init_scan_x0-1)                                         ; 8a17: da          .              ; idx &2A: ex_init_scan_x0 (*Ex scan init)
+    equb <(fsreply_1_copy_handles_boot-1)                             ; 8a18: d4          .              ; idx &2B: fsreply_1_copy_handles_boot (FS reply 1)
+    equb <(fsreply_2_copy_handles-1)                                  ; 8a19: e4          .              ; idx &2C: fsreply_2_copy_handles (FS reply 2)
+    equb <(fsreply_3_set_csd-1)                                       ; 8a1a: 37          7              ; idx &2D: fsreply_3_set_csd (FS reply 3)
+    equb <(cmd_run_via_urd-1)                                         ; 8a1b: f0          .              ; idx &2E: cmd_run_via_urd (FS reply 4 (*RUN alias))
+    equb <(fsreply_5_set_lib-1)                                       ; 8a1c: 3d          =              ; idx &2F: fsreply_5_set_lib (FS reply 5)
+    equb <(net_1_read_handle-1)                                       ; 8a1d: fe          .              ; idx &30: net_1_read_handle (net handle 1)
+    equb <(net_2_read_handle_entry-1)                                 ; 8a1e: 04          .              ; idx &31: net_2_read_handle_entry (net handle 2)
+    equb <(net_3_close_handle-1)                                      ; 8a1f: 14          .              ; idx &32: net_3_close_handle (net handle 3)
+; ***************************************************************************************
+; svc_dispatch high-byte table (51 entries + 1 padding)
+;
+; High-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &8A20,X.
+; The dispatcher pushes the hi byte first then the lo, so RTS lands on target (the
+; table stores target-1). The trailing byte at &8A53 is 1-byte padding -- there are
+; only 51 valid entries (0..50).
 ; &8a20 referenced 1 time by &8e66
-.l8a20
-    equb &e9, &8e, &8d, &8f, &8c, &8c, &80, &8e, &8e, &a8, &8c, &8e   ; 8a20: e9 8e 8d... ...
-    equb &80, &89, &8b, &96, &8e, &8e, &8e, &8e, &8e, &8e, &8f, &95   ; 8a2c: 80 89 8b... ...
-    equb &96, &98, &98, &b0, &98, &98, &a0, &a1, &a4, &a4, &a4, &b1   ; 8a38: 96 98 98... ...
-    equb &90, &93, &8e, &b0, &b3, &a4, &b2, &a6, &a6, &a6, &a4, &a6   ; 8a44: 90 93 8e... ...
-    equb &a3, &a4, &a4, &8a                                           ; 8a50: a3 a4 a4... ...
+.svc_dispatch_hi
+    equb &e9                                                          ; 8a20: e9          .              ; idx &00: placeholder
+    equb >(dispatch_rts-1)                                            ; 8a21: 8e          .              ; idx &01: dispatch_rts
+    equb >(svc_dispatch_idx_2-1)                                      ; 8a22: 8d          .              ; idx &02: svc_dispatch_idx_2
+    equb >(svc_2_private_workspace_pages-1)                           ; 8a23: 8f          .              ; idx &03: svc_2_private_workspace_pages
+    equb >(svc_3_autoboot-1)                                          ; 8a24: 8c          .              ; idx &04: svc_3_autoboot
+    equb >(svc_4_star_command-1)                                      ; 8a25: 8c          .              ; idx &05: svc_4_star_command
+    equb >(svc5_irq_check-1)                                          ; 8a26: 80          .              ; idx &06: svc5_irq_check
+    equb >(dispatch_rts-1)                                            ; 8a27: 8e          .              ; idx &07: dispatch_rts
+    equb >(svc_7_osbyte-1)                                            ; 8a28: 8e          .              ; idx &08: svc_7_osbyte
+    equb >(svc_8_osword_disp-1)                                       ; 8a29: a8          .              ; idx &09: svc_8_osword_disp
+    equb >(svc_9_help-1)                                              ; 8a2a: 8c          .              ; idx &0A: svc_9_help
+    equb >(dispatch_rts-1)                                            ; 8a2b: 8e          .              ; idx &0B: dispatch_rts
+    equb >(econet_restore-1)                                          ; 8a2c: 80          .              ; idx &0C: econet_restore
+    equb >(wait_idle_and_reset-1)                                     ; 8a2d: 89          .              ; idx &0D: wait_idle_and_reset
+    equb >(svc_18_fs_select-1)                                        ; 8a2e: 8b          .              ; idx &0E: svc_18_fs_select
+    equb >(match_on_suffix-1)                                         ; 8a2f: 96          .              ; idx &0F: match_on_suffix
+    equb >(svc_1_abs_workspace-1)                                     ; 8a30: 8e          .              ; idx &10: svc_1_abs_workspace
+    equb >(c8efe-1)                                                   ; 8a31: 8e          .              ; idx &11: c8efe
+    equb >(store_ws_page_count-1)                                     ; 8a32: 8e          .              ; idx &12: store_ws_page_count
+    equb >(noop_dey_rts-1)                                            ; 8a33: 8e          .              ; idx &13: noop_dey_rts
+    equb >(copy_template_to_zp-1)                                     ; 8a34: 8e          .              ; idx &14: copy_template_to_zp
+    equb >(check_help_continuation-1)                                 ; 8a35: 8e          .              ; idx &15: check_help_continuation
+    equb >(nfs_init_body-1)                                           ; 8a36: 8f          .              ; idx &16: nfs_init_body
+    equb >(parse_filename_validate-1)                                 ; 8a37: 95          .              ; idx &17: parse_filename_validate
+    equb >(parse_object_argument-1)                                   ; 8a38: 96          .              ; idx &18: parse_object_argument
+    equb >(lang_0_insert_remote_key-1)                                ; 8a39: 98          .              ; idx &19: lang_0_insert_remote_key
+    equb >(lang_1_remote_boot-1)                                      ; 8a3a: 98          .              ; idx &1A: lang_1_remote_boot
+    equb >(lang_2_save_palette_vdu-1)                                 ; 8a3b: b0          .              ; idx &1B: lang_2_save_palette_vdu
+    equb >(lang_3_execute_at_0100-1)                                  ; 8a3c: 98          .              ; idx &1C: lang_3_execute_at_0100
+    equb >(lang_4_remote_validated-1)                                 ; 8a3d: 98          .              ; idx &1D: lang_4_remote_validated
+    equb >(fscv_0_opt_entry-1)                                        ; 8a3e: a0          .              ; idx &1E: fscv_0_opt_entry
+    equb >(fscv_1_eof-1)                                              ; 8a3f: a1          .              ; idx &1F: fscv_1_eof
+    equb >(cmd_run_via_urd-1)                                         ; 8a40: a4          .              ; idx &20: cmd_run_via_urd
+    equb >(fscv_3_star_cmd-1)                                         ; 8a41: a4          .              ; idx &21: fscv_3_star_cmd
+    equb >(cmd_run_via_urd-1)                                         ; 8a42: a4          .              ; idx &22: cmd_run_via_urd
+    equb >(fscv_5_cat-1)                                              ; 8a43: b1          .              ; idx &23: fscv_5_cat
+    equb >(fscv_6_shutdown-1)                                         ; 8a44: 90          .              ; idx &24: fscv_6_shutdown
+    equb >(fscv_7_read_handles-1)                                     ; 8a45: 93          .              ; idx &25: fscv_7_read_handles
+    equb >(dispatch_rts-1)                                            ; 8a46: 8e          .              ; idx &26: dispatch_rts
+    equb >(ps_scan_resume-1)                                          ; 8a47: b0          .              ; idx &27: ps_scan_resume
+    equb >(cmd_info_dispatch-1)                                       ; 8a48: b3          .              ; idx &28: cmd_info_dispatch
+    equb >(check_urd_present-1)                                       ; 8a49: a4          .              ; idx &29: check_urd_present
+    equb >(ex_init_scan_x0-1)                                         ; 8a4a: b2          .              ; idx &2A: ex_init_scan_x0
+    equb >(fsreply_1_copy_handles_boot-1)                             ; 8a4b: a6          .              ; idx &2B: fsreply_1_copy_handles_boot
+    equb >(fsreply_2_copy_handles-1)                                  ; 8a4c: a6          .              ; idx &2C: fsreply_2_copy_handles
+    equb >(fsreply_3_set_csd-1)                                       ; 8a4d: a6          .              ; idx &2D: fsreply_3_set_csd
+    equb >(cmd_run_via_urd-1)                                         ; 8a4e: a4          .              ; idx &2E: cmd_run_via_urd
+    equb >(fsreply_5_set_lib-1)                                       ; 8a4f: a6          .              ; idx &2F: fsreply_5_set_lib
+    equb >(net_1_read_handle-1)                                       ; 8a50: a3          .              ; idx &30: net_1_read_handle
+    equb >(net_2_read_handle_entry-1)                                 ; 8a51: a4          .              ; idx &31: net_2_read_handle_entry
+    equb >(net_3_close_handle-1)                                      ; 8a52: a4          .              ; idx &32: net_3_close_handle
+    equb &8a                                                          ; 8a53: 8a          .              ; padding (table has only 51 entries)
 
 ; ***************************************************************************************
 ; Service call dispatch (Master 128)
@@ -3941,19 +4046,21 @@ ps_template_base = sub_c8da6+1
     dey                                                               ; 8e62: 88          .              ; Decrement Y offset counter
     bpl svc_dispatch                                                  ; 8e63: 10 fc       ..             ; Y still positive: continue counting
     tay                                                               ; 8e65: a8          .              ; Y=&FF: will be ignored by caller
-    lda l8a20,x                                                       ; 8e66: bd 20 8a    . .            ; Load dispatch address high byte
+    lda svc_dispatch_hi,x                                             ; 8e66: bd 20 8a    . .            ; Load dispatch address high byte
     pha                                                               ; 8e69: 48          H              ; Push high byte for RTS dispatch
 .push_dispatch_lo
-    lda l89ed,x                                                       ; 8e6a: bd ed 89    ...            ; Load dispatch address low byte
+    lda svc_dispatch_lo,x                                             ; 8e6a: bd ed 89    ...            ; Load dispatch address low byte
     pha                                                               ; 8e6d: 48          H              ; Push low byte for RTS dispatch
     ldx fs_options                                                    ; 8e6e: a6 bb       ..             ; Load FS options pointer
 ; &8e70 referenced 3 times by &8e42, &8e50, &8e5d
 .dispatch_rts
     rts                                                               ; 8e70: 60          `              ; Dispatch via RTS
 
+.noop_dey_rts
     dey                                                               ; 8e71: 88          .
     rts                                                               ; 8e72: 60          `
 
+.copy_template_to_zp
     ldx #&0a                                                          ; 8e73: a2 0a       ..
 ; &8e75 referenced 1 time by &8e7c
 .loop_c8e75
@@ -3971,6 +4078,7 @@ ps_template_base = sub_c8da6+1
     equb 5                                                            ; 8e7f: 05          .
     equs "/      TEN"                                                 ; 8e80: 2f 20 20... /
 
+.check_help_continuation
     bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.
     bvc return_2                                                      ; 8e8d: 50 ef       P.
     jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.
@@ -5587,6 +5695,7 @@ ps_template_base = sub_c8da6+1
 .dir_pass_simple
     jmp check_urd_prefix                                              ; 9597: 4c 2d 8e    L-.            ; Simple: pass command to FS; Workspace offset &0F; Store remote station high
 
+.parse_filename_validate
     lda (os_text_ptr),y                                               ; 959a: b1 f2       ..             ; Y=&0E
     cmp #&0d                                                          ; 959c: c9 0d       ..             ; Restore remote station low; Store remote station low
     bne c95e9                                                         ; 959e: d0 49       .I             ; Set up remote keyboard scanning
@@ -5668,6 +5777,7 @@ ps_template_base = sub_c8da6+1
     tay                                                               ; 962b: a8          .
     ldx #&11                                                          ; 962c: a2 11       ..             ; Store in error text buffer
     bra osbyte_a2                                                     ; 962e: 80 e2       ..
+.parse_object_argument
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Null terminator?
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Advance destination; Advance source
     bne c968c                                                         ; 9634: d0 56       .V             ; Loop until end of message
@@ -5736,6 +5846,7 @@ l968f = sub_c968e+1
 .l9697
     equs "ON "                                                        ; 9697: 4f 4e 20    ON             ; ALWAYS branch to error dispatch
 
+.match_on_suffix
     phy                                                               ; 969a: 5a          Z              ; Error class to X
     lda os_text_ptr                                                   ; 969b: a5 f2       ..             ; Look up message table offset
     sta work_ae                                                       ; 969d: 85 ae       ..             ; X=0: error text start
@@ -9120,6 +9231,7 @@ la0ff = sub_ca0fe+1
     sec                                                               ; a4d9: 38          8              ; Set C: signal no-match return path
     bcs return_with_result                                            ; a4da: b0 e3       ..             ; ALWAYS branch to common return
 
+.check_urd_present
     bit fs_flags                                                      ; a4dc: 2c 6c 0d    ,l.
     bvs fscv_2_star_run                                               ; a4df: 70 03       p.
     jmp error_bad_command                                             ; a4e1: 4c a1 a5    L..
@@ -9709,6 +9821,7 @@ la0ff = sub_ca0fe+1
 ; On Entry: A: OSWORD number (from osbyte_a_copy) Y: parameter passed by service-call
 ; dispatch
 .svc_8_osword
+svc_8_osword_disp = svc_8_osword+1
     bra ca855                                                         ; a83b: 80 18       ..             ; End of attribute keyword table; Y=3; Load PB[3] (caller value)
     equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...            ; Zero: use default station; Compare with bridge status; Different: return unchanged; Same: confirm station; Load default from l0e01
 
@@ -11791,6 +11904,7 @@ lb0d4 = cdir_dispatch_col+2
     sec                                                               ; b0fb: 38          8              ; Set carry (= library directory)
     bcs ex_set_lib_flag                                               ; b0fc: b0 09       ..             ; Push 0 as end-of-list marker
 
+.ps_scan_resume
     jsr set_text_and_xfer_ptr                                         ; b0fe: 20 d3 93     ..            ; Push it; Start scanning from offset &84
     ldy #0                                                            ; b101: a0 00       ..             ; Store scan position
 ; ***************************************************************************************
@@ -12192,6 +12306,7 @@ lb0d4 = cdir_dispatch_col+2
 
     equs "Run"                                                        ; b2d8: 52 75 6e    Run
 
+.ex_init_scan_x0
     ldx #0                                                            ; b2db: a2 00       ..
 ; &b2dd referenced 1 time by &b2fd
 .loop_scan_entries
@@ -12340,6 +12455,7 @@ lb0d4 = cdir_dispatch_col+2
 .return_from_print_digit
     rts                                                               ; b356: 60          `              ; Return
 
+.cmd_info_dispatch
     jsr mask_owner_access                                             ; b357: 20 cf b2     ..            ; Mask owner access flags to 5 bits
     lda #&69 ; 'i'                                                    ; b35a: a9 69       .i
     sta lc105                                                         ; b35c: 8d 05 c1    ...            ; Initialise file index to 0; Store file counter
@@ -15090,14 +15206,58 @@ lb821 = err_net_chan_not_found+2
 .pydis_end
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
+    assert <(c8efe-1) == &fd
+    assert <(check_help_continuation-1) == &89
+    assert <(check_urd_present-1) == &db
+    assert <(cmd_info_dispatch-1) == &56
+    assert <(cmd_run_via_urd-1) == &f0
+    assert <(copy_template_to_zp-1) == &72
+    assert <(dispatch_rts-1) == &6f
+    assert <(econet_restore-1) == &6b
+    assert <(ex_init_scan_x0-1) == &da
     assert <(fs_work_4) == &b4
+    assert <(fscv_0_opt_entry-1) == &a8
+    assert <(fscv_1_eof-1) == &0a
+    assert <(fscv_3_star_cmd-1) == &2e
+    assert <(fscv_5_cat-1) == &17
+    assert <(fscv_6_shutdown-1) == &70
+    assert <(fscv_7_read_handles-1) == &f1
+    assert <(fsreply_1_copy_handles_boot-1) == &d4
+    assert <(fsreply_2_copy_handles-1) == &e4
+    assert <(fsreply_3_set_csd-1) == &37
+    assert <(fsreply_5_set_lib-1) == &3d
     assert <(la6fe) == &fe
+    assert <(lang_0_insert_remote_key-1) == &ae
+    assert <(lang_1_remote_boot-1) == &4f
+    assert <(lang_2_save_palette_vdu-1) == &19
+    assert <(lang_3_execute_at_0100-1) == &7d
+    assert <(lang_4_remote_validated-1) == &9e
+    assert <(match_on_suffix-1) == &99
+    assert <(net_1_read_handle-1) == &fe
+    assert <(net_2_read_handle_entry-1) == &04
+    assert <(net_3_close_handle-1) == &14
+    assert <(nfs_init_body-1) == &37
+    assert <(noop_dey_rts-1) == &70
+    assert <(parse_filename_validate-1) == &99
+    assert <(parse_object_argument-1) == &2f
     assert <(proc_op_status2-1) == &cf
+    assert <(ps_scan_resume-1) == &fd
     assert <(rx_imm_exec-1) == &92
     assert <(rx_imm_halt_cont-1) == &e7
     assert <(rx_imm_machine_type-1) == &bb
     assert <(rx_imm_peek-1) == &cd
     assert <(rx_imm_poke-1) == &b0
+    assert <(store_ws_page_count-1) == &ef
+    assert <(svc5_irq_check-1) == &27
+    assert <(svc_18_fs_select-1) == &44
+    assert <(svc_1_abs_workspace-1) == &e8
+    assert <(svc_2_private_workspace_pages-1) == &0f
+    assert <(svc_3_autoboot-1) == &c6
+    assert <(svc_4_star_command-1) == &41
+    assert <(svc_7_osbyte-1) == &d7
+    assert <(svc_8_osword_disp-1) == &3b
+    assert <(svc_9_help-1) == &50
+    assert <(svc_dispatch_idx_2-1) == &08
     assert <(tx_ctrl_exit-1) == &df
     assert <(tx_ctrl_machine_type-1) == &85
     assert <(tx_ctrl_peek-1) == &89
@@ -15107,8 +15267,54 @@ lb821 = err_net_chan_not_found+2
     assert <(tx_done_halt-1) == &62
     assert <(tx_done_jsr-1) == &3f
     assert <(tx_done_os_proc-1) == &56
+    assert <(wait_idle_and_reset-1) == &a5
+    assert >(c8efe-1) == &8e
+    assert >(check_help_continuation-1) == &8e
+    assert >(check_urd_present-1) == &a4
+    assert >(cmd_info_dispatch-1) == &b3
+    assert >(cmd_run_via_urd-1) == &a4
+    assert >(copy_template_to_zp-1) == &8e
+    assert >(dispatch_rts-1) == &8e
+    assert >(econet_restore-1) == &80
+    assert >(ex_init_scan_x0-1) == &b2
     assert >(fs_work_4) == &00
+    assert >(fscv_0_opt_entry-1) == &a0
+    assert >(fscv_1_eof-1) == &a1
+    assert >(fscv_3_star_cmd-1) == &a4
+    assert >(fscv_5_cat-1) == &b1
+    assert >(fscv_6_shutdown-1) == &90
+    assert >(fscv_7_read_handles-1) == &93
+    assert >(fsreply_1_copy_handles_boot-1) == &a6
+    assert >(fsreply_2_copy_handles-1) == &a6
+    assert >(fsreply_3_set_csd-1) == &a6
+    assert >(fsreply_5_set_lib-1) == &a6
     assert >(la6fe) == &a6
+    assert >(lang_0_insert_remote_key-1) == &98
+    assert >(lang_1_remote_boot-1) == &98
+    assert >(lang_2_save_palette_vdu-1) == &b0
+    assert >(lang_3_execute_at_0100-1) == &98
+    assert >(lang_4_remote_validated-1) == &98
+    assert >(match_on_suffix-1) == &96
+    assert >(net_1_read_handle-1) == &a3
+    assert >(net_2_read_handle_entry-1) == &a4
+    assert >(net_3_close_handle-1) == &a4
+    assert >(nfs_init_body-1) == &8f
+    assert >(noop_dey_rts-1) == &8e
+    assert >(parse_filename_validate-1) == &95
+    assert >(parse_object_argument-1) == &96
+    assert >(ps_scan_resume-1) == &b0
+    assert >(store_ws_page_count-1) == &8e
+    assert >(svc5_irq_check-1) == &80
+    assert >(svc_18_fs_select-1) == &8b
+    assert >(svc_1_abs_workspace-1) == &8e
+    assert >(svc_2_private_workspace_pages-1) == &8f
+    assert >(svc_3_autoboot-1) == &8c
+    assert >(svc_4_star_command-1) == &8c
+    assert >(svc_7_osbyte-1) == &8e
+    assert >(svc_8_osword_disp-1) == &a8
+    assert >(svc_9_help-1) == &8c
+    assert >(svc_dispatch_idx_2-1) == &8d
+    assert >(wait_idle_and_reset-1) == &89
     assert copyright - rom_header == &19
     assert syn_access - cmd_syntax_strings - 1 == &b1
     assert syn_iam - cmd_syntax_strings - 1 == &07
@@ -15951,8 +16157,6 @@ save pydis_start, pydis_end
 ;     l886f:                          1
 ;     l8877:                          1
 ;     l89c9:                          1
-;     l89ed:                          1
-;     l8a20:                          1
 ;     l8e7f:                          1
 ;     l968f:                          1
 ;     l9697:                          1
@@ -16462,6 +16666,8 @@ save pydis_start, pydis_end
 ;     subst_rx_page_byte:             1
 ;     subtract_ws_byte:               1
 ;     suffix_not_listening:           1
+;     svc_dispatch_hi:                1
+;     svc_dispatch_lo:                1
 ;     syn_opt_dir:                    1
 ;     trigger_brk:                    1
 ;     try_alternate_phase:            1
@@ -16618,8 +16824,6 @@ save pydis_start, pydis_end
 ;     l886f
 ;     l8877
 ;     l89c9
-;     l89ed
-;     l8a20
 ;     l8e7f
 ;     l968f
 ;     l9697
@@ -16783,7 +16987,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2011 bytes (12%)
 ;
 ;     Number of instructions   = 7075
-;     Number of data bytes     = 699 bytes
+;     Number of data bytes     = 706 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1284 bytes
-;     Number of strings        = 149
+;     Number of string bytes   = 1277 bytes
+;     Number of strings        = 147

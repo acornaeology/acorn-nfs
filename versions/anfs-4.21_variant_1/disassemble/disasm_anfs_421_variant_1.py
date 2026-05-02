@@ -8994,43 +8994,13 @@ comment(0x976B, "Offset 7: txcb_pos = &FF", inline=True)
 comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
 
 # ============================================================
-# Service dispatch table (&89ED / &8A20)
+# Service dispatch table entry points (&89ED / &8A20)
 # ============================================================
-# PHA/PHA/RTS dispatch table used by svc_dispatch. The lo half is
-# at &89ED, the hi half at &8A20. svc_dispatch reads:
-#     LDA l8a20,X    ; high byte
-#     PHA
-#     LDA l89ed,X    ; low byte
-#     PHA
-#     ... RTS lands at (table_entry + 1).
-#
-# Service-handler dispatch (Y=0) reaches indices 1..14 via the
-# CMP/SBC chain at &8AB0..&8ACE. Indices >= 15 are reached either
-# from the same path (with non-standard service numbers passed
-# through the chain's tail) or from dir_op_dispatch / the FS-reply
-# / OSBYTE callers at &8E49 / &8E59 / &8EE6 with non-zero Y.
-#
-# Recovered targets so far (from the actual table bytes):
-#     idx  target     role
-#       1  &8E70     no-op (RTS)
-#       2  &8D09     workspace claim helper (CMOS-bit-0)
-#       3  &8F10     svc_2 page-allocation prologue
-#       4  &8CC7     svc_3_autoboot
-#       5  &8C42     svc_4_star_command
-#       6  &8028     svc5_irq_check
-#       7  &8E70     no-op (RTS)
-#       8  &8ED8     svc_7_osbyte
-#       9  &A83C     svc_8_osword
-#      10  &8C51     svc_9_help
-#      11  &8E70     no-op (RTS)
-#      12  &806C     svc 11 (NMI release)
-#      13  &89A6     wait_idle_and_reset
-#      14  &8B45     svc_18_fs_select
-#      22  &8F38     nfs_init_body (full ANFS init -- see above)
-
-# Service dispatch entry points -- targets reached via svc_dispatch
-# from the service handler at &8ADB. Each needs entry() because
-# PHA/PHA/RTS dispatch leaves no code-flow trace for py8dis.
+# The PHA/PHA/RTS dispatch table itself is declared further below as
+# svc_dispatch_lo / svc_dispatch_hi (with one symbolic equb per entry);
+# this section just registers entry() points for targets reached only
+# via that dispatch (no other code path leads to them, so py8dis can't
+# trace them statically).
 entry(0x8D09)   # idx  2  workspace claim helper (CMOS bit 0)
 # entry(0x8F10) declared above (svc_2 page-allocation prologue)
 entry(0x8CC7)   # idx  4  svc_3 auto-boot
@@ -9038,17 +9008,125 @@ entry(0x8C42)   # idx  5  svc_4 unrecognised star command
 entry(0x8ED8)   # idx  8  svc_7 unrecognised OSBYTE
 entry(0x8C51)   # idx 10  svc_9 *HELP
 # entry(0x8F38) declared above (nfs_init_body)
-#
-# &8EE9 is reached via PHA/PHA/RTS dispatch but the precise slot is
-# OPEN-ISSUES O-2 (the carried-over `svc_1_abs_workspace` label here
-# does not match the live dispatch).
-entry(0x8EE9)
+entry(0x8EE9)   # idx 16  svc_1_abs_workspace
 
 label(0x8EE9, "svc_1_abs_workspace")
 label(0x8CC7, "svc_3_autoboot")
 label(0x8C42, "svc_4_star_command")
 label(0x8ED8, "svc_7_osbyte")
 label(0x8C51, "svc_9_help")
+# Labels for the dispatch targets recovered via the &89ED/&8A20 lo/hi
+# decode. Names are best-effort; refine as routines are walked.
+label(0xA83C, "svc_8_osword_disp")    # idx  9: alt entry to svc_8_osword
+                                      #   (skips the BRA-from-elsewhere path)
+label(0x969A, "match_on_suffix")      # idx 15: 'ON ' suffix matcher
+label(0x8E71, "noop_dey_rts")         # idx 19: DEY / RTS 2-byte stub
+label(0x8E73, "copy_template_to_zp")  # idx 20: copy 11 bytes &8E7F.. to (&F2),Y
+label(0x8E8A, "check_help_continuation")  # idx 21: BIT &0D6C / BVC &8E80 / ...
+label(0x959A, "parse_filename_validate")  # idx 23
+label(0x9630, "parse_object_argument")    # idx 24
+label(0xB0FE, "ps_scan_resume")           # idx 39: tail of pop_requeue_ps_scan
+label(0xB357, "cmd_info_dispatch")        # idx 40: builds 'i.' prefix, JMPs &8E3C
+label(0xA4DC, "check_urd_present")        # idx 41: BIT &0D6C / BVC ... / JMP &A5A1
+label(0xB2DB, "ex_init_scan_x0")          # idx 42: LDX #0 -> loop_scan_entries
+
+# ============================================================
+# Symbolic svc_dispatch lo/hi tables (&89ED / &8A20)
+# ============================================================
+# Replaces the auto-classified bytes/strings (the original "A'o" /
+# ";Pok" "strings" were just runs of printable lo bytes that py8dis's
+# string heuristic latched onto). Each lo entry expands to <(target-1)
+# and each hi entry to >(target-1) so PHA/PHA/RTS lands on `target`.
+data_banner(0x89ED, "svc_dispatch_lo",
+    title="svc_dispatch low-byte table (51 entries)",
+    description="""\
+Low-byte half of the PHA/PHA/RTS dispatch table read by
+[`svc_dispatch`](address:8E61) as `LDA &89ED,X`. Paired with the
+high-byte half at [`svc_dispatch_hi`](address:8A20). Index 0 is a
+placeholder (`&E905` -- never reached); indices 1..50 cover service
+handlers, language reply handlers, FSCV reasons, FS reply handlers,
+and the net-handle / OSWORD &13 trampolines. Per-entry inline
+comments name each target.""")
+for addr in range(0x89ED, 0x8A20):
+    byte(addr)
+
+data_banner(0x8A20, "svc_dispatch_hi",
+    title="svc_dispatch high-byte table (51 entries + 1 padding)",
+    description="""\
+High-byte half of the PHA/PHA/RTS dispatch table read by
+[`svc_dispatch`](address:8E61) as `LDA &8A20,X`. The dispatcher
+pushes the hi byte first then the lo, so RTS lands on `target`
+(the table stores `target-1`). The trailing byte at `&8A53` is
+1-byte padding -- there are only 51 valid entries (0..50).""")
+for addr in range(0x8A20, 0x8A54):
+    byte(addr)
+
+# Per-entry symbolic addresses (target-1, RTS-relative).
+_svc_dispatch_entries = [
+    # (idx,    target,   role)
+    (0x00,  0xE905,  None,                            "placeholder (never reached)"),
+    (0x01,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
+    (0x02,  0x8D09,  "svc_dispatch_idx_2",            "workspace claim helper (CMOS bit 0)"),
+    (0x03,  0x8F10,  "svc_2_private_workspace_pages", "svc 2 prologue"),
+    (0x04,  0x8CC7,  "svc_3_autoboot",                "svc 3 auto-boot"),
+    (0x05,  0x8C42,  "svc_4_star_command",            "svc 4 unrecognised *cmd"),
+    (0x06,  0x8028,  "svc5_irq_check",                "svc 5 IRQ check"),
+    (0x07,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
+    (0x08,  0x8ED8,  "svc_7_osbyte",                  "svc 7 unrecognised OSBYTE"),
+    (0x09,  0xA83C,  "svc_8_osword_disp",             "svc 8 dispatched entry"),
+    (0x0A,  0x8C51,  "svc_9_help",                    "svc 9 *HELP"),
+    (0x0B,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
+    (0x0C,  0x806C,  "econet_restore",                "svc 11 NMI release"),
+    (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc 13 wait+reset"),
+    (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
+    (0x0F,  0x969A,  "match_on_suffix",               "*HELP 'ON ' suffix matcher"),
+    (0x10,  0x8EE9,  "svc_1_abs_workspace",           "svc 1 absolute workspace claim"),
+    (0x11,  0x8EFE,  "c8efe",                         "workspace bookkeeping helper"),
+    (0x12,  0x8EF0,  "store_ws_page_count",           "store workspace page count"),
+    (0x13,  0x8E71,  "noop_dey_rts",                  "DEY / RTS stub"),
+    (0x14,  0x8E73,  "copy_template_to_zp",           "copy 11-byte template to (&F2),Y"),
+    (0x15,  0x8E8A,  "check_help_continuation",       "BIT &0D6C / BVC / JMP &A02F"),
+    (0x16,  0x8F38,  "nfs_init_body",                 "ANFS init (full)"),
+    (0x17,  0x959A,  "parse_filename_validate",       "filename arg validator"),
+    (0x18,  0x9630,  "parse_object_argument",         "object argument parser"),
+    (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0"),
+    (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1"),
+    (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2"),
+    (0x1C,  0x987E,  "lang_3_execute_at_0100",        "language reply 3"),
+    (0x1D,  0x989F,  "lang_4_remote_validated",       "language reply 4"),
+    (0x1E,  0xA0A9,  "fscv_0_opt_entry",              "FSCV 0: *OPT"),
+    (0x1F,  0xA10B,  "fscv_1_eof",                    "FSCV 1: EOF"),
+    (0x20,  0xA4F1,  "cmd_run_via_urd",               "FSCV 2: *RUN"),
+    (0x21,  0xA42F,  "fscv_3_star_cmd",               "FSCV 3: *cmd"),
+    (0x22,  0xA4F1,  "cmd_run_via_urd",               "FSCV 4: *RUN (alias)"),
+    (0x23,  0xB118,  "fscv_5_cat",                    "FSCV 5: *CAT"),
+    (0x24,  0x9071,  "fscv_6_shutdown",               "FSCV 6: shutdown"),
+    (0x25,  0x93F2,  "fscv_7_read_handles",           "FSCV 7: read handles"),
+    (0x26,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
+    (0x27,  0xB0FE,  "ps_scan_resume",                "PS scan tail (after pop_requeue)"),
+    (0x28,  0xB357,  "cmd_info_dispatch",             "*Info dispatch"),
+    (0x29,  0xA4DC,  "check_urd_present",             "URD-present check"),
+    (0x2A,  0xB2DB,  "ex_init_scan_x0",               "*Ex scan init"),
+    (0x2B,  0xA6D5,  "fsreply_1_copy_handles_boot",   "FS reply 1"),
+    (0x2C,  0xA6E5,  "fsreply_2_copy_handles",        "FS reply 2"),
+    (0x2D,  0xA638,  "fsreply_3_set_csd",             "FS reply 3"),
+    (0x2E,  0xA4F1,  "cmd_run_via_urd",               "FS reply 4 (*RUN alias)"),
+    (0x2F,  0xA63E,  "fsreply_5_set_lib",             "FS reply 5"),
+    (0x30,  0xA3FF,  "net_1_read_handle",             "net handle 1"),
+    (0x31,  0xA405,  "net_2_read_handle_entry",       "net handle 2"),
+    (0x32,  0xA415,  "net_3_close_handle",            "net handle 3"),
+]
+for idx, target, name, role in _svc_dispatch_entries:
+    if name is not None:
+        expr(0x89ED + idx, "<(%s-1)" % name)
+        expr(0x8A20 + idx, ">(%s-1)" % name)
+        comment(0x89ED + idx, "idx &%02X: %s (%s)" % (idx, name, role), inline=True)
+        comment(0x8A20 + idx, "idx &%02X: %s" % (idx, name), inline=True)
+    else:
+        # Index 0 placeholder (target &E905 has no symbol).
+        comment(0x89ED + idx, "idx &%02X: placeholder (target &%04X, never reached)" % (idx, target), inline=True)
+        comment(0x8A20 + idx, "idx &%02X: placeholder" % idx, inline=True)
+comment(0x8A53, "padding (table has only 51 entries)", inline=True)
 
 subroutine(0x8EE9, "svc_1_abs_workspace",
     title="Service 1: absolute workspace claim",
