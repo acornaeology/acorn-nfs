@@ -78,6 +78,28 @@ constant(0xFE20, "econet_nmi_enable")  # Read: INTON (re-enable NMIs)
 
 # Tube ULA registers (&FEE0-&FEE7) — named by acorn.bbc()
 
+# MOS extended-vector entry points
+constant(0xFF1B, "ev_filev")   # FILEV extended-vector dispatcher
+constant(0xFF1E, "ev_argsv")   # ARGSV extended-vector dispatcher
+constant(0xFF21, "ev_bgetv")   # BGETV extended-vector dispatcher
+constant(0xFF24, "ev_bputv")   # BPUTV extended-vector dispatcher
+constant(0xFF27, "ev_gbpbv")   # GBPBV extended-vector dispatcher
+constant(0xFF2A, "ev_findv")   # FINDV extended-vector dispatcher
+constant(0xFF2D, "ev_fscv")    # FSCV extended-vector dispatcher
+
+# MOS vector table entries (the ROM-vector slots in &0200..&02xx)
+constant(0x0212, "vec_filev")  # FILEV pointer (lo+hi+rom)
+constant(0x0214, "vec_argsv")  # ARGSV pointer
+constant(0x0216, "vec_bgetv")  # BGETV pointer (note: standard layout)
+constant(0x0218, "vec_bputv")  # BPUTV pointer
+constant(0x021A, "vec_bgetv_alt")  # alternate BGETV slot
+constant(0x021C, "vec_gbpbv")  # GBPBV pointer
+constant(0x021E, "vec_fscv")   # FSCV pointer
+
+# MOS workspace pointers (used by FS reply paths via indirect access)
+constant(0xFFB7, "mos_workspace")  # MOS internal workspace (&FFB7-&FFBF saved
+                                   # by process_all_fcbs across FCB scans)
+
 # ============================================================
 # Protocol constants
 # ============================================================
@@ -1687,12 +1709,14 @@ subroutine(0x8050, "adlc_init",
 subroutine(0x8070, "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
     description="Copies 32 bytes of NMI shim code from ROM\n"
-    "(listen_jmp_hi) to &0D00, then patches the current\n"
-    "ROM bank number into the self-modifying code at\n"
-    "&0D07. The shim includes the INTOFF/INTON pair\n"
-    "(BIT &FE18 at entry, BIT &FE20 before RTI) that\n"
-    "toggles the IC97 NMI enable flip-flop to guarantee\n"
-    "edge re-triggering on /NMI. Clears tx_src_net,\n"
+    "(listen_jmp_hi) to the start of the NFS workspace\n"
+    "RAM block, then patches the current ROM bank number\n"
+    "into the self-modifying code at\n"
+    "[`nmi_romsel`](address:0D07?hex). The shim includes\n"
+    "the INTOFF/INTON pair (BIT &FE18 at entry, BIT &FE20\n"
+    "before RTI) that toggles the IC97 NMI enable flip-flop\n"
+    "to guarantee edge re-triggering on /NMI. Clears\n"
+    "tx_src_net,\n"
     "need_release_tube, and tx_op_type to zero. Reads\n"
     "station ID into tx_src_stn (&0D22). Sets\n"
     "tx_complete_flag and econet_init_flag to &80.\n"
@@ -1711,7 +1735,8 @@ subroutine(0x80B8, "nmi_rx_scout_net",
     description="Reads the second byte of an incoming scout (destination network).\n"
     "Checks for network match: 0 = local network (accept), &FF = broadcast\n"
     "(accept and flag), anything else = reject.\n"
-    "Installs the scout data reading loop handler at &8102.")
+    "Installs [`copy_scout_to_buffer`](address:8400) as the\n"
+    "scout-data reading loop handler.")
 subroutine(0x80D8, "scout_error",
     title="Scout error/discard handler",
     description="Handles scout reception errors and end-of-frame\n"
@@ -1770,14 +1795,18 @@ ADLC from scout-ACK TX mode to data-frame RX mode, then `JMP`s to
 [`nmi_data_rx`](address:81C2) as the next NMI handler.""")
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
-    description="Receives the data frame after the scout ACK has been sent.\n"
-    "First checks AP (Address Present) for the start of the data frame.\n"
-    "Reads and validates the first two address bytes (dest_stn, dest_net)\n"
-    "against our station address, then installs continuation handlers\n"
-    "to read the remaining data payload into the open port buffer.\n"
-    "\n"
-    "Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->\n"
-    "&8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)")
+    description="""\
+Receives the data frame after the scout ACK has been sent. First
+checks AP (Address Present) for the start of the data frame. Reads
+and validates the first two address bytes (dest_stn, dest_net)
+against our station address, then installs continuation handlers
+to read the remaining data payload into the open port buffer.
+
+Handler chain: this routine (AP + dest-stn check) →
+[`nmi_data_rx_net`](address:81D6) (dest-net check) →
+[`nmi_data_rx_skip`](address:81EC) (skip ctrl + port) →
+[`nmi_data_rx_bulk`](address:8223) (bulk data read) →
+[`data_rx_complete`](address:8268) (completion).""")
 subroutine(0x81D6, "nmi_data_rx_net",
     title="NMI handler: validate dest-net byte of data frame",
     description="""\
@@ -1812,18 +1841,22 @@ subroutine(0x8215, "nmi_error_dispatch",
     "(TX not-listening path).")
 subroutine(0x8223, "nmi_data_rx_bulk",
     title="Data frame bulk read loop",
-    description="Reads data payload bytes from the RX FIFO and stores them into\n"
-    "the open port buffer at (open_port_buf),Y. Reads bytes in pairs\n"
-    "(like the scout data loop), checking SR2 between each pair.\n"
-    "SR2 non-zero (FV or other) -> frame completion at &8278.\n"
-    "SR2 = 0 -> RTI, wait for next NMI to continue.")
+    description="""\
+Reads data payload bytes from the RX FIFO and stores them into
+the open port buffer at `(open_port_buf),Y`. Reads bytes in pairs
+(like the scout data loop), checking SR2 between each pair.
+
+- SR2 non-zero (FV or other) → completion via
+  [`data_rx_complete`](address:8268).
+- SR2 = 0 → RTI, wait for next NMI to continue.""")
 subroutine(0x8268, "data_rx_complete",
     title="Data frame completion",
-    description="Reached when SR2 non-zero during data RX (FV detected).\n"
-    "Same pattern as scout completion (&8137): disables PSE (CR2=&84,\n"
-    "CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\n"
-    "If extra data available and buffer space remains, stores it.\n"
-    "Proceeds to send the final ACK via &82E4.")
+    description="""\
+Reached when SR2 non-zero during data RX (FV detected). Same
+pattern as scout completion: disables PSE (CR2=&84, CR1=&00),
+then tests FV and RDA. If FV+RDA, reads the last byte. If extra
+data available and buffer space remains, stores it. Proceeds to
+send the final ACK via [`ack_tx`](address:82DF).""")
 subroutine(0x8291, "nmi_data_rx_tube",
     title="NMI handler: data-frame RX into Tube buffer",
     description="""\
@@ -1835,15 +1868,19 @@ the tight inner loop or returns via `RTI`. Reached only via the
 NMI vector after `install_tube_rx` configures the handler.""")
 subroutine(0x82DF, "ack_tx",
     title="ACK transmission",
-    description="Sends a scout ACK or final ACK frame as part of the four-way handshake.\n"
-    "If bit7 of &0D4A is set, this is a final ACK -> completion (&88C6).\n"
-    "Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK\n"
-    "frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).\n"
-    "The ACK frame has no data payload -- just address bytes.\n"
-    "\n"
-    "After writing the address bytes to the TX FIFO, installs the next\n"
-    "NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)\n"
-    "and sends TX_LAST_DATA (CR2=&3F) to close the frame.")
+    description="""\
+Sends a scout ACK or final ACK frame as part of the four-way
+handshake. If bit 7 of `tx_flags` (`&0D4A`) is set, this is a final
+ACK and completion runs through
+[`tx_result_ok`](address:88E2). Otherwise configures for TX
+(`CR1=&44`, `CR2=&A7`) and sends the ACK frame (`dst_stn`,
+`dst_net` from `&0D3D`, `src_stn` from `&FE18`, `src_net=0`). The
+ACK frame has no data payload -- just address bytes.
+
+After writing the address bytes to the TX FIFO, installs the next
+NMI handler from `nmi_next_lo` / `nmi_next_hi` (`&0D4B` / `&0D4C`,
+saved by the scout/data RX handler) and sends TX_LAST_DATA
+(`CR2=&3F`) to close the frame.""")
 subroutine(0x82F8, "ack_tx_write_dest",
     title="Save next NMI vector and write dest stn to ADLC",
     description="""\
@@ -1867,11 +1904,14 @@ subroutine(0x8316, "nmi_ack_tx_src",
     "post_ack_scout for scout processing.")
 subroutine(0x832D, "post_ack_scout",
     title="Post-ACK scout processing",
-    description="Called after the scout ACK has been transmitted. Processes the\n"
-    "received scout data stored in the buffer at &0D3D-&0D48.\n"
-    "Checks the port byte (&0D40) against open receive blocks to\n"
-    "find a matching listener. If a match is found, sets up the\n"
-    "data RX handler chain for the four-way handshake data phase.\n"
+    description="Called after the scout ACK has been transmitted.\n"
+    "Processes the received scout data stored in the\n"
+    "buffer starting at [`rx_src_stn`](address:0D3D?hex)\n"
+    "(scout-ACK destination addresses). Checks the port\n"
+    "byte ([`rx_port`](address:0D40?hex)) against open\n"
+    "receive blocks to find a matching listener. If a match\n"
+    "is found, sets up the data RX handler chain for the\n"
+    "four-way handshake data phase.\n"
     "If no match, discards the frame.")
 subroutine(0x833F, "advance_rx_buffer_ptr",
     title="Advance RX buffer pointer after transfer",
@@ -2014,10 +2054,11 @@ subroutine(0x84B1, "rx_imm_poke",
     "the common data-receive path at c81af.")
 subroutine(0x84BC, "rx_imm_machine_type",
     title="RX immediate: machine type query",
-    description="Sets up a buffer at &88C1 (length #&01FC) for the\n"
-    "machine type query response. Falls through to\n"
-    "set_rx_buf_len_hi to configure buffer dimensions,\n"
-    "then branches to set_tx_reply_flag.")
+    description="""\
+Sets up the response buffer for a machine-type query immediate
+operation (4-byte response: machine code + version digits). Falls
+through to [`set_rx_buf_len_hi`](address:84BE) to configure the
+buffer dimensions, then branches to set_tx_reply_flag.""")
 subroutine(0x84CE, "rx_imm_peek",
     title="RX immediate: PEEK setup",
     description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
@@ -2127,10 +2168,11 @@ the fall-through at &8578.""",
              "x, y": "restored from stack"})
 subroutine(0x8589, "tx_begin",
     title="Begin TX operation",
-    description="Main TX initiation entry point (called via trampoline at &06CE).\n"
-    "Copies dest station/network from the TXCB to the scout buffer,\n"
-    "dispatches to immediate op setup (ctrl >= &81) or normal data\n"
-    "transfer, calculates transfer sizes, copies extra parameters,\n"
+    description="Main TX initiation entry point (called via the\n"
+    "NETV trampoline). Copies dest station/network from\n"
+    "the TXCB to the scout buffer, dispatches to immediate\n"
+    "op setup (ctrl >= &81) or normal data transfer,\n"
+    "calculates transfer sizes, copies extra parameters,\n"
     "then enters the INACTIVE polling loop.")
 subroutine(0x85F1, "inactive_poll",
     title="INACTIVE polling loop",
@@ -2286,25 +2328,30 @@ stores the error and returns to idle). Seven inbound refs in total
 (one JSR plus six branches).""")
 subroutine(0x8776, "nmi_reply_validate",
     title="RX reply validation (Path 2 for FV/PSE interaction)",
-    description="Reads the source station and source network from the reply scout and\n"
-    "validates them against the original TX destination (&0D20/&0D21).\n"
-    "Sequence:\n"
-    "  1. Check SR2 bit7 (RDA) at &8779 -- must see data available\n"
-    "  2. Read source station at &877E, compare to &0D20 (tx_dst_stn)\n"
-    "  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n"
-    "  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\n"
-    "If all checks pass, the reply scout is valid and the ROM proceeds\n"
-    "to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).")
+    description="""\
+Reads the source station and source network from the reply scout
+and validates them against the original TX destination
+([`tx_dst_stn`](address:0D20?hex) /
+[`tx_dst_net`](address:0D21?hex)).
+
+1. Check SR2 bit 7 (RDA) -- must see data available.
+2. Read source station, compare to `tx_dst_stn`.
+3. Read source network, compare to `tx_dst_net`.
+4. Check SR2 bit 1 (FV) -- must see frame complete.
+
+If all checks pass, the reply scout is valid and the ROM proceeds
+to send the scout ACK (`CR2=&A7` for RTS, `CR1=&44` for TX mode).""")
 subroutine(0x87BE, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
-    description="Continuation of the TX-side scout ACK. Reads our\n"
-    "station ID from &FE18 (INTOFF), tests TDRA via SR1,\n"
-    "and writes station + network=0 to the TX FIFO. Then\n"
-    "checks bit 1 of rx_src_net to select between the\n"
-    "immediate-op data NMI handler and the normal\n"
-    "nmi_data_tx handler at &87EE. Installs the chosen\n"
-    "handler via set_nmi_vector. Shares the tx_check_tdra\n"
-    "entry at &87C7 with ack_tx.")
+    description="""\
+Continuation of the TX-side scout ACK. Reads our station ID from
+`&FE18` (INTOFF), tests TDRA via SR1, and writes
+station + network=0 to the TX FIFO. Then checks bit 1 of
+`rx_src_net` to select between the immediate-op data NMI handler
+and the normal [`nmi_tx_data`](address:86E7) handler. Installs
+the chosen handler via [`set_nmi_vector`](address:0D0E?hex).
+Shares the [`tx_check_tdra_ready`](address:87C4) entry with
+[`ack_tx`](address:82DF).""")
 subroutine(0x87CE, "data_tx_begin",
     title="Begin data-frame TX: install nmi_data_tx or alt",
     description="""\
@@ -2337,21 +2384,26 @@ on a continuing IRQ or returns via `RTI`. Reached only via the NMI
 vector after [`tx_prepare`](address:864A) installs it.""")
 subroutine(0x8886, "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
-    description="Called via JMP from nmi_tx_complete when bit 0 of\n"
-    "&0D4A is set (four-way handshake in progress). Writes\n"
-    "CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX\n"
-    "mode to RX mode, listening for the final ACK from the\n"
-    "remote station. Installs the nmi_final_ack handler at\n"
-    "&887A via set_nmi_vector.")
+    description="""\
+Called via JMP from [`nmi_tx_complete`](address:872F) when bit 0
+of [`tx_flags`](address:0D4A?hex) is set (four-way handshake in
+progress). Writes `CR1=&82` (`TX_RESET|RIE`) to switch the ADLC
+from TX mode to RX mode, listening for the final ACK from the
+remote station. Installs [`nmi_final_ack`](address:8892) as the
+next NMI handler via [`set_nmi_vector`](address:0D0E?hex).""")
 subroutine(0x8892, "nmi_final_ack",
     title="RX final ACK handler",
-    description="Receives the final ACK in a four-way handshake. Same validation\n"
-    "pattern as the reply scout handler (&874E-&8779):\n"
-    "  &887A: Check AP, read dest_stn, compare to our station\n"
-    "  &888E: Check RDA, read dest_net, validate = 0\n"
-    "  &88A2: Check RDA, read src_stn/net, compare to TX dest\n"
-    "  &88C1: Check FV for frame completion\n"
-    "On success, stores result=0 at tx_result_ok. On failure, error &41.")
+    description="""\
+Receives the final ACK in a four-way handshake. Same validation
+pattern as [`nmi_reply_validate`](address:8776):
+
+1. Check AP, read dest_stn, compare to our station.
+2. Check RDA, read dest_net, validate = 0.
+3. Check RDA, read src_stn / src_net, compare to TX dest.
+4. Check FV for frame completion.
+
+On success, stores result=0 via
+[`tx_result_ok`](address:88DE). On failure, error &41.""")
 subroutine(0x88A6, "nmi_final_ack_net",
     title="NMI handler: final-ACK source-net validation",
     description="""\
@@ -2375,13 +2427,14 @@ subroutine(0x88BA, "nmi_final_ack_validate",
     "through to tx_result_ok.")
 subroutine(0x88DE, "tx_result_ok",
     title="TX completion handler",
-    description="Loads A=0 (success) and branches unconditionally to\n"
-    "tx_store_result (BEQ is always taken since A=0). This\n"
-    "two-instruction entry point exists so that JMP sites\n"
-    "can target the success path without needing to set A.\n"
-    "Called from ack_tx (&82EC) for final-ACK completion\n"
-    "and from nmi_tx_complete (&8732) for immediate-op\n"
-    "completion where no ACK is expected.",
+    description="""\
+Loads `A=0` (success) and branches unconditionally to
+[`tx_store_result`](address:88E2) (`BEQ` is always taken since
+A=0). This two-instruction entry point exists so that JMP sites
+can target the success path without needing to set `A`. Called
+from [`ack_tx`](address:82DF) for final-ACK completion and from
+[`nmi_tx_complete`](address:872F) for immediate-op completion
+where no ACK is expected.""",
     on_exit={"a": "0 (TX success)"})
 subroutine(0x88E2, "tx_result_fail",
     title="TX failure: not listening",
@@ -2440,14 +2493,15 @@ subroutine(0x899B, "adlc_rx_listen",
              "y": "preserved"})
 subroutine(0x89A6, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
-    description="Service 12 handler: NMI release. Checks ws_0d62\n"
-    "to see if Econet has been initialised; if not, skips\n"
-    "straight to adlc_rx_listen. Otherwise spins in a\n"
-    "tight loop comparing the NMI handler vector at\n"
-    "&0D0C/&0D0D against the address of nmi_rx_scout\n"
-    "(&80BE). When the NMI handler returns to idle, falls\n"
-    "through to save_econet_state to clear the initialised\n"
-    "flags and re-enter RX listen mode.",
+    description="""\
+Service 12 handler: NMI release. Checks `econet_init_flag` to see
+if Econet has been initialised; if not, skips straight to
+`adlc_rx_listen`. Otherwise spins in a tight loop comparing the
+NMI handler vector at [`nmi_jmp_lo`](address:0D0C?hex) /
+[`nmi_jmp_hi`](address:0D0D?hex) against the address of
+[`nmi_rx_scout`](address:809B). When the NMI handler returns to
+idle, falls through to [`save_econet_state`](address:89B9) to
+clear the initialised flags and re-enter RX listen mode.""",
     on_entry={"a": "12 (service call number)"},
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x89B9, "save_econet_state",
@@ -2465,24 +2519,27 @@ subroutine(0x89B9, "save_econet_state",
     on_exit={"y": "5 (service-call workspace page)"})
 subroutine(0x89CA, "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
-    description="An alternate NMI handler that lives in the ROM itself rather than\n"
-    "in the RAM workspace at &0D00. Unlike the RAM shim (which uses a\n"
-    "self-modifying JMP to dispatch to different handlers), this one\n"
-    "hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler\n"
-    "before the workspace has been properly set up during initialisation.\n"
-    "Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\n"
-    "LDA romsel, STA &FE30, JMP &80BE.\n"
-    "\n"
-    "The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI\n"
-    "in nmi_rti are essential for edge-triggered NMI re-delivery.\n"
-    "The 6502 /NMI is falling-edge triggered; the Econet NMI enable\n"
-    "flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears\n"
-    "the flip-flop, forcing /NMI high; INTON sets it, allowing the\n"
-    "ADLC IRQ through. This creates a guaranteed high-to-low edge on\n"
-    "/NMI even when the ADLC IRQ is continuously asserted (e.g. when\n"
-    "it transitions atomically from TDRA to frame-complete without\n"
-    "de-asserting). Without this mechanism, nmi_tx_complete would\n"
-    "never fire after tx_last_data.")
+    description="""\
+An alternate NMI handler that lives in the ROM itself rather than
+in the RAM shim at the start of the NFS workspace block. Unlike
+the RAM shim (which uses a self-modifying JMP to dispatch to
+different handlers), this one hardcodes
+`JMP `[`nmi_rx_scout`](address:809B). Used as the initial NMI
+handler before the workspace has been properly set up during
+initialisation. Same sequence as the RAM shim: BIT &FE18 (INTOFF),
+PHA, TYA, PHA, LDA romsel, STA &FE30, JMP nmi_rx_scout.
+
+The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI
+in nmi_rti are essential for edge-triggered NMI re-delivery. The
+6502 /NMI is falling-edge triggered; the Econet NMI enable
+flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears the
+flip-flop, forcing /NMI high; INTON sets it, allowing the ADLC IRQ
+through. This creates a guaranteed high-to-low edge on /NMI even
+when the ADLC IRQ is continuously asserted (e.g. when it
+transitions atomically from TDRA to frame-complete without
+de-asserting). Without this mechanism,
+[`nmi_tx_complete`](address:872F) would never fire after
+[`tx_last_data`](address:8723).""")
 subroutine(0x89D8, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="ROM-resident version of the NMI exit sequence, also\n"
@@ -2984,23 +3041,26 @@ subroutine(0x93A2, "is_dec_digit_only",
     on_exit={"c": "set if '0'-'9', clear otherwise"})
 subroutine(0x93AB, "get_access_bits",
     title="Read and encode directory entry access byte",
-    description="Loads the access byte from offset &0E of the\n"
-    "directory entry via (fs_options),Y, masks to 6\n"
-    "bits (AND #&3F), then sets X=4 and branches to\n"
-    "begin_prot_encode to map through the protection\n"
-    "bit encode table at &9286. Called by\n"
-    "check_and_setup_txcb for owner and public access.",
+    description="""\
+Loads the access byte from offset &0E of the directory entry via
+`(fs_options),Y`, masks to 6 bits (`AND #&3F`), then sets `X=4`
+and branches to [`begin_prot_encode`](address:93B9) to map through
+[`prot_bit_encode_table`](address:93C8). Called by
+[`check_and_setup_txcb`](address:9D87) for owner and public
+access.""",
     on_exit={"a": "encoded access flags",
              "x": "&FF + bits-set (left in this state by get_prot_bits "
              "fall-through)"})
 subroutine(0x93B5, "get_prot_bits",
     title="Encode protection bits via lookup table",
-    description="Masks A to 5 bits (AND #&1F), sets X=&FF to\n"
-    "start at table index 0, then enters the shared\n"
-    "encoding loop at begin_prot_encode. Shifts out\n"
-    "each source bit and ORs in the corresponding\n"
-    "value from prot_bit_encode_table (&9286). Called\n"
-    "by send_txcb_swap_addrs and check_and_setup_txcb.",
+    description="""\
+Masks `A` to 5 bits (`AND #&1F`), sets `X=&FF` to start at table
+index 0, then enters the shared encoding loop at
+[`begin_prot_encode`](address:93B9). Shifts out each source bit
+and ORs in the corresponding value from
+[`prot_bit_encode_table`](address:93C8). Called by
+[`send_txcb_swap_addrs`](address:9C85) and
+[`check_and_setup_txcb`](address:9D87).""",
     on_entry={"a": "raw protection bits (low 5 used)"},
     on_exit={"a": "encoded protection flags"})
 subroutine(0x93D3, "set_text_and_xfer_ptr",
@@ -3736,12 +3796,12 @@ subroutine(0xA133, "add_workspace_to_fsopts",
     on_entry={"y": "FS options offset for first byte"})
 subroutine(0xA134, "adjust_fsopts_4bytes",
     title="Add or subtract 4 workspace bytes from FS options",
-    description="Processes 4 consecutive bytes at (fs_options)+Y,\n"
-    "adding or subtracting the corresponding workspace\n"
-    "bytes from &0E0A-&0E0D. The direction is controlled\n"
-    "by bit 7 of fs_load_addr_2: set for subtraction,\n"
-    "clear for addition. Carry propagates across all 4\n"
-    "bytes for correct multi-byte arithmetic.",
+    description="""\
+Processes 4 consecutive bytes at `(fs_options)+Y`, adding or
+subtracting the corresponding 4-byte transfer-address record from
+NFS workspace. The direction is controlled by bit 7 of
+`fs_load_addr_2`: set for subtraction, clear for addition. Carry
+propagates across all 4 bytes for correct multi-byte arithmetic.""",
     on_entry={"y": "FS options offset for first byte",
               "c": "carry input for first byte"})
 label(0xA1EA, "return_success")
@@ -4328,13 +4388,14 @@ subroutine(0xACF8, "enable_irq_and_poll",
     on_exit={"i flag": "clear (interrupts enabled)"})
 subroutine(0xACFC, "netv_handler",
     title="NETV handler: OSWORD dispatch",
-    description="Installed as the NETV handler via\n"
-    "write_vector_entry. Saves all registers, reads\n"
-    "the OSWORD number from the stack, and dispatches\n"
-    "OSWORDs 0-8 via push_osword_handler_addr. OSWORDs\n"
-    ">= 9 are ignored (registers restored, RTS returns\n"
-    "to MOS). Address stored at netv_handler_addr\n"
-    "(&8E8A) in the extended vector data area.",
+    description="""\
+Installed as the NETV handler via `write_vector_entry`. Saves all
+registers, reads the OSWORD number from the stack, and dispatches
+OSWORDs 0-8 via [`push_osword_handler_addr`](address:AD15).
+OSWORDs `>= 9` are ignored (registers restored, RTS returns to
+MOS). The handler's address lives in the extended vector data
+area together with the other [`fs_vector_table`](address:8EA7)
+entries.""",
     on_entry={"a": "OSWORD number (read from stacked A on entry)",
               "x, y": "PB pointer low/high (per OSWORD calling convention)"},
     on_exit={"a, x, y, p": "restored from stack"})
@@ -4711,16 +4772,16 @@ subroutine(0xB3D5, "copy_ps_data_y1c",
     on_exit={"y": "&20 (advanced past the copied 8 bytes)"})
 subroutine(0xB3D7, "copy_ps_data",
     title="Copy 8-byte printer server template to RX buffer",
-    description="Copies 8 bytes of default printer server data\n"
-    "into the RX buffer at the current Y offset.\n"
-    "Uses indexed addressing: LDA ps_template_base,X\n"
-    "with X starting at &F8, so the effective read\n"
-    "address is ps_template_base+&F8 = ps_template_data\n"
-    "(&8E9F). The 6502 trick reaches data 248 bytes past\n"
-    "the base label in a single instruction; in 4.21 the\n"
-    "base address (&8DA7) deliberately falls inside the\n"
-    "operand byte of a JSR instruction at &8DA6 -- see\n"
-    "docs/analysis/authors-easter-egg.md.",
+    description="""\
+Copies 8 bytes of default printer server data into the RX buffer
+at the current `Y` offset. Uses indexed addressing: `LDA
+ps_template_base,X` with `X` starting at `&F8`, so the effective
+read address is `ps_template_base+&F8 = ps_template_data`
+([`&8E9F`](address:8E9F?hex)). The 6502 trick reaches data 248
+bytes past the base label in a single instruction; the base
+address (`ps_template_base`) deliberately falls inside the operand
+byte of a JSR instruction at `&8DA6` -- see
+docs/analysis/authors-easter-egg.md.""",
     on_entry={"y": "destination offset within the RX buffer"},
     on_exit={"y": "advanced by 8",
              "x": "0 (loop terminator)",
@@ -4798,12 +4859,14 @@ subroutine(0xB556, "print_station_addr",
 
 subroutine(0xB6A6, "init_ps_slot_from_rx",
     title="Initialise PS slot buffer from template data",
-    description="Copies the 12-byte ps_slot_txcb_template (&B1B7)\n"
-    "into workspace at offsets &78-&83 via indexed\n"
-    "addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).\n"
-    "Substitutes net_rx_ptr_hi at offsets &7D and &81\n"
-    "(the hi bytes of the two buffer pointers) so they\n"
-    "point into the current RX buffer page.",
+    description="""\
+Copies the 12-byte
+[`ps_slot_txcb_template`](address:B575) into workspace at
+offsets &78-&83 via indexed addressing from
+`write_ps_slot_link_addr` (`write_ps_slot_hi_link+1`).
+Substitutes `net_rx_ptr_hi` at offsets &7D and &81 (the hi bytes
+of the two buffer pointers) so they point into the current RX
+buffer page.""",
     on_exit={"a, x, y": "clobbered"})
 subroutine(0xB6BD, "store_char_uppercase",
     title="Convert to uppercase and store in RX buffer",
@@ -5239,7 +5302,7 @@ comment(0x806C, "Check if NMI service was claimed (Y changed)", inline=True)
 comment(0x806E, "Service claimed by other ROM: skip init", inline=True)
 comment(0x8070, "Copy NMI shim from ROM to &0D0C area", inline=True)
 comment(0x8072, "Read byte from NMI shim ROM source", inline=True)
-comment(0x8075, "Write to NMI shim RAM at &0D00", inline=True)
+comment(0x8075, "Write to NMI shim RAM (start of NFS workspace)", inline=True)
 comment(0x8078, "Next byte (descending)", inline=True)
 comment(0x8079, "Loop until all 32 bytes copied", inline=True)
 comment(0x807B, "Patch current ROM bank into NMI shim", inline=True)
@@ -5502,7 +5565,7 @@ comment(0x82CB, "Check buffer low byte", inline=True)
 comment(0x82CD, "Check buffer high byte", inline=True)
 comment(0x82CF, "All zero (null buffer): error", inline=True)
 comment(0x82D1, "Read extra trailing byte from FIFO", inline=True)
-comment(0x82D4, "Save extra byte at &0D5D for later use", inline=True)
+comment(0x82D4, "Save extra byte in workspace for later use", inline=True)
 comment(0x82D7, "Bit5 = extra data byte available flag", inline=True)
 comment(0x82D9, "Set extra byte flag in tx_flags", inline=True)
 comment(0x82DC, "Store updated flags", inline=True)
@@ -5807,11 +5870,13 @@ comment(0x853B, "TX done dispatch table (lo bytes)\n"
     "\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
     "operation types &83-&87. Read by the dispatch at\n"
-    "&804B via LDA tx_done_dispatch_lo-&83,Y (operand\n"
-    "&84B8). The dispatch trampoline pushes &85 as the\n"
-    "high byte, so targets are &85xx+1. Entries for\n"
-    "Y < &83 read from preceding code bytes and are not\n"
-    "valid operation types.")
+    "[`dispatch_svc5`](address:8048) via\n"
+    "`LDA tx_done_dispatch_lo-&83,Y` (the operand lands\n"
+    "mid-instruction inside `set_rx_buf_len_hi`). The\n"
+    "dispatch trampoline pushes &85 as the high byte, so\n"
+    "targets are &85xx+1. Entries for Y < &83 read from\n"
+    "preceding code bytes and are not valid operation\n"
+    "types.")
 
 # tx_done_econet_event (&8542): TX operation type &84 handler.
 comment(0x8549, "X = remote address lo from l0d66", inline=True)
@@ -5974,11 +6039,13 @@ comment(0x867E, "TX ctrl dispatch table (lo bytes)\n"
     "\n"
     "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
     "control byte types &81-&88. Read by the dispatch at\n"
-    "&8679 via LDA tx_ctrl_dispatch_lo-&81,Y (operand\n"
-    "&85FD, mid-instruction inside intoff_test_inactive).\n"
-    "High byte is always &86, so targets are &86xx+1.\n"
-    "Last entry (&88) dispatches to tx_ctrl_machine_type\n"
-    "at &8686, the 4 bytes immediately after the table.")
+    "&8679 via `LDA tx_ctrl_dispatch_lo-&81,Y` (the\n"
+    "operand lands mid-instruction inside\n"
+    "[`intoff_test_inactive`](address:85FC?hex)). High byte\n"
+    "is always &86, so targets are &86xx+1. Last entry\n"
+    "(&88) dispatches to\n"
+    "[`tx_ctrl_machine_type`](address:8686), the 4 bytes\n"
+    "immediately after the table.")
 comment(0x8686, "A=3: scout_status for machine type query", inline=True)
 comment(0x8688, "Skip address addition, store status", inline=True)
 comment(0x868A, "A=3: scout_status for PEEK op", inline=True)
@@ -6244,19 +6311,20 @@ comment(0x88E0, "BEQ: always taken (A=0)", inline=True)
 comment(0x88E2, "A=&41: not listening error code", inline=True)
 comment(0x88E4, "Y=0: index into TX control block", inline=True)
 comment(0x88E6, "Store result/error code at (nmi_tx_block),0", inline=True)
-comment(0x88E8, "&80: completion flag for &0D3A", inline=True)
+comment(0x88E8, "A=&80: TX-complete signal for tx_complete_flag", inline=True)
 comment(0x88EA, "Signal TX complete", inline=True)
 comment(0x88ED, "Full ADLC reset and return to idle listen", inline=True)
 # Unreferenced dead data: 16 bytes between JMP at &88DF and
 # tx_calc_transfer at &88F2. No code or data reference points here.
 comment(0x88F0, "Unreferenced dead data (16 bytes)\n"
     "\n"
-    "16 bytes between JMP discard_reset_rx (&88DF) and\n"
-    "tx_calc_transfer (&88F2). Unreachable as code (after\n"
-    "an unconditional JMP) and unreferenced as data. No\n"
-    "label, index, or indirect pointer targets any address\n"
-    "in the &88E2-&88F1 range. Likely unused remnant from\n"
-    "development.")
+    "16 bytes between the JMP\n"
+    "[`discard_reset_rx`](address:83E5) at &88ED and\n"
+    "[`tx_calc_transfer`](address:8900). Unreachable as\n"
+    "code (after an unconditional JMP) and unreferenced as\n"
+    "data. No label, index, or indirect pointer targets any\n"
+    "address in the &88F0-&88FF range. Likely an unused\n"
+    "remnant from development.")
 comment(0x88F0, "Dead data: &0E", inline=True)
 comment(0x88F3, "Dead data: &0A", inline=True)
 comment(0x88F4, "Dead data: &0A", inline=True)
@@ -7624,7 +7692,8 @@ comment(0xA3FE, "Return; Y holds 12-byte-aligned offset, A is "
 
 # copy_ps_data inline comments (5 items)
 comment(0xB3D7, "X=&F8: walks 0..7 via wraparound (loads from "
-        "&8DA7+&F8=&8E9F, the ps_template_data base)", inline=True)
+        "ps_template_base+&F8 = ps_template_data &8E9F)",
+        inline=True)
 comment(0xB3D9, "Read template byte from ps_template_data + (X-&F8)",
         inline=True)
 comment(0xB3DC, "Store into RX buffer at offset Y", inline=True)
@@ -8821,14 +8890,16 @@ comment(0x9247, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
 # txcb_init_template (&948B) — 12-byte TXCB template
 comment(0x9763, "TXCB initialisation template (12 bytes)\n"
     "\n"
-    "Copied by init_txcb into the TXCB workspace at\n"
-    "&00C0. For offsets 0-1, the destination station\n"
-    "bytes are also copied from l0e00 into txcb_dest.\n"
+    "Copied by [`init_txcb`](address:974B) into the TXCB\n"
+    "workspace at &00C0. For offsets 0-1, the destination\n"
+    "station bytes are also copied from the FS-options\n"
+    "destination pair into txcb_dest.\n"
     "\n"
-    "The &FF byte at offset 6 (bit_test_ff, &9491)\n"
-    "serves double duty: it is part of this template\n"
-    "AND a BIT target used by 22 callers to set the\n"
-    "V and N flags without clobbering A.")
+    "The &FF byte at offset 6\n"
+    "([`always_set_v_byte`](address:9769) in this build)\n"
+    "serves double duty: it is part of this template AND\n"
+    "a BIT target used by 22 callers to set the V and N\n"
+    "flags without clobbering A.")
 comment(0x9763, "Offset 0: txcb_ctrl = &80 (transmit)", inline=True)
 comment(0x9765, "Offset 4: txcb_start = 0", inline=True)
 comment(0x976A, "Offset 6: BIT target / buffer end lo", inline=True)
@@ -10878,36 +10949,9 @@ comment(0xB1B1, "Get station number", inline=True)
 comment(0xB1B3, "Restore flags", inline=True)
 comment(0xB1B4, "Print station as 3 digits", inline=True)
 
-# ps_slot_txcb_template (&B1B7): 12-byte TXCB template for PS slots.
-# Accessed indirectly by init_ps_slot_from_rx (&B2C4) via:
-#   LDA write_ps_slot_link_addr,Y  (base write_ps_slot_hi_link+1 + Y=&78 = &B1B7)
-# This is the same 12-byte TXCB structure used by
-# tx_econet_txcb_template (&AC6E) and rx_palette_txcb_template
-# (&AC7A). Bytes at workspace offsets &7D and &81 (positions 5
-# and 9: the hi bytes of the two buffer pointers) are
-# substituted with net_rx_ptr_hi during the copy.
-comment(0xB1B7, "PS slot transmit control block template\n"
-    "\n"
-    "12-byte Econet TXCB initialisation template for\n"
-    "printer server slot buffers. Not referenced by\n"
-    "label; accessed indirectly by init_ps_slot_from_rx\n"
-    "via LDA write_ps_slot_link_addr,Y where the base\n"
-    "address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B1B7.\n"
-    "\n"
-    "Structure: 4-byte header (control, port, station,\n"
-    "network) followed by two 4-byte buffer descriptors\n"
-    "(lo address, hi page, end lo, end hi). The hi page\n"
-    "bytes at positions 5 and 9 are overwritten with\n"
-    "net_rx_ptr_hi during the copy to point into the\n"
-    "actual RX buffer page. End bytes &FF are\n"
-    "placeholders filled in later by the caller.")
-comment(0xB1B7, "Control byte &80 (immediate TX)", inline=True)
-comment(0xB1B8, "Port &9F (printer server)", inline=True)
-comment(0xB1B9, "Station 0 (filled in later)", inline=True)
-comment(0xB1BA, "Network 0 (filled in later)", inline=True)
-comment(0xB1BC, "Data buffer start hi (= rx page)", inline=True)
-comment(0xB1BD, "Data buffer end lo (placeholder)", inline=True)
-comment(0xB1BE, "Data buffer end hi (placeholder)", inline=True)
+# &B1B7 in 4.21 is mid-instruction data inside the preceding
+# print-station code; the actual ps_slot_txcb_template lives at
+# &B575 with its own block of inline comments.
 comment(0xB1C0, "Reply buffer start hi (= rx page)", inline=True)
 comment(0xB1C1, "Reply buffer end lo (placeholder)", inline=True)
 comment(0xB1C2, "Reply buffer end hi (placeholder)", inline=True)
@@ -12137,7 +12181,7 @@ comment(0xA85C, "RX 3: network = &00 (any)", inline=True)
 comment(0xA85E, "RX 5: buf start hi (&0D) -> &0D72", inline=True)
 comment(0xA85F, "RX 6: extended addr fill (&FF)", inline=True)
 comment(0xA860, "RX 7: extended addr fill (&FF)", inline=True)
-comment(0xA862, "RX 9: buf end hi (&0D) -> &0D74", inline=True)
+comment(0xA862, "RX 9: buf end hi (page &0D)", inline=True)
 comment(0xA863, "RX 10: extended addr fill (&FF)", inline=True)
 comment(0xA864, "RX 11: extended addr fill (&FF)", inline=True)
 
@@ -14386,9 +14430,10 @@ comment(0x9B75, "Pass-through TX buffer template (12 bytes)\n"
     "setup_pass_txbuf for pass-through operations.\n"
     "Offsets marked &FD are skipped, preserving the\n"
     "existing destination station and network. Buffer\n"
-    "addresses point to &0D3A-&0D3E in NMI workspace.\n"
-    "Original TX buffer values are pushed on the stack\n"
-    "and restored after transmission.")
+    "addresses point into the NMI workspace area at\n"
+    "[`rx_src_stn`](address:0D3D?hex) onwards. Original\n"
+    "TX buffer values are pushed on the stack and\n"
+    "restored after transmission.")
 comment(0x9B75, "Offset 0: ctrl = &88 (immediate TX)", inline=True)
 comment(0x9B76, "Offset 1: port = &00 (immediate op)", inline=True)
 comment(0x9B77, "Offset 2: &FD skip (preserve dest stn)", inline=True)

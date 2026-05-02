@@ -18,8 +18,16 @@ err_no_clock                                    = 163
 err_no_reply                                    = 165
 err_not_listening                               = 162
 err_tx_cb_error                                 = 164
+ev_argsv                                        = 65310
+ev_bgetv                                        = 65313
+ev_bputv                                        = 65316
+ev_filev                                        = 65307
+ev_findv                                        = 65322
+ev_fscv                                         = 65325
+ev_gbpbv                                        = 65319
 event_network_error                             = 8
 inkey_key_ctrl                                  = 254
+mos_workspace                                   = 65463
 osbyte_acknowledge_escape                       = 126
 osbyte_close_spool_exec                         = 119
 osbyte_explode_chars                            = 20
@@ -50,6 +58,13 @@ port_reply                                      = 144
 port_save_ack                                   = 145
 rx_ready                                        = 127
 tx_flag                                         = 128
+vec_argsv                                       = 532
+vec_bgetv                                       = 534
+vec_bgetv_alt                                   = 538
+vec_bputv                                       = 536
+vec_filev                                       = 530
+vec_fscv                                        = 542
+vec_gbpbv                                       = 540
 
 ; Memory locations
 zp_ptr_lo                   = &0000
@@ -525,12 +540,14 @@ rom_header_byte2 = rom_header+2
 ; Initialise NMI workspace (skip service request)
 ; 
 ; Copies 32 bytes of NMI shim code from ROM
-; (listen_jmp_hi) to &0D00, then patches the current
-; ROM bank number into the self-modifying code at
-; &0D07. The shim includes the INTOFF/INTON pair
-; (BIT &FE18 at entry, BIT &FE20 before RTI) that
-; toggles the IC97 NMI enable flip-flop to guarantee
-; edge re-triggering on /NMI. Clears tx_src_net,
+; (listen_jmp_hi) to the start of the NFS workspace
+; RAM block, then patches the current ROM bank number
+; into the self-modifying code at
+; [`nmi_romsel`](address:0D07?hex). The shim includes
+; the INTOFF/INTON pair (BIT &FE18 at entry, BIT &FE20
+; before RTI) that toggles the IC97 NMI enable flip-flop
+; to guarantee edge re-triggering on /NMI. Clears
+; tx_src_net,
 ; need_release_tube, and tx_op_type to zero. Reads
 ; station ID into tx_src_stn (&0D22). Sets
 ; tx_complete_flag and econet_init_flag to &80.
@@ -541,7 +558,7 @@ rom_header_byte2 = rom_header+2
 ; &8072 referenced 1 time by &8079
 .copy_nmi_shim
     lda l89c9,y                                                       ; 8072: b9 c9 89    ...            ; Read byte from NMI shim ROM source
-    sta l0cff,y                                                       ; 8075: 99 ff 0c    ...            ; Write to NMI shim RAM at &0D00
+    sta l0cff,y                                                       ; 8075: 99 ff 0c    ...            ; Write to NMI shim RAM (start of NFS workspace)
     dey                                                               ; 8078: 88          .              ; Next byte (descending)
     bne copy_nmi_shim                                                 ; 8079: d0 f7       ..             ; Loop until all 32 bytes copied
     lda romsel_copy                                                   ; 807b: a5 f4       ..             ; Patch current ROM bank into NMI shim
@@ -594,7 +611,8 @@ rom_header_byte2 = rom_header+2
 ; Reads the second byte of an incoming scout (destination network).
 ; Checks for network match: 0 = local network (accept), &FF = broadcast
 ; (accept and flag), anything else = reject.
-; Installs the scout data reading loop handler at &8102.
+; Installs [`copy_scout_to_buffer`](address:8400) as the
+; scout-data reading loop handler.
 ; ***************************************************************************************
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
@@ -832,14 +850,17 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Data frame RX handler (four-way handshake)
 ; 
-; Receives the data frame after the scout ACK has been sent.
-; First checks AP (Address Present) for the start of the data frame.
-; Reads and validates the first two address bytes (dest_stn, dest_net)
+; Receives the data frame after the scout ACK has been sent. First
+; checks AP (Address Present) for the start of the data frame. Reads
+; and validates the first two address bytes (dest_stn, dest_net)
 ; against our station address, then installs continuation handlers
 ; to read the remaining data payload into the open port buffer.
 ; 
-; Handler chain: &81E7 (AP+addr check) -> &81FB (net=0 check) ->
-; &8211 (skip ctrl+port) -> &8239 (bulk data read) -> &8278 (completion)
+; Handler chain: this routine (AP + dest-stn check) →
+; [`nmi_data_rx_net`](address:81D6) (dest-net check) →
+; [`nmi_data_rx_skip`](address:81EC) (skip ctrl + port) →
+; [`nmi_data_rx_bulk`](address:8223) (bulk data read) →
+; [`data_rx_complete`](address:8268) (completion).
 ; ***************************************************************************************
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
@@ -946,10 +967,12 @@ rom_header_byte2 = rom_header+2
 ; Data frame bulk read loop
 ; 
 ; Reads data payload bytes from the RX FIFO and stores them into
-; the open port buffer at (open_port_buf),Y. Reads bytes in pairs
+; the open port buffer at `(open_port_buf),Y`. Reads bytes in pairs
 ; (like the scout data loop), checking SR2 between each pair.
-; SR2 non-zero (FV or other) -> frame completion at &8278.
-; SR2 = 0 -> RTI, wait for next NMI to continue.
+; 
+; - SR2 non-zero (FV or other) → completion via
+;   [`data_rx_complete`](address:8268).
+; - SR2 = 0 → RTI, wait for next NMI to continue.
 ; ***************************************************************************************
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
@@ -1003,11 +1026,11 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Data frame completion
 ; 
-; Reached when SR2 non-zero during data RX (FV detected).
-; Same pattern as scout completion (&8137): disables PSE (CR2=&84,
-; CR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.
-; If extra data available and buffer space remains, stores it.
-; Proceeds to send the final ACK via &82E4.
+; Reached when SR2 non-zero during data RX (FV detected). Same
+; pattern as scout completion: disables PSE (CR2=&84, CR1=&00),
+; then tests FV and RDA. If FV+RDA, reads the last byte. If extra
+; data available and buffer space remains, stores it. Proceeds to
+; send the final ACK via [`ack_tx`](address:82DF).
 ; ***************************************************************************************
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
@@ -1078,22 +1101,25 @@ rom_header_byte2 = rom_header+2
     ora open_port_buf_hi                                              ; 82cd: 05 a5       ..             ; Check buffer high byte
     beq read_last_rx_byte                                             ; 82cf: f0 ae       ..             ; All zero (null buffer): error
     lda econet_data_continue_frame                                    ; 82d1: ad a2 fe    ...            ; Read extra trailing byte from FIFO
-    sta rx_extra_byte                                                 ; 82d4: 8d 42 0d    .B.            ; Save extra byte at &0D5D for later use
+    sta rx_extra_byte                                                 ; 82d4: 8d 42 0d    .B.            ; Save extra byte in workspace for later use
     lda #&20 ; ' '                                                    ; 82d7: a9 20       .              ; Bit5 = extra data byte available flag
     ora rx_src_net                                                    ; 82d9: 0d 3e 0d    .>.            ; Set extra byte flag in tx_flags
     sta rx_src_net                                                    ; 82dc: 8d 3e 0d    .>.            ; Store updated flags
 ; ***************************************************************************************
 ; ACK transmission
 ; 
-; Sends a scout ACK or final ACK frame as part of the four-way handshake.
-; If bit7 of &0D4A is set, this is a final ACK -> completion (&88C6).
-; Otherwise, configures for TX (CR1=&44, CR2=&A7) and sends the ACK
-; frame (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0).
-; The ACK frame has no data payload -- just address bytes.
+; Sends a scout ACK or final ACK frame as part of the four-way
+; handshake. If bit 7 of `tx_flags` (`&0D4A`) is set, this is a final
+; ACK and completion runs through
+; [`tx_result_ok`](address:88E2). Otherwise configures for TX
+; (`CR1=&44`, `CR2=&A7`) and sends the ACK frame (`dst_stn`,
+; `dst_net` from `&0D3D`, `src_stn` from `&FE18`, `src_net=0`). The
+; ACK frame has no data payload -- just address bytes.
 ; 
 ; After writing the address bytes to the TX FIFO, installs the next
-; NMI handler from &0D4B/&0D4C (saved by the scout/data RX handler)
-; and sends TX_LAST_DATA (CR2=&3F) to close the frame.
+; NMI handler from `nmi_next_lo` / `nmi_next_hi` (`&0D4B` / `&0D4C`,
+; saved by the scout/data RX handler) and sends TX_LAST_DATA
+; (`CR2=&3F`) to close the frame.
 ; ***************************************************************************************
 ; &82df referenced 2 times by &828e, &82c5
 .ack_tx
@@ -1163,11 +1189,14 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Post-ACK scout processing
 ; 
-; Called after the scout ACK has been transmitted. Processes the
-; received scout data stored in the buffer at &0D3D-&0D48.
-; Checks the port byte (&0D40) against open receive blocks to
-; find a matching listener. If a match is found, sets up the
-; data RX handler chain for the four-way handshake data phase.
+; Called after the scout ACK has been transmitted.
+; Processes the received scout data stored in the
+; buffer starting at [`rx_src_stn`](address:0D3D?hex)
+; (scout-ACK destination addresses). Checks the port
+; byte ([`rx_port`](address:0D40?hex)) against open
+; receive blocks to find a matching listener. If a match
+; is found, sets up the data RX handler chain for the
+; four-way handshake data phase.
 ; If no match, discards the frame.
 ; ***************************************************************************************
 .post_ack_scout
@@ -1623,10 +1652,10 @@ l840a = sub_c8409+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ; 
-; Sets up a buffer at &88C1 (length #&01FC) for the
-; machine type query response. Falls through to
-; set_rx_buf_len_hi to configure buffer dimensions,
-; then branches to set_tx_reply_flag.
+; Sets up the response buffer for a machine-type query immediate
+; operation (4-byte response: machine code + version digits). Falls
+; through to [`set_rx_buf_len_hi`](address:84BE) to configure the
+; buffer dimensions, then branches to set_tx_reply_flag.
 ; ***************************************************************************************
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..             ; Buffer length hi = 1
@@ -1759,11 +1788,13 @@ l840a = sub_c8409+1
 ; 
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX
 ; operation types &83-&87. Read by the dispatch at
-; &804B via LDA tx_done_dispatch_lo-&83,Y (operand
-; &84B8). The dispatch trampoline pushes &85 as the
-; high byte, so targets are &85xx+1. Entries for
-; Y < &83 read from preceding code bytes and are not
-; valid operation types.
+; [`dispatch_svc5`](address:8048) via
+; `LDA tx_done_dispatch_lo-&83,Y` (the operand lands
+; mid-instruction inside `set_rx_buf_len_hi`). The
+; dispatch trampoline pushes &85 as the high byte, so
+; targets are &85xx+1. Entries for Y < &83 read from
+; preceding code bytes and are not valid operation
+; types.
 .tx_done_dispatch_lo
     equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?
     equb <(tx_done_econet_event-1)                                    ; 853c: 48          H
@@ -1911,10 +1942,11 @@ l840a = sub_c8409+1
 ; ***************************************************************************************
 ; Begin TX operation
 ; 
-; Main TX initiation entry point (called via trampoline at &06CE).
-; Copies dest station/network from the TXCB to the scout buffer,
-; dispatches to immediate op setup (ctrl >= &81) or normal data
-; transfer, calculates transfer sizes, copies extra parameters,
+; Main TX initiation entry point (called via the
+; NETV trampoline). Copies dest station/network from
+; the TXCB to the scout buffer, dispatches to immediate
+; op setup (ctrl >= &81) or normal data transfer,
+; calculates transfer sizes, copies extra parameters,
 ; then enters the INACTIVE polling loop.
 ; ***************************************************************************************
 ; &8589 referenced 3 times by &9bc3, &a92a, &ac1e
@@ -2152,11 +2184,13 @@ l840a = sub_c8409+1
 ; 
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX
 ; control byte types &81-&88. Read by the dispatch at
-; &8679 via LDA tx_ctrl_dispatch_lo-&81,Y (operand
-; &85FD, mid-instruction inside intoff_test_inactive).
-; High byte is always &86, so targets are &86xx+1.
-; Last entry (&88) dispatches to tx_ctrl_machine_type
-; at &8686, the 4 bytes immediately after the table.
+; &8679 via `LDA tx_ctrl_dispatch_lo-&81,Y` (the
+; operand lands mid-instruction inside
+; [`intoff_test_inactive`](address:85FC?hex)). High byte
+; is always &86, so targets are &86xx+1. Last entry
+; (&88) dispatches to
+; [`tx_ctrl_machine_type`](address:8686), the 4 bytes
+; immediately after the table.
 .tx_ctrl_dispatch_lo
     equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .
     equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .
@@ -2465,15 +2499,18 @@ l840a = sub_c8409+1
 ; ***************************************************************************************
 ; RX reply validation (Path 2 for FV/PSE interaction)
 ; 
-; Reads the source station and source network from the reply scout and
-; validates them against the original TX destination (&0D20/&0D21).
-; Sequence:
-;   1. Check SR2 bit7 (RDA) at &8779 -- must see data available
-;   2. Read source station at &877E, compare to &0D20 (tx_dst_stn)
-;   3. Read source network at &877C, compare to &0D21 (tx_dst_net)
-;   4. Check SR2 bit1 (FV) at &8786 -- must see frame complete
+; Reads the source station and source network from the reply scout
+; and validates them against the original TX destination
+; ([`tx_dst_stn`](address:0D20?hex) /
+; [`tx_dst_net`](address:0D21?hex)).
+; 
+; 1. Check SR2 bit 7 (RDA) -- must see data available.
+; 2. Read source station, compare to `tx_dst_stn`.
+; 3. Read source network, compare to `tx_dst_net`.
+; 4. Check SR2 bit 1 (FV) -- must see frame complete.
+; 
 ; If all checks pass, the reply scout is valid and the ROM proceeds
-; to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
+; to send the scout ACK (`CR2=&A7` for RTS, `CR1=&44` for TX mode).
 ; ***************************************************************************************
 ; &8776 referenced 1 time by &876e
 .nmi_reply_validate
@@ -2509,14 +2546,14 @@ l840a = sub_c8409+1
 ; ***************************************************************************************
 ; TX scout ACK: write source address
 ; 
-; Continuation of the TX-side scout ACK. Reads our
-; station ID from &FE18 (INTOFF), tests TDRA via SR1,
-; and writes station + network=0 to the TX FIFO. Then
-; checks bit 1 of rx_src_net to select between the
-; immediate-op data NMI handler and the normal
-; nmi_data_tx handler at &87EE. Installs the chosen
-; handler via set_nmi_vector. Shares the tx_check_tdra
-; entry at &87C7 with ack_tx.
+; Continuation of the TX-side scout ACK. Reads our station ID from
+; `&FE18` (INTOFF), tests TDRA via SR1, and writes
+; station + network=0 to the TX FIFO. Then checks bit 1 of
+; `rx_src_net` to select between the immediate-op data NMI handler
+; and the normal [`nmi_tx_data`](address:86E7) handler. Installs
+; the chosen handler via [`set_nmi_vector`](address:0D0E?hex).
+; Shares the [`tx_check_tdra_ready`](address:87C4) entry with
+; [`ack_tx`](address:82DF).
 ; ***************************************************************************************
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
@@ -2692,12 +2729,12 @@ l8877 = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Four-way handshake: switch to RX for final ACK
 ; 
-; Called via JMP from nmi_tx_complete when bit 0 of
-; &0D4A is set (four-way handshake in progress). Writes
-; CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX
-; mode to RX mode, listening for the final ACK from the
-; remote station. Installs the nmi_final_ack handler at
-; &887A via set_nmi_vector.
+; Called via JMP from [`nmi_tx_complete`](address:872F) when bit 0
+; of [`tx_flags`](address:0D4A?hex) is set (four-way handshake in
+; progress). Writes `CR1=&82` (`TX_RESET|RIE`) to switch the ADLC
+; from TX mode to RX mode, listening for the final ACK from the
+; remote station. Installs [`nmi_final_ack`](address:8892) as the
+; next NMI handler via [`set_nmi_vector`](address:0D0E?hex).
 ; ***************************************************************************************
 ; &8886 referenced 1 time by &8743
 .handshake_await_ack
@@ -2711,12 +2748,15 @@ l8877 = check_tube_irq_loop+1
 ; RX final ACK handler
 ; 
 ; Receives the final ACK in a four-way handshake. Same validation
-; pattern as the reply scout handler (&874E-&8779):
-;   &887A: Check AP, read dest_stn, compare to our station
-;   &888E: Check RDA, read dest_net, validate = 0
-;   &88A2: Check RDA, read src_stn/net, compare to TX dest
-;   &88C1: Check FV for frame completion
-; On success, stores result=0 at tx_result_ok. On failure, error &41.
+; pattern as [`nmi_reply_validate`](address:8776):
+; 
+; 1. Check AP, read dest_stn, compare to our station.
+; 2. Check RDA, read dest_net, validate = 0.
+; 3. Check RDA, read src_stn / src_net, compare to TX dest.
+; 4. Check FV for frame completion.
+; 
+; On success, stores result=0 via
+; [`tx_result_ok`](address:88DE). On failure, error &41.
 ; ***************************************************************************************
 .nmi_final_ack
     lda #1                                                            ; 8892: a9 01       ..             ; A=&01: AP mask
@@ -2786,13 +2826,13 @@ l8877 = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX completion handler
 ; 
-; Loads A=0 (success) and branches unconditionally to
-; tx_store_result (BEQ is always taken since A=0). This
-; two-instruction entry point exists so that JMP sites
-; can target the success path without needing to set A.
-; Called from ack_tx (&82EC) for final-ACK completion
-; and from nmi_tx_complete (&8732) for immediate-op
-; completion where no ACK is expected.
+; Loads `A=0` (success) and branches unconditionally to
+; [`tx_store_result`](address:88E2) (`BEQ` is always taken since
+; A=0). This two-instruction entry point exists so that JMP sites
+; can target the success path without needing to set `A`. Called
+; from [`ack_tx`](address:82DF) for final-ACK completion and from
+; [`nmi_tx_complete`](address:872F) for immediate-op completion
+; where no ACK is expected.
 ; 
 ; On Exit:
 ;     A: 0 (TX success)
@@ -2833,18 +2873,19 @@ l8877 = check_tube_irq_loop+1
 .tx_store_result
     ldy #0                                                            ; 88e4: a0 00       ..             ; Y=0: index into TX control block
     sta (nmi_tx_block),y                                              ; 88e6: 91 a0       ..             ; Store result/error code at (nmi_tx_block),0
-    lda #&80                                                          ; 88e8: a9 80       ..             ; &80: completion flag for &0D3A
+    lda #&80                                                          ; 88e8: a9 80       ..             ; A=&80: TX-complete signal for tx_complete_flag
     sta tx_complete_flag                                              ; 88ea: 8d 60 0d    .`.            ; Signal TX complete
     jmp discard_reset_rx                                              ; 88ed: 4c e5 83    L..            ; Full ADLC reset and return to idle listen
 
 ; Unreferenced dead data (16 bytes)
 ; 
-; 16 bytes between JMP discard_reset_rx (&88DF) and
-; tx_calc_transfer (&88F2). Unreachable as code (after
-; an unconditional JMP) and unreferenced as data. No
-; label, index, or indirect pointer targets any address
-; in the &88E2-&88F1 range. Likely unused remnant from
-; development.
+; 16 bytes between the JMP
+; [`discard_reset_rx`](address:83E5) at &88ED and
+; [`tx_calc_transfer`](address:8900). Unreachable as
+; code (after an unconditional JMP) and unreferenced as
+; data. No label, index, or indirect pointer targets any
+; address in the &88F0-&88FF range. Likely an unused
+; remnant from development.
     equb &0e                                                          ; 88f0: 0e          .              ; Dead data: &0E
     equb &0e                                                          ; 88f1: 0e          .
     equb &0a                                                          ; 88f2: 0a          .
@@ -3022,14 +3063,14 @@ l8877 = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Wait for idle NMI state and reset Econet
 ; 
-; Service 12 handler: NMI release. Checks ws_0d62
-; to see if Econet has been initialised; if not, skips
-; straight to adlc_rx_listen. Otherwise spins in a
-; tight loop comparing the NMI handler vector at
-; &0D0C/&0D0D against the address of nmi_rx_scout
-; (&80BE). When the NMI handler returns to idle, falls
-; through to save_econet_state to clear the initialised
-; flags and re-enter RX listen mode.
+; Service 12 handler: NMI release. Checks `econet_init_flag` to see
+; if Econet has been initialised; if not, skips straight to
+; `adlc_rx_listen`. Otherwise spins in a tight loop comparing the
+; NMI handler vector at [`nmi_jmp_lo`](address:0D0C?hex) /
+; [`nmi_jmp_hi`](address:0D0D?hex) against the address of
+; [`nmi_rx_scout`](address:809B). When the NMI handler returns to
+; idle, falls through to [`save_econet_state`](address:89B9) to
+; clear the initialised flags and re-enter RX listen mode.
 ; 
 ; On Entry:
 ;     A: 12 (service call number)
@@ -3082,23 +3123,25 @@ l89c9 = reset_enter_listen+2
 ; Bootstrap NMI entry point (in ROM)
 ; 
 ; An alternate NMI handler that lives in the ROM itself rather than
-; in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
-; self-modifying JMP to dispatch to different handlers), this one
-; hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler
-; before the workspace has been properly set up during initialisation.
-; Same sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,
-; LDA romsel, STA &FE30, JMP &80BE.
+; in the RAM shim at the start of the NFS workspace block. Unlike
+; the RAM shim (which uses a self-modifying JMP to dispatch to
+; different handlers), this one hardcodes
+; `JMP `[`nmi_rx_scout`](address:809B). Used as the initial NMI
+; handler before the workspace has been properly set up during
+; initialisation. Same sequence as the RAM shim: BIT &FE18 (INTOFF),
+; PHA, TYA, PHA, LDA romsel, STA &FE30, JMP nmi_rx_scout.
 ; 
 ; The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI
-; in nmi_rti are essential for edge-triggered NMI re-delivery.
-; The 6502 /NMI is falling-edge triggered; the Econet NMI enable
-; flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears
-; the flip-flop, forcing /NMI high; INTON sets it, allowing the
-; ADLC IRQ through. This creates a guaranteed high-to-low edge on
-; /NMI even when the ADLC IRQ is continuously asserted (e.g. when
-; it transitions atomically from TDRA to frame-complete without
-; de-asserting). Without this mechanism, nmi_tx_complete would
-; never fire after tx_last_data.
+; in nmi_rti are essential for edge-triggered NMI re-delivery. The
+; 6502 /NMI is falling-edge triggered; the Econet NMI enable
+; flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears the
+; flip-flop, forcing /NMI high; INTON sets it, allowing the ADLC IRQ
+; through. This creates a guaranteed high-to-low edge on /NMI even
+; when the ADLC IRQ is continuously asserted (e.g. when it
+; transitions atomically from TDRA to frame-complete without
+; de-asserting). Without this mechanism,
+; [`nmi_tx_complete`](address:872F) would never fire after
+; [`tx_last_data`](address:8723).
 ; ***************************************************************************************
 .nmi_bootstrap_entry
     bit lfe38                                                         ; 89ca: 2c 38 fe    ,8.            ; INTOFF: force /NMI high (IC97 flip-flop clear)
@@ -5623,12 +5666,12 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Read and encode directory entry access byte
 ; 
-; Loads the access byte from offset &0E of the
-; directory entry via (fs_options),Y, masks to 6
-; bits (AND #&3F), then sets X=4 and branches to
-; begin_prot_encode to map through the protection
-; bit encode table at &9286. Called by
-; check_and_setup_txcb for owner and public access.
+; Loads the access byte from offset &0E of the directory entry via
+; `(fs_options),Y`, masks to 6 bits (`AND #&3F`), then sets `X=4`
+; and branches to [`begin_prot_encode`](address:93B9) to map through
+; [`prot_bit_encode_table`](address:93C8). Called by
+; [`check_and_setup_txcb`](address:9D87) for owner and public
+; access.
 ; 
 ; On Exit:
 ;     A: encoded access flags
@@ -5645,12 +5688,13 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Encode protection bits via lookup table
 ; 
-; Masks A to 5 bits (AND #&1F), sets X=&FF to
-; start at table index 0, then enters the shared
-; encoding loop at begin_prot_encode. Shifts out
-; each source bit and ORs in the corresponding
-; value from prot_bit_encode_table (&9286). Called
-; by send_txcb_swap_addrs and check_and_setup_txcb.
+; Masks `A` to 5 bits (`AND #&1F`), sets `X=&FF` to start at table
+; index 0, then enters the shared encoding loop at
+; [`begin_prot_encode`](address:93B9). Shifts out each source bit
+; and ORs in the corresponding value from
+; [`prot_bit_encode_table`](address:93C8). Called by
+; [`send_txcb_swap_addrs`](address:9C85) and
+; [`check_and_setup_txcb`](address:9D87).
 ; 
 ; On Entry:
 ;     A: raw protection bits (low 5 used)
@@ -6359,14 +6403,16 @@ ps_template_base = sub_c8da6+1
 
 ; TXCB initialisation template (12 bytes)
 ; 
-; Copied by init_txcb into the TXCB workspace at
-; &00C0. For offsets 0-1, the destination station
-; bytes are also copied from l0e00 into txcb_dest.
+; Copied by [`init_txcb`](address:974B) into the TXCB
+; workspace at &00C0. For offsets 0-1, the destination
+; station bytes are also copied from the FS-options
+; destination pair into txcb_dest.
 ; 
-; The &FF byte at offset 6 (bit_test_ff, &9491)
-; serves double duty: it is part of this template
-; AND a BIT target used by 22 callers to set the
-; V and N flags without clobbering A.
+; The &FF byte at offset 6
+; ([`always_set_v_byte`](address:9769) in this build)
+; serves double duty: it is part of this template AND
+; a BIT target used by 22 callers to set the V and N
+; flags without clobbering A.
 ; &9763 referenced 1 time by &974e
 .txcb_init_template
     equb &80                                                          ; 9763: 80          .              ; Offset 0: txcb_ctrl = &80 (transmit)
@@ -7478,9 +7524,10 @@ l99a3 = bad_str_anchor+1
 ; setup_pass_txbuf for pass-through operations.
 ; Offsets marked &FD are skipped, preserving the
 ; existing destination station and network. Buffer
-; addresses point to &0D3A-&0D3E in NMI workspace.
-; Original TX buffer values are pushed on the stack
-; and restored after transmission.
+; addresses point into the NMI workspace area at
+; [`rx_src_stn`](address:0D3D?hex) onwards. Original
+; TX buffer values are pushed on the stack and
+; restored after transmission.
 ; &9b75 referenced 2 times by &9b8b, &9be5
 .pass_txbuf_init_table
     equb &88                                                          ; 9b75: 88          .              ; Offset 0: ctrl = &88 (immediate TX)
@@ -8963,12 +9010,11 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; Add or subtract 4 workspace bytes from FS options
 ; 
-; Processes 4 consecutive bytes at (fs_options)+Y,
-; adding or subtracting the corresponding workspace
-; bytes from &0E0A-&0E0D. The direction is controlled
-; by bit 7 of fs_load_addr_2: set for subtraction,
-; clear for addition. Carry propagates across all 4
-; bytes for correct multi-byte arithmetic.
+; Processes 4 consecutive bytes at `(fs_options)+Y`, adding or
+; subtracting the corresponding 4-byte transfer-address record from
+; NFS workspace. The direction is controlled by bit 7 of
+; `fs_load_addr_2`: set for subtraction, clear for addition. Carry
+; propagates across all 4 bytes for correct multi-byte arithmetic.
 ; 
 ; On Entry:
 ;     Y: FS options offset for first byte
@@ -10578,7 +10624,7 @@ la0ff = sub_ca0fe+1
     pla                                                               ; a85c: 68          h              ; RX 3: network = &00 (any)
     sta lffb0,y                                                       ; a85d: 99 b0 ff    ...            ; RX 5: buf start hi (&0D) -> &0D72; RX 6: extended addr fill (&FF)
     iny                                                               ; a860: c8          .              ; RX 7: extended addr fill (&FF)
-    bne loop_ca85c                                                    ; a861: d0 f9       ..             ; RX 9: buf end hi (&0D) -> &0D74
+    bne loop_ca85c                                                    ; a861: d0 f9       ..             ; RX 9: buf end hi (page &0D)
     rts                                                               ; a863: 60          `              ; RX 10: extended addr fill (&FF)
 
 ; ***************************************************************************************
@@ -11628,13 +11674,13 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; NETV handler: OSWORD dispatch
 ; 
-; Installed as the NETV handler via
-; write_vector_entry. Saves all registers, reads
-; the OSWORD number from the stack, and dispatches
-; OSWORDs 0-8 via push_osword_handler_addr. OSWORDs
-; >= 9 are ignored (registers restored, RTS returns
-; to MOS). Address stored at netv_handler_addr
-; (&8E8A) in the extended vector data area.
+; Installed as the NETV handler via `write_vector_entry`. Saves all
+; registers, reads the OSWORD number from the stack, and dispatches
+; OSWORDs 0-8 via [`push_osword_handler_addr`](address:AD15).
+; OSWORDs `>= 9` are ignored (registers restored, RTS returns to
+; MOS). The handler's address lives in the extended vector data
+; area together with the other [`fs_vector_table`](address:8EA7)
+; entries.
 ; 
 ; On Entry:
 ;     A: OSWORD number (read from stacked A on entry)
@@ -12796,23 +12842,8 @@ labc5 = compare_bridge_status+1
 ; transmit on port &9F (PS port) to any station.
     equs "    Option "                                                ; b19a: 20 20 20...                ; Zero: no network prefix; Print network as 3 digits; '.' separator
     equb &ad,   5, &c0, &aa, &20, &4c, &92, &20, &8a, &92, &20, &28   ; b1a5: ad 05 c0... ...            ; Set V (suppress station padding); Transfer to X for table lookup; V set: skip padding spaces; Print option as hex; Print 4 spaces (padding); Print ' ('
-    equb &bc, &98, &b2, &b9, &9c, &b2, &30,   6, &20, &fb, &91, &c8   ; b1b1: bc 98 b2... ...            ; Get station number; Restore flags; Print station as 3 digits; Control byte &80 (immediate TX); Port &9F (printer server); Station 0 (filled in later); Network 0 (filled in later); Data buffer start hi (= rx page)
-    equb &d0, &f5                                                     ; b1bd: d0 f5       ..             ; Data buffer end lo (placeholder); Data buffer end hi (placeholder)
-; PS slot transmit control block template
-; 
-; 12-byte Econet TXCB initialisation template for
-; printer server slot buffers. Not referenced by
-; label; accessed indirectly by init_ps_slot_from_rx
-; via LDA write_ps_slot_link_addr,Y where the base
-; address write_ps_slot_hi_link+1 plus Y offset &78 computes to &B1B7.
-; 
-; Structure: 4-byte header (control, port, station,
-; network) followed by two 4-byte buffer descriptors
-; (lo address, hi page, end lo, end hi). The hi page
-; bytes at positions 5 and 9 are overwritten with
-; net_rx_ptr_hi during the copy to point into the
-; actual RX buffer page. End bytes &FF are
-; placeholders filled in later by the caller.
+    equb &bc, &98, &b2, &b9, &9c, &b2, &30,   6, &20, &fb, &91, &c8   ; b1b1: bc 98 b2... ...            ; Get station number; Restore flags; Print station as 3 digits
+    equb &d0, &f5                                                     ; b1bd: d0 f5       ..
 .print_dir_header
     equb &20, &8a, &92, &29, &0d                                      ; b1bf: 20 8a 92...  ..            ; Reply buffer start hi (= rx page); Reply buffer end lo (placeholder); Reply buffer end hi (placeholder)
     equs "Dir. "                                                      ; b1c4: 44 69 72... Dir
@@ -13435,15 +13466,14 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
 ; 
-; Copies 8 bytes of default printer server data
-; into the RX buffer at the current Y offset.
-; Uses indexed addressing: LDA ps_template_base,X
-; with X starting at &F8, so the effective read
-; address is ps_template_base+&F8 = ps_template_data
-; (&8E9F). The 6502 trick reaches data 248 bytes past
-; the base label in a single instruction; in 4.21 the
-; base address (&8DA7) deliberately falls inside the
-; operand byte of a JSR instruction at &8DA6 -- see
+; Copies 8 bytes of default printer server data into the RX buffer
+; at the current `Y` offset. Uses indexed addressing: `LDA
+; ps_template_base,X` with `X` starting at `&F8`, so the effective
+; read address is `ps_template_base+&F8 = ps_template_data`
+; ([`&8E9F`](address:8E9F?hex)). The 6502 trick reaches data 248
+; bytes past the base label in a single instruction; the base
+; address (`ps_template_base`) deliberately falls inside the operand
+; byte of a JSR instruction at `&8DA6` -- see
 ; docs/analysis/authors-easter-egg.md.
 ; 
 ; On Entry:
@@ -13456,7 +13486,7 @@ labc5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; &b3d7 referenced 1 time by &b5b6
 .copy_ps_data
-    ldx #&f8                                                          ; b3d7: a2 f8       ..             ; X=&F8: walks 0..7 via wraparound (loads from &8DA7+&F8=&8E9F, the ps_template_data base)
+    ldx #&f8                                                          ; b3d7: a2 f8       ..             ; X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F)
 ; &b3d9 referenced 1 time by &b3e0
 .loop_copy_ps_tmpl
     lda ps_template_base,x                                            ; b3d9: bd a7 8d    ...            ; Read template byte from ps_template_data + (X-&F8); Load file info character
@@ -14062,12 +14092,13 @@ lb4fd = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; Initialise PS slot buffer from template data
 ; 
-; Copies the 12-byte ps_slot_txcb_template (&B1B7)
-; into workspace at offsets &78-&83 via indexed
-; addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).
-; Substitutes net_rx_ptr_hi at offsets &7D and &81
-; (the hi bytes of the two buffer pointers) so they
-; point into the current RX buffer page.
+; Copies the 12-byte
+; [`ps_slot_txcb_template`](address:B575) into workspace at
+; offsets &78-&83 via indexed addressing from
+; `write_ps_slot_link_addr` (`write_ps_slot_hi_link+1`).
+; Substitutes `net_rx_ptr_hi` at offsets &7D and &81 (the hi bytes
+; of the two buffer pointers) so they point into the current RX
+; buffer page.
 ; 
 ; On Exit:
 ;     A, X, Y: clobbered
