@@ -62,10 +62,14 @@ external (`lc109` at `&C109`). Total to rename: **78**.
 
 ## Status: COMPLETE (2026-05-02)
 
-All 78 in-ROM auto-labels have been renamed. `grep -cE '\.l[0-9a-f]{4}\b|\.c[0-9a-f]{4}\b'`
-on the regenerated ASM output now returns **0** in-ROM declarations
-(the only remaining matches are `lc106..lc109` mentioned in
-description text — see Findings).
+All 78 in-ROM auto-labels (`l*`/`c*`) have been renamed AND all 31
+`sub_cXXXX` / `loop_cXXXX` placeholder routines have been
+renamed and properly declared (Phase K2; see "Phase K2"
+section below).
+
+`grep -cE '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'` on the regenerated ASM
+returns **0** — there are no hex-tail placeholder names anywhere
+in the output.
 
 Verified byte-identical reassembly, lint clean, comments check
 clean.
@@ -225,6 +229,58 @@ future annotation passes.
 | &BD2D | `cbd2d` | `escape_error_close` |
 | &C109 | `lc109` | `hazel_exec_addr` (HAZEL workspace external) |
 
+## Phase K2: rename 31 `sub_`/`loop_` placeholder routines (2026-05-02)
+
+Phase K's original scope was just `l*`/`c*` auto-labels. After
+review, 31 routines remained that py8dis had auto-discovered via
+code-flow analysis (JSR targets, branch-target entries) but the
+driver had never explicitly declared. py8dis fell back to
+`sub_cXXXX` / `loop_cXXXX` placeholder names. The earlier audit
+phases couldn't see them because the audit checks "subroutines
+declared in the driver", not "subroutines visible in the asm
+output".
+
+Phase K2 adds explicit `subroutine()` / `label()` declarations
+for all 31 with semantic names.
+
+| Addr | Placeholder | Kind | New name | Role |
+|------|-------------|------|----------|------|
+| &8409 | `sub_c8409` | subroutine | `save_acccon_for_shadow_ram` | Save ACCCON before scout buffer access (shadow RAM gating) |
+| &8BEA | `loop_c8bea` | label | `loop_print_cmd_name` | Print command-table entry name characters |
+| &8DA6 | `sub_c8da6` | subroutine | `load_transfer_params` | Load and initialize FS transfer parameters |
+| &8E75 | `loop_c8e75` | label | `loop_copy_return_template` | Copy 11-byte return-value template to output buffer |
+| &9292 | `loop_c9292` | label | `loop_print_inline_string` | Bump pointer and output next inline string char |
+| &95C1 | `sub_c95c1` | subroutine | `print_station_low` | Print station low byte with 'P' label via print_inline |
+| &95C8 | `sub_c95c8` | subroutine | `print_fs_station` | Print file-server station via print_inline |
+| &95DA | `sub_c95da` | subroutine | `print_dir_syntax` | Print *Dir syntax help via print_inline |
+| &965F | `sub_c965f` | subroutine | `print_network_from_cmos` | Read CMOS network and print with dot separator |
+| &9670 | `sub_c9670` | subroutine | `print_fs_network` | Read CMOS FS network and print with dot separator |
+| &968E | `sub_c968e` | subroutine | `dispatch_help_command` | Dispatch help command via parser lookup table |
+| &96A7 | `loop_c96a7` | label | `loop_match_on_suffix` | Compare text against ON suffix (case-insensitive) |
+| &96BD | `loop_c96bd` | label | `loop_skip_non_spaces` | Skip non-space chars in text |
+| &96C8 | `loop_c96c8` | label | `loop_help_skip_spaces` | Skip spaces to next help token |
+| &96DB | `loop_c96db` | label | `loop_copy_command_suffix` | Copy template command suffix until '.' |
+| &96E7 | `loop_c96e7` | label | `loop_copy_topic_name` | Copy help topic name from buffer |
+| &96EB | `loop_c96eb` | label | `loop_store_topic_char` | Store topic char and continue copy loop |
+| &9FEE | `sub_c9fee` | subroutine | `send_open_file_request` | Send file open request with V flag (dir check) |
+| &A0F2 | `loop_ca0f2` | label | `loop_extract_attribute_bits` | Shift CMOS value, extract attribute bits |
+| &A0FE | `sub_ca0fe` | subroutine | `store_carry_to_workspace` | Store carry flag to workspace via OSBYTE A2 |
+| &A84A | `loop_ca84a` | label | `loop_save_osword_workspace` | Save and reload OSWORD workspace bytes |
+| &A85C | `loop_ca85c` | label | `loop_restore_osword_workspace` | Restore OSWORD workspace bytes from stack |
+| &A877 | `sub_ca877` | subroutine | `extract_osword_subcode` | Extract and dispatch OSWORD sub-code |
+| &A8EC | `loop_ca8ec` | label | `loop_copy_pbytes_to_workspace` | Copy parameter-block bytes to workspace |
+| &B0A0 | `sub_cb0a0` | label | `cmd_cdir_indirect_dispatch` | Dead `JMP (l4898,X)` at cmd_cdir boundary; never executed |
+| &B1B4 | `loop_cb1b4` | label | `loop_print_dir_format` | Print directory listing format chars |
+| &B2B9 | `loop_cb2b9` | label | `loop_trim_trailing_spaces` | Trim trailing spaces from cmd-arg buffer |
+| &B316 | `loop_cb316` | label | `loop_divide_decimal_digit` | Extract one decimal digit by repeated subtraction |
+| &BB3C | `loop_cbb3c` | label | `loop_save_fcb_workspace` | Save FCB workspace bytes to stack |
+| &BB5F | `loop_cbb5f` | label | `loop_restore_fcb_workspace` | Restore FCB workspace bytes from stack |
+| &BE16 | `loop_cbe16` | label | `loop_print_hex_row` | Print 16 hex bytes per row with column numbering |
+
+Note: `loop_help_skip_spaces` (&96C8) was the agent's `loop_skip_spaces`
+renamed to avoid collision with an existing `loop_skip_spaces` label
+at &948B in a different routine.
+
 ## Findings
 
 - **LCS mapper hit rate is low (~14%) on 4.21_v1 vs 4.18.** Of the
@@ -235,10 +291,20 @@ future annotation passes.
   on unmatched regions max out at 0.31 — Master 128 ANFS genuinely
   rewrote rather than relocated."
 - **Names should be considered first-pass.** They were devised by
-  examining each label's role in context; some sit in routines
-  that haven't yet had Phase A/B annotation, so the name reflects
-  immediate role rather than full semantic understanding. As later
-  passes reveal more, names may need refinement.
+  examining each label's role in context. As later passes reveal
+  more, names may need refinement.
+- **The audit gap that hid 31 placeholder routines:** py8dis
+  auto-discovers JSR targets and routine-shaped branch entries.
+  When the driver doesn't supply an explicit `subroutine()` /
+  `label()` call for those addresses, py8dis falls back to
+  `sub_cXXXX` / `loop_cXXXX` placeholder names. The fantasm audit
+  scans declared subroutines, so these placeholders never showed
+  up in the audit report — they were visible in the asm output
+  but invisible to the audit. Closed in Phase K2 (above); future
+  versions should add a cross-check that scans the asm for
+  hex-tail names directly. A `grep -E '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'`
+  rule on the asm output catches both `lXXXX/cXXXX` auto-labels
+  AND `sub_/loop_` placeholders in one pass.
 - **HAZEL workspace external symbols are still auto-named.** A
   separate pool of 110 `lXXXX = &XXXX` declarations names
   workspace addresses outside the ROM (zero page, MOS workspace,

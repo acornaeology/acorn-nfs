@@ -9271,6 +9271,58 @@ label(0xB6EB, "unprot_apply")
 label(0xBD2D, "escape_error_close")
 label(0xC109, "hazel_exec_addr")
 
+# Phase K2 (2026-05-02): declare 31 routines that py8dis previously
+# auto-discovered with sub_cXXXX / loop_cXXXX placeholder names.
+# These are JSR targets and routine-shaped branch targets that
+# existed in the assembly output but were never declared in the
+# driver, so the audit tooling (which only sees declared subs)
+# missed them. Names devised by examining each in context.
+subroutine(0x8409, "save_acccon_for_shadow_ram",
+    description="Save ACCCON before scout buffer access to handle shadow RAM.")
+label(0x8BEA, "loop_print_cmd_name")
+subroutine(0x8DA6, "load_transfer_params",
+    description="Load and initialize file server transfer parameters.")
+label(0x8E75, "loop_copy_return_template")
+label(0x9292, "loop_print_inline_string")
+subroutine(0x95C1, "print_station_low",
+    description="Print station low byte with P label via print_inline.")
+subroutine(0x95C8, "print_fs_station",
+    description="Print file server station via print_inline.")
+subroutine(0x95DA, "print_dir_syntax",
+    description="Print *Dir command syntax help via print_inline.")
+subroutine(0x965F, "print_network_from_cmos",
+    description="Read CMOS network and print with dot separator.")
+subroutine(0x9670, "print_fs_network",
+    description="Read CMOS FS network and print with dot separator.")
+subroutine(0x968E, "dispatch_help_command",
+    description="Dispatch help command via parser lookup table.")
+label(0x96A7, "loop_match_on_suffix")
+label(0x96BD, "loop_skip_non_spaces")
+label(0x96C8, "loop_help_skip_spaces")
+label(0x96DB, "loop_copy_command_suffix")
+label(0x96E7, "loop_copy_topic_name")
+label(0x96EB, "loop_store_topic_char")
+subroutine(0x9FEE, "send_open_file_request",
+    description="Send file open request with V flag set for directory check.")
+label(0xA0F2, "loop_extract_attribute_bits")
+subroutine(0xA0FE, "store_carry_to_workspace",
+    description="Store carry flag to workspace via OSBYTE A2.")
+label(0xA84A, "loop_save_osword_workspace")
+label(0xA85C, "loop_restore_osword_workspace")
+subroutine(0xA877, "extract_osword_subcode",
+    description="Extract and dispatch OSWORD sub-code from parameter byte.")
+label(0xA8EC, "loop_copy_pbytes_to_workspace")
+# &B0A0 is the dead JMP (l4898,X) at the cmd_cdir dispatch boundary;
+# never executed but py8dis follows the entry() declaration so it
+# needs a non-placeholder name.
+label(0xB0A0, "cmd_cdir_indirect_dispatch")
+label(0xB1B4, "loop_print_dir_format")
+label(0xB2B9, "loop_trim_trailing_spaces")
+label(0xB316, "loop_divide_decimal_digit")
+label(0xBB3C, "loop_save_fcb_workspace")
+label(0xBB5F, "loop_restore_fcb_workspace")
+label(0xBE16, "loop_print_hex_row")
+
 # Boot-command strings used by fsreply_1_copy_handles_boot via OSCLI.
 # &A741: 'L.-NET-!Boot' (Load and run !Boot file from NET partition).
 # &A74E: 'E.-NET-!Boot' (Exec the !Boot file -- alternate variant).

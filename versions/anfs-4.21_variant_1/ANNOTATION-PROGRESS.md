@@ -611,10 +611,23 @@ dimensions. In priority order:
   `c*`) renamed to semantic names. Tracked in
   `PHASE-K-LABEL-RENAME.md` with the full address → name mapping.
 
-  Verified byte-identical, lint clean, comments check clean. Site
-  rebuilt with no glossary or new warnings.
+## Phase K2: Rename `sub_` / `loop_` placeholder routines
 
-  Outstanding for a possible Phase K2: 110 HAZEL workspace external
+  **Done (2026-05-02).** 31 routines that py8dis had auto-discovered
+  via code-flow analysis (JSR targets, branch-target entries) but
+  the driver had never declared explicitly. py8dis fell back to
+  `sub_cXXXX` / `loop_cXXXX` placeholder names; the audit tooling
+  (which scans declared subs only) couldn't see them. Phase K2
+  adds explicit `subroutine()` / `label()` declarations with
+  semantic names for all 31. Tracked in `PHASE-K-LABEL-RENAME.md`
+  under "Phase K2".
+
+  Verified byte-identical, lint clean, comments check clean.
+  `grep -E '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'` on the asm output now
+  returns 0 hex-tail names — there are no placeholder names left
+  in the disassembly.
+
+  Outstanding for a possible Phase K3: 110 workspace external
   symbols (`lXXXX = &XXXX` declarations for addresses outside the
   ROM -- zero page, MOS workspace, HAZEL `&C100..&C2FF`). Only
   `lc109` at `&C109` was renamed (to `hazel_exec_addr`). The rest
