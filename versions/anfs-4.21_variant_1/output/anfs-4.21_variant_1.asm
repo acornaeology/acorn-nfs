@@ -3229,14 +3229,14 @@ l89c9 = reset_enter_listen+2
     bpl loop_sum_rom_bytes                                            ; 8b32: 10 fb       ..             ; Loop until all bytes summed
     ldy #&77 ; 'w'                                                    ; 8b34: a0 77       .w             ; Y=&77: checksum storage offset
     eor (fs_load_addr),y                                              ; 8b36: 51 b0       Q.             ; Compare with stored checksum
-    rts                                                               ; 8b38: 60          `
+    rts                                                               ; 8b38: 60          `              ; Return -- last instruction of cmd_net_fs body
 
 .cmd_net_check_hw
-    lda #&20 ; ' '                                                    ; 8b39: a9 20       .
-    bit econet_control23_or_status2                                   ; 8b3b: 2c a1 fe    ,..
-    beq select_fs_via_cmd_net_fs                                      ; 8b3e: f0 12       ..
-    lda #3                                                            ; 8b40: a9 03       ..
-    jmp build_simple_error                                            ; 8b42: 4c 89 99    L..
+    lda #&20 ; ' '                                                    ; 8b39: a9 20       .              ; A=&20: ADLC IRQ-status mask (CR2 bit 5)
+    bit econet_control23_or_status2                                   ; 8b3b: 2c a1 fe    ,..            ; BIT &FEA1 -- read ADLC CR2 / SR2
+    beq select_fs_via_cmd_net_fs                                      ; 8b3e: f0 12       ..             ; Z set (no carrier): proceed to FS-select
+    lda #3                                                            ; 8b40: a9 03       ..             ; A=3: 'ROM has no NFS' error code
+    jmp build_simple_error                                            ; 8b42: 4c 89 99    L..            ; Raise via build_simple_error (never returns)
 
 ; ***************************************************************************************
 ; Service 18: filing system selection request
@@ -3288,10 +3288,10 @@ l89c9 = reset_enter_listen+2
 
 ; &8b5a referenced 1 time by &8b55
 .c8b5a
-    lda osword_pb_ptr_hi                                              ; 8b5a: a5 f1       ..
-    pha                                                               ; 8b5c: 48          H
-    lda osword_pb_ptr                                                 ; 8b5d: a5 f0       ..
-    pha                                                               ; 8b5f: 48          H
+    lda osword_pb_ptr_hi                                              ; 8b5a: a5 f1       ..             ; Read osword_pb_ptr_hi
+    pha                                                               ; 8b5c: 48          H              ; Push it
+    lda osword_pb_ptr                                                 ; 8b5d: a5 f0       ..             ; Read osword_pb_ptr lo
+    pha                                                               ; 8b5f: 48          H              ; Push it
 .done_rom_checksum
     jsr notify_new_fs                                                 ; 8b60: 20 fd 8c     ..            ; Call FSCV with A=6 (new FS)
     ldy #9                                                            ; 8b63: a0 09       ..             ; Y=9: end of FS context block
@@ -3332,13 +3332,13 @@ l89c9 = reset_enter_listen+2
     dey                                                               ; 8ba9: 88          .              ; Decrement index
     bpl loop_copy_ws_page                                             ; 8baa: 10 f8       ..             ; Loop until all bytes copied
     lda #&80                                                          ; 8bac: a9 80       ..             ; A=&80: FS selected flag
-    tsb fs_flags                                                      ; 8bae: 0c 6c 0d    .l.
-    jsr issue_svc_15                                                  ; 8bb1: 20 02 8d     ..
-    pla                                                               ; 8bb4: 68          h
-    sta osword_pb_ptr                                                 ; 8bb5: 85 f0       ..
-    pla                                                               ; 8bb7: 68          h
-    sta osword_pb_ptr_hi                                              ; 8bb8: 85 f1       ..
-    rts                                                               ; 8bba: 60          `
+    tsb fs_flags                                                      ; 8bae: 0c 6c 0d    .l.            ; Set bit 0 of fs_flags (= NFS active)
+    jsr issue_svc_15                                                  ; 8bb1: 20 02 8d     ..            ; Issue Master service call &0F (vector update)
+    pla                                                               ; 8bb4: 68          h              ; Pop saved osword_pb_ptr lo
+    sta osword_pb_ptr                                                 ; 8bb5: 85 f0       ..             ; Restore osword_pb_ptr lo
+    pla                                                               ; 8bb7: 68          h              ; Pop saved osword_pb_ptr hi
+    sta osword_pb_ptr_hi                                              ; 8bb8: 85 f1       ..             ; Restore osword_pb_ptr hi
+    rts                                                               ; 8bba: 60          `              ; Return
 
 ; ***************************************************************************************
 ; *HELP NFS topic: print NFS-specific commands
@@ -3798,7 +3798,7 @@ l89c9 = reset_enter_listen+2
 ; Wills, each terminated by CR.
 ; &8d24 referenced 1 time by &8c51
 .check_credits_easter_egg
-    ldy ws_page                                                       ; 8d24: a4 a8       ..
+    ldy ws_page                                                       ; 8d24: a4 a8       ..             ; Y = ws_page (workspace high page)
     ldx #5                                                            ; 8d26: a2 05       ..             ; X=5: start of credits keyword
 ; &8d28 referenced 1 time by &8d31
 .loop_match_credits
@@ -3841,13 +3841,13 @@ l89c9 = reset_enter_listen+2
     equb &0d, 0                                                       ; 8d85: 0d 00       ..
 
 .cmd_iam_save_ctx
-    phy                                                               ; 8d87: 5a          Z
-    lda fs_last_byte_flag                                             ; 8d88: a5 bd       ..
-    ldx fs_options                                                    ; 8d8a: a6 bb       ..
-    ldy fs_block_offset                                               ; 8d8c: a4 bc       ..
+    phy                                                               ; 8d87: 5a          Z              ; PHY -- save caller Y
+    lda fs_last_byte_flag                                             ; 8d88: a5 bd       ..             ; Read fs_last_byte_flag (work_bd)
+    ldx fs_options                                                    ; 8d8a: a6 bb       ..             ; Read fs_options (work_bb)
+    ldy fs_block_offset                                               ; 8d8c: a4 bc       ..             ; Read fs_block_offset (work_bc)
     pha                                                               ; 8d8e: 48          H              ; Push it
-    phx                                                               ; 8d8f: da          .
-    phy                                                               ; 8d90: 5a          Z
+    phx                                                               ; 8d8f: da          .              ; PHX -- push X
+    phy                                                               ; 8d90: 5a          Z              ; PHY -- push Y
 ; ***************************************************************************************
 ; *I AM command handler (file server logon)
 ;
@@ -4275,7 +4275,7 @@ ps_template_base = sub_c8da6+1
 ; On Entry: Y: workspace page count from service 1
 .store_ws_page_count
     tya                                                               ; 8ef0: 98          .              ; Transfer Y to A
-    pha                                                               ; 8ef1: 48          H
+    pha                                                               ; 8ef1: 48          H              ; Push for save
     cmp #&d3                                                          ; 8ef2: c9 d3       ..             ; Y >= &21?
     bcc done_cap_ws_count                                             ; 8ef4: 90 02       ..             ; No: use Y as-is
     lda #&d3                                                          ; 8ef6: a9 d3       ..             ; Cap at &21
@@ -4283,21 +4283,21 @@ ps_template_base = sub_c8da6+1
 .done_cap_ws_count
     ldy #&0b                                                          ; 8ef8: a0 0b       ..             ; Offset &0B in receive block
     sta (net_rx_ptr),y                                                ; 8efa: 91 9c       ..             ; Store workspace page count
-    ply                                                               ; 8efc: 7a          z
+    ply                                                               ; 8efc: 7a          z              ; Pop -- save Y temporarily
     rts                                                               ; 8efd: 60          `              ; Return
 
 ; &8efe referenced 1 time by &8f35
 .c8efe
     tya                                                               ; 8efe: 98          .              ; Transfer page to A
     ldy romsel_copy                                                   ; 8eff: a4 f4       ..             ; Get current ROM slot number
-    pha                                                               ; 8f01: 48          H
-    and #&7f                                                          ; 8f02: 29 7f       ).
+    pha                                                               ; 8f01: 48          H              ; Push restored value
+    and #&7f                                                          ; 8f02: 29 7f       ).             ; Mask bit 7 (workspace flag)
     sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...            ; Store workspace page for this slot
     ldy lfe2b                                                         ; 8f07: ac 2b fe    .+.            ; Load break type from hardware register
-    ldy lfe28                                                         ; 8f0a: ac 28 fe    .(.
-    ply                                                               ; 8f0d: 7a          z
-    iny                                                               ; 8f0e: c8          .
-    rts                                                               ; 8f0f: 60          `
+    ldy lfe28                                                         ; 8f0a: ac 28 fe    .(.            ; Read &FE28 (Master ROMSEL shadow)
+    ply                                                               ; 8f0d: 7a          z              ; Pop saved Y
+    iny                                                               ; 8f0e: c8          .              ; Increment for next page
+    rts                                                               ; 8f0f: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Service-2 page-allocation prologue
@@ -4928,23 +4928,23 @@ ps_template_base = sub_c8da6+1
 ; &9269 referenced 1 time by &9284
 .loop_next_char
     inc fs_error_ptr                                                  ; 9269: e6 b8       ..             ; Advance pointer to next character
-    bne load_char                                                     ; 926b: d0 02       ..
-    inc fs_crflag                                                     ; 926d: e6 b9       ..
+    bne load_char                                                     ; 926b: d0 02       ..             ; Z clear: continue with this char
+    inc fs_crflag                                                     ; 926d: e6 b9       ..             ; Z set (CR): increment fs_crflag
 ; &926f referenced 1 time by &926b
 .load_char
     lda (fs_error_ptr),y                                              ; 926f: b1 b8       ..             ; Load next byte from inline string
     bmi resume_caller                                                 ; 9271: 30 14       0.             ; Bit 7 set? Done — this byte is the next opcode
-    lda fs_error_ptr                                                  ; 9273: a5 b8       ..
-    pha                                                               ; 9275: 48          H
-    lda fs_crflag                                                     ; 9276: a5 b9       ..
-    pha                                                               ; 9278: 48          H
+    lda fs_error_ptr                                                  ; 9273: a5 b8       ..             ; Read fs_error_ptr (saved across OSASCI)
+    pha                                                               ; 9275: 48          H              ; Push it
+    lda fs_crflag                                                     ; 9276: a5 b9       ..             ; Read fs_crflag
+    pha                                                               ; 9278: 48          H              ; Push it
     lda (fs_error_ptr),y                                              ; 9279: b1 b8       ..             ; Reload character (pointer may have been clobbered)
     jsr osasci                                                        ; 927b: 20 e3 ff     ..            ; Print character via OSASCI
-    pla                                                               ; 927e: 68          h
-    sta fs_crflag                                                     ; 927f: 85 b9       ..
-    pla                                                               ; 9281: 68          h
-    sta fs_error_ptr                                                  ; 9282: 85 b8       ..
-    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.
+    pla                                                               ; 927e: 68          h              ; Pop saved fs_crflag
+    sta fs_crflag                                                     ; 927f: 85 b9       ..             ; Restore fs_crflag
+    pla                                                               ; 9281: 68          h              ; Pop saved fs_error_ptr
+    sta fs_error_ptr                                                  ; 9282: 85 b8       ..             ; Restore fs_error_ptr
+    jmp loop_next_char                                                ; 9284: 4c 69 92    Li.            ; Loop back
 
 ; &9287 referenced 1 time by &9271
 .resume_caller
@@ -8303,7 +8303,7 @@ l99a3 = bad_str_anchor+1
     cpx #8                                                            ; a0cf: e0 08       ..             ; Shift left (A * 4); Save A * 4 on stack
     bcs error_osargs                                                  ; a0d1: b0 e8       ..             ; Shift left (A * 8); Get stack pointer
     cpx #4                                                            ; a0d3: e0 04       ..             ; Save flags (carry from shift); A8 + A4 (from stack) = A*12
-    beq ca0db                                                         ; a0d5: f0 04       ..
+    beq ca0db                                                         ; a0d5: f0 04       ..             ; Z set: option = 0, take fast path
     cpy #4                                                            ; a0d7: c0 04       ..             ; Divide by 2 with carry; Restore original flags
     bcc ca0df                                                         ; a0d9: 90 04       ..             ; Shift left again; Result to Y as index
 ; &a0db referenced 1 time by &a0d5
@@ -8312,27 +8312,27 @@ l99a3 = bad_str_anchor+1
     bcs error_osargs                                                  ; a0dd: b0 dc       ..             ; In range: return
 ; &a0df referenced 1 time by &a0d9
 .ca0df
-    phy                                                               ; a0df: 5a          Z
+    phy                                                               ; a0df: 5a          Z              ; PHY -- save Y
     phx                                                               ; a0e0: da          .              ; Out of range: Y=0
-    ldx #&11                                                          ; a0e1: a2 11       ..
+    ldx #&11                                                          ; a0e1: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..            ; Return with A=index, Y=index; Y=&6F: source offset
     plx                                                               ; a0e6: fa          .              ; Load byte from RX buffer
-    tya                                                               ; a0e7: 98          .
+    tya                                                               ; a0e7: 98          .              ; TYA -- read CMOS &11 result to A
     and la103,x                                                       ; a0e8: 3d 03 a1    =..            ; C clear: store directly; Get index from PB pointer
-    ply                                                               ; a0eb: 7a          z
-    pha                                                               ; a0ec: 48          H
+    ply                                                               ; a0eb: 7a          z              ; PLY -- restore Y
+    pha                                                               ; a0ec: 48          H              ; Push CMOS value
     lda la0ff,x                                                       ; a0ed: bd ff a0    ...            ; C set (out of range): clear value; Load workspace byte at index
-    tax                                                               ; a0f0: aa          .
+    tax                                                               ; a0f0: aa          .              ; TAX -- value to X
     tya                                                               ; a0f1: 98          .              ; Is it '?' (uninitialised)?
 ; &a0f2 referenced 1 time by &a0f4
 .loop_ca0f2
-    asl a                                                             ; a0f2: 0a          .
+    asl a                                                             ; a0f2: 0a          .              ; ASL -- shift CMOS bits
     dex                                                               ; a0f3: ca          .              ; No: use value from RX buffer
     bne loop_ca0f2                                                    ; a0f4: d0 fc       ..             ; A=0: return zero for uninitialised
     sta fs_load_addr                                                  ; a0f6: 85 b0       ..             ; Store result to PB pointer
-    pla                                                               ; a0f8: 68          h
+    pla                                                               ; a0f8: 68          h              ; Pop saved value
     ora fs_load_addr                                                  ; a0f9: 05 b0       ..             ; Return; Get index from PB pointer
-    tay                                                               ; a0fb: a8          .
+    tay                                                               ; a0fb: a8          .              ; TAY -- back to Y
     ldx #&11                                                          ; a0fc: a2 11       ..             ; C clear: store to workspace
 .sub_ca0fe
 la0ff = sub_ca0fe+1
@@ -9130,7 +9130,7 @@ la0ff = sub_ca0fe+1
 ; &a45b referenced 3 times by &8c49, &8c77, &a43b
 .match_fs_cmd
     tya                                                               ; a45b: 98          .              ; Save command-line offset Y on stack
-    pha                                                               ; a45c: 48          H
+    pha                                                               ; a45c: 48          H              ; Push for save/restore
 ; &a45d referenced 1 time by &a483
 .restart_table_scan
     pla                                                               ; a45d: 68          h              ; Reload saved Y (peek without popping)
@@ -9159,13 +9159,13 @@ la0ff = sub_ca0fe+1
 ; &a480 referenced 1 time by &a495
 .loop_skip_to_next
     inx                                                               ; a480: e8          .              ; Skip 3-byte handler trailer (flag, lo, hi)
-    inx                                                               ; a481: e8          .
-    inx                                                               ; a482: e8          .
+    inx                                                               ; a481: e8          .              ; INX / INX -- skip the 2-byte address
+    inx                                                               ; a482: e8          .              ; (continued)
     bne restart_table_scan                                            ; a483: d0 d8       ..             ; ALWAYS branch: try next entry
 ; &a485 referenced 1 time by &a468
 .check_separator
     tya                                                               ; a485: 98          .              ; Save matched-name length on stack
-    pha                                                               ; a486: 48          H
+    pha                                                               ; a486: 48          H              ; Push for stack-based comparison
     lda (fs_crc_lo),y                                                 ; a487: b1 be       ..             ; Char on command line just past name
     ldy #9                                                            ; a489: a0 09       ..             ; Y=9: separator-table size - 1
 ; &a48b referenced 1 time by &a491
@@ -9175,15 +9175,15 @@ la0ff = sub_ca0fe+1
     dey                                                               ; a490: 88          .              ; Try next separator
     bpl loop_check_sep_table                                          ; a491: 10 f8       ..             ; Loop through 10 separators
     pla                                                               ; a493: 68          h              ; Restore matched-name length
-    tay                                                               ; a494: a8          .
+    tay                                                               ; a494: a8          .              ; TAY -- A = matched offset, save in Y
     bne loop_skip_to_next                                             ; a495: d0 e9       ..             ; ALWAYS branch: try next entry
 ; &a497 referenced 1 time by &a48b
 .sep_table_data
-    jsr l2322                                                         ; a497: 20 22 23     "#
-    bit l0026                                                         ; a49a: 24 26       $&
-    rol a                                                             ; a49c: 2a          *
-    dec a                                                             ; a49d: 3a          :
-    rti                                                               ; a49e: 40          @
+    jsr l2322                                                         ; a497: 20 22 23     "#            ; Dispatch helper (sep_table_data path)
+    bit l0026                                                         ; a49a: 24 26       $&             ; BIT zp_0026 -- check separator flag
+    rol a                                                             ; a49c: 2a          *              ; ROL
+    dec a                                                             ; a49d: 3a          :              ; DEC
+    rti                                                               ; a49e: 40          @              ; RTI -- effective unconditional jump
 
     equb &0d                                                          ; a49f: 0d          .
 
@@ -10101,14 +10101,14 @@ la878 = sub_ca877+1
 ; On Exit: A: 0 = success, &FF = TX pending
 .osword_10_handler
     asl tx_complete_flag                                              ; a910: 0e 60 0d    .`.            ; Enable interrupts; Send the network packet
-    tya                                                               ; a913: 98          .
+    tya                                                               ; a913: 98          .              ; TYA -- save Y
     bcs setup_ws_rx_ptrs                                              ; a914: b0 03       ..             ; Y=&20: workspace offset
     sta (ws_ptr_hi),y                                                 ; a916: 91 ac       ..             ; Set to &FF (pending)
     rts                                                               ; a918: 60          `              ; Mark send pending in workspace
 
 ; &a919 referenced 1 time by &a914
 .setup_ws_rx_ptrs
-    lda net_rx_ptr_hi                                                 ; a919: a5 9d       ..
+    lda net_rx_ptr_hi                                                 ; a919: a5 9d       ..             ; Read net_rx_ptr_hi
     sta ws_ptr_lo                                                     ; a91b: 85 ab       ..             ; Also mark offset &21
     sta nmi_tx_block_hi                                               ; a91d: 85 a1       ..             ; Y=&19: control offset
     lda #&6f ; 'o'                                                    ; a91f: a9 6f       .o             ; Control byte &90
@@ -10131,29 +10131,29 @@ la878 = sub_ca877+1
 .loop_find_rx_slot
     jsr byte_to_2bit_index                                            ; a93d: 20 e9 a3     ..            ; Y=3: workspace start offset; Store Y as ws_ptr_lo
     bcs store_rx_result                                               ; a940: b0 3d       .=             ; Y=&72: workspace offset for dest
-    lsr a                                                             ; a942: 4a          J
+    lsr a                                                             ; a942: 4a          J              ; LSR -- divide by 2
     lsr a                                                             ; a943: 4a          J              ; Store network to workspace
-    tax                                                               ; a944: aa          .
+    tax                                                               ; a944: aa          .              ; TAX -- index to X
     lda (osword_flag),y                                               ; a945: b1 aa       ..             ; Y=&71; A = station (from X)
     beq store_rx_result                                               ; a947: f0 36       .6             ; Store station to workspace
     cmp #&3f ; '?'                                                    ; a949: c9 3f       .?             ; Restore flags from PHP; Non-zero sub-code: handle burst
     beq store_rx_slot_found                                           ; a94b: f0 04       ..             ; Load current offset
-    inx                                                               ; a94d: e8          .
+    inx                                                               ; a94d: e8          .              ; INX -- step to next slot
     txa                                                               ; a94e: 8a          .              ; Advance offset for next byte
     bne loop_find_rx_slot                                             ; a94f: d0 ec       ..             ; Load next char from PB
 ; &a951 referenced 1 time by &a94b
 .store_rx_slot_found
-    txa                                                               ; a951: 8a          .
+    txa                                                               ; a951: 8a          .              ; TXA -- found slot index
     ldx #0                                                            ; a952: a2 00       ..             ; Zero: end of data, return
     sta (ws_ptr_hi,x)                                                 ; a954: 81 ac       ..             ; Y=&7D: workspace char offset
 ; &a956 referenced 1 time by &a939
 .use_specified_slot
     jsr byte_to_2bit_index                                            ; a956: 20 e9 a3     ..            ; Store char to RX buffer; Save char for later test
     bcs store_rx_result                                               ; a959: b0 24       .$             ; Init workspace copy for wide xfer
-    dey                                                               ; a95b: 88          .
+    dey                                                               ; a95b: 88          .              ; DEY -- back up scan
     sty osword_flag                                                   ; a95c: 84 aa       ..             ; Set carry for flag set; Set bit 7: Tube needs release
     lda #&c0                                                          ; a95e: a9 c0       ..             ; Enable IRQ and send packet
-    ldy #1                                                            ; a960: a0 01       ..
+    ldy #1                                                            ; a960: a0 01       ..             ; Y=1: result-byte offset
     ldx #&0b                                                          ; a962: a2 0b       ..             ; Delay countdown; Loop for short delay
     cpy work_ae                                                       ; a964: c4 ae       ..             ; Restore char
     adc (osword_flag),y                                               ; a966: 71 aa       q.             ; Test if char was CR (&0D)
@@ -10161,7 +10161,7 @@ la878 = sub_ca877+1
     bmi increment_and_retry                                           ; a96a: 30 0e       0.             ; CR sent: return; Init workspace for wide copy
 ; &a96c referenced 1 time by &a97c
 .loop_copy_slot_data
-    clc                                                               ; a96c: 18          .
+    clc                                                               ; a96c: 18          .              ; CLC for ADC chain
 ; &a96d referenced 1 time by &a968
 .copy_pb_and_mark
     jsr copy_pb_byte_to_ws                                            ; a96d: 20 82 aa     ..            ; Y=&7B: workspace offset
@@ -10306,7 +10306,7 @@ la878 = sub_ca877+1
 .loop_store_station
     lda (osword_pb_ptr),y                                             ; a9e4: b1 f0       ..             ; Compare with &81 (special case)
     sta lbfff,y                                                       ; a9e6: 99 ff bf    ...            ; Match: skip to processing; Y=1: first claim code position
-    dey                                                               ; a9e9: 88          .
+    dey                                                               ; a9e9: 88          .              ; DEY -- step back to previous byte
     bne loop_store_station                                            ; a9ea: d0 f8       ..             ; X=&0A: 11 codes to check
     jsr clear_if_station_match                                        ; a9ec: 20 21 8e     !.            ; Search claim code table
     lda #&0e                                                          ; a9ef: a9 0e       ..             ; Found: skip to processing
@@ -10320,19 +10320,19 @@ la878 = sub_ca877+1
     tay                                                               ; a9fe: a8          .              ; Zero: not found, return
     and #2                                                            ; a9ff: 29 02       ).             ; Save result flags
     beq next_fcb_entry                                                ; aa01: f0 5f       ._             ; Positive: use state X=2
-    tya                                                               ; aa03: 98          .
-    and #&df                                                          ; aa04: 29 df       ).
+    tya                                                               ; aa03: 98          .              ; TYA -- entry index to A
+    and #&df                                                          ; aa04: 29 df       ).             ; AND #&DF -- mask bit 5
     sta lc260,x                                                       ; aa06: 9d 60 c2    .`.            ; Load tube claim ID byte
     tay                                                               ; aa09: a8          .              ; Store to workspace
     jsr match_station_net                                             ; aa0a: 20 25 b9     %.            ; Next byte down; Until Y reaches &DA
     bne next_fcb_entry                                                ; aa0d: d0 53       .S             ; Loop for 3 bytes
-    clc                                                               ; aa0f: 18          .
+    clc                                                               ; aa0f: 18          .              ; Clear C for ADC
     tya                                                               ; aa10: 98          .              ; A = state (2 or 3)
     and #4                                                            ; aa11: 29 04       ).             ; Send abort with state code
     beq check_handle_2                                                ; aa13: f0 15       ..             ; Restore flags
     tya                                                               ; aa15: 98          .              ; Positive: return without poll
     ora #&20 ; ' '                                                    ; aa16: 09 20       .              ; Set control to &7F
-    tay                                                               ; aa18: a8          .
+    tay                                                               ; aa18: a8          .              ; TAY -- back to Y
     lda lc230,x                                                       ; aa19: bd 30 c2    .0.            ; Y=&0C: control offset; Store control byte
     sta lc002                                                         ; aa1c: 8d 02 c0    ...            ; Load status from workspace
     txa                                                               ; aa1f: 8a          .              ; Positive: keep waiting
@@ -10345,9 +10345,9 @@ la878 = sub_ca877+1
     tya                                                               ; aa2a: 98          .              ; Previous workspace byte
     and #8                                                            ; aa2b: 29 08       ).             ; Previous stack position; Load workspace byte
     beq check_handle_3                                                ; aa2d: f0 15       ..             ; Store to caller's stack frame
-    tya                                                               ; aa2f: 98          .
+    tya                                                               ; aa2f: 98          .              ; TYA -- save Y
     ora #&20 ; ' '                                                    ; aa30: 09 20       .              ; Reached start of save area?
-    tay                                                               ; aa32: a8          .
+    tay                                                               ; aa32: a8          .              ; TAY -- restore Y
     lda lc230,x                                                       ; aa33: bd 30 c2    .0.            ; No: copy next byte; Return
     sta lc003                                                         ; aa36: 8d 03 c0    ...            ; Compare A with code at index X
     txa                                                               ; aa39: 8a          .              ; Match: return with Z set
@@ -10378,13 +10378,13 @@ la878 = sub_ca877+1
     trb fs_flags                                                      ; aa5b: 1c 6c 0d    .l.            ; Workspace low = &DB; Set nfs_workspace low byte
 ; &aa5e referenced 1 time by &aa47
 .store_updated_status
-    tya                                                               ; aa5e: 98          .
+    tya                                                               ; aa5e: 98          .              ; TYA -- A = Y for store
     sta lc260,x                                                       ; aa5f: 9d 60 c2    .`.            ; Load PB[Y]; Store to workspace[Y]
 ; &aa62 referenced 2 times by &aa01, &aa0d
 .next_fcb_entry
-    dex                                                               ; aa62: ca          .
+    dex                                                               ; aa62: ca          .              ; Decrement entry counter
     bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Next byte down; Loop for 15 bytes
-    lda #&0e                                                          ; aa65: a9 0e       ..
+    lda #&0e                                                          ; aa65: a9 0e       ..             ; A=&0E: status flag value
     bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Workspace low = &DA; Load OSWORD number
     bne return_5                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
     lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; Workspace low = 0 (restore)
@@ -10622,14 +10622,14 @@ la878 = sub_ca877+1
 ; On Entry: Y: flag bit mask to test X: current FCB index (preserved)
 ; &ab43 referenced 3 times by &ab05, &ab21, &ab34
 .update_fcb_flag_bits
-    txa                                                               ; ab43: 8a          .
+    txa                                                               ; ab43: 8a          .              ; TXA -- A = caller X
     pha                                                               ; ab44: 48          H              ; Store page to workspace+5
-    ldx #&0f                                                          ; ab45: a2 0f       ..
+    ldx #&0f                                                          ; ab45: a2 0f       ..             ; X=&0F: scan all 16 FCB slots
 ; &ab47 referenced 1 time by &ab63
 .loop_scan_fcb_flags
     lda lc260,x                                                       ; ab47: bd 60 c2    .`.            ; X=&26: template index
     rol a                                                             ; ab4a: 2a          *              ; Copy template to workspace
-    rol a                                                             ; ab4b: 2a          *
+    rol a                                                             ; ab4b: 2a          *              ; ROL -- shift bit into carry for test
     bpl next_flag_entry                                               ; ab4c: 10 14       ..             ; Adjust Y down
     tya                                                               ; ab4e: 98          .              ; Load spool control state
     and lc260,x                                                       ; ab4f: 3d 60 c2    =`.            ; Save state
@@ -10648,11 +10648,11 @@ la878 = sub_ca877+1
     sta lc260,x                                                       ; ab5f: 9d 60 c2    .`.            ; Clear bit 0 of exec flag; Store modified exec flag
 ; &ab62 referenced 1 time by &ab4c
 .next_flag_entry
-    dex                                                               ; ab62: ca          .
+    dex                                                               ; ab62: ca          .              ; Decrement FCB index
     bpl loop_scan_fcb_flags                                           ; ab63: 10 e2       ..             ; Reset buffer start to &25
     pla                                                               ; ab65: 68          h              ; Store reset buffer index
-    tax                                                               ; ab66: aa          .
-    rts                                                               ; ab67: 60          `
+    tax                                                               ; ab66: aa          .              ; TAX -- restore X
+    rts                                                               ; ab67: 60          `              ; Return
 
 ; ***************************************************************************************
 ; OSWORD &13 sub 8: read RX control block flag
@@ -11049,12 +11049,12 @@ labc5 = compare_bridge_status+1
 ;
 ; On Exit: A, X, Y, P: restored from stack
 .netv_handler
-    php                                                               ; acfc: 08          .
+    php                                                               ; acfc: 08          .              ; PHP -- save flags
     pha                                                               ; acfd: 48          H              ; Advance workspace ptr
-    txa                                                               ; acfe: 8a          .
+    txa                                                               ; acfe: 8a          .              ; TXA -- save X
     pha                                                               ; acff: 48          H              ; Load OSBYTE number from table
-    tya                                                               ; ad00: 98          .
-    pha                                                               ; ad01: 48          H
+    tya                                                               ; ad00: 98          .              ; TYA -- save Y
+    pha                                                               ; ad01: 48          H              ; PHA
     tsx                                                               ; ad02: ba          .              ; Y=&FF: read current value
     lda l0103,x                                                       ; ad03: bd 03 01    ...            ; Call OSBYTE to read value
     cmp #9                                                            ; ad06: c9 09       ..             ; A = result (from X)
@@ -11069,11 +11069,11 @@ labc5 = compare_bridge_status+1
 .restore_regs_return
     pla                                                               ; ad0e: 68          h              ; OSBYTE &C2: read video ULA ctrl
     tay                                                               ; ad0f: a8          .              ; OSBYTE &C3: read video ULA palette
-    pla                                                               ; ad10: 68          h
-    tax                                                               ; ad11: aa          .
-    pla                                                               ; ad12: 68          h
-    plp                                                               ; ad13: 28          (
-    rts                                                               ; ad14: 60          `
+    pla                                                               ; ad10: 68          h              ; PLA -- restore Y
+    tax                                                               ; ad11: aa          .              ; TAX -- back to X
+    pla                                                               ; ad12: 68          h              ; PLA -- restore X register
+    plp                                                               ; ad13: 28          (              ; PLP -- restore flags
+    rts                                                               ; ad14: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Push OSWORD handler address for RTS dispatch
@@ -12505,19 +12505,19 @@ lb0d4 = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
     equs "  "                                                         ; b2f3: 20 20
 
-    bne cb2fc                                                         ; b2f5: d0 05       ..
+    bne cb2fc                                                         ; b2f5: d0 05       ..             ; Non-zero: take cb2fc tail
 ; &b2f7 referenced 2 times by &b2e6, &b2ee
 .cb2f7
-    lda #&0d                                                          ; b2f7: a9 0d       ..
+    lda #&0d                                                          ; b2f7: a9 0d       ..             ; A=&0D: CR character
 ; &b2f9 referenced 1 time by &b2e2
 .cb2f9
-    jsr print_char_no_spool                                           ; b2f9: 20 fb 91     ..
+    jsr print_char_no_spool                                           ; b2f9: 20 fb 91     ..            ; Print CR (no spool)
 ; &b2fc referenced 1 time by &b2f5
 .cb2fc
-    inx                                                               ; b2fc: e8          .
-    bne loop_scan_entries                                             ; b2fd: d0 de       ..
-    eor zp_0078                                                       ; b2ff: 45 78       Ex
-    adc zp_0063                                                       ; b301: 65 63       ec
+    inx                                                               ; b2fc: e8          .              ; INX -- next entry
+    bne loop_scan_entries                                             ; b2fd: d0 de       ..             ; Loop until X wraps
+    eor zp_0078                                                       ; b2ff: 45 78       Ex             ; EOR zp_0078 (column flag)
+    adc zp_0063                                                       ; b301: 65 63       ec             ; ADC zp_0063 (column accumulator)
 ; ***************************************************************************************
 ; Print 3-digit decimal via *SPOOL-bypassing print
 ;

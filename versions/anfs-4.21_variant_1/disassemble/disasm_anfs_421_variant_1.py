@@ -8350,6 +8350,134 @@ comment(0xA721, "OSBYTE &6D: make filing system permanent", inline=True)
 comment(0xA75F, "Read lc005 (boot-state flag)", inline=True)
 comment(0xA762, "Z: take boot_load_cmd path", inline=True)
 
+# select_fs_via_cmd_net_fs gap-fill (mid-body OSWORD PB save/restore).
+comment(0x8B5A, "Read osword_pb_ptr_hi", inline=True)
+comment(0x8B5C, "Push it", inline=True)
+comment(0x8B5D, "Read osword_pb_ptr lo", inline=True)
+comment(0x8B5F, "Push it", inline=True)
+comment(0x8BAE, "Set bit 0 of fs_flags (= NFS active)", inline=True)
+comment(0x8BB1, "Issue Master service call &0F (vector update)", inline=True)
+comment(0x8BB4, "Pop saved osword_pb_ptr lo", inline=True)
+comment(0x8BB5, "Restore osword_pb_ptr lo", inline=True)
+comment(0x8BB7, "Pop saved osword_pb_ptr hi", inline=True)
+comment(0x8BB8, "Restore osword_pb_ptr hi", inline=True)
+comment(0x8BBA, "Return", inline=True)
+
+# loop_next_char gap-fill (print_inline body).
+comment(0x926B, "Z clear: continue with this char", inline=True)
+comment(0x926D, "Z set (CR): increment fs_crflag", inline=True)
+comment(0x9273, "Read fs_error_ptr (saved across OSASCI)", inline=True)
+comment(0x9275, "Push it", inline=True)
+comment(0x9276, "Read fs_crflag", inline=True)
+comment(0x9278, "Push it", inline=True)
+comment(0x927E, "Pop saved fs_crflag", inline=True)
+comment(0x927F, "Restore fs_crflag", inline=True)
+comment(0x9281, "Pop saved fs_error_ptr", inline=True)
+comment(0x9282, "Restore fs_error_ptr", inline=True)
+comment(0x9284, "Loop back", inline=True)
+
+# osword_13_set_station gap-fill.
+comment(0xA9E9, "DEY -- step back to previous byte", inline=True)
+comment(0xAA03, "TYA -- entry index to A", inline=True)
+comment(0xAA04, "AND #&DF -- mask bit 5", inline=True)
+comment(0xAA0F, "Clear C for ADC", inline=True)
+comment(0xAA18, "TAY -- back to Y", inline=True)
+comment(0xAA2F, "TYA -- save Y", inline=True)
+comment(0xAA32, "TAY -- restore Y", inline=True)
+comment(0xAA5E, "TYA -- A = Y for store", inline=True)
+comment(0xAA62, "Decrement entry counter", inline=True)
+comment(0xAA65, "A=&0E: status flag value", inline=True)
+
+# match_fs_cmd gap-fill.
+comment(0xA45C, "Push for save/restore", inline=True)
+comment(0xA481, "INX / INX -- skip the 2-byte address", inline=True)
+comment(0xA482, "(continued)", inline=True)
+comment(0xA486, "Push for stack-based comparison", inline=True)
+comment(0xA494, "TAY -- A = matched offset, save in Y", inline=True)
+comment(0xA497, "Dispatch helper (sep_table_data path)", inline=True)
+comment(0xA49A, "BIT zp_0026 -- check separator flag", inline=True)
+comment(0xA49C, "ROL", inline=True)
+comment(0xA49D, "DEC", inline=True)
+comment(0xA49E, "RTI -- effective unconditional jump", inline=True)
+
+# fscv_0_opt_entry gap-fill.
+comment(0xA0D5, "Z set: option = 0, take fast path", inline=True)
+comment(0xA0DF, "PHY -- save Y", inline=True)
+comment(0xA0E1, "X=&11: CMOS RAM byte index", inline=True)
+comment(0xA0E7, "TYA -- read CMOS &11 result to A", inline=True)
+comment(0xA0EB, "PLY -- restore Y", inline=True)
+comment(0xA0EC, "Push CMOS value", inline=True)
+comment(0xA0F0, "TAX -- value to X", inline=True)
+comment(0xA0F2, "ASL -- shift CMOS bits", inline=True)
+comment(0xA0F8, "Pop saved value", inline=True)
+comment(0xA0FB, "TAY -- back to Y", inline=True)
+
+# osword_10_handler gap-fill.
+comment(0xA913, "TYA -- save Y", inline=True)
+comment(0xA919, "Read net_rx_ptr_hi", inline=True)
+comment(0xA942, "LSR -- divide by 2", inline=True)
+comment(0xA944, "TAX -- index to X", inline=True)
+comment(0xA94D, "INX -- step to next slot", inline=True)
+comment(0xA951, "TXA -- found slot index", inline=True)
+comment(0xA95B, "DEY -- back up scan", inline=True)
+comment(0xA960, "Y=1: result-byte offset", inline=True)
+comment(0xA96C, "CLC for ADC chain", inline=True)
+
+# netv_handler entry preamble.
+comment(0xACFC, "PHP -- save flags", inline=True)
+comment(0xACFE, "TXA -- save X", inline=True)
+comment(0xAD00, "TYA -- save Y", inline=True)
+comment(0xAD01, "PHA", inline=True)
+comment(0xAD10, "PLA -- restore Y", inline=True)
+comment(0xAD11, "TAX -- back to X", inline=True)
+comment(0xAD12, "PLA -- restore X register", inline=True)
+comment(0xAD13, "PLP -- restore flags", inline=True)
+comment(0xAD14, "Return", inline=True)
+
+# store_ws_page_count gap-fill.
+comment(0x8EF1, "Push for save", inline=True)
+comment(0x8EFC, "Pop -- save Y temporarily", inline=True)
+comment(0x8F01, "Push restored value", inline=True)
+comment(0x8F02, "Mask bit 7 (workspace flag)", inline=True)
+comment(0x8F0A, "Read &FE28 (Master ROMSEL shadow)", inline=True)
+comment(0x8F0D, "Pop saved Y", inline=True)
+comment(0x8F0E, "Increment for next page", inline=True)
+comment(0x8F0F, "Return", inline=True)
+
+# ex_print_col_sep gap-fill.
+comment(0xB2F5, "Non-zero: take cb2fc tail", inline=True)
+comment(0xB2F7, "A=&0D: CR character", inline=True)
+comment(0xB2F9, "Print CR (no spool)", inline=True)
+comment(0xB2FC, "INX -- next entry", inline=True)
+comment(0xB2FD, "Loop until X wraps", inline=True)
+comment(0xB2FF, "EOR zp_0078 (column flag)", inline=True)
+comment(0xB301, "ADC zp_0063 (column accumulator)", inline=True)
+
+# check_credits_easter_egg / cmd_iam_save_ctx prologue.
+comment(0x8D24, "Y = ws_page (workspace high page)", inline=True)
+comment(0x8D87, "PHY -- save caller Y", inline=True)
+comment(0x8D88, "Read fs_last_byte_flag (work_bd)", inline=True)
+comment(0x8D8A, "Read fs_options (work_bb)", inline=True)
+comment(0x8D8C, "Read fs_block_offset (work_bc)", inline=True)
+comment(0x8D8F, "PHX -- push X", inline=True)
+comment(0x8D90, "PHY -- push Y", inline=True)
+
+# update_fcb_flag_bits gap-fill.
+comment(0xAB43, "TXA -- A = caller X", inline=True)
+comment(0xAB45, "X=&0F: scan all 16 FCB slots", inline=True)
+comment(0xAB4B, "ROL -- shift bit into carry for test", inline=True)
+comment(0xAB62, "Decrement FCB index", inline=True)
+comment(0xAB66, "TAX -- restore X", inline=True)
+comment(0xAB67, "Return", inline=True)
+
+# cmd_net_fs prologue (RTS terminator + cmd_net_check_hw entry).
+comment(0x8B38, "Return -- last instruction of cmd_net_fs body", inline=True)
+comment(0x8B39, "A=&20: ADLC IRQ-status mask (CR2 bit 5)", inline=True)
+comment(0x8B3B, "BIT &FEA1 -- read ADLC CR2 / SR2", inline=True)
+comment(0x8B3E, "Z set (no carrier): proceed to FS-select", inline=True)
+comment(0x8B40, "A=3: 'ROM has no NFS' error code", inline=True)
+comment(0x8B42, "Raise via build_simple_error (never returns)", inline=True)
+
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
 # stack-X trick is the standard 6502 idiom for adding a saved value
