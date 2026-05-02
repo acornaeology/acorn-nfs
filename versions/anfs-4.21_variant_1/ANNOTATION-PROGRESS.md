@@ -627,6 +627,22 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
+## Phase K4: Refine &C200..&C2F3 channel-shadow region
+
+  **Done (2026-05-02).** The K3 sweep named every `&C2XX` byte
+  with `hazel_shadow_XX` placeholders. K4 examined every access
+  site (253 instructions touching `&C200..&C2FF`) and identified
+  the structure as a per-channel FCB parallel-array at
+  `&C200..&C2BF` (12 fields × 16 channels) plus single-byte
+  working state at `&C2C0..&C2F3`. 32 placeholders renamed to
+  semantic field names (`hazel_fcb_addr_lo/mid/hi`,
+  `hazel_fcb_status`, `hazel_quote_mode`, etc.). Tracked in
+  `PHASE-K-LABEL-RENAME.md` under "Phase K4". A handful of names
+  remain best-effort and are flagged in the doc.
+
+  Verified byte-identical, lint clean, comments check clean,
+  audit placeholders clean.
+
 ## Phase K3: Rename workspace external symbols
 
   **Done (2026-05-02).** 110 `lXXXX = &XXXX` declarations renamed

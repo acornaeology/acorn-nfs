@@ -324,26 +324,83 @@ Plus:
   Renamed to `hazel_fs_station_hi` to make stores there
   self-explanatory.
 
-### Caveats: HAZEL bytes flagged for refinement
+### Caveats: HAZEL bytes flagged for refinement (post-K4)
 
-Several HAZEL bytes still carry partly-hex-derived names where
-the byte's semantic role is not yet fully understood:
+After Phase K4 mapped the &C200..&C2F3 channel-shadow region,
+the remaining first-pass names are:
 
 - `hazel_ws_spare_0a / 14 / 38 / f7` — single-write/read bytes that
   appear to be ad-hoc scratch slots; full meaning needs the
   surrounding routine annotated.
-- `hazel_shadow_10 / 20 / 30 / 40 / 50 / 60 / 70 / 72 / 73 / 74 / 78
-  / 88 / 98 / a8 / b8 / c8 / ca / cb / cc / cd / ce / cf / d0 / d1
-  / d4 / d5 / d6 / d7 / d9 / f3` — bytes inside the `&C200..&C2F3`
-  region (32 entries) named by offset within that "shadow" region.
-  These appear to be a per-channel shadow array; identifying the
-  field structure needs a focused pass on the routines that touch
-  this region (channel-management code).
 - `hazel_txcb_spare_116`, `hazel_chan_status` (single-byte placeholder
   for &C1C8 area), `hazel_examine_attr` (best-effort name).
+- A handful of best-effort names from K4:
+  - `hazel_sentinel_cd / ce` (&C2CD/CE) — single-byte sentinel markers,
+    purpose inferred from "scan termination" pattern.
+  - `hazel_pass_counter` (&C2D0) — display-formatting pass counter.
+  - `hazel_counter_per_fcb` (&C2D1) — per-FCB counter (single &C2D1
+    access, role uncertain).
+  - `hazel_ctx_buffer` (&C2D9) — catalog-context save buffer.
+  - `hazel_fcb_handle` (&C240) — could be `hazel_fcb_open_flags`;
+    inline comments say "flags" but the byte plausibly encodes both
+    handle and flag bits.
 
-These names are still better than auto-names — they mark the
-region and approximate role — but refinement is wanted.
+These are still better than auto-names but should be refined as
+the touching routines are annotated.
+
+## Phase K4: Refine &C200..&C2F3 channel-shadow region (2026-05-02)
+
+The K3 sweep gave every &C2XX byte a name like `hazel_shadow_XX`
+(hex-derived). K4 examined every access site in the region (253
+instructions touching `&C200..&C2FF`) and identified the
+structure:
+
+**Per-channel FCB parallel arrays at `&C200..&C2BF`** — 12 fields,
+16 channels each. The 6502 indexes via X (channel index 0..15).
+Field bases:
+
+| Base | Field | Notes |
+|------|-------|-------|
+| `&C200` | `hazel_fcb_addr_lo` | 24-bit file position lo |
+| `&C210` | `hazel_fcb_addr_mid` | 24-bit file position mid |
+| `&C220` | `hazel_fcb_addr_hi` | 24-bit file position hi |
+| `&C230` | `hazel_fcb_link` | link / station number |
+| `&C240` | `hazel_fcb_handle` | handle / open-mode flags |
+| `&C250` | `hazel_fcb_network` | network number |
+| `&C260` | `hazel_fcb_status` | status flags (heavy use; OR/AND-update) |
+| `&C278` | `hazel_fcb_station_lo` | station number lo |
+| `&C288` | `hazel_fcb_station_hi` | station number hi |
+| `&C298` | `hazel_fcb_offset_save` | saved byte offset |
+| `&C2A8` | `hazel_fcb_attr_ref` | attribute reference |
+| `&C2B8` | `hazel_fcb_flags` | status / found-marker flags |
+
+**Single-byte working state at `&C270..&C2F3`** — individual
+flags / counters / scratch:
+
+| Addr | Name | Notes |
+|------|------|-------|
+| `&C270` | `hazel_cur_dir_handle` | current directory handle |
+| `&C271` | `hazel_fs_lib_flags` | bit 6 = use library, bit 7 = *-prefix-stripped |
+| `&C272..&C274` | `hazel_fcb_slot_1/2/3` | temp FCB slots for multi-step ops |
+| `&C2C8` | `hazel_cur_fcb_index` | current FCB array index |
+| `&C2C9` | `hazel_chan_attr` | current channel attribute |
+| `&C2CA` | `hazel_chan_ref` | current channel reference |
+| `&C2CB..&C2CC` | `hazel_byte_counter_lo`, `hazel_buf_addr_hi` | transfer-loop counters / pointer |
+| `&C2CD..&C2CE` | `hazel_sentinel_cd/ce` | scan-termination sentinels (best-effort) |
+| `&C2CF` | `hazel_offset_counter` | offset counter |
+| `&C2D0..&C2D1` | `hazel_pass_counter`, `hazel_counter_per_fcb` | display counters |
+| `&C2D4..&C2D5` | `hazel_station_lo/hi` | working/match station number |
+| `&C2D6..&C2D7` | `hazel_transfer_flag`, `hazel_saved_byte` | transfer state |
+| `&C2D8` | `hazel_quote_mode` | quote tracking |
+| `&C2D9` | `hazel_ctx_buffer` | catalog-context save buffer |
+| `&C2F3` | `hazel_display_buf` | display buffer (Y-indexed) |
+
+The "page &10 shadow" / "l10XX" references that appeared in
+inline comments throughout this region are stale carry-over from
+an earlier annotation round when these addresses were thought to
+be at `&10XX`. The actual addresses are HAZEL `&C2XX`. The
+comment text in places still says "l1010", "l1030", "l10f3" etc.
+— those are stale documentation strings, not labels.
 
 ## Findings
 
