@@ -164,26 +164,26 @@ addresses across all 431 remaining routines.
 | 88 | &89ED | `svc_dispatch_lo` | done | bullet list of index categories; ?hex on svc_dispatch + svc_dispatch_hi |
 | 89 | &8A20 | `svc_dispatch_hi` | done | ?hex on svc_dispatch link; en-dash typography |
 | 90 | &8A54 | `service_handler` | kept | already has accurate service-call table + tooltip-quality first sentence |
-| 91 | &8AEA | `cmd_roff` | | |
-| 92 | &8B00 | `scan_remote_keys` | | |
-| 93 | &8B18 | `save_text_ptr` | | |
-| 94 | &8B23 | `cmd_net_fs` | | |
-| 95 | &8B45 | `svc_18_fs_select` | | |
-| 96 | &8B4D | `ensure_fs_selected` | | |
-| 97 | &8B52 | `select_fs_via_cmd_net_fs` | | |
-| 98 | &8BBB | `help_print_nfs_cmds` | | |
-| 99 | &8BC0 | `help_utils` | | |
-| 100 | &8BC4 | `help_net` | | |
-| 101 | &8BC6 | `print_cmd_table` | | |
-| 102 | &8BD5 | `print_cmd_table_loop` | | |
-| 103 | &8BD8 | `loop_next_entry` | | |
-| 104 | &8C06 | `loop_print_syntax` | | |
-| 105 | &8C25 | `done_print_table` | | |
-| 106 | &8C29 | `help_wrap_if_serial` | | |
-| 107 | &8C42 | `svc_4_star_command` | | |
-| 108 | &8C51 | `svc_9_help` | | |
-| 109 | &8C64 | `svc_return_unclaimed` | | |
-| 110 | &8C93 | `print_version_header` | | |
+| 91 | &8AEA | `cmd_roff` | done | scan_remote_keys link; inline-code refinement |
+| 92 | &8B00 | `scan_remote_keys` | done | cmd_roff link; en-dash typography |
+| 93 | &8B18 | `save_text_ptr` | done | svc_4_star_command + svc_9_help links |
+| 94 | &8B23 | `cmd_net_fs` | done | 8-step numbered breakdown; fs_vector_table + fs_flags links |
+| 95 | &8B45 | `svc_18_fs_select` | done | 3-row condition table; fs_flags + cmd_net_fs links |
+| 96 | &8B4D | `ensure_fs_selected` | kept | already accurate description with error_net_checksum link |
+| 97 | &8B52 | `select_fs_via_cmd_net_fs` | kept | already accurate with ensure_fs_selected + error_net_checksum links |
+| 98 | &8BBB | `help_print_nfs_cmds` | done | print_cmd_table link |
+| 99 | &8BC0 | `help_utils` | done | print_cmd_table link |
+| 100 | &8BC4 | `help_net` | done | print_cmd_table link |
+| 101 | &8BC6 | `print_cmd_table` | done | V-flag dispatch table; print_version_header + print_cmd_table_loop links |
+| 102 | &8BD5 | `print_cmd_table_loop` | done | bit-7 entry table; help_wrap_if_serial link |
+| 103 | &8BD8 | `loop_next_entry` | done | bit-7 dispatch table; print_cmd_table link |
+| 104 | &8C06 | `loop_print_syntax` | done | byte-value dispatch table |
+| 105 | &8C25 | `done_print_table` | done | print_cmd_table link |
+| 106 | &8C29 | `help_wrap_if_serial` | done | stream-type dispatch table; vdu_mode link |
+| 107 | &8C42 | `svc_4_star_command` | kept | covered by data_banner |
+| 108 | &8C51 | `svc_9_help` | kept | covered by data_banner |
+| 109 | &8C64 | `svc_return_unclaimed` | done | inline-code refinement; en-dash typography |
+| 110 | &8C93 | `print_version_header` | done | corrected version-string content (4.21 not 4.08.53); print_inline + print_station_id links |
 | 111 | &8CAD | `get_ws_page` | | |
 | 112 | &8CBD | `setup_ws_ptr` | | |
 | 113 | &8CC7 | `svc_3_autoboot` | | |

@@ -140,9 +140,9 @@ evntv                       = &0220
 netv                        = &0224
 last_break_type             = &028d
 rom_type_table              = &02a0
-vdu_screen_mode             = &0350
-vdu_display_start_hi        = &0351
-vdu_mode                    = &0355
+vdu_screen_mode             = &0350  ; VDU screen mode set by the OS.
+vdu_display_start_hi        = &0351  ; VDU display start address (high byte).
+vdu_mode                    = &0355  ; VDU current output stream selector.
 tube_addr_data_dispatch     = &0406
 nmi_code_base               = &0cff
 nmi_romsel                  = &0d07  ; ROM-bank number patched into the NMI shim.
@@ -3341,7 +3341,7 @@ nmi_shim_source = reset_enter_listen+2
 ; Disables remote operation by clearing the flag at offset 0 in the receive block. If
 ; remote operation was active, re-enables the keyboard via OSBYTE &C9 (with X=0, Y=0)
 ; and calls tx_econet_abort with A=&0A to reinitialise the workspace area. Falls
-; through to scan_remote_keys which clears svc_state and nfs_workspace.
+; through to scan_remote_keys (&8B00) which clears svc_state and nfs_workspace.
 ;
 ; On Entry: Y: command line offset (unused -- *ROFF takes no args)
 ;
@@ -3359,16 +3359,16 @@ nmi_shim_source = reset_enter_listen+2
     lda #&0a                                                          ; 8afb: a9 0a       ..             ; A=&0A: workspace init parameter
     jsr tx_econet_abort                                               ; 8afd: 20 40 ad     @.            ; Initialise workspace area
 ; ***************************************************************************************
-; Scan keyboard for remote operation keys
+; Scan keyboard for remote-operation keys
 ;
-; Uses OSBYTE &7A with Y=&7F to check whether remote operation keys (&CE-&CF) are
+; Uses OSBYTE &7A with Y=&7F to check whether remote-operation keys (&CE..&CF) are
 ; currently pressed. If neither key is detected, clears svc_state and nfs_workspace to
-; zero via the clear_svc_and_ws entry point, which is also used directly by cmd_roff.
+; zero via the clear_svc_and_ws entry point (also used directly by cmd_roff (&8AEA)).
 ; Called by check_escape.
 ;
-; X is saved into nfs_workspace across the OSBYTE call and restored each iteration --
+; X is saved into nfs_workspace across the OSBYTE call and restored each iteration –
 ; the loop reuses A as the key-code counter without needing X. clear_svc_and_ws is also
-; entered directly (label) by cmd_roff with no register pre-conditions.
+; entered directly (label) by cmd_roff (&8AEA) with no register pre-conditions.
 ;
 ; On Entry: X: preserved by being saved to nfs_workspace and reloaded each iteration
 ; (no other preconditions)
@@ -3397,9 +3397,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Save OS text pointer for later retrieval
 ;
-; Copies &F2/&F3 into fs_crc_lo/fs_crc_hi. Called by svc_4_star_command and svc_9_help
-; before attempting command matches, and by match_fs_cmd during iterative help topic
-; matching. Preserves A via PHA/PLA.
+; Copies &F2/&F3 (os_text_ptr) into fs_crc_lo / fs_crc_hi. Called by svc_4_star_command
+; (&8C42) and svc_9_help (&8C51) before attempting command matches, and by match_fs_cmd
+; during iterative help-topic matching. Preserves A via PHA/PLA.
 ;
 ; On Exit: A: preserved
 ; &8b18 referenced 3 times by &8c46, &8c71, &a603
@@ -3418,12 +3418,16 @@ nmi_shim_source = reset_enter_listen+2
 ; Select Econet network filing system
 ;
 ; Computes a checksum over the first &77 bytes of the workspace page and verifies
-; against the stored value; raises an error on mismatch. On success, notifies the OS
-; via FSCV reason 6, copies the FS context block from the receive block to &0DFA,
-; installs 7 filing system vectors (FILEV etc.) from fs_vector_table, initialises the
-; ADLC and extended vectors, sets up the channel table, and copies the workspace page
-; to &1000 as a shadow. Sets bit 7 of &0D6C to mark the FS as selected, then issues
-; service call 15.
+; against the stored value; raises an error on mismatch. On success:
+;
+; 1. Notifies the OS via FSCV reason 6.
+; 2. Copies the FS context block from the receive block to fs_context_save (&0DFA).
+; 3. Installs 7 filing-system vectors (FILEV etc.) from fs_vector_table (&8EA7).
+; 4. Initialises the ADLC and extended vectors.
+; 5. Sets up the channel table.
+; 6. Copies the workspace page to &1000 as a shadow.
+; 7. Sets bit 7 of fs_flags (&0D6C) to mark the FS as selected.
+; 8. Issues service call 15.
 ;
 ; On Entry: Y: command line offset in text pointer (unused for *NET FS but supplied by
 ; star-cmd dispatch)
@@ -3454,12 +3458,15 @@ nmi_shim_source = reset_enter_listen+2
     jmp build_simple_error                                            ; 8b42: 4c 89 99    L..            ; Raise via build_simple_error (never returns)
 
 ; ***************************************************************************************
-; Service 18: filing system selection request
+; Service 18: filing-system selection request
 ;
-; Checks if Y=5 (Econet filing system number); returns unclaimed if not. Also returns
-; if bit 7 of &0D6C is already set, indicating the FS is already selected. Otherwise
-; falls through to cmd_net_fs to perform the full network filing system selection
-; sequence.
+; Service-18 entry point.
+;
+; | Condition                     | Action                                                                        |
+; |-------------------------------|-------------------------------------------------------------------------------|
+; | Y ≠ 5                         | return unclaimed (not the Econet FS)                                          |
+; | Bit 7 of fs_flags (&0D6C) set | return (FS already selected)                                                  |
+; | else                          | fall through to cmd_net_fs (&8B23) for the full network-FS selection sequence |
 ;
 ; On Entry: Y: filing system number requested
 .svc_18_fs_select
@@ -3559,8 +3566,8 @@ nmi_shim_source = reset_enter_listen+2
 ; *HELP NFS topic: print NFS-specific commands
 ;
 ; Loads X=&35 (the offset of the first NFS-specific command in cmd_table_fs) and
-; tail-falls into print_cmd_table to emit the listing. Single caller (the *HELP topic
-; dispatch at &8C6E).
+; tail-falls into print_cmd_table (&8BC6) to emit the listing. Single caller (the *HELP
+; topic dispatch at &8C6E).
 ;
 ; On Exit: X: &35 + advance through the table
 ; &8bbb referenced 1 time by &8c6e
@@ -3570,8 +3577,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP UTILS topic handler
 ;
-; Sets X=0 to select the utility command sub-table and branches to print_cmd_table to
-; display the command list. Prints the version header followed by all utility commands.
+; Sets X = 0 to select the utility command sub-table and branches to print_cmd_table
+; (&8BC6) to display the command list. Prints the version header followed by all
+; utility commands.
 ;
 ; On Entry: Y: command-line offset (PHA/PHA/RTS dispatch contract)
 ;
@@ -3583,8 +3591,8 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP NET topic handler
 ;
-; Sets X to &4A (the NFS command sub-table offset) and falls through to print_cmd_table
-; to display the NFS command list with version header.
+; Sets X = &4A (the NFS command sub-table offset) and falls through to print_cmd_table
+; (&8BC6) to display the NFS command list with version header.
 ;
 ; On Entry: Y: command-line offset (PHA/PHA/RTS dispatch contract)
 ;
@@ -3594,9 +3602,12 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Print *HELP command listing with optional header
 ;
-; If V flag is set, saves X/Y, calls print_version_header to show the ROM version
-; string and station number, then restores X/Y. If V flag is clear, outputs a newline
-; only. Either path then falls through to print_cmd_table_loop to enumerate commands.
+; | V flag | Action                                                                                                     |
+; |--------|------------------------------------------------------------------------------------------------------------|
+; | set    | save X/Y, call print_version_header (&8C93) to show the ROM version string and station number, restore X/Y |
+; | clear  | output a newline only                                                                                      |
+;
+; Either path then falls through to print_cmd_table_loop (&8BD5) to enumerate commands.
 ;
 ; On Entry: X: offset into cmd_table_fs V: set=print version header, clear=newline only
 ; &8bc6 referenced 2 times by &8bbd, &8bc2
@@ -3617,10 +3628,16 @@ nmi_shim_source = reset_enter_listen+2
 ; Enumerate and print command table entries
 ;
 ; Walks the ANFS command table from offset X, printing each command name padded to 9
-; characters followed by its syntax description. Entries with bit 7 set mark
-; end-of-table. The syntax descriptor byte's low 5 bits index into cmd_syntax_table;
-; index &0E triggers special handling that lists shared command names in parentheses.
-; Calls help_wrap_if_serial to handle line continuation on serial output streams.
+; characters followed by its syntax description.
+;
+; | Entry byte bit 7 | Treatment         |
+; |------------------|-------------------|
+; | clear            | print this entry  |
+; | set              | mark end-of-table |
+;
+; The syntax descriptor byte's low 5 bits index into cmd_syntax_table; index &0E
+; triggers special handling that lists shared command names in parentheses. Calls
+; help_wrap_if_serial (&8C29) to handle line continuation on serial output streams.
 ; Preserves Y.
 ;
 ; On Entry: X: offset into cmd_table_fs
@@ -3632,9 +3649,14 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP table walker per-entry body
 ;
-; Loads cmd_table_fs,X (entry byte at offset X). Bit 7 clear -> print_indent (continue
-; with this entry); bit 7 set -> JMP done_print_table (end of table reached). Single
-; caller (the BNE retry at &8C22 in print_cmd_table's outer loop).
+; Loads cmd_table_fs,X (entry byte at offset X):
+;
+; | Bit 7 | Target                                      |
+; |-------|---------------------------------------------|
+; | clear | print_indent (continue with this entry)     |
+; | set   | JMP done_print_table (end of table reached) |
+;
+; Single caller (the BNE retry at &8C22 in print_cmd_table (&8BC6)'s outer loop).
 ;
 ; On Entry: X: current cmd_table_fs offset
 ; &8bd8 referenced 1 time by &8c22
@@ -3671,9 +3693,16 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Per-character body of *HELP syntax string emit
 ;
-; INY / load cmd_syntax_strings,Y / detect terminator (0) or line- break (CR),
-; otherwise print the character. Two callers: the BNE at &8C13 (continue with current
-; char) and the BEQ at &8C19 (fall-through from the line-wrap path).
+; INY / load cmd_syntax_strings,Y / detect terminator or line-break:
+;
+; | Byte     | Action              |
+; |----------|---------------------|
+; | 0        | terminator – stop   |
+; | CR (&0D) | line-break – wrap   |
+; | other    | print the character |
+;
+; Two callers: the BNE at &8C13 (continue with current char) and the BEQ at &8C19
+; (fall-through from the line-wrap path).
 ;
 ; On Entry: Y: current index into cmd_syntax_strings
 ; &8c06 referenced 2 times by &8c13, &8c19
@@ -3703,9 +3732,9 @@ nmi_shim_source = reset_enter_listen+2
 ; Cleanup epilogue for print_cmd_table
 ;
 ; Pops the saved P and Y registers off the stack and RTS. Used as the shared exit for
-; print_cmd_table after it has emitted a help listing or detected end-of-table. Single
-; caller (the BEQ at &8BDD in print_cmd_table when V was set on entry, indicating the
-; saved state needs restoring).
+; print_cmd_table (&8BC6) after it has emitted a help listing or detected end-of-table.
+; Single caller (the BEQ at &8BDD in print_cmd_table (&8BC6) when V was set on entry,
+; indicating the saved state needs restoring).
 ;
 ; On Exit: Y: restored from stack P (FLAGS): restored from stack
 ; &8c25 referenced 1 time by &8bdd
@@ -3718,9 +3747,13 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Wrap *HELP syntax lines for serial output
 ;
-; Checks the output destination via &0355. Returns immediately for VDU (stream 0) or
-; printer (stream 3) output. For serial streams, outputs a newline followed by 12
-; spaces of indentation to align continuation lines with the syntax description column.
+; Checks the output destination via vdu_mode (&0355):
+;
+; | Stream      | Action                                                                                                   |
+; |-------------|----------------------------------------------------------------------------------------------------------|
+; | 0 (VDU)     | return immediately                                                                                       |
+; | 3 (printer) | return immediately                                                                                       |
+; | serial      | output newline + 12 spaces of indentation to align continuation lines with the syntax-description column |
 ;
 ; On Exit: Y: preserved (saved/restored via PHY/PLY) A: clobbered (last char written
 ; via OSWRCH)
@@ -3789,9 +3822,11 @@ nmi_shim_source = reset_enter_listen+2
 ; Restore Y and return service-call unclaimed
 ;
 ; Reloads Y from ws_page (the saved command-line offset) and RTS to the caller without
-; clearing A -- preserving the original service number so the next ROM in the chain
-; sees the unclaimed call. Reached from the four service-handler escape paths at &8C4C,
-; &8C91, &8CD5, and &95BE that hand a request back to MOS without acting on it.
+; clearing A – preserving the original service number so the next ROM in the chain sees
+; the unclaimed call.
+;
+; Reached from the four service-handler escape paths at &8C4C, &8C91, &8CD5, and &95BE
+; that hand a request back to MOS without acting on it.
 ;
 ; On Exit: Y: ws_page (restored command-line offset)
 ; &8c64 referenced 5 times by &8c4c, &8c91, &8cd5, &95be, &9689
@@ -3836,9 +3871,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Print ANFS version string and station number
 ;
-; Uses an inline string after JSR print_inline: CR + "Advanced  4.08.53" + CR. After
-; the inline string, JMPs to print_station_id to append the local Econet station
-; number.
+; Uses an inline string after JSR [print_inline](address:9261?hex): CR + "Advanced NFS
+; 4.21" + CR. After the inline string, JMPs to print_station_id (&90C7) to append the
+; local Econet station number.
 ;
 ; On Exit: A, X, Y: clobbered (print_inline + print_station_id)
 ; &8c93 referenced 2 times by &8bca, &8c5c

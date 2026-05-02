@@ -3301,19 +3301,19 @@ The INTON creates a guaranteed falling edge on /NMI if the ADLC
 IRQ is already asserted, ensuring the next handler fires
 immediately.""")
 subroutine(0x8B00, "scan_remote_keys",
-    title="Scan keyboard for remote operation keys",
-    description="Uses OSBYTE &7A with Y=&7F to check whether\n"
-    "remote operation keys (&CE-&CF) are currently\n"
-    "pressed. If neither key is detected, clears\n"
-    "svc_state and nfs_workspace to zero via the\n"
-    "clear_svc_and_ws entry point, which is also used\n"
-    "directly by cmd_roff. Called by check_escape.\n"
-    "\n"
-    "X is saved into nfs_workspace across the OSBYTE call\n"
-    "and restored each iteration -- the loop reuses A as the\n"
-    "key-code counter without needing X. clear_svc_and_ws\n"
-    "is also entered directly (label) by cmd_roff with no\n"
-    "register pre-conditions.",
+    title="Scan keyboard for remote-operation keys",
+    description="""\
+Uses OSBYTE `&7A` with `Y=&7F` to check whether remote-operation
+keys (`&CE`..`&CF`) are currently pressed. If neither key is
+detected, clears `svc_state` and `nfs_workspace` to zero via the
+`clear_svc_and_ws` entry point (also used directly by
+[`cmd_roff`](address:8AEA?hex)). Called by `check_escape`.
+
+`X` is saved into `nfs_workspace` across the OSBYTE call and
+restored each iteration – the loop reuses `A` as the key-code
+counter without needing `X`. `clear_svc_and_ws` is also entered
+directly (label) by [`cmd_roff`](address:8AEA?hex) with no
+register pre-conditions.""",
     on_entry={"x": "preserved by being saved to nfs_workspace and "
               "reloaded each iteration (no other preconditions)"},
     on_exit={"a": "0 (when no key pressed -- the cleared path)",
@@ -3321,93 +3321,124 @@ subroutine(0x8B00, "scan_remote_keys",
              "y": "&7F (left over from OSBYTE call setup)"})
 subroutine(0x8B18, "save_text_ptr",
     title="Save OS text pointer for later retrieval",
-    description="Copies &F2/&F3 into fs_crc_lo/fs_crc_hi. Called by\n"
-    "svc_4_star_command and svc_9_help before attempting\n"
-    "command matches, and by match_fs_cmd during\n"
-    "iterative help topic matching. Preserves A via\n"
-    "PHA/PLA.",
+    description="""\
+Copies `&F2`/`&F3` (`os_text_ptr`) into `fs_crc_lo` /
+`fs_crc_hi`. Called by [`svc_4_star_command`](address:8C42?hex)
+and [`svc_9_help`](address:8C51?hex) before attempting command
+matches, and by `match_fs_cmd` during iterative help-topic
+matching. Preserves `A` via `PHA`/`PLA`.""",
     on_exit={"a": "preserved"})
 subroutine(0x8BBB, "help_print_nfs_cmds",
     title="*HELP NFS topic: print NFS-specific commands",
     description="""\
-Loads X=&35 (the offset of the first NFS-specific command in
-cmd_table_fs) and tail-falls into print_cmd_table to emit the
-listing. Single caller (the *HELP topic dispatch at &8C6E).""",
+Loads `X=&35` (the offset of the first NFS-specific command in
+`cmd_table_fs`) and tail-falls into
+[`print_cmd_table`](address:8BC6?hex) to emit the listing. Single
+caller (the `*HELP` topic dispatch at `&8C6E`).""",
     on_exit={"x": "&35 + advance through the table"})
 subroutine(0x8BC6, "print_cmd_table",
     title="Print *HELP command listing with optional header",
-    description="If V flag is set, saves X/Y, calls\n"
-    "print_version_header to show the ROM version\n"
-    "string and station number, then restores X/Y.\n"
-    "If V flag is clear, outputs a newline only.\n"
-    "Either path then falls through to\n"
-    "print_cmd_table_loop to enumerate commands.",
+    description="""\
+| `V` flag | Action |
+|---|---|
+| set   | save `X`/`Y`, call [`print_version_header`](address:8C93?hex) to show the ROM version string and station number, restore `X`/`Y` |
+| clear | output a newline only |
+
+Either path then falls through to
+[`print_cmd_table_loop`](address:8BD5?hex) to enumerate
+commands.""",
     on_entry={"x": "offset into cmd_table_fs",
               "v": "set=print version header, clear=newline only"})
 subroutine(0x8BD5, "print_cmd_table_loop",
     title="Enumerate and print command table entries",
-    description="Walks the ANFS command table from offset X,\n"
-    "printing each command name padded to 9 characters\n"
-    "followed by its syntax description. Entries with\n"
-    "bit 7 set mark end-of-table. The syntax descriptor\n"
-    "byte's low 5 bits index into cmd_syntax_table;\n"
-    "index &0E triggers special handling that lists\n"
-    "shared command names in parentheses. Calls\n"
-    "help_wrap_if_serial to handle line continuation\n"
-    "on serial output streams. Preserves Y.",
+    description="""\
+Walks the ANFS command table from offset `X`, printing each
+command name padded to 9 characters followed by its syntax
+description.
+
+| Entry byte bit 7 | Treatment |
+|---|---|
+| clear | print this entry |
+| set   | mark end-of-table |
+
+The syntax descriptor byte's low 5 bits index into
+`cmd_syntax_table`; index `&0E` triggers special handling that
+lists shared command names in parentheses. Calls
+[`help_wrap_if_serial`](address:8C29?hex) to handle line
+continuation on serial output streams. Preserves `Y`.""",
     on_entry={"x": "offset into cmd_table_fs"})
 subroutine(0x8BD8, "loop_next_entry",
     title="*HELP table walker per-entry body",
     description="""\
-Loads cmd_table_fs,X (entry byte at offset X). Bit 7 clear ->
-print_indent (continue with this entry); bit 7 set -> JMP
-done_print_table (end of table reached). Single caller (the BNE
-retry at &8C22 in print_cmd_table's outer loop).""",
+Loads `cmd_table_fs,X` (entry byte at offset `X`):
+
+| Bit 7 | Target |
+|---|---|
+| clear | `print_indent` (continue with this entry) |
+| set   | `JMP done_print_table` (end of table reached) |
+
+Single caller (the `BNE` retry at `&8C22` in
+[`print_cmd_table`](address:8BC6?hex)'s outer loop).""",
     on_entry={"x": "current cmd_table_fs offset"})
 subroutine(0x8C06, "loop_print_syntax",
     title="Per-character body of *HELP syntax string emit",
     description="""\
-INY / load cmd_syntax_strings,Y / detect terminator (0) or line-
-break (CR), otherwise print the character. Two callers: the BNE
-at &8C13 (continue with current char) and the BEQ at &8C19
-(fall-through from the line-wrap path).""",
+`INY` / load `cmd_syntax_strings,Y` / detect terminator or
+line-break:
+
+| Byte | Action |
+|---|---|
+| `0`  | terminator – stop |
+| `CR` (`&0D`) | line-break – wrap |
+| other | print the character |
+
+Two callers: the `BNE` at `&8C13` (continue with current char)
+and the `BEQ` at `&8C19` (fall-through from the line-wrap
+path).""",
     on_entry={"y": "current index into cmd_syntax_strings"})
 subroutine(0x8C25, "done_print_table",
     title="Cleanup epilogue for print_cmd_table",
     description="""\
-Pops the saved P and Y registers off the stack and RTS. Used as
-the shared exit for print_cmd_table after it has emitted a help
-listing or detected end-of-table. Single caller (the BEQ at &8BDD
-in print_cmd_table when V was set on entry, indicating the saved
-state needs restoring).""",
+Pops the saved `P` and `Y` registers off the stack and `RTS`.
+Used as the shared exit for [`print_cmd_table`](address:8BC6?hex)
+after it has emitted a help listing or detected end-of-table.
+Single caller (the `BEQ` at `&8BDD` in
+[`print_cmd_table`](address:8BC6?hex) when `V` was set on entry,
+indicating the saved state needs restoring).""",
     on_exit={"y": "restored from stack",
              "p (flags)": "restored from stack"})
 subroutine(0x8C29, "help_wrap_if_serial",
     title="Wrap *HELP syntax lines for serial output",
-    description="Checks the output destination via &0355. Returns\n"
-    "immediately for VDU (stream 0) or printer\n"
-    "(stream 3) output. For serial streams, outputs a\n"
-    "newline followed by 12 spaces of indentation to\n"
-    "align continuation lines with the syntax\n"
-    "description column.",
+    description="""\
+Checks the output destination via [`vdu_mode`](address:0355?hex):
+
+| Stream | Action |
+|---|---|
+| 0 (VDU) | return immediately |
+| 3 (printer) | return immediately |
+| serial | output newline + 12 spaces of indentation to align continuation lines with the syntax-description column |""",
     on_exit={"y": "preserved (saved/restored via PHY/PLY)",
              "a": "clobbered (last char written via OSWRCH)"})
 subroutine(0x8C64, "svc_return_unclaimed",
     title="Restore Y and return service-call unclaimed",
     description="""\
-Reloads Y from ws_page (the saved command-line offset) and RTS to
-the caller without clearing A -- preserving the original service
-number so the next ROM in the chain sees the unclaimed call.
-Reached from the four service-handler escape paths at &8C4C,
-&8C91, &8CD5, and &95BE that hand a request back to MOS without
-acting on it.""",
+Reloads `Y` from `ws_page` (the saved command-line offset) and
+`RTS` to the caller without clearing `A` – preserving the
+original service number so the next ROM in the chain sees the
+unclaimed call.
+
+Reached from the four service-handler escape paths at `&8C4C`,
+`&8C91`, `&8CD5`, and `&95BE` that hand a request back to MOS
+without acting on it.""",
     on_exit={"y": "ws_page (restored command-line offset)"})
 subroutine(0x8C93, "print_version_header",
     title="Print ANFS version string and station number",
-    description="Uses an inline string after JSR print_inline:\n"
-    "CR + \"Advanced  4.08.53\" + CR. After the inline\n"
-    "string, JMPs to print_station_id to append the\n"
-    "local Econet station number.",
+    description="""\
+Uses an inline string after `JSR
+[print_inline](address:9261?hex)`: `CR + "Advanced NFS 4.21" +
+CR`. After the inline string, `JMP`s to
+[`print_station_id`](address:90C7?hex) to append the local Econet
+station number.""",
     on_entry={},
     on_exit={"a, x, y": "clobbered (print_inline + print_station_id)"})
 subroutine(0x8CAD, "get_ws_page",
@@ -9880,9 +9911,18 @@ label(0x0104, "stack_page_4")
 label(0x0106, "stack_page_6")
 label(0x028D, "last_break_type")
 label(0x02A0, "rom_type_table")
-label(0x0350, "vdu_screen_mode")
-label(0x0351, "vdu_display_start_hi")
-label(0x0355, "vdu_mode")
+label(0x0350, "vdu_screen_mode",
+    description="VDU screen mode set by the OS.",
+    length=1, group="ram_workspace", access="r")
+label(0x0351, "vdu_display_start_hi",
+    description="VDU display start address (high byte).",
+    length=1, group="ram_workspace", access="r")
+label(0x0355, "vdu_mode",
+    description="VDU current output stream selector.\n"
+                "Determines whether `OSWRCH` writes to the screen, "
+                "printer, serial port, etc. ANFS reads this to decide "
+                "whether to wrap *HELP syntax lines for serial output.",
+    length=1, group="ram_workspace", access="r")
 label(0x0406, "tube_addr_data_dispatch")
 label(0x0CFF, "nmi_code_base")
 label(0x0D71, "spool_control_flag")
@@ -11605,13 +11645,15 @@ subroutine(0x9612, "osbyte_a2",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"})
 
 subroutine(0x8B45, "svc_18_fs_select",
-    title="Service 18: filing system selection request",
-    description="Checks if Y=5 (Econet filing system number);\n"
-    "returns unclaimed if not. Also returns if bit 7\n"
-    "of &0D6C is already set, indicating the FS is\n"
-    "already selected. Otherwise falls through to\n"
-    "cmd_net_fs to perform the full network filing\n"
-    "system selection sequence.",
+    title="Service 18: filing-system selection request",
+    description="""\
+Service-18 entry point.
+
+| Condition | Action |
+|---|---|
+| `Y ≠ 5`   | return unclaimed (not the Econet FS) |
+| Bit 7 of [`fs_flags`](address:0D6C?hex) set | return (FS already selected) |
+| else | fall through to [`cmd_net_fs`](address:8B23?hex) for the full network-FS selection sequence |""",
     on_entry={"y": "filing system number requested"})
 
 # Extended dispatch table entries (indices 15-36).
@@ -11830,17 +11872,22 @@ subroutine(0xBD41, "cmd_dump",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8B23, "cmd_net_fs",
     title="Select Econet network filing system",
-    description="Computes a checksum over the first &77 bytes of\n"
-    "the workspace page and verifies against the stored\n"
-    "value; raises an error on mismatch. On success,\n"
-    "notifies the OS via FSCV reason 6, copies the FS\n"
-    "context block from the receive block to &0DFA,\n"
-    "installs 7 filing system vectors (FILEV etc.)\n"
-    "from fs_vector_table, initialises the ADLC and\n"
-    "extended vectors, sets up the channel table, and\n"
-    "copies the workspace page to &1000 as a shadow.\n"
-    "Sets bit 7 of &0D6C to mark the FS as selected,\n"
-    "then issues service call 15.",
+    description="""\
+Computes a checksum over the first `&77` bytes of the workspace
+page and verifies against the stored value; raises an error on
+mismatch. On success:
+
+1. Notifies the OS via FSCV reason 6.
+2. Copies the FS context block from the receive block to
+   `fs_context_save` (`&0DFA`).
+3. Installs 7 filing-system vectors (FILEV etc.) from
+   [`fs_vector_table`](address:8EA7?hex).
+4. Initialises the ADLC and extended vectors.
+5. Sets up the channel table.
+6. Copies the workspace page to `&1000` as a shadow.
+7. Sets bit 7 of [`fs_flags`](address:0D6C?hex) to mark the FS as
+   selected.
+8. Issues service call 15.""",
     on_entry={"y": "command line offset in text pointer "
               "(unused for *NET FS but supplied by star-cmd dispatch)"},
     on_exit={"a, x, y": "clobbered"})
@@ -11906,13 +11953,13 @@ subroutine(0xB3AC, "cmd_ps",
 # so the NFS ROM no longer wraps them.
 subroutine(0x8AEA, "cmd_roff",
     title="*ROFF command handler",
-    description="Disables remote operation by clearing the flag at\n"
-    "offset 0 in the receive block. If remote operation\n"
-    "was active, re-enables the keyboard via OSBYTE &C9\n"
-    "(with X=0, Y=0) and calls tx_econet_abort with\n"
-    "A=&0A to reinitialise the workspace area. Falls\n"
-    "through to scan_remote_keys which clears svc_state\n"
-    "and nfs_workspace.",
+    description="""\
+Disables remote operation by clearing the flag at offset 0 in the
+receive block. If remote operation was active, re-enables the
+keyboard via OSBYTE `&C9` (with `X=0`, `Y=0`) and calls
+`tx_econet_abort` with `A=&0A` to reinitialise the workspace
+area. Falls through to [`scan_remote_keys`](address:8B00?hex)
+which clears `svc_state` and `nfs_workspace`.""",
     on_entry={"y": "command line offset (unused -- *ROFF takes no args)"},
     on_exit={"a, x, y": "clobbered"})
 
@@ -12167,17 +12214,19 @@ label(0x8BC0, "help_utils")
 
 subroutine(0x8BC4, "help_net",
     title="*HELP NET topic handler",
-    description="Sets X to &4A (the NFS command sub-table offset)\n"
-    "and falls through to print_cmd_table to display\n"
-    "the NFS command list with version header.",
+    description="""\
+Sets `X = &4A` (the NFS command sub-table offset) and falls
+through to [`print_cmd_table`](address:8BC6?hex) to display the
+NFS command list with version header.""",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
     on_exit={"a, x, y": "clobbered (print_cmd_table)"})
 subroutine(0x8BC0, "help_utils",
     title="*HELP UTILS topic handler",
-    description="Sets X=0 to select the utility command sub-table\n"
-    "and branches to print_cmd_table to display the\n"
-    "command list. Prints the version header followed\n"
-    "by all utility commands.",
+    description="""\
+Sets `X = 0` to select the utility command sub-table and branches
+to [`print_cmd_table`](address:8BC6?hex) to display the command
+list. Prints the version header followed by all utility
+commands.""",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
     on_exit={"a, x, y": "clobbered"})
 
