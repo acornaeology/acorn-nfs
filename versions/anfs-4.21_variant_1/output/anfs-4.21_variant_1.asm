@@ -3231,6 +3231,7 @@ l89c9 = reset_enter_listen+2
     eor (fs_load_addr),y                                              ; 8b36: 51 b0       Q.             ; Compare with stored checksum
     rts                                                               ; 8b38: 60          `
 
+.cmd_net_check_hw
     lda #&20 ; ' '                                                    ; 8b39: a9 20       .
     bit econet_control23_or_status2                                   ; 8b3b: 2c a1 fe    ,..
     beq select_fs_via_cmd_net_fs                                      ; 8b3e: f0 12       ..
@@ -3423,7 +3424,7 @@ l89c9 = reset_enter_listen+2
 ; On Entry: X: current cmd_table_fs offset
 ; &8bd8 referenced 1 time by &8c22
 .loop_next_entry
-    lda la76c,x                                                       ; 8bd8: bd 6c a7    .l.            ; Load byte from command table
+    lda cmd_table_fs,x                                                ; 8bd8: bd 6c a7    .l.            ; Load byte from command table
     bpl print_indent                                                  ; 8bdb: 10 03       ..             ; Bit 7 clear: valid entry, continue
     jmp done_print_table                                              ; 8bdd: 4c 25 8c    L%.            ; End of table: finish up
 
@@ -3433,13 +3434,13 @@ l89c9 = reset_enter_listen+2
     equs "  "                                                         ; 8be3: 20 20
 
     ldy #9                                                            ; 8be5: a0 09       ..
-    lda la76c,x                                                       ; 8be7: bd 6c a7    .l.
+    lda cmd_table_fs,x                                                ; 8be7: bd 6c a7    .l.
 ; &8bea referenced 1 time by &8bf2
 .loop_c8bea
     jsr osasci                                                        ; 8bea: 20 e3 ff     ..            ; Write character
     inx                                                               ; 8bed: e8          .              ; Advance table pointer
     dey                                                               ; 8bee: 88          .              ; Decrement padding counter
-    lda la76c,x                                                       ; 8bef: bd 6c a7    .l.            ; Load next character
+    lda cmd_table_fs,x                                                ; 8bef: bd 6c a7    .l.            ; Load next character
     bpl loop_c8bea                                                    ; 8bf2: 10 f6       ..             ; Bit 7 clear: more chars, continue
 ; &8bf4 referenced 1 time by &8bfa
 .loop_pad_spaces
@@ -3447,7 +3448,7 @@ l89c9 = reset_enter_listen+2
     jsr osasci                                                        ; 8bf6: 20 e3 ff     ..            ; Write character 32
     dey                                                               ; 8bf9: 88          .              ; Decrement remaining pad count
     bpl loop_pad_spaces                                               ; 8bfa: 10 f8       ..             ; More padding needed: loop
-    lda la76c,x                                                       ; 8bfc: bd 6c a7    .l.            ; Load syntax descriptor byte
+    lda cmd_table_fs,x                                                ; 8bfc: bd 6c a7    .l.            ; Load syntax descriptor byte
     and #&1f                                                          ; 8bff: 29 1f       ).             ; Mask to get syntax string index
     tay                                                               ; 8c01: a8          .              ; Use index as Y
     lda cmd_syntax_table,y                                            ; 8c02: b9 ed 91    ...            ; Look up syntax string offset
@@ -3837,8 +3838,16 @@ l89c9 = reset_enter_listen+2
     equb &0d                                                          ; 8d7c: 0d          .
     equs "J Wills"                                                    ; 8d7d: 4a 20 57... J W
     equb &0d                                                          ; 8d84: 0d          .              ; CR
-    equb &0d, 0, &5a, &a5, &bd, &a6, &bb, &a4, &bc, &48, &da, &5a     ; 8d85: 0d 00 5a... ..Z            ; Push it
+    equb &0d, 0                                                       ; 8d85: 0d 00       ..
 
+.cmd_iam_save_ctx
+    phy                                                               ; 8d87: 5a          Z
+    lda fs_last_byte_flag                                             ; 8d88: a5 bd       ..
+    ldx fs_options                                                    ; 8d8a: a6 bb       ..
+    ldy fs_block_offset                                               ; 8d8c: a4 bc       ..
+    pha                                                               ; 8d8e: 48          H              ; Push it
+    phx                                                               ; 8d8f: da          .
+    phy                                                               ; 8d90: 5a          Z
 ; ***************************************************************************************
 ; *I AM command handler (file server logon)
 ;
@@ -5498,13 +5507,13 @@ ps_template_base = sub_c8da6+1
 ; &9464 referenced 1 time by &9468
 .loop_scan_flag
     dex                                                               ; 9464: ca          .              ; Scan backwards in command table
-    lda la76c,x                                                       ; 9465: bd 6c a7    .l.            ; Load table byte
+    lda cmd_table_fs,x                                                ; 9465: bd 6c a7    .l.            ; Load table byte
     bpl loop_scan_flag                                                ; 9468: 10 fa       ..             ; Bit 7 clear: keep scanning
     inx                                                               ; 946a: e8          .              ; Point past flag byte to name start
     ldy #0                                                            ; 946b: a0 00       ..             ; Y=0: TX buffer offset
 ; &946d referenced 1 time by &9477
 .loop_copy_name
-    lda la76c,x                                                       ; 946d: bd 6c a7    .l.            ; Load command name character
+    lda cmd_table_fs,x                                                ; 946d: bd 6c a7    .l.            ; Load command name character
     bmi append_space                                                  ; 9470: 30 07       0.             ; Bit 7 set: end of name
     sta lc105,y                                                       ; 9472: 99 05 c1    ...            ; Store character in TX buffer
     inx                                                               ; 9475: e8          .              ; Advance table pointer
@@ -9127,11 +9136,11 @@ la0ff = sub_ca0fe+1
     pla                                                               ; a45d: 68          h              ; Reload saved Y (peek without popping)
     pha                                                               ; a45e: 48          H              ; Push it back to keep on stack
     tay                                                               ; a45f: a8          .              ; Y = saved command-line offset
-    lda la76c,x                                                       ; a460: bd 6c a7    .l.            ; First char of current entry name
+    lda cmd_table_fs,x                                                ; a460: bd 6c a7    .l.            ; First char of current entry name
     bmi check_char_type                                               ; a463: 30 5f       0_             ; Bit 7 set already: end of table
 ; &a465 referenced 1 time by &a472
 .loop_match_char
-    lda la76c,x                                                       ; a465: bd 6c a7    .l.            ; Next char from table
+    lda cmd_table_fs,x                                                ; a465: bd 6c a7    .l.            ; Next char from table
     bmi check_separator                                               ; a468: 30 1b       0.             ; Bit 7 set: name fully matched
     eor (fs_crc_lo),y                                                 ; a46a: 51 be       Q.             ; EOR with command-line char
     and #&df                                                          ; a46c: 29 df       ).             ; Mask off case bit (5)
@@ -9142,7 +9151,7 @@ la0ff = sub_ca0fe+1
 ; &a474 referenced 2 times by &a46e, &a478
 .skip_entry_chars
     inx                                                               ; a474: e8          .              ; Skip remaining name chars
-    lda la76c,x                                                       ; a475: bd 6c a7    .l.            ; Load next table byte
+    lda cmd_table_fs,x                                                ; a475: bd 6c a7    .l.            ; Load next table byte
     bpl skip_entry_chars                                              ; a478: 10 fa       ..             ; Bit 7 clear: continue skipping
     lda (fs_crc_lo),y                                                 ; a47a: b1 be       ..             ; Char on command line at current Y
     cmp #&2e ; '.'                                                    ; a47c: c9 2e       ..             ; Is it . (abbreviation)?
@@ -9202,7 +9211,7 @@ la0ff = sub_ca0fe+1
 
 ; &a4ac referenced 1 time by &a4a6
 .check_cmd_flags
-    lda la76c,x                                                       ; a4ac: bd 6c a7    .l.            ; Load entry's flag byte (post-name)
+    lda cmd_table_fs,x                                                ; a4ac: bd 6c a7    .l.            ; Load entry's flag byte (post-name)
     asl a                                                             ; a4af: 0a          .              ; Shift bit 7 into C: the no-arg bit
     bpl clear_v_flag                                                  ; a4b0: 10 0b       ..             ; C=0: entry allows arguments
     lda (fs_crc_lo),y                                                 ; a4b2: b1 be       ..             ; Char on command line
@@ -9487,13 +9496,13 @@ la0ff = sub_ca0fe+1
     jsr tube_claim_c3                                                 ; a627: 20 90 a3     ..            ; Copy workspace data
     ldx #9                                                            ; a62a: a2 09       ..             ; Update state and return
     ldy #&c1                                                          ; a62c: a0 c1       ..
-    lda #4                                                            ; a62e: a9 04       ..             ; X = sub-code; Sub-code < &13?
-    jmp l0406                                                         ; a630: 4c 06 04    L..            ; Out of range: return
+    lda #4                                                            ; a62e: a9 04       ..
+    jmp l0406                                                         ; a630: 4c 06 04    L..
 
 ; &a633 referenced 2 times by &a61b, &a625
 .dispatch_via_vector
-    lda #1                                                            ; a633: a9 01       ..             ; Load handler address high byte
-    jmp (lc109)                                                       ; a635: 6c 09 c1    l..            ; Push high byte; Load handler address low byte
+    lda #1                                                            ; a633: a9 01       ..
+    jmp (lc109)                                                       ; a635: 6c 09 c1    l..
 
 ; ***************************************************************************************
 ; FS reply handler: select CSD station
@@ -9505,8 +9514,8 @@ la0ff = sub_ca0fe+1
 ; On Exit: A: fs_last_byte_flag (loaded by return_with_last_flag)
 ; &a638 referenced 1 time by &9594
 .fsreply_3_set_csd
-    jsr find_station_bit3                                             ; a638: 20 6f a6     o.            ; Push low byte
-    jmp return_with_last_flag                                         ; a63b: 4c b4 9f    L..            ; RTS dispatches to handler
+    jsr find_station_bit3                                             ; a638: 20 6f a6     o.
+    jmp return_with_last_flag                                         ; a63b: 4c b4 9f    L..
 
 ; ***************************************************************************************
 ; FS reply handler: set library station
@@ -9536,25 +9545,25 @@ la0ff = sub_ca0fe+1
     dex                                                               ; a647: ca          .
     bmi done_search_bit2                                              ; a648: 30 13       0.
     jsr match_station_net                                             ; a64a: 20 25 b9     %.
-    bne loop_search_stn_bit2                                          ; a64d: d0 f8       ..             ; hi-sub 0: read FS station
-    lda lc260,x                                                       ; a64f: bd 60 c2    .`.            ; hi-sub 1: set FS station; hi-sub 2: read workspace pair; hi-sub 3: write workspace pair
-    and #4                                                            ; a652: 29 04       ).             ; hi-sub 4: read protection mask; hi-sub 5: write protection mask
-    beq loop_search_stn_bit2                                          ; a654: f0 f1       ..             ; hi-sub 6: read FCB handles; hi-sub 7: set FCB handles
-    tya                                                               ; a656: 98          .              ; hi-sub 8: read RX flag
-    sta lc230,x                                                       ; a657: 9d 30 c2    .0.            ; hi-sub 9: read RX port; hi-sub 10: read error flag; hi-sub 11: read context byte
-    bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.            ; hi-sub 12: read CSD path; hi-sub 13: write CSD path; hi-sub 14: read free buffers
+    bne loop_search_stn_bit2                                          ; a64d: d0 f8       ..
+    lda lc260,x                                                       ; a64f: bd 60 c2    .`.
+    and #4                                                            ; a652: 29 04       ).
+    beq loop_search_stn_bit2                                          ; a654: f0 f1       ..
+    tya                                                               ; a656: 98          .
+    sta lc230,x                                                       ; a657: 9d 30 c2    .0.
+    bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.
 ; &a65d referenced 1 time by &a648
 .done_search_bit2
-    sty lc002                                                         ; a65d: 8c 02 c0    ...            ; hi-sub 15: read 3 context bytes; hi-sub 16: write 3 context bytes; hi-sub 17: query bridge status
-    bvs set_flags_bit2                                                ; a660: 70 09       p.             ; NFS active?
+    sty lc002                                                         ; a65d: 8c 02 c0    ...
+    bvs set_flags_bit2                                                ; a660: 70 09       p.
     tya                                                               ; a662: 98          .
-    jsr alloc_fcb_slot                                                ; a663: 20 a8 b8     ..            ; Yes: read station data; No: return zero
-    sta lc272                                                         ; a666: 8d 72 c2    .r.            ; Y=2: copy 2 bytes
-    beq jmp_restore_fs_ctx                                            ; a669: f0 67       .g             ; Load station byte
+    jsr alloc_fcb_slot                                                ; a663: 20 a8 b8     ..
+    sta lc272                                                         ; a666: 8d 72 c2    .r.
+    beq jmp_restore_fs_ctx                                            ; a669: f0 67       .g
 ; &a66b referenced 1 time by &a660
 .set_flags_bit2
     lda #&26 ; '&'                                                    ; a66b: a9 26       .&
-    bne store_stn_flags_restore                                       ; a66d: d0 60       .`             ; Store to PB[Y]
+    bne store_stn_flags_restore                                       ; a66d: d0 60       .`             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; Find file server station in table (bit 3)
@@ -9568,31 +9577,31 @@ la0ff = sub_ca0fe+1
 ; table slot index of the matched/allocated entry
 ; &a66f referenced 3 times by &a638, &a6a1, &a6ef
 .find_station_bit3
-    ldx #&10                                                          ; a66f: a2 10       ..             ; Previous byte; Loop for bytes 2..1
+    ldx #&10                                                          ; a66f: a2 10       ..
     clv                                                               ; a671: b8          .
 ; &a672 referenced 2 times by &a678, &a67f
 .loop_search_stn_bit3
-    dex                                                               ; a672: ca          .              ; Return
-    bmi done_search_bit3                                              ; a673: 30 13       0.             ; NFS active?
-    jsr match_station_net                                             ; a675: 20 25 b9     %.            ; No: return zero
-    bne loop_search_stn_bit3                                          ; a678: d0 f8       ..             ; Y=0 for process_all_fcbs
-    lda lc260,x                                                       ; a67a: bd 60 c2    .`.            ; Close all open FCBs
+    dex                                                               ; a672: ca          .
+    bmi done_search_bit3                                              ; a673: 30 13       0.
+    jsr match_station_net                                             ; a675: 20 25 b9     %.
+    bne loop_search_stn_bit3                                          ; a678: d0 f8       ..
+    lda lc260,x                                                       ; a67a: bd 60 c2    .`.
     and #8                                                            ; a67d: 29 08       ).
-    beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..             ; Load new station byte from PB
-    tya                                                               ; a681: 98          .              ; Store to l0dff
-    sta lc230,x                                                       ; a682: 9d 30 c2    .0.            ; Previous byte
-    bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.            ; Loop for bytes 2..1; Clear handles if station matches
+    beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..
+    tya                                                               ; a681: 98          .
+    sta lc230,x                                                       ; a682: 9d 30 c2    .0.
+    bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.
 ; &a688 referenced 1 time by &a673
 .done_search_bit3
-    sty lc003                                                         ; a688: 8c 03 c0    ...            ; X=&0F: scan 16 FCB entries
-    bvs set_flags_bit3                                                ; a68b: 70 09       p.             ; Load FCB flags
+    sty lc003                                                         ; a688: 8c 03 c0    ...
+    bvs set_flags_bit3                                                ; a68b: 70 09       p.
     tya                                                               ; a68d: 98          .
-    jsr alloc_fcb_slot                                                ; a68e: 20 a8 b8     ..            ; Save flags in Y; Test bit 1 (FCB allocated?)
-    sta lc273                                                         ; a691: 8d 73 c2    .s.            ; No: skip to next entry
-    beq jmp_restore_fs_ctx                                            ; a694: f0 3c       .<             ; Restore flags; Clear bit 5 (pending update)
+    jsr alloc_fcb_slot                                                ; a68e: 20 a8 b8     ..
+    sta lc273                                                         ; a691: 8d 73 c2    .s.
+    beq jmp_restore_fs_ctx                                            ; a694: f0 3c       .<
 ; &a696 referenced 1 time by &a68b
 .set_flags_bit3
-    lda #&2a ; '*'                                                    ; a696: a9 2a       .*             ; Store updated flags
+    lda #&2a ; '*'                                                    ; a696: a9 2a       .*
     bne store_stn_flags_restore                                       ; a698: d0 35       .5             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -9606,11 +9615,11 @@ la0ff = sub_ca0fe+1
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_flip
-    lda lc003                                                         ; a69a: ad 03 c0    ...            ; Load current CSD handle; Save in Y; Does FCB match new station?
+    lda lc003                                                         ; a69a: ad 03 c0    ...            ; Load current CSD handle
     pha                                                               ; a69d: 48          H              ; Save CSD handle
-    ldy lc004                                                         ; a69e: ac 04 c0    ...            ; Load library handle into Y; No match: skip to next; Clear carry for ADC
-    jsr find_station_bit3                                             ; a6a1: 20 6f a6     o.            ; Install library as new CSD; Restore flags; Test bit 2 (handle 1 active?)
-    pla                                                               ; a6a4: 68          h              ; Restore original CSD handle; No: check handle 2
+    ldy lc004                                                         ; a69e: ac 04 c0    ...            ; Load library handle into Y
+    jsr find_station_bit3                                             ; a6a1: 20 6f a6     o.            ; Install library as new CSD
+    pla                                                               ; a6a4: 68          h              ; Restore original CSD handle
     tay                                                               ; a6a5: a8          .              ; Y = original CSD (becomes library)
 ; ***************************************************************************************
 ; Set boot option for a station in the table
@@ -9624,37 +9633,37 @@ la0ff = sub_ca0fe+1
 ; On Exit: A, X, Y: clobbered
 ; &a6a6 referenced 2 times by &a63e, &a6f5
 .flip_set_station_boot
-    ldx #&10                                                          ; a6a6: a2 10       ..             ; X=&10: max 16 station entries; Restore flags; Set bit 5 (handle reassigned)
+    ldx #&10                                                          ; a6a6: a2 10       ..             ; X=&10: max 16 station entries
     clv                                                               ; a6a8: b8          .              ; Clear V (no match found yet)
 ; &a6a9 referenced 2 times by &a6af, &a6b6
 .loop_search_stn_boot
-    dex                                                               ; a6a9: ca          .              ; Decrement station index; Save updated flags
-    bmi done_search_boot                                              ; a6aa: 30 13       0.             ; All searched: exit loop; Get FCB high byte
-    jsr match_station_net                                             ; a6ac: 20 25 b9     %.            ; Check if station[X] matches; Store as handle 1 station
-    bne loop_search_stn_boot                                          ; a6af: d0 f8       ..             ; No match: try next station; FCB index
-    lda lc260,x                                                       ; a6b1: bd 60 c2    .`.            ; Load station flags byte; Add &20 for FCB table offset; Store as handle 1 FCB index
+    dex                                                               ; a6a9: ca          .              ; Decrement station index
+    bmi done_search_boot                                              ; a6aa: 30 13       0.             ; All searched: exit loop
+    jsr match_station_net                                             ; a6ac: 20 25 b9     %.            ; Check if station[X] matches
+    bne loop_search_stn_boot                                          ; a6af: d0 f8       ..             ; No match: try next station
+    lda lc260,x                                                       ; a6b1: bd 60 c2    .`.            ; Load station flags byte
     and #&10                                                          ; a6b4: 29 10       ).             ; Test bit 4 (active flag)
-    beq loop_search_stn_boot                                          ; a6b6: f0 f1       ..             ; Not active: try next station; Restore flags; Test bit 3 (handle 2 active?)
+    beq loop_search_stn_boot                                          ; a6b6: f0 f1       ..             ; Not active: try next station
     tya                                                               ; a6b8: 98          .              ; Transfer boot type to A
-    sta lc230,x                                                       ; a6b9: 9d 30 c2    .0.            ; Store boot setting for station; No: check handle 3; Restore flags
-    bit always_set_v_byte                                             ; a6bc: 2c 69 97    ,i.            ; Set V flag (station match found); Set bit 5; Save updated flags
+    sta lc230,x                                                       ; a6b9: 9d 30 c2    .0.            ; Store boot setting for station
+    bit always_set_v_byte                                             ; a6bc: 2c 69 97    ,i.            ; Set V flag (station match found)
 ; &a6bf referenced 1 time by &a6aa
 .done_search_boot
-    sty lc004                                                         ; a6bf: 8c 04 c0    ...            ; Store boot type; Get FCB high byte
-    bvs set_flags_boot                                                ; a6c2: 70 09       p.             ; V set (matched): skip allocation; Store as handle 2 station
+    sty lc004                                                         ; a6bf: 8c 04 c0    ...            ; Store boot type
+    bvs set_flags_boot                                                ; a6c2: 70 09       p.             ; V set (matched): skip allocation
     tya                                                               ; a6c4: 98          .              ; Boot type to A
-    jsr alloc_fcb_slot                                                ; a6c5: 20 a8 b8     ..            ; Allocate FCB slot for new entry; FCB index; Add &20 for FCB table offset
-    sta lc274                                                         ; a6c8: 8d 74 c2    .t.            ; Store allocation result; Store as handle 2 FCB index
-    beq jmp_restore_fs_ctx                                            ; a6cb: f0 05       ..             ; Zero: allocation failed, exit; Restore flags; Test bit 4 (handle 3 active?)
+    jsr alloc_fcb_slot                                                ; a6c5: 20 a8 b8     ..            ; Allocate FCB slot for new entry
+    sta lc274                                                         ; a6c8: 8d 74 c2    .t.            ; Store allocation result
+    beq jmp_restore_fs_ctx                                            ; a6cb: f0 05       ..             ; Zero: allocation failed, exit
 ; &a6cd referenced 1 time by &a6c2
 .set_flags_boot
-    lda #&32 ; '2'                                                    ; a6cd: a9 32       .2             ; A=&32: station flags (active+boot); No: store final flags
+    lda #&32 ; '2'                                                    ; a6cd: a9 32       .2             ; A=&32: station flags (active+boot)
 ; &a6cf referenced 2 times by &a66d, &a698
 .store_stn_flags_restore
-    sta lc260,x                                                       ; a6cf: 9d 60 c2    .`.            ; Store station flags; Restore flags; Set bit 5
+    sta lc260,x                                                       ; a6cf: 9d 60 c2    .`.            ; Store station flags
 ; &a6d2 referenced 3 times by &a669, &a694, &a6cb
 .jmp_restore_fs_ctx
-    jmp restore_fs_context                                            ; a6d2: 4c 64 90    Ld.            ; Restore FS context and return; Save updated flags; Get FCB high byte
+    jmp restore_fs_context                                            ; a6d2: 4c 64 90    Ld.            ; Restore FS context and return
 
 ; ***************************************************************************************
 ; FS reply 1: copy boot handles + flag boot pending
@@ -9665,13 +9674,13 @@ la0ff = sub_ca0fe+1
 ; table. Pushes the boot type for the fall-through into fsreply_2_copy_handles which
 ; copies the per-handle table.
 .fsreply_1_copy_handles_boot
-    jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels; Store as handle 3 station
+    jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@
-    tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.            ; FCB index; Add &20 for FCB table offset
-    sec                                                               ; a6dd: 38          8              ; Set carry flag; Store as handle 3 FCB index
-    lda lc108                                                         ; a6de: ad 08 c1    ...            ; Load reply boot type; Store final flags for this FCB
-    sta lc005                                                         ; a6e1: 8d 05 c0    ...            ; Store as current boot type; Update l1060[X]
-    pha                                                               ; a6e4: 48          H              ; Next FCB entry
+    tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.
+    sec                                                               ; a6dd: 38          8              ; Set carry flag
+    lda lc108                                                         ; a6de: ad 08 c1    ...            ; Load reply boot type
+    sta lc005                                                         ; a6e1: 8d 05 c0    ...            ; Store as current boot type
+    pha                                                               ; a6e4: 48          H
 ; ***************************************************************************************
 ; FS reply 2: copy per-station handle table
 ;
@@ -9682,69 +9691,69 @@ la0ff = sub_ca0fe+1
 ;
 ; On Entry: A: boot-type byte (saved on stack at entry)
 .fsreply_2_copy_handles
-    php                                                               ; a6e5: 08          .              ; Save processor status; Loop for all 16 entries
-    ldy lc105                                                         ; a6e6: ac 05 c1    ...            ; Load station number from reply; Return; C=0: workspace-to-PB direction
-    jsr find_station_bit2                                             ; a6e9: 20 44 a6     D.            ; Find station entry with bit 2; Skip SEC; C=1: PB-to-workspace direction
-    ldy lc106                                                         ; a6ec: ac 06 c1    ...            ; Load network number from reply; Workspace offset &17; Set ws_ptr_lo
-    jsr find_station_bit3                                             ; a6ef: 20 6f a6     o.            ; Find station entry with bit 3; Page from RX pointer high byte
-    ldy lc107                                                         ; a6f2: ac 07 c1    ...            ; Load boot type from reply; Set ws_ptr_hi; Y=1: first PB data byte
-    jsr flip_set_station_boot                                         ; a6f5: 20 a6 a6     ..            ; Set boot config for station; X=5: copy 5 bytes
-    plp                                                               ; a6f8: 28          (              ; Restore processor status; C=0: skip PB-to-WS copy
-    bcs ca70b                                                         ; a6f9: b0 10       ..             ; Carry set: proceed with boot; C=1: load from parameter block
-    jmp return_with_last_flag                                         ; a6fb: 4c b4 9f    L..            ; Return with last flag; Store to workspace
+    php                                                               ; a6e5: 08          .              ; Save processor status
+    ldy lc105                                                         ; a6e6: ac 05 c1    ...            ; Load station number from reply
+    jsr find_station_bit2                                             ; a6e9: 20 44 a6     D.            ; Find station entry with bit 2
+    ldy lc106                                                         ; a6ec: ac 06 c1    ...            ; Load network number from reply
+    jsr find_station_bit3                                             ; a6ef: 20 6f a6     o.            ; Find station entry with bit 3
+    ldy lc107                                                         ; a6f2: ac 07 c1    ...            ; Load boot type from reply
+    jsr flip_set_station_boot                                         ; a6f5: 20 a6 a6     ..            ; Set boot config for station
+    plp                                                               ; a6f8: 28          (              ; Restore processor status
+    bcs ca70b                                                         ; a6f9: b0 10       ..             ; Carry set: proceed with boot
+    jmp return_with_last_flag                                         ; a6fb: 4c b4 9f    L..            ; Return with last flag
 
 .la6fe
-    equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE            ; Load from workspace; Store to parameter block; Next byte; Count down; Loop for all bytes; Return; Load workspace page high byte; Set ws_ptr_hi
+    equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE
     equb &0d                                                          ; a70a: 0d          .
 
 ; &a70b referenced 1 time by &a6f9
 .ca70b
     ldx #&11                                                          ; a70b: a2 11       ..
-    jsr osbyte_a1                                                     ; a70d: 20 9a 8e     ..            ; Set ws_ptr_lo = 1; X=1: copy 2 bytes
-    tya                                                               ; a710: 98          .              ; C=0: workspace-to-PB direction
-    and #2                                                            ; a711: 29 02       ).             ; Copy via copy_pb_byte_to_ws
-    beq ca71c                                                         ; a713: f0 07       ..             ; Y=1: first PB data byte; Load PB[1]
-    ldx #<(la6fe)                                                     ; a715: a2 fe       ..             ; Y=2
-    ldy #>(la6fe)                                                     ; a717: a0 a6       ..             ; Store to (nfs_workspace)+2
-    jsr oscli                                                         ; a719: 20 f7 ff     ..            ; Load PB[2]; Y=3
+    jsr osbyte_a1                                                     ; a70d: 20 9a 8e     ..
+    tya                                                               ; a710: 98          .
+    and #2                                                            ; a711: 29 02       ).
+    beq ca71c                                                         ; a713: f0 07       ..
+    ldx #<(la6fe)                                                     ; a715: a2 fe       ..
+    ldy #>(la6fe)                                                     ; a717: a0 a6       ..
+    jsr oscli                                                         ; a719: 20 f7 ff     ..
 ; &a71c referenced 1 time by &a713
 .ca71c
-    pla                                                               ; a71c: 68          h              ; Store to (nfs_workspace)+3
-    cmp #2                                                            ; a71d: c9 02       ..             ; Reinitialise bridge routing
+    pla                                                               ; a71c: 68          h
+    cmp #2                                                            ; a71d: c9 02       ..
     bcc check_auto_boot_flag                                          ; a71f: 90 05       ..
-    lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m             ; Compare result with workspace
-    jsr osbyte                                                        ; a723: 20 f4 ff     ..            ; Different: leave unchanged; Same: clear workspace byte
+    lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m
+    jsr osbyte                                                        ; a723: 20 f4 ff     ..            ; Master: Make temporary filing system permanent
 ; &a726 referenced 1 time by &a71f
 .check_auto_boot_flag
-    lda lc271                                                         ; a726: ad 71 c2    .q.            ; Load config flags; Return; Load protection mask
+    lda lc271                                                         ; a726: ad 71 c2    .q.            ; Load config flags
     tax                                                               ; a729: aa          .              ; Save copy in X
-    and #4                                                            ; a72a: 29 04       ).             ; Test bit 2 (auto-boot flag); Store to PB[1] and return
+    and #4                                                            ; a72a: 29 04       ).             ; Test bit 2 (auto-boot flag)
     php                                                               ; a72c: 08          .              ; Save bit 2 test result
     txa                                                               ; a72d: 8a          .              ; Restore full flags
-    and #&fb                                                          ; a72e: 29 fb       ).             ; Clear bit 2 (consume flag); Load new mask from PB[1]
-    sta lc271                                                         ; a730: 8d 71 c2    .q.            ; Store cleared flags; Store via store_prot_mask
+    and #&fb                                                          ; a72e: 29 fb       ).             ; Clear bit 2 (consume flag)
+    sta lc271                                                         ; a730: 8d 71 c2    .q.            ; Store cleared flags
     plp                                                               ; a733: 28          (              ; Restore bit 2 test result
-    bne ca75f                                                         ; a734: d0 29       .)             ; Bit 2 was set: skip to boot cmd; NFS active?
-    lda #osbyte_scan_keyboard                                         ; a736: a9 79       .y             ; OSBYTE &79: scan keyboard; No: return zero
-    ldx #(255 - inkey_key_ctrl) EOR 128                               ; a738: a2 81       ..             ; Y=3: copy 3 bytes
-    jsr osbyte                                                        ; a73a: 20 f4 ff     ..            ; Test for 'CTRL' key pressed (X=129); Load handle byte
+    bne ca75f                                                         ; a734: d0 29       .)             ; Bit 2 was set: skip to boot cmd
+    lda #osbyte_scan_keyboard                                         ; a736: a9 79       .y             ; OSBYTE &79: scan keyboard
+    ldx #(255 - inkey_key_ctrl) EOR 128                               ; a738: a2 81       ..             ; X=internal key number EOR 128
+    jsr osbyte                                                        ; a73a: 20 f4 ff     ..            ; Test for 'CTRL' key pressed (X=129)
     txa                                                               ; a73d: 8a          .              ; X has top bit set if 'CTRL' pressed
-    bpl ca75f                                                         ; a73e: 10 1f       ..             ; CTRL not pressed: proceed to boot; Store to PB[Y]
+    bpl ca75f                                                         ; a73e: 10 1f       ..             ; CTRL not pressed: proceed to boot
 ; &a740 referenced 1 time by &a762
 .boot_load_cmd
-    rts                                                               ; a740: 60          `              ; CTRL pressed: cancel boot, return; Previous byte
+    rts                                                               ; a740: 60          `              ; CTRL pressed: cancel boot, return
 
-    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-            ; Loop for bytes 3..1; Return; NFS active?; Yes: process handles; A=0; Store 0 to PB[0]
+    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-
     equb &0d                                                          ; a74d: 0d          .
-    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-            ; Return; Y=1: first handle in PB; Load handle value from PB[Y]; Must be >= &20; Below range: invalid; Must be < &30; Above range: invalid
+    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-
     equb &0d                                                          ; a75a: 0d          .
 ; &a75b referenced 1 time by &a764
 .la75b
-    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH            ; X = handle value; Load l1010[handle]
+    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH
 
 ; &a75f referenced 2 times by &a734, &a73e
 .ca75f
-    ldy lc005                                                         ; a75f: ac 05 c0    ...            ; Non-zero: FCB exists; Invalid: store 0 to PB[0]
+    ldy lc005                                                         ; a75f: ac 05 c0    ...
     beq boot_load_cmd                                                 ; a762: f0 dc       ..
 ; ***************************************************************************************
 ; Look up boot command in la75b table and OSCLI it
@@ -9756,73 +9765,149 @@ la0ff = sub_ca0fe+1
 ; On Entry: Y: boot-command index
 ; &a764 referenced 1 time by &a5d4
 .boot_cmd_oscli
-    ldx la75b,y                                                       ; a764: be 5b a7    .[.            ; Look up boot command address low; Clear PB[0] status; Skip to next handle
-    ldy #&a7                                                          ; a767: a0 a7       ..             ; Boot command address high (&A3xx); Load l1040[handle] flags
-    jmp oscli                                                         ; a769: 4c f7 ff    L..            ; Execute boot command via OSCLI; Test bit 1 (allocated?)
+    ldx la75b,y                                                       ; a764: be 5b a7    .[.            ; Look up boot command address low
+    ldy #&a7                                                          ; a767: a0 a7       ..             ; Boot command address high (&A3xx)
+    jmp oscli                                                         ; a769: 4c f7 ff    L..            ; Execute boot command via OSCLI
 
+; ***************************************************************************************
+; ANFS *command dispatch tables (5 concatenated sub-tables)
+;
+; See the comment block immediately above the cmd_table_fs declaration in the driver
+; for the sub-table layout, walker contract, and flag-byte encoding. Each entry's
+; two-byte dispatch word stores target-1; PHA/PHA/RTS arrives at target. Per-entry
+; inline comments below name the command, syntax-template index, and dispatch target.
 ; &a76c referenced 10 times by &8bd8, &8be7, &8bef, &8bfc, &9465, &946d, &a460, &a465, &a475, &a4ac
-.la76c
-    equb &4e                                                          ; a76c: 4e          N              ; *Net (select NFS)
+.cmd_table_fs
+la76d = cmd_table_fs+1
+la76e = cmd_table_fs+2
+    equs "Net"                                                        ; a76c: 4e 65 74    Net            ; *Net -- no syn -- Econet HW check + select NFS -> cmd_net_check_hw (&8B39)
 ; &a76d referenced 2 times by &8c87, &a456
-.la76d
-    equb &65                                                          ; a76d: 65          e              ; Not allocated: invalid
 ; &a76e referenced 2 times by &8c83, &a452
-.la76e
-    equb &74, &80, &38, &8b                                           ; a76e: 74 80 38... t.8            ; No syntax; X = handle value; Store handle to l1071+Y
-    equs "Pollps"                                                     ; a772: 50 6f 6c... Pol            ; Load station from l1010; Store station to l0e01+Y
-    equb &88, &80, &b5                                                ; a778: 88 80 b5    ...            ; Syn 8: (<stn. id.>|<ps type>); Is this handle 1 (Y=1)?
-    equs "Prot"                                                       ; a77b: 50 72 6f... Pro            ; *Prot; No: check handle 2; Save Y; Push Y
-    equb &80, &d1, &b6                                                ; a77f: 80 d1 b6    ...            ; Bit mask &04 for handle 1; Update flags across all FCBs
-    equs "PS"                                                         ; a782: 50 53       PS             ; *PS; syn 8: (<stn. id.>|<ps type>)
-    equb &88                                                          ; a784: 88          .              ; Restore Y
-    equb &ab, &b3                                                     ; a785: ab b3       ..             ; Back to Y; Reload l1040 flags
-    equs "Roff"                                                       ; a787: 52 6f 66... Rof            ; Set bits 2+5 (active+updated)
-    equb &80, &e9, &8a                                                ; a78b: 80 e9 8a    ...            ; No syntax; Store updated flags
-    equs "Unprot"                                                     ; a78e: 55 6e 70... Unp            ; *Unprot; Next handle slot; Done all 3 handles?; No: process next handle; Y=3 for return
-    equb &80, &d5, &b6                                                ; a794: 80 d5 b6    ...            ; Return; Is this handle 2 (Y=2)?
-    equs "Wdump"                                                      ; a797: 57 64 75... Wdu            ; No: must be handle 3; Save Y; Push Y; Bit mask &08 for handle 2
-    equb &c4, &40, &bd, &80, &80                                      ; a79c: c4 40 bd... .@.            ; Update flags across all FCBs; Restore Y
+    equb &80                                                          ; a76f: 80          .
+    equb <(cmd_net_check_hw-1)                                        ; a770: 38          8
+    equb >(cmd_net_check_hw-1)                                        ; a771: 8b          .
+    equs "Pollps"                                                     ; a772: 50 6f 6c... Pol            ; *Pollps -- syn 8: (<stn. id.>|<ps type>) -> cmd_pollps (&B581)
+    equb &88                                                          ; a778: 88          .
+    equb <(cmd_pollps-1)                                              ; a779: 80          .
+    equb >(cmd_pollps-1)                                              ; a77a: b5          .
+    equs "Prot"                                                       ; a77b: 50 72 6f... Pro            ; *Prot -- no syn -- toggle CMOS protection bit -> cmd_prot (&B6D2)
+    equb &80                                                          ; a77f: 80          .
+    equb <(cmd_prot-1)                                                ; a780: d1          .
+    equb >(cmd_prot-1)                                                ; a781: b6          .
+    equs "PS"                                                         ; a782: 50 53       PS             ; *PS -- syn 8: (<stn. id.>|<ps type>) -> cmd_ps (&B3AC)
+    equb &88                                                          ; a784: 88          .
+    equb <(cmd_ps-1)                                                  ; a785: ab          .
+    equb >(cmd_ps-1)                                                  ; a786: b3          .
+    equs "Roff"                                                       ; a787: 52 6f 66... Rof            ; *Roff -- no syn -- printer offline -> cmd_roff (&8AEA)
+    equb &80                                                          ; a78b: 80          .
+    equb <(cmd_roff-1)                                                ; a78c: e9          .
+    equb >(cmd_roff-1)                                                ; a78d: 8a          .
+    equs "Unprot"                                                     ; a78e: 55 6e 70... Unp            ; *Unprot -- no syn -- toggle CMOS protection bit -> cmd_unprot (&B6D6)
+    equb &80                                                          ; a794: 80          .
+    equb <(cmd_unprot-1)                                              ; a795: d5          .
+    equb >(cmd_unprot-1)                                              ; a796: b6          .
+    equs "Wdump"                                                      ; a797: 57 64 75... Wdu            ; *Wdump -- V if no arg; syn 4 -- *DUMP alias -> cmd_dump (&BD41)
+    equb &c4                                                          ; a79c: c4          .
+    equb <(cmd_dump-1)                                                ; a79d: 40          @
+    equb >(cmd_dump-1)                                                ; a79e: bd          .
+    equb &80                                                          ; a79f: 80          .              ; Sub-table 1 end (walker reads &80 -> stop)
+    equb &80                                                          ; a7a0: 80          .              ; Padding (alignment before sub-table 2)
 .cmd_table_nfs
-    equs "Access"                                                     ; a7a1: 41 63 63... Acc            ; *Access; Back to Y; Reload l1040 flags; Set bits 3+5 (active+updated)
-    equb &c9, &24, &94                                                ; a7a7: c9 24 94    .$.            ; V no arg; syn 9: <obj> (L)(W)(R)...; Store updated flags
-    equs "Bye"                                                        ; a7aa: 42 79 65    Bye            ; Next handle slot; Handle 3: save Y
-    equb &80, &75, &97                                                ; a7ad: 80 75 97    .u.            ; Push Y; Bit mask &10 for handle 3
-    equs "Cdir"                                                       ; a7b0: 43 64 69... Cdi            ; Update flags across all FCBs; Restore Y
-    equb &c6, &a0, &b0                                                ; a7b4: c6 a0 b0    ...            ; Back to Y; Reload l1040 flags
-    equs "Dir"                                                        ; a7b7: 44 69 72    Dir            ; *Dir; Set bits 4+5 (active+updated)
-    equb &81, &11, &95                                                ; a7ba: 81 11 95    ...            ; Syn 1: (<dir>); Store updated flags
-    equs "Flip"                                                       ; a7bd: 46 6c 69... Fli            ; Next handle slot; Save X (current FCB index); Push X
-    equb &80, &99, &a6, &46, &53                                      ; a7c1: 80 99 a6... ...            ; No syntax; X=&0F: scan 16 FCB entries; Load FCB flags
-    equb &8b                                                          ; a7c6: 8b          .              ; Shift bits 6-7 into bits 7-0
-    equb &97, &a3                                                     ; a7c7: 97 a3       ..             ; Bit 6 now in bit 7 (N flag); Bit 6 clear: skip entry
+    equs "Access"                                                     ; a7a1: 41 63 63... Acc            ; *Access -- V if no arg; syn 9: <obj> (L)(W)(R)... -> cmd_fs_operation (&9425)
+    equb &c9                                                          ; a7a7: c9          .
+    equb <(cmd_fs_operation-1)                                        ; a7a8: 24          $
+    equb >(cmd_fs_operation-1)                                        ; a7a9: 94          .
+    equs "Bye"                                                        ; a7aa: 42 79 65    Bye            ; *Bye -- no syn -- log off FS -> cmd_bye (&9776)
+    equb &80                                                          ; a7ad: 80          .
+    equb <(cmd_bye-1)                                                 ; a7ae: 75          u
+    equb >(cmd_bye-1)                                                 ; a7af: 97          .
+    equs "Cdir"                                                       ; a7b0: 43 64 69... Cdi            ; *Cdir -- V if no arg; syn 6 -- create directory -> cmd_cdir (&B0A1)
+    equb &c6                                                          ; a7b4: c6          .
+    equb <(cmd_cdir-1)                                                ; a7b5: a0          .
+    equb >(cmd_cdir-1)                                                ; a7b6: b0          .
+    equs "Dir"                                                        ; a7b7: 44 69 72    Dir            ; *Dir -- syn 1: (<dir>) -> cmd_dir (&9512)
+    equb &81                                                          ; a7ba: 81          .
+    equb <(cmd_dir-1)                                                 ; a7bb: 11          .
+    equb >(cmd_dir-1)                                                 ; a7bc: 95          .
+    equs "Flip"                                                       ; a7bd: 46 6c 69... Fli            ; *Flip -- no syn -- swap fs/private workspace -> cmd_flip (&A69A)
+    equb &80                                                          ; a7c1: 80          .
+    equb <(cmd_flip-1)                                                ; a7c2: 99          .
+    equb >(cmd_flip-1)                                                ; a7c3: a6          .
+    equs "FS"                                                         ; a7c4: 46 53       FS             ; *FS -- syn &B -- file-server selection -> cmd_fs (&A398)
+    equb &8b                                                          ; a7c6: 8b          .
+    equb <(cmd_fs-1)                                                  ; a7c7: 97          .
+    equb >(cmd_fs-1)                                                  ; a7c8: a3          .
 ; &a7c9 referenced 1 time by &8dc8
 .cmd_table_nfs_iam
-    equs "I am"                                                       ; a7c9: 49 20 61... I a            ; *I am; Restore Y (bit mask); Test mask bits against flags
-    equb &c2, &86, &8d                                                ; a7cd: c2 86 8d    ...            ; V no arg; syn 2: (<stn>) <user>...; Zero: no matching bits
-    equs "Lcat"                                                       ; a7d0: 4c 63 61... Lca            ; Matching: restore Y; Set bit 5 (updated); Skip clear path
-    equb &81, &f1, &b0                                                ; a7d4: 81 f1 b0    ...            ; No match: restore Y; Invert all bits
-    equs "Lex"                                                        ; a7d7: 4c 65 78    Lex            ; Clear tested bits in flags
-    equb &81, &f7, &b0                                                ; a7da: 81 f7 b0    ...            ; Store updated flags
-    equs "Lib"                                                        ; a7dd: 4c 69 62    Lib            ; Next FCB entry; Loop for all 16 entries
-    equb &c5, &24, &94                                                ; a7e0: c5 24 94    .$.            ; Restore original X; Back to X
-    equs "Pass"                                                       ; a7e3: 50 61 73... Pas            ; Return; Y=1: RX control block offset; Load (net_rx_ptr)+1
-    equb &c7, &d4, &8d                                                ; a7e7: c7 d4 8d    ...            ; V no arg; syn 7: <pass> ...; Y=0
-    equs "Rename"                                                     ; a7ea: 52 65 6e... Ren            ; Store to PB[1] and return; Y=&7F: port byte offset; Load (net_rx_ptr)+&7F
-    equb &ca, &c4, &94                                                ; a7f0: ca c4 94    ...            ; Y=1
-    equs "Wipe"                                                       ; a7f3: 57 69 70... Wip            ; *Wipe; Store to PB[1]; A=&80
-    equb &81, &f2, &b6, &80, &2c, &8e                                 ; a7f7: 81 f2 b6... ...            ; Store &80 to PB[2]; End of NFS sub-table; Return; Load error flag
-    equs "Net"                                                        ; a7fd: 4e 65 74    Net            ; Y=1: parameter block offset 1; Store result to PB[1]
-    equb &80, &c3, &8b                                                ; a800: 80 c3 8b    ...            ; Return; Load context byte
-    equs "Utils"                                                      ; a803: 55 74 69... Uti            ; *Utils; Bit 7 clear: store context to PB; Total buffers = &6F
-    equb &80, &bf, &8b, &80, &46, &53, &c1, &ed, &95, &50, &53, &c3   ; a808: 80 bf 8b... ...            ; No syntax; Subtract used count; Free = &6F - l0d6b; End of help topic sub-table; Non-negative: store free count to PB; Next byte offset; Return; Load l0d6d[Y]; Store to PB[Y]
-    equb &ed, &95                                                     ; a814: ed 95       ..             ; Done 3 bytes?
-    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS            ; No: loop; Return; Next byte offset; Load PB[Y]
-    equb &80, &22, &96                                                ; a81d: 80 22 96    .".            ; Store to l0d6d[Y]
-    equs "Space"                                                      ; a820: 53 70 61... Spa            ; Done 3 bytes?; No: loop; Return
-    equb &80, &18, &96, &80, &46, &53, &81, &6f, &96, &50, &53, &83   ; a825: 80 18 96... ...            ; Poll for bridge; Y=0; Load bridge status; Is it &FF (no bridge)?; No: bridge found
-    equb &5e, &96                                                     ; a831: 5e 96       ^.             ; PB[0] = 0 (no bridge)
-    equs "Space"                                                      ; a833: 53 70 61... Spa            ; Y=1
-    equb &80, &41, &96                                                ; a838: 80 41 96    .A.            ; PB[1] = bridge status; Y=2
+    equs "I am"                                                       ; a7c9: 49 20 61... I a            ; *I am -- V if no arg; syn 2: (<stn>) <user>... -> cmd_iam_save_ctx (&8D87)
+    equb &c2                                                          ; a7cd: c2          .
+    equb <(cmd_iam_save_ctx-1)                                        ; a7ce: 86          .
+    equb >(cmd_iam_save_ctx-1)                                        ; a7cf: 8d          .
+    equs "Lcat"                                                       ; a7d0: 4c 63 61... Lca            ; *Lcat -- syn 1: (<dir>) -- *CAT of library -> cmd_lcat (&B0F2)
+    equb &81                                                          ; a7d4: 81          .
+    equb <(cmd_lcat-1)                                                ; a7d5: f1          .
+    equb >(cmd_lcat-1)                                                ; a7d6: b0          .
+    equs "Lex"                                                        ; a7d7: 4c 65 78    Lex            ; *Lex -- syn 1: (<dir>) -- *EX of library -> cmd_lex (&B0F8)
+    equb &81                                                          ; a7da: 81          .
+    equb <(cmd_lex-1)                                                 ; a7db: f7          .
+    equb >(cmd_lex-1)                                                 ; a7dc: b0          .
+    equs "Lib"                                                        ; a7dd: 4c 69 62    Lib            ; *Lib -- V if no arg; syn 5: <dir> -- set library -> cmd_fs_operation (&9425)
+    equb &c5                                                          ; a7e0: c5          .
+    equb <(cmd_fs_operation-1)                                        ; a7e1: 24          $
+    equb >(cmd_fs_operation-1)                                        ; a7e2: 94          .
+    equs "Pass"                                                       ; a7e3: 50 61 73... Pas            ; *Pass -- V if no arg; syn 7: <pass> ... -> cmd_pass (&8DD5)
+    equb &c7                                                          ; a7e7: c7          .
+    equb <(cmd_pass-1)                                                ; a7e8: d4          .
+    equb >(cmd_pass-1)                                                ; a7e9: 8d          .
+    equs "Rename"                                                     ; a7ea: 52 65 6e... Ren            ; *Rename -- V if no arg; syn &A: <old> <new> -> cmd_rename (&94C5)
+    equb &ca                                                          ; a7f0: ca          .
+    equb <(cmd_rename-1)                                              ; a7f1: c4          .
+    equb >(cmd_rename-1)                                              ; a7f2: 94          .
+    equs "Wipe"                                                       ; a7f3: 57 69 70... Wip            ; *Wipe -- syn 1: (<dir>) -- delete with confirm -> cmd_wipe (&B6F3)
+    equb &81                                                          ; a7f7: 81          .
+    equb <(cmd_wipe-1)                                                ; a7f8: f2          .
+    equb >(cmd_wipe-1)                                                ; a7f9: b6          .
+    equb &80                                                          ; a7fa: 80          .              ; Sub-table 2 end (walker reads &80 -> stop)
+    equb &2c                                                          ; a7fb: 2c          ,              ; Padding -- &2C 8E happens to spell &8E2D = check_urd_prefix but is never read
+    equb &8e                                                          ; a7fc: 8e          .              ; Padding (continued)
+.cmd_table_help_topics
+    equs "Net"                                                        ; a7fd: 4e 65 74    Net            ; *Net -- no syn -- *HELP NET -> help_net (&8BC4)
+    equb &80                                                          ; a800: 80          .
+    equb <(help_net-1)                                                ; a801: c3          .
+    equb >(help_net-1)                                                ; a802: 8b          .
+    equs "Utils"                                                      ; a803: 55 74 69... Uti            ; *Utils -- no syn -- *HELP UTILS -> help_utils (&8BC0)
+    equb &80                                                          ; a808: 80          .
+    equb <(help_utils-1)                                              ; a809: bf          .
+    equb >(help_utils-1)                                              ; a80a: 8b          .
+    equb &80                                                          ; a80b: 80          .              ; Sub-table 3 end (walker reads &80 -> stop)
+.cmd_table_syntax_help
+    equs "FS"                                                         ; a80c: 46 53       FS             ; *FS -- syn 1 (FS not selected -- &95EE) -> syntax-help-only entry
+    equb &c1                                                          ; a80e: c1          .
+    equb &ed                                                          ; a80f: ed          .
+    equb &95                                                          ; a810: 95          .
+    equs "PS"                                                         ; a811: 50 53       PS             ; *PS -- syn 3 (PS not selected -- &95EE) -> syntax-help-only entry
+    equb &c3                                                          ; a813: c3          .
+    equb &ed                                                          ; a814: ed          .
+    equb &95                                                          ; a815: 95          .
+    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS            ; *NoSpace -- no syn (caller &9623) -> syntax-help-only entry
+    equb &80                                                          ; a81d: 80          .
+    equb &22                                                          ; a81e: 22          "
+    equb &96                                                          ; a81f: 96          .
+    equs "Space"                                                      ; a820: 53 70 61... Spa            ; *Space -- no syn (caller &9619) -> syntax-help-only entry
+    equb &80                                                          ; a825: 80          .
+    equb &18                                                          ; a826: 18          .
+    equb &96                                                          ; a827: 96          .
+    equb &80                                                          ; a828: 80          .              ; Sub-tables 4/5 separator
+    equs "FS"                                                         ; a829: 46 53       FS             ; *FS -- syn 1 (caller &9670) -> syntax-help-only entry
+    equb &81                                                          ; a82b: 81          .
+    equb &6f                                                          ; a82c: 6f          o
+    equb &96                                                          ; a82d: 96          .
+    equs "PS"                                                         ; a82e: 50 53       PS             ; *PS -- syn 3 (caller &965F) -> syntax-help-only entry
+    equb &83                                                          ; a830: 83          .
+    equb &5e                                                          ; a831: 5e          ^
+    equb &96                                                          ; a832: 96          .
+    equs "Space"                                                      ; a833: 53 70 61... Spa
+    equb &80, &41, &96                                                ; a838: 80 41 96    .A.
 
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
@@ -9836,12 +9921,12 @@ la0ff = sub_ca0fe+1
 ; dispatch
 .svc_8_osword
 svc_8_osword_disp = svc_8_osword+1
-    bra ca855                                                         ; a83b: 80 18       ..             ; End of attribute keyword table; Y=3; Load PB[3] (caller value)
-    equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...            ; Zero: use default station; Compare with bridge status; Different: return unchanged; Same: confirm station; Load default from l0e01
+    bra ca855                                                         ; a83b: 80 18       ..
+    equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...
 
 ; &a84a referenced 1 time by &a855
 .loop_ca84a
-    lda svc_state,y                                                   ; a84a: b9 a9 00    ...            ; Store to PB[3]; Return
+    lda svc_state,y                                                   ; a84a: b9 a9 00    ...
 ; Bridge discovery init data (24 bytes)
 ;
 ; Two 12-byte templates copied simultaneously by loop_copy_bridge_init. X counts down
@@ -11876,6 +11961,10 @@ labc5 = compare_bridge_status+1
 .lb099
     equs "000@XX`"                                                    ; b099: 30 30 30... 000
 
+.sub_cb0a0
+cmd_cdir = sub_cb0a0+1
+    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H
+
 ; ***************************************************************************************
 ; *CDir command handler
 ;
@@ -11885,10 +11974,10 @@ labc5 = compare_bridge_status+1
 ; directory name via parse_filename_arg, copies it to the TX buffer, and sends FS
 ; command code &1B to create the directory.
 ;
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs entry *Cdir; the byte at the
+; entry-1 address &B0A0 happens to decode as JMP (l4898,X) but is never executed.
+;
 ; On Entry: Y: command line offset in text pointer
-.cmd_cdir
-    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H
-
     jsr mask_owner_access                                             ; b0a3: 20 cf b2     ..            ; Set owner-only access mask
     jsr skip_to_next_arg                                              ; b0a6: 20 7f b3     ..            ; Skip to optional size argument
     cmp #&0d                                                          ; b0a9: c9 0d       ..             ; End of line?
@@ -15293,8 +15382,27 @@ lb821 = err_net_chan_not_found+2
     assert <(c8efe-1) == &fd
     assert <(check_help_continuation-1) == &89
     assert <(check_urd_present-1) == &db
+    assert <(cmd_bye-1) == &75
+    assert <(cmd_cdir-1) == &a0
+    assert <(cmd_dir-1) == &11
+    assert <(cmd_dump-1) == &40
+    assert <(cmd_flip-1) == &99
+    assert <(cmd_fs-1) == &97
+    assert <(cmd_fs_operation-1) == &24
+    assert <(cmd_iam_save_ctx-1) == &86
     assert <(cmd_info_dispatch-1) == &56
+    assert <(cmd_lcat-1) == &f1
+    assert <(cmd_lex-1) == &f7
+    assert <(cmd_net_check_hw-1) == &38
+    assert <(cmd_pass-1) == &d4
+    assert <(cmd_pollps-1) == &80
+    assert <(cmd_prot-1) == &d1
+    assert <(cmd_ps-1) == &ab
+    assert <(cmd_rename-1) == &c4
+    assert <(cmd_roff-1) == &e9
     assert <(cmd_run_via_urd-1) == &f0
+    assert <(cmd_unprot-1) == &d5
+    assert <(cmd_wipe-1) == &f2
     assert <(copy_template_to_zp-1) == &72
     assert <(dispatch_rts-1) == &6f
     assert <(econet_restore-1) == &6b
@@ -15310,6 +15418,8 @@ lb821 = err_net_chan_not_found+2
     assert <(fsreply_2_copy_handles-1) == &e4
     assert <(fsreply_3_set_csd-1) == &37
     assert <(fsreply_5_set_lib-1) == &3d
+    assert <(help_net-1) == &c3
+    assert <(help_utils-1) == &bf
     assert <(la6fe) == &fe
     assert <(lang_0_insert_remote_key-1) == &ae
     assert <(lang_1_remote_boot-1) == &4f
@@ -15378,8 +15488,27 @@ lb821 = err_net_chan_not_found+2
     assert >(c8efe-1) == &8e
     assert >(check_help_continuation-1) == &8e
     assert >(check_urd_present-1) == &a4
+    assert >(cmd_bye-1) == &97
+    assert >(cmd_cdir-1) == &b0
+    assert >(cmd_dir-1) == &95
+    assert >(cmd_dump-1) == &bd
+    assert >(cmd_flip-1) == &a6
+    assert >(cmd_fs-1) == &a3
+    assert >(cmd_fs_operation-1) == &94
+    assert >(cmd_iam_save_ctx-1) == &8d
     assert >(cmd_info_dispatch-1) == &b3
+    assert >(cmd_lcat-1) == &b0
+    assert >(cmd_lex-1) == &b0
+    assert >(cmd_net_check_hw-1) == &8b
+    assert >(cmd_pass-1) == &8d
+    assert >(cmd_pollps-1) == &b5
+    assert >(cmd_prot-1) == &b6
+    assert >(cmd_ps-1) == &b3
+    assert >(cmd_rename-1) == &94
+    assert >(cmd_roff-1) == &8a
     assert >(cmd_run_via_urd-1) == &a4
+    assert >(cmd_unprot-1) == &b6
+    assert >(cmd_wipe-1) == &b6
     assert >(copy_template_to_zp-1) == &8e
     assert >(dispatch_rts-1) == &8e
     assert >(econet_restore-1) == &80
@@ -15395,6 +15524,8 @@ lb821 = err_net_chan_not_found+2
     assert >(fsreply_2_copy_handles-1) == &a6
     assert >(fsreply_3_set_csd-1) == &a6
     assert >(fsreply_5_set_lib-1) == &a6
+    assert >(help_net-1) == &8b
+    assert >(help_utils-1) == &8b
     assert >(la6fe) == &a6
     assert >(lang_0_insert_remote_key-1) == &98
     assert >(lang_1_remote_boot-1) == &98
@@ -15464,7 +15595,7 @@ save pydis_start, pydis_end
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                 91
 ;     lc105:                         73
-;     fs_options:                    54
+;     fs_options:                    55
 ;     net_rx_ptr:                    52
 ;     ws_ptr_hi:                     48
 ;     econet_control23_or_status2:   46
@@ -15499,14 +15630,14 @@ save pydis_start, pydis_end
 ;     lc030:                         17
 ;     lfe34:                         17
 ;     ws_page:                       17
+;     fs_block_offset:               16
 ;     fs_work_5:                     16
 ;     open_port_buf_hi:              16
-;     fs_block_offset:               15
+;     fs_last_byte_flag:             15
 ;     lc210:                         15
 ;     mask_owner_access:             15
 ;     nmi_tx_block:                  15
 ;     svc_state:                     15
-;     fs_last_byte_flag:             14
 ;     lc240:                         14
 ;     lc2c8:                         14
 ;     need_release_tube:             14
@@ -15531,7 +15662,7 @@ save pydis_start, pydis_end
 ;     nmi_error_dispatch:            11
 ;     print_char_no_spool:           11
 ;     tx_result_fail:                11
-;     la76c:                         10
+;     cmd_table_fs:                  10
 ;     lc103:                         10
 ;     nfs_workspace_hi:              10
 ;     store_rx_attribute:            10
@@ -16969,7 +17100,6 @@ save pydis_start, pydis_end
 ;     la103
 ;     la6fe
 ;     la75b
-;     la76c
 ;     la76d
 ;     la76e
 ;     la871
@@ -17112,14 +17242,15 @@ save pydis_start, pydis_end
 ;     sub_c9fee
 ;     sub_ca0fe
 ;     sub_ca877
+;     sub_cb0a0
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14385 bytes (88%)
-;     Data                     = 1999 bytes (12%)
+;     Code                     = 14395 bytes (88%)
+;     Data                     = 1989 bytes (12%)
 ;
-;     Number of instructions   = 7080
-;     Number of data bytes     = 705 bytes
+;     Number of instructions   = 7087
+;     Number of data bytes     = 682 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1266 bytes
-;     Number of strings        = 145
+;     Number of string bytes   = 1279 bytes
+;     Number of strings        = 151

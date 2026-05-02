@@ -9413,30 +9413,47 @@ entry(0xA415)
 
 
 # ============================================================
-# Star command table (&A3D8-&A4D5)
+# cmd_table_fs (&A76C..&A832) -- ANFS *command dispatch tables
 # ============================================================
-# Four sub-tables of star command entries. Each entry:
-# ASCII command name + flag byte (>= &80) + dispatch word (EQUW).
-# Tables separated by &80 sentinel bytes.
-# Flag byte: bit 7 = end of name, bit 6 = set V if no arg,
-# bits 0-4 = syntax string index into cmd_syntax_table.
-
+# Five concatenated sub-tables of *command dispatch entries. Each
+# entry is:
+#
+#   <name chars (no bit 7)> <flag byte (bit 7 set)> <addr-1 lo> <addr-1 hi>
+#
+# Bit 7 of the flag byte marks end-of-name (also serves as sub-table
+# end-marker if the walker hits it before a name char). Bit 6 = "set
+# V if no arg". Bits 0-4 = syntax string index into cmd_syntax_table.
+#
+# The walker (loop_next_entry at &8BD8) reads la76c+X; bit 7 set
+# stops the walk. match_fs_cmd starts the walk at a caller-supplied
+# X offset, so X picks which sub-table is searched:
+#
+#   X = 0     -> sub-table 1: utility commands (&A76C..&A7A0)
+#   X = &35   -> sub-table 2: NFS commands     (&A7A1..&A7FC)
+#   X = &91   -> sub-table 3: *HELP topics     (&A7FD..&A80B)
+#   (sub-tables 4 / 5 -- syntax-error helpers at &A80C..&A832 --
+#    aren't reached by match_fs_cmd; their targets &95EE / &9619 /
+#    &9623 / &965F / &9670 are routines that themselves walk the
+#    table for context-specific syntax-help printing.)
+#
+# Each sub-table is terminated by a single &80 byte (an empty-name
+# entry whose bit-7 flag the walker reads as end-of-table). The
+# trailing &80 padding may align with the next sub-table's start
+# byte where the "&80 &80" double appears; the walker only cares
+# about the first one.
 
 label(0xA7A1, "cmd_table_nfs")
+label(0xA7FD, "cmd_table_help_topics")
+label(0xA80C, "cmd_table_syntax_help")
 
-# Force short command name fragments to display as equs strings.
-# py8dis auto-classifies these as equb when adjacent to flag bytes.
-string(0xA782, 2)    # "PS"
-byte(0xA784)
-byte(0xA7C6)
-
-# cmd_table_fs (&A76C onwards) -- star-command dispatch entry points.
-# Table stores address-1 for PHA/PHA/RTS dispatch; actual targets are +1.
-# Sub-table 1: utility commands (*Net / *Pollps / *Prot / *PS / *Roff /
-#                                *Unprot / *Wdump).
-entry(0x8B39)   # *Net (Econet hardware check, then cmd_net_fs)
-# entry(0x8B23) was previously labelled "*Net" but is actually cmd_net_fs
-# (reached via JSR from &8B52 / &900D); the *Net dispatch goes to &8B39.
+# Targets that need an entry() because they're reached only via
+# PHA/PHA/RTS dispatch from this table. Most have existing
+# subroutine() declarations; the ones added here are alt-entries
+# specific to the dispatch.
+entry(0x8B39)   # *Net  (Econet hardware check, falls into cmd_net_fs)
+label(0x8B39, "cmd_net_check_hw")
+entry(0x8D87)   # *I am (10-byte ws-state save prologue, falls into cmd_iam at &8D91)
+label(0x8D87, "cmd_iam_save_ctx")
 entry(0xB581)   # *Pollps
 entry(0xB6D2)   # *Prot
 entry(0xB3AC)   # *PS
@@ -9444,72 +9461,129 @@ entry(0x8AEA)   # *Roff
 entry(0xB6D6)   # *Unprot (alias of *Prot, falls into shared body)
 entry(0xBD41)   # *Wdump (alias of *Dump)
 
-# Mark dispatch address words as symbolic label expressions.
-# Each entry: (addr, target_label). Uses EQUW (little-endian word).
-_cmd_entries = [
-    # Sub-table 1: utility commands
-    # Sub-table 2: NFS commands
-    # Sub-table 3: help topic handlers
-    # Sub-table 4 (copro) skipped — targets outside ROM range
+data_banner(0xA76C, "cmd_table_fs",
+    title="ANFS *command dispatch tables (5 concatenated sub-tables)",
+    description="""\
+See the comment block immediately above the
+[`cmd_table_fs`](address:A76C) declaration in the driver for the
+sub-table layout, walker contract, and flag-byte encoding. Each
+entry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS
+arrives at `target`. Per-entry inline comments below name the
+command, syntax-template index, and dispatch target.""")
+
+# Each entry: (name_addr, name, flag_byte_addr, addr_lo_addr,
+#              target_label, syntax_role).
+# 'name' is the visible *command name (without the leading *).
+# Where target_label is None, expression falls back to a literal.
+_cmd_table_fs_entries = [
+    # --- Sub-table 1: utility commands ---
+    (0xA76C, "Net",     0xA76F, 0xA770, "cmd_net_check_hw", "no syn -- Econet HW check + select NFS"),
+    (0xA772, "Pollps",  0xA778, 0xA779, "cmd_pollps",       "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA77B, "Prot",    0xA77F, 0xA780, "cmd_prot",         "no syn -- toggle CMOS protection bit"),
+    (0xA782, "PS",      0xA784, 0xA785, "cmd_ps",           "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA787, "Roff",    0xA78B, 0xA78C, "cmd_roff",         "no syn -- printer offline"),
+    (0xA78E, "Unprot",  0xA794, 0xA795, "cmd_unprot",       "no syn -- toggle CMOS protection bit"),
+    (0xA797, "Wdump",   0xA79C, 0xA79D, "cmd_dump",         "V if no arg; syn 4 -- *DUMP alias"),
+    # sub-table 1 sentinel at &A79F, padding at &A7A0
+    # --- Sub-table 2: NFS commands ---
+    (0xA7A1, "Access",  0xA7A7, 0xA7A8, "cmd_fs_operation", "V if no arg; syn 9: <obj> (L)(W)(R)..."),
+    (0xA7AA, "Bye",     0xA7AD, 0xA7AE, "cmd_bye",          "no syn -- log off FS"),
+    (0xA7B0, "Cdir",    0xA7B4, 0xA7B5, "cmd_cdir",         "V if no arg; syn 6 -- create directory"),
+    (0xA7B7, "Dir",     0xA7BA, 0xA7BB, "cmd_dir",          "syn 1: (<dir>)"),
+    (0xA7BD, "Flip",    0xA7C1, 0xA7C2, "cmd_flip",         "no syn -- swap fs/private workspace"),
+    (0xA7C4, "FS",      0xA7C6, 0xA7C7, "cmd_fs",           "syn &B -- file-server selection"),
+    (0xA7C9, "I am",    0xA7CD, 0xA7CE, "cmd_iam_save_ctx", "V if no arg; syn 2: (<stn>) <user>..."),
+    (0xA7D0, "Lcat",    0xA7D4, 0xA7D5, "cmd_lcat",         "syn 1: (<dir>) -- *CAT of library"),
+    (0xA7D7, "Lex",     0xA7DA, 0xA7DB, "cmd_lex",          "syn 1: (<dir>) -- *EX of library"),
+    (0xA7DD, "Lib",     0xA7E0, 0xA7E1, "cmd_fs_operation", "V if no arg; syn 5: <dir> -- set library"),
+    (0xA7E3, "Pass",    0xA7E7, 0xA7E8, "cmd_pass",         "V if no arg; syn 7: <pass> ..."),
+    (0xA7EA, "Rename",  0xA7F0, 0xA7F1, "cmd_rename",       "V if no arg; syn &A: <old> <new>"),
+    (0xA7F3, "Wipe",    0xA7F7, 0xA7F8, "cmd_wipe",         "syn 1: (<dir>) -- delete with confirm"),
+    # sub-table 2 sentinel at &A7FA, padding bytes at &A7FB-&A7FC
+    # --- Sub-table 3: *HELP topics ---
+    (0xA7FD, "Net",     0xA800, 0xA801, "help_net",         "no syn -- *HELP NET"),
+    (0xA803, "Utils",   0xA808, 0xA809, "help_utils",       "no syn -- *HELP UTILS"),
+    # sub-table 3 sentinel at &A80B
+    # --- Sub-tables 4+5: syntax-error helpers, called by &95EE / &9619 / &9623 / &965F / &9670 ---
+    (0xA80C, "FS",      0xA80E, 0xA80F, None,               "syn 1 (FS not selected -- &95EE)"),
+    (0xA811, "PS",      0xA813, 0xA814, None,               "syn 3 (PS not selected -- &95EE)"),
+    (0xA816, "NoSpace", 0xA81D, 0xA81E, None,               "no syn (caller &9623)"),
+    (0xA820, "Space",   0xA825, 0xA826, None,               "no syn (caller &9619)"),
+    # sentinel at &A828
+    (0xA829, "FS",      0xA82B, 0xA82C, None,               "syn 1 (caller &9670)"),
+    (0xA82E, "PS",      0xA830, 0xA831, None,               "syn 3 (caller &965F)"),
 ]
-for addr, target_label in _cmd_entries:
-    word(addr)
-    expr(addr, target_label + "-1")
 
-# Inline comments for every item in the command table.
-# Name strings: command identification.
-# Flag bytes: decode bit 6 (V if no arg) and syntax index.
-# Dispatch words: PHA/PHA/RTS target.
-# Sentinels: sub-table terminators.
+import collections
+_TABLE_TARGETS_BY_LABEL = collections.OrderedDict([
+    ("cmd_net_check_hw", 0x8B39),
+    ("cmd_pollps",       0xB581),
+    ("cmd_prot",         0xB6D2),
+    ("cmd_ps",           0xB3AC),
+    ("cmd_roff",         0x8AEA),
+    ("cmd_unprot",       0xB6D6),
+    ("cmd_dump",         0xBD41),
+    ("cmd_fs_operation", 0x9425),
+    ("cmd_bye",          0x9776),
+    ("cmd_cdir",         0xB0A1),
+    ("cmd_dir",          0x9512),
+    ("cmd_flip",         0xA69A),
+    ("cmd_fs",           0xA398),
+    ("cmd_iam_save_ctx", 0x8D87),
+    ("cmd_lcat",         0xB0F2),
+    ("cmd_lex",          0xB0F8),
+    ("cmd_pass",         0x8DD5),
+    ("cmd_rename",       0x94C5),
+    ("cmd_wipe",         0xB6F3),
+    ("help_net",         0x8BC4),
+    ("help_utils",       0x8BC0),
+])
 
-# Sub-table 1: utility commands (&A3D8-&A421)
-comment(0xA76C, "*Net (select NFS)", inline=True)
-comment(0xA76F, "No syntax", inline=True)
-comment(0xA778, "Syn 8: (<stn. id.>|<ps type>)", inline=True)
-comment(0xA77B, "*Prot", inline=True)
-comment(0xA782, "*PS; syn 8: (<stn. id.>|<ps type>)", inline=True)
-comment(0xA78B, "No syntax", inline=True)
-comment(0xA78E, "*Unprot", inline=True)
-
-# Sub-table 2: NFS commands (&A422-&A499)
-comment(0xA7A1, "*Access", inline=True)
-comment(0xA7A7, "V no arg; syn 9: <obj> (L)(W)(R)...", inline=True)
-comment(0xA7B7, "*Dir", inline=True)
-comment(0xA7BA, "Syn 1: (<dir>)", inline=True)
-comment(0xA7C1, "No syntax", inline=True)
-comment(0xA7C9, "*I am", inline=True)
-comment(0xA7CD, "V no arg; syn 2: (<stn>) <user>...", inline=True)
-comment(0xA7E7, "V no arg; syn 7: <pass> ...", inline=True)
-comment(0xA7F3, "*Wipe", inline=True)
-comment(0xA7FA, "End of NFS sub-table", inline=True)
-
-# Sub-table 3: help topic handlers (&A49A-&A4AA)
-comment(0xA803, "*Utils", inline=True)
-comment(0xA808, "No syntax", inline=True)
-comment(0xA80B, "End of help topic sub-table", inline=True)
-
-# Sub-table 4: protection attribute keywords (&A4AB-&A4D5)
-# Dual-purpose table: entries are keyword names for *Prot/*Unprot
-# attribute matching, and also printed by the shared commands
-# handler (syn 14) in *HELP Prot/*HELP Unprot output.
-# Each entry: ASCII name + flag byte + OR mask + AND mask.
-# *Prot ORs the lo byte into the protection mask.
-# *Unprot ANDs the hi byte to clear the corresponding bit.
-# Protection bits: 0=Peek, 1=Poke, 2=JSR, 3=Proc, 4=Utils, 5=Halt.
-
-
-# Split multi-byte equb groups so each byte gets its own line.
-_attr_entries = [
-    # (flag_addr, or_addr, and_addr)
-]
-for flag_addr, or_addr, and_addr in _attr_entries:
+# Lock each entry's name as a string, flag as a byte, and addr-lo /
+# addr-hi as bytes with symbolic exprs.
+for (name_addr, name, flag_addr, lo_addr, target_label, role) in _cmd_table_fs_entries:
+    name_len = flag_addr - name_addr
+    if name_len > 1:
+        string(name_addr, name_len)
+    else:
+        byte(name_addr)
     byte(flag_addr)
-    byte(or_addr)
-    byte(and_addr)
-# &A83B is the start of svc_8_osword.
+    byte(lo_addr)
+    byte(lo_addr + 1)
+    if target_label is not None:
+        # Each target's label currently resolves to its actual entry
+        # address (the byte where execution begins after PHA/PHA/RTS).
+        # So the table must store target-1 = label-1.
+        expr(lo_addr,     "<(%s-1)" % target_label)
+        expr(lo_addr + 1, ">(%s-1)" % target_label)
+    # Per-entry inline comment: name + role + target.
+    if target_label:
+        target_addr = _TABLE_TARGETS_BY_LABEL.get(target_label, 0)
+        target_str = "%s (&%04X)" % (target_label, target_addr) if target_addr else target_label
+    else:
+        target_str = "syntax-help-only entry"
+    comment(name_addr, "*%s -- %s -> %s" % (name, role, target_str), inline=True)
 
-# Inline comments for sub-table 4
-comment(0xA83B, "End of attribute keyword table", inline=True)
+# Sentinel / padding bytes between sub-tables. Each is &80 (a flag
+# byte with no following address; the walker stops on bit 7 set).
+byte(0xA79F)   # sub-table 1 end sentinel
+byte(0xA7A0)   # alignment padding before cmd_table_nfs
+byte(0xA7FA)   # sub-table 2 end sentinel
+byte(0xA7FB)   # see below: the &2C 8E word at &A7FB-&A7FC happens to
+byte(0xA7FC)   # encode the address &8E2D (= check_urd_prefix) but the
+               # walker doesn't read past the &A7FA sentinel, so this
+               # is effectively dead padding -- leave as raw bytes.
+byte(0xA80B)   # sub-table 3 end sentinel
+byte(0xA828)   # sub-tables 4/5 separator
+
+comment(0xA79F, "Sub-table 1 end (walker reads &80 -> stop)", inline=True)
+comment(0xA7A0, "Padding (alignment before sub-table 2)", inline=True)
+comment(0xA7FA, "Sub-table 2 end (walker reads &80 -> stop)", inline=True)
+comment(0xA7FB, "Padding -- &2C 8E happens to spell &8E2D = "
+    "check_urd_prefix but is never read", inline=True)
+comment(0xA7FC, "Padding (continued)", inline=True)
+comment(0xA80B, "Sub-table 3 end (walker reads &80 -> stop)", inline=True)
+comment(0xA828, "Sub-tables 4/5 separator", inline=True)
 
 label(0xBD41, "cmd_dump")
 label(0x8B23, "cmd_net_fs")
@@ -9665,16 +9739,27 @@ subroutine(0x9776, "cmd_bye",
     "&17 to send the bye request to the file server.")
 # Reached via PHA/PHA/RTS dispatch from the star-command table; needs
 # an explicit entry().
+# cmd_cdir's *real* dispatch entry is at &B0A1, not &B0A0. The byte at
+# &B0A0 is the lo byte of the dispatch table value (&A0) interpreted by
+# py8dis -- because of `entry(0xB0A0)` -- as a `JMP (l4898,X)` opcode;
+# the bytes are valid code but unreachable. PHA/PHA/RTS dispatch via
+# cmd_table_fs lands at &B0A1 (TYA / PHA / JSR mask_owner_access / ...)
+# which is the actual command body.
 entry(0xB0A0)
-subroutine(0xB0A0, "cmd_cdir",
+entry(0xB0A1)
+subroutine(0xB0A1, "cmd_cdir",
     title="*CDir command handler",
-    description="Parses an optional allocation size argument: if absent,\n"
-    "defaults to index 2 (standard 19-entry directory, &200\n"
-    "bytes); if present, parses the decimal value and searches\n"
-    "a 26-entry threshold table to find the matching allocation\n"
-    "size index. Parses the directory name via parse_filename_arg,\n"
-    "copies it to the TX buffer, and sends FS command code &1B\n"
-    "to create the directory.",
+    description="""\
+Parses an optional allocation size argument: if absent, defaults to
+index 2 (standard 19-entry directory, `&200` bytes); if present,
+parses the decimal value and searches a 26-entry threshold table to
+find the matching allocation size index. Parses the directory name
+via `parse_filename_arg`, copies it to the TX buffer, and sends FS
+command code `&1B` to create the directory.
+
+Reached via PHA/PHA/RTS dispatch from `cmd_table_fs` entry
+[`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0A0`
+happens to decode as `JMP (l4898,X)` but is never executed.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9512, "cmd_dir",
     title="*Dir command handler",
@@ -12154,333 +12239,6 @@ comment(0xA626, "Y=0 for copy", inline=True)
 comment(0xA628, "Copy workspace data", inline=True)
 comment(0xA62B, "Update state and return", inline=True)
 
-# osword_13_dispatch (&A631): dispatch by sub-code
-comment(0xA62E, "X = sub-code", inline=True)
-comment(0xA62F, "Sub-code < &13?", inline=True)
-comment(0xA631, "Out of range: return", inline=True)
-comment(0xA633, "Load handler address high byte", inline=True)
-comment(0xA636, "Push high byte", inline=True)
-comment(0xA637, "Load handler address low byte", inline=True)
-comment(0xA63A, "Push low byte", inline=True)
-comment(0xA63B, "RTS dispatches to handler", inline=True)
-
-# OSWORD &13 dispatch table: lo bytes
-
-# OSWORD &13 dispatch table: hi bytes
-comment(0xA64E, "hi-sub 0: read FS station", inline=True)
-comment(0xA64F, "hi-sub 1: set FS station", inline=True)
-comment(0xA650, "hi-sub 2: read workspace pair", inline=True)
-comment(0xA651, "hi-sub 3: write workspace pair", inline=True)
-comment(0xA652, "hi-sub 4: read protection mask", inline=True)
-comment(0xA653, "hi-sub 5: write protection mask", inline=True)
-comment(0xA654, "hi-sub 6: read FCB handles", inline=True)
-comment(0xA655, "hi-sub 7: set FCB handles", inline=True)
-comment(0xA656, "hi-sub 8: read RX flag", inline=True)
-comment(0xA657, "hi-sub 9: read RX port", inline=True)
-comment(0xA658, "hi-sub 10: read error flag", inline=True)
-comment(0xA659, "hi-sub 11: read context byte", inline=True)
-comment(0xA65A, "hi-sub 12: read CSD path", inline=True)
-comment(0xA65B, "hi-sub 13: write CSD path", inline=True)
-comment(0xA65C, "hi-sub 14: read free buffers", inline=True)
-comment(0xA65D, "hi-sub 15: read 3 context bytes", inline=True)
-comment(0xA65E, "hi-sub 16: write 3 context bytes", inline=True)
-comment(0xA65F, "hi-sub 17: query bridge status", inline=True)
-
-# ca6fb: copy between workspace and parameter block
-comment(0xA6F8, "C=0: skip PB-to-WS copy", inline=True)
-comment(0xA6FA, "C=1: load from parameter block", inline=True)
-comment(0xA6FC, "Store to workspace", inline=True)
-comment(0xA6FE, "Load from workspace", inline=True)
-comment(0xA700, "Store to parameter block", inline=True)
-comment(0xA702, "Next byte", inline=True)
-comment(0xA703, "Count down", inline=True)
-comment(0xA704, "Loop for all bytes", inline=True)
-comment(0xA706, "Return", inline=True)
-
-# osword_13_read_station (&A663): sub 0 — read FS station
-comment(0xA660, "NFS active?", inline=True)
-comment(0xA663, "Yes: read station data", inline=True)
-comment(0xA665, "No: return zero", inline=True)
-comment(0xA668, "Y=2: copy 2 bytes", inline=True)
-comment(0xA66A, "Load station byte", inline=True)
-comment(0xA66D, "Store to PB[Y]", inline=True)
-comment(0xA66F, "Previous byte", inline=True)
-comment(0xA670, "Loop for bytes 2..1", inline=True)
-comment(0xA672, "Return", inline=True)
-
-# osword_13_set_station (&A676): sub 1 — set FS station
-comment(0xA673, "NFS active?", inline=True)
-comment(0xA676, "No: return zero", inline=True)
-comment(0xA678, "Y=0 for process_all_fcbs", inline=True)
-comment(0xA67A, "Close all open FCBs", inline=True)
-comment(0xA67F, "Load new station byte from PB", inline=True)
-comment(0xA681, "Store to l0dff", inline=True)
-comment(0xA684, "Previous byte", inline=True)
-comment(0xA685, "Loop for bytes 2..1", inline=True)
-comment(0xA687, "Clear handles if station matches", inline=True)
-comment(0xA68A, "X=&0F: scan 16 FCB entries", inline=True)
-comment(0xA68C, "Load FCB flags", inline=True)
-comment(0xA68F, "Save flags in Y", inline=True)
-comment(0xA690, "Test bit 1 (FCB allocated?)", inline=True)
-comment(0xA692, "No: skip to next entry", inline=True)
-comment(0xA694, "Restore flags", inline=True)
-comment(0xA695, "Clear bit 5 (pending update)", inline=True)
-comment(0xA697, "Store updated flags", inline=True)
-comment(0xA69A, "Save in Y", inline=True)
-comment(0xA69B, "Does FCB match new station?", inline=True)
-comment(0xA69E, "No match: skip to next", inline=True)
-comment(0xA6A0, "Clear carry for ADC", inline=True)
-comment(0xA6A1, "Restore flags", inline=True)
-comment(0xA6A2, "Test bit 2 (handle 1 active?)", inline=True)
-comment(0xA6A4, "No: check handle 2", inline=True)
-comment(0xA6A6, "Restore flags", inline=True)
-comment(0xA6A7, "Set bit 5 (handle reassigned)", inline=True)
-comment(0xA6A9, "Save updated flags", inline=True)
-comment(0xA6AA, "Get FCB high byte", inline=True)
-comment(0xA6AD, "Store as handle 1 station", inline=True)
-comment(0xA6B0, "FCB index", inline=True)
-comment(0xA6B1, "Add &20 for FCB table offset", inline=True)
-comment(0xA6B3, "Store as handle 1 FCB index", inline=True)
-comment(0xA6B6, "Restore flags", inline=True)
-comment(0xA6B7, "Test bit 3 (handle 2 active?)", inline=True)
-comment(0xA6B9, "No: check handle 3", inline=True)
-comment(0xA6BB, "Restore flags", inline=True)
-comment(0xA6BC, "Set bit 5", inline=True)
-comment(0xA6BE, "Save updated flags", inline=True)
-comment(0xA6BF, "Get FCB high byte", inline=True)
-comment(0xA6C2, "Store as handle 2 station", inline=True)
-comment(0xA6C5, "FCB index", inline=True)
-comment(0xA6C6, "Add &20 for FCB table offset", inline=True)
-comment(0xA6C8, "Store as handle 2 FCB index", inline=True)
-comment(0xA6CB, "Restore flags", inline=True)
-comment(0xA6CC, "Test bit 4 (handle 3 active?)", inline=True)
-comment(0xA6CE, "No: store final flags", inline=True)
-comment(0xA6D0, "Restore flags", inline=True)
-comment(0xA6D1, "Set bit 5", inline=True)
-comment(0xA6D3, "Save updated flags", inline=True)
-comment(0xA6D4, "Get FCB high byte", inline=True)
-comment(0xA6D7, "Store as handle 3 station", inline=True)
-comment(0xA6DA, "FCB index", inline=True)
-comment(0xA6DB, "Add &20 for FCB table offset", inline=True)
-comment(0xA6DD, "Store as handle 3 FCB index", inline=True)
-comment(0xA6E0, "Store final flags for this FCB", inline=True)
-comment(0xA6E1, "Update l1060[X]", inline=True)
-comment(0xA6E4, "Next FCB entry", inline=True)
-comment(0xA6E5, "Loop for all 16 entries", inline=True)
-comment(0xA6E7, "Return", inline=True)
-
-# osword_13_read_csd (&A6EB): sub 12 — read CSD path
-comment(0xA6E8, "C=0: workspace-to-PB direction", inline=True)
-comment(0xA6E9, "Skip SEC", inline=True)
-
-# osword_13_write_csd (&A6EE): sub 13 — write CSD path
-comment(0xA6EB, "C=1: PB-to-workspace direction", inline=True)
-comment(0xA6EC, "Workspace offset &17", inline=True)
-comment(0xA6EE, "Set ws_ptr_lo", inline=True)
-comment(0xA6F0, "Page from RX pointer high byte", inline=True)
-comment(0xA6F2, "Set ws_ptr_hi", inline=True)
-comment(0xA6F4, "Y=1: first PB data byte", inline=True)
-comment(0xA6F6, "X=5: copy 5 bytes", inline=True)
-
-# osword_13_read_ws_pair (&A70A): sub 2 — read workspace bytes
-comment(0xA707, "Load workspace page high byte", inline=True)
-comment(0xA709, "Set ws_ptr_hi", inline=True)
-comment(0xA70D, "Set ws_ptr_lo = 1", inline=True)
-comment(0xA70F, "X=1: copy 2 bytes", inline=True)
-comment(0xA710, "C=0: workspace-to-PB direction", inline=True)
-comment(0xA711, "Copy via copy_pb_byte_to_ws", inline=True)
-
-# osword_13_write_ws_pair (&A716): sub 3 — write workspace bytes
-comment(0xA713, "Y=1: first PB data byte", inline=True)
-comment(0xA714, "Load PB[1]", inline=True)
-comment(0xA716, "Y=2", inline=True)
-comment(0xA717, "Store to (nfs_workspace)+2", inline=True)
-comment(0xA719, "Load PB[2]", inline=True)
-comment(0xA71B, "Y=3", inline=True)
-comment(0xA71C, "Store to (nfs_workspace)+3", inline=True)
-comment(0xA71E, "Reinitialise bridge routing", inline=True)
-comment(0xA721, "Compare result with workspace", inline=True)
-comment(0xA723, "Different: leave unchanged", inline=True)
-comment(0xA725, "Same: clear workspace byte", inline=True)
-comment(0xA727, "Return", inline=True)
-
-# osword_13_read_prot (&A72B): sub 4 — read protection mask
-comment(0xA728, "Load protection mask", inline=True)
-comment(0xA72B, "Store to PB[1] and return", inline=True)
-
-# osword_13_write_prot (&A731): sub 5 — write protection mask
-comment(0xA72F, "Load new mask from PB[1]", inline=True)
-comment(0xA731, "Store via store_prot_mask", inline=True)
-
-# osword_13_read_handles (&A737): sub 6 — read FCB handle info
-comment(0xA734, "NFS active?", inline=True)
-comment(0xA737, "No: return zero", inline=True)
-comment(0xA739, "Y=3: copy 3 bytes", inline=True)
-comment(0xA73B, "Load handle byte", inline=True)
-comment(0xA73E, "Store to PB[Y]", inline=True)
-comment(0xA740, "Previous byte", inline=True)
-comment(0xA741, "Loop for bytes 3..1", inline=True)
-comment(0xA743, "Return", inline=True)
-
-# return_zero_in_pb (&A74C): return zero status
-comment(0xA749, "A=0", inline=True)
-comment(0xA74C, "Store 0 to PB[0]", inline=True)
-comment(0xA74E, "Return", inline=True)
-
-# osword_13_set_handles (&A747): sub 7 — validate and set FCB handles
-comment(0xA744, "NFS active?", inline=True)
-comment(0xA747, "Yes: process handles", inline=True)
-comment(0xA74F, "Y=1: first handle in PB", inline=True)
-comment(0xA751, "Load handle value from PB[Y]", inline=True)
-comment(0xA753, "Must be >= &20", inline=True)
-comment(0xA755, "Below range: invalid", inline=True)
-comment(0xA757, "Must be < &30", inline=True)
-comment(0xA759, "Above range: invalid", inline=True)
-comment(0xA75B, "X = handle value", inline=True)
-comment(0xA75C, "Load l1010[handle]", inline=True)
-comment(0xA75F, "Non-zero: FCB exists", inline=True)
-comment(0xA761, "Invalid: store 0 to PB[0]", inline=True)
-comment(0xA764, "Clear PB[0] status", inline=True)
-comment(0xA766, "Skip to next handle", inline=True)
-comment(0xA768, "Load l1040[handle] flags", inline=True)
-comment(0xA76B, "Test bit 1 (allocated?)", inline=True)
-comment(0xA76D, "Not allocated: invalid", inline=True)
-comment(0xA76F, "X = handle value", inline=True)
-comment(0xA770, "Store handle to l1071+Y", inline=True)
-comment(0xA773, "Load station from l1010", inline=True)
-comment(0xA776, "Store station to l0e01+Y", inline=True)
-comment(0xA779, "Is this handle 1 (Y=1)?", inline=True)
-comment(0xA77B, "No: check handle 2", inline=True)
-comment(0xA77D, "Save Y", inline=True)
-comment(0xA77E, "Push Y", inline=True)
-comment(0xA77F, "Bit mask &04 for handle 1", inline=True)
-comment(0xA781, "Update flags across all FCBs", inline=True)
-comment(0xA784, "Restore Y", inline=True)
-comment(0xA785, "Back to Y", inline=True)
-comment(0xA786, "Reload l1040 flags", inline=True)
-comment(0xA789, "Set bits 2+5 (active+updated)", inline=True)
-comment(0xA78B, "Store updated flags", inline=True)
-comment(0xA78E, "Next handle slot", inline=True)
-comment(0xA78F, "Done all 3 handles?", inline=True)
-comment(0xA791, "No: process next handle", inline=True)
-comment(0xA793, "Y=3 for return", inline=True)
-comment(0xA794, "Return", inline=True)
-comment(0xA795, "Is this handle 2 (Y=2)?", inline=True)
-comment(0xA797, "No: must be handle 3", inline=True)
-comment(0xA799, "Save Y", inline=True)
-comment(0xA79A, "Push Y", inline=True)
-comment(0xA79B, "Bit mask &08 for handle 2", inline=True)
-comment(0xA79D, "Update flags across all FCBs", inline=True)
-comment(0xA7A0, "Restore Y", inline=True)
-comment(0xA7A1, "Back to Y", inline=True)
-comment(0xA7A2, "Reload l1040 flags", inline=True)
-comment(0xA7A5, "Set bits 3+5 (active+updated)", inline=True)
-comment(0xA7A7, "Store updated flags", inline=True)
-comment(0xA7AA, "Next handle slot", inline=True)
-comment(0xA7AC, "Handle 3: save Y", inline=True)
-comment(0xA7AD, "Push Y", inline=True)
-comment(0xA7AE, "Bit mask &10 for handle 3", inline=True)
-comment(0xA7B0, "Update flags across all FCBs", inline=True)
-comment(0xA7B3, "Restore Y", inline=True)
-comment(0xA7B4, "Back to Y", inline=True)
-comment(0xA7B5, "Reload l1040 flags", inline=True)
-comment(0xA7B8, "Set bits 4+5 (active+updated)", inline=True)
-comment(0xA7BA, "Store updated flags", inline=True)
-comment(0xA7BD, "Next handle slot", inline=True)
-
-# update_fcb_flag_bits (&A7C2): update flags across FCB entries
-comment(0xA7BF, "Save X (current FCB index)", inline=True)
-comment(0xA7C0, "Push X", inline=True)
-comment(0xA7C1, "X=&0F: scan 16 FCB entries", inline=True)
-comment(0xA7C3, "Load FCB flags", inline=True)
-comment(0xA7C6, "Shift bits 6-7 into bits 7-0", inline=True)
-comment(0xA7C7, "Bit 6 now in bit 7 (N flag)", inline=True)
-comment(0xA7C8, "Bit 6 clear: skip entry", inline=True)
-comment(0xA7CA, "Restore Y (bit mask)", inline=True)
-comment(0xA7CB, "Test mask bits against flags", inline=True)
-comment(0xA7CE, "Zero: no matching bits", inline=True)
-comment(0xA7D0, "Matching: restore Y", inline=True)
-comment(0xA7D1, "Set bit 5 (updated)", inline=True)
-comment(0xA7D3, "Skip clear path", inline=True)
-comment(0xA7D5, "No match: restore Y", inline=True)
-comment(0xA7D6, "Invert all bits", inline=True)
-comment(0xA7D8, "Clear tested bits in flags", inline=True)
-comment(0xA7DB, "Store updated flags", inline=True)
-comment(0xA7DE, "Next FCB entry", inline=True)
-comment(0xA7DF, "Loop for all 16 entries", inline=True)
-comment(0xA7E1, "Restore original X", inline=True)
-comment(0xA7E2, "Back to X", inline=True)
-comment(0xA7E3, "Return", inline=True)
-
-# osword_13_read_rx_flag (&A7E7): sub 8 — read RX flag
-comment(0xA7E4, "Y=1: RX control block offset", inline=True)
-comment(0xA7E6, "Load (net_rx_ptr)+1", inline=True)
-comment(0xA7E8, "Y=0", inline=True)
-comment(0xA7EA, "Store to PB[1] and return", inline=True)
-
-# osword_13_read_rx_port (&A7F0): sub 9 — read RX port
-comment(0xA7ED, "Y=&7F: port byte offset", inline=True)
-comment(0xA7EF, "Load (net_rx_ptr)+&7F", inline=True)
-comment(0xA7F1, "Y=1", inline=True)
-comment(0xA7F3, "Store to PB[1]", inline=True)
-comment(0xA7F6, "A=&80", inline=True)
-comment(0xA7F8, "Store &80 to PB[2]", inline=True)
-comment(0xA7FA, "Return", inline=True)
-
-# osword_13_read_error (&A7FE): sub 10 — read error flag
-comment(0xA7FB, "Load error flag", inline=True)
-comment(0xA7FE, "Y=1: parameter block offset 1", inline=True)
-
-comment(0xA7FF, "Store result to PB[1]", inline=True)
-# osword_13_read_context (&A804): sub 11 — read context byte
-comment(0xA801, "Return", inline=True)
-comment(0xA802, "Load context byte", inline=True)
-comment(0xA805, "Bit 7 clear: store context to PB", inline=True)
-
-# osword_13_read_free_bufs (&A80A): sub 14 — free buffer count
-comment(0xA807, "Total buffers = &6F", inline=True)
-comment(0xA809, "Subtract used count", inline=True)
-comment(0xA80A, "Free = &6F - l0d6b", inline=True)
-comment(0xA80D, "Non-negative: store free count to PB", inline=True)
-
-# store_a_to_pb_1 (&A810): store A to PB[1] and return
-comment(0xA810, "Return", inline=True)
-
-# osword_13_read_ctx_3 (&A814): sub 15 — read 3 context bytes
-comment(0xA80F, "Next byte offset", inline=True)
-comment(0xA810, "Load l0d6d[Y]", inline=True)
-comment(0xA813, "Store to PB[Y]", inline=True)
-comment(0xA815, "Done 3 bytes?", inline=True)
-comment(0xA817, "No: loop", inline=True)
-comment(0xA819, "Return", inline=True)
-
-# osword_13_write_ctx_3 (&A81F): sub 16 — write 3 context bytes
-comment(0xA81A, "Next byte offset", inline=True)
-comment(0xA81B, "Load PB[Y]", inline=True)
-comment(0xA81D, "Store to l0d6d[Y]", inline=True)
-comment(0xA820, "Done 3 bytes?", inline=True)
-comment(0xA822, "No: loop", inline=True)
-comment(0xA824, "Return", inline=True)
-
-# osword_13_bridge_query (&A82A): sub 17 — query bridge
-comment(0xA825, "Poll for bridge", inline=True)
-comment(0xA828, "Y=0", inline=True)
-comment(0xA82A, "Load bridge status", inline=True)
-comment(0xA82D, "Is it &FF (no bridge)?", inline=True)
-comment(0xA82F, "No: bridge found", inline=True)
-comment(0xA832, "PB[0] = 0 (no bridge)", inline=True)
-comment(0xA837, "Y=1", inline=True)
-comment(0xA838, "PB[1] = bridge status", inline=True)
-comment(0xA83A, "Y=2", inline=True)
-comment(0xA83B, "Y=3", inline=True)
-comment(0xA83C, "Load PB[3] (caller value)", inline=True)
-comment(0xA83E, "Zero: use default station", inline=True)
-comment(0xA840, "Compare with bridge status", inline=True)
-comment(0xA843, "Different: return unchanged", inline=True)
-comment(0xA845, "Same: confirm station", inline=True)
-comment(0xA847, "Load default from l0e01", inline=True)
-comment(0xA84A, "Store to PB[3]", inline=True)
-comment(0xA84C, "Return", inline=True)
 
 # bridge_txcb_init_table (&A850) — bridge discovery templates
 comment(0xA84D, "Bridge discovery init data (24 bytes)\n"
