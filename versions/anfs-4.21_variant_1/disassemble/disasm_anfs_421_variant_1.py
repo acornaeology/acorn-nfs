@@ -3582,11 +3582,11 @@ Single caller (`&8FBB`, inside
     on_exit={"y": "CMOS byte 0 (returned by OSBYTE &A1)"})
 subroutine(0x8ED2, "osbyte_x0_y0",
     title="OSBYTE wrapper with X=0, Y=0",
-    description="Sets X=0 and Y=0 then branches to jmp_osbyte.\n"
-    "Called from the Econet OSBYTE dispatch chain to\n"
-    "handle OSBYTEs that require both X and Y cleared.\n"
-    "The unconditional BEQ (after LDY #0 sets Z)\n"
-    "reaches the JMP osbyte instruction.",
+    description="""\
+Sets `X=0` and `Y=0` then branches to `jmp_osbyte`. Called from
+the Econet OSBYTE dispatch chain to handle OSBYTEs that require
+both `X` and `Y` cleared. The unconditional `BEQ` (after `LDY
+#0` sets `Z`) reaches the `JMP osbyte` instruction.""",
     on_entry={"a": "OSBYTE number"},
     on_exit={"x": "0", "y": "0"})
 subroutine(0x8EF0, "store_ws_page_count",
@@ -3716,142 +3716,175 @@ high-frequency poll.""")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
-    description="Reads the ROM pointer table via OSBYTE &A8,\n"
-    "writes vector addresses and ROM ID into the\n"
-    "extended vector table for NETV and one additional\n"
-    "vector, then restores any previous FS context.",
+    description="""\
+Reads the ROM pointer table via OSBYTE `&A8`, writes vector
+addresses and ROM ID into the extended vector table for `NETV`
+and one additional vector, then restores any previous FS context
+via [`restore_fs_context`](address:9064?hex). Falls through into
+[`write_vector_entry`](address:904F?hex).""",
     on_exit={"a, x, y": "clobbered (falls through into write_vector_entry)"})
 subroutine(0x904F, "write_vector_entry",
-    title="Install extended vector table entries",
-    description="Copies vector addresses from the dispatch table at\n"
-    "svc_dispatch_lo_offset+Y into the MOS extended\n"
-    "vector table pointed to by fs_error_ptr. For each\n"
-    "entry, writes address low, high, then the current\n"
-    "ROM ID from romsel_copy (&F4). Loops X times.\n"
-    "After the loop, stores &FF at &0D72 as an\n"
-    "installed flag, calls deselect_fs_if_active and\n"
-    "get_ws_page to restore FS state.",
+    title="Install extended-vector table entries",
+    description="""\
+Copies vector addresses from the dispatch table at
+`svc_dispatch_lo_offset+Y` into the MOS extended-vector table
+pointed to by `fs_error_ptr`. For each entry, writes address low,
+high, then the current ROM ID from `romsel_copy` (`&F4`). Loops
+`X` times.
+
+After the loop, stores `&FF` at
+[`bridge_status`](address:0D72?hex) as an installed flag, calls
+`deselect_fs_if_active` and [`get_ws_page`](address:8CAD?hex) to
+restore FS state.""",
     on_entry={"x": "number of vectors to install",
               "y": "starting offset in extended vector table"},
     on_exit={"y": "workspace page number + 1"})
 subroutine(0x9064, "restore_fs_context",
     title="Restore FS context from saved workspace",
-    description="Copies 8 bytes (offsets 2 to 9) from the saved\n"
-    "workspace at &0DFA back into the receive control\n"
-    "block via (net_rx_ptr). This restores the station\n"
-    "identity, directory handles, and library path after\n"
-    "a filing system reselection. Called by\n"
-    "svc_2_private_workspace during init,\n"
-    "deselect_fs_if_active during FS teardown, and\n"
-    "flip_set_station_boot.",
+    description="""\
+Copies 8 bytes (offsets 2 to 9) from the saved workspace at
+`fs_context_save` (`&0DFA`) back into the receive control block
+via `(net_rx_ptr)`. This restores the station identity, directory
+handles, and library path after a filing-system reselection.
+
+Called by [`svc_2_private_workspace_pages`](address:8F10?hex)
+during init, `deselect_fs_if_active` during FS teardown, and
+`flip_set_station_boot`.""",
     on_exit={"a, y": "clobbered (loop counter / data byte)"})
 subroutine(0x9071, "fscv_6_shutdown",
     title="Deselect filing system and save workspace",
-    description="If the filing system is currently selected\n"
-    "(bit 7 of &0D6C set), closes all open FCBs,\n"
-    "closes SPOOL/EXEC files via OSBYTE &77,\n"
-    "saves the FS workspace to page &10 shadow\n"
-    "with checksum, and clears the selected flag.")
+    description="""\
+If the filing system is currently selected (bit 7 of
+[`fs_flags`](address:0D6C?hex) set):
+
+1. Closes all open FCBs.
+2. Closes `*SPOOL`/`*EXEC` files via OSBYTE `&77`.
+3. Saves the FS workspace to page `&10` shadow with checksum.
+4. Clears the selected flag.""")
 subroutine(0x909E, "verify_ws_checksum",
     title="Verify workspace checksum integrity",
-    description="Sums bytes 0 to &76 of the workspace page via the\n"
-    "zero-page pointer at &CC/&CD and compares with the\n"
-    "stored value at offset &77. On mismatch, raises a\n"
-    "'net sum' error (&AA). The checksummed page holds\n"
-    "open file information (preserved when NFS is not\n"
-    "the current filing system) and the current printer\n"
-    "type. Can only be reset by a control BREAK.\n"
-    "Preserves A, Y, and processor flags using PHP/PHA.\n"
-    "Called by 5 sites across format_filename_field,\n"
-    "adjust_fsopts_4bytes, and start_wipe_pass before\n"
-    "workspace access.",
+    description="""\
+Sums bytes 0..`&76` of the workspace page via the zero-page
+pointer at `&CC`/`&CD` and compares with the stored value at
+offset `&77`. On mismatch, raises a 'net sum' error (`&AA`) via
+[`error_net_checksum`](address:90B5?hex).
+
+The checksummed page holds open-file information (preserved when
+ANFS is not the current filing system) and the current printer
+type. Can only be reset by a control-BREAK.
+
+Preserves `A`, `Y`, and processor flags using `PHP`/`PHA`. Called
+by 5 sites across `format_filename_field`, `adjust_fsopts_4bytes`,
+and `start_wipe_pass` before workspace access.""",
     on_exit={"a": "preserved (PHA/PLA)",
              "y": "preserved",
              "p (flags)": "preserved (PHP/PLP)"})
 subroutine(0x90B5, "error_net_checksum",
     title="Raise 'net checksum' BRK error",
     description="""\
-Loads error code &AA and tail-calls error_bad_inline with the inline
-string 'net checksum'. Reached when ensure_fs_selected (auto-select
-path) cannot bring ANFS up, or when verify_ws_checksum detects that
-the saved workspace checksum at offset &77 doesn't match the live
-sum -- only resettable by a control BREAK. Never returns.""")
+Loads error code `&AA` and tail-calls `error_bad_inline` with the
+inline string 'net checksum'. Reached when
+[`ensure_fs_selected`](address:8B4D?hex) (auto-select path)
+cannot bring ANFS up, or when
+[`verify_ws_checksum`](address:909E?hex) detects that the saved
+workspace checksum at offset `&77` doesn't match the live sum –
+only resettable by a control-BREAK. Never returns.""")
 subroutine(0x90C7, "print_station_id",
     title="Print Econet station number and clock status",
-    description="Uses print_inline to output 'Econet Station ',\n"
-    "then reads the station ID from offset 1 of the\n"
-    "receive control block and prints it as a decimal\n"
-    "number via print_num_no_leading. Tests ADLC\n"
-    "status register 2 (&FEA1) to detect the Econet\n"
-    "clock; if absent, appends ' No Clock' via a\n"
-    "second inline string. Finishes with OSNEWL.\n"
-    "Called by print_version_header and svc_3_auto_boot.",
+    description="""\
+Uses [`print_inline`](address:9261?hex) to output `'Econet
+Station '`, then reads the station ID from offset 1 of the
+receive control block and prints it as a decimal number via
+`print_num_no_leading`. Tests ADLC status register 2
+([`adlc_cr2`](address:FEA1?hex)) to detect the Econet clock; if
+absent, appends `' No Clock'` via a second inline string.
+Finishes with `OSNEWL`.
+
+Called by [`print_version_header`](address:8C93?hex) and
+[`svc_3_autoboot`](address:8CC7?hex).""",
     on_exit={"a, x, y": "clobbered (print_inline + print_num_no_leading "
              "+ OSNEWL)"})
 subroutine(0x91F9, "print_newline_no_spool",
     title="Print CR via OSASCI, bypassing any open *SPOOL file",
-    description="Loads A=&0D and falls into print_char_no_spool. The "
-    "underlying mechanism temporarily writes 0 to the *SPOOL file "
-    "handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is not "
-    "captured by spool, then restores the previous handle on exit. "
-    "Called from service_handler (&8A7C) after the 'Bad ROM <slot>' "
-    "message, and from two other diagnostic sites (&8E10, &9D3E).",
+    description="""\
+Loads `A=&0D` and falls into
+[`print_char_no_spool`](address:91FB?hex). The underlying
+mechanism temporarily writes `0` to the `*SPOOL` file handle
+(OSBYTE `&C7` with `X=0`, `Y=0`) so the printed `CR` is not
+captured by spool, then restores the previous handle on exit.
+
+Called from [`service_handler`](address:8A54?hex) (`&8A7C`) after
+the `'Bad ROM <slot>'` message, and from two other diagnostic
+sites (`&8E10`, `&9D3E`).""",
     on_entry={},
     on_exit={"a, x, y, p": "preserved (print_char_no_spool brackets the call "
              "with full register save/restore via PHA/PHP/PLP/PLA)"})
 
 subroutine(0x91FB, "print_char_no_spool",
     title="Print A via OSASCI, bypassing any open *SPOOL file",
-    description="Pushes the caller's flags, then forces V=1 via the "
-    "BIT &9769 / BVS trick (&9769 is a constant &FF byte in ROM). "
-    "Saves X, Y, A and a copy of the (now V=1) flags. Calls OSBYTE "
-    "&C7 with X=0, Y=0 to write 0 to the *SPOOL file handle, "
-    "returning the previous handle in X. If the previous handle was "
-    "in the NFS-issued range &21-&2F, calls OSBYTE &C7 again with "
-    "X=OLD, Y=0 to restore the spool BEFORE the print (so the print "
-    "is captured); otherwise leaves spool closed for the duration of "
-    "the print. PLPs the inner P, then routes to OSASCI (because the "
-    "BIT trick set V=1 -> BVC at &9220 not taken). Final OSBYTE &C7 "
-    "with Y=&FF either no-ops (if spool already restored) or writes "
-    "OLD back (if it was deferred). Pulls A, Y, X, P and returns.\n"
-    "\n"
-    "Eight inner-ROM callers: &925F, &92A4, &9D30, &9D5C, &B21F, "
-    "&B2F9, &B321, &B752.",
+    description="""\
+Pushes the caller's flags, then forces `V=1` via the `BIT &9769`
+/ `BVS` trick (`&9769` is a constant `&FF` byte in ROM). Saves
+`X`, `Y`, `A` and a copy of the (now `V=1`) flags.
+
+1. Calls OSBYTE `&C7` with `X=0`, `Y=0` to write `0` to the
+   `*SPOOL` file handle, returning the previous handle in `X`.
+2. If the previous handle was in the NFS-issued range
+   `&21..&2F`, calls OSBYTE `&C7` again with `X=OLD`, `Y=0` to
+   **restore** the spool *before* the print (so the print is
+   captured); otherwise leaves spool closed for the duration of
+   the print.
+3. `PLP`s the inner `P`, then routes to OSASCI (the `BIT` trick
+   set `V=1`, so the `BVC` at `&9220` is not taken).
+4. Final OSBYTE `&C7` with `Y=&FF` either no-ops (if spool
+   already restored) or writes `OLD` back (if it was deferred).
+5. Pulls `A`, `Y`, `X`, `P` and returns.
+
+Eight inner-ROM callers: `&925F`, `&92A4`, `&9D30`, `&9D5C`,
+`&B21F`, `&B2F9`, `&B321`, `&B752`.""",
     on_entry={"a": "byte to print as ASCII char (CR is translated by OSASCI)"})
 
 subroutine(0x9201, "print_byte_no_spool",
     title="Print A via OSWRCH (raw, no CR translation), bypass *SPOOL",
-    description="As print_char_no_spool but the inner PHP/CLV at &9201 "
-    "forces V=0 in the saved flags, so the BVC at &9220 takes the "
-    "OSWRCH branch instead of OSASCI. Used when the caller wants to "
-    "emit a raw byte (e.g. a VDU control code) without CR translation. "
-    "Sole caller in this ROM is at &8DE6.",
+    description="""\
+As [`print_char_no_spool`](address:91FB?hex) but the inner
+`PHP`/`CLV` at `&9201` forces `V=0` in the saved flags, so the
+`BVC` at `&9220` takes the `OSWRCH` branch instead of `OSASCI`.
+
+Used when the caller wants to emit a raw byte (e.g. a VDU
+control code) without `CR` translation. Sole caller in this ROM
+is at `&8DE6`.""",
     on_entry={"a": "raw byte to print via OSWRCH"})
 
 subroutine(0x9236, "print_hex_byte",
     title="Print A as two hexadecimal digits",
-    description="Saves A on the stack, shifts right four times\n"
-    "to isolate the high nybble, calls\n"
-    "print_hex_nybble to print it, then restores\n"
-    "the full byte and falls through to\n"
-    "print_hex_nybble for the low nybble. Called by\n"
-    "print_5_hex_bytes, cmd_ex, cmd_dump, and\n"
-    "print_dump_header.",
+    description="""\
+Saves `A` on the stack, shifts right four times to isolate the
+high nybble, calls [`print_hex_nybble`](address:923F?hex) to
+print it, then restores the full byte and falls through to
+[`print_hex_nybble`](address:923F?hex) for the low nybble.
+
+Callers: `print_5_hex_bytes`, [`cmd_ex`](address:B103?hex),
+[`cmd_dump`](address:BD41?hex), and `print_dump_header`.""",
     on_entry={"a": "byte to print"},
     on_exit={"a": "original byte value"})
 subroutine(0x923F, "print_hex_nybble",
     title="Print low nybble of A as hex digit",
-    description="Masks A to the low 4 bits, then converts to\n"
-    "ASCII: adds 7 for letters A-F (via ADC #6 with\n"
-    "carry set from the CMP), then ADC #&30 for the\n"
-    "final '0'-'F' character. Outputs via JMP OSASCI.",
+    description="""\
+Masks `A` to the low 4 bits, then converts to ASCII:
+
+1. Adds 7 for letters `A`..`F` (via `ADC #6` with carry set from
+   the `CMP`).
+2. `ADC #&30` for the final `'0'`..`'F'` character.
+3. Outputs via `JMP OSASCI`.""",
     on_entry={"a": "value (low nybble used)"})
 subroutine(0x9269, "loop_next_char",
     title="print_inline pointer-advance step",
     description="""\
-INC fs_error_ptr (lo); on overflow INC fs_crflag (hi). Single
-caller (the loop tail at &9284 inside print_inline). Falls through
-to load_char which reads the next inline-string byte.""")
+`INC fs_error_ptr` (lo); on overflow `INC fs_crflag` (hi). Single
+caller (the loop tail at `&9284` inside
+[`print_inline`](address:9261?hex)). Falls through to `load_char`
+which reads the next inline-string byte.""")
 subroutine(0x92B2, "parse_addr_arg",
     title="Parse decimal or hex station address argument",
     description="""\
@@ -12166,12 +12199,17 @@ subroutine(0x8D02, "issue_svc_15",
 
 subroutine(0x8E9A, "osbyte_a1",
     title="OSBYTE &A1 (read Master CMOS RAM byte)",
-    description="Loads A=&A1 and tail-jumps to OSBYTE -- reads the "
-    "Master 128 CMOS RAM byte indexed by X. Two callers: format_"
-    "filename_field (&A0E3) and flip_set_station_boot (&A70D). The "
-    "5 bytes A9 A1 4C F4 FF also serve as the leading slot of the "
-    "vector-dispatch table that write_vector_entry reads via "
-    "LDA c8e9a,Y -- a deliberate dual-use byte sequence.",
+    description="""\
+Loads `A=&A1` and tail-jumps to `OSBYTE` – reads the Master 128
+CMOS RAM byte indexed by `X`. Two callers:
+[`format_filename_field`](address:A0E3?hex) and
+[`flip_set_station_boot`](address:A70D?hex).
+
+**Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as
+the leading slot of the vector-dispatch table that
+[`write_vector_entry`](address:904F?hex) reads via
+`LDA osbyte_a1,Y` – a deliberate overlap so the routine's body
+doubles as table data.""",
     on_entry={"x": "CMOS RAM byte index"},
     on_exit={"y": "CMOS byte read", "x": "preserved"})
 
@@ -12613,12 +12651,17 @@ label(0x8ECB, "osbyte_yff")
 subroutine(0x9261, "print_inline",
     title="Print inline string, high-bit terminated",
     description="""\
-Pops the return address from the stack, prints each byte via OSASCI
-until a byte with bit 7 set is found, then jumps to that address.
-The high-bit byte serves as both the string terminator and the opcode
-of the first instruction after the string. Common terminators are
-&EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
-unconditional forward branch.""",
+Pops the return address from the stack, prints each byte via
+`OSASCI` until a byte with bit 7 set is found, then jumps to that
+address. The high-bit byte serves as both the string terminator
+and the opcode of the first instruction after the string.
+
+Common terminators:
+
+| Byte | Opcode | Effect |
+|---|---|---|
+| `&EA` | `NOP`  | fall-through |
+| `&B8` | `CLV`  | followed by `BVC` for an unconditional forward branch |""",
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by OSASCI)",
              "y": "0"})
@@ -12626,16 +12669,22 @@ unconditional forward branch.""",
 subroutine(0x928A, "print_inline_no_spool",
     title="Print inline string, high-bit terminated, *SPOOL-bypassing",
     description="""\
-As print_inline (&9261), but each character is emitted via
-print_char_no_spool instead of OSASCI directly, so the printed text
-does not appear in any active *SPOOL capture. Used by status output
-that should not be saved to a spool file (e.g. *Wipe '(Y/N) ' prompts,
-*Ex column separators, the 'Bad ROM' service-handler message via the
-recv_and_process_reply 'Data Lost' warning, and inline-string
-arguments inside cmd_ex's directory listing).
+As [`print_inline`](address:9261?hex), but each character is
+emitted via [`print_char_no_spool`](address:91FB?hex) instead of
+`OSASCI` directly, so the printed text does not appear in any
+active `*SPOOL` capture.
 
-Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex),
-&B2F0 (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).""",
+Used by status output that should not be saved to a spool file
+(e.g. `*Wipe` `'(Y/N) '` prompts, `*Ex` column separators, the
+`'Bad ROM'` service-handler message via the
+`recv_and_process_reply` `'Data Lost'` warning, and inline-string
+arguments inside [`cmd_ex`](address:B103?hex)'s directory
+listing).
+
+Six callers: `&981A` (`recv_and_process_reply`), `&B158`/`&B162`
+([`cmd_ex`](address:B103?hex)), `&B2F0` (`ex_print_col_sep`),
+`&B75E` ([`cmd_wipe`](address:B6F3?hex)), `&B7CB`
+(`prompt_yn`).""",
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)",
              "x": "corrupted (by print_char_no_spool)",
              "y": "0"})

@@ -201,34 +201,34 @@ addresses across all 431 remaining routines.
 | 125 | &8E5B | `dir_op_dispatch` | done | added ?hex on svc_dispatch + svc_dispatch_lo/hi links |
 | 126 | &8E61 | `svc_dispatch` | kept | already accurate description |
 | 127 | &8E98 | `read_cmos_byte_0` | done | osbyte_a1 + nfs_init_body links |
-| 128 | &8E9A | `osbyte_a1` | | |
-| 129 | &8EA7 | `fs_vector_table` | | |
-| 130 | &8EC9 | `osbyte_x0` | | |
-| 131 | &8ECB | `osbyte_yff` | | |
-| 132 | &8ED2 | `osbyte_x0_y0` | | |
-| 133 | &8ED8 | `svc_7_osbyte` | | |
-| 134 | &8EE9 | `raise_y_to_c8` | | |
-| 135 | &8EF0 | `store_ws_page_count` | | |
-| 136 | &8F10 | `svc_2_private_workspace_pages` | | |
-| 137 | &8F38 | `nfs_init_body` | | |
-| 138 | &903C | `init_adlc_and_vectors` | | |
-| 139 | &904F | `write_vector_entry` | | |
-| 140 | &9064 | `restore_fs_context` | | |
-| 141 | &9071 | `fscv_6_shutdown` | | |
-| 142 | &909E | `verify_ws_checksum` | | |
-| 143 | &90B5 | `error_net_checksum` | | |
-| 144 | &90C7 | `print_station_id` | | |
-| 145 | &91F9 | `print_newline_no_spool` | | |
-| 146 | &91FB | `print_char_no_spool` | | |
-| 147 | &9201 | `print_byte_no_spool` | | |
-| 148 | &9236 | `print_hex_byte` | | |
-| 149 | &923F | `print_hex_nybble` | | |
-| 150 | &924C | `print_hex_byte_no_spool` | | |
-| 151 | &9255 | `print_hex_nybble_no_spool` | | |
-| 152 | &9261 | `print_inline` | | |
-| 153 | &9269 | `loop_next_char` | | |
-| 154 | &928A | `print_inline_no_spool` | | |
-| 155 | &92B2 | `parse_addr_arg` | | |
+| 128 | &8E9A | `osbyte_a1` | done | dual-use trick called out; format_filename_field/flip_set_station_boot/write_vector_entry links |
+| 129 | &8EA7 | `fs_vector_table` | kept | data banner already accurate |
+| 130 | &8EC9 | `osbyte_x0` | kept | already accurate |
+| 131 | &8ECB | `osbyte_yff` | kept | already accurate |
+| 132 | &8ED2 | `osbyte_x0_y0` | done | inline-code refinement |
+| 133 | &8ED8 | `svc_7_osbyte` | kept | already accurate |
+| 134 | &8EE9 | `raise_y_to_c8` | kept | already accurate |
+| 135 | &8EF0 | `store_ws_page_count` | kept | already accurate with svc_2_private_workspace_pages link |
+| 136 | &8F10 | `svc_2_private_workspace_pages` | kept | already accurate with all relevant links |
+| 137 | &8F38 | `nfs_init_body` | kept | already has comprehensive description |
+| 138 | &903C | `init_adlc_and_vectors` | done | restore_fs_context + write_vector_entry links |
+| 139 | &904F | `write_vector_entry` | done | bridge_status + get_ws_page links |
+| 140 | &9064 | `restore_fs_context` | done | svc_2_private_workspace_pages link |
+| 141 | &9071 | `fscv_6_shutdown` | done | numbered shutdown steps; fs_flags link |
+| 142 | &909E | `verify_ws_checksum` | done | error_net_checksum link |
+| 143 | &90B5 | `error_net_checksum` | done | ensure_fs_selected + verify_ws_checksum links |
+| 144 | &90C7 | `print_station_id` | done | print_inline + adlc_cr2 + print_version_header + svc_3_autoboot links |
+| 145 | &91F9 | `print_newline_no_spool` | done | print_char_no_spool + service_handler links |
+| 146 | &91FB | `print_char_no_spool` | done | 5-step numbered breakdown of the BIT/BVS/OSBYTE-C7 dance |
+| 147 | &9201 | `print_byte_no_spool` | done | print_char_no_spool link |
+| 148 | &9236 | `print_hex_byte` | done | print_hex_nybble + cmd_ex + cmd_dump links |
+| 149 | &923F | `print_hex_nybble` | done | numbered ASCII-conversion steps |
+| 150 | &924C | `print_hex_byte_no_spool` | kept | already has accurate description |
+| 151 | &9255 | `print_hex_nybble_no_spool` | kept | already has accurate description |
+| 152 | &9261 | `print_inline` | done | terminator-byte table for &EA/&B8 |
+| 153 | &9269 | `loop_next_char` | done | print_inline link |
+| 154 | &928A | `print_inline_no_spool` | done | print_inline + print_char_no_spool + cmd_ex/cmd_wipe links |
+| 155 | &92B2 | `parse_addr_arg` | kept | already has accurate links |
 | 156 | &934A | `err_bad_hex` | | |
 | 157 | &939A | `is_decimal_digit` | | |
 | 158 | &93A2 | `is_dec_digit_only` | | |

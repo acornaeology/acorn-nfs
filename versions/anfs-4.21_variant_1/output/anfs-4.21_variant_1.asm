@@ -4395,10 +4395,12 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; OSBYTE &A1 (read Master CMOS RAM byte)
 ;
-; Loads A=&A1 and tail-jumps to OSBYTE -- reads the Master 128 CMOS RAM byte indexed by
-; X. Two callers: format_filename_field (&A0E3) and flip_set_station_boot (&A70D). The
-; 5 bytes A9 A1 4C F4 FF also serve as the leading slot of the vector-dispatch table
-; that write_vector_entry reads via LDA c8e9a,Y -- a deliberate dual-use byte sequence.
+; Loads A=&A1 and tail-jumps to OSBYTE – reads the Master 128 CMOS RAM byte indexed by
+; X. Two callers: format_filename_field (&A0E3) and flip_set_station_boot (&A70D).
+;
+; Dual-use trick: the 5 bytes A9 A1 4C F4 FF also serve as the leading slot of the
+; vector-dispatch table that write_vector_entry (&904F) reads via LDA osbyte_a1,Y – a
+; deliberate overlap so the routine's body doubles as table data.
 ;
 ; On Entry: X: CMOS RAM byte index
 ;
@@ -4800,7 +4802,8 @@ ps_template_base = load_transfer_params+1
 ;
 ; Reads the ROM pointer table via OSBYTE &A8, writes vector addresses and ROM ID into
 ; the extended vector table for NETV and one additional vector, then restores any
-; previous FS context.
+; previous FS context via restore_fs_context (&9064). Falls through into
+; write_vector_entry (&904F).
 ;
 ; On Exit: A, X, Y: clobbered (falls through into write_vector_entry)
 ; &903c referenced 2 times by &8b81, &901a
@@ -4814,13 +4817,14 @@ ps_template_base = load_transfer_params+1
     sty netv                                                          ; 904a: 8c 24 02    .$.            ; Set NETV address
     ldx #1                                                            ; 904d: a2 01       ..             ; X=1: one more vector pair to set
 ; ***************************************************************************************
-; Install extended vector table entries
+; Install extended-vector table entries
 ;
 ; Copies vector addresses from the dispatch table at svc_dispatch_lo_offset+Y into the
-; MOS extended vector table pointed to by fs_error_ptr. For each entry, writes address
-; low, high, then the current ROM ID from romsel_copy (&F4). Loops X times. After the
-; loop, stores &FF at &0D72 as an installed flag, calls deselect_fs_if_active and
-; get_ws_page to restore FS state.
+; MOS extended-vector table pointed to by fs_error_ptr. For each entry, writes address
+; low, high, then the current ROM ID from romsel_copy (&F4). Loops X times.
+;
+; After the loop, stores &FF at bridge_status (&0D72) as an installed flag, calls
+; deselect_fs_if_active and get_ws_page (&8CAD) to restore FS state.
 ;
 ; On Entry: X: number of vectors to install Y: starting offset in extended vector table
 ;
@@ -4843,11 +4847,12 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Restore FS context from saved workspace
 ;
-; Copies 8 bytes (offsets 2 to 9) from the saved workspace at &0DFA back into the
-; receive control block via (net_rx_ptr). This restores the station identity, directory
-; handles, and library path after a filing system reselection. Called by
-; svc_2_private_workspace during init, deselect_fs_if_active during FS teardown, and
-; flip_set_station_boot.
+; Copies 8 bytes (offsets 2 to 9) from the saved workspace at fs_context_save (&0DFA)
+; back into the receive control block via (net_rx_ptr). This restores the station
+; identity, directory handles, and library path after a filing-system reselection.
+;
+; Called by svc_2_private_workspace_pages (&8F10) during init, deselect_fs_if_active
+; during FS teardown, and flip_set_station_boot.
 ;
 ; On Exit: A, Y: clobbered (loop counter / data byte)
 ; &9064 referenced 3 times by &8fb8, &907b, &a6d2
@@ -4865,9 +4870,12 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Deselect filing system and save workspace
 ;
-; If the filing system is currently selected (bit 7 of &0D6C set), closes all open
-; FCBs, closes SPOOL/EXEC files via OSBYTE &77, saves the FS workspace to page &10
-; shadow with checksum, and clears the selected flag.
+; If the filing system is currently selected (bit 7 of fs_flags (&0D6C) set):
+;
+; 1. Closes all open FCBs.
+; 2. Closes *SPOOL/*EXEC files via OSBYTE &77.
+; 3. Saves the FS workspace to page &10 shadow with checksum.
+; 4. Clears the selected flag.
 .fscv_6_shutdown
     bit fs_flags                                                      ; 9071: 2c 6c 0d    ,l.            ; FS currently selected?
     bpl return_from_fs_shutdown                                       ; 9074: 10 27       .'             ; No (bit 7 clear): return
@@ -4903,13 +4911,17 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Verify workspace checksum integrity
 ;
-; Sums bytes 0 to &76 of the workspace page via the zero-page pointer at &CC/&CD and
+; Sums bytes 0..&76 of the workspace page via the zero-page pointer at &CC/&CD and
 ; compares with the stored value at offset &77. On mismatch, raises a 'net sum' error
-; (&AA). The checksummed page holds open file information (preserved when NFS is not
-; the current filing system) and the current printer type. Can only be reset by a
-; control BREAK. Preserves A, Y, and processor flags using PHP/PHA. Called by 5 sites
-; across format_filename_field, adjust_fsopts_4bytes, and start_wipe_pass before
-; workspace access.
+; (&AA) via error_net_checksum (&90B5).
+;
+; The checksummed page holds open-file information (preserved when ANFS is not the
+; current filing system) and the current printer type. Can only be reset by a
+; control-BREAK.
+;
+; Preserves A, Y, and processor flags using PHP/PHA. Called by 5 sites across
+; format_filename_field, adjust_fsopts_4bytes, and start_wipe_pass before workspace
+; access.
 ;
 ; On Exit: A: preserved (PHA/PLA) Y: preserved P (FLAGS): preserved (PHP/PLP)
 ; &909e referenced 5 times by &9eab, &a02f, &a10b, &a14c, &b99a
@@ -4937,9 +4949,10 @@ ps_template_base = load_transfer_params+1
 ; Raise 'net checksum' BRK error
 ;
 ; Loads error code &AA and tail-calls error_bad_inline with the inline string 'net
-; checksum'. Reached when ensure_fs_selected (auto-select path) cannot bring ANFS up,
-; or when verify_ws_checksum detects that the saved workspace checksum at offset &77
-; doesn't match the live sum -- only resettable by a control BREAK. Never returns.
+; checksum'. Reached when ensure_fs_selected (&8B4D) (auto-select path) cannot bring
+; ANFS up, or when verify_ws_checksum (&909E) detects that the saved workspace checksum
+; at offset &77 doesn't match the live sum – only resettable by a control-BREAK. Never
+; returns.
 ; &90b5 referenced 2 times by &8b57, &90af
 .error_net_checksum
     lda #&aa                                                          ; 90b5: a9 aa       ..             ; Error number &AA
@@ -4949,11 +4962,13 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print Econet station number and clock status
 ;
-; Uses print_inline to output 'Econet Station ', then reads the station ID from offset
-; 1 of the receive control block and prints it as a decimal number via
-; print_num_no_leading. Tests ADLC status register 2 (&FEA1) to detect the Econet
-; clock; if absent, appends ' No Clock' via a second inline string. Finishes with
-; OSNEWL. Called by print_version_header and svc_3_auto_boot.
+; Uses print_inline (&9261) to output 'Econet Station ', then reads the station ID from
+; offset 1 of the receive control block and prints it as a decimal number via
+; print_num_no_leading. Tests ADLC status register 2 (adlc_cr2 (&FEA1)) to detect the
+; Econet clock; if absent, appends ' No Clock' via a second inline string. Finishes
+; with OSNEWL.
+;
+; Called by print_version_header (&8C93) and svc_3_autoboot (&8CC7).
 ;
 ; On Exit: A, X, Y: clobbered (print_inline + print_num_no_leading + OSNEWL)
 ; &90c7 referenced 2 times by &8caa, &8ce4
@@ -5044,11 +5059,12 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print CR via OSASCI, bypassing any open *SPOOL file
 ;
-; Loads A=&0D and falls into print_char_no_spool. The underlying mechanism temporarily
-; writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is
-; not captured by spool, then restores the previous handle on exit. Called from
-; service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two other
-; diagnostic sites (&8E10, &9D3E).
+; Loads A=&0D and falls into print_char_no_spool (&91FB). The underlying mechanism
+; temporarily writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the
+; printed CR is not captured by spool, then restores the previous handle on exit.
+;
+; Called from service_handler (&8A54) (&8A7C) after the 'Bad ROM <slot>' message, and
+; from two other diagnostic sites (&8E10, &9D3E).
 ;
 ; On Exit: A, X, Y, P: preserved (print_char_no_spool brackets the call with full
 ; register save/restore via PHA/PHP/PLP/PLA)
@@ -5059,14 +5075,18 @@ ps_template_base = load_transfer_params+1
 ; Print A via OSASCI, bypassing any open *SPOOL file
 ;
 ; Pushes the caller's flags, then forces V=1 via the BIT &9769 / BVS trick (&9769 is a
-; constant &FF byte in ROM). Saves X, Y, A and a copy of the (now V=1) flags. Calls
-; OSBYTE &C7 with X=0, Y=0 to write 0 to the *SPOOL file handle, returning the previous
-; handle in X. If the previous handle was in the NFS-issued range &21-&2F, calls OSBYTE
-; &C7 again with X=OLD, Y=0 to restore the spool BEFORE the print (so the print is
-; captured); otherwise leaves spool closed for the duration of the print. PLPs the
-; inner P, then routes to OSASCI (because the BIT trick set V=1 -> BVC at &9220 not
-; taken). Final OSBYTE &C7 with Y=&FF either no-ops (if spool already restored) or
-; writes OLD back (if it was deferred). Pulls A, Y, X, P and returns.
+; constant &FF byte in ROM). Saves X, Y, A and a copy of the (now V=1) flags.
+;
+; 1. Calls OSBYTE &C7 with X=0, Y=0 to write 0 to the *SPOOL file handle, returning the
+;    previous handle in X.
+; 2. If the previous handle was in the NFS-issued range &21..&2F, calls OSBYTE &C7
+;    again with X=OLD, Y=0 to restore the spool before the print (so the print is
+;    captured); otherwise leaves spool closed for the duration of the print.
+; 3. PLPs the inner P, then routes to OSASCI (the BIT trick set V=1, so the BVC at
+;    &9220 is not taken).
+; 4. Final OSBYTE &C7 with Y=&FF either no-ops (if spool already restored) or writes
+;    OLD back (if it was deferred).
+; 5. Pulls A, Y, X, P and returns.
 ;
 ; Eight inner-ROM callers: &925F, &92A4, &9D30, &9D5C, &B21F, &B2F9, &B321, &B752.
 ;
@@ -5079,10 +5099,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print A via OSWRCH (raw, no CR translation), bypass *SPOOL
 ;
-; As print_char_no_spool but the inner PHP/CLV at &9201 forces V=0 in the saved flags,
-; so the BVC at &9220 takes the OSWRCH branch instead of OSASCI. Used when the caller
-; wants to emit a raw byte (e.g. a VDU control code) without CR translation. Sole
-; caller in this ROM is at &8DE6.
+; As print_char_no_spool (&91FB) but the inner PHP/CLV at &9201 forces V=0 in the saved
+; flags, so the BVC at &9220 takes the OSWRCH branch instead of OSASCI.
+;
+; Used when the caller wants to emit a raw byte (e.g. a VDU control code) without CR
+; translation. Sole caller in this ROM is at &8DE6.
 ;
 ; On Entry: A: raw byte to print via OSWRCH
 ; &9201 referenced 2 times by &8de6, &b76e
@@ -5131,9 +5152,10 @@ ps_template_base = load_transfer_params+1
 ; Print A as two hexadecimal digits
 ;
 ; Saves A on the stack, shifts right four times to isolate the high nybble, calls
-; print_hex_nybble to print it, then restores the full byte and falls through to
-; print_hex_nybble for the low nybble. Called by print_5_hex_bytes, cmd_ex, cmd_dump,
-; and print_dump_header.
+; print_hex_nybble (&923F) to print it, then restores the full byte and falls through
+; to print_hex_nybble (&923F) for the low nybble.
+;
+; Callers: print_5_hex_bytes, cmd_ex (&B103), cmd_dump (&BD41), and print_dump_header.
 ;
 ; On Entry: A: byte to print
 ;
@@ -5150,9 +5172,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print low nybble of A as hex digit
 ;
-; Masks A to the low 4 bits, then converts to ASCII: adds 7 for letters A-F (via ADC #6
-; with carry set from the CMP), then ADC #&30 for the final '0'-'F' character. Outputs
-; via JMP OSASCI.
+; Masks A to the low 4 bits, then converts to ASCII:
+;
+; 1. Adds 7 for letters A..F (via ADC #6 with carry set from the CMP).
+; 2. ADC #&30 for the final '0'..'F' character.
+; 3. Outputs via JMP OSASCI.
 ;
 ; On Entry: A: value (low nybble used)
 ; &923f referenced 1 time by &923b
@@ -5211,9 +5235,14 @@ ps_template_base = load_transfer_params+1
 ;
 ; Pops the return address from the stack, prints each byte via OSASCI until a byte with
 ; bit 7 set is found, then jumps to that address. The high-bit byte serves as both the
-; string terminator and the opcode of the first instruction after the string. Common
-; terminators are &EA (NOP) for fall-through and &B8 (CLV) followed by BVC for an
-; unconditional forward branch.
+; string terminator and the opcode of the first instruction after the string.
+;
+; Common terminators:
+;
+; | Byte | Opcode | Effect                                              |
+; |------|--------|-----------------------------------------------------|
+; | &EA  | NOP    | fall-through                                        |
+; | &B8  | CLV    | followed by BVC for an unconditional forward branch |
 ;
 ; On Exit: A: terminator byte (bit 7 set, also next opcode) X: corrupted (by OSASCI) Y:
 ; 0
@@ -5228,8 +5257,8 @@ ps_template_base = load_transfer_params+1
 ; print_inline pointer-advance step
 ;
 ; INC fs_error_ptr (lo); on overflow INC fs_crflag (hi). Single caller (the loop tail
-; at &9284 inside print_inline). Falls through to load_char which reads the next
-; inline-string byte.
+; at &9284 inside print_inline (&9261)). Falls through to load_char which reads the
+; next inline-string byte.
 ; &9269 referenced 1 time by &9284
 .loop_next_char
     inc fs_error_ptr                                                  ; 9269: e6 b8       ..             ; Advance pointer to next character
@@ -5259,14 +5288,16 @@ ps_template_base = load_transfer_params+1
 ; Print inline string, high-bit terminated, *SPOOL-bypassing
 ;
 ; As print_inline (&9261), but each character is emitted via print_char_no_spool
-; instead of OSASCI directly, so the printed text does not appear in any active *SPOOL
-; capture. Used by status output that should not be saved to a spool file (e.g. *Wipe
-; '(Y/N) ' prompts, *Ex column separators, the 'Bad ROM' service-handler message via
-; the recv_and_process_reply 'Data Lost' warning, and inline-string arguments inside
-; cmd_ex's directory listing).
+; (&91FB) instead of OSASCI directly, so the printed text does not appear in any active
+; *SPOOL capture.
 ;
-; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex), &B2F0
-; (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
+; Used by status output that should not be saved to a spool file (e.g. *Wipe '(Y/N) '
+; prompts, *Ex column separators, the 'Bad ROM' service-handler message via the
+; recv_and_process_reply 'Data Lost' warning, and inline-string arguments inside cmd_ex
+; (&B103)'s directory listing).
+;
+; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex (&B103)), &B2F0
+; (ex_print_col_sep), &B75E (cmd_wipe (&B6F3)), &B7CB (prompt_yn).
 ;
 ; On Exit: A: terminator byte (bit 7 set, also next opcode) X: corrupted (by
 ; print_char_no_spool) Y: 0
