@@ -1,10 +1,11 @@
 # Changes from ANFS 4.18 to ANFS 4.21 (variant 1)
 
 ANFS 4.21 (variant 1) is the first ANFS for Acorn's BBC Master 128
-series. The two 16 KB ROMs share 86.7 % of their opcode structure but
-the 4.21 variant 1 build is 65C02-aware, drops the page 4-6 relocated
-workspace in favour of sideways-RAM at &C000-&C2FF, and gates the
-service handler with a Master-only OS-version check.
+series. The two 16 KB sideways ROMs share 86.7 % of their opcode
+structure but the 4.21 variant 1 build is 65C02-aware, drops the
+page 4-6 relocated workspace in favour of sideways-RAM at
+&C000-&C2FF, and gates the service-call handler with a Master-only
+OS-version check.
 
 The "variant 1" suffix reflects that this build refuses to install on
 anything other than a Master 128 (or Master Econet Terminal): a later
@@ -136,13 +137,19 @@ the body is completely different.
 ```
 
 The 4.18 SR-IRQ handling is gone; the new mechanism uses a Master-
-specific workspace flag at `&0D65` set by IRQ paths and consumed here
-during deferred service. As a side effect, the 4.18 `set_jsr_protection`
-prologue at &805D (which protected the SVC5 dispatch via shadow-VIA
-state) is gone too -- no JMP-protection mechanism is needed in the
-new design. The shared `&0D68 / &0D69` shadow-pair body that fed
-JSR-protection now lives at `setup_sr_tx` (&8512) for an unrelated
-TX-prep purpose.
+specific workspace flag at `&0D65` set by IRQ and NMI paths and
+consumed here during deferred service. As a side effect, the 4.18
+`set_jsr_protection` prologue at &805D (which protected the SVC5
+dispatch via shadow-VIA state) is gone too -- no JMP-protection
+mechanism is needed in the new design. The shared `&0D68 / &0D69`
+shadow-pair body that fed JSR-protection now lives at `setup_sr_tx`
+(&8512) for an unrelated TX-prep purpose.
+
+The `&27` Master service call ("Reset has occurred") that runs
+`nfs_init_body` after a hard reset uses this same flag-passing
+discipline: ANFS uses the post-reset call specifically to claim
+NMIs for Econet receive handling, since the Master MOS no longer
+offers workspace on a soft BREAK.
 
 ### 5. OSWORD &13 sub-handlers auto-select the FS
 

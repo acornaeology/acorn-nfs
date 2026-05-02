@@ -117,16 +117,12 @@
                 { "pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE" },
                 { "pattern": "OSWORD", "occurrence": 0, "term": "OSWORD" },
                 { "pattern": "MOS", "occurrence": 0, "term": "MOS" },
-                { "pattern": "Tube", "occurrence": 0, "term": "Tube" },
                 { "pattern": "Econet", "occurrence": 0, "term": "Econet" },
-                { "pattern": "CSD", "occurrence": 0, "term": "CSD" },
                 { "pattern": "service call", "occurrence": 0, "term": "service call" },
                 { "pattern": "relocated", "occurrence": 0, "term": "relocated code" },
                 { "pattern": "IRQ", "occurrence": 0, "term": "IRQ" },
                 { "pattern": "NMI", "occurrence": 0, "term": "NMI" },
-                { "pattern": "sideways ROM", "occurrence": 0, "term": "sideways ROM" },
-                { "pattern": "OSCLI", "occurrence": 0, "term": "OSCLI" },
-                { "pattern": "CFS", "occurrence": 0, "term": "CFS" }
+                { "pattern": "sideways ROM", "occurrence": 0, "term": "sideways ROM" }
             ]
         }
     ]
