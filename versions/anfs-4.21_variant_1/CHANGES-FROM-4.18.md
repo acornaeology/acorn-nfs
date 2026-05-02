@@ -3,9 +3,8 @@
 ANFS 4.21 (variant 1) is the first ANFS for Acorn's BBC Master 128
 series. The two 16 KB sideways ROMs share 86.7 % of their opcode
 structure but the 4.21 variant 1 build is 65C02-aware, drops the
-page 4-6 relocated workspace in favour of sideways-RAM at
-&C000-&C2FF, and gates the service-call handler with a Master-only
-OS-version check.
+page 4-6 relocated workspace in favour of HAZEL hidden RAM at &C000-&C2FF, and gates
+the service-call handler with a Master-only OS-version check.
 
 The "variant 1" suffix reflects that this build refuses to install on
 anything other than a Master 128 (or Master Econet Terminal): a later
@@ -88,13 +87,17 @@ Routines visibly rewritten with 65C12 prologues include
 `copy_fs_cmd_name` (&9463), `parse_fs_ps_args` (&A3C4), and
 `help_wrap_if_serial` (around &8C29).
 
-### 3. Workspace migration from MOS RAM to sideways RAM
+### 3. Workspace migration from MOS RAM to HAZEL hidden RAM
 
 4.18 used MOS RAM pages &0E.. &10 for its filing-system workspace
 (parse buffer, TX buffer base, FS lib flags, FCB attributes, saved
-catalogue buffer). 4.21 moves the entire workspace to the sideways-RAM
-overlay at `&C000-&C2FF` -- the same address window the ROM occupies,
-relying on the Master's per-bank sideways-RAM banks for write access.
+catalogue buffer). 4.21 moves the entire workspace to HAZEL -- the
+Master 128's 8 KB hidden-RAM region at `&C000-&DFFF`, paged over
+the MOS VDU drivers when ACCCON bit Y is set. ANFS occupies the
+first 768 bytes of HAZEL (`&C000-&C2FF`); HAZEL's documented
+upper limit for filing-system static workspace is `page &DB`, so
+the choice of `&C8` as ANFS's claim base leaves room for other
+filing-system claimants.
 
 | Workspace data         | 4.18    | 4.21 variant 1 |
 |------------------------|---------|----------------|
@@ -322,9 +325,14 @@ In 4.18 the relocated blocks for pages 4 / 5 / 6 lived at:
 
 4.21 has none of these. The bytes at the end of the 4.21 ROM
 (`&BFC0..&BFFF`) are a small stub plus 33 bytes of `&FF` padding
-followed by 3 single-byte slots used as scratch workspace once the
-ROM is loaded into a sideways-RAM bank. See `rom_tail_padding` and
-`lbfe6` / `lbffe` / `lbfff` in the 4.21 driver.
+followed by 24 bytes at `lbfe6` and two single bytes at `lbffe` /
+`lbfff`. Under normal Master 128 operation ANFS runs from a
+sideways ROM slot, so the indexed loads at `lbfe6` etc. read
+constant `&FF` (the routines that perform them appear to use the
+padding region as a known-`&FF` source); the matching writes are
+no-ops. The same code becomes genuine scratch workspace if the
+image is loaded into a sideways RAM slot for development. See
+`rom_tail_padding` in the 4.21 driver.
 
 ## Annotation / structural notes
 

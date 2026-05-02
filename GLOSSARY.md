@@ -157,6 +157,21 @@ stream.
 
 ## Hardware
 
+**ACCCON** (Access Control register)
+: The Master 128 access-control register at &FE34. Each bit gates a
+specific shadow- or hidden-RAM paging mode.
+
+  Bits of interest to ANFS:
+  D toggles whether the CRT controller displays the LYNNE shadow-RAM
+  region or main memory; E enables LYNNE for opcode-driven access in
+  the &3000-&7FFF range; X forces region (a) accesses to redirect into
+  LYNNE regardless of opcode address; Y pages the HAZEL hidden RAM
+  over the MOS VDU drivers at &C000-&DFFF (this is what ANFS uses to
+  reach its filing-system workspace); ITU selects the internal vs
+  external Tube; IRR drives an open-drain pull on /IRQ. Code that
+  sets bit Y is responsible for clearing it -- there is no hardware
+  fallback, so missing the clear leaves MOS VDU calls broken.
+
 **ADLC** (Advanced Data Link Controller)
 : The MC6854 ADLC chip at &FEA0-&FEA3. Handles the Econet network
 hardware protocol.
@@ -217,6 +232,18 @@ has been received (valid CRC, no overrun, no abort).
   complete before processing its contents. FV interacts with PSE: when
   PSE is enabled, FV masks RDA in the prioritised status.
 
+**HAZEL**
+: An 8 KB Master 128 hidden-RAM region at &C000-&DFFF that ACCCON's
+Y bit pages over the MOS VDU drivers.
+
+  Designated by Acorn as filing-system workspace; the documented
+  upper limit for static workspace claims is page &DB. ANFS 4.21
+  variant 1 occupies the first 768 bytes (&C000-&C2FF) for its parse
+  buffer, TX buffer, FS lib flags, FCB attributes, and saved-catalogue
+  buffer (the same data that 4.18 kept in MOS RAM pages &0Dxx-&10xx).
+  Code that pages HAZEL in via ACCCON.Y must page it back out before
+  any MOS VDU call.
+
 **INACTIVE**
 : ADLC status register 2 bit 2. Set when the Econet line is idle —
 no carrier is detected and no frame transmission or reception is in
@@ -252,6 +279,19 @@ peripheral devices pulling the IRQ line low.
   In the BBC Micro, IRQs handle keyboard, timer, and VIA events. NFS's
   Econet interrupt handling uses NMIs rather than IRQs for time-critical
   network operations, since NMIs cannot be masked.
+
+**LYNNE**
+: A 20 KB shadow-RAM region in the Master 128, addressable in the
+&3000-&7FFF window when ACCCON's E bit (or X bit) is set.
+
+  Holds the screen bit-map. With ACCCON.D set the CRT controller
+  displays LYNNE; with E set, opcode-driven loads/stores in
+  &3000-&7FFF transparently access LYNNE; with X set, all accesses
+  to that region redirect into LYNNE regardless of the opcode
+  source. ANFS doesn't store its own data in LYNNE but does
+  cooperate with the shadow-RAM rules: NMI data-copy paths
+  bracket their work with ACCCON save/restore so the in-flight
+  byte transfer reaches the correct memory.
 
 **PSE** (Prioritised Status Enable)
 : ADLC control register 2 bit 0. When set, enables prioritised status

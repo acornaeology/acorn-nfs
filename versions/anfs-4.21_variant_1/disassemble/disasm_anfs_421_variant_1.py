@@ -31,22 +31,29 @@ load(0x8000, _rom_filepath, "65c02")
 trace.cpu.default_subroutine_hook = None
 
 # No relocated code blocks: this build keeps its filing-system
-# workspace in sideways RAM at &C000-&C2FF instead of copying into
-# MOS RAM pages.
+# workspace in HAZEL (Master 128 hidden RAM at &C000-&DFFF, paged
+# over the MOS VDU drivers when ACCCON bit Y is set). ANFS uses
+# the &C000-&C2FF slice for its FS workspace -- a 768-byte
+# private region inside HAZEL's 8 KB extent. The 4.18 page-4-6
+# relocated workspace in main MOS RAM is gone.
 
 byte(0xBFC7)  # Force padding byte onto its own line for annotation
 
 data_banner(0xBFC5, "rom_tail_padding",
-    title="ROM-tail FF padding (33 bytes preceding the lbfe6 workspace)",
+    title="ROM-tail FF padding (33 bytes preceding the lbfe6 region)",
     description="""\
 33 bytes of `&FF` at the end of the ROM image, between the last
-real subroutine ([`inx4`](address:BFC0)) and the sideways-RAM
-scratch workspace at [`lbfe6`](address:BFE6) onwards. As ROM
-content this is unreferenced filler; once the image is loaded
-into a sideways-RAM bank these bytes become part of the
-writable workspace overlay (none of the indexed-access sites
-read this specific span at runtime, so the `&FF` content is
-effectively don't-care).""")
+real subroutine ([`inx4`](address:BFC0)) and a small region at
+[`lbfe6`](address:BFE6) onwards that *is* referenced by indexed
+load / store sites scattered through the ROM body. Under normal
+Master 128 operation ANFS runs from a sideways ROM slot and those
+reads always return the `&FF` padding byte (the loads appear to
+use the padding region as a known-constant `&FF` source); the
+matching writes are no-ops against ROM. If the image is loaded
+into a sideways RAM slot for development, the writes take effect
+and the 24 bytes at `lbfe6`..`lbffd` plus the two single bytes at
+[`lbffe`](address:BFFE) / [`lbfff`](address:BFFF) become genuine
+scratch memory.""")
 
 # acorn.bbc() provides OS vectors, entry points, zero page labels.
 # acorn.is_sideways_rom() provides ROM header labels.
@@ -11522,12 +11529,12 @@ comment(0xBFC5, "ROM-tail padding (2 bytes &FF)", inline=True)
 comment(0xBFC7, "ROM-tail padding (1 byte &FF; on its own line "
     "for annotation)", inline=True)
 comment(0xBFC8, "ROM-tail padding (30 bytes &FF)", inline=True)
-comment(0xBFE6, "Sideways-RAM scratch (24 bytes); read by &AC5B "
-    "as `LDA &BFE6,Y`", inline=True)
-comment(0xBFFE, "Sideways-RAM scratch byte; read/written via "
-    "indexed access from &8B68 / &9067 / &AC86", inline=True)
-comment(0xBFFF, "Sideways-RAM scratch byte; read/written via "
-    "indexed access from &A9D2 / &A9E7", inline=True)
+comment(0xBFE6, "Reads as &FF in sideways ROM (used as constant-FF "
+    "source by &AC5B `LDA &BFE6,Y`); writeable scratch in sideways RAM", inline=True)
+comment(0xBFFE, "Reads as &FF in sideways ROM (writes from &8B68 are "
+    "no-ops against ROM); writeable in sideways RAM", inline=True)
+comment(0xBFFF, "Reads as &FF in sideways ROM (writes from &A9E7 are "
+    "no-ops against ROM); writeable in sideways RAM", inline=True)
 # Split error number and null terminator bytes
 byte(0x9AC8)   # error &A3
 byte(0x9AD0)   # null

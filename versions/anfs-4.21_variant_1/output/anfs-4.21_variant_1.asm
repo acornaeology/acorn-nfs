@@ -15382,13 +15382,16 @@ lb821 = err_net_chan_not_found+2
     rts                                                               ; bfc4: 60          `              ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
 
 ; ***************************************************************************************
-; ROM-tail FF padding (33 bytes preceding the lbfe6 workspace)
+; ROM-tail FF padding (33 bytes preceding the lbfe6 region)
 ;
 ; 33 bytes of &FF at the end of the ROM image, between the last real subroutine (inx4)
-; and the sideways-RAM scratch workspace at lbfe6 onwards. As ROM content this is
-; unreferenced filler; once the image is loaded into a sideways-RAM bank these bytes
-; become part of the writable workspace overlay (none of the indexed-access sites read
-; this specific span at runtime, so the &FF content is effectively don't-care).
+; and a small region at lbfe6 onwards that is referenced by indexed load / store sites
+; scattered through the ROM body. Under normal Master 128 operation ANFS runs from a
+; sideways ROM slot and those reads always return the &FF padding byte (the loads
+; appear to use the padding region as a known-constant &FF source); the matching writes
+; are no-ops against ROM. If the image is loaded into a sideways RAM slot for
+; development, the writes take effect and the 24 bytes at lbfe6..lbffd plus the two
+; single bytes at lbffe / lbfff become genuine scratch memory.
     equb &ff, &ff                                                     ; bfc5: ff ff       ..             ; ROM-tail padding (2 bytes &FF)
     equb &ff                                                          ; bfc7: ff          .              ; ROM-tail padding (1 byte &FF; on its own line for annotation)
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfc8: ff ff ff... ...            ; ROM-tail padding (30 bytes &FF)
@@ -15396,14 +15399,14 @@ lb821 = err_net_chan_not_found+2
     equb &ff, &ff, &ff, &ff, &ff, &ff                                 ; bfe0: ff ff ff... ...
 ; &bfe6 referenced 1 time by &ac5a
 .lbfe6
-    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Sideways-RAM scratch (24 bytes); read by &AC5B as LDA &BFE6,Y
+    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Reads as &FF in sideways ROM (used as constant-FF source by &AC5B LDA &BFE6,Y); writeable scratch in sideways RAM
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bff2: ff ff ff... ...
 ; &bffe referenced 3 times by &8b67, &9066, &ac85
 .lbffe
-    equb &ff                                                          ; bffe: ff          .              ; Sideways-RAM scratch byte; read/written via indexed access from &8B68 / &9067 / &AC86
+    equb &ff                                                          ; bffe: ff          .              ; Reads as &FF in sideways ROM (writes from &8B68 are no-ops against ROM); writeable in sideways RAM
 ; &bfff referenced 2 times by &a9d1, &a9e6
 .lbfff
-    equb &ff                                                          ; bfff: ff          .              ; Sideways-RAM scratch byte; read/written via indexed access from &A9D2 / &A9E7
+    equb &ff                                                          ; bfff: ff          .              ; Reads as &FF in sideways ROM (writes from &A9E7 are no-ops against ROM); writeable in sideways RAM
 ; &c000 referenced 6 times by &8dc2, &8f63, &9758, &a398, &b8c8, &b928
 .pydis_end
 

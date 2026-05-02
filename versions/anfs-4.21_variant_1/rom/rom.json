@@ -122,7 +122,9 @@
                 { "pattern": "relocated", "occurrence": 0, "term": "relocated code" },
                 { "pattern": "IRQ", "occurrence": 0, "term": "IRQ" },
                 { "pattern": "NMI", "occurrence": 0, "term": "NMI" },
-                { "pattern": "sideways ROM", "occurrence": 0, "term": "sideways ROM" }
+                { "pattern": "sideways ROM", "occurrence": 0, "term": "sideways ROM" },
+                { "pattern": "HAZEL", "occurrence": 0, "term": "HAZEL" },
+                { "pattern": "ACCCON", "occurrence": 0, "term": "ACCCON" }
             ]
         }
     ]

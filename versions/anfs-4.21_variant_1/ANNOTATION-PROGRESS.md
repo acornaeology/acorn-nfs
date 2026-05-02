@@ -497,7 +497,7 @@ dimensions. In priority order:
     the asm output). Most were deleted; a few were value-updated
     (e.g. `X=&4A` -> `X=&35` for the moved cmd-table offset,
     `Y=&10: page &10` -> `Y=&C2: high byte of lc2c2 (FCB context
-    buffer)` for the sideways-RAM workspace migration).
+    buffer)` for the HAZEL hidden-RAM workspace migration).
   - **Pass 4 (chain + most stale_addr):** trivial chain_comment
     findings ("Second INX" -> "(continued)") and 10 of the 15
     stale_addr findings (NMI-handler install sites referencing
@@ -597,7 +597,7 @@ dimensions. In priority order:
   working notes in `CHANGES-FROM-4.18-NOTES.md` (which can now be
   retired as its content has been promoted into the publishable
   doc). The 16 sections cover: Bad-ROM gate, 65C02 / R65C02 CPU
-  upgrade, sideways-RAM workspace migration, svc5_irq_check rewrite,
+  upgrade, HAZEL hidden-RAM workspace migration, svc5_irq_check rewrite,
   OSWORD &13 auto-FS-select, shadow VIA pair, CMOS-RAM protection
   state, removed *Close/*Print/*Type wrappers, *RUN URD-prefix,
   svc_2_private_workspace split, svc_dispatch / fs_vector_table

@@ -6,8 +6,8 @@ Capturing observations as they fall out of the disassembly work, so
 the 4.21 driver itself can be cleaned of cross-version chatter.
 
 ANFS 4.21 variant 1 is the first Master 128 ANFS. It is 65C02-aware,
-drops the page 4-6 relocated workspace in favour of sideways-RAM at
-&C000-&C2FF, and has a ROM-header Bad-ROM gate that rejects all
+drops the page 4-6 relocated workspace in favour of HAZEL hidden RAM
+at &C000-&C2FF, and has a ROM-header Bad-ROM gate that rejects all
 non-Master OS versions. Opcode similarity to 4.18 is 85.6%.
 
 ---
@@ -26,7 +26,9 @@ non-Master OS versions. Opcode similarity to 4.18 is 85.6%.
   shadow-RAM access).
 - **Service entry** is at &8A54 (was &8A15 in 4.18).
 - **Workspace migration:** MOS RAM pages &0Dxx-&10xx in 4.18 become
-  sideways-RAM at &C000-&C2FF. Concretely:
+  HAZEL hidden RAM at &C000-&C2FF (the first 768 bytes of the
+  Master 128's 8 KB HAZEL region paged over the MOS VDU drivers
+  via ACCCON bit Y). Concretely:
   - 4.18 `&0E30` parse buffer -> 4.21 `&C030` (lc030).
   - 4.18 `&0F00` TX buffer base -> 4.21 `&C100` (lc100, lc103, lc105...).
   - 4.18 `&1071` fs_lib_flags -> 4.21 `&C271` (lc271).

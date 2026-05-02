@@ -170,8 +170,10 @@ against 4.18.
 
 ### Master 128 workspace migration
 - ANFS 4.18 used MOS RAM pages &0Dxx-&10xx for filing-system state.
-- ANFS 4.21_v1 moves the same data into the Master 128 sideways-RAM
-  workspace at &C000-&C2FF. Visible in many recovered routines:
+- ANFS 4.21_v1 moves the same data into HAZEL (the Master 128's 8 KB
+  hidden RAM at &C000-&DFFF, paged over the MOS VDU drivers via
+  ACCCON bit Y). ANFS occupies the &C000-&C2FF slice. Visible in
+  many recovered routines:
   - `mask_owner_access`: writes &C271 instead of &1071
   - `parse_fs_ps_args`: stores result in &B7 instead of &B6
   - `copy_fs_cmd_name`: writes TX buffer at &C105 instead of &0F05
