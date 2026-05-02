@@ -448,9 +448,12 @@ rom_header_byte2 = rom_header+2
 ;
 ; Reads the deferred-work flag at &0D65; if zero, returns early via PLX/PLY/RTS.
 ; Otherwise clears bit 7 of the Master 128 ACCCON register at &FE34 (TRB), zeros &0D65,
-; then dispatches either via the PHA/PHA/RTS table at dispatch_svc5 when Y had bit 7
-; set on entry, or fires Econet RX event &FE via generate_event and JMPs to
-; tx_done_exit otherwise.
+; then dispatches one of two ways depending on bit 7 of the saved Y:
+;
+; | Caller Y bit 7 | Action                                                                                |
+; |----------------|---------------------------------------------------------------------------------------|
+; | Set            | Dispatch via the PHA/PHA/RTS table at dispatch_svc5 (&8048)                           |
+; | Clear          | Fire Econet RX event &FE via generate_event (&8045), then JMP to tx_done_exit (&8582) |
 ;
 ; On Entry: A: 5 (service call number) X: ROM slot Y: parameter (high bit selects
 ; dispatch path)
@@ -499,11 +502,11 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; ADLC initialisation
 ;
-; Initialise ADLC hardware and Econet workspace. Reads station ID via &FE18 (INTOFF
-; side effect), performs a full ADLC reset (adlc_full_reset), then checks for Tube
-; co-processor via OSBYTE &EA and stores the result in tube_present. Issues NMI claim
-; service request (OSBYTE &8F, X=&0C). Falls through to init_nmi_workspace to copy the
-; NMI shim to RAM.
+; Initialise ADLC hardware and Econet workspace. Reads the station ID via
+; econet_station_id (&FE18, INTOFF side effect), performs a full ADLC reset via
+; adlc_full_reset (&898C), then probes for a Tube co-processor via OSBYTE &EA and
+; stores the result in tube_present. Issues an NMI-claim service request (OSBYTE &8F,
+; X=&0C). Falls through to init_nmi_workspace (&8070) to copy the NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
     bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.            ; INTOFF: read station ID, disable NMIs
@@ -525,11 +528,24 @@ rom_header_byte2 = rom_header+2
 ;
 ; Copies 32 bytes of NMI shim code from ROM (listen_jmp_hi) to the start of the NFS
 ; workspace RAM block, then patches the current ROM bank number into the self-modifying
-; code at nmi_romsel (&0D07). The shim includes the INTOFF/INTON pair (BIT &FE18 at
-; entry, BIT &FE20 before RTI) that toggles the IC97 NMI enable flip-flop to guarantee
-; edge re-triggering on /NMI. Clears tx_src_net, need_release_tube, and tx_op_type to
-; zero. Reads station ID into tx_src_stn (&0D22). Sets tx_complete_flag and
-; econet_init_flag to &80. Finally re-enables NMIs via INTON (&FE20 read).
+; code at nmi_romsel (&0D07).
+;
+; The shim includes the INTOFF/INTON pair (BIT econet_station_id at entry, BIT
+; econet_nmi_enable before RTI) that toggles the IC97 NMI-enable flip-flop,
+; guaranteeing edge re-triggering on /NMI.
+;
+; Workspace fields written:
+;
+; | Address / label    | Value      | Role                   |
+; |--------------------|------------|------------------------|
+; | tx_src_net         | 0          | clear                  |
+; | need_release_tube  | 0          | clear                  |
+; | tx_op_type         | 0          | clear                  |
+; | tx_src_stn (&0D22) | station ID | from econet_station_id |
+; | tx_complete_flag   | &80        | mark idle              |
+; | econet_init_flag   | &80        | mark initialised       |
+;
+; Finally re-enables NMIs via INTON (econet_nmi_enable read).
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8070: a0 20       .              ; Copy NMI shim from ROM to &0D0C area
 ; &8072 referenced 1 time by &8079
@@ -2174,16 +2190,27 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX_LAST_DATA and frame completion
 ;
-; Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs the TX
-; completion NMI handler at &8728 (nmi_tx_complete). CR2=&3F = 0011_1111: bit5:
-; CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply) bit4: TX_LAST_DATA -- tells
-; ADLC this is the final data byte bit3: FLAG_IDLE -- send flags/idle after frame bit2:
-; FC_TDRA -- force clear TDRA bit1: 2_1_BYTE -- two-byte transfer mode bit0: PSE --
-; prioritised status enable Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS
-; after frame) Exits via JMP set_nmi_vector which installs nmi_tx_complete, then falls
-; through to nmi_rti. The INTON (BIT &FE20) in nmi_rti creates the /NMI edge for the
-; frame-complete interrupt -- essential because the ADLC IRQ may transition atomically
-; from TDRA to frame-complete without de-asserting.
+; Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA), then installs
+; nmi_tx_complete (&872F) as the next NMI handler.
+;
+; CR2=&3F = %0011_1111, with each bit selecting an ADLC control function:
+;
+; | Bit | Mnemonic     | Effect                                       |
+; |-----|--------------|----------------------------------------------|
+; | 7   | (RTS)        | 0 – drops RTS after frame                    |
+; | 6   | (CLR_TX_ST)  | 0 – do not clear TX status                   |
+; | 5   | CLR_RX_ST    | clears fv_stored_ (prepares for RX of reply) |
+; | 4   | TX_LAST_DATA | tells the ADLC this is the final data byte   |
+; | 3   | FLAG_IDLE    | send flags / idle after the frame            |
+; | 2   | FC_TDRA      | force clear TDRA                             |
+; | 1   | 2_1_BYTE     | two-byte transfer mode                       |
+; | 0   | PSE          | prioritised status enable                    |
+;
+; The routine exits via JMP to set_nmi_vector (&0D0E), which installs nmi_tx_complete
+; (&872F) and falls through to nmi_rti (&0D14). The BIT of econet_nmi_enable (&FE20,
+; INTON) inside nmi_rti creates the /NMI edge for the frame-complete interrupt –
+; essential because the ADLC IRQ may transition atomically from TDRA to frame-complete
+; without de-asserting in between.
 ; &8723 referenced 1 time by &8703
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE

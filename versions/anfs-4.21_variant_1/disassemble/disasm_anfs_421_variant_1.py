@@ -1679,11 +1679,13 @@ subroutine(0x8028, "svc5_irq_check",
     description="""\
 Reads the deferred-work flag at `&0D65`; if zero, returns early via
 `PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`
-register at `&FE34` (`TRB`), zeros `&0D65`, then dispatches either
-via the PHA/PHA/RTS table at [`dispatch_svc5`](address:8048) when
-`Y` had bit 7 set on entry, or fires Econet RX event `&FE` via
-[`generate_event`](address:8045) and `JMP`s to
-[`tx_done_exit`](address:8582) otherwise.""",
+register at `&FE34` (`TRB`), zeros `&0D65`, then dispatches one of
+two ways depending on bit 7 of the saved `Y`:
+
+| Caller `Y` bit 7 | Action |
+|---|---|
+| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](address:8048?hex) |
+| Clear | Fire Econet RX event `&FE` via [`generate_event`](address:8045?hex), then `JMP` to [`tx_done_exit`](address:8582?hex) |""",
     on_entry={"a": "5 (service call number)",
               "x": "ROM slot",
               "y": "parameter (high bit selects dispatch path)"})
@@ -1924,28 +1926,39 @@ ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
 
 subroutine(0x8050, "adlc_init",
     title="ADLC initialisation",
-    description="Initialise ADLC hardware and Econet workspace.\n"
-    "Reads station ID via &FE18 (INTOFF side effect),\n"
-    "performs a full ADLC reset (adlc_full_reset), then\n"
-    "checks for Tube co-processor via OSBYTE &EA and\n"
-    "stores the result in tube_present. Issues NMI claim service\n"
-    "request (OSBYTE &8F, X=&0C). Falls through to\n"
-    "init_nmi_workspace to copy the NMI shim to RAM.")
+    description="""\
+Initialise ADLC hardware and Econet workspace. Reads the station ID
+via `econet_station_id` (`&FE18`, INTOFF side effect), performs a
+full ADLC reset via [`adlc_full_reset`](address:898C?hex), then
+probes for a Tube co-processor via OSBYTE `&EA` and stores the
+result in `tube_present`. Issues an NMI-claim service request
+(OSBYTE `&8F`, `X=&0C`). Falls through to
+[`init_nmi_workspace`](address:8070?hex) to copy the NMI shim to
+RAM.""")
 subroutine(0x8070, "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
-    description="Copies 32 bytes of NMI shim code from ROM\n"
-    "(listen_jmp_hi) to the start of the NFS workspace\n"
-    "RAM block, then patches the current ROM bank number\n"
-    "into the self-modifying code at\n"
-    "[`nmi_romsel`](address:0D07?hex). The shim includes\n"
-    "the INTOFF/INTON pair (BIT &FE18 at entry, BIT &FE20\n"
-    "before RTI) that toggles the IC97 NMI enable flip-flop\n"
-    "to guarantee edge re-triggering on /NMI. Clears\n"
-    "tx_src_net,\n"
-    "need_release_tube, and tx_op_type to zero. Reads\n"
-    "station ID into tx_src_stn (&0D22). Sets\n"
-    "tx_complete_flag and econet_init_flag to &80.\n"
-    "Finally re-enables NMIs via INTON (&FE20 read).")
+    description="""\
+Copies 32 bytes of NMI shim code from ROM (`listen_jmp_hi`) to the
+start of the NFS workspace RAM block, then patches the current ROM
+bank number into the self-modifying code at `nmi_romsel` (`&0D07`).
+
+The shim includes the INTOFF/INTON pair (`BIT
+econet_station_id` at entry, `BIT econet_nmi_enable` before
+`RTI`) that toggles the IC97 NMI-enable flip-flop, guaranteeing
+edge re-triggering on /NMI.
+
+Workspace fields written:
+
+| Address / label | Value | Role |
+|---|---|---|
+| `tx_src_net`         | `0`    | clear |
+| `need_release_tube`  | `0`    | clear |
+| `tx_op_type`         | `0`    | clear |
+| `tx_src_stn` (`&0D22`) | station ID | from `econet_station_id` |
+| `tx_complete_flag`   | `&80`  | mark idle |
+| `econet_init_flag`   | `&80`  | mark initialised |
+
+Finally re-enables NMIs via INTON (`econet_nmi_enable` read).""")
 subroutine(0x809B, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
     description="Default NMI handler for incoming scout frames. Checks if the frame\n"
@@ -2502,21 +2515,32 @@ subroutine(0x86E7, "nmi_tx_data",
     "without returning from NMI (tight loop). Otherwise returns via RTI.")
 subroutine(0x8723, "tx_last_data",
     title="TX_LAST_DATA and frame completion",
-    description="Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA). Then installs\n"
-    "the TX completion NMI handler at &8728 (nmi_tx_complete).\n"
-    "CR2=&3F = 0011_1111:\n"
-    "  bit5: CLR_RX_ST -- clears fv_stored_ (prepares for RX of reply)\n"
-    "  bit4: TX_LAST_DATA -- tells ADLC this is the final data byte\n"
-    "  bit3: FLAG_IDLE -- send flags/idle after frame\n"
-    "  bit2: FC_TDRA -- force clear TDRA\n"
-    "  bit1: 2_1_BYTE -- two-byte transfer mode\n"
-    "  bit0: PSE -- prioritised status enable\n"
-    "Note: NO CLR_TX_ST (bit6=0), NO RTS (bit7=0 -- drops RTS after frame)\n"
-    "Exits via JMP set_nmi_vector which installs nmi_tx_complete,\n"
-    "then falls through to nmi_rti. The INTON (BIT &FE20) in\n"
-    "nmi_rti creates the /NMI edge for the frame-complete interrupt\n"
-    "-- essential because the ADLC IRQ may transition atomically\n"
-    "from TDRA to frame-complete without de-asserting.")
+    description="""\
+Signals end of TX frame by writing `CR2=&3F` (TX_LAST_DATA), then
+installs [`nmi_tx_complete`](address:872F?hex) as the next NMI
+handler.
+
+`CR2=&3F` = `%0011_1111`, with each bit selecting an ADLC
+control function:
+
+| Bit | Mnemonic | Effect |
+|-----|----------|--------|
+| 7   | (RTS)    | **0** – drops RTS after frame |
+| 6   | (CLR_TX_ST) | **0** – do *not* clear TX status |
+| 5   | CLR_RX_ST | clears `fv_stored_` (prepares for RX of reply) |
+| 4   | TX_LAST_DATA | tells the ADLC this is the final data byte |
+| 3   | FLAG_IDLE | send flags / idle after the frame |
+| 2   | FC_TDRA  | force clear TDRA |
+| 1   | 2_1_BYTE | two-byte transfer mode |
+| 0   | PSE      | prioritised status enable |
+
+The routine exits via `JMP` to `set_nmi_vector` (`&0D0E`), which
+installs [`nmi_tx_complete`](address:872F?hex) and falls through
+to `nmi_rti` (`&0D14`). The `BIT` of `econet_nmi_enable`
+(`&FE20`, INTON) inside `nmi_rti` creates the /NMI edge for the
+frame-complete interrupt – essential because the ADLC IRQ may
+transition atomically from TDRA to frame-complete without
+de-asserting in between.""")
 subroutine(0x872F, "nmi_tx_complete",
     title="TX completion: switch to RX mode",
     description="Called via NMI after the frame (including CRC\n"
