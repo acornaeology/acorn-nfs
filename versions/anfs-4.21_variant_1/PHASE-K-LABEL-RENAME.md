@@ -571,39 +571,47 @@ naming wrongly suggested they were FCB context bytes.
 inline comment — port, status, data — but the comments aren't
 fully consistent. Generic 0..3 indexing keeps the names honest.)
 
-### Still suspect (not corrected — flagged for follow-up)
+## Phase K7: Address remaining suspect HAZEL names (2026-05-02)
 
-- **`hazel_txcb_network` (&C103)** — at offset &03 of TXCB, which
-  in standard Econet TXCB convention IS the network byte. But
-  inline comments call it "reply function code" / "code from
-  hazel_txcb_network. If zero, branches to the no-reply path".
-  Either ANFS uses a custom TXCB layout, or this is another
-  multi-purpose byte. Needs deeper trace to settle.
-- **`hazel_txcb_check_1 / check_2` (&C10B / &C10C)** — agent
-  guesses based on "check" pattern usage. Each sees few
-  accesses with mixed-evidence comments. Possibly
-  `hazel_txcb_status_1 / 2` or `hazel_txcb_osword_flag` for
-  &C10C.
-- **`hazel_txcb_spare_116` (&C116)** — explicit placeholder.
-  Comments mention "display flag" copy / "fs_boot_data" — role
-  unclear.
-- **`hazel_examine_attr` (&C130)** — single access; might be
-  "examine_size" rather than "attr".
-- **`hazel_chan_status` (&C1C8)** — single-access placeholder
-  for what appears to be a per-channel byte (used with `,X`,
-  OR/AND-update pattern).
-- **`hazel_ws_spare_0a / 14 / 38 / f7`** — explicit placeholders;
-  ad-hoc scratch slots; need surrounding routine annotated.
-- **`hazel_fs_context_copy` (&C003)** — multi-purpose with
-  vague evidence; likely a Y-indexed-base into the FS context
-  block at &C003+.
-- **`hazel_fs_prefix_stn` (&C004)** — plausible from "saved-prefix
-  station" comment but other accesses say "library handle";
-  multi-purpose suspected.
+K7 traced each of the K6-flagged "still suspect" addresses
+through actual access sites and applied evidence-based
+corrections.
 
-The wrong/misleading names that remain are now flagged in this
-doc; each is a candidate for trace-and-rename in a future pass
-once the surrounding routines are annotated.
+### Renamed based on access evidence
+
+| Addr | K3/K4 name | New name | Evidence |
+|------|------------|----------|----------|
+| &C014 | `hazel_ws_spare_14` | `hazel_retry_counter` | Single store with comment "Increment retry counter; Non-zero: retry copy loop". |
+| &C00A | `hazel_ws_spare_0a` | `hazel_fs_opts_addend` | ADC/SBC operations on FS options at &C00A+X — workspace addend. |
+| &C038 | `hazel_ws_spare_38` | `hazel_rtc_buffer` | X-indexed BCD hours / day+month bytes — date/time buffer. |
+| &C0F7 | `hazel_ws_spare_f7` | `hazel_fs_reply_byte` | Y-indexed file-info bytes from `fs_reply_data`. |
+| &C10B | `hazel_txcb_check_1` | `hazel_txcb_tx_status` | Single store with comment "Negative: TX still in progress" — bit 7 = TX in progress. |
+| &C10C | `hazel_txcb_check_2` | `hazel_txcb_osword_flag` | Comment "Store as osword_flag". |
+| &C116 | `hazel_txcb_spare_116` | `hazel_txcb_byte_16` | "spare" suffix lied (it IS used once). Renamed to honest location-suffix. |
+
+### Annotated as multi-purpose (kept K3 name + clarifying comment)
+
+These bytes serve different roles in different code paths
+(same pattern as `hazel_fcb_state_byte`). The K3 name reflects
+one valid role; the inline comment captures the others.
+
+| Addr | Name | Multi-purpose annotation |
+|------|------|--------------------------|
+| &C003 | `hazel_fs_context_copy` | CSD handle / matched-entry index / Y-indexed base into FS context block |
+| &C004 | `hazel_fs_prefix_stn` | saved-prefix station / library handle / boot type |
+| &C103 | `hazel_txcb_network` | TXCB destination network (TX setup) / reply function code (RX context) / fs_cmd_csd buffer base (other paths) |
+
+### Kept as-is (single-use placeholders, names are accurate)
+
+| Addr | Name | Why kept |
+|------|------|----------|
+| &C130 | `hazel_examine_attr` | Single access in directory examination; "second attribute byte (size)" is a directory attribute. |
+| &C1C8 | `hazel_chan_status` | All 3 accesses use OR/AND-update on "channel status byte"; name matches. |
+
+After K7, every HAZEL byte either has a name supported by
+access-site evidence, or has a `# multi-purpose` annotation
+listing the divergent roles. **No HAZEL labels remain
+flagged as "wrong / suspect / unverified".**
 
 ## Findings
 

@@ -313,14 +313,14 @@ hazel_fs_messages_flag      = &c006
 hazel_fs_pending_state      = &c007
 hazel_fs_error_code         = &c008
 hazel_fs_last_error         = &c009
-hazel_ws_spare_0a           = &c00a
-hazel_ws_spare_14           = &c014
+hazel_fs_opts_addend        = &c00a
+hazel_retry_counter         = &c014
 hazel_parse_buf_m1          = &c02f
 hazel_parse_buf             = &c030
 hazel_parse_buf_1           = &c031
 hazel_parse_buf_2           = &c032
-hazel_ws_spare_38           = &c038
-hazel_ws_spare_f7           = &c0f7
+hazel_rtc_buffer            = &c038
+hazel_fs_reply_byte         = &c0f7
 hazel_txcb_port             = &c100
 hazel_txcb_func_code        = &c101
 hazel_txcb_station          = &c102
@@ -332,8 +332,8 @@ hazel_txcb_count            = &c107
 hazel_txcb_result           = &c108
 hazel_exec_addr             = &c109
 hazel_txcb_size_hi          = &c10a
-hazel_txcb_check_1          = &c10b
-hazel_txcb_check_2          = &c10c
+hazel_txcb_tx_status        = &c10b
+hazel_txcb_osword_flag      = &c10c
 hazel_txcb_addr_lo          = &c10d
 hazel_txcb_access           = &c10e
 hazel_txcb_addr_hi          = &c110
@@ -341,7 +341,7 @@ hazel_txcb_len              = &c111
 hazel_txcb_type             = &c112
 hazel_txcb_objtype          = &c113
 hazel_txcb_cycle            = &c114
-hazel_txcb_spare_116        = &c116
+hazel_txcb_byte_16          = &c116
 hazel_txcb_end              = &c12f
 hazel_examine_attr          = &c130
 hazel_chan_status           = &c1c8
@@ -7518,7 +7518,7 @@ bad_prefix_table = bad_str_anchor+1
     beq store_prot_byte                                               ; 9d1a: f0 03       ..             ; Zero: use reply buffer data
 ; &9d1c referenced 1 time by &9d24
 .loop_copy_file_info
-    lda hazel_ws_spare_f7,y                                           ; 9d1c: b9 f7 c0    ...            ; Load file info byte from fs_reply_data
+    lda hazel_fs_reply_byte,y                                         ; 9d1c: b9 f7 c0    ...            ; Load file info byte from fs_reply_data
 ; &9d1f referenced 1 time by &9d1a
 .store_prot_byte
     sta (fs_options),y                                                ; 9d1f: 91 bb       ..             ; Store in FS options at offset Y
@@ -8479,12 +8479,12 @@ cmos_attr_table = store_carry_to_workspace+1
     lda (fs_options),y                                                ; a136: b1 bb       ..             ; Load FS options byte at offset Y; Load command handler address high
     bit fs_load_addr_2                                                ; a138: 24 b2       $.             ; Test fs_load_addr_2 bit 7 (add/subtract)
     bmi subtract_ws_byte                                              ; a13a: 30 06       0.             ; Push high byte; Bit 7 set: subtract instead; Load command handler address low
-    adc hazel_ws_spare_0a,x                                           ; a13c: 7d 0a c0    }..            ; Add workspace byte to FS options; Push low byte
+    adc hazel_fs_opts_addend,x                                        ; a13c: 7d 0a c0    }..            ; Add workspace byte to FS options; Push low byte
     jmp store_adjusted_byte                                           ; a13f: 4c 45 a1    LE.            ; RTS dispatches to command handler; Jump to store result
 
 ; &a142 referenced 1 time by &a13a
 .subtract_ws_byte
-    sbc hazel_ws_spare_0a,x                                           ; a142: fd 0a c0    ...            ; Subtract workspace byte from FS options
+    sbc hazel_fs_opts_addend,x                                        ; a142: fd 0a c0    ...            ; Subtract workspace byte from FS options
 ; ***************************************************************************************
 ; Store adjusted byte and step the loop
 ;
@@ -8742,14 +8742,14 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Send OSBPUT data block to file server
 ;
 ; Sets Y=&15 (TX buffer size for OSBPUT data) and calls save_net_tx_cb to dispatch the
-; TX. Then copies the display flag from hazel_fs_flags to hazel_txcb_spare_116 (TX
-; header continuation). Single caller in the OSBPUT-buffered-write path.
+; TX. Then copies the display flag from hazel_fs_flags to hazel_txcb_byte_16 (TX header
+; continuation). Single caller in the OSBPUT-buffered-write path.
 ; &a28a referenced 1 time by &a2ba
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
     jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..            ; Send TX control block
     lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...            ; Load display flag from fs_boot_option
-    sta hazel_txcb_spare_116                                          ; a292: 8d 16 c1    ...            ; Store in fs_boot_data
+    sta hazel_txcb_byte_16                                            ; a292: 8d 16 c1    ...            ; Store in fs_boot_data
     stx fs_load_addr                                                  ; a295: 86 b0       ..             ; Clear fs_load_addr (X=0)
     stx fs_load_addr_hi                                               ; a297: 86 b1       ..             ; Clear fs_load_addr_hi
     lda #&12                                                          ; a299: a9 12       ..             ; A=&12: byte count for data block
@@ -9402,7 +9402,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a55a referenced 1 time by &a561
 .loop_shift_name_right
     lda hazel_parse_buf,x                                             ; a55a: bd 30 c0    .0.            ; Convert binary to BCD
-    sta hazel_ws_spare_38,x                                           ; a55d: 9d 38 c0    .8.            ; Store BCD hours
+    sta hazel_rtc_buffer,x                                            ; a55d: 9d 38 c0    .8.            ; Store BCD hours
     dex                                                               ; a560: ca          .              ; Decrement scan index
     bpl loop_shift_name_right                                         ; a561: 10 f7       ..             ; Clear hours high position
     ldx #7                                                            ; a563: a2 07       ..             ; Store zero
@@ -9424,7 +9424,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a57a referenced 1 time by &a583
 .loop_restore_name
     inx                                                               ; a57a: e8          .              ; Store BCD month
-    lda hazel_ws_spare_38,x                                           ; a57b: bd 38 c0    .8.            ; Restore day+month byte
+    lda hazel_rtc_buffer,x                                            ; a57b: bd 38 c0    .8.            ; Restore day+month byte
     sta hazel_parse_buf,x                                             ; a57e: 9d 30 c0    .0.            ; Shift high nibble down; Continue shifting; Continue shifting
     eor #&0d                                                          ; a581: 49 0d       I.             ; 4th shift: isolate high nibble; Add &51 for year offset + carry
     bne loop_restore_name                                             ; a583: d0 f5       ..             ; Convert year to BCD
@@ -9536,14 +9536,14 @@ cmos_attr_table = store_carry_to_workspace+1
     stx fs_block_offset                                               ; a608: 86 bc       ..             ; Y=1: workspace flag offset
     lda #&0e                                                          ; a60a: a9 0e       ..             ; Store pending marker to workspace
     sta fs_options                                                    ; a60c: 85 bb       ..             ; Store as fs_options
-    sta hazel_ws_spare_14                                             ; a60e: 8d 14 c0    ...            ; Increment retry counter; Non-zero: retry copy loop
+    sta hazel_retry_counter                                           ; a60e: 8d 14 c0    ...            ; Increment retry counter; Non-zero: retry copy loop
     ldx #&4a ; 'J'                                                    ; a611: a2 4a       .J             ; Decrement Y (adjust offset)
     ldy #5                                                            ; a613: a0 05       ..             ; Store result A to PB via Y
     jsr do_fs_cmd_iteration                                           ; a615: 20 3e 9c     >.            ; Rotate Econet flags back (restore state)
     lda tube_present                                                  ; a618: ad 63 0d    .c.            ; Return from OSWORD 11 handler; Set workspace from RX ptr high
     beq dispatch_via_vector                                           ; a61b: f0 16       ..             ; Store to ws_ptr_lo
-    and hazel_txcb_check_1                                            ; a61d: 2d 0b c1    -..            ; Y=&7F: last byte of RX buffer; Load port/count from RX buffer
-    and hazel_txcb_check_2                                            ; a620: 2d 0c c1    -..            ; Y=&80: set workspace pointer; Store as osword_flag
+    and hazel_txcb_tx_status                                          ; a61d: 2d 0b c1    -..            ; Y=&7F: last byte of RX buffer; Load port/count from RX buffer
+    and hazel_txcb_osword_flag                                        ; a620: 2d 0c c1    -..            ; Y=&80: set workspace pointer; Store as osword_flag
     cmp #&ff                                                          ; a623: c9 ff       ..             ; X = port/count value
     beq dispatch_via_vector                                           ; a625: f0 0c       ..             ; X-1: adjust count; Y=0 for copy
     jsr tube_claim_c3                                                 ; a627: 20 90 a3     ..            ; Copy workspace data
@@ -10061,7 +10061,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     jsr save_net_tx_cb                                                ; a895: 20 8a 97     ..            ; High byte = 0 (page 0)
     lda hazel_exec_addr                                               ; a898: ad 09 c1    ...            ; Set NMI TX block high; Begin Econet transmission
     jsr bin_to_bcd                                                    ; a89b: 20 01 a9     ..            ; Test TX control block bit 7
-    sta hazel_txcb_check_1                                            ; a89e: 8d 0b c1    ...            ; Negative: TX still in progress
+    sta hazel_txcb_tx_status                                          ; a89e: 8d 0b c1    ...            ; Negative: TX still in progress
     lda hazel_txcb_result                                             ; a8a1: ad 08 c1    ...            ; Transfer TX completion status to A; Save TX status; OSBYTE &13: wait for VSYNC
     jsr bin_to_bcd                                                    ; a8a4: 20 01 a9     ..            ; Wait for vertical sync
     sta hazel_txcb_size_hi                                            ; a8a7: 8d 0a c1    ...            ; Restore TX status; Back to X
@@ -16044,20 +16044,20 @@ save pydis_start, pydis_end
 ;     hazel_fcb_slot_1:                2
 ;     hazel_fcb_slot_2:                2
 ;     hazel_fcb_slot_3:                2
+;     hazel_fs_opts_addend:            2
 ;     hazel_minus_1:                   2
 ;     hazel_net_reply_buf_0:           2
 ;     hazel_net_reply_buf_1:           2
 ;     hazel_net_reply_buf_2:           2
 ;     hazel_parse_buf_m1:              2
+;     hazel_rtc_buffer:                2
 ;     hazel_saved_byte:                2
 ;     hazel_txcb_addr_hi:              2
-;     hazel_txcb_check_1:              2
 ;     hazel_txcb_func_code:            2
 ;     hazel_txcb_len:                  2
 ;     hazel_txcb_size_hi:              2
+;     hazel_txcb_tx_status:            2
 ;     hazel_txcb_type:                 2
-;     hazel_ws_spare_0a:               2
-;     hazel_ws_spare_38:               2
 ;     help_print_start:                2
 ;     imm_op_out_of_range:             2
 ;     inc_fcb_byte_count:              2
@@ -16444,21 +16444,21 @@ save pydis_start, pydis_end
 ;     hazel_fcb_addr_lo_minus20:       1
 ;     hazel_fcb_addr_mid_minus20:      1
 ;     hazel_fcb_network:               1
+;     hazel_fs_reply_byte:             1
 ;     hazel_minus_1a:                  1
 ;     hazel_net_reply_buf_3:           1
 ;     hazel_parse_buf_2:               1
+;     hazel_retry_counter:             1
 ;     hazel_sentinel_cd:               1
 ;     hazel_sentinel_ce:               1
 ;     hazel_transfer_flag:             1
 ;     hazel_txcb_access:               1
 ;     hazel_txcb_addr_lo:              1
-;     hazel_txcb_check_2:              1
+;     hazel_txcb_byte_16:              1
 ;     hazel_txcb_cycle:                1
 ;     hazel_txcb_end:                  1
 ;     hazel_txcb_objtype:              1
-;     hazel_txcb_spare_116:            1
-;     hazel_ws_spare_14:               1
-;     hazel_ws_spare_f7:               1
+;     hazel_txcb_osword_flag:          1
 ;     hazel_xfer_init_zeros:           1
 ;     help_dispatch_setup:             1
 ;     help_print_char_check:           1

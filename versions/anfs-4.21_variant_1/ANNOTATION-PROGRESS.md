@@ -627,6 +627,29 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
+## Phase K7: Address remaining suspect HAZEL names
+
+  **Done (2026-05-02).** Traced each K6-flagged suspect address
+  through actual access sites. Applied 7 evidence-based renames
+  (`hazel_ws_spare_*` → `hazel_retry_counter` / `hazel_fs_opts_addend` /
+  `hazel_rtc_buffer` / `hazel_fs_reply_byte`; `hazel_txcb_check_1/2` →
+  `hazel_txcb_tx_status` / `hazel_txcb_osword_flag`;
+  `hazel_txcb_spare_116` → `hazel_txcb_byte_16`).
+
+  Annotated 3 multi-purpose bytes (&C003, &C004, &C103) with
+  inline `# multi-purpose: ...` comments listing the divergent
+  roles, following the `hazel_fcb_state_byte` pattern.
+
+  Kept 2 (`hazel_examine_attr`, `hazel_chan_status`) as-is — their
+  K3 names accurately reflect access-site evidence.
+
+  **After K7, no HAZEL labels remain flagged as wrong / suspect
+  / unverified.** Every name is either evidence-supported or
+  multi-purpose-annotated.
+
+  Verified byte-identical, lint clean, comments check clean,
+  audit placeholders clean.
+
 ## Phase K6: Fix wrong/suspect HAZEL names
 
   **Done (2026-05-02).** Honest re-audit of the K3/K4 HAZEL names
