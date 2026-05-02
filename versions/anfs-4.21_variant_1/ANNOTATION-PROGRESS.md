@@ -627,6 +627,36 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
+## Phase L: Systematic subroutine comment review + Markdown rewrite
+
+  **Done (2026-05-03).** All 452 subroutines reviewed and, where
+  appropriate, rewritten using the AUTHORING.md Markdown features
+  (GFM tables for dispatch decisions / bit decompositions /
+  register-I/O summaries; numbered lists for sequential
+  breakdowns; `[name](address:HEX?hex)` first-mention links;
+  inline backticks for register / hex / mnemonic literals;
+  en-dashes; fenced code blocks where helpful).
+
+  **Counts:** 163 routines rewritten (`done`); 289 kept as
+  already-accurate (`kept`).
+
+  Phase L0 (preceding) added memory-map metadata to 71
+  workspace / MMIO addresses; further on-the-fly enrichments
+  during Phase L brought the total memory-map entry count up so
+  that all `address:HEX?hex` links from descriptions resolve
+  cleanly. Site build at **0 warnings**.
+
+  Several factual corrections caught during review:
+  - `tx_last_data` previously said "NMI handler at &8728"; the
+    handler is actually at &872F.
+  - `print_version_header` description claimed the inline string
+    was "Advanced 4.08.53"; the actual string is "Advanced NFS
+    4.21".
+
+  Tracked in `PHASE-L-SUBROUTINE-REVIEW.md` with per-routine
+  status. Verified byte-identical, lint clean, comments check
+  clean, audit placeholders clean.
+
 ## Phase K7: Address remaining suspect HAZEL names
 
   **Done (2026-05-02).** Traced each K6-flagged suspect address

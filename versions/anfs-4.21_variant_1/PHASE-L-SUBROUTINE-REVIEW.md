@@ -69,8 +69,17 @@ addresses across all 431 remaining routines.
 
 ## Progress
 
-452 routines total. Processing address-ordered, in clusters of
-~10–20 per commit.
+**Status: COMPLETE (2026-05-03).** All 452 routines reviewed.
+
+| Status | Count | Meaning |
+|---|---:|---|
+| `done` | 163 | description rewritten with new Markdown features (tables, bullet lists, code blocks, `?hex` first-mention links) |
+| `kept` | 289 | description was already accurate; the project-wide `?hex` sweep polished the existing links |
+
+Verified byte-identical, lint clean, comments check clean. Site
+build at 0 warnings. Memory-map page renders all enriched
+addresses (Phase L0 plus the per-cluster on-the-fly
+enrichments).
 
 | # | Addr | Name | Status | Notes |
 |---|------|------|--------|-------|
@@ -454,75 +463,75 @@ addresses across all 431 remaining routines.
 | 378 | &B373 | `save_ptr_to_os_text` | kept | already accurate |
 | 379 | &B37F | `skip_to_next_arg` | kept | already accurate |
 | 380 | &B393 | `save_ptr_to_spool_buf` | kept | already accurate |
-| 381 | &B39E | `init_spool_drive` | | |
-| 382 | &B3AC | `cmd_ps` | | |
-| 383 | &B3D5 | `copy_ps_data_y1c` | | |
-| 384 | &B3D7 | `copy_ps_data` | | |
-| 385 | &B477 | `store_ps_station` | | |
-| 386 | &B483 | `print_file_server_is` | | |
-| 387 | &B48D | `print_printer_server_is` | | |
-| 388 | &B4A8 | `load_ps_server_addr` | | |
-| 389 | &B4B4 | `pop_requeue_ps_scan` | | |
-| 390 | &B4D6 | `skip_next_ps_slot` | | |
-| 391 | &B51C | `write_ps_slot_byte_ff` | | |
-| 392 | &B523 | `write_two_bytes_inc_y` | | |
-| 393 | &B52B | `reverse_ps_name_to_tx` | | |
-| 394 | &B556 | `print_station_addr` | | |
-| 395 | &B575 | `ps_slot_txcb_template` | | |
-| 396 | &B581 | `cmd_pollps` | | |
-| 397 | &B6A6 | `init_ps_slot_from_rx` | | |
-| 398 | &B6BD | `store_char_uppercase` | | |
-| 399 | &B6D2 | `cmd_prot` | | |
-| 400 | &B6D6 | `cmd_unprot` | | |
-| 401 | &B6F3 | `cmd_wipe` | | |
-| 402 | &B703 | `request_next_wipe` | | |
-| 403 | &B7CB | `prompt_yn` | | |
-| 404 | &B7D3 | `flush_and_read_char` | | |
-| 405 | &B7E3 | `init_channel_table` | | |
-| 406 | &B805 | `attr_to_chan_index` | | |
-| 407 | &B814 | `check_chan_char` | | |
-| 408 | &B81C | `err_net_chan_invalid` | | |
-| 409 | &B847 | `lookup_chan_by_char` | | |
-| 410 | &B886 | `store_result_check_dir` | | |
-| 411 | &B88C | `check_not_dir` | | |
-| 412 | &B8A8 | `alloc_fcb_slot` | | |
-| 413 | &B8DC | `alloc_fcb_or_error` | | |
-| 414 | &B8F8 | `close_all_net_chans` | | |
-| 415 | &B8FC | `scan_fcb_flags` | | |
-| 416 | &B925 | `match_station_net` | | |
-| 417 | &B934 | `find_open_fcb` | | |
-| 418 | &B977 | `init_wipe_counters` | | |
-| 419 | &B99A | `start_wipe_pass` | | |
-| 420 | &BA09 | `save_fcb_context` | | |
-| 421 | &BAB7 | `loop_restore_workspace` | | |
-| 422 | &BAC0 | `restore_catalog_entry` | | |
-| 423 | &BACC | `loop_save_before_match` | | |
-| 424 | &BACF | `find_matching_fcb` | | |
-| 425 | &BB2A | `inc_fcb_byte_count` | | |
-| 426 | &BB38 | `process_all_fcbs` | | |
-| 427 | &BB68 | `bgetv_handler` | | |
-| 428 | &BBE7 | `bputv_handler` | | |
-| 429 | &BC65 | `done_inc_byte_count` | | |
-| 430 | &BC74 | `flush_fcb_if_station_known` | | |
-| 431 | &BC7C | `flush_fcb_with_init` | | |
-| 432 | &BCBC | `send_wipe_request` | | |
-| 433 | &BD15 | `send_and_receive` | | |
-| 434 | &BD1B | `read_rx_attribute` | | |
-| 435 | &BD20 | `store_rx_attribute` | | |
-| 436 | &BD25 | `abort_if_escape` | | |
-| 437 | &BD41 | `cmd_dump` | | |
-| 438 | &BD59 | `loop_dump_line` | | |
-| 439 | &BD79 | `loop_pop_stack_buf` | | |
-| 440 | &BDBB | `loop_next_dump_col` | | |
-| 441 | &BE01 | `print_dump_header` | | |
-| 442 | &BE37 | `print_hex_and_space` | | |
-| 443 | &BE42 | `parse_dump_range` | | |
-| 444 | &BE4E | `loop_parse_hex_digit` | | |
-| 445 | &BEAB | `init_dump_buffer` | | |
-| 446 | &BF71 | `close_ws_file` | | |
-| 447 | &BF78 | `open_file_for_read` | | |
-| 448 | &BFBA | `advance_x_by_8` | | |
-| 449 | &BFBD | `advance_x_by_4` | | |
-| 450 | &BFC0 | `inx4` | | |
-| 451 | &BFC5 | `rom_tail_padding` | | |
-| 452 | &BFE6 | `hazel_idx_bases` | | |
+| 381 | &B39E | `init_spool_drive` | kept | already accurate |
+| 382 | &B3AC | `cmd_ps` | kept | already accurate |
+| 383 | &B3D5 | `copy_ps_data_y1c` | kept | already accurate |
+| 384 | &B3D7 | `copy_ps_data` | kept | already accurate |
+| 385 | &B477 | `store_ps_station` | kept | already accurate |
+| 386 | &B483 | `print_file_server_is` | kept | already accurate |
+| 387 | &B48D | `print_printer_server_is` | kept | already accurate |
+| 388 | &B4A8 | `load_ps_server_addr` | kept | already accurate |
+| 389 | &B4B4 | `pop_requeue_ps_scan` | kept | already accurate |
+| 390 | &B4D6 | `skip_next_ps_slot` | kept | already accurate |
+| 391 | &B51C | `write_ps_slot_byte_ff` | kept | already accurate |
+| 392 | &B523 | `write_two_bytes_inc_y` | kept | already accurate |
+| 393 | &B52B | `reverse_ps_name_to_tx` | kept | already accurate |
+| 394 | &B556 | `print_station_addr` | kept | already accurate |
+| 395 | &B575 | `ps_slot_txcb_template` | kept | already accurate |
+| 396 | &B581 | `cmd_pollps` | kept | already accurate |
+| 397 | &B6A6 | `init_ps_slot_from_rx` | kept | already accurate |
+| 398 | &B6BD | `store_char_uppercase` | kept | already accurate |
+| 399 | &B6D2 | `cmd_prot` | kept | already accurate |
+| 400 | &B6D6 | `cmd_unprot` | kept | already accurate |
+| 401 | &B6F3 | `cmd_wipe` | kept | already accurate |
+| 402 | &B703 | `request_next_wipe` | kept | already accurate |
+| 403 | &B7CB | `prompt_yn` | kept | already accurate |
+| 404 | &B7D3 | `flush_and_read_char` | kept | already accurate |
+| 405 | &B7E3 | `init_channel_table` | kept | already accurate |
+| 406 | &B805 | `attr_to_chan_index` | kept | already accurate |
+| 407 | &B814 | `check_chan_char` | kept | already accurate |
+| 408 | &B81C | `err_net_chan_invalid` | kept | already accurate |
+| 409 | &B847 | `lookup_chan_by_char` | kept | already accurate |
+| 410 | &B886 | `store_result_check_dir` | kept | already accurate |
+| 411 | &B88C | `check_not_dir` | kept | already accurate |
+| 412 | &B8A8 | `alloc_fcb_slot` | kept | already accurate |
+| 413 | &B8DC | `alloc_fcb_or_error` | kept | already accurate |
+| 414 | &B8F8 | `close_all_net_chans` | kept | already accurate |
+| 415 | &B8FC | `scan_fcb_flags` | kept | already accurate |
+| 416 | &B925 | `match_station_net` | kept | already accurate |
+| 417 | &B934 | `find_open_fcb` | kept | already accurate |
+| 418 | &B977 | `init_wipe_counters` | kept | already accurate |
+| 419 | &B99A | `start_wipe_pass` | kept | already accurate |
+| 420 | &BA09 | `save_fcb_context` | kept | already accurate |
+| 421 | &BAB7 | `loop_restore_workspace` | kept | already accurate |
+| 422 | &BAC0 | `restore_catalog_entry` | kept | already accurate |
+| 423 | &BACC | `loop_save_before_match` | kept | already accurate |
+| 424 | &BACF | `find_matching_fcb` | kept | already accurate |
+| 425 | &BB2A | `inc_fcb_byte_count` | kept | already accurate |
+| 426 | &BB38 | `process_all_fcbs` | kept | already accurate |
+| 427 | &BB68 | `bgetv_handler` | kept | already accurate |
+| 428 | &BBE7 | `bputv_handler` | kept | already accurate |
+| 429 | &BC65 | `done_inc_byte_count` | kept | already accurate |
+| 430 | &BC74 | `flush_fcb_if_station_known` | kept | already accurate |
+| 431 | &BC7C | `flush_fcb_with_init` | kept | already accurate |
+| 432 | &BCBC | `send_wipe_request` | kept | already accurate |
+| 433 | &BD15 | `send_and_receive` | kept | already accurate |
+| 434 | &BD1B | `read_rx_attribute` | kept | already accurate |
+| 435 | &BD20 | `store_rx_attribute` | kept | already accurate |
+| 436 | &BD25 | `abort_if_escape` | kept | already accurate |
+| 437 | &BD41 | `cmd_dump` | kept | already accurate |
+| 438 | &BD59 | `loop_dump_line` | kept | already accurate |
+| 439 | &BD79 | `loop_pop_stack_buf` | kept | already accurate |
+| 440 | &BDBB | `loop_next_dump_col` | kept | already accurate |
+| 441 | &BE01 | `print_dump_header` | kept | already accurate |
+| 442 | &BE37 | `print_hex_and_space` | kept | already accurate |
+| 443 | &BE42 | `parse_dump_range` | kept | already accurate |
+| 444 | &BE4E | `loop_parse_hex_digit` | kept | already accurate |
+| 445 | &BEAB | `init_dump_buffer` | kept | already accurate |
+| 446 | &BF71 | `close_ws_file` | kept | already accurate |
+| 447 | &BF78 | `open_file_for_read` | kept | already accurate |
+| 448 | &BFBA | `advance_x_by_8` | kept | already accurate |
+| 449 | &BFBD | `advance_x_by_4` | kept | already accurate |
+| 450 | &BFC0 | `inx4` | kept | already accurate |
+| 451 | &BFC5 | `rom_tail_padding` | kept | already accurate |
+| 452 | &BFE6 | `hazel_idx_bases` | kept | already accurate |
