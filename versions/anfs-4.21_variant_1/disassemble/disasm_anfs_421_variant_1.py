@@ -37,7 +37,7 @@ trace.cpu.default_subroutine_hook = None
 byte(0xBFC7)  # Force padding byte onto its own line for annotation
 
 data_banner(0xBFC5, "rom_tail_padding",
-    title="ROM-tail FF padding (33 bytes &BFC5-&BFE5)",
+    title="ROM-tail FF padding (33 bytes preceding the lbfe6 workspace)",
     description="""\
 33 bytes of `&FF` at the end of the ROM image, between the last
 real subroutine ([`inx4`](address:BFC0)) and the sideways-RAM
@@ -9070,7 +9070,7 @@ data_banner(0x89ED, "svc_dispatch_lo",
 Low-byte half of the PHA/PHA/RTS dispatch table read by
 [`svc_dispatch`](address:8E61) as `LDA &89ED,X`. Paired with the
 high-byte half at [`svc_dispatch_hi`](address:8A20). Index 0 is a
-placeholder (`&E905` -- never reached); indices 1..50 cover service
+placeholder (target value unused -- never reached); indices 1..50 cover service
 handlers, language reply handlers, FSCV reasons, FS reply handlers,
 and the net-handle / OSWORD &13 trampolines. Per-entry inline
 comments name each target.""")
@@ -10127,7 +10127,7 @@ data_banner(0xB0D5, "cdir_alloc_size_table",
     description="""\
 26 thresholds dividing 0-255 into size classes for the *CDir
 directory-size argument. Table base is at `cdir_dispatch_col+2`
-(overlapping the JMP operand high byte at `&B0D4`); the search
+(overlapping the JMP operand high byte just before the table); the search
 loop (`LDX #&1B` / `DEX` / `CMP table,X` / `BCC`) scans indices
 26 down to 0. Index 0 reads `&94` from the JMP and is unreachable
 because index 1 (threshold `&00`) always matches first. The

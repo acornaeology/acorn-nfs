@@ -2874,10 +2874,10 @@ l89c9 = reset_enter_listen+2
 ; svc_dispatch low-byte table (51 entries)
 ;
 ; Low-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &89ED,X.
-; Paired with the high-byte half at svc_dispatch_hi. Index 0 is a placeholder (&E905 --
-; never reached); indices 1..50 cover service handlers, language reply handlers, FSCV
-; reasons, FS reply handlers, and the net-handle / OSWORD &13 trampolines. Per-entry
-; inline comments name each target.
+; Paired with the high-byte half at svc_dispatch_hi. Index 0 is a placeholder (target
+; value unused -- never reached); indices 1..50 cover service handlers, language reply
+; handlers, FSCV reasons, FS reply handlers, and the net-handle / OSWORD &13
+; trampolines. Per-entry inline comments name each target.
 ; &89ed referenced 1 time by &8e6a
 .svc_dispatch_lo
     equb 4                                                            ; 89ed: 04          .              ; idx &00: placeholder (target &E905, never reached)
@@ -11847,11 +11847,11 @@ lb0d4 = cdir_dispatch_col+2
 ; *CDir allocation size threshold table (26 entries)
 ;
 ; 26 thresholds dividing 0-255 into size classes for the *CDir directory-size argument.
-; Table base is at cdir_dispatch_col+2 (overlapping the JMP operand high byte at
-; &B0D4); the search loop (LDX #&1B / DEX / CMP table,X / BCC) scans indices 26 down to
-; 0. Index 0 reads &94 from the JMP and is unreachable because index 1 (threshold &00)
-; always matches first. The resulting X (1-26) is the allocation size class sent to the
-; file server. Default when no size argument is given: index 2.
+; Table base is at cdir_dispatch_col+2 (overlapping the JMP operand high byte just
+; before the table); the search loop (LDX #&1B / DEX / CMP table,X / BCC) scans indices
+; 26 down to 0. Index 0 reads &94 from the JMP and is unreachable because index 1
+; (threshold &00) always matches first. The resulting X (1-26) is the allocation size
+; class sent to the file server. Default when no size argument is given: index 2.
     equb 0                                                            ; b0d5: 00          .              ; Index 1: threshold 0 (catch-all)
     equb &0a                                                          ; b0d6: 0a          .              ; Index 2: threshold 10 (default)
     equb &14                                                          ; b0d7: 14          .              ; Index 3: threshold 20
@@ -15185,7 +15185,7 @@ lb821 = err_net_chan_not_found+2
     rts                                                               ; bfc4: 60          `              ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
 
 ; ***************************************************************************************
-; ROM-tail FF padding (33 bytes &BFC5-&BFE5)
+; ROM-tail FF padding (33 bytes preceding the lbfe6 workspace)
 ;
 ; 33 bytes of &FF at the end of the ROM image, between the last real subroutine (inx4)
 ; and the sideways-RAM scratch workspace at lbfe6 onwards. As ROM content this is
