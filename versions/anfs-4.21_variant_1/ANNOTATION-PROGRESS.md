@@ -627,12 +627,26 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
-  Outstanding for a possible Phase K3: 110 workspace external
-  symbols (`lXXXX = &XXXX` declarations for addresses outside the
-  ROM -- zero page, MOS workspace, HAZEL `&C100..&C2FF`). Only
-  `lc109` at `&C109` was renamed (to `hazel_exec_addr`). The rest
-  are mostly workspace bytes whose semantic meaning will only
-  emerge from deeper annotation of the routines that touch them.
+## Phase K3: Rename workspace external symbols
+
+  **Done (2026-05-02).** 110 `lXXXX = &XXXX` declarations renamed
+  (81 HAZEL workspace bytes + 14 standard MOS locations + 8 misc
+  RAM + 7 MOS hardware registers). Plus 14 indexing-base aliases
+  (`lXXXX = symbol+offset`) and 1 HAZEL base (`&C000`, was
+  addressed via py8dis's `pydis_end` builtin). 4.18 names reused
+  verbatim where applicable; HAZEL bytes named from use-site
+  context. ~30 HAZEL bytes still carry approximate placeholder
+  names (e.g. `hazel_shadow_XX`) flagged for refinement once the
+  channel-management routines are annotated. Tracked in
+  `PHASE-K-LABEL-RENAME.md` under "Phase K3".
+
+  **Total across K + K2 + K3: 234 placeholder names eliminated.**
+  The visible disassembly is fully semantically named:
+  - `grep -cE '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'` on asm = 0
+  - `grep -cE '^l[0-9a-f]{4}\s+='` on asm = 0
+  - No `pydis_end` operand uses
+
+  Verified byte-identical, lint clean, comments check clean.
 
 ## Working queue
 

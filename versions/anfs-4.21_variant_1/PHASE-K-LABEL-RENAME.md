@@ -62,14 +62,28 @@ external (`lc109` at `&C109`). Total to rename: **78**.
 
 ## Status: COMPLETE (2026-05-02)
 
-All 78 in-ROM auto-labels (`l*`/`c*`) have been renamed AND all 31
-`sub_cXXXX` / `loop_cXXXX` placeholder routines have been
-renamed and properly declared (Phase K2; see "Phase K2"
-section below).
+Three sub-phases:
 
-`grep -cE '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'` on the regenerated ASM
-returns **0** — there are no hex-tail placeholder names anywhere
-in the output.
+- **Phase K** — 78 in-ROM auto-labels (`lXXXX`/`cXXXX`)
+- **Phase K2** — 31 `sub_cXXXX` / `loop_cXXXX` placeholder routines
+- **Phase K3** — 110 workspace external symbols (`lXXXX = &XXXX`) +
+  14 indexing-base aliases (`lXXXX = symbol+offset`) + 1 HAZEL
+  base (`pydis_end` at `&C000`)
+
+Total: **234 placeholder names eliminated.**
+
+After all three sub-phases:
+- `grep -cE '^\.[a-z]+_[a-z]?[0-9a-f]{4}$'` on the asm output returns **0**
+  (no hex-tail label declarations anywhere)
+- `grep -cE '^l[0-9a-f]{4}\s+= &'` returns **0** (no auto-named externals)
+- `grep -cE '^l[0-9a-f]{4}\s+='` returns **0** (no `lXXXX =
+  symbol+offset` aliases either)
+
+The visible disassembly is fully semantically named. (Stale
+references to old auto-names remain in inline comment text in
+some places — those are documentation strings, not labels, and
+will be cleaned up by ordinary annotation passes as routines are
+revisited.)
 
 Verified byte-identical reassembly, lint clean, comments check
 clean.
@@ -280,6 +294,56 @@ for all 31 with semantic names.
 Note: `loop_help_skip_spaces` (&96C8) was the agent's `loop_skip_spaces`
 renamed to avoid collision with an existing `loop_skip_spaces` label
 at &948B in a different routine.
+
+## Phase K3: rename 110 workspace external symbols (2026-05-02)
+
+py8dis emits `lXXXX = &XXXX` external declarations for any
+address outside the ROM that the code references but the driver
+hasn't named. Phase K3 names every one. Distribution:
+
+- 81 HAZEL workspace bytes (`&C001..&C2F3`) — ANFS private FS
+  workspace; previously all auto-named
+- 14 page-1-3 / MOS-vector addresses — most have direct 4.18
+  semantic names that we reused verbatim (`error_block`,
+  `stack_page_*`, `vdu_*`, `last_break_type`, `rom_type_table`,
+  `nmi_code_base`, etc.)
+- 8 misc RAM addresses
+- 7 MOS hardware registers (`acccon` at `&FE34`, plus shadow
+  registers and Master 128 INTOFF/INTON mirrors)
+- 3 zero page
+
+Plus:
+
+- **14 indexing-base aliases** — py8dis emits `lXXXX = symbol+offset`
+  for `LDA somelabel,X/Y` patterns where the base lies inside an
+  existing routine. Naming the base address explicitly replaces
+  the auto-alias with a domain name (`tx_length_table`,
+  `cmd_dispatch_lo_table`, `nmi_shim_source`, etc.).
+- **1 HAZEL base** at `&C000` — was being addressed via py8dis's
+  built-in `pydis_end` symbol (meaning "first address past ROM").
+  Renamed to `hazel_fs_station_hi` to make stores there
+  self-explanatory.
+
+### Caveats: HAZEL bytes flagged for refinement
+
+Several HAZEL bytes still carry partly-hex-derived names where
+the byte's semantic role is not yet fully understood:
+
+- `hazel_ws_spare_0a / 14 / 38 / f7` — single-write/read bytes that
+  appear to be ad-hoc scratch slots; full meaning needs the
+  surrounding routine annotated.
+- `hazel_shadow_10 / 20 / 30 / 40 / 50 / 60 / 70 / 72 / 73 / 74 / 78
+  / 88 / 98 / a8 / b8 / c8 / ca / cb / cc / cd / ce / cf / d0 / d1
+  / d4 / d5 / d6 / d7 / d9 / f3` — bytes inside the `&C200..&C2F3`
+  region (32 entries) named by offset within that "shadow" region.
+  These appear to be a per-channel shadow array; identifying the
+  field structure needs a focused pass on the routines that touch
+  this region (channel-management code).
+- `hazel_txcb_spare_116`, `hazel_chan_status` (single-byte placeholder
+  for &C1C8 area), `hazel_examine_attr` (best-effort name).
+
+These names are still better than auto-names — they mark the
+region and approximate role — but refinement is wanted.
 
 ## Findings
 
