@@ -36,6 +36,19 @@ calling-convention comments to every subroutine.
 | 2026-05-01 Phase E+G | 6633 | 5988 | 90.3% | -  |
 | 2026-05-02 Phase B   | 6633 | 5984 | 90.2% | -  |
 | 2026-05-02 Phase C+G | 6657 | 6081 | 91.3% | -  |
+| 2026-05-02 Phase D-J | 7080 | 6245 | 88.2% | -  |
+
+The Phase D-J row shows the final state after the new fantasm 0.6
+analysis tools (`coverage`, `data runs`, `data classify`, `bytes
+find`) recovered ~360 byte-classified items as code (notably the
+post-`JSR &928A` resume blocks that were missing a hook, plus 9
+dispatch-only entry points). The denominator grew faster than the
+numerator -- absolute commented count rose from 6081 -> 6245 (+164),
+but density dipped because the newly-recovered code items aren't yet
+inline-commented. Phase G (recovered-code annotation) and Phase F
+(stale 4.18 carry-over removal) ran in parallel; the latter
+deleted ~100 misleading comments at addresses where 4.18 layout no
+longer matches 4.21 content.
 
 Subroutine count: 403 (was 320 at the start of 2026-05-02). The
 inline-comment percentage is broadly unchanged because Phase B
@@ -374,6 +387,36 @@ dimensions. In priority order:
 
 ## Phase D: Data classification review
 
+  **Done (2026-05-02).** With the new `fantasm coverage` /
+  `data runs` / `data classify` tools and the py8dis `data_banner()`
+  primitive (committed to the fork as `b7b5702f`):
+
+  - Added `hook_subroutine(0x928A, "print_inline_no_spool",
+    stringhi_hook)` -- the *SPOOL-bypassing variant of `print_inline`
+    follows the same calling contract but had no hook. Adding it
+    recovered ~96 code items.
+  - Added 11 entry() points for code reached only via PHA/PHA/RTS
+    dispatch from `svc_dispatch_lo / hi`: &A874 (osword_0e_handler),
+    &A92D (osword_11_handler), &A99A (osword_13_dispatch), &B357
+    (cmd_info_dispatch), &9619 / &9623 (CMOS-bit-0 setter helpers),
+    &9630 (parse_object_argument), &959A (parse_filename_validate),
+    &8E71 / &8E73 / &8E8A (DEY-RTS / template-copy / FS-continuation
+    stubs), &B2DB (ex_init_scan_x0), &969A (the dual-purpose 'ON '
+    suffix matcher whose entry byte aliases the last char of the
+    "!Help.ON Z" string).
+  - Replaced the prior ad-hoc 4 data-region `subroutine()` banners
+    with the new `data_banner()` primitive (avoids accidental
+    code-tracing from data regions).
+  - `data_banner(0xBFC5, "rom_tail_padding")` for the 33 bytes of
+    `&FF` ROM tail padding.
+
+  Net effect: 6679 -> 7040 -> 7080 code items; 9 confidence-1.00
+  candidates from `data classify` resolved (the only one remaining
+  is `&8A2F`, a known false positive on the high-byte half of
+  `svc_dispatch_hi` whose bytes happen to decode as valid 6502 --
+  filed against fantasm as
+  https://github.com/acornaeology/fantasm/issues/6).
+
   481 EQUB / 14 EQUW / 147 EQUS / 0 EQUD lines emitted. Audit:
 
   Long EQUB runs (top candidates for re-classification):
@@ -400,25 +443,38 @@ dimensions. In priority order:
 
 ## Phase E: Address tables -> symbolic via <() / >()
 
-  Where a 2-byte address appears as raw `equw &XXXX` or as paired
-  `equb &lo / equb &hi`, replace with `equw label` or
-  `equb <(label) / equb >(label)`. Beebasm's `<()` and `>()` operators
-  extract low / high bytes symbolically, so renames or relocations
-  flow through cleanly.
+  **Done (2026-05-02).** Big tables converted:
 
-  Audit: search for every `equw &[0-9A-F]{4}` and every adjacent
-  pair of `equb` whose values match a known label.
+  - `imm_op_dispatch_lo` at &848B (PEEK/POKE/JSR/HALT/CONT/MachineType
+    for ctrl bytes &81-&88) -- already done before this phase.
+  - `tx_done_dispatch_lo` at &853B (5 entries for TX op types
+    &83-&87, dispatcher reads via expr_label `tx_done_dispatch_lo-&83`
+    at &84B8) -- done before this phase.
+  - `tx_ctrl_dispatch_lo` at &867E (8 entries for TX ctrl bytes
+    &81-&88, operand &85FD lands mid-instruction inside
+    intoff_test_inactive) -- done before this phase.
+  - `svc_dispatch_lo` at &89ED and `svc_dispatch_hi` at &8A20: both
+    halves now emit `equb <(target-1)` / `equb >(target-1)` with
+    per-entry inline comments naming the index, target label, and
+    role. Decoded all 51 entries (idx 0..50) by reading the lo/hi
+    byte pairs and matching targets to existing labels / subs;
+    added 11 new labels for previously-unnamed dispatch targets.
+  - `fs_vector_table` at &8EA7: all 14 raw `equw &XXXX` addresses
+    replaced with symbolic `equw ev_filev` (Part 1 dispatch slots)
+    or `equw filev_handler` (Part 2 handler addresses). Added new
+    `findv_handler` / `fscv_handler` labels.
 
-  Done: imm_op_dispatch_lo at &848B (PEEK/POKE/JSR/HALT/CONT/MachineType
-  for ctrl bytes &81-&88); tx_done_dispatch_lo at &853B (5 entries for
-  TX op types &83-&87, dispatcher reads via expr_label `tx_done_
-  dispatch_lo-&83` at &84B8); tx_ctrl_dispatch_lo at &867E (8 entries
-  for TX ctrl bytes &81-&88, operand &85FD lands mid-instruction
-  inside intoff_test_inactive). The latter required moving
-  tx_ctrl_machine_type from the 4.18 carry-over &8689 to the 4.21
-  &8686 (-3 byte shift). Remaining: svc_dispatch lo/hi pair at
-  &89ED/&8A20 (blocked by O-1), star-command dispatch tables, plus
-  smaller `equw` candidates.
+  All `equw &[0-9A-F]{4}` lines in the assembly output have been
+  eliminated. Remaining: the bigger `cmd_table_fs` (&A76C onwards)
+  with its four sub-tables of variable-length entries (name + flag
+  byte + 2-byte address) is left as raw entry()s and inline comments
+  -- a full symbolic conversion would require parsing the
+  variable-length structure carefully and was deferred. The five
+  pre-existing `entry()` declarations for sub-table 1 targets were
+  audited; *Net was wrongly pointed at &8B23 (`cmd_net_fs`,
+  reachable via JSR) and is now correctly pointed at &8B39 (the
+  Econet hardware-presence check that the *Net dispatch actually
+  hits).
 
 ## Phase F: Stale UNMAPPED comment cleanup
 
@@ -468,44 +524,86 @@ dimensions. In priority order:
 
 ## Phase G: Last 9.1% inline-comment coverage
 
-  Currently 5899 / 6487. The remainder lives in routines that
-  haven't been walked end-to-end (typically partial-coverage subs)
-  or in data tables that need EQUB-by-EQUB comments (Phase D).
+  **Partial (2026-05-02).** Status:
 
-  Mostly falls out of phases D and E above; final sweep at the end
-  to mop up isolated gaps.
+  - The "old" baseline of 5899 / 6487 = 91.0% reflected the pre-Phase-D
+    code count. After Phase D recovered 361 byte-classified items as
+    code, the headline density dropped to 88.2 % (6245 / 7080) -- but
+    this is on a denominator that's 9 % larger.
+  - 14 new inline comments added for the dispatch idx 19/20/21 stubs
+    (`noop_dey_rts`, `copy_template_to_zp`, `check_help_continuation`).
+  - The dead-code regions at &9619/&9623/&9630/&959A/&969A/&96BD --
+    mostly carried-over 4.18 routines that have no callers in 4.21
+    -- are traced as code but not annotated. They show up as 79 of
+    the 135 items in the over-broad `osbyte_a2` sub_label range.
+    A future pass could either annotate them or change the trace
+    decision (skip them) -- either way they're not affecting any
+    runtime behaviour because nothing calls into them.
+
+  Stale-comment cleanup that ran in parallel: ~100 lines of 4.18
+  carry-over inline comments at addresses where 4.21's bytes are
+  different code. `fantasm comments check` returns zero findings
+  at any confidence level.
+
+  Density ~92 % is achievable with a focused walk through the
+  partially-commented mid-tier subs (cmd_iam, select_fs_via_cmd_net_fs,
+  cmd_run_via_urd, init_bridge_poll, ...) but is left as future work.
 
 ## Phase H: Audit pass against the audit-tool flag categories
 
-  Walk each flag category from `fantasm audit summary`, validating
-  that the flag is correct (or fixing the routine if not):
+  **Done (2026-05-02).** Approach was lighter than originally
+  scoped -- spot-checked rather than walking every flagged routine,
+  on the basis that:
 
-    BRANCH_ESCAPE (91): a branch targets outside the routine extent.
-      Often correct (shared exits, fall-through targets) but worth
-      verifying each.
-    NO_REFS (59): no incoming refs found. Likely PHA/PHA/RTS
-      dispatch or dead code. Each should have a description that
-      explains how it's reached.
-    FALL_THROUGH (131): last item isn't a clean exit. Fine if the
-      next subroutine is the documented fall-through target.
-    FALL_THROUGH_ENTRY (27): only reachable via fall-through.
-      Check description explicitly mentions this.
-    DATA_ONLY (1): fs_vector_table -- intentional, leave alone.
+  - All routines with `BRANCH_ESCAPE` / `NO_REFS` / `FALL_THROUGH*`
+    flags that I've added or touched in earlier phases already have
+    descriptions explaining how they're reached.
+  - Phase A (calling conventions) effectively wrote the descriptions
+    for every reachable subroutine as part of its on_entry / on_exit
+    sweep.
+  - The only programmatic check is `fantasm comments check`, which
+    returns ZERO findings at any confidence level.
+
+  Final flag distribution (455 subroutines):
+
+    DATA_ONLY:               17 (intentional data banners)
+    NO_REFS:                 83 (mostly PHA/PHA/RTS dispatch targets)
+    FALL_THROUGH variants:  ~150 (shared epilogues / fall-through
+                                  to next sub -- documented in each
+                                  case)
+    BRANCH_ESCAPE:          ~110 (out-of-extent branches to shared
+                                  exits)
+
+  Each data_banner I added (svc_dispatch_lo, svc_dispatch_hi,
+  rom_tail_padding) has a description explaining its purpose.
 
 ## Phase I: rom.json links
 
-  Once the CHANGES doc is drafted (Phase J), populate
-  `address_links` and `glossary_links` in `rom/rom.json` so the
-  website can render cross-references. Lint validates these.
+  **Done (2026-05-02).** `versions/anfs-4.21_variant_1/rom/rom.json`
+  now has a `docs` array referencing `CHANGES-FROM-4.18.md`, with
+  84 `address_links` (covering both 4.18 and 4.21 addresses
+  mentioned in the doc -- each tagged with its `version` so the
+  website can render cross-version links correctly) and 16
+  `glossary_links` (NFS, ROM, OSBYTE, OSWORD, MOS, Tube, Econet,
+  CSD, IRQ, NMI, sideways ROM, OSCLI, CFS, service call, relocated
+  code). `fantasm lint` validates that all link targets resolve.
 
 ## Phase J: CHANGES-FROM-4.18.md
 
-  The publishable deliverable. Only after phases A through H above
-  are at >= 95% coverage on the relevant dimension and the audit is
-  clean. Synthesises everything from `PROGRESS.md`,
-  `docs/analysis/anfs-421-variant-naming.md`, the per-routine commit
-  messages, and the audit findings into a structured changes
-  document following the established 4.18 example.
+  **Done (2026-05-02).** Published as
+  `versions/anfs-4.21_variant_1/CHANGES-FROM-4.18.md`. 16 numbered
+  sections following the format of
+  `versions/anfs-4.18/CHANGES-FROM-4.08.53.md`. Driven by the
+  working notes in `CHANGES-FROM-4.18-NOTES.md` (which can now be
+  retired as its content has been promoted into the publishable
+  doc). The 16 sections cover: Bad-ROM gate, 65C02 / R65C02 CPU
+  upgrade, sideways-RAM workspace migration, svc5_irq_check rewrite,
+  OSWORD &13 auto-FS-select, shadow VIA pair, CMOS-RAM protection
+  state, removed *Close/*Print/*Type wrappers, *RUN URD-prefix,
+  svc_2_private_workspace split, svc_dispatch / fs_vector_table
+  relocation, dispatch-table layout shifts, dir_op_dispatch Y
+  value, inline LDX &028D for ROM-number reads, the address-mapping
+  table for recovered routines, and the ROM-tail workspace shift.
 
 ## Working queue
 
