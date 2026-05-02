@@ -422,18 +422,44 @@ dimensions. In priority order:
 
 ## Phase F: Stale UNMAPPED comment cleanup
 
-  ~1900 UNMAPPED lines remain in the driver. Categories:
+  **Substantially done (2026-05-02).** Four passes:
 
-    - References to dead-range addresses (&0016-&0057, &0400-&06FF)
-      that were 4.18's relocated code -- can be deleted entirely.
-    - Carry-over comments at addresses where 4.21 has different code
-      (especially around the rewritten Master 128 init paths).
-    - Carry-over for routines we've since recovered at new addresses
-      -- can be deleted now that the new declaration exists.
+  - **Pass 1 (-733 lines):** wholesale `sed '/# UNMAPPED (dead range/d'`
+    -- the 733 stubs at &0016-&0057 / &0400-&06FF, all from 4.18's
+    relocated workspace which 4.21 doesn't have.
+  - **Pass 2 (-854 lines):** wholesale `sed '/^# UNMAPPED:/d' +
+    '/^# UNMAPPED (broken ref):/d'` -- the active-range carry-over
+    stubs at 4.21 addresses where the 4.18 annotation no longer
+    fits (477 stale comment(), 142 label(), 6 subroutine(), 13
+    byte(), 11 expr(), 10 entry(), 4 string(), 1 word(), 10 broken-
+    ref expr(), plus 6 orphan-body lines).
+  - **Pass 3 (43 reg_value findings -> 0):** `fantasm comments
+    check` flagged 43 inline comments whose register-value text no
+    longer matched the 4.21 instruction at the same address (this
+    was the main "impeding progress" issue -- stale comments at
+    duplicate-comment addresses concatenating with new ones in
+    the asm output). Most were deleted; a few were value-updated
+    (e.g. `X=&4A` -> `X=&35` for the moved cmd-table offset,
+    `Y=&10: page &10` -> `Y=&C2: high byte of lc2c2 (FCB context
+    buffer)` for the sideways-RAM workspace migration).
+  - **Pass 4 (chain + most stale_addr):** trivial chain_comment
+    findings ("Second INX" -> "(continued)") and 10 of the 15
+    stale_addr findings (NMI-handler install sites referencing
+    moved addresses, e.g. `&87EE` -> `&86E7`).
 
-  Approach: sweep through the driver by section, deleting stale
-  UNMAPPED lines. Be careful not to delete still-relevant entries
-  pointing at recovery candidates (see Phase C).
+  **State at end:** `fantasm comments check` reports 49 MEDIUM-
+  confidence findings remaining: 38 desc_stale_addr, 6
+  block_stale_addr, 5 stale_addr. These are mostly false-positives:
+  workspace bytes that aren't declared as items (&0D5D, &0D3A,
+  &0D48, &0D4A, &0D74), the mid-instruction operands of the
+  expr_label dispatchers I introduced (&84B8, &85FD), and label-
+  only addresses (ps_template_base &8DA7) that are valid but don't
+  appear in the JSON item map. Genuine remaining staleness is in
+  ~15 subroutine() descriptions that reference 4.18 addresses --
+  worth fixing piecemeal but no longer impeding progress.
+
+  Driver shrank from ~17085 to ~15500 lines (~10% smaller). HIGH-
+  confidence comment-vs-code findings: 0.
 
 ## Phase G: Last 9.1% inline-comment coverage
 
