@@ -2897,7 +2897,7 @@ l89c9 = reset_enter_listen+2
     equb <(svc_18_fs_select-1)                                        ; 89fb: 44          D              ; idx &0E: svc_18_fs_select (svc 18 FS select)
     equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (*HELP 'ON ' suffix matcher)
     equb <(raise_y_to_c8-1)                                           ; 89fd: e8          .              ; idx &10: raise_y_to_c8 (ensure Y >= &C8 (role open: O-2))
-    equb <(c8efe-1)                                                   ; 89fe: fd          .              ; idx &11: c8efe (workspace bookkeeping helper)
+    equb <(set_rom_ws_page-1)                                         ; 89fe: fd          .              ; idx &11: set_rom_ws_page (stores workspace page for this ROM slot)
     equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (store workspace page count)
     equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; idx &13: noop_dey_rts (DEY / RTS stub)
     equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; idx &14: copy_template_to_zp (copy 11-byte template to (&F2),Y)
@@ -2957,7 +2957,7 @@ l89c9 = reset_enter_listen+2
     equb >(svc_18_fs_select-1)                                        ; 8a2e: 8b          .              ; idx &0E: svc_18_fs_select
     equb >(match_on_suffix-1)                                         ; 8a2f: 96          .              ; idx &0F: match_on_suffix
     equb >(raise_y_to_c8-1)                                           ; 8a30: 8e          .              ; idx &10: raise_y_to_c8
-    equb >(c8efe-1)                                                   ; 8a31: 8e          .              ; idx &11: c8efe
+    equb >(set_rom_ws_page-1)                                         ; 8a31: 8e          .              ; idx &11: set_rom_ws_page
     equb >(store_ws_page_count-1)                                     ; 8a32: 8e          .              ; idx &12: store_ws_page_count
     equb >(noop_dey_rts-1)                                            ; 8a33: 8e          .              ; idx &13: noop_dey_rts
     equb >(copy_template_to_zp-1)                                     ; 8a34: 8e          .              ; idx &14: copy_template_to_zp
@@ -4287,7 +4287,7 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8efd: 60          `              ; Return
 
 ; &8efe referenced 1 time by &8f35
-.c8efe
+.set_rom_ws_page
     tya                                                               ; 8efe: 98          .              ; Transfer page to A
     ldy romsel_copy                                                   ; 8eff: a4 f4       ..             ; Get current ROM slot number
     pha                                                               ; 8f01: 48          H              ; Push restored value
@@ -4322,7 +4322,7 @@ ps_template_base = sub_c8da6+1
     and #4                                                            ; 8f17: 29 04       ).             ; Mask bit 2 (workspace-size flag)
     bne c8f1f                                                         ; 8f19: d0 04       ..             ; Bit 2 set: keep caller's Y, advance by 2
     lda #&0b                                                          ; 8f1b: a9 0b       ..             ; Bit 2 clear: A=&0B (use 11-page minimum)
-    bra c8f24                                                         ; 8f1d: 80 05       ..             ; BRA to common tail
+    bra commit_workspace_pages                                        ; 8f1d: 80 05       ..             ; BRA to common tail
 ; &8f1f referenced 1 time by &8f19
 .c8f1f
     ply                                                               ; 8f1f: 7a          z              ; Bit-2-set path: restore Y
@@ -4331,7 +4331,7 @@ ps_template_base = sub_c8da6+1
     iny                                                               ; 8f22: c8          .              ; Y += 1 again (total +2)
     phy                                                               ; 8f23: 5a          Z              ; Push raised Y
 ; &8f24 referenced 1 time by &8f1d
-.c8f24
+.commit_workspace_pages
     sta net_rx_ptr_hi                                                 ; 8f24: 85 9d       ..             ; Store final page count high to net_rx_ptr_hi
     inc a                                                             ; 8f26: 1a          .              ; Increment for nfs_workspace_hi
     sta nfs_workspace_hi                                              ; 8f27: 85 9f       ..             ; Store workspace high page
@@ -4341,7 +4341,7 @@ ps_template_base = sub_c8da6+1
     jsr get_ws_page                                                   ; 8f2f: 20 ad 8c     ..            ; Compute workspace start page via get_ws_page
     cpy #&dc                                                          ; 8f32: c0 dc       ..             ; Y >= &DC?
     ply                                                               ; 8f34: 7a          z              ; Restore Y from stack
-    bcs c8efe                                                         ; 8f35: b0 c7       ..             ; Yes: jump to error path c8efe
+    bcs set_rom_ws_page                                               ; 8f35: b0 c7       ..             ; Yes: jump to set_rom_ws_page (error path)
     rts                                                               ; 8f37: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -4471,12 +4471,12 @@ ps_template_base = sub_c8da6+1
     ldx #&40 ; '@'                                                    ; 9008: a2 40       .@             ; X=&40: Econet flag byte
     stx econet_flags                                                  ; 900a: 8e 61 0d    .a.            ; Store Econet control flag
     jsr cmd_net_fs                                                    ; 900d: 20 23 8b     #.            ; Call cmd_net_fs to select NFS
-    beq c901a                                                         ; 9010: f0 08       ..             ; Z: selection succeeded
+    beq complete_nfs_init                                             ; 9010: f0 08       ..             ; Z: selection succeeded
     lda #&10                                                          ; 9012: a9 10       ..             ; A=&10: bit 4 marker for fs_flags
     ora fs_flags                                                      ; 9014: 0d 6c 0d    .l.            ; ORA with fs_flags
     sta fs_flags                                                      ; 9017: 8d 6c 0d    .l.            ; Store updated fs_flags
 ; &901a referenced 1 time by &9010
-.c901a
+.complete_nfs_init
     jsr init_adlc_and_vectors                                         ; 901a: 20 3c 90     <.            ; Initialise ADLC and FILEV/ARGSV/...vectors
     lda #3                                                            ; 901d: a9 03       ..             ; A=3: protection level
     jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..            ; Set up Econet protection
@@ -5944,13 +5944,13 @@ l968f = sub_c968e+1
 .loop_c96eb
     sta lc105,x                                                       ; 96eb: 9d 05 c1    ...            ; Store at lc105+X
     cmp #&0d                                                          ; 96ee: c9 0d       ..             ; CR? (end of name)
-    beq c96fa                                                         ; 96f0: f0 08       ..             ; Yes: take c96fa path (open file)
+    beq start_help_file_load                                          ; 96f0: f0 08       ..             ; Yes: take c96fa path (open file)
     cmp #&20 ; ' '                                                    ; 96f2: c9 20       .              ; Space? (terminator)
     bne loop_c96e7                                                    ; 96f4: d0 f1       ..             ; No: continue copying
     lda #&0d                                                          ; 96f6: a9 0d       ..             ; A=&0D: replace space with CR
     bra loop_c96eb                                                    ; 96f8: 80 f1       ..             ; BRA back to store the CR
 ; &96fa referenced 1 time by &96f0
-.c96fa
+.start_help_file_load
     inx                                                               ; 96fa: e8          .              ; INX: account for last char
     lda lc271                                                         ; 96fb: ad 71 c2    .q.            ; Read fs_lib_flags (lc271)
     and #&3f ; '?'                                                    ; 96fe: 29 3f       )?             ; AND #&3F -- preserve low bits, clear high bits
@@ -5962,7 +5962,7 @@ l968f = sub_c968e+1
     tay                                                               ; 970c: a8          .              ; Y=file handle
     beq c96bc                                                         ; 970d: f0 ad       ..             ; Y=0: open failed -> return
 ; &970f referenced 2 times by &972c, &973b
-.c970f
+.loop_print_help_byte
     jsr osbget                                                        ; 970f: 20 d7 ff     ..            ; Read a single byte from an open file Y
     bcc c971e                                                         ; 9712: 90 0a       ..             ; C clear: byte read OK -> print it
     lda #osfind_close                                                 ; 9714: a9 00       ..             ; A=0: OSFIND close mode
@@ -5978,11 +5978,11 @@ l968f = sub_c968e+1
 ; &9725 referenced 1 time by &9720
 .c9725
     cmp #&0d                                                          ; 9725: c9 0d       ..             ; Compare with CR
-    beq c972e                                                         ; 9727: f0 05       ..             ; Z: CR -- handle line-end (newline)
+    beq handle_help_paged_mode                                        ; 9727: f0 05       ..             ; Z: CR -- handle line-end (newline)
     jsr oswrch                                                        ; 9729: 20 ee ff     ..            ; Write character
-    bra c970f                                                         ; 972c: 80 e1       ..             ; BRA back to read next byte
+    bra loop_print_help_byte                                          ; 972c: 80 e1       ..             ; BRA back to read next byte
 ; &972e referenced 1 time by &9727
-.c972e
+.handle_help_paged_mode
     phy                                                               ; 972e: 5a          Z              ; PHY -- save file handle
     lda #&da                                                          ; 972f: a9 da       ..             ; A=&DA: OSBYTE &DA = read paged-mode flag
     jsr osbyte_x0                                                     ; 9731: 20 c9 8e     ..            ; Issue OSBYTE &DA (X=0)
@@ -5990,7 +5990,7 @@ l968f = sub_c968e+1
     txa                                                               ; 9735: 8a          .              ; TXA -- result to A
     bne c971e                                                         ; 9736: d0 e6       ..             ; Non-zero: paged mode pending -> handle Escape
     jsr osnewl                                                        ; 9738: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    bra c970f                                                         ; 973b: 80 d2       ..             ; BRA back to read next byte
+    bra loop_print_help_byte                                          ; 973b: 80 d2       ..             ; BRA back to read next byte
 ; ***************************************************************************************
 ; Set up open receive for FS reply on port &90
 ;
@@ -8313,13 +8313,13 @@ l99a3 = bad_str_anchor+1
     cpx #4                                                            ; a0d3: e0 04       ..             ; Save flags (carry from shift); A8 + A4 (from stack) = A*12
     beq ca0db                                                         ; a0d5: f0 04       ..             ; Z set: option = 0, take fast path
     cpy #4                                                            ; a0d7: c0 04       ..             ; Divide by 2 with carry; Restore original flags
-    bcc ca0df                                                         ; a0d9: 90 04       ..             ; Shift left again; Result to Y as index
+    bcc osopt_check_cmos_protect                                      ; a0d9: 90 04       ..             ; Shift left again; Result to Y as index
 ; &a0db referenced 1 time by &a0d5
 .ca0db
     cpy #2                                                            ; a0db: c0 02       ..             ; Pop saved A * 4; A * 4 >= &48 (out of range)?
     bcs error_osargs                                                  ; a0dd: b0 dc       ..             ; In range: return
 ; &a0df referenced 1 time by &a0d9
-.ca0df
+.osopt_check_cmos_protect
     phy                                                               ; a0df: 5a          Z              ; PHY -- save Y
     phx                                                               ; a0e0: da          .              ; Out of range: Y=0
     ldx #&11                                                          ; a0e1: a2 11       ..             ; X=&11: CMOS RAM byte index
@@ -13301,7 +13301,7 @@ lb4fd = write_ps_slot_hi_link+1
 
     nop                                                               ; b624: ea          .              ; NOP -- bit-7 terminator from preceding stringhi
 ; &b625 referenced 1 time by &b6a3
-.cb625
+.loop_pollps_next_slot
     pla                                                               ; b625: 68          h              ; Pop saved slot index
     beq return_from_poll_slots                                        ; b626: f0 7d       .}             ; Zero: all slots done, return
     pha                                                               ; b628: 48          H              ; Save slot offset
@@ -13372,7 +13372,7 @@ lb4fd = write_ps_slot_hi_link+1
     tay                                                               ; b69e: a8          .              ; Transfer to Y
     lda #&3f ; '?'                                                    ; b69f: a9 3f       .?             ; Mark slot as processed (&3F)
     sta (nfs_workspace),y                                             ; b6a1: 91 9e       ..             ; Write marker to workspace
-    bne cb625                                                         ; b6a3: d0 80       ..             ; ALWAYS branch
+    bne loop_pollps_next_slot                                         ; b6a3: d0 80       ..             ; ALWAYS branch
 
 ; &b6a5 referenced 1 time by &b626
 .return_from_poll_slots
@@ -15387,7 +15387,6 @@ lb821 = err_net_chan_not_found+2
 .pydis_end
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
-    assert <(c8efe-1) == &fd
     assert <(check_help_continuation-1) == &89
     assert <(check_urd_present-1) == &db
     assert <(cmd_bye-1) == &75
@@ -15473,6 +15472,7 @@ lb821 = err_net_chan_not_found+2
     assert <(rx_imm_machine_type-1) == &bb
     assert <(rx_imm_peek-1) == &cd
     assert <(rx_imm_poke-1) == &b0
+    assert <(set_rom_ws_page-1) == &fd
     assert <(store_ws_page_count-1) == &ef
     assert <(svc5_irq_check-1) == &27
     assert <(svc_18_fs_select-1) == &44
@@ -15493,7 +15493,6 @@ lb821 = err_net_chan_not_found+2
     assert <(tx_done_jsr-1) == &3f
     assert <(tx_done_os_proc-1) == &56
     assert <(wait_idle_and_reset-1) == &a5
-    assert >(c8efe-1) == &8e
     assert >(check_help_continuation-1) == &8e
     assert >(check_urd_present-1) == &a4
     assert >(cmd_bye-1) == &97
@@ -15573,6 +15572,7 @@ lb821 = err_net_chan_not_found+2
     assert >(parse_object_argument-1) == &96
     assert >(ps_scan_resume-1) == &b0
     assert >(raise_y_to_c8-1) == &8e
+    assert >(set_rom_ws_page-1) == &8e
     assert >(store_ws_page_count-1) == &8e
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
@@ -15899,7 +15899,6 @@ save pydis_start, pydis_end
 ;     c9004:                          2
 ;     c96b0:                          2
 ;     c96bc:                          2
-;     c970f:                          2
 ;     c971e:                          2
 ;     ca75f:                          2
 ;     cb2f7:                          2
@@ -16005,6 +16004,7 @@ save pydis_start, pydis_end
 ;     loop_next_fcb_slot:             2
 ;     loop_pass_tx_delay:             2
 ;     loop_pop_stack_buf:             2
+;     loop_print_help_byte:           2
 ;     loop_print_hex_byte:            2
 ;     loop_print_syntax:              2
 ;     loop_reload_attr:               2
@@ -16162,15 +16162,12 @@ save pydis_start, pydis_end
 ;     c8a8d:                          1
 ;     c8b5a:                          1
 ;     c8cbb:                          1
-;     c8efe:                          1
 ;     c8f1f:                          1
-;     c8f24:                          1
 ;     c8f4f:                          1
 ;     c8fa6:                          1
 ;     c8fbb:                          1
 ;     c8fc1:                          1
 ;     c8fff:                          1
-;     c901a:                          1
 ;     c9032:                          1
 ;     c925d:                          1
 ;     c9298:                          1
@@ -16184,15 +16181,12 @@ save pydis_start, pydis_end
 ;     c9689:                          1
 ;     c968c:                          1
 ;     c96b2:                          1
-;     c96fa:                          1
 ;     c9725:                          1
-;     c972e:                          1
 ;     c9827:                          1
 ;     c9984:                          1
 ;     c9a0d:                          1
 ;     ca0cf:                          1
 ;     ca0db:                          1
-;     ca0df:                          1
 ;     ca3e5:                          1
 ;     ca4a0:                          1
 ;     ca4fc:                          1
@@ -16211,7 +16205,6 @@ save pydis_start, pydis_end
 ;     cb2fc:                          1
 ;     cb474:                          1
 ;     cb56f:                          1
-;     cb625:                          1
 ;     cb6d8:                          1
 ;     cb6e9:                          1
 ;     cb6eb:                          1
@@ -16267,6 +16260,8 @@ save pydis_start, pydis_end
 ;     cmd_syntax_strings:             1
 ;     cmd_syntax_table:               1
 ;     cmd_table_nfs_iam:              1
+;     commit_workspace_pages:         1
+;     complete_nfs_init:              1
 ;     copy_addr_loop:                 1
 ;     copy_arg_and_enum:              1
 ;     copy_bcast_addr:                1
@@ -16386,6 +16381,7 @@ save pydis_start, pydis_end
 ;     handle_burst_xfer:              1
 ;     handle_cat_update:              1
 ;     handle_disconnect:              1
+;     handle_help_paged_mode:         1
 ;     handle_net_error:               1
 ;     handle_tx_request:              1
 ;     handshake_await_ack:            1
@@ -16618,6 +16614,7 @@ save pydis_start, pydis_end
 ;     loop_parse_hex_digit:           1
 ;     loop_poll_pass_tx:              1
 ;     loop_poll_ws_status:            1
+;     loop_pollps_next_slot:          1
 ;     loop_pop_ps_name:               1
 ;     loop_pop_ps_slot:               1
 ;     loop_print_addr_byte:           1
@@ -16717,6 +16714,7 @@ save pydis_start, pydis_end
 ;     osfile:                         1
 ;     osfind_close_or_open:           1
 ;     osfind_with_channel:            1
+;     osopt_check_cmos_protect:       1
 ;     osword_13_dispatch_hi:          1
 ;     osword_13_dispatch_lo:          1
 ;     osword_13_read_ctx_3:           1
@@ -16852,6 +16850,7 @@ save pydis_start, pydis_end
 ;     set_flags_boot:                 1
 ;     set_fs_select_flag:             1
 ;     set_port_and_ctrl:              1
+;     set_rom_ws_page:                1
 ;     set_timeout:                    1
 ;     set_tube_addr:                  1
 ;     set_tx_reply_flag:              1
@@ -16905,6 +16904,7 @@ save pydis_start, pydis_end
 ;     spool_tx_retry:                 1
 ;     spool_tx_succeeded:             1
 ;     start_data_tx:                  1
+;     start_help_file_load:           1
 ;     start_pass_tx:                  1
 ;     start_spool_retry:              1
 ;     start_tx_attempt:               1
@@ -17015,16 +17015,13 @@ save pydis_start, pydis_end
 ;     c8b5a
 ;     c8c46
 ;     c8cbb
-;     c8efe
 ;     c8f1f
-;     c8f24
 ;     c8f4f
 ;     c8fa6
 ;     c8fbb
 ;     c8fc1
 ;     c8fff
 ;     c9004
-;     c901a
 ;     c9032
 ;     c925d
 ;     c9298
@@ -17041,17 +17038,13 @@ save pydis_start, pydis_end
 ;     c96b0
 ;     c96b2
 ;     c96bc
-;     c96fa
-;     c970f
 ;     c971e
 ;     c9725
-;     c972e
 ;     c9827
 ;     c9984
 ;     c9a0d
 ;     ca0cf
 ;     ca0db
-;     ca0df
 ;     ca3e5
 ;     ca4a0
 ;     ca4fc
@@ -17068,7 +17061,6 @@ save pydis_start, pydis_end
 ;     cb2fc
 ;     cb474
 ;     cb56f
-;     cb625
 ;     cb6d8
 ;     cb6e9
 ;     cb6eb

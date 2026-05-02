@@ -8122,7 +8122,7 @@ comment(0x8F27, "Store workspace high page", inline=True)
 comment(0x8F2F, "Compute workspace start page via get_ws_page", inline=True)
 comment(0x8F32, "Y >= &DC?", inline=True)
 comment(0x8F34, "Restore Y from stack", inline=True)
-comment(0x8F35, "Yes: jump to error path c8efe", inline=True)
+comment(0x8F35, "Yes: jump to set_rom_ws_page (error path)", inline=True)
 comment(0x8F37, "Return", inline=True)
 
 # lang_1_remote_boot (&9850): handle remote-fired *BOOT request.
@@ -9097,6 +9097,19 @@ comment(0xBCB9, "PLX -- restore X", inline=True)
 comment(0xBE71, "PHA -- save A", inline=True)
 comment(0xBF9F, "Store as os_text_ptr_hi", inline=True)
 comment(0xBFA2, "Store as os_text_ptr lo", inline=True)
+
+# Selective rename of auto-generated cXXXX labels at routine
+# junction points where a semantic name aids understanding. Most
+# auto-labels (1-3 instruction continuation pads) stay as-is --
+# these are the handful with multi-instruction tails worth naming.
+label(0x8EFE, "set_rom_ws_page")
+label(0x8F24, "commit_workspace_pages")
+label(0x901A, "complete_nfs_init")
+label(0x96FA, "start_help_file_load")
+label(0x970F, "loop_print_help_byte")
+label(0x972E, "handle_help_paged_mode")
+label(0xA0DF, "osopt_check_cmos_protect")
+label(0xB625, "loop_pollps_next_slot")
 
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
@@ -10463,7 +10476,7 @@ _svc_dispatch_entries = [
     (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
     (0x0F,  0x969A,  "match_on_suffix",               "*HELP 'ON ' suffix matcher"),
     (0x10,  0x8EE9,  "raise_y_to_c8",                 "ensure Y >= &C8 (role open: O-2)"),
-    (0x11,  0x8EFE,  "c8efe",                         "workspace bookkeeping helper"),
+    (0x11,  0x8EFE,  "set_rom_ws_page",               "stores workspace page for this ROM slot"),
     (0x12,  0x8EF0,  "store_ws_page_count",           "store workspace page count"),
     (0x13,  0x8E71,  "noop_dey_rts",                  "DEY / RTS stub"),
     (0x14,  0x8E73,  "copy_template_to_zp",           "copy 11-byte template to (&F2),Y"),
