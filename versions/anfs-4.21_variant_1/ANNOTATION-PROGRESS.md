@@ -35,6 +35,7 @@ calling-convention comments to every subroutine.
 | 2026-04-30 +deepest | 6487 | 5899 | 90.9% | 1  |
 | 2026-05-01 Phase E+G | 6633 | 5988 | 90.3% | -  |
 | 2026-05-02 Phase B   | 6633 | 5984 | 90.2% | -  |
+| 2026-05-02 Phase C+G | 6657 | 6081 | 91.3% | -  |
 
 Subroutine count: 403 (was 320 at the start of 2026-05-02). The
 inline-comment percentage is broadly unchanged because Phase B
