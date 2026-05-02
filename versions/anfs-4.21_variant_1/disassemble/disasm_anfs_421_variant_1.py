@@ -539,7 +539,7 @@ label(0x8E04, "check_pw_special")
 label(0x8E13, "send_pass_to_fs")
 label(0x8E70, "dispatch_rts")
 label(0x8ECD, "jmp_osbyte")
-label(0x8EEF, "return_from_svc_1_workspace")
+label(0x8EEF, "return_from_raise_y_to_c8")
 label(0x8EF8, "done_cap_ws_count")
 label(0x8F56, "loop_zero_workspace")
 label(0x8F84, "loop_copy_init_data")
@@ -2937,11 +2937,19 @@ the JMP from send_fs_request (&9460).""",
               "non-zero for some specialised paths)"})
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
-    description="Validates X < 5 and sets Y=&0E as the directory\n"
-    "dispatch offset, then falls through to svc_dispatch\n"
-    "for PHA/PHA/RTS table dispatch. Called by\n"
-    "tx_done_os_proc to handle directory operations\n"
-    "(e.g. FILEV, ARGSV) from the remote JSR service.",
+    description="""\
+Validates `X < 5` and sets `Y = &18` as the dispatch offset, then
+falls through into [`svc_dispatch`](address:8E61). The `INX/DEY/BPL`
+loop in svc_dispatch then settles `X_final = X_caller + Y + 1`,
+landing on indices `&19..&1D` of the
+[`svc_dispatch_lo`](address:89ED) / [`svc_dispatch_hi`](address:8A20)
+tables. Those slots map to the language-reply handlers
+`lang_0_insert_remote_key` (idx &19) through
+`lang_4_remote_validated` (idx &1D).
+
+(In 4.18 the offset was `&0E`, reaching indices 15..19. The 4.21
+shift to `&18` puts the targets ten slots higher in the rebuilt
+dispatch table.)""",
     on_entry={"x": "directory operation code (0-4)"})
 subroutine(0x8E98, "read_cmos_byte_0",
     title="Read CMOS RAM byte 0 (Master 128)",
@@ -8493,7 +8501,7 @@ comment(0x984B, "Move Y into A for the BRK", inline=True)
 comment(0x984C, "Move Y into X (caller convention)", inline=True)
 comment(0x984D, "Tail-jump into the BRK-dispatch error path",
         inline=True)
-comment(0x8A8F, "Service 1 (workspace claim)?", inline=True)
+comment(0x8A8F, "Service call &24 (Econet-present query)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
 comment(0x8A96, "Mask relevant status bits", inline=True)
@@ -8828,7 +8836,7 @@ comment(0x8E56, "Transfer result to A", inline=True)
 comment(0x8E57, "Y=&1D: handle dispatch offset", inline=True)
 comment(0x8E5B, "Handle >= 5?", inline=True)
 comment(0x8E5D, "Yes: out of range, return", inline=True)
-comment(0x8E5F, "Y=&18: directory dispatch offset", inline=True)
+comment(0x8E5F, "Y=&18: settles X_final to &19..&1D (lang reply 0..4)", inline=True)
 comment(0x8E61, "Advance X to target index", inline=True)
 comment(0x8E63, "Y still positive: continue counting", inline=True)
 comment(0x8E62, "Decrement Y offset counter", inline=True)
@@ -8898,9 +8906,9 @@ comment(0x8EE0, "Transfer to X as dispatch index", inline=True)
 comment(0x8EE3, "Transfer Y to A (OSBYTE Y param)", inline=True)
 comment(0x8EE4, "Y=&2F: OSBYTE dispatch offset", inline=True)
 comment(0x8EE6, "Dispatch to OSBYTE handler via table", inline=True)
-comment(0x8EE9, "Need at least &16 pages?", inline=True)
-comment(0x8EEB, "Already enough: return", inline=True)
-comment(0x8EED, "Request &16 pages of workspace", inline=True)
+comment(0x8EE9, "Y already >= &C8?", inline=True)
+comment(0x8EEB, "Yes: return Y unchanged", inline=True)
+comment(0x8EED, "No: raise Y to &C8", inline=True)
 comment(0x8EEF, "Return", inline=True)
 comment(0x8EF0, "Transfer Y to A", inline=True)
 comment(0x8EF2, "Y >= &21?", inline=True)
@@ -9124,9 +9132,9 @@ entry(0x8C42)   # idx  5  svc_4 unrecognised star command
 entry(0x8ED8)   # idx  8  svc_7 unrecognised OSBYTE
 entry(0x8C51)   # idx 10  svc_9 *HELP
 # entry(0x8F38) declared above (nfs_init_body)
-entry(0x8EE9)   # idx 16  svc_1_abs_workspace
+entry(0x8EE9)   # idx 16  raise_y_to_c8 (was: svc_1_abs_workspace, see O-2)
 
-label(0x8EE9, "svc_1_abs_workspace")
+label(0x8EE9, "raise_y_to_c8")
 label(0x8CC7, "svc_3_autoboot")
 label(0x8C42, "svc_4_star_command")
 label(0x8ED8, "svc_7_osbyte")
@@ -9196,7 +9204,7 @@ _svc_dispatch_entries = [
     (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc 13 wait+reset"),
     (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
     (0x0F,  0x969A,  "match_on_suffix",               "*HELP 'ON ' suffix matcher"),
-    (0x10,  0x8EE9,  "svc_1_abs_workspace",           "svc 1 absolute workspace claim"),
+    (0x10,  0x8EE9,  "raise_y_to_c8",                 "ensure Y >= &C8 (role open: O-2)"),
     (0x11,  0x8EFE,  "c8efe",                         "workspace bookkeeping helper"),
     (0x12,  0x8EF0,  "store_ws_page_count",           "store workspace page count"),
     (0x13,  0x8E71,  "noop_dey_rts",                  "DEY / RTS stub"),
@@ -9244,16 +9252,21 @@ for idx, target, name, role in _svc_dispatch_entries:
         comment(0x8A20 + idx, "idx &%02X: placeholder" % idx, inline=True)
 comment(0x8A53, "padding (table has only 51 entries)", inline=True)
 
-subroutine(0x8EE9, "svc_1_abs_workspace",
-    title="Service 1: absolute workspace claim",
-    description="Ensures the NFS workspace allocation is at least\n"
-    "&16 pages by checking Y on entry. If Y < &16,\n"
-    "sets Y = &16 to claim the required pages;\n"
-    "otherwise returns Y unchanged. This is a passive\n"
-    "claim — NFS only raises the allocation, never\n"
-    "lowers it.",
-    on_entry={"y": "current highest workspace page claim"},
-    on_exit={"y": ">= &16 (NFS minimum requirement)"})
+subroutine(0x8EE9, "raise_y_to_c8",
+    title="Ensure Y >= &C8 (svc_dispatch idx &10 target)",
+    description="""\
+Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`. If
+Y on entry is already `>= &C8`, return unchanged; otherwise raise Y
+to `&C8` and return. The `&C8` (= 200) constant doesn't read as a
+plausible "minimum NFS workspace page count" the way 4.18's `&16`
+did at the same dispatch slot -- which dispatch path actually
+reaches this stub in 4.21 is OPEN-ISSUES O-1 / O-2; the previous
+`svc_1_abs_workspace` name was carried over from 4.18 verbatim and
+doesn't match the &C8 threshold. Renamed to `raise_y_to_c8` to
+describe what the body actually does until the role is pinned
+down.""",
+    on_entry={"y": "value to test"},
+    on_exit={"y": ">= &C8"})
 subroutine(0x8CC7, "svc_3_autoboot",
     title="Service 3: auto-boot on reset",
     description="Scans the keyboard via OSBYTE &7A for the 'N' key\n"

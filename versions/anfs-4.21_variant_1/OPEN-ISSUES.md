@@ -146,79 +146,50 @@ chasing "who issues service 39" is the wrong direction.
 
 ### O-2: `label(0x8EE9, "svc_1_abs_workspace")` is a stale 4.18 carry-over
 
-**Status:** noted; depends on resolving O-1.
+**Status:** RESOLVED (2026-05-02).
 
-**What's known:**
-
-- 4.18's svc_1 handler is at `&8EE9` and the label was carried over
-  to the 4.21 driver verbatim.
-- In 4.21 the actual svc 1 dispatch (`table[2]` of the dispatch
-  table) targets `&8D09`, not `&8EE9`. `&8D09` is a short routine
-  that reads CMOS byte `&11`, tests bit 0, and conditionally bumps
-  Y to `&10`.
-- `&8EE9` is reachable via PHA/PHA/RTS dispatch but the exact
-  trigger for it depends on the resolution of O-1. The body is a
-  small 4-instruction routine that ensures `Y >= &C8` -- a much
-  larger workspace size than 4.18's `&16` minimum. The cap value
-  `&C8` was the original signal that 4.21's workspace layout had
-  changed substantially.
-
-**What's not known:**
-
-- The correct semantic name for `&8EE9` in 4.21.
-
-**Suggested next steps:**
-
-- Resolve O-1 first; the dispatch path that reaches `&8EE9` will
-  reveal what kind of workspace it is being asked to grow to `&C8`
-  pages for, which should indicate the routine's real role.
-- Once the role is clear, rename the label and remove the stale
-  4.18 description.
+Renamed `&8EE9` from `svc_1_abs_workspace` to `raise_y_to_c8`,
+which describes what the body actually does (`CPY #&C8 / BCS exit /
+LDY #&C8 / RTS`). Inline comments at `&8EE9..&8EEF` and the
+subroutine description updated to use `&C8` rather than the 4.18
+`&16`. The "what role does this routine play" question -- whether
+the &C8 threshold is a workspace claim, an OSBYTE parameter cap,
+or something else -- remains open and is now folded into O-1
+(which resolves the dispatch path that reaches this stub).
 
 ---
 
 ### O-3: Inline comment at `&8A8F` claims "Service 1" but the byte is `CMP #&24`
 
-**Status:** noted; relates to O-1.
+**Status:** RESOLVED (2026-05-02).
 
-**What's known:**
-
-- `&8A8F` byte = `C9 24` = `CMP #&24`. The driver inline comment
-  reads "Service 1 (workspace claim)?" -- a plain carry-over from a
-  4.18 version where the byte was probably different.
-- The branch on this CMP only special-cases an ADLC-presence refresh
-  for whatever `A == &24` represents at that point.
-
-**What's not known:**
-
-- What `&24` (= 36) means in this context. If `A` at this point is a
-  raw service number, then 4.21 special-cases service 36 for an
-  ADLC-presence check. If `A` is something else (the lurking
-  possibility flagged in O-1), the meaning differs.
-
-**Suggested next steps:**
-
-- Cleanup is contingent on resolving O-1.
+Inline comment updated from "Service 1 (workspace claim)?" to
+"Service call &24 (Econet-present query)?". The branch leads
+directly into a read of the ADLC status register, mask, and
+conditional update of `rom_ws_pages,X`'s bit 7 -- consistent with
+the service call meaning "is the Econet hardware live in this
+ROM slot's workspace?". The exact identity of service call &24
+in the Master 128 inter-ROM signalling is still not formally
+documented; if a definitive citation surfaces, the comment can
+be sharpened further.
 
 ---
 
 ### O-4: `dir_op_dispatch` description says `Y=&0E` but byte is `&18`
 
-**Status:** known stale comment.
+**Status:** RESOLVED (2026-05-02).
 
-**What's known:**
+`dir_op_dispatch` description rewritten to say `Y = &18` (the
+actual byte) and to identify the dispatch-table targets reached:
+indices `&19..&1D` of `svc_dispatch_lo / hi`, mapping to
+`lang_0_insert_remote_key` (idx &19) through
+`lang_4_remote_validated` (idx &1D). The 4.18 `Y=&0E` value (which
+would have reached indices 15..19) is noted as a layout shift in
+the new description. The single caller `tx_done_os_proc` at &855D
+passes the remote-procedure address's low byte as X (gated to
+`X < 5`); the high byte is overwritten by the literal &18.
 
-- `&8E5F` bytes = `A0 18` = `LDY #&18` (= 24 decimal).
-- The subroutine description for `dir_op_dispatch` at `&8E5B` says
-  "sets Y=&0E" -- a 4.18 carry-over. 4.21 has changed this to
-  `&18`, which shifts the dispatch-table indices reached by
-  directory operations from `15..19` (in 4.18) to `25..29` (in
-  4.21).
-- The shift means the entries at indices 15..19 in 4.21 are *not*
-  used by `dir_op_dispatch` and must be reached by some other
-  mechanism (linked to O-1).
-
-**Suggested next steps:**
-
-- Update the description to say `Y=&18` and `indices 25..29` once
-  the broader picture in O-1 is settled.
+Side-finding: the entries at indices &0F..&15 (the dispatch slots
+that 4.18's dir_op_dispatch reached) now host different handlers
+in 4.21 -- they're reached by some other mechanism, which is
+folded into the broader O-1 question.

@@ -2896,7 +2896,7 @@ l89c9 = reset_enter_listen+2
     equb <(wait_idle_and_reset-1)                                     ; 89fa: a5          .              ; idx &0D: wait_idle_and_reset (svc 13 wait+reset)
     equb <(svc_18_fs_select-1)                                        ; 89fb: 44          D              ; idx &0E: svc_18_fs_select (svc 18 FS select)
     equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (*HELP 'ON ' suffix matcher)
-    equb <(svc_1_abs_workspace-1)                                     ; 89fd: e8          .              ; idx &10: svc_1_abs_workspace (svc 1 absolute workspace claim)
+    equb <(raise_y_to_c8-1)                                           ; 89fd: e8          .              ; idx &10: raise_y_to_c8 (ensure Y >= &C8 (role open: O-2))
     equb <(c8efe-1)                                                   ; 89fe: fd          .              ; idx &11: c8efe (workspace bookkeeping helper)
     equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (store workspace page count)
     equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; idx &13: noop_dey_rts (DEY / RTS stub)
@@ -2956,7 +2956,7 @@ l89c9 = reset_enter_listen+2
     equb >(wait_idle_and_reset-1)                                     ; 8a2d: 89          .              ; idx &0D: wait_idle_and_reset
     equb >(svc_18_fs_select-1)                                        ; 8a2e: 8b          .              ; idx &0E: svc_18_fs_select
     equb >(match_on_suffix-1)                                         ; 8a2f: 96          .              ; idx &0F: match_on_suffix
-    equb >(svc_1_abs_workspace-1)                                     ; 8a30: 8e          .              ; idx &10: svc_1_abs_workspace
+    equb >(raise_y_to_c8-1)                                           ; 8a30: 8e          .              ; idx &10: raise_y_to_c8
     equb >(c8efe-1)                                                   ; 8a31: 8e          .              ; idx &11: c8efe
     equb >(store_ws_page_count-1)                                     ; 8a32: 8e          .              ; idx &12: store_ws_page_count
     equb >(noop_dey_rts-1)                                            ; 8a33: 8e          .              ; idx &13: noop_dey_rts
@@ -3056,7 +3056,7 @@ l89c9 = reset_enter_listen+2
 .c8a8d
     pla                                                               ; 8a8d: 68          h              ; Restore Y parameter
     pha                                                               ; 8a8e: 48          H              ; Save service call number
-    cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service 1 (workspace claim)?
+    cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service call &24 (Econet-present query)?
     bne check_adlc_flag                                               ; 8a91: d0 0e       ..             ; No: skip ADLC check
     lda econet_control1_or_status1                                    ; 8a93: ad a0 fe    ...            ; Read ADLC status register 1
     and #&10                                                          ; 8a96: 29 10       ).             ; Mask relevant status bits
@@ -4023,16 +4023,21 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; Dispatch directory operation via PHA/PHA/RTS
 ;
-; Validates X < 5 and sets Y=&0E as the directory dispatch offset, then falls through
-; to svc_dispatch for PHA/PHA/RTS table dispatch. Called by tx_done_os_proc to handle
-; directory operations (e.g. FILEV, ARGSV) from the remote JSR service.
+; Validates X < 5 and sets Y = &18 as the dispatch offset, then falls through into
+; svc_dispatch. The INX/DEY/BPL loop in svc_dispatch then settles X_final = X_caller +
+; Y + 1, landing on indices &19..&1D of the svc_dispatch_lo / svc_dispatch_hi tables.
+; Those slots map to the language-reply handlers lang_0_insert_remote_key (idx &19)
+; through lang_4_remote_validated (idx &1D).
+;
+; (In 4.18 the offset was &0E, reaching indices 15..19. The 4.21 shift to &18 puts the
+; targets ten slots higher in the rebuilt dispatch table.)
 ;
 ; On Entry: X: directory operation code (0-4)
 ; &8e5b referenced 1 time by &855d
 .dir_op_dispatch
     cpx #5                                                            ; 8e5b: e0 05       ..             ; Handle >= 5?
     bcs dispatch_rts                                                  ; 8e5d: b0 11       ..             ; Yes: out of range, return
-    ldy #&18                                                          ; 8e5f: a0 18       ..             ; Y=&18: directory dispatch offset
+    ldy #&18                                                          ; 8e5f: a0 18       ..             ; Y=&18: settles X_final to &19..&1D (lang reply 0..4)
 ; ***************************************************************************************
 ; PHA/PHA/RTS table dispatch
 ;
@@ -4221,7 +4226,7 @@ ps_template_base = sub_c8da6+1
     lda osbyte_a_copy                                                 ; 8ed8: a5 ef       ..             ; Get original OSBYTE A parameter
     sbc #&31 ; '1'                                                    ; 8eda: e9 31       .1             ; Subtract &31 (map &32-&35 to 1-4)
     cmp #4                                                            ; 8edc: c9 04       ..             ; In range 0-3?
-    bcs return_from_svc_1_workspace                                   ; 8ede: b0 0f       ..             ; No: not ours, return unclaimed
+    bcs return_from_raise_y_to_c8                                     ; 8ede: b0 0f       ..             ; No: not ours, return unclaimed
     tax                                                               ; 8ee0: aa          .              ; Transfer to X as dispatch index
     stz svc_state                                                     ; 8ee1: 64 a9       d.
     tya                                                               ; 8ee3: 98          .              ; Transfer Y to A (OSBYTE Y param)
@@ -4229,21 +4234,25 @@ ps_template_base = sub_c8da6+1
     jmp svc_dispatch                                                  ; 8ee6: 4c 61 8e    La.            ; Dispatch to OSBYTE handler via table
 
 ; ***************************************************************************************
-; Service 1: absolute workspace claim
+; Ensure Y >= &C8 (svc_dispatch idx &10 target)
 ;
-; Ensures the NFS workspace allocation is at least &16 pages by checking Y on entry. If
-; Y < &16, sets Y = &16 to claim the required pages; otherwise returns Y unchanged.
-; This is a passive claim — NFS only raises the allocation, never lowers it.
+; Four-instruction stub: CPY #&C8 / BCS return / LDY #&C8 / RTS. If Y on entry is
+; already >= &C8, return unchanged; otherwise raise Y to &C8 and return. The &C8 (=
+; 200) constant doesn't read as a plausible "minimum NFS workspace page count" the way
+; 4.18's &16 did at the same dispatch slot -- which dispatch path actually reaches this
+; stub in 4.21 is OPEN-ISSUES O-1 / O-2; the previous svc_1_abs_workspace name was
+; carried over from 4.18 verbatim and doesn't match the &C8 threshold. Renamed to
+; raise_y_to_c8 to describe what the body actually does until the role is pinned down.
 ;
-; On Entry: Y: current highest workspace page claim
+; On Entry: Y: value to test
 ;
-; On Exit: Y: >= &16 (NFS minimum requirement)
-.svc_1_abs_workspace
-    cpy #&c8                                                          ; 8ee9: c0 c8       ..             ; Need at least &16 pages?
-    bcs return_from_svc_1_workspace                                   ; 8eeb: b0 02       ..             ; Already enough: return
-    ldy #&c8                                                          ; 8eed: a0 c8       ..             ; Request &16 pages of workspace
+; On Exit: Y: >= &C8
+.raise_y_to_c8
+    cpy #&c8                                                          ; 8ee9: c0 c8       ..             ; Y already >= &C8?
+    bcs return_from_raise_y_to_c8                                     ; 8eeb: b0 02       ..             ; Yes: return Y unchanged
+    ldy #&c8                                                          ; 8eed: a0 c8       ..             ; No: raise Y to &C8
 ; &8eef referenced 2 times by &8ede, &8eeb
-.return_from_svc_1_workspace
+.return_from_raise_y_to_c8
     rts                                                               ; 8eef: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -15340,6 +15349,7 @@ lb821 = err_net_chan_not_found+2
     assert <(parse_object_argument-1) == &2f
     assert <(proc_op_status2-1) == &cf
     assert <(ps_scan_resume-1) == &fd
+    assert <(raise_y_to_c8-1) == &e8
     assert <(rx_imm_exec-1) == &92
     assert <(rx_imm_halt_cont-1) == &e7
     assert <(rx_imm_machine_type-1) == &bb
@@ -15348,7 +15358,6 @@ lb821 = err_net_chan_not_found+2
     assert <(store_ws_page_count-1) == &ef
     assert <(svc5_irq_check-1) == &27
     assert <(svc_18_fs_select-1) == &44
-    assert <(svc_1_abs_workspace-1) == &e8
     assert <(svc_2_private_workspace_pages-1) == &0f
     assert <(svc_3_autoboot-1) == &c6
     assert <(svc_4_star_command-1) == &41
@@ -15424,10 +15433,10 @@ lb821 = err_net_chan_not_found+2
     assert >(parse_filename_validate-1) == &95
     assert >(parse_object_argument-1) == &96
     assert >(ps_scan_resume-1) == &b0
+    assert >(raise_y_to_c8-1) == &8e
     assert >(store_ws_page_count-1) == &8e
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
-    assert >(svc_1_abs_workspace-1) == &8e
     assert >(svc_2_private_workspace_pages-1) == &8f
     assert >(svc_3_autoboot-1) == &8c
     assert >(svc_4_star_command-1) == &8c
@@ -15915,8 +15924,8 @@ save pydis_start, pydis_end
 ;     return_from_help_wrap:          2
 ;     return_from_inc_fcb_count:      2
 ;     return_from_match_rx_code:      2
+;     return_from_raise_y_to_c8:      2
 ;     return_from_save_text_ptr:      2
-;     return_from_svc_1_workspace:    2
 ;     reverse_ps_name_to_tx:          2
 ;     romsel:                         2
 ;     rx_extra_byte:                  2
