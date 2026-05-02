@@ -386,7 +386,6 @@ lc2d7                       = &c2d7
 lc2d8                       = &c2d8
 lc2d9                       = &c2d9
 lc2f3                       = &c2f3
-lf180                       = &f180
 lfe28                       = &fe28
 lfe2b                       = &fe2b
 romsel                      = &fe30
@@ -3154,7 +3153,7 @@ l89c9 = reset_enter_listen+2
 ;
 ; On Entry: X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call
 ; when selection happens)
-; &8b4d referenced 5 times by &a9cc, &a9da, &aac2, &aad0, &ac4c
+; &8b4d referenced 7 times by &8e8f, &96b9, &a9cc, &a9da, &aac2, &aad0, &ac4c
 .ensure_fs_selected
     bit fs_flags                                                      ; 8b4d: 2c 6c 0d    ,l.            ; Test fs_flags bit 7 (ANFS active)
     bmi return_from_save_text_ptr                                     ; 8b50: 30 d0       0.             ; Already active: tail-RTS via shared exit
@@ -3952,10 +3951,32 @@ ps_template_base = sub_c8da6+1
 .dispatch_rts
     rts                                                               ; 8e70: 60          `              ; Dispatch via RTS
 
-    equb &88, &60, &a2, &0a, &bd, &7f, &8e, &91, &f2, &c8, &ca, &10   ; 8e71: 88 60 a2... .`.
-    equb &f7, &60,   5                                                ; 8e7d: f7 60 05    .`.
-    equs "/      TEN,l"                                               ; 8e80: 2f 20 20... /
-    equb &0d, &50, &ef, &20, &4d, &8b, &a9, 0, &a8, &4c, &2f, &a0     ; 8e8c: 0d 50 ef... .P.
+    dey                                                               ; 8e71: 88          .
+    rts                                                               ; 8e72: 60          `
+
+    ldx #&0a                                                          ; 8e73: a2 0a       ..
+; &8e75 referenced 1 time by &8e7c
+.loop_c8e75
+    lda l8e7f,x                                                       ; 8e75: bd 7f 8e    ...
+    sta (os_text_ptr),y                                               ; 8e78: 91 f2       ..
+    iny                                                               ; 8e7a: c8          .
+    dex                                                               ; 8e7b: ca          .
+    bpl loop_c8e75                                                    ; 8e7c: 10 f7       ..
+; &8e7e referenced 1 time by &8e8d
+.return_2
+    rts                                                               ; 8e7e: 60          `
+
+; &8e7f referenced 1 time by &8e75
+.l8e7f
+    equb 5                                                            ; 8e7f: 05          .
+    equs "/      TEN"                                                 ; 8e80: 2f 20 20... /
+
+    bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.
+    bvc return_2                                                      ; 8e8d: 50 ef       P.
+    jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.
+    lda #0                                                            ; 8e92: a9 00       ..
+    tay                                                               ; 8e94: a8          .              ; Y=&00
+    jmp ca02f                                                         ; 8e95: 4c 2f a0    L/.
 
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
@@ -4332,10 +4353,10 @@ ps_template_base = sub_c8da6+1
     pla                                                               ; 9032: 68          h
     ldy #3                                                            ; 9033: a0 03       ..
     eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.
-    bne return_2                                                      ; 9037: d0 02       ..
+    bne return_3                                                      ; 9037: d0 02       ..
     sta (nfs_workspace),y                                             ; 9039: 91 9e       ..
 ; &903b referenced 1 time by &9037
-.return_2
+.return_3
     rts                                                               ; 903b: 60          `
 
 ; ***************************************************************************************
@@ -5710,19 +5731,38 @@ l968f = sub_c968e+1
     jmp c8c46                                                         ; 968e: 4c 46 8c    LF.            ; Append to error text
 
 ; &968f referenced 1 time by &96dc
-    equs "!Help.ON Z"                                                 ; 9691: 21 48 65... !He            ; Null terminator?; Advance source; Advance destination; Loop until end of suffix; ALWAYS branch to error dispatch; Error class to X
-    equb &a5, &f2, &85, &ae, &a5, &f3, &85, &af, &7a, &5a, &a2, 0     ; 969b: a5 f2 85... ...            ; Look up message table offset; X=0: error text start; Clear BRK byte; Load error number from table; Conditionally save error code
-    equb &b1, &ae, &5d, &97, &96, &29, &5f, &f0,   2                  ; 96a7: b1 ae 5d... ..]            ; Load message byte; Store in error text; Null terminator? Go to error
+    equs "!Help."                                                     ; 9691: 21 48 65... !He            ; Null terminator?; Advance source; Advance destination; Loop until end of suffix
+; &9697 referenced 1 time by &96a9
+.l9697
+    equs "ON "                                                        ; 9697: 4f 4e 20    ON             ; ALWAYS branch to error dispatch
 
+    phy                                                               ; 969a: 5a          Z              ; Error class to X
+    lda os_text_ptr                                                   ; 969b: a5 f2       ..             ; Look up message table offset
+    sta work_ae                                                       ; 969d: 85 ae       ..             ; X=0: error text start
+    lda os_text_ptr_hi                                                ; 969f: a5 f3       ..             ; Clear BRK byte
+    sta addr_work                                                     ; 96a1: 85 af       ..
+    ply                                                               ; 96a3: 7a          z              ; Load error number from table
+    phy                                                               ; 96a4: 5a          Z
+    ldx #0                                                            ; 96a5: a2 00       ..             ; Conditionally save error code
+; &96a7 referenced 1 time by &96b6
+.loop_c96a7
+    lda (work_ae),y                                                   ; 96a7: b1 ae       ..
+    eor l9697,x                                                       ; 96a9: 5d 97 96    ]..            ; Load message byte
+    and #&5f ; '_'                                                    ; 96ac: 29 5f       )_             ; Store in error text
+    beq c96b2                                                         ; 96ae: f0 02       ..             ; Null terminator? Go to error
 ; &96b0 referenced 2 times by &96c2, &96d1
 .c96b0
     ply                                                               ; 96b0: 7a          z
     rts                                                               ; 96b1: 60          `              ; Advance source
 
-    equb &c8, &e8, &e0, 3, &90, &ef                                   ; 96b2: c8 e8 e0... ...            ; Advance destination; Loop until end of message
-    equs "Z M"                                                        ; 96b8: 5a 20 4d    Z M
-    equb &8b                                                          ; 96bb: 8b          .
-
+; &96b2 referenced 1 time by &96ae
+.c96b2
+    iny                                                               ; 96b2: c8          .              ; Advance destination
+    inx                                                               ; 96b3: e8          .              ; Loop until end of message
+    cpx #3                                                            ; 96b4: e0 03       ..
+    bcc loop_c96a7                                                    ; 96b6: 90 ef       ..
+    phy                                                               ; 96b8: 5a          Z
+    jsr ensure_fs_selected                                            ; 96b9: 20 4d 8b     M.
 ; &96bc referenced 2 times by &970d, &971c
 .c96bc
     ply                                                               ; 96bc: 7a          z
@@ -5753,17 +5793,20 @@ l968f = sub_c968e+1
     cmp #&2e ; '.'                                                    ; 96e2: c9 2e       ..
     bne loop_c96db                                                    ; 96e4: d0 f5       ..
     phy                                                               ; 96e6: 5a          Z
+; &96e7 referenced 1 time by &96f4
+.loop_c96e7
     inx                                                               ; 96e7: e8          .
     lda (work_ae),y                                                   ; 96e8: b1 ae       ..
     iny                                                               ; 96ea: c8          .
+; &96eb referenced 1 time by &96f8
+.loop_c96eb
     sta lc105,x                                                       ; 96eb: 9d 05 c1    ...
     cmp #&0d                                                          ; 96ee: c9 0d       ..
     beq c96fa                                                         ; 96f0: f0 08       ..
     cmp #&20 ; ' '                                                    ; 96f2: c9 20       .
-    equb &d0                                                          ; 96f4: d0          .
-
-    sbc (svc_state),y                                                 ; 96f5: f1 a9       ..
-    ora lf180                                                         ; 96f7: 0d 80 f1    ...
+    bne loop_c96e7                                                    ; 96f4: d0 f1       ..
+    lda #&0d                                                          ; 96f6: a9 0d       ..
+    bra loop_c96eb                                                    ; 96f8: 80 f1       ..
 ; &96fa referenced 1 time by &96f0
 .c96fa
     inx                                                               ; 96fa: e8          .
@@ -6205,7 +6248,7 @@ l968f = sub_c968e+1
 .check_escape_and_classify
     lda escape_flag                                                   ; 988f: a5 ff       ..
     and need_release_tube                                             ; 9891: 25 98       %.
-    bpl return_3                                                      ; 9893: 10 6a       .j
+    bpl return_4                                                      ; 9893: 10 6a       .j
 ; ***************************************************************************************
 ; Acknowledge escape and raise classified error
 ;
@@ -6309,7 +6352,7 @@ l968f = sub_c968e+1
     pla                                                               ; 98fc: 68          h              ; Pull saved rx_wait_timeout into A
     beq build_no_reply_error                                          ; 98fd: f0 0a       ..             ; If timeout reached zero, raise 'No reply'
 ; &98ff referenced 1 time by &9893
-.return_3
+.return_4
     rts                                                               ; 98ff: 60          `              ; Reply received normally: return
 
 ; ***************************************************************************************
@@ -8002,6 +8045,8 @@ l99a3 = bad_str_anchor+1
     pla                                                               ; a029: 68          h              ; Pull handle from stack
     jsr alloc_fcb_slot                                                ; a02a: 20 a8 b8     ..            ; Allocate FCB slot for channel
     bne store_fcb_flags                                               ; a02d: d0 33       .3             ; Non-zero: FCB allocated, store flags
+; &a02f referenced 1 time by &8e95
+.ca02f
     jsr verify_ws_checksum                                            ; a02f: 20 9e 90     ..            ; Verify workspace checksum
     jsr set_xfer_params                                               ; a032: 20 d7 93     ..            ; Set up transfer parameters
     tax                                                               ; a035: aa          .              ; Transfer A to X
@@ -10086,11 +10131,11 @@ la878 = sub_ca877+1
     bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Next byte down; Loop for 15 bytes
     lda #&0e                                                          ; aa65: a9 0e       ..
     bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Workspace low = &DA; Load OSWORD number
-    bne return_4                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
+    bne return_5                                                      ; aa6a: d0 05       ..             ; Store at workspace+0 (= &DA)
     lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; Workspace low = 0 (restore)
     tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Y=&14: control offset
 ; &aa71 referenced 1 time by &aa6a
-.return_4
+.return_5
     rts                                                               ; aa71: 60          `              ; Control value &E9
 
 ; ***************************************************************************************
@@ -10694,7 +10739,7 @@ labc5 = compare_bridge_status+1
     ldy osword_flag                                                   ; acce: a4 aa       ..             ; No: read next palette entry
     inc osword_flag                                                   ; acd0: e6 aa       ..             ; Discard last ULA value; Clear counter
     lda (ws_ptr_hi),y                                                 ; acd2: b1 ac       ..             ; Advance workspace ptr
-    beq return_5                                                      ; acd4: f0 16       ..             ; Store extra palette info
+    beq return_6                                                      ; acd4: f0 16       ..             ; Store extra palette info
     ldy #&7d ; '}'                                                    ; acd6: a0 7d       .}
     sta (net_rx_ptr),y                                                ; acd8: 91 9c       ..             ; Advance workspace ptr again
     pha                                                               ; acda: 48          H              ; Restore original l00ad
@@ -10710,7 +10755,7 @@ labc5 = compare_bridge_status+1
     eor #&0d                                                          ; ace8: 49 0d       I.             ; X = palette register
     bne loop_send_pb_chars                                            ; acea: d0 e2       ..
 ; &acec referenced 1 time by &acd4
-.return_5
+.return_6
     rts                                                               ; acec: 60          `              ; Read OSBYTE for this mode
 
 ; &aced referenced 1 time by &accc
@@ -12146,8 +12191,8 @@ lb0d4 = cdir_dispatch_col+2
     rts                                                               ; b2d7: 60          `              ; Return
 
     equs "Run"                                                        ; b2d8: 52 75 6e    Run
-    equb &a2, 0                                                       ; b2db: a2 00       ..
 
+    ldx #0                                                            ; b2db: a2 00       ..
 ; &b2dd referenced 1 time by &b2fd
 .loop_scan_entries
     lda lc105,x                                                       ; b2dd: bd 05 c1    ...
@@ -13324,11 +13369,11 @@ lb4fd = write_ps_slot_hi_link+1
     ldx #1                                                            ; b7d5: a2 01       ..             ; X=1: flush input buffers
     jsr osbyte                                                        ; b7d7: 20 f4 ff     ..            ; Flush keyboard buffer before read
     jsr osrdch                                                        ; b7da: 20 e0 ff     ..            ; Read character from input stream
-    bcc return_6                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
+    bcc return_7                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
     jmp raise_escape_error                                            ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
 
 ; &b7e2 referenced 1 time by &b7dd
-.return_6
+.return_7
     rts                                                               ; b7e2: 60          `              ; Return with character in A
 
 ; ***************************************************************************************
@@ -13505,13 +13550,13 @@ lb821 = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b88c: 20 14 b8     ..            ; Validate and look up channel
     and #2                                                            ; b88f: 29 02       ).             ; Test directory flag (bit 1)
-    beq return_7                                                      ; b891: f0 14       ..             ; Not a directory: return OK
+    beq return_8                                                      ; b891: f0 14       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..            ; Generate 'Is a dir.' error
     equs "Is a directory", 0                                          ; b898: 49 73 20... Is
 
 ; &b8a7 referenced 1 time by &b891
-.return_7
+.return_8
     rts                                                               ; b8a7: 60          `
 
 ; ***************************************************************************************
@@ -15080,7 +15125,7 @@ save pydis_start, pydis_end
 ;     net_rx_ptr:                    52
 ;     ws_ptr_hi:                     48
 ;     econet_control23_or_status2:   45
-;     work_ae:                       43
+;     work_ae:                       45
 ;     fs_load_addr_2:                38
 ;     econet_data_continue_frame:    37
 ;     lc271:                         37
@@ -15092,7 +15137,7 @@ save pydis_start, pydis_end
 ;     econet_control1_or_status1:    32
 ;     fs_crc_lo:                     31
 ;     lc106:                         31
-;     fs_flags:                      29
+;     fs_flags:                      30
 ;     osbyte:                        29
 ;     rx_src_net:                    27
 ;     fs_work_4:                     25
@@ -15104,20 +15149,20 @@ save pydis_start, pydis_end
 ;     always_set_v_byte:             21
 ;     econet_flags:                  20
 ;     l0101:                         20
+;     os_text_ptr:                   20
 ;     lc200:                         18
 ;     lc230:                         18
-;     os_text_ptr:                   18
 ;     osbyte_a1:                     18
 ;     lc030:                         17
 ;     lfe34:                         17
 ;     ws_page:                       17
 ;     fs_work_5:                     16
 ;     open_port_buf_hi:              16
-;     svc_state:                     16
 ;     fs_block_offset:               15
 ;     lc210:                         15
 ;     mask_owner_access:             15
 ;     nmi_tx_block:                  15
+;     svc_state:                     15
 ;     fs_last_byte_flag:             14
 ;     lc240:                         14
 ;     lc2c8:                         14
@@ -15147,6 +15192,7 @@ save pydis_start, pydis_end
 ;     lc103:                         10
 ;     nfs_workspace_hi:              10
 ;     store_rx_attribute:            10
+;     addr_work:                      9
 ;     fs_crflag:                      9
 ;     install_nmi_handler:            9
 ;     lc220:                          9
@@ -15158,17 +15204,18 @@ save pydis_start, pydis_end
 ;     tx_src_stn:                     9
 ;     txcb_end:                       9
 ;     ws_0d6a:                        9
-;     addr_work:                      8
 ;     l0406:                          8
 ;     l9aa6:                          8
 ;     lc108:                          8
 ;     tx_complete_flag:               8
 ;     alloc_fcb_slot:                 7
+;     ensure_fs_selected:             7
 ;     finalise_and_return:            7
 ;     fs_load_addr_hi:                7
 ;     lc102:                          7
 ;     lc298:                          7
 ;     match_station_net:              7
+;     os_text_ptr_hi:                 7
 ;     reject_reply:                   7
 ;     rx_buf_offset:                  7
 ;     tube_data_register_3:           7
@@ -15190,7 +15237,6 @@ save pydis_start, pydis_end
 ;     lc2d8:                          6
 ;     lfe38:                          6
 ;     nmi_rti:                        6
-;     os_text_ptr_hi:                 6
 ;     print_newline_no_spool:         6
 ;     pydis_end:                      6
 ;     send_net_packet:                6
@@ -15203,7 +15249,6 @@ save pydis_start, pydis_end
 ;     close_ws_file:                  5
 ;     copy_arg_to_buf_x0:             5
 ;     copy_pb_byte_to_ws:             5
-;     ensure_fs_selected:             5
 ;     escapable:                      5
 ;     fs_spool_handle:                5
 ;     fs_work_7:                      5
@@ -15655,12 +15700,14 @@ save pydis_start, pydis_end
 ;     c967f:                          1
 ;     c9689:                          1
 ;     c968c:                          1
+;     c96b2:                          1
 ;     c96fa:                          1
 ;     c9725:                          1
 ;     c972e:                          1
 ;     c9827:                          1
 ;     c9984:                          1
 ;     c9a0d:                          1
+;     ca02f:                          1
 ;     ca0cf:                          1
 ;     ca0db:                          1
 ;     ca0df:                          1
@@ -15906,7 +15953,9 @@ save pydis_start, pydis_end
 ;     l89c9:                          1
 ;     l89ed:                          1
 ;     l8a20:                          1
+;     l8e7f:                          1
 ;     l968f:                          1
+;     l9697:                          1
 ;     l99a3:                          1
 ;     la0ff:                          1
 ;     la103:                          1
@@ -15946,7 +15995,6 @@ save pydis_start, pydis_end
 ;     lc2ce:                          1
 ;     lc2d1:                          1
 ;     lc2d6:                          1
-;     lf180:                          1
 ;     lfe28:                          1
 ;     lfe2b:                          1
 ;     lffb0:                          1
@@ -15968,10 +16016,14 @@ save pydis_start, pydis_end
 ;     loop_bridge_tx_delay:           1
 ;     loop_build_wipe_cmd:            1
 ;     loop_c8bea:                     1
+;     loop_c8e75:                     1
 ;     loop_c9292:                     1
+;     loop_c96a7:                     1
 ;     loop_c96bd:                     1
 ;     loop_c96c8:                     1
 ;     loop_c96db:                     1
+;     loop_c96e7:                     1
+;     loop_c96eb:                     1
 ;     loop_ca0f2:                     1
 ;     loop_ca84a:                     1
 ;     loop_ca85c:                     1
@@ -16249,6 +16301,7 @@ save pydis_start, pydis_end
 ;     return_5:                       1
 ;     return_6:                       1
 ;     return_7:                       1
+;     return_8:                       1
 ;     return_alloc_success:           1
 ;     return_chan_index:              1
 ;     return_from_2bit_index:         1
@@ -16504,6 +16557,7 @@ save pydis_start, pydis_end
 ;     c9689
 ;     c968c
 ;     c96b0
+;     c96b2
 ;     c96bc
 ;     c96fa
 ;     c970f
@@ -16513,6 +16567,7 @@ save pydis_start, pydis_end
 ;     c9827
 ;     c9984
 ;     c9a0d
+;     ca02f
 ;     ca0cf
 ;     ca0db
 ;     ca0df
@@ -16565,7 +16620,9 @@ save pydis_start, pydis_end
 ;     l89c9
 ;     l89ed
 ;     l8a20
+;     l8e7f
 ;     l968f
+;     l9697
 ;     l99a3
 ;     l9aa6
 ;     la0ff
@@ -16674,7 +16731,6 @@ save pydis_start, pydis_end
 ;     lc2d8
 ;     lc2d9
 ;     lc2f3
-;     lf180
 ;     lfe28
 ;     lfe2b
 ;     lfe34
@@ -16683,10 +16739,14 @@ save pydis_start, pydis_end
 ;     lffb0
 ;     lffbd
 ;     loop_c8bea
+;     loop_c8e75
 ;     loop_c9292
+;     loop_c96a7
 ;     loop_c96bd
 ;     loop_c96c8
 ;     loop_c96db
+;     loop_c96e7
+;     loop_c96eb
 ;     loop_ca0f2
 ;     loop_ca84a
 ;     loop_ca85c
@@ -16704,6 +16764,7 @@ save pydis_start, pydis_end
 ;     return_5
 ;     return_6
 ;     return_7
+;     return_8
 ;     sub_c8409
 ;     sub_c8da6
 ;     sub_c95c1
@@ -16718,11 +16779,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14310 bytes (87%)
-;     Data                     = 2074 bytes (13%)
+;     Code                     = 14373 bytes (88%)
+;     Data                     = 2011 bytes (12%)
 ;
-;     Number of instructions   = 7040
-;     Number of data bytes     = 756 bytes
+;     Number of instructions   = 7075
+;     Number of data bytes     = 699 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1290 bytes
+;     Number of string bytes   = 1284 bytes
 ;     Number of strings        = 149

@@ -9725,8 +9725,17 @@ entry(0x9619)   # CMOS-bit setter helpers — reached via *Spool/*Spooloff style
 entry(0x9623)   # second entry of the &9619 helper (clear bit 0 of CMOS &11)
 entry(0x9630)   # 31-byte block: command-line walker that JSRs &95C8/&9670/&95C1/&965F
 entry(0x959A)   # 21-byte block: LDA(&F2),Y / CMP #&0D loop with JSRs to &95C8/&95DA/&95C1
-entry(0x96BD)   # 41-byte block: filename walker (skip 2 mystery bytes &96BB-BC and start at INY)
-entry(0x96F5)   # 39-byte block: SBC chain — separate routine reached from &96BD body
+# entry(0x96BD) and entry(0x96F5) removed: now reached naturally via the
+# &969A dispatch entry, which traces the whole &969A..&973C body as code.
+# svc_dispatch table targets: PHA/PHA/RTS dispatch from &89ED/&8A20 reaches each
+# of these without leaving a code-flow trace py8dis can follow.
+entry(0x8E71)   # idx &13: DEY/RTS 2-byte stub (and continues into copy routine at &8E73)
+entry(0x8E73)   # idx &14: copy 11-byte template &8E7F..&8E89 -> (&F2),Y
+entry(0x8E8A)   # idx &15: BIT &0D6C / BVC &8E80 / JSR &8B4D / LDA #0 / TAY / JMP &A02F
+entry(0xB2DB)   # idx &2A: LDX #0 then falls into loop_scan_entries (&B2DD)
+entry(0x969A)   # idx &0F: PHY then 'ON ' suffix matcher; dual-purpose with the
+                #   "!Help.ON Z" 10-byte string at &9691 -- the trailing 'Z' (&5A)
+                #   serves as both string char and the matcher's first opcode (PHY).
 entry(0xACFC)   # 68-byte undecoded block
 # entry(0xAA9F) removed — classified as data via byte() declarations
 entry(0xBBE7)   # 21-byte file handler block
