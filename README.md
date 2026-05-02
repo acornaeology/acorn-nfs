@@ -81,6 +81,7 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
   - [Raw assembly source](versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm)
   - [Acorn ANFS 4.21 (variant 1) in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=03371d224a8f048c129335682434d025)
   - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
+  - [Changes from ANFS 4.18](versions/anfs-4.21_variant_1/CHANGES-FROM-4.18.md)
 
 ## How it works
 
