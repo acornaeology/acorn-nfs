@@ -9244,8 +9244,10 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Write data block to destination or Tube
 ;
-; If no Tube present, copies directly from the fs_cmd_data buffer via (fs_crc_lo). If
-; Tube is active, claims the Tube, sets up the transfer address, and writes via R3.
+; | tube_present   | Action                                                    |
+; |----------------|-----------------------------------------------------------|
+; | zero (no Tube) | copy directly from the fs_cmd_data buffer via (fs_crc_lo) |
+; | non-zero       | claim the Tube, set up the transfer address, write via R3 |
 ;
 ; On Exit: A, X, Y: clobbered
 ; &a2ed referenced 2 times by &a29d, &a365
@@ -9600,7 +9602,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Match command name against FS command table
 ;
-; Case-insensitive compare of the command line against table entries with
+; Case-insensitive compare of the command line against cmd_table_fs entries with
 ; bit-7-terminated names. Returns with the matched entry address on success.
 ;
 ; On Entry: X: starting offset within cmd_table_fs (selects which sub-table is

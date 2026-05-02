@@ -4905,10 +4905,11 @@ write_data_block. Single caller (&A16A in the OSWORD write path).""",
     on_entry={"y": "ignored (forced to 4)"})
 subroutine(0xA2ED, "write_data_block",
     title="Write data block to destination or Tube",
-    description="If no Tube present, copies directly from\n"
-    "the fs_cmd_data buffer via (fs_crc_lo). If Tube\n"
-    "is active, claims the Tube, sets up the\n"
-    "transfer address, and writes via R3.",
+    description="""\
+| `tube_present` | Action |
+|---|---|
+| zero (no Tube) | copy directly from the `fs_cmd_data` buffer via `(fs_crc_lo)` |
+| non-zero       | claim the Tube, set up the transfer address, write via R3 |""",
     on_exit={"a, x, y": "clobbered"})
 subroutine(0xA329, "tail_update_catalogue",
     title="Catalogue-update exit (JMP clear_result)",
@@ -5007,10 +5008,10 @@ re-attempt the command; otherwise falls through to error_syntax to
 raise 'Syntax'. Single caller (the FS dispatch table at &8C4E).""")
 subroutine(0xA45B, "match_fs_cmd",
     title="Match command name against FS command table",
-    description="Case-insensitive compare of the command line\n"
-    "against table entries with bit-7-terminated\n"
-    "names. Returns with the matched entry address\n"
-    "on success.",
+    description="""\
+Case-insensitive compare of the command line against
+`cmd_table_fs` entries with bit-7-terminated names. Returns with
+the matched entry address on success.""",
     on_entry={"x": "starting offset within cmd_table_fs (selects which "
               "sub-table is searched: NFS commands, FS commands, etc.)"},
     on_exit={"x": "byte offset just past the matched command name in "

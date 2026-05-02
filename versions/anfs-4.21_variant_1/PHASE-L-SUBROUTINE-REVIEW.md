@@ -334,36 +334,36 @@ addresses across all 431 remaining routines.
 | 258 | &A1F3 | `lookup_cat_slot_data` | kept | already accurate |
 | 259 | &A1FA | `setup_transfer_workspace` | done | 6-step numbered breakdown + parity dispatch table |
 | 260 | &A284 | `recv_reply_preserve_flags` | kept | already accurate |
-| 261 | &A28A | `send_osbput_data` | | |
-| 262 | &A29F | `write_block_entry` | | |
-| 263 | &A2ED | `write_data_block` | | |
-| 264 | &A329 | `tail_update_catalogue` | | |
-| 265 | &A390 | `tube_claim_c3` | | |
-| 266 | &A398 | `cmd_fs` | | |
-| 267 | &A3BB | `print_fs_info_newline` | | |
-| 268 | &A3C4 | `parse_fs_ps_args` | | |
-| 269 | &A3E7 | `get_pb_ptr_as_index` | | |
-| 270 | &A3E9 | `byte_to_2bit_index` | | |
-| 271 | &A3FF | `net_1_read_handle` | | |
-| 272 | &A405 | `net_2_read_handle_entry` | | |
-| 273 | &A415 | `net_3_close_handle` | | |
-| 274 | &A42F | `fscv_3_star_cmd` | | |
-| 275 | &A440 | `cmd_fs_reentry` | | |
-| 276 | &A45B | `match_fs_cmd` | | |
-| 277 | &A4A2 | `loop_skip_trail_spaces` | | |
-| 278 | &A4E4 | `fscv_2_star_run` | | |
-| 279 | &A4F1 | `cmd_run_via_urd` | | |
-| 280 | &A5A1 | `error_bad_command` | | |
-| 281 | &A5AE | `check_exec_addr` | | |
-| 282 | &A5C3 | `alloc_run_channel` | | |
-| 283 | &A638 | `fsreply_3_set_csd` | | |
-| 284 | &A63E | `fsreply_5_set_lib` | | |
-| 285 | &A644 | `find_station_bit2` | | |
-| 286 | &A66F | `find_station_bit3` | | |
-| 287 | &A69A | `cmd_flip` | | |
-| 288 | &A6A6 | `flip_set_station_boot` | | |
-| 289 | &A6D5 | `fsreply_1_copy_handles_boot` | | |
-| 290 | &A6E5 | `fsreply_2_copy_handles` | | |
+| 261 | &A28A | `send_osbput_data` | kept | already accurate |
+| 262 | &A29F | `write_block_entry` | kept | already accurate |
+| 263 | &A2ED | `write_data_block` | done | tube_present dispatch table |
+| 264 | &A329 | `tail_update_catalogue` | kept | already accurate |
+| 265 | &A390 | `tube_claim_c3` | kept | already accurate |
+| 266 | &A398 | `cmd_fs` | kept | already accurate |
+| 267 | &A3BB | `print_fs_info_newline` | kept | already accurate |
+| 268 | &A3C4 | `parse_fs_ps_args` | kept | already accurate |
+| 269 | &A3E7 | `get_pb_ptr_as_index` | kept | already accurate |
+| 270 | &A3E9 | `byte_to_2bit_index` | kept | already accurate |
+| 271 | &A3FF | `net_1_read_handle` | kept | already accurate |
+| 272 | &A405 | `net_2_read_handle_entry` | kept | already accurate |
+| 273 | &A415 | `net_3_close_handle` | kept | already accurate |
+| 274 | &A42F | `fscv_3_star_cmd` | kept | already accurate |
+| 275 | &A440 | `cmd_fs_reentry` | kept | already accurate |
+| 276 | &A45B | `match_fs_cmd` | done | inline-code refinement |
+| 277 | &A4A2 | `loop_skip_trail_spaces` | kept | already accurate |
+| 278 | &A4E4 | `fscv_2_star_run` | kept | already accurate |
+| 279 | &A4F1 | `cmd_run_via_urd` | kept | already accurate |
+| 280 | &A5A1 | `error_bad_command` | kept | already accurate |
+| 281 | &A5AE | `check_exec_addr` | kept | already accurate |
+| 282 | &A5C3 | `alloc_run_channel` | kept | already accurate |
+| 283 | &A638 | `fsreply_3_set_csd` | kept | already accurate |
+| 284 | &A63E | `fsreply_5_set_lib` | kept | already accurate |
+| 285 | &A644 | `find_station_bit2` | kept | already accurate |
+| 286 | &A66F | `find_station_bit3` | kept | already accurate |
+| 287 | &A69A | `cmd_flip` | kept | already accurate |
+| 288 | &A6A6 | `flip_set_station_boot` | kept | already accurate |
+| 289 | &A6D5 | `fsreply_1_copy_handles_boot` | kept | already accurate |
+| 290 | &A6E5 | `fsreply_2_copy_handles` | kept | already accurate |
 | 291 | &A764 | `boot_cmd_oscli` | | |
 | 292 | &A76C | `cmd_table_fs` | | |
 | 293 | &A83B | `svc_8_osword` | | |
