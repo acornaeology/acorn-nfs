@@ -2429,107 +2429,145 @@ Two callers: [`send_data_rx_ack`](address:81A7?hex)'s tail `JMP`
               "y": "high byte of next NMI handler"})
 subroutine(0x8316, "nmi_ack_tx_src",
     title="ACK TX continuation",
-    description="Continuation of ACK frame transmission. Reads our\n"
-    "station ID from &FE18 (INTOFF side effect), tests\n"
-    "TDRA via SR1, and writes station + network=0 to the\n"
-    "TX FIFO, completing the 4-byte ACK address header.\n"
-    "Then checks rx_src_net bit 7: if set, branches to\n"
-    "start_data_tx to begin the data phase. Otherwise\n"
-    "writes CR2=&3F (TX_LAST_DATA) and falls through to\n"
-    "post_ack_scout for scout processing.")
+    description="""\
+Continuation of ACK frame transmission. Reads our station ID from
+[`econet_station_id`](address:FE18?hex) (INTOFF side effect),
+tests `TDRA` via `SR1`, and writes `(station, network=0)` to the
+TX FIFO, completing the 4-byte ACK address header.
+
+Then dispatches on [`rx_src_net`](address:0D3E?hex) bit 7:
+
+| Bit 7 | Action |
+|---|---|
+| set   | branch to `start_data_tx` to begin the data phase |
+| clear | write `CR2=&3F` (TX_LAST_DATA) and fall through to [`post_ack_scout`](address:832D?hex) |""")
 subroutine(0x832D, "post_ack_scout",
     title="Post-ACK scout processing",
-    description="Called after the scout ACK has been transmitted.\n"
-    "Processes the received scout data stored in the\n"
-    "buffer starting at [`rx_src_stn`](address:0D3D?hex)\n"
-    "(scout-ACK destination addresses). Checks the port\n"
-    "byte ([`rx_port`](address:0D40?hex)) against open\n"
-    "receive blocks to find a matching listener. If a match\n"
-    "is found, sets up the data RX handler chain for the\n"
-    "four-way handshake data phase.\n"
-    "If no match, discards the frame.")
+    description="""\
+Called after the scout ACK has been transmitted. Processes the
+received scout data stored in the buffer starting at
+[`rx_src_stn`](address:0D3D?hex) (scout-ACK destination
+addresses). Checks the port byte at
+[`rx_port`](address:0D40?hex) against open receive blocks to find
+a matching listener.
+
+- **Match** – sets up the data-RX handler chain for the four-way-
+  handshake data phase.
+- **No match** – discards the frame.""")
 subroutine(0x833F, "advance_rx_buffer_ptr",
     title="Advance RX buffer pointer after transfer",
-    description="Adds the transfer count to the RXCB buffer pointer (4-byte\n"
-    "addition). If a Tube transfer is active, re-claims the Tube\n"
-    "address and sends the extra RX byte via R3, incrementing the\n"
-    "Tube pointer by 1.\n"
-    "\n"
-    "Reads tx_flags bit 1 (data transfer in progress) and bit 5\n"
-    "(Tube transfer). Reads the 4-byte transfer count from\n"
-    "net_tx_ptr,Y (Y=8..&0B) and the RXCB pointer at\n"
-    "(port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y;\n"
-    "preserves X across the Tube branch (saved/restored via stack).",
+    description="""\
+Adds the transfer count to the RXCB buffer pointer (4-byte
+addition). If a Tube transfer is active, re-claims the Tube
+address and sends the extra RX byte via R3, incrementing the
+Tube pointer by 1.
+
+Reads:
+
+- [`tx_flags`](address:0D4A?hex) bit 1 – data transfer in progress
+- [`tx_flags`](address:0D4A?hex) bit 5 – Tube transfer
+- 4-byte transfer count from `net_tx_ptr,Y` (`Y=8..&0B`)
+- RXCB pointer at `(port_ws_offset),Y`
+
+Updates the RXCB in place. Clobbers `A` and `Y`; preserves `X`
+across the Tube branch (saved/restored via stack).""",
     on_exit={"a": "&FF when transfer was active, else preserved entry value"})
 subroutine(0x8386, "nmi_post_ack_dispatch",
     title="Post-ACK frame-complete NMI handler",
-    description="Installed by ack_tx_configure via saved_nmi_lo/hi.\n"
-    "Fires as an NMI after the ACK frame (CRC and\n"
-    "closing flag) has been fully transmitted by the\n"
-    "ADLC. Dispatches on scout_port: port != 0 goes\n"
-    "to rx_complete_update_rxcb to finalise the data\n"
-    "transfer and mark the RXCB complete; port = 0\n"
-    "with ctrl &82 (POKE) also goes to\n"
-    "rx_complete_update_rxcb; other port-0 ops go to\n"
-    "imm_op_build_reply.")
+    description="""\
+Installed by `ack_tx_configure` via
+[`saved_nmi_lo`](address:0D43?hex) / [`saved_nmi_hi`](address:0D44?hex).
+Fires as an NMI after the ACK frame (CRC + closing flag) has been
+fully transmitted by the ADLC. Dispatches on `scout_port`:
+
+| `scout_port` | Control | Target |
+|---|---|---|
+| `≠ 0` | – | [`rx_complete_update_rxcb`](address:8395?hex) (finalise data transfer, mark RXCB complete) |
+| `0`   | `&82` (POKE) | [`rx_complete_update_rxcb`](address:8395?hex) (same path) |
+| `0`   | other | `imm_op_build_reply` |""")
 subroutine(0x8395, "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
-    description="Called from nmi_post_ack_dispatch after the\n"
-    "final ACK has been transmitted. Finalises the\n"
-    "received data transfer: calls advance_rx_buffer_ptr\n"
-    "to update the 4-byte buffer pointer with the\n"
-    "transfer count (and handle Tube re-claim if\n"
-    "needed). Stores the source station, network, and\n"
-    "port into the RXCB, then ORs &80 into the control\n"
-    "byte (bit 7 = complete). This is the NMI-to-\n"
-    "foreground synchronisation point: wait_net_tx_ack\n"
-    "polls this bit to detect that the reply has\n"
-    "arrived. Falls through to discard_reset_rx to\n"
-    "reset the ADLC to idle RX listen mode.")
+    description="""\
+Called from [`nmi_post_ack_dispatch`](address:8386?hex) after the
+final ACK has been transmitted. Finalises the received data
+transfer:
+
+1. Calls [`advance_rx_buffer_ptr`](address:833F?hex) to update the
+   4-byte buffer pointer with the transfer count (and handle Tube
+   re-claim if needed).
+2. Stores the source station, network, and port into the RXCB.
+3. ORs `&80` into the RXCB control byte (bit 7 = complete).
+
+This is the **NMI-to-foreground synchronisation point**:
+`wait_net_tx_ack` polls bit 7 of the RXCB control byte to detect
+that the reply has arrived.
+
+Falls through to [`discard_reset_rx`](address:83E5?hex) to reset
+the ADLC to idle RX-listen mode.""")
 subroutine(0x83E5, "discard_reset_rx",
     title="Discard scout, reset ADLC, install RX-scout NMI",
     description="""\
-Three-stage idle-restore chain. Calls discard_reset_listen to
-abandon any in-flight scout and release a held Tube claim, then
-falls through to reset_adlc_rx_listen which calls adlc_rx_listen
-(reset CR1/CR2 and re-arm RX), then falls through to
-set_nmi_rx_scout which installs nmi_rx_scout as the active NMI
-handler and JMPs out via set_nmi_vector. Used as the standard
-'something went wrong, get back to listening' exit.""")
+Three-stage idle-restore chain:
+
+1. [`discard_reset_listen`](address:83F2?hex) – abandon any
+   in-flight scout and release a held Tube claim.
+2. [`reset_adlc_rx_listen`](address:83E8?hex) – call
+   `adlc_rx_listen` (reset `CR1`/`CR2` and re-arm RX).
+3. [`set_nmi_rx_scout`](address:83EB?hex) – install
+   [`nmi_rx_scout`](address:809B?hex) as the active NMI handler
+   and `JMP` out via [`set_nmi_vector`](address:0D0E?hex).
+
+Used as the standard "something went wrong, get back to listening"
+exit.""")
 subroutine(0x83E8, "reset_adlc_rx_listen",
     title="Reset ADLC and install RX-scout NMI",
     description="""\
-Tail of the discard_reset_rx chain entered directly when no scout
-needs discarding. Calls adlc_rx_listen to reset CR1/CR2 to RX-only
-mode, then falls through to set_nmi_rx_scout. Two inbound JSRs
-plus one fall-through (from discard_reset_rx).""")
+Tail of the [`discard_reset_rx`](address:83E5?hex) chain entered
+directly when no scout needs discarding. Calls `adlc_rx_listen`
+to reset `CR1`/`CR2` to RX-only mode, then falls through to
+[`set_nmi_rx_scout`](address:83EB?hex).
+
+Two inbound `JSR`s plus one fall-through (from
+[`discard_reset_rx`](address:83E5?hex)).""")
 subroutine(0x83EB, "set_nmi_rx_scout",
     title="Install nmi_rx_scout as NMI handler",
     description="""\
-Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since
-set_nmi_vector adds 1) and JMPs to set_nmi_vector. Tail of the
-discard_reset_rx / reset_adlc_rx_listen chain. Two callers: &80CB
-(after init) and &80E2 (after error).""")
+Sets `A=&9B`, `Y=&80` (the [`nmi_rx_scout`](address:809B?hex)
+address `&809B-1`, since [`set_nmi_vector`](address:0D0E?hex)
+adds 1) and `JMP`s to [`set_nmi_vector`](address:0D0E?hex). Tail
+of the [`discard_reset_rx`](address:83E5?hex) /
+[`reset_adlc_rx_listen`](address:83E8?hex) chain.
+
+Two callers: `&80CB` (after init) and `&80E2` (after error).""")
 subroutine(0x83F2, "discard_reset_listen",
     title="Discard with Tube release",
-    description="Checks whether a Tube transfer is active by\n"
-    "ANDing bit 1 of tube_present with rx_src_net (tx_flags).\n"
-    "If a Tube claim is held, calls release_tube to\n"
-    "free it before returning. Used as the clean-up\n"
-    "path after RXCB completion and after ADLC reset\n"
-    "to ensure no stale Tube claims persist.")
+    description="""\
+Checks whether a Tube transfer is active by ANDing bit 1 of
+[`tube_present`](address:0D63?hex) with
+[`rx_src_net`](address:0D3E?hex) (`tx_flags`). If a Tube claim is
+held, calls [`release_tube`](address:8448?hex) to free it before
+returning.
+
+Used as the clean-up path after RXCB completion and after ADLC
+reset to ensure no stale Tube claims persist.""")
 label(0x83F7, "imm_op_jump_table")
 subroutine(0x8400, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
-    description="Copies scout data bytes (offsets 4-11) from the\n"
-    "RX scout buffer at &0D3D into the open port buffer.\n"
-    "Checks bit 1 of rx_src_net (tx_flags) to select the\n"
-    "write path: direct memory store via (open_port_buf),Y\n"
-    "for normal transfers, or Tube data register 3 write\n"
-    "for Tube transfers. Calls advance_buffer_ptr after\n"
-    "each byte. Falls through to release_tube on\n"
-    "completion. Handles page overflow (Y wrap) by\n"
-    "branching to scout_page_overflow.")
+    description="""\
+Copies scout data bytes (offsets 4–11) from the RX scout buffer
+at [`rx_src_stn`](address:0D3D?hex) into the open port buffer.
+
+Selects the write path on bit 1 of
+[`rx_src_net`](address:0D3E?hex) (`tx_flags`):
+
+| Bit 1 | Write path |
+|---|---|
+| clear | direct memory store via `(open_port_buf),Y` |
+| set   | Tube data register 3 write |
+
+Calls `advance_buffer_ptr` after each byte. Falls through to
+[`release_tube`](address:8448?hex) on completion. Handles page
+overflow (Y wrap) by branching to `scout_page_overflow`.""")
 subroutine(0x8448, "release_tube",
     title="Release Tube co-processor claim",
     description="Tests need_release_tube (&98) bit 7: if set, the\n"

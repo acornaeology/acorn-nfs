@@ -1131,11 +1131,16 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; ACK TX continuation
 ;
-; Continuation of ACK frame transmission. Reads our station ID from &FE18 (INTOFF side
-; effect), tests TDRA via SR1, and writes station + network=0 to the TX FIFO,
-; completing the 4-byte ACK address header. Then checks rx_src_net bit 7: if set,
-; branches to start_data_tx to begin the data phase. Otherwise writes CR2=&3F
-; (TX_LAST_DATA) and falls through to post_ack_scout for scout processing.
+; Continuation of ACK frame transmission. Reads our station ID from econet_station_id
+; (&FE18) (INTOFF side effect), tests TDRA via SR1, and writes (station, network=0) to
+; the TX FIFO, completing the 4-byte ACK address header.
+;
+; Then dispatches on rx_src_net (&0D3E) bit 7:
+;
+; | Bit 7 | Action                                                                  |
+; |-------|-------------------------------------------------------------------------|
+; | set   | branch to start_data_tx to begin the data phase                         |
+; | clear | write CR2=&3F (TX_LAST_DATA) and fall through to post_ack_scout (&832D) |
 .nmi_ack_tx_src
     lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
     bit adlc_cr1                                                      ; 8319: 2c a0 fe    ,..            ; BIT SR1: test TDRA
@@ -1151,9 +1156,11 @@ rom_header_byte2 = rom_header+2
 ;
 ; Called after the scout ACK has been transmitted. Processes the received scout data
 ; stored in the buffer starting at rx_src_stn (&0D3D) (scout-ACK destination
-; addresses). Checks the port byte (rx_port (&0D40)) against open receive blocks to
-; find a matching listener. If a match is found, sets up the data RX handler chain for
-; the four-way handshake data phase. If no match, discards the frame.
+; addresses). Checks the port byte at rx_port (&0D40) against open receive blocks to
+; find a matching listener.
+;
+; - Match – sets up the data-RX handler chain for the four-way- handshake data phase.
+; - No match – discards the frame.
 .post_ack_scout
     sta adlc_cr2                                                      ; 832d: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
     lda saved_nmi_lo                                                  ; 8330: ad 43 0d    .C.            ; Install saved handler from &0D4B/&0D4C
@@ -1175,10 +1182,15 @@ rom_header_byte2 = rom_header+2
 ; transfer is active, re-claims the Tube address and sends the extra RX byte via R3,
 ; incrementing the Tube pointer by 1.
 ;
-; Reads tx_flags bit 1 (data transfer in progress) and bit 5 (Tube transfer). Reads the
-; 4-byte transfer count from net_tx_ptr,Y (Y=8..&0B) and the RXCB pointer at
-; (port_ws_offset),Y. Updates RXCB in place. Clobbers A and Y; preserves X across the
-; Tube branch (saved/restored via stack).
+; Reads:
+;
+; - tx_flags (&0D4A) bit 1 – data transfer in progress
+; - tx_flags (&0D4A) bit 5 – Tube transfer
+; - 4-byte transfer count from net_tx_ptr,Y (Y=8..&0B)
+; - RXCB pointer at (port_ws_offset),Y
+;
+; Updates the RXCB in place. Clobbers A and Y; preserves X across the Tube branch
+; (saved/restored via stack).
 ;
 ; On Exit: A: &FF when transfer was active, else preserved entry value
 ; &833f referenced 2 times by &82e4, &8395
@@ -1235,11 +1247,15 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Post-ACK frame-complete NMI handler
 ;
-; Installed by ack_tx_configure via saved_nmi_lo/hi. Fires as an NMI after the ACK
-; frame (CRC and closing flag) has been fully transmitted by the ADLC. Dispatches on
-; scout_port: port != 0 goes to rx_complete_update_rxcb to finalise the data transfer
-; and mark the RXCB complete; port = 0 with ctrl &82 (POKE) also goes to
-; rx_complete_update_rxcb; other port-0 ops go to imm_op_build_reply.
+; Installed by ack_tx_configure via saved_nmi_lo (&0D43) / saved_nmi_hi (&0D44). Fires
+; as an NMI after the ACK frame (CRC + closing flag) has been fully transmitted by the
+; ADLC. Dispatches on scout_port:
+;
+; | scout_port | Control    | Target                                                                       |
+; |------------|------------|------------------------------------------------------------------------------|
+; | ≠ 0        | –          | rx_complete_update_rxcb (&8395) (finalise data transfer, mark RXCB complete) |
+; | 0          | &82 (POKE) | rx_complete_update_rxcb (&8395) (same path)                                  |
+; | 0          | other      | imm_op_build_reply                                                           |
 .nmi_post_ack_dispatch
     lda scout_port                                                    ; 8386: ad 31 0d    .1.            ; Load received port byte
     bne rx_complete_update_rxcb                                       ; 8389: d0 0a       ..             ; Port != 0: data transfer frame
@@ -1251,13 +1267,18 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Complete RX and update RXCB
 ;
-; Called from nmi_post_ack_dispatch after the final ACK has been transmitted. Finalises
-; the received data transfer: calls advance_rx_buffer_ptr to update the 4-byte buffer
-; pointer with the transfer count (and handle Tube re-claim if needed). Stores the
-; source station, network, and port into the RXCB, then ORs &80 into the control byte
-; (bit 7 = complete). This is the NMI-to- foreground synchronisation point:
-; wait_net_tx_ack polls this bit to detect that the reply has arrived. Falls through to
-; discard_reset_rx to reset the ADLC to idle RX listen mode.
+; Called from nmi_post_ack_dispatch (&8386) after the final ACK has been transmitted.
+; Finalises the received data transfer:
+;
+; 1. Calls advance_rx_buffer_ptr (&833F) to update the 4-byte buffer pointer with the
+;    transfer count (and handle Tube re-claim if needed).
+; 2. Stores the source station, network, and port into the RXCB.
+; 3. ORs &80 into the RXCB control byte (bit 7 = complete).
+;
+; This is the NMI-to-foreground synchronisation point: wait_net_tx_ack polls bit 7 of
+; the RXCB control byte to detect that the reply has arrived.
+;
+; Falls through to discard_reset_rx (&83E5) to reset the ADLC to idle RX-listen mode.
 ; &8395 referenced 3 times by &8389, &8390, &8431
 .rx_complete_update_rxcb
     jsr advance_rx_buffer_ptr                                         ; 8395: 20 3f 83     ?.            ; Update buffer pointer and check for Tube
@@ -1314,29 +1335,36 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Discard scout, reset ADLC, install RX-scout NMI
 ;
-; Three-stage idle-restore chain. Calls discard_reset_listen to abandon any in-flight
-; scout and release a held Tube claim, then falls through to reset_adlc_rx_listen which
-; calls adlc_rx_listen (reset CR1/CR2 and re-arm RX), then falls through to
-; set_nmi_rx_scout which installs nmi_rx_scout as the active NMI handler and JMPs out
-; via set_nmi_vector. Used as the standard 'something went wrong, get back to
-; listening' exit.
+; Three-stage idle-restore chain:
+;
+; 1. discard_reset_listen (&83F2) – abandon any in-flight scout and release a held Tube
+;    claim.
+; 2. reset_adlc_rx_listen (&83E8) – call adlc_rx_listen (reset CR1/CR2 and re-arm RX).
+; 3. set_nmi_rx_scout (&83EB) – install nmi_rx_scout (&809B) as the active NMI handler
+;    and JMP out via set_nmi_vector (&0D0E).
+;
+; Used as the standard "something went wrong, get back to listening" exit.
 ; &83e5 referenced 6 times by &8220, &83af, &83d0, &83dc, &8883, &88ed
 .discard_reset_rx
     jsr discard_reset_listen                                          ; 83e5: 20 f2 83     ..            ; Discard scout and reset RX listen
 ; ***************************************************************************************
 ; Reset ADLC and install RX-scout NMI
 ;
-; Tail of the discard_reset_rx chain entered directly when no scout needs discarding.
-; Calls adlc_rx_listen to reset CR1/CR2 to RX-only mode, then falls through to
-; set_nmi_rx_scout. Two inbound JSRs plus one fall-through (from discard_reset_rx).
+; Tail of the discard_reset_rx (&83E5) chain entered directly when no scout needs
+; discarding. Calls adlc_rx_listen to reset CR1/CR2 to RX-only mode, then falls through
+; to set_nmi_rx_scout (&83EB).
+;
+; Two inbound JSRs plus one fall-through (from discard_reset_rx (&83E5)).
 ; &83e8 referenced 3 times by &80e5, &8434, &8529
 .reset_adlc_rx_listen
     jsr adlc_rx_listen                                                ; 83e8: 20 9b 89     ..            ; Reset ADLC and return to RX listen
 ; ***************************************************************************************
 ; Install nmi_rx_scout as NMI handler
 ;
-; Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since set_nmi_vector adds 1) and
-; JMPs to set_nmi_vector. Tail of the discard_reset_rx / reset_adlc_rx_listen chain.
+; Sets A=&9B, Y=&80 (the nmi_rx_scout (&809B) address &809B-1, since set_nmi_vector
+; (&0D0E) adds 1) and JMPs to set_nmi_vector (&0D0E). Tail of the discard_reset_rx
+; (&83E5) / reset_adlc_rx_listen (&83E8) chain.
+;
 ; Two callers: &80CB (after init) and &80E2 (after error).
 ; &83eb referenced 2 times by &80cb, &80e2
 .set_nmi_rx_scout
@@ -1347,10 +1375,12 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Discard with Tube release
 ;
-; Checks whether a Tube transfer is active by ANDing bit 1 of tube_present with
-; rx_src_net (tx_flags). If a Tube claim is held, calls release_tube to free it before
-; returning. Used as the clean-up path after RXCB completion and after ADLC reset to
-; ensure no stale Tube claims persist.
+; Checks whether a Tube transfer is active by ANDing bit 1 of tube_present (&0D63) with
+; rx_src_net (&0D3E) (tx_flags). If a Tube claim is held, calls release_tube (&8448) to
+; free it before returning.
+;
+; Used as the clean-up path after RXCB completion and after ADLC reset to ensure no
+; stale Tube claims persist.
 ; &83f2 referenced 2 times by &83de, &83e5
 .discard_reset_listen
     lda #2                                                            ; 83f2: a9 02       ..             ; Tube flag bit 1 AND tx_flags bit 1
@@ -1366,12 +1396,18 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Copy scout data to port buffer
 ;
-; Copies scout data bytes (offsets 4-11) from the RX scout buffer at &0D3D into the
-; open port buffer. Checks bit 1 of rx_src_net (tx_flags) to select the write path:
-; direct memory store via (open_port_buf),Y for normal transfers, or Tube data register
-; 3 write for Tube transfers. Calls advance_buffer_ptr after each byte. Falls through
-; to release_tube on completion. Handles page overflow (Y wrap) by branching to
-; scout_page_overflow.
+; Copies scout data bytes (offsets 4–11) from the RX scout buffer at rx_src_stn (&0D3D)
+; into the open port buffer.
+;
+; Selects the write path on bit 1 of rx_src_net (&0D3E) (tx_flags):
+;
+; | Bit 1 | Write path                                |
+; |-------|-------------------------------------------|
+; | clear | direct memory store via (open_port_buf),Y |
+; | set   | Tube data register 3 write                |
+;
+; Calls advance_buffer_ptr after each byte. Falls through to release_tube (&8448) on
+; completion. Handles page overflow (Y wrap) by branching to scout_page_overflow.
 ; &8400 referenced 1 time by &81a4
 .copy_scout_to_buffer
     txa                                                               ; 8400: 8a          .              ; Save X on stack

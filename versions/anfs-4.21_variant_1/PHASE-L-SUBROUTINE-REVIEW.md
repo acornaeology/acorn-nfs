@@ -95,16 +95,16 @@ addresses across all 431 remaining routines.
 | 19 | &8291 | `nmi_data_rx_tube` | kept | already has accurate inline-code description |
 | 20 | &82DF | `ack_tx` | kept | already has links + inline code; description complete |
 | 21 | &82F8 | `ack_tx_write_dest` | done | added ?hex on send_data_rx_ack/imm_op_build_reply |
-| 22 | &8316 | `nmi_ack_tx_src` | | |
-| 23 | &832D | `post_ack_scout` | | |
-| 24 | &833F | `advance_rx_buffer_ptr` | | |
-| 25 | &8386 | `nmi_post_ack_dispatch` | | |
-| 26 | &8395 | `rx_complete_update_rxcb` | | |
-| 27 | &83E5 | `discard_reset_rx` | | |
-| 28 | &83E8 | `reset_adlc_rx_listen` | | |
-| 29 | &83EB | `set_nmi_rx_scout` | | |
-| 30 | &83F2 | `discard_reset_listen` | | |
-| 31 | &8400 | `copy_scout_to_buffer` | | |
+| 22 | &8316 | `nmi_ack_tx_src` | done | rx_src_net dispatch table; econet_station_id + post_ack_scout links |
+| 23 | &832D | `post_ack_scout` | done | bullet-list match/no-match; rx_src_stn + rx_port links |
+| 24 | &833F | `advance_rx_buffer_ptr` | done | bullet-listed reads; tx_flags link |
+| 25 | &8386 | `nmi_post_ack_dispatch` | done | 3-row scout_port/control dispatch table; saved_nmi_lo/hi + rx_complete_update_rxcb links |
+| 26 | &8395 | `rx_complete_update_rxcb` | done | 3-step numbered list; bold sync-point note; advance_rx_buffer_ptr + discard_reset_rx links |
+| 27 | &83E5 | `discard_reset_rx` | done | 3-stage numbered chain; all 3 stage links + nmi_rx_scout + set_nmi_vector |
+| 28 | &83E8 | `reset_adlc_rx_listen` | done | discard_reset_rx + set_nmi_rx_scout links |
+| 29 | &83EB | `set_nmi_rx_scout` | done | nmi_rx_scout + set_nmi_vector + chain links |
+| 30 | &83F2 | `discard_reset_listen` | done | tube_present + rx_src_net + release_tube links |
+| 31 | &8400 | `copy_scout_to_buffer` | done | bit-1 write-path table; rx_src_stn + rx_src_net + release_tube links |
 | 32 | &8409 | `save_acccon_for_shadow_ram` | | |
 | 33 | &8448 | `release_tube` | | |
 | 34 | &8454 | `immediate_op` | | |
