@@ -5130,30 +5130,30 @@ ps_template_base = sub_c8da6+1
 
 ; &9353 referenced 6 times by &92e4, &9305, &930a, &930d, &9311, &9315
 .error_overflow
-    bit fs_work_4                                                     ; 9353: 24 b4       $.
-    bmi error_bad_param                                               ; 9355: 30 20       0
+    bit fs_work_4                                                     ; 9353: 24 b4       $.             ; Test fs_work_4 bit 7
+    bmi error_bad_param                                               ; 9355: 30 20       0              ; Bit 7 set: redirect to error_bad_param
 ; &9357 referenced 3 times by &9329, &9331, &9339
 .err_bad_station_num
-    lda #&d0                                                          ; 9357: a9 d0       ..
-    jsr error_bad_inline                                              ; 9359: 20 a7 99     ..
+    lda #&d0                                                          ; 9357: a9 d0       ..             ; A=&D0: 'Bad station' error code
+    jsr error_bad_inline                                              ; 9359: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
     equs "station number", 0                                          ; 935c: 73 74 61... sta            ; Inline: 'station number.' error suffix
 
 ; &936b referenced 2 times by &92fd, &933f
 .error_bad_number
-    lda #&f0                                                          ; 936b: a9 f0       ..
-    jsr error_bad_inline                                              ; 936d: 20 a7 99     ..
+    lda #&f0                                                          ; 936b: a9 f0       ..             ; A=&F0: 'Bad number' error code
+    jsr error_bad_inline                                              ; 936d: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
     equs "number", 0                                                  ; 9370: 6e 75 6d... num
 
 ; &9377 referenced 2 times by &9322, &9355
 .error_bad_param
-    lda #&94                                                          ; 9377: a9 94       ..
-    jsr error_bad_inline                                              ; 9379: 20 a7 99     ..
+    lda #&94                                                          ; 9377: a9 94       ..             ; A=&94: 'Bad parameter' error code
+    jsr error_bad_inline                                              ; 9379: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
     equs "parameter", 0                                               ; 937c: 70 61 72... par            ; Inline: 'parameter.' error suffix
 
 ; &9386 referenced 1 time by &9347
 .error_bad_net_num
-    lda #&d1                                                          ; 9386: a9 d1       ..
-    jsr error_bad_inline                                              ; 9388: 20 a7 99     ..
+    lda #&d1                                                          ; 9386: a9 d1       ..             ; A=&D1: 'Bad net number' error code
+    jsr error_bad_inline                                              ; 9388: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
     equs "network number", 0                                          ; 938b: 6e 65 74... net            ; Inline: 'network number.' error suffix
 
 ; ***************************************************************************************
@@ -6408,14 +6408,14 @@ l968f = sub_c968e+1
 ; byte at offset &80 and the local stored value at workspace offset &0E; on mismatch,
 ; the remote session is rejected.
 .lang_4_remote_validated
-    ldy #0                                                            ; 989f: a0 00       ..
-    lda (net_rx_ptr),y                                                ; 98a1: b1 9c       ..
-    beq init_remote_session                                           ; 98a3: f0 b4       ..
-    ldy #&80                                                          ; 98a5: a0 80       ..
-    lda (net_rx_ptr),y                                                ; 98a7: b1 9c       ..
-    ldy #&0e                                                          ; 98a9: a0 0e       ..
-    cmp (nfs_workspace),y                                             ; 98ab: d1 9e       ..
-    bne done_commit_state                                             ; 98ad: d0 a7       ..
+    ldy #0                                                            ; 989f: a0 00       ..             ; Y=0: status byte offset
+    lda (net_rx_ptr),y                                                ; 98a1: b1 9c       ..             ; Read RX status byte
+    beq init_remote_session                                           ; 98a3: f0 b4       ..             ; Zero status: re-init the session
+    ldy #&80                                                          ; 98a5: a0 80       ..             ; Y=&80: session-ID byte offset in RX
+    lda (net_rx_ptr),y                                                ; 98a7: b1 9c       ..             ; Read remote session-ID
+    ldy #&0e                                                          ; 98a9: a0 0e       ..             ; Y=&0E: stored session-ID offset in workspace
+    cmp (nfs_workspace),y                                             ; 98ab: d1 9e       ..             ; Compare with stored ID
+    bne done_commit_state                                             ; 98ad: d0 a7       ..             ; Mismatch: skip the commit (treat as foreign)
 ; ***************************************************************************************
 ; Language reply 0: insert remote keypress
 ;
@@ -6425,12 +6425,12 @@ l968f = sub_c968e+1
 ;
 ; On Entry: A: ignored (entry from reply dispatch)
 .lang_0_insert_remote_key
-    ldy #&82                                                          ; 98af: a0 82       ..
-    lda (net_rx_ptr),y                                                ; 98b1: b1 9c       ..
-    tay                                                               ; 98b3: a8          .
-    ldx #0                                                            ; 98b4: a2 00       ..
-    jsr commit_state_byte                                             ; 98b6: 20 5f b0     _.
-    lda #osbyte_insert_input_buffer                                   ; 98b9: a9 99       ..
+    ldy #&82                                                          ; 98af: a0 82       ..             ; Y=&82: keypress byte offset in RX
+    lda (net_rx_ptr),y                                                ; 98b1: b1 9c       ..             ; Read remote keypress code
+    tay                                                               ; 98b3: a8          .              ; Y = key code
+    ldx #0                                                            ; 98b4: a2 00       ..             ; X=0: keyboard buffer ID
+    jsr commit_state_byte                                             ; 98b6: 20 5f b0     _.            ; Commit the language-reply state
+    lda #osbyte_insert_input_buffer                                   ; 98b9: a9 99       ..             ; OSBYTE &99: insert byte into input buffer
     jmp osbyte                                                        ; 98bb: 4c f4 ff    L..            ; Insert character Y into input buffer X
 
 ; ***************************************************************************************
@@ -9082,14 +9082,14 @@ la0ff = sub_ca0fe+1
 ; (the FSCV vector table at &8CFA).
 ; &a42f referenced 1 time by &8cfa
 .fscv_3_star_cmd
-    jsr set_text_and_xfer_ptr                                         ; a42f: 20 d3 93     ..
-    ldy #&ff                                                          ; a432: a0 ff       ..
-    sty fs_spool_handle                                               ; a434: 84 ba       ..
-    sty need_release_tube                                             ; a436: 84 98       ..
+    jsr set_text_and_xfer_ptr                                         ; a42f: 20 d3 93     ..            ; Set text/transfer pointers from FS context
+    ldy #&ff                                                          ; a432: a0 ff       ..             ; Y=&FF -- mark spool/Tube state inactive
+    sty fs_spool_handle                                               ; a434: 84 ba       ..             ; Store fs_spool_handle = &FF
+    sty need_release_tube                                             ; a436: 84 98       ..             ; Store need_release_tube = &FF
     iny                                                               ; a438: c8          .              ; Y=&00
-    ldx #&35 ; '5'                                                    ; a439: a2 35       .5
-    jsr match_fs_cmd                                                  ; a43b: 20 5b a4     [.
-    bcs dispatch_fs_cmd                                               ; a43e: b0 0e       ..
+    ldx #&35 ; '5'                                                    ; a439: a2 35       .5             ; X=&35: NFS-commands sub-table offset
+    jsr match_fs_cmd                                                  ; a43b: 20 5b a4     [.            ; Match against the NFS sub-table
+    bcs dispatch_fs_cmd                                               ; a43e: b0 0e       ..             ; C set: no match -> dispatch via fall-through
 ; ***************************************************************************************
 ; FS-command re-entry guard (BVC dispatch_fs_cmd)
 ;
@@ -9107,13 +9107,13 @@ la0ff = sub_ca0fe+1
 
 ; &a44e referenced 2 times by &a43e, &a440
 .dispatch_fs_cmd
-    lda #0                                                            ; a44e: a9 00       ..
-    sta svc_state                                                     ; a450: 85 a9       ..
-    lda la76e,x                                                       ; a452: bd 6e a7    .n.
-    pha                                                               ; a455: 48          H
-    lda la76d,x                                                       ; a456: bd 6d a7    .m.
-    pha                                                               ; a459: 48          H
-    rts                                                               ; a45a: 60          `
+    lda #0                                                            ; a44e: a9 00       ..             ; A=0: clear svc_state
+    sta svc_state                                                     ; a450: 85 a9       ..             ; Store -> svc_state
+    lda la76e,x                                                       ; a452: bd 6e a7    .n.            ; Load dispatch hi byte from la76e+X
+    pha                                                               ; a455: 48          H              ; Push hi for RTS dispatch
+    lda la76d,x                                                       ; a456: bd 6d a7    .m.            ; Load dispatch lo byte from la76d+X
+    pha                                                               ; a459: 48          H              ; Push lo for RTS dispatch
+    rts                                                               ; a45a: 60          `              ; RTS -> dispatched command handler
 
 ; ***************************************************************************************
 ; Match command name against FS command table
@@ -9268,9 +9268,9 @@ la0ff = sub_ca0fe+1
 ; starts execution. Reached via the FSCV vector dispatch with reason code 2.
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
-    jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.
-    jsr mask_owner_access                                             ; a4e7: 20 cf b2     ..
-    ora #2                                                            ; a4ea: 09 02       ..
+    jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.            ; Save text pointer (for GSREAD-driven parsing)
+    jsr mask_owner_access                                             ; a4e7: 20 cf b2     ..            ; Reset fs_lib_flags low bits to 5-bit access mask
+    ora #2                                                            ; a4ea: 09 02       ..             ; Set bit 1 of A (mark *RUN-style invocation)
     sta lc271                                                         ; a4ec: 8d 71 c2    .q.            ; CLC so SBC subtracts value+1
     bne ca4fc                                                         ; a4ef: d0 0b       ..             ; A = OSWORD number
 
@@ -9538,31 +9538,31 @@ la0ff = sub_ca0fe+1
 ; table slot index of the matched/allocated entry
 ; &a644 referenced 1 time by &a6e9
 .find_station_bit2
-    ldx #&10                                                          ; a644: a2 10       ..
-    clv                                                               ; a646: b8          .
+    ldx #&10                                                          ; a644: a2 10       ..             ; X=&10: scan 16 entries
+    clv                                                               ; a646: b8          .              ; Clear V (no-match marker)
 ; &a647 referenced 2 times by &a64d, &a654
 .loop_search_stn_bit2
-    dex                                                               ; a647: ca          .
-    bmi done_search_bit2                                              ; a648: 30 13       0.
-    jsr match_station_net                                             ; a64a: 20 25 b9     %.
-    bne loop_search_stn_bit2                                          ; a64d: d0 f8       ..
-    lda lc260,x                                                       ; a64f: bd 60 c2    .`.
-    and #4                                                            ; a652: 29 04       ).
-    beq loop_search_stn_bit2                                          ; a654: f0 f1       ..
-    tya                                                               ; a656: 98          .
-    sta lc230,x                                                       ; a657: 9d 30 c2    .0.
-    bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.
+    dex                                                               ; a647: ca          .              ; Step to previous entry
+    bmi done_search_bit2                                              ; a648: 30 13       0.             ; Below 0: scan complete
+    jsr match_station_net                                             ; a64a: 20 25 b9     %.            ; Compare entry X's stn/net with caller's
+    bne loop_search_stn_bit2                                          ; a64d: d0 f8       ..             ; No match: continue
+    lda lc260,x                                                       ; a64f: bd 60 c2    .`.            ; Match: read entry's flag byte at lc260+X
+    and #4                                                            ; a652: 29 04       ).             ; Mask bit 2
+    beq loop_search_stn_bit2                                          ; a654: f0 f1       ..             ; Bit 2 clear: keep scanning
+    tya                                                               ; a656: 98          .              ; Bit 2 set: A = matched entry index (Y)
+    sta lc230,x                                                       ; a657: 9d 30 c2    .0.            ; Store Y at lc230+X (link entry to slot)
+    bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.            ; BIT always_set_v_byte: V <- 1 (match found)
 ; &a65d referenced 1 time by &a648
 .done_search_bit2
-    sty lc002                                                         ; a65d: 8c 02 c0    ...
-    bvs set_flags_bit2                                                ; a660: 70 09       p.
-    tya                                                               ; a662: 98          .
-    jsr alloc_fcb_slot                                                ; a663: 20 a8 b8     ..
-    sta lc272                                                         ; a666: 8d 72 c2    .r.
-    beq jmp_restore_fs_ctx                                            ; a669: f0 67       .g
+    sty lc002                                                         ; a65d: 8c 02 c0    ...            ; Save Y at lc002 (matched entry index)
+    bvs set_flags_bit2                                                ; a660: 70 09       p.             ; V set: skip new-slot alloc
+    tya                                                               ; a662: 98          .              ; TYA -- A = caller's index
+    jsr alloc_fcb_slot                                                ; a663: 20 a8 b8     ..            ; Allocate a fresh FCB slot
+    sta lc272                                                         ; a666: 8d 72 c2    .r.            ; Save FCB slot index at lc272
+    beq jmp_restore_fs_ctx                                            ; a669: f0 67       .g             ; Z set: alloc failed -> restore FS context
 ; &a66b referenced 1 time by &a660
 .set_flags_bit2
-    lda #&26 ; '&'                                                    ; a66b: a9 26       .&
+    lda #&26 ; '&'                                                    ; a66b: a9 26       .&             ; A=&26: workspace flag for bit 2 search
     bne store_stn_flags_restore                                       ; a66d: d0 60       .`             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -9577,31 +9577,31 @@ la0ff = sub_ca0fe+1
 ; table slot index of the matched/allocated entry
 ; &a66f referenced 3 times by &a638, &a6a1, &a6ef
 .find_station_bit3
-    ldx #&10                                                          ; a66f: a2 10       ..
-    clv                                                               ; a671: b8          .
+    ldx #&10                                                          ; a66f: a2 10       ..             ; X=&10: scan 16 entries
+    clv                                                               ; a671: b8          .              ; Clear V (no-match marker)
 ; &a672 referenced 2 times by &a678, &a67f
 .loop_search_stn_bit3
-    dex                                                               ; a672: ca          .
-    bmi done_search_bit3                                              ; a673: 30 13       0.
-    jsr match_station_net                                             ; a675: 20 25 b9     %.
-    bne loop_search_stn_bit3                                          ; a678: d0 f8       ..
-    lda lc260,x                                                       ; a67a: bd 60 c2    .`.
-    and #8                                                            ; a67d: 29 08       ).
-    beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..
-    tya                                                               ; a681: 98          .
-    sta lc230,x                                                       ; a682: 9d 30 c2    .0.
-    bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.
+    dex                                                               ; a672: ca          .              ; Step to previous entry
+    bmi done_search_bit3                                              ; a673: 30 13       0.             ; Below 0: scan complete
+    jsr match_station_net                                             ; a675: 20 25 b9     %.            ; Compare entry's stn/net with caller's
+    bne loop_search_stn_bit3                                          ; a678: d0 f8       ..             ; No match: continue
+    lda lc260,x                                                       ; a67a: bd 60 c2    .`.            ; Match: read entry's flag byte at lc260+X
+    and #8                                                            ; a67d: 29 08       ).             ; Mask bit 3
+    beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..             ; Bit 3 clear: keep scanning
+    tya                                                               ; a681: 98          .              ; Bit 3 set: A = matched entry index (Y)
+    sta lc230,x                                                       ; a682: 9d 30 c2    .0.            ; Store Y at lc230+X (link entry to slot)
+    bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.            ; BIT always_set_v_byte: V <- 1 (match found)
 ; &a688 referenced 1 time by &a673
 .done_search_bit3
-    sty lc003                                                         ; a688: 8c 03 c0    ...
-    bvs set_flags_bit3                                                ; a68b: 70 09       p.
-    tya                                                               ; a68d: 98          .
-    jsr alloc_fcb_slot                                                ; a68e: 20 a8 b8     ..
-    sta lc273                                                         ; a691: 8d 73 c2    .s.
-    beq jmp_restore_fs_ctx                                            ; a694: f0 3c       .<
+    sty lc003                                                         ; a688: 8c 03 c0    ...            ; Save Y at lc003 (matched entry index)
+    bvs set_flags_bit3                                                ; a68b: 70 09       p.             ; V set: skip new-slot alloc
+    tya                                                               ; a68d: 98          .              ; TYA -- A = caller's index
+    jsr alloc_fcb_slot                                                ; a68e: 20 a8 b8     ..            ; Allocate a fresh FCB slot
+    sta lc273                                                         ; a691: 8d 73 c2    .s.            ; Save FCB slot index at lc273
+    beq jmp_restore_fs_ctx                                            ; a694: f0 3c       .<             ; Z set: alloc failed -> restore FS context
 ; &a696 referenced 1 time by &a68b
 .set_flags_bit3
-    lda #&2a ; '*'                                                    ; a696: a9 2a       .*
+    lda #&2a ; '*'                                                    ; a696: a9 2a       .*             ; A=&2A: workspace flag for bit 3 search
     bne store_stn_flags_restore                                       ; a698: d0 35       .5             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -11140,13 +11140,13 @@ labc5 = compare_bridge_status+1
 ;
 ; On Entry: Y: OSWORD parameter byte (saved into nfs_workspace+&DA)
 .osword_4_handler
-    tsx                                                               ; ad32: ba          .
-    ror l0106,x                                                       ; ad33: 7e 06 01    ~..
-    asl l0106,x                                                       ; ad36: 1e 06 01    ...
-    tya                                                               ; ad39: 98          .
-    ldy #&da                                                          ; ad3a: a0 da       ..
-    sta (nfs_workspace),y                                             ; ad3c: 91 9e       ..
-    lda #0                                                            ; ad3e: a9 00       ..
+    tsx                                                               ; ad32: ba          .              ; TSX -- read the MOS stack frame holding caller flags
+    ror l0106,x                                                       ; ad33: 7e 06 01    ~..            ; ROR (stack[&106+X]) -- shift carry out of caller P
+    asl l0106,x                                                       ; ad36: 1e 06 01    ...            ; ASL back -- carry is now cleared in caller P
+    tya                                                               ; ad39: 98          .              ; TYA -- save Y for storage
+    ldy #&da                                                          ; ad3a: a0 da       ..             ; Y=&DA: workspace osword-4 result offset
+    sta (nfs_workspace),y                                             ; ad3c: 91 9e       ..             ; Store Y at (nfs_workspace)+&DA
+    lda #0                                                            ; ad3e: a9 00       ..             ; A=0: clear A for the abort path
 ; ***************************************************************************************
 ; Send Econet abort/disconnect packet
 ;
@@ -12904,13 +12904,13 @@ lb0d4 = cdir_dispatch_col+2
 ; (cmd_ps's parse-success path at &B3D2).
 ; &b477 referenced 1 time by &b3d2
 .store_ps_station
-    ldy #2                                                            ; b477: a0 02       ..
-    lda fs_work_5                                                     ; b479: a5 b5       ..
-    sta (nfs_workspace),y                                             ; b47b: 91 9e       ..
+    ldy #2                                                            ; b477: a0 02       ..             ; Y=2: workspace offset for stored station
+    lda fs_work_5                                                     ; b479: a5 b5       ..             ; Load station number
+    sta (nfs_workspace),y                                             ; b47b: 91 9e       ..             ; Store at (nfs_workspace)+2
     iny                                                               ; b47d: c8          .              ; Y=&03
-    lda fs_work_6                                                     ; b47e: a5 b6       ..
-    sta (nfs_workspace),y                                             ; b480: 91 9e       ..
-    rts                                                               ; b482: 60          `
+    lda fs_work_6                                                     ; b47e: a5 b6       ..             ; Load network number
+    sta (nfs_workspace),y                                             ; b480: 91 9e       ..             ; Store at (nfs_workspace)+2 -- bug? overwrites stn
+    rts                                                               ; b482: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Print 'File server ' prefix

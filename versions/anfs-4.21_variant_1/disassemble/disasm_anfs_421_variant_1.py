@@ -7969,6 +7969,128 @@ comment(0x8AC8, "Below: dispatch fall-through", inline=True)
 comment(0x8ACA, "Compare with &18", inline=True)
 comment(0x8ACC, "Below: dispatch index now in A", inline=True)
 
+# lang_4_remote_validated (&989F): validates a remote-validated
+# language reply -- checks RX buffer offset 0 (status byte) and the
+# session ID at offset &80 against the stored copy at workspace+&0E.
+comment(0x989F, "Y=0: status byte offset", inline=True)
+comment(0x98A1, "Read RX status byte", inline=True)
+comment(0x98A3, "Zero status: re-init the session", inline=True)
+comment(0x98A5, "Y=&80: session-ID byte offset in RX", inline=True)
+comment(0x98A7, "Read remote session-ID", inline=True)
+comment(0x98A9, "Y=&0E: stored session-ID offset in workspace", inline=True)
+comment(0x98AB, "Compare with stored ID", inline=True)
+comment(0x98AD, "Mismatch: skip the commit (treat as foreign)", inline=True)
+
+# osword_4_handler (&AD32): NETV reason 4 -- adjusts caller flags
+# stored on the MOS stack, stores Y as workspace[&DA], and falls
+# into tx_econet_abort.
+comment(0xAD32, "TSX -- read the MOS stack frame holding caller flags", inline=True)
+comment(0xAD33, "ROR (stack[&106+X]) -- shift carry out of caller P", inline=True)
+comment(0xAD36, "ASL back -- carry is now cleared in caller P", inline=True)
+comment(0xAD39, "TYA -- save Y for storage", inline=True)
+comment(0xAD3A, "Y=&DA: workspace osword-4 result offset", inline=True)
+comment(0xAD3C, "Store Y at (nfs_workspace)+&DA", inline=True)
+comment(0xAD3E, "A=0: clear A for the abort path", inline=True)
+
+# find_station_bit2 / find_station_bit3 (&A644 / &A66F): scan the
+# 16-entry station table at lc260 for an entry whose bit 2 / bit 3
+# is set, optionally allocating a new FCB slot via alloc_fcb_slot
+# when no match is found.
+comment(0xA644, "X=&10: scan 16 entries", inline=True)
+comment(0xA646, "Clear V (no-match marker)", inline=True)
+comment(0xA647, "Step to previous entry", inline=True)
+comment(0xA648, "Below 0: scan complete", inline=True)
+comment(0xA64A, "Compare entry X's stn/net with caller's", inline=True)
+comment(0xA64D, "No match: continue", inline=True)
+comment(0xA64F, "Match: read entry's flag byte at lc260+X", inline=True)
+comment(0xA652, "Mask bit 2", inline=True)
+comment(0xA654, "Bit 2 clear: keep scanning", inline=True)
+comment(0xA656, "Bit 2 set: A = matched entry index (Y)", inline=True)
+comment(0xA657, "Store Y at lc230+X (link entry to slot)", inline=True)
+comment(0xA65A, "BIT always_set_v_byte: V <- 1 (match found)", inline=True)
+comment(0xA65D, "Save Y at lc002 (matched entry index)", inline=True)
+comment(0xA660, "V set: skip new-slot alloc", inline=True)
+comment(0xA662, "TYA -- A = caller's index", inline=True)
+comment(0xA663, "Allocate a fresh FCB slot", inline=True)
+comment(0xA666, "Save FCB slot index at lc272", inline=True)
+comment(0xA669, "Z set: alloc failed -> restore FS context", inline=True)
+comment(0xA66B, "A=&26: workspace flag for bit 2 search", inline=True)
+
+comment(0xA66F, "X=&10: scan 16 entries", inline=True)
+comment(0xA671, "Clear V (no-match marker)", inline=True)
+comment(0xA672, "Step to previous entry", inline=True)
+comment(0xA673, "Below 0: scan complete", inline=True)
+comment(0xA675, "Compare entry's stn/net with caller's", inline=True)
+comment(0xA678, "No match: continue", inline=True)
+comment(0xA67A, "Match: read entry's flag byte at lc260+X", inline=True)
+comment(0xA67D, "Mask bit 3", inline=True)
+comment(0xA67F, "Bit 3 clear: keep scanning", inline=True)
+comment(0xA681, "Bit 3 set: A = matched entry index (Y)", inline=True)
+comment(0xA682, "Store Y at lc230+X (link entry to slot)", inline=True)
+comment(0xA685, "BIT always_set_v_byte: V <- 1 (match found)", inline=True)
+comment(0xA688, "Save Y at lc003 (matched entry index)", inline=True)
+comment(0xA68B, "V set: skip new-slot alloc", inline=True)
+comment(0xA68D, "TYA -- A = caller's index", inline=True)
+comment(0xA68E, "Allocate a fresh FCB slot", inline=True)
+comment(0xA691, "Save FCB slot index at lc273", inline=True)
+comment(0xA694, "Z set: alloc failed -> restore FS context", inline=True)
+comment(0xA696, "A=&2A: workspace flag for bit 3 search", inline=True)
+
+# fscv_3_star_cmd (&A42F): FSCV reason 3 -- handle *<command>.
+comment(0xA42F, "Set text/transfer pointers from FS context", inline=True)
+comment(0xA432, "Y=&FF -- mark spool/Tube state inactive", inline=True)
+comment(0xA434, "Store fs_spool_handle = &FF", inline=True)
+comment(0xA436, "Store need_release_tube = &FF", inline=True)
+comment(0xA439, "X=&35: NFS-commands sub-table offset", inline=True)
+comment(0xA43B, "Match against the NFS sub-table", inline=True)
+comment(0xA43E, "C set: no match -> dispatch via fall-through", inline=True)
+
+# lang_0_insert_remote_key (&98AF): take remote keypress, insert
+# into local keyboard buffer.
+comment(0x98AF, "Y=&82: keypress byte offset in RX", inline=True)
+comment(0x98B1, "Read remote keypress code", inline=True)
+comment(0x98B3, "Y = key code", inline=True)
+comment(0x98B4, "X=0: keyboard buffer ID", inline=True)
+comment(0x98B6, "Commit the language-reply state", inline=True)
+comment(0x98B9, "OSBYTE &99: insert byte into input buffer", inline=True)
+
+# store_ps_station (&B477): store current FS work_5/6 (station/net)
+# at workspace+2 and return.
+comment(0xB477, "Y=2: workspace offset for stored station", inline=True)
+comment(0xB479, "Load station number", inline=True)
+comment(0xB47B, "Store at (nfs_workspace)+2", inline=True)
+comment(0xB47E, "Load network number", inline=True)
+comment(0xB480, "Store at (nfs_workspace)+2 -- bug? overwrites stn", inline=True)
+comment(0xB482, "Return", inline=True)
+
+# err_bad_hex group (&934A..&9388): error-raising stubs that each
+# load a specific error code and call error_bad_inline.
+comment(0x9353, "Test fs_work_4 bit 7", inline=True)
+comment(0x9355, "Bit 7 set: redirect to error_bad_param", inline=True)
+comment(0x9357, "A=&D0: 'Bad station' error code", inline=True)
+comment(0x9359, "Raise via error_bad_inline (never returns)", inline=True)
+comment(0x936B, "A=&F0: 'Bad number' error code", inline=True)
+comment(0x936D, "Raise via error_bad_inline (never returns)", inline=True)
+comment(0x9377, "A=&94: 'Bad parameter' error code", inline=True)
+comment(0x9379, "Raise via error_bad_inline (never returns)", inline=True)
+comment(0x9386, "A=&D1: 'Bad net number' error code", inline=True)
+comment(0x9388, "Raise via error_bad_inline (never returns)", inline=True)
+
+# fscv_2_star_run (&A4E4): FSCV reason 2 -- *RUN.
+comment(0xA4E4, "Save text pointer (for GSREAD-driven parsing)", inline=True)
+comment(0xA4E7, "Reset fs_lib_flags low bits to 5-bit access mask", inline=True)
+comment(0xA4EA, "Set bit 1 of A (mark *RUN-style invocation)", inline=True)
+
+# cmd_fs_reentry / dispatch_fs_cmd (&A44E): PHA/PHA/RTS dispatch
+# using the NFS-commands table at la76d/la76e indexed by X.
+comment(0xA44E, "A=0: clear svc_state", inline=True)
+comment(0xA450, "Store -> svc_state", inline=True)
+comment(0xA452, "Load dispatch hi byte from la76e+X", inline=True)
+comment(0xA455, "Push hi for RTS dispatch", inline=True)
+comment(0xA456, "Load dispatch lo byte from la76d+X", inline=True)
+comment(0xA459, "Push lo for RTS dispatch", inline=True)
+comment(0xA45A, "RTS -> dispatched command handler", inline=True)
+
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
 # stack-X trick is the standard 6502 idiom for adding a saved value
