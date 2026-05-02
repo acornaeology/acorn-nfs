@@ -161,11 +161,11 @@ tx_ctrl_byte                = &0d24  ; Control byte for next TX scout frame.
 tx_port                     = &0d25  ; Destination port for next TX scout frame.
 tx_data_start               = &0d26  ; Start of TX data buffer (used by scout/data frame construction).
 tx_data_len                 = &0d2a
-scout_buf                   = &0d2e
-scout_src_net               = &0d2f
-scout_ctrl                  = &0d30
-scout_port                  = &0d31
-scout_data                  = &0d32
+scout_buf                   = &0d2e  ; Base of the 12-byte RX scout data buffer.
+scout_src_net               = &0d2f  ; Scout source network byte (scout_buf+1).
+scout_ctrl                  = &0d30  ; Scout control byte (scout_buf+2).
+scout_port                  = &0d31  ; Scout port byte (scout_buf+3).
+scout_data                  = &0d32  ; Scout data payload base (scout_buf+4).
 rx_src_stn                  = &0d3d  ; Source station of the received scout frame.
 rx_src_net                  = &0d3e  ; Source network of the received scout frame.
 rx_ctrl                     = &0d3f  ; Control byte of the received scout frame.
@@ -1417,7 +1417,13 @@ rom_header_byte2 = rom_header+2
 .copy_scout_select
     bit rx_src_net                                                    ; 8406: 2c 3e 0d    ,>.            ; BIT tx_flags: check Tube bit
 ; ***************************************************************************************
-; Save ACCCON before scout buffer access to handle shadow RAM.
+; Save ACCCON across scout-buffer access
+;
+; Saves the current acccon (&FE34) value, sets ACCCON for the upcoming
+; (open_port_buf),Y stores (so writes go to the right shadow / main RAM bank on the
+; Master 128), performs the copy, then restores the saved ACCCON before returning.
+; Wraps the inner copy loop with shadow-RAM gating so scout-buffer writes land in the
+; caller's address space rather than the FS-private HAZEL window.
 .save_acccon_for_shadow_ram
 imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bne copy_scout_via_tube                                           ; 8409: d0 2b       .+             ; Tube active: use R3 write path
@@ -1472,11 +1478,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Release Tube co-processor claim
 ;
-; Tests need_release_tube (&98) bit 7: if set, the Tube has already been released and
-; the subroutine just clears the flag. If clear (Tube claim held), calls
-; tube_addr_data_dispatch with A=&82 to release the claim, then clears the release flag
-; via LSR (which shifts bit 7 to 0). Called after completed RX transfers and during
-; discard paths to ensure no stale Tube claims persist.
+; Tests need_release_tube (&98) bit 7:
+;
+; | Bit 7 | State            | Action                                                                                                                  |
+; |-------|------------------|-------------------------------------------------------------------------------------------------------------------------|
+; | set   | already released | clear the flag and return                                                                                               |
+; | clear | claim held       | call tube_addr_data_dispatch with A=&82 to release the claim, then clear the release flag via LSR (shifting bit 7 to 0) |
+;
+; Called after completed RX transfers and during discard paths to ensure no stale Tube
+; claims persist.
 ;
 ; Idempotent: safe to call when the Tube has already been released. Clobbers A;
 ; preserves X and Y.
@@ -1496,12 +1506,20 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
 ;
-; Checks the control byte at scout_ctrl for immediate operation codes (&81-&88). Codes
-; below &81 or above &88 are out of range and discarded. Codes &87-&88 (HALT/CONTINUE)
-; bypass the protection mask check. For &81-&86, converts to a 0-based index and tests
-; against the immediate operation mask at &0D61 to determine if this station accepts
-; the operation. If accepted, dispatches via the immediate operation table. Builds the
-; reply by storing data length, station/network, and control byte into the RX buffer.
+; Checks the control byte at scout_ctrl (&0D30) for immediate-operation codes:
+;
+; | Range          | Op                                           | Treatment                                       |
+; |----------------|----------------------------------------------|-------------------------------------------------|
+; | < &81 or > &88 | –                                            | out of range; discarded                         |
+; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by econet_flags (&0D61) immediate-op mask |
+; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                           |
+;
+; For &81..&86, converts the code to a 0-based index and tests against the immediate-op
+; mask at econet_flags (&0D61) to determine whether this station accepts the operation.
+; If accepted, dispatches via imm_op_dispatch_lo (&848B) (PHA/PHA/RTS).
+;
+; Builds the reply by storing data length, station / network, and control byte into the
+; RX buffer header.
 ; &8454 referenced 1 time by &8138
 .immediate_op
     ldy scout_ctrl                                                    ; 8454: ac 30 0d    .0.            ; Control byte &81-&88 range check
@@ -1568,12 +1586,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     equb <(rx_imm_machine_type-1)                                     ; 8492: bb          .
 
 ; ***************************************************************************************
-; RX immediate: JSR/UserProc/OSProc setup
+; RX immediate: JSR / UserProc / OSProc setup
 ;
-; Sets up the port buffer to receive remote procedure data. Copies the 2-byte remote
-; address from &0D32 into the execution address workspace at &0D66, then jumps to the
-; common receive path at c81c1. Used for operation types &83 (JSR), &84 (UserProc), and
-; &85 (OSProc).
+; Sets up the port buffer to receive remote-procedure data. Copies the 2-byte remote
+; address from scout_data (&0D32) into the execution-address workspace at exec_addr_lo
+; (&0D66) / exec_addr_hi (&0D67), then jumps to the common data-receive path at &81C1.
+;
+; Used for operation types &83 (JSR), &84 (UserProc), and &85 (OSProc).
 .rx_imm_exec
     lda #0                                                            ; 8493: a9 00       ..             ; A=0: port buffer lo at page boundary
     sta open_port_buf                                                 ; 8495: 85 a4       ..             ; Set port buffer lo
@@ -1596,8 +1615,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; RX immediate: POKE setup
 ;
-; Sets up workspace offsets for receiving POKE data. port_ws_offset=&2E,
-; rx_buf_offset=&0D, then jumps to the common data-receive path at c81af.
+; Sets up workspace offsets for receiving POKE data: port_ws_offset = &2E,
+; rx_buf_offset = &0D. Jumps to the common data-receive path at &81AF.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..             ; Port workspace offset = &3D
@@ -1608,11 +1627,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     jmp port_match_found                                              ; 84b9: 4c 95 81    L..            ; Enter POKE data-receive path
 
 ; ***************************************************************************************
-; RX immediate: machine type query
+; RX immediate: machine-type query
 ;
 ; Sets up the response buffer for a machine-type query immediate operation (4-byte
-; response: machine code + version digits). Falls through to set_rx_buf_len_hi to
-; configure the buffer dimensions, then branches to set_tx_reply_flag.
+; response: machine code + version digits). Falls through to set_rx_buf_len_hi (&84BE)
+; to configure the buffer dimensions, then branches to set_tx_reply_flag.
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..             ; Buffer length hi = 1
 .set_rx_buf_len_hi
@@ -1628,8 +1647,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; RX immediate: PEEK setup
 ;
-; Writes &0D2E to port_ws_offset/rx_buf_offset, sets scout_status=2, then calls
-; tx_calc_transfer to send the PEEK response data back to the requesting station.
+; Writes &0D2E to port_ws_offset / rx_buf_offset, sets scout_status = 2, then calls
+; tx_calc_transfer (&8900) to send the PEEK response data back to the requesting
+; station.
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84ce: a9 2e       ..             ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84d0: 85 a6       ..             ; Store workspace offset lo
@@ -1656,9 +1676,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     jmp ack_tx_write_dest                                             ; 84f6: 4c f8 82    L..            ; Acknowledge and write TX dest
 
 ; ***************************************************************************************
-; Build immediate operation reply header
+; Build immediate-operation reply header
 ;
-; Stores data length, source station/network, and control byte into the RX buffer
+; Stores the data length, source station / network, and control byte into the RX buffer
 ; header area for port-0 immediate operations. Then disables SR interrupts and
 ; configures the VIA shift register for shift-in mode before returning to idle listen.
 ; &84f9 referenced 1 time by &8392
@@ -1678,13 +1698,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Save TX op type and configure shift-register mode
 ;
-; Stores the TX operation type in tx_op_type. If the op code is
+; Stores the TX operation type in tx_op_type (&0D65).
 ;
-; > = &86 (HALT / CONTINUE / machine-type), branches forward to the ACCCON IRR set
-; > without touching the shift register. Otherwise loads the workspace shadow at ws_0d68,
-; > copies it to ws_0d69 (preserved for later restore), ORs in the SR-mode-2 bits, and
-; > writes back to ws_0d68. The shadow is flushed to the real VIA ACR/SR registers later
-; > in the Master IRQ path. Single caller (&83E2 in scout_complete).
+; | Op code                                | Path                                                                                                                                                             |
+; |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched                                                                                                   |
+; | < &86                                  | load the workspace shadow at ws_0d68 (&0D68), copy it to ws_0d69 (&0D69) (preserved for later restore), ORA in the SR-mode-2 bits, write back to ws_0d68 (&0D68) |
+;
+; The shadow is flushed to the real VIA ACR/SR registers later in the Master IRQ path.
+; Single caller (&83E2 in scout_complete (&8112)).
 ;
 ; On Entry: A: TX operation type
 ; &8512 referenced 1 time by &83e2
@@ -1705,11 +1727,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     jmp reset_adlc_rx_listen                                          ; 8529: 4c e8 83    L..            ; Return to idle listen mode
 
 ; ***************************************************************************************
-; Increment 4-byte receive buffer pointer
+; Increment 4-byte receive-buffer pointer
 ;
-; Adds one to the counter at &A2-&A5 (port_buf_len low/high, open_port_buf low/high),
+; Adds 1 to the 4-byte counter at &A2..&A5 (port_buf_len lo/hi, open_port_buf lo/hi),
 ; cascading overflow through all four bytes. Called after each byte is stored during
-; scout data copy and data frame reception to track the current write position in the
+; scout-data copy and data-frame reception to track the current write position in the
 ; receive buffer.
 ;
 ; Preserves A, X, Y (uses INC zp throughout).

@@ -484,11 +484,28 @@ label(0x0D26, "tx_data_start",
 label(0x0D2A, "tx_data_len")
 
 # RX scout buffer (&0D2E-&0D39)
-label(0x0D2E, "scout_buf")            # Base of 12-byte RX scout data buffer
-label(0x0D2F, "scout_src_net")        # Scout: source network (scout_buf+1)
-label(0x0D30, "scout_ctrl")           # Scout: control byte (scout_buf+2)
-label(0x0D31, "scout_port")           # Scout: port byte (scout_buf+3)
-label(0x0D32, "scout_data")           # Scout: data payload base (scout_buf+4)
+label(0x0D2E, "scout_buf",
+    description="Base of the 12-byte RX scout data buffer.\n"
+                "Holds the most recently received scout frame "
+                "during reception and ACK transmission.",
+    length=12, group="ram_workspace", access="rw")
+label(0x0D2F, "scout_src_net",
+    description="Scout source network byte ([`scout_buf`](address:0D2E)+1).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D30, "scout_ctrl",
+    description="Scout control byte ([`scout_buf`](address:0D2E)+2).\n"
+                "Carries the immediate-op code (`&81`..`&88`) for "
+                "port-0 scouts; checked by "
+                "[`immediate_op`](address:8454?hex).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D31, "scout_port",
+    description="Scout port byte ([`scout_buf`](address:0D2E)+3).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D32, "scout_data",
+    description="Scout data payload base ([`scout_buf`](address:0D2E)+4).\n"
+                "Holds the 4-byte remote address for "
+                "JSR / UserProc / OSProc immediate ops.",
+    length=8, group="ram_workspace", access="rw")
 
 # Received scout
 label(0x0D3D, "rx_src_stn",
@@ -2570,30 +2587,40 @@ Calls `advance_buffer_ptr` after each byte. Falls through to
 overflow (Y wrap) by branching to `scout_page_overflow`.""")
 subroutine(0x8448, "release_tube",
     title="Release Tube co-processor claim",
-    description="Tests need_release_tube (&98) bit 7: if set, the\n"
-    "Tube has already been released and the subroutine\n"
-    "just clears the flag. If clear (Tube claim held),\n"
-    "calls tube_addr_data_dispatch with A=&82 to release\n"
-    "the claim, then clears the release flag via LSR\n"
-    "(which shifts bit 7 to 0). Called after completed\n"
-    "RX transfers and during discard paths to ensure no\n"
-    "stale Tube claims persist.\n"
-    "\n"
-    "Idempotent: safe to call when the Tube has already been\n"
-    "released. Clobbers A; preserves X and Y.",
+    description="""\
+Tests `need_release_tube` (`&98`) bit 7:
+
+| Bit 7 | State | Action |
+|---|---|---|
+| set | already released | clear the flag and return |
+| clear | claim held | call `tube_addr_data_dispatch` with `A=&82` to release the claim, then clear the release flag via `LSR` (shifting bit 7 to 0) |
+
+Called after completed RX transfers and during discard paths to
+ensure no stale Tube claims persist.
+
+**Idempotent:** safe to call when the Tube has already been
+released. Clobbers `A`; preserves `X` and `Y`.""",
     on_exit={"a": "clobbered"})
 subroutine(0x8454, "immediate_op",
     title="Immediate operation handler (port = 0)",
-    description="Checks the control byte at scout_ctrl for immediate\n"
-    "operation codes (&81-&88). Codes below &81 or above\n"
-    "&88 are out of range and discarded. Codes &87-&88\n"
-    "(HALT/CONTINUE) bypass the protection mask check.\n"
-    "For &81-&86, converts to a 0-based index and tests\n"
-    "against the immediate operation mask at &0D61 to\n"
-    "determine if this station accepts the operation.\n"
-    "If accepted, dispatches via the immediate operation\n"
-    "table. Builds the reply by storing data length,\n"
-    "station/network, and control byte into the RX buffer.")
+    description="""\
+Checks the control byte at [`scout_ctrl`](address:0D30?hex) for
+immediate-operation codes:
+
+| Range | Op | Treatment |
+|---|---|---|
+| `< &81` or `> &88` | – | out of range; discarded |
+| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by [`econet_flags`](address:0D61?hex) immediate-op mask |
+| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |
+
+For `&81`..`&86`, converts the code to a 0-based index and tests
+against the immediate-op mask at
+[`econet_flags`](address:0D61?hex) to determine whether this
+station accepts the operation. If accepted, dispatches via
+[`imm_op_dispatch_lo`](address:848B?hex) (PHA/PHA/RTS).
+
+Builds the reply by storing data length, station / network, and
+control byte into the RX buffer header.""")
 
 subroutine(0x848B, "imm_op_dispatch_lo",
     title="Immediate-op dispatch lo-byte table (8 entries)",
@@ -2617,60 +2644,68 @@ expr(0x8491, "<(rx_imm_halt_cont-1)")       # ctrl &87: CONTINUE
 expr(0x8492, "<(rx_imm_machine_type-1)")    # ctrl &88: machine-type
 
 subroutine(0x8493, "rx_imm_exec",
-    title="RX immediate: JSR/UserProc/OSProc setup",
-    description="Sets up the port buffer to receive remote procedure\n"
-    "data. Copies the 2-byte remote address from &0D32\n"
-    "into the execution address workspace at &0D66, then\n"
-    "jumps to the common receive path at c81c1. Used for\n"
-    "operation types &83 (JSR), &84 (UserProc), and\n"
-    "&85 (OSProc).")
+    title="RX immediate: JSR / UserProc / OSProc setup",
+    description="""\
+Sets up the port buffer to receive remote-procedure data. Copies
+the 2-byte remote address from [`scout_data`](address:0D32?hex)
+into the execution-address workspace at
+[`exec_addr_lo`](address:0D66?hex) / [`exec_addr_hi`](address:0D67?hex),
+then jumps to the common data-receive path at `&81C1`.
+
+Used for operation types `&83` (JSR), `&84` (UserProc), and
+`&85` (OSProc).""")
 subroutine(0x84B1, "rx_imm_poke",
     title="RX immediate: POKE setup",
-    description="Sets up workspace offsets for receiving POKE data.\n"
-    "port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\n"
-    "the common data-receive path at c81af.")
+    description="""\
+Sets up workspace offsets for receiving POKE data:
+`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the
+common data-receive path at `&81AF`.""")
 subroutine(0x84BC, "rx_imm_machine_type",
-    title="RX immediate: machine type query",
+    title="RX immediate: machine-type query",
     description="""\
 Sets up the response buffer for a machine-type query immediate
 operation (4-byte response: machine code + version digits). Falls
-through to [`set_rx_buf_len_hi`](address:84BE) to configure the
-buffer dimensions, then branches to set_tx_reply_flag.""")
+through to [`set_rx_buf_len_hi`](address:84BE?hex) to configure
+the buffer dimensions, then branches to `set_tx_reply_flag`.""")
 subroutine(0x84CE, "rx_imm_peek",
     title="RX immediate: PEEK setup",
-    description="Writes &0D2E to port_ws_offset/rx_buf_offset, sets\n"
-    "scout_status=2, then calls tx_calc_transfer to send\n"
-    "the PEEK response data back to the requesting station.")
+    description="""\
+Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets
+`scout_status = 2`, then calls
+[`tx_calc_transfer`](address:8900?hex) to send the PEEK response
+data back to the requesting station.""")
 subroutine(0x8512, "setup_sr_tx",
     title="Save TX op type and configure shift-register mode",
     description="""\
-Stores the TX operation type in tx_op_type. If the op code is
->= &86 (HALT / CONTINUE / machine-type), branches forward to the
-ACCCON IRR set without touching the shift register. Otherwise
-loads the workspace shadow at ws_0d68, copies it to ws_0d69
-(preserved for later restore), ORs in the SR-mode-2 bits, and
-writes back to ws_0d68. The shadow is flushed to the real VIA
-ACR/SR registers later in the Master IRQ path. Single caller
-(&83E2 in scout_complete).""",
+Stores the TX operation type in [`tx_op_type`](address:0D65?hex).
+
+| Op code | Path |
+|---|---|
+| `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched |
+| `< &86` | load the workspace shadow at [`ws_0d68`](address:0D68?hex), copy it to [`ws_0d69`](address:0D69?hex) (preserved for later restore), `ORA` in the SR-mode-2 bits, write back to [`ws_0d68`](address:0D68?hex) |
+
+The shadow is flushed to the real VIA `ACR`/`SR` registers later
+in the Master IRQ path. Single caller (`&83E2` in
+[`scout_complete`](address:8112?hex)).""",
     on_entry={"a": "TX operation type"})
 subroutine(0x852C, "advance_buffer_ptr",
-    title="Increment 4-byte receive buffer pointer",
-    description="Adds one to the counter at &A2-&A5 (port_buf_len\n"
-    "low/high, open_port_buf low/high), cascading\n"
-    "overflow through all four bytes. Called after each\n"
-    "byte is stored during scout data copy and data\n"
-    "frame reception to track the current write position\n"
-    "in the receive buffer.\n"
-    "\n"
-    "Preserves A, X, Y (uses INC zp throughout).",
+    title="Increment 4-byte receive-buffer pointer",
+    description="""\
+Adds 1 to the 4-byte counter at `&A2..&A5` (`port_buf_len` lo/hi,
+`open_port_buf` lo/hi), cascading overflow through all four
+bytes. Called after each byte is stored during scout-data copy
+and data-frame reception to track the current write position in
+the receive buffer.
+
+Preserves `A`, `X`, `Y` (uses `INC zp` throughout).""",
     on_exit={"a, x, y": "preserved (INC zp only)"})
 subroutine(0x84F9, "imm_op_build_reply",
-    title="Build immediate operation reply header",
-    description="Stores data length, source station/network, and control byte\n"
-    "into the RX buffer header area for port-0 immediate operations.\n"
-    "Then disables SR interrupts and configures the VIA shift\n"
-    "register for shift-in mode before returning to\n"
-    "idle listen.")
+    title="Build immediate-operation reply header",
+    description="""\
+Stores the data length, source station / network, and control byte
+into the RX buffer header area for port-0 immediate operations.
+Then disables `SR` interrupts and configures the VIA shift
+register for shift-in mode before returning to idle listen.""")
 # Reached only via PHA/PHA/RTS dispatch from the tx_done_dispatch
 # table; needs an explicit entry().
 entry(0x8540)
@@ -9637,7 +9672,15 @@ label(0xC109, "hazel_exec_addr")
 # driver, so the audit tooling (which only sees declared subs)
 # missed them. Names devised by examining each in context.
 subroutine(0x8409, "save_acccon_for_shadow_ram",
-    description="Save ACCCON before scout buffer access to handle shadow RAM.")
+    title="Save ACCCON across scout-buffer access",
+    description="""\
+Saves the current [`acccon`](address:FE34?hex) value, sets ACCCON
+for the upcoming `(open_port_buf),Y` stores (so writes go to the
+right shadow / main RAM bank on the Master 128), performs the
+copy, then restores the saved ACCCON before returning. Wraps the
+inner copy loop with shadow-RAM gating so scout-buffer writes
+land in the caller's address space rather than the FS-private
+HAZEL window.""")
 label(0x8BEA, "loop_print_cmd_name")
 subroutine(0x8DA6, "load_transfer_params",
     description="Load and initialize file server transfer parameters.")

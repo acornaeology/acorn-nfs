@@ -105,17 +105,17 @@ addresses across all 431 remaining routines.
 | 29 | &83EB | `set_nmi_rx_scout` | done | nmi_rx_scout + set_nmi_vector + chain links |
 | 30 | &83F2 | `discard_reset_listen` | done | tube_present + rx_src_net + release_tube links |
 | 31 | &8400 | `copy_scout_to_buffer` | done | bit-1 write-path table; rx_src_stn + rx_src_net + release_tube links |
-| 32 | &8409 | `save_acccon_for_shadow_ram` | | |
-| 33 | &8448 | `release_tube` | | |
-| 34 | &8454 | `immediate_op` | | |
-| 35 | &848B | `imm_op_dispatch_lo` | | |
-| 36 | &8493 | `rx_imm_exec` | | |
-| 37 | &84B1 | `rx_imm_poke` | | |
-| 38 | &84BC | `rx_imm_machine_type` | | |
-| 39 | &84CE | `rx_imm_peek` | | |
-| 40 | &84F9 | `imm_op_build_reply` | | |
-| 41 | &8512 | `setup_sr_tx` | | |
-| 42 | &852C | `advance_buffer_ptr` | | |
+| 32 | &8409 | `save_acccon_for_shadow_ram` | done | full title + description; acccon link |
+| 33 | &8448 | `release_tube` | done | bit-7 dispatch table; bold idempotent note |
+| 34 | &8454 | `immediate_op` | done | 3-row range table; scout_ctrl/econet_flags/imm_op_dispatch_lo links |
+| 35 | &848B | `imm_op_dispatch_lo` | kept | already has accurate description with per-entry expr |
+| 36 | &8493 | `rx_imm_exec` | done | scout_data + exec_addr_lo/hi links |
+| 37 | &84B1 | `rx_imm_poke` | done | inline-code refinement |
+| 38 | &84BC | `rx_imm_machine_type` | done | ?hex on set_rx_buf_len_hi |
+| 39 | &84CE | `rx_imm_peek` | done | tx_calc_transfer link |
+| 40 | &84F9 | `imm_op_build_reply` | done | inline-code refinement |
+| 41 | &8512 | `setup_sr_tx` | done | op-code dispatch table; tx_op_type/ws_0d68/ws_0d69/scout_complete links |
+| 42 | &852C | `advance_buffer_ptr` | done | inline-code refinement |
 | 43 | &853B | `tx_done_dispatch_lo` | | |
 | 44 | &8540 | `tx_done_jsr` | | |
 | 45 | &8549 | `tx_done_econet_event` | | |
