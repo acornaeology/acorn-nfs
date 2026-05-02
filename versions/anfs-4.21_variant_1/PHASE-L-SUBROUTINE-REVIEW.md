@@ -153,17 +153,17 @@ addresses across all 431 remaining routines.
 | 77 | &88DE | `tx_result_ok` | kept | already has accurate description with tx_store_result/ack_tx/nmi_tx_complete links |
 | 78 | &88E2 | `tx_result_fail` | done | tx_store_result link |
 | 79 | &88E4 | `tx_store_result` | done | tx_complete_flag + discard_reset_rx links |
-| 80 | &88F0 | `rom_gap_88f0` | | |
-| 81 | &8900 | `tx_calc_transfer` | | |
-| 82 | &898C | `adlc_full_reset` | | |
-| 83 | &899B | `adlc_rx_listen` | | |
-| 84 | &89A6 | `wait_idle_and_reset` | | |
-| 85 | &89B9 | `save_econet_state` | | |
-| 86 | &89CA | `nmi_bootstrap_entry` | | |
-| 87 | &89D8 | `rom_set_nmi_vector` | | |
-| 88 | &89ED | `svc_dispatch_lo` | | |
-| 89 | &8A20 | `svc_dispatch_hi` | | |
-| 90 | &8A54 | `service_handler` | | |
+| 80 | &88F0 | `rom_gap_88f0` | done | discard_reset_rx + tx_calc_transfer ?hex links |
+| 81 | &8900 | `tx_calc_transfer` | done | Tube/non-Tube buffer dispatch table; 3 caller links |
+| 82 | &898C | `adlc_full_reset` | done | 4-step numbered breakdown; adlc_rx_listen link |
+| 83 | &899B | `adlc_rx_listen` | done | CR1/CR2 register-value table |
+| 84 | &89A6 | `wait_idle_and_reset` | done | econet_init_flag + nmi_jmp_lo/hi + nmi_rx_scout + save_econet_state links |
+| 85 | &89B9 | `save_econet_state` | done | econet_station_id + tx_complete_flag + econet_init_flag + adlc_rx_listen links |
+| 86 | &89CA | `nmi_bootstrap_entry` | done | 6502-fenced code block for sequence; econet_station_id/nmi_enable + nmi_rti + nmi_tx_complete + tx_last_data + nmi_rx_scout links |
+| 87 | &89D8 | `rom_set_nmi_vector` | done | RAM-target table; set_nmi_vector + nmi_rti + nmi_jmp_lo/hi + econet_nmi_enable links |
+| 88 | &89ED | `svc_dispatch_lo` | done | bullet list of index categories; ?hex on svc_dispatch + svc_dispatch_hi |
+| 89 | &8A20 | `svc_dispatch_hi` | done | ?hex on svc_dispatch link; en-dash typography |
+| 90 | &8A54 | `service_handler` | kept | already has accurate service-call table + tooltip-quality first sentence |
 | 91 | &8AEA | `cmd_roff` | | |
 | 92 | &8B00 | `scan_remote_keys` | | |
 | 93 | &8B18 | `save_text_ptr` | | |

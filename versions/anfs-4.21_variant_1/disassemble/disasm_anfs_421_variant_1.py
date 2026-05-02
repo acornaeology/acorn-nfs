@@ -3171,104 +3171,135 @@ return to idle RX-listen mode.""",
     on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"})
 subroutine(0x8900, "tx_calc_transfer",
     title="Calculate transfer size and reclaim Tube buffer",
-    description="Inspects RXCB[6..7] (buffer end address byte 2 and "
-    "high) to detect a Tube buffer (high=&FF, byte 2 in [&FE,&FF]). "
-    "For Tube buffers, computes the 4-byte transfer size by "
-    "subtracting RXCB[8..&B] (start) from RXCB[4..7] (end), stores "
-    "the result via (port_ws_offset),Y, and re-claims the Tube via "
-    "JSR &0406 with claim type &C2. For non-Tube buffers, falls "
-    "through to fallback_calc_transfer which does a 1-byte size "
-    "subtraction without the Tube reclaim.\n"
-    "\n"
-    "Three callers: scout_complete (&819A), rx_imm_peek (&84DB), "
-    "tx_ctrl_proc (&86DD).",
+    description="""\
+Inspects `RXCB[6..7]` (buffer end address byte 2 and high) to
+detect a Tube buffer (high=`&FF`, byte 2 in `[&FE, &FF]`).
+
+| Buffer type | Action |
+|---|---|
+| Tube | compute 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end); store via `(port_ws_offset),Y`; re-claim Tube via `JSR &0406` with claim type `&C2` |
+| Non-Tube | fall through to `fallback_calc_transfer` for a 1-byte size subtraction without the Tube reclaim |
+
+Three callers: [`scout_complete`](address:8112?hex) (`&819A`),
+[`rx_imm_peek`](address:84CE?hex) (`&84DB`),
+[`tx_ctrl_proc`](address:86A2?hex) (`&86DD`).""",
     on_entry={"y": "0 -- caller convention"},
     on_exit={"a": "transfer status",
              "c": "set if Tube address claimed, clear otherwise"})
 subroutine(0x898C, "adlc_full_reset",
     title="ADLC full reset",
-    description="Performs a full ADLC hardware reset. Writes\n"
-    "CR1=&C1 (TX_RESET|RX_RESET|AC) to put both TX and\n"
-    "RX sections in reset with address control enabled.\n"
-    "Then configures CR4=&1E (8-bit RX word, abort extend,\n"
-    "NRZ encoding) and CR3=&00 (no loopback, no AEX, NRZ,\n"
-    "no DTR). Falls through to adlc_rx_listen to re-enter\n"
-    "RX listen mode.",
+    description="""\
+Performs a full ADLC hardware reset:
+
+1. Writes `CR1=&C1` (`TX_RESET | RX_RESET | AC`) to put both TX
+   and RX sections in reset with address-control enabled.
+2. Configures `CR4=&1E` (8-bit RX word, abort extend, NRZ
+   encoding).
+3. Configures `CR3=&00` (no loopback, no AEX, NRZ, no DTR).
+4. Falls through to [`adlc_rx_listen`](address:899B?hex) to
+   re-enter RX-listen mode.""",
     on_entry={},
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x899B, "adlc_rx_listen",
-    title="Enter RX listen mode",
-    description="Configures the ADLC for passive RX listen mode.\n"
-    "Writes CR1=&82 (TX_RESET|RIE): TX section held in\n"
-    "reset, RX interrupts enabled. Writes CR2=&67\n"
-    "(CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE) to clear\n"
-    "all pending status and enable prioritised status.\n"
-    "This is the idle state where the ADLC listens for\n"
-    "incoming scout frames via NMI.",
+    title="Enter RX-listen mode",
+    description="""\
+Configures the ADLC for passive RX-listen mode:
+
+| Register | Value | Meaning |
+|---|---|---|
+| `CR1` | `&82` | `TX_RESET \\| RIE` – TX section held in reset, RX interrupts enabled |
+| `CR2` | `&67` | `CLR_TX_ST \\| CLR_RX_ST \\| FC_TDRA \\| 2_1_BYTE \\| PSE` – clear all pending status, enable prioritised status |
+
+This is the idle state where the ADLC listens for incoming scout
+frames via NMI.""",
     on_entry={},
     on_exit={"a, x": "clobbered (control byte writes)",
              "y": "preserved"})
 subroutine(0x89A6, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
     description="""\
-Service 12 handler: NMI release. Checks `econet_init_flag` to see
-if Econet has been initialised; if not, skips straight to
-`adlc_rx_listen`. Otherwise spins in a tight loop comparing the
-NMI handler vector at [`nmi_jmp_lo`](address:0D0C?hex) /
+Service 12 handler: NMI release. Checks
+[`econet_init_flag`](address:0D62?hex) to see if Econet has been
+initialised; if not, skips straight to
+[`adlc_rx_listen`](address:899B?hex). Otherwise spins in a tight
+loop comparing the NMI handler vector at
+[`nmi_jmp_lo`](address:0D0C?hex) /
 [`nmi_jmp_hi`](address:0D0D?hex) against the address of
-[`nmi_rx_scout`](address:809B). When the NMI handler returns to
-idle, falls through to [`save_econet_state`](address:89B9) to
-clear the initialised flags and re-enter RX listen mode.""",
+[`nmi_rx_scout`](address:809B?hex).
+
+When the NMI handler returns to idle, falls through to
+[`save_econet_state`](address:89B9?hex) to clear the initialised
+flags and re-enter RX-listen mode.""",
     on_entry={"a": "12 (service call number)"},
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x89B9, "save_econet_state",
-    title="Reset Econet flags and enter RX listen",
-    description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
-    "then clears ws_0d60 (TX complete) and ws_0d62\n"
-    "(Econet initialised) by storing the current A value.\n"
-    "Sets Y=5 (service call workspace page) and jumps to\n"
-    "adlc_rx_listen to configure the ADLC for passive\n"
-    "listening. Used during NMI release (service 12) to\n"
-    "safely tear down the Econet state before another\n"
-    "ROM can claim the NMI workspace.",
-    on_entry={"a": "value to store into ws_0d60 / ws_0d62 "
-              "(typically 0 to clear)"},
+    title="Reset Econet flags and enter RX-listen",
+    description="""\
+Disables NMIs via two reads of
+[`econet_station_id`](address:FE18?hex) (INTOFF), then clears
+[`tx_complete_flag`](address:0D60?hex) and
+[`econet_init_flag`](address:0D62?hex) by storing the current `A`
+value. Sets `Y=5` (service-call workspace page) and jumps to
+[`adlc_rx_listen`](address:899B?hex) to configure the ADLC for
+passive listening.
+
+Used during NMI release (service 12) to safely tear down the
+Econet state before another ROM can claim the NMI workspace.""",
+    on_entry={"a": "value to store into tx_complete_flag / "
+              "econet_init_flag (typically 0 to clear)"},
     on_exit={"y": "5 (service-call workspace page)"})
 subroutine(0x89CA, "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="""\
 An alternate NMI handler that lives in the ROM itself rather than
 in the RAM shim at the start of the NFS workspace block. Unlike
-the RAM shim (which uses a self-modifying JMP to dispatch to
+the RAM shim (which uses a self-modifying `JMP` to dispatch to
 different handlers), this one hardcodes
-`JMP `[`nmi_rx_scout`](address:809B). Used as the initial NMI
-handler before the workspace has been properly set up during
-initialisation. Same sequence as the RAM shim: BIT &FE18 (INTOFF),
-PHA, TYA, PHA, LDA romsel, STA &FE30, JMP nmi_rx_scout.
+`JMP `[`nmi_rx_scout`](address:809B?hex). Used as the initial
+NMI handler before the workspace has been properly set up during
+initialisation.
 
-The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI
-in nmi_rti are essential for edge-triggered NMI re-delivery. The
-6502 /NMI is falling-edge triggered; the Econet NMI enable
+Same sequence as the RAM shim:
+
+```6502
+BIT econet_station_id  ; INTOFF
+PHA
+TYA
+PHA
+LDA romsel
+STA &FE30
+JMP nmi_rx_scout
+```
+
+The `BIT [econet_station_id](address:FE18?hex)` (INTOFF) at entry
+and `BIT [econet_nmi_enable](address:FE20?hex)` (INTON) before
+`RTI` in [`nmi_rti`](address:0D14?hex) are essential for
+edge-triggered NMI re-delivery.
+
+The 6502 /NMI is falling-edge triggered; the Econet NMI-enable
 flip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears the
-flip-flop, forcing /NMI high; INTON sets it, allowing the ADLC IRQ
-through. This creates a guaranteed high-to-low edge on /NMI even
-when the ADLC IRQ is continuously asserted (e.g. when it
+flip-flop, forcing /NMI high; INTON sets it, allowing the ADLC
+IRQ through. This creates a guaranteed high-to-low edge on /NMI
+even when the ADLC IRQ is continuously asserted (e.g. when it
 transitions atomically from TDRA to frame-complete without
 de-asserting). Without this mechanism,
-[`nmi_tx_complete`](address:872F) would never fire after
-[`tx_last_data`](address:8723).""")
+[`nmi_tx_complete`](address:872F?hex) would never fire after
+[`tx_last_data`](address:8723?hex).""")
 subroutine(0x89D8, "rom_set_nmi_vector",
     title="ROM copy of set_nmi_vector + nmi_rti",
-    description="ROM-resident version of the NMI exit sequence, also\n"
-    "the source for the initial copy to RAM at &0D0E.\n"
-    "set_nmi_vector (&0D0E): writes both hi and lo bytes\n"
-    "of the JMP target at &0D0C/&0D0D. nmi_rti (&0D14):\n"
-    "restores the original ROM bank, pulls Y and A from\n"
-    "the stack, then BIT &FE20 (INTON) to re-enable the\n"
-    "NMI flip-flop before RTI. The INTON creates a\n"
-    "guaranteed falling edge on /NMI if the ADLC IRQ is\n"
-    "already asserted, ensuring the next handler fires\n"
-    "immediately.")
+    description="""\
+ROM-resident version of the NMI-exit sequence; also the source
+for the initial copy to RAM at
+[`set_nmi_vector`](address:0D0E?hex).
+
+| RAM target | Function |
+|---|---|
+| [`set_nmi_vector`](address:0D0E?hex) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C?hex) / [`nmi_jmp_hi`](address:0D0D?hex) |
+| [`nmi_rti`](address:0D14?hex) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT [econet_nmi_enable](address:FE20?hex)` (INTON) to re-enable the NMI flip-flop before `RTI` |
+
+The INTON creates a guaranteed falling edge on /NMI if the ADLC
+IRQ is already asserted, ensuring the next handler fires
+immediately.""")
 subroutine(0x8B00, "scan_remote_keys",
     title="Scan keyboard for remote operation keys",
     description="Uses OSBYTE &7A with Y=&7F to check whether\n"
@@ -7075,13 +7106,14 @@ comment(0x88ED, "Full ADLC reset and return to idle listen", inline=True)
 data_banner(0x88F0, "rom_gap_88f0",
     title="Unreferenced 16-byte gap between TX-error path and tx_calc_transfer",
     description="""\
-16 dead bytes between the `JMP `[`discard_reset_rx`](address:83E5)
-at `&88ED` and [`tx_calc_transfer`](address:8900). Unreachable as
-code (it sits past an unconditional JMP) and unreferenced as
-data — no label, index, or indirect pointer targets any address
-in the `&88F0`-`&88FF` range. Likely an unused remnant from
-development; declared as a banner so the listing makes the gap
-visible rather than letting it merge into either neighbour.""")
+16 dead bytes between the `JMP
+[discard_reset_rx](address:83E5?hex)` at `&88ED` and
+[`tx_calc_transfer`](address:8900?hex). Unreachable as code (it
+sits past an unconditional `JMP`) and unreferenced as data – no
+label, index, or indirect pointer targets any address in the
+`&88F0..&88FF` range. Likely an unused remnant from development;
+declared as a banner so the listing makes the gap visible rather
+than letting it merge into either neighbour.""")
 comment(0x88F0, "Dead data: &0E", inline=True)
 comment(0x88F3, "Dead data: &0A", inline=True)
 comment(0x88F4, "Dead data: &0A", inline=True)
@@ -11354,24 +11386,32 @@ label(0xB2DB, "ex_init_scan_x0")          # idx 42: LDX #0 -> loop_scan_entries
 data_banner(0x89ED, "svc_dispatch_lo",
     title="svc_dispatch low-byte table (51 entries)",
     description="""\
-Low-byte half of the PHA/PHA/RTS dispatch table read by
-[`svc_dispatch`](address:8E61) as `LDA &89ED,X`. Paired with the
-high-byte half at [`svc_dispatch_hi`](address:8A20). Index 0 is a
-placeholder (target value unused -- never reached); indices 1..50 cover service
-handlers, language reply handlers, FSCV reasons, FS reply handlers,
-and the net-handle / OSWORD &13 trampolines. Per-entry inline
-comments name each target.""")
+Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
+[`svc_dispatch`](address:8E61?hex) as `LDA &89ED,X`. Paired with
+the high-byte half at [`svc_dispatch_hi`](address:8A20?hex).
+
+Index 0 is a placeholder (target value unused – never reached);
+indices 1..50 cover:
+
+- service handlers
+- language reply handlers
+- FSCV reasons
+- FS reply handlers
+- net-handle / OSWORD `&13` trampolines
+
+Per-entry inline comments name each target.""")
 for addr in range(0x89ED, 0x8A20):
     byte(addr)
 
 data_banner(0x8A20, "svc_dispatch_hi",
     title="svc_dispatch high-byte table (51 entries + 1 padding)",
     description="""\
-High-byte half of the PHA/PHA/RTS dispatch table read by
-[`svc_dispatch`](address:8E61) as `LDA &8A20,X`. The dispatcher
-pushes the hi byte first then the lo, so RTS lands on `target`
-(the table stores `target-1`). The trailing byte at `&8A53` is
-1-byte padding -- there are only 51 valid entries (0..50).""")
+High-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
+[`svc_dispatch`](address:8E61?hex) as `LDA &8A20,X`. The
+dispatcher pushes the hi byte first then the lo, so `RTS` lands
+on `target` (the table stores `target-1`). The trailing byte at
+`&8A53` is 1-byte padding – there are only 51 valid entries
+(0..50).""")
 for addr in range(0x8A20, 0x8A54):
     byte(addr)
 
