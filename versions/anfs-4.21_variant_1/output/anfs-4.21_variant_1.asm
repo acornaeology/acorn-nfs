@@ -9843,58 +9843,58 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a4a2 referenced 1 time by &a4a9
 .loop_skip_trail_spaces
-    lda (fs_crc_lo),y                                                 ; a4a2: b1 be       ..
-    cmp #&20 ; ' '                                                    ; a4a4: c9 20       .
-    bne check_cmd_flags                                               ; a4a6: d0 04       ..
+    lda (fs_crc_lo),y                                                 ; a4a2: b1 be       ..             ; Char on command line at current Y
+    cmp #&20 ; ' '                                                    ; a4a4: c9 20       .              ; Is it space?
+    bne check_cmd_flags                                               ; a4a6: d0 04       ..             ; No: check the entry's no-arg flag
 ; &a4a8 referenced 1 time by &a47e
 .skip_dot_and_spaces
-    iny                                                               ; a4a8: c8          .
-    jmp loop_skip_trail_spaces                                        ; a4a9: 4c a2 a4    L..
+    iny                                                               ; a4a8: c8          .              ; Advance past the space (or `.`)
+    jmp loop_skip_trail_spaces                                        ; a4a9: 4c a2 a4    L..            ; Loop: keep skipping
 
 ; &a4ac referenced 1 time by &a4a6
 .check_cmd_flags
-    lda la76c,x                                                       ; a4ac: bd 6c a7    .l.
-    asl a                                                             ; a4af: 0a          .
-    bpl clear_v_flag                                                  ; a4b0: 10 0b       ..
-    lda (fs_crc_lo),y                                                 ; a4b2: b1 be       ..
-    cmp #&0d                                                          ; a4b4: c9 0d       ..
-    bne clear_v_flag                                                  ; a4b6: d0 05       ..
-    bit always_set_v_byte                                             ; a4b8: 2c 69 97    ,i.
-    bvs clear_c_flag                                                  ; a4bb: 70 01       p.
+    lda la76c,x                                                       ; a4ac: bd 6c a7    .l.            ; Load entry's flag byte (post-name)
+    asl a                                                             ; a4af: 0a          .              ; Shift bit 7 into C: the no-arg bit
+    bpl clear_v_flag                                                  ; a4b0: 10 0b       ..             ; C=0: entry allows arguments
+    lda (fs_crc_lo),y                                                 ; a4b2: b1 be       ..             ; Char on command line
+    cmp #&0d                                                          ; a4b4: c9 0d       ..             ; Is it CR (no argument)?
+    bne clear_v_flag                                                  ; a4b6: d0 05       ..             ; Argument present, V clear
+    bit always_set_v_byte                                             ; a4b8: 2c 69 97    ,i.            ; Force V=1: entry validated as match
+    bvs clear_c_flag                                                  ; a4bb: 70 01       p.             ; V set: skip the CLV
 ; &a4bd referenced 2 times by &a4b0, &a4b6
 .clear_v_flag
-    clv                                                               ; a4bd: b8          .
+    clv                                                               ; a4bd: b8          .              ; Clear V (no-arg flag not asserted)
 ; &a4be referenced 1 time by &a4bb
 .clear_c_flag
-    clc                                                               ; a4be: 18          .
+    clc                                                               ; a4be: 18          .              ; Clear C (no error / no-arg path)
 ; &a4bf referenced 1 time by &a4da
 .return_with_result
-    pla                                                               ; a4bf: 68          h
-    lda (fs_crc_lo),y                                                 ; a4c0: b1 be       ..
-    rts                                                               ; a4c2: 60          `
+    pla                                                               ; a4bf: 68          h              ; Discard saved Y on stack
+    lda (fs_crc_lo),y                                                 ; a4c0: b1 be       ..             ; A = current command-line char
+    rts                                                               ; a4c2: 60          `              ; Return (Z=1 on match, C and V set per result)
 
 ; &a4c3 referenced 1 time by &a4d0
 .loop_scan_past_word
-    iny                                                               ; a4c3: c8          .
+    iny                                                               ; a4c3: c8          .              ; Advance command-line offset
 ; &a4c4 referenced 1 time by &a463
 .check_char_type
-    lda (fs_crc_lo),y                                                 ; a4c4: b1 be       ..
-    cmp #&0d                                                          ; a4c6: c9 0d       ..
-    beq set_c_and_return                                              ; a4c8: f0 0f       ..
-    cmp #&2e ; '.'                                                    ; a4ca: c9 2e       ..
-    beq skip_sep_spaces                                               ; a4cc: f0 04       ..
-    cmp #&20 ; ' '                                                    ; a4ce: c9 20       .
-    bne loop_scan_past_word                                           ; a4d0: d0 f1       ..
+    lda (fs_crc_lo),y                                                 ; a4c4: b1 be       ..             ; Char on command line
+    cmp #&0d                                                          ; a4c6: c9 0d       ..             ; Is it CR (end of input)?
+    beq set_c_and_return                                              ; a4c8: f0 0f       ..             ; Yes: set C and return (no match)
+    cmp #&2e ; '.'                                                    ; a4ca: c9 2e       ..             ; Is it `.`?
+    beq skip_sep_spaces                                               ; a4cc: f0 04       ..             ; Yes: skip separator spaces
+    cmp #&20 ; ' '                                                    ; a4ce: c9 20       .              ; Is it space?
+    bne loop_scan_past_word                                           ; a4d0: d0 f1       ..             ; No: keep scanning past word
 ; &a4d2 referenced 2 times by &a4cc, &a4d7
 .skip_sep_spaces
-    iny                                                               ; a4d2: c8          .
-    lda (fs_crc_lo),y                                                 ; a4d3: b1 be       ..
-    cmp #&20 ; ' '                                                    ; a4d5: c9 20       .
-    beq skip_sep_spaces                                               ; a4d7: f0 f9       ..
+    iny                                                               ; a4d2: c8          .              ; Advance past space
+    lda (fs_crc_lo),y                                                 ; a4d3: b1 be       ..             ; Load next char
+    cmp #&20 ; ' '                                                    ; a4d5: c9 20       .              ; Still space?
+    beq skip_sep_spaces                                               ; a4d7: f0 f9       ..             ; Yes: keep skipping
 ; &a4d9 referenced 1 time by &a4c8
 .set_c_and_return
-    sec                                                               ; a4d9: 38          8
-    bcs return_with_result                                            ; a4da: b0 e3       ..             ; ALWAYS branch
+    sec                                                               ; a4d9: 38          8              ; Set C: signal no-match return path
+    bcs return_with_result                                            ; a4da: b0 e3       ..             ; ALWAYS branch to common return; ALWAYS branch
 
     bit fs_flags                                                      ; a4dc: 2c 6c 0d    ,l.
     bvs fscv_2_star_run                                               ; a4df: 70 03       p.

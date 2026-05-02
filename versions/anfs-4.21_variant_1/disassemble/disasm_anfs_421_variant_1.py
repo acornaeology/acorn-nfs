@@ -12844,6 +12844,56 @@ comment(0xA495, "ALWAYS branch: try next entry", inline=True)
 comment(0xA4A0, "Restore matched-name length", inline=True)
 comment(0xA4A1, "Y = matched-name length", inline=True)
 
+# loop_skip_trail_spaces / check_cmd_flags / loop_scan_past_word
+# (&A4A2..&A4DC) — match_fs_cmd's tail: skip spaces or `.` after a
+# matched name, validate the entry's no-arg flag against the line
+# end, and either return Z=1 (match, C reflects whether arguments
+# follow) or restart the table scan.
+comment(0xA4A2, "Char on command line at current Y", inline=True)
+comment(0xA4A4, "Is it space?", inline=True)
+comment(0xA4A6, "No: check the entry's no-arg flag", inline=True)
+comment(0xA4A8, "Advance past the space (or `.`)", inline=True)
+comment(0xA4A9, "Loop: keep skipping", inline=True)
+comment(0xA4AC, "Load entry's flag byte (post-name)", inline=True)
+comment(0xA4AF, "Shift bit 7 into C: the no-arg bit",
+        inline=True)
+comment(0xA4B0, "C=0: entry allows arguments", inline=True)
+comment(0xA4B2, "Char on command line", inline=True)
+comment(0xA4B4, "Is it CR (no argument)?", inline=True)
+comment(0xA4B6, "Argument present, V clear", inline=True)
+comment(0xA4B8, "Force V=1: entry validated as match",
+        inline=True)
+comment(0xA4BB, "V set: skip the CLV", inline=True)
+comment(0xA4BD, "Clear V (no-arg flag not asserted)",
+        inline=True)
+comment(0xA4BE, "Clear C (no error / no-arg path)",
+        inline=True)
+comment(0xA4BF, "Discard saved Y on stack", inline=True)
+comment(0xA4C0, "A = current command-line char", inline=True)
+comment(0xA4C2, "Return (Z=1 on match, C and V set per "
+        "result)", inline=True)
+
+# loop_scan_past_word / check_char_type at &A4C3 / &A4C4: reached
+# from the `BMI check_char_type` at &A463 when the table entry's
+# first byte is already the bit-7 terminator (the unnamed
+# end-of-table sentinel). Scans forward in the command line to the
+# next word boundary.
+comment(0xA4C3, "Advance command-line offset", inline=True)
+comment(0xA4C4, "Char on command line", inline=True)
+comment(0xA4C6, "Is it CR (end of input)?", inline=True)
+comment(0xA4C8, "Yes: set C and return (no match)", inline=True)
+comment(0xA4CA, "Is it `.`?", inline=True)
+comment(0xA4CC, "Yes: skip separator spaces", inline=True)
+comment(0xA4CE, "Is it space?", inline=True)
+comment(0xA4D0, "No: keep scanning past word", inline=True)
+comment(0xA4D2, "Advance past space", inline=True)
+comment(0xA4D3, "Load next char", inline=True)
+comment(0xA4D5, "Still space?", inline=True)
+comment(0xA4D7, "Yes: keep skipping", inline=True)
+comment(0xA4D9, "Set C: signal no-match return path",
+        inline=True)
+comment(0xA4DA, "ALWAYS branch to common return", inline=True)
+
 # find_station_bit2 (&A2E8) — find station with bit 2 set
 comment(0xA300, "X=&10: scan 16 slots (15 to 0)", inline=True)
 comment(0xA302, "Clear V", inline=True)
