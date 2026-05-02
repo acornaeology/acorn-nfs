@@ -11555,20 +11555,20 @@ labc5 = compare_bridge_status+1
 ; &ae9d referenced 2 times by &901f, &ae75
 .handle_spool_ctrl_byte
     ror a                                                             ; ae9d: 6a          j              ; Read RX buffer offset 0 (cmd byte)
-    bcc check_spool_state                                             ; ae9e: 90 57       .W
+    bcc check_spool_state                                             ; ae9e: 90 57       .W             ; C clear: take check_spool_state path
     lda ws_0d6a                                                       ; aea0: ad 6a 0d    .j.            ; Compare with cb_fill (= &FC); Equal: take fill path
-    pha                                                               ; aea3: 48          H
+    pha                                                               ; aea3: 48          H              ; PHA -- save state byte
     ror a                                                             ; aea4: 6a          j              ; Compare with cb_skip (= &FD)
-    pla                                                               ; aea5: 68          h
+    pla                                                               ; aea5: 68          h              ; PLA -- restore
     bcs done_spool_ctrl                                               ; aea6: b0 0d       ..             ; Equal: take skip path
     ora #3                                                            ; aea8: 09 03       ..             ; Compare with cb_stop (= &FE)
     sta ws_0d6a                                                       ; aeaa: 8d 6a 0d    .j.            ; Not stop: must be data; Stop: process_spool_data and return
-    lda #3                                                            ; aead: a9 03       ..
-    jsr append_byte_to_rxbuf                                          ; aeaf: 20 94 ae     ..
-    jsr process_spool_data                                            ; aeb2: 20 b8 ae     ..
+    lda #3                                                            ; aead: a9 03       ..             ; A=3: spool-data result code
+    jsr append_byte_to_rxbuf                                          ; aeaf: 20 94 ae     ..            ; Append result to RX buffer
+    jsr process_spool_data                                            ; aeb2: 20 b8 ae     ..            ; Process the accumulated spool data
 ; &aeb5 referenced 1 time by &aea6
 .done_spool_ctrl
-    jmp reset_spool_buf_state                                         ; aeb5: 4c 64 ae    Ld.
+    jmp reset_spool_buf_state                                         ; aeb5: 4c 64 ae    Ld.            ; Reset spool buffer state
 
 ; ***************************************************************************************
 ; Transmit accumulated spool buffer data
@@ -11842,45 +11842,45 @@ labc5 = compare_bridge_status+1
 ; copies the palette / VDU state from MOS workspace at &0350 into the workspace
 ; transmit buffer for forwarding back to the station.
 .lang_2_save_palette_vdu
-    lda osword_flag                                                   ; b01a: a5 aa       ..
+    lda osword_flag                                                   ; b01a: a5 aa       ..             ; Read osword_flag (preserved across the dispatch)
     pha                                                               ; b01c: 48          H              ; PHA -- save state byte
-    lda #&e9                                                          ; b01d: a9 e9       ..
-    sta nfs_workspace                                                 ; b01f: 85 9e       ..
-    ldy #0                                                            ; b021: a0 00       ..
-    sty osword_flag                                                   ; b023: 84 aa       ..
-    lda l0350                                                         ; b025: ad 50 03    .P.
-    sta (nfs_workspace),y                                             ; b028: 91 9e       ..
-    inc nfs_workspace                                                 ; b02a: e6 9e       ..
-    lda l0351                                                         ; b02c: ad 51 03    .Q.
+    lda #&e9                                                          ; b01d: a9 e9       ..             ; A=&E9: workspace start lo for palette save
+    sta nfs_workspace                                                 ; b01f: 85 9e       ..             ; Store as nfs_workspace lo
+    ldy #0                                                            ; b021: a0 00       ..             ; Y=0
+    sty osword_flag                                                   ; b023: 84 aa       ..             ; Reset osword_flag = 0
+    lda l0350                                                         ; b025: ad 50 03    .P.            ; Read l0350 (MOS state byte)
+    sta (nfs_workspace),y                                             ; b028: 91 9e       ..             ; Store at (nfs_workspace)+0
+    inc nfs_workspace                                                 ; b02a: e6 9e       ..             ; Advance nfs_workspace lo
+    lda l0351                                                         ; b02c: ad 51 03    .Q.            ; Read l0351 (next MOS byte)
     pha                                                               ; b02f: 48          H              ; PHA -- save another byte
     tya                                                               ; b030: 98          .              ; A=&00
 ; &b031 referenced 1 time by &b050
 .loop_read_palette
-    sta (nfs_workspace),y                                             ; b031: 91 9e       ..
-    ldx nfs_workspace                                                 ; b033: a6 9e       ..
-    ldy nfs_workspace_hi                                              ; b035: a4 9f       ..
-    lda #osword_read_palette                                          ; b037: a9 0b       ..
+    sta (nfs_workspace),y                                             ; b031: 91 9e       ..             ; Store at (nfs_workspace)
+    ldx nfs_workspace                                                 ; b033: a6 9e       ..             ; Read updated nfs_workspace lo
+    ldy nfs_workspace_hi                                              ; b035: a4 9f       ..             ; Read nfs_workspace hi
+    lda #osword_read_palette                                          ; b037: a9 0b       ..             ; A=&0B: OSWORD &0B = read palette entry
     jsr osword                                                        ; b039: 20 f1 ff     ..            ; Read palette
     pla                                                               ; b03c: 68          h              ; PLA -- restore inner saved
-    ldy #0                                                            ; b03d: a0 00       ..
-    sta (nfs_workspace),y                                             ; b03f: 91 9e       ..
+    ldy #0                                                            ; b03d: a0 00       ..             ; Y=0
+    sta (nfs_workspace),y                                             ; b03f: 91 9e       ..             ; Store palette result at workspace
     iny                                                               ; b041: c8          .              ; Y=&01
-    lda (nfs_workspace),y                                             ; b042: b1 9e       ..
-    pha                                                               ; b044: 48          H
-    ldx nfs_workspace                                                 ; b045: a6 9e       ..
-    inc nfs_workspace                                                 ; b047: e6 9e       ..
-    inc osword_flag                                                   ; b049: e6 aa       ..
+    lda (nfs_workspace),y                                             ; b042: b1 9e       ..             ; Re-read palette result
+    pha                                                               ; b044: 48          H              ; PHA -- save
+    ldx nfs_workspace                                                 ; b045: a6 9e       ..             ; Read updated workspace lo
+    inc nfs_workspace                                                 ; b047: e6 9e       ..             ; Advance workspace
+    inc osword_flag                                                   ; b049: e6 aa       ..             ; Increment osword_flag (palette index)
     dey                                                               ; b04b: 88          .              ; Y=&00
-    lda osword_flag                                                   ; b04c: a5 aa       ..
-    cpx #&f9                                                          ; b04e: e0 f9       ..
-    bne loop_read_palette                                             ; b050: d0 df       ..
+    lda osword_flag                                                   ; b04c: a5 aa       ..             ; Read updated osword_flag
+    cpx #&f9                                                          ; b04e: e0 f9       ..             ; Compare with &F9 (last palette entry)
+    bne loop_read_palette                                             ; b050: d0 df       ..             ; Not done: loop
     pla                                                               ; b052: 68          h              ; PLA -- restore outer saved
-    sty osword_flag                                                   ; b053: 84 aa       ..
-    inc nfs_workspace                                                 ; b055: e6 9e       ..
-    jsr serialise_palette_entry                                       ; b057: 20 66 b0     f.
-    inc nfs_workspace                                                 ; b05a: e6 9e       ..
+    sty osword_flag                                                   ; b053: 84 aa       ..             ; Reset osword_flag = 0 after palette loop
+    inc nfs_workspace                                                 ; b055: e6 9e       ..             ; Advance workspace
+    jsr serialise_palette_entry                                       ; b057: 20 66 b0     f.            ; Serialise the next palette entry
+    inc nfs_workspace                                                 ; b05a: e6 9e       ..             ; Advance workspace
     pla                                                               ; b05c: 68          h              ; PLA -- restore final saved
-    sta osword_flag                                                   ; b05d: 85 aa       ..
+    sta osword_flag                                                   ; b05d: 85 aa       ..             ; Save osword_flag
 ; ***************************************************************************************
 ; Copy current state byte to committed state
 ;
@@ -11908,18 +11908,18 @@ labc5 = compare_bridge_status+1
 ; On Exit: Y: advanced past the 2-byte pair A, X: clobbered (OSBYTE)
 ; &b066 referenced 1 time by &b057
 .serialise_palette_entry
-    lda l0355                                                         ; b066: ad 55 03    .U.
-    ora #&40 ; '@'                                                    ; b069: 09 40       .@
-    sta (nfs_workspace),y                                             ; b06b: 91 9e       ..
-    ldx l0355                                                         ; b06d: ae 55 03    .U.
-    inc nfs_workspace                                                 ; b070: e6 9e       ..
-    tya                                                               ; b072: 98          .
-    sta (nfs_workspace),y                                             ; b073: 91 9e       ..
-    lda lb099,x                                                       ; b075: bd 99 b0    ...
-    ldx #0                                                            ; b078: a2 00       ..
-    inc nfs_workspace                                                 ; b07a: e6 9e       ..
-    sta (nfs_workspace,x)                                             ; b07c: 81 9e       ..
-    jsr read_osbyte_to_ws_x0                                          ; b07e: 20 81 b0     ..
+    lda l0355                                                         ; b066: ad 55 03    .U.            ; Read l0355 (current palette index)
+    ora #&40 ; '@'                                                    ; b069: 09 40       .@             ; ORA #&40 -- mark as palette entry
+    sta (nfs_workspace),y                                             ; b06b: 91 9e       ..             ; Store at (nfs_workspace)+Y
+    ldx l0355                                                         ; b06d: ae 55 03    .U.            ; Read l0355
+    inc nfs_workspace                                                 ; b070: e6 9e       ..             ; Advance workspace
+    tya                                                               ; b072: 98          .              ; TYA -- A = current Y (= 0)
+    sta (nfs_workspace),y                                             ; b073: 91 9e       ..             ; Store 0 at (nfs_workspace)+Y
+    lda lb099,x                                                       ; b075: bd 99 b0    ...            ; Read lookup byte from lb099+X
+    ldx #0                                                            ; b078: a2 00       ..             ; X=0: indexed-indirect mode
+    inc nfs_workspace                                                 ; b07a: e6 9e       ..             ; Advance workspace
+    sta (nfs_workspace,x)                                             ; b07c: 81 9e       ..             ; Store at (nfs_workspace,X)
+    jsr read_osbyte_to_ws_x0                                          ; b07e: 20 81 b0     ..            ; Read OSBYTE result via x=0 helper
 ; ***************************************************************************************
 ; Read OSBYTE with X=0 and store to workspace
 ;
@@ -11943,16 +11943,16 @@ labc5 = compare_bridge_status+1
 ;
 ; On Exit: Y: incremented past the stored byte A, X: clobbered
 .read_osbyte_to_ws
-    ldy osword_flag                                                   ; b083: a4 aa       ..
-    inc osword_flag                                                   ; b085: e6 aa       ..
-    inc nfs_workspace                                                 ; b087: e6 9e       ..
-    lda lb097,y                                                       ; b089: b9 97 b0    ...
-    ldy #&ff                                                          ; b08c: a0 ff       ..
-    jsr osbyte                                                        ; b08e: 20 f4 ff     ..
-    txa                                                               ; b091: 8a          .
-    ldx #0                                                            ; b092: a2 00       ..
-    sta (nfs_workspace,x)                                             ; b094: 81 9e       ..
-    rts                                                               ; b096: 60          `
+    ldy osword_flag                                                   ; b083: a4 aa       ..             ; Y = osword_flag (OSBYTE-table index)
+    inc osword_flag                                                   ; b085: e6 aa       ..             ; Increment osword_flag for next call
+    inc nfs_workspace                                                 ; b087: e6 9e       ..             ; Advance nfs_workspace
+    lda lb097,y                                                       ; b089: b9 97 b0    ...            ; Load OSBYTE number from lb097+Y
+    ldy #&ff                                                          ; b08c: a0 ff       ..             ; Y=&FF -- OSBYTE arg (read mode)
+    jsr osbyte                                                        ; b08e: 20 f4 ff     ..            ; Issue OSBYTE
+    txa                                                               ; b091: 8a          .              ; TXA -- result to A
+    ldx #0                                                            ; b092: a2 00       ..             ; X=0: indexed-indirect mode
+    sta (nfs_workspace,x)                                             ; b094: 81 9e       ..             ; Store at (nfs_workspace,X)
+    rts                                                               ; b096: 60          `              ; Return
 
 ; &b097 referenced 1 time by &b089
 .lb097
@@ -11963,7 +11963,7 @@ labc5 = compare_bridge_status+1
 
 .sub_cb0a0
 cmd_cdir = sub_cb0a0+1
-    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H
+    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H            ; JMP (l4898,X) -- never executed; see cmd_cdir
 
 ; ***************************************************************************************
 ; *CDir command handler
