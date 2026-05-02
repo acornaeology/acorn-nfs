@@ -447,19 +447,24 @@ dimensions. In priority order:
     stale_addr findings (NMI-handler install sites referencing
     moved addresses, e.g. `&87EE` -> `&86E7`).
 
-  **State at end:** `fantasm comments check` reports 49 MEDIUM-
-  confidence findings remaining: 38 desc_stale_addr, 6
-  block_stale_addr, 5 stale_addr. These are mostly false-positives:
-  workspace bytes that aren't declared as items (&0D5D, &0D3A,
-  &0D48, &0D4A, &0D74), the mid-instruction operands of the
-  expr_label dispatchers I introduced (&84B8, &85FD), and label-
-  only addresses (ps_template_base &8DA7) that are valid but don't
-  appear in the JSON item map. Genuine remaining staleness is in
-  ~15 subroutine() descriptions that reference 4.18 addresses --
-  worth fixing piecemeal but no longer impeding progress.
+  - **Pass 5 (49 MEDIUM findings -> 0):** declared the missing
+    MOS-area constants (FF1B-FF2D extended-vector slots, the
+    &0212-&021E vector table entries, &FFB7 workspace) so prose
+    references resolve via `[label](address:HEX)`; updated 4.18
+    address literals in the remaining subroutine descriptions to
+    their 4.21 equivalents (NMI-handler chain &81E7..&8278 ->
+    &81C2..&8268; nmi_tx_complete &8732 -> &872F;
+    prot_bit_encode_table &9286 -> &93C8;
+    nmi_rx_scout &80BE -> &809B; ps_slot_txcb_template
+    &B1B7 -> &B575); deleted a misplaced block comment that was
+    describing the 4.18 ps_slot template at an address now occupied
+    by mid-instruction data.
 
-  Driver shrank from ~17085 to ~15500 lines (~10% smaller). HIGH-
-  confidence comment-vs-code findings: 0.
+  **State at end:** `fantasm comments check` returns zero findings
+  at any confidence level. Driver shrank from ~17085 to ~15500
+  lines (~10% smaller). Verify byte-identical and lint clean.
+
+  **Phase F complete.**
 
 ## Phase G: Last 9.1% inline-comment coverage
 
