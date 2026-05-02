@@ -1961,63 +1961,87 @@ Workspace fields written:
 Finally re-enables NMIs via INTON (`econet_nmi_enable` read).""")
 subroutine(0x809B, "nmi_rx_scout",
     title="NMI RX scout handler (initial byte)",
-    description="Default NMI handler for incoming scout frames. Checks if the frame\n"
-    "is addressed to us or is a broadcast. Installed as the NMI target\n"
-    "during idle RX listen mode.\n"
-    "Tests SR2 bit0 (AP = Address Present) to detect incoming data.\n"
-    "Reads the first byte (destination station) from the RX FIFO and\n"
-    "compares against our station ID. Reading &FE18 also disables NMIs\n"
-    "(INTOFF side effect).")
+    description="""\
+Default NMI handler for incoming scout frames. Checks whether the
+frame is addressed to us or is a broadcast. Installed as the NMI
+target during idle RX listen mode.
+
+Tests `SR2` bit 0 (`AP` = Address Present) to detect incoming
+data. Reads the first byte (destination station) from the RX FIFO
+and compares against our station ID. Reading `econet_station_id`
+(`&FE18`) also disables NMIs (INTOFF side effect).""")
 subroutine(0x80B8, "nmi_rx_scout_net",
     title="RX scout second byte handler",
-    description="Reads the second byte of an incoming scout (destination network).\n"
-    "Checks for network match: 0 = local network (accept), &FF = broadcast\n"
-    "(accept and flag), anything else = reject.\n"
-    "Installs [`copy_scout_to_buffer`](address:8400) as the\n"
-    "scout-data reading loop handler.")
+    description="""\
+Reads the second byte of an incoming scout (destination network).
+
+| Value | Meaning | Action |
+|---|---|---|
+| `0`   | local network | accept |
+| `&FF` | broadcast | accept and flag |
+| other | foreign network | reject |
+
+Installs [`copy_scout_to_buffer`](address:8400?hex) as the
+scout-data reading loop handler.""")
 subroutine(0x80D8, "scout_error",
     title="Scout error/discard handler",
-    description="Handles scout reception errors and end-of-frame\n"
-    "conditions. Reads SR2 and tests AP|RDA (bits 0|7):\n"
-    "if neither set, the frame ended cleanly and is\n"
-    "simply discarded. If unexpected data is present,\n"
-    "performs a full ADLC reset. Also serves as the\n"
-    "common discard path for address/network mismatches\n"
-    "from nmi_rx_scout and scout_complete -- reached by\n"
-    "5 branch sites across the scout reception chain.")
+    description="""\
+Handles scout reception errors and end-of-frame conditions. Reads
+`SR2` and tests `AP|RDA` (bits 0 and 7):
+
+- **Neither set** – the frame ended cleanly; simply discard.
+- **Either set** – unexpected data is present; perform a full ADLC
+  reset.
+
+Also serves as the common discard path for address/network
+mismatches from [`nmi_rx_scout`](address:809B?hex) and
+[`scout_complete`](address:8112?hex) – reached by 5 branch sites
+across the scout reception chain.""")
 subroutine(0x8112, "scout_complete",
     title="Scout completion handler",
-    description="Processes a completed scout frame. Writes CR1=&00\n"
-    "and CR2=&84 to disable PSE and suppress FV, then\n"
-    "tests SR2 for FV (frame valid). If FV is set with\n"
-    "RDA, reads the remaining scout data bytes in pairs\n"
-    "into the buffer at &0D3D. Matches the port byte\n"
-    "(&0D40) against open receive control blocks to find\n"
-    "a listener. On match, calculates the transfer size\n"
-    "via tx_calc_transfer, sets up the data RX handler\n"
-    "chain, and sends a scout ACK. On no match or error,\n"
-    "discards the frame via scout_error.")
+    description="""\
+Processes a completed scout frame. Writes `CR1=&00` and `CR2=&84`
+to disable `PSE` and suppress `FV`, then tests `SR2` for `FV`
+(frame valid). If `FV` is set with `RDA`, reads the remaining
+scout data bytes in pairs into the buffer at `&0D3D`.
+
+Matches the port byte (`&0D40`) against open receive control
+blocks to find a listener:
+
+- **On match** – calculates the transfer size via
+  [`tx_calc_transfer`](address:8900?hex), sets up the data RX
+  handler chain, and sends a scout ACK.
+- **On no match or error** – discards the frame via
+  [`scout_error`](address:80D8?hex).""")
 subroutine(0x8195, "port_match_found",
     title="Scout matched: arm data RX, ACK or discard",
     description="""\
-Sets scout_status=3 (match found) at rx_port, calls
-tx_calc_transfer to compute the transfer parameters from the RXCB,
-and triages: C=0 (no Tube claimed) -> nmi_error_dispatch to
-discard; C=1 -> check broadcast flag in rx_src_net (V), branch to
-send_data_rx_ack on a unicast or fall through to a discard path
-on broadcast. Four inbound refs (one JSR from &84B9 and three
-branches from the scout_complete dispatch).""",
+Sets `scout_status=3` (match found) at `rx_port`, calls
+[`tx_calc_transfer`](address:8900?hex) to compute the transfer
+parameters from the RXCB, then triages:
+
+| Carry | `rx_src_net` (V) | Action |
+|---|---|---|
+| `C=0` | – | no Tube claimed → [`nmi_error_dispatch`](address:8215?hex) (discard) |
+| `C=1` | broadcast | discard (broadcasts get no ACK) |
+| `C=1` | unicast   | [`send_data_rx_ack`](address:81A7?hex) |
+
+Four inbound refs (one `JSR` from `&84B9` and three branches from
+the [`scout_complete`](address:8112?hex) dispatch).""",
     on_exit={"a": "3 (scout_status)"})
 subroutine(0x81A7, "send_data_rx_ack",
     title="Send scout ACK and arm data-RX continuation",
     description="""\
 Switches the ADLC to TX mode for the scout ACK frame: writes
-CR1=&44 (RX_RESET | TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA |
-PSE), then loads (A,Y) = (&B8, &81) -- the address of data_rx_setup
-at &81B8 minus 1 -- and JMPs to ack_tx_write_dest which actually
-emits the TX frame and installs the new NMI handler. Two callers:
-the dispatch in scout_complete at &81A2 and the immediate-op POKE
-path at &84AE (jmp_send_data_rx_ack).""",
+`CR1=&44` (`RX_RESET | TIE`), `CR2=&A7` (`RTS | CLR_TX_ST |
+FC_TDRA | PSE`), then loads `(A,Y) = (&B8, &81)` – the address of
+[`data_rx_setup`](address:81B8?hex) minus 1 – and `JMP`s to
+[`ack_tx_write_dest`](address:82F8?hex) which actually emits the
+TX frame and installs the new NMI handler.
+
+Two callers: the dispatch in [`scout_complete`](address:8112?hex)
+at `&81A2` and the immediate-op POKE path at `&84AE`
+(`jmp_send_data_rx_ack`).""",
     on_exit={"a": "&B8 (low byte of data_rx_setup-1)",
              "y": "&81 (high byte of data_rx_setup-1)"})
 subroutine(0x81B8, "data_rx_setup",

@@ -46,12 +46,12 @@ For each of 452 subroutines:
 | 2 | &8045 | `generate_event` | kept | already terse + accurate |
 | 3 | &8050 | `adlc_init` | done | added [adlc_full_reset]/[init_nmi_workspace] links |
 | 4 | &8070 | `init_nmi_workspace` | done | added workspace-fields table |
-| 5 | &809B | `nmi_rx_scout` | | |
-| 6 | &80B8 | `nmi_rx_scout_net` | | |
-| 7 | &80D8 | `scout_error` | | |
-| 8 | &8112 | `scout_complete` | | |
-| 9 | &8195 | `port_match_found` | | |
-| 10 | &81A7 | `send_data_rx_ack` | | |
+| 5 | &809B | `nmi_rx_scout` | done | inline-code formatting; econet_station_id ref |
+| 6 | &80B8 | `nmi_rx_scout_net` | done | network-match dispatch table; ?hex on copy_scout_to_buffer |
+| 7 | &80D8 | `scout_error` | done | bullet-list dispatch; nmi_rx_scout/scout_complete links |
+| 8 | &8112 | `scout_complete` | done | bullet-list match/no-match; tx_calc_transfer/scout_error links |
+| 9 | &8195 | `port_match_found` | done | C/V triage table; 4 cross-refs added |
+| 10 | &81A7 | `send_data_rx_ack` | done | data_rx_setup/ack_tx_write_dest links + inline code |
 | 11 | &81B8 | `data_rx_setup` | | |
 | 12 | &81C2 | `nmi_data_rx` | | |
 | 13 | &81D6 | `nmi_data_rx_net` | | |

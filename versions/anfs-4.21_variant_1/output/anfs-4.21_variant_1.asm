@@ -573,11 +573,12 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI RX scout handler (initial byte)
 ;
-; Default NMI handler for incoming scout frames. Checks if the frame is addressed to us
-; or is a broadcast. Installed as the NMI target during idle RX listen mode. Tests SR2
-; bit0 (AP = Address Present) to detect incoming data. Reads the first byte
+; Default NMI handler for incoming scout frames. Checks whether the frame is addressed
+; to us or is a broadcast. Installed as the NMI target during idle RX listen mode.
+;
+; Tests SR2 bit 0 (AP = Address Present) to detect incoming data. Reads the first byte
 ; (destination station) from the RX FIFO and compares against our station ID. Reading
-; &FE18 also disables NMIs (INTOFF side effect).
+; econet_station_id (&FE18) also disables NMIs (INTOFF side effect).
 ; &809b referenced 1 time by &89d5
 .nmi_rx_scout
     lda #1                                                            ; 809b: a9 01       ..             ; A=&01: mask for SR2 bit0 (AP = Address Present)
@@ -598,9 +599,15 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; RX scout second byte handler
 ;
-; Reads the second byte of an incoming scout (destination network). Checks for network
-; match: 0 = local network (accept), &FF = broadcast (accept and flag), anything else =
-; reject. Installs copy_scout_to_buffer as the scout-data reading loop handler.
+; Reads the second byte of an incoming scout (destination network).
+;
+; | Value | Meaning         | Action          |
+; |-------|-----------------|-----------------|
+; | 0     | local network   | accept          |
+; | &FF   | broadcast       | accept and flag |
+; | other | foreign network | reject          |
+;
+; Installs copy_scout_to_buffer (&8400) as the scout-data reading loop handler.
 .nmi_rx_scout_net
     bit econet_control23_or_status2                                   ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
     bpl scout_error                                                   ; 80bb: 10 1b       ..             ; No RDA -- check errors
@@ -627,10 +634,14 @@ rom_header_byte2 = rom_header+2
 ; Scout error/discard handler
 ;
 ; Handles scout reception errors and end-of-frame conditions. Reads SR2 and tests
-; AP|RDA (bits 0|7): if neither set, the frame ended cleanly and is simply discarded.
-; If unexpected data is present, performs a full ADLC reset. Also serves as the common
-; discard path for address/network mismatches from nmi_rx_scout and scout_complete --
-; reached by 5 branch sites across the scout reception chain.
+; AP|RDA (bits 0 and 7):
+;
+; - Neither set – the frame ended cleanly; simply discard.
+; - Either set – unexpected data is present; perform a full ADLC reset.
+;
+; Also serves as the common discard path for address/network mismatches from
+; nmi_rx_scout (&809B) and scout_complete (&8112) – reached by 5 branch sites across
+; the scout reception chain.
 ; &80d8 referenced 5 times by &80a0, &80bb, &80ed, &8121, &8123
 .scout_error
     lda econet_control23_or_status2                                   ; 80d8: ad a1 fe    ...            ; Read SR2
@@ -671,10 +682,13 @@ rom_header_byte2 = rom_header+2
 ;
 ; Processes a completed scout frame. Writes CR1=&00 and CR2=&84 to disable PSE and
 ; suppress FV, then tests SR2 for FV (frame valid). If FV is set with RDA, reads the
-; remaining scout data bytes in pairs into the buffer at &0D3D. Matches the port byte
-; (&0D40) against open receive control blocks to find a listener. On match, calculates
-; the transfer size via tx_calc_transfer, sets up the data RX handler chain, and sends
-; a scout ACK. On no match or error, discards the frame via scout_error.
+; remaining scout data bytes in pairs into the buffer at &0D3D.
+;
+; Matches the port byte (&0D40) against open receive control blocks to find a listener:
+;
+; - On match – calculates the transfer size via tx_calc_transfer (&8900), sets up the
+;   data RX handler chain, and sends a scout ACK.
+; - On no match or error – discards the frame via scout_error (&80D8).
 ; &8112 referenced 2 times by &80fb, &8106
 .scout_complete
     lda #0                                                            ; 8112: a9 00       ..             ; Save Y for next iteration
@@ -761,12 +775,17 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Scout matched: arm data RX, ACK or discard
 ;
-; Sets scout_status=3 (match found) at rx_port, calls tx_calc_transfer to compute the
-; transfer parameters from the RXCB, and triages: C=0 (no Tube claimed) ->
-; nmi_error_dispatch to discard; C=1 -> check broadcast flag in rx_src_net (V), branch
-; to send_data_rx_ack on a unicast or fall through to a discard path on broadcast. Four
-; inbound refs (one JSR from &84B9 and three branches from the scout_complete
-; dispatch).
+; Sets scout_status=3 (match found) at rx_port, calls tx_calc_transfer (&8900) to
+; compute the transfer parameters from the RXCB, then triages:
+;
+; | Carry | rx_src_net (V) | Action                                                 |
+; |-------|----------------|--------------------------------------------------------|
+; | C=0   | –              | no Tube claimed → nmi_error_dispatch (&8215) (discard) |
+; | C=1   | broadcast      | discard (broadcasts get no ACK)                        |
+; | C=1   | unicast        | send_data_rx_ack (&81A7)                               |
+;
+; Four inbound refs (one JSR from &84B9 and three branches from the scout_complete
+; (&8112) dispatch).
 ;
 ; On Exit: A: 3 (scout_status)
 ; &8195 referenced 4 times by &8169, &8173, &8178, &84b9
@@ -783,11 +802,12 @@ rom_header_byte2 = rom_header+2
 ; Send scout ACK and arm data-RX continuation
 ;
 ; Switches the ADLC to TX mode for the scout ACK frame: writes CR1=&44 (RX_RESET |
-; TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA | PSE), then loads (A,Y) = (&B8, &81) -- the
-; address of data_rx_setup at &81B8 minus 1 -- and JMPs to ack_tx_write_dest which
-; actually emits the TX frame and installs the new NMI handler. Two callers: the
-; dispatch in scout_complete at &81A2 and the immediate-op POKE path at &84AE
-; (jmp_send_data_rx_ack).
+; TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA | PSE), then loads (A,Y) = (&B8, &81) – the
+; address of data_rx_setup (&81B8) minus 1 – and JMPs to ack_tx_write_dest (&82F8)
+; which actually emits the TX frame and installs the new NMI handler.
+;
+; Two callers: the dispatch in scout_complete (&8112) at &81A2 and the immediate-op
+; POKE path at &84AE (jmp_send_data_rx_ack).
 ;
 ; On Exit: A: &B8 (low byte of data_rx_setup-1) Y: &81 (high byte of data_rx_setup-1)
 ; &81a7 referenced 2 times by &81a2, &84ae
