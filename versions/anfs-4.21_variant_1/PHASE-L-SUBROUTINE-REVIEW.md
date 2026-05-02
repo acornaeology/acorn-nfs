@@ -254,31 +254,31 @@ addresses across all 431 remaining routines.
 | 178 | &9512 | `cmd_dir` | done | argument-syntax dispatch table |
 | 179 | &95C1 | `print_station_low` | kept | covered by Phase K2 |
 | 180 | &95C8 | `print_fs_station` | kept | covered by Phase K2 |
-| 181 | &95DA | `print_dir_syntax` | | |
-| 182 | &9612 | `osbyte_a2` | | |
-| 183 | &965F | `print_network_from_cmos` | | |
-| 184 | &9670 | `print_fs_network` | | |
-| 185 | &968E | `dispatch_help_command` | | |
-| 186 | &973D | `init_txcb_bye` | | |
-| 187 | &973F | `init_txcb_port` | | |
-| 188 | &974B | `init_txcb` | | |
-| 189 | &9763 | `txcb_init_template` | | |
-| 190 | &976F | `send_request_nowrite` | | |
-| 191 | &9773 | `send_request_write` | | |
-| 192 | &9776 | `cmd_bye` | | |
-| 193 | &978A | `save_net_tx_cb` | | |
-| 194 | &978B | `save_net_tx_cb_vset` | | |
-| 195 | &97B7 | `prep_send_tx_cb` | | |
-| 196 | &97CD | `recv_and_process_reply` | | |
-| 197 | &9850 | `lang_1_remote_boot` | | |
-| 198 | &987E | `lang_3_execute_at_0100` | | |
-| 199 | &988F | `check_escape_and_classify` | | |
-| 200 | &9895 | `raise_escape_error` | | |
-| 201 | &989F | `lang_4_remote_validated` | | |
-| 202 | &98AF | `lang_0_insert_remote_key` | | |
-| 203 | &98BE | `wait_net_tx_ack` | | |
-| 204 | &9900 | `cond_save_error_code` | | |
-| 205 | &9930 | `fixup_reply_status_a` | | |
+| 181 | &95DA | `print_dir_syntax` | kept | covered by Phase K2 |
+| 182 | &9612 | `osbyte_a2` | kept | already accurate |
+| 183 | &965F | `print_network_from_cmos` | kept | covered by Phase K2 |
+| 184 | &9670 | `print_fs_network` | kept | covered by Phase K2 |
+| 185 | &968E | `dispatch_help_command` | kept | covered by Phase K2 |
+| 186 | &973D | `init_txcb_bye` | done | init_txcb_port + wait_net_tx_ack links |
+| 187 | &973F | `init_txcb_port` | done | init_txcb + wait_net_tx_ack links |
+| 188 | &974B | `init_txcb` | done | cmd_pass + init_txcb_port + prep_send_tx_cb links |
+| 189 | &9763 | `txcb_init_template` | kept | data table |
+| 190 | &976F | `send_request_nowrite` | done | inline-code refinement |
+| 191 | &9773 | `send_request_write` | done | inline-code refinement |
+| 192 | &9776 | `cmd_bye` | kept | already accurate |
+| 193 | &978A | `save_net_tx_cb` | done | init_txcb + prep_send_tx_cb + recv_and_process_reply links |
+| 194 | &978B | `save_net_tx_cb_vset` | done | save_net_tx_cb link |
+| 195 | &97B7 | `prep_send_tx_cb` | done | 5-step numbered breakdown + carry dispatch table; init_txcb + recv_and_process_reply links |
+| 196 | &97CD | `recv_and_process_reply` | done | reply-byte dispatch table; init_txcb_bye + wait_net_tx_ack + prep_send_tx_cb links |
+| 197 | &9850 | `lang_1_remote_boot` | kept | already has init_remote_session link |
+| 198 | &987E | `lang_3_execute_at_0100` | kept | already has commit_state_byte/error_inline_log links |
+| 199 | &988F | `check_escape_and_classify` | kept | already accurate |
+| 200 | &9895 | `raise_escape_error` | kept | already accurate |
+| 201 | &989F | `lang_4_remote_validated` | kept | already has init_remote_session link |
+| 202 | &98AF | `lang_0_insert_remote_key` | kept | already has commit_state_byte link |
+| 203 | &98BE | `wait_net_tx_ack` | done | 3-level loop table; init_txcb_port + rx_wait_timeout links |
+| 204 | &9900 | `cond_save_error_code` | done | bit-7 dispatch table; fs_flags link |
+| 205 | &9930 | `fixup_reply_status_a` | kept | already accurate |
 | 206 | &993B | `load_reply_and_classify` | | |
 | 207 | &993D | `classify_reply_error` | | |
 | 208 | &99A7 | `error_bad_inline` | | |

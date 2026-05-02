@@ -6359,21 +6359,21 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Set up open receive for FS reply on port &90
 ;
-; Loads A=&90 (the FS command/reply port) and falls through to init_txcb_port, which
-; creates an open receive control block: the template sets txcb_ctrl to &80, then DEC
-; makes it &7F (bit 7 clear = awaiting reply). The NMI RX handler sets bit 7 when a
-; reply arrives on this port, which wait_net_tx_ack polls for.
+; Loads A=&90 (the FS command/reply port) and falls through to init_txcb_port (&973F),
+; which creates an open receive control block: the template sets txcb_ctrl to &80, then
+; DEC makes it &7F (bit 7 clear = awaiting reply). The NMI RX handler sets bit 7 when a
+; reply arrives on this port, which wait_net_tx_ack (&98BE) polls for.
 ; &973d referenced 1 time by &97ce
 .init_txcb_bye
     lda #&90                                                          ; 973d: a9 90       ..             ; A=&90: bye command port
 ; ***************************************************************************************
 ; Create open receive control block on specified port
 ;
-; Calls init_txcb to copy the 12-byte template into the TXCB workspace at &00C0, then
-; stores A as the port (txcb_port at &C1) and sets txcb_start to 3. The DEC txcb_ctrl
-; changes the control byte from &80 to &7F (bit 7 clear), creating an open receive: the
-; NMI RX handler will set bit 7 when a reply frame arrives on this port, which
-; wait_net_tx_ack polls for.
+; Calls init_txcb (&974B) to copy the 12-byte template into the TXCB workspace at
+; &00C0, then stores A as the port (txcb_port at &C1) and sets txcb_start to 3. The DEC
+; txcb_ctrl changes the control byte from &80 to &7F (bit 7 clear), creating an open
+; receive: the NMI RX handler will set bit 7 when a reply frame arrives on this port,
+; which wait_net_tx_ack (&98BE) polls for.
 ;
 ; On Entry: A: port number
 ; &973f referenced 1 time by &9dcd
@@ -6390,8 +6390,10 @@ help_topic_template = dispatch_help_command+1
 ;
 ; Copies 12 bytes from txcb_init_template (&948B) into the TXCB workspace at &00C0. For
 ; the first two bytes (Y=0,1), also copies the destination station/network from &0E00
-; into txcb_dest (&C2). Preserves A via PHA/PLA. Called by 4 sites including cmd_pass,
-; init_txcb_port, prep_send_tx_cb, and send_wipe_request.
+; into txcb_dest (&C2). Preserves A via PHA/PLA.
+;
+; Called by 4 sites including cmd_pass (&8DD5), init_txcb_port (&973F), prep_send_tx_cb
+; (&97B7), and send_wipe_request.
 ;
 ; On Exit: A: preserved X, Y: clobbered (Y left at &FF on loop exit)
 ; &974b referenced 5 times by &8e15, &973f, &97bd, &ac55, &bccb
@@ -6452,7 +6454,7 @@ help_topic_template = dispatch_help_command+1
 ; Send read-only FS request (carry set)
 ;
 ; Pushes A and sets carry to indicate no-write mode, then branches to
-; txcb_copy_carry_set to enter the common TXCB copy, send, and reply processing path.
+; txcb_copy_carry_set to enter the common TXCB copy, send, and reply-processing path.
 ; The carry flag controls whether a disconnect is sent on certain reply codes. Called
 ; by setup_transfer_workspace.
 ;
@@ -6468,7 +6470,7 @@ help_topic_template = dispatch_help_command+1
 ; Send read-write FS request (V clear)
 ;
 ; Clears V flag and branches unconditionally to txcb_copy_carry_clr (via BVC, always
-; taken after CLV) to enter the common TXCB copy, send, and reply processing path with
+; taken after CLV) to enter the common TXCB copy, send, and reply-processing path with
 ; carry clear (write mode). Called by do_fs_cmd_iteration and send_txcb_swap_addrs.
 ;
 ; On Entry: Y: FS function code (stored as TX[1] = txcb_func by txcb_copy_carry_clr) A:
@@ -6496,8 +6498,9 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Save FS state and send command to file server
 ;
-; Copies station address and function code (Y) to the TX buffer, builds the TXCB, sends
-; the packet, and waits for the reply. V is clear for standard mode.
+; Copies station address and function code (Y) to the TX buffer, builds the TXCB via
+; init_txcb (&974B), sends the packet through prep_send_tx_cb (&97B7), and waits for
+; the reply via recv_and_process_reply (&97CD). V is clear for standard mode.
 ;
 ; On Entry: Y: FS function code (becomes TX[1] = txcb_func) X: TX buffer payload length
 ; (prep_send_tx_cb uses X+5 as txcb_end)
@@ -6509,10 +6512,11 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Save and send TXCB with V flag set
 ;
-; Variant of save_net_tx_cb for callers that have already set V. Copies the FS station
-; address from &0E02 to &0F02, then falls through to txcb_copy_carry_clr which clears
-; carry and enters the common TXCB copy, send, and reply path. Called by
-; check_and_setup_txcb, format_filename_field, and cmd_remove.
+; Variant of save_net_tx_cb (&978A) for callers that have already set V. Copies the FS
+; station address from &0E02 to &0F02, then falls through to txcb_copy_carry_clr which
+; clears carry and enters the common TXCB copy, send, and reply path.
+;
+; Called by check_and_setup_txcb, format_filename_field, and cmd_remove.
 ;
 ; On Entry: Y: FS function code X: TX buffer payload length V FLAG: set by caller
 ; (selects this variant via the 'no CLV' fall-through from save_net_tx_cb)
@@ -6553,13 +6557,20 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Build TXCB from scratch, send, and receive reply
 ;
-; Full send/receive cycle comprising two separate Econet transactions. Saves flags,
-; sets reply port &90, calls init_txcb, computes txcb_end from X+5. C set dispatches to
-; handle_disconnect; C clear calls init_tx_ptr_and_send for a client-initiated four-way
-; handshake (scout, ACK, data, ACK) to deliver the command. After TX completes the ADLC
-; returns to idle RX listen. Then falls through to recv_and_process_reply which waits
-; for the server to independently initiate a new four-way handshake with the reply on
-; port &90. There is no reply data in the original ACK payload.
+; Full send/receive cycle comprising two separate Econet transactions:
+;
+; 1. Save flags, set reply port &90.
+; 2. Call init_txcb (&974B), compute txcb_end = X + 5.
+; 3. Dispatch on carry:
+;
+;    | C     | Path                                                                                                          |
+;    |-------|---------------------------------------------------------------------------------------------------------------|
+;    | set   | handle_disconnect                                                                                             |
+;    | clear | init_tx_ptr_and_send for a client-initiated four-way handshake (scout, ACK, data, ACK) to deliver the command |
+; 4. After TX completes, the ADLC returns to idle RX-listen.
+; 5. Falls through to recv_and_process_reply (&97CD) which waits for the server to
+;    independently initiate a new four-way handshake with the reply on port &90. There
+;    is no reply data in the original ACK payload.
 ;
 ; On Entry: X: TX buffer payload length (txcb_end = X + 5) Y: FS function code (already
 ; stashed by the txcb-copy entry path) C FLAG: set = disconnect path
@@ -6584,14 +6595,22 @@ help_topic_template = dispatch_help_command+1
 ; Receive FS reply and dispatch on status codes
 ;
 ; Waits for a server-initiated reply transaction. After the command TX completes (a
-; separate client-initiated four-way handshake), calls init_txcb_bye to set up an open
-; receive on port &90 (txcb_ctrl = &7F). The server independently initiates a new
-; four-way handshake to deliver the reply; the NMI RX handler matches the incoming
-; scout against this RXCB and sets bit 7 on completion. wait_net_tx_ack polls for this.
-; Iterates over reply bytes: zero terminates, V-set codes are adjusted by +&2B, and
-; non-zero codes dispatch to store_reply_status. Handles disconnect requests (C set
-; from prep_send_tx_cb) and 'Data Lost' warnings when channel status bits indicate
-; pending writes were interrupted.
+; separate client-initiated four-way handshake), calls init_txcb_bye (&973D) to set up
+; an open receive on port &90 (txcb_ctrl = &7F). The server independently initiates a
+; new four-way handshake to deliver the reply; the NMI RX handler matches the incoming
+; scout against this RXCB and sets bit 7 on completion. wait_net_tx_ack (&98BE) polls
+; for this.
+;
+; Iterates over reply bytes:
+;
+; | Byte / state      | Action                         |
+; |-------------------|--------------------------------|
+; | 0                 | terminates                     |
+; | V set             | adjust by +&2B                 |
+; | non-zero, V clear | dispatch to store_reply_status |
+;
+; Handles disconnect requests (C set from prep_send_tx_cb (&97B7)) and 'Data Lost'
+; warnings when channel status bits indicate pending writes were interrupted.
 ;
 ; On Entry: C FLAG: set = disconnect mode (caller sent a disconnect scout; handle the
 ; server's matching reply)
@@ -6810,13 +6829,22 @@ help_topic_template = dispatch_help_command+1
 ; Wait for reply on open receive with timeout
 ;
 ; Despite the name, this does not wait for a TX acknowledgment. It polls an open
-; receive control block (bit 7 of txcb_ctrl, set to &7F by init_txcb_port) until the
-; NMI RX handler delivers a reply frame and sets bit 7. Uses a three-level nested
-; polling loop: inner and middle counters start at 0 (wrapping to 256 iterations each),
-; outer counter from rx_wait_timeout (&0D6E, default &28 = 40). Total: 256 x 256 x 40 =
-; 2,621,440 poll iterations. At ~17 cycles per poll on a 2 MHz 6502, the default gives
-; ~22 seconds. On timeout, branches to build_no_reply_error to raise 'No reply'. Called
-; by 6 sites across the protocol stack.
+; receive control block (bit 7 of txcb_ctrl, set to &7F by init_txcb_port (&973F))
+; until the NMI RX handler delivers a reply frame and sets bit 7.
+;
+; Uses a three-level nested polling loop:
+;
+; | Loop   | Source                  | Default  | Iterations |
+; |--------|-------------------------|----------|------------|
+; | inner  | wraps from 0            | –        | 256        |
+; | middle | wraps from 0            | –        | 256        |
+; | outer  | rx_wait_timeout (&0D6E) | &28 (40) | 40         |
+;
+; Total: 256 × 256 × 40 = 2,621,440 poll iterations. At ~17 cycles per poll on a 2 MHz
+; 6502, the default gives ~22 seconds.
+;
+; On timeout, branches to build_no_reply_error to raise 'No reply'. Called by 6 sites
+; across the protocol stack.
 ; &98be referenced 6 times by &97d1, &9c9f, &9dd7, &acaa, &af53, &aff5
 .wait_net_tx_ack
     lda rx_wait_timeout                                               ; 98be: ad 6e 0d    .n.            ; Read the configurable rx-wait timeout (&0D6E, default &28 = ~22s on 2 MHz)
@@ -6865,10 +6893,15 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Conditionally store error code to workspace
 ;
-; Tests bit 7 of &0D6C (FS selected flag). If clear, returns immediately. If set,
-; stores A into &0E09 as the last error code. This guards against writing error state
-; when no filing system is active. Called internally by the error classification chain
-; and by error_inline_log.
+; Tests bit 7 of fs_flags (&0D6C) (FS-selected flag):
+;
+; | Bit 7 | Action                             |
+; |-------|------------------------------------|
+; | clear | return immediately                 |
+; | set   | store A into fs_last_error (&0E09) |
+;
+; This guards against writing error state when no filing system is active. Called
+; internally by the error-classification chain and by error_inline_log.
 ;
 ; On Entry: A: error code to store
 ; &9900 referenced 6 times by &9916, &994f, &996b, &9995, &99a7, &99c0

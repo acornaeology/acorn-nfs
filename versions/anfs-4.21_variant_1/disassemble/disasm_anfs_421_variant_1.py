@@ -4122,78 +4122,84 @@ buffer at `&0E30`. Raises `'Bad string'` on unbalanced quotes.""",
              "a": "clobbered (last byte read)"})
 subroutine(0x973D, "init_txcb_bye",
     title="Set up open receive for FS reply on port &90",
-    description="Loads A=&90 (the FS command/reply port) and\n"
-    "falls through to init_txcb_port, which creates\n"
-    "an open receive control block: the template sets\n"
-    "txcb_ctrl to &80, then DEC makes it &7F (bit 7\n"
-    "clear = awaiting reply). The NMI RX handler sets\n"
-    "bit 7 when a reply arrives on this port, which\n"
-    "wait_net_tx_ack polls for.",
+    description="""\
+Loads `A=&90` (the FS command/reply port) and falls through to
+[`init_txcb_port`](address:973F?hex), which creates an open
+receive control block: the template sets `txcb_ctrl` to `&80`,
+then `DEC` makes it `&7F` (bit 7 clear = awaiting reply). The
+NMI RX handler sets bit 7 when a reply arrives on this port,
+which [`wait_net_tx_ack`](address:98BE?hex) polls for.""",
     on_entry={})
 subroutine(0x973F, "init_txcb_port",
     title="Create open receive control block on specified port",
-    description="Calls init_txcb to copy the 12-byte template\n"
-    "into the TXCB workspace at &00C0, then stores A\n"
-    "as the port (txcb_port at &C1) and sets\n"
-    "txcb_start to 3. The DEC txcb_ctrl changes the\n"
-    "control byte from &80 to &7F (bit 7 clear),\n"
-    "creating an open receive: the NMI RX handler\n"
-    "will set bit 7 when a reply frame arrives on\n"
-    "this port, which wait_net_tx_ack polls for.",
+    description="""\
+Calls [`init_txcb`](address:974B?hex) to copy the 12-byte
+template into the TXCB workspace at `&00C0`, then stores `A` as
+the port (`txcb_port` at `&C1`) and sets `txcb_start` to 3. The
+`DEC txcb_ctrl` changes the control byte from `&80` to `&7F`
+(bit 7 clear), creating an open receive: the NMI RX handler
+will set bit 7 when a reply frame arrives on this port, which
+[`wait_net_tx_ack`](address:98BE?hex) polls for.""",
     on_entry={"a": "port number"})
 subroutine(0x974B, "init_txcb",
     title="Initialise TX control block from ROM template",
-    description="Copies 12 bytes from txcb_init_template (&948B)\n"
-    "into the TXCB workspace at &00C0. For the first\n"
-    "two bytes (Y=0,1), also copies the destination\n"
-    "station/network from &0E00 into txcb_dest (&C2).\n"
-    "Preserves A via PHA/PLA. Called by 4 sites\n"
-    "including cmd_pass, init_txcb_port,\n"
-    "prep_send_tx_cb, and send_wipe_request.",
+    description="""\
+Copies 12 bytes from `txcb_init_template` (`&948B`) into the
+TXCB workspace at `&00C0`. For the first two bytes (`Y=0,1`),
+also copies the destination station/network from `&0E00` into
+`txcb_dest` (`&C2`). Preserves `A` via `PHA`/`PLA`.
+
+Called by 4 sites including [`cmd_pass`](address:8DD5?hex),
+[`init_txcb_port`](address:973F?hex),
+[`prep_send_tx_cb`](address:97B7?hex), and `send_wipe_request`.""",
     on_exit={"a": "preserved",
              "x, y": "clobbered (Y left at &FF on loop exit)"})
 subroutine(0x976F, "send_request_nowrite",
     title="Send read-only FS request (carry set)",
-    description="Pushes A and sets carry to indicate no-write\n"
-    "mode, then branches to txcb_copy_carry_set to\n"
-    "enter the common TXCB copy, send, and reply\n"
-    "processing path. The carry flag controls whether\n"
-    "a disconnect is sent on certain reply codes.\n"
-    "Called by setup_transfer_workspace.",
+    description="""\
+Pushes `A` and sets carry to indicate no-write mode, then
+branches to `txcb_copy_carry_set` to enter the common TXCB copy,
+send, and reply-processing path. The carry flag controls whether
+a disconnect is sent on certain reply codes. Called by
+`setup_transfer_workspace`.""",
     on_entry={"y": "FS function code (stored as TX[1] = txcb_func by "
               "txcb_copy_carry_set)",
               "a": "saved on stack at entry (consumed by the txcb "
               "send/receive path)"})
 subroutine(0x9773, "send_request_write",
     title="Send read-write FS request (V clear)",
-    description="Clears V flag and branches unconditionally to\n"
-    "txcb_copy_carry_clr (via BVC, always taken after\n"
-    "CLV) to enter the common TXCB copy, send, and\n"
-    "reply processing path with carry clear (write\n"
-    "mode). Called by do_fs_cmd_iteration and\n"
-    "send_txcb_swap_addrs.",
+    description="""\
+Clears `V` flag and branches unconditionally to
+`txcb_copy_carry_clr` (via `BVC`, always taken after `CLV`) to
+enter the common TXCB copy, send, and reply-processing path with
+carry clear (write mode). Called by `do_fs_cmd_iteration` and
+`send_txcb_swap_addrs`.""",
     on_entry={"y": "FS function code (stored as TX[1] = txcb_func by "
               "txcb_copy_carry_clr)",
               "a": "request payload byte (used by the txcb send path)"})
 subroutine(0x978A, "save_net_tx_cb",
     title="Save FS state and send command to file server",
-    description="Copies station address and function code (Y)\n"
-    "to the TX buffer, builds the TXCB, sends the\n"
-    "packet, and waits for the reply. V is clear\n"
-    "for standard mode.",
+    description="""\
+Copies station address and function code (`Y`) to the TX buffer,
+builds the TXCB via [`init_txcb`](address:974B?hex), sends the
+packet through [`prep_send_tx_cb`](address:97B7?hex), and waits
+for the reply via [`recv_and_process_reply`](address:97CD?hex).
+`V` is clear for standard mode.""",
     on_entry={"y": "FS function code (becomes TX[1] = txcb_func)",
               "x": "TX buffer payload length "
               "(prep_send_tx_cb uses X+5 as txcb_end)"},
     on_exit={"a": "FS reply status"})
 subroutine(0x978B, "save_net_tx_cb_vset",
     title="Save and send TXCB with V flag set",
-    description="Variant of save_net_tx_cb for callers that have\n"
-    "already set V. Copies the FS station address\n"
-    "from &0E02 to &0F02, then falls through to\n"
-    "txcb_copy_carry_clr which clears carry and enters\n"
-    "the common TXCB copy, send, and reply path.\n"
-    "Called by check_and_setup_txcb,\n"
-    "format_filename_field, and cmd_remove.",
+    description="""\
+Variant of [`save_net_tx_cb`](address:978A?hex) for callers that
+have already set `V`. Copies the FS station address from `&0E02`
+to `&0F02`, then falls through to `txcb_copy_carry_clr` which
+clears carry and enters the common TXCB copy, send, and reply
+path.
+
+Called by `check_and_setup_txcb`, `format_filename_field`, and
+`cmd_remove`.""",
     on_entry={"y": "FS function code",
               "x": "TX buffer payload length",
               "v flag": "set by caller (selects this variant via the "
@@ -4201,19 +4207,25 @@ subroutine(0x978B, "save_net_tx_cb_vset",
     on_exit={"a": "FS reply status"})
 subroutine(0x97B7, "prep_send_tx_cb",
     title="Build TXCB from scratch, send, and receive reply",
-    description="Full send/receive cycle comprising two separate\n"
-    "Econet transactions. Saves flags, sets reply\n"
-    "port &90, calls init_txcb, computes txcb_end\n"
-    "from X+5. C set dispatches to handle_disconnect;\n"
-    "C clear calls init_tx_ptr_and_send for a\n"
-    "client-initiated four-way handshake (scout, ACK,\n"
-    "data, ACK) to deliver the command. After TX\n"
-    "completes the ADLC returns to idle RX listen.\n"
-    "Then falls through to recv_and_process_reply\n"
-    "which waits for the server to independently\n"
-    "initiate a new four-way handshake with the\n"
-    "reply on port &90. There is no reply data in\n"
-    "the original ACK payload.",
+    description="""\
+Full send/receive cycle comprising two separate Econet
+transactions:
+
+1. Save flags, set reply port `&90`.
+2. Call [`init_txcb`](address:974B?hex), compute `txcb_end =
+   X + 5`.
+3. Dispatch on carry:
+
+   | `C` | Path |
+   |---|---|
+   | set   | `handle_disconnect` |
+   | clear | `init_tx_ptr_and_send` for a client-initiated four-way handshake (scout, ACK, data, ACK) to deliver the command |
+
+4. After TX completes, the ADLC returns to idle RX-listen.
+5. Falls through to [`recv_and_process_reply`](address:97CD?hex)
+   which waits for the server to independently initiate a new
+   four-way handshake with the reply on port `&90`. There is no
+   reply data in the original ACK payload.""",
     on_entry={"x": "TX buffer payload length (txcb_end = X + 5)",
               "y": "FS function code (already stashed by the txcb-copy "
               "entry path)",
@@ -4222,21 +4234,28 @@ subroutine(0x97B7, "prep_send_tx_cb",
     on_exit={"a": "FS reply status (or doesn't return on error)"})
 subroutine(0x97CD, "recv_and_process_reply",
     title="Receive FS reply and dispatch on status codes",
-    description="Waits for a server-initiated reply transaction.\n"
-    "After the command TX completes (a separate\n"
-    "client-initiated four-way handshake), calls\n"
-    "init_txcb_bye to set up an open receive on\n"
-    "port &90 (txcb_ctrl = &7F). The server\n"
-    "independently initiates a new four-way handshake\n"
-    "to deliver the reply; the NMI RX handler matches\n"
-    "the incoming scout against this RXCB and sets\n"
-    "bit 7 on completion. wait_net_tx_ack polls for\n"
-    "this. Iterates over reply bytes: zero terminates,\n"
-    "V-set codes are adjusted by +&2B, and non-zero\n"
-    "codes dispatch to store_reply_status. Handles\n"
-    "disconnect requests (C set from prep_send_tx_cb)\n"
-    "and 'Data Lost' warnings when channel status\n"
-    "bits indicate pending writes were interrupted.",
+    description="""\
+Waits for a server-initiated reply transaction. After the
+command TX completes (a separate client-initiated four-way
+handshake), calls [`init_txcb_bye`](address:973D?hex) to set up
+an open receive on port `&90` (`txcb_ctrl = &7F`). The server
+independently initiates a new four-way handshake to deliver the
+reply; the NMI RX handler matches the incoming scout against
+this RXCB and sets bit 7 on completion.
+[`wait_net_tx_ack`](address:98BE?hex) polls for this.
+
+Iterates over reply bytes:
+
+| Byte / state | Action |
+|---|---|
+| `0` | terminates |
+| `V` set | adjust by `+&2B` |
+| non-zero, `V` clear | dispatch to `store_reply_status` |
+
+Handles disconnect requests (`C` set from
+[`prep_send_tx_cb`](address:97B7?hex)) and `'Data Lost'`
+warnings when channel status bits indicate pending writes were
+interrupted.""",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect "
               "scout; handle the server's matching reply)"},
     on_exit={"a": "FS reply status byte"})
@@ -4283,28 +4302,39 @@ buffer) to deliver the keypress to the local machine.""",
     on_entry={"a": "ignored (entry from reply dispatch)"})
 subroutine(0x98BE, "wait_net_tx_ack",
     title="Wait for reply on open receive with timeout",
-    description="Despite the name, this does not wait for a TX\n"
-    "acknowledgment. It polls an open receive control\n"
-    "block (bit 7 of txcb_ctrl, set to &7F by\n"
-    "init_txcb_port) until the NMI RX handler delivers\n"
-    "a reply frame and sets bit 7. Uses a three-level\n"
-    "nested polling loop: inner and middle counters\n"
-    "start at 0 (wrapping to 256 iterations each),\n"
-    "outer counter from rx_wait_timeout (&0D6E,\n"
-    "default &28 = 40). Total: 256 x 256 x 40 =\n"
-    "2,621,440 poll iterations. At ~17 cycles per\n"
-    "poll on a 2 MHz 6502, the default gives ~22\n"
-    "seconds. On timeout, branches to\n"
-    "build_no_reply_error to raise 'No reply'.\n"
-    "Called by 6 sites across the protocol stack.")
+    description="""\
+Despite the name, this does **not** wait for a TX acknowledgment.
+It polls an open receive control block (bit 7 of `txcb_ctrl`,
+set to `&7F` by [`init_txcb_port`](address:973F?hex)) until the
+NMI RX handler delivers a reply frame and sets bit 7.
+
+Uses a three-level nested polling loop:
+
+| Loop | Source | Default | Iterations |
+|---|---|---|---|
+| inner  | wraps from 0 | – | 256 |
+| middle | wraps from 0 | – | 256 |
+| outer  | [`rx_wait_timeout`](address:0D6E?hex) | `&28` (40) | 40 |
+
+Total: `256 × 256 × 40 = 2,621,440` poll iterations. At ~17
+cycles per poll on a 2 MHz 6502, the default gives ~22 seconds.
+
+On timeout, branches to `build_no_reply_error` to raise
+`'No reply'`. Called by 6 sites across the protocol stack.""")
 subroutine(0x9900, "cond_save_error_code",
     title="Conditionally store error code to workspace",
-    description="Tests bit 7 of &0D6C (FS selected flag). If\n"
-    "clear, returns immediately. If set, stores A\n"
-    "into &0E09 as the last error code. This guards\n"
-    "against writing error state when no filing system\n"
-    "is active. Called internally by the error\n"
-    "classification chain and by error_inline_log.",
+    description="""\
+Tests bit 7 of [`fs_flags`](address:0D6C?hex) (FS-selected
+flag):
+
+| Bit 7 | Action |
+|---|---|
+| clear | return immediately |
+| set   | store `A` into `fs_last_error` (`&0E09`) |
+
+This guards against writing error state when no filing system
+is active. Called internally by the error-classification chain
+and by `error_inline_log`.""",
     on_entry={"a": "error code to store"})
 subroutine(0x9930, "fixup_reply_status_a",
     title="Substitute 'B' for 'A' in reply status byte",
