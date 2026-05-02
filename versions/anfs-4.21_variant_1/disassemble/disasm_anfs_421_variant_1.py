@@ -12894,6 +12894,33 @@ comment(0xA4D9, "Set C: signal no-match return path",
         inline=True)
 comment(0xA4DA, "ALWAYS branch to common return", inline=True)
 
+# svc_dispatch_idx_2 (&8D09)
+comment(0x8D09, "Save Y on stack", inline=True)
+comment(0x8D0A, "X=&11: CMOS offset for Econet station-flags",
+        inline=True)
+comment(0x8D0C, "Read CMOS byte: result in Y", inline=True)
+comment(0x8D0F, "A = CMOS byte", inline=True)
+comment(0x8D10, "Restore caller's Y", inline=True)
+comment(0x8D11, "Isolate bit 0 (page-&0B fallback flag)",
+        inline=True)
+comment(0x8D13, "Bit clear: keep caller's Y", inline=True)
+comment(0x8D15, "Caller's Y already >= &10?", inline=True)
+comment(0x8D17, "Yes: keep it", inline=True)
+comment(0x8D19, "Y < &10 with bit set: clamp to &10",
+        inline=True)
+comment(0x8D1B, "Return", inline=True)
+
+# err_bad_hex (&934A)
+comment(0x934A, "Error code &F1", inline=True)
+comment(0x934C, "Raise 'Bad hex' error", inline=True)
+
+# cmd_fs_reentry (&A440)
+comment(0xA440, "V clear: re-enter dispatch_fs_cmd", inline=True)
+
+# error_syntax (&A442) — falls through from cmd_fs_reentry on V set
+comment(0xA442, "Error code &DC", inline=True)
+comment(0xA444, "Raise 'Syntax' error", inline=True)
+
 # find_station_bit2 (&A2E8) — find station with bit 2 set
 comment(0xA300, "X=&10: scan 16 slots (15 to 0)", inline=True)
 comment(0xA302, "Clear V", inline=True)

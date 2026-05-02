@@ -4058,19 +4058,19 @@ l89c9 = reset_enter_listen+2
 ;     A: 0 or 1 (CMOS bit 0 of station-flags byte)
 ; ***************************************************************************************
 .svc_dispatch_idx_2
-    phy                                                               ; 8d09: 5a          Z
-    ldx #&11                                                          ; 8d0a: a2 11       ..
-    jsr osbyte_a1                                                     ; 8d0c: 20 9a 8e     ..
-    tya                                                               ; 8d0f: 98          .
-    ply                                                               ; 8d10: 7a          z
-    and #1                                                            ; 8d11: 29 01       ).
-    beq return_1                                                      ; 8d13: f0 06       ..
-    cpy #&10                                                          ; 8d15: c0 10       ..
-    bcs return_1                                                      ; 8d17: b0 02       ..
-    ldy #&10                                                          ; 8d19: a0 10       ..
+    phy                                                               ; 8d09: 5a          Z              ; Save Y on stack
+    ldx #&11                                                          ; 8d0a: a2 11       ..             ; X=&11: CMOS offset for Econet station-flags
+    jsr osbyte_a1                                                     ; 8d0c: 20 9a 8e     ..            ; Read CMOS byte: result in Y
+    tya                                                               ; 8d0f: 98          .              ; A = CMOS byte
+    ply                                                               ; 8d10: 7a          z              ; Restore caller's Y
+    and #1                                                            ; 8d11: 29 01       ).             ; Isolate bit 0 (page-&0B fallback flag)
+    beq return_1                                                      ; 8d13: f0 06       ..             ; Bit clear: keep caller's Y
+    cpy #&10                                                          ; 8d15: c0 10       ..             ; Caller's Y already >= &10?
+    bcs return_1                                                      ; 8d17: b0 02       ..             ; Yes: keep it
+    ldy #&10                                                          ; 8d19: a0 10       ..             ; Y < &10 with bit set: clamp to &10
 ; &8d1b referenced 2 times by &8d13, &8d17
 .return_1
-    rts                                                               ; 8d1b: 60          `
+    rts                                                               ; 8d1b: 60          `              ; Return
 
     equs "i .Boot"                                                    ; 8d1c: 69 20 2e... i .
     equb &0d                                                          ; 8d23: 0d          .
@@ -5537,8 +5537,8 @@ ps_template_base = sub_c8da6+1
 ; ***************************************************************************************
 ; &934a referenced 3 times by &92d6, &92da, &be9f
 .err_bad_hex
-    lda #&f1                                                          ; 934a: a9 f1       ..
-    jsr error_bad_inline                                              ; 934c: 20 a7 99     ..
+    lda #&f1                                                          ; 934a: a9 f1       ..             ; Error code &F1
+    jsr error_bad_inline                                              ; 934c: 20 a7 99     ..            ; Raise 'Bad hex' error
     equs "hex", 0                                                     ; 934f: 68 65 78... hex
 
 ; &9353 referenced 6 times by &92e4, &9305, &930a, &930d, &9311, &9315
@@ -9731,10 +9731,10 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a440 referenced 1 time by &8c4e
 .cmd_fs_reentry
-    bvc dispatch_fs_cmd                                               ; a440: 50 0c       P.
+    bvc dispatch_fs_cmd                                               ; a440: 50 0c       P.             ; V clear: re-enter dispatch_fs_cmd
 .error_syntax
-    lda #&dc                                                          ; a442: a9 dc       ..
-    jsr error_inline                                                  ; a444: 20 c3 99     ..
+    lda #&dc                                                          ; a442: a9 dc       ..             ; Error code &DC
+    jsr error_inline                                                  ; a444: 20 c3 99     ..            ; Raise 'Syntax' error
     equs "Syntax", 0                                                  ; a447: 53 79 6e... Syn
 
 ; &a44e referenced 2 times by &a43e, &a440
