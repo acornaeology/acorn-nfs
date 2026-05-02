@@ -525,6 +525,86 @@ misleading `lXXXX` text:
 
 Final state: **zero `lXXXX` text references in the driver**.
 
+## Phase K6: Fix wrong/suspect HAZEL names (2026-05-02)
+
+The K4 honest-audit identified ~30 HAZEL names with weak or
+known-wrong evidence. K6 traced each suspect address through its
+real access sites and applied evidence-based corrections.
+
+### Definitely wrong, corrected
+
+| Addr | K3/K4 name (wrong) | New name | Evidence |
+|------|--------------------|----------|----------|
+| &C000 | `hazel_fs_station_hi` | `hazel_fs_station` | Stations are 8-bit on Econet; "_hi" suffix lied. All call-site comments call it "current FS station". |
+| &C001 | `hazel_fs_server_stn` | `hazel_fs_network` | One inline comment explicitly admits "EOR with stored hazel_fs_server_stn (network number)". `match_station_net` EORs the per-channel network field against this. |
+| &C002 | `hazel_fs_server_net` | `hazel_fs_saved_station` | "Read FS station from &C002 (saved from selection time)" / "the original FS station" — multi-use, but dominant role is saved/original FS station. |
+| &C006 | `hazel_fs_state_flags` | `hazel_fs_messages_flag` | Multiple comments say "fs_messages_flag" (display-control flag), not generic state flags. |
+| &C230 | `hazel_fcb_link` | `hazel_fcb_slot_attr` | `alloc_fcb_slot` tests this for zero (slot-free check) and stores the channel attribute when occupying. The "link" interpretation was K4 agent guess. |
+| &C2D1 | `hazel_counter_per_fcb` | `hazel_xfer_init_zeros` | The "_per_fcb" suffix lied: only access is the 3-byte clear loop in `init_wipe_counters` clearing &C2D1..&C2D3. Bytes never read elsewhere. |
+
+### Indexing-base aliases (renamed with `_minusXX` convention)
+
+These labels' bytes aren't directly accessed; they exist purely as
+indexing bases (the same pattern as the ROM-tail `hazel_minus_*`
+labels). Renamed to express their role.
+
+| Addr | K3 name (misleading) | New name | Notes |
+|------|---------------------|----------|-------|
+| &C1E0 | `hazel_fcb_ctx_5` | `hazel_fcb_addr_lo_minus20` | Used in `alloc_fcb_slot` with X=&20..&2F to reach `hazel_fcb_addr_lo` (&C200..&C20F). |
+| &C1F0 | `hazel_ws_padding_start` | `hazel_fcb_addr_mid_minus20` | Same pattern, X=&20..&2F → `hazel_fcb_addr_mid`. |
+| &C1FF | `hazel_ws_padding_end` | `hazel_display_buf_minusF4` | Used with Y=&F4 to reach `hazel_display_buf` (&C2F3). |
+
+### Network reply buffer (4 bytes were misnamed `fcb_ctx_1..4`)
+
+&C1DC..&C1DF are 4 actual data bytes used as a network reply
+buffer (port/status/data fields). The K3 `hazel_fcb_ctx_1..4`
+naming wrongly suggested they were FCB context bytes.
+
+| Addr | K3 name | New name |
+|------|---------|----------|
+| &C1DC | `hazel_fcb_ctx_1` | `hazel_net_reply_buf_0` |
+| &C1DD | `hazel_fcb_ctx_2` | `hazel_net_reply_buf_1` |
+| &C1DE | `hazel_fcb_ctx_3` | `hazel_net_reply_buf_2` |
+| &C1DF | `hazel_fcb_ctx_4` | `hazel_net_reply_buf_3` |
+
+(Naming uncertainty: each byte's exact role differs slightly per
+inline comment — port, status, data — but the comments aren't
+fully consistent. Generic 0..3 indexing keeps the names honest.)
+
+### Still suspect (not corrected — flagged for follow-up)
+
+- **`hazel_txcb_network` (&C103)** — at offset &03 of TXCB, which
+  in standard Econet TXCB convention IS the network byte. But
+  inline comments call it "reply function code" / "code from
+  hazel_txcb_network. If zero, branches to the no-reply path".
+  Either ANFS uses a custom TXCB layout, or this is another
+  multi-purpose byte. Needs deeper trace to settle.
+- **`hazel_txcb_check_1 / check_2` (&C10B / &C10C)** — agent
+  guesses based on "check" pattern usage. Each sees few
+  accesses with mixed-evidence comments. Possibly
+  `hazel_txcb_status_1 / 2` or `hazel_txcb_osword_flag` for
+  &C10C.
+- **`hazel_txcb_spare_116` (&C116)** — explicit placeholder.
+  Comments mention "display flag" copy / "fs_boot_data" — role
+  unclear.
+- **`hazel_examine_attr` (&C130)** — single access; might be
+  "examine_size" rather than "attr".
+- **`hazel_chan_status` (&C1C8)** — single-access placeholder
+  for what appears to be a per-channel byte (used with `,X`,
+  OR/AND-update pattern).
+- **`hazel_ws_spare_0a / 14 / 38 / f7`** — explicit placeholders;
+  ad-hoc scratch slots; need surrounding routine annotated.
+- **`hazel_fs_context_copy` (&C003)** — multi-purpose with
+  vague evidence; likely a Y-indexed-base into the FS context
+  block at &C003+.
+- **`hazel_fs_prefix_stn` (&C004)** — plausible from "saved-prefix
+  station" comment but other accesses say "library handle";
+  multi-purpose suspected.
+
+The wrong/misleading names that remain are now flagged in this
+doc; each is a candidate for trace-and-rename in a future pass
+once the surrounding routines are annotated.
+
 ## Findings
 
 - **LCS mapper hit rate is low (~14%) on 4.21_v1 vs 4.18.** Of the

@@ -627,6 +627,38 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
+## Phase K6: Fix wrong/suspect HAZEL names
+
+  **Done (2026-05-02).** Honest re-audit of the K3/K4 HAZEL names
+  identified several wrong / misleading entries. K6 traced each
+  through actual access sites and applied evidence-based
+  corrections:
+
+  - **&C000 `hazel_fs_station_hi` → `hazel_fs_station`** (stations
+    are 8-bit on Econet)
+  - **&C001 `hazel_fs_server_stn` → `hazel_fs_network`** (the byte
+    is in fact the current network)
+  - **&C002 `hazel_fs_server_net` → `hazel_fs_saved_station`**
+  - **&C006 `hazel_fs_state_flags` → `hazel_fs_messages_flag`**
+  - **&C230 `hazel_fcb_link` → `hazel_fcb_slot_attr`** (occupancy +
+    attribute byte tested by `alloc_fcb_slot`)
+  - **&C2D1 `hazel_counter_per_fcb` → `hazel_xfer_init_zeros`**
+    (the "_per_fcb" suffix lied; bytes are only cleared, never
+    read)
+  - 3 indexing-base aliases at &C1E0, &C1F0, &C1FF renamed with
+    `_minusXX` convention to express their role
+  - 4 misnamed `hazel_fcb_ctx_1..4` (&C1DC..&C1DF) renamed to
+    `hazel_net_reply_buf_0..3` (4 bytes used as network reply
+    buffer)
+
+  ~14 corrections in total. Some K3 names remain suspect (TXCB
+  bytes &C103, &C10B/C, &C116; ws_spare bytes; &C003/&C004) —
+  flagged for follow-up trace once surrounding routines are
+  annotated.
+
+  Verified byte-identical, lint clean, comments check clean,
+  audit placeholders clean.
+
 ## Phase K5: Sweep stale `lXXXX` comment-text references
 
   **Done (2026-05-02).** After K3/K4 renamed addresses to
