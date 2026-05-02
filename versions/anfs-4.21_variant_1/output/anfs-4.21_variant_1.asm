@@ -2399,11 +2399,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX reply continuation handler
 ;
 ; Reads the second byte of the reply scout (destination network) and validates it is
-; zero (local network). Installs nmi_reply_validate (&8779) for the remaining two bytes
-; (source station and network). Optimisation: checks SR1 bit7 (IRQ still asserted) via
-; BMI at &8767. If IRQ is still set, falls through directly to &8779 without an RTI,
-; avoiding NMI re-entry overhead for short frames where all bytes arrive in quick
-; succession.
+; zero (local network). Installs nmi_reply_validate (&8776) (entry at &8779) for the
+; remaining two bytes (source station and network).
+;
+; Optimisation: checks SR1 bit 7 (IRQ still asserted) via BMI at &8767. If IRQ is still
+; set, falls through directly to &8779 without an RTI, avoiding NMI re-entry overhead
+; for short frames where all bytes arrive in quick succession.
 .nmi_reply_cont
     bit adlc_cr2                                                      ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
     bpl reject_reply                                                  ; 8762: 10 0f       ..             ; No RDA -- error
@@ -2417,11 +2418,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Abandon reply scout (1-instruction trampoline)
 ;
-; Single JMP tx_result_fail. Acts as a near-target for the BPL/BNE exits scattered
-; through nmi_reply_scout, nmi_reply_validate, and nmi_scout_ack_src that need to abort
-; the reply path -- the unconditional JMP at &8773 takes them to tx_result_fail (which
-; stores the error and returns to idle). Seven inbound refs in total (one JSR plus six
-; branches).
+; Single JMP to tx_result_fail (&88E2). Acts as a near-target for the BPL/BNE exits
+; scattered through nmi_reply_scout (&874B), nmi_reply_validate (&8776), and
+; nmi_scout_ack_src (&87BE) that need to abort the reply path – the unconditional JMP
+; at &8773 takes them to tx_result_fail (&88E2) (which stores the error and returns to
+; idle).
+;
+; Seven inbound refs in total (one JSR plus six branches).
 ; &8773 referenced 7 times by &8758, &8762, &8767, &8779, &8781, &8789, &8790
 .reject_reply
     jmp tx_result_fail                                                ; 8773: 4c e2 88    L..            ; Store error and return to idle
@@ -2473,11 +2476,18 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX scout ACK: write source address
 ;
-; Continuation of the TX-side scout ACK. Reads our station ID from &FE18 (INTOFF),
-; tests TDRA via SR1, and writes station + network=0 to the TX FIFO. Then checks bit 1
-; of rx_src_net to select between the immediate-op data NMI handler and the normal
-; nmi_tx_data handler. Installs the chosen handler via set_nmi_vector (&0D0E). Shares
-; the tx_check_tdra_ready entry with ack_tx.
+; Continuation of the TX-side scout ACK. Reads our station ID from econet_station_id
+; (&FE18) (INTOFF), tests TDRA via SR1, and writes (station, network=0) to the TX FIFO.
+;
+; Then dispatches on bit 1 of rx_src_net (&0D3E) to select the next NMI handler:
+;
+; | Bit 1 | Handler                       |
+; |-------|-------------------------------|
+; | set   | immediate-op data NMI handler |
+; | clear | normal nmi_tx_data (&86E7)    |
+;
+; Installs the chosen handler via set_nmi_vector (&0D0E). Shares the
+; tx_check_tdra_ready (&87C4) entry with ack_tx (&82DF).
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
     bit adlc_cr1                                                      ; 87c1: 2c a0 fe    ,..            ; BIT SR1: test TDRA
@@ -2490,10 +2500,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Begin data-frame TX: install nmi_data_tx or alt
 ;
-; Tests bit 1 of rx_src_net (tx_flags): if set (immediate-op path), branches to
-; install_imm_data_nmi to use the alternative handler. Otherwise installs the normal
-; nmi_data_tx handler at &87E3 by writing (lo=&EB, hi=&87) into the NMI vector, then
-; continues into the TX setup. Single caller (&8339 inside ack_tx).
+; Tests bit 1 of rx_src_net (&0D3E) (tx_flags (&0D4A)):
+;
+; | Bit 1              | Path                                                                                         |
+; |--------------------|----------------------------------------------------------------------------------------------|
+; | set (immediate-op) | branch to install_imm_data_nmi to use the alternative handler                                |
+; | clear              | install the normal nmi_data_tx (&87E3) handler at &87E3 (lo=&EB, hi=&87) into the NMI vector |
+;
+; Then continues into the TX setup. Single caller (&8339 inside ack_tx (&82DF)).
 ; &87ce referenced 1 time by &8339
 .data_tx_begin
     lda #2                                                            ; 87ce: a9 02       ..             ; Test bit 1 of tx_flags
@@ -2514,10 +2528,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Transmits the data payload of a four-way handshake. Loads bytes from
 ; (open_port_buf),Y or from Tube R3 depending on the transfer mode, writing pairs to
-; the TX FIFO. After each pair, decrements the byte count (port_buf_len). If the count
-; reaches zero, branches to tx_last_data to signal end of frame. Otherwise tests SR1
-; bit 7 (IRQ): if still asserted, writes another pair without returning from NMI (tight
-; loop optimisation). If IRQ clears, returns via RTI.
+; the TX FIFO. After each pair, decrements the byte count (port_buf_len):
+;
+; | Condition                    | Action                                                    |
+; |------------------------------|-----------------------------------------------------------|
+; | count = 0                    | branch to tx_last_data (&8723) to signal end of frame     |
+; | count > 0, SR1 IRQ still set | tight loop: write another pair without returning from NMI |
+; | count > 0, SR1 IRQ clear     | return via RTI and wait for next NMI                      |
 ; &87e3 referenced 1 time by &87ed
 .nmi_data_tx
     ldy port_buf_len_hi                                               ; 87e3: a4 a3       ..             ; Y = buffer offset, resume from last position
@@ -2699,11 +2716,13 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Final ACK validation
 ;
-; Continuation of nmi_final_ack. Tests SR2 for RDA, then reads the source station and
-; source network bytes from the RX FIFO, comparing each against the original TX
-; destination at tx_dst_stn (&0D20) and tx_dst_net (&0D21). Finally tests SR2 bit 1
-; (FV) for frame completion. Any mismatch or missing FV branches to tx_result_fail. On
-; success, falls through to tx_result_ok.
+; Continuation of nmi_final_ack (&8892). Tests SR2 for RDA, then reads the source
+; station and source network bytes from the RX FIFO, comparing each against the
+; original TX destination at tx_dst_stn (&0D20) and tx_dst_net (&0D21). Finally tests
+; SR2 bit 1 (FV) for frame completion.
+;
+; Any mismatch or missing FV branches to tx_result_fail (&88E2). On success, falls
+; through to tx_result_ok (&88DE).
 ; &88ba referenced 1 time by &88b5
 .nmi_final_ack_validate
     bit adlc_cr2                                                      ; 88ba: 2c a1 fe    ,..            ; BIT SR2: test RDA
@@ -2741,9 +2760,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX failure: not listening
 ;
-; Loads error code &41 (not listening) and falls through to tx_store_result. The most
-; common TX error path — reached from 11 sites across the final-ACK validation chain
-; when the remote station doesn't respond or the frame is malformed.
+; Loads error code &41 ("not listening") and falls through to tx_store_result (&88E4).
+; The most common TX-error path – reached from 11 sites across the final-ACK validation
+; chain when the remote station doesn't respond or the frame is malformed.
 ;
 ; On Exit: A: &41 ('not listening' TX error)
 ; &88e2 referenced 11 times by &821a, &8773, &8881, &8897, &889f, &88a9, &88ae, &88bd, &88c5, &88cd, &88dc
@@ -2753,9 +2772,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; TX result store and completion
 ;
 ; Stores the TX result code (in A) at offset 0 of the TX control block via
-; (nmi_tx_block),Y=0. Sets ws_0d60 to &80 to signal TX completion to the foreground
-; polling loop. Then jumps to discard_reset_rx for a full ADLC reset and return to idle
-; RX listen mode.
+; (nmi_tx_block),Y=0. Sets tx_complete_flag (&0D60) to &80 to signal TX completion to
+; the foreground polling loop. Then jumps to discard_reset_rx (&83E5) for a full ADLC
+; reset and return to idle RX-listen mode.
 ;
 ; On Entry: A: result code (0=success, &40=jammed, &41=not listening)
 ; &88e4 referenced 2 times by &8720, &88e0

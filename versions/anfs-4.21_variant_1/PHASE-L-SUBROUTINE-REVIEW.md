@@ -139,20 +139,20 @@ addresses across all 431 remaining routines.
 | 63 | &8723 | `tx_last_data` | done | bit-decomposition table; corrected &8728 → &872F; refreshed set_nmi_vector/nmi_rti/econet_nmi_enable links (post-L0) |
 | 64 | &872F | `nmi_tx_complete` | done | CR1 sequence table + rx_src_net flags table; tx_result_ok/handshake_await_ack/nmi_reply_scout links |
 | 65 | &874B | `nmi_reply_scout` | done | econet_station_id link; inline-code refinement |
-| 66 | &875F | `nmi_reply_cont` | | |
-| 67 | &8773 | `reject_reply` | | |
-| 68 | &8776 | `nmi_reply_validate` | | |
-| 69 | &87BE | `nmi_scout_ack_src` | | |
-| 70 | &87CE | `data_tx_begin` | | |
-| 71 | &87E3 | `nmi_data_tx` | | |
-| 72 | &8845 | `nmi_data_tx_tube` | | |
-| 73 | &8886 | `handshake_await_ack` | | |
-| 74 | &8892 | `nmi_final_ack` | | |
-| 75 | &88A6 | `nmi_final_ack_net` | | |
-| 76 | &88BA | `nmi_final_ack_validate` | | |
-| 77 | &88DE | `tx_result_ok` | | |
-| 78 | &88E2 | `tx_result_fail` | | |
-| 79 | &88E4 | `tx_store_result` | | |
+| 66 | &875F | `nmi_reply_cont` | done | nmi_reply_validate link; bold optimisation note |
+| 67 | &8773 | `reject_reply` | done | tx_result_fail + nmi_reply_scout/validate/scout_ack_src links |
+| 68 | &8776 | `nmi_reply_validate` | kept | already has accurate numbered list + tx_dst_stn/net links |
+| 69 | &87BE | `nmi_scout_ack_src` | done | rx_src_net dispatch table; econet_station_id link |
+| 70 | &87CE | `data_tx_begin` | done | bit-1 dispatch table; nmi_data_tx + ack_tx links |
+| 71 | &87E3 | `nmi_data_tx` | done | 3-row count/IRQ dispatch table; tx_last_data link |
+| 72 | &8845 | `nmi_data_tx_tube` | kept | already has accurate description with tx_prepare link |
+| 73 | &8886 | `handshake_await_ack` | kept | already has accurate description with all relevant links |
+| 74 | &8892 | `nmi_final_ack` | kept | already has accurate numbered list + tx_result_ok/nmi_reply_validate links |
+| 75 | &88A6 | `nmi_final_ack_net` | kept | already has accurate description with tx_result_fail/nmi_final_ack_validate links |
+| 76 | &88BA | `nmi_final_ack_validate` | done | nmi_final_ack + tx_dst_stn/net + tx_result_fail/ok links |
+| 77 | &88DE | `tx_result_ok` | kept | already has accurate description with tx_store_result/ack_tx/nmi_tx_complete links |
+| 78 | &88E2 | `tx_result_fail` | done | tx_store_result link |
+| 79 | &88E4 | `tx_store_result` | done | tx_complete_flag + discard_reset_rx links |
 | 80 | &88F0 | `rom_gap_88f0` | | |
 | 81 | &8900 | `tx_calc_transfer` | | |
 | 82 | &898C | `adlc_full_reset` | | |

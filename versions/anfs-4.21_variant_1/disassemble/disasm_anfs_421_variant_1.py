@@ -3000,22 +3000,29 @@ Checks `SR2` bit 0 (`AP`) for incoming data, reads the first byte
 as a side effect).""")
 subroutine(0x875F, "nmi_reply_cont",
     title="RX reply continuation handler",
-    description="Reads the second byte of the reply scout (destination network) and\n"
-    "validates it is zero (local network). Installs nmi_reply_validate\n"
-    "(&8779) for the remaining two bytes (source station and network).\n"
-    "Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\n"
-    "If IRQ is still set, falls through directly to &8779 without an RTI,\n"
-    "avoiding NMI re-entry overhead for short frames where all bytes arrive\n"
-    "in quick succession.")
+    description="""\
+Reads the second byte of the reply scout (destination network)
+and validates it is zero (local network). Installs
+[`nmi_reply_validate`](address:8776?hex) (entry at `&8779`) for
+the remaining two bytes (source station and network).
+
+**Optimisation:** checks `SR1` bit 7 (IRQ still asserted) via
+`BMI` at `&8767`. If `IRQ` is still set, falls through directly
+to `&8779` without an `RTI`, avoiding NMI re-entry overhead for
+short frames where all bytes arrive in quick succession.""")
 subroutine(0x8773, "reject_reply",
     title="Abandon reply scout (1-instruction trampoline)",
     description="""\
-Single JMP tx_result_fail. Acts as a near-target for the BPL/BNE
-exits scattered through nmi_reply_scout, nmi_reply_validate, and
-nmi_scout_ack_src that need to abort the reply path -- the
-unconditional JMP at &8773 takes them to tx_result_fail (which
-stores the error and returns to idle). Seven inbound refs in total
-(one JSR plus six branches).""")
+Single `JMP` to [`tx_result_fail`](address:88E2?hex). Acts as a
+near-target for the `BPL`/`BNE` exits scattered through
+[`nmi_reply_scout`](address:874B?hex),
+[`nmi_reply_validate`](address:8776?hex), and
+[`nmi_scout_ack_src`](address:87BE?hex) that need to abort the
+reply path – the unconditional `JMP` at `&8773` takes them to
+[`tx_result_fail`](address:88E2?hex) (which stores the error and
+returns to idle).
+
+Seven inbound refs in total (one `JSR` plus six branches).""")
 subroutine(0x8776, "nmi_reply_validate",
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="""\
@@ -3035,33 +3042,47 @@ subroutine(0x87BE, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
     description="""\
 Continuation of the TX-side scout ACK. Reads our station ID from
-`&FE18` (INTOFF), tests TDRA via SR1, and writes
-station + network=0 to the TX FIFO. Then checks bit 1 of
-`rx_src_net` to select between the immediate-op data NMI handler
-and the normal [`nmi_tx_data`](address:86E7) handler. Installs
-the chosen handler via [`set_nmi_vector`](address:0D0E?hex).
-Shares the [`tx_check_tdra_ready`](address:87C4) entry with
-[`ack_tx`](address:82DF).""")
+[`econet_station_id`](address:FE18?hex) (INTOFF), tests `TDRA`
+via `SR1`, and writes `(station, network=0)` to the TX FIFO.
+
+Then dispatches on bit 1 of [`rx_src_net`](address:0D3E?hex) to
+select the next NMI handler:
+
+| Bit 1 | Handler |
+|---|---|
+| set   | immediate-op data NMI handler |
+| clear | normal [`nmi_tx_data`](address:86E7?hex) |
+
+Installs the chosen handler via
+[`set_nmi_vector`](address:0D0E?hex). Shares the
+[`tx_check_tdra_ready`](address:87C4?hex) entry with
+[`ack_tx`](address:82DF?hex).""")
 subroutine(0x87CE, "data_tx_begin",
     title="Begin data-frame TX: install nmi_data_tx or alt",
     description="""\
-Tests bit 1 of rx_src_net (tx_flags): if set (immediate-op path),
-branches to install_imm_data_nmi to use the alternative handler.
-Otherwise installs the normal nmi_data_tx handler at &87E3 by
-writing (lo=&EB, hi=&87) into the NMI vector, then continues into
-the TX setup. Single caller (&8339 inside ack_tx).""")
+Tests bit 1 of [`rx_src_net`](address:0D3E?hex)
+([`tx_flags`](address:0D4A?hex)):
+
+| Bit 1 | Path |
+|---|---|
+| set (immediate-op) | branch to `install_imm_data_nmi` to use the alternative handler |
+| clear | install the normal [`nmi_data_tx`](address:87E3?hex) handler at `&87E3` (lo=`&EB`, hi=`&87`) into the NMI vector |
+
+Then continues into the TX setup. Single caller (`&8339` inside
+[`ack_tx`](address:82DF?hex)).""")
 subroutine(0x87E3, "nmi_data_tx",
     title="TX data phase: send payload",
-    description="Transmits the data payload of a four-way\n"
-    "handshake. Loads bytes from (open_port_buf),Y or\n"
-    "from Tube R3 depending on the transfer mode, writing\n"
-    "pairs to the TX FIFO. After each pair, decrements\n"
-    "the byte count (port_buf_len). If the count reaches\n"
-    "zero, branches to tx_last_data to signal end of\n"
-    "frame. Otherwise tests SR1 bit 7 (IRQ): if still\n"
-    "asserted, writes another pair without returning from\n"
-    "NMI (tight loop optimisation). If IRQ clears, returns\n"
-    "via RTI.")
+    description="""\
+Transmits the data payload of a four-way handshake. Loads bytes
+from `(open_port_buf),Y` or from Tube R3 depending on the
+transfer mode, writing pairs to the TX FIFO. After each pair,
+decrements the byte count (`port_buf_len`):
+
+| Condition | Action |
+|---|---|
+| count = 0 | branch to [`tx_last_data`](address:8723?hex) to signal end of frame |
+| count > 0, `SR1` IRQ still set | tight loop: write another pair without returning from NMI |
+| count > 0, `SR1` IRQ clear | return via `RTI` and wait for next NMI |""")
 subroutine(0x8845, "nmi_data_tx_tube",
     title="NMI handler: TX FIFO write from Tube buffer",
     description="""\
@@ -3107,14 +3128,17 @@ check. Reached only via the NMI vector (no static caller).""",
     on_exit={"a": "source-network byte read from FIFO"})
 subroutine(0x88BA, "nmi_final_ack_validate",
     title="Final ACK validation",
-    description="Continuation of nmi_final_ack. Tests SR2 for RDA,\n"
-    "then reads the source station and source network\n"
-    "bytes from the RX FIFO, comparing each against the\n"
-    "original TX destination at tx_dst_stn (&0D20) and\n"
-    "tx_dst_net (&0D21). Finally tests SR2 bit 1 (FV)\n"
-    "for frame completion. Any mismatch or missing FV\n"
-    "branches to tx_result_fail. On success, falls\n"
-    "through to tx_result_ok.")
+    description="""\
+Continuation of [`nmi_final_ack`](address:8892?hex). Tests `SR2`
+for `RDA`, then reads the source station and source network
+bytes from the RX FIFO, comparing each against the original TX
+destination at [`tx_dst_stn`](address:0D20?hex) and
+[`tx_dst_net`](address:0D21?hex). Finally tests `SR2` bit 1
+(`FV`) for frame completion.
+
+Any mismatch or missing `FV` branches to
+[`tx_result_fail`](address:88E2?hex). On success, falls through
+to [`tx_result_ok`](address:88DE?hex).""")
 subroutine(0x88DE, "tx_result_ok",
     title="TX completion handler",
     description="""\
@@ -3128,19 +3152,22 @@ where no ACK is expected.""",
     on_exit={"a": "0 (TX success)"})
 subroutine(0x88E2, "tx_result_fail",
     title="TX failure: not listening",
-    description="Loads error code &41 (not listening) and falls through to\n"
-    "tx_store_result. The most common TX error path — reached from\n"
-    "11 sites across the final-ACK validation chain when the remote\n"
-    "station doesn't respond or the frame is malformed.",
+    description="""\
+Loads error code `&41` ("not listening") and falls through to
+[`tx_store_result`](address:88E4?hex). The most common TX-error
+path – reached from 11 sites across the final-ACK validation
+chain when the remote station doesn't respond or the frame is
+malformed.""",
     on_exit={"a": "&41 ('not listening' TX error)"})
 subroutine(0x88E4, "tx_store_result",
     title="TX result store and completion",
-    description="Stores the TX result code (in A) at offset 0 of\n"
-    "the TX control block via (nmi_tx_block),Y=0. Sets\n"
-    "ws_0d60 to &80 to signal TX completion to the\n"
-    "foreground polling loop. Then jumps to\n"
-    "discard_reset_rx for a full ADLC reset and return\n"
-    "to idle RX listen mode.",
+    description="""\
+Stores the TX result code (in `A`) at offset 0 of the TX control
+block via `(nmi_tx_block),Y=0`. Sets
+[`tx_complete_flag`](address:0D60?hex) to `&80` to signal TX
+completion to the foreground polling loop. Then jumps to
+[`discard_reset_rx`](address:83E5?hex) for a full ADLC reset and
+return to idle RX-listen mode.""",
     on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"})
 subroutine(0x8900, "tx_calc_transfer",
     title="Calculate transfer size and reclaim Tube buffer",
