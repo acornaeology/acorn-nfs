@@ -166,7 +166,7 @@ Stop-light dashboard at the bottom of each session update.
 | 2 - cmd_table_fs symbolic     | #18 | DONE |
 | 3 - top-20 routine walk       | #19 | DONE |
 | 4 - per-string banners        | #20 | DONE |
-| 5 - O-1 dispatch trace        | #21 | DONE (arithmetic resolved; MOS trigger open) |
+| 5 - O-1 dispatch trace        | #21 | open -- needs external evidence |
 | 6 - osbyte_a2 dead-code fate  | #22 | DONE (it's not dead -- annotated as dispatch targets) |
 | 7 - selective auto-rename     | #23 | DONE |
 
@@ -180,7 +180,7 @@ Stop-light dashboard at the bottom of each session update.
 | `data runs --unannotated` | empty     |
 | Inline density      | 100.0 % (7087 / 7087) |
 | Subroutines         | 459             |
-| Open issues         | 1 (O-1's MOS trigger; arithmetic resolved) |
+| Open issues         | 1 (O-1: trigger genuinely unknown without external evidence) |
 
 ## Session log
 
@@ -243,14 +243,18 @@ osbyte_a2 grouping (Bucket 6), the nfs_init_body dispatch trace
   dispatch-table reachable), parse_object_argument (&9630, idx
   &18), match_on_suffix (&969A, idx &0F), and the *HELP <topic>
   ON file-load loop. Walked all of it (~125 items).
-- **Bucket 5 (O-1):** traced the dispatch arithmetic. The only
-  way to reach idx 22 = nfs_init_body in svc_dispatch is via
-  service_handler's CMP/SBC chain with input `&27` (= 39
-  decimal), producing X = 21, then svc_dispatch's `INX/DEY/BPL`
-  loop adds 1. The MOS-side trigger that issues service `&27`
-  remains unidentified, but the dispatch math is solid and the
-  body is real code. Updated nfs_init_body's description and
-  marked O-1 as PARTIALLY RESOLVED in OPEN-ISSUES.md.
+- **Bucket 5 (O-1):** I rederived the dispatch arithmetic, but
+  this is the same math the issue itself already documented, with
+  the same caveat that the upstream "input is a raw service
+  number" assumption may itself be wrong (the `cmp #&24` at
+  `&8A8F` is hard to fit into that reading). The trigger remains
+  genuinely unknown. Three live possibilities -- (a) MOS or co-pro
+  outside this ROM issues service `&27`, (b) the body is dead in
+  this build, (c) the SBC chain's input isn't a raw service number
+  and the &27 conclusion is itself wrong -- can't be picked apart
+  without an emulated boot trace, the equivalent chain from a DNFS
+  source release, or MOS-internal documentation. Updated the
+  routine's description and OPEN-ISSUES.md to say so honestly.
 - **Bucket 5 also:** walked nfs_init_body itself (48 items).
 - **Bucket 7 (selective auto-rename):** renamed 8 cXXXX labels at
   routine junction points where a semantic name aids

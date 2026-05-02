@@ -23,12 +23,32 @@ and remove the entry from here.
 
 ### O-1: What dispatch path reaches `nfs_init_body` at &8F38?
 
-**Status:** PARTIALLY RESOLVED (2026-05-02). The dispatch arithmetic
-is now traced cleanly; the routine's description in the driver
-spells out the X-final = 22 → table[22] math. The open piece is
-just the MOS-side trigger: which OS event issues service `&27` (=
-39 decimal) in practice. This is captured in nfs_init_body's
-description and is not blocking annotation work.
+**Status:** still open (2026-05-02 update).
+
+What I demonstrated this session was just the mechanical
+arithmetic: under the standard reading where A at `&8AB0` is a raw
+MOS service number, the chain only lands on table[22] when the
+input is `&27` (= 39 decimal). That's the same conclusion this
+issue's "Confidence note on the trace" already documented, with
+the same flag that the upstream "raw service number" assumption
+may itself be wrong (the `cmp #&24` at `&8A8F` is hard to fit into
+the raw-service-number reading). I did not produce new evidence
+either way.
+
+We genuinely cannot tell, from static analysis of this ROM alone,
+whether (a) MOS or co-pro code outside this ROM issues service
+`&27`, (b) the body is dead in this build, or (c) the chain's
+input is something other than a raw service number and the `&27`
+conclusion is wrong altogether.
+
+The dispatch arithmetic and trigger unknown are both written into
+`nfs_init_body`'s description in the driver as well, so the
+annotation reads honestly even with the issue still open.
+
+**This issue is not blocking 4.21's annotation work** -- the body
+itself is fully annotated, the dispatch table entry is real, and
+the residual question is "what makes the live system run this
+routine", which needs evidence outside this ROM.
 
 **What's known:**
 

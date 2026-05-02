@@ -3048,19 +3048,31 @@ sequence after page allocation:
 
 Returns via `RTS` at `&903B`.
 
-Dispatch arithmetic (open issue O-1): the table[22] entry is real
-and the body is real code. Tracing svc_dispatch's
-`X_final = X_caller + Y_caller + 1` arithmetic, the only call site
-that can reach idx 22 is `dispatch_svc_index` at `&8AD0` (Y = 0)
-with X = 21 in the SBC chain at `&8AB0..&8ACE`, which corresponds
-to MOS service number `&27` (= 39 decimal). However: search of
-the ROM for any code that issues MOS service `&27` finds no
-match, and `&27` is not a documented Master 128 service call.
-This was earlier interpreted as a sibling-ROM signal (variant 2
-talking to variant 1) but the user has confirmed there is no
-companion ROM. The genuine trigger is unidentified -- possibly
-an Acorn-internal Tube/init path, possibly dead in this build.
-See `OPEN-ISSUES.md` O-1 for the full investigation history.""")
+Trigger unknown (OPEN-ISSUES O-1). The dispatch table[22] entry is
+real and the body is real code, but how the live system arrives at
+this entry is not established from static analysis alone.
+
+The mechanical arithmetic, *if* the input to the CMP/SBC chain at
+`&8AB0..&8ACE` is a raw MOS service number, gives `&27` (= 39
+decimal) as the only value that flows through the chain (`-5/-5/-8`)
+to land on the BCC at `&8ACC` with `A = &15`, then `dispatch_svc_
+index` `TAX`s and calls `svc_dispatch` with X = 21, Y = 0, settling
+`X_final = 22`. Service `&27` is not in the documented Master 128
+service-call list and no code in this ROM issues it, so under the
+"raw service number" reading either MOS or co-processor code outside
+this ROM issues `&27`, or the entry is vestigial.
+
+A separate possibility, flagged in `OPEN-ISSUES.md`, is that the
+chain's input is not a raw service number at all -- the `cmp #&24`
+at `&8A8F` is hard to reconcile with the raw-service-number reading.
+If the chain's input is some pre-mapped value, the &27 conclusion
+above would be wrong and the trigger could correspond to any
+documented service call.
+
+Definitive resolution needs one of: an emulated boot trace
+watching the RTS landing on `&8F38`; the equivalent chain in a
+DNFS source release; or MOS-internal documentation. None of those
+are in this repository.""")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
