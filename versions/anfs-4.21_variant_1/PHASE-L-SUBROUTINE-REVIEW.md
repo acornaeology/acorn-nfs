@@ -126,19 +126,19 @@ addresses across all 431 remaining routines.
 | 50 | &8589 | `tx_begin` | done | numbered 4-step list; tx_calc_transfer + inactive_poll links |
 | 51 | &85F1 | `inactive_poll` | done | numbered 5-step list; rx_remote_addr + intoff_test_inactive links |
 | 52 | &85FC | `intoff_test_inactive` | done | INACTIVE dispatch table; econet_station_id + econet_nmi_enable + tx_prepare + tx_line_jammed links |
-| 53 | &862C | `tx_bad_ctrl_error` | | |
-| 54 | &8630 | `tx_line_jammed` | | |
-| 55 | &864A | `tx_prepare` | | |
-| 56 | &867E | `tx_ctrl_dispatch_lo` | | |
-| 57 | &8686 | `tx_ctrl_machine_type` | | |
-| 58 | &868A | `tx_ctrl_peek` | | |
-| 59 | &868E | `tx_ctrl_poke` | | |
-| 60 | &8690 | `tx_ctrl_store_and_add` | | |
-| 61 | &86A2 | `tx_ctrl_proc` | | |
-| 62 | &86E7 | `nmi_tx_data` | | |
-| 63 | &8723 | `tx_last_data` | done | bit-decomposition table; corrected &8728 → &872F |
-| 64 | &872F | `nmi_tx_complete` | | |
-| 65 | &874B | `nmi_reply_scout` | | |
+| 53 | &862C | `tx_bad_ctrl_error` | done | tx_begin link |
+| 54 | &8630 | `tx_line_jammed` | done | inactive_poll/intoff_test_inactive links + numbered breakdown |
+| 55 | &864A | `tx_prepare` | done | 4-step list + Tube/Direct dispatch table; nmi_tx_data + tx_dst_stn/net/src_stn links |
+| 56 | &867E | `tx_ctrl_dispatch_lo` | kept | already accurate dispatch table |
+| 57 | &8686 | `tx_ctrl_machine_type` | done | tx_ctrl_dispatch_lo link |
+| 58 | &868A | `tx_ctrl_peek` | done | tx_ctrl_store_and_add link |
+| 59 | &868E | `tx_ctrl_poke` | done | tx_ctrl_store_and_add link |
+| 60 | &8690 | `tx_ctrl_store_and_add` | done | numbered list; rx_port + tx_ctrl_proc + tx_calc_transfer links |
+| 61 | &86A2 | `tx_ctrl_proc` | done | tx_calc_transfer link |
+| 62 | &86E7 | `nmi_tx_data` | done | SR1 IRQ dispatch table; adlc_tx + adlc_cr1 links |
+| 63 | &8723 | `tx_last_data` | done | bit-decomposition table; corrected &8728 → &872F; refreshed set_nmi_vector/nmi_rti/econet_nmi_enable links (post-L0) |
+| 64 | &872F | `nmi_tx_complete` | done | CR1 sequence table + rx_src_net flags table; tx_result_ok/handshake_await_ack/nmi_reply_scout links |
+| 65 | &874B | `nmi_reply_scout` | done | econet_station_id link; inline-code refinement |
 | 66 | &875F | `nmi_reply_cont` | | |
 | 67 | &8773 | `reject_reply` | | |
 | 68 | &8776 | `nmi_reply_validate` | | |

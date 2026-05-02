@@ -2836,77 +2836,105 @@ On timeout, falls through to
 subroutine(0x862C, "tx_bad_ctrl_error",
     title="Raise TX 'Bad control byte' (&44) error",
     description="""\
-Loads error code &44 ('Bad control') and ALWAYS-branches to
-store_tx_error which records it in the TX control block and
-finishes the TX attempt. Reached from three early-validation
-sites in tx_begin (&859E, &85CE, &85D2) when the operation type
-is out of range.""",
+Loads error code `&44` ("Bad control") and ALWAYS-branches to
+`store_tx_error`, which records it in the TX control block and
+finishes the TX attempt.
+
+Reached from three early-validation sites in
+[`tx_begin`](address:8589?hex) (`&859E`, `&85CE`, `&85D2`) when the
+operation type is out of range.""",
     on_exit={"a": "&44 (TX 'Bad control' error code)"})
 subroutine(0x8630, "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
-    description="Reached when the INACTIVE polling loop times\n"
-    "out without detecting a quiet line. Writes\n"
-    "CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX\n"
-    "attempt, pulls the 3-byte timeout state from the\n"
-    "stack, and stores error code &40 ('Line Jammed')\n"
-    "in the TX control block via store_tx_error.")
+    description="""\
+Reached when the [`inactive_poll`](address:85F1?hex) /
+[`intoff_test_inactive`](address:85FC?hex) loop times out without
+detecting a quiet line.
+
+1. Writes `CR2=&07` (`FC_TDRA | 2_1_BYTE | PSE`) to abort the TX
+   attempt.
+2. Pulls the 3-byte timeout state from the stack.
+3. Stores error code `&40` ("Line Jammed") in the TX control
+   block via `store_tx_error`.""")
 subroutine(0x864A, "tx_prepare",
     title="TX preparation",
-    description="Configures the ADLC for frame transmission.\n"
-    "Writes CR2=Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|\n"
-    "2_1_BYTE|PSE) and CR1=&44 (RX_RESET|TIE) to enable\n"
-    "TX with interrupts. Installs the nmi_tx_data handler\n"
-    "at &86E0. Sets need_release_tube flag via SEC/ROR.\n"
-    "Writes the 4-byte destination address (dst_stn,\n"
-    "dst_net, src_stn, src_net=0) to the TX FIFO. For\n"
-    "Tube transfers, claims the Tube address; for direct\n"
-    "transfers, sets up the buffer pointer from the TXCB.",
+    description="""\
+Configures the ADLC for frame transmission.
+
+1. Writes `CR2 = Y` (`&E7` = `RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA
+   | 2_1_BYTE | PSE`) and `CR1 = &44` (`RX_RESET | TIE`) to enable
+   TX with interrupts.
+2. Installs the [`nmi_tx_data`](address:86E7?hex) handler at
+   `&86E0`.
+3. Sets `need_release_tube` flag via `SEC` / `ROR`.
+4. Writes the 4-byte destination address ([`tx_dst_stn`](address:0D20?hex),
+   [`tx_dst_net`](address:0D21?hex),
+   [`tx_src_stn`](address:0D22?hex), `src_net = 0`) to the TX FIFO.
+
+| Path | Action |
+|---|---|
+| Tube transfer | claims the Tube address |
+| Direct transfer | sets up the buffer pointer from the TXCB |""",
     on_entry={"y": "&E7 (CR2 prep value)"})
 subroutine(0x8686, "tx_ctrl_machine_type",
-    title="TX ctrl: machine type query setup",
-    description="Handler for control byte &88. Sets scout_status=3\n"
-    "and branches to store_status_copy_ptr, skipping\n"
-    "the 4-byte address addition (no address parameters\n"
-    "needed for a machine type query). Reached only via\n"
-    "PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo entry &88.",
+    title="TX ctrl: machine-type query setup",
+    description="""\
+Handler for control byte `&88`. Sets `scout_status = 3` and
+branches to `store_status_copy_ptr`, skipping the 4-byte address
+addition (no address parameters needed for a machine-type query).
+
+Reached only via `PHA`/`PHA`/`RTS` dispatch from
+[`tx_ctrl_dispatch_lo`](address:867E?hex) entry `&88`.""",
     on_exit={"a": "3 (scout_status for machine type query)"})
 subroutine(0x868A, "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
-    description="Sets A=3 (scout_status for PEEK) and branches\n"
-    "to tx_ctrl_store_and_add to store the status and\n"
-    "perform the 4-byte transfer address addition.",
+    description="""\
+Sets `A=3` (scout_status for PEEK) and branches to
+[`tx_ctrl_store_and_add`](address:8690?hex) to store the status
+and perform the 4-byte transfer-address addition.""",
     on_exit={"a": "3 (scout_status for PEEK)"})
 subroutine(0x868E, "tx_ctrl_poke",
     title="TX ctrl: POKE transfer setup",
-    description="Sets A=2 (scout_status for POKE) and falls\n"
-    "through to tx_ctrl_store_and_add to store the\n"
-    "status and perform the 4-byte transfer address\n"
-    "addition.",
+    description="""\
+Sets `A=2` (scout_status for POKE) and falls through to
+[`tx_ctrl_store_and_add`](address:8690?hex) to store the status
+and perform the 4-byte transfer-address addition.""",
     on_exit={"a": "2 (scout_status for POKE)"})
 subroutine(0x8690, "tx_ctrl_store_and_add",
     title="TX ctrl: store status and add transfer address",
-    description="Shared path for PEEK (A=3) and POKE (A=2).\n"
-    "Stores A as the scout status byte at rx_port\n"
-    "(&0D40), then performs a 4-byte addition with\n"
-    "carry propagation, adding bytes from the TXCB\n"
-    "(nmi_tx_block+&0C to +&0F) into the transfer\n"
-    "address workspace at &0D1E-&0D21. Falls through\n"
-    "to tx_ctrl_proc which checks the loop boundary,\n"
-    "then continues to tx_calc_transfer and\n"
-    "tx_ctrl_exit.",
+    description="""\
+Shared path for PEEK (`A=3`) and POKE (`A=2`):
+
+1. Stores `A` as the scout status byte at
+   [`rx_port`](address:0D40?hex).
+2. Performs a 4-byte addition with carry propagation, adding
+   bytes from the TXCB (`nmi_tx_block+&0C` .. `+&0F`) into the
+   transfer-address workspace at `&0D1E..&0D21`.
+3. Falls through to [`tx_ctrl_proc`](address:86A2?hex) which
+   checks the loop boundary, then continues to
+   [`tx_calc_transfer`](address:8900?hex) and `tx_ctrl_exit`.""",
     on_entry={"a": "scout status (3=PEEK, 2=POKE)"})
 subroutine(0x86A2, "tx_ctrl_proc",
-    title="TX ctrl: JSR/UserProc/OSProc setup",
-    description="Sets scout_status=2 and calls tx_calc_transfer\n"
-    "directly (no 4-byte address addition needed for\n"
-    "procedure calls). Shared by operation types &83-&85.")
+    title="TX ctrl: JSR / UserProc / OSProc setup",
+    description="""\
+Sets `scout_status = 2` and calls
+[`tx_calc_transfer`](address:8900?hex) directly (no 4-byte
+address addition needed for procedure calls). Shared by operation
+types `&83`..`&85` (JSR, UserProc, OSProc).""")
 subroutine(0x86E7, "nmi_tx_data",
     title="NMI TX data handler",
-    description="Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the\n"
-    "BIT instruction on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7).\n"
-    "After writing 2 bytes, checks if the frame is complete. If more data,\n"
-    "tests SR1 bit7 (IRQ) via BMI -- if IRQ still asserted, writes 2 more bytes\n"
-    "without returning from NMI (tight loop). Otherwise returns via RTI.")
+    description="""\
+Writes 2 bytes per NMI invocation to the TX FIFO at
+[`adlc_tx`](address:FEA2?hex). Uses `BIT [adlc_cr1](address:FEA0)`
+on `SR1` to test `TDRA` (`V` flag = bit 6) and `IRQ` (`N` flag =
+bit 7).
+
+After writing 2 bytes, checks if the frame is complete:
+
+| `SR1` bit 7 (`IRQ`) | Action |
+|---|---|
+| set   | tight loop: write 2 more bytes without returning from NMI |
+| clear | return via `RTI` and wait for the next NMI |""")
 subroutine(0x8723, "tx_last_data",
     title="TX_LAST_DATA and frame completion",
     description="""\
@@ -2928,33 +2956,48 @@ control function:
 | 1   | 2_1_BYTE | two-byte transfer mode |
 | 0   | PSE      | prioritised status enable |
 
-The routine exits via `JMP` to `set_nmi_vector` (`&0D0E`), which
-installs [`nmi_tx_complete`](address:872F?hex) and falls through
-to `nmi_rti` (`&0D14`). The `BIT` of `econet_nmi_enable`
-(`&FE20`, INTON) inside `nmi_rti` creates the /NMI edge for the
+The routine exits via `JMP` to
+[`set_nmi_vector`](address:0D0E?hex), which installs
+[`nmi_tx_complete`](address:872F?hex) and falls through to
+[`nmi_rti`](address:0D14?hex). The `BIT` of
+[`econet_nmi_enable`](address:FE20?hex) (INTON) inside
+[`nmi_rti`](address:0D14?hex) creates the /NMI edge for the
 frame-complete interrupt – essential because the ADLC IRQ may
 transition atomically from TDRA to frame-complete without
 de-asserting in between.""")
 subroutine(0x872F, "nmi_tx_complete",
     title="TX completion: switch to RX mode",
-    description="Called via NMI after the frame (including CRC\n"
-    "and closing flag) has been fully transmitted.\n"
-    "Writes CR1=&82 (TX_RESET|RIE) to clear RX_RESET\n"
-    "and enable RX interrupts -- the TX-to-RX pivot in\n"
-    "the four-way handshake. The scout ACK can only be\n"
-    "received after this point. Full CR1 sequence through\n"
-    "a handshake: &44 (scout TX) -> &82 (await scout ACK)\n"
-    "-> &44 (data TX) -> &82 (await data ACK).\n"
-    "Dispatches on rx_src_net flags: bit6=broadcast\n"
-    "(tx_result_ok), bit0=handshake data pending\n"
-    "(handshake_await_ack), both clear=install\n"
-    "nmi_reply_scout for scout ACK reception.")
+    description="""\
+Called via NMI after the frame (including CRC and closing flag)
+has been fully transmitted. Writes `CR1=&82` (`TX_RESET | RIE`)
+to clear `RX_RESET` and enable RX interrupts – the **TX-to-RX
+pivot** in the four-way handshake. The scout ACK can only be
+received after this point.
+
+Full `CR1` sequence through a handshake:
+
+| Step | `CR1` | Meaning |
+|---|---|---|
+| 1 | `&44` | scout TX |
+| 2 | `&82` | await scout ACK |
+| 3 | `&44` | data TX |
+| 4 | `&82` | await data ACK |
+
+Dispatches on [`rx_src_net`](address:0D3E?hex) flags:
+
+| Flag | Action |
+|---|---|
+| bit 6 set (broadcast) | jump to [`tx_result_ok`](address:88DE?hex) |
+| bit 0 set (handshake data pending) | jump to [`handshake_await_ack`](address:8886?hex) |
+| both clear | install [`nmi_reply_scout`](address:874B?hex) for scout ACK reception |""")
 subroutine(0x874B, "nmi_reply_scout",
-    title="RX reply scout handler",
-    description="Handles reception of the reply scout frame after transmission.\n"
-    "Checks SR2 bit0 (AP) for incoming data, reads the first byte\n"
-    "(destination station) and compares to our station ID via &FE18\n"
-    "(which also disables NMIs as a side effect).")
+    title="RX reply-scout handler",
+    description="""\
+Handles reception of the reply scout frame after transmission.
+Checks `SR2` bit 0 (`AP`) for incoming data, reads the first byte
+(destination station) and compares it to our station ID via
+[`econet_station_id`](address:FE18?hex) (which also disables NMIs
+as a side effect).""")
 subroutine(0x875F, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="Reads the second byte of the reply scout (destination network) and\n"

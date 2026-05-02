@@ -2029,10 +2029,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Raise TX 'Bad control byte' (&44) error
 ;
-; Loads error code &44 ('Bad control') and ALWAYS-branches to store_tx_error which
-; records it in the TX control block and finishes the TX attempt. Reached from three
-; early-validation sites in tx_begin (&859E, &85CE, &85D2) when the operation type is
-; out of range.
+; Loads error code &44 ("Bad control") and ALWAYS-branches to store_tx_error, which
+; records it in the TX control block and finishes the TX attempt.
+;
+; Reached from three early-validation sites in tx_begin (&8589) (&859E, &85CE, &85D2)
+; when the operation type is out of range.
 ;
 ; On Exit: A: &44 (TX 'Bad control' error code)
 ; &862c referenced 3 times by &859e, &85ce, &85d2
@@ -2043,10 +2044,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX timeout error handler (Line Jammed)
 ;
-; Reached when the INACTIVE polling loop times out without detecting a quiet line.
-; Writes CR2=&07 (FC_TDRA|2_1_BYTE|PSE) to abort the TX attempt, pulls the 3-byte
-; timeout state from the stack, and stores error code &40 ('Line Jammed') in the TX
-; control block via store_tx_error.
+; Reached when the inactive_poll (&85F1) / intoff_test_inactive (&85FC) loop times out
+; without detecting a quiet line.
+;
+; 1. Writes CR2=&07 (FC_TDRA | 2_1_BYTE | PSE) to abort the TX attempt.
+; 2. Pulls the 3-byte timeout state from the stack.
+; 3. Stores error code &40 ("Line Jammed") in the TX control block via store_tx_error.
 ; &8630 referenced 1 time by &862a
 .tx_line_jammed
     lda #7                                                            ; 8630: a9 07       ..             ; CR2=&07: FC_TDRA | 2_1_BYTE | PSE (abort TX)
@@ -2073,12 +2076,19 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX preparation
 ;
-; Configures the ADLC for frame transmission. Writes CR2=Y (&E7:
-; RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA| 2_1_BYTE|PSE) and CR1=&44 (RX_RESET|TIE) to enable
-; TX with interrupts. Installs the nmi_tx_data handler at &86E0. Sets need_release_tube
-; flag via SEC/ROR. Writes the 4-byte destination address (dst_stn, dst_net, src_stn,
-; src_net=0) to the TX FIFO. For Tube transfers, claims the Tube address; for direct
-; transfers, sets up the buffer pointer from the TXCB.
+; Configures the ADLC for frame transmission.
+;
+; 1. Writes CR2 = Y (&E7 = RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE) and
+;    CR1 = &44 (RX_RESET | TIE) to enable TX with interrupts.
+; 2. Installs the nmi_tx_data (&86E7) handler at &86E0.
+; 3. Sets need_release_tube flag via SEC / ROR.
+; 4. Writes the 4-byte destination address (tx_dst_stn (&0D20), tx_dst_net (&0D21),
+;    tx_src_stn (&0D22), src_net = 0) to the TX FIFO.
+;
+; | Path            | Action                                   |
+; |-----------------|------------------------------------------|
+; | Tube transfer   | claims the Tube address                  |
+; | Direct transfer | sets up the buffer pointer from the TXCB |
 ;
 ; On Entry: Y: &E7 (CR2 prep value)
 ; &864a referenced 1 time by &8614
@@ -2125,12 +2135,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     equb <(tx_ctrl_machine_type-1)                                    ; 8685: 85          .
 
 ; ***************************************************************************************
-; TX ctrl: machine type query setup
+; TX ctrl: machine-type query setup
 ;
-; Handler for control byte &88. Sets scout_status=3 and branches to
+; Handler for control byte &88. Sets scout_status = 3 and branches to
 ; store_status_copy_ptr, skipping the 4-byte address addition (no address parameters
-; needed for a machine type query). Reached only via PHA/PHA/RTS dispatch from
-; tx_ctrl_dispatch_lo entry &88.
+; needed for a machine-type query).
+;
+; Reached only via PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo (&867E) entry &88.
 ;
 ; On Exit: A: 3 (scout_status for machine type query)
 .tx_ctrl_machine_type
@@ -2140,8 +2151,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
 ;
-; Sets A=3 (scout_status for PEEK) and branches to tx_ctrl_store_and_add to store the
-; status and perform the 4-byte transfer address addition.
+; Sets A=3 (scout_status for PEEK) and branches to tx_ctrl_store_and_add (&8690) to
+; store the status and perform the 4-byte transfer-address addition.
 ;
 ; On Exit: A: 3 (scout_status for PEEK)
 .tx_ctrl_peek
@@ -2151,8 +2162,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: POKE transfer setup
 ;
-; Sets A=2 (scout_status for POKE) and falls through to tx_ctrl_store_and_add to store
-; the status and perform the 4-byte transfer address addition.
+; Sets A=2 (scout_status for POKE) and falls through to tx_ctrl_store_and_add (&8690)
+; to store the status and perform the 4-byte transfer-address addition.
 ;
 ; On Exit: A: 2 (scout_status for POKE)
 .tx_ctrl_poke
@@ -2160,11 +2171,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: store status and add transfer address
 ;
-; Shared path for PEEK (A=3) and POKE (A=2). Stores A as the scout status byte at
-; rx_port (&0D40), then performs a 4-byte addition with carry propagation, adding bytes
-; from the TXCB (nmi_tx_block+&0C to +&0F) into the transfer address workspace at
-; &0D1E-&0D21. Falls through to tx_ctrl_proc which checks the loop boundary, then
-; continues to tx_calc_transfer and tx_ctrl_exit.
+; Shared path for PEEK (A=3) and POKE (A=2):
+;
+; 1. Stores A as the scout status byte at rx_port (&0D40).
+; 2. Performs a 4-byte addition with carry propagation, adding bytes from the TXCB
+;    (nmi_tx_block+&0C .. +&0F) into the transfer-address workspace at &0D1E..&0D21.
+; 3. Falls through to tx_ctrl_proc (&86A2) which checks the loop boundary, then
+;    continues to tx_calc_transfer (&8900) and tx_ctrl_exit.
 ;
 ; On Entry: A: scout status (3=PEEK, 2=POKE)
 ; &8690 referenced 1 time by &868c
@@ -2182,10 +2195,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     iny                                                               ; 86a0: c8          .              ; Next byte
     php                                                               ; 86a1: 08          .              ; Save carry for next addition
 ; ***************************************************************************************
-; TX ctrl: JSR/UserProc/OSProc setup
+; TX ctrl: JSR / UserProc / OSProc setup
 ;
-; Sets scout_status=2 and calls tx_calc_transfer directly (no 4-byte address addition
-; needed for procedure calls). Shared by operation types &83-&85.
+; Sets scout_status = 2 and calls tx_calc_transfer (&8900) directly (no 4-byte address
+; addition needed for procedure calls). Shared by operation types &83..&85 (JSR,
+; UserProc, OSProc).
 .tx_ctrl_proc
     cpy #&10                                                          ; 86a2: c0 10       ..             ; Compare Y with 16-byte boundary
     bcc add_bytes_loop                                                ; 86a4: 90 f1       ..             ; Below boundary: continue addition
@@ -2240,11 +2254,16 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; NMI TX data handler
 ;
-; Writes 2 bytes per NMI invocation to the TX FIFO at &FEA2. Uses the BIT instruction
-; on SR1 to test TDRA (V flag = bit6) and IRQ (N flag = bit7). After writing 2 bytes,
-; checks if the frame is complete. If more data, tests SR1 bit7 (IRQ) via BMI -- if IRQ
-; still asserted, writes 2 more bytes without returning from NMI (tight loop).
-; Otherwise returns via RTI.
+; Writes 2 bytes per NMI invocation to the TX FIFO at adlc_tx (&FEA2). Uses BIT
+; [adlc_cr1](address:FEA0) on SR1 to test TDRA (V flag = bit 6) and IRQ (N flag = bit
+; 7).
+;
+; After writing 2 bytes, checks if the frame is complete:
+;
+; | SR1 bit 7 (IRQ) | Action                                                    |
+; |-----------------|-----------------------------------------------------------|
+; | set             | tight loop: write 2 more bytes without returning from NMI |
+; | clear           | return via RTI and wait for the next NMI                  |
 .nmi_tx_data
     ldy rx_remote_addr                                                ; 86e7: ac 41 0d    .A.            ; Load TX buffer index
     bit adlc_cr1                                                      ; 86ea: 2c a0 fe    ,..            ; BIT SR1: V=bit6(TDRA), N=bit7(IRQ)
@@ -2305,10 +2324,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; | 0   | PSE          | prioritised status enable                    |
 ;
 ; The routine exits via JMP to set_nmi_vector (&0D0E), which installs nmi_tx_complete
-; (&872F) and falls through to nmi_rti (&0D14). The BIT of econet_nmi_enable (&FE20,
-; INTON) inside nmi_rti creates the /NMI edge for the frame-complete interrupt –
-; essential because the ADLC IRQ may transition atomically from TDRA to frame-complete
-; without de-asserting in between.
+; (&872F) and falls through to nmi_rti (&0D14). The BIT of econet_nmi_enable (&FE20)
+; (INTON) inside nmi_rti (&0D14) creates the /NMI edge for the frame-complete interrupt
+; – essential because the ADLC IRQ may transition atomically from TDRA to
+; frame-complete without de-asserting in between.
 ; &8723 referenced 1 time by &8703
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
@@ -2321,12 +2340,26 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX completion: switch to RX mode
 ;
 ; Called via NMI after the frame (including CRC and closing flag) has been fully
-; transmitted. Writes CR1=&82 (TX_RESET|RIE) to clear RX_RESET and enable RX interrupts
-; -- the TX-to-RX pivot in the four-way handshake. The scout ACK can only be received
-; after this point. Full CR1 sequence through a handshake: &44 (scout TX) -> &82 (await
-; scout ACK) -> &44 (data TX) -> &82 (await data ACK). Dispatches on rx_src_net flags:
-; bit6=broadcast (tx_result_ok), bit0=handshake data pending (handshake_await_ack),
-; both clear=install nmi_reply_scout for scout ACK reception.
+; transmitted. Writes CR1=&82 (TX_RESET | RIE) to clear RX_RESET and enable RX
+; interrupts – the TX-to-RX pivot in the four-way handshake. The scout ACK can only be
+; received after this point.
+;
+; Full CR1 sequence through a handshake:
+;
+; | Step | CR1 | Meaning         |
+; |------|-----|-----------------|
+; | 1    | &44 | scout TX        |
+; | 2    | &82 | await scout ACK |
+; | 3    | &44 | data TX         |
+; | 4    | &82 | await data ACK  |
+;
+; Dispatches on rx_src_net (&0D3E) flags:
+;
+; | Flag                               | Action                                                  |
+; |------------------------------------|---------------------------------------------------------|
+; | bit 6 set (broadcast)              | jump to tx_result_ok (&88DE)                            |
+; | bit 0 set (handshake data pending) | jump to handshake_await_ack (&8886)                     |
+; | both clear                         | install nmi_reply_scout (&874B) for scout ACK reception |
 .nmi_tx_complete
     lda #&82                                                          ; 872f: a9 82       ..             ; Jump to error handler
     sta adlc_cr1                                                      ; 8731: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
@@ -2347,11 +2380,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     jmp install_nmi_handler                                           ; 8748: 4c 11 0d    L..            ; Install handler and RTI
 
 ; ***************************************************************************************
-; RX reply scout handler
+; RX reply-scout handler
 ;
-; Handles reception of the reply scout frame after transmission. Checks SR2 bit0 (AP)
-; for incoming data, reads the first byte (destination station) and compares to our
-; station ID via &FE18 (which also disables NMIs as a side effect).
+; Handles reception of the reply scout frame after transmission. Checks SR2 bit 0 (AP)
+; for incoming data, reads the first byte (destination station) and compares it to our
+; station ID via econet_station_id (&FE18) (which also disables NMIs as a side effect).
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
     bit adlc_cr2                                                      ; 874d: 2c a1 fe    ,..            ; BIT SR2: test AP (Address Present)
