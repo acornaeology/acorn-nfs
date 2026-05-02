@@ -4571,12 +4571,15 @@ subroutine(0x9D44, "print_load_exec_addrs",
     on_exit={"a, x, y": "clobbered (print_hex_byte + OSASCI)"})
 subroutine(0x9D4F, "print_5_hex_bytes",
     title="Print hex byte sequence from FS options",
-    description="Outputs X+1 bytes from (fs_options) starting at\n"
-    "offset Y, decrementing Y for each byte (big-endian\n"
-    "display order). Each byte is printed as two hex\n"
-    "digits via print_hex_byte. Finishes with a trailing\n"
-    "space via OSASCI. The default entry with X=4 prints\n"
-    "5 bytes (a full 32-bit address plus extent).",
+    description="""\
+Outputs `X+1` bytes from `(fs_options)` starting at offset `Y`,
+decrementing `Y` for each byte (big-endian display order). Each
+byte is printed as two hex digits via
+[`print_hex_byte`](address:9236?hex). Finishes with a trailing
+space via OSASCI.
+
+The default entry with `X=4` prints 5 bytes (a full 32-bit
+address plus extent).""",
     on_entry={"x": "byte count minus 1 (default 4 for 5 bytes)",
               "y": "starting offset in (fs_options)"})
 subroutine(0x9D5F, "copy_fsopts_to_zp",
@@ -4632,22 +4635,31 @@ subroutine(0x9D7F, "retreat_y_by_3",
     on_entry={"y": "current offset"},
     on_exit={"y": "offset - 3"})
 subroutine(0x9D87, "check_and_setup_txcb",
-    title="Set up data transfer TXCB and dispatch reply",
-    description="Compares the 5-byte handle; if unchanged,\n"
-    "returns. Otherwise computes start/end addresses\n"
-    "with overflow clamping, sets the port and control\n"
-    "byte, sends the packet, and dispatches on the\n"
-    "reply sub-operation code.",
+    title="Set up data-transfer TXCB and dispatch reply",
+    description="""\
+Compares the 5-byte handle via
+[`cmp_5byte_handle`](address:93E6?hex); if unchanged, returns.
+Otherwise:
+
+1. Computes start / end addresses with overflow clamping.
+2. Sets the port and control byte.
+3. Sends the packet.
+4. Dispatches on the reply sub-operation code.""",
     on_exit={"a": "FS reply sub-operation code (drives downstream "
              "dispatch)"})
 subroutine(0x9DDC, "dispatch_osword_op",
     title="OSWORD &13 sub-operation triage (1-7)",
     description="""\
-Stores the sub-operation code in hazel_txcb_data and triages by value:
-0..6 -> dispatch_ops_1_to_6; 7 -> setup_dir_display (the *INFO
-expansion); >7 -> skip_if_error (which routes through
-finalise_and_return). Single caller (&9CB2 in the OSWORD &13
-handler entry).""",
+Stores the sub-operation code in
+[`hazel_txcb_data`](address:C105?hex) and triages by value:
+
+| Value | Target |
+|---|---|
+| `0..6` | `dispatch_ops_1_to_6` |
+| `7`    | [`setup_dir_display`](address:9CB5?hex) (`*INFO` expansion) |
+| `> 7`  | `skip_if_error` (routes through [`finalise_and_return`](address:9FB6?hex)) |
+
+Single caller (`&9CB2` in the OSWORD `&13` handler entry).""",
     on_entry={"a": "OSWORD sub-op code"})
 subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
@@ -4707,11 +4719,15 @@ between read-and-write paths via further branching.""",
 subroutine(0x9FC2, "osfind_close_or_open",
     title="OSFIND dispatch: close-all, close-one, or open",
     description="""\
-Triages the OSFIND function-code in A. If A >= 2 (open for input/
-output/update), branches to done_file_open. Otherwise transfers A
-to Y and tests: A=1 (close one channel) goes to done_file_open;
-A=0 (close all channels) loads A=5 (close-all return code) and
-falls through. Single caller (the OSFIND vector table at &9EED).""",
+Triages the OSFIND function code in `A`:
+
+| `A` | Meaning | Path |
+|---|---|---|
+| `≥ 2` | open for input / output / update | branch to `done_file_open` |
+| `1`   | close one channel | go to `done_file_open` |
+| `0`   | close all channels | load `A=5` (close-all return code) and fall through |
+
+Single caller (the OSFIND vector table at `&9EED`).""",
     on_entry={"a": "OSFIND function code (0=close-all, 1=close-one, "
               ">=2 = open variants)"})
 subroutine(0x9FCF, "clear_result",
@@ -4755,10 +4771,11 @@ FSCV vector with reason code 1.""",
     on_exit={"a": "0 = not at EOF, non-zero = EOF"})
 subroutine(0xA12C, "update_addr_from_offset9",
     title="Update both address fields in FS options",
-    description="Calls add_workspace_to_fsopts for offset 9 (the\n"
-    "high address / exec address field), then falls\n"
-    "through to update_addr_from_offset1 to process\n"
-    "offset 1 (the low address / load address field).",
+    description="""\
+Calls [`add_workspace_to_fsopts`](address:A133?hex) for offset
+9 (the high address / exec address field), then falls through to
+[`update_addr_from_offset1`](address:A131?hex) to process offset
+1 (the low address / load address field).""",
     on_exit={"a, x, y, c flag": "clobbered (4-byte arithmetic loop)"})
 subroutine(0xA131, "update_addr_from_offset1",
     title="Update low address field in FS options",
@@ -4778,10 +4795,18 @@ subroutine(0xA134, "adjust_fsopts_4bytes",
     title="Add or subtract 4 workspace bytes from FS options",
     description="""\
 Processes 4 consecutive bytes at `(fs_options)+Y`, adding or
-subtracting the corresponding 4-byte transfer-address record from
-NFS workspace. The direction is controlled by bit 7 of
-`fs_load_addr_2`: set for subtraction, clear for addition. Carry
-propagates across all 4 bytes for correct multi-byte arithmetic.""",
+subtracting the corresponding 4-byte transfer-address record
+from ANFS workspace.
+
+The direction is controlled by bit 7 of `fs_load_addr_2`:
+
+| Bit 7 | Operation |
+|---|---|
+| set   | subtract |
+| clear | add |
+
+Carry propagates across all 4 bytes for correct multi-byte
+arithmetic.""",
     on_entry={"y": "FS options offset for first byte",
               "c": "carry input for first byte"})
 label(0xA1EA, "return_success")
@@ -4799,13 +4824,23 @@ through at &A13F).""",
 subroutine(0xA14C, "gbpbv_handler",
     title="GBPBV vector handler: OSGBPB",
     description="""\
-Reached via the GBPBV vector at `&021C` after the
-[`fs_vector_table`](address:8EA7?hex) has copied the entry. Verifies
-the FS workspace checksum, sets up transfer parameters, masks the
-access prefix, and dispatches the OSGBPB sub-operation in `A`
-(`1`=PUT-bytes-with-pointer, `2`=PUT-bytes, `3`=GET-bytes-with-
-pointer, `4`=GET-bytes, `5`=read-disc-title, `6`=read-CSD, `7`=read
-library, `8`=read-files-in-CSD).""",
+Reached via the GBPBV vector at
+[`vec_gbpbv`](address:021C?hex) after the
+[`fs_vector_table`](address:8EA7?hex) has copied the entry.
+Verifies the FS workspace checksum, sets up transfer parameters,
+masks the access prefix, and dispatches the OSGBPB sub-operation
+in `A`:
+
+| `A` | Operation |
+|---|---|
+| `1` | PUT bytes with pointer |
+| `2` | PUT bytes |
+| `3` | GET bytes with pointer |
+| `4` | GET bytes |
+| `5` | read disc title |
+| `6` | read CSD |
+| `7` | read library |
+| `8` | read files in CSD |""",
     on_entry={"a": "OSGBPB function code (1-8)",
               "x, y": "control-block pointer (low, high)"})
 subroutine(0xA1EF, "lookup_cat_entry_0",
@@ -4825,15 +4860,24 @@ subroutine(0xA1F3, "lookup_cat_slot_data",
              "x": "channel slot index"})
 subroutine(0xA1FA, "setup_transfer_workspace",
     title="Prepare workspace for OSGBPB data transfer",
-    description="Orchestrates the setup for OSGBPB (get/put\n"
-    "multiple bytes) operations. Looks up the channel,\n"
-    "copies the 6-byte address structure from FS options\n"
-    "(skipping the hole at offset 8), determines transfer\n"
-    "direction from the operation code (even=read,\n"
-    "odd=write), selects port &91 or &92 accordingly,\n"
-    "and sends the FS request. Then configures the TXCB\n"
-    "address pairs for the actual data transfer phase\n"
-    "and dispatches to the appropriate handler.",
+    description="""\
+Orchestrates the setup for OSGBPB (get/put multiple bytes)
+operations:
+
+1. Look up the channel.
+2. Copy the 6-byte address structure from FS options (skipping
+   the hole at offset 8).
+3. Determine transfer direction from the operation code:
+
+   | Operation code parity | Direction | FS port |
+   |---|---|---|
+   | even | read  | `&91` |
+   | odd  | write | `&92` |
+
+4. Send the FS request.
+5. Configure the TXCB address pairs for the actual
+   data-transfer phase.
+6. Dispatch to the appropriate handler.""",
     on_exit={"a": "FS reply status from the data-transfer phase"})
 subroutine(0xA284, "recv_reply_preserve_flags",
     title="Receive and process reply, preserving flags",

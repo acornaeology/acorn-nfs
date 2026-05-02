@@ -304,36 +304,36 @@ addresses across all 431 remaining routines.
 | 228 | &9CB5 | `setup_dir_display` | kept | already accurate |
 | 229 | &9D0C | `recv_reply` | kept | accurate description |
 | 230 | &9D44 | `print_load_exec_addrs` | kept | already accurate |
-| 231 | &9D4F | `print_5_hex_bytes` | | |
-| 232 | &9D5F | `copy_fsopts_to_zp` | | |
-| 233 | &9D6B | `skip_one_and_advance5` | | |
-| 234 | &9D6C | `advance_y_by_4` | | |
-| 235 | &9D71 | `copy_workspace_to_fsopts` | | |
-| 236 | &9D7E | `retreat_y_by_4` | | |
-| 237 | &9D7F | `retreat_y_by_3` | | |
-| 238 | &9D87 | `check_and_setup_txcb` | | |
-| 239 | &9DDC | `dispatch_osword_op` | | |
-| 240 | &9E82 | `format_filename_field` | | |
-| 241 | &9EAB | `argsv_handler` | | |
-| 242 | &9FB1 | `close_all_fcbs` | | |
-| 243 | &9FB4 | `return_with_last_flag` | | |
-| 244 | &9FB6 | `finalise_and_return` | | |
-| 245 | &9FC2 | `osfind_close_or_open` | | |
-| 246 | &9FCF | `clear_result` | | |
-| 247 | &9FEE | `send_open_file_request` | | |
-| 248 | &A0A9 | `fscv_0_opt_entry` | | |
-| 249 | &A0FE | `store_carry_to_workspace` | | |
-| 250 | &A10B | `fscv_1_eof` | | |
-| 251 | &A12C | `update_addr_from_offset9` | | |
-| 252 | &A131 | `update_addr_from_offset1` | | |
-| 253 | &A133 | `add_workspace_to_fsopts` | | |
-| 254 | &A134 | `adjust_fsopts_4bytes` | | |
-| 255 | &A145 | `store_adjusted_byte` | | |
-| 256 | &A14C | `gbpbv_handler` | | |
-| 257 | &A1EF | `lookup_cat_entry_0` | | |
-| 258 | &A1F3 | `lookup_cat_slot_data` | | |
-| 259 | &A1FA | `setup_transfer_workspace` | | |
-| 260 | &A284 | `recv_reply_preserve_flags` | | |
+| 231 | &9D4F | `print_5_hex_bytes` | done | print_hex_byte link |
+| 232 | &9D5F | `copy_fsopts_to_zp` | kept | already accurate |
+| 233 | &9D6B | `skip_one_and_advance5` | kept | already accurate |
+| 234 | &9D6C | `advance_y_by_4` | kept | already accurate |
+| 235 | &9D71 | `copy_workspace_to_fsopts` | kept | already accurate |
+| 236 | &9D7E | `retreat_y_by_4` | kept | already accurate |
+| 237 | &9D7F | `retreat_y_by_3` | kept | already accurate |
+| 238 | &9D87 | `check_and_setup_txcb` | done | numbered breakdown; cmp_5byte_handle link |
+| 239 | &9DDC | `dispatch_osword_op` | done | sub-op dispatch table; setup_dir_display + finalise_and_return links |
+| 240 | &9E82 | `format_filename_field` | kept | already accurate |
+| 241 | &9EAB | `argsv_handler` | kept | already accurate |
+| 242 | &9FB1 | `close_all_fcbs` | kept | already accurate |
+| 243 | &9FB4 | `return_with_last_flag` | kept | already accurate |
+| 244 | &9FB6 | `finalise_and_return` | kept | already accurate |
+| 245 | &9FC2 | `osfind_close_or_open` | done | OSFIND function code dispatch table |
+| 246 | &9FCF | `clear_result` | kept | already accurate |
+| 247 | &9FEE | `send_open_file_request` | kept | covered by Phase K2 |
+| 248 | &A0A9 | `fscv_0_opt_entry` | kept | already accurate |
+| 249 | &A0FE | `store_carry_to_workspace` | kept | covered by Phase K2 |
+| 250 | &A10B | `fscv_1_eof` | kept | already accurate |
+| 251 | &A12C | `update_addr_from_offset9` | done | add_workspace_to_fsopts + update_addr_from_offset1 links |
+| 252 | &A131 | `update_addr_from_offset1` | kept | already accurate |
+| 253 | &A133 | `add_workspace_to_fsopts` | kept | already accurate |
+| 254 | &A134 | `adjust_fsopts_4bytes` | done | bit-7 direction table |
+| 255 | &A145 | `store_adjusted_byte` | kept | already accurate |
+| 256 | &A14C | `gbpbv_handler` | done | OSGBPB function-code table; vec_gbpbv link |
+| 257 | &A1EF | `lookup_cat_entry_0` | kept | already accurate |
+| 258 | &A1F3 | `lookup_cat_slot_data` | kept | already accurate |
+| 259 | &A1FA | `setup_transfer_workspace` | done | 6-step numbered breakdown + parity dispatch table |
+| 260 | &A284 | `recv_reply_preserve_flags` | kept | already accurate |
 | 261 | &A28A | `send_osbput_data` | | |
 | 262 | &A29F | `write_block_entry` | | |
 | 263 | &A2ED | `write_data_block` | | |

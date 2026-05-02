@@ -7953,8 +7953,9 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Outputs X+1 bytes from (fs_options) starting at offset Y, decrementing Y for each
 ; byte (big-endian display order). Each byte is printed as two hex digits via
-; print_hex_byte. Finishes with a trailing space via OSASCI. The default entry with X=4
-; prints 5 bytes (a full 32-bit address plus extent).
+; print_hex_byte (&9236). Finishes with a trailing space via OSASCI.
+;
+; The default entry with X=4 prints 5 bytes (a full 32-bit address plus extent).
 ;
 ; On Entry: X: byte count minus 1 (default 4 for 5 bytes) Y: starting offset in
 ; (fs_options)
@@ -8080,11 +8081,15 @@ bad_prefix_table = bad_str_anchor+1
     rts                                                               ; 9d86: 60          `              ; Return (handle already matches)
 
 ; ***************************************************************************************
-; Set up data transfer TXCB and dispatch reply
+; Set up data-transfer TXCB and dispatch reply
 ;
-; Compares the 5-byte handle; if unchanged, returns. Otherwise computes start/end
-; addresses with overflow clamping, sets the port and control byte, sends the packet,
-; and dispatches on the reply sub-operation code.
+; Compares the 5-byte handle via cmp_5byte_handle (&93E6); if unchanged, returns.
+; Otherwise:
+;
+; 1. Computes start / end addresses with overflow clamping.
+; 2. Sets the port and control byte.
+; 3. Sends the packet.
+; 4. Dispatches on the reply sub-operation code.
 ;
 ; On Exit: A: FS reply sub-operation code (drives downstream dispatch)
 ; &9d87 referenced 2 times by &9d09, &a26a
@@ -8148,10 +8153,15 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSWORD &13 sub-operation triage (1-7)
 ;
-; Stores the sub-operation code in hazel_txcb_data and triages by value: 0..6 ->
-; dispatch_ops_1_to_6; 7 -> setup_dir_display (the *INFO expansion); >7 ->
-; skip_if_error (which routes through finalise_and_return). Single caller (&9CB2 in the
-; OSWORD &13 handler entry).
+; Stores the sub-operation code in hazel_txcb_data (&C105) and triages by value:
+;
+; | Value | Target                                                     |
+; |-------|------------------------------------------------------------|
+; | 0..6  | dispatch_ops_1_to_6                                        |
+; | 7     | setup_dir_display (&9CB5) (*INFO expansion)                |
+; | > 7   | skip_if_error (routes through finalise_and_return (&9FB6)) |
+;
+; Single caller (&9CB2 in the OSWORD &13 handler entry).
 ;
 ; On Entry: A: OSWORD sub-op code
 ; &9ddc referenced 1 time by &9cb2
@@ -8536,10 +8546,15 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSFIND dispatch: close-all, close-one, or open
 ;
-; Triages the OSFIND function-code in A. If A >= 2 (open for input/ output/update),
-; branches to done_file_open. Otherwise transfers A to Y and tests: A=1 (close one
-; channel) goes to done_file_open; A=0 (close all channels) loads A=5 (close-all return
-; code) and falls through. Single caller (the OSFIND vector table at &9EED).
+; Triages the OSFIND function code in A:
+;
+; | A   | Meaning                          | Path                                              |
+; |-----|----------------------------------|---------------------------------------------------|
+; | ≥ 2 | open for input / output / update | branch to done_file_open                          |
+; | 1   | close one channel                | go to done_file_open                              |
+; | 0   | close all channels               | load A=5 (close-all return code) and fall through |
+;
+; Single caller (the OSFIND vector table at &9EED).
 ;
 ; On Entry: A: OSFIND function code (0=close-all, 1=close-one, >=2 = open variants)
 ; &9fc2 referenced 1 time by &9eed
@@ -8825,9 +8840,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Update both address fields in FS options
 ;
-; Calls add_workspace_to_fsopts for offset 9 (the high address / exec address field),
-; then falls through to update_addr_from_offset1 to process offset 1 (the low address /
-; load address field).
+; Calls add_workspace_to_fsopts (&A133) for offset 9 (the high address / exec address
+; field), then falls through to update_addr_from_offset1 (&A131) to process offset 1
+; (the low address / load address field).
 ;
 ; On Exit: A, X, Y, C FLAG: clobbered (4-byte arithmetic loop)
 ; &a12c referenced 1 time by &a277
@@ -8858,9 +8873,16 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Add or subtract 4 workspace bytes from FS options
 ;
 ; Processes 4 consecutive bytes at (fs_options)+Y, adding or subtracting the
-; corresponding 4-byte transfer-address record from NFS workspace. The direction is
-; controlled by bit 7 of fs_load_addr_2: set for subtraction, clear for addition. Carry
-; propagates across all 4 bytes for correct multi-byte arithmetic.
+; corresponding 4-byte transfer-address record from ANFS workspace.
+;
+; The direction is controlled by bit 7 of fs_load_addr_2:
+;
+; | Bit 7 | Operation |
+; |-------|-----------|
+; | set   | subtract  |
+; | clear | add       |
+;
+; Carry propagates across all 4 bytes for correct multi-byte arithmetic.
 ;
 ; On Entry: Y: FS options offset for first byte C: carry input for first byte
 ; &a134 referenced 2 times by &a27d, &a37c
@@ -8897,11 +8919,20 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; GBPBV vector handler: OSGBPB
 ;
-; Reached via the GBPBV vector at &021C after the fs_vector_table (&8EA7) has copied
-; the entry. Verifies the FS workspace checksum, sets up transfer parameters, masks the
-; access prefix, and dispatches the OSGBPB sub-operation in A
-; (1=PUT-bytes-with-pointer, 2=PUT-bytes, 3=GET-bytes-with- pointer, 4=GET-bytes,
-; 5=read-disc-title, 6=read-CSD, 7=read library, 8=read-files-in-CSD).
+; Reached via the GBPBV vector at vec_gbpbv (&021C) after the fs_vector_table (&8EA7)
+; has copied the entry. Verifies the FS workspace checksum, sets up transfer
+; parameters, masks the access prefix, and dispatches the OSGBPB sub-operation in A:
+;
+; | A | Operation              |
+; |---|------------------------|
+; | 1 | PUT bytes with pointer |
+; | 2 | PUT bytes              |
+; | 3 | GET bytes with pointer |
+; | 4 | GET bytes              |
+; | 5 | read disc title        |
+; | 6 | read CSD               |
+; | 7 | read library           |
+; | 8 | read files in CSD      |
 ;
 ; On Entry: A: OSGBPB function code (1-8) X, Y: control-block pointer (low, high)
 .gbpbv_handler
@@ -9022,12 +9053,19 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Prepare workspace for OSGBPB data transfer
 ;
-; Orchestrates the setup for OSGBPB (get/put multiple bytes) operations. Looks up the
-; channel, copies the 6-byte address structure from FS options (skipping the hole at
-; offset 8), determines transfer direction from the operation code (even=read,
-; odd=write), selects port &91 or &92 accordingly, and sends the FS request. Then
-; configures the TXCB address pairs for the actual data transfer phase and dispatches
-; to the appropriate handler.
+; Orchestrates the setup for OSGBPB (get/put multiple bytes) operations:
+;
+; 1. Look up the channel.
+; 2. Copy the 6-byte address structure from FS options (skipping the hole at offset 8).
+; 3. Determine transfer direction from the operation code:
+;
+;    | Operation code parity | Direction | FS port |
+;    |-----------------------|-----------|---------|
+;    | even                  | read      | &91     |
+;    | odd                   | write     | &92     |
+; 4. Send the FS request.
+; 5. Configure the TXCB address pairs for the actual data-transfer phase.
+; 6. Dispatch to the appropriate handler.
 ;
 ; On Exit: A: FS reply status from the data-transfer phase
 ; &a1fa referenced 2 times by &a19d, &bd18
