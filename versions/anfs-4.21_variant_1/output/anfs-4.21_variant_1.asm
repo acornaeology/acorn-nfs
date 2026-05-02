@@ -5783,85 +5783,85 @@ ps_template_base = sub_c8da6+1
 ; On Entry: X: CMOS RAM byte index Y: value to write
 ; &9612 referenced 2 times by &962e, &a0fe
 .osbyte_a2
-    lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..
+    lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..             ; A=&A2: write CMOS RAM byte via OSBYTE
     jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y
-    bra c95be                                                         ; 9617: 80 a5       ..
-    ldx #&11                                                          ; 9619: a2 11       ..
-    jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..
-    tya                                                               ; 961e: 98          .
-    ora #1                                                            ; 961f: 09 01       ..
-    bra c962b                                                         ; 9621: 80 08       ..
-    ldx #&11                                                          ; 9623: a2 11       ..
-    jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..
-    tya                                                               ; 9628: 98          .
-    and #&fe                                                          ; 9629: 29 fe       ).
+    bra c95be                                                         ; 9617: 80 a5       ..             ; BRA -91 -> c95be (return-via-shared-tail)
+    ldx #&11                                                          ; 9619: a2 11       ..             ; X=&11: CMOS RAM byte index
+    jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
+    tya                                                               ; 961e: 98          .              ; TYA -- A = current CMOS &11 value
+    ora #1                                                            ; 961f: 09 01       ..             ; Set bit 0 in A
+    bra c962b                                                         ; 9621: 80 08       ..             ; BRA c962b: shared write-back tail
+    ldx #&11                                                          ; 9623: a2 11       ..             ; X=&11: CMOS RAM byte index
+    jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
+    tya                                                               ; 9628: 98          .              ; TYA -- A = current CMOS &11 value
+    and #&fe                                                          ; 9629: 29 fe       ).             ; Clear bit 0 in A
 ; &962b referenced 1 time by &9621
 .c962b
-    tay                                                               ; 962b: a8          .
-    ldx #&11                                                          ; 962c: a2 11       ..
-    bra osbyte_a2                                                     ; 962e: 80 e2       ..
+    tay                                                               ; 962b: a8          .              ; TAY -- new CMOS value to Y
+    ldx #&11                                                          ; 962c: a2 11       ..             ; X=&11: CMOS RAM byte index
+    bra osbyte_a2                                                     ; 962e: 80 e2       ..             ; BRA osbyte_a2: write CMOS &11 = Y
 .parse_object_argument
-    lda (os_text_ptr),y                                               ; 9630: b1 f2       ..
-    cmp #&0d                                                          ; 9632: c9 0d       ..
-    bne c968c                                                         ; 9634: d0 56       .V
-    jsr sub_c95c8                                                     ; 9636: 20 c8 95     ..
-    jsr sub_c9670                                                     ; 9639: 20 70 96     p.
-    jsr sub_c95c1                                                     ; 963c: 20 c1 95     ..
-    jsr sub_c965f                                                     ; 963f: 20 5f 96     _.
-    ldx #&11                                                          ; 9642: a2 11       ..
-    jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..
-    tya                                                               ; 9647: 98          .
-    and #1                                                            ; 9648: 29 01       ).
-    bne c9653                                                         ; 964a: d0 07       ..
-    jsr print_inline                                                  ; 964c: 20 61 92     a.
+    lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
+    cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?
+    bne c968c                                                         ; 9634: d0 56       .V             ; Non-CR: parse the argument at c968c
+    jsr sub_c95c8                                                     ; 9636: 20 c8 95     ..            ; Print 'F' (port-number prefix)
+    jsr sub_c9670                                                     ; 9639: 20 70 96     p.            ; Print port number from CMOS
+    jsr sub_c95c1                                                     ; 963c: 20 c1 95     ..            ; Print 'P' (station prefix)
+    jsr sub_c965f                                                     ; 963f: 20 5f 96     _.            ; Print station number
+    ldx #&11                                                          ; 9642: a2 11       ..             ; X=&11: CMOS RAM byte index
+    jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..            ; Read CMOS &11 (FS state)
+    tya                                                               ; 9647: 98          .              ; TYA -- A = CMOS &11
+    and #1                                                            ; 9648: 29 01       ).             ; Mask bit 0 (FS-active flag)
+    bne c9653                                                         ; 964a: d0 07       ..             ; Bit set: skip 'No ' prefix
+    jsr print_inline                                                  ; 964c: 20 61 92     a.            ; Print 'No ' prefix via inline
     equs "No "                                                        ; 964f: 4e 6f 20    No
 
-    nop                                                               ; 9652: ea          .
+    nop                                                               ; 9652: ea          .              ; NOP -- bit-7 terminator + resume
 ; &9653 referenced 1 time by &964a
 .c9653
-    jsr print_inline                                                  ; 9653: 20 61 92     a.
+    jsr print_inline                                                  ; 9653: 20 61 92     a.            ; Print 'Space ' or similar via inline
     equs "Space", &0d                                                 ; 9656: 53 70 61... Spa
 
-    clv                                                               ; 965c: b8          .
+    clv                                                               ; 965c: b8          .              ; CLV -- bit-7 terminator + resume opcode
     bvc c9689                                                         ; 965d: 50 2a       P*             ; ALWAYS branch
 
 ; &965f referenced 1 time by &963f
 .sub_c965f
-    ldx #4                                                            ; 965f: a2 04       ..
-    jsr osbyte_a1                                                     ; 9661: 20 9a 8e     ..
-    tya                                                               ; 9664: 98          .
-    jsr print_num_no_leading                                          ; 9665: 20 27 b3     '.
-    jsr print_inline                                                  ; 9668: 20 61 92     a.
+    ldx #4                                                            ; 965f: a2 04       ..             ; X=4: CMOS RAM byte 4 (network number)
+    jsr osbyte_a1                                                     ; 9661: 20 9a 8e     ..            ; Read CMOS &04 via osbyte_a1
+    tya                                                               ; 9664: 98          .              ; TYA -- A = CMOS &04 value
+    jsr print_num_no_leading                                          ; 9665: 20 27 b3     '.            ; Print as decimal (no leading zeros)
+    jsr print_inline                                                  ; 9668: 20 61 92     a.            ; Print '.' separator via inline
     equs "."                                                          ; 966b: 2e          .
 
-    ldx #3                                                            ; 966c: a2 03       ..
-    bra c967f                                                         ; 966e: 80 0f       ..
+    ldx #3                                                            ; 966c: a2 03       ..             ; X=3: CMOS &03 (FS station)
+    bra c967f                                                         ; 966e: 80 0f       ..             ; BRA c967f: shared print-and-trail
 ; &9670 referenced 1 time by &9639
 .sub_c9670
-    ldx #2                                                            ; 9670: a2 02       ..
-    jsr osbyte_a1                                                     ; 9672: 20 9a 8e     ..
-    tya                                                               ; 9675: 98          .
-    jsr print_num_no_leading                                          ; 9676: 20 27 b3     '.
-    jsr print_inline                                                  ; 9679: 20 61 92     a.
+    ldx #2                                                            ; 9670: a2 02       ..             ; X=2: CMOS &02 (FS network)
+    jsr osbyte_a1                                                     ; 9672: 20 9a 8e     ..            ; Read CMOS &02 via osbyte_a1
+    tya                                                               ; 9675: 98          .              ; TYA -- A = CMOS &02
+    jsr print_num_no_leading                                          ; 9676: 20 27 b3     '.            ; Print as decimal
+    jsr print_inline                                                  ; 9679: 20 61 92     a.            ; Print '.' separator via inline
     equs "."                                                          ; 967c: 2e          .
 
-    ldx #1                                                            ; 967d: a2 01       ..
+    ldx #1                                                            ; 967d: a2 01       ..             ; X=1: CMOS &01 (port)
 ; &967f referenced 1 time by &966e
 .c967f
-    jsr osbyte_a1                                                     ; 967f: 20 9a 8e     ..
-    tya                                                               ; 9682: 98          .
-    jsr print_num_no_leading                                          ; 9683: 20 27 b3     '.
+    jsr osbyte_a1                                                     ; 967f: 20 9a 8e     ..            ; Read CMOS X via osbyte_a1
+    tya                                                               ; 9682: 98          .              ; TYA -- A = CMOS value
+    jsr print_num_no_leading                                          ; 9683: 20 27 b3     '.            ; Print as decimal
     jsr osnewl                                                        ; 9686: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &9689 referenced 1 time by &965d
 .c9689
-    jmp svc_return_unclaimed                                          ; 9689: 4c 64 8c    Ld.
+    jmp svc_return_unclaimed                                          ; 9689: 4c 64 8c    Ld.            ; JMP svc_return_unclaimed (release service call)
 
 ; &968c referenced 1 time by &9634
 .c968c
-    ldx #&bd                                                          ; 968c: a2 bd       ..
+    ldx #&bd                                                          ; 968c: a2 bd       ..             ; X=&BD: setup index for the dispatch chain
 .sub_c968e
 l968f = sub_c968e+1
-    jmp c8c46                                                         ; 968e: 4c 46 8c    LF.
+    jmp c8c46                                                         ; 968e: 4c 46 8c    LF.            ; JMP c8c46 -- shared parser dispatch
 
 ; &968f referenced 1 time by &96dc
     equs "!Help."                                                     ; 9691: 21 48 65... !He            ; '!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)
@@ -5870,119 +5870,119 @@ l968f = sub_c968e+1
     equs "ON "                                                        ; 9697: 4f 4e 20    ON             ; 'ON ' -- 3-char pattern read by match_on_suffix at &969A via EOR &9697,X with X=0..2 to detect '... ON ' help-line suffix
 
 .match_on_suffix
-    phy                                                               ; 969a: 5a          Z
-    lda os_text_ptr                                                   ; 969b: a5 f2       ..
-    sta work_ae                                                       ; 969d: 85 ae       ..
-    lda os_text_ptr_hi                                                ; 969f: a5 f3       ..
-    sta addr_work                                                     ; 96a1: 85 af       ..
-    ply                                                               ; 96a3: 7a          z
-    phy                                                               ; 96a4: 5a          Z
-    ldx #0                                                            ; 96a5: a2 00       ..
+    phy                                                               ; 969a: 5a          Z              ; PHY -- save Y
+    lda os_text_ptr                                                   ; 969b: a5 f2       ..             ; Copy os_text_ptr lo to work_ae
+    sta work_ae                                                       ; 969d: 85 ae       ..             ; Store -> work_ae
+    lda os_text_ptr_hi                                                ; 969f: a5 f3       ..             ; Copy os_text_ptr hi
+    sta addr_work                                                     ; 96a1: 85 af       ..             ; Store -> addr_work
+    ply                                                               ; 96a3: 7a          z              ; PLY -- restore caller Y
+    phy                                                               ; 96a4: 5a          Z              ; PHY -- save Y again (preserve across loop)
+    ldx #0                                                            ; 96a5: a2 00       ..             ; X=0: pattern offset starts at 0
 ; &96a7 referenced 1 time by &96b6
 .loop_c96a7
-    lda (work_ae),y                                                   ; 96a7: b1 ae       ..
-    eor l9697,x                                                       ; 96a9: 5d 97 96    ]..
-    and #&5f ; '_'                                                    ; 96ac: 29 5f       )_
-    beq c96b2                                                         ; 96ae: f0 02       ..
+    lda (work_ae),y                                                   ; 96a7: b1 ae       ..             ; Read text byte at (work_ae)+Y
+    eor l9697,x                                                       ; 96a9: 5d 97 96    ]..            ; EOR pattern byte at l9697+X
+    and #&5f ; '_'                                                    ; 96ac: 29 5f       )_             ; Mask bit 5 -- case-insensitive comparison
+    beq c96b2                                                         ; 96ae: f0 02       ..             ; Equal: continue checking pattern
 ; &96b0 referenced 2 times by &96c2, &96d1
 .c96b0
-    ply                                                               ; 96b0: 7a          z
-    rts                                                               ; 96b1: 60          `
+    ply                                                               ; 96b0: 7a          z              ; PLY -- restore Y
+    rts                                                               ; 96b1: 60          `              ; Return (no match)
 
 ; &96b2 referenced 1 time by &96ae
 .c96b2
-    iny                                                               ; 96b2: c8          .
-    inx                                                               ; 96b3: e8          .
-    cpx #3                                                            ; 96b4: e0 03       ..
-    bcc loop_c96a7                                                    ; 96b6: 90 ef       ..
-    phy                                                               ; 96b8: 5a          Z
-    jsr ensure_fs_selected                                            ; 96b9: 20 4d 8b     M.
+    iny                                                               ; 96b2: c8          .              ; INY: advance text index
+    inx                                                               ; 96b3: e8          .              ; INX: advance pattern index
+    cpx #3                                                            ; 96b4: e0 03       ..             ; Done all 3 chars?
+    bcc loop_c96a7                                                    ; 96b6: 90 ef       ..             ; No: continue
+    phy                                                               ; 96b8: 5a          Z              ; Match -- PHY save Y
+    jsr ensure_fs_selected                                            ; 96b9: 20 4d 8b     M.            ; Ensure NFS is selected (auto-select if needed)
 ; &96bc referenced 2 times by &970d, &971c
 .c96bc
-    ply                                                               ; 96bc: 7a          z
+    ply                                                               ; 96bc: 7a          z              ; PLY -- restore Y
 ; &96bd referenced 1 time by &96c6
 .loop_c96bd
-    iny                                                               ; 96bd: c8          .
-    lda (work_ae),y                                                   ; 96be: b1 ae       ..
-    cmp #&0d                                                          ; 96c0: c9 0d       ..
-    beq c96b0                                                         ; 96c2: f0 ec       ..
-    cmp #&20 ; ' '                                                    ; 96c4: c9 20       .
-    bne loop_c96bd                                                    ; 96c6: d0 f5       ..
+    iny                                                               ; 96bd: c8          .              ; Advance Y to next char
+    lda (work_ae),y                                                   ; 96be: b1 ae       ..             ; Read text byte at (work_ae)+Y
+    cmp #&0d                                                          ; 96c0: c9 0d       ..             ; Is it CR (end-of-line)?
+    beq c96b0                                                         ; 96c2: f0 ec       ..             ; Yes: nothing to load -> return
+    cmp #&20 ; ' '                                                    ; 96c4: c9 20       .              ; Is it space?
+    bne loop_c96bd                                                    ; 96c6: d0 f5       ..             ; No: continue scanning past non-space
 ; &96c8 referenced 1 time by &96cd
 .loop_c96c8
-    iny                                                               ; 96c8: c8          .
-    lda (work_ae),y                                                   ; 96c9: b1 ae       ..
-    cmp #&20 ; ' '                                                    ; 96cb: c9 20       .
-    beq loop_c96c8                                                    ; 96cd: f0 f9       ..
-    cmp #&0d                                                          ; 96cf: c9 0d       ..
-    beq c96b0                                                         ; 96d1: f0 dd       ..
-    sty lc105                                                         ; 96d3: 8c 05 c1    ...
-    sty lc106                                                         ; 96d6: 8c 06 c1    ...
-    ldx #1                                                            ; 96d9: a2 01       ..
+    iny                                                               ; 96c8: c8          .              ; Skip space char
+    lda (work_ae),y                                                   ; 96c9: b1 ae       ..             ; Read next byte
+    cmp #&20 ; ' '                                                    ; 96cb: c9 20       .              ; Is it space?
+    beq loop_c96c8                                                    ; 96cd: f0 f9       ..             ; Yes: keep skipping spaces
+    cmp #&0d                                                          ; 96cf: c9 0d       ..             ; Is it CR?
+    beq c96b0                                                         ; 96d1: f0 dd       ..             ; Yes: nothing past spaces -> return
+    sty lc105                                                         ; 96d3: 8c 05 c1    ...            ; Save Y as lc105 (cmd buffer ptr)
+    sty lc106                                                         ; 96d6: 8c 06 c1    ...            ; Save Y as lc106 (cmd flag)
+    ldx #1                                                            ; 96d9: a2 01       ..             ; X=1: index for template walk
 ; &96db referenced 1 time by &96e4
 .loop_c96db
-    inx                                                               ; 96db: e8          .
-    lda l968f,x                                                       ; 96dc: bd 8f 96    ...
-    sta lc105,x                                                       ; 96df: 9d 05 c1    ...
-    cmp #&2e ; '.'                                                    ; 96e2: c9 2e       ..
-    bne loop_c96db                                                    ; 96e4: d0 f5       ..
-    phy                                                               ; 96e6: 5a          Z
+    inx                                                               ; 96db: e8          .              ; INX: advance template index
+    lda l968f,x                                                       ; 96dc: bd 8f 96    ...            ; Read template byte from l968f+X
+    sta lc105,x                                                       ; 96df: 9d 05 c1    ...            ; Store at lc105+X
+    cmp #&2e ; '.'                                                    ; 96e2: c9 2e       ..             ; Compare with '.' (template terminator)
+    bne loop_c96db                                                    ; 96e4: d0 f5       ..             ; Not '.': continue copying template
+    phy                                                               ; 96e6: 5a          Z              ; PHY -- save text-buffer index
 ; &96e7 referenced 1 time by &96f4
 .loop_c96e7
-    inx                                                               ; 96e7: e8          .
-    lda (work_ae),y                                                   ; 96e8: b1 ae       ..
-    iny                                                               ; 96ea: c8          .
+    inx                                                               ; 96e7: e8          .              ; INX: advance dest index
+    lda (work_ae),y                                                   ; 96e8: b1 ae       ..             ; Read topic char at (work_ae),Y
+    iny                                                               ; 96ea: c8          .              ; INY: advance source
 ; &96eb referenced 1 time by &96f8
 .loop_c96eb
-    sta lc105,x                                                       ; 96eb: 9d 05 c1    ...
-    cmp #&0d                                                          ; 96ee: c9 0d       ..
-    beq c96fa                                                         ; 96f0: f0 08       ..
-    cmp #&20 ; ' '                                                    ; 96f2: c9 20       .
-    bne loop_c96e7                                                    ; 96f4: d0 f1       ..
-    lda #&0d                                                          ; 96f6: a9 0d       ..
-    bra loop_c96eb                                                    ; 96f8: 80 f1       ..
+    sta lc105,x                                                       ; 96eb: 9d 05 c1    ...            ; Store at lc105+X
+    cmp #&0d                                                          ; 96ee: c9 0d       ..             ; CR? (end of name)
+    beq c96fa                                                         ; 96f0: f0 08       ..             ; Yes: take c96fa path (open file)
+    cmp #&20 ; ' '                                                    ; 96f2: c9 20       .              ; Space? (terminator)
+    bne loop_c96e7                                                    ; 96f4: d0 f1       ..             ; No: continue copying
+    lda #&0d                                                          ; 96f6: a9 0d       ..             ; A=&0D: replace space with CR
+    bra loop_c96eb                                                    ; 96f8: 80 f1       ..             ; BRA back to store the CR
 ; &96fa referenced 1 time by &96f0
 .c96fa
-    inx                                                               ; 96fa: e8          .
-    lda lc271                                                         ; 96fb: ad 71 c2    .q.
-    and #&3f ; '?'                                                    ; 96fe: 29 3f       )?
-    ora #&80                                                          ; 9700: 09 80       ..
-    sta lc271                                                         ; 9702: 8d 71 c2    .q.
-    lda #&40 ; '@'                                                    ; 9705: a9 40       .@
-    sta fs_last_byte_flag                                             ; 9707: 85 bd       ..
-    jsr sub_c9fee                                                     ; 9709: 20 ee 9f     ..
+    inx                                                               ; 96fa: e8          .              ; INX: account for last char
+    lda lc271                                                         ; 96fb: ad 71 c2    .q.            ; Read fs_lib_flags (lc271)
+    and #&3f ; '?'                                                    ; 96fe: 29 3f       )?             ; AND #&3F -- preserve low bits, clear high bits
+    ora #&80                                                          ; 9700: 09 80       ..             ; ORA #&80 -- set bit 7 (load-pending flag)
+    sta lc271                                                         ; 9702: 8d 71 c2    .q.            ; Store back to fs_lib_flags
+    lda #&40 ; '@'                                                    ; 9705: a9 40       .@             ; A=&40: load mode flag
+    sta fs_last_byte_flag                                             ; 9707: 85 bd       ..             ; Store as fs_last_byte_flag
+    jsr sub_c9fee                                                     ; 9709: 20 ee 9f     ..            ; Open the help-topic file
     tay                                                               ; 970c: a8          .              ; Y=file handle
-    beq c96bc                                                         ; 970d: f0 ad       ..
+    beq c96bc                                                         ; 970d: f0 ad       ..             ; Y=0: open failed -> return
 ; &970f referenced 2 times by &972c, &973b
 .c970f
     jsr osbget                                                        ; 970f: 20 d7 ff     ..            ; Read a single byte from an open file Y
-    bcc c971e                                                         ; 9712: 90 0a       ..
-    lda #osfind_close                                                 ; 9714: a9 00       ..
+    bcc c971e                                                         ; 9712: 90 0a       ..             ; C clear: byte read OK -> print it
+    lda #osfind_close                                                 ; 9714: a9 00       ..             ; A=0: OSFIND close mode
     jsr osfind                                                        ; 9716: 20 ce ff     ..            ; Close one or all files
     jsr osnewl                                                        ; 9719: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    bra c96bc                                                         ; 971c: 80 9e       ..
+    bra c96bc                                                         ; 971c: 80 9e       ..             ; BRA back to c96bc (return)
 ; &971e referenced 2 times by &9712, &9736
 .c971e
-    bit escape_flag                                                   ; 971e: 24 ff       $.
-    bpl c9725                                                         ; 9720: 10 03       ..
-    jmp cbd2d                                                         ; 9722: 4c 2d bd    L-.
+    bit escape_flag                                                   ; 971e: 24 ff       $.             ; BIT escape_flag
+    bpl c9725                                                         ; 9720: 10 03       ..             ; Bit 7 clear: not escaping, continue
+    jmp cbd2d                                                         ; 9722: 4c 2d bd    L-.            ; Escape: jump to error path cbd2d
 
 ; &9725 referenced 1 time by &9720
 .c9725
-    cmp #&0d                                                          ; 9725: c9 0d       ..
-    beq c972e                                                         ; 9727: f0 05       ..
+    cmp #&0d                                                          ; 9725: c9 0d       ..             ; Compare with CR
+    beq c972e                                                         ; 9727: f0 05       ..             ; Z: CR -- handle line-end (newline)
     jsr oswrch                                                        ; 9729: 20 ee ff     ..            ; Write character
-    bra c970f                                                         ; 972c: 80 e1       ..
+    bra c970f                                                         ; 972c: 80 e1       ..             ; BRA back to read next byte
 ; &972e referenced 1 time by &9727
 .c972e
-    phy                                                               ; 972e: 5a          Z
-    lda #&da                                                          ; 972f: a9 da       ..
-    jsr osbyte_x0                                                     ; 9731: 20 c9 8e     ..
-    ply                                                               ; 9734: 7a          z
-    txa                                                               ; 9735: 8a          .
-    bne c971e                                                         ; 9736: d0 e6       ..
+    phy                                                               ; 972e: 5a          Z              ; PHY -- save file handle
+    lda #&da                                                          ; 972f: a9 da       ..             ; A=&DA: OSBYTE &DA = read paged-mode flag
+    jsr osbyte_x0                                                     ; 9731: 20 c9 8e     ..            ; Issue OSBYTE &DA (X=0)
+    ply                                                               ; 9734: 7a          z              ; PLY -- restore handle
+    txa                                                               ; 9735: 8a          .              ; TXA -- result to A
+    bne c971e                                                         ; 9736: d0 e6       ..             ; Non-zero: paged mode pending -> handle Escape
     jsr osnewl                                                        ; 9738: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    bra c970f                                                         ; 973b: 80 d2       ..
+    bra c970f                                                         ; 973b: 80 d2       ..             ; BRA back to read next byte
 ; ***************************************************************************************
 ; Set up open receive for FS reply on port &90
 ;

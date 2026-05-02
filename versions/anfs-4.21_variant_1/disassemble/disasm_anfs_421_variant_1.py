@@ -8478,6 +8478,184 @@ comment(0x8B3E, "Z set (no carrier): proceed to FS-select", inline=True)
 comment(0x8B40, "A=3: 'ROM has no NFS' error code", inline=True)
 comment(0x8B42, "Raise via build_simple_error (never returns)", inline=True)
 
+# osbyte_a2 region (&9612..&973C). The osbyte_a2 stub itself (&9612-&8)
+# is followed by recovered code reached only via PHA/PHA/RTS dispatch:
+#   &9619: bit-0 SET helper (no static callers found -- likely 4.18
+#                            carry-over from before CMOS protection moved)
+#   &9623: bit-0 CLEAR helper (ditto)
+#   &9630: parse_object_argument (svc_dispatch idx &18)
+#   &965F/&9670: print_num_no_leading siblings -- helpers shared with
+#               parse_object_argument
+#   &968C: dispatch tail
+#   &969A: match_on_suffix (svc_dispatch idx &0F)
+#   &96BB..&973C: filename-walker + *TYPE-style file-print loop reached
+#                 via match_on_suffix's tail
+comment(0x9612, "A=&A2: write CMOS RAM byte via OSBYTE", inline=True)
+comment(0x9617, "BRA -91 -> c95be (return-via-shared-tail)", inline=True)
+
+# CMOS bit-0 SET helper (&9619). Reads CMOS &11, sets bit 0, falls
+# into the c962b shared tail to write back.
+comment(0x9619, "X=&11: CMOS RAM byte index", inline=True)
+comment(0x961B, "Read CMOS &11 via osbyte_a1", inline=True)
+comment(0x961E, "TYA -- A = current CMOS &11 value", inline=True)
+comment(0x961F, "Set bit 0 in A", inline=True)
+comment(0x9621, "BRA c962b: shared write-back tail", inline=True)
+
+# CMOS bit-0 CLEAR helper (&9623). Reads CMOS &11, clears bit 0,
+# falls through to c962b.
+comment(0x9623, "X=&11: CMOS RAM byte index", inline=True)
+comment(0x9625, "Read CMOS &11 via osbyte_a1", inline=True)
+comment(0x9628, "TYA -- A = current CMOS &11 value", inline=True)
+comment(0x9629, "Clear bit 0 in A", inline=True)
+
+# Shared CMOS write-back tail (&962B).
+comment(0x962B, "TAY -- new CMOS value to Y", inline=True)
+comment(0x962C, "X=&11: CMOS RAM byte index", inline=True)
+comment(0x962E, "BRA osbyte_a2: write CMOS &11 = Y", inline=True)
+
+# parse_object_argument (&9630): scans (os_text_ptr),Y for CR; if
+# at end-of-line, prints all CMOS settings (port number / station
+# / network / FS-state) and returns; otherwise jumps to the
+# argument-parser at c968c.
+comment(0x9630, "Read first command-line char", inline=True)
+comment(0x9632, "Is it CR (no argument)?", inline=True)
+comment(0x9634, "Non-CR: parse the argument at c968c", inline=True)
+comment(0x9636, "Print 'F' (port-number prefix)", inline=True)
+comment(0x9639, "Print port number from CMOS", inline=True)
+comment(0x963C, "Print 'P' (station prefix)", inline=True)
+comment(0x963F, "Print station number", inline=True)
+comment(0x9642, "X=&11: CMOS RAM byte index", inline=True)
+comment(0x9644, "Read CMOS &11 (FS state)", inline=True)
+comment(0x9647, "TYA -- A = CMOS &11", inline=True)
+comment(0x9648, "Mask bit 0 (FS-active flag)", inline=True)
+comment(0x964A, "Bit set: skip 'No ' prefix", inline=True)
+comment(0x964C, "Print 'No ' prefix via inline", inline=True)
+comment(0x9652, "NOP -- bit-7 terminator + resume", inline=True)
+comment(0x9653, "Print 'Space        ' or similar via inline", inline=True)
+comment(0x965C, "CLV -- bit-7 terminator + resume opcode", inline=True)
+
+# print_num_no_leading siblings (&965F, &9670). Each loads a
+# specific CMOS index and prints the value, then prints a separator,
+# then falls into the next.
+comment(0x965F, "X=4: CMOS RAM byte 4 (network number)", inline=True)
+comment(0x9661, "Read CMOS &04 via osbyte_a1", inline=True)
+comment(0x9664, "TYA -- A = CMOS &04 value", inline=True)
+comment(0x9665, "Print as decimal (no leading zeros)", inline=True)
+comment(0x9668, "Print '.' separator via inline", inline=True)
+comment(0x966C, "X=3: CMOS &03 (FS station)", inline=True)
+comment(0x966E, "BRA c967f: shared print-and-trail", inline=True)
+
+comment(0x9670, "X=2: CMOS &02 (FS network)", inline=True)
+comment(0x9672, "Read CMOS &02 via osbyte_a1", inline=True)
+comment(0x9675, "TYA -- A = CMOS &02", inline=True)
+comment(0x9676, "Print as decimal", inline=True)
+comment(0x9679, "Print '.' separator via inline", inline=True)
+comment(0x967D, "X=1: CMOS &01 (port)", inline=True)
+comment(0x967F, "Read CMOS X via osbyte_a1", inline=True)
+comment(0x9682, "TYA -- A = CMOS value", inline=True)
+comment(0x9683, "Print as decimal", inline=True)
+comment(0x9689, "JMP svc_return_unclaimed (release service call)", inline=True)
+
+# Argument-parsing dispatcher (&968C). When the user supplied
+# arg(s) past the leading CR, X=&BD selects the first action.
+comment(0x968C, "X=&BD: setup index for the dispatch chain", inline=True)
+comment(0x968E, "JMP c8c46 -- shared parser dispatch", inline=True)
+
+# match_on_suffix (&969A): copies os_text_ptr to (work_ae), then
+# walks the 3-byte 'ON ' pattern at l9697, EOR-comparing each byte
+# (with bit-5 mask = case-insensitive) against the next chars in
+# the user's text. Returns to c96bc on match (= execute help
+# topic), to c96b0 on no-match (= return without help).
+comment(0x969A, "PHY -- save Y", inline=True)
+comment(0x969B, "Copy os_text_ptr lo to work_ae", inline=True)
+comment(0x969D, "Store -> work_ae", inline=True)
+comment(0x969F, "Copy os_text_ptr hi", inline=True)
+comment(0x96A1, "Store -> addr_work", inline=True)
+comment(0x96A3, "PLY -- restore caller Y", inline=True)
+comment(0x96A4, "PHY -- save Y again (preserve across loop)", inline=True)
+comment(0x96A5, "X=0: pattern offset starts at 0", inline=True)
+comment(0x96A7, "Read text byte at (work_ae)+Y", inline=True)
+comment(0x96A9, "EOR pattern byte at l9697+X", inline=True)
+comment(0x96AC, "Mask bit 5 -- case-insensitive comparison", inline=True)
+comment(0x96AE, "Equal: continue checking pattern", inline=True)
+comment(0x96B0, "PLY -- restore Y", inline=True)
+comment(0x96B1, "Return (no match)", inline=True)
+comment(0x96B2, "INY: advance text index", inline=True)
+comment(0x96B3, "INX: advance pattern index", inline=True)
+comment(0x96B4, "Done all 3 chars?", inline=True)
+comment(0x96B6, "No: continue", inline=True)
+comment(0x96B8, "Match -- PHY save Y", inline=True)
+comment(0x96B9, "Ensure NFS is selected (auto-select if needed)", inline=True)
+comment(0x96BC, "PLY -- restore Y", inline=True)
+
+# Filename-walker (&96BD..&96D2). After 'ON ' match, scan past
+# space-or-CR to find the start of the help-topic filename.
+comment(0x96BD, "Advance Y to next char", inline=True)
+comment(0x96BE, "Read text byte at (work_ae)+Y", inline=True)
+comment(0x96C0, "Is it CR (end-of-line)?", inline=True)
+comment(0x96C2, "Yes: nothing to load -> return", inline=True)
+comment(0x96C4, "Is it space?", inline=True)
+comment(0x96C6, "No: continue scanning past non-space", inline=True)
+comment(0x96C8, "Skip space char", inline=True)
+comment(0x96C9, "Read next byte", inline=True)
+comment(0x96CB, "Is it space?", inline=True)
+comment(0x96CD, "Yes: keep skipping spaces", inline=True)
+comment(0x96CF, "Is it CR?", inline=True)
+comment(0x96D1, "Yes: nothing past spaces -> return", inline=True)
+
+# Build the load-command at lc105: prefix from &968F template +
+# topic from text buffer.
+comment(0x96D3, "Save Y as lc105 (cmd buffer ptr)", inline=True)
+comment(0x96D6, "Save Y as lc106 (cmd flag)", inline=True)
+comment(0x96D9, "X=1: index for template walk", inline=True)
+comment(0x96DB, "INX: advance template index", inline=True)
+comment(0x96DC, "Read template byte from l968f+X", inline=True)
+comment(0x96DF, "Store at lc105+X", inline=True)
+comment(0x96E2, "Compare with '.' (template terminator)", inline=True)
+comment(0x96E4, "Not '.': continue copying template", inline=True)
+comment(0x96E6, "PHY -- save text-buffer index", inline=True)
+
+# Append topic name (until space or CR) onto the load-command.
+comment(0x96E7, "INX: advance dest index", inline=True)
+comment(0x96E8, "Read topic char at (work_ae),Y", inline=True)
+comment(0x96EA, "INY: advance source", inline=True)
+comment(0x96EB, "Store at lc105+X", inline=True)
+comment(0x96EE, "CR? (end of name)", inline=True)
+comment(0x96F0, "Yes: take c96fa path (open file)", inline=True)
+comment(0x96F2, "Space? (terminator)", inline=True)
+comment(0x96F4, "No: continue copying", inline=True)
+comment(0x96F6, "A=&0D: replace space with CR", inline=True)
+comment(0x96F8, "BRA back to store the CR", inline=True)
+
+# Open-and-print-file path (&96FA..&973C). Set up CMOS-bit flag,
+# call sub_c9fee (probably open_file), read bytes via OSBGET, write
+# via OSWRCH; close on EOF; respect Escape.
+comment(0x96FA, "INX: account for last char", inline=True)
+comment(0x96FB, "Read fs_lib_flags (lc271)", inline=True)
+comment(0x96FE, "AND #&3F -- preserve low bits, clear high bits", inline=True)
+comment(0x9700, "ORA #&80 -- set bit 7 (load-pending flag)", inline=True)
+comment(0x9702, "Store back to fs_lib_flags", inline=True)
+comment(0x9705, "A=&40: load mode flag", inline=True)
+comment(0x9707, "Store as fs_last_byte_flag", inline=True)
+comment(0x9709, "Open the help-topic file", inline=True)
+comment(0x970D, "Y=0: open failed -> return", inline=True)
+comment(0x9712, "C clear: byte read OK -> print it", inline=True)
+comment(0x9714, "A=0: OSFIND close mode", inline=True)
+comment(0x971C, "BRA back to c96bc (return)", inline=True)
+comment(0x971E, "BIT escape_flag", inline=True)
+comment(0x9720, "Bit 7 clear: not escaping, continue", inline=True)
+comment(0x9722, "Escape: jump to error path cbd2d", inline=True)
+comment(0x9725, "Compare with CR", inline=True)
+comment(0x9727, "Z: CR -- handle line-end (newline)", inline=True)
+comment(0x972C, "BRA back to read next byte", inline=True)
+comment(0x972E, "PHY -- save file handle", inline=True)
+comment(0x972F, "A=&DA: OSBYTE &DA = read paged-mode flag", inline=True)
+comment(0x9731, "Issue OSBYTE &DA (X=0)", inline=True)
+comment(0x9734, "PLY -- restore handle", inline=True)
+comment(0x9735, "TXA -- result to A", inline=True)
+comment(0x9736, "Non-zero: paged mode pending -> handle Escape", inline=True)
+comment(0x973B, "BRA back to read next byte", inline=True)
+
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
 # stack-X trick is the standard 6502 idiom for adding a saved value
