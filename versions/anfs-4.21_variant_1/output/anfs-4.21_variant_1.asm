@@ -356,7 +356,7 @@ hazel_fcb_addr_lo           = &c200
 hazel_fcb_addr_mid          = &c210
 hazel_fcb_addr_hi           = &c220
 hazel_fcb_link              = &c230
-hazel_fcb_handle            = &c240
+hazel_fcb_state_byte        = &c240
 hazel_fcb_network           = &c250
 hazel_fcb_status            = &c260
 hazel_cur_dir_handle        = &c270
@@ -501,9 +501,9 @@ rom_header_byte2 = rom_header+2
 ;
 ; Initialise ADLC hardware and Econet workspace. Reads station ID via &FE18 (INTOFF
 ; side effect), performs a full ADLC reset (adlc_full_reset), then checks for Tube
-; co-processor via OSBYTE &EA and stores the result in l0d63. Issues NMI claim service
-; request (OSBYTE &8F, X=&0C). Falls through to init_nmi_workspace to copy the NMI shim
-; to RAM.
+; co-processor via OSBYTE &EA and stores the result in tube_present. Issues NMI claim
+; service request (OSBYTE &8F, X=&0C). Falls through to init_nmi_workspace to copy the
+; NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
     bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.            ; INTOFF: read station ID, disable NMIs
@@ -1305,10 +1305,10 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Discard with Tube release
 ;
-; Checks whether a Tube transfer is active by ANDing bit 1 of l0d63 with rx_src_net
-; (tx_flags). If a Tube claim is held, calls release_tube to free it before returning.
-; Used as the clean-up path after RXCB completion and after ADLC reset to ensure no
-; stale Tube claims persist.
+; Checks whether a Tube transfer is active by ANDing bit 1 of tube_present with
+; rx_src_net (tx_flags). If a Tube claim is held, calls release_tube to free it before
+; returning. Used as the clean-up path after RXCB completion and after ADLC reset to
+; ensure no stale Tube claims persist.
 ; &83f2 referenced 2 times by &83de, &83e5
 .discard_reset_listen
     lda #2                                                            ; 83f2: a9 02       ..             ; Tube flag bit 1 AND tx_flags bit 1
@@ -1418,11 +1418,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
 ;
-; Checks the control byte at l0d30 for immediate operation codes (&81-&88). Codes below
-; &81 or above &88 are out of range and discarded. Codes &87-&88 (HALT/CONTINUE) bypass
-; the protection mask check. For &81-&86, converts to a 0-based index and tests against
-; the immediate operation mask at &0D61 to determine if this station accepts the
-; operation. If accepted, dispatches via the immediate operation table. Builds the
+; Checks the control byte at scout_ctrl for immediate operation codes (&81-&88). Codes
+; below &81 or above &88 are out of range and discarded. Codes &87-&88 (HALT/CONTINUE)
+; bypass the protection mask check. For &81-&86, converts to a 0-based index and tests
+; against the immediate operation mask at &0D61 to determine if this station accepts
+; the operation. If accepted, dispatches via the immediate operation table. Builds the
 ; reply by storing data length, station/network, and control byte into the RX buffer.
 ; &8454 referenced 1 time by &8138
 .immediate_op
@@ -1670,9 +1670,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX done: remote JSR execution
 ;
 ; Pushes (tx_done_exit - 1) on the stack so RTS returns to tx_done_exit when the remote
-; routine completes, then does JMP (l0d66) to call the remote-supplied JSR target. When
-; that routine returns via RTS, control resumes at tx_done_exit which tidies up TX
-; state.
+; routine completes, then does JMP (exec_addr_lo) to call the remote-supplied JSR
+; target. When that routine returns via RTS, control resumes at tx_done_exit which
+; tidies up TX state.
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: TX op &85 (OSProc)
     pha                                                               ; 8542: 48          H              ; Push hi byte on stack
@@ -1683,9 +1683,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: fire Econet event
 ;
-; Handler for TX operation type &84. Loads the remote address from l0d66/l0d67 into X/A
-; and sets Y=8 (Econet event number), then falls through to tx_done_fire_event to call
-; OSEVEN.
+; Handler for TX operation type &84. Loads the remote address from
+; exec_addr_lo/exec_addr_hi into X/A and sets Y=8 (Econet event number), then falls
+; through to tx_done_fire_event to call OSEVEN.
 ;
 ; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo/hi. The dispatcher
 ; pushed the caller's X and Y onto the stack before transferring control, and the
@@ -1693,8 +1693,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_econet_event
-    ldx exec_addr_lo                                                  ; 8549: ae 66 0d    .f.            ; X = remote address lo from l0d66
-    lda exec_addr_hi                                                  ; 854c: ad 67 0d    .g.            ; A = remote address hi from l0d67
+    ldx exec_addr_lo                                                  ; 8549: ae 66 0d    .f.            ; X = remote address lo from exec_addr_lo
+    lda exec_addr_hi                                                  ; 854c: ad 67 0d    .g.            ; A = remote address hi from exec_addr_hi
     ldy #event_network_error                                          ; 854f: a0 08       ..             ; Y = 8: Econet event number
 .tx_done_fire_event
     jsr oseven                                                        ; 8551: 20 bf ff     ..            ; Generate event Y='Network error'
@@ -1703,8 +1703,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: OSProc call
 ;
-; Calls the ROM service entry point with X=l0d66, Y=l0d67. This invokes an OS-level
-; procedure on behalf of the remote station, then exits via tx_done_exit.
+; Calls the ROM service entry point with X=exec_addr_lo, Y=exec_addr_hi. This invokes
+; an OS-level procedure on behalf of the remote station, then exits via tx_done_exit.
 ;
 ; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo/hi.
 ;
@@ -3419,7 +3419,7 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP table walker per-entry body
 ;
-; Loads la76c,X (the cmd_table_fs entry byte). Bit 7 clear -> print_indent (continue
+; Loads cmd_table_fs,X (entry byte at offset X). Bit 7 clear -> print_indent (continue
 ; with this entry); bit 7 set -> JMP done_print_table (end of table reached). Single
 ; caller (the BNE retry at &8C22 in print_cmd_table's outer loop).
 ;
@@ -3868,7 +3868,7 @@ nmi_shim_source = reset_enter_listen+2
     ldy #0                                                            ; 8d99: a0 00       ..             ; Y=0
     sty fs_work_4                                                     ; 8d9b: 84 b4       ..             ; Clear password entry flag
     jsr process_all_fcbs                                              ; 8d9d: 20 38 bb     8.            ; Reset FS connection state
-    stz hazel_fs_pending_state                                        ; 8da0: 9c 07 c0    ...            ; STZ lc007 -- clear connection-attempt flag
+    stz hazel_fs_pending_state                                        ; 8da0: 9c 07 c0    ...            ; STZ hazel_fs_pending_state -- clear connection-attempt flag
     ply                                                               ; 8da3: 7a          z              ; PLY -- restore Y
     plx                                                               ; 8da4: fa          .              ; PLX -- restore X
     pla                                                               ; 8da5: 68          h              ; Restore command line offset
@@ -4006,11 +4006,11 @@ ps_template_base = load_transfer_params+1
 ; Send FS command and dispatch the reply
 ;
 ; JSRs save_net_tx_cb to set up and transmit the command, then reads the reply function
-; code from lc103. If zero, branches to the no- reply path (dispatch_rts). Otherwise
-; loads lc105 (first reply byte), Y=&25 (the dispatch offset for the standard reply
-; table), and continues into the reply-dispatch chain. Two callers: the fall-through
-; from check_urd_prefix (&8E1F via pass_send_cmd) and the JMP from send_fs_request
-; (&9460).
+; code from hazel_txcb_network. If zero, branches to the no- reply path (dispatch_rts).
+; Otherwise loads hazel_txcb_data (first reply byte), Y=&25 (the dispatch offset for
+; the standard reply table), and continues into the reply-dispatch chain. Two callers:
+; the fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and the JMP from
+; send_fs_request (&9460).
 ;
 ; On Entry: Y: extra dispatch offset (0 from send_fs_request, non-zero for some
 ; specialised paths)
@@ -4424,10 +4424,10 @@ ps_template_base = load_transfer_params+1
     jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..            ; Copy initial PS template (1C bytes) into ws
     ldx #1                                                            ; 8f5e: a2 01       ..             ; X=1: CMOS &01 = port number
     jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..            ; Read CMOS &01
-    sty hazel_fs_station_hi                                           ; 8f63: 8c 00 c0    ...            ; Store at lc000 (workspace+0)
+    sty hazel_fs_station_hi                                           ; 8f63: 8c 00 c0    ...            ; Store at hazel_fs_station_hi (workspace+0)
     ldx #2                                                            ; 8f66: a2 02       ..             ; X=2: CMOS &02 = network number
     jsr osbyte_a1                                                     ; 8f68: 20 9a 8e     ..            ; Read CMOS &02
-    sty hazel_fs_server_stn                                           ; 8f6b: 8c 01 c0    ...            ; Store at lc001
+    sty hazel_fs_server_stn                                           ; 8f6b: 8c 01 c0    ...            ; Store at hazel_fs_server_stn
     ldx #3                                                            ; 8f6e: a2 03       ..             ; X=3: CMOS &03 = FS station
     jsr osbyte_a1                                                     ; 8f70: 20 9a 8e     ..            ; Read CMOS &03
     tya                                                               ; 8f73: 98          .              ; TYA -- A = FS station
@@ -4507,9 +4507,9 @@ ps_template_base = load_transfer_params+1
     jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..            ; Set up Econet protection
     jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..            ; Send a bridge-discovery packet and poll
     pha                                                               ; 9025: 48          H              ; PHA -- save current bridge byte
-    eor hazel_fs_server_stn                                           ; 9026: 4d 01 c0    M..            ; EOR with stored lc001 (network number)
+    eor hazel_fs_server_stn                                           ; 9026: 4d 01 c0    M..            ; EOR with stored hazel_fs_server_stn (network number)
     bne verify_copy_station_id                                        ; 9029: d0 07       ..             ; Different: take c9032 path
-    sta hazel_fs_server_stn                                           ; 902b: 8d 01 c0    ...            ; Same: store as new lc001
+    sta hazel_fs_server_stn                                           ; 902b: 8d 01 c0    ...            ; Same: store as new hazel_fs_server_stn
     ldy #3                                                            ; 902e: a0 03       ..             ; Y=3: net_rx_ptr offset 3
     sta (net_rx_ptr),y                                                ; 9030: 91 9c       ..             ; Store at (net_rx_ptr)+3
 ; &9032 referenced 1 time by &9029
@@ -5355,9 +5355,10 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Compare 5-byte handle buffers for equality
 ;
-; Loops X from 4 down to 1, comparing each byte of l00af+X with fs_load_addr_3+X using
-; EOR. Returns on the first mismatch (Z=0) or after all 5 bytes match (Z=1). Called by
-; send_txcb_swap_addrs and check_and_setup_txcb to verify station/handle identity.
+; Loops X from 4 down to 1, comparing each byte of addr_work+X with fs_load_addr_3+X
+; using EOR. Returns on the first mismatch (Z=0) or after all 5 bytes match (Z=1).
+; Called by send_txcb_swap_addrs and check_and_setup_txcb to verify station/handle
+; identity.
 ;
 ; On Exit: Z: set if bytes 1..4 match (byte 0 is not compared) A: EOR of last compared
 ; bytes X: 0 if all matched, else mismatch index
@@ -5492,11 +5493,11 @@ ps_template_base = load_transfer_params+1
 ; Loop reading filename chars into TX buffer
 ;
 ; Per-character loop body of the filename-copy logic in check_not_ampersand. JSRs
-; check_not_ampersand to reject '&', stores the byte at lc105+X (TX buffer area),
-; increments X, and either branches to send_fs_request on CR or strips a BASIC token
-; prefix via strip_token_prefix and re-enters the loop. Three callers: the loop's own
-; BRA at &945C, plus &9435 (cmd_rename's first-arg copy) and &950F (cmd_fs_operation's
-; filename pickup).
+; check_not_ampersand to reject '&', stores the byte at hazel_txcb_data+X (TX buffer
+; area), increments X, and either branches to send_fs_request on CR or strips a BASIC
+; token prefix via strip_token_prefix and re-enters the loop. Three callers: the loop's
+; own BRA at &945C, plus &9435 (cmd_rename's first-arg copy) and &950F
+; (cmd_fs_operation's filename pickup).
 ;
 ; On Entry: A: current character to copy X: TX-buffer write index
 ;
@@ -5810,7 +5811,7 @@ ps_template_base = load_transfer_params+1
 
     equb &bd, &6c, &a7, &29, &3f, &aa, &da, &5a, &da, &20, &9a, &8e   ; 95ee: bd 6c a7... .l.            ; A=0: initial counter values; Push inner loop counter; Push middle loop counter; X=SP for stack-relative DECs; Poll TX completion status; Bit 7 set: TX complete; Decrement inner counter
     equb &84, &b5, &fa, &e8, &20, &9a, &8e, &84, &b6, &7a, &20, &c4   ; 95fa: 84 b5 fa... ...            ; Not zero: keep polling; Decrement middle counter; Not zero: keep polling; Decrement outer counter; Not zero: keep polling
-    equb &a3, &fa, &da, &a4, &b5, &20, &12, &96, &fa, &e8, &a4, &b7   ; 9606: a3 fa da... ...            ; Discard inner counter; Discard middle counter; Restore l0d61 control state; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged)
+    equb &a3, &fa, &da, &a4, &b5, &20, &12, &96, &fa, &e8, &a4, &b7   ; 9606: a3 fa da... ...            ; Discard inner counter; Discard middle counter; Restore econet_flags control state; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged)
 
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
@@ -5926,7 +5927,7 @@ help_topic_template = dispatch_help_command+1
 ; &96a7 referenced 1 time by &96b6
 .loop_match_on_suffix
     lda (work_ae),y                                                   ; 96a7: b1 ae       ..             ; Read text byte at (work_ae)+Y
-    eor on_suffix_pattern,x                                           ; 96a9: 5d 97 96    ]..            ; EOR pattern byte at l9697+X
+    eor on_suffix_pattern,x                                           ; 96a9: 5d 97 96    ]..            ; EOR pattern byte at on_suffix_pattern+X
     and #&5f ; '_'                                                    ; 96ac: 29 5f       )_             ; Mask bit 5 -- case-insensitive comparison
     beq match_char_found                                              ; 96ae: f0 02       ..             ; Equal: continue checking pattern
 ; &96b0 referenced 2 times by &96c2, &96d1
@@ -5961,14 +5962,14 @@ help_topic_template = dispatch_help_command+1
     beq loop_help_skip_spaces                                         ; 96cd: f0 f9       ..             ; Yes: keep skipping spaces
     cmp #&0d                                                          ; 96cf: c9 0d       ..             ; Is it CR?
     beq match_char_loop_cmp                                           ; 96d1: f0 dd       ..             ; Yes: nothing past spaces -> return
-    sty hazel_txcb_data                                               ; 96d3: 8c 05 c1    ...            ; Save Y as lc105 (cmd buffer ptr)
-    sty hazel_txcb_flag                                               ; 96d6: 8c 06 c1    ...            ; Save Y as lc106 (cmd flag)
+    sty hazel_txcb_data                                               ; 96d3: 8c 05 c1    ...            ; Save Y as hazel_txcb_data (cmd buffer ptr)
+    sty hazel_txcb_flag                                               ; 96d6: 8c 06 c1    ...            ; Save Y as hazel_txcb_flag (cmd flag)
     ldx #1                                                            ; 96d9: a2 01       ..             ; X=1: index for template walk
 ; &96db referenced 1 time by &96e4
 .loop_copy_command_suffix
     inx                                                               ; 96db: e8          .              ; INX: advance template index
-    lda help_topic_template,x                                         ; 96dc: bd 8f 96    ...            ; Read template byte from l968f+X
-    sta hazel_txcb_data,x                                             ; 96df: 9d 05 c1    ...            ; Store at lc105+X
+    lda help_topic_template,x                                         ; 96dc: bd 8f 96    ...            ; Read template byte from help_topic_template+X
+    sta hazel_txcb_data,x                                             ; 96df: 9d 05 c1    ...            ; Store at hazel_txcb_data+X
     cmp #&2e ; '.'                                                    ; 96e2: c9 2e       ..             ; Compare with '.' (template terminator)
     bne loop_copy_command_suffix                                      ; 96e4: d0 f5       ..             ; Not '.': continue copying template
     phy                                                               ; 96e6: 5a          Z              ; PHY -- save text-buffer index
@@ -5979,7 +5980,7 @@ help_topic_template = dispatch_help_command+1
     iny                                                               ; 96ea: c8          .              ; INY: advance source
 ; &96eb referenced 1 time by &96f8
 .loop_store_topic_char
-    sta hazel_txcb_data,x                                             ; 96eb: 9d 05 c1    ...            ; Store at lc105+X
+    sta hazel_txcb_data,x                                             ; 96eb: 9d 05 c1    ...            ; Store at hazel_txcb_data+X
     cmp #&0d                                                          ; 96ee: c9 0d       ..             ; CR? (end of name)
     beq start_help_file_load                                          ; 96f0: f0 08       ..             ; Yes: take c96fa path (open file)
     cmp #&20 ; ' '                                                    ; 96f2: c9 20       .              ; Space? (terminator)
@@ -5989,7 +5990,7 @@ help_topic_template = dispatch_help_command+1
 ; &96fa referenced 1 time by &96f0
 .start_help_file_load
     inx                                                               ; 96fa: e8          .              ; INX: account for last char
-    lda hazel_fs_lib_flags                                            ; 96fb: ad 71 c2    .q.            ; Read fs_lib_flags (lc271)
+    lda hazel_fs_lib_flags                                            ; 96fb: ad 71 c2    .q.            ; Read fs_lib_flags (hazel_fs_lib_flags)
     and #&3f ; '?'                                                    ; 96fe: 29 3f       )?             ; AND #&3F -- preserve low bits, clear high bits
     ora #&80                                                          ; 9700: 09 80       ..             ; ORA #&80 -- set bit 7 (load-pending flag)
     sta hazel_fs_lib_flags                                            ; 9702: 8d 71 c2    .q.            ; Store back to fs_lib_flags
@@ -7275,8 +7276,8 @@ bad_prefix_table = bad_str_anchor+1
 ; Parse command line via GSINIT/GSREAD into &0E30
 ;
 ; Calls GSINIT to initialise string reading, then loops calling GSREAD to copy
-; characters into the l0e30 buffer until end-of-string. Appends a CR terminator and
-; sets fs_crc_lo/hi to point at &0E30 for subsequent parsing routines.
+; characters into the fs_filename_buf buffer until end-of-string. Appends a CR
+; terminator and sets fs_crc_lo/hi to point at &0E30 for subsequent parsing routines.
 ;
 ; On Entry: Y: current command-line offset (consumed by GSINIT)
 ;
@@ -7292,7 +7293,7 @@ bad_prefix_table = bad_str_anchor+1
     jsr gsread                                                        ; 9c08: 20 c5 ff     ..            ; GSREAD: read next character
     bcs terminate_buf                                                 ; 9c0b: b0 06       ..             ; C set: end of string reached
     inx                                                               ; 9c0d: e8          .              ; Advance buffer index
-    sta hazel_parse_buf,x                                             ; 9c0e: 9d 30 c0    .0.            ; Store character in l0e30 buffer
+    sta hazel_parse_buf,x                                             ; 9c0e: 9d 30 c0    .0.            ; Store character in fs_filename_buf buffer
     bcc loop_gsread_char                                              ; 9c11: 90 f5       ..             ; ALWAYS branch: read next character
 
 ; &9c13 referenced 2 times by &9c06, &9c0b
@@ -7300,9 +7301,9 @@ bad_prefix_table = bad_str_anchor+1
     inx                                                               ; 9c13: e8          .              ; Advance past last character
     lda #&0d                                                          ; 9c14: a9 0d       ..             ; A=CR: terminate filename
     sta hazel_parse_buf,x                                             ; 9c16: 9d 30 c0    .0.            ; Store CR terminator in buffer
-    lda #&30 ; '0'                                                    ; 9c19: a9 30       .0             ; A=&30: low byte of l0e30 buffer
+    lda #&30 ; '0'                                                    ; 9c19: a9 30       .0             ; A=&30: low byte of fs_filename_buf buffer
     sta fs_crc_lo                                                     ; 9c1b: 85 be       ..             ; Set command text pointer low
-    lda #&c0                                                          ; 9c1d: a9 c0       ..             ; A=&C0: high byte of lc030 parse buffer
+    lda #&c0                                                          ; 9c1d: a9 c0       ..             ; A=&C0: high byte of hazel_parse_buf parse buffer
     sta fs_crc_hi                                                     ; 9c1f: 85 bf       ..             ; Set command text pointer high
     rts                                                               ; 9c21: 60          `              ; Return with buffer filled
 
@@ -7380,8 +7381,8 @@ bad_prefix_table = bad_str_anchor+1
     ldx #2                                                            ; 9c77: a2 02       ..             ; X=2: copy 3 offset bytes
 ; &9c79 referenced 1 time by &9c80
 .loop_copy_offsets
-    lda hazel_txcb_addr_hi,x                                          ; 9c79: bd 10 c1    ...            ; Load offset byte from l0f10
-    sta hazel_txcb_data,x                                             ; 9c7c: 9d 05 c1    ...            ; Store in l0f05 for next iteration
+    lda hazel_txcb_addr_hi,x                                          ; 9c79: bd 10 c1    ...            ; Load offset byte from fs_file_len_3
+    sta hazel_txcb_data,x                                             ; 9c7c: 9d 05 c1    ...            ; Store in fs_cmd_data for next iteration
     dex                                                               ; 9c7f: ca          .              ; Decrement counter
     bpl loop_copy_offsets                                             ; 9c80: 10 f7       ..             ; Loop until all bytes copied
     jmp recv_reply                                                    ; 9c82: 4c 0c 9d    L..            ; Jump to receive and process reply
@@ -7455,7 +7456,7 @@ bad_prefix_table = bad_str_anchor+1
     sta port_ws_offset,y                                              ; 9cbc: 99 a6 00    ...            ; Save to workspace (port_ws_offset)
     jsr retreat_y_by_4                                                ; 9cbf: 20 7e 9d     ~.            ; Y -= 4 to point to paired offset
     sbc (fs_options),y                                                ; 9cc2: f1 bb       ..             ; Subtract paired value
-    sta hazel_txcb_network,y                                          ; 9cc4: 99 03 c1    ...            ; Store difference in l0f03 buffer
+    sta hazel_txcb_network,y                                          ; 9cc4: 99 03 c1    ...            ; Store difference in fs_cmd_csd buffer
     pha                                                               ; 9cc7: 48          H              ; Push difference
     lda (fs_options),y                                                ; 9cc8: b1 bb       ..             ; Load paired value from FS options
     sta port_ws_offset,y                                              ; 9cca: 99 a6 00    ...            ; Save to workspace
@@ -7468,7 +7469,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9cd8 referenced 1 time by &9cde
 .loop_copy_fs_options
     lda (fs_options),y                                                ; 9cd8: b1 bb       ..             ; Load FS options byte
-    sta hazel_txcb_network,y                                          ; 9cda: 99 03 c1    ...            ; Store in l0f03 buffer
+    sta hazel_txcb_network,y                                          ; 9cda: 99 03 c1    ...            ; Store in fs_cmd_csd buffer
     dey                                                               ; 9cdd: 88          .              ; Decrement index
     bne loop_copy_fs_options                                          ; 9cde: d0 f8       ..             ; Loop until all 9 bytes copied
     lda #&91                                                          ; 9ce0: a9 91       ..             ; A=&91: FS port for info request
@@ -7494,41 +7495,42 @@ bad_prefix_table = bad_str_anchor+1
 
 ; &9d06 referenced 1 time by &9d00
 .setup_txcb_transfer
-    lda hazel_txcb_data                                               ; 9d06: ad 05 c1    ...            ; Load file handle from l0f05
+    lda hazel_txcb_data                                               ; 9d06: ad 05 c1    ...            ; Load file handle from fs_cmd_data
     jsr check_and_setup_txcb                                          ; 9d09: 20 87 9d     ..            ; Check and set up TXCB for transfer
 ; ***************************************************************************************
 ; Receive FS reply and stash result byte
 ;
-; JSRs recv_and_process_reply, then falls through to store_result (STX lc108; LDY #&0E
-; to point at the protection-bits offset). Single caller (the dispatch at &9C82).
+; JSRs recv_and_process_reply, then falls through to store_result (STX
+; hazel_txcb_result; LDY #&0E to point at the protection-bits offset). Single caller
+; (the dispatch at &9C82).
 ;
-; On Exit: X: FS result byte (also written to lc108) Y: &0E (FS options offset for
-; protection)
+; On Exit: X: FS result byte (also written to hazel_txcb_result) Y: &0E (FS options
+; offset for protection)
 ; &9d0c referenced 1 time by &9c82
 .recv_reply
     jsr recv_and_process_reply                                        ; 9d0c: 20 cd 97     ..            ; Receive and process reply
 ; &9d0f referenced 1 time by &9d04
 .store_result
-    stx hazel_txcb_result                                             ; 9d0f: 8e 08 c1    ...            ; Store result byte in l0f08
+    stx hazel_txcb_result                                             ; 9d0f: 8e 08 c1    ...            ; Store result byte in fs_reply_cmd
     ldy #&0e                                                          ; 9d12: a0 0e       ..             ; Y=&0E: protection bits offset
-    lda hazel_txcb_data                                               ; 9d14: ad 05 c1    ...            ; Load access byte from l0f05
+    lda hazel_txcb_data                                               ; 9d14: ad 05 c1    ...            ; Load access byte from fs_cmd_data
     jsr get_prot_bits                                                 ; 9d17: 20 b5 93     ..            ; Extract protection bit flags
     beq store_prot_byte                                               ; 9d1a: f0 03       ..             ; Zero: use reply buffer data
 ; &9d1c referenced 1 time by &9d24
 .loop_copy_file_info
-    lda hazel_ws_spare_f7,y                                           ; 9d1c: b9 f7 c0    ...            ; Load file info byte from l0ef7
+    lda hazel_ws_spare_f7,y                                           ; 9d1c: b9 f7 c0    ...            ; Load file info byte from fs_reply_data
 ; &9d1f referenced 1 time by &9d1a
 .store_prot_byte
     sta (fs_options),y                                                ; 9d1f: 91 bb       ..             ; Store in FS options at offset Y
     iny                                                               ; 9d21: c8          .              ; Advance to next byte
     cpy #&12                                                          ; 9d22: c0 12       ..             ; Y=&12: end of protection fields?
     bne loop_copy_file_info                                           ; 9d24: d0 f6       ..             ; No: copy next byte
-    ldy hazel_fs_state_flags                                          ; 9d26: ac 06 c0    ...            ; Load display flag from l0e06
+    ldy hazel_fs_state_flags                                          ; 9d26: ac 06 c0    ...            ; Load display flag from fs_messages_flag
     beq return_from_advance_y                                         ; 9d29: f0 45       .E             ; Zero: skip display, return
-    ldy #&f4                                                          ; 9d2b: a0 f4       ..             ; Y=&F4: index into l0fff for filename
+    ldy #&f4                                                          ; 9d2b: a0 f4       ..             ; Y=&F4: index for filename buffer (indexing-base trick)
 ; &9d2d referenced 1 time by &9d34
 .loop_print_filename
-    lda hazel_ws_padding_end,y                                        ; 9d2d: b9 ff c1    ...            ; Load filename character from l10f3
+    lda hazel_ws_padding_end,y                                        ; 9d2d: b9 ff c1    ...            ; Load filename character from hazel_display_buf
     jsr print_char_no_spool                                           ; 9d30: 20 fb 91     ..            ; Print character via OSASCI
     iny                                                               ; 9d33: c8          .              ; Advance to next character
     bne loop_print_filename                                           ; 9d34: d0 f7       ..             ; Printed all 12 characters?; No: print next character
@@ -7594,7 +7596,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9d61 referenced 1 time by &9d69
 .loop_copy_fsopts_byte
     lda (fs_options),y                                                ; 9d61: b1 bb       ..             ; Load byte from FS options
-    sta work_ae,y                                                     ; 9d63: 99 ae 00    ...            ; Store in zero page at l00ae+Y
+    sta work_ae,y                                                     ; 9d63: 99 ae 00    ...            ; Store in zero page at work_ae+Y
     dey                                                               ; 9d66: 88          .              ; Decrement index
     cpy #2                                                            ; 9d67: c0 02       ..             ; Below offset 2?
     bcs loop_copy_fsopts_byte                                         ; 9d69: b0 f6       ..             ; No: copy next byte
@@ -7647,7 +7649,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9d74 referenced 1 time by &9d7c
 .loop_copy_ws_byte
     sta (fs_options),y                                                ; 9d74: 91 bb       ..             ; Store byte in FS options at offset Y
-    lda hazel_txcb_station,y                                          ; 9d76: b9 02 c1    ...            ; Load next workspace byte from l0f02+Y
+    lda hazel_txcb_station,y                                          ; 9d76: b9 02 c1    ...            ; Load next workspace byte from fs_cmd_urd+Y
     dey                                                               ; 9d79: 88          .              ; Decrement index
     cpy #2                                                            ; 9d7a: c0 02       ..             ; Below offset 2?
     bcs loop_copy_ws_byte                                             ; 9d7c: b0 f6       ..             ; No: copy next byte
@@ -7702,14 +7704,14 @@ bad_prefix_table = bad_str_anchor+1
 .init_transfer_addrs
     ldx #0                                                            ; 9d8d: a2 00       ..             ; X=0: loop start
     ldy #4                                                            ; 9d8f: a0 04       ..             ; Y=4: copy 4 bytes
-    stx hazel_txcb_result                                             ; 9d91: 8e 08 c1    ...            ; Clear l0f08 (transfer size low)
-    stx hazel_exec_addr                                               ; 9d94: 8e 09 c1    ...            ; Clear l0f09 (transfer size high)
+    stx hazel_txcb_result                                             ; 9d91: 8e 08 c1    ...            ; Clear fs_reply_cmd (transfer size low)
+    stx hazel_exec_addr                                               ; 9d94: 8e 09 c1    ...            ; Clear fs_load_vector (transfer size high)
     clc                                                               ; 9d97: 18          .              ; Clear carry for addition
 ; &9d98 referenced 1 time by &9da5
 .loop_copy_addr_offset
     lda fs_load_addr,x                                                ; 9d98: b5 b0       ..             ; Load address byte from zero page
     sta txcb_start,x                                                  ; 9d9a: 95 c4       ..             ; Store in TXCB start pointer
-    adc hazel_txcb_flag,x                                             ; 9d9c: 7d 06 c1    }..            ; Add offset from l0f06
+    adc hazel_txcb_flag,x                                             ; 9d9c: 7d 06 c1    }..            ; Add offset from fs_func_code
     sta txcb_end,x                                                    ; 9d9f: 95 c8       ..             ; Store sum in TXCB end pointer
     sta fs_load_addr,x                                                ; 9da1: 95 b0       ..             ; Also update load address
     inx                                                               ; 9da3: e8          .              ; Advance to next byte
@@ -7754,7 +7756,7 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSWORD &13 sub-operation triage (1-7)
 ;
-; Stores the sub-operation code in lc105 and triages by value: 0..6 ->
+; Stores the sub-operation code in hazel_txcb_data and triages by value: 0..6 ->
 ; dispatch_ops_1_to_6; 7 -> setup_dir_display (the *INFO expansion); >7 ->
 ; skip_if_error (which routes through finalise_and_return). Single caller (&9CB2 in the
 ; OSWORD &13 handler entry).
@@ -7786,7 +7788,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9e00 referenced 1 time by &9e07
 .loop_copy_fsopts_4
     lda (fs_options),y                                                ; 9e00: b1 bb       ..             ; Load byte from FS options at offset Y
-    sta hazel_txcb_flag,x                                             ; 9e02: 9d 06 c1    ...            ; Store in l0f06 buffer
+    sta hazel_txcb_flag,x                                             ; 9e02: 9d 06 c1    ...            ; Store in fs_func_code buffer
     dey                                                               ; 9e05: 88          .              ; Decrement source offset
     dex                                                               ; 9e06: ca          .              ; Decrement byte count
     bpl loop_copy_fsopts_4                                            ; 9e07: 10 f7       ..             ; Loop for all 4 bytes
@@ -7796,13 +7798,13 @@ bad_prefix_table = bad_str_anchor+1
 ; &9e0d referenced 1 time by &9df6
 .setup_save_access
     jsr get_access_bits                                               ; 9e0d: 20 ab 93     ..            ; Get access bits for file
-    sta hazel_txcb_access                                             ; 9e10: 8d 0e c1    ...            ; Store access byte in l0f0e
+    sta hazel_txcb_access                                             ; 9e10: 8d 0e c1    ...            ; Store access byte in fs_file_attrs
     ldy #9                                                            ; 9e13: a0 09       ..             ; Y=9: source offset in FS options
     ldx #8                                                            ; 9e15: a2 08       ..             ; X=8: copy 8 bytes to buffer
 ; &9e17 referenced 1 time by &9e1e
 .loop_copy_fsopts_8
     lda (fs_options),y                                                ; 9e17: b1 bb       ..             ; Load FS options byte
-    sta hazel_txcb_data,x                                             ; 9e19: 9d 05 c1    ...            ; Store in l0f05 buffer
+    sta hazel_txcb_data,x                                             ; 9e19: 9d 05 c1    ...            ; Store in fs_cmd_data buffer
     dey                                                               ; 9e1c: 88          .              ; Decrement source offset
     dex                                                               ; 9e1d: ca          .              ; Decrement byte count
     bne loop_copy_fsopts_8                                            ; 9e1e: d0 f7       ..             ; Loop for all 8 bytes
@@ -7829,7 +7831,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9e39 referenced 1 time by &9df2
 .setup_write_access
     jsr get_access_bits                                               ; 9e39: 20 ab 93     ..            ; Get access bits for file
-    sta hazel_txcb_flag                                               ; 9e3c: 8d 06 c1    ...            ; Store in l0f06
+    sta hazel_txcb_flag                                               ; 9e3c: 8d 06 c1    ...            ; Store in fs_func_code
     ldx #2                                                            ; 9e3f: a2 02       ..             ; X=2: buffer offset
     bne send_save_or_access                                           ; 9e41: d0 df       ..             ; ALWAYS branch to copy and send
 
@@ -7839,11 +7841,11 @@ bad_prefix_table = bad_str_anchor+1
     jsr copy_arg_to_buf                                               ; 9e45: 20 a1 b2     ..            ; Copy argument to buffer
     ldy #&12                                                          ; 9e48: a0 12       ..             ; Y=&12: open file command
     jsr save_net_tx_cb                                                ; 9e4a: 20 8a 97     ..            ; Send open file request
-    lda hazel_txcb_len                                                ; 9e4d: ad 11 c1    ...            ; Load reply handle from l0f11
-    stx hazel_txcb_len                                                ; 9e50: 8e 11 c1    ...            ; Clear l0f11
-    stx hazel_txcb_cycle                                              ; 9e53: 8e 14 c1    ...            ; Clear l0f14
+    lda hazel_txcb_len                                                ; 9e4d: ad 11 c1    ...            ; Load reply handle from fs_obj_type
+    stx hazel_txcb_len                                                ; 9e50: 8e 11 c1    ...            ; Clear fs_obj_type
+    stx hazel_txcb_cycle                                              ; 9e53: 8e 14 c1    ...            ; Clear fs_len_clear
     jsr get_prot_bits                                                 ; 9e56: 20 b5 93     ..            ; Get protection bits
-    ldx hazel_txcb_data                                               ; 9e59: ae 05 c1    ...            ; Load file handle from l0f05
+    ldx hazel_txcb_data                                               ; 9e59: ae 05 c1    ...            ; Load file handle from fs_cmd_data
     beq return_with_handle                                            ; 9e5c: f0 20       .              ; Zero: file not found, return
     ldy #&0e                                                          ; 9e5e: a0 0e       ..             ; Y=&0E: store access bits
     sta (fs_options),y                                                ; 9e60: 91 bb       ..             ; Store access byte in FS options
@@ -7851,7 +7853,7 @@ bad_prefix_table = bad_str_anchor+1
     ldx #&0c                                                          ; 9e63: a2 0c       ..             ; X=&0C: copy 12 bytes of file info
 ; &9e65 referenced 1 time by &9e6c
 .loop_copy_cat_info
-    lda hazel_txcb_data,x                                             ; 9e65: bd 05 c1    ...            ; Load reply byte from l0f05+X
+    lda hazel_txcb_data,x                                             ; 9e65: bd 05 c1    ...            ; Load reply byte from fs_cmd_data+X
     sta (fs_options),y                                                ; 9e68: 91 bb       ..             ; Store in FS options at offset Y
     dey                                                               ; 9e6a: 88          .              ; Decrement destination offset
     dex                                                               ; 9e6b: ca          .              ; Decrement source counter
@@ -7861,7 +7863,7 @@ bad_prefix_table = bad_str_anchor+1
     ldy #&11                                                          ; 9e70: a0 11       ..             ; Y=&11: FS options offset
 ; &9e72 referenced 1 time by &9e79
 .loop_copy_ext_info
-    lda hazel_txcb_type,x                                             ; 9e72: bd 12 c1    ...            ; Load extended info byte from l0f12
+    lda hazel_txcb_type,x                                             ; 9e72: bd 12 c1    ...            ; Load extended info byte from fs_access_level
     sta (fs_options),y                                                ; 9e75: 91 bb       ..             ; Store in FS options
     dey                                                               ; 9e77: 88          .              ; Decrement destination offset
     dex                                                               ; 9e78: ca          .              ; Decrement source counter
@@ -7878,8 +7880,8 @@ bad_prefix_table = bad_str_anchor+1
 ; Format filename into fixed-width display field
 ;
 ; Builds a 12-character space-padded filename at &10F3 for directory listing output.
-; Sources the name from either the command line or the l0f05 reply buffer depending on
-; the value in l0f03. Truncates or pads to exactly 12 characters.
+; Sources the name from either the command line or the fs_cmd_data reply buffer
+; depending on the value in fs_cmd_csd. Truncates or pads to exactly 12 characters.
 ;
 ; On Exit: A, X, Y: clobbered
 ; Unreachable dead code (3 bytes)
@@ -7889,14 +7891,14 @@ bad_prefix_table = bad_str_anchor+1
 ; &9e82 referenced 2 times by &9c71, &9cfc
 .format_filename_field
     ldy #0                                                            ; 9e82: a0 00       ..             ; Dead: duplicate JMP finalise_and_return; Y=0: destination index
-    ldx hazel_txcb_network                                            ; 9e84: ae 03 c1    ...            ; Load source offset from l0f03
-    bne copy_from_buf_entry                                           ; 9e87: d0 19       ..             ; Non-zero: copy from l0f05 buffer
+    ldx hazel_txcb_network                                            ; 9e84: ae 03 c1    ...            ; Load source offset from fs_cmd_csd
+    bne copy_from_buf_entry                                           ; 9e87: d0 19       ..             ; Non-zero: copy from fs_cmd_data buffer
 ; &9e89 referenced 1 time by &9e93
 .loop_copy_cmdline_char
     lda (fs_crc_lo),y                                                 ; 9e89: b1 be       ..             ; Load character from command line
     cmp #&21 ; '!'                                                    ; 9e8b: c9 21       .!             ; Below '!' (control/space)?
     bcc pad_with_spaces                                               ; 9e8d: 90 06       ..             ; Yes: pad with spaces
-    sta hazel_display_buf,y                                           ; 9e8f: 99 f3 c2    ...            ; Store printable character in l10f3
+    sta hazel_display_buf,y                                           ; 9e8f: 99 f3 c2    ...            ; Store printable character in hazel_display_buf
     iny                                                               ; 9e92: c8          .              ; Advance to next character
     bne loop_copy_cmdline_char                                        ; 9e93: d0 f4       ..             ; Loop for more characters
 ; &9e95 referenced 2 times by &9e8d, &9e9d
@@ -7914,8 +7916,8 @@ bad_prefix_table = bad_str_anchor+1
     iny                                                               ; 9ea1: c8          .              ; INY
 ; &9ea2 referenced 1 time by &9e87
 .copy_from_buf_entry
-    lda hazel_txcb_data,x                                             ; 9ea2: bd 05 c1    ...            ; Load byte from l0f05 buffer
-    sta hazel_display_buf,y                                           ; 9ea5: 99 f3 c2    ...            ; Store in display buffer l10f3
+    lda hazel_txcb_data,x                                             ; 9ea2: bd 05 c1    ...            ; Load byte from fs_cmd_data buffer
+    sta hazel_display_buf,y                                           ; 9ea5: 99 f3 c2    ...            ; Store in display buffer hazel_display_buf
     bpl loop_copy_buf_char                                            ; 9ea8: 10 f6       ..             ; Bit 7 clear: more characters
     rts                                                               ; 9eaa: 60          `              ; Return (bit 7 set = terminator)
 
@@ -7960,7 +7962,7 @@ bad_prefix_table = bad_str_anchor+1
     sty fs_block_offset                                               ; 9ed3: 84 bc       ..             ; Clear block offset
 ; &9ed5 referenced 1 time by &9ee0
 .loop_copy_fcb_fields
-    lda hazel_fcb_addr_mid,x                                          ; 9ed5: bd 10 c2    ...            ; Load channel data from l1010+X
+    lda hazel_fcb_addr_mid,x                                          ; 9ed5: bd 10 c2    ...            ; Load channel data from hazel_fcb_addr_mid+X
     sta (fs_options),y                                                ; 9ed8: 91 bb       ..             ; Store in FS options at Y
     jsr advance_x_by_8                                                ; 9eda: 20 ba bf     ..            ; Advance X by 8 (next FCB field)
     iny                                                               ; 9edd: c8          .              ; Advance destination index
@@ -7986,8 +7988,8 @@ bad_prefix_table = bad_str_anchor+1
     jsr check_not_dir                                                 ; 9ef5: 20 8c b8     ..            ; Check file is not a directory
     pla                                                               ; 9ef8: 68          h              ; Pull channel char
     jsr store_rx_attribute                                            ; 9ef9: 20 20 bd      .            ; Store channel char as receive attribute
-    lda hazel_fcb_link,x                                              ; 9efc: bd 30 c2    .0.            ; Load FCB flag byte from l1030
-    sta hazel_txcb_data                                               ; 9eff: 8d 05 c1    ...            ; Store in l0f05
+    lda hazel_fcb_link,x                                              ; 9efc: bd 30 c2    .0.            ; Load FCB flag byte from hazel_fcb_link
+    sta hazel_txcb_data                                               ; 9eff: 8d 05 c1    ...            ; Store in fs_cmd_data
     pla                                                               ; 9f02: 68          h              ; Pull X (FCB slot)
     tax                                                               ; 9f03: aa          .              ; Restore X
     pla                                                               ; 9f04: 68          h              ; Pull sub-function
@@ -7998,10 +8000,10 @@ bad_prefix_table = bad_str_anchor+1
     ldx fs_options                                                    ; 9f0a: a6 bb       ..             ; Load FS options pointer low
     ldy fs_block_offset                                               ; 9f0c: a4 bc       ..             ; Load block offset
     jsr process_all_fcbs                                              ; 9f0e: 20 38 bb     8.            ; Process all matching FCBs
-    lda hazel_fcb_addr_mid,y                                          ; 9f11: b9 10 c2    ...            ; Load updated data from l1010
-    sta hazel_txcb_data                                               ; 9f14: 8d 05 c1    ...            ; Store in l0f05
+    lda hazel_fcb_addr_mid,y                                          ; 9f11: b9 10 c2    ...            ; Load updated data from hazel_fcb_addr_mid
+    sta hazel_txcb_data                                               ; 9f14: 8d 05 c1    ...            ; Store in fs_cmd_data
     pla                                                               ; 9f17: 68          h              ; Pull sub-function
-    sta hazel_txcb_flag                                               ; 9f18: 8d 06 c1    ...            ; Store in l0f06
+    sta hazel_txcb_flag                                               ; 9f18: 8d 06 c1    ...            ; Store in fs_func_code
     plp                                                               ; 9f1b: 28          (              ; Restore flags
     tya                                                               ; 9f1c: 98          .              ; Transfer Y to A
     pha                                                               ; 9f1d: 48          H              ; Push Y (offset)
@@ -8010,7 +8012,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9f22 referenced 1 time by &9f29
 .loop_copy_zp_to_buf
     lda zp_work_3,x                                                   ; 9f22: b5 03       ..             ; Load zero page data
-    sta hazel_txcb_count,y                                            ; 9f24: 99 07 c1    ...            ; Store in l0f07 buffer
+    sta hazel_txcb_count,y                                            ; 9f24: 99 07 c1    ...            ; Store in fs_data_count buffer
     dex                                                               ; 9f27: ca          .              ; Decrement source
     dey                                                               ; 9f28: 88          .              ; Decrement counter
     bpl loop_copy_zp_to_buf                                           ; 9f29: 10 f7       ..             ; Loop for all 4 bytes
@@ -8035,7 +8037,7 @@ bad_prefix_table = bad_str_anchor+1
     sta zp_work_3,x                                                   ; 9f48: 95 03       ..             ; Store A in zero page
 ; &9f4a referenced 1 time by &9f51
 .loop_copy_reply_to_zp
-    lda hazel_txcb_data,y                                             ; 9f4a: b9 05 c1    ...            ; Load buffer byte from l0f05+Y
+    lda hazel_txcb_data,y                                             ; 9f4a: b9 05 c1    ...            ; Load buffer byte from fs_cmd_data+Y
     sta zp_work_2,x                                                   ; 9f4d: 95 02       ..             ; Store in zero page at offset
     dex                                                               ; 9f4f: ca          .              ; Decrement source X
     dey                                                               ; 9f50: 88          .              ; Decrement counter Y
@@ -8049,11 +8051,11 @@ bad_prefix_table = bad_str_anchor+1
     lda fs_block_offset                                               ; 9f59: a5 bc       ..             ; Load block offset
     jsr attr_to_chan_index                                            ; 9f5b: 20 05 b8     ..            ; Convert attribute to channel index
     ldy fs_options                                                    ; 9f5e: a4 bb       ..             ; Load FS options pointer
-    lda hazel_fcb_addr_lo,x                                           ; 9f60: bd 00 c2    ...            ; Load FCB low byte from l1000
+    lda hazel_fcb_addr_lo,x                                           ; 9f60: bd 00 c2    ...            ; Load FCB low byte from hazel_fcb_addr_lo
     sta zp_ptr_lo,y                                                   ; 9f63: 99 00 00    ...            ; Store in zero page pointer low
-    lda hazel_fcb_addr_mid,x                                          ; 9f66: bd 10 c2    ...            ; Load FCB high byte from l1010
+    lda hazel_fcb_addr_mid,x                                          ; 9f66: bd 10 c2    ...            ; Load FCB high byte from hazel_fcb_addr_mid
     sta zp_ptr_hi,y                                                   ; 9f69: 99 01 00    ...            ; Store in zero page pointer high
-    lda hazel_fcb_addr_hi,x                                           ; 9f6c: bd 20 c2    . .            ; Load FCB extent from l1020
+    lda hazel_fcb_addr_hi,x                                           ; 9f6c: bd 20 c2    . .            ; Load FCB extent from hazel_fcb_addr_hi
     sta zp_work_2,y                                                   ; 9f6f: 99 02 00    ...            ; Store in zero page work area
     lda #0                                                            ; 9f72: a9 00       ..             ; A=0: clear high byte
     sta zp_work_3,y                                                   ; 9f74: 99 03 00    ...            ; Store zero in work area high
@@ -8061,14 +8063,14 @@ bad_prefix_table = bad_str_anchor+1
 
 ; &9f79 referenced 1 time by &9f57
 .osargs_write_ptr
-    sta hazel_txcb_flag                                               ; 9f79: 8d 06 c1    ...            ; Store write value in l0f06
+    sta hazel_txcb_flag                                               ; 9f79: 8d 06 c1    ...            ; Store write value in fs_func_code
     txa                                                               ; 9f7c: 8a          .              ; Transfer X to A
     pha                                                               ; 9f7d: 48          H              ; Push X (zero page offset)
     ldy #3                                                            ; 9f7e: a0 03       ..             ; Y=3: copy 4 bytes
 ; &9f80 referenced 1 time by &9f87
 .loop_copy_ptr_to_buf
     lda zp_work_3,x                                                   ; 9f80: b5 03       ..             ; Load zero page data at offset
-    sta hazel_txcb_count,y                                            ; 9f82: 99 07 c1    ...            ; Store in l0f07 buffer
+    sta hazel_txcb_count,y                                            ; 9f82: 99 07 c1    ...            ; Store in fs_data_count buffer
     dex                                                               ; 9f85: ca          .              ; Decrement source
     dey                                                               ; 9f86: 88          .              ; Decrement counter
     bpl loop_copy_ptr_to_buf                                          ; 9f87: 10 f7       ..             ; Loop for all 4 bytes
@@ -8082,11 +8084,11 @@ bad_prefix_table = bad_str_anchor+1
     jsr clear_conn_active                                             ; 9f96: 20 0d 94     ..            ; Clear connection active flag
     jsr attr_to_chan_index                                            ; 9f99: 20 05 b8     ..            ; Convert attribute to channel index
     lda zp_ptr_lo,y                                                   ; 9f9c: b9 00 00    ...            ; Load zero page pointer low
-    sta hazel_fcb_addr_lo,x                                           ; 9f9f: 9d 00 c2    ...            ; Store back to FCB l1000
+    sta hazel_fcb_addr_lo,x                                           ; 9f9f: 9d 00 c2    ...            ; Store back to FCB hazel_fcb_addr_lo
     lda zp_ptr_hi,y                                                   ; 9fa2: b9 01 00    ...            ; Load zero page pointer high
-    sta hazel_fcb_addr_mid,x                                          ; 9fa5: 9d 10 c2    ...            ; Store back to FCB l1010
+    sta hazel_fcb_addr_mid,x                                          ; 9fa5: 9d 10 c2    ...            ; Store back to FCB hazel_fcb_addr_mid
     lda zp_work_2,y                                                   ; 9fa8: b9 02 00    ...            ; Load zero page work byte
-    sta hazel_fcb_addr_hi,x                                           ; 9fab: 9d 20 c2    . .            ; Store back to FCB l1020
+    sta hazel_fcb_addr_hi,x                                           ; 9fab: 9d 20 c2    . .            ; Store back to FCB hazel_fcb_addr_hi
     jmp return_with_last_flag                                         ; 9fae: 4c b4 9f    L..            ; Return with last flag
 
 ; ***************************************************************************************
@@ -8184,9 +8186,9 @@ bad_prefix_table = bad_str_anchor+1
     jsr alloc_fcb_or_error                                            ; 9fd9: 20 dc b8     ..            ; Allocate FCB slot or raise error
     eor #&80                                                          ; 9fdc: 49 80       I.             ; Toggle bit 7
     asl a                                                             ; 9fde: 0a          .              ; Shift left: build open mode
-    sta hazel_txcb_data                                               ; 9fdf: 8d 05 c1    ...            ; Store open mode in l0f05
+    sta hazel_txcb_data                                               ; 9fdf: 8d 05 c1    ...            ; Store open mode in fs_cmd_data
     rol a                                                             ; 9fe2: 2a          *              ; Rotate to complete mode byte
-    sta hazel_txcb_flag                                               ; 9fe3: 8d 06 c1    ...            ; Store in l0f06
+    sta hazel_txcb_flag                                               ; 9fe3: 8d 06 c1    ...            ; Store in fs_func_code
     jsr parse_cmd_arg_y0                                              ; 9fe6: 20 2a b2     *.            ; Parse command argument (Y=0)
     ldx #2                                                            ; 9fe9: a2 02       ..             ; X=2: buffer offset
     jsr copy_arg_to_buf                                               ; 9feb: 20 a1 b2     ..            ; Copy argument to TX buffer
@@ -8202,15 +8204,15 @@ bad_prefix_table = bad_str_anchor+1
     bcs done_osfind                                                   ; 9ff9: b0 6d       .m             ; Carry set (error): jump to finalise
     lda #&ff                                                          ; 9ffb: a9 ff       ..             ; A=&FF: mark as newly opened
     jsr store_rx_attribute                                            ; 9ffd: 20 20 bd      .            ; Store &FF as receive attribute
-    lda hazel_txcb_data                                               ; a000: ad 05 c1    ...            ; Load handle from l0f05
+    lda hazel_txcb_data                                               ; a000: ad 05 c1    ...            ; Load handle from fs_cmd_data
     pha                                                               ; a003: 48          H              ; Push handle
     lda #4                                                            ; a004: a9 04       ..             ; A=4: file info sub-command
     sta hazel_txcb_data                                               ; a006: 8d 05 c1    ...            ; Store sub-command
     ldx #1                                                            ; a009: a2 01       ..             ; X=1: shift filename
 ; &a00b referenced 1 time by &a014
 .loop_shift_filename
-    lda hazel_txcb_flag,x                                             ; a00b: bd 06 c1    ...            ; Load filename byte from l0f06+X
-    sta hazel_txcb_data,x                                             ; a00e: 9d 05 c1    ...            ; Shift down to l0f05+X
+    lda hazel_txcb_flag,x                                             ; a00b: bd 06 c1    ...            ; Load filename byte from fs_func_code+X
+    sta hazel_txcb_data,x                                             ; a00e: 9d 05 c1    ...            ; Shift down to fs_cmd_data+X
     inx                                                               ; a011: e8          .              ; Advance source index
     cmp #&0d                                                          ; a012: c9 0d       ..             ; Is it CR (end of filename)?
     bne loop_shift_filename                                           ; a014: d0 f5       ..             ; No: continue shifting
@@ -8249,7 +8251,7 @@ bad_prefix_table = bad_str_anchor+1
     bcs alloc_fcb_with_flags                                          ; a050: b0 0c       ..             ; Carry set (bit 0): check read permission
     ror a                                                             ; a052: 6a          j              ; Rotate right: check bit 1
     bcc alloc_fcb_with_flags                                          ; a053: 90 09       ..             ; Carry clear (no write): skip
-    bit hazel_txcb_count                                              ; a055: 2c 07 c1    ,..            ; Test bit 7 of l0f07 (lock flag)
+    bit hazel_txcb_count                                              ; a055: 2c 07 c1    ,..            ; Test bit 7 of fs_data_count (lock flag)
     bpl alloc_fcb_with_flags                                          ; a058: 10 04       ..             ; Not locked: skip
     tya                                                               ; a05a: 98          .              ; Transfer Y to A (flags)
     ora #&20 ; ' '                                                    ; a05b: 09 20       .              ; Set bit 5 (locked file flag)
@@ -8262,7 +8264,7 @@ bad_prefix_table = bad_str_anchor+1
 .store_fcb_flags
     tax                                                               ; a062: aa          .              ; Transfer to X
     tya                                                               ; a063: 98          .              ; Transfer Y to A (flags)
-    sta hazel_fcb_handle,x                                            ; a064: 9d 40 c2    .@.            ; Store flags in FCB table l1040
+    sta hazel_fcb_state_byte,x                                        ; a064: 9d 40 c2    .@.            ; Store flags in FCB table hazel_fcb_state_byte
     txa                                                               ; a067: 8a          .              ; Transfer X back to A (handle)
 ; &a068 referenced 2 times by &9ff9, &a04a
 .done_osfind
@@ -8282,15 +8284,15 @@ bad_prefix_table = bad_str_anchor+1
     lda #0                                                            ; a07c: a9 00       ..             ; A=0: clear flags
     sta fs_last_byte_flag                                             ; a07e: 85 bd       ..             ; Save to fs_work_5; Clear last byte flag
     sta fs_block_offset                                               ; a080: 85 bc       ..             ; Load current FS station low; Clear block offset
-    beq send_close_request                                            ; a082: f0 06       ..             ; ALWAYS branch to send close request; Save to l00b6
+    beq send_close_request                                            ; a082: f0 06       ..             ; ALWAYS branch to send close request; Save to fs_work_6
 
 ; &a084 referenced 1 time by &a06f
 .close_specific_chan
     jsr check_chan_char                                               ; a084: 20 14 b8     ..            ; Validate channel character; Get first character of argument
-    lda hazel_fcb_link,x                                              ; a087: bd 30 c2    .0.            ; Is it CR (no argument)?; Load FCB flag byte from l1030; No arg: print current FS info
+    lda hazel_fcb_link,x                                              ; a087: bd 30 c2    .0.            ; Is it CR (no argument)?; Load FCB flag byte from hazel_fcb_link; No arg: print current FS info
 ; &a08a referenced 1 time by &a082
 .send_close_request
-    sta hazel_txcb_data                                               ; a08a: 8d 05 c1    ...            ; Store as l0f05 (file handle); Parse FS/PS station arguments
+    sta hazel_txcb_data                                               ; a08a: 8d 05 c1    ...            ; Store as fs_cmd_data (file handle); Parse FS/PS station arguments
     ldx #1                                                            ; a08d: a2 01       ..             ; X=1: argument size
     ldy #7                                                            ; a08f: a0 07       ..             ; Y=7: close file command; Store OSWORD sub-function
     jsr save_net_tx_cb                                                ; a091: 20 8a 97     ..            ; Send close file request; OSWORD &13: NFS information
@@ -8305,8 +8307,8 @@ bad_prefix_table = bad_str_anchor+1
 ; &a09f referenced 1 time by &a096
 .clear_single_fcb
     lda #0                                                            ; a09f: a9 00       ..             ; A=0: clear FCB entry
-    sta hazel_fcb_addr_mid,y                                          ; a0a1: 99 10 c2    ...            ; Print station address; Clear l1010 (FCB high byte)
-    sta hazel_fcb_handle,y                                            ; a0a4: 99 40 c2    .@.            ; Clear l1040 (FCB flags)
+    sta hazel_fcb_addr_mid,y                                          ; a0a1: 99 10 c2    ...            ; Print station address; Clear hazel_fcb_addr_mid (FCB high byte)
+    sta hazel_fcb_state_byte,y                                        ; a0a4: 99 40 c2    .@.            ; Clear hazel_fcb_state_byte (FCB flags)
     beq done_close                                                    ; a0a7: f0 f3       ..             ; Save X on stack; ALWAYS branch to return; Push X
 
 ; ***************************************************************************************
@@ -8330,7 +8332,7 @@ bad_prefix_table = bad_str_anchor+1
     bne osargs_store_ptr_lo                                           ; a0b4: d0 19       ..             ; Initialise bridge polling; X was 1: store display flag
 ; &a0b6 referenced 1 time by &a0a9
 .store_display_flag
-    sty hazel_fs_state_flags                                          ; a0b6: 8c 06 c0    ...            ; Store Y in display control flag l0e06; Compare bridge result with parsed value
+    sty hazel_fs_state_flags                                          ; a0b6: 8c 06 c0    ...            ; Store Y in display control flag fs_messages_flag; Compare bridge result with parsed value
     bcc done_close                                                    ; a0b9: 90 e1       ..             ; Same: keep bridge result; Carry clear: return with flag
 ; &a0bb referenced 2 times by &a0d1, &a0dd
 .error_osargs
@@ -8339,11 +8341,11 @@ bad_prefix_table = bad_str_anchor+1
 
 ; &a0c0 referenced 1 time by &a0b1
 .send_osargs_request
-    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...            ; Transfer back to Y; Store Y in l0f05; Skip dot separator; Parse second number (station)
+    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...            ; Transfer back to Y; Store Y in fs_cmd_data; Skip dot separator; Parse second number (station)
     ldy #&16                                                          ; a0c3: a0 16       ..             ; Y=&16: OSARGS save command
     jsr save_net_tx_cb                                                ; a0c5: 20 8a 97     ..            ; Zero result: skip store; Send OSARGS request; Store station high byte
     ldy fs_block_offset                                               ; a0c8: a4 bc       ..             ; Reload block offset; Restore X
-    sty hazel_fs_flags                                                ; a0ca: 8c 05 c0    ...            ; Transfer back to X; Store in l0e05; Return; Load parameter block pointer
+    sty hazel_fs_flags                                                ; a0ca: 8c 05 c0    ...            ; Transfer back to X; Store in fs_boot_option; Return; Load parameter block pointer
     bpl done_close                                                    ; a0cd: 10 cd       ..             ; Positive: return with flag; Shift left (A * 2)
 ; &a0cf referenced 1 time by &a0b4
 .osargs_store_ptr_lo
@@ -8385,21 +8387,21 @@ bad_prefix_table = bad_str_anchor+1
 ; Store carry flag to workspace via OSBYTE A2.
 .store_carry_to_workspace
 cmos_attr_table = store_carry_to_workspace+1
-    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Save carry to l0d6c bit 7
+    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Save carry to fs_flags bit 7
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Load PB pointer value
 ; &a103 referenced 1 time by &a0e8
 .osargs_close_jump
-    equb 1, 2, 4, 6, &fd, &f3, &cf, &3f                               ; a103: 01 02 04... ...            ; Shift carry back in; Restore l0d6c bit 7; Return; Save carry to l0d61 bit 7
+    equb 1, 2, 4, 6, &fd, &f3, &cf, &3f                               ; a103: 01 02 04... ...            ; Shift carry back in; Restore fs_flags bit 7; Return; Save carry to econet_flags bit 7
 
 ; ***************************************************************************************
 ; FSCV reason 1: EOF check
 ;
 ; Verifies the FS workspace checksum, then loads the channel's block-offset byte
 ; (fs_block_offset, &BC), pushes it on the stack and stores the per-channel attribute
-; reference in lc2c9. The body proceeds to compare the buffer byte count with the file
-; length to decide whether the channel is at EOF. Reached via the FSCV vector with
-; reason code 1.
+; reference in hazel_chan_attr. The body proceeds to compare the buffer byte count with
+; the file length to decide whether the channel is at EOF. Reached via the FSCV vector
+; with reason code 1.
 ;
 ; On Entry: Y: channel handle
 ;
@@ -8407,13 +8409,13 @@ cmos_attr_table = store_carry_to_workspace+1
 .fscv_1_eof
     jsr verify_ws_checksum                                            ; a10b: 20 9e 90     ..            ; Verify workspace checksum; A='?': mark as uninitialised
     pha                                                               ; a10e: 48          H              ; Store '?' to workspace; Push result on stack
-    lda fs_block_offset                                               ; a10f: a5 bc       ..             ; Load block offset; Restore l0d61 bit 7
+    lda fs_block_offset                                               ; a10f: a5 bc       ..             ; Load block offset; Restore econet_flags bit 7
     pha                                                               ; a111: 48          H              ; Push block offset
-    stx hazel_chan_attr                                               ; a112: 8e c9 c2    ...            ; Store X in l10c9; Return; Set text and transfer pointers
+    stx hazel_chan_attr                                               ; a112: 8e c9 c2    ...            ; Store X in hazel_chan_attr; Return; Set text and transfer pointers
     jsr find_matching_fcb                                             ; a115: 20 cf ba     ..            ; Find matching FCB entry; Y=&FF: prepare for INY to 0
     beq mark_not_found                                                ; a118: f0 0c       ..             ; Zero: no match found; Clear spool handle (no spool active)
-    lda hazel_fcb_addr_lo,y                                           ; a11a: b9 00 c2    ...            ; Load FCB low byte from l1000; Set escapable flag (&FF)
-    cmp hazel_fcb_offset_save,x                                       ; a11d: dd 98 c2    ...            ; Compare with stored offset l1098; X=&4A: FS command table offset
+    lda hazel_fcb_addr_lo,y                                           ; a11a: b9 00 c2    ...            ; Load FCB low byte from hazel_fcb_addr_lo; Set escapable flag (&FF)
+    cmp hazel_fcb_offset_save,x                                       ; a11d: dd 98 c2    ...            ; Compare with stored offset hazel_fcb_offset_save; X=&4A: FS command table offset
     bcc mark_not_found                                                ; a120: 90 04       ..             ; Match command in FS table; Below stored: no match
     ldx #&ff                                                          ; a122: a2 ff       ..             ; X=&FF: mark as found (all bits set); C set: command found
     bmi restore_and_return                                            ; a124: 30 02       0.             ; ALWAYS branch (negative); V clear: syntax error
@@ -8542,16 +8544,16 @@ cmos_attr_table = store_carry_to_workspace+1
     pla                                                               ; a173: 68          h              ; Pull handle
     tay                                                               ; a174: a8          .              ; Transfer to Y
     jsr process_all_fcbs                                              ; a175: 20 38 bb     8.            ; Process all matching FCBs
-    lda hazel_fcb_link,x                                              ; a178: bd 30 c2    .0.            ; Load FCB flag byte from l1030
-    sta hazel_txcb_data                                               ; a17b: 8d 05 c1    ...            ; Store file handle in l0f05
+    lda hazel_fcb_link,x                                              ; a178: bd 30 c2    .0.            ; Load FCB flag byte from hazel_fcb_link
+    sta hazel_txcb_data                                               ; a17b: 8d 05 c1    ...            ; Store file handle in fs_cmd_data
     lda #0                                                            ; a17e: a9 00       ..             ; A=0: clear direction flag
-    sta hazel_txcb_flag                                               ; a180: 8d 06 c1    ...            ; Store in l0f06
+    sta hazel_txcb_flag                                               ; a180: 8d 06 c1    ...            ; Store in fs_func_code
     lda hazel_fcb_addr_lo,x                                           ; a183: bd 00 c2    ...            ; Load FCB low byte (position)
-    sta hazel_txcb_count                                              ; a186: 8d 07 c1    ...            ; Store in l0f07
+    sta hazel_txcb_count                                              ; a186: 8d 07 c1    ...            ; Store in fs_data_count
     lda hazel_fcb_addr_mid,x                                          ; a189: bd 10 c2    ...            ; Load FCB high byte
-    sta hazel_txcb_result                                             ; a18c: 8d 08 c1    ...            ; Store in l0f08
+    sta hazel_txcb_result                                             ; a18c: 8d 08 c1    ...            ; Store in fs_reply_cmd
     lda hazel_fcb_addr_hi,x                                           ; a18f: bd 20 c2    . .            ; Load FCB extent byte
-    sta hazel_exec_addr                                               ; a192: 8d 09 c1    ...            ; Store in l0f09
+    sta hazel_exec_addr                                               ; a192: 8d 09 c1    ...            ; Store in fs_load_vector
     ldy #&0d                                                          ; a195: a0 0d       ..             ; Y=&0D: TX buffer size
     ldx #5                                                            ; a197: a2 05       ..             ; X=5: argument count
     jsr save_net_tx_cb                                                ; a199: 20 8a 97     ..            ; Send TX control block to server
@@ -8568,24 +8570,24 @@ cmos_attr_table = store_carry_to_workspace+1
     jsr set_conn_active                                               ; a1ac: 20 f7 93     ..            ; Write: set connection active
 ; &a1af referenced 1 time by &a1aa
 .setup_gbpb_request
-    sty hazel_txcb_flag                                               ; a1af: 8c 06 c1    ...            ; Clear l0f06 (Y=0)
+    sty hazel_txcb_flag                                               ; a1af: 8c 06 c1    ...            ; Clear fs_func_code (Y=0)
     jsr lookup_cat_slot_data                                          ; a1b2: 20 f3 a1     ..            ; Look up channel slot data
-    sta hazel_txcb_data                                               ; a1b5: 8d 05 c1    ...            ; Store flag byte in l0f05
+    sta hazel_txcb_data                                               ; a1b5: 8d 05 c1    ...            ; Store flag byte in fs_cmd_data
     ldy #&0c                                                          ; a1b8: a0 0c       ..             ; Y=&0C: TX buffer size (short)
     ldx #2                                                            ; a1ba: a2 02       ..             ; X=2: argument count
     jsr save_net_tx_cb                                                ; a1bc: 20 8a 97     ..            ; Send TX control block
     jsr lookup_cat_entry_0                                            ; a1bf: 20 ef a1     ..            ; Look up channel entry at Y=0
     ldy #9                                                            ; a1c2: a0 09       ..             ; Y=9: FS options offset for position
-    lda hazel_txcb_data                                               ; a1c4: ad 05 c1    ...            ; Load new position low from l0f05
-    sta hazel_fcb_addr_lo,x                                           ; a1c7: 9d 00 c2    ...            ; Update FCB low byte in l1000
+    lda hazel_txcb_data                                               ; a1c4: ad 05 c1    ...            ; Load new position low from fs_cmd_data
+    sta hazel_fcb_addr_lo,x                                           ; a1c7: 9d 00 c2    ...            ; Update FCB low byte in hazel_fcb_addr_lo
     sta (fs_options),y                                                ; a1ca: 91 bb       ..             ; Store in FS options at Y=9
     iny                                                               ; a1cc: c8          .              ; Y=&0A
-    lda hazel_txcb_flag                                               ; a1cd: ad 06 c1    ...            ; Load new position high from l0f06
-    sta hazel_fcb_addr_mid,x                                          ; a1d0: 9d 10 c2    ...            ; Update FCB high byte in l1010
+    lda hazel_txcb_flag                                               ; a1cd: ad 06 c1    ...            ; Load new position high from fs_func_code
+    sta hazel_fcb_addr_mid,x                                          ; a1d0: 9d 10 c2    ...            ; Update FCB high byte in hazel_fcb_addr_mid
     sta (fs_options),y                                                ; a1d3: 91 bb       ..             ; Store in FS options at Y=&0A
     iny                                                               ; a1d5: c8          .              ; Y=&0B
-    lda hazel_txcb_count                                              ; a1d6: ad 07 c1    ...            ; Load new extent from l0f07
-    sta hazel_fcb_addr_hi,x                                           ; a1d9: 9d 20 c2    . .            ; Update FCB extent in l1020
+    lda hazel_txcb_count                                              ; a1d6: ad 07 c1    ...            ; Load new extent from fs_data_count
+    sta hazel_fcb_addr_hi,x                                           ; a1d9: 9d 20 c2    . .            ; Update FCB extent in hazel_fcb_addr_hi
     sta (fs_options),y                                                ; a1dc: 91 bb       ..             ; Store in FS options at Y=&0B
     lda #0                                                            ; a1de: a9 00       ..             ; A=0: clear high byte of extent
     iny                                                               ; a1e0: c8          .              ; Y=&0C
@@ -8622,7 +8624,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a1f3 referenced 1 time by &a1b2
 .lookup_cat_slot_data
     jsr lookup_chan_by_char                                           ; a1f3: 20 47 b8     G.            ; Look up channel by character
-    lda hazel_fcb_link,x                                              ; a1f6: bd 30 c2    .0.            ; Load FCB flag byte from l1030
+    lda hazel_fcb_link,x                                              ; a1f6: bd 30 c2    .0.            ; Load FCB flag byte from hazel_fcb_link
     rts                                                               ; a1f9: 60          `              ; Return with flag in A
 
 ; ***************************************************************************************
@@ -8640,13 +8642,13 @@ cmos_attr_table = store_carry_to_workspace+1
 .setup_transfer_workspace
     pha                                                               ; a1fa: 48          H              ; Push operation code on stack
     jsr lookup_cat_entry_0                                            ; a1fb: 20 ef a1     ..            ; Look up channel entry at Y=0
-    sta hazel_txcb_data                                               ; a1fe: 8d 05 c1    ...            ; Store flag byte in l0f05
+    sta hazel_txcb_data                                               ; a1fe: 8d 05 c1    ...            ; Store flag byte in fs_cmd_data
     ldy #&0b                                                          ; a201: a0 0b       ..             ; Y=&0B: source offset in FS options
     ldx #6                                                            ; a203: a2 06       ..             ; X=6: copy 6 bytes
 ; &a205 referenced 1 time by &a211
 .loop_copy_opts_to_buf
     lda (fs_options),y                                                ; a205: b1 bb       ..             ; Load FS options byte
-    sta hazel_txcb_flag,x                                             ; a207: 9d 06 c1    ...            ; Store in l0f06 buffer
+    sta hazel_txcb_flag,x                                             ; a207: 9d 06 c1    ...            ; Store in fs_func_code buffer
     dey                                                               ; a20a: 88          .              ; Decrement source index
     cpy #8                                                            ; a20b: c0 08       ..             ; Skip offset 8?
     bne skip_struct_hole                                              ; a20d: d0 01       ..             ; No: continue copy
@@ -8662,7 +8664,7 @@ cmos_attr_table = store_carry_to_workspace+1
     inx                                                               ; a218: e8          .              ; Carry set: OSBPUT (write), X=1
 ; &a219 referenced 1 time by &a216
 .store_direction_flag
-    stx hazel_txcb_flag                                               ; a219: 8e 06 c1    ...            ; Store direction flag in l0f06
+    stx hazel_txcb_flag                                               ; a219: 8e 06 c1    ...            ; Store direction flag in fs_func_code
     ldy #&0b                                                          ; a21c: a0 0b       ..             ; Y=&0B: TX buffer size
     ldx #&91                                                          ; a21e: a2 91       ..             ; X=&91: port for OSBGET
     pla                                                               ; a220: 68          h              ; Pull operation code
@@ -8672,17 +8674,17 @@ cmos_attr_table = store_carry_to_workspace+1
     dey                                                               ; a226: 88          .              ; Y=&0A: adjusted buffer size
 ; &a227 referenced 1 time by &a222
 .store_port_and_send
-    stx hazel_txcb_station                                            ; a227: 8e 02 c1    ...            ; Store port in l0f02
+    stx hazel_txcb_station                                            ; a227: 8e 02 c1    ...            ; Store port in fs_cmd_urd
     stx fs_error_ptr                                                  ; a22a: 86 b8       ..             ; Store port in fs_error_ptr
     ldx #8                                                            ; a22c: a2 08       ..             ; X=8: argument count
-    lda hazel_txcb_data                                               ; a22e: ad 05 c1    ...            ; Load file handle from l0f05
+    lda hazel_txcb_data                                               ; a22e: ad 05 c1    ...            ; Load file handle from fs_cmd_data
     jsr send_request_nowrite                                          ; a231: 20 6f 97     o.            ; Send request (no write data)
     ldx #0                                                            ; a234: a2 00       ..             ; X=0: index
     lda (fs_options,x)                                                ; a236: a1 bb       ..             ; Load channel handle from FS options
     tax                                                               ; a238: aa          .              ; Transfer to X as index
-    lda hazel_fcb_handle,x                                            ; a239: bd 40 c2    .@.            ; Load FCB flags from l1040
+    lda hazel_fcb_state_byte,x                                        ; a239: bd 40 c2    .@.            ; Load FCB flags from hazel_fcb_state_byte
     eor #1                                                            ; a23c: 49 01       I.             ; Toggle bit 0 (transfer direction)
-    sta hazel_fcb_handle,x                                            ; a23e: 9d 40 c2    .@.            ; Store updated flags
+    sta hazel_fcb_state_byte,x                                        ; a23e: 9d 40 c2    .@.            ; Store updated flags
     clc                                                               ; a241: 18          .              ; Clear carry for addition
     ldx #4                                                            ; a242: a2 04       ..             ; X=4: process 4 address bytes
 ; &a244 referenced 1 time by &a258
@@ -8699,13 +8701,13 @@ cmos_attr_table = store_carry_to_workspace+1
     inx                                                               ; a25a: e8          .              ; X=1 (INX from 0)
 ; &a25b referenced 1 time by &a262
 .loop_copy_offset
-    lda hazel_txcb_network,x                                          ; a25b: bd 03 c1    ...            ; Load offset from l0f03
-    sta hazel_txcb_flag,x                                             ; a25e: 9d 06 c1    ...            ; Copy to l0f06
+    lda hazel_txcb_network,x                                          ; a25b: bd 03 c1    ...            ; Load offset from fs_cmd_csd
+    sta hazel_txcb_flag,x                                             ; a25e: 9d 06 c1    ...            ; Copy to fs_func_code
     dex                                                               ; a261: ca          .              ; Decrement counter
     bpl loop_copy_offset                                              ; a262: 10 f7       ..             ; Loop until both bytes copied
     pla                                                               ; a264: 68          h              ; Pull operation code
     bne send_with_swap                                                ; a265: d0 08       ..             ; Non-zero (OSBPUT): swap addresses
-    lda hazel_txcb_station                                            ; a267: ad 02 c1    ...            ; Load port from l0f02
+    lda hazel_txcb_station                                            ; a267: ad 02 c1    ...            ; Load port from fs_cmd_urd
     jsr check_and_setup_txcb                                          ; a26a: 20 87 9d     ..            ; Check and set up TXCB
     bcs recv_and_update                                               ; a26d: b0 03       ..             ; Carry set: skip swap
 ; &a26f referenced 1 time by &a265
@@ -8719,7 +8721,7 @@ cmos_attr_table = store_carry_to_workspace+1
     dec fs_load_addr_2                                                ; a27a: c6 b2       ..             ; Decrement fs_load_addr_2
     sec                                                               ; a27c: 38          8              ; Set carry for subtraction
     jsr adjust_fsopts_4bytes                                          ; a27d: 20 34 a1     4.            ; Adjust FS options by 4 bytes
-    asl hazel_txcb_data                                               ; a280: 0e 05 c1    ...            ; Shift l0f05 left (update status)
+    asl hazel_txcb_data                                               ; a280: 0e 05 c1    ...            ; Shift fs_cmd_data left (update status)
     rts                                                               ; a283: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -8740,14 +8742,14 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Send OSBPUT data block to file server
 ;
 ; Sets Y=&15 (TX buffer size for OSBPUT data) and calls save_net_tx_cb to dispatch the
-; TX. Then copies the display flag from lc005 to lc116 (TX header continuation). Single
-; caller in the OSBPUT-buffered-write path.
+; TX. Then copies the display flag from hazel_fs_flags to hazel_txcb_spare_116 (TX
+; header continuation). Single caller in the OSBPUT-buffered-write path.
 ; &a28a referenced 1 time by &a2ba
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
     jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..            ; Send TX control block
-    lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...            ; Load display flag from l0e05
-    sta hazel_txcb_spare_116                                          ; a292: 8d 16 c1    ...            ; Store in l0f16
+    lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...            ; Load display flag from fs_boot_option
+    sta hazel_txcb_spare_116                                          ; a292: 8d 16 c1    ...            ; Store in fs_boot_data
     stx fs_load_addr                                                  ; a295: 86 b0       ..             ; Clear fs_load_addr (X=0)
     stx fs_load_addr_hi                                               ; a297: 86 b1       ..             ; Clear fs_load_addr_hi
     lda #&12                                                          ; a299: a9 12       ..             ; A=&12: byte count for data block
@@ -8766,7 +8768,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a29f referenced 1 time by &a16a
 .write_block_entry
     ldy #4                                                            ; a29f: a0 04       ..             ; Y=4: offset for station comparison
-    lda tube_present                                                  ; a2a1: ad 63 0d    .c.            ; Load stored station from l0d63
+    lda tube_present                                                  ; a2a1: ad 63 0d    .c.            ; Load stored station from tube_present
     beq store_station_result                                          ; a2a4: f0 07       ..             ; Zero: skip station check
     cmp (fs_options),y                                                ; a2a6: d1 bb       ..             ; Compare with FS options station
     bne store_station_result                                          ; a2a8: d0 03       ..             ; Mismatch: skip subtraction
@@ -8790,19 +8792,19 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a2c1 referenced 1 time by &a2bd
 .handle_cat_update
     tay                                                               ; a2c1: a8          .              ; Transfer to Y (Y=0)
-    lda hazel_fs_context_copy,y                                       ; a2c2: b9 03 c0    ...            ; Load data byte from l0e03
-    sta hazel_txcb_network                                            ; a2c5: 8d 03 c1    ...            ; Store in l0f03
-    lda hazel_fs_prefix_stn                                           ; a2c8: ad 04 c0    ...            ; Load high data byte from l0e04
-    sta hazel_txcb_lib                                                ; a2cb: 8d 04 c1    ...            ; Store in l0f04
-    lda hazel_fs_server_net                                           ; a2ce: ad 02 c0    ...            ; Load port from l0e02
-    sta hazel_txcb_station                                            ; a2d1: 8d 02 c1    ...            ; Store in l0f02
+    lda hazel_fs_context_copy,y                                       ; a2c2: b9 03 c0    ...            ; Load data byte from fs_csd_handle
+    sta hazel_txcb_network                                            ; a2c5: 8d 03 c1    ...            ; Store in fs_cmd_csd
+    lda hazel_fs_prefix_stn                                           ; a2c8: ad 04 c0    ...            ; Load high data byte from fs_lib_handle
+    sta hazel_txcb_lib                                                ; a2cb: 8d 04 c1    ...            ; Store in fs_cmd_lib
+    lda hazel_fs_server_net                                           ; a2ce: ad 02 c0    ...            ; Load port from fs_urd_handle
+    sta hazel_txcb_station                                            ; a2d1: 8d 02 c1    ...            ; Store in fs_cmd_urd
     ldx #&12                                                          ; a2d4: a2 12       ..             ; X=&12: buffer size marker
-    stx hazel_txcb_func_code                                          ; a2d6: 8e 01 c1    ...            ; Store in l0f01
+    stx hazel_txcb_func_code                                          ; a2d6: 8e 01 c1    ...            ; Store in fs_cmd_y_param
     lda #&0d                                                          ; a2d9: a9 0d       ..             ; A=&0D: count value
-    sta hazel_txcb_flag                                               ; a2db: 8d 06 c1    ...            ; Store in l0f06
+    sta hazel_txcb_flag                                               ; a2db: 8d 06 c1    ...            ; Store in fs_func_code
     sta fs_load_addr_2                                                ; a2de: 85 b2       ..             ; Store in fs_load_addr_2
     lsr a                                                             ; a2e0: 4a          J              ; Shift right (A=6)
-    sta hazel_txcb_data                                               ; a2e1: 8d 05 c1    ...            ; Store in l0f05
+    sta hazel_txcb_data                                               ; a2e1: 8d 05 c1    ...            ; Store in fs_cmd_data
     clc                                                               ; a2e4: 18          .              ; Clear carry for addition
     jsr prep_send_tx_cb                                               ; a2e5: 20 b7 97     ..            ; Prepare and send TX control block
     stx fs_load_addr_hi                                               ; a2e8: 86 b1       ..             ; Store X in fs_load_addr_hi (X=0)
@@ -8811,8 +8813,8 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Write data block to destination or Tube
 ;
-; If no Tube present, copies directly from the l0f05 buffer via (fs_crc_lo). If Tube is
-; active, claims the Tube, sets up the transfer address, and writes via R3.
+; If no Tube present, copies directly from the fs_cmd_data buffer via (fs_crc_lo). If
+; Tube is active, claims the Tube, sets up the transfer address, and writes via R3.
 ;
 ; On Exit: A, X, Y: clobbered
 ; &a2ed referenced 2 times by &a29d, &a365
@@ -8823,7 +8825,7 @@ cmos_attr_table = store_carry_to_workspace+1
     ldy fs_load_addr_hi                                               ; a2f3: a4 b1       ..             ; Load destination index from fs_load_addr_hi
 ; &a2f5 referenced 1 time by &a2fe
 .loop_copy_to_host
-    lda hazel_txcb_data,x                                             ; a2f5: bd 05 c1    ...            ; Load data byte from l0f05 buffer
+    lda hazel_txcb_data,x                                             ; a2f5: bd 05 c1    ...            ; Load data byte from fs_cmd_data buffer
     sta (fs_crc_lo),y                                                 ; a2f8: 91 be       ..             ; Store to destination via fs_crc pointer
     inx                                                               ; a2fa: e8          .              ; Advance source index
     iny                                                               ; a2fb: c8          .              ; Advance destination index
@@ -8847,7 +8849,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; &a314 referenced 1 time by &a322
 .loop_write_to_tube
     lda hazel_txcb_data,x                                             ; a314: bd 05 c1    ...            ; Load data byte from buffer; Set V (found match)
-    sta tube_data_register_3                                          ; a317: 8d e5 fe    ...            ; Write to tube data register 3; Store Y to l0e02
+    sta tube_data_register_3                                          ; a317: 8d e5 fe    ...            ; Write to tube data register 3; Store Y to fs_urd_handle
     inx                                                               ; a31a: e8          .              ; Advance source index
     ldy #6                                                            ; a31b: a0 06       ..             ; Y=6: tube write delay; V set: found, skip allocation
 ; &a31d referenced 1 time by &a31e
@@ -8873,21 +8875,21 @@ cmos_attr_table = store_carry_to_workspace+1
 .update_cat_position
     ldy #9                                                            ; a32c: a0 09       ..             ; Y=9: offset for position byte; Clear V
     lda (fs_options),y                                                ; a32e: b1 bb       ..             ; Try next slot; Load position from FS options; All slots checked: not found
-    sta hazel_txcb_flag                                               ; a330: 8d 06 c1    ...            ; Store in l0f06; Compare station/network
+    sta hazel_txcb_flag                                               ; a330: 8d 06 c1    ...            ; Store in fs_func_code; Compare station/network
     ldy #5                                                            ; a333: a0 05       ..             ; Y=5: offset for extent byte; No match: try next
     lda (fs_options),y                                                ; a335: b1 bb       ..             ; Load extent byte from FS options; Load slot status byte
-    sta hazel_txcb_count                                              ; a337: 8d 07 c1    ...            ; Store in l0f07; Test bit 3 (FS active flag)?
+    sta hazel_txcb_count                                              ; a337: 8d 07 c1    ...            ; Store in fs_data_count; Test bit 3 (FS active flag)?
     ldx #&0d                                                          ; a33a: a2 0d       ..             ; X=&0D: byte count; Not set: try next
-    stx hazel_txcb_result                                             ; a33c: 8e 08 c1    ...            ; Store in l0f08; Transfer Y to A; Store Y in slot data
+    stx hazel_txcb_result                                             ; a33c: 8e 08 c1    ...            ; Store in fs_reply_cmd; Transfer Y to A; Store Y in slot data
     ldy #2                                                            ; a33f: a0 02       ..             ; Y=2: command sub-type
     sty fs_load_addr                                                  ; a341: 84 b0       ..             ; Set V (found match); Store in fs_load_addr
-    sty hazel_txcb_data                                               ; a343: 8c 05 c1    ...            ; Store in l0f05; Store Y to l0e03
+    sty hazel_txcb_data                                               ; a343: 8c 05 c1    ...            ; Store in fs_cmd_data; Store Y to fs_csd_handle
     iny                                                               ; a346: c8          .              ; Y=3: TX buffer command byte
     jsr save_net_tx_cb                                                ; a347: 20 8a 97     ..            ; V set: found, skip allocation; Send TX control block; Transfer Y to A
     stx fs_load_addr_hi                                               ; a34a: 86 b1       ..             ; Allocate FCB slot; Store X (0) in fs_load_addr_hi
-    lda hazel_txcb_flag                                               ; a34c: ad 06 c1    ...            ; Load data offset from l0f06; Store allocation result
+    lda hazel_txcb_flag                                               ; a34c: ad 06 c1    ...            ; Load data offset from fs_func_code; Store allocation result
     sta (fs_options,x)                                                ; a34f: 81 bb       ..             ; Store as first byte of FS options; Zero: failed, restore context
-    lda hazel_txcb_data                                               ; a351: ad 05 c1    ...            ; Load data count from l0f05; A=&2A: station flags value
+    lda hazel_txcb_data                                               ; a351: ad 05 c1    ...            ; Load data count from fs_cmd_data; A=&2A: station flags value
     ldy #9                                                            ; a354: a0 09       ..             ; Y=9: position offset in FS options
     adc (fs_options),y                                                ; a356: 71 bb       q.             ; Add to current position
     sta (fs_options),y                                                ; a358: 91 bb       ..             ; Store updated position
@@ -8902,14 +8904,14 @@ cmos_attr_table = store_carry_to_workspace+1
     ldx #2                                                            ; a368: a2 02       ..             ; X=2: clear 3 bytes (indices 0-2)
 ; &a36a referenced 1 time by &a36e
 .loop_clear_buf
-    sta hazel_txcb_count,x                                            ; a36a: 9d 07 c1    ...            ; Clear l0f07+X
+    sta hazel_txcb_count,x                                            ; a36a: 9d 07 c1    ...            ; Clear fs_data_count+X
     dex                                                               ; a36d: ca          .              ; Decrement index
     bpl loop_clear_buf                                                ; a36e: 10 fa       ..             ; Loop until all cleared
     jsr update_addr_from_offset1                                      ; a370: 20 31 a1     1.            ; Update addresses from offset 1
     sec                                                               ; a373: 38          8              ; Set carry for subtraction
     dec fs_load_addr_2                                                ; a374: c6 b2       ..             ; Decrement fs_load_addr_2
-    lda hazel_txcb_data                                               ; a376: ad 05 c1    ...            ; Load data count from l0f05
-    sta hazel_txcb_flag                                               ; a379: 8d 06 c1    ...            ; Copy to l0f06
+    lda hazel_txcb_data                                               ; a376: ad 05 c1    ...            ; Load data count from fs_cmd_data
+    sta hazel_txcb_flag                                               ; a379: 8d 06 c1    ...            ; Copy to fs_func_code
     jsr adjust_fsopts_4bytes                                          ; a37c: 20 34 a1     4.            ; Adjust FS options by 4 bytes (subtract)
     ldx #3                                                            ; a37f: a2 03       ..             ; X=3: check 4 bytes
     ldy #5                                                            ; a381: a0 05       ..             ; Y=5: starting offset
@@ -9158,9 +9160,9 @@ cmos_attr_table = store_carry_to_workspace+1
 .dispatch_fs_cmd
     lda #0                                                            ; a44e: a9 00       ..             ; A=0: clear svc_state
     sta svc_state                                                     ; a450: 85 a9       ..             ; Store -> svc_state
-    lda cmd_dispatch_hi_table,x                                       ; a452: bd 6e a7    .n.            ; Load dispatch hi byte from la76e+X
+    lda cmd_dispatch_hi_table,x                                       ; a452: bd 6e a7    .n.            ; Load dispatch hi byte from cmd_dispatch_hi_table+X
     pha                                                               ; a455: 48          H              ; Push hi for RTS dispatch
-    lda cmd_dispatch_lo_table,x                                       ; a456: bd 6d a7    .m.            ; Load dispatch lo byte from la76d+X
+    lda cmd_dispatch_lo_table,x                                       ; a456: bd 6d a7    .m.            ; Load dispatch lo byte from cmd_dispatch_lo_table+X
     pha                                                               ; a459: 48          H              ; Push lo for RTS dispatch
     rts                                                               ; a45a: 60          `              ; RTS -> dispatched command handler
 
@@ -9313,8 +9315,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ;
 ; Saves the OS text pointer via save_ptr_to_os_text, calls mask_owner_access to clear
 ; the FS-selection bit, ORs in bit 1 (the *RUN-in-progress flag), and stores back to
-; fs_lib_flags (lc271). Falls through to the run-handling chain that opens the file and
-; starts execution. Reached via the FSCV vector dispatch with reason code 2.
+; fs_lib_flags (hazel_fs_lib_flags). Falls through to the run-handling chain that opens
+; the file and starts execution. Reached via the FSCV vector dispatch with reason code
+; 2.
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
     jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.            ; Save text pointer (for GSREAD-driven parsing)
@@ -9329,9 +9332,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Reached from cmd_fs_operation at &8E35 when the first character of the *RUN argument
 ; is '&' (the URD = User Root Directory prefix). Saves the OS text pointer via
 ; save_ptr_to_os_text, masks the access bits via mask_owner_access, clears bit 1 of the
-; result, and stores into fs_lib_flags (lc271). Falls through to ca4fc which calls
-; parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument. Single caller; never
-; returns directly (continues into the run flow).
+; result, and stores into fs_lib_flags (hazel_fs_lib_flags). Falls through to ca4fc
+; which calls parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument. Single
+; caller; never returns directly (continues into the run flow).
 ; &a4f1 referenced 1 time by &8e35
 .cmd_run_via_urd
     jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; Save current OS text pointer
@@ -9365,8 +9368,8 @@ cmos_attr_table = store_carry_to_workspace+1
     bpl loop_check_handles                                            ; a520: 10 f5       ..             ; Load from osword_flag workspace; Clear service state
     jsr alloc_fcb_or_error                                            ; a522: 20 dc b8     ..            ; RTS dispatches to pushed handler; Store to RX buffer
     ldx #1                                                            ; a525: a2 01       ..             ; X=1: target offset for the *RUN-channel command
-    stx hazel_txcb_data                                               ; a527: 8e 05 c1    ...            ; Store X to lc105 (cmd byte)
-    stx hazel_txcb_flag                                               ; a52a: 8e 06 c1    ...            ; Store X to lc106 (cmd flag)
+    stx hazel_txcb_data                                               ; a527: 8e 05 c1    ...            ; Store X to hazel_txcb_data (cmd byte)
+    stx hazel_txcb_flag                                               ; a52a: 8e 06 c1    ...            ; Store X to hazel_txcb_flag (cmd flag)
     inx                                                               ; a52d: e8          .              ; X=&02
     jsr copy_arg_to_buf                                               ; a52e: 20 a1 b2     ..            ; Copy filename arg into TX buffer
     ldy #6                                                            ; a531: a0 06       ..             ; Test station active flag
@@ -9455,13 +9458,14 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Validate exec address is non-zero
 ;
-; Iterates X = 3..0 over the 4-byte exec-address copy at lc106..lc109, incrementing
-; each byte. If any byte becomes non-zero (BNE), branches forward to ca5df (the OSCLI
-; dispatch path). When all four INC operations leave a zero result the address was
-; &FFFFFFFF + 1 = 0 -- not a valid exec address -- and the routine falls through to the
-; no-exec-address handler. Single caller (&A51C in the *RUN handler).
+; Iterates X = 3..0 over the 4-byte exec-address copy at
+; hazel_txcb_flag..hazel_exec_addr, incrementing each byte. If any byte becomes
+; non-zero (BNE), branches forward to ca5df (the OSCLI dispatch path). When all four
+; INC operations leave a zero result the address was &FFFFFFFF + 1 = 0 -- not a valid
+; exec address -- and the routine falls through to the no-exec-address handler. Single
+; caller (&A51C in the *RUN handler).
 ;
-; On Entry: A: exec address bytes already in lc106..lc109
+; On Entry: A: exec address bytes already in hazel_txcb_flag..hazel_exec_addr
 ;
 ; On Exit: X: 0 if no valid exec; non-zero branch otherwise
 ; &a5ae referenced 1 time by &a51c
@@ -9480,10 +9484,10 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Allocate FCB slot for *RUN target file
 ;
-; Loads the saved OSWORD parameter byte at lc105, calls alloc_fcb_slot to obtain a free
-; channel index in A, transfers it into Y, then clears the per-channel attribute byte
-; at lc260,X. Used by the *RUN argument-handling path at &A538 once the file is opened,
-; to reserve a channel for the running program.
+; Loads the saved OSWORD parameter byte at hazel_txcb_data, calls alloc_fcb_slot to
+; obtain a free channel index in A, transfers it into Y, then clears the per-channel
+; attribute byte at hazel_fcb_status,X. Used by the *RUN argument-handling path at
+; &A538 once the file is opened, to reserve a channel for the running program.
 ;
 ; On Exit: A: channel attribute byte (cleared to 0) X: FCB slot index Y: FCB slot index
 ; (copy of X)
@@ -9546,12 +9550,12 @@ cmos_attr_table = store_carry_to_workspace+1
     ldx #9                                                            ; a62a: a2 09       ..             ; Update state and return
     ldy #&c1                                                          ; a62c: a0 c1       ..             ; Y=&C1: high byte of TX buffer pointer
     lda #4                                                            ; a62e: a9 04       ..             ; A=4: option byte for *RUN
-    jmp tube_addr_data_dispatch                                       ; a630: 4c 06 04    L..            ; JMP l0406 -- relocated execute path
+    jmp tube_addr_data_dispatch                                       ; a630: 4c 06 04    L..            ; JMP tube_addr_data_dispatch -- relocated execute path
 
 ; &a633 referenced 2 times by &a61b, &a625
 .dispatch_via_vector
     lda #1                                                            ; a633: a9 01       ..             ; A=1: dispatch flag
-    jmp (hazel_exec_addr)                                             ; a635: 6c 09 c1    l..            ; JMP (lc109) -- indirect jump via workspace vector
+    jmp (hazel_exec_addr)                                             ; a635: 6c 09 c1    l..            ; JMP (hazel_exec_addr) -- indirect jump via workspace vector
 
 ; ***************************************************************************************
 ; FS reply handler: select CSD station
@@ -9595,19 +9599,19 @@ cmos_attr_table = store_carry_to_workspace+1
     bmi done_search_bit2                                              ; a648: 30 13       0.             ; Below 0: scan complete
     jsr match_station_net                                             ; a64a: 20 25 b9     %.            ; Compare entry X's stn/net with caller's
     bne loop_search_stn_bit2                                          ; a64d: d0 f8       ..             ; No match: continue
-    lda hazel_fcb_status,x                                            ; a64f: bd 60 c2    .`.            ; Match: read entry's flag byte at lc260+X
+    lda hazel_fcb_status,x                                            ; a64f: bd 60 c2    .`.            ; Match: read entry's flag byte at hazel_fcb_status+X
     and #4                                                            ; a652: 29 04       ).             ; Mask bit 2
     beq loop_search_stn_bit2                                          ; a654: f0 f1       ..             ; Bit 2 clear: keep scanning
     tya                                                               ; a656: 98          .              ; Bit 2 set: A = matched entry index (Y)
-    sta hazel_fcb_link,x                                              ; a657: 9d 30 c2    .0.            ; Store Y at lc230+X (link entry to slot)
+    sta hazel_fcb_link,x                                              ; a657: 9d 30 c2    .0.            ; Store Y at hazel_fcb_link+X (link entry to slot)
     bit always_set_v_byte                                             ; a65a: 2c 69 97    ,i.            ; BIT always_set_v_byte: V <- 1 (match found)
 ; &a65d referenced 1 time by &a648
 .done_search_bit2
-    sty hazel_fs_server_net                                           ; a65d: 8c 02 c0    ...            ; Save Y at lc002 (matched entry index)
+    sty hazel_fs_server_net                                           ; a65d: 8c 02 c0    ...            ; Save Y at hazel_fs_server_net (matched entry index)
     bvs set_flags_bit2                                                ; a660: 70 09       p.             ; V set: skip new-slot alloc
     tya                                                               ; a662: 98          .              ; TYA -- A = caller's index
     jsr alloc_fcb_slot                                                ; a663: 20 a8 b8     ..            ; Allocate a fresh FCB slot
-    sta hazel_fcb_slot_1                                              ; a666: 8d 72 c2    .r.            ; Save FCB slot index at lc272
+    sta hazel_fcb_slot_1                                              ; a666: 8d 72 c2    .r.            ; Save FCB slot index at hazel_fcb_slot_1
     beq jmp_restore_fs_ctx                                            ; a669: f0 67       .g             ; Z set: alloc failed -> restore FS context
 ; &a66b referenced 1 time by &a660
 .set_flags_bit2
@@ -9634,19 +9638,19 @@ cmos_attr_table = store_carry_to_workspace+1
     bmi done_search_bit3                                              ; a673: 30 13       0.             ; Below 0: scan complete
     jsr match_station_net                                             ; a675: 20 25 b9     %.            ; Compare entry's stn/net with caller's
     bne loop_search_stn_bit3                                          ; a678: d0 f8       ..             ; No match: continue
-    lda hazel_fcb_status,x                                            ; a67a: bd 60 c2    .`.            ; Match: read entry's flag byte at lc260+X
+    lda hazel_fcb_status,x                                            ; a67a: bd 60 c2    .`.            ; Match: read entry's flag byte at hazel_fcb_status+X
     and #8                                                            ; a67d: 29 08       ).             ; Mask bit 3
     beq loop_search_stn_bit3                                          ; a67f: f0 f1       ..             ; Bit 3 clear: keep scanning
     tya                                                               ; a681: 98          .              ; Bit 3 set: A = matched entry index (Y)
-    sta hazel_fcb_link,x                                              ; a682: 9d 30 c2    .0.            ; Store Y at lc230+X (link entry to slot)
+    sta hazel_fcb_link,x                                              ; a682: 9d 30 c2    .0.            ; Store Y at hazel_fcb_link+X (link entry to slot)
     bit always_set_v_byte                                             ; a685: 2c 69 97    ,i.            ; BIT always_set_v_byte: V <- 1 (match found)
 ; &a688 referenced 1 time by &a673
 .done_search_bit3
-    sty hazel_fs_context_copy                                         ; a688: 8c 03 c0    ...            ; Save Y at lc003 (matched entry index)
+    sty hazel_fs_context_copy                                         ; a688: 8c 03 c0    ...            ; Save Y at hazel_fs_context_copy (matched entry index)
     bvs set_flags_bit3                                                ; a68b: 70 09       p.             ; V set: skip new-slot alloc
     tya                                                               ; a68d: 98          .              ; TYA -- A = caller's index
     jsr alloc_fcb_slot                                                ; a68e: 20 a8 b8     ..            ; Allocate a fresh FCB slot
-    sta hazel_fcb_slot_2                                              ; a691: 8d 73 c2    .s.            ; Save FCB slot index at lc273
+    sta hazel_fcb_slot_2                                              ; a691: 8d 73 c2    .s.            ; Save FCB slot index at hazel_fcb_slot_2
     beq jmp_restore_fs_ctx                                            ; a694: f0 3c       .<             ; Z set: alloc failed -> restore FS context
 ; &a696 referenced 1 time by &a68b
 .set_flags_bit3
@@ -9719,9 +9723,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ;
 ; Closes all network channels via close_all_net_chans, sets bit 6 of fs_flags (TSB
 ; &0D6C, marking the boot-pending state), then loads the boot type from the FS reply at
-; lc108 and stores it into both the current-boot-type slot (lc005) and the FCB-flags
-; table. Pushes the boot type for the fall-through into fsreply_2_copy_handles which
-; copies the per-handle table.
+; hazel_txcb_result and stores it into both the current-boot-type slot (hazel_fs_flags)
+; and the FCB-flags table. Pushes the boot type for the fall-through into
+; fsreply_2_copy_handles which copies the per-handle table.
 .fsreply_1_copy_handles_boot
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@             ; A=&40: protection-level marker
@@ -9762,8 +9766,8 @@ cmos_attr_table = store_carry_to_workspace+1
     tya                                                               ; a710: 98          .              ; TYA -- result to A
     and #2                                                            ; a711: 29 02       ).             ; Mask bit 1 (auto-CLI flag)
     beq fsreply_2_store_handle                                        ; a713: f0 07       ..             ; Bit clear: skip auto-CLI
-    ldx #<(fsreply_2_skip_handles)                                    ; a715: a2 fe       ..             ; X = lo of la6fe (boot-cmd string ptr)
-    ldy #>(fsreply_2_skip_handles)                                    ; a717: a0 a6       ..             ; Y = hi of la6fe
+    ldx #<(fsreply_2_skip_handles)                                    ; a715: a2 fe       ..             ; X = lo of fsreply_2_skip_handles (boot-cmd string ptr)
+    ldy #>(fsreply_2_skip_handles)                                    ; a717: a0 a6       ..             ; Y = hi of fsreply_2_skip_handles
     jsr oscli                                                         ; a719: 20 f7 ff     ..            ; OSCLI to execute boot command
 ; &a71c referenced 1 time by &a713
 .fsreply_2_store_handle
@@ -9802,14 +9806,15 @@ cmos_attr_table = store_carry_to_workspace+1
 
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_suffix_string
-    ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...            ; Read lc005 (boot-state flag)
+    ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...            ; Read hazel_fs_flags (boot-state flag)
     beq boot_load_cmd                                                 ; a762: f0 dc       ..             ; Z: take boot_load_cmd path
 ; ***************************************************************************************
-; Look up boot command in la75b table and OSCLI it
+; Look up boot command in boot_prefix_string table and OSCLI it
 ;
-; Loads X = la75b,Y (the low byte of the boot-command address), sets Y=&A7 (high byte =
-; &A7xx area where the boot strings live), then JMPs to oscli with (X,Y) pointing at a
-; CR-terminated command string. Single caller (&A5D4 in the RUN-then- boot dispatch).
+; Loads X = boot_prefix_string,Y (the low byte of the boot-command address), sets Y=&A7
+; (high byte = &A7xx area where the boot strings live), then JMPs to oscli with (X,Y)
+; pointing at a CR-terminated command string. Single caller (&A5D4 in the RUN-then-
+; boot dispatch).
 ;
 ; On Entry: Y: boot-command index
 ; &a764 referenced 1 time by &a5d4
@@ -10025,7 +10030,7 @@ svc_8_osword_disp = svc_8_osword+1
 
 ; &a871 referenced 1 time by &a868
 .osword_pb_ready
-    equb &7e, &6f, &0f                                                ; a871: 7e 6f 0f    ~o.            ; Rotate l0d61 right (save flag)
+    equb &7e, &6f, &0f                                                ; a871: 7e 6f 0f    ~o.            ; Rotate econet_flags right (save flag)
 
 .osword_0e_handler
     bit suffix_copy_loop                                              ; a874: 2c 84 99    ,..            ; hi-&14: Bridge/net config; Load init data byte
@@ -10041,7 +10046,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     ldy ws_template_source                                            ; a87e: ac 48 20    .H             ; Next workspace byte; Next template byte
     eor ws_precomputed_value                                          ; a881: 4d 8b 68    M.h            ; Loop for all 12 bytes; Store X (-1) as bridge counter
     cmp #4                                                            ; a884: c9 04       ..             ; Compare with &04
-    beq save_txcb_and_convert                                         ; a886: f0 09       ..             ; Restore l0d61 flag
+    beq save_txcb_and_convert                                         ; a886: f0 09       ..             ; Restore econet_flags flag
     cmp #3                                                            ; a888: c9 03       ..             ; Shift ws_0d60 left (check status)
     beq save_txcb_done                                                ; a88a: f0 5b       .[             ; Equal: take ca8e7 path
     lda #8                                                            ; a88c: a9 08       ..             ; C=0: status clear, retry
@@ -10609,7 +10614,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 
 ; &aaec referenced 1 time by &aae3
 .check_handle_alloc
-    lda hazel_fcb_handle,x                                            ; aaec: bd 40 c2    .@.            ; Return; Check Y == 4
+    lda hazel_fcb_state_byte,x                                        ; aaec: bd 40 c2    .@.            ; Return; Check Y == 4
     and #2                                                            ; aaef: 29 02       ).             ; No: return
     beq handle_invalid                                                ; aaf1: f0 f2       ..             ; A = X (control byte); Decrement X
     txa                                                               ; aaf3: 8a          .              ; Non-zero: handle spool ctrl byte
@@ -10624,9 +10629,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
     jsr update_fcb_flag_bits                                          ; ab05: 20 43 ab     C.            ; A = extracted character; Add byte to RX buffer
     pla                                                               ; ab08: 68          h              ; Pop saved Y
     tay                                                               ; ab09: a8          .              ; Buffer past &6E limit?
-    lda hazel_fcb_handle,x                                            ; ab0a: bd 40 c2    .@.            ; No: read more from buffer
+    lda hazel_fcb_state_byte,x                                        ; ab0a: bd 40 c2    .@.            ; No: read more from buffer
     ora #&24 ; '$'                                                    ; ab0d: 09 24       .$             ; Buffer full: send packet
-    sta hazel_fcb_handle,x                                            ; ab0f: 9d 40 c2    .@.            ; More room: continue reading
+    sta hazel_fcb_state_byte,x                                        ; ab0f: 9d 40 c2    .@.            ; More room: continue reading
 ; &ab12 referenced 3 times by &aaea, &ab2e, &ab41
 .next_handle_slot
     iny                                                               ; ab12: c8          .              ; Load current buffer index
@@ -10645,9 +10650,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
     jsr update_fcb_flag_bits                                          ; ab21: 20 43 ab     C.            ; Save for bit test; Rotate bit 0 into carry; Restore state
     pla                                                               ; ab24: 68          h              ; C=1: already started, reset
     tay                                                               ; ab25: a8          .              ; TAY -- restore Y
-    lda hazel_fcb_handle,x                                            ; ab26: bd 40 c2    .@.            ; Set bits 0-1 (active + pending); Store updated state
+    lda hazel_fcb_state_byte,x                                        ; ab26: bd 40 c2    .@.            ; Set bits 0-1 (active + pending); Store updated state
     ora #&28 ; '('                                                    ; ab29: 09 28       .(             ; ORA #&28 (set bits 3+5)
-    sta hazel_fcb_handle,x                                            ; ab2b: 9d 40 c2    .@.            ; Control byte 3 for header; Add to RX buffer
+    sta hazel_fcb_state_byte,x                                        ; ab2b: 9d 40 c2    .@.            ; Control byte 3 for header; Add to RX buffer
     bne next_handle_slot                                              ; ab2e: d0 e2       ..             ; ALWAYS branch
 
 ; &ab30 referenced 1 time by &ab1b
@@ -10658,16 +10663,16 @@ osword_subcode_dispatch = extract_osword_subcode+1
     jsr update_fcb_flag_bits                                          ; ab34: 20 43 ab     C.            ; Y=8: workspace offset for length
     pla                                                               ; ab37: 68          h              ; Pop saved value
     tay                                                               ; ab38: a8          .              ; Load buffer index (=length)
-    lda hazel_fcb_handle,x                                            ; ab39: bd 40 c2    .@.            ; Store length to workspace
+    lda hazel_fcb_state_byte,x                                        ; ab39: bd 40 c2    .@.            ; Store length to workspace
     ora #&30 ; '0'                                                    ; ab3c: 09 30       .0             ; Set data page high byte
-    sta hazel_fcb_handle,x                                            ; ab3e: 9d 40 c2    .@.            ; Store to workspace+9
+    sta hazel_fcb_state_byte,x                                        ; ab3e: 9d 40 c2    .@.            ; Store to workspace+9
     bne next_handle_slot                                              ; ab41: d0 cf       ..             ; ALWAYS branch; Y=5: workspace offset
 
 ; ***************************************************************************************
 ; Update FCB flag bits across all entries
 ;
-; Scans all 16 FCB entries in l1060. For each entry with bit 6 set, tests the
-; Y-specified bit mask: if matching, ORs bit 5 into the flags; if not, leaves bit 5
+; Scans all 16 FCB entries in hazel_fcb_status. For each entry with bit 6 set, tests
+; the Y-specified bit mask: if matching, ORs bit 5 into the flags; if not, leaves bit 5
 ; clear. In both cases, inverts and clears the tested bits. Preserves X.
 ;
 ; On Entry: Y: flag bit mask to test X: current FCB index (preserved)
@@ -10695,7 +10700,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; &ab5a referenced 1 time by &ab57
 .clear_flag_bits
     eor #&ff                                                          ; ab5a: 49 ff       I.             ; Store flags to workspace
-    and hazel_fcb_status,x                                            ; ab5c: 3d 60 c2    =`.            ; Save l00d0 (exec flag); Push for later restore
+    and hazel_fcb_status,x                                            ; ab5c: 3d 60 c2    =`.            ; Save vdu_status (exec flag); Push for later restore
     sta hazel_fcb_status,x                                            ; ab5f: 9d 60 c2    .`.            ; Clear bit 0 of exec flag; Store modified exec flag
 ; &ab62 referenced 1 time by &ab4c
 .next_flag_entry
@@ -10732,7 +10737,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 10: read error flag
 ;
-; Returns the error flag (l0e09) in PB[1].
+; Returns the error flag (fs_last_error) in PB[1].
 .osword_13_read_error
     lda hazel_fs_last_error                                           ; ab7f: ad 09 c0    ...            ; Store modified flag
 ; ***************************************************************************************
@@ -10753,7 +10758,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 11: read context byte
 ;
-; Returns the context byte (l0d6d) in PB[1].
+; Returns the context byte (tx_retry_count) in PB[1].
 .osword_13_read_context
     lda hazel_fs_error_code                                           ; ab86: ad 08 c0    ...            ; Y=&2C: workspace offset for TXCB
     bpl store_a_to_pb_1                                               ; ab89: 10 f7       ..             ; Load template byte
@@ -10801,9 +10806,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 17: query bridge status
 ;
-; Calls init_bridge_poll, then returns the bridge status. If l0d72 is &FF (no bridge),
-; stores 0 in PB[0]. Otherwise stores l0d72 in PB[1] and conditionally updates PB[3]
-; based on station comparison.
+; Calls init_bridge_poll, then returns the bridge status. If bridge_status is &FF (no
+; bridge), stores 0 in PB[0]. Otherwise stores bridge_status in PB[1] and conditionally
+; updates PB[3] based on station comparison.
 .osword_13_bridge_query
     jsr init_bridge_poll                                              ; aba9: 20 e9 ab     ..            ; Is it &FD? (skip marker)
     ldy #0                                                            ; abac: a0 00       ..             ; Yes: skip store
@@ -10849,7 +10854,7 @@ bridge_err_table = compare_bridge_status+1
     equs "BRIDGE"                                                     ; abd5: 42 52 49... BRI            ; Load reply byte; Zero: success; Status = 3? (busy, can retry)
     equb &9c, 0                                                       ; abdb: 9c 00       ..             ; Other error: handle failure
 .bridge_rxcb_init_data
-    equb &7f, &9c, 0, 0, &71, &0d, &ff, &ff, &73, &0d, &ff, &ff       ; abdd: 7f 9c 00... ...            ; Discard retry count; Discard saved exec flag; Restore l00d0; A=0: null terminator; Add zero to RX buffer (end marker); Send final buffer
+    equb &7f, &9c, 0, 0, &71, &0d, &ff, &ff, &73, &0d, &ff, &ff       ; abdd: 7f 9c 00... ...            ; Discard retry count; Discard saved exec flag; Restore vdu_status; A=0: null terminator; Add zero to RX buffer (end marker); Send final buffer
 
 ; ***************************************************************************************
 ; Initialise Econet bridge routing table
@@ -10879,7 +10884,7 @@ bridge_err_table = compare_bridge_status+1
     iny                                                               ; ac03: c8          .              ; Y advances destination index
     dex                                                               ; ac04: ca          .              ; Decrement source index
     bpl loop_copy_bridge_init                                         ; ac05: 10 f2       ..             ; Loop until X wraps below 0
-    stx spool_control_flag                                            ; ac07: 8e 71 0d    .q.            ; Save final X to l0d71
+    stx spool_control_flag                                            ; ac07: 8e 71 0d    .q.            ; Save final X to spool_control_flag
     rol econet_flags                                                  ; ac0a: 2e 61 0d    .a.            ; ROL econet_flags (rotate to update)
 ; &ac0d referenced 2 times by &ac10, &ac35
 .loop_wait_ws_status
@@ -10994,7 +10999,7 @@ bridge_err_table = compare_bridge_status+1
     sta net_tx_ptr_hi                                                 ; ac91: 85 9b       ..             ; buf start hi=page ptr (&FC); buf start ext lo=&FF
     jsr enable_irq_and_poll                                           ; ac93: 20 f8 ac     ..            ; buf start ext hi=&FF; buf end hi=page ptr (&FC)
     ldy #&20 ; ' '                                                    ; ac96: a0 20       .              ; buf end ext lo=&FF; buf end ext hi=&FF
-    lda #&ff                                                          ; ac98: a9 ff       ..             ; Save l00ad counter
+    lda #&ff                                                          ; ac98: a9 ff       ..             ; Save table_idx counter
     sta (nfs_workspace),y                                             ; ac9a: 91 9e       ..             ; Push for later restore; Set workspace low to &E9
     iny                                                               ; ac9c: c8          .              ; Y=&21
     sta (nfs_workspace),y                                             ; ac9d: 91 9e       ..             ; Store to nfs_workspace low
@@ -11048,7 +11053,7 @@ bridge_err_table = compare_bridge_status+1
     beq return_6                                                      ; acd4: f0 16       ..             ; Store extra palette info
     ldy #&7d ; '}'                                                    ; acd6: a0 7d       .}             ; Y=&7D: workspace pointer offset
     sta (net_rx_ptr),y                                                ; acd8: 91 9c       ..             ; Advance workspace ptr again
-    pha                                                               ; acda: 48          H              ; Restore original l00ad
+    pha                                                               ; acda: 48          H              ; Restore original table_idx
     jsr init_ws_copy_wide                                             ; acdb: 20 fe ad     ..            ; Store restored counter; Load current state
     sec                                                               ; acde: 38          8              ; Set carry for ADC
     ror need_release_tube                                             ; acdf: 66 98       f.             ; Store as committed state
@@ -11899,10 +11904,10 @@ bridge_err_table = compare_bridge_status+1
     sta nfs_workspace                                                 ; b01f: 85 9e       ..             ; Store as nfs_workspace lo
     ldy #0                                                            ; b021: a0 00       ..             ; Y=0
     sty osword_flag                                                   ; b023: 84 aa       ..             ; Reset osword_flag = 0
-    lda vdu_screen_mode                                               ; b025: ad 50 03    .P.            ; Read l0350 (MOS state byte)
+    lda vdu_screen_mode                                               ; b025: ad 50 03    .P.            ; Read vdu_screen_mode (MOS state byte)
     sta (nfs_workspace),y                                             ; b028: 91 9e       ..             ; Store at (nfs_workspace)+0
     inc nfs_workspace                                                 ; b02a: e6 9e       ..             ; Advance nfs_workspace lo
-    lda vdu_display_start_hi                                          ; b02c: ad 51 03    .Q.            ; Read l0351 (next MOS byte)
+    lda vdu_display_start_hi                                          ; b02c: ad 51 03    .Q.            ; Read vdu_display_start_hi (next MOS byte)
     pha                                                               ; b02f: 48          H              ; PHA -- save another byte
     tya                                                               ; b030: 98          .              ; A=&00
 ; &b031 referenced 1 time by &b050
@@ -11959,14 +11964,14 @@ bridge_err_table = compare_bridge_status+1
 ; On Exit: Y: advanced past the 2-byte pair A, X: clobbered (OSBYTE)
 ; &b066 referenced 1 time by &b057
 .serialise_palette_entry
-    lda vdu_mode                                                      ; b066: ad 55 03    .U.            ; Read l0355 (current palette index)
+    lda vdu_mode                                                      ; b066: ad 55 03    .U.            ; Read vdu_mode (current palette index)
     ora #&40 ; '@'                                                    ; b069: 09 40       .@             ; ORA #&40 -- mark as palette entry
     sta (nfs_workspace),y                                             ; b06b: 91 9e       ..             ; Store at (nfs_workspace)+Y
-    ldx vdu_mode                                                      ; b06d: ae 55 03    .U.            ; Read l0355
+    ldx vdu_mode                                                      ; b06d: ae 55 03    .U.            ; Read vdu_mode
     inc nfs_workspace                                                 ; b070: e6 9e       ..             ; Advance workspace
     tya                                                               ; b072: 98          .              ; TYA -- A = current Y (= 0)
     sta (nfs_workspace),y                                             ; b073: 91 9e       ..             ; Store 0 at (nfs_workspace)+Y
-    lda read_osbyte_table,x                                           ; b075: bd 99 b0    ...            ; Read lookup byte from lb099+X
+    lda read_osbyte_table,x                                           ; b075: bd 99 b0    ...            ; Read lookup byte from read_osbyte_table+X
     ldx #0                                                            ; b078: a2 00       ..             ; X=0: indexed-indirect mode
     inc nfs_workspace                                                 ; b07a: e6 9e       ..             ; Advance workspace
     sta (nfs_workspace,x)                                             ; b07c: 81 9e       ..             ; Store at (nfs_workspace,X)
@@ -11997,7 +12002,7 @@ bridge_err_table = compare_bridge_status+1
     ldy osword_flag                                                   ; b083: a4 aa       ..             ; Y = osword_flag (OSBYTE-table index)
     inc osword_flag                                                   ; b085: e6 aa       ..             ; Increment osword_flag for next call
     inc nfs_workspace                                                 ; b087: e6 9e       ..             ; Advance nfs_workspace
-    lda read_osbyte_return,y                                          ; b089: b9 97 b0    ...            ; Load OSBYTE number from lb097+Y
+    lda read_osbyte_return,y                                          ; b089: b9 97 b0    ...            ; Load OSBYTE number from read_osbyte_return+Y
     ldy #&ff                                                          ; b08c: a0 ff       ..             ; Y=&FF -- OSBYTE arg (read mode)
     jsr osbyte                                                        ; b08e: 20 f4 ff     ..            ; Issue OSBYTE
     txa                                                               ; b091: 8a          .              ; TXA -- result to A
@@ -12014,7 +12019,7 @@ bridge_err_table = compare_bridge_status+1
 
 .cmd_cdir_indirect_dispatch
 cmd_cdir = cmd_cdir_indirect_dispatch+1
-    jmp (cdir_unused_dispatch_table,x)                                ; b0a0: 7c 98 48    |.H            ; JMP (l4898,X) -- never executed; see cmd_cdir
+    jmp (cdir_unused_dispatch_table,x)                                ; b0a0: 7c 98 48    |.H            ; JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir
 
 ; ***************************************************************************************
 ; *CDir command handler
@@ -12026,7 +12031,8 @@ cmd_cdir = cmd_cdir_indirect_dispatch+1
 ; command code &1B to create the directory.
 ;
 ; Reached via PHA/PHA/RTS dispatch from cmd_table_fs entry *Cdir; the byte at the
-; entry-1 address &B0A0 happens to decode as JMP (l4898,X) but is never executed.
+; entry-1 address &B0A0 happens to decode as JMP (cdir_unused_dispatch_table,X) but is
+; never executed.
 ;
 ; On Entry: Y: command line offset in text pointer
     jsr mask_owner_access                                             ; b0a3: 20 cf b2     ..            ; Set owner-only access mask
@@ -12105,9 +12111,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; *LCat command handler
 ;
-; Sets the library flag by rotating SEC into bit 7 of l1071, then branches to
-; cat_set_lib_flag inside cmd_ex to catalogue the library directory with three entries
-; per column.
+; Sets the library flag by rotating SEC into bit 7 of hazel_fs_lib_flags, then branches
+; to cat_set_lib_flag inside cmd_ex to catalogue the library directory with three
+; entries per column.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_lcat
@@ -12118,8 +12124,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; *LEx command handler
 ;
-; Sets the library flag by rotating SEC into bit 7 of l1071, then branches to
-; ex_set_lib_flag inside cmd_ex to examine the library directory with one entry per
+; Sets the library flag by rotating SEC into bit 7 of hazel_fs_lib_flags, then branches
+; to ex_set_lib_flag inside cmd_ex to examine the library directory with one entry per
 ; line.
 ;
 ; On Entry: Y: command line offset in text pointer
@@ -12160,9 +12166,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; FSCV reason 5: catalogue (*CAT)
 ;
 ; Sets up transfer parameters via set_xfer_params, clears the library bit in
-; fs_lib_flags (lc271) via the ROR/CLC/ROL idiom that uses carry to preserve other
-; flags, and falls through to cat_set_lib_flag to issue the FS examine request. Reached
-; via the FSCV vector with reason code 5.
+; fs_lib_flags (hazel_fs_lib_flags) via the ROR/CLC/ROL idiom that uses carry to
+; preserve other flags, and falls through to cat_set_lib_flag to issue the FS examine
+; request. Reached via the FSCV vector with reason code 5.
 .fscv_5_cat
     jsr set_xfer_params                                               ; b118: 20 d7 93     ..            ; Set transfer parameters; Try next slot; Transfer slot index to A; Loop for more slots
     ldy #0                                                            ; b11b: a0 00       ..             ; Y=0: start from entry 0; Y = workspace offset of slot
@@ -12265,12 +12271,12 @@ cdir_size_thresholds = cdir_dispatch_col+2
     sta hazel_fs_lib_flags                                            ; b1e4: 8d 71 c2    .q.            ; Store as fs_lib_flags
 ; &b1e7 referenced 1 time by &b218
 .setup_ex_pagination
-    sty hazel_txcb_flag                                               ; b1e7: 8c 06 c1    ...            ; Save Y as lc106 (next-entry index)
+    sty hazel_txcb_flag                                               ; b1e7: 8c 06 c1    ...            ; Save Y as hazel_txcb_flag (next-entry index)
     sty fs_work_4                                                     ; b1ea: 84 b4       ..             ; Save Y as fs_work_4
     ldx fs_work_5                                                     ; b1ec: a6 b5       ..             ; Load fs_work_5 (page count)
-    stx hazel_txcb_count                                              ; b1ee: 8e 07 c1    ...            ; Store at lc107
+    stx hazel_txcb_count                                              ; b1ee: 8e 07 c1    ...            ; Store at hazel_txcb_count
     ldx fs_work_7                                                     ; b1f1: a6 b7       ..             ; Load fs_work_7
-    stx hazel_txcb_data                                               ; b1f3: 8e 05 c1    ...            ; Store at lc105
+    stx hazel_txcb_data                                               ; b1f3: 8e 05 c1    ...            ; Store at hazel_txcb_data
     ldx #3                                                            ; b1f6: a2 03       ..             ; X=3: TX[3] is start of arg buffer
     jsr copy_arg_to_buf                                               ; b1f8: 20 a1 b2     ..            ; Copy filename arg
     ldy #3                                                            ; b1fb: a0 03       ..             ; Y=3: cmd code 3 (catalog)
@@ -12282,9 +12288,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b207 referenced 1 time by &b20b
 .loop_scan_entry_data
     iny                                                               ; b207: c8          .              ; Advance Y
-    lda hazel_txcb_data,y                                             ; b208: b9 05 c1    ...            ; Read entry byte from lc105+Y
+    lda hazel_txcb_data,y                                             ; b208: b9 05 c1    ...            ; Read entry byte from hazel_txcb_data+Y
     bpl loop_scan_entry_data                                          ; b20b: 10 fa       ..             ; Bit 7 clear: keep scanning
-    sta hazel_txcb_lib,y                                              ; b20d: 99 04 c1    ...            ; Store with high-bit clear at lc104+Y
+    sta hazel_txcb_lib,y                                              ; b20d: 99 04 c1    ...            ; Store with high-bit clear at hazel_txcb_lib+Y
     jsr ex_print_col_sep                                              ; b210: 20 e4 b2     ..            ; Print column separator
     pla                                                               ; b213: 68          h              ; Pop saved status
     clc                                                               ; b214: 18          .              ; CLC for ADC
@@ -12304,8 +12310,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Print Y characters from buffer via OSASCI
 ;
-; Loops Y times, loading each byte from l0f05+X and printing it via OSASCI. Advances X
-; after each character, leaving X pointing past the last printed byte.
+; Loops Y times, loading each byte from fs_cmd_data+X and printing it via OSASCI.
+; Advances X after each character, leaving X pointing past the last printed byte.
 ;
 ; On Entry: X: buffer offset Y: character count
 ; &b21c referenced 2 times by &b194, &b224
@@ -12469,9 +12475,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Copy command line characters to TX buffer
 ;
-; Copies characters from (fs_crc_lo)+Y to l0f05+X until a CR terminator is reached.
-; With carry set, validates each character against '&' — raising 'Bad file name' if
-; found — to prevent FS selector characters from being embedded in filenames.
+; Copies characters from (fs_crc_lo)+Y to fs_cmd_data+X until a CR terminator is
+; reached. With carry set, validates each character against '&' — raising 'Bad file
+; name' if found — to prevent FS selector characters from being embedded in filenames.
 ;
 ; On Entry: X: TX buffer destination offset Y: command line source offset C: set to
 ; enable '&' validation
@@ -12534,7 +12540,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ldx #0                                                            ; b2db: a2 00       ..             ; X=0: scan from start of TX entry
 ; &b2dd referenced 1 time by &b2fd
 .loop_scan_entries
-    lda hazel_txcb_data,x                                             ; b2dd: bd 05 c1    ...            ; Read entry byte at lc105+X
+    lda hazel_txcb_data,x                                             ; b2dd: bd 05 c1    ...            ; Read entry byte at hazel_txcb_data+X
     bmi return_from_copy_arg                                          ; b2e0: 30 e8       0.             ; Bit 7 set: end-of-entries -> return
     bne col_sep_print_cr                                              ; b2e2: d0 15       ..             ; Non-printable: take CR-newline path at cb2f9
 ; ***************************************************************************************
@@ -12764,8 +12770,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; Initialise spool drive page pointers
 ;
 ; Calls get_ws_page to read the workspace page number for the current ROM slot, stores
-; it as the spool drive page high byte (l00af), and clears the low byte (l00ae) to
-; zero. Preserves Y on the stack.
+; it as the spool drive page high byte (addr_work), and clears the low byte (work_ae)
+; to zero. Preserves Y on the stack.
 ;
 ; On Exit: A: 0 Y: preserved (PHY/PLY)
 ; &b39e referenced 2 times by &b3b6, &b583
@@ -13643,12 +13649,12 @@ ps_print_template = write_ps_slot_hi_link+1
     bne skip_wipe_to_next                                             ; b78b: d0 2a       .*             ; No: skip this entry, advance to next
     jsr print_char_no_spool                                           ; b78d: 20 fb 91     ..            ; Yes: echo the keypress
     ldx #0                                                            ; b790: a2 00       ..             ; X=0: start scanning the parse-buffer name
-    lda hazel_parse_buf,x                                             ; b792: bd 30 c0    .0.            ; Read first parse-buffer byte at lc030
+    lda hazel_parse_buf,x                                             ; b792: bd 30 c0    .0.            ; Read first parse-buffer byte at hazel_parse_buf
     cmp #&0d                                                          ; b795: c9 0d       ..             ; Is it CR (no path component)?
     beq use_wipe_leaf_name                                            ; b797: f0 24       .$             ; Yes: use leaf-name only path at &B7BD
 ; &b799 referenced 1 time by &b7ae
 .loop_build_wipe_cmd
-    lda hazel_parse_buf,x                                             ; b799: bd 30 c0    .0.            ; Read parse-buffer byte at lc030+X
+    lda hazel_parse_buf,x                                             ; b799: bd 30 c0    .0.            ; Read parse-buffer byte at hazel_parse_buf+X
     cmp #&0d                                                          ; b79c: c9 0d       ..             ; Is it CR (end of name)?
     bne skip_if_not_space                                             ; b79e: d0 02       ..             ; No: check for space separator
     lda #&2e ; '.'                                                    ; b7a0: a9 2e       ..             ; CR: substitute '.' so the dir prefix terminates with a separator
@@ -13679,7 +13685,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b7be referenced 1 time by &b7c7
 .loop_copy_wipe_leaf
     inx                                                               ; b7be: e8          .              ; Advance index
-    lda hazel_parse_buf_1,x                                           ; b7bf: bd 31 c0    .1.            ; Read parse-buffer byte at lc031+X (skip CR at lc030)
+    lda hazel_parse_buf_1,x                                           ; b7bf: bd 31 c0    .1.            ; Read parse-buffer byte at hazel_parse_buf_1+X (skip CR at hazel_parse_buf)
     sta hazel_txcb_data,x                                             ; b7c2: 9d 05 c1    ...            ; Store into TX[5+X] (delete-command buffer)
     cmp #&20 ; ' '                                                    ; b7c5: c9 20       .              ; Reached space (end-of-leaf)?
     bne loop_copy_wipe_leaf                                           ; b7c7: d0 f5       ..             ; No: continue copying
@@ -13813,7 +13819,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     equs "Net channel", 0                                             ; b822: 4e 65 74... Net            ; Inline: 'Net channel.' error msg
 
     jsr false_ref_6f6e                                                ; b82e: 20 6e 6f     no            ; Error string continuation (unreachable)
-    stz tx_buffer_scratch,x                                           ; b831: 74 20       t              ; STZ l0020+X (clear scratch)
+    stz tx_buffer_scratch,x                                           ; b831: 74 20       t              ; STZ tx_buffer_scratch+X (clear scratch)
     equs "on this file server"                                        ; b833: 6f 6e 20... on             ; Inline: 'on this file server' fragment
     equb 0                                                            ; b846: 00          .
 
@@ -14028,7 +14034,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; On Exit: Z: 1=match, 0=no match
 ; &b925 referenced 7 times by &a64a, &a675, &a6ac, &aa0a, &afc2, &b851, &b916
 .match_station_net
-    lda hazel_fcb_handle,x                                            ; b925: bd 40 c2    .@.            ; Load FCB station number
+    lda hazel_fcb_state_byte,x                                        ; b925: bd 40 c2    .@.            ; Load FCB station number
     eor hazel_fs_station_hi                                           ; b928: 4d 00 c0    M..            ; Compare with current station (EOR)
     bne return_from_match_stn                                         ; b92b: d0 06       ..             ; Different: Z=0, no match
     lda hazel_fcb_network,x                                           ; b92d: bd 50 c2    .P.            ; Load FCB network number
@@ -14105,7 +14111,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Initialise byte counters for wipe/transfer
 ;
 ; Clears the pass counter, byte counter, offset counter, and transfer flag. Stores &FF
-; sentinels in l10cd/l10ce. Returns with X/Y pointing at workspace offset &10CA.
+; sentinels in hazel_sentinel_cd/hazel_sentinel_ce. Returns with X/Y pointing at
+; workspace offset &10CA.
 ;
 ; On Exit: X: &CA (workspace offset low) Y: &10 (workspace page)
 ; &b977 referenced 2 times by &b9ba, &ba65
@@ -14123,10 +14130,10 @@ net_chan_err_strings = err_net_chan_not_found+2
     sta hazel_counter_per_fcb,x                                       ; b989: 9d d1 c2    ...            ; Clear counter byte
     dex                                                               ; b98c: ca          .              ; Next byte
     bpl loop_clear_counters                                           ; b98d: 10 fa       ..             ; Loop for indices 2, 1, 0
-    stx hazel_sentinel_cd                                             ; b98f: 8e cd c2    ...            ; Store &FF as sentinel in l10cd
-    stx hazel_sentinel_ce                                             ; b992: 8e ce c2    ...            ; Store &FF as sentinel in l10ce
+    stx hazel_sentinel_cd                                             ; b98f: 8e cd c2    ...            ; Store &FF as sentinel in hazel_sentinel_cd
+    stx hazel_sentinel_ce                                             ; b992: 8e ce c2    ...            ; Store &FF as sentinel in hazel_sentinel_ce
     ldx #&ca                                                          ; b995: a2 ca       ..             ; X=&CA: workspace offset
-    ldy #&c2                                                          ; b997: a0 c2       ..             ; Y=&C2: high byte of lc2c2 (FCB context buffer)
+    ldy #&c2                                                          ; b997: a0 c2       ..             ; Y=&C2: high byte for FCB context buffer pointer (HAZEL)
     rts                                                               ; b999: 60          `              ; Return; X/Y point to &10CA
 
 ; ***************************************************************************************
@@ -14176,7 +14183,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     txa                                                               ; b9e5: 8a          .              ; Restore attribute to A
     sta (net_rx_ptr),y                                                ; b9e6: 91 9c       ..             ; Set attribute in receive buffer
     ldx #&ca                                                          ; b9e8: a2 ca       ..             ; X=&CA: workspace offset
-    ldy #&c2                                                          ; b9ea: a0 c2       ..             ; Y=&C2: high byte of lc2c2 (FCB context buffer)
+    ldy #&c2                                                          ; b9ea: a0 c2       ..             ; Y=&C2: high byte for FCB context buffer pointer (HAZEL)
     lda #0                                                            ; b9ec: a9 00       ..             ; A=0: standard transfer mode
     jsr send_and_receive                                              ; b9ee: 20 15 bd     ..            ; Send data and receive response
     ldx hazel_cur_fcb_index                                           ; b9f1: ae c8 c2    ...            ; Reload FCB index
@@ -14262,7 +14269,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     pha                                                               ; ba6b: 48          H              ; Function code &0D; Push to stack
     lda hazel_chan_ref                                                ; ba6c: ad ca c2    ...            ; Load current reference; Restore address byte; Next byte down
     sta (net_rx_ptr),y                                                ; ba6f: 91 9c       ..             ; Printed all 4 address bytes?; Set in receive buffer
-    ldy #&c2                                                          ; ba71: a0 c2       ..             ; No: print next address byte; Y=&C2: high byte of lc2c2 (FCB context buffer)
+    ldy #&c2                                                          ; ba71: a0 c2       ..             ; No: print next address byte; Y=&C2: high byte for FCB context buffer pointer (HAZEL)
     lda #2                                                            ; ba73: a9 02       ..             ; A=2: transfer mode 2; Prepare for 16-byte add
     jsr send_and_receive                                              ; ba75: 20 15 bd     ..            ; Add 16 to lowest address byte; Send and receive data; Save carry for propagation
     pla                                                               ; ba78: 68          h              ; Restore carry from previous byte; Restore receive attribute
@@ -14342,10 +14349,11 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Find FCB slot matching channel attribute
 ;
-; Scans FCB slots 0-&0F for an active entry whose attribute reference matches l10c9.
-; Converts the attribute to a channel index, then verifies the station and network
-; numbers. On the first scan past slot &0F, saves context via save_fcb_context and
-; restarts. Returns Z=0 if the FCB has saved offset data (bit 5 set).
+; Scans FCB slots 0-&0F for an active entry whose attribute reference matches
+; hazel_chan_attr. Converts the attribute to a channel index, then verifies the station
+; and network numbers. On the first scan past slot &0F, saves context via
+; save_fcb_context and restarts. Returns Z=0 if the FCB has saved offset data (bit 5
+; set).
 ;
 ; On Exit: X: matching FCB index Z: 0=has offset data, 1=no offset
 ; &bacf referenced 3 times by &a115, &bb88, &bc25
@@ -14402,7 +14410,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Increment 3-byte FCB transfer count
 ;
-; Increments l1000+X (low), cascading overflow to l1010+X (mid) and l1020+X (high).
+; Increments hazel_fcb_addr_lo+X (low), cascading overflow to hazel_fcb_addr_mid+X
+; (mid) and hazel_fcb_addr_hi+X (high).
 ;
 ; On Entry: X: FCB slot index
 ; &bb2a referenced 2 times by &bbcd, &bc65
@@ -14470,9 +14479,10 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; BGETV vector handler: read byte from open file
 ;
 ; Reached via the BGETV vector at &021A, which the fs_vector_table entries copy into
-; the MOS extended vector area. Saves caller's Y in lc2c9 (channel attribute slot),
-; pushes X, calls store_result_check_dir to validate the channel, then either reads a
-; byte from the FCB buffer (returning it in A with C=0) or signals end-of-file (C=1).
+; the MOS extended vector area. Saves caller's Y in hazel_chan_attr (channel attribute
+; slot), pushes X, calls store_result_check_dir to validate the channel, then either
+; reads a byte from the FCB buffer (returning it in A with C=0) or signals end-of-file
+; (C=1).
 ;
 ; On Entry: Y: channel handle
 ;
@@ -14546,8 +14556,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; BPUTV vector handler: write byte to open file
 ;
-; Reached via the BPUTV vector at &0218. Saves caller's Y in lc2c9, pushes the data
-; byte and X, then routes to the FCB buffer-write path: stores the byte in the
+; Reached via the BPUTV vector at &0218. Saves caller's Y in hazel_chan_attr, pushes
+; the data byte and X, then routes to the FCB buffer-write path: stores the byte in the
 ; channel's transmit buffer, increments the byte count via inc_fcb_byte_count, and
 ; exits via done_inc_byte_count.
 ;
@@ -14749,9 +14759,9 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; &bd05 referenced 1 time by &bce8
 .done_toggle_station
     ldx hazel_chan_attr                                               ; bd05: ae c9 c2    ...            ; Load channel attribute index
-    lda hazel_fcb_handle,x                                            ; bd08: bd 40 c2    .@.            ; Load station number for channel
+    lda hazel_fcb_state_byte,x                                        ; bd08: bd 40 c2    .@.            ; Load station number for channel
     eor #1                                                            ; bd0b: 49 01       I.             ; Toggle bit 0 (alternate station)
-    sta hazel_fcb_handle,x                                            ; bd0d: 9d 40 c2    .@.            ; Update station number
+    sta hazel_fcb_state_byte,x                                        ; bd0d: 9d 40 c2    .@.            ; Update station number
     pla                                                               ; bd10: 68          h              ; Restore X
     tax                                                               ; bd11: aa          .              ; X restored
     pla                                                               ; bd12: 68          h              ; Restore Y
@@ -15717,7 +15727,7 @@ save pydis_start, pydis_end
 ;     nmi_tx_block:                   15
 ;     svc_state:                      15
 ;     hazel_cur_fcb_index:            14
-;     hazel_fcb_handle:               14
+;     hazel_fcb_state_byte:           14
 ;     need_release_tube:              14
 ;     net_tx_ptr_hi:                  14
 ;     open_port_buf:                  14

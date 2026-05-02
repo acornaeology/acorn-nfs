@@ -627,6 +627,27 @@ dimensions. In priority order:
   returns 0 hex-tail names — there are no placeholder names left
   in the disassembly.
 
+## Phase K5: Sweep stale `lXXXX` comment-text references
+
+  **Done (2026-05-02).** After K3/K4 renamed addresses to
+  semantic names, 215 inline-comment and description-string
+  references to old auto-names (`l10XX`, `lc2XX`, `l0d63`,
+  `la76d`, etc.) still lingered across 77 unique names. Swept
+  the driver source: every stale `lXXXX` text fragment now uses
+  the current semantic label. 3 reword cases (text that
+  referenced the auto-label as a routine alias / indexing-base
+  trick) handled individually. **Zero `lXXXX` text references
+  remain in the driver.** Plus resolved the &C240 multi-purpose
+  byte question (renamed `hazel_fcb_handle` → `hazel_fcb_state_byte`,
+  with the user's hypothesis confirmed: the byte is reused in
+  mutually-exclusive code paths — station number for non-OSFIND
+  channels, open-mode flags for OSFIND channels). Tracked in
+  `PHASE-K-LABEL-RENAME.md` under "Phase K5" and the K4
+  investigation results.
+
+  Verified byte-identical, lint clean, comments check clean,
+  audit placeholders clean.
+
 ## Phase K4: Refine &C200..&C2F3 channel-shadow region
 
   **Done (2026-05-02).** The K3 sweep named every `&C2XX` byte

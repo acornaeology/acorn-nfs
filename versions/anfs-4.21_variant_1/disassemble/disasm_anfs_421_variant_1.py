@@ -42,8 +42,8 @@ byte(0xBFC7)  # Force padding byte onto its own line for annotation
 # Three explicit labels for the HAZEL-indexing-base trick at the
 # end of the ROM image. HAZEL starts at &C000, so a label sitting
 # N bytes before &C000, accessed as `LDA <label>,Y` with Y >= N,
-# lands inside HAZEL. The auto-generated names `lbfe6 / lbffe /
-# lbfff` give no hint of this, so name them by their offset before
+# lands inside HAZEL. The auto-generated names `hazel_minus_1a / hazel_minus_2 /
+# hazel_minus_1` give no hint of this, so name them by their offset before
 # HAZEL.
 label(0xBFE6, "hazel_minus_1a")
 label(0xBFFE, "hazel_minus_2")
@@ -1251,7 +1251,7 @@ label(0xB031, "loop_read_palette")
 label(0xB0B1, "parse_cdir_size")
 label(0xB0BA, "loop_find_alloc_size")
 label(0xB0C0, "done_cdir_size")
-# &B0A3 is reached as a fall-through after the bizarre `JMP (l4898,X)`
+# &B0A3 is reached as a fall-through after the bizarre `JMP (cdir_unused_dispatch_table,X)`
 # at &B0A0 -- we need an explicit entry() marker so py8dis decodes it
 # as code rather than treating the JMP as a terminator and giving up.
 entry(0xB0A3)
@@ -1928,7 +1928,7 @@ subroutine(0x8050, "adlc_init",
     "Reads station ID via &FE18 (INTOFF side effect),\n"
     "performs a full ADLC reset (adlc_full_reset), then\n"
     "checks for Tube co-processor via OSBYTE &EA and\n"
-    "stores the result in l0d63. Issues NMI claim service\n"
+    "stores the result in tube_present. Issues NMI claim service\n"
     "request (OSBYTE &8F, X=&0C). Falls through to\n"
     "init_nmi_workspace to copy the NMI shim to RAM.")
 subroutine(0x8070, "init_nmi_workspace",
@@ -2203,7 +2203,7 @@ discard_reset_rx / reset_adlc_rx_listen chain. Two callers: &80CB
 subroutine(0x83F2, "discard_reset_listen",
     title="Discard with Tube release",
     description="Checks whether a Tube transfer is active by\n"
-    "ANDing bit 1 of l0d63 with rx_src_net (tx_flags).\n"
+    "ANDing bit 1 of tube_present with rx_src_net (tx_flags).\n"
     "If a Tube claim is held, calls release_tube to\n"
     "free it before returning. Used as the clean-up\n"
     "path after RXCB completion and after ADLC reset\n"
@@ -2236,7 +2236,7 @@ subroutine(0x8448, "release_tube",
     on_exit={"a": "clobbered"})
 subroutine(0x8454, "immediate_op",
     title="Immediate operation handler (port = 0)",
-    description="Checks the control byte at l0d30 for immediate\n"
+    description="Checks the control byte at scout_ctrl for immediate\n"
     "operation codes (&81-&88). Codes below &81 or above\n"
     "&88 are out of range and discarded. Codes &87-&88\n"
     "(HALT/CONTINUE) bypass the protection mask check.\n"
@@ -2331,13 +2331,13 @@ subroutine(0x8540, "tx_done_jsr",
     description="""\
 Pushes ([`tx_done_exit`](address:8582) `- 1`) on the stack so `RTS`
 returns to [`tx_done_exit`](address:8582) when the remote routine
-completes, then does `JMP (l0d66)` to call the remote-supplied JSR
+completes, then does `JMP (exec_addr_lo)` to call the remote-supplied JSR
 target. When that routine returns via `RTS`, control resumes at
 [`tx_done_exit`](address:8582) which tidies up TX state.""")
 subroutine(0x8549, "tx_done_econet_event",
     title="TX done: fire Econet event",
     description="Handler for TX operation type &84. Loads the\n"
-    "remote address from l0d66/l0d67 into X/A and\n"
+    "remote address from exec_addr_lo/exec_addr_hi into X/A and\n"
     "sets Y=8 (Econet event number), then falls\n"
     "through to tx_done_fire_event to call OSEVEN.\n"
     "\n"
@@ -2350,8 +2350,8 @@ subroutine(0x8549, "tx_done_econet_event",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8557, "tx_done_os_proc",
     title="TX done: OSProc call",
-    description="Calls the ROM service entry point with X=l0d66,\n"
-    "Y=l0d67. This invokes an OS-level procedure on\n"
+    description="Calls the ROM service entry point with X=exec_addr_lo,\n"
+    "Y=exec_addr_hi. This invokes an OS-level procedure on\n"
     "behalf of the remote station, then exits via\n"
     "tx_done_exit.\n"
     "\n"
@@ -2840,7 +2840,7 @@ subroutine(0x8BD5, "print_cmd_table_loop",
 subroutine(0x8BD8, "loop_next_entry",
     title="*HELP table walker per-entry body",
     description="""\
-Loads la76c,X (the cmd_table_fs entry byte). Bit 7 clear ->
+Loads cmd_table_fs,X (entry byte at offset X). Bit 7 clear ->
 print_indent (continue with this entry); bit 7 set -> JMP
 done_print_table (end of table reached). Single caller (the BNE
 retry at &8C22 in print_cmd_table's outer loop).""",
@@ -2971,8 +2971,8 @@ subroutine(0x8E3C, "send_cmd_and_dispatch",
     title="Send FS command and dispatch the reply",
     description="""\
 JSRs save_net_tx_cb to set up and transmit the command, then reads
-the reply function code from lc103. If zero, branches to the no-
-reply path (dispatch_rts). Otherwise loads lc105 (first reply
+the reply function code from hazel_txcb_network. If zero, branches to the no-
+reply path (dispatch_rts). Otherwise loads hazel_txcb_data (first reply
 byte), Y=&25 (the dispatch offset for the standard reply table),
 and continues into the reply-dispatch chain. Two callers: the
 fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and
@@ -3380,7 +3380,7 @@ code. Single caller (&9B72 in the recv-and-classify reply path).""")
 subroutine(0x93E6, "cmp_5byte_handle",
     title="Compare 5-byte handle buffers for equality",
     description="Loops X from 4 down to 1, comparing each byte\n"
-    "of l00af+X with fs_load_addr_3+X using EOR.\n"
+    "of addr_work+X with fs_load_addr_3+X using EOR.\n"
     "Returns on the first mismatch (Z=0) or after\n"
     "all 5 bytes match (Z=1). Called by\n"
     "send_txcb_swap_addrs and check_and_setup_txcb\n"
@@ -3440,7 +3440,7 @@ subroutine(0x944E, "read_filename_char",
     description="""\
 Per-character loop body of the filename-copy logic in
 check_not_ampersand. JSRs check_not_ampersand to reject '&', stores
-the byte at lc105+X (TX buffer area), increments X, and either
+the byte at hazel_txcb_data+X (TX buffer area), increments X, and either
 branches to send_fs_request on CR or strips a BASIC token prefix
 via strip_token_prefix and re-enters the loop. Three callers: the
 loop's own BRA at &945C, plus &9435 (cmd_rename's first-arg copy)
@@ -3807,7 +3807,7 @@ subroutine(0x9C00, "gsread_to_buf",
     title="Parse command line via GSINIT/GSREAD into &0E30",
     description="Calls GSINIT to initialise string reading, then\n"
     "loops calling GSREAD to copy characters into the\n"
-    "l0e30 buffer until end-of-string. Appends a CR\n"
+    "fs_filename_buf buffer until end-of-string. Appends a CR\n"
     "terminator and sets fs_crc_lo/hi to point at &0E30\n"
     "for subsequent parsing routines.",
     on_entry={"y": "current command-line offset (consumed by GSINIT)"},
@@ -3941,7 +3941,7 @@ subroutine(0x9D87, "check_and_setup_txcb",
 subroutine(0x9DDC, "dispatch_osword_op",
     title="OSWORD &13 sub-operation triage (1-7)",
     description="""\
-Stores the sub-operation code in lc105 and triages by value:
+Stores the sub-operation code in hazel_txcb_data and triages by value:
 0..6 -> dispatch_ops_1_to_6; 7 -> setup_dir_display (the *INFO
 expansion); >7 -> skip_if_error (which routes through
 finalise_and_return). Single caller (&9CB2 in the OSWORD &13
@@ -3951,8 +3951,8 @@ subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
     description="Builds a 12-character space-padded filename at\n"
     "&10F3 for directory listing output. Sources the\n"
-    "name from either the command line or the l0f05\n"
-    "reply buffer depending on the value in l0f03.\n"
+    "name from either the command line or the fs_cmd_data\n"
+    "reply buffer depending on the value in fs_cmd_csd.\n"
     "Truncates or pads to exactly 12 characters.",
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x9FB1, "close_all_fcbs",
@@ -4026,9 +4026,9 @@ subroutine(0x9D0C, "recv_reply",
     title="Receive FS reply and stash result byte",
     description="""\
 JSRs recv_and_process_reply, then falls through to store_result
-(STX lc108; LDY #&0E to point at the protection-bits offset).
+(STX hazel_txcb_result; LDY #&0E to point at the protection-bits offset).
 Single caller (the dispatch at &9C82).""",
-    on_exit={"x": "FS result byte (also written to lc108)",
+    on_exit={"x": "FS result byte (also written to hazel_txcb_result)",
              "y": "&0E (FS options offset for protection)"})
 subroutine(0xA0A9, "fscv_0_opt_entry",
     title="FSCV reason 0: read OSARGS",
@@ -4045,7 +4045,7 @@ subroutine(0xA10B, "fscv_1_eof",
     description="""\
 Verifies the FS workspace checksum, then loads the channel's
 block-offset byte (`fs_block_offset`, `&BC`), pushes it on the
-stack and stores the per-channel attribute reference in `lc2c9`.
+stack and stores the per-channel attribute reference in `hazel_chan_attr`.
 The body proceeds to compare the buffer byte count with the file
 length to decide whether the channel is at EOF. Reached via the
 FSCV vector with reason code 1.""",
@@ -4146,7 +4146,7 @@ subroutine(0xA28A, "send_osbput_data",
     description="""\
 Sets `Y=&15` (TX buffer size for OSBPUT data) and calls
 [`save_net_tx_cb`](address:978A) to dispatch the TX. Then copies
-the display flag from `lc005` to `lc116` (TX header continuation).
+the display flag from `hazel_fs_flags` to `hazel_txcb_spare_116` (TX header continuation).
 Single caller in the OSBPUT-buffered-write path.""")
 subroutine(0xA29F, "write_block_entry",
     title="Pre-write Tube-station check, fall into write_data_block",
@@ -4160,7 +4160,7 @@ write_data_block. Single caller (&A16A in the OSWORD write path).""",
 subroutine(0xA2ED, "write_data_block",
     title="Write data block to destination or Tube",
     description="If no Tube present, copies directly from\n"
-    "the l0f05 buffer via (fs_crc_lo). If Tube\n"
+    "the fs_cmd_data buffer via (fs_crc_lo). If Tube\n"
     "is active, claims the Tube, sets up the\n"
     "transfer address, and writes via R3.",
     on_exit={"a, x, y": "clobbered"})
@@ -4287,7 +4287,7 @@ Saves the OS text pointer via
 [`save_ptr_to_os_text`](address:B373), calls
 [`mask_owner_access`](address:B2CF) to clear the FS-selection bit,
 ORs in bit 1 (the *RUN-in-progress flag), and stores back to
-`fs_lib_flags` (`lc271`). Falls through to the run-handling chain
+`fs_lib_flags` (`hazel_fs_lib_flags`). Falls through to the run-handling chain
 that opens the file and starts execution. Reached via the FSCV
 vector dispatch with reason code 2.""")
 subroutine(0xA4F1, "cmd_run_via_urd",
@@ -4297,7 +4297,7 @@ Reached from cmd_fs_operation at &8E35 when the first character of
 the *RUN argument is '&' (the URD = User Root Directory prefix).
 Saves the OS text pointer via save_ptr_to_os_text, masks the access
 bits via mask_owner_access, clears bit 1 of the result, and stores
-into fs_lib_flags (lc271). Falls through to ca4fc which calls
+into fs_lib_flags (hazel_fs_lib_flags). Falls through to ca4fc which calls
 parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument.
 Single caller; never returns directly (continues into the run
 flow).""")
@@ -4311,21 +4311,21 @@ table entry matches the user's input. Never returns.""")
 subroutine(0xA5AE, "check_exec_addr",
     title="Validate exec address is non-zero",
     description="""\
-Iterates X = 3..0 over the 4-byte exec-address copy at lc106..lc109,
+Iterates X = 3..0 over the 4-byte exec-address copy at hazel_txcb_flag..hazel_exec_addr,
 incrementing each byte. If any byte becomes non-zero (BNE),
 branches forward to ca5df (the OSCLI dispatch path). When all four
 INC operations leave a zero result the address was &FFFFFFFF + 1 =
 0 -- not a valid exec address -- and the routine falls through to
 the no-exec-address handler. Single caller (&A51C in the *RUN
 handler).""",
-    on_entry={"a": "exec address bytes already in lc106..lc109"},
+    on_entry={"a": "exec address bytes already in hazel_txcb_flag..hazel_exec_addr"},
     on_exit={"x": "0 if no valid exec; non-zero branch otherwise"})
 subroutine(0xA5C3, "alloc_run_channel",
     title="Allocate FCB slot for *RUN target file",
     description="""\
-Loads the saved OSWORD parameter byte at lc105, calls alloc_fcb_slot
+Loads the saved OSWORD parameter byte at hazel_txcb_data, calls alloc_fcb_slot
 to obtain a free channel index in A, transfers it into Y, then
-clears the per-channel attribute byte at lc260,X. Used by the
+clears the per-channel attribute byte at hazel_fcb_status,X. Used by the
 *RUN argument-handling path at &A538 once the file is opened, to
 reserve a channel for the running program.""",
     on_exit={"a": "channel attribute byte (cleared to 0)",
@@ -4385,8 +4385,8 @@ subroutine(0xA6D5, "fsreply_1_copy_handles_boot",
 Closes all network channels via
 [`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`
 (`TSB &0D6C`, marking the boot-pending state), then loads the
-boot type from the FS reply at `lc108` and stores it into both the
-current-boot-type slot (`lc005`) and the FCB-flags table. Pushes
+boot type from the FS reply at `hazel_txcb_result` and stores it into both the
+current-boot-type slot (`hazel_fs_flags`) and the FCB-flags table. Pushes
 the boot type for the fall-through into `fsreply_2_copy_handles`
 which copies the per-handle table.""")
 subroutine(0xA6E5, "fsreply_2_copy_handles",
@@ -4402,9 +4402,9 @@ type via `PLP`/`PLA`. Reached only via the FS reply dispatch
 table.""",
     on_entry={"a": "boot-type byte (saved on stack at entry)"})
 subroutine(0xA764, "boot_cmd_oscli",
-    title="Look up boot command in la75b table and OSCLI it",
+    title="Look up boot command in boot_prefix_string table and OSCLI it",
     description="""\
-Loads X = la75b,Y (the low byte of the boot-command address),
+Loads X = boot_prefix_string,Y (the low byte of the boot-command address),
 sets Y=&A7 (high byte = &A7xx area where the boot strings live),
 then JMPs to oscli with (X,Y) pointing at a CR-terminated command
 string. Single caller (&A5D4 in the *RUN-then-* boot dispatch).""",
@@ -4589,7 +4589,7 @@ subroutine(0xAAD0, "osword_13_set_handles",
     "across all FCB entries via update_fcb_flag_bits.")
 subroutine(0xAB43, "update_fcb_flag_bits",
     title="Update FCB flag bits across all entries",
-    description="Scans all 16 FCB entries in l1060. For each\n"
+    description="Scans all 16 FCB entries in hazel_fcb_status. For each\n"
     "entry with bit 6 set, tests the Y-specified\n"
     "bit mask: if matching, ORs bit 5 into the\n"
     "flags; if not, leaves bit 5 clear. In both\n"
@@ -4607,7 +4607,7 @@ subroutine(0xAB71, "osword_13_read_rx_port",
     "block in PB[1], and stores &80 in PB[2].")
 subroutine(0xAB7F, "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
-    description="Returns the error flag (l0e09) in PB[1].")
+    description="Returns the error flag (fs_last_error) in PB[1].")
 subroutine(0xAB82, "store_a_to_pb_1",
     title="Store A to OSWORD parameter block at offset 1",
     description="Increments Y to 1 and stores A into the\n"
@@ -4618,7 +4618,7 @@ subroutine(0xAB82, "store_a_to_pb_1",
     on_exit={"Y": "1"})
 subroutine(0xAB86, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
-    description="Returns the context byte (l0d6d) in PB[1].")
+    description="Returns the context byte (tx_retry_count) in PB[1].")
 subroutine(0xAB8B, "osword_13_read_free_bufs",
     title="OSWORD &13 sub 14: read printer buffer free space",
     description="Returns the number of free bytes remaining in\n"
@@ -4642,8 +4642,8 @@ subroutine(0xAB9E, "osword_13_write_ctx_3",
 subroutine(0xABA9, "osword_13_bridge_query",
     title="OSWORD &13 sub 17: query bridge status",
     description="Calls init_bridge_poll, then returns the\n"
-    "bridge status. If l0d72 is &FF (no bridge),\n"
-    "stores 0 in PB[0]. Otherwise stores l0d72\n"
+    "bridge status. If bridge_status is &FF (no bridge),\n"
+    "stores 0 in PB[0]. Otherwise stores bridge_status\n"
     "in PB[1] and conditionally updates PB[3]\n"
     "based on station comparison.")
 subroutine(0xABE9, "init_bridge_poll",
@@ -4881,7 +4881,7 @@ subroutine(0xB118, "fscv_5_cat",
     title="FSCV reason 5: catalogue (*CAT)",
     description="""\
 Sets up transfer parameters via [`set_xfer_params`](address:93D7),
-clears the library bit in `fs_lib_flags` (`lc271`) via the
+clears the library bit in `fs_lib_flags` (`hazel_fs_lib_flags`) via the
 `ROR`/`CLC`/`ROL` idiom that uses carry to preserve other flags,
 and falls through to `cat_set_lib_flag` to issue the FS examine
 request. Reached via the FSCV vector with reason code 5.""")
@@ -4894,7 +4894,7 @@ subroutine(0xB21A, "print_10_chars",
     on_entry={"x": "buffer offset to start printing from"})
 subroutine(0xB21C, "print_chars_from_buf",
     title="Print Y characters from buffer via OSASCI",
-    description="Loops Y times, loading each byte from l0f05+X\n"
+    description="Loops Y times, loading each byte from fs_cmd_data+X\n"
     "and printing it via OSASCI. Advances X after\n"
     "each character, leaving X pointing past the\n"
     "last printed byte.",
@@ -4950,7 +4950,7 @@ subroutine(0xB2A1, "copy_arg_to_buf",
              "y": "advanced past the source argument"})
 subroutine(0xB2A3, "copy_arg_validated",
     title="Copy command line characters to TX buffer",
-    description="Copies characters from (fs_crc_lo)+Y to l0f05+X\n"
+    description="Copies characters from (fs_crc_lo)+Y to fs_cmd_data+X\n"
     "until a CR terminator is reached. With carry set,\n"
     "validates each character against '&' — raising\n"
     "'Bad file name' if found — to prevent FS selector\n"
@@ -5033,8 +5033,8 @@ subroutine(0xB39E, "init_spool_drive",
     title="Initialise spool drive page pointers",
     description="Calls get_ws_page to read the workspace page\n"
     "number for the current ROM slot, stores it as\n"
-    "the spool drive page high byte (l00af), and\n"
-    "clears the low byte (l00ae) to zero. Preserves\n"
+    "the spool drive page high byte (addr_work), and\n"
+    "clears the low byte (work_ae) to zero. Preserves\n"
     "Y on the stack.",
     on_exit={"a": "0",
              "y": "preserved (PHY/PLY)"})
@@ -5276,7 +5276,7 @@ subroutine(0xB977, "init_wipe_counters",
     title="Initialise byte counters for wipe/transfer",
     description="Clears the pass counter, byte counter, offset\n"
     "counter, and transfer flag. Stores &FF sentinels\n"
-    "in l10cd/l10ce. Returns with X/Y pointing at\n"
+    "in hazel_sentinel_cd/hazel_sentinel_ce. Returns with X/Y pointing at\n"
     "workspace offset &10CA.",
     on_entry={},
     on_exit={"x": "&CA (workspace offset low)",
@@ -5324,7 +5324,7 @@ to restart from slot 0 with the saved context restored.""")
 subroutine(0xBACF, "find_matching_fcb",
     title="Find FCB slot matching channel attribute",
     description="Scans FCB slots 0-&0F for an active entry whose\n"
-    "attribute reference matches l10c9. Converts the\n"
+    "attribute reference matches hazel_chan_attr. Converts the\n"
     "attribute to a channel index, then verifies the\n"
     "station and network numbers. On the first scan\n"
     "past slot &0F, saves context via save_fcb_context\n"
@@ -5333,8 +5333,8 @@ subroutine(0xBACF, "find_matching_fcb",
     on_exit={"x": "matching FCB index", "z": "0=has offset data, 1=no offset"})
 subroutine(0xBB2A, "inc_fcb_byte_count",
     title="Increment 3-byte FCB transfer count",
-    description="Increments l1000+X (low), cascading overflow to\n"
-    "l1010+X (mid) and l1020+X (high).",
+    description="Increments hazel_fcb_addr_lo+X (low), cascading overflow to\n"
+    "hazel_fcb_addr_mid+X (mid) and hazel_fcb_addr_hi+X (high).",
     on_entry={"x": "FCB slot index"})
 subroutine(0xBB38, "process_all_fcbs",
     title="Process all active FCB slots",
@@ -5352,7 +5352,7 @@ subroutine(0xBB68, "bgetv_handler",
     description="""\
 Reached via the BGETV vector at `&021A`, which the
 [`fs_vector_table`](address:8EA7) entries copy into the MOS extended
-vector area. Saves caller's `Y` in `lc2c9` (channel attribute slot),
+vector area. Saves caller's `Y` in `hazel_chan_attr` (channel attribute slot),
 pushes `X`, calls
 [`store_result_check_dir`](address:B886) to validate the channel,
 then either reads a byte from the FCB buffer (returning it in `A`
@@ -5364,7 +5364,7 @@ subroutine(0xBBE7, "bputv_handler",
     title="BPUTV vector handler: write byte to open file",
     description="""\
 Reached via the BPUTV vector at `&0218`. Saves caller's `Y` in
-`lc2c9`, pushes the data byte and `X`, then routes to the FCB
+`hazel_chan_attr`, pushes the data byte and `X`, then routes to the FCB
 buffer-write path: stores the byte in the channel's transmit
 buffer, increments the byte count via
 [`inc_fcb_byte_count`](address:BB2A), and exits via
@@ -6155,8 +6155,8 @@ and are not valid operation types. Per-entry inline comments
 identify each TX operation type's handler.""")
 
 # tx_done_econet_event (&8542): TX operation type &84 handler.
-comment(0x8549, "X = remote address lo from l0d66", inline=True)
-comment(0x854C, "A = remote address hi from l0d67", inline=True)
+comment(0x8549, "X = remote address lo from exec_addr_lo", inline=True)
+comment(0x854C, "A = remote address hi from exec_addr_hi", inline=True)
 comment(0x854F, "Y = 8: Econet event number", inline=True)
 
 comment(0x8554, "Exit TX done handler", inline=True)
@@ -7950,10 +7950,10 @@ comment(0xB789, "Was the response 'Y'?", inline=True)
 comment(0xB78B, "No: skip this entry, advance to next", inline=True)
 comment(0xB78D, "Yes: echo the keypress", inline=True)
 comment(0xB790, "X=0: start scanning the parse-buffer name", inline=True)
-comment(0xB792, "Read first parse-buffer byte at lc030", inline=True)
+comment(0xB792, "Read first parse-buffer byte at hazel_parse_buf", inline=True)
 comment(0xB795, "Is it CR (no path component)?", inline=True)
 comment(0xB797, "Yes: use leaf-name only path at &B7BD", inline=True)
-comment(0xB799, "Read parse-buffer byte at lc030+X", inline=True)
+comment(0xB799, "Read parse-buffer byte at hazel_parse_buf+X", inline=True)
 comment(0xB79C, "Is it CR (end of name)?", inline=True)
 comment(0xB79E, "No: check for space separator", inline=True)
 comment(0xB7A0, "CR: substitute '.' so the dir prefix terminates "
@@ -7973,8 +7973,8 @@ comment(0xB7B7, "Print newline before next entry", inline=True)
 comment(0xB7BA, "Loop back to skip_wipe_locked (= request next entry)", inline=True)
 comment(0xB7BD, "DEX: pre-decrement before the INX in the loop", inline=True)
 comment(0xB7BE, "Advance index", inline=True)
-comment(0xB7BF, "Read parse-buffer byte at lc031+X (skip CR at "
-    "lc030)", inline=True)
+comment(0xB7BF, "Read parse-buffer byte at hazel_parse_buf_1+X (skip CR at "
+    "hazel_parse_buf)", inline=True)
 comment(0xB7C2, "Store into TX[5+X] (delete-command buffer)", inline=True)
 comment(0xB7C5, "Reached space (end-of-leaf)?", inline=True)
 comment(0xB7C7, "No: continue copying", inline=True)
@@ -8078,7 +8078,7 @@ comment(0xAD3C, "Store Y at (nfs_workspace)+&DA", inline=True)
 comment(0xAD3E, "A=0: clear A for the abort path", inline=True)
 
 # find_station_bit2 / find_station_bit3 (&A644 / &A66F): scan the
-# 16-entry station table at lc260 for an entry whose bit 2 / bit 3
+# 16-entry station table at hazel_fcb_status for an entry whose bit 2 / bit 3
 # is set, optionally allocating a new FCB slot via alloc_fcb_slot
 # when no match is found.
 comment(0xA644, "X=&10: scan 16 entries", inline=True)
@@ -8087,17 +8087,17 @@ comment(0xA647, "Step to previous entry", inline=True)
 comment(0xA648, "Below 0: scan complete", inline=True)
 comment(0xA64A, "Compare entry X's stn/net with caller's", inline=True)
 comment(0xA64D, "No match: continue", inline=True)
-comment(0xA64F, "Match: read entry's flag byte at lc260+X", inline=True)
+comment(0xA64F, "Match: read entry's flag byte at hazel_fcb_status+X", inline=True)
 comment(0xA652, "Mask bit 2", inline=True)
 comment(0xA654, "Bit 2 clear: keep scanning", inline=True)
 comment(0xA656, "Bit 2 set: A = matched entry index (Y)", inline=True)
-comment(0xA657, "Store Y at lc230+X (link entry to slot)", inline=True)
+comment(0xA657, "Store Y at hazel_fcb_link+X (link entry to slot)", inline=True)
 comment(0xA65A, "BIT always_set_v_byte: V <- 1 (match found)", inline=True)
-comment(0xA65D, "Save Y at lc002 (matched entry index)", inline=True)
+comment(0xA65D, "Save Y at hazel_fs_server_net (matched entry index)", inline=True)
 comment(0xA660, "V set: skip new-slot alloc", inline=True)
 comment(0xA662, "TYA -- A = caller's index", inline=True)
 comment(0xA663, "Allocate a fresh FCB slot", inline=True)
-comment(0xA666, "Save FCB slot index at lc272", inline=True)
+comment(0xA666, "Save FCB slot index at hazel_fcb_slot_1", inline=True)
 comment(0xA669, "Z set: alloc failed -> restore FS context", inline=True)
 comment(0xA66B, "A=&26: workspace flag for bit 2 search", inline=True)
 
@@ -8107,17 +8107,17 @@ comment(0xA672, "Step to previous entry", inline=True)
 comment(0xA673, "Below 0: scan complete", inline=True)
 comment(0xA675, "Compare entry's stn/net with caller's", inline=True)
 comment(0xA678, "No match: continue", inline=True)
-comment(0xA67A, "Match: read entry's flag byte at lc260+X", inline=True)
+comment(0xA67A, "Match: read entry's flag byte at hazel_fcb_status+X", inline=True)
 comment(0xA67D, "Mask bit 3", inline=True)
 comment(0xA67F, "Bit 3 clear: keep scanning", inline=True)
 comment(0xA681, "Bit 3 set: A = matched entry index (Y)", inline=True)
-comment(0xA682, "Store Y at lc230+X (link entry to slot)", inline=True)
+comment(0xA682, "Store Y at hazel_fcb_link+X (link entry to slot)", inline=True)
 comment(0xA685, "BIT always_set_v_byte: V <- 1 (match found)", inline=True)
-comment(0xA688, "Save Y at lc003 (matched entry index)", inline=True)
+comment(0xA688, "Save Y at hazel_fs_context_copy (matched entry index)", inline=True)
 comment(0xA68B, "V set: skip new-slot alloc", inline=True)
 comment(0xA68D, "TYA -- A = caller's index", inline=True)
 comment(0xA68E, "Allocate a fresh FCB slot", inline=True)
-comment(0xA691, "Save FCB slot index at lc273", inline=True)
+comment(0xA691, "Save FCB slot index at hazel_fcb_slot_2", inline=True)
 comment(0xA694, "Z set: alloc failed -> restore FS context", inline=True)
 comment(0xA696, "A=&2A: workspace flag for bit 3 search", inline=True)
 
@@ -8167,12 +8167,12 @@ comment(0xA4E7, "Reset fs_lib_flags low bits to 5-bit access mask", inline=True)
 comment(0xA4EA, "Set bit 1 of A (mark *RUN-style invocation)", inline=True)
 
 # cmd_fs_reentry / dispatch_fs_cmd (&A44E): PHA/PHA/RTS dispatch
-# using the NFS-commands table at la76d/la76e indexed by X.
+# using the NFS-commands table at cmd_dispatch_lo_table/cmd_dispatch_hi_table indexed by X.
 comment(0xA44E, "A=0: clear svc_state", inline=True)
 comment(0xA450, "Store -> svc_state", inline=True)
-comment(0xA452, "Load dispatch hi byte from la76e+X", inline=True)
+comment(0xA452, "Load dispatch hi byte from cmd_dispatch_hi_table+X", inline=True)
 comment(0xA455, "Push hi for RTS dispatch", inline=True)
-comment(0xA456, "Load dispatch lo byte from la76d+X", inline=True)
+comment(0xA456, "Load dispatch lo byte from cmd_dispatch_lo_table+X", inline=True)
 comment(0xA459, "Push lo for RTS dispatch", inline=True)
 comment(0xA45A, "RTS -> dispatched command handler", inline=True)
 
@@ -8253,9 +8253,9 @@ comment(0xA606, "X=&C0: pointer-to-options high byte", inline=True)
 comment(0xA60C, "Store as fs_options", inline=True)
 comment(0xA62C, "Y=&C1: high byte of TX buffer pointer", inline=True)
 comment(0xA62E, "A=4: option byte for *RUN", inline=True)
-comment(0xA630, "JMP l0406 -- relocated execute path", inline=True)
+comment(0xA630, "JMP tube_addr_data_dispatch -- relocated execute path", inline=True)
 comment(0xA633, "A=1: dispatch flag", inline=True)
-comment(0xA635, "JMP (lc109) -- indirect jump via workspace vector", inline=True)
+comment(0xA635, "JMP (hazel_exec_addr) -- indirect jump via workspace vector", inline=True)
 
 # osword_setup_handler partial gap-fill.
 comment(0xA867, "Push for stack frame manipulation", inline=True)
@@ -8306,8 +8306,8 @@ comment(0xA50E, "Read reply status from TX[5]", inline=True)
 comment(0xA511, "Compare with 1 (not-found)", inline=True)
 comment(0xA51F, "Decrement X (post-find adjustment)", inline=True)
 comment(0xA525, "X=1: target offset for the *RUN-channel command", inline=True)
-comment(0xA527, "Store X to lc105 (cmd byte)", inline=True)
-comment(0xA52A, "Store X to lc106 (cmd flag)", inline=True)
+comment(0xA527, "Store X to hazel_txcb_data (cmd byte)", inline=True)
+comment(0xA52A, "Store X to hazel_txcb_flag (cmd flag)", inline=True)
 comment(0xA52E, "Copy filename arg into TX buffer", inline=True)
 comment(0xA54A, "ROL -- shift bit 7 into carry", inline=True)
 comment(0xA54B, "Second ROL", inline=True)
@@ -8326,7 +8326,7 @@ comment(0xAC01, "Store byte X into TXCB at offset txcb_ctrl+X", inline=True)
 comment(0xAC03, "Y advances destination index", inline=True)
 comment(0xAC04, "Decrement source index", inline=True)
 comment(0xAC05, "Loop until X wraps below 0", inline=True)
-comment(0xAC07, "Save final X to l0d71", inline=True)
+comment(0xAC07, "Save final X to spool_control_flag", inline=True)
 comment(0xAC0A, "ROL econet_flags (rotate to update)", inline=True)
 comment(0xAC0D, "ASL tx_complete_flag (clear bit 7)", inline=True)
 comment(0xAC14, "Store TXCB control byte", inline=True)
@@ -8394,12 +8394,12 @@ comment(0xB1DD, "Print 10-char extension", inline=True)
 comment(0xB1E0, "Print newline", inline=True)
 comment(0xB1E3, "Pop saved counter", inline=True)
 comment(0xB1E4, "Store as fs_lib_flags", inline=True)
-comment(0xB1E7, "Save Y as lc106 (next-entry index)", inline=True)
+comment(0xB1E7, "Save Y as hazel_txcb_flag (next-entry index)", inline=True)
 comment(0xB1EA, "Save Y as fs_work_4", inline=True)
 comment(0xB1EC, "Load fs_work_5 (page count)", inline=True)
-comment(0xB1EE, "Store at lc107", inline=True)
+comment(0xB1EE, "Store at hazel_txcb_count", inline=True)
 comment(0xB1F1, "Load fs_work_7", inline=True)
-comment(0xB1F3, "Store at lc105", inline=True)
+comment(0xB1F3, "Store at hazel_txcb_data", inline=True)
 comment(0xB1F6, "X=3: TX[3] is start of arg buffer", inline=True)
 comment(0xB1F8, "Copy filename arg", inline=True)
 comment(0xB1FB, "Y=3: cmd code 3 (catalog)", inline=True)
@@ -8409,9 +8409,9 @@ comment(0xB201, "Read reply status", inline=True)
 comment(0xB204, "Z: empty reply -> exit cat", inline=True)
 comment(0xB206, "Push reply status", inline=True)
 comment(0xB207, "Advance Y", inline=True)
-comment(0xB208, "Read entry byte from lc105+Y", inline=True)
+comment(0xB208, "Read entry byte from hazel_txcb_data+Y", inline=True)
 comment(0xB20B, "Bit 7 clear: keep scanning", inline=True)
-comment(0xB20D, "Store with high-bit clear at lc104+Y", inline=True)
+comment(0xB20D, "Store with high-bit clear at hazel_txcb_lib+Y", inline=True)
 comment(0xB210, "Print column separator", inline=True)
 comment(0xB213, "Pop saved status", inline=True)
 comment(0xB214, "CLC for ADC", inline=True)
@@ -8425,14 +8425,14 @@ comment(0xA70D, "Read CMOS &11 via osbyte_a1", inline=True)
 comment(0xA710, "TYA -- result to A", inline=True)
 comment(0xA711, "Mask bit 1 (auto-CLI flag)", inline=True)
 comment(0xA713, "Bit clear: skip auto-CLI", inline=True)
-comment(0xA715, "X = lo of la6fe (boot-cmd string ptr)", inline=True)
-comment(0xA717, "Y = hi of la6fe", inline=True)
+comment(0xA715, "X = lo of fsreply_2_skip_handles (boot-cmd string ptr)", inline=True)
+comment(0xA717, "Y = hi of fsreply_2_skip_handles", inline=True)
 comment(0xA719, "OSCLI to execute boot command", inline=True)
 comment(0xA71C, "Pop saved A", inline=True)
 comment(0xA71D, "Compare with 2", inline=True)
 comment(0xA71F, "Below: skip making FS permanent", inline=True)
 comment(0xA721, "OSBYTE &6D: make filing system permanent", inline=True)
-comment(0xA75F, "Read lc005 (boot-state flag)", inline=True)
+comment(0xA75F, "Read hazel_fs_flags (boot-state flag)", inline=True)
 comment(0xA762, "Z: take boot_load_cmd path", inline=True)
 
 # select_fs_via_cmd_net_fs gap-fill (mid-body OSWORD PB save/restore).
@@ -8647,7 +8647,7 @@ comment(0x968C, "X=&BD: setup index for the dispatch chain", inline=True)
 comment(0x968E, "JMP c8c46 -- shared parser dispatch", inline=True)
 
 # match_on_suffix (&969A): copies os_text_ptr to (work_ae), then
-# walks the 3-byte 'ON ' pattern at l9697, EOR-comparing each byte
+# walks the 3-byte 'ON ' pattern at on_suffix_pattern, EOR-comparing each byte
 # (with bit-5 mask = case-insensitive) against the next chars in
 # the user's text. Returns to c96bc on match (= execute help
 # topic), to c96b0 on no-match (= return without help).
@@ -8660,7 +8660,7 @@ comment(0x96A3, "PLY -- restore caller Y", inline=True)
 comment(0x96A4, "PHY -- save Y again (preserve across loop)", inline=True)
 comment(0x96A5, "X=0: pattern offset starts at 0", inline=True)
 comment(0x96A7, "Read text byte at (work_ae)+Y", inline=True)
-comment(0x96A9, "EOR pattern byte at l9697+X", inline=True)
+comment(0x96A9, "EOR pattern byte at on_suffix_pattern+X", inline=True)
 comment(0x96AC, "Mask bit 5 -- case-insensitive comparison", inline=True)
 comment(0x96AE, "Equal: continue checking pattern", inline=True)
 comment(0x96B0, "PLY -- restore Y", inline=True)
@@ -8688,14 +8688,14 @@ comment(0x96CD, "Yes: keep skipping spaces", inline=True)
 comment(0x96CF, "Is it CR?", inline=True)
 comment(0x96D1, "Yes: nothing past spaces -> return", inline=True)
 
-# Build the load-command at lc105: prefix from &968F template +
+# Build the load-command at hazel_txcb_data: prefix from &968F template +
 # topic from text buffer.
-comment(0x96D3, "Save Y as lc105 (cmd buffer ptr)", inline=True)
-comment(0x96D6, "Save Y as lc106 (cmd flag)", inline=True)
+comment(0x96D3, "Save Y as hazel_txcb_data (cmd buffer ptr)", inline=True)
+comment(0x96D6, "Save Y as hazel_txcb_flag (cmd flag)", inline=True)
 comment(0x96D9, "X=1: index for template walk", inline=True)
 comment(0x96DB, "INX: advance template index", inline=True)
-comment(0x96DC, "Read template byte from l968f+X", inline=True)
-comment(0x96DF, "Store at lc105+X", inline=True)
+comment(0x96DC, "Read template byte from help_topic_template+X", inline=True)
+comment(0x96DF, "Store at hazel_txcb_data+X", inline=True)
 comment(0x96E2, "Compare with '.' (template terminator)", inline=True)
 comment(0x96E4, "Not '.': continue copying template", inline=True)
 comment(0x96E6, "PHY -- save text-buffer index", inline=True)
@@ -8704,7 +8704,7 @@ comment(0x96E6, "PHY -- save text-buffer index", inline=True)
 comment(0x96E7, "INX: advance dest index", inline=True)
 comment(0x96E8, "Read topic char at (work_ae),Y", inline=True)
 comment(0x96EA, "INY: advance source", inline=True)
-comment(0x96EB, "Store at lc105+X", inline=True)
+comment(0x96EB, "Store at hazel_txcb_data+X", inline=True)
 comment(0x96EE, "CR? (end of name)", inline=True)
 comment(0x96F0, "Yes: take c96fa path (open file)", inline=True)
 comment(0x96F2, "Space? (terminator)", inline=True)
@@ -8716,7 +8716,7 @@ comment(0x96F8, "BRA back to store the CR", inline=True)
 # call sub_c9fee (probably open_file), read bytes via OSBGET, write
 # via OSWRCH; close on EOF; respect Escape.
 comment(0x96FA, "INX: account for last char", inline=True)
-comment(0x96FB, "Read fs_lib_flags (lc271)", inline=True)
+comment(0x96FB, "Read fs_lib_flags (hazel_fs_lib_flags)", inline=True)
 comment(0x96FE, "AND #&3F -- preserve low bits, clear high bits", inline=True)
 comment(0x9700, "ORA #&80 -- set bit 7 (load-pending flag)", inline=True)
 comment(0x9702, "Store back to fs_lib_flags", inline=True)
@@ -8770,7 +8770,7 @@ comment(0xB3C9, "PHA -- save", inline=True)
 comment(0xB3CD, "PLA -- restore", inline=True)
 
 # cmd_iam tail.
-comment(0x8DA0, "STZ lc007 -- clear connection-attempt flag", inline=True)
+comment(0x8DA0, "STZ hazel_fs_pending_state -- clear connection-attempt flag", inline=True)
 comment(0x8DA3, "PLY -- restore Y", inline=True)
 comment(0x8DA4, "PLX -- restore X", inline=True)
 comment(0x8DA6, "Set up transfer parameters", inline=True)
@@ -8915,10 +8915,10 @@ comment(0xB01D, "A=&E9: workspace start lo for palette save", inline=True)
 comment(0xB01F, "Store as nfs_workspace lo", inline=True)
 comment(0xB021, "Y=0", inline=True)
 comment(0xB023, "Reset osword_flag = 0", inline=True)
-comment(0xB025, "Read l0350 (MOS state byte)", inline=True)
+comment(0xB025, "Read vdu_screen_mode (MOS state byte)", inline=True)
 comment(0xB028, "Store at (nfs_workspace)+0", inline=True)
 comment(0xB02A, "Advance nfs_workspace lo", inline=True)
-comment(0xB02C, "Read l0351 (next MOS byte)", inline=True)
+comment(0xB02C, "Read vdu_display_start_hi (next MOS byte)", inline=True)
 comment(0xB031, "Store at (nfs_workspace)", inline=True)
 comment(0xB033, "Read updated nfs_workspace lo", inline=True)
 comment(0xB035, "Read nfs_workspace hi", inline=True)
@@ -8940,34 +8940,34 @@ comment(0xB05A, "Advance workspace", inline=True)
 comment(0xB05D, "Save osword_flag", inline=True)
 
 # serialise_palette_entry (&B066): read MOS palette entry slot
-# (controlled by l0355) and append to workspace TX buffer.
-comment(0xB066, "Read l0355 (current palette index)", inline=True)
+# (controlled by vdu_mode) and append to workspace TX buffer.
+comment(0xB066, "Read vdu_mode (current palette index)", inline=True)
 comment(0xB069, "ORA #&40 -- mark as palette entry", inline=True)
 comment(0xB06B, "Store at (nfs_workspace)+Y", inline=True)
-comment(0xB06D, "Read l0355", inline=True)
+comment(0xB06D, "Read vdu_mode", inline=True)
 comment(0xB070, "Advance workspace", inline=True)
 comment(0xB072, "TYA -- A = current Y (= 0)", inline=True)
 comment(0xB073, "Store 0 at (nfs_workspace)+Y", inline=True)
-comment(0xB075, "Read lookup byte from lb099+X", inline=True)
+comment(0xB075, "Read lookup byte from read_osbyte_table+X", inline=True)
 comment(0xB078, "X=0: indexed-indirect mode", inline=True)
 comment(0xB07A, "Advance workspace", inline=True)
 comment(0xB07C, "Store at (nfs_workspace,X)", inline=True)
 comment(0xB07E, "Read OSBYTE result via x=0 helper", inline=True)
 
-# read_osbyte_to_ws (&B083): issue OSBYTE A from lb097[Y] and store
+# read_osbyte_to_ws (&B083): issue OSBYTE A from read_osbyte_return[Y] and store
 # the result at the next workspace slot. Used for batched OSBYTE
 # state-saves during the palette/VDU snapshot.
 comment(0xB083, "Y = osword_flag (OSBYTE-table index)", inline=True)
 comment(0xB085, "Increment osword_flag for next call", inline=True)
 comment(0xB087, "Advance nfs_workspace", inline=True)
-comment(0xB089, "Load OSBYTE number from lb097+Y", inline=True)
+comment(0xB089, "Load OSBYTE number from read_osbyte_return+Y", inline=True)
 comment(0xB08C, "Y=&FF -- OSBYTE arg (read mode)", inline=True)
 comment(0xB08E, "Issue OSBYTE", inline=True)
 comment(0xB091, "TXA -- result to A", inline=True)
 comment(0xB092, "X=0: indexed-indirect mode", inline=True)
 comment(0xB094, "Store at (nfs_workspace,X)", inline=True)
 comment(0xB096, "Return", inline=True)
-comment(0xB0A0, "JMP (l4898,X) -- never executed; see cmd_cdir", inline=True)
+comment(0xB0A0, "JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir", inline=True)
 
 # Final small-routine sweep: the long tail of 1-4 uncommented items
 # spread across mid-tier helpers.
@@ -8987,7 +8987,7 @@ comment(0x8BCD, "PLY -- restore Y", inline=True)
 comment(0x8BCE, "PLX -- restore X", inline=True)
 
 comment(0xB2DB, "X=0: scan from start of TX entry", inline=True)
-comment(0xB2DD, "Read entry byte at lc105+X", inline=True)
+comment(0xB2DD, "Read entry byte at hazel_txcb_data+X", inline=True)
 comment(0xB2E0, "Bit 7 set: end-of-entries -> return", inline=True)
 comment(0xB2E2, "Non-printable: take CR-newline path at cb2f9", inline=True)
 
@@ -9045,10 +9045,10 @@ comment(0x8F4A, "BIT fs_flags", inline=True)
 comment(0x8F5B, "Copy initial PS template (1C bytes) into ws", inline=True)
 comment(0x8F5E, "X=1: CMOS &01 = port number", inline=True)
 comment(0x8F60, "Read CMOS &01", inline=True)
-comment(0x8F63, "Store at lc000 (workspace+0)", inline=True)
+comment(0x8F63, "Store at hazel_fs_station_hi (workspace+0)", inline=True)
 comment(0x8F66, "X=2: CMOS &02 = network number", inline=True)
 comment(0x8F68, "Read CMOS &02", inline=True)
-comment(0x8F6B, "Store at lc001", inline=True)
+comment(0x8F6B, "Store at hazel_fs_server_stn", inline=True)
 comment(0x8F6E, "X=3: CMOS &03 = FS station", inline=True)
 comment(0x8F70, "Read CMOS &03", inline=True)
 comment(0x8F73, "TYA -- A = FS station", inline=True)
@@ -9075,9 +9075,9 @@ comment(0x9017, "Store updated fs_flags", inline=True)
 comment(0x901A, "Initialise ADLC and FILEV/ARGSV/...vectors", inline=True)
 comment(0x9022, "Send a bridge-discovery packet and poll", inline=True)
 comment(0x9025, "PHA -- save current bridge byte", inline=True)
-comment(0x9026, "EOR with stored lc001 (network number)", inline=True)
+comment(0x9026, "EOR with stored hazel_fs_server_stn (network number)", inline=True)
 comment(0x9029, "Different: take c9032 path", inline=True)
-comment(0x902B, "Same: store as new lc001", inline=True)
+comment(0x902B, "Same: store as new hazel_fs_server_stn", inline=True)
 comment(0x902E, "Y=3: net_rx_ptr offset 3", inline=True)
 comment(0x9030, "Store at (net_rx_ptr)+3", inline=True)
 comment(0x9032, "PLA -- restore saved byte", inline=True)
@@ -9162,7 +9162,7 @@ comment(0xB35A, "A=&69: 'i' character (info prefix)", inline=True)
 comment(0xB36F, "TAY -- A = next index", inline=True)
 comment(0xB4B3, "Return", inline=True)
 comment(0xB52A, "Return", inline=True)
-comment(0xB831, "STZ l0020+X (clear scratch)", inline=True)
+comment(0xB831, "STZ tx_buffer_scratch+X (clear scratch)", inline=True)
 comment(0xB8A7, "Return", inline=True)
 comment(0xBB38, "PHX -- save X on entry", inline=True)
 comment(0xBB57, "PLY -- restore Y", inline=True)
@@ -9312,7 +9312,7 @@ label(0xA85C, "loop_restore_osword_workspace")
 subroutine(0xA877, "extract_osword_subcode",
     description="Extract and dispatch OSWORD sub-code from parameter byte.")
 label(0xA8EC, "loop_copy_pbytes_to_workspace")
-# &B0A0 is the dead JMP (l4898,X) at the cmd_cdir dispatch boundary;
+# &B0A0 is the dead JMP (cdir_unused_dispatch_table,X) at the cmd_cdir dispatch boundary;
 # never executed but py8dis follows the entry() declaration so it
 # needs a non-placeholder name.
 label(0xB0A0, "cmd_cdir_indirect_dispatch")
@@ -9415,7 +9415,7 @@ label(0xC200, "hazel_fcb_addr_lo")
 label(0xC210, "hazel_fcb_addr_mid")
 label(0xC220, "hazel_fcb_addr_hi")
 label(0xC230, "hazel_fcb_link")
-label(0xC240, "hazel_fcb_handle")
+label(0xC240, "hazel_fcb_state_byte")  # multi-purpose: station for non-OSFIND channels, open-mode flags for OSFIND channels
 label(0xC250, "hazel_fcb_network")
 label(0xC260, "hazel_fcb_status")
 label(0xC270, "hazel_cur_dir_handle")
@@ -11073,7 +11073,7 @@ entry(0xA415)
 # end-marker if the walker hits it before a name char). Bit 6 = "set
 # V if no arg". Bits 0-4 = syntax string index into cmd_syntax_table.
 #
-# The walker (loop_next_entry at &8BD8) reads la76c+X; bit 7 set
+# The walker (loop_next_entry at &8BD8) reads cmd_table_fs+X; bit 7 set
 # stops the walk. match_fs_cmd starts the walk at a caller-supplied
 # X offset, so X picks which sub-table is searched:
 #
@@ -11390,7 +11390,7 @@ subroutine(0x9776, "cmd_bye",
 # an explicit entry().
 # cmd_cdir's *real* dispatch entry is at &B0A1, not &B0A0. The byte at
 # &B0A0 is the lo byte of the dispatch table value (&A0) interpreted by
-# py8dis -- because of `entry(0xB0A0)` -- as a `JMP (l4898,X)` opcode;
+# py8dis -- because of `entry(0xB0A0)` -- as a `JMP (cdir_unused_dispatch_table,X)` opcode;
 # the bytes are valid code but unreachable. PHA/PHA/RTS dispatch via
 # cmd_table_fs lands at &B0A1 (TYA / PHA / JSR mask_owner_access / ...)
 # which is the actual command body.
@@ -11408,7 +11408,7 @@ command code `&1B` to create the directory.
 
 Reached via PHA/PHA/RTS dispatch from `cmd_table_fs` entry
 [`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0A0`
-happens to decode as `JMP (l4898,X)` but is never executed.""",
+happens to decode as `JMP (cdir_unused_dispatch_table,X)` but is never executed.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9512, "cmd_dir",
     title="*Dir command handler",
@@ -11471,14 +11471,14 @@ subroutine(0x8D91, "cmd_iam",
 subroutine(0xB0F2, "cmd_lcat",
     title="*LCat command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"
-    "l1071, then branches to cat_set_lib_flag inside cmd_ex\n"
+    "hazel_fs_lib_flags, then branches to cat_set_lib_flag inside cmd_ex\n"
     "to catalogue the library directory with three entries\n"
     "per column.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB0F8, "cmd_lex",
     title="*LEx command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"
-    "l1071, then branches to ex_set_lib_flag inside cmd_ex\n"
+    "hazel_fs_lib_flags, then branches to ex_set_lib_flag inside cmd_ex\n"
     "to examine the library directory with one entry per line.",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x8D02, "issue_svc_15",
@@ -12438,7 +12438,7 @@ comment(0xB3AB, "Return", inline=True)
 
 # CR/LF handling in type mode
 
-# Line ending normalisation (l00ad tracks previous char)
+# Line ending normalisation (table_idx tracks previous char)
 
 # Previous was CR — check for CR+LF pair
 
@@ -13074,7 +13074,7 @@ comment(0x9602, "Decrement outer counter", inline=True)
 comment(0x9605, "Not zero: keep polling", inline=True)
 comment(0x9607, "Discard inner counter", inline=True)
 comment(0x9608, "Discard middle counter", inline=True)
-comment(0x9609, "Restore l0d61 control state", inline=True)
+comment(0x9609, "Restore econet_flags control state", inline=True)
 comment(0x960A, "Write back TX control state", inline=True)
 comment(0x960D, "Pop outer counter (0 if timed out)", inline=True)
 comment(0x960E, "Zero: TX timed out", inline=True)
@@ -13096,7 +13096,7 @@ comment(0x9610, "Return (TX acknowledged)", inline=True)
 comment(0xA07B, "Load current FS station high", inline=True)
 comment(0xA07E, "Save to fs_work_5", inline=True)
 comment(0xA080, "Load current FS station low", inline=True)
-comment(0xA083, "Save to l00b6", inline=True)
+comment(0xA083, "Save to fs_work_6", inline=True)
 comment(0xA085, "Get first character of argument", inline=True)
 comment(0xA087, "Is it CR (no argument)?", inline=True)
 comment(0xA089, "No arg: print current FS info", inline=True)
@@ -13171,15 +13171,15 @@ comment(0xA0F9, "Return", inline=True)
 # OSWORD write handler (&A0E2)
 comment(0xA0FA, "Get index from PB pointer", inline=True)
 comment(0xA0FD, "C clear: store to workspace", inline=True)
-comment(0xA0FF, "Save carry to l0d6c bit 7", inline=True)
+comment(0xA0FF, "Save carry to fs_flags bit 7", inline=True)
 comment(0xA102, "Load PB pointer value", inline=True)
 comment(0xA104, "Shift carry back in", inline=True)
-comment(0xA105, "Restore l0d6c bit 7", inline=True)
+comment(0xA105, "Restore fs_flags bit 7", inline=True)
 comment(0xA108, "Return", inline=True)
-comment(0xA109, "Save carry to l0d61 bit 7", inline=True)
+comment(0xA109, "Save carry to econet_flags bit 7", inline=True)
 comment(0xA10C, "A='?': mark as uninitialised", inline=True)
 comment(0xA10E, "Store '?' to workspace", inline=True)
-comment(0xA110, "Restore l0d61 bit 7", inline=True)
+comment(0xA110, "Restore econet_flags bit 7", inline=True)
 comment(0xA113, "Return", inline=True)
 
 # cmd_fs_entry (&A0FC) — FS command dispatch entry
@@ -13339,7 +13339,7 @@ comment(0xA310, "Not set: try next", inline=True)
 comment(0xA312, "Transfer Y to A", inline=True)
 comment(0xA313, "Store Y in slot data", inline=True)
 comment(0xA316, "Set V (found match)", inline=True)
-comment(0xA319, "Store Y to l0e02", inline=True)
+comment(0xA319, "Store Y to fs_urd_handle", inline=True)
 comment(0xA31C, "V set: found, skip allocation", inline=True)
 comment(0xA31E, "Transfer Y to A", inline=True)
 comment(0xA31F, "Allocate FCB slot", inline=True)
@@ -13360,7 +13360,7 @@ comment(0xA33B, "Not set: try next", inline=True)
 comment(0xA33D, "Transfer Y to A", inline=True)
 comment(0xA33E, "Store Y in slot data", inline=True)
 comment(0xA341, "Set V (found match)", inline=True)
-comment(0xA344, "Store Y to l0e03", inline=True)
+comment(0xA344, "Store Y to fs_csd_handle", inline=True)
 comment(0xA347, "V set: found, skip allocation", inline=True)
 comment(0xA349, "Transfer Y to A", inline=True)
 comment(0xA34A, "Allocate FCB slot", inline=True)
@@ -13725,7 +13725,7 @@ comment(0xA86C, "Save Y", inline=True)
 comment(0xA86D, "Preserve Y on stack", inline=True)
 comment(0xA86E, "Y=&18: workspace offset for init", inline=True)
 comment(0xA870, "X=&0B: 12 bytes to copy", inline=True)
-comment(0xA872, "Rotate l0d61 right (save flag)", inline=True)
+comment(0xA872, "Rotate econet_flags right (save flag)", inline=True)
 
 # Copy bridge init data to workspace and TXCB
 comment(0xA875, "Load init data byte", inline=True)
@@ -13736,7 +13736,7 @@ comment(0xA87F, "Next workspace byte", inline=True)
 comment(0xA880, "Next template byte", inline=True)
 comment(0xA881, "Loop for all 12 bytes", inline=True)
 comment(0xA883, "Store X (-1) as bridge counter", inline=True)
-comment(0xA886, "Restore l0d61 flag", inline=True)
+comment(0xA886, "Restore econet_flags flag", inline=True)
 
 # Poll loop: wait for line idle, transmit, check response
 comment(0xA889, "Shift ws_0d60 left (check status)", inline=True)
@@ -14226,7 +14226,7 @@ comment(0xAB54, "Toggle bit 7", inline=True)
 comment(0xAB56, "Store updated state", inline=True)
 comment(0xAB59, "Shift to get both flag bits", inline=True)
 comment(0xAB5A, "Store flags to workspace", inline=True)
-comment(0xAB5C, "Save l00d0 (exec flag)", inline=True)
+comment(0xAB5C, "Save vdu_status (exec flag)", inline=True)
 comment(0xAB5E, "Push for later restore", inline=True)
 comment(0xAB5F, "Clear bit 0 of exec flag", inline=True)
 comment(0xAB61, "Store modified exec flag", inline=True)
@@ -14307,7 +14307,7 @@ comment(0xABDC, "Other error: handle failure", inline=True)
 # Success: clean up and return
 comment(0xABDE, "Discard retry count", inline=True)
 comment(0xABDF, "Discard saved exec flag", inline=True)
-comment(0xABE0, "Restore l00d0", inline=True)
+comment(0xABE0, "Restore vdu_status", inline=True)
 comment(0xABE2, "A=0: null terminator", inline=True)
 comment(0xABE4, "Add zero to RX buffer (end marker)", inline=True)
 comment(0xABE7, "Send final buffer", inline=True)
@@ -14434,7 +14434,7 @@ comment(0xAC96, "buf end ext lo=&FF", inline=True)
 comment(0xAC97, "buf end ext hi=&FF", inline=True)
 
 # Palette read handler (&AC86)
-comment(0xAC98, "Save l00ad counter", inline=True)
+comment(0xAC98, "Save table_idx counter", inline=True)
 comment(0xAC9A, "Push for later restore", inline=True)
 comment(0xAC9B, "Set workspace low to &E9", inline=True)
 comment(0xAC9D, "Store to nfs_workspace low", inline=True)
@@ -14471,7 +14471,7 @@ comment(0xACD1, "Clear counter", inline=True)
 comment(0xACD3, "Advance workspace ptr", inline=True)
 comment(0xACD5, "Store extra palette info", inline=True)
 comment(0xACD8, "Advance workspace ptr again", inline=True)
-comment(0xACDA, "Restore original l00ad", inline=True)
+comment(0xACDA, "Restore original table_idx", inline=True)
 comment(0xACDB, "Store restored counter", inline=True)
 
 # commit_state_byte: copy state to committed state
@@ -14513,7 +14513,7 @@ comment(0xAD0E, "OSBYTE &C2: read video ULA ctrl", inline=True)
 comment(0xAD0F, "OSBYTE &C3: read video ULA palette", inline=True)
 
 # cmd_dump (&BA06): *DUMP command — hex/ASCII file dump
-# Buffer layout: 21 bytes on stack (page 1), pointed to by l00ae/l00af
+# Buffer layout: 21 bytes on stack (page 1), pointed to by work_ae/addr_work
 #   buf[&00-&0F]: 16 data bytes read from file
 #   buf[&10-&13]: 4-byte display address (little-endian)
 #   buf[&14]:     flags/counter byte (high nibble for header control)
@@ -15053,7 +15053,7 @@ comment(0xBC85, "Return; Y=offset past filename", inline=True)
 comment(0xB41D, "Print newline after user response", inline=True)
 comment(0xB420, "Advance index, process next file", inline=True)
 
-# Second filename field: copy l0e31 to delete buffer
+# Second filename field: copy fs_filename_buf_1 to delete buffer
 comment(0xB423, "DEX to offset following INX", inline=True)
 comment(0xB424, "Advance to next byte", inline=True)
 comment(0xB425, "Load byte from second field", inline=True)
@@ -15290,10 +15290,10 @@ comment(0xB987, "Clear 3 counter bytes", inline=True)
 comment(0xB989, "Clear counter byte", inline=True)
 comment(0xB98C, "Next byte", inline=True)
 comment(0xB98D, "Loop for indices 2, 1, 0", inline=True)
-comment(0xB98F, "Store &FF as sentinel in l10cd", inline=True)
-comment(0xB992, "Store &FF as sentinel in l10ce", inline=True)
+comment(0xB98F, "Store &FF as sentinel in hazel_sentinel_cd", inline=True)
+comment(0xB992, "Store &FF as sentinel in hazel_sentinel_ce", inline=True)
 comment(0xB995, "X=&CA: workspace offset", inline=True)
-comment(0xB997, "Y=&C2: high byte of lc2c2 (FCB context buffer)", inline=True)
+comment(0xB997, "Y=&C2: high byte for FCB context buffer pointer (HAZEL)", inline=True)
 comment(0xB999, "Return; X/Y point to &10CA", inline=True)
 
 # start_wipe_pass: flush pending data for one FCB
@@ -15331,7 +15331,7 @@ comment(0xB9E4, "Push to stack", inline=True)
 comment(0xB9E5, "Restore attribute to A", inline=True)
 comment(0xB9E6, "Set attribute in receive buffer", inline=True)
 comment(0xB9E8, "X=&CA: workspace offset", inline=True)
-comment(0xB9EA, "Y=&C2: high byte of lc2c2 (FCB context buffer)", inline=True)
+comment(0xB9EA, "Y=&C2: high byte for FCB context buffer pointer (HAZEL)", inline=True)
 comment(0xB9EC, "A=0: standard transfer mode", inline=True)
 comment(0xB9EE, "Send data and receive response", inline=True)
 comment(0xB9F1, "Reload FCB index", inline=True)
@@ -15408,7 +15408,7 @@ comment(0xBA68, "Read saved receive attribute", inline=True)
 comment(0xBA6B, "Push to stack", inline=True)
 comment(0xBA6C, "Load current reference", inline=True)
 comment(0xBA6F, "Set in receive buffer", inline=True)
-comment(0xBA71, "Y=&C2: high byte of lc2c2 (FCB context buffer)", inline=True)
+comment(0xBA71, "Y=&C2: high byte for FCB context buffer pointer (HAZEL)", inline=True)
 comment(0xBA73, "A=2: transfer mode 2", inline=True)
 comment(0xBA75, "Send and receive data", inline=True)
 comment(0xBA78, "Restore receive attribute", inline=True)
@@ -16067,14 +16067,14 @@ comment(0x9C06, "Z set (empty string): store terminator", inline=True)
 comment(0x9C08, "GSREAD: read next character", inline=True)
 comment(0x9C0B, "C set: end of string reached", inline=True)
 comment(0x9C0D, "Advance buffer index", inline=True)
-comment(0x9C0E, "Store character in l0e30 buffer", inline=True)
+comment(0x9C0E, "Store character in fs_filename_buf buffer", inline=True)
 comment(0x9C11, "ALWAYS branch: read next character", inline=True)
 comment(0x9C13, "Advance past last character", inline=True)
 comment(0x9C14, "A=CR: terminate filename", inline=True)
 comment(0x9C16, "Store CR terminator in buffer", inline=True)
-comment(0x9C19, "A=&30: low byte of l0e30 buffer", inline=True)
+comment(0x9C19, "A=&30: low byte of fs_filename_buf buffer", inline=True)
 comment(0x9C1B, "Set command text pointer low", inline=True)
-comment(0x9C1D, "A=&C0: high byte of lc030 parse buffer", inline=True)
+comment(0x9C1D, "A=&C0: high byte of hazel_parse_buf parse buffer", inline=True)
 comment(0x9C1F, "Set command text pointer high", inline=True)
 comment(0x9C21, "Return with buffer filled", inline=True)
 
@@ -16118,8 +16118,8 @@ comment(0x9C6F, "Store result in fs_work_7", inline=True)
 comment(0x9C71, "Format filename for display", inline=True)
 comment(0x9C74, "Send TXCB and swap addresses", inline=True)
 comment(0x9C77, "X=2: copy 3 offset bytes", inline=True)
-comment(0x9C79, "Load offset byte from l0f10", inline=True)
-comment(0x9C7C, "Store in l0f05 for next iteration", inline=True)
+comment(0x9C79, "Load offset byte from fs_file_len_3", inline=True)
+comment(0x9C7C, "Store in fs_cmd_data for next iteration", inline=True)
 comment(0x9C7F, "Decrement counter", inline=True)
 comment(0x9C80, "Loop until all bytes copied", inline=True)
 comment(0x9C82, "Jump to receive and process reply", inline=True)
@@ -16157,7 +16157,7 @@ comment(0x9CBA, "Load address byte from FS options", inline=True)
 comment(0x9CBC, "Save to workspace (port_ws_offset)", inline=True)
 comment(0x9CBF, "Y -= 4 to point to paired offset", inline=True)
 comment(0x9CC2, "Subtract paired value", inline=True)
-comment(0x9CC4, "Store difference in l0f03 buffer", inline=True)
+comment(0x9CC4, "Store difference in fs_cmd_csd buffer", inline=True)
 comment(0x9CC7, "Push difference", inline=True)
 comment(0x9CC8, "Load paired value from FS options", inline=True)
 comment(0x9CCA, "Save to workspace", inline=True)
@@ -16168,7 +16168,7 @@ comment(0x9CD3, "Decrement loop counter", inline=True)
 comment(0x9CD4, "Loop for all 4 address pairs", inline=True)
 comment(0x9CD6, "Y=9: copy 9 bytes of options data", inline=True)
 comment(0x9CD8, "Load FS options byte", inline=True)
-comment(0x9CDA, "Store in l0f03 buffer", inline=True)
+comment(0x9CDA, "Store in fs_cmd_csd buffer", inline=True)
 comment(0x9CDD, "Decrement index", inline=True)
 comment(0x9CDE, "Loop until all 9 bytes copied", inline=True)
 comment(0x9CE0, "A=&91: FS port for info request", inline=True)
@@ -16189,23 +16189,23 @@ comment(0x9CFF, "Restore comparison flags", inline=True)
 comment(0x9D00, "Not catalogue info: show short format", inline=True)
 comment(0x9D02, "X=0: start at first byte", inline=True)
 comment(0x9D04, "ALWAYS branch to store and display", inline=True)
-comment(0x9D06, "Load file handle from l0f05", inline=True)
+comment(0x9D06, "Load file handle from fs_cmd_data", inline=True)
 comment(0x9D09, "Check and set up TXCB for transfer", inline=True)
 comment(0x9D0C, "Receive and process reply", inline=True)
-comment(0x9D0F, "Store result byte in l0f08", inline=True)
+comment(0x9D0F, "Store result byte in fs_reply_cmd", inline=True)
 comment(0x9D12, "Y=&0E: protection bits offset", inline=True)
-comment(0x9D14, "Load access byte from l0f05", inline=True)
+comment(0x9D14, "Load access byte from fs_cmd_data", inline=True)
 comment(0x9D17, "Extract protection bit flags", inline=True)
 comment(0x9D1A, "Zero: use reply buffer data", inline=True)
-comment(0x9D1C, "Load file info byte from l0ef7", inline=True)
+comment(0x9D1C, "Load file info byte from fs_reply_data", inline=True)
 comment(0x9D1F, "Store in FS options at offset Y", inline=True)
 comment(0x9D21, "Advance to next byte", inline=True)
 comment(0x9D22, "Y=&12: end of protection fields?", inline=True)
 comment(0x9D24, "No: copy next byte", inline=True)
-comment(0x9D26, "Load display flag from l0e06", inline=True)
+comment(0x9D26, "Load display flag from fs_messages_flag", inline=True)
 comment(0x9D29, "Zero: skip display, return", inline=True)
-comment(0x9D2B, "Y=&F4: index into l0fff for filename", inline=True)
-comment(0x9D2D, "Load filename character from l10f3", inline=True)
+comment(0x9D2B, "Y=&F4: index for filename buffer (indexing-base trick)", inline=True)
+comment(0x9D2D, "Load filename character from hazel_display_buf", inline=True)
 comment(0x9D30, "Print character via OSASCI", inline=True)
 comment(0x9D33, "Advance to next character", inline=True)
 comment(0x9D34, "Printed all 12 characters?", inline=True)
@@ -16236,7 +16236,7 @@ comment(0x9D5C, "Print space via OSASCI and return", inline=True)
 # copy_fsopts_to_zp: copy FS options to zero page (&9A60-&9A71)
 comment(0x9D5F, "Y=5: copy 4 bytes (offsets 2-5)", inline=True)
 comment(0x9D61, "Load byte from FS options", inline=True)
-comment(0x9D63, "Store in zero page at l00ae+Y", inline=True)
+comment(0x9D63, "Store in zero page at work_ae+Y", inline=True)
 comment(0x9D66, "Decrement index", inline=True)
 comment(0x9D67, "Below offset 2?", inline=True)
 comment(0x9D69, "No: copy next byte", inline=True)
@@ -16251,7 +16251,7 @@ comment(0x9D70, "Return", inline=True)
 comment(0x9D71, "Y=&0D: copy bytes from offset &0D down", inline=True)
 comment(0x9D73, "Transfer X to A", inline=True)
 comment(0x9D74, "Store byte in FS options at offset Y", inline=True)
-comment(0x9D76, "Load next workspace byte from l0f02+Y", inline=True)
+comment(0x9D76, "Load next workspace byte from fs_cmd_urd+Y", inline=True)
 comment(0x9D79, "Decrement index", inline=True)
 comment(0x9D7A, "Below offset 2?", inline=True)
 comment(0x9D7C, "No: copy next byte", inline=True)
@@ -16272,12 +16272,12 @@ comment(0x9D88, "Compare 5-byte handle with current", inline=True)
 comment(0x9D8B, "Match: discard port and return", inline=True)
 comment(0x9D8D, "X=0: loop start", inline=True)
 comment(0x9D8F, "Y=4: copy 4 bytes", inline=True)
-comment(0x9D91, "Clear l0f08 (transfer size low)", inline=True)
-comment(0x9D94, "Clear l0f09 (transfer size high)", inline=True)
+comment(0x9D91, "Clear fs_reply_cmd (transfer size low)", inline=True)
+comment(0x9D94, "Clear fs_load_vector (transfer size high)", inline=True)
 comment(0x9D97, "Clear carry for addition", inline=True)
 comment(0x9D98, "Load address byte from zero page", inline=True)
 comment(0x9D9A, "Store in TXCB start pointer", inline=True)
-comment(0x9D9C, "Add offset from l0f06", inline=True)
+comment(0x9D9C, "Add offset from fs_func_code", inline=True)
 comment(0x9D9F, "Store sum in TXCB end pointer", inline=True)
 comment(0x9DA1, "Also update load address", inline=True)
 comment(0x9DA3, "Advance to next byte", inline=True)
@@ -16332,18 +16332,18 @@ comment(0x9DFA, "Copy to Y as index", inline=True)
 comment(0x9DFB, "Y -= 3 to get FS options offset", inline=True)
 comment(0x9DFE, "X=3: copy 4 bytes", inline=True)
 comment(0x9E00, "Load byte from FS options at offset Y", inline=True)
-comment(0x9E02, "Store in l0f06 buffer", inline=True)
+comment(0x9E02, "Store in fs_func_code buffer", inline=True)
 comment(0x9E05, "Decrement source offset", inline=True)
 comment(0x9E06, "Decrement byte count", inline=True)
 comment(0x9E07, "Loop for all 4 bytes", inline=True)
 comment(0x9E09, "X=5: copy arg to buffer at offset 5", inline=True)
 comment(0x9E0B, "ALWAYS branch to copy and send", inline=True)
 comment(0x9E0D, "Get access bits for file", inline=True)
-comment(0x9E10, "Store access byte in l0f0e", inline=True)
+comment(0x9E10, "Store access byte in fs_file_attrs", inline=True)
 comment(0x9E13, "Y=9: source offset in FS options", inline=True)
 comment(0x9E15, "X=8: copy 8 bytes to buffer", inline=True)
 comment(0x9E17, "Load FS options byte", inline=True)
-comment(0x9E19, "Store in l0f05 buffer", inline=True)
+comment(0x9E19, "Store in fs_cmd_data buffer", inline=True)
 comment(0x9E1C, "Decrement source offset", inline=True)
 comment(0x9E1D, "Decrement byte count", inline=True)
 comment(0x9E1E, "Loop for all 8 bytes", inline=True)
@@ -16358,24 +16358,24 @@ comment(0x9E31, "Send request with V set", inline=True)
 comment(0x9E34, "Carry set: error, jump to finalise", inline=True)
 comment(0x9E36, "No error: return with last flag", inline=True)
 comment(0x9E39, "Get access bits for file", inline=True)
-comment(0x9E3C, "Store in l0f06", inline=True)
+comment(0x9E3C, "Store in fs_func_code", inline=True)
 comment(0x9E3F, "X=2: buffer offset", inline=True)
 comment(0x9E41, "ALWAYS branch to copy and send", inline=True)
 comment(0x9E43, "X=1: buffer offset", inline=True)
 comment(0x9E45, "Copy argument to buffer", inline=True)
 comment(0x9E48, "Y=&12: open file command", inline=True)
 comment(0x9E4A, "Send open file request", inline=True)
-comment(0x9E4D, "Load reply handle from l0f11", inline=True)
-comment(0x9E50, "Clear l0f11", inline=True)
-comment(0x9E53, "Clear l0f14", inline=True)
+comment(0x9E4D, "Load reply handle from fs_obj_type", inline=True)
+comment(0x9E50, "Clear fs_obj_type", inline=True)
+comment(0x9E53, "Clear fs_len_clear", inline=True)
 comment(0x9E56, "Get protection bits", inline=True)
-comment(0x9E59, "Load file handle from l0f05", inline=True)
+comment(0x9E59, "Load file handle from fs_cmd_data", inline=True)
 comment(0x9E5C, "Zero: file not found, return", inline=True)
 comment(0x9E5E, "Y=&0E: store access bits", inline=True)
 comment(0x9E60, "Store access byte in FS options", inline=True)
 comment(0x9E62, "Y=&0D", inline=True)
 comment(0x9E63, "X=&0C: copy 12 bytes of file info", inline=True)
-comment(0x9E65, "Load reply byte from l0f05+X", inline=True)
+comment(0x9E65, "Load reply byte from fs_cmd_data+X", inline=True)
 comment(0x9E68, "Store in FS options at offset Y", inline=True)
 comment(0x9E6A, "Decrement destination offset", inline=True)
 comment(0x9E6B, "Decrement source counter", inline=True)
@@ -16383,7 +16383,7 @@ comment(0x9E6C, "Loop for all 12 bytes", inline=True)
 comment(0x9E6E, "X=1 (INX from 0)", inline=True)
 comment(0x9E6F, "X=2", inline=True)
 comment(0x9E70, "Y=&11: FS options offset", inline=True)
-comment(0x9E72, "Load extended info byte from l0f12", inline=True)
+comment(0x9E72, "Load extended info byte from fs_access_level", inline=True)
 comment(0x9E75, "Store in FS options", inline=True)
 comment(0x9E77, "Decrement destination offset", inline=True)
 comment(0x9E78, "Decrement source counter", inline=True)
@@ -16400,12 +16400,12 @@ comment(0x9E82, "Dead: duplicate JMP finalise_and_return", inline=True)
 
 # format_filename_field: format filename for display (&9B86-&9BAE)
 comment(0x9E82, "Y=0: destination index", inline=True)
-comment(0x9E84, "Load source offset from l0f03", inline=True)
-comment(0x9E87, "Non-zero: copy from l0f05 buffer", inline=True)
+comment(0x9E84, "Load source offset from fs_cmd_csd", inline=True)
+comment(0x9E87, "Non-zero: copy from fs_cmd_data buffer", inline=True)
 comment(0x9E89, "Load character from command line", inline=True)
 comment(0x9E8B, "Below '!' (control/space)?", inline=True)
 comment(0x9E8D, "Yes: pad with spaces", inline=True)
-comment(0x9E8F, "Store printable character in l10f3", inline=True)
+comment(0x9E8F, "Store printable character in hazel_display_buf", inline=True)
 comment(0x9E92, "Advance to next character", inline=True)
 comment(0x9E93, "Loop for more characters", inline=True)
 comment(0x9E95, "A=' ': space for padding", inline=True)
@@ -16416,8 +16416,8 @@ comment(0x9E9D, "No: pad more spaces", inline=True)
 comment(0x9E9F, "Return with field formatted", inline=True)
 comment(0x9EA0, "Advance source and destination", inline=True)
 comment(0x9EA1, "INY", inline=True)
-comment(0x9EA2, "Load byte from l0f05 buffer", inline=True)
-comment(0x9EA5, "Store in display buffer l10f3", inline=True)
+comment(0x9EA2, "Load byte from fs_cmd_data buffer", inline=True)
+comment(0x9EA5, "Store in display buffer hazel_display_buf", inline=True)
 comment(0x9EA8, "Bit 7 clear: more characters", inline=True)
 comment(0x9EAA, "Return (bit 7 set = terminator)", inline=True)
 
@@ -16443,7 +16443,7 @@ comment(0x9ECE, "Copy to X", inline=True)
 comment(0x9ECF, "Y=0: clear counter", inline=True)
 comment(0x9ED1, "Clear last byte flag", inline=True)
 comment(0x9ED3, "Clear block offset", inline=True)
-comment(0x9ED5, "Load channel data from l1010+X", inline=True)
+comment(0x9ED5, "Load channel data from hazel_fcb_addr_mid+X", inline=True)
 comment(0x9ED8, "Store in FS options at Y", inline=True)
 comment(0x9EDA, "Advance X by 8 (next FCB field)", inline=True)
 comment(0x9EDD, "Advance destination index", inline=True)
@@ -16464,8 +16464,8 @@ comment(0x9EF4, "Push Y (channel char)", inline=True)
 comment(0x9EF5, "Check file is not a directory", inline=True)
 comment(0x9EF8, "Pull channel char", inline=True)
 comment(0x9EF9, "Store channel char as receive attribute", inline=True)
-comment(0x9EFC, "Load FCB flag byte from l1030", inline=True)
-comment(0x9EFF, "Store in l0f05", inline=True)
+comment(0x9EFC, "Load FCB flag byte from hazel_fcb_link", inline=True)
+comment(0x9EFF, "Store in fs_cmd_data", inline=True)
 comment(0x9F02, "Pull X (FCB slot)", inline=True)
 comment(0x9F03, "Restore X", inline=True)
 comment(0x9F04, "Pull sub-function", inline=True)
@@ -16476,17 +16476,17 @@ comment(0x9F09, "Push sub-function", inline=True)
 comment(0x9F0A, "Load FS options pointer low", inline=True)
 comment(0x9F0C, "Load block offset", inline=True)
 comment(0x9F0E, "Process all matching FCBs", inline=True)
-comment(0x9F11, "Load updated data from l1010", inline=True)
-comment(0x9F14, "Store in l0f05", inline=True)
+comment(0x9F11, "Load updated data from hazel_fcb_addr_mid", inline=True)
+comment(0x9F14, "Store in fs_cmd_data", inline=True)
 comment(0x9F17, "Pull sub-function", inline=True)
-comment(0x9F18, "Store in l0f06", inline=True)
+comment(0x9F18, "Store in fs_func_code", inline=True)
 comment(0x9F1B, "Restore flags", inline=True)
 comment(0x9F1C, "Transfer Y to A", inline=True)
 comment(0x9F1D, "Push Y (offset)", inline=True)
 comment(0x9F1E, "Carry clear: read operation", inline=True)
 comment(0x9F20, "Y=3: copy 4 bytes", inline=True)
 comment(0x9F22, "Load zero page data", inline=True)
-comment(0x9F24, "Store in l0f07 buffer", inline=True)
+comment(0x9F24, "Store in fs_data_count buffer", inline=True)
 comment(0x9F27, "Decrement source", inline=True)
 comment(0x9F28, "Decrement counter", inline=True)
 comment(0x9F29, "Loop for all 4 bytes", inline=True)
@@ -16504,7 +16504,7 @@ comment(0x9F42, "Store A in last byte flag", inline=True)
 comment(0x9F44, "Load FS options pointer low", inline=True)
 comment(0x9F46, "Y=2: zero page offset", inline=True)
 comment(0x9F48, "Store A in zero page", inline=True)
-comment(0x9F4A, "Load buffer byte from l0f05+Y", inline=True)
+comment(0x9F4A, "Load buffer byte from fs_cmd_data+Y", inline=True)
 comment(0x9F4D, "Store in zero page at offset", inline=True)
 comment(0x9F4F, "Decrement source X", inline=True)
 comment(0x9F50, "Decrement counter Y", inline=True)
@@ -16517,21 +16517,21 @@ comment(0x9F57, "Carry set: write file pointer", inline=True)
 comment(0x9F59, "Load block offset", inline=True)
 comment(0x9F5B, "Convert attribute to channel index", inline=True)
 comment(0x9F5E, "Load FS options pointer", inline=True)
-comment(0x9F60, "Load FCB low byte from l1000", inline=True)
+comment(0x9F60, "Load FCB low byte from hazel_fcb_addr_lo", inline=True)
 comment(0x9F63, "Store in zero page pointer low", inline=True)
-comment(0x9F66, "Load FCB high byte from l1010", inline=True)
+comment(0x9F66, "Load FCB high byte from hazel_fcb_addr_mid", inline=True)
 comment(0x9F69, "Store in zero page pointer high", inline=True)
-comment(0x9F6C, "Load FCB extent from l1020", inline=True)
+comment(0x9F6C, "Load FCB extent from hazel_fcb_addr_hi", inline=True)
 comment(0x9F6F, "Store in zero page work area", inline=True)
 comment(0x9F72, "A=0: clear high byte", inline=True)
 comment(0x9F74, "Store zero in work area high", inline=True)
 comment(0x9F77, "ALWAYS branch to return with flag", inline=True)
-comment(0x9F79, "Store write value in l0f06", inline=True)
+comment(0x9F79, "Store write value in fs_func_code", inline=True)
 comment(0x9F7C, "Transfer X to A", inline=True)
 comment(0x9F7D, "Push X (zero page offset)", inline=True)
 comment(0x9F7E, "Y=3: copy 4 bytes", inline=True)
 comment(0x9F80, "Load zero page data at offset", inline=True)
-comment(0x9F82, "Store in l0f07 buffer", inline=True)
+comment(0x9F82, "Store in fs_data_count buffer", inline=True)
 comment(0x9F85, "Decrement source", inline=True)
 comment(0x9F86, "Decrement counter", inline=True)
 comment(0x9F87, "Loop for all 4 bytes", inline=True)
@@ -16545,11 +16545,11 @@ comment(0x9F94, "Load block offset (attribute)", inline=True)
 comment(0x9F96, "Clear connection active flag", inline=True)
 comment(0x9F99, "Convert attribute to channel index", inline=True)
 comment(0x9F9C, "Load zero page pointer low", inline=True)
-comment(0x9F9F, "Store back to FCB l1000", inline=True)
+comment(0x9F9F, "Store back to FCB hazel_fcb_addr_lo", inline=True)
 comment(0x9FA2, "Load zero page pointer high", inline=True)
-comment(0x9FA5, "Store back to FCB l1010", inline=True)
+comment(0x9FA5, "Store back to FCB hazel_fcb_addr_mid", inline=True)
 comment(0x9FA8, "Load zero page work byte", inline=True)
-comment(0x9FAB, "Store back to FCB l1020", inline=True)
+comment(0x9FAB, "Store back to FCB hazel_fcb_addr_hi", inline=True)
 comment(0x9FAE, "Return with last flag", inline=True)
 comment(0x9FB1, "Process all matching FCBs first", inline=True)
 
@@ -16580,9 +16580,9 @@ comment(0x9FD8, "Transfer X to A (options pointer)", inline=True)
 comment(0x9FD9, "Allocate FCB slot or raise error", inline=True)
 comment(0x9FDC, "Toggle bit 7", inline=True)
 comment(0x9FDE, "Shift left: build open mode", inline=True)
-comment(0x9FDF, "Store open mode in l0f05", inline=True)
+comment(0x9FDF, "Store open mode in fs_cmd_data", inline=True)
 comment(0x9FE2, "Rotate to complete mode byte", inline=True)
-comment(0x9FE3, "Store in l0f06", inline=True)
+comment(0x9FE3, "Store in fs_func_code", inline=True)
 comment(0x9FE6, "Parse command argument (Y=0)", inline=True)
 comment(0x9FE9, "X=2: buffer offset", inline=True)
 comment(0x9FEB, "Copy argument to TX buffer", inline=True)
@@ -16594,13 +16594,13 @@ comment(0x9FF6, "Send open request with V set", inline=True)
 comment(0x9FF9, "Carry set (error): jump to finalise", inline=True)
 comment(0x9FFB, "A=&FF: mark as newly opened", inline=True)
 comment(0x9FFD, "Store &FF as receive attribute", inline=True)
-comment(0xA000, "Load handle from l0f05", inline=True)
+comment(0xA000, "Load handle from fs_cmd_data", inline=True)
 comment(0xA003, "Push handle", inline=True)
 comment(0xA004, "A=4: file info sub-command", inline=True)
 comment(0xA006, "Store sub-command", inline=True)
 comment(0xA009, "X=1: shift filename", inline=True)
-comment(0xA00B, "Load filename byte from l0f06+X", inline=True)
-comment(0xA00E, "Shift down to l0f05+X", inline=True)
+comment(0xA00B, "Load filename byte from fs_func_code+X", inline=True)
+comment(0xA00E, "Shift down to fs_cmd_data+X", inline=True)
 comment(0xA011, "Advance source index", inline=True)
 comment(0xA012, "Is it CR (end of filename)?", inline=True)
 comment(0xA014, "No: continue shifting", inline=True)
@@ -16634,7 +16634,7 @@ comment(0xA04F, "Rotate right: check bit 0", inline=True)
 comment(0xA050, "Carry set (bit 0): check read permission", inline=True)
 comment(0xA052, "Rotate right: check bit 1", inline=True)
 comment(0xA053, "Carry clear (no write): skip", inline=True)
-comment(0xA055, "Test bit 7 of l0f07 (lock flag)", inline=True)
+comment(0xA055, "Test bit 7 of fs_data_count (lock flag)", inline=True)
 comment(0xA058, "Not locked: skip", inline=True)
 comment(0xA05A, "Transfer Y to A (flags)", inline=True)
 comment(0xA05B, "Set bit 5 (locked file flag)", inline=True)
@@ -16643,7 +16643,7 @@ comment(0xA05E, "Pull handle from stack", inline=True)
 comment(0xA05F, "Allocate FCB slot for channel", inline=True)
 comment(0xA062, "Transfer to X", inline=True)
 comment(0xA063, "Transfer Y to A (flags)", inline=True)
-comment(0xA064, "Store flags in FCB table l1040", inline=True)
+comment(0xA064, "Store flags in FCB table hazel_fcb_state_byte", inline=True)
 comment(0xA067, "Transfer X back to A (handle)", inline=True)
 comment(0xA068, "Jump to finalise and return", inline=True)
 
@@ -16662,8 +16662,8 @@ comment(0xA07E, "Clear last byte flag", inline=True)
 comment(0xA080, "Clear block offset", inline=True)
 comment(0xA082, "ALWAYS branch to send close request", inline=True)
 comment(0xA084, "Validate channel character", inline=True)
-comment(0xA087, "Load FCB flag byte from l1030", inline=True)
-comment(0xA08A, "Store as l0f05 (file handle)", inline=True)
+comment(0xA087, "Load FCB flag byte from hazel_fcb_link", inline=True)
+comment(0xA08A, "Store as fs_cmd_data (file handle)", inline=True)
 comment(0xA08D, "X=1: argument size", inline=True)
 comment(0xA08F, "Y=7: close file command", inline=True)
 comment(0xA091, "Send close file request", inline=True)
@@ -16673,8 +16673,8 @@ comment(0xA098, "Clear V flag", inline=True)
 comment(0xA099, "Scan and clear all FCB flags", inline=True)
 comment(0xA09C, "Return with last flag", inline=True)
 comment(0xA09F, "A=0: clear FCB entry", inline=True)
-comment(0xA0A1, "Clear l1010 (FCB high byte)", inline=True)
-comment(0xA0A4, "Clear l1040 (FCB flags)", inline=True)
+comment(0xA0A1, "Clear hazel_fcb_addr_mid (FCB high byte)", inline=True)
+comment(0xA0A4, "Clear hazel_fcb_state_byte (FCB flags)", inline=True)
 comment(0xA0A7, "ALWAYS branch to return", inline=True)
 
 # OSARGS dispatch: read/write file arguments (&9DBC-&9E02)
@@ -16685,25 +16685,25 @@ comment(0xA0AF, "Compare Y with 4", inline=True)
 comment(0xA0B1, "Below 4: handle special OSARGS", inline=True)
 comment(0xA0B3, "Decrement X", inline=True)
 comment(0xA0B4, "X was 1: store display flag", inline=True)
-comment(0xA0B6, "Store Y in display control flag l0e06", inline=True)
+comment(0xA0B6, "Store Y in display control flag fs_messages_flag", inline=True)
 comment(0xA0B9, "Carry clear: return with flag", inline=True)
 comment(0xA0BB, "A=7: error code", inline=True)
 comment(0xA0BD, "Jump to classify reply error", inline=True)
-comment(0xA0C0, "Store Y in l0f05", inline=True)
+comment(0xA0C0, "Store Y in fs_cmd_data", inline=True)
 comment(0xA0C3, "Y=&16: OSARGS save command", inline=True)
 comment(0xA0C5, "Send OSARGS request", inline=True)
 comment(0xA0C8, "Reload block offset", inline=True)
-comment(0xA0CA, "Store in l0e05", inline=True)
+comment(0xA0CA, "Store in fs_boot_option", inline=True)
 comment(0xA0CD, "Positive: return with flag", inline=True)
 comment(0xA10B, "Verify workspace checksum", inline=True)
 comment(0xA10E, "Push result on stack", inline=True)
 comment(0xA10F, "Load block offset", inline=True)
 comment(0xA111, "Push block offset", inline=True)
-comment(0xA112, "Store X in l10c9", inline=True)
+comment(0xA112, "Store X in hazel_chan_attr", inline=True)
 comment(0xA115, "Find matching FCB entry", inline=True)
 comment(0xA118, "Zero: no match found", inline=True)
-comment(0xA11A, "Load FCB low byte from l1000", inline=True)
-comment(0xA11D, "Compare with stored offset l1098", inline=True)
+comment(0xA11A, "Load FCB low byte from hazel_fcb_addr_lo", inline=True)
+comment(0xA11D, "Compare with stored offset hazel_fcb_offset_save", inline=True)
 comment(0xA120, "Below stored: no match", inline=True)
 comment(0xA122, "X=&FF: mark as found (all bits set)", inline=True)
 comment(0xA124, "ALWAYS branch (negative)", inline=True)
@@ -16757,16 +16757,16 @@ comment(0xA170, "Check file is not a directory", inline=True)
 comment(0xA173, "Pull handle", inline=True)
 comment(0xA174, "Transfer to Y", inline=True)
 comment(0xA175, "Process all matching FCBs", inline=True)
-comment(0xA178, "Load FCB flag byte from l1030", inline=True)
-comment(0xA17B, "Store file handle in l0f05", inline=True)
+comment(0xA178, "Load FCB flag byte from hazel_fcb_link", inline=True)
+comment(0xA17B, "Store file handle in fs_cmd_data", inline=True)
 comment(0xA17E, "A=0: clear direction flag", inline=True)
-comment(0xA180, "Store in l0f06", inline=True)
+comment(0xA180, "Store in fs_func_code", inline=True)
 comment(0xA183, "Load FCB low byte (position)", inline=True)
-comment(0xA186, "Store in l0f07", inline=True)
+comment(0xA186, "Store in fs_data_count", inline=True)
 comment(0xA189, "Load FCB high byte", inline=True)
-comment(0xA18C, "Store in l0f08", inline=True)
+comment(0xA18C, "Store in fs_reply_cmd", inline=True)
 comment(0xA18F, "Load FCB extent byte", inline=True)
-comment(0xA192, "Store in l0f09", inline=True)
+comment(0xA192, "Store in fs_load_vector", inline=True)
 comment(0xA195, "Y=&0D: TX buffer size", inline=True)
 comment(0xA197, "X=5: argument count", inline=True)
 comment(0xA199, "Send TX control block to server", inline=True)
@@ -16779,24 +16779,24 @@ comment(0xA1A5, "Carry set (write): set active", inline=True)
 comment(0xA1A7, "Read: clear connection active", inline=True)
 comment(0xA1AA, "Branch to continue (always positive)", inline=True)
 comment(0xA1AC, "Write: set connection active", inline=True)
-comment(0xA1AF, "Clear l0f06 (Y=0)", inline=True)
+comment(0xA1AF, "Clear fs_func_code (Y=0)", inline=True)
 comment(0xA1B2, "Look up channel slot data", inline=True)
-comment(0xA1B5, "Store flag byte in l0f05", inline=True)
+comment(0xA1B5, "Store flag byte in fs_cmd_data", inline=True)
 comment(0xA1B8, "Y=&0C: TX buffer size (short)", inline=True)
 comment(0xA1BA, "X=2: argument count", inline=True)
 comment(0xA1BC, "Send TX control block", inline=True)
 comment(0xA1BF, "Look up channel entry at Y=0", inline=True)
 comment(0xA1C2, "Y=9: FS options offset for position", inline=True)
-comment(0xA1C4, "Load new position low from l0f05", inline=True)
-comment(0xA1C7, "Update FCB low byte in l1000", inline=True)
+comment(0xA1C4, "Load new position low from fs_cmd_data", inline=True)
+comment(0xA1C7, "Update FCB low byte in hazel_fcb_addr_lo", inline=True)
 comment(0xA1CA, "Store in FS options at Y=9", inline=True)
 comment(0xA1CC, "Y=&0A", inline=True)
-comment(0xA1CD, "Load new position high from l0f06", inline=True)
-comment(0xA1D0, "Update FCB high byte in l1010", inline=True)
+comment(0xA1CD, "Load new position high from fs_func_code", inline=True)
+comment(0xA1D0, "Update FCB high byte in hazel_fcb_addr_mid", inline=True)
 comment(0xA1D3, "Store in FS options at Y=&0A", inline=True)
 comment(0xA1D5, "Y=&0B", inline=True)
-comment(0xA1D6, "Load new extent from l0f07", inline=True)
-comment(0xA1D9, "Update FCB extent in l1020", inline=True)
+comment(0xA1D6, "Load new extent from fs_data_count", inline=True)
+comment(0xA1D9, "Update FCB extent in hazel_fcb_addr_hi", inline=True)
 comment(0xA1DC, "Store in FS options at Y=&0B", inline=True)
 comment(0xA1DE, "A=0: clear high byte of extent", inline=True)
 comment(0xA1E0, "Y=&0C", inline=True)
@@ -16812,17 +16812,17 @@ comment(0xA1E8, "Is transfer still pending (flag=3)?", inline=True)
 comment(0xA1EF, "Y=0: offset for channel handle", inline=True)
 comment(0xA1F1, "Load channel handle from FS options", inline=True)
 comment(0xA1F3, "Look up channel by character", inline=True)
-comment(0xA1F6, "Load FCB flag byte from l1030", inline=True)
+comment(0xA1F6, "Load FCB flag byte from hazel_fcb_link", inline=True)
 comment(0xA1F9, "Return with flag in A", inline=True)
 
 # setup_transfer_workspace: prepare for data transfer (&9ECB-&9F54)
 comment(0xA1FA, "Push operation code on stack", inline=True)
 comment(0xA1FB, "Look up channel entry at Y=0", inline=True)
-comment(0xA1FE, "Store flag byte in l0f05", inline=True)
+comment(0xA1FE, "Store flag byte in fs_cmd_data", inline=True)
 comment(0xA201, "Y=&0B: source offset in FS options", inline=True)
 comment(0xA203, "X=6: copy 6 bytes", inline=True)
 comment(0xA205, "Load FS options byte", inline=True)
-comment(0xA207, "Store in l0f06 buffer", inline=True)
+comment(0xA207, "Store in fs_func_code buffer", inline=True)
 comment(0xA20A, "Decrement source index", inline=True)
 comment(0xA20B, "Skip offset 8?", inline=True)
 comment(0xA20D, "No: continue copy", inline=True)
@@ -16834,7 +16834,7 @@ comment(0xA214, "Shift right: check bit 0 (direction)", inline=True)
 comment(0xA215, "Push updated code", inline=True)
 comment(0xA216, "Carry clear: OSBGET (read)", inline=True)
 comment(0xA218, "Carry set: OSBPUT (write), X=1", inline=True)
-comment(0xA219, "Store direction flag in l0f06", inline=True)
+comment(0xA219, "Store direction flag in fs_func_code", inline=True)
 comment(0xA21C, "Y=&0B: TX buffer size", inline=True)
 comment(0xA21E, "X=&91: port for OSBGET", inline=True)
 comment(0xA220, "Pull operation code", inline=True)
@@ -16842,15 +16842,15 @@ comment(0xA221, "Push back (keep on stack)", inline=True)
 comment(0xA222, "Zero (OSBGET): keep port &91", inline=True)
 comment(0xA224, "X=&92: port for OSBPUT", inline=True)
 comment(0xA226, "Y=&0A: adjusted buffer size", inline=True)
-comment(0xA227, "Store port in l0f02", inline=True)
+comment(0xA227, "Store port in fs_cmd_urd", inline=True)
 comment(0xA22A, "Store port in fs_error_ptr", inline=True)
 comment(0xA22C, "X=8: argument count", inline=True)
-comment(0xA22E, "Load file handle from l0f05", inline=True)
+comment(0xA22E, "Load file handle from fs_cmd_data", inline=True)
 comment(0xA231, "Send request (no write data)", inline=True)
 comment(0xA234, "X=0: index", inline=True)
 comment(0xA236, "Load channel handle from FS options", inline=True)
 comment(0xA238, "Transfer to X as index", inline=True)
-comment(0xA239, "Load FCB flags from l1040", inline=True)
+comment(0xA239, "Load FCB flags from hazel_fcb_state_byte", inline=True)
 comment(0xA23C, "Toggle bit 0 (transfer direction)", inline=True)
 comment(0xA23E, "Store updated flags", inline=True)
 comment(0xA241, "Clear carry for addition", inline=True)
@@ -16865,13 +16865,13 @@ comment(0xA254, "Retreat Y by 3 for next pair", inline=True)
 comment(0xA257, "Decrement byte counter", inline=True)
 comment(0xA258, "Loop for all 4 address bytes", inline=True)
 comment(0xA25A, "X=1 (INX from 0)", inline=True)
-comment(0xA25B, "Load offset from l0f03", inline=True)
-comment(0xA25E, "Copy to l0f06", inline=True)
+comment(0xA25B, "Load offset from fs_cmd_csd", inline=True)
+comment(0xA25E, "Copy to fs_func_code", inline=True)
 comment(0xA261, "Decrement counter", inline=True)
 comment(0xA262, "Loop until both bytes copied", inline=True)
 comment(0xA264, "Pull operation code", inline=True)
 comment(0xA265, "Non-zero (OSBPUT): swap addresses", inline=True)
-comment(0xA267, "Load port from l0f02", inline=True)
+comment(0xA267, "Load port from fs_cmd_urd", inline=True)
 comment(0xA26A, "Check and set up TXCB", inline=True)
 comment(0xA26D, "Carry set: skip swap", inline=True)
 comment(0xA26F, "Send TXCB and swap start/end addresses", inline=True)
@@ -16881,7 +16881,7 @@ comment(0xA277, "Update addresses from offset 9", inline=True)
 comment(0xA27A, "Decrement fs_load_addr_2", inline=True)
 comment(0xA27C, "Set carry for subtraction", inline=True)
 comment(0xA27D, "Adjust FS options by 4 bytes", inline=True)
-comment(0xA280, "Shift l0f05 left (update status)", inline=True)
+comment(0xA280, "Shift fs_cmd_data left (update status)", inline=True)
 comment(0xA283, "Return", inline=True)
 comment(0xA289, "Return", inline=True)
 comment(0xA284, "Save flags before reply processing", inline=True)
@@ -16891,8 +16891,8 @@ comment(0xA285, "Process server reply", inline=True)
 comment(0xA288, "Restore flags after reply processing", inline=True)
 comment(0xA28A, "Y=&15: TX buffer size for OSBPUT data", inline=True)
 comment(0xA28C, "Send TX control block", inline=True)
-comment(0xA28F, "Load display flag from l0e05", inline=True)
-comment(0xA292, "Store in l0f16", inline=True)
+comment(0xA28F, "Load display flag from fs_boot_option", inline=True)
+comment(0xA292, "Store in fs_boot_data", inline=True)
 comment(0xA295, "Clear fs_load_addr (X=0)", inline=True)
 comment(0xA297, "Clear fs_load_addr_hi", inline=True)
 comment(0xA299, "A=&12: byte count for data block", inline=True)
@@ -16901,7 +16901,7 @@ comment(0xA29D, "ALWAYS branch to write data block", inline=True)
 
 # c9f6a: OSBPUT write byte to file (&9F6A-&9FB6)
 comment(0xA29F, "Y=4: offset for station comparison", inline=True)
-comment(0xA2A1, "Load stored station from l0d63", inline=True)
+comment(0xA2A1, "Load stored station from tube_present", inline=True)
 comment(0xA2A4, "Zero: skip station check", inline=True)
 comment(0xA2A6, "Compare with FS options station", inline=True)
 comment(0xA2A8, "Mismatch: skip subtraction", inline=True)
@@ -16919,19 +16919,19 @@ comment(0xA2BC, "Shift right: check bit 0", inline=True)
 comment(0xA2BD, "Zero (bit 0 clear): handle read", inline=True)
 comment(0xA2BF, "Carry set: handle catalogue update", inline=True)
 comment(0xA2C1, "Transfer to Y (Y=0)", inline=True)
-comment(0xA2C2, "Load data byte from l0e03", inline=True)
-comment(0xA2C5, "Store in l0f03", inline=True)
-comment(0xA2C8, "Load high data byte from l0e04", inline=True)
-comment(0xA2CB, "Store in l0f04", inline=True)
-comment(0xA2CE, "Load port from l0e02", inline=True)
-comment(0xA2D1, "Store in l0f02", inline=True)
+comment(0xA2C2, "Load data byte from fs_csd_handle", inline=True)
+comment(0xA2C5, "Store in fs_cmd_csd", inline=True)
+comment(0xA2C8, "Load high data byte from fs_lib_handle", inline=True)
+comment(0xA2CB, "Store in fs_cmd_lib", inline=True)
+comment(0xA2CE, "Load port from fs_urd_handle", inline=True)
+comment(0xA2D1, "Store in fs_cmd_urd", inline=True)
 comment(0xA2D4, "X=&12: buffer size marker", inline=True)
-comment(0xA2D6, "Store in l0f01", inline=True)
+comment(0xA2D6, "Store in fs_cmd_y_param", inline=True)
 comment(0xA2D9, "A=&0D: count value", inline=True)
-comment(0xA2DB, "Store in l0f06", inline=True)
+comment(0xA2DB, "Store in fs_func_code", inline=True)
 comment(0xA2DE, "Store in fs_load_addr_2", inline=True)
 comment(0xA2E0, "Shift right (A=6)", inline=True)
-comment(0xA2E1, "Store in l0f05", inline=True)
+comment(0xA2E1, "Store in fs_cmd_data", inline=True)
 comment(0xA2E4, "Clear carry for addition", inline=True)
 comment(0xA2E5, "Prepare and send TX control block", inline=True)
 comment(0xA2E8, "Store X in fs_load_addr_hi (X=0)", inline=True)
@@ -16943,7 +16943,7 @@ comment(0xA2ED, "Load svc_state (tube flag)", inline=True)
 comment(0xA2EF, "Non-zero: write via tube", inline=True)
 comment(0xA2F1, "Load source index from fs_load_addr", inline=True)
 comment(0xA2F3, "Load destination index from fs_load_addr_hi", inline=True)
-comment(0xA2F5, "Load data byte from l0f05 buffer", inline=True)
+comment(0xA2F5, "Load data byte from fs_cmd_data buffer", inline=True)
 comment(0xA2F8, "Store to destination via fs_crc pointer", inline=True)
 comment(0xA2FA, "Advance source index", inline=True)
 comment(0xA2FB, "Advance destination index", inline=True)
@@ -16974,23 +16974,23 @@ comment(0xA329, "Jump to clear A and finalise return", inline=True)
 # c9ff7: catalogue update command (&9FF7-&9FFE)
 comment(0xA32C, "Y=9: offset for position byte", inline=True)
 comment(0xA32E, "Load position from FS options", inline=True)
-comment(0xA330, "Store in l0f06", inline=True)
+comment(0xA330, "Store in fs_func_code", inline=True)
 comment(0xA333, "Y=5: offset for extent byte", inline=True)
 
 # c9ff7 continued: catalogue update data transfer (&A000-&A058)
 comment(0xA335, "Load extent byte from FS options", inline=True)
-comment(0xA337, "Store in l0f07", inline=True)
+comment(0xA337, "Store in fs_data_count", inline=True)
 comment(0xA33A, "X=&0D: byte count", inline=True)
-comment(0xA33C, "Store in l0f08", inline=True)
+comment(0xA33C, "Store in fs_reply_cmd", inline=True)
 comment(0xA33F, "Y=2: command sub-type", inline=True)
 comment(0xA341, "Store in fs_load_addr", inline=True)
-comment(0xA343, "Store in l0f05", inline=True)
+comment(0xA343, "Store in fs_cmd_data", inline=True)
 comment(0xA346, "Y=3: TX buffer command byte", inline=True)
 comment(0xA347, "Send TX control block", inline=True)
 comment(0xA34A, "Store X (0) in fs_load_addr_hi", inline=True)
-comment(0xA34C, "Load data offset from l0f06", inline=True)
+comment(0xA34C, "Load data offset from fs_func_code", inline=True)
 comment(0xA34F, "Store as first byte of FS options", inline=True)
-comment(0xA351, "Load data count from l0f05", inline=True)
+comment(0xA351, "Load data count from fs_cmd_data", inline=True)
 comment(0xA354, "Y=9: position offset in FS options", inline=True)
 comment(0xA356, "Add to current position", inline=True)
 comment(0xA358, "Store updated position", inline=True)
@@ -17001,14 +17001,14 @@ comment(0xA361, "Store in fs_load_addr_2 (byte count)", inline=True)
 comment(0xA363, "Zero bytes: skip write", inline=True)
 comment(0xA365, "Write data block to host/tube", inline=True)
 comment(0xA368, "X=2: clear 3 bytes (indices 0-2)", inline=True)
-comment(0xA36A, "Clear l0f07+X", inline=True)
+comment(0xA36A, "Clear fs_data_count+X", inline=True)
 comment(0xA36D, "Decrement index", inline=True)
 comment(0xA36E, "Loop until all cleared", inline=True)
 comment(0xA370, "Update addresses from offset 1", inline=True)
 comment(0xA373, "Set carry for subtraction", inline=True)
 comment(0xA374, "Decrement fs_load_addr_2", inline=True)
-comment(0xA376, "Load data count from l0f05", inline=True)
-comment(0xA379, "Copy to l0f06", inline=True)
+comment(0xA376, "Load data count from fs_cmd_data", inline=True)
+comment(0xA379, "Copy to fs_func_code", inline=True)
 comment(0xA37C, "Adjust FS options by 4 bytes (subtract)", inline=True)
 comment(0xA37F, "X=3: check 4 bytes", inline=True)
 comment(0xA381, "Y=5: starting offset", inline=True)

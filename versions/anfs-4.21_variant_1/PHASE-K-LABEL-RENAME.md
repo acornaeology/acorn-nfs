@@ -324,6 +324,97 @@ Plus:
   Renamed to `hazel_fs_station_hi` to make stores there
   self-explanatory.
 
+### Methodology for resolving uncertain HAZEL byte names
+
+When a name is uncertain (e.g. "is &C240 flags or station?"),
+examine every store and load:
+
+1. **Stored values:** is it a register-copy (TYA/TXA/TAX/TAY then
+   STA), a literal constant (`LDA #&XX / STA`), or a bit-manipulation
+   result (`AND/ORA #mask / STA`)?
+   - Register copy of OSFIND return value → file handle.
+   - Specific bit pattern → flags.
+   - Y from caller, role unknown → ambiguous; trace the caller's Y.
+2. **Loaded values:** how is the result used?
+   - `BIT` then `BMI/BVS/BVC/BPL` → flag bits.
+   - `EOR <other_byte>` then `BNE` → equality check (typically a
+     station/network match).
+   - `CMP #&XX` → equality vs constant.
+   - Stored straight back into a register → opaque value (often
+     a handle or raw byte).
+3. **In-place manipulation:** `AND/ORA <addr>,X` or `INC/DEC
+   <addr>,X` → flags or counter, not handle.
+4. **Routine names:** if the byte is loaded inside a routine
+   called `match_station_*` and EOR'd against a "current station"
+   variable, that's strong evidence it's a station number. Same
+   pattern for other domain concepts (`set_flags_*`, `count_*`,
+   `find_*_handle`, etc.).
+5. **Cross-reference with known structures:** Econet uses
+   (network, station) pairs. FCBs typically hold (handle, mode,
+   station, network, file_position[3], ...). If a per-channel
+   field at offset N matches the FCB structure expected for
+   that offset, name it accordingly.
+
+### Investigation results
+
+Applied the methodology to the K4 best-effort names:
+
+- **`hazel_fcb_state_byte` (&C240)** — multi-purpose byte.
+  Tracing all access sites resolves the apparent conflict as a
+  classic 6502 memory-saving pattern: the byte is reused for
+  different roles in mutually-exclusive code paths.
+  - `alloc_fcb_slot` at &B8C8-&B8CB: `LDA hazel_fs_station_hi /
+    STA hazel_fcb_addr_hi,X` (with X=&20..&2F → &C240..&C24F)
+    stores **the current station number** at FCB allocation.
+  - `store_fcb_flags` at &A062-&A064 (called only on the OSFIND
+    open-file path): `TAX / TYA / STA hazel_fcb_state_byte,X`
+    **overwrites with the open-mode flags** built in
+    `check_open_mode` (bit 0 = read perm, bit 1 = write perm,
+    bit 5 = locked file).
+  - `match_station_net` at &B925: reads and EORs against current
+    station — works for non-OSFIND channels where the byte still
+    holds the station from `alloc_fcb_slot`.
+  - `done_toggle_station` at &BD05: toggles bit 0 — also assumes
+    the byte holds a station number; called only on the
+    non-OSFIND code paths.
+
+  So the byte's meaning depends on the channel's origin:
+  - Channels allocated for directory ops, internal FS calls,
+    etc.: holds **station number**.
+  - Channels allocated by OSFIND: holds **open-mode flags**.
+
+  The two interpretations don't conflict at runtime because the
+  routines that interpret it as a station never run on OSFIND
+  channels and vice versa. Renamed to `hazel_fcb_state_byte` to
+  reflect the multi-purpose nature.
+
+  (Credit: this resolution came from the user's prompt "Is it
+  possible that it has different uses at different times?" —
+  worth applying that question generally to any byte with
+  contradictory access-site evidence.)
+
+- **`hazel_sentinel_cd / ce` (&C2CD/CE)** — confirmed correct.
+  Set to `&FF` via `STX` after a `DEX` loop terminates X at
+  `&FF`; the comment "Store &FF as sentinel" is accurate.
+
+- **`hazel_pass_counter` (&C2D0)** — confirmed correct. Used in
+  `init_wipe_counters` / transfer state machine; `Past all 4
+  address bytes?` test at &BA7F matches transfer-pass semantics.
+
+- **`hazel_counter_per_fcb` (&C2D1)** — name is **misleading**:
+  the "per_fcb" suffix suggests a 16-element per-channel array,
+  but `init_wipe_counters` clears just 3 bytes (`&C2D1..&C2D3`)
+  via `STA hazel_counter_per_fcb,X` for X=2,1,0. It's a 3-byte
+  block, not a per-channel array. Likely a 3-byte address /
+  size word in the transfer state. **Kept** — would refine to
+  e.g. `hazel_xfer_addr_lo` once the transfer state machine is
+  fully traced.
+
+- **`hazel_ctx_buffer` (&C2D9)** — confirmed correct. Stores
+  saved catalog bytes via X/Y indexing across &C2D9..&C2F2 (~26
+  bytes). The "context buffer" / "saved catalog byte" comments
+  match a catalog scratch buffer.
+
 ### Caveats: HAZEL bytes flagged for refinement (post-K4)
 
 After Phase K4 mapped the &C200..&C2F3 channel-shadow region,
@@ -401,6 +492,38 @@ an earlier annotation round when these addresses were thought to
 be at `&10XX`. The actual addresses are HAZEL `&C2XX`. The
 comment text in places still says "l1010", "l1030", "l10f3" etc.
 — those are stale documentation strings, not labels.
+
+## Phase K5: Sweep stale `lXXXX` comment-text references (2026-05-02)
+
+After K3 / K4 renamed addresses to semantic names, many inline
+comments and description strings in the driver still referenced
+addresses by their old auto-name (`l10XX`, `lc2XX`, `l0d63`,
+`la76d`, etc.). Those `lXXXX` text fragments aren't labels — they
+are documentation strings — but they confused readers because
+the names no longer existed in the disassembly.
+
+K5 swept the driver source: 215 stale `lXXXX` references replaced
+across 77 unique names, mapping each to the current semantic
+label (e.g. `l1010 → hazel_fcb_addr_mid`, `l0d63 → tube_present`,
+`la76d → cmd_dispatch_lo_table`). Only 3 originally-unresolved
+references remained, and they were reworded to remove the
+misleading `lXXXX` text:
+
+- `la76c,X (the cmd_table_fs entry byte)` → `cmd_table_fs,X
+  (entry byte at offset X)` — `la76c` was being used to mean
+  "the routine's address"; replaced with the routine's actual
+  name.
+- `Y=&C2: high byte of lc2c2 (FCB context buffer)` → `Y=&C2:
+  high byte for FCB context buffer pointer (HAZEL)` — the
+  pointer being constructed is into HAZEL; the specific
+  `&C2C2` literal was wrong (the actual pointer formed is
+  &C2CA).
+- `Y=&F4: index into l0fff for filename` → `Y=&F4: index for
+  filename buffer (indexing-base trick)` — `&0FFF` was an
+  indexing-base trick (like `hazel_minus_*`); the comment now
+  describes the technique without the confusing literal.
+
+Final state: **zero `lXXXX` text references in the driver**.
 
 ## Findings
 
