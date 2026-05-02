@@ -2048,13 +2048,13 @@ subroutine(0x81B8, "data_rx_setup",
     title="NMI handler: switch ADLC to RX for the data frame",
     description="""\
 NMI continuation entry installed by
-[`send_data_rx_ack`](address:81A7) (which pushes
+[`send_data_rx_ack`](address:81A7?hex) (which pushes
 `(&81B8 - 1)` on the stack and routes it through
-[`ack_tx_write_dest`](address:82F8)). When the next NMI fires,
+[`ack_tx_write_dest`](address:82F8?hex)). When the next NMI fires,
 this body writes `CR1 = &82` (`TX_RESET | RIE`) to switch the
 ADLC from scout-ACK TX mode to data-frame RX mode, then `JMP`s to
 `install_nmi_handler` to install
-[`nmi_data_rx`](address:81C2) as the next NMI handler.""")
+[`nmi_data_rx`](address:81C2?hex) as the next NMI handler.""")
 subroutine(0x81C2, "nmi_data_rx",
     title="Data frame RX handler (four-way handshake)",
     description="""\
@@ -2065,17 +2065,17 @@ against our station address, then installs continuation handlers
 to read the remaining data payload into the open port buffer.
 
 Handler chain: this routine (AP + dest-stn check) →
-[`nmi_data_rx_net`](address:81D6) (dest-net check) →
-[`nmi_data_rx_skip`](address:81EC) (skip ctrl + port) →
-[`nmi_data_rx_bulk`](address:8223) (bulk data read) →
-[`data_rx_complete`](address:8268) (completion).""")
+[`nmi_data_rx_net`](address:81D6?hex) (dest-net check) →
+[`nmi_data_rx_skip`](address:81EC?hex) (skip ctrl + port) →
+[`nmi_data_rx_bulk`](address:8223?hex) (bulk data read) →
+[`data_rx_complete`](address:8268?hex) (completion).""")
 subroutine(0x81D6, "nmi_data_rx_net",
     title="NMI handler: validate dest-net byte of data frame",
     description="""\
-NMI continuation entry installed by [`nmi_data_rx`](address:81C2)
+NMI continuation entry installed by [`nmi_data_rx`](address:81C2?hex)
 once the AP and dest-station bytes have validated. Polls SR2
 (`BIT econet_control23_or_status2`); on no RDA, branches to
-[`nmi_error_dispatch`](address:8215). Otherwise reads the dest-
+[`nmi_error_dispatch`](address:8215?hex). Otherwise reads the dest-
 network byte from the ADLC FIFO and falls through to the
 control/port skip step.""",
     on_exit={"a": "dest-network byte (validated against local)"})
@@ -2088,19 +2088,29 @@ bulk-data-read continuation. Polls SR2 for RDA on entry; on no
 RDA, branches to [`nmi_error_dispatch`](address:8215).""")
 subroutine(0x81F7, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
-    description="Selects between the normal bulk RX handler (&8239)\n"
-    "and the Tube RX handler based on bit 1 of rx_src_net\n"
-    "(tx_flags). If normal mode, loads the handler address\n"
-    "&8239 and checks SR1 bit 7: if IRQ is already asserted\n"
-    "(more data waiting), jumps directly to nmi_data_rx_bulk\n"
-    "to avoid NMI re-entry overhead. Otherwise installs the\n"
-    "handler via set_nmi_vector and returns via RTI.")
+    description="""\
+Selects between the normal bulk-RX handler at `&8239` and the Tube
+RX handler based on bit 1 of `rx_src_net` (`tx_flags`).
+
+| `rx_src_net` bit 1 | Handler |
+|---|---|
+| clear | bulk read at `&8239` ([`nmi_data_rx_bulk`](address:8223?hex) entry) |
+| set   | Tube RX handler |
+
+In normal mode, after loading the handler address, checks `SR1`
+bit 7. If `IRQ` is already asserted (more data waiting), jumps
+directly to [`nmi_data_rx_bulk`](address:8223?hex) to avoid NMI
+re-entry overhead. Otherwise installs the handler via
+`set_nmi_vector` and returns via `RTI`.""")
 subroutine(0x8215, "nmi_error_dispatch",
     title="NMI error handler dispatch",
-    description="Common error/abort entry used by 12 call sites. Checks\n"
-    "tx_flags bit 7: if clear, does a full ADLC reset and returns\n"
-    "to idle listen (RX error path); if set, jumps to tx_result_fail\n"
-    "(TX not-listening path).")
+    description="""\
+Common error/abort entry used by 12 call sites.
+
+| `tx_flags` bit 7 | Path |
+|---|---|
+| clear | RX error – full ADLC reset; return to idle listen |
+| set   | TX not-listening – `JMP` [`tx_result_fail`](address:88E2?hex) |""")
 subroutine(0x8223, "nmi_data_rx_bulk",
     title="Data frame bulk read loop",
     description="""\
@@ -2109,16 +2119,16 @@ the open port buffer at `(open_port_buf),Y`. Reads bytes in pairs
 (like the scout data loop), checking SR2 between each pair.
 
 - SR2 non-zero (FV or other) → completion via
-  [`data_rx_complete`](address:8268).
+  [`data_rx_complete`](address:8268?hex).
 - SR2 = 0 → RTI, wait for next NMI to continue.""")
 subroutine(0x8268, "data_rx_complete",
     title="Data frame completion",
     description="""\
-Reached when SR2 non-zero during data RX (FV detected). Same
-pattern as scout completion: disables PSE (CR2=&84, CR1=&00),
-then tests FV and RDA. If FV+RDA, reads the last byte. If extra
-data available and buffer space remains, stores it. Proceeds to
-send the final ACK via [`ack_tx`](address:82DF).""")
+Reached when `SR2` non-zero during data RX (`FV` detected). Same
+pattern as scout completion: disables `PSE` (`CR2=&84`, `CR1=&00`),
+then tests `FV` and `RDA`. If `FV+RDA`, reads the last byte; if
+extra data is available and buffer space remains, stores it.
+Proceeds to send the final ACK via [`ack_tx`](address:82DF?hex).""")
 subroutine(0x8291, "nmi_data_rx_tube",
     title="NMI handler: data-frame RX into Tube buffer",
     description="""\
@@ -2146,12 +2156,15 @@ saved by the scout/data RX handler) and sends TX_LAST_DATA
 subroutine(0x82F8, "ack_tx_write_dest",
     title="Save next NMI vector and write dest stn to ADLC",
     description="""\
-Saves (A=lo, Y=hi) of the next NMI handler into saved_nmi_lo /
-saved_nmi_hi, then loads the dest-station byte from scout_buf and
-tests SR1 bit 6 (TDRA) via BIT econet_control1_or_status1.
-TDRA-clear branches to dispatch_nmi_error to abort the ACK
-sequence. Two callers: send_data_rx_ack's tail JMP (&81B5) and
-imm_op_build_reply at &84F6.""",
+Saves `(A=lo, Y=hi)` of the next NMI handler into `saved_nmi_lo` /
+`saved_nmi_hi`, then loads the dest-station byte from `scout_buf`
+and tests `SR1` bit 6 (`TDRA`) via `BIT econet_control1_or_status1`.
+A clear `TDRA` branches to `dispatch_nmi_error` to abort the ACK
+sequence.
+
+Two callers: [`send_data_rx_ack`](address:81A7?hex)'s tail `JMP`
+(`&81B5`) and [`imm_op_build_reply`](address:84F9?hex) at
+`&84F6`.""",
     on_entry={"a": "low byte of next NMI handler",
               "y": "high byte of next NMI handler"})
 subroutine(0x8316, "nmi_ack_tx_src",

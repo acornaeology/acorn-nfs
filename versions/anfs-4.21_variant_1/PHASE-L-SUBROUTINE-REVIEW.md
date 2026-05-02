@@ -52,17 +52,17 @@ For each of 452 subroutines:
 | 8 | &8112 | `scout_complete` | done | bullet-list match/no-match; tx_calc_transfer/scout_error links |
 | 9 | &8195 | `port_match_found` | done | C/V triage table; 4 cross-refs added |
 | 10 | &81A7 | `send_data_rx_ack` | done | data_rx_setup/ack_tx_write_dest links + inline code |
-| 11 | &81B8 | `data_rx_setup` | | |
-| 12 | &81C2 | `nmi_data_rx` | | |
-| 13 | &81D6 | `nmi_data_rx_net` | | |
-| 14 | &81EC | `nmi_data_rx_skip` | | |
-| 15 | &81F7 | `install_data_rx_handler` | | |
-| 16 | &8215 | `nmi_error_dispatch` | | |
-| 17 | &8223 | `nmi_data_rx_bulk` | | |
-| 18 | &8268 | `data_rx_complete` | | |
-| 19 | &8291 | `nmi_data_rx_tube` | | |
-| 20 | &82DF | `ack_tx` | | |
-| 21 | &82F8 | `ack_tx_write_dest` | | |
+| 11 | &81B8 | `data_rx_setup` | done | added ?hex on first-mention links |
+| 12 | &81C2 | `nmi_data_rx` | done | added ?hex on chain links |
+| 13 | &81D6 | `nmi_data_rx_net` | done | added ?hex on first-mention links |
+| 14 | &81EC | `nmi_data_rx_skip` | done | added ?hex on first-mention links |
+| 15 | &81F7 | `install_data_rx_handler` | done | bit-1 dispatch table; nmi_data_rx_bulk link |
+| 16 | &8215 | `nmi_error_dispatch` | done | tx_flags bit-7 dispatch table; tx_result_fail link |
+| 17 | &8223 | `nmi_data_rx_bulk` | done | already has bullet list; refined inline code |
+| 18 | &8268 | `data_rx_complete` | done | inline code refinement; ?hex on ack_tx |
+| 19 | &8291 | `nmi_data_rx_tube` | kept | already has accurate inline-code description |
+| 20 | &82DF | `ack_tx` | kept | already has links + inline code; description complete |
+| 21 | &82F8 | `ack_tx_write_dest` | done | added ?hex on send_data_rx_ack/imm_op_build_reply |
 | 22 | &8316 | `nmi_ack_tx_src` | | |
 | 23 | &832D | `post_ack_scout` | | |
 | 24 | &833F | `advance_rx_buffer_ptr` | | |

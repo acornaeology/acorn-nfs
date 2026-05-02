@@ -823,11 +823,11 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI handler: switch ADLC to RX for the data frame
 ;
-; NMI continuation entry installed by send_data_rx_ack (which pushes (&81B8 - 1) on the
-; stack and routes it through ack_tx_write_dest). When the next NMI fires, this body
-; writes CR1 = &82 (TX_RESET | RIE) to switch the ADLC from scout-ACK TX mode to
-; data-frame RX mode, then JMPs to install_nmi_handler to install nmi_data_rx as the
-; next NMI handler.
+; NMI continuation entry installed by send_data_rx_ack (&81A7) (which pushes (&81B8 -
+; 1) on the stack and routes it through ack_tx_write_dest (&82F8)). When the next NMI
+; fires, this body writes CR1 = &82 (TX_RESET | RIE) to switch the ADLC from scout-ACK
+; TX mode to data-frame RX mode, then JMPs to install_nmi_handler to install
+; nmi_data_rx (&81C2) as the next NMI handler.
 .data_rx_setup
     lda #&82                                                          ; 81b8: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 81ba: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
@@ -842,9 +842,9 @@ rom_header_byte2 = rom_header+2
 ; bytes (dest_stn, dest_net) against our station address, then installs continuation
 ; handlers to read the remaining data payload into the open port buffer.
 ;
-; Handler chain: this routine (AP + dest-stn check) → nmi_data_rx_net (dest-net check)
-; → nmi_data_rx_skip (skip ctrl + port) → nmi_data_rx_bulk (bulk data read) →
-; data_rx_complete (completion).
+; Handler chain: this routine (AP + dest-stn check) → nmi_data_rx_net (&81D6) (dest-net
+; check) → nmi_data_rx_skip (&81EC) (skip ctrl + port) → nmi_data_rx_bulk (&8223) (bulk
+; data read) → data_rx_complete (&8268) (completion).
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
     bit econet_control23_or_status2                                   ; 81c4: 2c a1 fe    ,..            ; BIT SR2: test AP bit
@@ -858,10 +858,10 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI handler: validate dest-net byte of data frame
 ;
-; NMI continuation entry installed by nmi_data_rx once the AP and dest-station bytes
-; have validated. Polls SR2 (BIT econet_control23_or_status2); on no RDA, branches to
-; nmi_error_dispatch. Otherwise reads the dest- network byte from the ADLC FIFO and
-; falls through to the control/port skip step.
+; NMI continuation entry installed by nmi_data_rx (&81C2) once the AP and dest-station
+; bytes have validated. Polls SR2 (BIT econet_control23_or_status2); on no RDA,
+; branches to nmi_error_dispatch (&8215). Otherwise reads the dest- network byte from
+; the ADLC FIFO and falls through to the control/port skip step.
 ;
 ; On Exit: A: dest-network byte (validated against local)
 .nmi_data_rx_net
@@ -890,11 +890,18 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ;
-; Selects between the normal bulk RX handler (&8239) and the Tube RX handler based on
-; bit 1 of rx_src_net (tx_flags). If normal mode, loads the handler address &8239 and
-; checks SR1 bit 7: if IRQ is already asserted (more data waiting), jumps directly to
-; nmi_data_rx_bulk to avoid NMI re-entry overhead. Otherwise installs the handler via
-; set_nmi_vector and returns via RTI.
+; Selects between the normal bulk-RX handler at &8239 and the Tube RX handler based on
+; bit 1 of rx_src_net (tx_flags).
+;
+; | rx_src_net bit 1 | Handler                                             |
+; |------------------|-----------------------------------------------------|
+; | clear            | bulk read at &8239 (nmi_data_rx_bulk (&8223) entry) |
+; | set              | Tube RX handler                                     |
+;
+; In normal mode, after loading the handler address, checks SR1 bit 7. If IRQ is
+; already asserted (more data waiting), jumps directly to nmi_data_rx_bulk (&8223) to
+; avoid NMI re-entry overhead. Otherwise installs the handler via set_nmi_vector and
+; returns via RTI.
 ; &81f7 referenced 1 time by &88d4
 .install_data_rx_handler
     lda #2                                                            ; 81f7: a9 02       ..             ; A=2: Tube transfer flag mask
@@ -921,9 +928,12 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI error handler dispatch
 ;
-; Common error/abort entry used by 12 call sites. Checks tx_flags bit 7: if clear, does
-; a full ADLC reset and returns to idle listen (RX error path); if set, jumps to
-; tx_result_fail (TX not-listening path).
+; Common error/abort entry used by 12 call sites.
+;
+; | tx_flags bit 7 | Path                                              |
+; |----------------|---------------------------------------------------|
+; | clear          | RX error – full ADLC reset; return to idle listen |
+; | set            | TX not-listening – JMP tx_result_fail (&88E2)     |
 ; &8215 referenced 11 times by &8187, &819d, &81c7, &81cf, &81d9, &81de, &81ef, &8279, &827f, &833c, &8488
 .nmi_error_dispatch
     lda rx_src_net                                                    ; 8215: ad 3e 0d    .>.            ; Check tx_flags for error path
@@ -942,7 +952,7 @@ rom_header_byte2 = rom_header+2
 ; at (open_port_buf),Y. Reads bytes in pairs (like the scout data loop), checking SR2
 ; between each pair.
 ;
-; - SR2 non-zero (FV or other) → completion via data_rx_complete.
+; - SR2 non-zero (FV or other) → completion via data_rx_complete (&8268).
 ; - SR2 = 0 → RTI, wait for next NMI to continue.
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
@@ -998,8 +1008,8 @@ rom_header_byte2 = rom_header+2
 ;
 ; Reached when SR2 non-zero during data RX (FV detected). Same pattern as scout
 ; completion: disables PSE (CR2=&84, CR1=&00), then tests FV and RDA. If FV+RDA, reads
-; the last byte. If extra data available and buffer space remains, stores it. Proceeds
-; to send the final ACK via ack_tx.
+; the last byte; if extra data is available and buffer space remains, stores it.
+; Proceeds to send the final ACK via ack_tx (&82DF).
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
     lda #&84                                                          ; 8268: a9 84       ..             ; CR1=&00: disable all interrupts
@@ -1103,9 +1113,11 @@ rom_header_byte2 = rom_header+2
 ;
 ; Saves (A=lo, Y=hi) of the next NMI handler into saved_nmi_lo / saved_nmi_hi, then
 ; loads the dest-station byte from scout_buf and tests SR1 bit 6 (TDRA) via BIT
-; econet_control1_or_status1. TDRA-clear branches to dispatch_nmi_error to abort the
-; ACK sequence. Two callers: send_data_rx_ack's tail JMP (&81B5) and imm_op_build_reply
-; at &84F6.
+; econet_control1_or_status1. A clear TDRA branches to dispatch_nmi_error to abort the
+; ACK sequence.
+;
+; Two callers: send_data_rx_ack (&81A7)'s tail JMP (&81B5) and imm_op_build_reply
+; (&84F9) at &84F6.
 ;
 ; On Entry: A: low byte of next NMI handler Y: high byte of next NMI handler
 ; &82f8 referenced 2 times by &81b5, &84f6
