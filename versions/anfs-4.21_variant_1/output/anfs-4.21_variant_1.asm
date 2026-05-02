@@ -9167,7 +9167,7 @@ la0ff = sub_ca0fe+1
 ; &a480 referenced 1 time by &a495
 .loop_skip_to_next
     inx                                                               ; a480: e8          .              ; Skip 3-byte handler trailer (flag, lo, hi)
-    inx                                                               ; a481: e8          .              ; INX / INX -- skip the 2-byte address
+    inx                                                               ; a481: e8          .              ; (continued)
     inx                                                               ; a482: e8          .              ; (continued)
     bne restart_table_scan                                            ; a483: d0 d8       ..             ; ALWAYS branch: try next entry
 ; &a485 referenced 1 time by &a468
@@ -9751,9 +9751,9 @@ la0ff = sub_ca0fe+1
 .boot_load_cmd
     rts                                                               ; a740: 60          `              ; CTRL pressed: cancel boot, return
 
-    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-
+    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-            ; Boot command 'L.-NET-!Boot' (Load !Boot)
     equb &0d                                                          ; a74d: 0d          .
-    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-
+    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-            ; Boot command 'E.-NET-!Boot' (Exec !Boot)
     equb &0d                                                          ; a75a: 0d          .
 ; &a75b referenced 1 time by &a764
 .la75b
@@ -9930,7 +9930,7 @@ la76e = cmd_table_fs+2
 .svc_8_osword
 svc_8_osword_disp = svc_8_osword+1
     bra ca855                                                         ; a83b: 80 18       ..             ; BRA ca855 -- skip past 22-byte caller-cleanup frame
-    equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...
+    equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...            ; OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)
 
 ; &a84a referenced 1 time by &a855
 .loop_ca84a

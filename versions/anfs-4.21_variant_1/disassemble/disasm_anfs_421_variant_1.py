@@ -8400,7 +8400,7 @@ comment(0xAA65, "A=&0E: status flag value", inline=True)
 
 # match_fs_cmd gap-fill.
 comment(0xA45C, "Push for save/restore", inline=True)
-comment(0xA481, "INX / INX -- skip the 2-byte address", inline=True)
+comment(0xA481, "(continued)", inline=True)
 comment(0xA482, "(continued)", inline=True)
 comment(0xA486, "Push for stack-based comparison", inline=True)
 comment(0xA494, "TAY -- A = matched offset, save in Y", inline=True)
@@ -9110,6 +9110,17 @@ label(0x970F, "loop_print_help_byte")
 label(0x972E, "handle_help_paged_mode")
 label(0xA0DF, "osopt_check_cmos_protect")
 label(0xB625, "loop_pollps_next_slot")
+
+# Boot-command strings used by fsreply_1_copy_handles_boot via OSCLI.
+# &A741: 'L.-NET-!Boot' (Load and run !Boot file from NET partition).
+# &A74E: 'E.-NET-!Boot' (Exec the !Boot file -- alternate variant).
+# Each string is 12 chars + a 0x0D CR terminator at &A74D / &A75A.
+comment(0xA741, "Boot command 'L.-NET-!Boot' (Load !Boot)", inline=True)
+comment(0xA74E, "Boot command 'E.-NET-!Boot' (Exec !Boot)", inline=True)
+# &A83D: 13-byte block of OSWORD-related state bytes used by
+# svc_8_osword's setup. Mostly small constants and offsets.
+comment(0xA83D, "OSWORD setup state (13 bytes -- constants and "
+    "offsets used by svc_8_osword)", inline=True)
 
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
