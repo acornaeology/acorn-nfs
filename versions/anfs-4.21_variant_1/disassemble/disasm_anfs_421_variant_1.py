@@ -962,10 +962,99 @@ label(0xA99A, "osword_13_dispatch")
 label(0xA9A7, "return_from_osword_13")
 
 # OSWORD &13 PHA/PHA/RTS dispatch table (18 entries, sub-codes 0-&11).
+# Lo half at &A9A8, hi half at &A9BA. Each entry stores `target-1` so
+# RTS lands on the handler.
 
 # Entry points for handlers in the &A663-&A6EA region (currently data).
 entry(0xAA72)   # Sub 12
 entry(0xAA75)   # Sub 13
+
+# Symbolic OSWORD &13 dispatch tables.
+data_banner(0xA9A8, "osword_13_dispatch_lo",
+    title="OSWORD &13 dispatch low-byte table (18 entries)",
+    description="""\
+Read by [`osword_13_dispatch`](address:A99A) as `LDA &A9A8,X`. Paired
+with the high-byte half at [`osword_13_dispatch_hi`](address:A9BA).
+Sub-codes 0..&11 cover read/set station, read/write workspace pair,
+read/write protection, read/set handles, read RX flag/port/error,
+read context, read/write CSD, read free buffers, read/write context
+3, and bridge query.""")
+for addr in range(0xA9A8, 0xA9BA):
+    byte(addr)
+
+data_banner(0xA9BA, "osword_13_dispatch_hi",
+    title="OSWORD &13 dispatch high-byte table (18 entries)",
+    description="""\
+Read by [`osword_13_dispatch`](address:A99A) as `LDA &A9BA,X`. The
+dispatcher pushes the hi byte first then the lo, so RTS lands on
+`target` (the table stores `target-1`).""")
+for addr in range(0xA9BA, 0xA9CC):
+    byte(addr)
+
+_netv_dispatch_entries = [
+    (0x00, "dispatch_rts",          "no-op (RTS only)"),
+    (0x01, "netv_print_data",       "NETV reason 1: print data"),
+    (0x02, "netv_print_data",       "NETV reason 2: print data (alias)"),
+    (0x03, "netv_print_data",       "NETV reason 3: print data (alias)"),
+    (0x04, "osword_4_handler",      "NETV reason 4: OSWORD &04"),
+    (0x05, "netv_spool_check",      "NETV reason 5: spool check"),
+    (0x06, "dispatch_rts",          "no-op (RTS only)"),
+    (0x07, "netv_claim_release",    "NETV reason 7: claim/release"),
+    (0x08, "osword_8_handler",      "NETV reason 8: OSWORD &08"),
+]
+
+data_banner(0xAD20, "netv_dispatch_lo",
+    title="NETV reason-code dispatch low-byte table (9 entries)",
+    description="""\
+Read by [`push_osword_handler_addr`](address:AD15) as
+`LDA &AD20,X`. Paired with the high-byte half at
+[`netv_dispatch_hi`](address:AD29). The wrapper at
+[`netv_handler`](address:ACFC) reads the original A from the MOS
+stack frame (`&0103,X` after TSX) and gates 9..&FF away to
+[`return_6`](address:AD0E) before dispatching reasons 0..8.""")
+for addr in range(0xAD20, 0xAD29):
+    byte(addr)
+
+data_banner(0xAD29, "netv_dispatch_hi",
+    title="NETV reason-code dispatch high-byte table (9 entries)",
+    description="""\
+Read by [`push_osword_handler_addr`](address:AD15) as
+`LDA &AD29,X`. The dispatcher pushes the hi byte first then the
+lo, so RTS lands on `target` (the table stores `target-1`).""")
+for addr in range(0xAD29, 0xAD32):
+    byte(addr)
+
+for idx, name, role in _netv_dispatch_entries:
+    expr(0xAD20 + idx, "<(%s-1)" % name)
+    expr(0xAD29 + idx, ">(%s-1)" % name)
+    comment(0xAD20 + idx, "reason &%02X: %s (%s)" % (idx, name, role), inline=True)
+    comment(0xAD29 + idx, "reason &%02X: %s" % (idx, name), inline=True)
+
+_osword_13_entries = [
+    (0x00, "osword_13_read_station",   "read FS station"),
+    (0x01, "osword_13_set_station",    "set FS station"),
+    (0x02, "osword_13_read_ws_pair",   "read workspace pair"),
+    (0x03, "osword_13_write_ws_pair",  "write workspace pair"),
+    (0x04, "osword_13_read_prot",      "read protection mask"),
+    (0x05, "osword_13_write_prot",     "write protection mask"),
+    (0x06, "osword_13_read_handles",   "read transfer handles"),
+    (0x07, "osword_13_set_handles",    "set transfer handles"),
+    (0x08, "osword_13_read_rx_flag",   "read RX flag"),
+    (0x09, "osword_13_read_rx_port",   "read RX port"),
+    (0x0A, "osword_13_read_error",     "read last error"),
+    (0x0B, "osword_13_read_context",   "read context"),
+    (0x0C, "osword_13_read_csd",       "read CSD"),
+    (0x0D, "osword_13_write_csd",      "write CSD"),
+    (0x0E, "osword_13_read_free_bufs", "read free buffers"),
+    (0x0F, "osword_13_read_ctx_3",     "read context byte 3"),
+    (0x10, "osword_13_write_ctx_3",    "write context byte 3"),
+    (0x11, "osword_13_bridge_query",   "bridge query"),
+]
+for idx, name, role in _osword_13_entries:
+    expr(0xA9A8 + idx, "<(%s-1)" % name)
+    expr(0xA9BA + idx, ">(%s-1)" % name)
+    comment(0xA9A8 + idx, "sub &%02X: %s (%s)" % (idx, name, role), inline=True)
+    comment(0xA9BA + idx, "sub &%02X: %s" % (idx, name), inline=True)
 
 label(0xA9CF, "read_station_bytes")
 label(0xA9D1, "loop_copy_station")

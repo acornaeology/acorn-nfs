@@ -10116,23 +10116,66 @@ la878 = sub_ca877+1
     tax                                                               ; a99a: aa          .              ; Push for RTS dispatch
     cmp #&13                                                          ; a99b: c9 13       ..             ; Reload OSWORD number for handler
     bcs return_from_osword_13                                         ; a99d: b0 08       ..             ; RTS will dispatch to handler
-    lda la9ba,x                                                       ; a99f: bd ba a9    ...
+    lda osword_13_dispatch_hi,x                                       ; a99f: bd ba a9    ...
     pha                                                               ; a9a2: 48          H
-    lda la9a8,x                                                       ; a9a3: bd a8 a9    ...
+    lda osword_13_dispatch_lo,x                                       ; a9a3: bd a8 a9    ...
     pha                                                               ; a9a6: 48          H
 ; &a9a7 referenced 1 time by &a99d
 .return_from_osword_13
     rts                                                               ; a9a7: 60          `
 
+; ***************************************************************************************
+; OSWORD &13 dispatch low-byte table (18 entries)
+;
+; Read by osword_13_dispatch as LDA &A9A8,X. Paired with the high-byte half at
+; osword_13_dispatch_hi. Sub-codes 0..&11 cover read/set station, read/write workspace
+; pair, read/write protection, read/set handles, read RX flag/port/error, read context,
+; read/write CSD, read free buffers, read/write context 3, and bridge query.
 ; &a9a8 referenced 1 time by &a9a3
-.la9a8
-    equb &cb, &d9, &90, &9c, &b1, &b7, &c1, &cf                       ; a9a8: cb d9 90... ...
-    equs "gp~"                                                        ; a9b0: 67 70 7e    gp~            ; Get stack pointer; Clear bit 0 of stacked P (carry)
-    equb &85, &71, &74, &8a, &92, &9d, &a8                            ; a9b3: 85 71 74... .qt            ; Shift back (clears carry flag); A = original Y; Y=&DA: workspace offset
+.osword_13_dispatch_lo
+    equb <(osword_13_read_station-1)                                  ; a9a8: cb          .              ; sub &00: osword_13_read_station (read FS station)
+    equb <(osword_13_set_station-1)                                   ; a9a9: d9          .              ; sub &01: osword_13_set_station (set FS station)
+    equb <(osword_13_read_ws_pair-1)                                  ; a9aa: 90          .              ; sub &02: osword_13_read_ws_pair (read workspace pair)
+    equb <(osword_13_write_ws_pair-1)                                 ; a9ab: 9c          .              ; sub &03: osword_13_write_ws_pair (write workspace pair)
+    equb <(osword_13_read_prot-1)                                     ; a9ac: b1          .              ; sub &04: osword_13_read_prot (read protection mask)
+    equb <(osword_13_write_prot-1)                                    ; a9ad: b7          .              ; sub &05: osword_13_write_prot (write protection mask)
+    equb <(osword_13_read_handles-1)                                  ; a9ae: c1          .              ; sub &06: osword_13_read_handles (read transfer handles)
+    equb <(osword_13_set_handles-1)                                   ; a9af: cf          .              ; sub &07: osword_13_set_handles (set transfer handles)
+    equb <(osword_13_read_rx_flag-1)                                  ; a9b0: 67          g              ; sub &08: osword_13_read_rx_flag (read RX flag); Get stack pointer
+    equb <(osword_13_read_rx_port-1)                                  ; a9b1: 70          p              ; sub &09: osword_13_read_rx_port (read RX port); Clear bit 0 of stacked P (carry)
+    equb <(osword_13_read_error-1)                                    ; a9b2: 7e          ~              ; sub &0A: osword_13_read_error (read last error)
+    equb <(osword_13_read_context-1)                                  ; a9b3: 85          .              ; sub &0B: osword_13_read_context (read context)
+    equb <(osword_13_read_csd-1)                                      ; a9b4: 71          q              ; sub &0C: osword_13_read_csd (read CSD); Shift back (clears carry flag)
+    equb <(osword_13_write_csd-1)                                     ; a9b5: 74          t              ; sub &0D: osword_13_write_csd (write CSD)
+    equb <(osword_13_read_free_bufs-1)                                ; a9b6: 8a          .              ; sub &0E: osword_13_read_free_bufs (read free buffers)
+    equb <(osword_13_read_ctx_3-1)                                    ; a9b7: 92          .              ; sub &0F: osword_13_read_ctx_3 (read context byte 3); A = original Y
+    equb <(osword_13_write_ctx_3-1)                                   ; a9b8: 9d          .              ; sub &10: osword_13_write_ctx_3 (write context byte 3); Y=&DA: workspace offset
+    equb <(osword_13_bridge_query-1)                                  ; a9b9: a8          .              ; sub &11: osword_13_bridge_query (bridge query)
+; ***************************************************************************************
+; OSWORD &13 dispatch high-byte table (18 entries)
+;
+; Read by osword_13_dispatch as LDA &A9BA,X. The dispatcher pushes the hi byte first
+; then the lo, so RTS lands on target (the table stores target-1).
 ; &a9ba referenced 1 time by &a99f
-.la9ba
-    equb &a9, &a9, &aa, &aa, &aa, &aa, &aa, &aa, &ab, &ab, &ab, &ab   ; a9ba: a9 a9 aa... ...            ; Store Y to workspace; Abort code = 0; Y=&D9: workspace abort offset; Store abort code to workspace; Control byte &80 (abort); Y=&0C: control offset
-    equb &aa, &aa, &ab, &ab, &ab, &ab                                 ; a9c6: aa aa ab... ...            ; Store control byte; Save current TX ptr low; Push on stack; Save current TX ptr high
+.osword_13_dispatch_hi
+    equb >(osword_13_read_station-1)                                  ; a9ba: a9          .              ; sub &00: osword_13_read_station; Store Y to workspace
+    equb >(osword_13_set_station-1)                                   ; a9bb: a9          .              ; sub &01: osword_13_set_station
+    equb >(osword_13_read_ws_pair-1)                                  ; a9bc: aa          .              ; sub &02: osword_13_read_ws_pair; Abort code = 0
+    equb >(osword_13_write_ws_pair-1)                                 ; a9bd: aa          .              ; sub &03: osword_13_write_ws_pair
+    equb >(osword_13_read_prot-1)                                     ; a9be: aa          .              ; sub &04: osword_13_read_prot; Y=&D9: workspace abort offset
+    equb >(osword_13_write_prot-1)                                    ; a9bf: aa          .              ; sub &05: osword_13_write_prot
+    equb >(osword_13_read_handles-1)                                  ; a9c0: aa          .              ; sub &06: osword_13_read_handles; Store abort code to workspace
+    equb >(osword_13_set_handles-1)                                   ; a9c1: aa          .              ; sub &07: osword_13_set_handles
+    equb >(osword_13_read_rx_flag-1)                                  ; a9c2: ab          .              ; sub &08: osword_13_read_rx_flag; Control byte &80 (abort)
+    equb >(osword_13_read_rx_port-1)                                  ; a9c3: ab          .              ; sub &09: osword_13_read_rx_port
+    equb >(osword_13_read_error-1)                                    ; a9c4: ab          .              ; sub &0A: osword_13_read_error; Y=&0C: control offset
+    equb >(osword_13_read_context-1)                                  ; a9c5: ab          .              ; sub &0B: osword_13_read_context
+    equb >(osword_13_read_csd-1)                                      ; a9c6: aa          .              ; sub &0C: osword_13_read_csd; Store control byte
+    equb >(osword_13_write_csd-1)                                     ; a9c7: aa          .              ; sub &0D: osword_13_write_csd
+    equb >(osword_13_read_free_bufs-1)                                ; a9c8: ab          .              ; sub &0E: osword_13_read_free_bufs; Save current TX ptr low
+    equb >(osword_13_read_ctx_3-1)                                    ; a9c9: ab          .              ; sub &0F: osword_13_read_ctx_3
+    equb >(osword_13_write_ctx_3-1)                                   ; a9ca: ab          .              ; sub &10: osword_13_write_ctx_3; Push on stack
+    equb >(osword_13_bridge_query-1)                                  ; a9cb: ab          .              ; sub &11: osword_13_bridge_query; Save current TX ptr high
 
 ; ***************************************************************************************
 ; OSWORD &13 sub 0: read file server station
@@ -10950,20 +10993,47 @@ labc5 = compare_bridge_status+1
 ; On Exit: A: OSWORD number (re-loaded for the handler's use)
 ; &ad15 referenced 1 time by &ad0b
 .push_osword_handler_addr
-    lda lad29,x                                                       ; ad15: bd 29 ad    .).            ; Load handler high byte from hi-table column X
+    lda netv_dispatch_hi,x                                            ; ad15: bd 29 ad    .).            ; Load handler high byte from hi-table column X
     pha                                                               ; ad18: 48          H              ; Push for the eventual RTS dispatch
-    lda lad20,x                                                       ; ad19: bd 20 ad    . .            ; Load handler low byte from lo-table column X
+    lda netv_dispatch_lo,x                                            ; ad19: bd 20 ad    . .            ; Load handler low byte from lo-table column X
     pha                                                               ; ad1c: 48          H              ; Push lo so RTS pulls (lo, hi)+1 -> handler entry
     lda osbyte_a_copy                                                 ; ad1d: a5 ef       ..             ; Reload original OSWORD number into A for the handler
     rts                                                               ; ad1f: 60          `              ; RTS jumps to handler with A=OSWORD number
 
+; ***************************************************************************************
+; NETV reason-code dispatch low-byte table (9 entries)
+;
+; Read by push_osword_handler_addr as LDA &AD20,X. Paired with the high-byte half at
+; netv_dispatch_hi. The wrapper at netv_handler reads the original A from the MOS stack
+; frame (&0103,X after TSX) and gates 9..&FF away to return_6 before dispatching
+; reasons 0..8.
 ; &ad20 referenced 1 time by &ad19
-.lad20
-    equs "onnn1Yoc"                                                   ; ad20: 6f 6e 6e... onn
-    equb &d2                                                          ; ad28: d2          .
+.netv_dispatch_lo
+    equb <(dispatch_rts-1)                                            ; ad20: 6f          o              ; reason &00: dispatch_rts (no-op (RTS only))
+    equb <(netv_print_data-1)                                         ; ad21: 6e          n              ; reason &01: netv_print_data (NETV reason 1: print data)
+    equb <(netv_print_data-1)                                         ; ad22: 6e          n              ; reason &02: netv_print_data (NETV reason 2: print data (alias))
+    equb <(netv_print_data-1)                                         ; ad23: 6e          n              ; reason &03: netv_print_data (NETV reason 3: print data (alias))
+    equb <(osword_4_handler-1)                                        ; ad24: 31          1              ; reason &04: osword_4_handler (NETV reason 4: OSWORD &04)
+    equb <(netv_spool_check-1)                                        ; ad25: 59          Y              ; reason &05: netv_spool_check (NETV reason 5: spool check)
+    equb <(dispatch_rts-1)                                            ; ad26: 6f          o              ; reason &06: dispatch_rts (no-op (RTS only))
+    equb <(netv_claim_release-1)                                      ; ad27: 63          c              ; reason &07: netv_claim_release (NETV reason 7: claim/release)
+    equb <(osword_8_handler-1)                                        ; ad28: d2          .              ; reason &08: osword_8_handler (NETV reason 8: OSWORD &08)
+; ***************************************************************************************
+; NETV reason-code dispatch high-byte table (9 entries)
+;
+; Read by push_osword_handler_addr as LDA &AD29,X. The dispatcher pushes the hi byte
+; first then the lo, so RTS lands on target (the table stores target-1).
 ; &ad29 referenced 1 time by &ad15
-.lad29
-    equb &8e, &ae, &ae, &ae, &ad, &ae, &8e, &ad, &ad                  ; ad29: 8e ae ae... ...
+.netv_dispatch_hi
+    equb >(dispatch_rts-1)                                            ; ad29: 8e          .              ; reason &00: dispatch_rts
+    equb >(netv_print_data-1)                                         ; ad2a: ae          .              ; reason &01: netv_print_data
+    equb >(netv_print_data-1)                                         ; ad2b: ae          .              ; reason &02: netv_print_data
+    equb >(netv_print_data-1)                                         ; ad2c: ae          .              ; reason &03: netv_print_data
+    equb >(osword_4_handler-1)                                        ; ad2d: ad          .              ; reason &04: osword_4_handler
+    equb >(netv_spool_check-1)                                        ; ad2e: ae          .              ; reason &05: netv_spool_check
+    equb >(dispatch_rts-1)                                            ; ad2f: 8e          .              ; reason &06: dispatch_rts
+    equb >(netv_claim_release-1)                                      ; ad30: ad          .              ; reason &07: netv_claim_release
+    equb >(osword_8_handler-1)                                        ; ad31: ad          .              ; reason &08: osword_8_handler
 
 ; ***************************************************************************************
 ; OSWORD &04 handler: clear C, send abort
@@ -15241,8 +15311,31 @@ lb821 = err_net_chan_not_found+2
     assert <(net_1_read_handle-1) == &fe
     assert <(net_2_read_handle_entry-1) == &04
     assert <(net_3_close_handle-1) == &14
+    assert <(netv_claim_release-1) == &63
+    assert <(netv_print_data-1) == &6e
+    assert <(netv_spool_check-1) == &59
     assert <(nfs_init_body-1) == &37
     assert <(noop_dey_rts-1) == &70
+    assert <(osword_13_bridge_query-1) == &a8
+    assert <(osword_13_read_context-1) == &85
+    assert <(osword_13_read_csd-1) == &71
+    assert <(osword_13_read_ctx_3-1) == &92
+    assert <(osword_13_read_error-1) == &7e
+    assert <(osword_13_read_free_bufs-1) == &8a
+    assert <(osword_13_read_handles-1) == &c1
+    assert <(osword_13_read_prot-1) == &b1
+    assert <(osword_13_read_rx_flag-1) == &67
+    assert <(osword_13_read_rx_port-1) == &70
+    assert <(osword_13_read_station-1) == &cb
+    assert <(osword_13_read_ws_pair-1) == &90
+    assert <(osword_13_set_handles-1) == &cf
+    assert <(osword_13_set_station-1) == &d9
+    assert <(osword_13_write_csd-1) == &74
+    assert <(osword_13_write_ctx_3-1) == &9d
+    assert <(osword_13_write_prot-1) == &b7
+    assert <(osword_13_write_ws_pair-1) == &9c
+    assert <(osword_4_handler-1) == &31
+    assert <(osword_8_handler-1) == &d2
     assert <(parse_filename_validate-1) == &99
     assert <(parse_object_argument-1) == &2f
     assert <(proc_op_status2-1) == &cf
@@ -15303,8 +15396,31 @@ lb821 = err_net_chan_not_found+2
     assert >(net_1_read_handle-1) == &a3
     assert >(net_2_read_handle_entry-1) == &a4
     assert >(net_3_close_handle-1) == &a4
+    assert >(netv_claim_release-1) == &ad
+    assert >(netv_print_data-1) == &ae
+    assert >(netv_spool_check-1) == &ae
     assert >(nfs_init_body-1) == &8f
     assert >(noop_dey_rts-1) == &8e
+    assert >(osword_13_bridge_query-1) == &ab
+    assert >(osword_13_read_context-1) == &ab
+    assert >(osword_13_read_csd-1) == &aa
+    assert >(osword_13_read_ctx_3-1) == &ab
+    assert >(osword_13_read_error-1) == &ab
+    assert >(osword_13_read_free_bufs-1) == &ab
+    assert >(osword_13_read_handles-1) == &aa
+    assert >(osword_13_read_prot-1) == &aa
+    assert >(osword_13_read_rx_flag-1) == &ab
+    assert >(osword_13_read_rx_port-1) == &ab
+    assert >(osword_13_read_station-1) == &a9
+    assert >(osword_13_read_ws_pair-1) == &aa
+    assert >(osword_13_set_handles-1) == &aa
+    assert >(osword_13_set_station-1) == &a9
+    assert >(osword_13_write_csd-1) == &aa
+    assert >(osword_13_write_ctx_3-1) == &ab
+    assert >(osword_13_write_prot-1) == &aa
+    assert >(osword_13_write_ws_pair-1) == &aa
+    assert >(osword_4_handler-1) == &ad
+    assert >(osword_8_handler-1) == &ad
     assert >(parse_filename_validate-1) == &95
     assert >(parse_object_argument-1) == &96
     assert >(ps_scan_resume-1) == &b0
@@ -16179,11 +16295,7 @@ save pydis_start, pydis_end
 ;     la75b:                          1
 ;     la871:                          1
 ;     la878:                          1
-;     la9a8:                          1
-;     la9ba:                          1
 ;     labc5:                          1
-;     lad20:                          1
-;     lad29:                          1
 ;     lb097:                          1
 ;     lb099:                          1
 ;     lb0d4:                          1
@@ -16426,6 +16538,8 @@ save pydis_start, pydis_end
 ;     mask_error_class:               1
 ;     match_help_topic:               1
 ;     netv:                           1
+;     netv_dispatch_hi:               1
+;     netv_dispatch_lo:               1
 ;     next_flag_entry:                1
 ;     next_hex_char:                  1
 ;     next_scout_byte:                1
@@ -16455,6 +16569,8 @@ save pydis_start, pydis_end
 ;     osfile:                         1
 ;     osfind_close_or_open:           1
 ;     osfind_with_channel:            1
+;     osword_13_dispatch_hi:          1
+;     osword_13_dispatch_lo:          1
 ;     osword_13_read_ctx_3:           1
 ;     osword_13_write_ctx_3:          1
 ;     osword_claim_codes:             1
@@ -16849,11 +16965,7 @@ save pydis_start, pydis_end
 ;     la76e
 ;     la871
 ;     la878
-;     la9a8
-;     la9ba
 ;     labc5
-;     lad20
-;     lad29
 ;     lb097
 ;     lb099
 ;     lb0d4
@@ -16998,7 +17110,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1999 bytes (12%)
 ;
 ;     Number of instructions   = 7080
-;     Number of data bytes     = 694 bytes
+;     Number of data bytes     = 705 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1277 bytes
-;     Number of strings        = 147
+;     Number of string bytes   = 1266 bytes
+;     Number of strings        = 145
