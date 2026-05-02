@@ -15382,16 +15382,31 @@ lb821 = err_net_chan_not_found+2
     rts                                                               ; bfc4: 60          `              ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
 
 ; ***************************************************************************************
-; ROM-tail FF padding (33 bytes preceding the lbfe6 region)
+; ROM-tail FF padding + HAZEL indexing-base labels (&BFC5..&BFFF)
 ;
-; 33 bytes of &FF at the end of the ROM image, between the last real subroutine (inx4)
-; and a small region at lbfe6 onwards that is referenced by indexed load / store sites
-; scattered through the ROM body. Under normal Master 128 operation ANFS runs from a
-; sideways ROM slot and those reads always return the &FF padding byte (the loads
-; appear to use the padding region as a known-constant &FF source); the matching writes
-; are no-ops against ROM. If the image is loaded into a sideways RAM slot for
-; development, the writes take effect and the 24 bytes at lbfe6..lbffd plus the two
-; single bytes at lbffe / lbfff become genuine scratch memory.
+; 33 bytes of &FF at the end of the ROM image, then three labels at lbfe6, lbffe, and
+; lbfff used as indexing bases for reads and writes into HAZEL.
+;
+; The trick: HAZEL begins at &C000, so an LDA lbffe,Y / STA lbffe,Y instruction with Y
+; >= 2 lands at lbffe + Y >= &C000 -- inside HAZEL. ANFS exploits this in several
+; places to copy fixed-size blocks between HAZEL workspace and other buffers without
+; burning a separate two-byte zero-page pointer:
+;
+; | Site / routine                            | base  | Y range | Effective range          |
+; |-------------------------------------------|-------|---------|--------------------------|
+; | loop_copy_fs_ctx            (STA lbffe,Y) | lbffe | 9..2    | &C007..&C000             |
+; | loop_restore_ctx            (LDA lbffe,Y) | lbffe | 9..2    | &C007..&C000             |
+; | loop_copy_txcb_init         (LDA lbfe6,Y) | lbfe6 | varies  | spans lbfe6.. into HAZEL |
+; | loop_copy_ws_to_pb          (LDA lbffe,Y) | lbffe | 4..6    | &C002..&C004             |
+; | loop_copy_station           (LDA lbfff,Y) | lbfff | 2..1    | &C001..&C000             |
+; | osword_13_set_station_body  (STA lbfff,Y) | lbfff | 2..1    | &C001..&C000             |
+;
+; Each loop's CPY/BNE guard stops Y before it would land inside the ROM tail, so the
+; actual workspace data lives entirely in HAZEL. The 33 bytes of &FF padding before
+; lbfe6 aren't read or written by anything -- they exist purely to make the addressing
+; arithmetic work out (the labels need to sit at the end of the ROM, and the gap
+; between the last real instruction at inx4 and lbfe6 ends up filled with the
+; assembler's default &FF).
     equb &ff, &ff                                                     ; bfc5: ff ff       ..             ; ROM-tail padding (2 bytes &FF)
     equb &ff                                                          ; bfc7: ff          .              ; ROM-tail padding (1 byte &FF; on its own line for annotation)
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfc8: ff ff ff... ...            ; ROM-tail padding (30 bytes &FF)
@@ -15399,14 +15414,14 @@ lb821 = err_net_chan_not_found+2
     equb &ff, &ff, &ff, &ff, &ff, &ff                                 ; bfe0: ff ff ff... ...
 ; &bfe6 referenced 1 time by &ac5a
 .lbfe6
-    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Reads as &FF in sideways ROM (used as constant-FF source by &AC5B LDA &BFE6,Y); writeable scratch in sideways RAM
+    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Indexing base for lbfe6,Y reads in loop_copy_txcb_init -- &BFE6 + Y reaches into HAZEL for Y >= &1A
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bff2: ff ff ff... ...
 ; &bffe referenced 3 times by &8b67, &9066, &ac85
 .lbffe
-    equb &ff                                                          ; bffe: ff          .              ; Reads as &FF in sideways ROM (writes from &8B68 are no-ops against ROM); writeable in sideways RAM
+    equb &ff                                                          ; bffe: ff          .              ; Indexing base for lbffe,Y reads/writes -- &BFFE + Y reaches into HAZEL for Y >= 2 (used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)
 ; &bfff referenced 2 times by &a9d1, &a9e6
 .lbfff
-    equb &ff                                                          ; bfff: ff          .              ; Reads as &FF in sideways ROM (writes from &A9E7 are no-ops against ROM); writeable in sideways RAM
+    equb &ff                                                          ; bfff: ff          .              ; Indexing base for lbfff,Y reads/writes -- &BFFF + Y reaches into HAZEL for Y >= 1 (used by loop_copy_station, osword_13_set_station)
 ; &c000 referenced 6 times by &8dc2, &8f63, &9758, &a398, &b8c8, &b928
 .pydis_end
 

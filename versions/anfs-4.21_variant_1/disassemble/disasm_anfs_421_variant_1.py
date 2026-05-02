@@ -40,20 +40,37 @@ trace.cpu.default_subroutine_hook = None
 byte(0xBFC7)  # Force padding byte onto its own line for annotation
 
 data_banner(0xBFC5, "rom_tail_padding",
-    title="ROM-tail FF padding (33 bytes preceding the lbfe6 region)",
+    title="ROM-tail FF padding + HAZEL indexing-base labels (&BFC5..&BFFF)",
     description="""\
-33 bytes of `&FF` at the end of the ROM image, between the last
-real subroutine ([`inx4`](address:BFC0)) and a small region at
-[`lbfe6`](address:BFE6) onwards that *is* referenced by indexed
-load / store sites scattered through the ROM body. Under normal
-Master 128 operation ANFS runs from a sideways ROM slot and those
-reads always return the `&FF` padding byte (the loads appear to
-use the padding region as a known-constant `&FF` source); the
-matching writes are no-ops against ROM. If the image is loaded
-into a sideways RAM slot for development, the writes take effect
-and the 24 bytes at `lbfe6`..`lbffd` plus the two single bytes at
-[`lbffe`](address:BFFE) / [`lbfff`](address:BFFF) become genuine
-scratch memory.""")
+33 bytes of `&FF` at the end of the ROM image, then three
+labels at [`lbfe6`](address:BFE6), [`lbffe`](address:BFFE), and
+[`lbfff`](address:BFFF) used as **indexing bases for reads and
+writes into HAZEL**.
+
+The trick: HAZEL begins at `&C000`, so an `LDA lbffe,Y` /
+`STA lbffe,Y` instruction with Y >= 2 lands at
+`lbffe + Y >= &C000` -- inside HAZEL. ANFS exploits this in
+several places to copy fixed-size blocks between HAZEL workspace
+and other buffers without burning a separate two-byte zero-page
+pointer:
+
+| Site / routine                                          | base   | Y range | Effective range |
+|---------------------------------------------------------|--------|---------|-----------------|
+| `loop_copy_fs_ctx`            (`STA lbffe,Y`)           | lbffe  | 9..2    | `&C007..&C000`  |
+| `loop_restore_ctx`            (`LDA lbffe,Y`)           | lbffe  | 9..2    | `&C007..&C000`  |
+| `loop_copy_txcb_init`         (`LDA lbfe6,Y`)           | lbfe6  | varies  | spans `lbfe6..` into HAZEL |
+| `loop_copy_ws_to_pb`          (`LDA lbffe,Y`)           | lbffe  | 4..6    | `&C002..&C004`  |
+| `loop_copy_station`           (`LDA lbfff,Y`)           | lbfff  | 2..1    | `&C001..&C000`  |
+| `osword_13_set_station_body`  (`STA lbfff,Y`)           | lbfff  | 2..1    | `&C001..&C000`  |
+
+Each loop's CPY/BNE guard stops Y before it would land inside the
+ROM tail, so the actual workspace data lives entirely in HAZEL.
+The 33 bytes of `&FF` padding before [`lbfe6`](address:BFE6)
+aren't read or written by anything -- they exist purely to make
+the addressing arithmetic work out (the labels need to sit at
+the end of the ROM, and the gap between the last real
+instruction at [`inx4`](address:BFC0) and `lbfe6` ends up filled
+with the assembler's default `&FF`).""")
 
 # acorn.bbc() provides OS vectors, entry points, zero page labels.
 # acorn.is_sideways_rom() provides ROM header labels.
@@ -11529,12 +11546,15 @@ comment(0xBFC5, "ROM-tail padding (2 bytes &FF)", inline=True)
 comment(0xBFC7, "ROM-tail padding (1 byte &FF; on its own line "
     "for annotation)", inline=True)
 comment(0xBFC8, "ROM-tail padding (30 bytes &FF)", inline=True)
-comment(0xBFE6, "Reads as &FF in sideways ROM (used as constant-FF "
-    "source by &AC5B `LDA &BFE6,Y`); writeable scratch in sideways RAM", inline=True)
-comment(0xBFFE, "Reads as &FF in sideways ROM (writes from &8B68 are "
-    "no-ops against ROM); writeable in sideways RAM", inline=True)
-comment(0xBFFF, "Reads as &FF in sideways ROM (writes from &A9E7 are "
-    "no-ops against ROM); writeable in sideways RAM", inline=True)
+comment(0xBFE6, "Indexing base for `lbfe6,Y` reads in "
+    "loop_copy_txcb_init -- `&BFE6 + Y` reaches into HAZEL "
+    "for Y >= &1A", inline=True)
+comment(0xBFFE, "Indexing base for `lbffe,Y` reads/writes -- "
+    "`&BFFE + Y` reaches into HAZEL for Y >= 2 "
+    "(used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)", inline=True)
+comment(0xBFFF, "Indexing base for `lbfff,Y` reads/writes -- "
+    "`&BFFF + Y` reaches into HAZEL for Y >= 1 "
+    "(used by loop_copy_station, osword_13_set_station)", inline=True)
 # Split error number and null terminator bytes
 byte(0x9AC8)   # error &A3
 byte(0x9AD0)   # null
