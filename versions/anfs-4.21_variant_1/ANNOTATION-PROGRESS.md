@@ -34,6 +34,13 @@ calling-convention comments to every subroutine.
 | 2026-04-30 +large   | 6487 | 5642 | 87.0% | 6  |
 | 2026-04-30 +deepest | 6487 | 5899 | 90.9% | 1  |
 | 2026-05-01 Phase E+G | 6633 | 5988 | 90.3% | -  |
+| 2026-05-02 Phase B   | 6633 | 5984 | 90.2% | -  |
+
+Subroutine count: 403 (was 320 at the start of 2026-05-02). The
+inline-comment percentage is broadly unchanged because Phase B
+promotes existing labels rather than adding new code; the small
+0.1% drift comes from a couple of stale carry-overs being trimmed
+in the cross-version sweep.
 
 ## Routines fully annotated this session
 
@@ -283,33 +290,82 @@ dimensions. In priority order:
 
 ## Phase B: Unidentified subroutine boundaries
 
-  Subroutines reached only via PHA/PHA/RTS dispatch or via tail-jumps
-  may not have an explicit `subroutine()` declaration. Search criteria:
+  **Done (2026-05-02).** Sweep completed using `fantasm promote`,
+  which scores labelled code items by inbound-ref count, JSR-call
+  count, and AfterTerm flag. Outcome:
 
-    - Code immediately after an RTS/JMP/BRA/BRK that has any incoming
-      JSR/JMP/branch reference but no `subroutine()` call.
-    - Labels with high in-degree (>=3 incoming refs) that aren't
-      currently subs.
-    - Auto-generated `cXXXX` / `lXXXX` labels in the listing.
+  - **62 JSR-targeted candidates** (any label with at least one
+    `JSR site`) all promoted. Includes error helpers, exit
+    epilogues, dispatch trampolines, parser loop bodies, and *DUMP /
+    *Wipe tails. See commits `8833173` … `0d644d2`.
 
-  Need a small audit script to enumerate these. For each candidate:
-  determine if it's a real subroutine entry, name it, document it.
+  - **32 entry()-only candidates** (declared as code but reached
+    only via vectors / NMI vector indirection / PHA/PHA/RTS) all
+    promoted. Includes the FILEV / ARGSV / GBPBV / BGETV / BPUTV
+    handlers, FSCV reasons 0/1/2/5/7, FS reply handlers, language-
+    reply handlers, OSWORD &10/&12/&14 handlers, NMI-vector
+    continuations (data_rx_setup, nmi_data_rx_net, nmi_data_rx_skip,
+    nmi_data_rx_tube, nmi_data_tx_tube, nmi_final_ack_net), the svc
+    table[2] target at &8D09, and the small send_osbput_data
+    helper. See commits `d10a4dd` and `a8dd8e9`.
+
+  - **803 JSR=0 promote candidates** assessed and ruled out:
+    - 0 are reached via JMP.
+    - 9 are reached via BRA (all are within the same enclosing
+      routine — internal continuation labels).
+    - The rest only by conditional branches.
+    None are subroutines.
+
+  - **9 entry()-only addresses left as labels** (not subroutines):
+    `&804F`, `&80E8`, `&8360`, `&84BE` (`set_rx_buf_len_hi`),
+    `&870D` (`tx_error`), `&88F0` (dead data block), `&8968`
+    (`fallback_calc_transfer`), `&8EFE`, `&9E7F`
+    (`done_osword_op`). Each is a branch landing pad / fall-through
+    entry / single-RTS sentinel / dead data; none are callable
+    subroutines.
+
+  Subroutine count: 403 (up from 320 at session start).
 
 ## Phase C: Recover remaining UNMAPPED 4.18 routines
 
   From `git log` and grep of UNMAPPED subroutine() blocks: the
   carry-over still has unrecovered routines whose 4.18 names are
   known. Use `fantasm.api.fingerprint` and the JSR-following
-  technique. Expected candidates (from the 4.18 driver):
+  technique.
 
-    svc_2_private_workspace, cmd_close, cmd_print, cmd_prot,
-    cmd_type, cmd_unprot, read_paged_rom, set_jsr_protection,
-    tx_done_jsr, tx_ctrl_machine_type, tx_calc_transfer,
-    check_escape, osword_4_handler, osword_13_set_handles
-    (location verified -- already done), osword_13_read_handles
-    (also done).
+  Done:
 
-  Add tracking table; check each.
+    - svc_2_private_workspace -- split into
+      svc_2_private_workspace_pages (&8F10) +
+      nfs_init_body (&8F38).
+    - tx_done_jsr (&8540).
+    - tx_ctrl_machine_type (&8686).
+    - tx_calc_transfer (&8900).
+    - check_escape -- split into check_urd_prefix (&8E2D) +
+      raise_escape_error (&9895). The 4.18 single-routine version
+      bundled the BIT-test prologue with the action; 4.21
+      separates them.
+    - osword_13_set_handles (&AAD0).
+    - osword_13_read_handles (&AAC2).
+
+  Outstanding (the user-callable star commands and a couple of
+  service-handler internals):
+
+    - cmd_close
+    - cmd_print
+    - cmd_prot
+    - cmd_type
+    - cmd_unprot
+    - read_paged_rom
+    - set_jsr_protection
+    - osword_4_handler
+
+  Approach: for each, fingerprint against the 4.18 driver's
+  subroutine body, locate the matching block in 4.21, declare with
+  `subroutine()`, add inline comments. Many of these are reached
+  via the star-command dispatch table at &A3F1 (lo) / &A3F2 (hi)
+  -- promoting them resolves PHA/PHA/RTS targets and gives the
+  table entries useful symbolic forms (overlaps with Phase E).
 
 ## Phase D: Data classification review
 

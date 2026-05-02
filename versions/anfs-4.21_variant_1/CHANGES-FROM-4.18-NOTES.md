@@ -60,6 +60,42 @@ before any of the standard service-call dispatch. Recognised:
 4.18 had no equivalent gate — the service handler dispatched
 directly.
 
+### Star commands removed in 4.21
+
+The Master 128 ROM drops the wrappers around standard MOS commands.
+4.18 had `cmd_close`, `cmd_print`, `cmd_type` star-command handlers
+that were thin wrappers (e.g. `cmd_close` was `LDA #0 / TAY / JMP
+osfind`). The Master MOS handles `*CLOSE`, `*PRINT`, `*TYPE`
+directly, so 4.21's `cmd_table_nfs` no longer lists them. The
+strings "Close", "Type", "Print" do not appear anywhere in the
+4.21 ROM.
+
+### Other 4.18-only routines removed
+
+- `read_paged_rom` (4.18 &8AA0): the `INC osrdsc_ptr / LDY ws_ptr_hi
+  / JMP &FFB9` wrapper around OSRDSC. Master MOS reads ROM info via
+  a different mechanism. No `JMP &FFB9` (osrdsc) instruction
+  appears anywhere in the 4.21 ROM.
+- `set_jsr_protection` (4.18 &805D): the `CPY #&86 / BCS dispatch /
+  LDA &0D68 / STA &0D69 / ORA #&1C / STA &0D68` prologue that
+  protected the SVC5 dispatch. 4.21's `svc5_irq_check` (&8028) is
+  rewritten around the Master 128 deferred-work flag (`&0D65`) and
+  no longer needs JSR-protection. The shared `&0D68` / `&0D69`
+  shadow-VIA update body lives at `setup_sr_tx` (&8512) for an
+  unrelated TX-prep purpose.
+
+### Protection state moved to CMOS RAM (cmd_prot / cmd_unprot)
+
+4.18's `cmd_prot` / `cmd_unprot` (4.18 &B30C / &B33D) parsed
+attribute keywords ("L", "W", "R", etc.) and accumulated bits into
+a workspace mask at `ws_0d68` / `ws_0d69`. 4.21's `cmd_prot`
+(&B6D2) and `cmd_unprot` (&B6D6) take **no arguments** -- they
+just toggle bit 6 of CMOS RAM byte `&11` (the Econet
+station-flags byte) via OSBYTE `&A1` (read) / OSBYTE `&A2` (write),
+mirroring the new value into the shadow ACR/IER pair through
+`set_via_shadow_pair`. The Master 128 stores the protection state
+in CMOS so it survives BREAK and power-cycle.
+
 ### *RUN argument with '&' prefix is URD-relative
 The cmd_run handler in 4.21 splits into two entries:
 - `check_urd_prefix` at &8E2D — tests first arg char for '&'

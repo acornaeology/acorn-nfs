@@ -4883,13 +4883,18 @@ subroutine(0xAD15, "push_osword_handler_addr",
     "specific call.",
     on_entry={"a": "OSWORD number (0-8) -- table index"},
     on_exit={"a": "OSWORD number (re-loaded for the handler's use)"})
-# UNMAPPED: subroutine(0xA9B0, "osword_4_handler",
-# UNMAPPED:     title="OSWORD 4 handler: clear carry and send abort",
-# UNMAPPED:     description="Clears the carry flag in the stacked processor\n"
-# UNMAPPED:     "status, stores the original Y to workspace at\n"
-# UNMAPPED:     "offset &DA, and falls through to tx_econet_abort\n"
-# UNMAPPED:     "with A=0. Called via OSWORD handler dispatch\n"
-# UNMAPPED:     "table for OSWORD 4 (write interval timer).")
+entry(0xAD32)
+subroutine(0xAD32, "osword_4_handler",
+    title="OSWORD &04 handler: clear C, send abort",
+    description="""\
+Reaches the stack via `TSX`, clears bit 0 of the stacked processor
+status (`ROR stack_page_6,X` then `ASL stack_page_6,X` -- a
+read-modify cycle that lands the carry-out where bit 0 of the
+saved P was), so the caller resumes with `C=0`. Stores the
+caller's `Y` into NFS workspace at offset `&DA`, then falls
+through to [`tx_econet_abort`](address:AD40) with `A=0` to
+transmit a clean disconnect packet.""",
+    on_entry={"y": "OSWORD parameter byte (saved into nfs_workspace+&DA)"})
 subroutine(0xAD40, "tx_econet_abort",
     title="Send Econet abort/disconnect packet",
     description="Stores the abort code in workspace, configures\n"
@@ -10504,14 +10509,43 @@ subroutine(0xB581, "cmd_pollps",
 # UNMAPPED:     "mode (V set), outputs all bytes raw via OSWRCH. Closes\n"
 # UNMAPPED:     "the file and prints a final newline on EOF.",
 # UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
-# UNMAPPED: subroutine(0xB30C, "cmd_prot",
-# UNMAPPED:     title="*Prot command handler",
-# UNMAPPED:     description="With no arguments, sets all protection bits (&FF).\n"
-# UNMAPPED:     "Otherwise parses attribute keywords via match_fs_cmd\n"
-# UNMAPPED:     "with table offset &D3, accumulating bits via ORA.\n"
-# UNMAPPED:     "Stores the final protection mask in ws_0d68 and\n"
-# UNMAPPED:     "ws_0d69.",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
+# cmd_prot at &B6D2 / cmd_unprot at &B6D6 are dispatched via the
+# star-cmd table at &A77F (Prot) and &A794 (Unprot). They share a
+# common body starting at &B6D8. Both need entry() because the
+# PHA/PHA/RTS dispatch leaves no static caller for py8dis.
+entry(0xB6D2)
+entry(0xB6D6)
+subroutine(0xB6D2, "cmd_prot",
+    title="*Prot command handler",
+    description="""\
+Loads `A=&FF` (full protection mask) and falls through (via an
+always-taken `BNE`) to the shared protection-update body at
+`&B6D8`, which:
+
+1. Saves the new flag (`Z=0` for *Prot, `Z=1` for *Unprot) on the
+   stack via `PHP`.
+2. Calls [`set_via_shadow_pair`](address:AABB) to mirror `A` into
+   the workspace shadow ACR (`ws_0d68`) and shadow IER
+   (`ws_0d69`).
+3. Reads CMOS RAM byte `&11` (Econet station/protection flags)
+   via [`osbyte_a1`](address:8E9A) into `Y`, copies to `A`.
+4. Restores the saved flag and selects:
+   - *Prot path: `ORA #&40` (set bit 6 = protection on).
+   - *Unprot path: `AND #&BF` (clear bit 6).
+5. Writes the updated byte back to CMOS via OSBYTE `&A2`
+   (write CMOS RAM).
+
+The ANFS protection state lives in CMOS bit 6 of byte `&11`, so it
+survives BREAK and power-cycle until explicitly toggled.""",
+    on_entry={"y": "command line offset (unused; *Prot takes no args)"})
+subroutine(0xB6D6, "cmd_unprot",
+    title="*Unprot command handler",
+    description="""\
+Loads `A=&00` (no protection) and falls through to the shared
+protection-update body at `&B6D8`, which clears bit 6 of CMOS RAM
+byte `&11` (the Econet protection flag). See
+[`cmd_prot`](address:B6D2) for the full body description.""",
+    on_entry={"y": "command line offset (unused; *Unprot takes no args)"})
 subroutine(0xB3AC, "cmd_ps",
     title="*PS command handler",
     description="Checks the printer server availability flag; raises\n"
@@ -10522,22 +10556,9 @@ subroutine(0xB3AC, "cmd_ps",
     "number, otherwise parses a named PS address via\n"
     "load_ps_server_addr and parse_fs_ps_args.",
     on_entry={"y": "command line offset in text pointer"})
-# UNMAPPED: subroutine(0xB99A, "cmd_type",
-# UNMAPPED:     title="*Type command handler",
-# UNMAPPED:     description="Clears V and branches to the shared open_and_read_file\n"
-# UNMAPPED:     "entry in cmd_print. The V-clear state selects line-\n"
-# UNMAPPED:     "ending normalisation mode: CR, LF, CR+LF, and LF+CR\n"
-# UNMAPPED:     "are all treated as a single newline. Designed for\n"
-# UNMAPPED:     "displaying text files.",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
-# UNMAPPED: subroutine(0xB33D, "cmd_unprot",
-# UNMAPPED:     title="*Unprot command handler",
-# UNMAPPED:     description="With no arguments, clears all protection bits (EOR\n"
-# UNMAPPED:     "yields 0). Otherwise parses attribute keywords, clearing\n"
-# UNMAPPED:     "bits via AND with the complement. Shares the protection\n"
-# UNMAPPED:     "mask storage path with cmd_prot. Falls through to\n"
-# UNMAPPED:     "cmd_wipe.",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"})
+# cmd_close, cmd_type, cmd_print are not present in this build --
+# the Master 128 standard MOS provides those star commands directly,
+# so the NFS ROM no longer wraps them.
 subroutine(0x8AEA, "cmd_roff",
     title="*ROFF command handler",
     description="Disables remote operation by clearing the flag at\n"
@@ -11236,45 +11257,28 @@ comment(0xB0F5, "Set carry (= library directory)", inline=True)
 comment(0xB0F8, "Rotate carry into lib flag bit 7", inline=True)
 comment(0xB0FB, "Set carry (= library directory)", inline=True)
 
-# cmd_prot (&B2F0) — *Prot: set file protection
-# UNMAPPED: comment(0xB30C, "Get next char from command line", inline=True)
-# UNMAPPED: comment(0xB30E, "Compare with CR (end of line)", inline=True)
-comment(0xB6D4, "Not CR: attribute keywords follow", inline=True)
-comment(0xB6D6, "A=&FF: protect all attributes", inline=True)
-# UNMAPPED: comment(0xB316, "Load current protection mask", inline=True)
-# UNMAPPED: comment(0xB319, "Save as starting value", inline=True)
-comment(0xB6EE, "X=&D3: attribute keyword table offset", inline=True)
-# UNMAPPED: comment(0xB31C, "Get next char from command line", inline=True)
-# UNMAPPED: comment(0xB31E, "Save for end-of-args check", inline=True)
-# UNMAPPED: comment(0xB320, "Match attribute keyword in table", inline=True)
-# UNMAPPED: comment(0xB323, "No match: check if end of arguments", inline=True)
-# UNMAPPED: comment(0xB325, "Retrieve accumulated mask", inline=True)
-# UNMAPPED: comment(0xB326, "OR in attribute bit for keyword", inline=True)
-# UNMAPPED: comment(0xB329, "Save updated mask", inline=True)
-# UNMAPPED: comment(0xB32A, "Always non-zero after ORA: loop", inline=True)
-# UNMAPPED: comment(0xB32C, "Get the unmatched character", inline=True)
-# UNMAPPED: comment(0xB32E, "Is it CR?", inline=True)
-# UNMAPPED: comment(0xB330, "Yes: arguments ended correctly", inline=True)
-comment(0xB6F0, "No: invalid attribute keyword", inline=True)
-# UNMAPPED: comment(0xB335, "Retrieve final protection mask", inline=True)
-# UNMAPPED: comment(0xB336, "Store protection mask", inline=True)
-# UNMAPPED: comment(0xB339, "Store protection mask copy", inline=True)
-# UNMAPPED: comment(0xB33C, "Return", inline=True)
-
-# cmd_unprot (&B321) — *Unprot: remove file protection
-# UNMAPPED: comment(0xB33D, "Get next char from command line", inline=True)
-# UNMAPPED: comment(0xB33F, "Compare with CR (end of line)", inline=True)
-# UNMAPPED: comment(0xB341, "No args: A=0 clears all protection", inline=True)
-# UNMAPPED: comment(0xB343, "Load current protection mask", inline=True)
-# UNMAPPED: comment(0xB346, "Save as starting value", inline=True)
-# UNMAPPED: comment(0xB347, "X=&D3: attribute keyword table offset", inline=True)
-# UNMAPPED: comment(0xB349, "Get next char from command line", inline=True)
-# UNMAPPED: comment(0xB34B, "Save for end-of-args check", inline=True)
-# UNMAPPED: comment(0xB34D, "Match attribute keyword in table", inline=True)
-# UNMAPPED: comment(0xB350, "No match: check if end of arguments", inline=True)
-# UNMAPPED: comment(0xB352, "Retrieve accumulated mask", inline=True)
-# UNMAPPED: comment(0xB353, "AND to clear matched attribute bit", inline=True)
-# UNMAPPED: comment(0xB356, "Save updated mask", inline=True)
+# cmd_prot (&B6D2) and cmd_unprot (&B6D6) — Master 128 protection
+# state lives in CMOS RAM byte &11 bit 6 (not in workspace as in
+# the BBC B build). The body at &B6D8 mirrors A into the shadow
+# ACR/IER pair, then OSBYTE &A2-writes the new flag byte back to
+# CMOS so the protection survives BREAK / power-cycle.
+comment(0xB6D2, "Load &FF (protect)", inline=True)
+comment(0xB6D6, "Load &00 (unprotect)", inline=True)
+comment(0xB6D8, "Save Z flag (1 = unprot, 0 = prot) for later",
+        inline=True)
+comment(0xB6D9, "Mirror A into shadow ACR / shadow IER", inline=True)
+comment(0xB6DC, "X=&11: CMOS offset for Econet flags", inline=True)
+comment(0xB6DE, "OSBYTE &A1 reads CMOS byte &11 -> Y", inline=True)
+comment(0xB6E1, "A = current CMOS byte", inline=True)
+comment(0xB6E2, "Restore the saved Z flag", inline=True)
+comment(0xB6E3, "Z=1: unprot path", inline=True)
+comment(0xB6E5, "Set bit 6 (protection on)", inline=True)
+comment(0xB6E7, "ALWAYS branch to write-back", inline=True)
+comment(0xB6E9, "Clear bit 6 (protection off)", inline=True)
+comment(0xB6EB, "Y = new flag byte", inline=True)
+comment(0xB6EC, "OSBYTE &A2: write CMOS byte", inline=True)
+comment(0xB6EE, "X=&11: CMOS offset for Econet flags", inline=True)
+comment(0xB6F0, "Tail-call OSBYTE", inline=True)
 
 # cmd_fs_operation (&92D2) — shared handler for *Access, *Delete, *Info, *Lib
 comment(0x9425, "Copy command name to TX buffer", inline=True)
