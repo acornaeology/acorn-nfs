@@ -3298,7 +3298,7 @@ l89c9 = reset_enter_listen+2
 ; &8b65 referenced 1 time by &8b6d
 .loop_copy_fs_ctx
     lda (net_rx_ptr),y                                                ; 8b65: b1 9c       ..             ; Load byte from receive block
-    sta lbffe,y                                                       ; 8b67: 99 fe bf    ...            ; Store into FS workspace
+    sta hazel_minus_2,y                                               ; 8b67: 99 fe bf    ...            ; Store into FS workspace
     dey                                                               ; 8b6a: 88          .              ; Decrement index
     cpy #1                                                            ; 8b6b: c0 01       ..             ; Reached offset 1?
     bne loop_copy_fs_ctx                                              ; 8b6d: d0 f6       ..             ; No: continue copying
@@ -4579,7 +4579,7 @@ ps_template_base = sub_c8da6+1
     ldy #9                                                            ; 9064: a0 09       ..             ; Y=9: end of FS context block
 ; &9066 referenced 1 time by &906e
 .loop_restore_ctx
-    lda lbffe,y                                                       ; 9066: b9 fe bf    ...            ; Load FS context byte
+    lda hazel_minus_2,y                                               ; 9066: b9 fe bf    ...            ; Load FS context byte
     sta (net_rx_ptr),y                                                ; 9069: 91 9c       ..             ; Store into receive block
     dey                                                               ; 906b: 88          .              ; Decrement index
     cpy #1                                                            ; 906c: c0 01       ..             ; Reached offset 1?
@@ -10312,7 +10312,7 @@ la878 = sub_ca877+1
     ldy #2                                                            ; a9cf: a0 02       ..             ; Load workspace high byte
 ; &a9d1 referenced 1 time by &a9d7
 .loop_copy_station
-    lda lbfff,y                                                       ; a9d1: b9 ff bf    ...            ; Set TX ptr high
+    lda hazel_minus_1,y                                               ; a9d1: b9 ff bf    ...            ; Set TX ptr high
     sta (osword_pb_ptr),y                                             ; a9d4: 91 f0       ..             ; Send the abort packet
     dey                                                               ; a9d6: 88          .              ; DEY -- step back
     bne loop_copy_station                                             ; a9d7: d0 f8       ..             ; Set status to &3F (complete)
@@ -10334,7 +10334,7 @@ la878 = sub_ca877+1
 ; &a9e4 referenced 1 time by &a9ea
 .loop_store_station
     lda (osword_pb_ptr),y                                             ; a9e4: b1 f0       ..             ; Compare with &81 (special case)
-    sta lbfff,y                                                       ; a9e6: 99 ff bf    ...            ; Match: skip to processing; Y=1: first claim code position
+    sta hazel_minus_1,y                                               ; a9e6: 99 ff bf    ...            ; Match: skip to processing; Y=1: first claim code position
     dey                                                               ; a9e9: 88          .              ; DEY -- step back to previous byte
     bne loop_store_station                                            ; a9ea: d0 f8       ..             ; X=&0A: 11 codes to check
     jsr clear_if_station_match                                        ; a9ec: 20 21 8e     !.            ; Search claim code table
@@ -10920,7 +10920,7 @@ labc5 = compare_bridge_status+1
 .loop_copy_txcb_init
     lda init_txcb,y                                                   ; ac55: b9 4b 97    .K.            ; Y=8: first end marker offset
     bne store_txcb_init_byte                                          ; ac58: d0 03       ..             ; Store &FF
-    lda lbfe6,y                                                       ; ac5a: b9 e6 bf    ...            ; Store &FF at offset 9 too
+    lda hazel_minus_1a,y                                              ; ac5a: b9 e6 bf    ...            ; Store &FF at offset 9 too
 ; &ac5d referenced 1 time by &ac58
 .store_txcb_init_byte
     sta (nfs_workspace),y                                             ; ac5d: 91 9e       ..             ; Restore disconnect code; X = status for control byte
@@ -10958,7 +10958,7 @@ labc5 = compare_bridge_status+1
     iny                                                               ; ac84: c8          .              ; Y=&04
 ; &ac85 referenced 1 time by &ac8d
 .loop_copy_ws_to_pb
-    lda lbffe,y                                                       ; ac85: b9 fe bf    ...            ; buf start hi=&8E; buf start ext lo=&FF; buf start ext hi=&FF
+    lda hazel_minus_2,y                                               ; ac85: b9 fe bf    ...            ; buf start hi=&8E; buf start ext lo=&FF; buf start ext hi=&FF
     sta (ws_ptr_hi),y                                                 ; ac88: 91 ac       ..             ; buf end hi=&8E
     iny                                                               ; ac8a: c8          .              ; buf end ext lo=&FF
     cpy #7                                                            ; ac8b: c0 07       ..             ; buf end ext hi=&FF; ctrl=&7F (RX listen)
@@ -15382,46 +15382,54 @@ lb821 = err_net_chan_not_found+2
     rts                                                               ; bfc4: 60          `              ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
 
 ; ***************************************************************************************
-; ROM-tail FF padding + HAZEL indexing-base labels (&BFC5..&BFFF)
+; ROM-tail &FF padding (33 bytes positioning the HAZEL indexing bases)
 ;
-; 33 bytes of &FF at the end of the ROM image, then three labels at lbfe6, lbffe, and
-; lbfff used as indexing bases for reads and writes into HAZEL.
+; 33 bytes of &FF filler between the last real instruction at inx4 and the HAZEL
+; indexing-base labels starting at hazel_minus_1a.
 ;
-; The trick: HAZEL begins at &C000, so an LDA lbffe,Y / STA lbffe,Y instruction with Y
-; >= 2 lands at lbffe + Y >= &C000 -- inside HAZEL. ANFS exploits this in several
-; places to copy fixed-size blocks between HAZEL workspace and other buffers without
-; burning a separate two-byte zero-page pointer:
-;
-; | Site / routine                            | base  | Y range | Effective range          |
-; |-------------------------------------------|-------|---------|--------------------------|
-; | loop_copy_fs_ctx            (STA lbffe,Y) | lbffe | 9..2    | &C007..&C000             |
-; | loop_restore_ctx            (LDA lbffe,Y) | lbffe | 9..2    | &C007..&C000             |
-; | loop_copy_txcb_init         (LDA lbfe6,Y) | lbfe6 | varies  | spans lbfe6.. into HAZEL |
-; | loop_copy_ws_to_pb          (LDA lbffe,Y) | lbffe | 4..6    | &C002..&C004             |
-; | loop_copy_station           (LDA lbfff,Y) | lbfff | 2..1    | &C001..&C000             |
-; | osword_13_set_station_body  (STA lbfff,Y) | lbfff | 2..1    | &C001..&C000             |
-;
-; Each loop's CPY/BNE guard stops Y before it would land inside the ROM tail, so the
-; actual workspace data lives entirely in HAZEL. The 33 bytes of &FF padding before
-; lbfe6 aren't read or written by anything -- they exist purely to make the addressing
-; arithmetic work out (the labels need to sit at the end of the ROM, and the gap
-; between the last real instruction at inx4 and lbfe6 ends up filled with the
-; assembler's default &FF).
+; These bytes exist purely to push the indexing-base labels to specific addresses
+; immediately before &C000 (the start of HAZEL). The labels themselves do the work --
+; see the hazel_idx_bases banner. The padding is never read or written; it is whatever
+; the assembler emitted to fill the gap (the BeebAsm default of &FF).
     equb &ff, &ff                                                     ; bfc5: ff ff       ..             ; ROM-tail padding (2 bytes &FF)
     equb &ff                                                          ; bfc7: ff          .              ; ROM-tail padding (1 byte &FF; on its own line for annotation)
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfc8: ff ff ff... ...            ; ROM-tail padding (30 bytes &FF)
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfd4: ff ff ff... ...
     equb &ff, &ff, &ff, &ff, &ff, &ff                                 ; bfe0: ff ff ff... ...
+; ***************************************************************************************
+; HAZEL Y-indexed access bases (3 labels at the ROM tail)
+;
+; Three labels positioned &1A, 2, and 1 bytes before &C000 (the start of HAZEL), used
+; as indexing bases for reads and writes into HAZEL.
+;
+; The trick: HAZEL begins at &C000, so an LDA hazel_minus_2,Y / STA hazel_minus_2,Y
+; instruction with Y >= 2 lands at &BFFE + Y >= &C000 -- inside HAZEL. ANFS exploits
+; this in several places to copy fixed-size blocks between HAZEL workspace and other
+; buffers without burning a separate two-byte zero-page pointer:
+;
+; | Site / routine             | instruction          | base           | Y range | Effective range             |
+; |----------------------------|----------------------|----------------|---------|-----------------------------|
+; | loop_copy_fs_ctx           | STA hazel_minus_2,Y  | hazel_minus_2  | 9..2    | &C007..&C000                |
+; | loop_restore_ctx           | LDA hazel_minus_2,Y  | hazel_minus_2  | 9..2    | &C007..&C000                |
+; | loop_copy_ws_to_pb         | LDA hazel_minus_2,Y  | hazel_minus_2  | 4..6    | &C002..&C004                |
+; | loop_copy_station          | LDA hazel_minus_1,Y  | hazel_minus_1  | 2..1    | &C001..&C000                |
+; | osword_13_set_station_body | STA hazel_minus_1,Y  | hazel_minus_1  | 2..1    | &C001..&C000                |
+; | loop_copy_txcb_init        | LDA hazel_minus_1a,Y | hazel_minus_1a | >= &1A  | spans into HAZEL from &C000 |
+;
+; Each loop's CPY/BNE guard stops Y before it would land inside the ROM tail, so the
+; actual workspace data lives entirely in HAZEL. The labels themselves never have their
+; own bytes read -- the &FF byte at each label address is incidental, only the address
+; matters.
 ; &bfe6 referenced 1 time by &ac5a
-.lbfe6
-    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Indexing base for lbfe6,Y reads in loop_copy_txcb_init -- &BFE6 + Y reaches into HAZEL for Y >= &1A
+.hazel_minus_1a
+    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfe6: ff ff ff... ...            ; Base for hazel_minus_1a,Y reads in loop_copy_txcb_init -- &BFE6 + Y reaches into HAZEL for Y >= &1A
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bff2: ff ff ff... ...
 ; &bffe referenced 3 times by &8b67, &9066, &ac85
-.lbffe
-    equb &ff                                                          ; bffe: ff          .              ; Indexing base for lbffe,Y reads/writes -- &BFFE + Y reaches into HAZEL for Y >= 2 (used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)
+.hazel_minus_2
+    equb &ff                                                          ; bffe: ff          .              ; Base for hazel_minus_2,Y reads/writes -- &BFFE + Y reaches into HAZEL for Y >= 2 (used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)
 ; &bfff referenced 2 times by &a9d1, &a9e6
-.lbfff
-    equb &ff                                                          ; bfff: ff          .              ; Indexing base for lbfff,Y reads/writes -- &BFFF + Y reaches into HAZEL for Y >= 1 (used by loop_copy_station, osword_13_set_station)
+.hazel_minus_1
+    equb &ff                                                          ; bfff: ff          .              ; Base for hazel_minus_1,Y reads/writes -- &BFFF + Y reaches into HAZEL for Y >= 1 (used by loop_copy_station, osword_13_set_station)
 ; &c000 referenced 6 times by &8dc2, &8f63, &9758, &a398, &b8c8, &b928
 .pydis_end
 
@@ -15861,10 +15869,10 @@ save pydis_start, pydis_end
 ;     find_matching_fcb:              3
 ;     find_station_bit3:              3
 ;     handle_invalid:                 3
+;     hazel_minus_2:                  3
 ;     is_decimal_digit:               3
 ;     jmp_restore_fs_ctx:             3
 ;     l0355:                          3
-;     lbffe:                          3
 ;     lc006:                          3
 ;     lc008:                          3
 ;     lc031:                          3
@@ -16002,6 +16010,7 @@ save pydis_start, pydis_end
 ;     get_prot_bits:                  2
 ;     handle_dot_sep:                 2
 ;     handle_spool_ctrl_byte:         2
+;     hazel_minus_1:                  2
 ;     imm_op_out_of_range:            2
 ;     inc_fcb_byte_count:             2
 ;     init_adlc_and_vectors:          2
@@ -16015,7 +16024,6 @@ save pydis_start, pydis_end
 ;     la76d:                          2
 ;     la76e:                          2
 ;     lb821:                          2
-;     lbfff:                          2
 ;     lc00a:                          2
 ;     lc02f:                          2
 ;     lc038:                          2
@@ -16424,6 +16432,7 @@ save pydis_start, pydis_end
 ;     handle_net_error:               1
 ;     handle_tx_request:              1
 ;     handshake_await_ack:            1
+;     hazel_minus_1a:                 1
 ;     help_print_nfs_cmds:            1
 ;     help_wrap_if_serial:            1
 ;     imm_op_build_reply:             1
@@ -16485,7 +16494,6 @@ save pydis_start, pydis_end
 ;     lb0ee:                          1
 ;     lb29c:                          1
 ;     lb4fd:                          1
-;     lbfe6:                          1
 ;     lc014:                          1
 ;     lc032:                          1
 ;     lc0f7:                          1
@@ -17151,9 +17159,6 @@ save pydis_start, pydis_end
 ;     lb29c
 ;     lb4fd
 ;     lb821
-;     lbfe6
-;     lbffe
-;     lbfff
 ;     lc001
 ;     lc002
 ;     lc003

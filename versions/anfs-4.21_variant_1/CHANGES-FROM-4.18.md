@@ -325,18 +325,20 @@ In 4.18 the relocated blocks for pages 4 / 5 / 6 lived at:
 
 4.21 has none of these. The bytes at the end of the 4.21 ROM
 (`&BFC0..&BFFF`) are a small stub plus 33 bytes of `&FF` padding
-plus three labels (`lbfe6`, `lbffe`, `lbfff`) used as **indexing
+plus three labels (`hazel_minus_1a` at `&BFE6`, `hazel_minus_2`
+at `&BFFE`, `hazel_minus_1` at `&BFFF`) used as **indexing
 bases for accesses into HAZEL**. The trick: HAZEL begins at
-`&C000`, so an indexed instruction like `STA lbffe,Y` with Y ≥ 2
-lands at `&BFFE + Y ≥ &C000` -- inside HAZEL. Routines like
-`loop_copy_fs_ctx` (9 bytes at `&C000..&C007`),
+`&C000`, so an indexed instruction like `STA hazel_minus_2,Y`
+with Y ≥ 2 lands at `&BFFE + Y ≥ &C000` -- inside HAZEL.
+Routines like `loop_copy_fs_ctx` (9 bytes at `&C000..&C007`),
 `osword_13_set_station` (2 bytes at `&C000..&C001`), and
 `loop_copy_ws_to_pb` (3 bytes at `&C002..&C004`) all use this
 pattern to copy small blocks between HAZEL and other buffers
 without burning a separate zero-page pointer for the HAZEL base
 address. Each loop's `CPY`/`BNE` guard stops Y before it would
-land inside the ROM tail. See `rom_tail_padding` in the 4.21
-driver for the full mapping.
+land inside the ROM tail. See the `rom_tail_padding` and
+`hazel_idx_bases` banners in the 4.21 driver for the full
+mapping.
 
 ## Annotation / structural notes
 
