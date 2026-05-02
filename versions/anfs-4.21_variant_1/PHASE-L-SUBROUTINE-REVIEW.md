@@ -279,31 +279,31 @@ addresses across all 431 remaining routines.
 | 203 | &98BE | `wait_net_tx_ack` | done | 3-level loop table; init_txcb_port + rx_wait_timeout links |
 | 204 | &9900 | `cond_save_error_code` | done | bit-7 dispatch table; fs_flags link |
 | 205 | &9930 | `fixup_reply_status_a` | kept | already accurate |
-| 206 | &993B | `load_reply_and_classify` | | |
-| 207 | &993D | `classify_reply_error` | | |
-| 208 | &99A7 | `error_bad_inline` | | |
-| 209 | &99C0 | `error_inline_log` | | |
-| 210 | &99C3 | `error_inline` | | |
-| 211 | &99DF | `check_net_error_code` | | |
-| 212 | &9A3A | `append_drv_dot_num` | | |
-| 213 | &9A5E | `append_space_and_num` | | |
-| 214 | &9A69 | `append_decimal_num` | | |
-| 215 | &9A7A | `append_decimal_digit` | | |
-| 216 | &9A9A | `net_error_lookup_data` | | |
-| 217 | &9B24 | `init_tx_ptr_and_send` | | |
-| 218 | &9B2C | `send_net_packet` | | |
-| 219 | &9B75 | `pass_txbuf_init_table` | | |
-| 220 | &9B81 | `init_tx_ptr_for_pass` | | |
-| 221 | &9B89 | `setup_pass_txbuf` | | |
-| 222 | &9BB6 | `poll_adlc_tx_status` | | |
-| 223 | &9BF5 | `load_text_ptr_and_parse` | | |
-| 224 | &9C00 | `gsread_to_buf` | | |
-| 225 | &9C22 | `filev_handler` | | |
-| 226 | &9C3E | `do_fs_cmd_iteration` | | |
-| 227 | &9C85 | `send_txcb_swap_addrs` | | |
-| 228 | &9CB5 | `setup_dir_display` | | |
-| 229 | &9D0C | `recv_reply` | | |
-| 230 | &9D44 | `print_load_exec_addrs` | | |
+| 206 | &993B | `load_reply_and_classify` | done | classify_reply_error link |
+| 207 | &993D | `classify_reply_error` | done | error-class dispatch table; raise_escape_error link |
+| 208 | &99A7 | `error_bad_inline` | kept | hooked subroutine |
+| 209 | &99C0 | `error_inline_log` | kept | hooked subroutine |
+| 210 | &99C3 | `error_inline` | kept | hooked subroutine |
+| 211 | &99DF | `check_net_error_code` | done | 3-row dispatch table; cmd_dump link |
+| 212 | &9A3A | `append_drv_dot_num` | done | numbered append steps |
+| 213 | &9A5E | `append_space_and_num` | kept | already accurate with append_decimal_num link |
+| 214 | &9A69 | `append_decimal_num` | kept | already accurate with append_decimal_digit link |
+| 215 | &9A7A | `append_decimal_digit` | kept | already accurate |
+| 216 | &9A9A | `net_error_lookup_data` | kept | data table covered by Phase K2 |
+| 217 | &9B24 | `init_tx_ptr_and_send` | kept | already accurate with send_net_packet link |
+| 218 | &9B2C | `send_net_packet` | done | 2-phase retry table; tx_retry_count + load_reply_and_classify + wait_net_tx_ack links |
+| 219 | &9B75 | `pass_txbuf_init_table` | kept | data table |
+| 220 | &9B81 | `init_tx_ptr_for_pass` | kept | already accurate with poll_adlc_tx_status link |
+| 221 | &9B89 | `setup_pass_txbuf` | kept | already accurate |
+| 222 | &9BB6 | `poll_adlc_tx_status` | done | 4-step numbered breakdown + 5-row TX result table; tx_complete_flag + tx_begin links |
+| 223 | &9BF5 | `load_text_ptr_and_parse` | kept | already accurate |
+| 224 | &9C00 | `gsread_to_buf` | kept | already accurate |
+| 225 | &9C22 | `filev_handler` | kept | already accurate with set_xfer_params + load_text_ptr_and_parse + mask_owner_access + parse_access_prefix links |
+| 226 | &9C3E | `do_fs_cmd_iteration` | kept | already accurate with send_request_write + send_txcb_swap_addrs links |
+| 227 | &9C85 | `send_txcb_swap_addrs` | kept | already accurate |
+| 228 | &9CB5 | `setup_dir_display` | kept | already accurate |
+| 229 | &9D0C | `recv_reply` | kept | accurate description |
+| 230 | &9D44 | `print_load_exec_addrs` | kept | already accurate |
 | 231 | &9D4F | `print_5_hex_bytes` | | |
 | 232 | &9D5F | `copy_fsopts_to_zp` | | |
 | 233 | &9D6B | `skip_one_and_advance5` | | |
