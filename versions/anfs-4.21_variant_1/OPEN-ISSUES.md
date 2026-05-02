@@ -23,32 +23,59 @@ and remove the entry from here.
 
 ### O-1: What dispatch path reaches `nfs_init_body` at &8F38?
 
-**Status:** still open (2026-05-02 update).
+**Status:** RESOLVED (2026-05-02, late) by the user citing the
+*Advanced Reference Manual for the BBC Master* (page 175 in the
+original printing): service call `&27` (= 39 decimal) is "Reset
+has occurred. Call made after hard reset. Mainly for Econet Filing
+system so that it can claim NMIs. This call is now required since
+the MOS no longer offers workspace on a soft BREAK. A Sideways ROM
+should therefore re-initialise itself."
 
-What I demonstrated this session was just the mechanical
-arithmetic: under the standard reading where A at `&8AB0` is a raw
-MOS service number, the chain only lands on table[22] when the
-input is `&27` (= 39 decimal). That's the same conclusion this
-issue's "Confidence note on the trace" already documented, with
-the same flag that the upstream "raw service number" assumption
-may itself be wrong (the `cmp #&24` at `&8A8F` is hard to fit into
-the raw-service-number reading). I did not produce new evidence
-either way.
+This is *exactly* what `nfs_init_body` does -- full ANFS bring-up
+including ADLC + NETV/FSCV/FILEV/etc vector installation, CMOS
+read for station ID, bridge poll, and protection setup. The body's
+test of `last_break_type` at `&8F46` distinguishes hard from soft
+BREAK and re-initialises accordingly, which matches the doc's
+"this call is now required since the MOS no longer offers
+workspace on a soft BREAK" line verbatim.
 
-We genuinely cannot tell, from static analysis of this ROM alone,
-whether (a) MOS or co-pro code outside this ROM issues service
-`&27`, (b) the body is dead in this build, or (c) the chain's
-input is something other than a raw service number and the `&27`
-conclusion is wrong altogether.
+The same Master 128 reference revealed that the entire nine-handler
+cluster at dispatch table indices `&10..&18` is the complete set
+of `&21..&29` Master service handlers:
 
-The dispatch arithmetic and trigger unknown are both written into
-`nfs_init_body`'s description in the driver as well, so the
-annotation reads honestly even with the issue still open.
+| svc | doc role                      | dispatch idx | handler (4.21)              |
+|-----|-------------------------------|-------------:|------------------------------|
+| &21 | Static workspace claim        | &10          | raise_y_to_c8 (&8EE9)        |
+| &22 | Dynamic workspace offer       | &11          | set_rom_ws_page (&8EFE)      |
+| &23 | Top of static workspace       | &12          | store_ws_page_count (&8EF0)  |
+| &24 | Dynamic workspace requirements| &13          | noop_dey_rts (&8E71)         |
+| &25 | FS name + info reply          | &14          | copy_template_to_zp (&8E73)  |
+| &26 | Close all files               | &15          | check_help_continuation (&8E8A) |
+| &27 | Reset has occurred            | &16          | nfs_init_body (&8F38)        |
+| &28 | *CONFIGURE option             | &17          | parse_filename_validate (&959A) |
+| &29 | *STATUS option                | &18          | parse_object_argument (&9630)   |
 
-**This issue is not blocking 4.21's annotation work** -- the body
-itself is fully annotated, the dispatch table entry is real, and
-the residual question is "what makes the live system run this
-routine", which needs evidence outside this ROM.
+Service `&2A` ("ROM-based language starting up") falls past the
+last BCC at `&8ACC` because `A_final = &18` fails the `< &18`
+test, ends up at `c8ace` which sets A=0, and dispatches to
+table[1] = `dispatch_rts` (a no-op). Correct: ANFS is not a
+language ROM and has no business intercepting a language-startup
+notification.
+
+The third hypothesis from the previous open-state -- "the chain's
+input isn't a raw service number" -- is now ruled out. The chain
+*is* reading raw service numbers; the only thing missing was that
+my earlier "Master 128 service-call list `&01..&20`" range was
+incomplete -- the doc shows the list extends to at least `&2A`,
+and the cluster at `&21..&29` is exactly the band ANFS handles.
+
+The `cmp #&24` at `&8A8F` (which O-3 had earlier flagged) is now
+also explained: it's a special-case for service `&24` (Dynamic
+Workspace requirements). ANFS performs an ADLC-presence check
+before claiming dynamic workspace, so the slot's "available" flag
+in `rom_ws_pages` reflects actual Econet hardware presence. The
+inline at `&8A8F` has been corrected to "Service call &24 (Dynamic
+Workspace requirements)?".
 
 **What's known:**
 

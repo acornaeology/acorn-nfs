@@ -3048,31 +3048,36 @@ sequence after page allocation:
 
 Returns via `RTS` at `&903B`.
 
-Trigger unknown (OPEN-ISSUES O-1). The dispatch table[22] entry is
-real and the body is real code, but how the live system arrives at
-this entry is not established from static analysis alone.
+Reached via Master 128 service call `&27` (= 39 decimal),
+documented in the *Advanced Reference Manual for the BBC Master*
+as "Reset has occurred. Call made after hard reset. Mainly for
+Econet Filing system so that it can claim NMIs. This call is now
+required since the MOS no longer offers workspace on a soft
+BREAK. A Sideways ROM should therefore re-initialise itself."
 
-The mechanical arithmetic, *if* the input to the CMP/SBC chain at
-`&8AB0..&8ACE` is a raw MOS service number, gives `&27` (= 39
-decimal) as the only value that flows through the chain (`-5/-5/-8`)
-to land on the BCC at `&8ACC` with `A = &15`, then `dispatch_svc_
-index` `TAX`s and calls `svc_dispatch` with X = 21, Y = 0, settling
-`X_final = 22`. Service `&27` is not in the documented Master 128
-service-call list and no code in this ROM issues it, so under the
-"raw service number" reading either MOS or co-processor code outside
-this ROM issues `&27`, or the entry is vestigial.
+The dispatch path is: `service_handler` (`&8A54`) feeds the call
+number through its CMP / SBC normalisation chain at
+`&8AB0..&8ACE`. For `S = &27` the chain flows
+`&27 → &22 → &1D → &15` (subtracting `5+5+8`), lands on the BCC at
+`&8ACC` with `A = &15` (= 21), `dispatch_svc_index` (`&8AD0`)
+`TAX`s, and calls `svc_dispatch` with `X = 21`, `Y = 0`. The
+dispatcher's `INX/DEY/BPL` loop settles `X_final = 22`,
+dispatching to `svc_dispatch_lo[22] / hi[22] = &8F38` = this
+routine.
 
-A separate possibility, flagged in `OPEN-ISSUES.md`, is that the
-chain's input is not a raw service number at all -- the `cmp #&24`
-at `&8A8F` is hard to reconcile with the raw-service-number reading.
-If the chain's input is some pre-mapped value, the &27 conclusion
-above would be wrong and the trigger could correspond to any
-documented service call.
+This entry sits in a contiguous block of nine handlers that map
+to the documented Master 128 service calls `&21..&29`:
 
-Definitive resolution needs one of: an emulated boot trace
-watching the RTS landing on `&8F38`; the equivalent chain in a
-DNFS source release; or MOS-internal documentation. None of those
-are in this repository.""")
+  idx &10 (svc &21): raise_y_to_c8           static workspace claim
+  idx &11 (svc &22): set_rom_ws_page         dynamic workspace offer
+  idx &12 (svc &23): store_ws_page_count     top-of-static-workspace
+  idx &13 (svc &24): noop_dey_rts            dynamic workspace claim
+                                              (DEY = claim 1 page)
+  idx &14 (svc &25): copy_template_to_zp     FS name + info reply
+  idx &15 (svc &26): check_help_continuation close all files
+  idx &16 (svc &27): nfs_init_body           reset re-init (this)
+  idx &17 (svc &28): parse_filename_validate *CONFIGURE option
+  idx &18 (svc &29): parse_object_argument   *STATUS option""")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
@@ -9793,7 +9798,7 @@ comment(0x984B, "Move Y into A for the BRK", inline=True)
 comment(0x984C, "Move Y into X (caller convention)", inline=True)
 comment(0x984D, "Tail-jump into the BRK-dispatch error path",
         inline=True)
-comment(0x8A8F, "Service call &24 (Econet-present query)?", inline=True)
+comment(0x8A8F, "Service call &24 (Dynamic Workspace requirements)?", inline=True)
 comment(0x8A91, "No: skip ADLC check", inline=True)
 comment(0x8A93, "Read ADLC status register 1", inline=True)
 comment(0x8A96, "Mask relevant status bits", inline=True)
@@ -10140,14 +10145,18 @@ comment(0x8E6D, "Push low byte for RTS dispatch", inline=True)
 comment(0x8E6E, "Load FS options pointer", inline=True)
 comment(0x8E70, "Dispatch via RTS", inline=True)
 
-# noop_dey_rts (&8E71) -- svc_dispatch idx &13 stub: passive Y--; RTS.
-comment(0x8E71, "Decrement caller's Y by 1", inline=True)
+# noop_dey_rts (&8E71) -- Master 128 service &24 handler:
+# "Dynamic Workspace requirements". The doc reads: "Y contains
+# current bottom of dynamic allocation and should be decremented
+# by required number of pages". ANFS claims 1 page of dynamic
+# workspace -- DEY decrements Y by 1, RTS returns the new bottom.
+comment(0x8E71, "Claim 1 page (DEY = decrement Y by 1)", inline=True)
 comment(0x8E72, "Return", inline=True)
 
-# copy_template_to_zp (&8E73) -- svc_dispatch idx &14: copy the 11-byte
-# template at &8E7F..&8E89 (length-prefixed " /      TEN" date / format
-# fragment) into the workspace pointed at by (&F2),Y, X-counted down
-# from 10 to 0.
+# copy_template_to_zp (&8E73) -- Master 128 service &25 handler:
+# "Inform MOS of filing system name and info". Copies the 11-byte
+# template at &8E7F..&8E89 into the caller's workspace pointed at
+# by (&F2),Y, X-counted down from 10 to 0.
 comment(0x8E73, "X = 10 (top of 11-byte template)", inline=True)
 comment(0x8E75, "Load template byte X from &8E7F+X", inline=True)
 comment(0x8E78, "Store at (&F2),Y", inline=True)
@@ -10158,16 +10167,19 @@ comment(0x8E7E, "Return", inline=True)
 comment(0x8E80, "11-byte template (length 5 in [0], then '       TEN'); "
     "copied to (&F2),Y by copy_template_to_zp", inline=True)
 
-# check_help_continuation (&8E8A) -- svc_dispatch idx &15: tests
-# bit 6 of fs_flags (&0D6C); when clear, returns immediately. When
-# set, ensures the FS is selected, clears A/Y and tail-jumps into
-# findv_handler to continue an in-progress FS operation.
-comment(0x8E8A, "Test bit 6 of fs_flags (continuation pending?)", inline=True)
+# check_help_continuation (&8E8A) -- Master 128 service &26 handler:
+# "Close all files". Tests bit 6 of fs_flags (&0D6C); when clear
+# (NFS not currently selected), returns without acting. When set,
+# ensures NFS is selected (since the doc requires "filing systems
+# should select themselves, close open files and then de-select"),
+# clears A/Y and tail-jumps to findv_handler with Y=0 -- the
+# FILEV "close all files" sub-call.
+comment(0x8E8A, "Test bit 6 of fs_flags (NFS currently selected?)", inline=True)
 comment(0x8E8D, "Clear: return without acting", inline=True)
 comment(0x8E8F, "Ensure NFS is the selected FS", inline=True)
 comment(0x8E92, "A=0", inline=True)
-comment(0x8E94, "Y=0", inline=True)
-comment(0x8E95, "Continue via findv_handler", inline=True)
+comment(0x8E94, "Y=0 -- FILEV 'close all files' sub-call", inline=True)
+comment(0x8E95, "Tail-call findv_handler (= FILEV)", inline=True)
 
 # Printer server template data (8 bytes). Read indirectly by
 # copy_ps_data via LDA ps_template_base,X with X=&F8..&FF,
@@ -10441,8 +10453,8 @@ label(0x969A, "match_on_suffix")      # idx 15: 'ON ' suffix matcher
 label(0x8E71, "noop_dey_rts")         # idx 19: DEY / RTS 2-byte stub
 label(0x8E73, "copy_template_to_zp")  # idx 20: copy 11 bytes &8E7F.. to (&F2),Y
 label(0x8E8A, "check_help_continuation")  # idx 21: BIT &0D6C / BVC &8E80 / ...
-label(0x959A, "parse_filename_validate")  # idx 23
-label(0x9630, "parse_object_argument")    # idx 24
+label(0x959A, "parse_filename_validate")  # idx 23 (Master svc &28: *CONFIGURE option)
+label(0x9630, "parse_object_argument")    # idx 24 (Master svc &29: *STATUS option)
 label(0xB0FE, "ps_scan_resume")           # idx 39: tail of pop_requeue_ps_scan
 label(0xB357, "cmd_info_dispatch")        # idx 40: builds 'i.' prefix, JMPs &8E3C
 label(0xA4DC, "check_urd_present")        # idx 41: BIT &0D6C / BVC ... / JMP &A5A1
@@ -10498,15 +10510,15 @@ _svc_dispatch_entries = [
     (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc 13 wait+reset"),
     (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
     (0x0F,  0x969A,  "match_on_suffix",               "*HELP 'ON ' suffix matcher"),
-    (0x10,  0x8EE9,  "raise_y_to_c8",                 "ensure Y >= &C8 (role open: O-2)"),
-    (0x11,  0x8EFE,  "set_rom_ws_page",               "stores workspace page for this ROM slot"),
-    (0x12,  0x8EF0,  "store_ws_page_count",           "store workspace page count"),
-    (0x13,  0x8E71,  "noop_dey_rts",                  "DEY / RTS stub"),
-    (0x14,  0x8E73,  "copy_template_to_zp",           "copy 11-byte template to (&F2),Y"),
-    (0x15,  0x8E8A,  "check_help_continuation",       "BIT &0D6C / BVC / JMP &A02F"),
-    (0x16,  0x8F38,  "nfs_init_body",                 "ANFS init (full)"),
-    (0x17,  0x959A,  "parse_filename_validate",       "filename arg validator"),
-    (0x18,  0x9630,  "parse_object_argument",         "object argument parser"),
+    (0x10,  0x8EE9,  "raise_y_to_c8",                 "svc &21: static workspace claim, raise Y to &C8"),
+    (0x11,  0x8EFE,  "set_rom_ws_page",               "svc &22: dynamic workspace offer (stores page for this slot)"),
+    (0x12,  0x8EF0,  "store_ws_page_count",           "svc &23: top-of-static-workspace -- record incoming Y"),
+    (0x13,  0x8E71,  "noop_dey_rts",                  "svc &24: dynamic workspace claim (DEY = claim 1 page)"),
+    (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply (copy template to caller WS)"),
+    (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files (FILEV via Y=0)"),
+    (0x16,  0x8F38,  "nfs_init_body",                 "svc &27: post-hard-reset re-init"),
+    (0x17,  0x959A,  "parse_filename_validate",       "svc &28: *CONFIGURE option handler"),
+    (0x18,  0x9630,  "parse_object_argument",         "svc &29: *STATUS option handler"),
     (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0"),
     (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1"),
     (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2"),
@@ -10547,20 +10559,19 @@ for idx, target, name, role in _svc_dispatch_entries:
 comment(0x8A53, "padding (table has only 51 entries)", inline=True)
 
 subroutine(0x8EE9, "raise_y_to_c8",
-    title="Ensure Y >= &C8 (svc_dispatch idx &10 target)",
+    title="Master 128 service &21 handler: claim static hidden-RAM workspace",
     description="""\
-Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`. If
-Y on entry is already `>= &C8`, return unchanged; otherwise raise Y
-to `&C8` and return. The `&C8` (= 200) constant doesn't read as a
-plausible "minimum NFS workspace page count" the way 4.18's `&16`
-did at the same dispatch slot -- which dispatch path actually
-reaches this stub in 4.21 is OPEN-ISSUES O-1 / O-2; the previous
-`svc_1_abs_workspace` name was carried over from 4.18 verbatim and
-doesn't match the &C8 threshold. Renamed to `raise_y_to_c8` to
-describe what the body actually does until the role is pinned
-down.""",
-    on_entry={"y": "value to test"},
-    on_exit={"y": ">= &C8"})
+Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`.
+Reached when MOS issues service call `&21` ("Offer Static Workspace
+in Hidden RAM") to all sideways ROMs at reset. Per the *Advanced
+Reference Manual for the BBC Master*, hidden-RAM static workspace
+runs from page `&C0` up to page `&DB`; each filing-system ROM that
+wants a slice raises Y to its required base page. ANFS demands its
+static workspace base at page `&C8`, so it raises Y to `&C8` if a
+previous ROM hasn't already.""",
+    on_entry={"y": "current bottom of static workspace claim "
+              "(some page in &C0..&DB)"},
+    on_exit={"y": ">= &C8 (ANFS static workspace base)"})
 subroutine(0x8CC7, "svc_3_autoboot",
     title="Service 3: auto-boot on reset",
     description="Scans the keyboard via OSBYTE &7A for the 'N' key\n"

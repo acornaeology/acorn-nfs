@@ -2896,15 +2896,15 @@ l89c9 = reset_enter_listen+2
     equb <(wait_idle_and_reset-1)                                     ; 89fa: a5          .              ; idx &0D: wait_idle_and_reset (svc 13 wait+reset)
     equb <(svc_18_fs_select-1)                                        ; 89fb: 44          D              ; idx &0E: svc_18_fs_select (svc 18 FS select)
     equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (*HELP 'ON ' suffix matcher)
-    equb <(raise_y_to_c8-1)                                           ; 89fd: e8          .              ; idx &10: raise_y_to_c8 (ensure Y >= &C8 (role open: O-2))
-    equb <(set_rom_ws_page-1)                                         ; 89fe: fd          .              ; idx &11: set_rom_ws_page (stores workspace page for this ROM slot)
-    equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (store workspace page count)
-    equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; idx &13: noop_dey_rts (DEY / RTS stub)
-    equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; idx &14: copy_template_to_zp (copy 11-byte template to (&F2),Y)
-    equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; idx &15: check_help_continuation (BIT &0D6C / BVC / JMP &A02F)
-    equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; idx &16: nfs_init_body (ANFS init (full))
-    equb <(parse_filename_validate-1)                                 ; 8a04: 99          .              ; idx &17: parse_filename_validate (filename arg validator)
-    equb <(parse_object_argument-1)                                   ; 8a05: 2f          /              ; idx &18: parse_object_argument (object argument parser)
+    equb <(raise_y_to_c8-1)                                           ; 89fd: e8          .              ; idx &10: raise_y_to_c8 (svc &21: static workspace claim, raise Y to &C8)
+    equb <(set_rom_ws_page-1)                                         ; 89fe: fd          .              ; idx &11: set_rom_ws_page (svc &22: dynamic workspace offer (stores page for this slot))
+    equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (svc &23: top-of-static-workspace -- record incoming Y)
+    equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; idx &13: noop_dey_rts (svc &24: dynamic workspace claim (DEY = claim 1 page))
+    equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; idx &14: copy_template_to_zp (svc &25: FS name + info reply (copy template to caller WS))
+    equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; idx &15: check_help_continuation (svc &26: close all files (FILEV via Y=0))
+    equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; idx &16: nfs_init_body (svc &27: post-hard-reset re-init)
+    equb <(parse_filename_validate-1)                                 ; 8a04: 99          .              ; idx &17: parse_filename_validate (svc &28: *CONFIGURE option handler)
+    equb <(parse_object_argument-1)                                   ; 8a05: 2f          /              ; idx &18: parse_object_argument (svc &29: *STATUS option handler)
     equb <(lang_0_insert_remote_key-1)                                ; 8a06: ae          .              ; idx &19: lang_0_insert_remote_key (language reply 0)
     equb <(lang_1_remote_boot-1)                                      ; 8a07: 4f          O              ; idx &1A: lang_1_remote_boot (language reply 1)
     equb <(lang_2_save_palette_vdu-1)                                 ; 8a08: 19          .              ; idx &1B: lang_2_save_palette_vdu (language reply 2)
@@ -3056,7 +3056,7 @@ l89c9 = reset_enter_listen+2
 .c8a8d
     pla                                                               ; 8a8d: 68          h              ; Restore Y parameter
     pha                                                               ; 8a8e: 48          H              ; Save service call number
-    cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service call &24 (Econet-present query)?
+    cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service call &24 (Dynamic Workspace requirements)?
     bne check_adlc_flag                                               ; 8a91: d0 0e       ..             ; No: skip ADLC check
     lda econet_control1_or_status1                                    ; 8a93: ad a0 fe    ...            ; Read ADLC status register 1
     and #&10                                                          ; 8a96: 29 10       ).             ; Mask relevant status bits
@@ -4076,7 +4076,7 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8e70: 60          `              ; Dispatch via RTS
 
 .noop_dey_rts
-    dey                                                               ; 8e71: 88          .              ; Decrement caller's Y by 1
+    dey                                                               ; 8e71: 88          .              ; Claim 1 page (DEY = decrement Y by 1)
     rts                                                               ; 8e72: 60          `              ; Return
 
 .copy_template_to_zp
@@ -4098,12 +4098,12 @@ ps_template_base = sub_c8da6+1
     equs "/      TEN"                                                 ; 8e80: 2f 20 20... /              ; 11-byte template (length 5 in [0], then ' TEN'); copied to (&F2),Y by copy_template_to_zp
 
 .check_help_continuation
-    bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.            ; Test bit 6 of fs_flags (continuation pending?)
+    bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.            ; Test bit 6 of fs_flags (NFS currently selected?)
     bvc return_2                                                      ; 8e8d: 50 ef       P.             ; Clear: return without acting
     jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.            ; Ensure NFS is the selected FS
     lda #0                                                            ; 8e92: a9 00       ..             ; A=0
-    tay                                                               ; 8e94: a8          .              ; Y=0
-    jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.            ; Continue via findv_handler
+    tay                                                               ; 8e94: a8          .              ; Y=0 -- FILEV 'close all files' sub-call
+    jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.            ; Tail-call findv_handler (= FILEV)
 
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
@@ -4243,19 +4243,18 @@ ps_template_base = sub_c8da6+1
     jmp svc_dispatch                                                  ; 8ee6: 4c 61 8e    La.            ; Dispatch to OSBYTE handler via table
 
 ; ***************************************************************************************
-; Ensure Y >= &C8 (svc_dispatch idx &10 target)
+; Master 128 service &21 handler: claim static hidden-RAM workspace
 ;
-; Four-instruction stub: CPY #&C8 / BCS return / LDY #&C8 / RTS. If Y on entry is
-; already >= &C8, return unchanged; otherwise raise Y to &C8 and return. The &C8 (=
-; 200) constant doesn't read as a plausible "minimum NFS workspace page count" the way
-; 4.18's &16 did at the same dispatch slot -- which dispatch path actually reaches this
-; stub in 4.21 is OPEN-ISSUES O-1 / O-2; the previous svc_1_abs_workspace name was
-; carried over from 4.18 verbatim and doesn't match the &C8 threshold. Renamed to
-; raise_y_to_c8 to describe what the body actually does until the role is pinned down.
+; Four-instruction stub: CPY #&C8 / BCS return / LDY #&C8 / RTS. Reached when MOS
+; issues service call &21 ("Offer Static Workspace in Hidden RAM") to all sideways ROMs
+; at reset. Per the Advanced Reference Manual for the BBC Master, hidden-RAM static
+; workspace runs from page &C0 up to page &DB; each filing-system ROM that wants a
+; slice raises Y to its required base page. ANFS demands its static workspace base at
+; page &C8, so it raises Y to &C8 if a previous ROM hasn't already.
 ;
-; On Entry: Y: value to test
+; On Entry: Y: current bottom of static workspace claim (some page in &C0..&DB)
 ;
-; On Exit: Y: >= &C8
+; On Exit: Y: >= &C8 (ANFS static workspace base)
 .raise_y_to_c8
     cpy #&c8                                                          ; 8ee9: c0 c8       ..             ; Y already >= &C8?
     bcs return_from_raise_y_to_c8                                     ; 8eeb: b0 02       ..             ; Yes: return Y unchanged
@@ -4365,27 +4364,30 @@ ps_template_base = sub_c8da6+1
 ;
 ; Returns via RTS at &903B.
 ;
-; Trigger unknown (OPEN-ISSUES O-1). The dispatch table[22] entry is real and the body
-; is real code, but how the live system arrives at this entry is not established from
-; static analysis alone.
+; Reached via Master 128 service call &27 (= 39 decimal), documented in the Advanced
+; Reference Manual for the BBC Master as "Reset has occurred. Call made after hard
+; reset. Mainly for Econet Filing system so that it can claim NMIs. This call is now
+; required since the MOS no longer offers workspace on a soft BREAK. A Sideways ROM
+; should therefore re-initialise itself."
 ;
-; The mechanical arithmetic, if the input to the CMP/SBC chain at &8AB0..&8ACE is a raw
-; MOS service number, gives &27 (= 39 decimal) as the only value that flows through the
-; chain (-5/-5/-8) to land on the BCC at &8ACC with A = &15, then dispatch_svc_ index
-; TAXs and calls svc_dispatch with X = 21, Y = 0, settling X_final = 22. Service &27 is
-; not in the documented Master 128 service-call list and no code in this ROM issues it,
-; so under the "raw service number" reading either MOS or co-processor code outside
-; this ROM issues &27, or the entry is vestigial.
+; The dispatch path is: service_handler (&8A54) feeds the call number through its CMP /
+; SBC normalisation chain at &8AB0..&8ACE. For S = &27 the chain flows &27 → &22 → &1D
+; → &15 (subtracting 5+5+8), lands on the BCC at &8ACC with A = &15 (= 21),
+; dispatch_svc_index (&8AD0) TAXs, and calls svc_dispatch with X = 21, Y = 0. The
+; dispatcher's INX/DEY/BPL loop settles X_final = 22, dispatching to
+; svc_dispatch_lo[22] / hi[22] = &8F38 = this routine.
 ;
-; A separate possibility, flagged in OPEN-ISSUES.md, is that the chain's input is not a
-; raw service number at all -- the cmp #&24 at &8A8F is hard to reconcile with the
-; raw-service-number reading. If the chain's input is some pre-mapped value, the &27
-; conclusion above would be wrong and the trigger could correspond to any documented
-; service call.
+; This entry sits in a contiguous block of nine handlers that map to the documented
+; Master 128 service calls &21..&29:
 ;
-; Definitive resolution needs one of: an emulated boot trace watching the RTS landing
-; on &8F38; the equivalent chain in a DNFS source release; or MOS-internal
-; documentation. None of those are in this repository.
+; idx &10 (svc &21): raise_y_to_c8           static workspace claim idx &11 (svc &22):
+; set_rom_ws_page         dynamic workspace offer idx &12 (svc &23):
+; store_ws_page_count     top-of-static-workspace idx &13 (svc &24): noop_dey_rts
+; dynamic workspace claim (DEY = claim 1 page) idx &14 (svc &25): copy_template_to_zp
+; FS name + info reply idx &15 (svc &26): check_help_continuation close all files idx
+; &16 (svc &27): nfs_init_body           reset re-init (this) idx &17 (svc &28):
+; parse_filename_validate *CONFIGURE option idx &18 (svc &29): parse_object_argument
+; *STATUS option
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter

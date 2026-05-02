@@ -166,7 +166,7 @@ Stop-light dashboard at the bottom of each session update.
 | 2 - cmd_table_fs symbolic     | #18 | DONE |
 | 3 - top-20 routine walk       | #19 | DONE |
 | 4 - per-string banners        | #20 | DONE |
-| 5 - O-1 dispatch trace        | #21 | open -- needs external evidence |
+| 5 - O-1 dispatch trace        | #21 | DONE (resolved by Master 128 doc -- svc &27 = "Reset has occurred") |
 | 6 - osbyte_a2 dead-code fate  | #22 | DONE (it's not dead -- annotated as dispatch targets) |
 | 7 - selective auto-rename     | #23 | DONE |
 
@@ -180,7 +180,7 @@ Stop-light dashboard at the bottom of each session update.
 | `data runs --unannotated` | empty     |
 | Inline density      | 100.0 % (7087 / 7087) |
 | Subroutines         | 459             |
-| Open issues         | 1 (O-1: trigger genuinely unknown without external evidence) |
+| Open issues         | 0 (O-1 resolved by external doc citation; O-2/3/4 closed earlier) |
 
 ## Session log
 
