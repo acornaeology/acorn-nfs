@@ -4365,8 +4365,16 @@ ps_template_base = sub_c8da6+1
 ;
 ; Returns via RTS at &903B.
 ;
-; TODO (Phase C): identify the exact svc_dispatch (X, Y) pair that reaches index 22
-; (OPEN-ISSUES O-1). The concrete trigger has not yet been pinned down.
+; Dispatch arithmetic (open issue O-1): the table[22] entry is real and the body is
+; real code. Tracing svc_dispatch's X_final = X_caller + Y_caller + 1 arithmetic, the
+; only call site that can reach idx 22 is dispatch_svc_index at &8AD0 (Y = 0) with X =
+; 21 in the SBC chain at &8AB0..&8ACE, which corresponds to MOS service number &27 (=
+; 39 decimal). However: search of the ROM for any code that issues MOS service &27
+; finds no match, and &27 is not a documented Master 128 service call. This was earlier
+; interpreted as a sibling-ROM signal (variant 2 talking to variant 1) but the user has
+; confirmed there is no companion ROM. The genuine trigger is unidentified -- possibly
+; an Acorn-internal Tube/init path, possibly dead in this build. See OPEN-ISSUES.md O-1
+; for the full investigation history.
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
