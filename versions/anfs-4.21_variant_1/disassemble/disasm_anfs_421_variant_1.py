@@ -128,40 +128,139 @@ hook_subroutine(0x99A7, "error_bad_inline", stringz_hook)
 # ============================================================
 # Hardware registers
 # ============================================================
+# Phase L0 (2026-05-02): hardware registers, MOS extended vectors,
+# and MOS vector-table entries declared as label() with memory-map
+# metadata (per AUTHORING.md §3) so they show up on the version's
+# memory-map page and resolve cleanly when subroutine descriptions
+# link to them via [name](address:HEX?hex).
 
 # MC6854 ADLC registers (active at &FEA0-&FEA3 when active Econet station)
-constant(0xFEA0, "adlc_cr1")   # Write: CR1 (or CR3 if AC=1). Read: SR1
-constant(0xFEA1, "adlc_cr2")   # Write: CR2 (or CR4 if AC=1). Read: SR2
-constant(0xFEA2, "adlc_tx")    # Write: TX FIFO (continue frame). Read: RX FIFO
-constant(0xFEA3, "adlc_tx2")   # Write: TX FIFO (last byte). Read: RX FIFO
+label(0xFEA0, "adlc_cr1",
+    description="ADLC control register 1 / status register 1.\n"
+                "Write: `CR1` (or `CR3` if `AC=1`). Read: `SR1`.\n\n"
+                "`SR1` bits: `RDA` (b0), `S2RQ` (b1), `LOOP` (b2), "
+                "`FD` (b3), `CTS` (b4), `TUF` (b5), `TDRA` (b6), "
+                "`IRQ` (b7).",
+    length=1, group="io", access="rw")
+label(0xFEA1, "adlc_cr2",
+    description="ADLC control register 2 / status register 2.\n"
+                "Write: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.\n\n"
+                "`SR2` bits: `AP` (b0), `FV` (b1), `RX_IDLE` (b2), "
+                "`RX_ABRT` (b3), `ERR` (b4), `DCD` (b5), `OVRN` (b6), "
+                "`RDA` (b7).",
+    length=1, group="io", access="rw")
+label(0xFEA2, "adlc_tx",
+    description="ADLC TX FIFO continue / RX FIFO read.\n"
+                "Write: byte to TX FIFO with `LAST_DATA = 0` "
+                "(continue frame).\n"
+                "Read: next byte from RX FIFO.",
+    length=1, group="io", access="rw")
+label(0xFEA3, "adlc_tx2",
+    description="ADLC TX FIFO terminate / RX FIFO read.\n"
+                "Write: final byte of frame (`LAST_DATA = 1`; ADLC "
+                "appends CRC + closing flag).\n"
+                "Read: next byte from RX FIFO.",
+    length=1, group="io", access="rw")
 
 # Econet hardware on the 1MHz bus
-constant(0xFE18, "econet_station_id")  # Read: station DIP switches AND INTOFF
-constant(0xFE20, "econet_nmi_enable")  # Read: INTON (re-enable NMIs)
+label(0xFE18, "econet_station_id",
+    description="Econet station ID register / INTOFF latch.\n"
+                "Read: station DIP-switch byte (1..254) AND INTOFF "
+                "side-effect (disables NMIs from /NMI input).\n\n"
+                "ANFS reads this on every NMI entry as the first "
+                "instruction of the shim, both to capture the "
+                "station ID and to stop NMIs from re-firing during "
+                "the body of the handler.",
+    length=1, group="io", access="r")
+label(0xFE20, "econet_nmi_enable",
+    description="Econet NMI-enable register / INTON latch.\n"
+                "Read: re-enables NMIs (INTON side-effect; the "
+                "value read is ignored).\n\n"
+                "Used by the NMI-exit shim before `RTI` so the next "
+                "/NMI edge re-triggers the handler.",
+    length=1, group="io", access="r")
 
 # Tube ULA registers (&FEE0-&FEE7) — named by acorn.bbc()
 
-# MOS extended-vector entry points
-constant(0xFF1B, "ev_filev")   # FILEV extended-vector dispatcher
-constant(0xFF1E, "ev_argsv")   # ARGSV extended-vector dispatcher
-constant(0xFF21, "ev_bgetv")   # BGETV extended-vector dispatcher
-constant(0xFF24, "ev_bputv")   # BPUTV extended-vector dispatcher
-constant(0xFF27, "ev_gbpbv")   # GBPBV extended-vector dispatcher
-constant(0xFF2A, "ev_findv")   # FINDV extended-vector dispatcher
-constant(0xFF2D, "ev_fscv")    # FSCV extended-vector dispatcher
+# MOS extended-vector entry points (jumped to via the corresponding
+# vec_* page-2 pointer; the MOS forwards the call through the ROM
+# bank stored alongside the address).
+label(0xFF1B, "ev_filev",
+    description="FILEV extended-vector dispatcher (file operations: "
+                "OSFILE, OSFIND).",
+    length=3, group="mmio", access="r")
+label(0xFF1E, "ev_argsv",
+    description="ARGSV extended-vector dispatcher (file argument "
+                "operations: OSARGS).",
+    length=3, group="mmio", access="r")
+label(0xFF21, "ev_bgetv",
+    description="BGETV extended-vector dispatcher (single-byte read: "
+                "OSBGET).",
+    length=3, group="mmio", access="r")
+label(0xFF24, "ev_bputv",
+    description="BPUTV extended-vector dispatcher (single-byte write: "
+                "OSBPUT).",
+    length=3, group="mmio", access="r")
+label(0xFF27, "ev_gbpbv",
+    description="GBPBV extended-vector dispatcher (block transfer: "
+                "OSGBPB).",
+    length=3, group="mmio", access="r")
+label(0xFF2A, "ev_findv",
+    description="FINDV extended-vector dispatcher (open / close: "
+                "OSFIND).",
+    length=3, group="mmio", access="r")
+label(0xFF2D, "ev_fscv",
+    description="FSCV extended-vector dispatcher (filing-system "
+                "control: OSFSC, *commands).",
+    length=3, group="mmio", access="r")
 
-# MOS vector table entries (the ROM-vector slots in &0200..&02xx)
-constant(0x0212, "vec_filev")  # FILEV pointer (lo+hi+rom)
-constant(0x0214, "vec_argsv")  # ARGSV pointer
-constant(0x0216, "vec_bgetv")  # BGETV pointer (note: standard layout)
-constant(0x0218, "vec_bputv")  # BPUTV pointer
-constant(0x021A, "vec_bgetv_alt")  # alternate BGETV slot
-constant(0x021C, "vec_gbpbv")  # GBPBV pointer
-constant(0x021E, "vec_fscv")   # FSCV pointer
+# MOS vector table entries (the ROM-vector slots in &0200..&02xx).
+# Each is a 3-byte (lo, hi, rom_bank) tuple; the rom_bank slot lives
+# at &0Dxx in extended-vector territory. ANFS patches its own
+# extended-vector dispatchers into these slots during init.
+label(0x0212, "vec_filev",
+    description="FILEV pointer (lo, hi, rom). Patched to ANFS's "
+                "FILE handler at init.",
+    length=2, group="ram_workspace", access="rw")
+label(0x0214, "vec_argsv",
+    description="ARGSV pointer (lo, hi, rom). Patched to ANFS's "
+                "ARGS handler at init.",
+    length=2, group="ram_workspace", access="rw")
+label(0x0216, "vec_bgetv",
+    description="BGETV pointer (lo, hi, rom). Patched to ANFS's "
+                "BGET handler at init.\n\n"
+                "Note: standard layout (the alternate "
+                "[`vec_bgetv_alt`](address:021A) slot is also used "
+                "by some routines).",
+    length=2, group="ram_workspace", access="rw")
+label(0x0218, "vec_bputv",
+    description="BPUTV pointer (lo, hi, rom). Patched to ANFS's "
+                "BPUT handler at init.",
+    length=2, group="ram_workspace", access="rw")
+label(0x021A, "vec_bgetv_alt",
+    description="Alternate BGETV slot (lo, hi, rom).\n"
+                "Some ANFS routines use this in addition to the "
+                "standard [`vec_bgetv`](address:0216) at "
+                "&0216.",
+    length=2, group="ram_workspace", access="rw")
+label(0x021C, "vec_gbpbv",
+    description="GBPBV pointer (lo, hi, rom). Patched to ANFS's "
+                "GBPB handler at init.",
+    length=2, group="ram_workspace", access="rw")
+label(0x021E, "vec_fscv",
+    description="FSCV pointer (lo, hi, rom). Patched to ANFS's "
+                "FSC handler at init.",
+    length=2, group="ram_workspace", access="rw")
 
 # MOS workspace pointers (used by FS reply paths via indirect access)
-constant(0xFFB7, "mos_workspace")  # MOS internal workspace (&FFB7-&FFBF saved
-                                   # by process_all_fcbs across FCB scans)
+label(0xFFB7, "mos_workspace",
+    description="MOS internal workspace base.\n"
+                "ANFS's [`process_all_fcbs`](address:BB38) saves "
+                "&FFB7..&FFBF across each FCB scan, then restores "
+                "before returning. The 9 saved bytes are used by "
+                "MOS for its own bookkeeping during the OSGBPB-style "
+                "iteration.",
+    length=9, group="mmio", access="rw")
 
 # ============================================================
 # Protocol constants
@@ -302,30 +401,84 @@ label(0x00FF, "escape_flag")
 # Page &0D — NMI handler workspace (&0D00-&0DFF)
 # ============================================================
 
-label(0x0D07, "nmi_romsel")           # ROM bank number patched into NMI shim
-label(0x0D0C, "nmi_jmp_lo")
-label(0x0D0D, "nmi_jmp_hi")
-# NMI exit entry points (RAM shim, copied from rom_set_nmi_vector):
-#   set_nmi_vector  (&0D0E): STY &0D0D; STA &0D0C — writes both bytes
-#   install_nmi_handler (&0D11): STA &0D0C — writes low byte only
-#     (same-page optimisation: keeps existing high byte at &0D0D)
-#   nmi_rti (&0D14): restore ROM bank, PLA Y, PLA A, BIT &FE20
-#     (INTON), RTI
+label(0x0D07, "nmi_romsel",
+    description="ROM-bank number patched into the NMI shim.\n"
+                "The NMI handler runs in the active sideways slot, "
+                "so the shim begins by paging in the NFS ROM bank "
+                "(this byte) before dispatching to the body.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D0C, "nmi_jmp_lo",
+    description="NMI dispatch JMP-target low byte.\n"
+                "Patched by [`set_nmi_vector`](address:0D0E?hex) and "
+                "[`install_nmi_handler`](address:0D11?hex). The NMI "
+                "shim does `JMP (nmi_jmp_lo)` to reach the current "
+                "handler.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D0D, "nmi_jmp_hi",
+    description="NMI dispatch JMP-target high byte.\n"
+                "Paired with [`nmi_jmp_lo`](address:0D0C?hex). Only "
+                "[`set_nmi_vector`](address:0D0E?hex) writes this; "
+                "[`install_nmi_handler`](address:0D11?hex) leaves it "
+                "alone (same-page optimisation).",
+    length=1, group="ram_workspace", access="rw")
+# NMI exit entry points (RAM shim, copied from rom_set_nmi_vector).
 # All three converge on the INTON/RTI at &0D1C/&0D1F.
-label(0x0D0E, "set_nmi_vector")       # Update JMP target (both bytes) + nmi_rti
-label(0x0D11, "install_nmi_handler")  # Update JMP target (lo byte only) + nmi_rti
-label(0x0D14, "nmi_rti")              # Restore ROM, PLA, INTON, RTI
+label(0x0D0E, "set_nmi_vector",
+    description="NMI vector update (both bytes).\n"
+                "`STY [nmi_jmp_hi](address:0D0D)` then `STA "
+                "[nmi_jmp_lo](address:0D0C)`, writing the full "
+                "16-bit NMI handler address into the JMP-target "
+                "slot. Falls through to "
+                "[`nmi_rti`](address:0D14?hex).",
+    length=3, group="ram_workspace", access="r")
+label(0x0D11, "install_nmi_handler",
+    description="NMI vector update (low byte only).\n"
+                "`STA [nmi_jmp_lo](address:0D0C)` only, leaving the "
+                "existing high byte at [`nmi_jmp_hi`](address:0D0D?hex) "
+                "in place. Same-page optimisation used when the "
+                "next handler is in the same page as the current "
+                "one. Falls through to "
+                "[`nmi_rti`](address:0D14?hex).",
+    length=3, group="ram_workspace", access="r")
+label(0x0D14, "nmi_rti",
+    description="NMI exit shim.\n"
+                "Restores the previous ROM bank, pulls Y and A off "
+                "the stack, reads `BIT econet_nmi_enable` (INTON, "
+                "re-enables /NMI), and `RTI`s. Reached either as a "
+                "fall-through from [`set_nmi_vector`](address:0D0E?hex) "
+                "/ [`install_nmi_handler`](address:0D11?hex), or as "
+                "a direct branch from any NMI handler that has "
+                "finished early.",
+    length=11, group="ram_workspace", access="r")
 label(0x0D1A, "imm_param_base")       # Base for indexed imm-op TXCB param copy
 label(0x0D1E, "tx_addr_base")         # Base for 4-byte TX transfer address
 
 # Scout/acknowledge packet buffer (&0D20-&0D25)
-label(0x0D20, "tx_dst_stn")
-label(0x0D21, "tx_dst_net")
-label(0x0D22, "tx_src_stn")
-label(0x0D23, "tx_src_net")
-label(0x0D24, "tx_ctrl_byte")
-label(0x0D25, "tx_port")
-label(0x0D26, "tx_data_start")
+label(0x0D20, "tx_dst_stn",
+    description="Destination station for next TX scout/ACK frame.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D21, "tx_dst_net",
+    description="Destination network for next TX scout/ACK frame.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D22, "tx_src_stn",
+    description="Source-station byte (our station ID).\n"
+                "Set during init from "
+                "[`econet_station_id`](address:FE18?hex).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D23, "tx_src_net",
+    description="Source-network byte for outgoing scout/ACK "
+                "frames (typically 0 for local network).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D24, "tx_ctrl_byte",
+    description="Control byte for next TX scout frame.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D25, "tx_port",
+    description="Destination port for next TX scout frame.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D26, "tx_data_start",
+    description="Start of TX data buffer (used by scout/data frame "
+                "construction).",
+    length=1, group="ram_workspace", access="rw")
 
 # TX control
 label(0x0D2A, "tx_data_len")
@@ -338,40 +491,146 @@ label(0x0D31, "scout_port")           # Scout: port byte (scout_buf+3)
 label(0x0D32, "scout_data")           # Scout: data payload base (scout_buf+4)
 
 # Received scout
-label(0x0D3D, "rx_src_stn")
-label(0x0D3E, "rx_src_net")
-label(0x0D3F, "rx_ctrl")
-label(0x0D40, "rx_port")
-label(0x0D41, "rx_remote_addr")
-label(0x0D42, "rx_extra_byte")        # Extra trailing RX data byte
-label(0x0D43, "saved_nmi_lo")         # Saved next NMI handler address lo
-label(0x0D44, "saved_nmi_hi")         # Saved next NMI handler address hi
+label(0x0D3D, "rx_src_stn",
+    description="Source station of the received scout frame.\n"
+                "First address byte read by "
+                "[`nmi_rx_scout`](address:809B?hex) and validated "
+                "against our station ID.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D3E, "rx_src_net",
+    description="Source network of the received scout frame.\n"
+                "Read by [`nmi_rx_scout_net`](address:80B8?hex); "
+                "used for the local-network match (0 = local, "
+                "&FF = broadcast).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D3F, "rx_ctrl",
+    description="Control byte of the received scout frame.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D40, "rx_port",
+    description="Port byte of the received scout frame.\n"
+                "Matched against the open RXCB list to find a "
+                "listener (or the immediate-op port range "
+                "&80..&88).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D41, "rx_remote_addr",
+    description="Remote address byte for received TX setup.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D42, "rx_extra_byte",
+    description="Extra trailing RX data byte.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D43, "saved_nmi_lo",
+    description="Saved next NMI handler address (low byte).\n"
+                "Written by [`ack_tx_write_dest`](address:82F8?hex) "
+                "from the (A=lo, Y=hi) pair on entry, then "
+                "consumed when the next NMI fires.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D44, "saved_nmi_hi",
+    description="Saved next NMI handler address (high byte).\n"
+                "Paired with [`saved_nmi_lo`](address:0D43?hex).",
+    length=1, group="ram_workspace", access="rw")
 
 # TX state
-label(0x0D4A, "tx_flags")
-label(0x0D4B, "nmi_next_lo")
-label(0x0D4C, "nmi_next_hi")
-label(0x0D4F, "tx_index")
-label(0x0D50, "tx_length")
+label(0x0D4A, "tx_flags",
+    description="TX path control flags.\n"
+                "Bit 7: TX path is active (used by "
+                "[`nmi_error_dispatch`](address:8215?hex) to choose "
+                "between RX-error reset and TX-fail dispatch).\n"
+                "Bit 0: handshake-data pending.\n"
+                "Bit 1: data-RX into Tube buffer (selected by "
+                "[`install_data_rx_handler`](address:81F7?hex)).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D4B, "nmi_next_lo",
+    description="Next NMI handler address (low byte).\n"
+                "Saved by the scout / data-RX handler; consumed by "
+                "[`ack_tx`](address:82DF?hex) when installing the "
+                "post-ACK NMI handler.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D4C, "nmi_next_hi",
+    description="Next NMI handler address (high byte).\n"
+                "Paired with [`nmi_next_lo`](address:0D4B?hex).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D4F, "tx_index",
+    description="Index into the TX buffer (current byte position).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D50, "tx_length",
+    description="Total length of the TX data payload.",
+    length=1, group="ram_workspace", access="rw")
 
 # ANFS-specific workspace (identified from references in ROM)
-label(0x0D60, "tx_complete_flag")     # TX completion semaphore (b7: set by NMI handler on TX done)
-label(0x0D61, "econet_flags")         # Econet control flags (b7: port list, b2: halt)
-label(0x0D62, "econet_init_flag")     # Econet initialised flag (b7: NMI shim installed)
-label(0x0D63, "tube_present")         # Tube co-processor presence flag
-label(0x0D64, "ws_0d64")
-label(0x0D65, "tx_op_type")
-label(0x0D66, "exec_addr_lo")         # Remote execution address lo
-label(0x0D67, "exec_addr_hi")         # Remote execution address hi
-label(0x0D68, "ws_0d68")
-label(0x0D69, "ws_0d69")
-label(0x0D6A, "ws_0d6a")
-label(0x0D6B, "spool_buf_idx")        # Spool/printer buffer write index
-label(0x0D6C, "fs_flags")             # FS status flags (b7: selected/active)
-label(0x0D6D, "tx_retry_count")       # Transmit retry count (default &FF = 255); OSWORD &13 PB[1]
-label(0x0D6E, "rx_wait_timeout")      # Receive wait timeout (default &28 = 40); OSWORD &13 PB[2]
-label(0x0D6F, "peek_retry_count")    # Machine peek retry count (default &0A = 10); OSWORD &13 PB[3]
-label(0x0D72, "bridge_status")        # Bridge station number (&FF = no bridge)
+label(0x0D60, "tx_complete_flag",
+    description="TX completion semaphore.\n"
+                "Bit 7 set by the NMI TX-completion handler; "
+                "polled by `wait_net_tx_ack` to detect frame "
+                "completion.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D61, "econet_flags",
+    description="Econet control flags.\n"
+                "Bit 7: port-list active. Bit 2: halt requested.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D62, "econet_init_flag",
+    description="Econet-initialised flag.\n"
+                "Bit 7 set when the NMI shim has been installed; "
+                "checked at every NMI to reject pre-init "
+                "interrupts.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D63, "tube_present",
+    description="Tube co-processor presence flag.\n"
+                "Probed at init via OSBYTE `&EA`; read by every "
+                "TX/RX path that needs to forward data through "
+                "the Tube.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D64, "ws_0d64",
+    description="ANFS workspace byte (role TBD).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D65, "tx_op_type",
+    description="Deferred-work / TX-operation type flag.\n"
+                "Set by NMI handlers to mark pending work; "
+                "polled by [`svc5_irq_check`](address:8028?hex) "
+                "as the dispatch trigger.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D66, "exec_addr_lo",
+    description="Remote execution address (low byte).\n"
+                "Stored by remote-JSR / immediate-op paths; "
+                "consumed when the queued operation runs.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D67, "exec_addr_hi",
+    description="Remote execution address (high byte).\n"
+                "Paired with [`exec_addr_lo`](address:0D66?hex).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D68, "ws_0d68",
+    description="ANFS workspace byte (role TBD).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D69, "ws_0d69",
+    description="ANFS workspace byte (role TBD).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6A, "ws_0d6a",
+    description="ANFS workspace byte (role TBD).",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6B, "spool_buf_idx",
+    description="Spool / printer buffer write index.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6C, "fs_flags",
+    description="Filing-system status flags.\n"
+                "Bit 7: NFS is currently the selected FS; cleared "
+                "when another FS takes over.",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6D, "tx_retry_count",
+    description="Transmit retry count (default `&FF` = 255).\n"
+                "Settable via OSWORD `&13` PB[1].",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6E, "rx_wait_timeout",
+    description="Receive wait timeout (default `&28` = 40).\n"
+                "Settable via OSWORD `&13` PB[2].",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D6F, "peek_retry_count",
+    description="Machine peek retry count (default `&0A` = 10).\n"
+                "Settable via OSWORD `&13` PB[3].",
+    length=1, group="ram_workspace", access="rw")
+label(0x0D72, "bridge_status",
+    description="Bridge station number (`&FF` = no bridge).\n"
+                "Set by the bridge-discovery scout reply; checked "
+                "before any cross-network operation.",
+    length=1, group="ram_workspace", access="rw")
 
 # Page &0D — workspace pointers
 label(0x0DE6, "txcb_default_base")    # Base for indexed read of default TXCB values
@@ -1928,11 +2187,12 @@ subroutine(0x8050, "adlc_init",
     title="ADLC initialisation",
     description="""\
 Initialise ADLC hardware and Econet workspace. Reads the station ID
-via `econet_station_id` (`&FE18`, INTOFF side effect), performs a
-full ADLC reset via [`adlc_full_reset`](address:898C?hex), then
-probes for a Tube co-processor via OSBYTE `&EA` and stores the
-result in `tube_present`. Issues an NMI-claim service request
-(OSBYTE `&8F`, `X=&0C`). Falls through to
+via [`econet_station_id`](address:FE18?hex) (INTOFF side effect),
+performs a full ADLC reset via
+[`adlc_full_reset`](address:898C?hex), then probes for a Tube
+co-processor via OSBYTE `&EA` and stores the result in
+`tube_present`. Issues an NMI-claim service request (OSBYTE `&8F`,
+`X=&0C`). Falls through to
 [`init_nmi_workspace`](address:8070?hex) to copy the NMI shim to
 RAM.""")
 subroutine(0x8070, "init_nmi_workspace",
@@ -9506,13 +9766,55 @@ label(0xC2D7, "hazel_saved_byte")
 label(0xC2D8, "hazel_quote_mode")
 label(0xC2D9, "hazel_ctx_buffer")
 label(0xC2F3, "hazel_display_buf")
-label(0xFE28, "master_romsel_shadow")
-label(0xFE2B, "master_break_type_shadow")
-label(0xFE34, "acccon")
-label(0xFE38, "master_intoff")
-label(0xFE3C, "master_inton")
-label(0xFFB0, "nmi_buf_idx_base")
-label(0xFFBD, "fcb_workspace_idx_base")
+label(0xFE28, "master_romsel_shadow",
+    description="Master 128 ROMSEL shadow register.\n"
+                "Read-only mirror of the current sideways-ROM "
+                "selection (the actual ROMSEL is at `&FE30`).",
+    length=1, group="io", access="r")
+label(0xFE2B, "master_break_type_shadow",
+    description="Master 128 last-break-type hardware shadow.\n"
+                "Reflects the value left by the last reset (cold "
+                "/ warm / power-on).",
+    length=1, group="io", access="r")
+label(0xFE34, "acccon",
+    description="Master 128 ACCCON access-control register.\n\n"
+                "Bit-by-bit (write-only):\n\n"
+                "| Bit | Name | Effect when set |\n"
+                "|---|---|---|\n"
+                "| 7 | IRR | IRQ-on-VSYNC mask |\n"
+                "| 6 | TST | Test mode |\n"
+                "| 5 | IFJ | I/O is JIM |\n"
+                "| 4 | ITU | Internal Tube |\n"
+                "| 3 | Y   | HAZEL paged in (`&C000-&DFFF` is hidden RAM) |\n"
+                "| 2 | X   | LYNNE paged in (`&3000-&7FFF` is shadow RAM) |\n"
+                "| 1 | E   | shadow RAM owns screen |\n"
+                "| 0 | D   | shadow RAM for the OS display |\n\n"
+                "ANFS uses bit 7 (IRR) as a deferred-work latch via "
+                "`TRB`/`TSB`.",
+    length=1, group="io", access="rw")
+label(0xFE38, "master_intoff",
+    description="Master 128 INTOFF mirror (NMI-disable side effect).\n"
+                "Reading any byte here disables /NMI re-entry; the "
+                "byte value itself is irrelevant.",
+    length=1, group="io", access="r")
+label(0xFE3C, "master_inton",
+    description="Master 128 INTON mirror (NMI-enable side effect).\n"
+                "Reading any byte here re-enables /NMI; the byte "
+                "value itself is irrelevant.",
+    length=1, group="io", access="r")
+label(0xFFB0, "nmi_buf_idx_base",
+    description="NMI buffer indexing-base.\n"
+                "Used by the NMI RX setup as `STA nmi_buf_idx_base,Y` "
+                "with Y values that wrap into low memory; the bytes "
+                "at `&FFB0` themselves aren't read or written.",
+    length=1, group="mmio", access="r")
+label(0xFFBD, "fcb_workspace_idx_base",
+    description="FCB-workspace indexing-base.\n"
+                "Used by `loop_save_fcb_workspace` / "
+                "`loop_restore_fcb_workspace` as a base for "
+                "indexed access; the byte at `&FFBD` itself isn't "
+                "read or written.",
+    length=1, group="mmio", access="r")
 
 # 14 indexing-base aliases that py8dis emitted as `lXXXX = symbol+offset`
 # because the code uses `LDA somelabel,X/Y` with a base that lies inside

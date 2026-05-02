@@ -19,6 +19,38 @@ For each of 452 subroutines:
 5. Commit per cluster.
 6. Update this file: mark each row `done` / `skipped` (with reason).
 
+## Phase L0 — memory-map metadata enrichment (done 2026-05-02)
+
+Before resuming Phase L proper, took a detour to add memory-map
+metadata to the most-referenced workspace and MMIO addresses.
+Per AUTHORING.md §3.1, a `label()` with `description=` /
+`length=` / `group=` / `access=` kwargs becomes a memory-map
+entry that links cleanly when subroutine descriptions reference
+it via `[name](address:HEX?hex)`. Without metadata, such links
+warn at site build and render as broken `<a href="address:XXXX">`.
+
+71 enriched labels in 3 groups:
+
+- **`io` (11):** ADLC registers `&FEA0..&FEA3`; Econet ULA
+  `&FE18` / `&FE20`; Master 128 ROMSEL/break-type/ACCCON/INTOFF/
+  INTON shadows `&FE28` / `&FE2B` / `&FE34` / `&FE38` / `&FE3C`.
+  ACCCON gets a full bit-by-bit table.
+- **`mmio` (10):** MOS extended-vector dispatchers `&FF1B..&FF2D`;
+  MOS internal workspace `&FFB7`; the two MOS-area indexing-base
+  aliases `&FFB0` / `&FFBD`.
+- **`ram_workspace` (50):** page-2 OS vector slots `&0212..&021E`;
+  NMI shim `&0D07..&0D14`; scout/ACK packet buffer `&0D20..&0D26`;
+  received-scout fields `&0D3D..&0D44`; TX state `&0D4A..&0D50`;
+  ANFS workspace `&0D60..&0D72`.
+
+Result: site build now reports **0 warnings** (was 11
+pre-Phase-L0). All `[name](address:HEX?hex)` links from
+subroutine descriptions resolve to the memory-map page with
+proper tooltips (`&XXXX – first sentence of description`).
+
+Phase L proper can now use the full linking syntax for these
+addresses across all 431 remaining routines.
+
 ## Conventions
 
 - **Title** (`title=` kwarg): one-line banner, ≤ 60 chars.

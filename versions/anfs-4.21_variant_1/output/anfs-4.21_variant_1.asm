@@ -1,16 +1,10 @@
     cpu 1
 
 ; Constants
-adlc_cr1                                        = 65184
-adlc_cr2                                        = 65185
-adlc_tx                                         = 65186
-adlc_tx2                                        = 65187
 buffer_printer                                  = 3
 cb_fill                                         = 252
 cb_skip                                         = 253
 cb_stop                                         = 254
-econet_nmi_enable                               = 65056
-econet_station_id                               = 65048
 err_fs_cutoff                                   = 168
 err_line_jammed                                 = 160
 err_net_error                                   = 161
@@ -18,16 +12,8 @@ err_no_clock                                    = 163
 err_no_reply                                    = 165
 err_not_listening                               = 162
 err_tx_cb_error                                 = 164
-ev_argsv                                        = 65310
-ev_bgetv                                        = 65313
-ev_bputv                                        = 65316
-ev_filev                                        = 65307
-ev_findv                                        = 65322
-ev_fscv                                         = 65325
-ev_gbpbv                                        = 65319
 event_network_error                             = 8
 inkey_key_ctrl                                  = 254
-mos_workspace                                   = 65463
 osbyte_acknowledge_escape                       = 126
 osbyte_close_spool_exec                         = 119
 osbyte_explode_chars                            = 20
@@ -59,13 +45,6 @@ port_reply                                      = 144
 port_save_ack                                   = 145
 rx_ready                                        = 127
 tx_flag                                         = 128
-vec_argsv                                       = 532
-vec_bgetv                                       = 534
-vec_bgetv_alt                                   = 538
-vec_bputv                                       = 536
-vec_filev                                       = 530
-vec_fscv                                        = 542
-vec_gbpbv                                       = 540
 
 ; Memory locations
 zp_ptr_lo                   = &0000
@@ -150,8 +129,13 @@ stack_page_2                = &0102
 stack_page_3                = &0103
 stack_page_4                = &0104
 stack_page_6                = &0106
-filev                       = &0212
-fscv                        = &021e
+vec_filev                   = &0212  ; FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init.
+vec_argsv                   = &0214  ; ARGSV pointer (lo, hi, rom). Patched to ANFS's ARGS handler at init.
+vec_bgetv                   = &0216  ; BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.
+vec_bputv                   = &0218  ; BPUTV pointer (lo, hi, rom). Patched to ANFS's BPUT handler at init.
+vec_bgetv_alt               = &021a  ; Alternate BGETV slot (lo, hi, rom).
+vec_gbpbv                   = &021c  ; GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.
+vec_fscv                    = &021e  ; FSCV pointer (lo, hi, rom). Patched to ANFS's FSC handler at init.
 evntv                       = &0220
 netv                        = &0224
 last_break_type             = &028d
@@ -161,58 +145,58 @@ vdu_display_start_hi        = &0351
 vdu_mode                    = &0355
 tube_addr_data_dispatch     = &0406
 nmi_code_base               = &0cff
-nmi_romsel                  = &0d07
-nmi_jmp_lo                  = &0d0c
-nmi_jmp_hi                  = &0d0d
-set_nmi_vector              = &0d0e
-install_nmi_handler         = &0d11
-nmi_rti                     = &0d14
+nmi_romsel                  = &0d07  ; ROM-bank number patched into the NMI shim.
+nmi_jmp_lo                  = &0d0c  ; NMI dispatch JMP-target low byte.
+nmi_jmp_hi                  = &0d0d  ; NMI dispatch JMP-target high byte.
+set_nmi_vector              = &0d0e  ; NMI vector update (both bytes).
+install_nmi_handler         = &0d11  ; NMI vector update (low byte only).
+nmi_rti                     = &0d14  ; NMI exit shim.
 imm_param_base              = &0d1a
 tx_addr_base                = &0d1e
-tx_dst_stn                  = &0d20
-tx_dst_net                  = &0d21
-tx_src_stn                  = &0d22
-tx_src_net                  = &0d23
-tx_ctrl_byte                = &0d24
-tx_port                     = &0d25
-tx_data_start               = &0d26
+tx_dst_stn                  = &0d20  ; Destination station for next TX scout/ACK frame.
+tx_dst_net                  = &0d21  ; Destination network for next TX scout/ACK frame.
+tx_src_stn                  = &0d22  ; Source-station byte (our station ID).
+tx_src_net                  = &0d23  ; Source-network byte for outgoing scout/ACK frames (typically 0 for local network).
+tx_ctrl_byte                = &0d24  ; Control byte for next TX scout frame.
+tx_port                     = &0d25  ; Destination port for next TX scout frame.
+tx_data_start               = &0d26  ; Start of TX data buffer (used by scout/data frame construction).
 tx_data_len                 = &0d2a
 scout_buf                   = &0d2e
 scout_src_net               = &0d2f
 scout_ctrl                  = &0d30
 scout_port                  = &0d31
 scout_data                  = &0d32
-rx_src_stn                  = &0d3d
-rx_src_net                  = &0d3e
-rx_ctrl                     = &0d3f
-rx_port                     = &0d40
-rx_remote_addr              = &0d41
-rx_extra_byte               = &0d42
-saved_nmi_lo                = &0d43
-saved_nmi_hi                = &0d44
-tx_flags                    = &0d4a
-nmi_next_lo                 = &0d4b
-nmi_next_hi                 = &0d4c
-tx_index                    = &0d4f
-tx_length                   = &0d50
-tx_complete_flag            = &0d60
-econet_flags                = &0d61
-econet_init_flag            = &0d62
-tube_present                = &0d63
-ws_0d64                     = &0d64
-tx_op_type                  = &0d65
-exec_addr_lo                = &0d66
-exec_addr_hi                = &0d67
-ws_0d68                     = &0d68
-ws_0d69                     = &0d69
-ws_0d6a                     = &0d6a
-spool_buf_idx               = &0d6b
-fs_flags                    = &0d6c
-tx_retry_count              = &0d6d
-rx_wait_timeout             = &0d6e
-peek_retry_count            = &0d6f
+rx_src_stn                  = &0d3d  ; Source station of the received scout frame.
+rx_src_net                  = &0d3e  ; Source network of the received scout frame.
+rx_ctrl                     = &0d3f  ; Control byte of the received scout frame.
+rx_port                     = &0d40  ; Port byte of the received scout frame.
+rx_remote_addr              = &0d41  ; Remote address byte for received TX setup.
+rx_extra_byte               = &0d42  ; Extra trailing RX data byte.
+saved_nmi_lo                = &0d43  ; Saved next NMI handler address (low byte).
+saved_nmi_hi                = &0d44  ; Saved next NMI handler address (high byte).
+tx_flags                    = &0d4a  ; TX path control flags.
+nmi_next_lo                 = &0d4b  ; Next NMI handler address (low byte).
+nmi_next_hi                 = &0d4c  ; Next NMI handler address (high byte).
+tx_index                    = &0d4f  ; Index into the TX buffer (current byte position).
+tx_length                   = &0d50  ; Total length of the TX data payload.
+tx_complete_flag            = &0d60  ; TX completion semaphore.
+econet_flags                = &0d61  ; Econet control flags.
+econet_init_flag            = &0d62  ; Econet-initialised flag.
+tube_present                = &0d63  ; Tube co-processor presence flag.
+ws_0d64                     = &0d64  ; ANFS workspace byte (role TBD).
+tx_op_type                  = &0d65  ; Deferred-work / TX-operation type flag.
+exec_addr_lo                = &0d66  ; Remote execution address (low byte).
+exec_addr_hi                = &0d67  ; Remote execution address (high byte).
+ws_0d68                     = &0d68  ; ANFS workspace byte (role TBD).
+ws_0d69                     = &0d69  ; ANFS workspace byte (role TBD).
+ws_0d6a                     = &0d6a  ; ANFS workspace byte (role TBD).
+spool_buf_idx               = &0d6b  ; Spool / printer buffer write index.
+fs_flags                    = &0d6c  ; Filing-system status flags.
+tx_retry_count              = &0d6d  ; Transmit retry count (default &FF = 255).
+rx_wait_timeout             = &0d6e  ; Receive wait timeout (default &28 = 40).
+peek_retry_count            = &0d6f  ; Machine peek retry count (default &0A = 10).
 spool_control_flag          = &0d71
-bridge_status               = &0d72
+bridge_status               = &0d72  ; Bridge station number (&FF = no bridge).
 txcb_default_base           = &0de6
 rom_ws_pages                = &0df0
 fs_context_save             = &0dfa
@@ -386,19 +370,29 @@ hazel_saved_byte            = &c2d7
 hazel_quote_mode            = &c2d8
 hazel_ctx_buffer            = &c2d9
 hazel_display_buf           = &c2f3
-master_romsel_shadow        = &fe28
-master_break_type_shadow    = &fe2b
+econet_station_id           = &fe18  ; Econet station ID register / INTOFF latch.
+econet_nmi_enable           = &fe20  ; Econet NMI-enable register / INTON latch.
+master_romsel_shadow        = &fe28  ; Master 128 ROMSEL shadow register.
+master_break_type_shadow    = &fe2b  ; Master 128 last-break-type hardware shadow.
 romsel                      = &fe30
-acccon                      = &fe34
-master_intoff               = &fe38
-master_inton                = &fe3c
-econet_control1_or_status1  = &fea0
-econet_control23_or_status2 = &fea1
-econet_data_continue_frame  = &fea2
-econet_data_terminate_frame = &fea3
+acccon                      = &fe34  ; Master 128 ACCCON access-control register.
+master_intoff               = &fe38  ; Master 128 INTOFF mirror (NMI-disable side effect).
+master_inton                = &fe3c  ; Master 128 INTON mirror (NMI-enable side effect).
+adlc_cr1                    = &fea0  ; ADLC control register 1 / status register 1.
+adlc_cr2                    = &fea1  ; ADLC control register 2 / status register 2.
+adlc_tx                     = &fea2  ; ADLC TX FIFO continue / RX FIFO read.
+adlc_tx2                    = &fea3  ; ADLC TX FIFO terminate / RX FIFO read.
 tube_data_register_3        = &fee5
-nmi_buf_idx_base            = &ffb0
-fcb_workspace_idx_base      = &ffbd
+ev_filev                    = &ff1b  ; FILEV extended-vector dispatcher (file operations: OSFILE, OSFIND).
+ev_argsv                    = &ff1e  ; ARGSV extended-vector dispatcher (file argument operations: OSARGS).
+ev_bgetv                    = &ff21  ; BGETV extended-vector dispatcher (single-byte read: OSBGET).
+ev_bputv                    = &ff24  ; BPUTV extended-vector dispatcher (single-byte write: OSBPUT).
+ev_gbpbv                    = &ff27  ; GBPBV extended-vector dispatcher (block transfer: OSGBPB).
+ev_findv                    = &ff2a  ; FINDV extended-vector dispatcher (open / close: OSFIND).
+ev_fscv                     = &ff2d  ; FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands).
+nmi_buf_idx_base            = &ffb0  ; NMI buffer indexing-base.
+mos_workspace               = &ffb7  ; MOS internal workspace base.
+fcb_workspace_idx_base      = &ffbd  ; FCB-workspace indexing-base.
 oseven                      = &ffbf
 gsinit                      = &ffc2
 gsread                      = &ffc5
@@ -503,7 +497,7 @@ rom_header_byte2 = rom_header+2
 ; ADLC initialisation
 ;
 ; Initialise ADLC hardware and Econet workspace. Reads the station ID via
-; econet_station_id (&FE18, INTOFF side effect), performs a full ADLC reset via
+; econet_station_id (&FE18) (INTOFF side effect), performs a full ADLC reset via
 ; adlc_full_reset (&898C), then probes for a Tube co-processor via OSBYTE &EA and
 ; stores the result in tube_present. Issues an NMI-claim service request (OSBYTE &8F,
 ; X=&0C). Falls through to init_nmi_workspace (&8070) to copy the NMI shim to RAM.
@@ -582,9 +576,9 @@ rom_header_byte2 = rom_header+2
 ; &809b referenced 1 time by &89d5
 .nmi_rx_scout
     lda #1                                                            ; 809b: a9 01       ..             ; A=&01: mask for SR2 bit0 (AP = Address Present)
-    bit econet_control23_or_status2                                   ; 809d: 2c a1 fe    ,..            ; BIT SR2: Z = A AND SR2 -- tests if AP is set
+    bit adlc_cr2                                                      ; 809d: 2c a1 fe    ,..            ; BIT SR2: Z = A AND SR2 -- tests if AP is set
     beq scout_error                                                   ; 80a0: f0 36       .6             ; AP not set, no incoming data -- check for errors
-    lda econet_data_continue_frame                                    ; 80a2: ad a2 fe    ...            ; Read first RX byte (destination station address)
+    lda adlc_tx                                                       ; 80a2: ad a2 fe    ...            ; Read first RX byte (destination station address)
     cmp tx_src_stn                                                    ; 80a5: cd 22 0d    .".            ; Compare to our station ID (&FE18 read = INTOFF, disables NMIs)
     beq accept_frame                                                  ; 80a8: f0 09       ..             ; Match -- accept frame
     cmp #&ff                                                          ; 80aa: c9 ff       ..             ; Check for broadcast address (&FF)
@@ -609,16 +603,16 @@ rom_header_byte2 = rom_header+2
 ;
 ; Installs copy_scout_to_buffer (&8400) as the scout-data reading loop handler.
 .nmi_rx_scout_net
-    bit econet_control23_or_status2                                   ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
+    bit adlc_cr2                                                      ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
     bpl scout_error                                                   ; 80bb: 10 1b       ..             ; No RDA -- check errors
-    lda econet_data_continue_frame                                    ; 80bd: ad a2 fe    ...            ; Read destination network byte
+    lda adlc_tx                                                       ; 80bd: ad a2 fe    ...            ; Read destination network byte
     beq accept_local_net                                              ; 80c0: f0 0c       ..             ; Network = 0 -- local network, accept
     eor #&ff                                                          ; 80c2: 49 ff       I.             ; EOR &FF: test if network = &FF (broadcast)
     beq accept_scout_net                                              ; 80c4: f0 0b       ..             ; Broadcast network -- accept
 ; &80c6 referenced 1 time by &80ac
 .scout_reject
     lda #&a2                                                          ; 80c6: a9 a2       ..             ; Reject: wrong network. CR1=&A2: RIE|RX_DISCONTINUE
-    sta econet_control1_or_status1                                    ; 80c8: 8d a0 fe    ...            ; Write CR1 to discontinue RX
+    sta adlc_cr1                                                      ; 80c8: 8d a0 fe    ...            ; Write CR1 to discontinue RX
     jmp set_nmi_rx_scout                                              ; 80cb: 4c eb 83    L..            ; Return to idle scout listening
 
 ; &80ce referenced 1 time by &80c0
@@ -644,7 +638,7 @@ rom_header_byte2 = rom_header+2
 ; the scout reception chain.
 ; &80d8 referenced 5 times by &80a0, &80bb, &80ed, &8121, &8123
 .scout_error
-    lda econet_control23_or_status2                                   ; 80d8: ad a1 fe    ...            ; Read SR2
+    lda adlc_cr2                                                      ; 80d8: ad a1 fe    ...            ; Read SR2
     and #&81                                                          ; 80db: 29 81       ).             ; Test AP (b0) | RDA (b7)
     beq scout_discard                                                 ; 80dd: f0 06       ..             ; Neither set -- clean end, discard frame
     jsr adlc_full_reset                                               ; 80df: 20 8c 89     ..            ; Unexpected data/status: full ADLC reset
@@ -655,25 +649,25 @@ rom_header_byte2 = rom_header+2
     jmp reset_adlc_rx_listen                                          ; 80e5: 4c e8 83    L..            ; Gentle discard: RX_DISCONTINUE
 
     ldy port_buf_len                                                  ; 80e8: a4 a2       ..             ; Y = buffer offset
-    lda econet_control23_or_status2                                   ; 80ea: ad a1 fe    ...            ; Read SR2
+    lda adlc_cr2                                                      ; 80ea: ad a1 fe    ...            ; Read SR2
 ; &80ed referenced 1 time by &810d
 .scout_loop_rda
     bpl scout_error                                                   ; 80ed: 10 e9       ..             ; No RDA -- error handler
-    lda econet_data_continue_frame                                    ; 80ef: ad a2 fe    ...            ; Read data byte from RX FIFO
+    lda adlc_tx                                                       ; 80ef: ad a2 fe    ...            ; Read data byte from RX FIFO
     sta scout_buf,y                                                   ; 80f2: 99 2e 0d    ...            ; Store at &0D3D+Y (scout buffer)
     iny                                                               ; 80f5: c8          .              ; Advance buffer index
-    lda econet_control23_or_status2                                   ; 80f6: ad a1 fe    ...            ; Read SR2 again (FV detection point)
+    lda adlc_cr2                                                      ; 80f6: ad a1 fe    ...            ; Read SR2 again (FV detection point)
     bmi scout_loop_second                                             ; 80f9: 30 02       0.             ; RDA set -- more data, read second byte
     bne scout_complete                                                ; 80fb: d0 15       ..             ; SR2 non-zero (FV or other) -- scout completion
 ; &80fd referenced 1 time by &80f9
 .scout_loop_second
-    lda econet_data_continue_frame                                    ; 80fd: ad a2 fe    ...            ; Read second byte of pair
+    lda adlc_tx                                                       ; 80fd: ad a2 fe    ...            ; Read second byte of pair
     sta scout_buf,y                                                   ; 8100: 99 2e 0d    ...            ; Store at &0D3D+Y
     iny                                                               ; 8103: c8          .              ; Advance and check buffer limit
     cpy #&0c                                                          ; 8104: c0 0c       ..             ; Copied all 12 scout bytes?
     beq scout_complete                                                ; 8106: f0 0a       ..             ; Buffer full (Y=12) -- force completion
     sty port_buf_len                                                  ; 8108: 84 a2       ..             ; Save final buffer offset
-    lda econet_control23_or_status2                                   ; 810a: ad a1 fe    ...            ; Read SR2 for next pair
+    lda adlc_cr2                                                      ; 810a: ad a1 fe    ...            ; Read SR2 for next pair
     bne scout_loop_rda                                                ; 810d: d0 de       ..             ; SR2 non-zero -- loop back for more bytes
     jmp nmi_rti                                                       ; 810f: 4c 14 0d    L..            ; SR2 = 0 -- RTI, wait for next NMI
 
@@ -692,17 +686,17 @@ rom_header_byte2 = rom_header+2
 ; &8112 referenced 2 times by &80fb, &8106
 .scout_complete
     lda #0                                                            ; 8112: a9 00       ..             ; Save Y for next iteration
-    sta econet_control1_or_status1                                    ; 8114: 8d a0 fe    ...            ; Write CR1
+    sta adlc_cr1                                                      ; 8114: 8d a0 fe    ...            ; Write CR1
     lda #&84                                                          ; 8117: a9 84       ..             ; CR2=&84: disable PSE, enable RDA_SUPPRESS_FV
-    sta econet_control23_or_status2                                   ; 8119: 8d a1 fe    ...            ; Write CR2
+    sta adlc_cr2                                                      ; 8119: 8d a1 fe    ...            ; Write CR2
     lda #2                                                            ; 811c: a9 02       ..             ; A=&02: FV mask for SR2 bit1
-    bit econet_control23_or_status2                                   ; 811e: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
+    bit adlc_cr2                                                      ; 811e: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
     beq scout_error                                                   ; 8121: f0 b5       ..             ; No FV -- not a valid frame end, error
     bpl scout_error                                                   ; 8123: 10 b3       ..             ; FV set but no RDA -- missing last byte, error
-    lda econet_data_continue_frame                                    ; 8125: ad a2 fe    ...            ; Read last byte from RX FIFO
+    lda adlc_tx                                                       ; 8125: ad a2 fe    ...            ; Read last byte from RX FIFO
     sta scout_buf,y                                                   ; 8128: 99 2e 0d    ...            ; Store last byte at &0D3D+Y
     lda #&44 ; 'D'                                                    ; 812b: a9 44       .D             ; CR1=&44: RX_RESET | TIE (switch to TX for ACK)
-    sta econet_control1_or_status1                                    ; 812d: 8d a0 fe    ...            ; Write CR1: switch to TX mode
+    sta adlc_cr1                                                      ; 812d: 8d a0 fe    ...            ; Write CR1: switch to TX mode
     sec                                                               ; 8130: 38          8              ; Set bit7 of need_release_tube flag
     ror prot_flags                                                    ; 8131: 66 99       f.             ; Rotate C=1 into bit7: mark Tube release needed
     lda scout_port                                                    ; 8133: ad 31 0d    .1.            ; Check port byte: 0 = immediate op, non-zero = data transfer
@@ -715,7 +709,7 @@ rom_header_byte2 = rom_header+2
     bit rx_src_net                                                    ; 813b: 2c 3e 0d    ,>.            ; Check if broadcast (bit6 of tx_flags)
     bvc scan_port_list                                                ; 813e: 50 05       P.             ; Not broadcast -- skip CR2 setup
     lda #7                                                            ; 8140: a9 07       ..             ; CR2=&07: broadcast prep
-    sta econet_control23_or_status2                                   ; 8142: 8d a1 fe    ...            ; Write CR2: broadcast frame prep
+    sta adlc_cr2                                                      ; 8142: 8d a1 fe    ...            ; Write CR2: broadcast frame prep
 ; &8145 referenced 1 time by &813e
 .scan_port_list
     bit econet_flags                                                  ; 8145: 2c 61 0d    ,a.            ; Check if RX port list active (bit7)
@@ -813,9 +807,9 @@ rom_header_byte2 = rom_header+2
 ; &81a7 referenced 2 times by &81a2, &84ae
 .send_data_rx_ack
     lda #&44 ; 'D'                                                    ; 81a7: a9 44       .D             ; CR1=&44: RX_RESET | TIE
-    sta econet_control1_or_status1                                    ; 81a9: 8d a0 fe    ...            ; Write CR1: TX mode for ACK
+    sta adlc_cr1                                                      ; 81a9: 8d a0 fe    ...            ; Write CR1: TX mode for ACK
     lda #&a7                                                          ; 81ac: a9 a7       ..             ; CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE
-    sta econet_control23_or_status2                                   ; 81ae: 8d a1 fe    ...            ; Write CR2: enable TX with PSE
+    sta adlc_cr2                                                      ; 81ae: 8d a1 fe    ...            ; Write CR2: enable TX with PSE
     lda #&b8                                                          ; 81b1: a9 b8       ..             ; Install data_rx_setup at &81B8
     ldy #&81                                                          ; 81b3: a0 81       ..             ; High byte of data_rx_setup handler
     jmp ack_tx_write_dest                                             ; 81b5: 4c f8 82    L..            ; Send ACK with data_rx_setup as next NMI
@@ -830,7 +824,7 @@ rom_header_byte2 = rom_header+2
 ; nmi_data_rx (&81C2) as the next NMI handler.
 .data_rx_setup
     lda #&82                                                          ; 81b8: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
-    sta econet_control1_or_status1                                    ; 81ba: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
+    sta adlc_cr1                                                      ; 81ba: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
     lda #&c2                                                          ; 81bd: a9 c2       ..             ; Install nmi_data_rx at &81E7
     jmp install_nmi_handler                                           ; 81bf: 4c 11 0d    L..            ; Install nmi_data_rx and return from NMI
 
@@ -847,9 +841,9 @@ rom_header_byte2 = rom_header+2
 ; data read) → data_rx_complete (&8268) (completion).
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
-    bit econet_control23_or_status2                                   ; 81c4: 2c a1 fe    ,..            ; BIT SR2: test AP bit
+    bit adlc_cr2                                                      ; 81c4: 2c a1 fe    ,..            ; BIT SR2: test AP bit
     beq nmi_error_dispatch                                            ; 81c7: f0 4c       .L             ; No AP: wrong frame or error
-    lda econet_data_continue_frame                                    ; 81c9: ad a2 fe    ...            ; Read first byte (dest station)
+    lda adlc_tx                                                       ; 81c9: ad a2 fe    ...            ; Read first byte (dest station)
     cmp tx_src_stn                                                    ; 81cc: cd 22 0d    .".            ; Compare to our station ID (INTOFF)
     bne nmi_error_dispatch                                            ; 81cf: d0 44       .D             ; Not for us: error path
     lda #&d6                                                          ; 81d1: a9 d6       ..             ; Install nmi_data_rx_net check handler
@@ -865,13 +859,13 @@ rom_header_byte2 = rom_header+2
 ;
 ; On Exit: A: dest-network byte (validated against local)
 .nmi_data_rx_net
-    bit econet_control23_or_status2                                   ; 81d6: 2c a1 fe    ,..            ; Validate source network = 0
+    bit adlc_cr2                                                      ; 81d6: 2c a1 fe    ,..            ; Validate source network = 0
     bpl nmi_error_dispatch                                            ; 81d9: 10 3a       .:             ; SR2 bit7 clear: no data ready -- error
-    lda econet_data_continue_frame                                    ; 81db: ad a2 fe    ...            ; Read dest network byte
+    lda adlc_tx                                                       ; 81db: ad a2 fe    ...            ; Read dest network byte
     bne nmi_error_dispatch                                            ; 81de: d0 35       .5             ; Network != 0: wrong network -- error
     lda #&ec                                                          ; 81e0: a9 ec       ..             ; Install skip handler at &8211
     ldy #&81                                                          ; 81e2: a0 81       ..             ; High byte of &8211 handler
-    bit econet_control1_or_status1                                    ; 81e4: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
+    bit adlc_cr1                                                      ; 81e4: 2c a0 fe    ,..            ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 81e7: 30 03       0.             ; Data ready: skip directly, no RTI
     jmp set_nmi_vector                                                ; 81e9: 4c 0e 0d    L..            ; Install handler and return via RTI
 
@@ -883,10 +877,10 @@ rom_header_byte2 = rom_header+2
 ; SR2 for RDA on entry; on no RDA, branches to nmi_error_dispatch.
 ; &81ec referenced 1 time by &81e7
 .nmi_data_rx_skip
-    bit econet_control23_or_status2                                   ; 81ec: 2c a1 fe    ,..            ; Skip control and port bytes (already known from scout)
+    bit adlc_cr2                                                      ; 81ec: 2c a1 fe    ,..            ; Skip control and port bytes (already known from scout)
     bpl nmi_error_dispatch                                            ; 81ef: 10 24       .$             ; SR2 bit7 clear: error
-    lda econet_data_continue_frame                                    ; 81f1: ad a2 fe    ...            ; Discard control byte
-    lda econet_data_continue_frame                                    ; 81f4: ad a2 fe    ...            ; Discard port byte
+    lda adlc_tx                                                       ; 81f1: ad a2 fe    ...            ; Discard control byte
+    lda adlc_tx                                                       ; 81f4: ad a2 fe    ...            ; Discard port byte
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ;
@@ -909,7 +903,7 @@ rom_header_byte2 = rom_header+2
     bne install_tube_rx                                               ; 81fc: d0 0c       ..             ; Tube active: use Tube RX path
     lda #&23 ; '#'                                                    ; 81fe: a9 23       .#             ; Install bulk read at &8239
     ldy #&82                                                          ; 8200: a0 82       ..             ; High byte of &8239 handler
-    bit econet_control1_or_status1                                    ; 8202: 2c a0 fe    ,..            ; SR1 bit7: more data already waiting?
+    bit adlc_cr1                                                      ; 8202: 2c a0 fe    ,..            ; SR1 bit7: more data already waiting?
     bmi nmi_data_rx_bulk                                              ; 8205: 30 1c       0.             ; Yes: enter bulk read directly
     jmp set_nmi_vector                                                ; 8207: 4c 0e 0d    L..            ; No: install handler and RTI
 
@@ -957,7 +951,7 @@ rom_header_byte2 = rom_header+2
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
     ldy port_buf_len                                                  ; 8223: a4 a2       ..             ; Y = buffer offset, resume from last position
-    lda econet_control23_or_status2                                   ; 8225: ad a1 fe    ...            ; Read SR2 for next pair
+    lda adlc_cr2                                                      ; 8225: ad a1 fe    ...            ; Read SR2 for next pair
 ; &8228 referenced 1 time by &825f
 .data_rx_loop
     bpl data_rx_complete                                              ; 8228: 10 3e       .>             ; SR2 bit7 clear: frame complete (FV)
@@ -968,7 +962,7 @@ rom_header_byte2 = rom_header+2
     pha                                                               ; 822d: 48          H              ; Push ACCCON snapshot
     lda escapable                                                     ; 822e: a5 97       ..             ; Load desired ACCCON from workspace &97
     sta acccon                                                        ; 8230: 8d 34 fe    .4.            ; Set ACCCON for the upcoming buffer stores
-    lda econet_data_continue_frame                                    ; 8233: ad a2 fe    ...            ; Read first byte of pair from RX FIFO
+    lda adlc_tx                                                       ; 8233: ad a2 fe    ...            ; Read first byte of pair from RX FIFO
     sta (open_port_buf),y                                             ; 8236: 91 a4       ..             ; Store byte to buffer
     iny                                                               ; 8238: c8          .              ; Advance buffer offset
     bne read_sr2_between_pairs                                        ; 8239: d0 06       ..             ; Y != 0: no page boundary crossing
@@ -977,12 +971,12 @@ rom_header_byte2 = rom_header+2
     beq page_boundary_restore                                         ; 823f: f0 d0       ..             ; No pages left: handle as complete
 ; &8241 referenced 1 time by &8239
 .read_sr2_between_pairs
-    lda econet_control23_or_status2                                   ; 8241: ad a1 fe    ...            ; Read SR2 between byte pairs
+    lda adlc_cr2                                                      ; 8241: ad a1 fe    ...            ; Read SR2 between byte pairs
     bmi read_second_rx_byte                                           ; 8244: 30 02       0.             ; SR2 bit7 set: more data available
     bne frame_complete_restore                                        ; 8246: d0 1c       ..             ; SR2 non-zero, bit7 clear: frame done
 ; &8248 referenced 1 time by &8244
 .read_second_rx_byte
-    lda econet_data_continue_frame                                    ; 8248: ad a2 fe    ...            ; Read second byte of pair from RX FIFO
+    lda adlc_tx                                                       ; 8248: ad a2 fe    ...            ; Read second byte of pair from RX FIFO
     sta (open_port_buf),y                                             ; 824b: 91 a4       ..             ; Store byte to buffer
     iny                                                               ; 824d: c8          .              ; Advance buffer offset
     sty port_buf_len                                                  ; 824e: 84 a2       ..             ; Save updated buffer position
@@ -995,7 +989,7 @@ rom_header_byte2 = rom_header+2
     pla                                                               ; 8258: 68          h              ; Pull saved ACCCON from stack
     sta acccon                                                        ; 8259: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_sr2_loop_again
-    lda econet_control23_or_status2                                   ; 825c: ad a1 fe    ...            ; Read SR2 for next iteration
+    lda adlc_cr2                                                      ; 825c: ad a1 fe    ...            ; Read SR2 for next iteration
     bne data_rx_loop                                                  ; 825f: d0 c7       ..             ; SR2 non-zero: more data, loop back
     jmp nmi_rti                                                       ; 8261: 4c 14 0d    L..            ; SR2=0: no more data yet, wait for NMI
 
@@ -1013,19 +1007,19 @@ rom_header_byte2 = rom_header+2
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
     lda #&84                                                          ; 8268: a9 84       ..             ; CR1=&00: disable all interrupts
-    sta econet_control23_or_status2                                   ; 826a: 8d a1 fe    ...            ; Write CR2: disable PSE for bit testing
+    sta adlc_cr2                                                      ; 826a: 8d a1 fe    ...            ; Write CR2: disable PSE for bit testing
     lda #0                                                            ; 826d: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
-    sta econet_control1_or_status1                                    ; 826f: 8d a0 fe    ...            ; Write CR1: disable all interrupts
+    sta adlc_cr1                                                      ; 826f: 8d a0 fe    ...            ; Write CR1: disable all interrupts
     sty port_buf_len                                                  ; 8272: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 8274: a9 02       ..             ; A=&02: FV mask
-    bit econet_control23_or_status2                                   ; 8276: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
+    bit adlc_cr2                                                      ; 8276: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
     beq nmi_error_dispatch                                            ; 8279: f0 9a       ..             ; No FV -- error
     bpl send_ack                                                      ; 827b: 10 11       ..             ; FV set, no RDA -- proceed to ACK
     lda port_buf_len_hi                                               ; 827d: a5 a3       ..             ; Check if buffer space remains
 ; &827f referenced 3 times by &829c, &82c3, &82cf
 .read_last_rx_byte
     beq nmi_error_dispatch                                            ; 827f: f0 94       ..             ; No buffer space: error/discard frame
-    lda econet_data_continue_frame                                    ; 8281: ad a2 fe    ...            ; FV+RDA: read and store last data byte
+    lda adlc_tx                                                       ; 8281: ad a2 fe    ...            ; FV+RDA: read and store last data byte
     ldy port_buf_len                                                  ; 8284: a4 a2       ..             ; Y = current buffer write offset
     sta (open_port_buf),y                                             ; 8286: 91 a4       ..             ; Store last byte in port receive buffer
     inc port_buf_len                                                  ; 8288: e6 a2       ..             ; Advance buffer write offset
@@ -1044,19 +1038,19 @@ rom_header_byte2 = rom_header+2
 ; continues the tight inner loop or returns via RTI. Reached only via the NMI vector
 ; after install_tube_rx configures the handler.
 .nmi_data_rx_tube
-    lda econet_control23_or_status2                                   ; 8291: ad a1 fe    ...            ; Read SR2 for Tube data receive path
+    lda adlc_cr2                                                      ; 8291: ad a1 fe    ...            ; Read SR2 for Tube data receive path
 ; &8294 referenced 1 time by &82af
 .rx_tube_data
     bpl data_rx_tube_complete                                         ; 8294: 10 1e       ..             ; RDA clear: no more data, frame complete
-    lda econet_data_continue_frame                                    ; 8296: ad a2 fe    ...            ; Read data byte from ADLC RX FIFO
+    lda adlc_tx                                                       ; 8296: ad a2 fe    ...            ; Read data byte from ADLC RX FIFO
     jsr advance_buffer_ptr                                            ; 8299: 20 2c 85     ,.            ; Check buffer limits and transfer size
     beq read_last_rx_byte                                             ; 829c: f0 e1       ..             ; Zero: buffer full, handle as error
     sta tube_data_register_3                                          ; 829e: 8d e5 fe    ...            ; Send byte to Tube data register 3
-    lda econet_data_continue_frame                                    ; 82a1: ad a2 fe    ...            ; Read second data byte (paired transfer)
+    lda adlc_tx                                                       ; 82a1: ad a2 fe    ...            ; Read second data byte (paired transfer)
     sta tube_data_register_3                                          ; 82a4: 8d e5 fe    ...            ; Send second byte to Tube
     jsr advance_buffer_ptr                                            ; 82a7: 20 2c 85     ,.            ; Check limits after byte pair
     beq data_rx_tube_complete                                         ; 82aa: f0 08       ..             ; Zero: Tube transfer complete
-    lda econet_control23_or_status2                                   ; 82ac: ad a1 fe    ...            ; Re-read SR2 for next byte pair
+    lda adlc_cr2                                                      ; 82ac: ad a1 fe    ...            ; Re-read SR2 for next byte pair
     bne rx_tube_data                                                  ; 82af: d0 e3       ..             ; More data available: continue loop
 .data_rx_tube_error
     jmp nmi_rti                                                       ; 82b1: 4c 14 0d    L..            ; Unexpected end: return from NMI
@@ -1064,11 +1058,11 @@ rom_header_byte2 = rom_header+2
 ; &82b4 referenced 2 times by &8294, &82aa
 .data_rx_tube_complete
     lda #0                                                            ; 82b4: a9 00       ..             ; CR1=&00: disable all interrupts
-    sta econet_control1_or_status1                                    ; 82b6: 8d a0 fe    ...            ; Write CR1 for individual bit testing
+    sta adlc_cr1                                                      ; 82b6: 8d a0 fe    ...            ; Write CR1 for individual bit testing
     lda #&84                                                          ; 82b9: a9 84       ..             ; CR2=&84: disable PSE
-    sta econet_control23_or_status2                                   ; 82bb: 8d a1 fe    ...            ; Write CR2: same pattern as main path
+    sta adlc_cr2                                                      ; 82bb: 8d a1 fe    ...            ; Write CR2: same pattern as main path
     lda #2                                                            ; 82be: a9 02       ..             ; A=&02: FV mask for Tube completion
-    bit econet_control23_or_status2                                   ; 82c0: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
+    bit adlc_cr2                                                      ; 82c0: 2c a1 fe    ,..            ; BIT SR2: test FV (Z) and RDA (N)
     beq read_last_rx_byte                                             ; 82c3: f0 ba       ..             ; No FV: incomplete frame, error
     bpl ack_tx                                                        ; 82c5: 10 18       ..             ; FV set, no RDA: proceed to ACK
     lda port_buf_len                                                  ; 82c7: a5 a2       ..             ; Check if any buffer was allocated
@@ -1076,7 +1070,7 @@ rom_header_byte2 = rom_header+2
     ora open_port_buf                                                 ; 82cb: 05 a4       ..             ; Check buffer low byte
     ora open_port_buf_hi                                              ; 82cd: 05 a5       ..             ; Check buffer high byte
     beq read_last_rx_byte                                             ; 82cf: f0 ae       ..             ; All zero (null buffer): error
-    lda econet_data_continue_frame                                    ; 82d1: ad a2 fe    ...            ; Read extra trailing byte from FIFO
+    lda adlc_tx                                                       ; 82d1: ad a2 fe    ...            ; Read extra trailing byte from FIFO
     sta rx_extra_byte                                                 ; 82d4: 8d 42 0d    .B.            ; Save extra byte in workspace for later use
     lda #&20 ; ' '                                                    ; 82d7: a9 20       .              ; Bit5 = extra data byte available flag
     ora rx_src_net                                                    ; 82d9: 0d 3e 0d    .>.            ; Set extra byte flag in tx_flags
@@ -1103,9 +1097,9 @@ rom_header_byte2 = rom_header+2
 ; &82ea referenced 1 time by &82e2
 .ack_tx_configure
     lda #&44 ; 'D'                                                    ; 82ea: a9 44       .D             ; CR1=&44: RX_RESET | TIE (switch to TX mode)
-    sta econet_control1_or_status1                                    ; 82ec: 8d a0 fe    ...            ; Write CR1: switch to TX mode
+    sta adlc_cr1                                                      ; 82ec: 8d a0 fe    ...            ; Write CR1: switch to TX mode
     lda #&a7                                                          ; 82ef: a9 a7       ..             ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE
-    sta econet_control23_or_status2                                   ; 82f1: 8d a1 fe    ...            ; Write CR2: enable TX with status clear
+    sta adlc_cr2                                                      ; 82f1: 8d a1 fe    ...            ; Write CR2: enable TX with status clear
     lda #&86                                                          ; 82f4: a9 86       ..             ; Install saved next handler (scout ACK path)
     ldy #&83                                                          ; 82f6: a0 83       ..             ; High byte of post-ACK handler
 ; ***************************************************************************************
@@ -1125,11 +1119,11 @@ rom_header_byte2 = rom_header+2
     sta saved_nmi_lo                                                  ; 82f8: 8d 43 0d    .C.            ; Store next handler low byte
     sty saved_nmi_hi                                                  ; 82fb: 8c 44 0d    .D.            ; Store next handler high byte
     lda scout_buf                                                     ; 82fe: ad 2e 0d    ...            ; Load dest station from RX scout buffer
-    bit econet_control1_or_status1                                    ; 8301: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
+    bit adlc_cr1                                                      ; 8301: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
     bvc dispatch_nmi_error                                            ; 8304: 50 36       P6             ; TDRA not ready -- error
-    sta econet_data_continue_frame                                    ; 8306: 8d a2 fe    ...            ; Write dest station to TX FIFO
+    sta adlc_tx                                                       ; 8306: 8d a2 fe    ...            ; Write dest station to TX FIFO
     lda scout_src_net                                                 ; 8309: ad 2f 0d    ./.            ; Write dest network to TX FIFO
-    sta econet_data_continue_frame                                    ; 830c: 8d a2 fe    ...            ; Write dest net byte to FIFO
+    sta adlc_tx                                                       ; 830c: 8d a2 fe    ...            ; Write dest net byte to FIFO
     lda #&16                                                          ; 830f: a9 16       ..             ; Install handler at &8326 (write src addr)
     ldy #&83                                                          ; 8311: a0 83       ..             ; High byte of nmi_ack_tx_src
     jmp set_nmi_vector                                                ; 8313: 4c 0e 0d    L..            ; Set NMI vector to ack_tx_src handler
@@ -1144,11 +1138,11 @@ rom_header_byte2 = rom_header+2
 ; (TX_LAST_DATA) and falls through to post_ack_scout for scout processing.
 .nmi_ack_tx_src
     lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
-    bit econet_control1_or_status1                                    ; 8319: 2c a0 fe    ,..            ; BIT SR1: test TDRA
+    bit adlc_cr1                                                      ; 8319: 2c a0 fe    ,..            ; BIT SR1: test TDRA
     bvc dispatch_nmi_error                                            ; 831c: 50 1e       P.             ; TDRA not ready -- error
-    sta econet_data_continue_frame                                    ; 831e: 8d a2 fe    ...            ; Write our station to TX FIFO
+    sta adlc_tx                                                       ; 831e: 8d a2 fe    ...            ; Write our station to TX FIFO
     lda #0                                                            ; 8321: a9 00       ..             ; Write network=0 to TX FIFO
-    sta econet_data_continue_frame                                    ; 8323: 8d a2 fe    ...            ; Write network=0 (local) to TX FIFO
+    sta adlc_tx                                                       ; 8323: 8d a2 fe    ...            ; Write network=0 (local) to TX FIFO
     lda rx_src_net                                                    ; 8326: ad 3e 0d    .>.            ; Check tx_flags for data phase
     bmi start_data_tx                                                 ; 8329: 30 0e       0.             ; bit7 set: start data TX phase
     lda #&3f ; '?'                                                    ; 832b: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
@@ -1161,7 +1155,7 @@ rom_header_byte2 = rom_header+2
 ; find a matching listener. If a match is found, sets up the data RX handler chain for
 ; the four-way handshake data phase. If no match, discards the frame.
 .post_ack_scout
-    sta econet_control23_or_status2                                   ; 832d: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
+    sta adlc_cr2                                                      ; 832d: 8d a1 fe    ...            ; Write CR2 to clear status after ACK TX
     lda saved_nmi_lo                                                  ; 8330: ad 43 0d    .C.            ; Install saved handler from &0D4B/&0D4C
     ldy saved_nmi_hi                                                  ; 8333: ac 44 0d    .D.            ; Load saved next handler high byte
     jmp set_nmi_vector                                                ; 8336: 4c 0e 0d    L..            ; Install next NMI handler
@@ -1616,10 +1610,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta rx_src_net                                                    ; 84e5: 8d 3e 0d    .>.            ; Store updated TX flags
 .rx_imm_halt_cont
     lda #&44 ; 'D'                                                    ; 84e8: a9 44       .D             ; CR1=&44: TIE | TX_LAST_DATA
-    sta econet_control1_or_status1                                    ; 84ea: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
+    sta adlc_cr1                                                      ; 84ea: 8d a0 fe    ...            ; Write CR1: enable TX interrupts
 .tx_cr2_setup
     lda #&a7                                                          ; 84ed: a9 a7       ..             ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
-    sta econet_control23_or_status2                                   ; 84ef: 8d a1 fe    ...            ; Write CR2 for TX setup
+    sta adlc_cr2                                                      ; 84ef: 8d a1 fe    ...            ; Write CR2 for TX setup
 .tx_nmi_setup
     lda #&0f                                                          ; 84f2: a9 0f       ..             ; NMI handler lo byte (self-modifying)
     ldy #&85                                                          ; 84f4: a0 85       ..             ; Y=&85: NMI handler high byte
@@ -1896,7 +1890,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &85e0 referenced 1 time by &85ab
 .tx_line_idle_check
     lda #&20 ; ' '                                                    ; 85e0: a9 20       .              ; A=&20: mask for SR2 INACTIVE bit
-    bit econet_control23_or_status2                                   ; 85e2: 2c a1 fe    ,..            ; BIT SR2: test if line is idle
+    bit adlc_cr2                                                      ; 85e2: 2c a1 fe    ,..            ; BIT SR2: test if line is idle
     bne tx_no_clock_error                                             ; 85e5: d0 55       .U             ; Line not idle: handle as line jammed
     lda #&fd                                                          ; 85e7: a9 fd       ..             ; A=&FD: high byte of timeout counter
     pha                                                               ; 85e9: 48          H              ; Push timeout high byte to stack
@@ -1939,13 +1933,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &85fd referenced 1 time by &8679
     bit master_intoff                                                 ; 85ff: 2c 38 fe    ,8.            ; INTOFF again (belt-and-braces)
 .test_line_idle
-    bit econet_control23_or_status2                                   ; 8602: 2c a1 fe    ,..            ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
+    bit adlc_cr2                                                      ; 8602: 2c a1 fe    ,..            ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 8605: f0 0f       ..             ; INACTIVE not set -- re-enable NMIs and loop
-    lda econet_control1_or_status1                                    ; 8607: ad a0 fe    ...            ; Read SR1 (acknowledge pending interrupt)
+    lda adlc_cr1                                                      ; 8607: ad a0 fe    ...            ; Read SR1 (acknowledge pending interrupt)
     lda #&67 ; 'g'                                                    ; 860a: a9 67       .g             ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
-    sta econet_control23_or_status2                                   ; 860c: 8d a1 fe    ...            ; Write CR2: clear status, prepare TX
+    sta adlc_cr2                                                      ; 860c: 8d a1 fe    ...            ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 860f: a9 10       ..             ; A=&10: CTS mask for SR1 bit4
-    bit econet_control1_or_status1                                    ; 8611: 2c a0 fe    ,..            ; BIT SR1: tests CTS present
+    bit adlc_cr1                                                      ; 8611: 2c a0 fe    ,..            ; BIT SR1: tests CTS present
     bne tx_prepare                                                    ; 8614: d0 34       .4             ; CTS set -- clock hardware detected, start TX
 ; &8616 referenced 1 time by &8605
 .inactive_retry
@@ -1984,7 +1978,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &8630 referenced 1 time by &862a
 .tx_line_jammed
     lda #7                                                            ; 8630: a9 07       ..             ; CR2=&07: FC_TDRA | 2_1_BYTE | PSE (abort TX)
-    sta econet_control23_or_status2                                   ; 8632: 8d a1 fe    ...            ; Write CR2 to abort TX
+    sta adlc_cr2                                                      ; 8632: 8d a1 fe    ...            ; Write CR2 to abort TX
     pla                                                               ; 8635: 68          h              ; Clean 3 bytes of timeout loop state
     pla                                                               ; 8636: 68          h              ; Pop saved register
     pla                                                               ; 8637: 68          h              ; Pop saved register
@@ -2017,9 +2011,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; On Entry: Y: &E7 (CR2 prep value)
 ; &864a referenced 1 time by &8614
 .tx_prepare
-    sty econet_control23_or_status2                                   ; 864a: 8c a1 fe    ...            ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
+    sty adlc_cr2                                                      ; 864a: 8c a1 fe    ...            ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44 ; 'D'                                                    ; 864d: a2 44       .D             ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
-    stx econet_control1_or_status1                                    ; 864f: 8e a0 fe    ...            ; Write to ADLC CR1
+    stx adlc_cr1                                                      ; 864f: 8e a0 fe    ...            ; Write to ADLC CR1
     ldx #&e7                                                          ; 8652: a2 e7       ..             ; Install NMI handler at &86E0 (TX data handler)
     ldy #&86                                                          ; 8654: a0 86       ..             ; High byte of NMI handler address
     stx nmi_jmp_lo                                                    ; 8656: 8e 0c 0d    ...            ; Write NMI vector low byte directly
@@ -2181,20 +2175,20 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; Otherwise returns via RTI.
 .nmi_tx_data
     ldy rx_remote_addr                                                ; 86e7: ac 41 0d    .A.            ; Load TX buffer index
-    bit econet_control1_or_status1                                    ; 86ea: 2c a0 fe    ,..            ; BIT SR1: V=bit6(TDRA), N=bit7(IRQ)
+    bit adlc_cr1                                                      ; 86ea: 2c a0 fe    ,..            ; BIT SR1: V=bit6(TDRA), N=bit7(IRQ)
 ; &86ed referenced 1 time by &8708
 .tx_fifo_write
     bvc tx_fifo_not_ready                                             ; 86ed: 50 22       P"             ; TDRA not set -- TX error
     lda tx_dst_stn,y                                                  ; 86ef: b9 20 0d    . .            ; Load byte from TX buffer
-    sta econet_data_continue_frame                                    ; 86f2: 8d a2 fe    ...            ; Write to TX_DATA (continue frame)
+    sta adlc_tx                                                       ; 86f2: 8d a2 fe    ...            ; Write to TX_DATA (continue frame)
     iny                                                               ; 86f5: c8          .              ; Next TX buffer byte
     lda tx_dst_stn,y                                                  ; 86f6: b9 20 0d    . .            ; Load second byte from TX buffer
     iny                                                               ; 86f9: c8          .              ; Advance TX index past second byte
     sty rx_remote_addr                                                ; 86fa: 8c 41 0d    .A.            ; Save updated TX buffer index
-    sta econet_data_continue_frame                                    ; 86fd: 8d a2 fe    ...            ; Write second byte to TX_DATA
+    sta adlc_tx                                                       ; 86fd: 8d a2 fe    ...            ; Write second byte to TX_DATA
     cpy rx_ctrl                                                       ; 8700: cc 3f 0d    .?.            ; Compare index to TX length
     bcs tx_last_data                                                  ; 8703: b0 1e       ..             ; Frame complete -- go to TX_LAST_DATA
-    bit econet_control1_or_status1                                    ; 8705: 2c a0 fe    ,..            ; Check if we can send another pair
+    bit adlc_cr1                                                      ; 8705: 2c a0 fe    ,..            ; Check if we can send another pair
     bmi tx_fifo_write                                                 ; 8708: 30 e3       0.             ; IRQ set -- send 2 more bytes (tight loop)
     jmp nmi_rti                                                       ; 870a: 4c 14 0d    L..            ; RTI -- wait for next NMI
 
@@ -2206,7 +2200,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &8711 referenced 1 time by &86ed
 .tx_fifo_not_ready
     lda #&67 ; 'g'                                                    ; 8711: a9 67       .g             ; CR2=&67: clear status, return to listen
-    sta econet_control23_or_status2                                   ; 8713: 8d a1 fe    ...            ; Write CR2: clear status, idle listen
+    sta adlc_cr2                                                      ; 8713: 8d a1 fe    ...            ; Write CR2: clear status, idle listen
     lda #&41 ; 'A'                                                    ; 8716: a9 41       .A             ; Error &41 (TDRA not ready)
 ; &8718 referenced 1 time by &870f
 .tx_store_error
@@ -2246,7 +2240,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &8723 referenced 1 time by &8703
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
-    sta econet_control23_or_status2                                   ; 8725: 8d a1 fe    ...            ; Write to ADLC CR2
+    sta adlc_cr2                                                      ; 8725: 8d a1 fe    ...            ; Write to ADLC CR2
     lda #&2f ; '/'                                                    ; 8728: a9 2f       ./             ; Install NMI handler at &8728 (TX completion)
     ldy #&87                                                          ; 872a: a0 87       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 872c: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
@@ -2263,7 +2257,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; both clear=install nmi_reply_scout for scout ACK reception.
 .nmi_tx_complete
     lda #&82                                                          ; 872f: a9 82       ..             ; Jump to error handler
-    sta econet_control1_or_status1                                    ; 8731: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
+    sta adlc_cr1                                                      ; 8731: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
     bit rx_src_net                                                    ; 8734: 2c 3e 0d    ,>.            ; Test workspace flags
     bvc check_handshake_bit                                           ; 8737: 50 03       P.             ; bit6 not set -- check bit0
     jmp tx_result_ok                                                  ; 8739: 4c de 88    L..            ; bit6 set -- TX completion
@@ -2288,9 +2282,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; station ID via &FE18 (which also disables NMIs as a side effect).
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
-    bit econet_control23_or_status2                                   ; 874d: 2c a1 fe    ,..            ; BIT SR2: test AP (Address Present)
+    bit adlc_cr2                                                      ; 874d: 2c a1 fe    ,..            ; BIT SR2: test AP (Address Present)
     beq tx_error                                                      ; 8750: f0 bb       ..             ; No AP -- error
-    lda econet_data_continue_frame                                    ; 8752: ad a2 fe    ...            ; Read first RX byte (destination station)
+    lda adlc_tx                                                       ; 8752: ad a2 fe    ...            ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8755: cd 22 0d    .".            ; Compare to our station ID (INTOFF side effect)
     bne reject_reply                                                  ; 8758: d0 19       ..             ; Not our station -- error/reject
     lda #&5f ; '_'                                                    ; 875a: a9 5f       ._             ; Install next handler at &8758 (reply continuation)
@@ -2306,12 +2300,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; avoiding NMI re-entry overhead for short frames where all bytes arrive in quick
 ; succession.
 .nmi_reply_cont
-    bit econet_control23_or_status2                                   ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
+    bit adlc_cr2                                                      ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
     bpl reject_reply                                                  ; 8762: 10 0f       ..             ; No RDA -- error
-    lda econet_data_continue_frame                                    ; 8764: ad a2 fe    ...            ; Read destination network byte
+    lda adlc_tx                                                       ; 8764: ad a2 fe    ...            ; Read destination network byte
     bne reject_reply                                                  ; 8767: d0 0a       ..             ; Non-zero -- network mismatch, error
     lda #&76 ; 'v'                                                    ; 8769: a9 76       .v             ; Install next handler at &8779 (reply validation)
-    bit econet_control1_or_status1                                    ; 876b: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
+    bit adlc_cr1                                                      ; 876b: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 876e: 30 06       0.             ; IRQ set -- fall through to &8779 without RTI
     jmp install_nmi_handler                                           ; 8770: 4c 11 0d    L..            ; IRQ not set -- install handler and RTI
 
@@ -2342,31 +2336,31 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).
 ; &8776 referenced 1 time by &876e
 .nmi_reply_validate
-    bit econet_control23_or_status2                                   ; 8776: 2c a1 fe    ,..            ; BIT SR2: test RDA (bit7). Must be set for valid reply.
+    bit adlc_cr2                                                      ; 8776: 2c a1 fe    ,..            ; BIT SR2: test RDA (bit7). Must be set for valid reply.
     bpl reject_reply                                                  ; 8779: 10 f8       ..             ; No RDA -- error (FV masking RDA via PSE would cause this)
-    lda econet_data_continue_frame                                    ; 877b: ad a2 fe    ...            ; Read source station
+    lda adlc_tx                                                       ; 877b: ad a2 fe    ...            ; Read source station
     cmp tx_dst_stn                                                    ; 877e: cd 20 0d    . .            ; Compare to original TX destination station (&0D20)
     bne reject_reply                                                  ; 8781: d0 f0       ..             ; Mismatch -- not the expected reply, error
-    lda econet_data_continue_frame                                    ; 8783: ad a2 fe    ...            ; Read source network
+    lda adlc_tx                                                       ; 8783: ad a2 fe    ...            ; Read source network
     cmp tx_dst_net                                                    ; 8786: cd 21 0d    .!.            ; Compare to original TX destination network (&0D21)
     bne reject_reply                                                  ; 8789: d0 e8       ..             ; Mismatch -- error
     lda #2                                                            ; 878b: a9 02       ..             ; A=&02: FV mask for SR2 bit1
-    bit econet_control23_or_status2                                   ; 878d: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
+    bit adlc_cr2                                                      ; 878d: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
     beq reject_reply                                                  ; 8790: f0 e1       ..             ; No FV -- incomplete frame, error
     lda #&a7                                                          ; 8792: a9 a7       ..             ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE (TX in handshake)
-    sta econet_control23_or_status2                                   ; 8794: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
+    sta adlc_cr2                                                      ; 8794: 8d a1 fe    ...            ; Write CR2: enable RTS for TX handshake
     lda #&44 ; 'D'                                                    ; 8797: a9 44       .D             ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
-    sta econet_control1_or_status1                                    ; 8799: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
+    sta adlc_cr1                                                      ; 8799: 8d a0 fe    ...            ; Write CR1: reset RX, enable TX interrupt
     lda #&86                                                          ; 879c: a9 86       ..             ; Install handshake_await_ack into &0D43/&0D44 (four-way data phase)
     ldy #&88                                                          ; 879e: a0 88       ..             ; High byte &88 of next handler address
     sta saved_nmi_lo                                                  ; 87a0: 8d 43 0d    .C.            ; Store low byte to nmi_next_lo
     sty saved_nmi_hi                                                  ; 87a3: 8c 44 0d    .D.            ; Store high byte to nmi_next_hi
     lda tx_dst_stn                                                    ; 87a6: ad 20 0d    . .            ; Load dest station for scout ACK TX
-    bit econet_control1_or_status1                                    ; 87a9: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
+    bit adlc_cr1                                                      ; 87a9: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
     bvc tx_check_tdra_ready                                           ; 87ac: 50 16       P.             ; TDRA not ready -- error
-    sta econet_data_continue_frame                                    ; 87ae: 8d a2 fe    ...            ; Write dest station to TX FIFO
+    sta adlc_tx                                                       ; 87ae: 8d a2 fe    ...            ; Write dest station to TX FIFO
     lda tx_dst_net                                                    ; 87b1: ad 21 0d    .!.            ; Write dest network to TX FIFO
-    sta econet_data_continue_frame                                    ; 87b4: 8d a2 fe    ...            ; Write dest network to TX FIFO
+    sta adlc_tx                                                       ; 87b4: 8d a2 fe    ...            ; Write dest network to TX FIFO
     lda #&be                                                          ; 87b7: a9 be       ..             ; Install handler at &87B7 (write src addr for scout ACK)
     ldy #&87                                                          ; 87b9: a0 87       ..             ; High byte &87 of handler address
     jmp set_nmi_vector                                                ; 87bb: 4c 0e 0d    L..            ; Set NMI vector and return
@@ -2381,13 +2375,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; the tx_check_tdra_ready entry with ack_tx.
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
-    bit econet_control1_or_status1                                    ; 87c1: 2c a0 fe    ,..            ; BIT SR1: test TDRA
+    bit adlc_cr1                                                      ; 87c1: 2c a0 fe    ,..            ; BIT SR1: test TDRA
 ; &87c4 referenced 1 time by &87ac
 .tx_check_tdra_ready
     bvc data_tx_check_fifo                                            ; 87c4: 50 2c       P,             ; TDRA not ready -- error
-    sta econet_data_continue_frame                                    ; 87c6: 8d a2 fe    ...            ; Write our station to TX FIFO
+    sta adlc_tx                                                       ; 87c6: 8d a2 fe    ...            ; Write our station to TX FIFO
     lda #0                                                            ; 87c9: a9 00       ..             ; Write network=0 to TX FIFO
-    sta econet_data_continue_frame                                    ; 87cb: 8d a2 fe    ...            ; Write network byte to TX FIFO
+    sta adlc_tx                                                       ; 87cb: 8d a2 fe    ...            ; Write network byte to TX FIFO
 ; ***************************************************************************************
 ; Begin data-frame TX: install nmi_data_tx or alt
 ;
@@ -2429,7 +2423,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     beq nmi_data_tx                                                   ; 87ed: f0 f4       ..             ; Zero: loop back to top of handler
 ; &87ef referenced 1 time by &87e9
 .check_tdra_status
-    bit econet_control1_or_status1                                    ; 87ef: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
+    bit adlc_cr1                                                      ; 87ef: 2c a0 fe    ,..            ; BIT SR1: test TDRA (V=bit6)
 ; &87f2 referenced 2 times by &87c4, &8822
 .data_tx_check_fifo
     bvc tube_tx_fifo_write                                            ; 87f2: 50 54       PT             ; TDRA not ready -- error
@@ -2441,7 +2435,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda escapable                                                     ; 87f8: a5 97       ..             ; Load desired ACCCON from workspace &97
     sta acccon                                                        ; 87fa: 8d 34 fe    .4.            ; Set ACCCON for the upcoming buffer reads
     lda (open_port_buf),y                                             ; 87fd: b1 a4       ..             ; Write data byte to TX FIFO
-    sta econet_data_continue_frame                                    ; 87ff: 8d a2 fe    ...            ; Write first byte of pair to FIFO
+    sta adlc_tx                                                       ; 87ff: 8d a2 fe    ...            ; Write first byte of pair to FIFO
     iny                                                               ; 8802: c8          .              ; Advance buffer offset
     bne write_second_tx_byte                                          ; 8803: d0 06       ..             ; No page crossing
     dec port_buf_len_hi                                               ; 8805: c6 a3       ..             ; Page crossing: decrement page count
@@ -2450,7 +2444,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &880b referenced 1 time by &8803
 .write_second_tx_byte
     lda (open_port_buf),y                                             ; 880b: b1 a4       ..             ; Load second byte of pair
-    sta econet_data_continue_frame                                    ; 880d: 8d a2 fe    ...            ; Write second byte to FIFO
+    sta adlc_tx                                                       ; 880d: 8d a2 fe    ...            ; Write second byte to FIFO
     iny                                                               ; 8810: c8          .              ; Advance buffer offset
     sty port_buf_len                                                  ; 8811: 84 a2       ..             ; Save updated buffer position
     bne check_fifo_loop                                               ; 8813: d0 06       ..             ; No page crossing
@@ -2462,7 +2456,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     pla                                                               ; 881b: 68          h              ; Pull saved ACCCON from stack
     sta acccon                                                        ; 881c: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_irq_loop
-    bit econet_control1_or_status1                                    ; 881f: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) for tight loop
+    bit adlc_cr1                                                      ; 881f: 2c a0 fe    ,..            ; BIT SR1: test IRQ (N=bit7) for tight loop
     bmi data_tx_check_fifo                                            ; 8822: 30 ce       0.             ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 8824: 4c 14 0d    L..            ; No IRQ: return, wait for next NMI
 
@@ -2473,7 +2467,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &882b referenced 3 times by &87e5, &885e, &8874
 .data_tx_last
     lda #&3f ; '?'                                                    ; 882b: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA (close data frame)
-    sta econet_control23_or_status2                                   ; 882d: 8d a1 fe    ...            ; Write CR2 to close frame
+    sta adlc_cr2                                                      ; 882d: 8d a1 fe    ...            ; Write CR2 to close frame
     lda rx_src_net                                                    ; 8830: ad 3e 0d    .>.            ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 8833: 10 07       ..             ; Bit7 clear: error, install saved handler
     lda #&e5                                                          ; 8835: a9 e5       ..             ; Install discard_reset_listen at &83F2
@@ -2495,12 +2489,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; continues the tight inner loop on a continuing IRQ or returns via RTI. Reached only
 ; via the NMI vector after tx_prepare installs it.
 .nmi_data_tx_tube
-    bit econet_control1_or_status1                                    ; 8845: 2c a0 fe    ,..            ; Tube TX: BIT SR1 test TDRA
+    bit adlc_cr1                                                      ; 8845: 2c a0 fe    ,..            ; Tube TX: BIT SR1 test TDRA
 ; &8848 referenced 2 times by &87f2, &8879
 .tube_tx_fifo_write
     bvc tx_tdra_error                                                 ; 8848: 50 34       P4             ; TDRA not ready -- error
     lda tube_data_register_3                                          ; 884a: ad e5 fe    ...            ; Read byte from Tube R3
-    sta econet_data_continue_frame                                    ; 884d: 8d a2 fe    ...            ; Write to TX FIFO
+    sta adlc_tx                                                       ; 884d: 8d a2 fe    ...            ; Write to TX FIFO
     inc port_buf_len                                                  ; 8850: e6 a2       ..             ; Increment 4-byte buffer counter
     bne write_second_tube_byte                                        ; 8852: d0 0c       ..             ; Low byte didn't wrap
     inc port_buf_len_hi                                               ; 8854: e6 a3       ..             ; Carry into second byte
@@ -2512,7 +2506,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &8860 referenced 3 times by &8852, &8856, &885a
 .write_second_tube_byte
     lda tube_data_register_3                                          ; 8860: ad e5 fe    ...            ; Read second Tube byte from R3
-    sta econet_data_continue_frame                                    ; 8863: 8d a2 fe    ...            ; Write second byte to TX FIFO
+    sta adlc_tx                                                       ; 8863: 8d a2 fe    ...            ; Write second byte to TX FIFO
     inc port_buf_len                                                  ; 8866: e6 a2       ..             ; Increment 4-byte counter (second byte)
     bne check_tube_irq_loop                                           ; 8868: d0 0c       ..             ; Low byte didn't wrap
 .tube_tx_inc_byte2
@@ -2529,7 +2523,7 @@ tx_length_table = tube_tx_inc_byte3+1
 ; &8876 referenced 3 times by &8868, &886c, &8870
 .check_tube_irq_loop
 tx_flags_table = check_tube_irq_loop+1
-    bit econet_control1_or_status1                                    ; 8876: 2c a0 fe    ,..            ; BIT SR1: test IRQ for tight loop
+    bit adlc_cr1                                                      ; 8876: 2c a0 fe    ,..            ; BIT SR1: test IRQ for tight loop
 ; &8877 referenced 1 time by &866a
     bmi tube_tx_fifo_write                                            ; 8879: 30 cd       0.             ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 887b: 4c 14 0d    L..            ; No IRQ: return, wait for next NMI
@@ -2550,7 +2544,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; &8886 referenced 1 time by &8743
 .handshake_await_ack
     lda #&82                                                          ; 8886: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for final ACK)
-    sta econet_control1_or_status1                                    ; 8888: 8d a0 fe    ...            ; Write to ADLC CR1
+    sta adlc_cr1                                                      ; 8888: 8d a0 fe    ...            ; Write to ADLC CR1
     lda #&92                                                          ; 888b: a9 92       ..             ; Install nmi_final_ack handler
     ldy #&88                                                          ; 888d: a0 88       ..             ; High byte of handler address
     jmp set_nmi_vector                                                ; 888f: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
@@ -2569,9 +2563,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; On success, stores result=0 via tx_result_ok. On failure, error &41.
 .nmi_final_ack
     lda #1                                                            ; 8892: a9 01       ..             ; A=&01: AP mask
-    bit econet_control23_or_status2                                   ; 8894: 2c a1 fe    ,..            ; BIT SR2: test AP
+    bit adlc_cr2                                                      ; 8894: 2c a1 fe    ,..            ; BIT SR2: test AP
     beq tx_result_fail                                                ; 8897: f0 49       .I             ; No AP -- error
-    lda econet_data_continue_frame                                    ; 8899: ad a2 fe    ...            ; Read dest station
+    lda adlc_tx                                                       ; 8899: ad a2 fe    ...            ; Read dest station
     cmp tx_src_stn                                                    ; 889c: cd 22 0d    .".            ; Compare to our station (INTOFF side effect)
     bne tx_result_fail                                                ; 889f: d0 41       .A             ; Not our station -- error
     lda #&a6                                                          ; 88a1: a9 a6       ..             ; Install nmi_final_ack_net handler
@@ -2588,12 +2582,12 @@ tx_flags_table = check_tube_irq_loop+1
 ;
 ; On Exit: A: source-network byte read from FIFO
 .nmi_final_ack_net
-    bit econet_control23_or_status2                                   ; 88a6: 2c a1 fe    ,..            ; BIT SR2: test RDA
+    bit adlc_cr2                                                      ; 88a6: 2c a1 fe    ,..            ; BIT SR2: test RDA
     bpl tx_result_fail                                                ; 88a9: 10 37       .7             ; No RDA -- error
-    lda econet_data_continue_frame                                    ; 88ab: ad a2 fe    ...            ; Read dest network
+    lda adlc_tx                                                       ; 88ab: ad a2 fe    ...            ; Read dest network
     bne tx_result_fail                                                ; 88ae: d0 32       .2             ; Non-zero -- network mismatch, error
     lda #&ba                                                          ; 88b0: a9 ba       ..             ; Install nmi_final_ack_validate handler
-    bit econet_control1_or_status1                                    ; 88b2: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
+    bit adlc_cr1                                                      ; 88b2: 2c a0 fe    ,..            ; BIT SR1: test IRQ -- more data ready?
     bmi nmi_final_ack_validate                                        ; 88b5: 30 03       0.             ; IRQ set -- fall through to validate
     jmp install_nmi_handler                                           ; 88b7: 4c 11 0d    L..            ; Install handler and RTI
 
@@ -2607,12 +2601,12 @@ tx_flags_table = check_tube_irq_loop+1
 ; success, falls through to tx_result_ok.
 ; &88ba referenced 1 time by &88b5
 .nmi_final_ack_validate
-    bit econet_control23_or_status2                                   ; 88ba: 2c a1 fe    ,..            ; BIT SR2: test RDA
+    bit adlc_cr2                                                      ; 88ba: 2c a1 fe    ,..            ; BIT SR2: test RDA
     bpl tx_result_fail                                                ; 88bd: 10 23       .#             ; No RDA -- error
-    lda econet_data_continue_frame                                    ; 88bf: ad a2 fe    ...            ; Read source station
+    lda adlc_tx                                                       ; 88bf: ad a2 fe    ...            ; Read source station
     cmp tx_dst_stn                                                    ; 88c2: cd 20 0d    . .            ; Compare to TX dest station (&0D20)
     bne tx_result_fail                                                ; 88c5: d0 1b       ..             ; Mismatch -- error
-    lda econet_data_continue_frame                                    ; 88c7: ad a2 fe    ...            ; Read source network
+    lda adlc_tx                                                       ; 88c7: ad a2 fe    ...            ; Read source network
     cmp tx_dst_net                                                    ; 88ca: cd 21 0d    .!.            ; Compare to TX dest network (&0D21)
     bne tx_result_fail                                                ; 88cd: d0 13       ..             ; Mismatch -- error
     lda rx_src_net                                                    ; 88cf: ad 3e 0d    .>.            ; Load TX flags for next action
@@ -2622,7 +2616,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; &88d7 referenced 1 time by &88d2
 .check_fv_final_ack
     lda #2                                                            ; 88d7: a9 02       ..             ; A=&02: FV mask for SR2 bit1
-    bit econet_control23_or_status2                                   ; 88d9: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
+    bit adlc_cr2                                                      ; 88d9: 2c a1 fe    ,..            ; BIT SR2: test FV -- frame must be complete
     beq tx_result_fail                                                ; 88dc: f0 04       ..             ; No FV -- error
 ; ***************************************************************************************
 ; TX completion handler
@@ -2812,11 +2806,11 @@ tx_flags_table = check_tube_irq_loop+1
 ; &898c referenced 3 times by &8053, &80df, &821d
 .adlc_full_reset
     lda #&c1                                                          ; 898c: a9 c1       ..             ; CR1=&C1: TX_RESET | RX_RESET | AC (both sections in reset, address control set)
-    sta econet_control1_or_status1                                    ; 898e: 8d a0 fe    ...            ; Write CR1 to ADLC register 0
+    sta adlc_cr1                                                      ; 898e: 8d a0 fe    ...            ; Write CR1 to ADLC register 0
     lda #&1e                                                          ; 8991: a9 1e       ..             ; CR4=&1E (via AC=1): 8-bit RX word length, abort extend enabled, NRZ encoding
-    sta econet_data_terminate_frame                                   ; 8993: 8d a3 fe    ...            ; Write CR4 to ADLC register 3
+    sta adlc_tx2                                                      ; 8993: 8d a3 fe    ...            ; Write CR4 to ADLC register 3
     lda #0                                                            ; 8996: a9 00       ..             ; CR3=&00 (via AC=1): no loop-back, no AEX, NRZ, no DTR
-    sta econet_control23_or_status2                                   ; 8998: 8d a1 fe    ...            ; Write CR3 to ADLC register 1
+    sta adlc_cr2                                                      ; 8998: 8d a1 fe    ...            ; Write CR3 to ADLC register 1
 ; ***************************************************************************************
 ; Enter RX listen mode
 ;
@@ -2830,9 +2824,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; &899b referenced 2 times by &83e8, &89c7
 .adlc_rx_listen
     lda #&82                                                          ; 899b: a9 82       ..             ; CR1=&82: TX_RESET | RIE (TX in reset, RX interrupts enabled)
-    sta econet_control1_or_status1                                    ; 899d: 8d a0 fe    ...            ; Write to ADLC CR1
+    sta adlc_cr1                                                      ; 899d: 8d a0 fe    ...            ; Write to ADLC CR1
     lda #&67 ; 'g'                                                    ; 89a0: a9 67       .g             ; CR2=&67: CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE
-    sta econet_control23_or_status2                                   ; 89a2: 8d a1 fe    ...            ; Write to ADLC CR2
+    sta adlc_cr2                                                      ; 89a2: 8d a1 fe    ...            ; Write to ADLC CR2
     rts                                                               ; 89a5: 60          `              ; Return; ADLC now in RX listen mode
 
 ; ***************************************************************************************
@@ -3119,7 +3113,7 @@ nmi_shim_source = reset_enter_listen+2
     pha                                                               ; 8a8e: 48          H              ; Save service call number
     cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service call &24 (Dynamic Workspace requirements)?
     bne check_adlc_flag                                               ; 8a91: d0 0e       ..             ; No: skip ADLC check
-    lda econet_control1_or_status1                                    ; 8a93: ad a0 fe    ...            ; Read ADLC status register 1
+    lda adlc_cr1                                                      ; 8a93: ad a0 fe    ...            ; Read ADLC status register 1
     and #&10                                                          ; 8a96: 29 10       ).             ; Mask relevant status bits
     bne check_adlc_flag                                               ; 8a98: d0 07       ..             ; Non-zero: ADLC absent, set flag
 .set_adlc_absent
@@ -3294,7 +3288,7 @@ nmi_shim_source = reset_enter_listen+2
 
 .cmd_net_check_hw
     lda #&20 ; ' '                                                    ; 8b39: a9 20       .              ; A=&20: ADLC IRQ-status mask (CR2 bit 5)
-    bit econet_control23_or_status2                                   ; 8b3b: 2c a1 fe    ,..            ; BIT &FEA1 -- read ADLC CR2 / SR2
+    bit adlc_cr2                                                      ; 8b3b: 2c a1 fe    ,..            ; BIT &FEA1 -- read ADLC CR2 / SR2
     beq select_fs_via_cmd_net_fs                                      ; 8b3e: f0 12       ..             ; Z set (no carrier): proceed to FS-select
     lda #3                                                            ; 8b40: a9 03       ..             ; A=3: 'ROM has no NFS' error code
     jmp build_simple_error                                            ; 8b42: 4c 89 99    L..            ; Raise via build_simple_error (never returns)
@@ -3370,7 +3364,7 @@ nmi_shim_source = reset_enter_listen+2
 ; &8b78 referenced 1 time by &8b7f
 .loop_set_vectors
     lda fs_vector_table,y                                             ; 8b78: b9 a7 8e    ...            ; Load FS vector address
-    sta filev,y                                                       ; 8b7b: 99 12 02    ...            ; Store into FILEV vector table
+    sta vec_filev,y                                                   ; 8b7b: 99 12 02    ...            ; Store into FILEV vector table
     dey                                                               ; 8b7e: 88          .              ; Decrement index
     bpl loop_set_vectors                                              ; 8b7f: 10 f7       ..             ; Loop until all vectors installed
     jsr init_adlc_and_vectors                                         ; 8b81: 20 3c 90     <.            ; Initialise ADLC and NMI workspace
@@ -3803,7 +3797,7 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry: A: FSCV reason code
 ; &8cff referenced 1 time by &a59e
 .call_fscv
-    jmp (fscv)                                                        ; 8cff: 6c 1e 02    l..            ; Dispatch via FSCV
+    jmp (vec_fscv)                                                    ; 8cff: 6c 1e 02    l..            ; Dispatch via FSCV
 
 ; ***************************************************************************************
 ; Issue OSBYTE 143 service 15 (vectors-claimed) request
@@ -4752,7 +4746,7 @@ ps_template_base = load_transfer_params+1
     lda (net_rx_ptr),y                                                ; 90db: b1 9c       ..             ; Read RX[1] = station number
     jsr print_num_no_leading                                          ; 90dd: 20 27 b3     '.            ; Print as decimal (no leading zeros)
     lda #&20 ; ' '                                                    ; 90e0: a9 20       .              ; Space character
-    bit econet_control23_or_status2                                   ; 90e2: 2c a1 fe    ,..            ; Check ADLC status register 2
+    bit adlc_cr2                                                      ; 90e2: 2c a1 fe    ,..            ; Check ADLC status register 2
     beq done_print_newline                                            ; 90e5: f0 0d       ..             ; Clock present: skip warning
     jsr print_inline                                                  ; 90e7: 20 61 92     a.            ; Print ' No Clock' via inline
     equs " No Clock"                                                  ; 90ea: 20 4e 6f...  No            ; Inline: ' No Clock' error suffix
@@ -15727,6 +15721,13 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert bgetv_handler == &bb68
     assert bputv_handler == &bbe7
     assert copyright - rom_header == &19
+    assert ev_argsv == &ff1e
+    assert ev_bgetv == &ff21
+    assert ev_bputv == &ff24
+    assert ev_filev == &ff1b
+    assert ev_findv == &ff2a
+    assert ev_fscv == &ff2d
+    assert ev_gbpbv == &ff27
     assert filev_handler == &9c22
     assert findv_handler == &a02f
     assert fscv_handler == &8e4b
@@ -15745,17 +15746,17 @@ save pydis_start, pydis_end
 ;     fs_options:                     55
 ;     net_rx_ptr:                     52
 ;     ws_ptr_hi:                      48
-;     econet_control23_or_status2:    46
+;     adlc_cr2:                       46
 ;     work_ae:                        45
 ;     fs_load_addr_2:                 38
-;     econet_data_continue_frame:     37
+;     adlc_tx:                        37
 ;     hazel_fs_lib_flags:             37
 ;     net_tx_ptr:                     37
 ;     osword_flag:                    34
 ;     port_ws_offset:                 34
 ;     fs_error_ptr:                   33
 ;     print_inline:                   33
-;     econet_control1_or_status1:     32
+;     adlc_cr1:                       32
 ;     fs_crc_lo:                      31
 ;     hazel_txcb_flag:                31
 ;     fs_flags:                       30
@@ -16274,6 +16275,7 @@ save pydis_start, pydis_end
 ;     add_workspace_to_fsopts:         1
 ;     adlc_init:                       1
 ;     adlc_init_done:                  1
+;     adlc_tx2:                        1
 ;     advance_positions:               1
 ;     advance_spool_rx_idx:            1
 ;     advance_x_by_4:                  1
@@ -16454,7 +16456,6 @@ save pydis_start, pydis_end
 ;     done_trim_spaces:                1
 ;     done_write_block:                1
 ;     done_ws_template_copy:           1
-;     econet_data_terminate_frame:     1
 ;     enable_irq_pending:              1
 ;     err_printer_busy:                1
 ;     error_bad_net_num:               1
@@ -16473,14 +16474,12 @@ save pydis_start, pydis_end
 ;     extract_digit_value:             1
 ;     false_ref_6f6e:                  1
 ;     fcb_workspace_idx_base:          1
-;     filev:                           1
 ;     find_station_bit2:               1
 ;     findv_handler:                   1
 ;     fixup_reply_status_a:            1
 ;     flush_fcb_if_station_known:      1
 ;     flush_fcb_with_init:             1
 ;     fs_vector_table:                 1
-;     fscv:                            1
 ;     fscv_2_star_run:                 1
 ;     fscv_3_star_cmd:                 1
 ;     fsreply_2_handle_loop:           1
@@ -17124,6 +17123,8 @@ save pydis_start, pydis_end
 ;     validate_station:                1
 ;     vdu_display_start_hi:            1
 ;     vdu_screen_mode:                 1
+;     vec_filev:                       1
+;     vec_fscv:                        1
 ;     verify_copy_station_id:          1
 ;     verify_stn_match:                1
 ;     write_block_entry:               1
