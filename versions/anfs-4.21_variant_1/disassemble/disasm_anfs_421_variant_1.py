@@ -7894,6 +7894,81 @@ comment(0xB7C2, "Store into TX[5+X] (delete-command buffer)", inline=True)
 comment(0xB7C5, "Reached space (end-of-leaf)?", inline=True)
 comment(0xB7C7, "No: continue copying", inline=True)
 
+# cmd_dir output-formatter helpers (&95BD..&95E8). Three small
+# stubs that each print_inline a fixed string and RTS. Used by the
+# *Dir / *Cat / *FS prompt+banner code path.
+comment(0x95BD, "NOP -- bit-7 terminator + resume opcode for the "
+    "preceding stringhi", inline=True)
+comment(0x95C5, "CLV -- bit-7 terminator + resume (V flag is "
+    "irrelevant here, used as 1-byte resume opcode)", inline=True)
+comment(0x95D9, "Return", inline=True)
+comment(0x95DA, "Print '[<D>.]<D>\\r' (syntax help for *Dir)", inline=True)
+comment(0x95E8, "Return", inline=True)
+
+# cmd_pollps gap-fill (8 items).
+comment(0xB60F, "Y=&18: name field offset in RX buffer", inline=True)
+comment(0xB624, "NOP -- bit-7 terminator from preceding stringhi", inline=True)
+comment(0xB625, "Pop saved slot index", inline=True)
+comment(0xB649, "X=0: indexed-indirect access mode", inline=True)
+comment(0xB657, "CLV -- ensure V clear so next BVC always taken", inline=True)
+comment(0xB675, "Advance work_ae to next status byte (lo)", inline=True)
+comment(0xB68E, "Advance work_ae to next status byte (lo)", inline=True)
+comment(0xB690, "Read network number byte via (work_ae,X)", inline=True)
+
+# init_dump_buffer tail: 32-bit add + store-back loop (&BF58..&BF70).
+# Adds the workspace 4-byte word at (work_ae)+0..3 to the same offset
+# in osword_flag scratch, then stores the result into (work_ae)+&10..&13.
+# This computes the absolute end address for the *Dump range.
+comment(0xBF58, "Read low byte of address from (work_ae)+Y", inline=True)
+comment(0xBF5A, "Add osword_flag+Y (low byte of length, with carry "
+    "propagating)", inline=True)
+comment(0xBF5D, "Store sum back to osword_flag+Y", inline=True)
+comment(0xBF60, "Advance to next byte", inline=True)
+comment(0xBF61, "Decrement byte counter", inline=True)
+comment(0xBF62, "Loop until 4 bytes added", inline=True)
+comment(0xBF64, "Y=&14: target offset = workspace+&13 (top of end-addr "
+    "field, stored hi-byte-first)", inline=True)
+comment(0xBF66, "X=3: source = osword_flag+3 (top byte of sum)", inline=True)
+comment(0xBF68, "Pre-decrement Y (so first store is to offset &13)", inline=True)
+comment(0xBF69, "Read sum byte from osword_flag+X", inline=True)
+comment(0xBF6B, "Store at (work_ae)+Y", inline=True)
+comment(0xBF6D, "Decrement source index", inline=True)
+comment(0xBF6E, "Loop until X wraps below 0", inline=True)
+comment(0xBF70, "Return", inline=True)
+
+# tx_calc_transfer head (&8900..&8922). Master 128 ACCCON-aware
+# transfer-mode setup: read &FE34 (ACCCON), set bit 3 of escapable,
+# and decide on a Tube vs RAM transfer path.
+comment(0x8900, "Read ACCCON (Master 128 access-control register)", inline=True)
+comment(0x8903, "Set bit 3 of A (transfer-mode flag)", inline=True)
+comment(0x8905, "Store as escapable mode", inline=True)
+comment(0x8907, "Y=7: scout-bytes counter", inline=True)
+comment(0x8914, "C clear: no Tube, plain transfer path", inline=True)
+comment(0x8916, "Z clear (other state set): use fallback path", inline=True)
+comment(0x8918, "Z set: re-read ACCCON for second decision", inline=True)
+comment(0x891B, "Rotate bit 0 (E flag) into C", inline=True)
+comment(0x891C, "C clear: shadow not enabled, fallback path", inline=True)
+comment(0x891E, "Shadow enabled: set bit 2 of escapable", inline=True)
+comment(0x8920, "TSB escapable -- atomic bit-set", inline=True)
+comment(0x8922, "Branch to fallback_calc_transfer (always)", inline=True)
+
+# service_handler gap-fill: PHY/PLY around the body's stack-frame
+# manipulation, plus the cascaded SBC/CMP gate that maps service-call
+# numbers to dispatch indices.
+comment(0x8A59, "Save Y on stack across the version-check", inline=True)
+comment(0x8A8C, "Restore Y from stack", inline=True)
+comment(0x8ABA, "C clear: service number was below the prior CMP "
+    "threshold, take dispatch fall-through", inline=True)
+comment(0x8ABC, "Subtract 5 to remap service range", inline=True)
+comment(0x8ABE, "Compare with &0E", inline=True)
+comment(0x8AC0, "Equal: dispatch directly", inline=True)
+comment(0x8AC2, "Below: take dispatch fall-through", inline=True)
+comment(0x8AC4, "Subtract 8 to remap further", inline=True)
+comment(0x8AC6, "Compare with &0F", inline=True)
+comment(0x8AC8, "Below: dispatch fall-through", inline=True)
+comment(0x8ACA, "Compare with &18", inline=True)
+comment(0x8ACC, "Below: dispatch index now in A", inline=True)
+
 # byte_to_2bit_index inline comments (12 items)
 # This computes A * 12 with overflow clamping. The PHA/TSX/PHP/ADC
 # stack-X trick is the standard 6502 idiom for adding a saved value

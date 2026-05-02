@@ -2648,26 +2648,26 @@ l8877 = check_tube_irq_loop+1
 ; On Exit: A: transfer status C: set if Tube address claimed, clear otherwise
 ; &8900 referenced 3 times by &819a, &84db, &86dd
 .tx_calc_transfer
-    lda lfe34                                                         ; 8900: ad 34 fe    .4.
-    ora #8                                                            ; 8903: 09 08       ..
-    sta escapable                                                     ; 8905: 85 97       ..
-    ldy #7                                                            ; 8907: a0 07       ..
+    lda lfe34                                                         ; 8900: ad 34 fe    .4.            ; Read ACCCON (Master 128 access-control register)
+    ora #8                                                            ; 8903: 09 08       ..             ; Set bit 3 of A (transfer-mode flag)
+    sta escapable                                                     ; 8905: 85 97       ..             ; Store as escapable mode
+    ldy #7                                                            ; 8907: a0 07       ..             ; Y=7: scout-bytes counter
     lda (port_ws_offset),y                                            ; 8909: b1 a6       ..             ; Read RXCB[7] (buffer addr high byte)
     cmp #&ff                                                          ; 890b: c9 ff       ..             ; Compare to &FF
     bne check_tx_in_progress                                          ; 890d: d0 15       ..             ; Not &FF: normal buffer, skip Tube check
     dey                                                               ; 890f: 88          .              ; Y=&06
     lda (port_ws_offset),y                                            ; 8910: b1 a6       ..             ; Read RXCB[6] (buffer addr byte 2)
     cmp #&fe                                                          ; 8912: c9 fe       ..             ; Check if addr byte 2 >= &FE (Tube range)
-    bcc check_tx_in_progress                                          ; 8914: 90 0e       ..
-    bne c8922                                                         ; 8916: d0 0a       ..
-    lda lfe34                                                         ; 8918: ad 34 fe    .4.
-    ror a                                                             ; 891b: 6a          j
-    bcc c8922                                                         ; 891c: 90 04       ..
-    lda #4                                                            ; 891e: a9 04       ..
-    tsb escapable                                                     ; 8920: 04 97       ..
+    bcc check_tx_in_progress                                          ; 8914: 90 0e       ..             ; C clear: no Tube, plain transfer path
+    bne c8922                                                         ; 8916: d0 0a       ..             ; Z clear (other state set): use fallback path
+    lda lfe34                                                         ; 8918: ad 34 fe    .4.            ; Z set: re-read ACCCON for second decision
+    ror a                                                             ; 891b: 6a          j              ; Rotate bit 0 (E flag) into C
+    bcc c8922                                                         ; 891c: 90 04       ..             ; C clear: shadow not enabled, fallback path
+    lda #4                                                            ; 891e: a9 04       ..             ; Shadow enabled: set bit 2 of escapable
+    tsb escapable                                                     ; 8920: 04 97       ..             ; TSB escapable -- atomic bit-set
 ; &8922 referenced 2 times by &8916, &891c
 .c8922
-    bra fallback_calc_transfer                                        ; 8922: 80 44       .D
+    bra fallback_calc_transfer                                        ; 8922: 80 44       .D             ; Branch to fallback_calc_transfer (always)
 ; &8924 referenced 2 times by &890d, &8914
 .check_tx_in_progress
     lda tube_present                                                  ; 8924: ad 63 0d    .c.            ; Transmit in progress?
@@ -3020,7 +3020,7 @@ l89c9 = reset_enter_listen+2
     pha                                                               ; 8a54: 48          H              ; Save service call number
     cmp #&0f                                                          ; 8a55: c9 0f       ..             ; Is it service 15 (vectors claimed)?
     bne c8a8d                                                         ; 8a57: d0 34       .4             ; No: skip vectors-claimed handling
-    phy                                                               ; 8a59: 5a          Z
+    phy                                                               ; 8a59: 5a          Z              ; Save Y on stack across the version-check
     lda #osbyte_read_os_version                                       ; 8a5a: a9 00       ..             ; OSBYTE 0: read OS version
     ldx #1                                                            ; 8a5c: a2 01       ..             ; X=1 to request version number
 
@@ -3051,7 +3051,7 @@ l89c9 = reset_enter_listen+2
 ; &8a8a referenced 2 times by &8a63, &8a67
 .restore_rom_slot
     ldx romsel_copy                                                   ; 8a8a: a6 f4       ..             ; Restore ROM slot to X
-    ply                                                               ; 8a8c: 7a          z
+    ply                                                               ; 8a8c: 7a          z              ; Restore Y from stack
 ; &8a8d referenced 1 time by &8a57
 .c8a8d
     pla                                                               ; 8a8d: 68          h              ; Restore Y parameter
@@ -3085,16 +3085,16 @@ l89c9 = reset_enter_listen+2
     sbc #5                                                            ; 8ab4: e9 05       ..             ; Subtract 5 (map 13-17 to 8-12)
     cmp #&0d                                                          ; 8ab6: c9 0d       ..             ; Mapped value = 13? (original was 18)
     beq dispatch_svc_index                                            ; 8ab8: f0 16       ..             ; Yes: valid service 18 (FS select)
-    bcc c8ace                                                         ; 8aba: 90 12       ..
-    sbc #5                                                            ; 8abc: e9 05       ..
-    cmp #&0e                                                          ; 8abe: c9 0e       ..
-    beq dispatch_svc_index                                            ; 8ac0: f0 0e       ..
-    bcc c8ace                                                         ; 8ac2: 90 0a       ..
-    sbc #8                                                            ; 8ac4: e9 08       ..
-    cmp #&0f                                                          ; 8ac6: c9 0f       ..
-    bcc c8ace                                                         ; 8ac8: 90 04       ..
-    cmp #&18                                                          ; 8aca: c9 18       ..
-    bcc dispatch_svc_index                                            ; 8acc: 90 02       ..
+    bcc c8ace                                                         ; 8aba: 90 12       ..             ; C clear: service number was below the prior CMP threshold, take dispatch fall-through
+    sbc #5                                                            ; 8abc: e9 05       ..             ; Subtract 5 to remap service range
+    cmp #&0e                                                          ; 8abe: c9 0e       ..             ; Compare with &0E
+    beq dispatch_svc_index                                            ; 8ac0: f0 0e       ..             ; Equal: dispatch directly
+    bcc c8ace                                                         ; 8ac2: 90 0a       ..             ; Below: take dispatch fall-through
+    sbc #8                                                            ; 8ac4: e9 08       ..             ; Subtract 8 to remap further
+    cmp #&0f                                                          ; 8ac6: c9 0f       ..             ; Compare with &0F
+    bcc c8ace                                                         ; 8ac8: 90 04       ..             ; Below: dispatch fall-through
+    cmp #&18                                                          ; 8aca: c9 18       ..             ; Compare with &18
+    bcc dispatch_svc_index                                            ; 8acc: 90 02       ..             ; Below: dispatch index now in A
 ; &8ace referenced 3 times by &8aba, &8ac2, &8ac8
 .c8ace
     lda #0                                                            ; 8ace: a9 00       ..             ; Unknown service: set index to 0
@@ -5729,7 +5729,7 @@ ps_template_base = sub_c8da6+1
     jsr print_inline                                                  ; 95ac: 20 61 92     a.            ; Commit state change
     equs "Space", &0d, "NoSpace", &0d                                 ; 95af: 53 70 61... Spa            ; Error code 0; Generate 'Remoted' error
 
-    nop                                                               ; 95bd: ea          .
+    nop                                                               ; 95bd: ea          .              ; NOP -- bit-7 terminator + resume opcode for the preceding stringhi
 ; &95be referenced 1 time by &9617
 .c95be
     jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.            ; Offset 0: remote state byte; Load remote state
@@ -5739,7 +5739,7 @@ ps_template_base = sub_c8da6+1
     jsr print_inline                                                  ; 95c1: 20 61 92     a.            ; Zero: reinitialise session
     equs "P"                                                          ; 95c4: 50          P              ; Offset &80: station low
 
-    clv                                                               ; 95c5: b8          .
+    clv                                                               ; 95c5: b8          .              ; CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)
     bvc c95cd                                                         ; 95c6: 50 05       P.             ; Load station low from RX
 
 ; &95c8 referenced 2 times by &95a0, &9636
@@ -5754,15 +5754,15 @@ ps_template_base = sub_c8da6+1
     equs "S       "                                                   ; 95d0: 53 20 20... S              ; Load remote keypress; Key code to Y; X=0: keyboard buffer; Commit state change
 
     nop                                                               ; 95d8: ea          .              ; OSBYTE &99: insert into buffer
-    rts                                                               ; 95d9: 60          `
+    rts                                                               ; 95d9: 60          `              ; Return
 
 ; &95da referenced 2 times by &95a3, &95a9
 .sub_c95da
-    jsr print_inline                                                  ; 95da: 20 61 92     a.
+    jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (syntax help for *Dir)
     equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D            ; Save TX timeout counter; Push (used as outer loop counter); Save TX control state; Push (preserved during wait); Check if TX in progress
 
     nop                                                               ; 95e7: ea          .              ; Non-zero: skip force-wait
-    rts                                                               ; 95e8: 60          `
+    rts                                                               ; 95e8: 60          `              ; Return
 
 ; &95e9 referenced 1 time by &959e
 .c95e9
@@ -13276,7 +13276,7 @@ lb4fd = write_ps_slot_hi_link+1
     jsr print_inline                                                  ; b60a: 20 61 92     a.            ; Print ' "'
     equs " ", '"'                                                     ; b60d: 20 22        "
 
-    ldy #&18                                                          ; b60f: a0 18       ..
+    ldy #&18                                                          ; b60f: a0 18       ..             ; Y=&18: name field offset in RX buffer
 ; &b611 referenced 1 time by &b61d
 .loop_print_poll_name
     lda (net_rx_ptr),y                                                ; b611: b1 9c       ..             ; Get character from name field
@@ -13291,10 +13291,10 @@ lb4fd = write_ps_slot_hi_link+1
     jsr print_inline                                                  ; b61f: 20 61 92     a.            ; Print '"' + CR
     equs '"', &0d                                                     ; b622: 22 0d       ".
 
-    nop                                                               ; b624: ea          .
+    nop                                                               ; b624: ea          .              ; NOP -- bit-7 terminator from preceding stringhi
 ; &b625 referenced 1 time by &b6a3
 .cb625
-    pla                                                               ; b625: 68          h
+    pla                                                               ; b625: 68          h              ; Pop saved slot index
     beq return_from_poll_slots                                        ; b626: f0 7d       .}             ; Zero: all slots done, return
     pha                                                               ; b628: 48          H              ; Save slot offset
     tay                                                               ; b629: a8          .              ; Transfer to Y
@@ -13315,13 +13315,13 @@ lb4fd = write_ps_slot_hi_link+1
     jsr print_inline                                                  ; b642: 20 61 92     a.            ; Print ' is '
     equs " is "                                                       ; b645: 20 69 73...  is
 
-    ldx #0                                                            ; b649: a2 00       ..
+    ldx #0                                                            ; b649: a2 00       ..             ; X=0: indexed-indirect access mode
     lda (work_ae,x)                                                   ; b64b: a1 ae       ..             ; Read printer status byte
     bne check_poll_jammed                                             ; b64d: d0 0b       ..             ; Non-zero: not ready
     jsr print_inline                                                  ; b64f: 20 61 92     a.            ; Print 'ready'
     equs "ready"                                                      ; b652: 72 65 61... rea
 
-    clv                                                               ; b657: b8          .
+    clv                                                               ; b657: b8          .              ; CLV -- ensure V clear so next BVC always taken
     bvc done_poll_status_line                                         ; b658: 50 40       P@             ; ALWAYS branch
 
 ; &b65a referenced 1 time by &b64d
@@ -13343,15 +13343,15 @@ lb4fd = write_ps_slot_hi_link+1
     jsr print_inline                                                  ; b66e: 20 61 92     a.            ; Print 'busy'
     equs "busy"                                                       ; b671: 62 75 73... bus
 
-    inc work_ae                                                       ; b675: e6 ae       ..
+    inc work_ae                                                       ; b675: e6 ae       ..             ; Advance work_ae to next status byte (lo)
     lda (work_ae,x)                                                   ; b677: a1 ae       ..             ; Read client station number
     sta fs_work_5                                                     ; b679: 85 b5       ..             ; Store station low
     beq done_poll_status_line                                         ; b67b: f0 1d       ..             ; Zero: no client info, skip
     jsr print_inline                                                  ; b67d: 20 61 92     a.            ; Print ' with station '
     equs " with station "                                             ; b680: 20 77 69...  wi            ; Inline: ' with station ' message fragment
 
-    inc work_ae                                                       ; b68e: e6 ae       ..
-    lda (work_ae,x)                                                   ; b690: a1 ae       ..
+    inc work_ae                                                       ; b68e: e6 ae       ..             ; Advance work_ae to next status byte (lo)
+    lda (work_ae,x)                                                   ; b690: a1 ae       ..             ; Read network number byte via (work_ae,X)
     sta fs_work_6                                                     ; b692: 85 b6       ..             ; Store network number
     bit always_set_v_byte                                             ; b694: 2c 69 97    ,i.            ; Set V flag
     jsr print_station_addr                                            ; b697: 20 56 b5     V.            ; Print client station address
@@ -15223,22 +15223,22 @@ lb821 = err_net_chan_not_found+2
     clc                                                               ; bf57: 18          .              ; Clear C for the add
 ; &bf58 referenced 1 time by &bf62
 .loop_add_disp_bytes
-    lda (work_ae),y                                                   ; bf58: b1 ae       ..
-    adc osword_flag,y                                                 ; bf5a: 79 aa 00    y..
-    sta osword_flag,y                                                 ; bf5d: 99 aa 00    ...
-    iny                                                               ; bf60: c8          .
-    dex                                                               ; bf61: ca          .
-    bne loop_add_disp_bytes                                           ; bf62: d0 f4       ..
-    ldy #&14                                                          ; bf64: a0 14       ..
-    ldx #3                                                            ; bf66: a2 03       ..
+    lda (work_ae),y                                                   ; bf58: b1 ae       ..             ; Read low byte of address from (work_ae)+Y
+    adc osword_flag,y                                                 ; bf5a: 79 aa 00    y..            ; Add osword_flag+Y (low byte of length, with carry propagating)
+    sta osword_flag,y                                                 ; bf5d: 99 aa 00    ...            ; Store sum back to osword_flag+Y
+    iny                                                               ; bf60: c8          .              ; Advance to next byte
+    dex                                                               ; bf61: ca          .              ; Decrement byte counter
+    bne loop_add_disp_bytes                                           ; bf62: d0 f4       ..             ; Loop until 4 bytes added
+    ldy #&14                                                          ; bf64: a0 14       ..             ; Y=&14: target offset = workspace+&13 (top of end-addr field, stored hi-byte-first)
+    ldx #3                                                            ; bf66: a2 03       ..             ; X=3: source = osword_flag+3 (top byte of sum)
 ; &bf68 referenced 1 time by &bf6e
 .loop_store_disp_addr
-    dey                                                               ; bf68: 88          .
-    lda osword_flag,x                                                 ; bf69: b5 aa       ..
-    sta (work_ae),y                                                   ; bf6b: 91 ae       ..
-    dex                                                               ; bf6d: ca          .
-    bpl loop_store_disp_addr                                          ; bf6e: 10 f8       ..
-    rts                                                               ; bf70: 60          `
+    dey                                                               ; bf68: 88          .              ; Pre-decrement Y (so first store is to offset &13)
+    lda osword_flag,x                                                 ; bf69: b5 aa       ..             ; Read sum byte from osword_flag+X
+    sta (work_ae),y                                                   ; bf6b: 91 ae       ..             ; Store at (work_ae)+Y
+    dex                                                               ; bf6d: ca          .              ; Decrement source index
+    bpl loop_store_disp_addr                                          ; bf6e: 10 f8       ..             ; Loop until X wraps below 0
+    rts                                                               ; bf70: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Close file handle stored in workspace
