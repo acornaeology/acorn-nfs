@@ -3065,19 +3065,33 @@ dispatcher's `INX/DEY/BPL` loop settles `X_final = 22`,
 dispatching to `svc_dispatch_lo[22] / hi[22] = &8F38` = this
 routine.
 
-This entry sits in a contiguous block of nine handlers that map
-to the documented Master 128 service calls `&21..&29`:
+The CMP/SBC chain has *three* exit branches to
+`dispatch_svc_index` plus a fall-through error path; together with
+the direct-path BCC at `&8AB2` they cover exactly the Master 128
+service calls ANFS handles:
 
-  idx &10 (svc &21): raise_y_to_c8           static workspace claim
-  idx &11 (svc &22): set_rom_ws_page         dynamic workspace offer
-  idx &12 (svc &23): store_ws_page_count     top-of-static-workspace
-  idx &13 (svc &24): noop_dey_rts            dynamic workspace claim
-                                              (DEY = claim 1 page)
-  idx &14 (svc &25): copy_template_to_zp     FS name + info reply
-  idx &15 (svc &26): check_help_continuation close all files
-  idx &16 (svc &27): nfs_init_body           reset re-init (this)
-  idx &17 (svc &28): parse_filename_validate *CONFIGURE option
-  idx &18 (svc &29): parse_object_argument   *STATUS option""")
+  svc 0..12 (&00..&0C) -- direct -- idx 1..13 (svc 1..12 stuff)
+  svc 18 (&12)         -- BEQ &8AB8 -- idx 14: svc_18_fs_select
+  svc 24 (&18)         -- BEQ &8AC0 -- idx 15: match_on_suffix
+                                       (Interactive HELP)
+  svc 33..41 (&21..&29) -- BCC &8ACC -- idx 16..24:
+    idx &10 (svc &21): raise_y_to_c8           static ws claim
+    idx &11 (svc &22): set_rom_ws_page         dynamic ws offer
+    idx &12 (svc &23): store_ws_page_count     top-of-static-ws
+    idx &13 (svc &24): noop_dey_rts            dynamic ws claim
+                                                (DEY = claim 1 page)
+    idx &14 (svc &25): copy_template_to_zp     FS name + info reply
+    idx &15 (svc &26): check_help_continuation close all files
+    idx &16 (svc &27): nfs_init_body           reset re-init (this)
+    idx &17 (svc &28): parse_filename_validate *CONFIGURE option
+    idx &18 (svc &29): parse_object_argument   *STATUS option
+
+Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls
+through to `c8ace`, gets `A := 0`, dispatches to idx 1 =
+`dispatch_rts` (no-op). That deliberately ignores e.g. svc &15
+(Polling interrupt, 100 Hz) and svc &2A (ROM-based language
+starting up) -- ANFS isn't a language ROM and has no use for the
+high-frequency poll.""")
 label(0x8FB8, "done_alloc_handles")
 subroutine(0x903C, "init_adlc_and_vectors",
     title="Initialise ADLC and install extended vectors",
@@ -10449,7 +10463,8 @@ label(0x8C51, "svc_9_help")
 # decode. Names are best-effort; refine as routines are walked.
 label(0xA83C, "svc_8_osword_disp")    # idx  9: alt entry to svc_8_osword
                                       #   (skips the BRA-from-elsewhere path)
-label(0x969A, "match_on_suffix")      # idx 15: 'ON ' suffix matcher
+label(0x969A, "match_on_suffix")      # idx 15 = Master svc &18 (Interactive HELP):
+                                      # 'ON ' keyword matcher, runs file loader on match
 label(0x8E71, "noop_dey_rts")         # idx 19: DEY / RTS 2-byte stub
 label(0x8E73, "copy_template_to_zp")  # idx 20: copy 11 bytes &8E7F.. to (&F2),Y
 label(0x8E8A, "check_help_continuation")  # idx 21: BIT &0D6C / BVC &8E80 / ...
@@ -10509,7 +10524,7 @@ _svc_dispatch_entries = [
     (0x0C,  0x806C,  "econet_restore",                "svc 11 NMI release"),
     (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc 13 wait+reset"),
     (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
-    (0x0F,  0x969A,  "match_on_suffix",               "*HELP 'ON ' suffix matcher"),
+    (0x0F,  0x969A,  "match_on_suffix",               "svc &18: Interactive HELP -- 'ON ' keyword matcher"),
     (0x10,  0x8EE9,  "raise_y_to_c8",                 "svc &21: static workspace claim, raise Y to &C8"),
     (0x11,  0x8EFE,  "set_rom_ws_page",               "svc &22: dynamic workspace offer (stores page for this slot)"),
     (0x12,  0x8EF0,  "store_ws_page_count",           "svc &23: top-of-static-workspace -- record incoming Y"),

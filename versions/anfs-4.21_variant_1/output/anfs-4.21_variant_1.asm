@@ -2895,7 +2895,7 @@ l89c9 = reset_enter_listen+2
     equb <(econet_restore-1)                                          ; 89f9: 6b          k              ; idx &0C: econet_restore (svc 11 NMI release)
     equb <(wait_idle_and_reset-1)                                     ; 89fa: a5          .              ; idx &0D: wait_idle_and_reset (svc 13 wait+reset)
     equb <(svc_18_fs_select-1)                                        ; 89fb: 44          D              ; idx &0E: svc_18_fs_select (svc 18 FS select)
-    equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (*HELP 'ON ' suffix matcher)
+    equb <(match_on_suffix-1)                                         ; 89fc: 99          .              ; idx &0F: match_on_suffix (svc &18: Interactive HELP -- 'ON ' keyword matcher)
     equb <(raise_y_to_c8-1)                                           ; 89fd: e8          .              ; idx &10: raise_y_to_c8 (svc &21: static workspace claim, raise Y to &C8)
     equb <(set_rom_ws_page-1)                                         ; 89fe: fd          .              ; idx &11: set_rom_ws_page (svc &22: dynamic workspace offer (stores page for this slot))
     equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; idx &12: store_ws_page_count (svc &23: top-of-static-workspace -- record incoming Y)
@@ -4377,17 +4377,25 @@ ps_template_base = sub_c8da6+1
 ; dispatcher's INX/DEY/BPL loop settles X_final = 22, dispatching to
 ; svc_dispatch_lo[22] / hi[22] = &8F38 = this routine.
 ;
-; This entry sits in a contiguous block of nine handlers that map to the documented
-; Master 128 service calls &21..&29:
+; The CMP/SBC chain has three exit branches to dispatch_svc_index plus a fall-through
+; error path; together with the direct-path BCC at &8AB2 they cover exactly the Master
+; 128 service calls ANFS handles:
 ;
-; idx &10 (svc &21): raise_y_to_c8           static workspace claim idx &11 (svc &22):
-; set_rom_ws_page         dynamic workspace offer idx &12 (svc &23):
-; store_ws_page_count     top-of-static-workspace idx &13 (svc &24): noop_dey_rts
-; dynamic workspace claim (DEY = claim 1 page) idx &14 (svc &25): copy_template_to_zp
-; FS name + info reply idx &15 (svc &26): check_help_continuation close all files idx
-; &16 (svc &27): nfs_init_body           reset re-init (this) idx &17 (svc &28):
-; parse_filename_validate *CONFIGURE option idx &18 (svc &29): parse_object_argument
-; *STATUS option
+; svc 0..12 (&00..&0C) -- direct -- idx 1..13 (svc 1..12 stuff) svc 18 (&12)         --
+; BEQ &8AB8 -- idx 14: svc_18_fs_select svc 24 (&18)         -- BEQ &8AC0 -- idx 15:
+; match_on_suffix (Interactive HELP) svc 33..41 (&21..&29) -- BCC &8ACC -- idx 16..24:
+; idx &10 (svc &21): raise_y_to_c8           static ws claim idx &11 (svc &22):
+; set_rom_ws_page         dynamic ws offer idx &12 (svc &23): store_ws_page_count
+; top-of-static-ws idx &13 (svc &24): noop_dey_rts            dynamic ws claim (DEY =
+; claim 1 page) idx &14 (svc &25): copy_template_to_zp     FS name + info reply idx &15
+; (svc &26): check_help_continuation close all files idx &16 (svc &27): nfs_init_body
+; reset re-init (this) idx &17 (svc &28): parse_filename_validate *CONFIGURE option idx
+; &18 (svc &29): parse_object_argument   *STATUS option
+;
+; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to c8ace, gets
+; A := 0, dispatches to idx 1 = dispatch_rts (no-op). That deliberately ignores e.g.
+; svc &15 (Polling interrupt, 100 Hz) and svc &2A (ROM-based language starting up) --
+; ANFS isn't a language ROM and has no use for the high-frequency poll.
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
