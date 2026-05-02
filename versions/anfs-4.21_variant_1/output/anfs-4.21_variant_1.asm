@@ -1769,10 +1769,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
-; Pushes (tx_done_exit - 1) on the stack so RTS returns to tx_done_exit when the remote
-; routine completes, then does JMP (exec_addr_lo) to call the remote-supplied JSR
-; target. When that routine returns via RTS, control resumes at tx_done_exit which
-; tidies up TX state.
+; Pushes (tx_done_exit (&8582)  - 1) on the stack so RTS returns to tx_done_exit
+; (&8582) when the remote routine completes, then does JMP
+; ([exec_addr_lo](address:0D66?hex)) to call the remote-supplied JSR target. When that
+; routine returns via RTS, control resumes at tx_done_exit (&8582) which tidies up TX
+; state.
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: TX op &85 (OSProc)
     pha                                                               ; 8542: 48          H              ; Push hi byte on stack
@@ -1783,13 +1784,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: fire Econet event
 ;
-; Handler for TX operation type &84. Loads the remote address from
-; exec_addr_lo/exec_addr_hi into X/A and sets Y=8 (Econet event number), then falls
+; Handler for TX operation type &84. Loads the remote address from exec_addr_lo (&0D66)
+; / exec_addr_hi (&0D67) into X / A and sets Y=8 (Econet event number), then falls
 ; through to tx_done_fire_event to call OSEVEN.
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo/hi. The dispatcher
-; pushed the caller's X and Y onto the stack before transferring control, and the
-; shared tx_done_exit at &8582 restores them via PLA/TAY/PLA/TAX before returning A=0.
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. The
+; dispatcher pushed the caller's X and Y onto the stack before transferring control,
+; and the shared tx_done_exit (&8582) restores them via PLA/TAY/PLA/TAX before
+; returning A=0.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_econet_event
@@ -1803,10 +1805,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: OSProc call
 ;
-; Calls the ROM service entry point with X=exec_addr_lo, Y=exec_addr_hi. This invokes
-; an OS-level procedure on behalf of the remote station, then exits via tx_done_exit.
+; Calls the ROM service entry point with X = exec_addr_lo (&0D66), Y = exec_addr_hi
+; (&0D67). This invokes an OS-level procedure on behalf of the remote station, then
+; exits via tx_done_exit (&8582).
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo/hi.
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_os_proc
@@ -1818,13 +1821,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: HALT
 ;
-; Sets bit 2 of rx_flags (&0D61), enables interrupts, and spin-waits until bit 2 is
+; Sets bit 2 of econet_flags (&0D61), enables interrupts, and spin-waits until bit 2 is
 ; cleared (by a CONTINUE from the remote station). If bit 2 is already set, skips to
 ; exit.
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo/hi. Falls through to
-; tx_done_continue after the spin completes; on the already-halted path it branches
-; directly to tx_done_exit.
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. Falls
+; through to tx_done_continue (&857A) after the spin completes; on the already-halted
+; path it branches directly to tx_done_exit (&8582).
 ;
 ; On Exit: A: 0 (success status, set by tx_done_exit) I FLAG: interrupts enabled (CLI
 ; inside the spin) X, Y: restored from stack via tx_done_exit
@@ -1845,12 +1848,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: CONTINUE
 ;
-; Clears bit 2 of rx_flags (&0D61), releasing any station that is halted and spinning
-; in tx_done_halt.
+; Clears bit 2 of econet_flags (&0D61), releasing any station that is halted and
+; spinning in tx_done_halt (&8563).
 ;
-; Reached either as a fall-through from tx_done_halt or directly via PHA/PHA/RTS
-; dispatch from tx_done_dispatch_lo/hi. Falls through to tx_done_exit which restores X
-; and Y from the stack and returns A=0.
+; Reached either as a fall-through from tx_done_halt (&8563) or directly via
+; PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. Falls through to
+; tx_done_exit (&8582) which restores X and Y from the stack and returns A=0.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_continue
@@ -1860,11 +1863,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Shared TX-done exit: restore X/Y, return A=0
 ;
-; Common cleanup tail used by every entry in the tx_done_dispatch table. Pulls the
-; saved Y and X off the stack (the dispatcher pushed them before the PHA/PHA/RTS jump),
-; loads A=0 (success status), and RTS to the caller. Five inbound refs: a tail-jump
-; from &8042 (the SVC 5 IRQ-check path), plus the JMPs at &8554, &8560, &8568, and the
-; fall-through at &8578.
+; Common cleanup tail used by every entry in the tx_done_dispatch_lo (&853B) table.
+; Pulls the saved Y and X off the stack (the dispatcher pushed them before the
+; PHA/PHA/RTS jump), loads A=0 (success status), and RTS to the caller.
+;
+; Five inbound refs: a tail-jump from &8042 (the SVC 5 IRQ-check path in svc5_irq_check
+; (&8028)), plus the JMPs at &8554, &8560, &8568, and the fall-through at &8578.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack
 ; &8582 referenced 5 times by &8042, &8554, &8560, &8568, &8578
@@ -1879,10 +1883,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Begin TX operation
 ;
-; Main TX initiation entry point (called via the NETV trampoline). Copies dest
-; station/network from the TXCB to the scout buffer, dispatches to immediate op setup
-; (ctrl >= &81) or normal data transfer, calculates transfer sizes, copies extra
-; parameters, then enters the INACTIVE polling loop.
+; Main TX initiation entry point (called via the NETV trampoline).
+;
+; 1. Copies destination station / network from the TXCB to the scout buffer.
+; 2. Dispatches: control byte ≥ &81 → immediate-op setup; else normal data transfer.
+; 3. Calculates transfer sizes via tx_calc_transfer (&8900); copies extra parameters
+;    into the workspace.
+; 4. Enters the INACTIVE polling loop at inactive_poll (&85F1).
 ; &8589 referenced 3 times by &9bc3, &a92a, &ac1e
 .tx_begin
     txa                                                               ; 8589: 8a          .              ; Save X on stack
@@ -1958,10 +1965,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; INACTIVE polling loop
 ;
-; Entry point for the Econet line idle detection loop. Saves the TX index in
-; rx_remote_addr, pushes two timeout counter bytes onto the stack, and loads Y=&E7 (CR2
-; value for TX preparation). Loads the INACTIVE bit mask (&04) into A and falls through
-; to intoff_test_inactive to begin polling SR2 with interrupts disabled.
+; Entry point for the Econet line-idle detection loop.
+;
+; 1. Saves the TX index in rx_remote_addr (&0D41).
+; 2. Pushes two timeout-counter bytes onto the stack.
+; 3. Loads Y = &E7 (CR2 value for TX preparation).
+; 4. Loads the INACTIVE bit mask (&04) into A.
+; 5. Falls through to intoff_test_inactive (&85FC) to begin polling SR2 with interrupts
+;    disabled.
 ;
 ; On Exit: Y: &E7 (CR2 value for tx_prepare)
 .inactive_poll
@@ -1978,12 +1989,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
-; Disables NMIs via two reads of &FE18 (INTOFF), then polls SR2 for the INACTIVE bit
-; (bit 2). If INACTIVE is detected, reads SR1 and writes CR2=&67 to clear status, then
-; tests CTS (SR1 bit 4): if CTS is present, branches to tx_prepare to begin
-; transmission. If INACTIVE is not set, re-enables NMIs via &FE20 (INTON) and
-; decrements the 3-byte timeout counter on the stack. On timeout, falls through to
-; tx_line_jammed.
+; Disables NMIs via two reads of econet_station_id (&FE18) (INTOFF), then polls SR2 for
+; the INACTIVE bit (bit 2):
+;
+; | SR2 INACTIVE | Action                                                                                                           |
+; |--------------|------------------------------------------------------------------------------------------------------------------|
+; | set          | read SR1, write CR2=&67 to clear status, then test CTS (SR1 bit 4); if CTS present, branch to tx_prepare (&864A) |
+; | clear        | re-enable NMIs via econet_nmi_enable (&FE20) (INTON) and decrement the 3-byte timeout counter on the stack       |
+;
+; On timeout, falls through to tx_line_jammed (&8630).
 ;
 ; On Entry: A: &04 (INACTIVE bit mask) Y: &E7 (CR2 value for tx_prepare)
 .intoff_test_inactive

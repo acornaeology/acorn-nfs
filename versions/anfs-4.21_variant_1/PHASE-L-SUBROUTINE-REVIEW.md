@@ -116,16 +116,16 @@ addresses across all 431 remaining routines.
 | 40 | &84F9 | `imm_op_build_reply` | done | inline-code refinement |
 | 41 | &8512 | `setup_sr_tx` | done | op-code dispatch table; tx_op_type/ws_0d68/ws_0d69/scout_complete links |
 | 42 | &852C | `advance_buffer_ptr` | done | inline-code refinement |
-| 43 | &853B | `tx_done_dispatch_lo` | | |
-| 44 | &8540 | `tx_done_jsr` | | |
-| 45 | &8549 | `tx_done_econet_event` | | |
-| 46 | &8557 | `tx_done_os_proc` | | |
-| 47 | &8563 | `tx_done_halt` | | |
-| 48 | &857A | `tx_done_continue` | | |
-| 49 | &8582 | `tx_done_exit` | | |
-| 50 | &8589 | `tx_begin` | | |
-| 51 | &85F1 | `inactive_poll` | | |
-| 52 | &85FC | `intoff_test_inactive` | | |
+| 43 | &853B | `tx_done_dispatch_lo` | kept | already accurate; per-entry expr declarations |
+| 44 | &8540 | `tx_done_jsr` | done | exec_addr_lo + tx_done_exit links |
+| 45 | &8549 | `tx_done_econet_event` | done | exec_addr_lo/hi + tx_done_dispatch + tx_done_exit links |
+| 46 | &8557 | `tx_done_os_proc` | done | exec_addr_lo/hi + tx_done_dispatch + tx_done_exit links |
+| 47 | &8563 | `tx_done_halt` | done | econet_flags + tx_done_continue/exit links |
+| 48 | &857A | `tx_done_continue` | done | econet_flags + tx_done_halt/dispatch/exit links |
+| 49 | &8582 | `tx_done_exit` | done | tx_done_dispatch_lo + svc5_irq_check links |
+| 50 | &8589 | `tx_begin` | done | numbered 4-step list; tx_calc_transfer + inactive_poll links |
+| 51 | &85F1 | `inactive_poll` | done | numbered 5-step list; rx_remote_addr + intoff_test_inactive links |
+| 52 | &85FC | `intoff_test_inactive` | done | INACTIVE dispatch table; econet_station_id + econet_nmi_enable + tx_prepare + tx_line_jammed links |
 | 53 | &862C | `tx_bad_ctrl_error` | | |
 | 54 | &8630 | `tx_line_jammed` | | |
 | 55 | &864A | `tx_prepare` | | |

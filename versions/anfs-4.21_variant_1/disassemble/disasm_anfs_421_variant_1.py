@@ -2712,101 +2712,125 @@ entry(0x8540)
 subroutine(0x8540, "tx_done_jsr",
     title="TX done: remote JSR execution",
     description="""\
-Pushes ([`tx_done_exit`](address:8582) `- 1`) on the stack so `RTS`
-returns to [`tx_done_exit`](address:8582) when the remote routine
-completes, then does `JMP (exec_addr_lo)` to call the remote-supplied JSR
+Pushes ([`tx_done_exit`](address:8582?hex) ` - 1`) on the stack so
+`RTS` returns to [`tx_done_exit`](address:8582?hex) when the remote
+routine completes, then does `JMP
+([exec_addr_lo](address:0D66?hex))` to call the remote-supplied JSR
 target. When that routine returns via `RTS`, control resumes at
-[`tx_done_exit`](address:8582) which tidies up TX state.""")
+[`tx_done_exit`](address:8582?hex) which tidies up TX state.""")
 subroutine(0x8549, "tx_done_econet_event",
     title="TX done: fire Econet event",
-    description="Handler for TX operation type &84. Loads the\n"
-    "remote address from exec_addr_lo/exec_addr_hi into X/A and\n"
-    "sets Y=8 (Econet event number), then falls\n"
-    "through to tx_done_fire_event to call OSEVEN.\n"
-    "\n"
-    "Reached only via PHA/PHA/RTS dispatch from\n"
-    "tx_done_dispatch_lo/hi. The dispatcher pushed the\n"
-    "caller's X and Y onto the stack before transferring\n"
-    "control, and the shared tx_done_exit at &8582 restores\n"
-    "them via PLA/TAY/PLA/TAX before returning A=0.",
+    description="""\
+Handler for TX operation type `&84`. Loads the remote address
+from [`exec_addr_lo`](address:0D66?hex) /
+[`exec_addr_hi`](address:0D67?hex) into `X` / `A` and sets `Y=8`
+(Econet event number), then falls through to `tx_done_fire_event`
+to call OSEVEN.
+
+Reached only via `PHA`/`PHA`/`RTS` dispatch from
+[`tx_done_dispatch_lo`](address:853B?hex) / hi. The dispatcher
+pushed the caller's `X` and `Y` onto the stack before
+transferring control, and the shared
+[`tx_done_exit`](address:8582?hex) restores them via
+`PLA`/`TAY`/`PLA`/`TAX` before returning `A=0`.""",
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8557, "tx_done_os_proc",
     title="TX done: OSProc call",
-    description="Calls the ROM service entry point with X=exec_addr_lo,\n"
-    "Y=exec_addr_hi. This invokes an OS-level procedure on\n"
-    "behalf of the remote station, then exits via\n"
-    "tx_done_exit.\n"
-    "\n"
-    "Reached only via PHA/PHA/RTS dispatch from\n"
-    "tx_done_dispatch_lo/hi.",
+    description="""\
+Calls the ROM service entry point with
+`X = `[`exec_addr_lo`](address:0D66?hex)`, Y = `[`exec_addr_hi`](address:0D67?hex).
+This invokes an OS-level procedure on behalf of the remote
+station, then exits via [`tx_done_exit`](address:8582?hex).
+
+Reached only via `PHA`/`PHA`/`RTS` dispatch from
+[`tx_done_dispatch_lo`](address:853B?hex) / hi.""",
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8563, "tx_done_halt",
     title="TX done: HALT",
-    description="Sets bit 2 of rx_flags (&0D61), enables interrupts,\n"
-    "and spin-waits until bit 2 is cleared (by a CONTINUE\n"
-    "from the remote station). If bit 2 is already set,\n"
-    "skips to exit.\n"
-    "\n"
-    "Reached only via PHA/PHA/RTS dispatch from\n"
-    "tx_done_dispatch_lo/hi. Falls through to tx_done_continue\n"
-    "after the spin completes; on the already-halted path it\n"
-    "branches directly to tx_done_exit.",
+    description="""\
+Sets bit 2 of [`econet_flags`](address:0D61?hex), enables
+interrupts, and spin-waits until bit 2 is cleared (by a CONTINUE
+from the remote station). If bit 2 is already set, skips to exit.
+
+Reached only via `PHA`/`PHA`/`RTS` dispatch from
+[`tx_done_dispatch_lo`](address:853B?hex) / hi. Falls through to
+[`tx_done_continue`](address:857A?hex) after the spin completes;
+on the already-halted path it branches directly to
+[`tx_done_exit`](address:8582?hex).""",
     on_exit={"a": "0 (success status, set by tx_done_exit)",
              "i flag": "interrupts enabled (CLI inside the spin)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x857A, "tx_done_continue",
     title="TX done: CONTINUE",
-    description="Clears bit 2 of rx_flags (&0D61), releasing any\n"
-    "station that is halted and spinning in tx_done_halt.\n"
-    "\n"
-    "Reached either as a fall-through from tx_done_halt or\n"
-    "directly via PHA/PHA/RTS dispatch from\n"
-    "tx_done_dispatch_lo/hi. Falls through to tx_done_exit\n"
-    "which restores X and Y from the stack and returns A=0.",
+    description="""\
+Clears bit 2 of [`econet_flags`](address:0D61?hex), releasing any
+station that is halted and spinning in
+[`tx_done_halt`](address:8563?hex).
+
+Reached either as a fall-through from
+[`tx_done_halt`](address:8563?hex) or directly via
+`PHA`/`PHA`/`RTS` dispatch from
+[`tx_done_dispatch_lo`](address:853B?hex) / hi. Falls through to
+[`tx_done_exit`](address:8582?hex) which restores `X` and `Y`
+from the stack and returns `A=0`.""",
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack via tx_done_exit"})
 subroutine(0x8582, "tx_done_exit",
     title="Shared TX-done exit: restore X/Y, return A=0",
     description="""\
-Common cleanup tail used by every entry in the tx_done_dispatch
-table. Pulls the saved Y and X off the stack (the dispatcher pushed
-them before the PHA/PHA/RTS jump), loads A=0 (success status), and
-RTS to the caller. Five inbound refs: a tail-jump from &8042 (the
-SVC 5 IRQ-check path), plus the JMPs at &8554, &8560, &8568, and
-the fall-through at &8578.""",
+Common cleanup tail used by every entry in the
+[`tx_done_dispatch_lo`](address:853B?hex) table. Pulls the saved
+`Y` and `X` off the stack (the dispatcher pushed them before the
+`PHA`/`PHA`/`RTS` jump), loads `A=0` (success status), and `RTS`
+to the caller.
+
+Five inbound refs: a tail-jump from `&8042` (the SVC 5 IRQ-check
+path in [`svc5_irq_check`](address:8028?hex)), plus the JMPs at
+`&8554`, `&8560`, `&8568`, and the fall-through at `&8578`.""",
     on_exit={"a": "0 (success status)",
              "x, y": "restored from stack"})
 subroutine(0x8589, "tx_begin",
     title="Begin TX operation",
-    description="Main TX initiation entry point (called via the\n"
-    "NETV trampoline). Copies dest station/network from\n"
-    "the TXCB to the scout buffer, dispatches to immediate\n"
-    "op setup (ctrl >= &81) or normal data transfer,\n"
-    "calculates transfer sizes, copies extra parameters,\n"
-    "then enters the INACTIVE polling loop.")
+    description="""\
+Main TX initiation entry point (called via the NETV trampoline).
+
+1. Copies destination station / network from the TXCB to the
+   scout buffer.
+2. Dispatches: control byte `≥ &81` → immediate-op setup; else
+   normal data transfer.
+3. Calculates transfer sizes via
+   [`tx_calc_transfer`](address:8900?hex); copies extra
+   parameters into the workspace.
+4. Enters the INACTIVE polling loop at
+   [`inactive_poll`](address:85F1?hex).""")
 subroutine(0x85F1, "inactive_poll",
     title="INACTIVE polling loop",
-    description="Entry point for the Econet line idle detection\n"
-    "loop. Saves the TX index in rx_remote_addr, pushes\n"
-    "two timeout counter bytes onto the stack, and loads\n"
-    "Y=&E7 (CR2 value for TX preparation). Loads the\n"
-    "INACTIVE bit mask (&04) into A and falls through to\n"
-    "intoff_test_inactive to begin polling SR2 with\n"
-    "interrupts disabled.",
+    description="""\
+Entry point for the Econet line-idle detection loop.
+
+1. Saves the TX index in [`rx_remote_addr`](address:0D41?hex).
+2. Pushes two timeout-counter bytes onto the stack.
+3. Loads `Y = &E7` (CR2 value for TX preparation).
+4. Loads the INACTIVE bit mask (`&04`) into `A`.
+5. Falls through to [`intoff_test_inactive`](address:85FC?hex)
+   to begin polling `SR2` with interrupts disabled.""",
     on_exit={"y": "&E7 (CR2 value for tx_prepare)"})
 subroutine(0x85FC, "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
-    description="Disables NMIs via two reads of &FE18 (INTOFF),\n"
-    "then polls SR2 for the INACTIVE bit (bit 2). If\n"
-    "INACTIVE is detected, reads SR1 and writes CR2=&67\n"
-    "to clear status, then tests CTS (SR1 bit 4): if\n"
-    "CTS is present, branches to tx_prepare to begin\n"
-    "transmission. If INACTIVE is not set, re-enables\n"
-    "NMIs via &FE20 (INTON) and decrements the 3-byte\n"
-    "timeout counter on the stack. On timeout, falls\n"
-    "through to tx_line_jammed.",
+    description="""\
+Disables NMIs via two reads of
+[`econet_station_id`](address:FE18?hex) (INTOFF), then polls
+`SR2` for the INACTIVE bit (bit 2):
+
+| `SR2` INACTIVE | Action |
+|---|---|
+| set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:864A?hex) |
+| clear | re-enable NMIs via [`econet_nmi_enable`](address:FE20?hex) (INTON) and decrement the 3-byte timeout counter on the stack |
+
+On timeout, falls through to
+[`tx_line_jammed`](address:8630?hex).""",
     on_entry={"a": "&04 (INACTIVE bit mask)",
               "y": "&E7 (CR2 value for tx_prepare)"})
 subroutine(0x862C, "tx_bad_ctrl_error",
