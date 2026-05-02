@@ -607,37 +607,19 @@ dimensions. In priority order:
 
 ## Phase K: Rename auto-generated `l*` / `c*` labels
 
-  **TODO.** py8dis emits `lXXXX` (branch target) and `cXXXX` (code
-  reference) labels for any address that has no explicit `label()`
-  call. Each one is a meaningless hex name that hides what the code
-  is doing. Every label in the driver should have a domain-meaningful
-  semantic name -- that is the bar already cleared for ANFS 4.08.53
-  (0 auto labels remaining) and the earlier NFS 3.x versions.
+  **Done (2026-05-02).** All 78 in-ROM auto-labels (13 `l*` + 65
+  `c*`) renamed to semantic names. Tracked in
+  `PHASE-K-LABEL-RENAME.md` with the full address → name mapping.
 
-  As of 2026-05-02 the 4.21_v1 ASM output contains **78 unique
-  auto-labels** across 79 declarations: 13 `l*` (branch targets) and
-  65 `c*` (code references / data references). The recent
-  `hazel_minus_*` rename eliminated 3 `l*` labels (`lbfe6 / lbffe /
-  lbfff`); the same treatment applies to the rest.
+  Verified byte-identical, lint clean, comments check clean. Site
+  rebuilt with no glossary or new warnings.
 
-  Approach:
-
-  1. Group by routine. Most auto-labels are local branch targets
-     inside one subroutine -- name them in the routine's own
-     vocabulary (`retry_loop`, `skip_if_zero`, `error_exit`, etc.).
-  2. Cross-routine references (the `c*` ones used as `LDA c8e9a,Y`
-     base pointers, jump-table targets, etc.) need names that read
-     well at the call site -- often a variant of an existing
-     subroutine name (e.g. `osbyte_a1_table` for the table that
-     overlaps `osbyte_a1`'s body).
-  3. Add an explicit `label(0xXXXX, "name")` call in the driver,
-     verify byte-identical reassembly, lint clean.
-  4. Commit per cluster (e.g. all labels inside one subroutine, or
-     one logical group of cross-references).
-
-  Snapshot of the 78 labels to rename is in the ASM output -- regenerate
-  with `grep -oE '\.(l|c)[0-9a-f]{4}\b' output/anfs-4.21_variant_1.asm
-  | sort -u`.
+  Outstanding for a possible Phase K2: 110 HAZEL workspace external
+  symbols (`lXXXX = &XXXX` declarations for addresses outside the
+  ROM -- zero page, MOS workspace, HAZEL `&C100..&C2FF`). Only
+  `lc109` at `&C109` was renamed (to `hazel_exec_addr`). The rest
+  are mostly workspace bytes whose semantic meaning will only
+  emerge from deeper annotation of the routines that touch them.
 
 ## Working queue
 
