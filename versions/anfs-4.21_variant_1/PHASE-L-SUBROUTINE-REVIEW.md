@@ -364,36 +364,36 @@ addresses across all 431 remaining routines.
 | 288 | &A6A6 | `flip_set_station_boot` | kept | already accurate |
 | 289 | &A6D5 | `fsreply_1_copy_handles_boot` | kept | already accurate |
 | 290 | &A6E5 | `fsreply_2_copy_handles` | kept | already accurate |
-| 291 | &A764 | `boot_cmd_oscli` | | |
-| 292 | &A76C | `cmd_table_fs` | | |
-| 293 | &A83B | `svc_8_osword` | | |
-| 294 | &A864 | `osword_setup_handler` | | |
-| 295 | &A877 | `extract_osword_subcode` | | |
-| 296 | &A901 | `bin_to_bcd` | | |
-| 297 | &A910 | `osword_10_handler` | | |
-| 298 | &A985 | `osword_12_handler` | | |
-| 299 | &A9A8 | `osword_13_dispatch_lo` | | |
-| 300 | &A9BA | `osword_13_dispatch_hi` | | |
-| 301 | &A9CC | `osword_13_read_station` | | |
-| 302 | &A9DA | `osword_13_set_station` | | |
-| 303 | &AA72 | `osword_13_read_csd` | | |
-| 304 | &AA75 | `osword_13_write_csd` | | |
-| 305 | &AA82 | `copy_pb_byte_to_ws` | | |
-| 306 | &AA91 | `osword_13_read_ws_pair` | | |
-| 307 | &AA9D | `osword_13_write_ws_pair` | | |
-| 308 | &AAB2 | `osword_13_read_prot` | | |
-| 309 | &AAB8 | `osword_13_write_prot` | | |
-| 310 | &AABB | `set_via_shadow_pair` | | |
-| 311 | &AAC2 | `osword_13_read_handles` | | |
-| 312 | &AAD0 | `osword_13_set_handles` | | |
-| 313 | &AB43 | `update_fcb_flag_bits` | | |
-| 314 | &AB68 | `osword_13_read_rx_flag` | | |
-| 315 | &AB71 | `osword_13_read_rx_port` | | |
-| 316 | &AB7F | `osword_13_read_error` | | |
-| 317 | &AB82 | `store_a_to_pb_1` | | |
-| 318 | &AB86 | `osword_13_read_context` | | |
-| 319 | &AB8B | `osword_13_read_free_bufs` | | |
-| 320 | &AB93 | `osword_13_read_ctx_3` | | |
+| 291 | &A764 | `boot_cmd_oscli` | kept | already accurate |
+| 292 | &A76C | `cmd_table_fs` | kept | data table |
+| 293 | &A83B | `svc_8_osword` | kept | covered by Phase K2 |
+| 294 | &A864 | `osword_setup_handler` | kept | already accurate |
+| 295 | &A877 | `extract_osword_subcode` | kept | covered by Phase K2 |
+| 296 | &A901 | `bin_to_bcd` | kept | already accurate |
+| 297 | &A910 | `osword_10_handler` | kept | already accurate |
+| 298 | &A985 | `osword_12_handler` | kept | already accurate |
+| 299 | &A9A8 | `osword_13_dispatch_lo` | kept | data banner |
+| 300 | &A9BA | `osword_13_dispatch_hi` | kept | data banner |
+| 301 | &A9CC | `osword_13_read_station` | kept | already accurate |
+| 302 | &A9DA | `osword_13_set_station` | kept | already accurate |
+| 303 | &AA72 | `osword_13_read_csd` | kept | accurate |
+| 304 | &AA75 | `osword_13_write_csd` | kept | accurate |
+| 305 | &AA82 | `copy_pb_byte_to_ws` | kept | already accurate |
+| 306 | &AA91 | `osword_13_read_ws_pair` | kept | accurate |
+| 307 | &AA9D | `osword_13_write_ws_pair` | kept | accurate |
+| 308 | &AAB2 | `osword_13_read_prot` | kept | accurate |
+| 309 | &AAB8 | `osword_13_write_prot` | kept | accurate |
+| 310 | &AABB | `set_via_shadow_pair` | kept | already accurate |
+| 311 | &AAC2 | `osword_13_read_handles` | kept | accurate |
+| 312 | &AAD0 | `osword_13_set_handles` | kept | accurate |
+| 313 | &AB43 | `update_fcb_flag_bits` | kept | accurate |
+| 314 | &AB68 | `osword_13_read_rx_flag` | kept | accurate |
+| 315 | &AB71 | `osword_13_read_rx_port` | kept | accurate |
+| 316 | &AB7F | `osword_13_read_error` | kept | accurate |
+| 317 | &AB82 | `store_a_to_pb_1` | kept | accurate |
+| 318 | &AB86 | `osword_13_read_context` | kept | accurate |
+| 319 | &AB8B | `osword_13_read_free_bufs` | kept | accurate |
+| 320 | &AB93 | `osword_13_read_ctx_3` | kept | accurate |
 | 321 | &AB9E | `osword_13_write_ctx_3` | | |
 | 322 | &ABA9 | `osword_13_bridge_query` | | |
 | 323 | &ABE9 | `init_bridge_poll` | | |
