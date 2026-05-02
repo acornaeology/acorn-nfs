@@ -424,36 +424,36 @@ addresses across all 431 remaining routines.
 | 348 | &AF80 | `err_printer_busy` | kept | accurate |
 | 349 | &AFA6 | `send_disconnect_reply` | kept | accurate |
 | 350 | &B002 | `tx_econet_txcb_template` | kept | data table |
-| 351 | &B01A | `lang_2_save_palette_vdu` | | |
-| 352 | &B05F | `commit_state_byte` | | |
-| 353 | &B066 | `serialise_palette_entry` | | |
-| 354 | &B081 | `read_osbyte_to_ws_x0` | | |
-| 355 | &B083 | `read_osbyte_to_ws` | | |
-| 356 | &B0A1 | `cmd_cdir` | | |
-| 357 | &B0D5 | `cdir_alloc_size_table` | | |
-| 358 | &B0F2 | `cmd_lcat` | | |
-| 359 | &B0F8 | `cmd_lex` | | |
-| 360 | &B103 | `cmd_ex` | | |
-| 361 | &B118 | `fscv_5_cat` | | |
-| 362 | &B21A | `print_10_chars` | | |
-| 363 | &B21C | `print_chars_from_buf` | | |
-| 364 | &B22A | `parse_cmd_arg_y0` | | |
-| 365 | &B22C | `parse_filename_arg` | | |
-| 366 | &B22F | `parse_access_prefix` | | |
-| 367 | &B251 | `strip_token_prefix` | | |
-| 368 | &B29F | `copy_arg_to_buf_x0` | | |
-| 369 | &B2A1 | `copy_arg_to_buf` | | |
-| 370 | &B2A3 | `copy_arg_validated` | | |
-| 371 | &B2CF | `mask_owner_access` | | |
-| 372 | &B2E4 | `ex_print_col_sep` | | |
-| 373 | &B303 | `print_decimal_3dig_no_spool` | | |
-| 374 | &B310 | `print_decimal_digit_no_spool` | | |
-| 375 | &B327 | `print_num_no_leading` | | |
-| 376 | &B32A | `print_decimal_3dig` | | |
-| 377 | &B338 | `print_decimal_digit` | | |
-| 378 | &B373 | `save_ptr_to_os_text` | | |
-| 379 | &B37F | `skip_to_next_arg` | | |
-| 380 | &B393 | `save_ptr_to_spool_buf` | | |
+| 351 | &B01A | `lang_2_save_palette_vdu` | kept | already accurate |
+| 352 | &B05F | `commit_state_byte` | kept | already accurate |
+| 353 | &B066 | `serialise_palette_entry` | kept | already accurate |
+| 354 | &B081 | `read_osbyte_to_ws_x0` | kept | already accurate |
+| 355 | &B083 | `read_osbyte_to_ws` | kept | already accurate |
+| 356 | &B0A1 | `cmd_cdir` | kept | already accurate (covered earlier) |
+| 357 | &B0D5 | `cdir_alloc_size_table` | kept | data table |
+| 358 | &B0F2 | `cmd_lcat` | kept | already accurate |
+| 359 | &B0F8 | `cmd_lex` | kept | already accurate |
+| 360 | &B103 | `cmd_ex` | kept | already accurate (covered earlier) |
+| 361 | &B118 | `fscv_5_cat` | kept | already accurate |
+| 362 | &B21A | `print_10_chars` | kept | already accurate |
+| 363 | &B21C | `print_chars_from_buf` | kept | already accurate |
+| 364 | &B22A | `parse_cmd_arg_y0` | kept | already accurate |
+| 365 | &B22C | `parse_filename_arg` | kept | already accurate |
+| 366 | &B22F | `parse_access_prefix` | kept | already accurate |
+| 367 | &B251 | `strip_token_prefix` | kept | already accurate |
+| 368 | &B29F | `copy_arg_to_buf_x0` | kept | already accurate |
+| 369 | &B2A1 | `copy_arg_to_buf` | kept | already accurate |
+| 370 | &B2A3 | `copy_arg_validated` | kept | already accurate |
+| 371 | &B2CF | `mask_owner_access` | kept | already accurate |
+| 372 | &B2E4 | `ex_print_col_sep` | kept | already accurate |
+| 373 | &B303 | `print_decimal_3dig_no_spool` | kept | already accurate |
+| 374 | &B310 | `print_decimal_digit_no_spool` | kept | already accurate |
+| 375 | &B327 | `print_num_no_leading` | kept | already accurate |
+| 376 | &B32A | `print_decimal_3dig` | kept | already accurate |
+| 377 | &B338 | `print_decimal_digit` | kept | already accurate |
+| 378 | &B373 | `save_ptr_to_os_text` | kept | already accurate |
+| 379 | &B37F | `skip_to_next_arg` | kept | already accurate |
+| 380 | &B393 | `save_ptr_to_spool_buf` | kept | already accurate |
 | 381 | &B39E | `init_spool_drive` | | |
 | 382 | &B3AC | `cmd_ps` | | |
 | 383 | &B3D5 | `copy_ps_data_y1c` | | |
