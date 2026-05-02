@@ -18,7 +18,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fantasm", specifier = ">=0.4.0" },
+    { name = "fantasm", specifier = ">=0.6.0" },
     { name = "py8dis", git = "https://github.com/acornaeology/py8dis.git" },
 ]
 
@@ -93,16 +93,16 @@ wheels = [
 
 [[package]]
 name = "fantasm"
-version = "0.4.0"
+version = "0.6.0"
 source = { registry = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/simple" }
 dependencies = [
     { name = "asyoulikeit" },
     { name = "click" },
     { name = "networkx" },
 ]
-sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/80/14/b246359a8d55768e5711b6d8c72eb682f3aa0c62544169465ee46c278d19/fantasm-0.4.0.tar.gz", hash = "sha256:4a4606fe8514a14ade897ee2d689ca7606aed0442a2d713f0017f9e0c2d3be33" }
+sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/62/ac/d4494eceefe1aabfe622daa3907e12f117b2ad5c022f19e7b6a52c7a4f43/fantasm-0.6.0.tar.gz", hash = "sha256:b24acb19566f55d3ffcb23aa2ae035d604fd5631bccb8b7837e91c55215f7290" }
 wheels = [
-    { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/a3/32/247ddb5d76cc1f2a3edef21b6dca78bfd9745cf1e15c8e52c6a0e6c1a769/fantasm-0.4.0-py3-none-any.whl", hash = "sha256:7a5e40458eca560763b2b2a6aeb77130b4880543d6f8bf1df11537d204c67743" },
+    { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/d1/c8/e939fd41977c0886349ab26484cb50330e26c6fd51d2047b0052de44461a/fantasm-0.6.0-py3-none-any.whl", hash = "sha256:6f5db8b5198d717b9243bc9623e6f03b9abd2449b3f0b8bb3577bb004441c8d6" },
 ]
 
 [[package]]
@@ -142,6 +142,15 @@ source = { registry = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/p
 sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba" }
 wheels = [
     { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8" },
+]
+
+[[package]]
+name = "mistletoe"
+version = "1.5.1"
+source = { registry = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/simple" }
+sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/31/ae/d33647e2a26a8899224f36afc5e7b7a670af30f1fd87231e9f07ca19d673/mistletoe-1.5.1.tar.gz", hash = "sha256:c5571ce6ca9cfdc7ce9151c3ae79acb418e067812000907616427197648030a3" }
+wheels = [
+    { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/20/60/0980fefdc4d12c18c1bbab9d62852f27aded8839233c7b0a9827aaf395f5/mistletoe-1.5.1-py3-none-any.whl", hash = "sha256:d3e97664798261503f685f6a6281b092628367cf3128fc68a015a993b0c4feb3" },
 ]
 
 [[package]]
@@ -190,7 +199,10 @@ wheels = [
 [[package]]
 name = "py8dis"
 version = "0.1.0"
-source = { git = "https://github.com/acornaeology/py8dis.git#04bd72586baf1c6f948a5f4894f5863b55c8977c" }
+source = { git = "https://github.com/acornaeology/py8dis.git#b7b5702f537e281a325b45459b3dfcdc6f7549b3" }
+dependencies = [
+    { name = "mistletoe" },
+]
 
 [[package]]
 name = "pygments"
