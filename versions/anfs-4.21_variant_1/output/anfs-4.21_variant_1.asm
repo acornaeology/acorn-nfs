@@ -1594,6 +1594,17 @@ l840a = sub_c8409+1
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 8488: 4c 15 82    L..            ; Jump to discard handler
 
+; ***************************************************************************************
+; Immediate-op dispatch lo-byte table (8 entries)
+; 
+; Eight low-byte entries at `&848B`-`&8492` indexed by the
+; immediate-op control byte (`&81`-`&88`) via
+; `LDA imm_op_dispatch_lo-&81,Y` at the dispatch site. Each entry is
+; the low byte of `(handler-1)` so PHA/PHA/RTS dispatch lands on the
+; handler. The high byte pushed by the dispatcher is constant
+; (`&84`), so all targets sit in `&84xx`. Per-entry inline comments
+; identify each control byte's handler.
+; ***************************************************************************************
 .imm_op_dispatch_lo
     equb <(rx_imm_peek-1)                                             ; 848b: cd          .
     equb <(rx_imm_poke-1)                                             ; 848c: b0          .
@@ -1784,17 +1795,19 @@ l840a = sub_c8409+1
 .return_from_advance_buf
     rts                                                               ; 853a: 60          `              ; Return
 
-; TX done dispatch table (lo bytes)
+; ***************************************************************************************
+; TX done dispatch lo-byte table (5 entries)
 ; 
-; Low bytes of PHA/PHA/RTS dispatch targets for TX
-; operation types &83-&87. Read by the dispatch at
+; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
+; `&83`-`&87`. Read by the dispatch at
 ; [`dispatch_svc5`](address:8048) via
-; `LDA tx_done_dispatch_lo-&83,Y` (the operand lands
-; mid-instruction inside `set_rx_buf_len_hi`). The
-; dispatch trampoline pushes &85 as the high byte, so
-; targets are &85xx+1. Entries for Y < &83 read from
-; preceding code bytes and are not valid operation
-; types.
+; `LDA tx_done_dispatch_lo-&83,Y` (the operand lands mid-instruction
+; inside [`set_rx_buf_len_hi`](address:84BE)). The dispatch
+; trampoline pushes `&85` as the high byte, so targets are
+; `&85xx+1`. Entries for `Y < &83` read from preceding code bytes
+; and are not valid operation types. Per-entry inline comments
+; identify each TX operation type's handler.
+; ***************************************************************************************
 .tx_done_dispatch_lo
     equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?
     equb <(tx_done_econet_event-1)                                    ; 853c: 48          H
@@ -2180,17 +2193,19 @@ l840a = sub_c8409+1
     pha                                                               ; 867c: 48          H              ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 867d: 60          `              ; RTS dispatches to control-byte handler
 
-; TX ctrl dispatch table (lo bytes)
+; ***************************************************************************************
+; TX ctrl dispatch lo-byte table (8 entries)
 ; 
-; Low bytes of PHA/PHA/RTS dispatch targets for TX
-; control byte types &81-&88. Read by the dispatch at
-; &8679 via `LDA tx_ctrl_dispatch_lo-&81,Y` (the
-; operand lands mid-instruction inside
-; [`intoff_test_inactive`](address:85FC?hex)). High byte
-; is always &86, so targets are &86xx+1. Last entry
-; (&88) dispatches to
-; [`tx_ctrl_machine_type`](address:8686), the 4 bytes
-; immediately after the table.
+; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte
+; types `&81`-`&88`. Read by the dispatch at `&8679` via
+; `LDA tx_ctrl_dispatch_lo-&81,Y` (the operand lands mid-
+; instruction inside
+; [`intoff_test_inactive`](address:85FC?hex)). High byte pushed by
+; the dispatcher is always `&86`, so targets are `&86xx+1`. Last
+; entry (`&88`) dispatches to
+; [`tx_ctrl_machine_type`](address:8686), the 4 bytes immediately
+; after the table.
+; ***************************************************************************************
 .tx_ctrl_dispatch_lo
     equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .
     equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .
@@ -5464,7 +5479,7 @@ ps_template_base = sub_c8da6+1
 ; On Exit:
 ;     C: set if a number was parsed
 ; ***************************************************************************************
-; &92b2 referenced 4 times by &8db1, &8dbd, &a3c9, &a3de
+; &92b2 referenced 5 times by &8db1, &8dbd, &a3c9, &a3de, &b0b5
 .parse_addr_arg
     stz fs_load_addr_2                                                ; 92b2: 64 b2       d.             ; Zero the accumulator (fs_load_addr_2)
     lda (fs_crc_lo),y                                                 ; 92b4: b1 be       ..             ; Read first command-line byte; Save processor flags
@@ -5721,6 +5736,17 @@ ps_template_base = sub_c8da6+1
     bne loop_encode_prot                                              ; 93c5: d0 f6       ..             ; Continue while either fs_error_ptr or A is non-zero (loop ends when source exhausted and result still 0)
     rts                                                               ; 93c7: 60          `              ; Return with encoded value in A
 
+; ***************************************************************************************
+; Bit-permutation table for protection / access encoding
+; 
+; 11-byte lookup table used by [`get_prot_bits`](address:93B5) and
+; [`get_access_bits`](address:93AB) to map source bits (the raw 5-bit
+; or 6-bit access mask read from the directory entry) into the FS
+; protocol's 8-bit protection-flag layout. The encoder loop at
+; [`begin_prot_encode`](address:93B9) shifts each source bit out and
+; ORs in the corresponding entry from this table, with `X` indexing
+; backwards through the bits.
+; ***************************************************************************************
 ; &93c8 referenced 1 time by &93c2
 .prot_bit_encode_table
     equb &50                                                          ; 93c8: 50          P
@@ -6503,7 +6529,7 @@ ps_template_base = sub_c8da6+1
 ; On Exit:
 ;     A: FS reply status
 ; ***************************************************************************************
-; &978a referenced 20 times by &8e3c, &9558, &957b, &958e, &9e4a, &9f2f, &9f3f, &9f8d, &a018, &a091, &a0c5, &a199, &a1bc, &a28c, &a347, &a50b, &a533, &b150, &b71b, &bcaa
+; &978a referenced 21 times by &8e3c, &9558, &957b, &958e, &9e4a, &9f2f, &9f3f, &9f8d, &a018, &a091, &a0c5, &a199, &a1bc, &a28c, &a347, &a50b, &a533, &b0d2, &b150, &b71b, &bcaa
 .save_net_tx_cb
     clv                                                               ; 978a: b8          .              ; Clear V: standard send mode (callers set V via save_net_tx_cb_vset for the lib-flag variant)
 ; ***************************************************************************************
@@ -12661,17 +12687,39 @@ labc5 = compare_bridge_status+1
 .cmd_cdir
     jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H            ; Non-zero: server changed; Print 'still '
 
-    equb &20, &cf, &b2, &20, &7f, &b3, &c9, &0d, &d0, 4, &a2, 2, &d0  ; b0a3: 20 cf b2...  ..            ; Set owner-only access mask; Skip to optional size argument; End of line?; No: parse size argument; Clear V; Default allocation size index = 2; Print 'now '
-    equb &0f                                                          ; b0b0: 0f          .
+    jsr mask_owner_access                                             ; b0a3: 20 cf b2     ..            ; Set owner-only access mask
+    jsr skip_to_next_arg                                              ; b0a6: 20 7f b3     ..            ; Skip to optional size argument
+    cmp #&0d                                                          ; b0a9: c9 0d       ..             ; End of line?
+    bne parse_cdir_size                                               ; b0ab: d0 04       ..             ; No: parse size argument; Clear V
+    ldx #2                                                            ; b0ad: a2 02       ..             ; Default allocation size index = 2; Print 'now '
+    bne done_cdir_size                                                ; b0af: d0 0f       ..             ; ALWAYS branch
+
+; &b0b1 referenced 1 time by &b0ab
 .parse_cdir_size
-    equb &a9, &ff, &85, &b4, &20, &b2, &92, &a2, &1b                  ; b0b1: a9 ff 85... ...            ; A=&FF: mark as decimal parse; Store decimal parse flag; Parse numeric size argument; Padding; X=&1B: top of 26-entry size table; Workspace offset 2; Y=2: workspace offset for station
+    lda #&ff                                                          ; b0b1: a9 ff       ..             ; A=&FF: mark as decimal parse
+    sta fs_work_4                                                     ; b0b3: 85 b4       ..             ; Store decimal parse flag
+    jsr parse_addr_arg                                                ; b0b5: 20 b2 92     ..            ; Parse numeric size argument; Padding
+    ldx #&1b                                                          ; b0b8: a2 1b       ..             ; X=&1B: top of 26-entry size table; Workspace offset 2; Y=2: workspace offset for station
+; &b0ba referenced 1 time by &b0be
 .loop_find_alloc_size
-    equb &ca, &dd, &d4, &b0, &90, &fa                                 ; b0ba: ca dd d4... ...            ; Try next lower index; Compare size with threshold; Get station low; Store in workspace; A < threshold: keep searching
+    dex                                                               ; b0ba: ca          .              ; Try next lower index
+    cmp lb0d4,x                                                       ; b0bb: dd d4 b0    ...            ; Compare size with threshold; Get station low; Store in workspace
+    bcc loop_find_alloc_size                                          ; b0be: 90 fa       ..             ; A < threshold: keep searching
+; &b0c0 referenced 1 time by &b0af
 .done_cdir_size
-    equb &8e,   5, &c1, &68, &a8, &20, &73, &b3, &20, &2c, &b2, &a2   ; b0c0: 8e 05 c1... ...            ; Store allocation size index; Get network number; Store in workspace; Restore command line offset; Transfer to Y; Return; Save text pointer for filename parse; Print 'File'; Parse directory name argument; X=1: one argument to copy
-    equb   1, &20, &a1, &b2, &a0, &1b                                 ; b0cc: 01 20 a1... . .            ; Clear V; Copy directory name to TX buffer; Print 'Printer'; Y=&1B: *CDir FS command code
+    stx lc105                                                         ; b0c0: 8e 05 c1    ...            ; Store allocation size index; Get network number; Store in workspace
+    pla                                                               ; b0c3: 68          h              ; Restore command line offset
+    tay                                                               ; b0c4: a8          .              ; Transfer to Y; Return
+    jsr save_ptr_to_os_text                                           ; b0c5: 20 73 b3     s.            ; Save text pointer for filename parse; Print 'File'
+    jsr parse_filename_arg                                            ; b0c8: 20 2c b2     ,.            ; Parse directory name argument
+    ldx #1                                                            ; b0cb: a2 01       ..             ; X=1: one argument to copy; Clear V
+    jsr copy_arg_to_buf                                               ; b0cd: 20 a1 b2     ..            ; Copy directory name to TX buffer; Print 'Printer'
+    ldy #&1b                                                          ; b0d0: a0 1b       ..             ; Y=&1B: *CDir FS command code
 .cdir_dispatch_col
-    equb &4c, &8a, &97                                                ; b0d2: 4c 8a 97    L..            ; Send command to file server
+lb0d4 = cdir_dispatch_col+2
+    jmp save_net_tx_cb                                                ; b0d2: 4c 8a 97    L..            ; Send command to file server
+
+; &b0d4 referenced 1 time by &b0bb
 ; *CDir allocation size threshold table
 ; 
 ; 26 thresholds dividing 0-255 into size classes.
@@ -12923,7 +12971,7 @@ labc5 = compare_bridge_status+1
 ; On Exit:
 ;     Y: advanced past the parsed argument
 ; ***************************************************************************************
-; &b22c referenced 2 times by &b13a, &b6fd
+; &b22c referenced 3 times by &b0c8, &b13a, &b6fd
 .parse_filename_arg
     jsr gsread_to_buf                                                 ; b22c: 20 00 9c     ..            ; Read the GSREAD-style filename argument into the &C030 buffer, then fall into parse_access_prefix
 ; ***************************************************************************************
@@ -13058,7 +13106,7 @@ labc5 = compare_bridge_status+1
 ;     X: TX buffer offset just past the copied argument
 ;     Y: advanced past the source argument
 ; ***************************************************************************************
-; &b2a1 referenced 8 times by &9ceb, &9e22, &9e45, &9feb, &a501, &a52e, &b13f, &b712
+; &b2a1 referenced 9 times by &9ceb, &9e22, &9e45, &9feb, &a501, &a52e, &b0cd, &b13f, &b712
 .copy_arg_to_buf
     ldy #0                                                            ; b2a1: a0 00       ..             ; Y=0: scan from start of command line (CLC entry skips '&' validation)
 ; ***************************************************************************************
@@ -13124,7 +13172,7 @@ labc5 = compare_bridge_status+1
 ; On Exit:
 ;     A: masked value
 ; ***************************************************************************************
-; &b2cf referenced 12 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b6f3
+; &b2cf referenced 13 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b0a3, &b6f3
 .mask_owner_access
     lda lc271                                                         ; b2cf: ad 71 c2    .q.            ; Read fs_lib_flags (now at &C271 in 4.21)
     and #&1f                                                          ; b2d2: 29 1f       ).             ; Keep only the 5-bit owner access mask
@@ -13318,7 +13366,7 @@ labc5 = compare_bridge_status+1
 ; On Exit:
 ;     A: preserved (PHA/PLA)
 ; ***************************************************************************************
-; &b373 referenced 7 times by &a03c, &a4e4, &a4f1, &b12e, &b3f6, &b5d4, &b6fa
+; &b373 referenced 8 times by &a03c, &a4e4, &a4f1, &b0c5, &b12e, &b3f6, &b5d4, &b6fa
 .save_ptr_to_os_text
     pha                                                               ; b373: 48          H              ; Save A; Store file index in TX buffer byte 1
     lda fs_crc_lo                                                     ; b374: a5 be       ..             ; Copy text pointer low byte
@@ -13347,6 +13395,7 @@ labc5 = compare_bridge_status+1
 ;     A: first non-space character or CR
 ;     Y: offset of that character
 ; ***************************************************************************************
+; &b37f referenced 1 time by &b0a6
 .skip_to_next_arg
     lda (fs_crc_lo),y                                                 ; b37f: b1 be       ..             ; Load char from command line; Mark operation as escapable
     cmp #&20 ; ' '                                                    ; b381: c9 20       .              ; Space?; Send examine request to file server
@@ -16284,7 +16333,7 @@ save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                 91
-;     lc105:                         59
+;     lc105:                         60
 ;     fs_options:                    54
 ;     net_rx_ptr:                    52
 ;     econet_control23_or_status2:   45
@@ -16306,12 +16355,12 @@ save pydis_start, pydis_end
 ;     lc260:                         25
 ;     fs_load_addr:                  24
 ;     print_inline:                  24
+;     fs_work_4:                     23
 ;     port_buf_len:                  23
-;     fs_work_4:                     22
 ;     lc2b8:                         22
 ;     always_set_v_byte:             21
+;     save_net_tx_cb:                21
 ;     l0101:                         20
-;     save_net_tx_cb:                20
 ;     econet_flags:                  18
 ;     lc200:                         18
 ;     lc230:                         18
@@ -16332,10 +16381,10 @@ save pydis_start, pydis_end
 ;     port_buf_len_hi:               14
 ;     svc_state:                     14
 ;     fs_last_byte_flag:             13
+;     mask_owner_access:             13
 ;     osasci:                        13
 ;     set_nmi_vector:                13
 ;     lc2c9:                         12
-;     mask_owner_access:             12
 ;     osbyte_a1:                     12
 ;     return_with_last_flag:         12
 ;     error_bad_inline:              11
@@ -16351,6 +16400,7 @@ save pydis_start, pydis_end
 ;     lc103:                         10
 ;     lc107:                         10
 ;     store_rx_attribute:            10
+;     copy_arg_to_buf:                9
 ;     fs_crflag:                      9
 ;     install_nmi_handler:            9
 ;     lc220:                          9
@@ -16364,10 +16414,10 @@ save pydis_start, pydis_end
 ;     txcb_end:                       9
 ;     ws_0d6a:                        9
 ;     addr_work:                      8
-;     copy_arg_to_buf:                8
 ;     l0406:                          8
 ;     l9aa6:                          8
 ;     print_char_no_spool:            8
+;     save_ptr_to_os_text:            8
 ;     tx_complete_flag:               8
 ;     vdu_status:                     8
 ;     alloc_fcb_slot:                 7
@@ -16378,7 +16428,6 @@ save pydis_start, pydis_end
 ;     match_station_net:              7
 ;     reject_reply:                   7
 ;     rx_buf_offset:                  7
-;     save_ptr_to_os_text:            7
 ;     tube_data_register_3:           7
 ;     tx_dst_stn:                     7
 ;     txcb_ctrl:                      7
@@ -16422,6 +16471,7 @@ save pydis_start, pydis_end
 ;     lc2d4:                          5
 ;     lc2d5:                          5
 ;     net_error_lookup_data:          5
+;     parse_addr_arg:                 5
 ;     prot_flags:                     5
 ;     rom_ws_pages:                   5
 ;     rx_port:                        5
@@ -16458,7 +16508,6 @@ save pydis_start, pydis_end
 ;     loop_scan_fcb_down:             4
 ;     nmi_tx_block_hi:                4
 ;     parse_access_prefix:            4
-;     parse_addr_arg:                 4
 ;     port_match_found:               4
 ;     print_station_addr:             4
 ;     process_spool_data:             4
@@ -16523,6 +16572,7 @@ save pydis_start, pydis_end
 ;     osbyte_x0:                      3
 ;     osfind:                         3
 ;     osword_pb_ptr_hi:               3
+;     parse_filename_arg:             3
 ;     parse_fs_ps_args:               3
 ;     poll_adlc_tx_status:            3
 ;     print_newline_no_spool:         3
@@ -16692,7 +16742,6 @@ save pydis_start, pydis_end
 ;     pad_with_spaces:                2
 ;     parse_cmd_arg_y0:               2
 ;     parse_dump_range:               2
-;     parse_filename_arg:             2
 ;     parse_quoted_arg:               2
 ;     pass_txbuf_init_table:          2
 ;     poll_nmi_idle:                  2
@@ -16940,6 +16989,7 @@ save pydis_start, pydis_end
 ;     done_bcd_convert:               1
 ;     done_calc_offset:               1
 ;     done_cap_ws_count:              1
+;     done_cdir_size:                 1
 ;     done_check_boundary:            1
 ;     done_check_buf_offset:          1
 ;     done_check_dump_eof:            1
@@ -17083,6 +17133,7 @@ save pydis_start, pydis_end
 ;     lad29:                          1
 ;     lb097:                          1
 ;     lb099:                          1
+;     lb0d4:                          1
 ;     lb0ee:                          1
 ;     lb4fd:                          1
 ;     lbfe6:                          1
@@ -17224,6 +17275,7 @@ save pydis_start, pydis_end
 ;     loop_emit_credits:              1
 ;     loop_encode_prot:               1
 ;     loop_erase_pw:                  1
+;     loop_find_alloc_size:           1
 ;     loop_find_name_end:             1
 ;     loop_gsread_char:               1
 ;     loop_inc_dump_addr:             1
@@ -17343,6 +17395,7 @@ save pydis_start, pydis_end
 ;     osword_claim_codes:             1
 ;     osword_setup_handler:           1
 ;     oswrch:                         1
+;     parse_cdir_size:                1
 ;     parse_fs_dot_dir:               1
 ;     pass_send_cmd:                  1
 ;     pass_tx_success:                1
@@ -17514,6 +17567,7 @@ save pydis_start, pydis_end
 ;     skip_restore_byte:              1
 ;     skip_struct_hole:               1
 ;     skip_template_byte:             1
+;     skip_to_next_arg:               1
 ;     skip_tube_update:               1
 ;     skip_txcb_dest:                 1
 ;     spool_tx_retry:                 1
@@ -17702,6 +17756,7 @@ save pydis_start, pydis_end
 ;     lad29
 ;     lb097
 ;     lb099
+;     lb0d4
 ;     lb0ee
 ;     lb4fd
 ;     lb821
@@ -17821,11 +17876,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 13485 bytes (82%)
-;     Data                     = 2899 bytes (18%)
+;     Code                     = 13535 bytes (83%)
+;     Data                     = 2849 bytes (17%)
 ;
-;     Number of instructions   = 6657
-;     Number of data bytes     = 1595 bytes
+;     Number of instructions   = 6679
+;     Number of data bytes     = 1545 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1276 bytes
 ;     Number of strings        = 143

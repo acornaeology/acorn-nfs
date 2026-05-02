@@ -586,7 +586,16 @@ label(0x93A9, "not_a_digit")
 label(0x93B9, "begin_prot_encode")
 label(0x93BD, "loop_encode_prot")
 label(0x93C5, "skip_clear_prot")
-label(0x93C8, "prot_bit_encode_table")
+subroutine(0x93C8, "prot_bit_encode_table",
+    title="Bit-permutation table for protection / access encoding",
+    description="""\
+11-byte lookup table used by [`get_prot_bits`](address:93B5) and
+[`get_access_bits`](address:93AB) to map source bits (the raw 5-bit
+or 6-bit access mask read from the directory entry) into the FS
+protocol's 8-bit protection-flag layout. The encoder loop at
+[`begin_prot_encode`](address:93B9) shifts each source bit out and
+ORs in the corresponding entry from this table, with `X` indexing
+backwards through the bits.""")
 for i in range(11):
     byte(0x93C8 + i)
 label(0x93E8, "loop_cmp_handle")
@@ -1041,6 +1050,10 @@ label(0xB031, "loop_read_palette")
 label(0xB0B1, "parse_cdir_size")
 label(0xB0BA, "loop_find_alloc_size")
 label(0xB0C0, "done_cdir_size")
+# &B0A3 is reached as a fall-through after the bizarre `JMP (l4898,X)`
+# at &B0A0 -- we need an explicit entry() marker so py8dis decodes it
+# as code rather than treating the JMP as a terminator and giving up.
+entry(0xB0A3)
 
 # Split the 27-byte *CDir allocation size threshold table into
 # individual bytes for annotation. Table base (cdir_dispatch_col+2) overlaps
@@ -1200,7 +1213,6 @@ label(0x83E5, "discard_reset_rx")
 label(0x83E8, "reset_adlc_rx_listen")
 label(0x83EB, "set_nmi_rx_scout")
 label(0x8512, "setup_sr_tx")
-label(0x853B, "tx_done_dispatch_lo")
 label(0x8549, "tx_done_econet_event")
 label(0x8551, "tx_done_fire_event")
 label(0x8B00, "scan_remote_keys")
@@ -1608,7 +1620,6 @@ label(0x862C, "tx_bad_ctrl_error")
 label(0x863C, "tx_no_clock_error")
 label(0x863E, "store_tx_error")
 label(0x8697, "add_bytes_loop")
-label(0x867E, "tx_ctrl_dispatch_lo")
 label(0x8686, "tx_ctrl_machine_type")
 label(0x86A9, "setup_data_xfer")
 label(0x86BF, "copy_bcast_addr")
@@ -2022,12 +2033,16 @@ subroutine(0x8454, "immediate_op",
     "table. Builds the reply by storing data length,\n"
     "station/network, and control byte into the RX buffer.")
 
-# Immediate operation dispatch lo-byte table.
-# 8 lo-byte entries at &848B-&8492 indexed by the immediate-op
-# control byte (&81-&88) via LDA imm_op_dispatch_lo-&81,Y. Each
-# entry is the low byte of (handler-1) so PHA/PHA/RTS dispatch lands
-# on the handler.
-label(0x848B, "imm_op_dispatch_lo")
+subroutine(0x848B, "imm_op_dispatch_lo",
+    title="Immediate-op dispatch lo-byte table (8 entries)",
+    description="""\
+Eight low-byte entries at `&848B`-`&8492` indexed by the
+immediate-op control byte (`&81`-`&88`) via
+`LDA imm_op_dispatch_lo-&81,Y` at the dispatch site. Each entry is
+the low byte of `(handler-1)` so PHA/PHA/RTS dispatch lands on the
+handler. The high byte pushed by the dispatcher is constant
+(`&84`), so all targets sit in `&84xx`. Per-entry inline comments
+identify each control byte's handler.""")
 for addr in range(0x848B, 0x8493):
     byte(addr)
 expr(0x848B, "<(rx_imm_peek-1)")            # ctrl &81: PEEK
@@ -5863,20 +5878,18 @@ comment(0x8543, "Push lo of (tx_done_exit-1)", inline=True)
 comment(0x8545, "Push lo byte on stack", inline=True)
 comment(0x8546, "Call remote JSR; RTS to tx_done_exit", inline=True)
 
-# tx_done_dispatch_lo (&853B): 5-byte dispatch table.
-# Low bytes of PHA/PHA/RTS targets for TX operation types &83-&87.
-# Read by LDA tx_done_dispatch_lo-&83,Y at &804B (hi byte always &85).
-comment(0x853B, "TX done dispatch table (lo bytes)\n"
-    "\n"
-    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
-    "operation types &83-&87. Read by the dispatch at\n"
-    "[`dispatch_svc5`](address:8048) via\n"
-    "`LDA tx_done_dispatch_lo-&83,Y` (the operand lands\n"
-    "mid-instruction inside `set_rx_buf_len_hi`). The\n"
-    "dispatch trampoline pushes &85 as the high byte, so\n"
-    "targets are &85xx+1. Entries for Y < &83 read from\n"
-    "preceding code bytes and are not valid operation\n"
-    "types.")
+subroutine(0x853B, "tx_done_dispatch_lo",
+    title="TX done dispatch lo-byte table (5 entries)",
+    description="""\
+Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
+`&83`-`&87`. Read by the dispatch at
+[`dispatch_svc5`](address:8048) via
+`LDA tx_done_dispatch_lo-&83,Y` (the operand lands mid-instruction
+inside [`set_rx_buf_len_hi`](address:84BE)). The dispatch
+trampoline pushes `&85` as the high byte, so targets are
+`&85xx+1`. Entries for `Y < &83` read from preceding code bytes
+and are not valid operation types. Per-entry inline comments
+identify each TX operation type's handler.""")
 
 # tx_done_econet_event (&8542): TX operation type &84 handler.
 comment(0x8549, "X = remote address lo from l0d66", inline=True)
@@ -6028,24 +6041,18 @@ comment(0x8679, "Look up handler address low from table", inline=True)
 comment(0x867C, "Push low byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x867D, "RTS dispatches to control-byte handler", inline=True)
 
-# tx_ctrl_dispatch_lo (&867E): 8-byte dispatch table for control bytes
-# &81-&88. The dispatch base operand is &85FD = tx_ctrl_dispatch_lo - &81,
-# which lands mid-instruction inside intoff_test_inactive (the BIT &FE38
-# operands at &85FC and &85FF were chosen so this table happens to fit).
-# High byte pushed by the dispatcher is always &86, so targets are
-# &86xx + 1. tx_ctrl_machine_type (entry &88) sits at &8686, the 4 bytes
-# immediately after the table.
-comment(0x867E, "TX ctrl dispatch table (lo bytes)\n"
-    "\n"
-    "Low bytes of PHA/PHA/RTS dispatch targets for TX\n"
-    "control byte types &81-&88. Read by the dispatch at\n"
-    "&8679 via `LDA tx_ctrl_dispatch_lo-&81,Y` (the\n"
-    "operand lands mid-instruction inside\n"
-    "[`intoff_test_inactive`](address:85FC?hex)). High byte\n"
-    "is always &86, so targets are &86xx+1. Last entry\n"
-    "(&88) dispatches to\n"
-    "[`tx_ctrl_machine_type`](address:8686), the 4 bytes\n"
-    "immediately after the table.")
+subroutine(0x867E, "tx_ctrl_dispatch_lo",
+    title="TX ctrl dispatch lo-byte table (8 entries)",
+    description="""\
+Low bytes of PHA/PHA/RTS dispatch targets for TX control byte
+types `&81`-`&88`. Read by the dispatch at `&8679` via
+`LDA tx_ctrl_dispatch_lo-&81,Y` (the operand lands mid-
+instruction inside
+[`intoff_test_inactive`](address:85FC?hex)). High byte pushed by
+the dispatcher is always `&86`, so targets are `&86xx+1`. Last
+entry (`&88`) dispatches to
+[`tx_ctrl_machine_type`](address:8686), the 4 bytes immediately
+after the table.""")
 comment(0x8686, "A=3: scout_status for machine type query", inline=True)
 comment(0x8688, "Skip address addition, store status", inline=True)
 comment(0x868A, "A=3: scout_status for PEEK op", inline=True)
