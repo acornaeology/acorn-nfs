@@ -4368,15 +4368,15 @@ ps_template_base = sub_c8da6+1
 ; TODO (Phase C): identify the exact svc_dispatch (X, Y) pair that reaches index 22
 ; (OPEN-ISSUES O-1). The concrete trigger has not yet been pinned down.
 .nfs_init_body
-    lda #0                                                            ; 8f38: a9 00       ..
+    lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
     sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.            ; Clear workspace byte
     ldy #0                                                            ; 8f3f: a0 00       ..             ; Offset 0 in receive block
     sta (net_rx_ptr),y                                                ; 8f41: 91 9c       ..             ; Clear remote operation flag
-    lda l028d                                                         ; 8f43: ad 8d 02    ...
-    bne c8f4f                                                         ; 8f46: d0 07       ..
+    lda l028d                                                         ; 8f43: ad 8d 02    ...            ; Read l028D (current ROM number)
+    bne c8f4f                                                         ; 8f46: d0 07       ..             ; Non-zero (re-init): take c8f4f path
     lda #&10                                                          ; 8f48: a9 10       ..             ; OSBYTE &8F: issue service request
-    bit fs_flags                                                      ; 8f4a: 2c 6c 0d    ,l.
+    bit fs_flags                                                      ; 8f4a: 2c 6c 0d    ,l.            ; BIT fs_flags
     beq c8fbb                                                         ; 8f4d: f0 6c       .l             ; Zero: first ROM init, skip FS setup
 ; &8f4f referenced 1 time by &8f46
 .c8f4f
@@ -4388,21 +4388,21 @@ ps_template_base = sub_c8da6+1
     sta (fs_ws_ptr),y                                                 ; 8f56: 91 cc       ..             ; Clear byte in FS workspace
     iny                                                               ; 8f58: c8          .              ; Advance index
     bne loop_zero_workspace                                           ; 8f59: d0 fb       ..             ; Loop until full page zeroed
-    jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..
-    ldx #1                                                            ; 8f5e: a2 01       ..
-    jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..
-    sty pydis_end                                                     ; 8f63: 8c 00 c0    ...
-    ldx #2                                                            ; 8f66: a2 02       ..
-    jsr osbyte_a1                                                     ; 8f68: 20 9a 8e     ..
-    sty lc001                                                         ; 8f6b: 8c 01 c0    ...
-    ldx #3                                                            ; 8f6e: a2 03       ..
-    jsr osbyte_a1                                                     ; 8f70: 20 9a 8e     ..
-    tya                                                               ; 8f73: 98          .
+    jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..            ; Copy initial PS template (1C bytes) into ws
+    ldx #1                                                            ; 8f5e: a2 01       ..             ; X=1: CMOS &01 = port number
+    jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..            ; Read CMOS &01
+    sty pydis_end                                                     ; 8f63: 8c 00 c0    ...            ; Store at lc000 (workspace+0)
+    ldx #2                                                            ; 8f66: a2 02       ..             ; X=2: CMOS &02 = network number
+    jsr osbyte_a1                                                     ; 8f68: 20 9a 8e     ..            ; Read CMOS &02
+    sty lc001                                                         ; 8f6b: 8c 01 c0    ...            ; Store at lc001
+    ldx #3                                                            ; 8f6e: a2 03       ..             ; X=3: CMOS &03 = FS station
+    jsr osbyte_a1                                                     ; 8f70: 20 9a 8e     ..            ; Read CMOS &03
+    tya                                                               ; 8f73: 98          .              ; TYA -- A = FS station
     ldy #2                                                            ; 8f74: a0 02       ..             ; Offset 8 in receive block
     sta (nfs_workspace),y                                             ; 8f76: 91 9e       ..             ; Clear protection flags
-    ldx #4                                                            ; 8f78: a2 04       ..
+    ldx #4                                                            ; 8f78: a2 04       ..             ; X=4: CMOS &04 = FS network
     jsr osbyte_a1                                                     ; 8f7a: 20 9a 8e     ..            ; Initialise station identity block
-    tya                                                               ; 8f7d: 98          .
+    tya                                                               ; 8f7d: 98          .              ; TYA -- A = FS network
     ldy #3                                                            ; 8f7e: a0 03       ..             ; Offset 2 in receive block
     sta (nfs_workspace),y                                             ; 8f80: 91 9e       ..             ; Store at NFS workspace offset 2
     ldx #3                                                            ; 8f82: a2 03       ..             ; X=3: init data byte count
@@ -4417,15 +4417,15 @@ ps_template_base = sub_c8da6+1
     jsr reset_spool_buf_state                                         ; 8f93: 20 64 ae     d.            ; Initialise ADLC protection table
     dex                                                               ; 8f96: ca          .              ; X=&FF (underflow from X=0)
     stx l0d71                                                         ; 8f97: 8e 71 0d    .q.            ; Initialise workspace flag to &FF
-    ldx #&11                                                          ; 8f9a: a2 11       ..
-    jsr osbyte_a1                                                     ; 8f9c: 20 9a 8e     ..
-    tya                                                               ; 8f9f: 98          .
-    and #&40 ; '@'                                                    ; 8fa0: 29 40       )@
-    beq c8fa6                                                         ; 8fa2: f0 02       ..
-    lda #&ff                                                          ; 8fa4: a9 ff       ..
+    ldx #&11                                                          ; 8f9a: a2 11       ..             ; X=&11: CMOS &11 (ANFS settings)
+    jsr osbyte_a1                                                     ; 8f9c: 20 9a 8e     ..            ; Read CMOS &11
+    tya                                                               ; 8f9f: 98          .              ; TYA -- A = settings byte
+    and #&40 ; '@'                                                    ; 8fa0: 29 40       )@             ; Mask bit 6 (CMOS protection-state flag)
+    beq c8fa6                                                         ; 8fa2: f0 02       ..             ; Bit clear: skip the &FF substitution
+    lda #&ff                                                          ; 8fa4: a9 ff       ..             ; A=&FF -- enable protection
 ; &8fa6 referenced 1 time by &8fa2
 .c8fa6
-    jsr set_via_shadow_pair                                           ; 8fa6: 20 bb aa     ..
+    jsr set_via_shadow_pair                                           ; 8fa6: 20 bb aa     ..            ; Set shadow ACR/IER pair
 ; &8fa9 referenced 1 time by &8fb6
 .loop_alloc_handles
     lda ws_page                                                       ; 8fa9: a5 a8       ..             ; Get current workspace page
@@ -4440,55 +4440,55 @@ ps_template_base = sub_c8da6+1
     jsr restore_fs_context                                            ; 8fb8: 20 64 90     d.            ; Restore FS context from saved state
 ; &8fbb referenced 1 time by &8f4d
 .c8fbb
-    jsr read_cmos_byte_0                                              ; 8fbb: 20 98 8e     ..
+    jsr read_cmos_byte_0                                              ; 8fbb: 20 98 8e     ..            ; Read CMOS &00 (= station ID byte)
     tya                                                               ; 8fbe: 98          .              ; Transfer to A
     bne c8fff                                                         ; 8fbf: d0 3e       .>             ; Non-zero: station ID valid
 ; &8fc1 referenced 1 time by &9000
 .c8fc1
-    jsr print_inline                                                  ; 8fc1: 20 61 92     a.
+    jsr print_inline                                                  ; 8fc1: 20 61 92     a.            ; Print 'Station number in CMOS RAM invalid...' warning
     equs "Station number in CMOS RAM invalid.", &0d, "Using 1 inst"   ; 8fc4: 53 74 61... Sta            ; Inline: 'Station number in CMOS RAM invalid' warning (nfs_init_body, CMOS station = 0)
     equs "ead!", 7, &0d, &0d                                          ; 8ff4: 65 61 64... ead
 
-    lda #1                                                            ; 8ffb: a9 01       ..
-    bra c9004                                                         ; 8ffd: 80 05       ..
+    lda #1                                                            ; 8ffb: a9 01       ..             ; A=1: default station ID
+    bra c9004                                                         ; 8ffd: 80 05       ..             ; BRA to c9004 with default
 ; &8fff referenced 1 time by &8fbf
 .c8fff
-    iny                                                               ; 8fff: c8          .
+    iny                                                               ; 8fff: c8          .              ; INY -- check next byte (CMOS station ID hi?)
     beq c8fc1                                                         ; 9000: f0 bf       ..             ; Overflow to 0: report error
-    bra c9004                                                         ; 9002: 80 00       ..
+    bra c9004                                                         ; 9002: 80 00       ..             ; BRA to c9004 (always)
 ; &9004 referenced 2 times by &8ffd, &9002
 .c9004
     ldy #1                                                            ; 9004: a0 01       ..             ; Offset 1: station ID in recv block
     sta (net_rx_ptr),y                                                ; 9006: 91 9c       ..             ; Store station ID
     ldx #&40 ; '@'                                                    ; 9008: a2 40       .@             ; X=&40: Econet flag byte
     stx econet_flags                                                  ; 900a: 8e 61 0d    .a.            ; Store Econet control flag
-    jsr cmd_net_fs                                                    ; 900d: 20 23 8b     #.
-    beq c901a                                                         ; 9010: f0 08       ..
-    lda #&10                                                          ; 9012: a9 10       ..
-    ora fs_flags                                                      ; 9014: 0d 6c 0d    .l.
-    sta fs_flags                                                      ; 9017: 8d 6c 0d    .l.
+    jsr cmd_net_fs                                                    ; 900d: 20 23 8b     #.            ; Call cmd_net_fs to select NFS
+    beq c901a                                                         ; 9010: f0 08       ..             ; Z: selection succeeded
+    lda #&10                                                          ; 9012: a9 10       ..             ; A=&10: bit 4 marker for fs_flags
+    ora fs_flags                                                      ; 9014: 0d 6c 0d    .l.            ; ORA with fs_flags
+    sta fs_flags                                                      ; 9017: 8d 6c 0d    .l.            ; Store updated fs_flags
 ; &901a referenced 1 time by &9010
 .c901a
-    jsr init_adlc_and_vectors                                         ; 901a: 20 3c 90     <.
+    jsr init_adlc_and_vectors                                         ; 901a: 20 3c 90     <.            ; Initialise ADLC and FILEV/ARGSV/...vectors
     lda #3                                                            ; 901d: a9 03       ..             ; A=3: protection level
     jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..            ; Set up Econet protection
-    jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..
-    pha                                                               ; 9025: 48          H
-    eor lc001                                                         ; 9026: 4d 01 c0    M..
-    bne c9032                                                         ; 9029: d0 07       ..
-    sta lc001                                                         ; 902b: 8d 01 c0    ...
-    ldy #3                                                            ; 902e: a0 03       ..
-    sta (net_rx_ptr),y                                                ; 9030: 91 9c       ..
+    jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..            ; Send a bridge-discovery packet and poll
+    pha                                                               ; 9025: 48          H              ; PHA -- save current bridge byte
+    eor lc001                                                         ; 9026: 4d 01 c0    M..            ; EOR with stored lc001 (network number)
+    bne c9032                                                         ; 9029: d0 07       ..             ; Different: take c9032 path
+    sta lc001                                                         ; 902b: 8d 01 c0    ...            ; Same: store as new lc001
+    ldy #3                                                            ; 902e: a0 03       ..             ; Y=3: net_rx_ptr offset 3
+    sta (net_rx_ptr),y                                                ; 9030: 91 9c       ..             ; Store at (net_rx_ptr)+3
 ; &9032 referenced 1 time by &9029
 .c9032
-    pla                                                               ; 9032: 68          h
-    ldy #3                                                            ; 9033: a0 03       ..
-    eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.
-    bne return_3                                                      ; 9037: d0 02       ..
-    sta (nfs_workspace),y                                             ; 9039: 91 9e       ..
+    pla                                                               ; 9032: 68          h              ; PLA -- restore saved byte
+    ldy #3                                                            ; 9033: a0 03       ..             ; Y=3: workspace offset
+    eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.             ; EOR with (nfs_workspace)+3
+    bne return_3                                                      ; 9037: d0 02       ..             ; Mismatch: skip store
+    sta (nfs_workspace),y                                             ; 9039: 91 9e       ..             ; Match: store at (nfs_workspace)+3
 ; &903b referenced 1 time by &9037
 .return_3
-    rts                                                               ; 903b: 60          `
+    rts                                                               ; 903b: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Initialise ADLC and install extended vectors
