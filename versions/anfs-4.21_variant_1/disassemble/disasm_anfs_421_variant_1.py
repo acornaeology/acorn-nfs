@@ -3904,27 +3904,37 @@ for decimal `*10`. Two named callers: from `&A3C9` and `&A3DE`.""",
 subroutine(0x934A, "err_bad_hex",
     title="Raise 'Bad hex' BRK error",
     description="""\
-Loads error code &F1 and tail-calls error_bad_inline with the inline
-string 'hex' -- error_bad_inline prepends 'Bad ' to produce the final
-'Bad hex' message. Called from parse_addr_arg and the *DUMP / *LIST
+Loads error code `&F1` and tail-calls `error_bad_inline` with
+the inline string `'hex'` – `error_bad_inline` prepends `'Bad '`
+to produce the final `'Bad hex'` message. Called from
+[`parse_addr_arg`](address:92B2?hex) and the `*DUMP` / `*LIST`
 hex parsers when a digit is out of range. Never returns.""")
 subroutine(0x939A, "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
-    description="Compares A against '&' and '.' first; if\n"
-    "either matches, returns with carry set via the\n"
-    "shared return_12 exit. Otherwise falls through\n"
-    "to is_dec_digit_only for the '0'-'9' range\n"
-    "test. Called by cmd_iam, cmd_ps, and\n"
-    "cmd_pollps when parsing station addresses.",
+    description="""\
+Compares `A` against `'&'` and `'.'` first; if either matches,
+returns with carry set via the shared `return_12` exit.
+Otherwise falls through to
+[`is_dec_digit_only`](address:93A2?hex) for the `'0'`..`'9'`
+range test.
+
+Called by [`cmd_iam`](address:8D91?hex),
+[`cmd_ps`](address:B3AC?hex), and
+[`cmd_pollps`](address:B581?hex) when parsing station
+addresses.""",
     on_entry={"a": "character to test"},
     on_exit={"c": "set if digit/&/., clear otherwise"})
 subroutine(0x93A2, "is_dec_digit_only",
-    title="Test for decimal digit '0'-'9'",
-    description="Uses two CMPs to bracket-test A against the\n"
-    "range &30-&39. CMP #&3A sets carry if A >= ':'\n"
-    "(above digits), then CMP #&30 sets carry if\n"
-    "A >= '0'. The net effect: carry set only for\n"
-    "'0'-'9'. Called by parse_addr_arg.",
+    title="Test for decimal digit '0'..'9'",
+    description="""\
+Uses two `CMP`s to bracket-test `A` against the range
+`&30..&39`:
+
+1. `CMP #&3A` sets carry if `A >= ':'` (above digits).
+2. `CMP #&30` sets carry if `A >= '0'`.
+
+The net effect: carry set only for `'0'..'9'`. Called by
+[`parse_addr_arg`](address:92B2?hex).""",
     on_entry={"a": "character to test"},
     on_exit={"c": "set if '0'-'9', clear otherwise"})
 subroutine(0x93AB, "get_access_bits",
@@ -3953,31 +3963,37 @@ and ORs in the corresponding value from
     on_exit={"a": "encoded protection flags"})
 subroutine(0x93D3, "set_text_and_xfer_ptr",
     title="Set OS text pointer then transfer parameters",
-    description="Stores X/Y into the MOS text pointer at\n"
-    "&F2/&F3, then falls through to set_xfer_params\n"
-    "and set_options_ptr to configure the full FS\n"
-    "transfer context. Called by byte_to_2bit_index.",
+    description="""\
+Stores `X`/`Y` into the MOS text pointer at `&F2`/`&F3`, then
+falls through to [`set_xfer_params`](address:93D7?hex) and
+[`set_options_ptr`](address:93DD?hex) to configure the full FS
+transfer context. Called by `byte_to_2bit_index`.""",
     on_entry={"x": "text pointer low byte",
               "y": "text pointer high byte"})
 subroutine(0x93D7, "set_xfer_params",
     title="Set FS transfer byte count and source pointer",
-    description="Stores A into fs_last_byte_flag (&BD) as the\n"
-    "transfer byte count, and X/Y into fs_crc_lo/hi\n"
-    "(&BE/&BF) as the source data pointer. Falls\n"
-    "through to set_options_ptr to complete the\n"
-    "transfer context setup. Called by 5 sites across\n"
-    "cmd_ex, format_filename_field, and gsread_to_buf.",
+    description="""\
+Stores `A` into `fs_last_byte_flag` (`&BD`) as the transfer byte
+count, and `X`/`Y` into `fs_crc_lo`/`hi` (`&BE`/`&BF`) as the
+source-data pointer. Falls through to
+[`set_options_ptr`](address:93DD?hex) to complete the
+transfer-context setup.
+
+Called by 5 sites across [`cmd_ex`](address:B103?hex),
+`format_filename_field`, and `gsread_to_buf`.""",
     on_entry={"a": "transfer byte count",
               "x": "source pointer low",
               "y": "source pointer high"})
 subroutine(0x93DD, "set_options_ptr",
     title="Set FS options pointer and clear escape flag",
-    description="Stores X/Y into fs_options/fs_block_offset\n"
-    "(&BB/&BC) as the options block pointer. Then\n"
-    "enters clear_escapable which uses PHP/LSR/PLP\n"
-    "to clear bit 0 of the escape flag at &97 without\n"
-    "disturbing processor flags. Called by\n"
-    "format_filename_field and send_and_receive.",
+    description="""\
+Stores `X`/`Y` into `fs_options`/`fs_block_offset` (`&BB`/`&BC`)
+as the options-block pointer. Then enters
+[`clear_escapable`](address:93E1?hex) which uses
+`PHP`/`LSR`/`PLP` to clear bit 0 of the escape flag at `&97`
+without disturbing processor flags.
+
+Called by `format_filename_field` and `send_and_receive`.""",
     on_entry={"x": "options pointer low",
               "y": "options pointer high"})
 subroutine(0x93E1, "clear_escapable",
@@ -3989,12 +4005,13 @@ caller's flags so the operation is invisible to NZC-sensitive
 code. Single caller (&9B72 in the recv-and-classify reply path).""")
 subroutine(0x93E6, "cmp_5byte_handle",
     title="Compare 5-byte handle buffers for equality",
-    description="Loops X from 4 down to 1, comparing each byte\n"
-    "of addr_work+X with fs_load_addr_3+X using EOR.\n"
-    "Returns on the first mismatch (Z=0) or after\n"
-    "all 5 bytes match (Z=1). Called by\n"
-    "send_txcb_swap_addrs and check_and_setup_txcb\n"
-    "to verify station/handle identity.",
+    description="""\
+Loops `X` from 4 down to 1, comparing each byte of
+`addr_work+X` with `fs_load_addr_3+X` using `EOR`. Returns on
+the first mismatch (`Z=0`) or after all 5 bytes match (`Z=1`).
+
+Called by `send_txcb_swap_addrs` and `check_and_setup_txcb` to
+verify station/handle identity.""",
     on_exit={"z": "set if bytes 1..4 match (byte 0 is not compared)",
              "a": "EOR of last compared bytes",
              "x": "0 if all matched, else mismatch index"})
@@ -4009,61 +4026,78 @@ which handle values this filing system claims.""",
              "y": "&2F (last valid FCB handle)"})
 subroutine(0x93F7, "set_conn_active",
     title="Set connection-active flag in channel table",
-    description="Saves registers on the stack, recovers the\n"
-    "original A from the stack via TSX/LDA &0102,X,\n"
-    "then calls attr_to_chan_index to find the channel\n"
-    "slot. ORs bit 6 (&40) into the channel status\n"
-    "byte at &1060+X. Preserves A, X, and processor\n"
-    "flags via PHP/PHA/PLA/PLP. Called by\n"
-    "format_filename_field and adjust_fsopts_4bytes.",
+    description="""\
+Saves registers on the stack, recovers the original `A` from the
+stack via `TSX`/`LDA &0102,X`, then calls `attr_to_chan_index` to
+find the channel slot. `ORA`s bit 6 (`&40`) into the channel
+status byte at [`hazel_fcb_status`](address:C260?hex)`+X`.
+Preserves `A`, `X`, and processor flags via
+`PHP`/`PHA`/`PLA`/`PLP`.
+
+Called by `format_filename_field` and `adjust_fsopts_4bytes`.""",
     on_entry={"a": "channel attribute byte"})
 subroutine(0x940D, "clear_conn_active",
     title="Clear connection-active flag in channel table",
-    description="Mirror of set_conn_active but ANDs the channel\n"
-    "status byte with &BF (bit 6 clear mask) instead\n"
-    "of ORing. Uses the same register-preservation\n"
-    "pattern: PHP/PHA/TSX to recover A, then\n"
-    "attr_to_chan_index to find the slot. Shares the\n"
-    "done_conn_flag exit with set_conn_active.",
+    description="""\
+Mirror of [`set_conn_active`](address:93F7?hex) but `AND`s the
+channel status byte with `&BF` (bit-6 clear mask) instead of
+`ORA`ing. Uses the same register-preservation pattern:
+`PHP`/`PHA`/`TSX` to recover `A`, then `attr_to_chan_index` to
+find the slot. Shares the `done_conn_flag` exit with
+[`set_conn_active`](address:93F7?hex).""",
     on_entry={"a": "channel attribute byte"})
 subroutine(0x9437, "error_bad_filename",
     title="Raise 'Bad file name' BRK error",
     description="""\
-Loads error code &CC and tail-calls error_bad_inline with the inline
-string 'file name' -- error_bad_inline prepends 'Bad ' to produce the
-final 'Bad file name' message. Used by check_not_ampersand and other
-filename validators. Never returns.""")
+Loads error code `&CC` and tail-calls `error_bad_inline` with
+the inline string `'file name'` – `error_bad_inline` prepends
+`'Bad '` to produce the final `'Bad file name'` message. Used
+by [`check_not_ampersand`](address:9446?hex) and other filename
+validators. Never returns.""")
 subroutine(0x9446, "check_not_ampersand",
     title="Reject '&' as filename character",
-    description="Loads the first character from the parse buffer\n"
-    "at &0E30 and compares with '&' (&26). Branches\n"
-    "to error_bad_filename if matched, otherwise\n"
-    "returns. Also contains read_filename_char which\n"
-    "loops reading characters from the command line\n"
-    "into the TX buffer at &0F05, calling\n"
-    "strip_token_prefix on each byte and terminating\n"
-    "on CR. Used by cmd_fs_operation and cmd_rename.",
+    description="""\
+Loads the first character from the parse buffer at `&0E30` and
+compares with `'&'` (`&26`). Branches to
+[`error_bad_filename`](address:9437?hex) if matched, otherwise
+returns.
+
+Also contains [`read_filename_char`](address:944E?hex) which
+loops reading characters from the command line into the TX
+buffer at `hazel_txcb_data` (`&C105`), calling
+`strip_token_prefix` on each byte and terminating on `CR`. Used
+by [`cmd_fs_operation`](address:9425?hex) and
+[`cmd_rename`](address:94C5?hex).""",
     on_exit={"a": "first byte of parse buffer (preserved unchanged on the "
              "non-error path)"})
 subroutine(0x944E, "read_filename_char",
     title="Loop reading filename chars into TX buffer",
     description="""\
 Per-character loop body of the filename-copy logic in
-check_not_ampersand. JSRs check_not_ampersand to reject '&', stores
-the byte at hazel_txcb_data+X (TX buffer area), increments X, and either
-branches to send_fs_request on CR or strips a BASIC token prefix
-via strip_token_prefix and re-enters the loop. Three callers: the
-loop's own BRA at &945C, plus &9435 (cmd_rename's first-arg copy)
-and &950F (cmd_fs_operation's filename pickup).""",
+[`check_not_ampersand`](address:9446?hex):
+
+1. `JSR [check_not_ampersand](address:9446?hex)` to reject `'&'`.
+2. Store the byte at [`hazel_txcb_data`](address:C105?hex)`+X`
+   (TX buffer area).
+3. Increment `X`.
+4. Branch to [`send_fs_request`](address:945E?hex) on `CR`, or
+   strip a BASIC token prefix via `strip_token_prefix` and
+   re-enter the loop.
+
+Three callers: the loop's own `BRA` at `&945C`, plus `&9435`
+([`cmd_rename`](address:94C5?hex)'s first-arg copy) and `&950F`
+([`cmd_fs_operation`](address:9425?hex)'s filename pickup).""",
     on_entry={"a": "current character to copy",
               "x": "TX-buffer write index"},
     on_exit={"x": "advanced past the CR terminator"})
 subroutine(0x945E, "send_fs_request",
     title="Send FS command with no extra dispatch offset",
     description="""\
-Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps
-to send_cmd_and_dispatch. Two callers: read_filename_char's BEQ
-on CR (&9457) and the *RUN argument-handling tail at &9537.""")
+Loads `Y=0` (so dispatch lookups don't add an offset) and
+tail-jumps to [`send_cmd_and_dispatch`](address:8E3C?hex). Two
+callers: [`read_filename_char`](address:944E?hex)'s `BEQ` on
+`CR` (`&9457`) and the `*RUN` argument-handling tail at
+`&9537`.""")
 subroutine(0x9463, "copy_fs_cmd_name",
     title="Copy matched command name to TX buffer",
     description="""\
@@ -4079,10 +4113,10 @@ bit-7 byte (end of name), then appends a space separator.""",
              "a": "clobbered"})
 subroutine(0x9483, "parse_quoted_arg",
     title="Parse possibly-quoted filename argument",
-    description="Reads from the command line at (&BE),Y. Handles\n"
-    "double-quote delimiters and stores the result\n"
-    "in the parse buffer at &0E30. Raises 'Bad string'\n"
-    "on unbalanced quotes.",
+    description="""\
+Reads from the command line at `(fs_crc_lo),Y` (`&BE`). Handles
+double-quote delimiters and stores the result in the parse
+buffer at `&0E30`. Raises `'Bad string'` on unbalanced quotes.""",
     on_entry={"y": "current offset within the command line"},
     on_exit={"y": "advanced past the parsed argument",
              "a": "clobbered (last byte read)"})
@@ -10061,13 +10095,35 @@ label(0xC1DF, "hazel_net_reply_buf_3")
 label(0xC1E0, "hazel_fcb_addr_lo_minus20")
 label(0xC1F0, "hazel_fcb_addr_mid_minus20")
 label(0xC1FF, "hazel_display_buf_minusF4")
-label(0xC200, "hazel_fcb_addr_lo")
-label(0xC210, "hazel_fcb_addr_mid")
-label(0xC220, "hazel_fcb_addr_hi")
-label(0xC230, "hazel_fcb_slot_attr")
-label(0xC240, "hazel_fcb_state_byte")  # multi-purpose: station for non-OSFIND channels, open-mode flags for OSFIND channels
-label(0xC250, "hazel_fcb_network")
-label(0xC260, "hazel_fcb_status")
+label(0xC200, "hazel_fcb_addr_lo",
+    description="FCB parallel array (16 entries): file position byte 0 (low).\n"
+                "Indexed by channel `0..15`; cleared by "
+                "[`alloc_fcb_slot`](address:B8A8?hex) on FCB allocation.",
+    length=16, group="ram_workspace", access="rw")
+label(0xC210, "hazel_fcb_addr_mid",
+    description="FCB parallel array (16 entries): file position byte 1 (mid).",
+    length=16, group="ram_workspace", access="rw")
+label(0xC220, "hazel_fcb_addr_hi",
+    description="FCB parallel array (16 entries): file position byte 2 (high).",
+    length=16, group="ram_workspace", access="rw")
+label(0xC230, "hazel_fcb_slot_attr",
+    description="FCB parallel array (16 entries): slot occupancy + channel attribute.\n"
+                "Tested for zero by [`alloc_fcb_slot`](address:B8A8?hex) "
+                "as the slot-free check; set non-zero on allocation.",
+    length=16, group="ram_workspace", access="rw")
+label(0xC240, "hazel_fcb_state_byte",
+    description="FCB parallel array (16 entries): multi-purpose state byte.\n"
+                "Holds station number for non-OSFIND channels, or "
+                "open-mode flags for channels created by OSFIND.",
+    length=16, group="ram_workspace", access="rw")
+label(0xC250, "hazel_fcb_network",
+    description="FCB parallel array (16 entries): network number per channel.",
+    length=16, group="ram_workspace", access="rw")
+label(0xC260, "hazel_fcb_status",
+    description="FCB parallel array (16 entries): per-channel status flags.\n"
+                "Heavily used: bit 6 = connection active "
+                "(`set_conn_active` / `clear_conn_active` toggle).",
+    length=16, group="ram_workspace", access="rw")
 label(0xC270, "hazel_cur_dir_handle")
 label(0xC271, "hazel_fs_lib_flags")
 label(0xC272, "hazel_fcb_slot_1")
@@ -12074,14 +12130,16 @@ label(0x94C5, "cmd_rename")
 label(0xB6F3, "cmd_wipe")
 
 subroutine(0x9425, "cmd_fs_operation",
-    title="Shared *Access/*Delete/*Info/*Lib command handler",
-    description="Copies the command name to the TX buffer, parses a\n"
-    "quoted filename argument via parse_quoted_arg, and\n"
-    "checks the access prefix. Validates the filename\n"
-    "does not start with '&', then falls through to\n"
-    "read_filename_char to copy remaining characters and\n"
-    "send the request. Raises 'Bad file name' if a bare\n"
-    "CR is found where a filename was expected.",
+    title="Shared *Access / *Delete / *Info / *Lib command handler",
+    description="""\
+Copies the command name to the TX buffer, parses a quoted
+filename argument via [`parse_quoted_arg`](address:9483?hex), and
+checks the access prefix. Validates the filename does not start
+with `'&'`, then falls through to
+[`read_filename_char`](address:944E?hex) to copy remaining
+characters and send the request. Raises
+[`Bad file name`](address:9437?hex) if a bare `CR` is found where
+a filename was expected.""",
     on_entry={"y": "command line offset in text pointer",
               "x": "byte offset within cmd_table_fs identifying which "
               "of the four shared commands was matched (Access, Delete, "
@@ -12119,14 +12177,19 @@ happens to decode as `JMP (cdir_unused_dispatch_table,X)` but is never executed.
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0x9512, "cmd_dir",
     title="*Dir command handler",
-    description="Handles three argument syntaxes: a plain path\n"
-    "(delegates to pass_send_cmd), '&' alone for the root\n"
-    "directory, and '&N.dir' for cross-filesystem directory\n"
-    "changes. The cross-FS form sends a file server\n"
-    "selection command (code &12) to locate the target\n"
-    "server, raising 'Not found' on failure, then sends\n"
-    "the directory change (code 6) and calls\n"
-    "find_fs_and_exit to update the active FS context.",
+    description="""\
+Handles three argument syntaxes:
+
+| Argument | Action |
+|---|---|
+| plain path        | delegates to `pass_send_cmd` |
+| `'&'` alone       | root directory |
+| `'&N.dir'`        | cross-filesystem directory change |
+
+The cross-FS form sends a file-server selection command (code
+`&12`) to locate the target server, raising `'Not found'` on
+failure, then sends the directory change (code 6) and calls
+`find_fs_and_exit` to update the active FS context.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB103, "cmd_ex",
     title="*Ex command handler",
@@ -12265,14 +12328,14 @@ subroutine(0xB310, "print_decimal_digit_no_spool",
     on_exit={"y": "remainder after division"})
 subroutine(0x94C5, "cmd_rename",
     title="*Rename command handler",
-    description="Parses two space-separated filenames from the\n"
-    "command line, each with its own access prefix.\n"
-    "Sets the owner-only access mask before parsing each\n"
-    "name. Validates that both names resolve to the same\n"
-    "file server by comparing the FS options word —\n"
-    "raises 'Bad rename' if they differ. Falls through\n"
-    "to read_filename_char to copy the second filename\n"
-    "into the TX buffer and send the request.",
+    description="""\
+Parses two space-separated filenames from the command line, each
+with its own access prefix. Sets the owner-only access mask
+before parsing each name. Validates that both names resolve to
+the same file server by comparing the FS-options word – raises
+`'Bad rename'` if they differ. Falls through to
+[`read_filename_char`](address:944E?hex) to copy the second
+filename into the TX buffer and send the request.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB6F3, "cmd_wipe",
     title="*Wipe command handler",

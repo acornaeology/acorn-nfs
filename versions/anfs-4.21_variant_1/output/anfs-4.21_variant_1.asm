@@ -336,13 +336,13 @@ hazel_net_reply_buf_3       = &c1df
 hazel_fcb_addr_lo_minus20   = &c1e0
 hazel_fcb_addr_mid_minus20  = &c1f0
 hazel_display_buf_minusF4   = &c1ff
-hazel_fcb_addr_lo           = &c200
-hazel_fcb_addr_mid          = &c210
-hazel_fcb_addr_hi           = &c220
-hazel_fcb_slot_attr         = &c230
-hazel_fcb_state_byte        = &c240
-hazel_fcb_network           = &c250
-hazel_fcb_status            = &c260
+hazel_fcb_addr_lo           = &c200  ; FCB parallel array (16 entries): file position byte 0 (low).
+hazel_fcb_addr_mid          = &c210  ; FCB parallel array (16 entries): file position byte 1 (mid).
+hazel_fcb_addr_hi           = &c220  ; FCB parallel array (16 entries): file position byte 2 (high).
+hazel_fcb_slot_attr         = &c230  ; FCB parallel array (16 entries): slot occupancy + channel attribute.
+hazel_fcb_state_byte        = &c240  ; FCB parallel array (16 entries): multi-purpose state byte.
+hazel_fcb_network           = &c250  ; FCB parallel array (16 entries): network number per channel.
+hazel_fcb_status            = &c260  ; FCB parallel array (16 entries): per-channel status flags.
 hazel_cur_dir_handle        = &c270
 hazel_fs_lib_flags          = &c271
 hazel_fcb_slot_1            = &c272
@@ -5454,10 +5454,10 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Raise 'Bad hex' BRK error
 ;
-; Loads error code &F1 and tail-calls error_bad_inline with the inline string 'hex' --
+; Loads error code &F1 and tail-calls error_bad_inline with the inline string 'hex' –
 ; error_bad_inline prepends 'Bad ' to produce the final 'Bad hex' message. Called from
-; parse_addr_arg and the *DUMP / *LIST hex parsers when a digit is out of range. Never
-; returns.
+; parse_addr_arg (&92B2) and the *DUMP / *LIST hex parsers when a digit is out of
+; range. Never returns.
 ; &934a referenced 3 times by &92d6, &92da, &be9f
 .err_bad_hex
     lda #&f1                                                          ; 934a: a9 f1       ..             ; Error code &F1
@@ -5496,9 +5496,11 @@ ps_template_base = load_transfer_params+1
 ; Test for digit, '&', or '.' separator
 ;
 ; Compares A against '&' and '.' first; if either matches, returns with carry set via
-; the shared return_12 exit. Otherwise falls through to is_dec_digit_only for the
-; '0'-'9' range test. Called by cmd_iam, cmd_ps, and cmd_pollps when parsing station
-; addresses.
+; the shared return_12 exit. Otherwise falls through to is_dec_digit_only (&93A2) for
+; the '0'..'9' range test.
+;
+; Called by cmd_iam (&8D91), cmd_ps (&B3AC), and cmd_pollps (&B581) when parsing
+; station addresses.
 ;
 ; On Entry: A: character to test
 ;
@@ -5510,11 +5512,14 @@ ps_template_base = load_transfer_params+1
     cmp #&2e ; '.'                                                    ; 939e: c9 2e       ..             ; Network/station separator '.'?
     beq return_from_digit_test                                        ; 93a0: f0 06       ..             ; Yes: also digit-like; else fall through to decimal test
 ; ***************************************************************************************
-; Test for decimal digit '0'-'9'
+; Test for decimal digit '0'..'9'
 ;
-; Uses two CMPs to bracket-test A against the range &30-&39. CMP #&3A sets carry if A
-; >= ':' (above digits), then CMP #&30 sets carry if A >= '0'. The net effect: carry
-; set only for '0'-'9'. Called by parse_addr_arg.
+; Uses two CMPs to bracket-test A against the range &30..&39:
+;
+; 1. CMP #&3A sets carry if A >= ':' (above digits).
+; 2. CMP #&30 sets carry if A >= '0'.
+;
+; The net effect: carry set only for '0'..'9'. Called by parse_addr_arg (&92B2).
 ;
 ; On Entry: A: character to test
 ;
@@ -5607,8 +5612,8 @@ ps_template_base = load_transfer_params+1
 ; Set OS text pointer then transfer parameters
 ;
 ; Stores X/Y into the MOS text pointer at &F2/&F3, then falls through to
-; set_xfer_params and set_options_ptr to configure the full FS transfer context. Called
-; by byte_to_2bit_index.
+; set_xfer_params (&93D7) and set_options_ptr (&93DD) to configure the full FS transfer
+; context. Called by byte_to_2bit_index.
 ;
 ; On Entry: X: text pointer low byte Y: text pointer high byte
 ; &93d3 referenced 2 times by &a42f, &b0fe
@@ -5619,9 +5624,10 @@ ps_template_base = load_transfer_params+1
 ; Set FS transfer byte count and source pointer
 ;
 ; Stores A into fs_last_byte_flag (&BD) as the transfer byte count, and X/Y into
-; fs_crc_lo/hi (&BE/&BF) as the source data pointer. Falls through to set_options_ptr
-; to complete the transfer context setup. Called by 5 sites across cmd_ex,
-; format_filename_field, and gsread_to_buf.
+; fs_crc_lo/hi (&BE/&BF) as the source-data pointer. Falls through to set_options_ptr
+; (&93DD) to complete the transfer-context setup.
+;
+; Called by 5 sites across cmd_ex (&B103), format_filename_field, and gsread_to_buf.
 ;
 ; On Entry: A: transfer byte count X: source pointer low Y: source pointer high
 ; &93d7 referenced 6 times by &8da6, &8e4b, &9c22, &a032, &a14f, &b118
@@ -5632,10 +5638,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Set FS options pointer and clear escape flag
 ;
-; Stores X/Y into fs_options/fs_block_offset (&BB/&BC) as the options block pointer.
-; Then enters clear_escapable which uses PHP/LSR/PLP to clear bit 0 of the escape flag
-; at &97 without disturbing processor flags. Called by format_filename_field and
-; send_and_receive.
+; Stores X/Y into fs_options/fs_block_offset (&BB/&BC) as the options-block pointer.
+; Then enters clear_escapable (&93E1) which uses PHP/LSR/PLP to clear bit 0 of the
+; escape flag at &97 without disturbing processor flags.
+;
+; Called by format_filename_field and send_and_receive.
 ;
 ; On Entry: X: options pointer low Y: options pointer high
 ; &93dd referenced 2 times by &9eb0, &bd15
@@ -5660,6 +5667,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Loops X from 4 down to 1, comparing each byte of addr_work+X with fs_load_addr_3+X
 ; using EOR. Returns on the first mismatch (Z=0) or after all 5 bytes match (Z=1).
+;
 ; Called by send_txcb_swap_addrs and check_and_setup_txcb to verify station/handle
 ; identity.
 ;
@@ -5696,9 +5704,11 @@ ps_template_base = load_transfer_params+1
 ; Set connection-active flag in channel table
 ;
 ; Saves registers on the stack, recovers the original A from the stack via TSX/LDA
-; &0102,X, then calls attr_to_chan_index to find the channel slot. ORs bit 6 (&40) into
-; the channel status byte at &1060+X. Preserves A, X, and processor flags via
-; PHP/PHA/PLA/PLP. Called by format_filename_field and adjust_fsopts_4bytes.
+; &0102,X, then calls attr_to_chan_index to find the channel slot. ORAs bit 6 (&40)
+; into the channel status byte at hazel_fcb_status (&C260)+X. Preserves A, X, and
+; processor flags via PHP/PHA/PLA/PLP.
+;
+; Called by format_filename_field and adjust_fsopts_4bytes.
 ;
 ; On Entry: A: channel attribute byte
 ; &93f7 referenced 2 times by &9f35, &a1ac
@@ -5717,10 +5727,10 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Clear connection-active flag in channel table
 ;
-; Mirror of set_conn_active but ANDs the channel status byte with &BF (bit 6 clear
-; mask) instead of ORing. Uses the same register-preservation pattern: PHP/PHA/TSX to
-; recover A, then attr_to_chan_index to find the slot. Shares the done_conn_flag exit
-; with set_conn_active.
+; Mirror of set_conn_active (&93F7) but ANDs the channel status byte with &BF (bit-6
+; clear mask) instead of ORAing. Uses the same register-preservation pattern:
+; PHP/PHA/TSX to recover A, then attr_to_chan_index to find the slot. Shares the
+; done_conn_flag exit with set_conn_active (&93F7).
 ;
 ; On Entry: A: channel attribute byte
 ; &940d referenced 2 times by &9f96, &a1a7
@@ -5743,13 +5753,13 @@ ps_template_base = load_transfer_params+1
     rts                                                               ; 9424: 60          `              ; Return; A and X preserved across the call
 
 ; ***************************************************************************************
-; Shared *Access/*Delete/*Info/*Lib command handler
+; Shared *Access / *Delete / *Info / *Lib command handler
 ;
 ; Copies the command name to the TX buffer, parses a quoted filename argument via
-; parse_quoted_arg, and checks the access prefix. Validates the filename does not start
-; with '&', then falls through to read_filename_char to copy remaining characters and
-; send the request. Raises 'Bad file name' if a bare CR is found where a filename was
-; expected.
+; parse_quoted_arg (&9483), and checks the access prefix. Validates the filename does
+; not start with '&', then falls through to read_filename_char (&944E) to copy
+; remaining characters and send the request. Raises Bad file name (&9437) if a bare CR
+; is found where a filename was expected.
 ;
 ; On Entry: Y: command line offset in text pointer X: byte offset within cmd_table_fs
 ; identifying which of the four shared commands was matched (Access, Delete, Info, or
@@ -5767,8 +5777,9 @@ ps_template_base = load_transfer_params+1
 ; Raise 'Bad file name' BRK error
 ;
 ; Loads error code &CC and tail-calls error_bad_inline with the inline string 'file
-; name' -- error_bad_inline prepends 'Bad ' to produce the final 'Bad file name'
-; message. Used by check_not_ampersand and other filename validators. Never returns.
+; name' – error_bad_inline prepends 'Bad ' to produce the final 'Bad file name'
+; message. Used by check_not_ampersand (&9446) and other filename validators. Never
+; returns.
 ; &9437 referenced 3 times by &944b, &953e, &b279
 .error_bad_filename
     lda #&cc                                                          ; 9437: a9 cc       ..             ; Error number &CC
@@ -5779,10 +5790,12 @@ ps_template_base = load_transfer_params+1
 ; Reject '&' as filename character
 ;
 ; Loads the first character from the parse buffer at &0E30 and compares with '&' (&26).
-; Branches to error_bad_filename if matched, otherwise returns. Also contains
-; read_filename_char which loops reading characters from the command line into the TX
-; buffer at &0F05, calling strip_token_prefix on each byte and terminating on CR. Used
-; by cmd_fs_operation and cmd_rename.
+; Branches to error_bad_filename (&9437) if matched, otherwise returns.
+;
+; Also contains read_filename_char (&944E) which loops reading characters from the
+; command line into the TX buffer at hazel_txcb_data (&C105), calling
+; strip_token_prefix on each byte and terminating on CR. Used by cmd_fs_operation
+; (&9425) and cmd_rename (&94C5).
 ;
 ; On Exit: A: first byte of parse buffer (preserved unchanged on the non-error path)
 ; &9446 referenced 2 times by &9430, &944e
@@ -5795,12 +5808,16 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Loop reading filename chars into TX buffer
 ;
-; Per-character loop body of the filename-copy logic in check_not_ampersand. JSRs
-; check_not_ampersand to reject '&', stores the byte at hazel_txcb_data+X (TX buffer
-; area), increments X, and either branches to send_fs_request on CR or strips a BASIC
-; token prefix via strip_token_prefix and re-enters the loop. Three callers: the loop's
-; own BRA at &945C, plus &9435 (cmd_rename's first-arg copy) and &950F
-; (cmd_fs_operation's filename pickup).
+; Per-character loop body of the filename-copy logic in check_not_ampersand (&9446):
+;
+; 1. JSR [check_not_ampersand](address:9446?hex) to reject '&'.
+; 2. Store the byte at hazel_txcb_data (&C105)+X (TX buffer area).
+; 3. Increment X.
+; 4. Branch to send_fs_request (&945E) on CR, or strip a BASIC token prefix via
+;    strip_token_prefix and re-enter the loop.
+;
+; Three callers: the loop's own BRA at &945C, plus &9435 (cmd_rename (&94C5)'s
+; first-arg copy) and &950F (cmd_fs_operation (&9425)'s filename pickup).
 ;
 ; On Entry: A: current character to copy X: TX-buffer write index
 ;
@@ -5818,8 +5835,8 @@ ps_template_base = load_transfer_params+1
 ; Send FS command with no extra dispatch offset
 ;
 ; Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps to
-; send_cmd_and_dispatch. Two callers: read_filename_char's BEQ on CR (&9457) and the
-; *RUN argument-handling tail at &9537.
+; send_cmd_and_dispatch (&8E3C). Two callers: read_filename_char (&944E)'s BEQ on CR
+; (&9457) and the *RUN argument-handling tail at &9537.
 ; &945e referenced 2 times by &9457, &9537
 .send_fs_request
     ldy #0                                                            ; 945e: a0 00       ..             ; Y=0: no extra dispatch offset
@@ -5871,8 +5888,9 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Parse possibly-quoted filename argument
 ;
-; Reads from the command line at (&BE),Y. Handles double-quote delimiters and stores
-; the result in the parse buffer at &0E30. Raises 'Bad string' on unbalanced quotes.
+; Reads from the command line at (fs_crc_lo),Y (&BE). Handles double-quote delimiters
+; and stores the result in the parse buffer at &0E30. Raises 'Bad string' on unbalanced
+; quotes.
 ;
 ; On Entry: Y: current offset within the command line
 ;
@@ -5922,9 +5940,9 @@ ps_template_base = load_transfer_params+1
 ;
 ; Parses two space-separated filenames from the command line, each with its own access
 ; prefix. Sets the owner-only access mask before parsing each name. Validates that both
-; names resolve to the same file server by comparing the FS options word — raises 'Bad
-; rename' if they differ. Falls through to read_filename_char to copy the second
-; filename into the TX buffer and send the request.
+; names resolve to the same file server by comparing the FS-options word – raises 'Bad
+; rename' if they differ. Falls through to read_filename_char (&944E) to copy the
+; second filename into the TX buffer and send the request.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_rename
@@ -5973,11 +5991,17 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; *Dir command handler
 ;
-; Handles three argument syntaxes: a plain path (delegates to pass_send_cmd), '&' alone
-; for the root directory, and '&N.dir' for cross-filesystem directory changes. The
-; cross-FS form sends a file server selection command (code &12) to locate the target
-; server, raising 'Not found' on failure, then sends the directory change (code 6) and
-; calls find_fs_and_exit to update the active FS context.
+; Handles three argument syntaxes:
+;
+; | Argument   | Action                            |
+; |------------|-----------------------------------|
+; | plain path | delegates to pass_send_cmd        |
+; | '&' alone  | root directory                    |
+; | '&N.dir'   | cross-filesystem directory change |
+;
+; The cross-FS form sends a file-server selection command (code &12) to locate the
+; target server, raising 'Not found' on failure, then sends the directory change (code
+; 6) and calls find_fs_and_exit to update the active FS context.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_dir

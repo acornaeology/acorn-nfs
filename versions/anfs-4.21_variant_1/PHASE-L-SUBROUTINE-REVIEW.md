@@ -229,31 +229,31 @@ addresses across all 431 remaining routines.
 | 153 | &9269 | `loop_next_char` | done | print_inline link |
 | 154 | &928A | `print_inline_no_spool` | done | print_inline + print_char_no_spool + cmd_ex/cmd_wipe links |
 | 155 | &92B2 | `parse_addr_arg` | kept | already has accurate links |
-| 156 | &934A | `err_bad_hex` | | |
-| 157 | &939A | `is_decimal_digit` | | |
-| 158 | &93A2 | `is_dec_digit_only` | | |
-| 159 | &93AB | `get_access_bits` | | |
-| 160 | &93B5 | `get_prot_bits` | | |
-| 161 | &93C8 | `prot_bit_encode_table` | | |
-| 162 | &93D3 | `set_text_and_xfer_ptr` | | |
-| 163 | &93D7 | `set_xfer_params` | | |
-| 164 | &93DD | `set_options_ptr` | | |
-| 165 | &93E1 | `clear_escapable` | | |
-| 166 | &93E6 | `cmp_5byte_handle` | | |
-| 167 | &93F2 | `fscv_7_read_handles` | | |
-| 168 | &93F7 | `set_conn_active` | | |
-| 169 | &940D | `clear_conn_active` | | |
-| 170 | &9425 | `cmd_fs_operation` | | |
-| 171 | &9437 | `error_bad_filename` | | |
-| 172 | &9446 | `check_not_ampersand` | | |
-| 173 | &944E | `read_filename_char` | | |
-| 174 | &945E | `send_fs_request` | | |
-| 175 | &9463 | `copy_fs_cmd_name` | | |
-| 176 | &9483 | `parse_quoted_arg` | | |
-| 177 | &94C5 | `cmd_rename` | | |
-| 178 | &9512 | `cmd_dir` | | |
-| 179 | &95C1 | `print_station_low` | | |
-| 180 | &95C8 | `print_fs_station` | | |
+| 156 | &934A | `err_bad_hex` | done | parse_addr_arg link |
+| 157 | &939A | `is_decimal_digit` | done | is_dec_digit_only + cmd_iam/cmd_ps/cmd_pollps links |
+| 158 | &93A2 | `is_dec_digit_only` | done | numbered CMP steps; parse_addr_arg link |
+| 159 | &93AB | `get_access_bits` | kept | already accurate |
+| 160 | &93B5 | `get_prot_bits` | kept | already accurate |
+| 161 | &93C8 | `prot_bit_encode_table` | kept | data table |
+| 162 | &93D3 | `set_text_and_xfer_ptr` | done | set_xfer_params + set_options_ptr links |
+| 163 | &93D7 | `set_xfer_params` | done | set_options_ptr + cmd_ex links |
+| 164 | &93DD | `set_options_ptr` | done | clear_escapable link |
+| 165 | &93E1 | `clear_escapable` | kept | already accurate |
+| 166 | &93E6 | `cmp_5byte_handle` | done | inline-code refinement |
+| 167 | &93F2 | `fscv_7_read_handles` | kept | already accurate |
+| 168 | &93F7 | `set_conn_active` | done | hazel_fcb_status link |
+| 169 | &940D | `clear_conn_active` | done | set_conn_active link |
+| 170 | &9425 | `cmd_fs_operation` | done | parse_quoted_arg + read_filename_char + error_bad_filename links |
+| 171 | &9437 | `error_bad_filename` | done | check_not_ampersand link |
+| 172 | &9446 | `check_not_ampersand` | done | hazel_txcb_data + cmd_fs_operation/cmd_rename links |
+| 173 | &944E | `read_filename_char` | done | numbered loop steps; check_not_ampersand + hazel_txcb_data + send_fs_request + cmd_rename/cmd_fs_operation links |
+| 174 | &945E | `send_fs_request` | done | send_cmd_and_dispatch + read_filename_char links |
+| 175 | &9463 | `copy_fs_cmd_name` | kept | already accurate |
+| 176 | &9483 | `parse_quoted_arg` | done | inline-code refinement |
+| 177 | &94C5 | `cmd_rename` | done | read_filename_char link |
+| 178 | &9512 | `cmd_dir` | done | argument-syntax dispatch table |
+| 179 | &95C1 | `print_station_low` | kept | covered by Phase K2 |
+| 180 | &95C8 | `print_fs_station` | kept | covered by Phase K2 |
 | 181 | &95DA | `print_dir_syntax` | | |
 | 182 | &9612 | `osbyte_a2` | | |
 | 183 | &965F | `print_network_from_cmos` | | |
