@@ -8863,6 +8863,8 @@ comment(0x8E7A, "Advance destination cursor", inline=True)
 comment(0x8E7B, "Step to previous template byte", inline=True)
 comment(0x8E7C, "Loop until X has wrapped past 0", inline=True)
 comment(0x8E7E, "Return", inline=True)
+comment(0x8E80, "11-byte template (length 5 in [0], then '       TEN'); "
+    "copied to (&F2),Y by copy_template_to_zp", inline=True)
 
 # check_help_continuation (&8E8A) -- svc_dispatch idx &15: tests
 # bit 6 of fs_flags (&0D6C); when clear, returns immediately. When
@@ -10034,6 +10036,95 @@ label(0x9AD1, "msg_escape")
 label(0x9AD9, "msg_bad_option")
 label(0x9B0B, "msg_on_channel")
 label(0x9B17, "msg_not_present")
+
+# Inline messages emitted via JSR print_inline / print_inline_no_spool /
+# error_inline. Each is a high-bit-terminated ASCII run that lives
+# right after the JSR; the print routine pops the JSR's return
+# address, walks bytes until bit 7 set, and resumes execution at
+# the high-bit byte (which doubles as the next opcode). Labels +
+# comments here describe each fragment's role in the user-visible
+# message stream.
+comment(0x8A6E, "Inline: '\\rBad ROM ' header (svc 13 fail path)", inline=True)
+comment(0x8C96, "Inline: '\\rAdvanced NFS 4.21\\r' boot banner", inline=True)
+comment(0x8D46, "Inline: 'The authors of ANFS are;' credits header", inline=True)
+comment(0x8D5F, "Inline: 'B Cockburn' (author 1)", inline=True)
+comment(0x8D71, "Inline: 'B Robertson' (author 2)", inline=True)
+comment(0x8FC4, "Inline: 'Station number in CMOS RAM invalid' "
+    "warning (nfs_init_body, CMOS station = 0)", inline=True)
+comment(0x90BA, "Inline: 'net checksum.' error-suffix tail", inline=True)
+comment(0x90EA, "Inline: ' No Clock' error suffix", inline=True)
+comment(0x9119, "Inline: '((:<CR>)<password>)' -- syntax help "
+    "for *Pass / *I am", inline=True)
+comment(0x9193, "Inline: '(<stn. id.>|<ps type>)' -- syntax "
+    "help for *PS / *Pollps", inline=True)
+comment(0x935C, "Inline: 'station number.' error suffix", inline=True)
+comment(0x937C, "Inline: 'parameter.' error suffix", inline=True)
+comment(0x938B, "Inline: 'network number.' error suffix", inline=True)
+comment(0x943C, "Inline: 'file name.' error suffix", inline=True)
+comment(0x981D, "Inline: 'Data Lost\\r' RX-overflow warning", inline=True)
+comment(0x9886, "Inline: 'Remoted..' status", inline=True)
+comment(0x9AA7, "Inline: 'Line jammed' error msg "
+    "(err_line_jammed = &A0)", inline=True)
+comment(0x9AB4, "Inline: 'Net error' error msg "
+    "(err_net_error = &A1)", inline=True)
+comment(0x9ADA, "Inline: 'Bad option' error msg", inline=True)
+comment(0x9AE7, "Inline: 'o reply from station' suffix "
+    "(joins to 'N' prefix)", inline=True)
+comment(0x9AFC, "Inline: ' not listening' suffix", inline=True)
+comment(0xA5A6, "Inline: 'command.' error suffix", inline=True)
+comment(0xAF85, "Inline: 'Printer busy.' error msg", inline=True)
+comment(0xAF97, "Inline: 'Printer jammed.' error msg", inline=True)
+comment(0xB1D1, "Inline: '     Lib. ' label for *Ex output", inline=True)
+comment(0xB49B, "Inline: ' server is ' fragment "
+    "for 'File/Printer server is ...' messages", inline=True)
+comment(0xB680, "Inline: ' with station ' message fragment", inline=True)
+comment(0xB822, "Inline: 'Net channel.' error msg", inline=True)
+comment(0xB833, "Inline: 'on this file server' fragment", inline=True)
+comment(0xB898, "Inline: 'Is a directory.' error msg", inline=True)
+comment(0xB8E9, "Inline: 'No more FCBs.' error msg", inline=True)
+comment(0xBE07, "Inline: '\\rAddress  : ' -- *Dump column header", inline=True)
+comment(0xBE24, "Inline: ':    ASCII data\\r\\r' -- *Dump trailer", inline=True)
+comment(0xBEDE, "Inline: 'Outside file.' *Dump range error", inline=True)
+comment(0xBF4B, "Inline: 'address.' error suffix", inline=True)
+comment(0xBF94, "Inline: 'Not found.' error msg", inline=True)
+comment(0x9691, "'!Help.' prefix bytes (not used by the matcher; "
+    "may be visible as a fallback help-message head)", inline=True)
+comment(0x9697, "'ON ' -- 3-char pattern read by match_on_suffix at "
+    "&969A via EOR &9697,X with X=0..2 to detect "
+    "'... ON ' help-line suffix", inline=True)
+
+# Per-byte annotation for ps_slot_txcb_template (&B575). The
+# data_banner above describes the structure; these 12 inline
+# comments name each TXCB field that init_ps_slot_from_rx copies
+# from this template into the workspace TXCB.
+comment(0xB575, "Offset 0: txcb_ctrl = &80 (standard)", inline=True)
+comment(0xB576, "Offset 1: txcb_port = &9F (PS port)", inline=True)
+comment(0xB577, "Offset 2: dest station (placeholder, &00)", inline=True)
+comment(0xB578, "Offset 3: dest network (placeholder, &00)", inline=True)
+comment(0xB579, "Offset 4: buf1 start lo = &10", inline=True)
+comment(0xB57A, "Offset 5: buf1 start hi (page from net_rx_ptr)", inline=True)
+comment(0xB57B, "Offset 6: buf1 end lo placeholder = &FF", inline=True)
+comment(0xB57C, "Offset 7: buf1 end hi placeholder = &FF", inline=True)
+comment(0xB57D, "Offset 8: buf2 start lo = &18", inline=True)
+comment(0xB57E, "Offset 9: buf2 start hi (page from net_rx_ptr)", inline=True)
+comment(0xB57F, "Offset 10: buf2 end lo placeholder = &FF", inline=True)
+comment(0xB580, "Offset 11: buf2 end hi placeholder = &FF", inline=True)
+
+# Per-region annotation for the &FF rom_tail_padding banner (&BFC5).
+# The data_banner above explains what the region IS; these inline
+# comments are needed to satisfy `data runs --unannotated` and to
+# distinguish the runtime-RAM-overlay scratch slots from inert
+# padding.
+comment(0xBFC5, "ROM-tail padding (2 bytes &FF)", inline=True)
+comment(0xBFC7, "ROM-tail padding (1 byte &FF; on its own line "
+    "for annotation)", inline=True)
+comment(0xBFC8, "ROM-tail padding (30 bytes &FF)", inline=True)
+comment(0xBFE6, "Sideways-RAM scratch (24 bytes); read by &AC5B "
+    "as `LDA &BFE6,Y`", inline=True)
+comment(0xBFFE, "Sideways-RAM scratch byte; read/written via "
+    "indexed access from &8B68 / &9067 / &AC86", inline=True)
+comment(0xBFFF, "Sideways-RAM scratch byte; read/written via "
+    "indexed access from &A9D2 / &A9E7", inline=True)
 # Split error number and null terminator bytes
 byte(0x9AC8)   # error &A3
 byte(0x9AD0)   # null
