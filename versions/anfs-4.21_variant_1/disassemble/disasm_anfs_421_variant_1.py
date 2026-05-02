@@ -3453,30 +3453,35 @@ flag back into `A` on exit (the ADLC-absent flag).""",
              "y": "workspace page number (low 7 bits)"})
 subroutine(0x8CBD, "setup_ws_ptr",
     title="Set up zero-page pointer to workspace page",
-    description="Calls get_ws_page to read the page number, stores\n"
-    "it as the high byte in nfs_temp (&CD), and clears\n"
-    "the low byte at &CC to zero. This gives a\n"
-    "page-aligned pointer used by FS initialisation and\n"
-    "cmd_net_fs to access the private workspace.",
+    description="""\
+Calls [`get_ws_page`](address:8CAD?hex) to read the page number,
+stores it as the high byte in `nfs_temp` (`&CD`), and clears the
+low byte at `&CC` to zero. This gives a page-aligned pointer used
+by FS initialisation and [`cmd_net_fs`](address:8B23?hex) to
+access the private workspace.""",
     on_exit={"a": "0",
              "y": "workspace page number"})
 subroutine(0x8CFD, "notify_new_fs",
-    title="Notify OS of filing system selection",
-    description="Calls FSCV with A=6 to announce the FS change,\n"
-    "then issues paged ROM service call 10 via OSBYTE\n"
-    "&8F to inform other ROMs. Sets X=&0A and branches\n"
-    "to issue_svc_osbyte which falls through from the\n"
-    "call_fscv subroutine.",
+    title="Notify OS of filing-system selection",
+    description="""\
+1. Calls FSCV with `A=6` to announce the FS change.
+2. Issues paged ROM service call 10 via OSBYTE `&8F` to inform
+   other ROMs.
+
+Sets `X=&0A` and branches to `issue_svc_osbyte` which falls
+through from the [`call_fscv`](address:8CFF?hex) subroutine.""",
     on_exit={"a": "clobbered (FSCV reason 6 then OSBYTE &8F)",
              "x": "&0A (the service number passed to OSBYTE &8F)"})
 subroutine(0x8CFF, "call_fscv",
-    title="Dispatch to filing system control vector (FSCV)",
-    description="Indirect JMP through FSCV at &021E, providing\n"
-    "OS-level filing system services such as FS\n"
-    "selection notification (A=6) and *RUN handling.\n"
-    "Also contains issue_svc_15 and issue_svc_osbyte\n"
-    "entry points that issue paged ROM service requests\n"
-    "via OSBYTE &8F.",
+    title="Dispatch to filing-system control vector (FSCV)",
+    description="""\
+Indirect `JMP` through `FSCV` at [`vec_fscv`](address:021E?hex),
+providing OS-level filing-system services such as FS-selection
+notification (`A=6`) and `*RUN` handling.
+
+Also contains [`issue_svc_15`](address:8D02?hex) and
+`issue_svc_osbyte` entry points that issue paged-ROM service
+requests via OSBYTE `&8F`.""",
     on_entry={"a": "FSCV reason code"})
 subroutine(0x8D09, "svc_dispatch_idx_2",
     title="svc_dispatch table[2] handler",
@@ -3492,54 +3497,73 @@ private workspace base.""",
     on_exit={"a": "0 or 1 (CMOS bit 0 of station-flags byte)"})
 subroutine(0x8D24, "check_credits_easter_egg",
     title="Easter egg: match *HELP keyword to author credits",
-    description="Matches the *HELP argument against a keyword\n"
-    "embedded in the credits data at\n"
-    "credits_keyword_start. Starts matching from offset\n"
-    "5 in the data (X=5) and checks each byte against\n"
-    "the command line text until a mismatch or X reaches\n"
-    "&0D. On a full match, prints the ANFS author\n"
-    "credits string: B Cockburn, J Dunn, B Robertson,\n"
-    "and J Wills, each terminated by CR.")
+    description="""\
+Matches the `*HELP` argument against a keyword embedded in the
+credits data at `credits_keyword_start`. Starts matching from
+offset 5 in the data (`X=5`) and checks each byte against the
+command-line text until a mismatch or `X` reaches `&0D`.
+
+On a full match, prints the ANFS author credits:
+
+- B Cockburn
+- J Dunn
+- B Robertson
+- J Wills
+
+Each name is terminated by `CR`.""")
 subroutine(0x8E21, "clear_if_station_match",
     title="Clear stored station if parsed argument matches",
-    description="Parses a station number from the command line via\n"
-    "init_bridge_poll and compares it with the expected\n"
-    "station at &0E01 using EOR. If the parsed value\n"
-    "matches (EOR result is zero), clears &0E01. Called\n"
-    "by cmd_iam when processing a file server address\n"
-    "in the logon command.",
+    description="""\
+Parses a station number from the command line via
+`init_bridge_poll` and compares it with the expected station at
+`&0E01` using `EOR`. If the parsed value matches (`EOR` result
+is zero), clears `&0E01`.
+
+Called by [`cmd_iam`](address:8D91?hex) when processing a file
+server address in the logon command.""",
     on_exit={"a": "0 if matched, non-zero if different"})
 subroutine(0x8E2D, "check_urd_prefix",
     title="Branch to *RUN handler if first arg char is '&'",
     description="""\
 Reads the first character of the parsed command text via
-(fs_crc_lo),Y. If it equals '&' (the URD prefix marker), JMPs to
-cmd_run_via_urd; otherwise falls through to pass_send_cmd which
-sends the command as a normal FS request. Single caller (the FS
-command-name post-match path at &9597).""")
+`(fs_crc_lo),Y`:
+
+| First char | Path |
+|---|---|
+| `'&'` (URD prefix marker) | `JMP cmd_run_via_urd` |
+| any other | fall through to `pass_send_cmd` (send as normal FS request) |
+
+Single caller (the FS command-name post-match path at
+`&9597`).""")
 subroutine(0x8E3C, "send_cmd_and_dispatch",
     title="Send FS command and dispatch the reply",
     description="""\
-JSRs save_net_tx_cb to set up and transmit the command, then reads
-the reply function code from hazel_txcb_network. If zero, branches to the no-
-reply path (dispatch_rts). Otherwise loads hazel_txcb_data (first reply
-byte), Y=&25 (the dispatch offset for the standard reply table),
-and continues into the reply-dispatch chain. Two callers: the
-fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and
-the JMP from send_fs_request (&9460).""",
+1. `JSR save_net_tx_cb` to set up and transmit the command.
+2. Read the reply function code from
+   [`hazel_txcb_network`](address:C103?hex).
+
+| Reply code | Action |
+|---|---|
+| `0`     | branch to the no-reply path (`dispatch_rts`) |
+| non-zero | load [`hazel_txcb_data`](address:C105?hex) (first reply byte), `Y=&25` (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
+
+Two callers: the fall-through from
+[`check_urd_prefix`](address:8E2D?hex) (`&8E1F` via
+`pass_send_cmd`) and the `JMP` from `send_fs_request` (`&9460`).""",
     on_entry={"y": "extra dispatch offset (0 from send_fs_request, "
               "non-zero for some specialised paths)"})
 subroutine(0x8E5B, "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
     description="""\
-Validates `X < 5` and sets `Y = &18` as the dispatch offset, then
-falls through into [`svc_dispatch`](address:8E61). The `INX/DEY/BPL`
-loop in svc_dispatch then settles `X_final = X_caller + Y + 1`,
-landing on indices `&19..&1D` of the
-[`svc_dispatch_lo`](address:89ED) / [`svc_dispatch_hi`](address:8A20)
-tables. Those slots map to the language-reply handlers
-`lang_0_insert_remote_key` (idx &19) through
-`lang_4_remote_validated` (idx &1D).
+Validates `X < 5` and sets `Y = &18` as the dispatch offset,
+then falls through into [`svc_dispatch`](address:8E61?hex). The
+`INX`/`DEY`/`BPL` loop in
+[`svc_dispatch`](address:8E61?hex) then settles `X_final =
+X_caller + Y + 1`, landing on indices `&19..&1D` of the
+[`svc_dispatch_lo`](address:89ED?hex) /
+[`svc_dispatch_hi`](address:8A20?hex) tables. Those slots map to
+the language-reply handlers `lang_0_insert_remote_key`
+(idx `&19`) through `lang_4_remote_validated` (idx `&1D`).
 
 (In 4.18 the offset was `&0E`, reaching indices 15..19. The 4.21
 shift to `&18` puts the targets ten slots higher in the rebuilt
@@ -3548,10 +3572,13 @@ dispatch table.)""",
 subroutine(0x8E98, "read_cmos_byte_0",
     title="Read CMOS RAM byte 0 (Master 128)",
     description="""\
-Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to
-read CMOS RAM byte 0 -- the file-system / language byte holding the
-default boot mode and FS selection. Single caller (&8FBB, inside
-nfs_init_body's CMOS-read sequence).""",
+Sets `X=0` and falls through to [`osbyte_a1`](address:8E9A?hex),
+which issues OSBYTE `&A1` to read CMOS RAM byte 0 – the
+file-system / language byte holding the default boot mode and FS
+selection.
+
+Single caller (`&8FBB`, inside
+[`nfs_init_body`](address:8F38?hex)'s CMOS-read sequence).""",
     on_exit={"y": "CMOS byte 0 (returned by OSBYTE &A1)"})
 subroutine(0x8ED2, "osbyte_x0_y0",
     title="OSBYTE wrapper with X=0, Y=0",
@@ -9949,15 +9976,37 @@ label(0xC031, "hazel_parse_buf_1")
 label(0xC032, "hazel_parse_buf_2")
 label(0xC038, "hazel_rtc_buffer")
 label(0xC0F7, "hazel_fs_reply_byte")
-label(0xC100, "hazel_txcb_port")
-label(0xC101, "hazel_txcb_func_code")
-label(0xC102, "hazel_txcb_station")
-label(0xC103, "hazel_txcb_network")  # multi-purpose: TXCB destination network (when used as TX setup) / reply function code (when interpreted as RX context) / fs_cmd_csd buffer base (other paths)
-label(0xC104, "hazel_txcb_lib")
-label(0xC105, "hazel_txcb_data")
-label(0xC106, "hazel_txcb_flag")
-label(0xC107, "hazel_txcb_count")
-label(0xC108, "hazel_txcb_result")
+label(0xC100, "hazel_txcb_port",
+    description="TXCB byte 0: port number for the next TX scout.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC101, "hazel_txcb_func_code",
+    description="TXCB byte 1: function code (FS command number).",
+    length=1, group="ram_workspace", access="rw")
+label(0xC102, "hazel_txcb_station",
+    description="TXCB byte 2: destination station.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC103, "hazel_txcb_network",
+    description="TXCB byte 3: multi-purpose.\n"
+                "TXCB destination network (TX setup) / reply "
+                "function code (RX context) / `fs_cmd_csd` buffer "
+                "base (other paths).",
+    length=1, group="ram_workspace", access="rw")
+label(0xC104, "hazel_txcb_lib",
+    description="TXCB byte 4: library handle terminator / "
+                "transfer-length param 1.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC105, "hazel_txcb_data",
+    description="TXCB byte 5: first reply-data byte / data start.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC106, "hazel_txcb_flag",
+    description="TXCB byte 6: direction flag.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC107, "hazel_txcb_count",
+    description="TXCB byte 7: data count / lock flag.",
+    length=1, group="ram_workspace", access="rw")
+label(0xC108, "hazel_txcb_result",
+    description="TXCB byte 8: result / transfer-size lo.",
+    length=1, group="ram_workspace", access="rw")
 label(0xC10A, "hazel_txcb_size_hi")
 label(0xC10B, "hazel_txcb_tx_status")
 label(0xC10C, "hazel_txcb_osword_flag")

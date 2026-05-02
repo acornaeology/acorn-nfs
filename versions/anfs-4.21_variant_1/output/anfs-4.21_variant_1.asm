@@ -305,15 +305,15 @@ hazel_parse_buf_1           = &c031
 hazel_parse_buf_2           = &c032
 hazel_rtc_buffer            = &c038
 hazel_fs_reply_byte         = &c0f7
-hazel_txcb_port             = &c100
-hazel_txcb_func_code        = &c101
-hazel_txcb_station          = &c102
-hazel_txcb_network          = &c103
-hazel_txcb_lib              = &c104
-hazel_txcb_data             = &c105
-hazel_txcb_flag             = &c106
-hazel_txcb_count            = &c107
-hazel_txcb_result           = &c108
+hazel_txcb_port             = &c100  ; TXCB byte 0: port number for the next TX scout.
+hazel_txcb_func_code        = &c101  ; TXCB byte 1: function code (FS command number).
+hazel_txcb_station          = &c102  ; TXCB byte 2: destination station.
+hazel_txcb_network          = &c103  ; TXCB byte 3: multi-purpose.
+hazel_txcb_lib              = &c104  ; TXCB byte 4: library handle terminator / transfer-length param 1.
+hazel_txcb_data             = &c105  ; TXCB byte 5: first reply-data byte / data start.
+hazel_txcb_flag             = &c106  ; TXCB byte 6: direction flag.
+hazel_txcb_count            = &c107  ; TXCB byte 7: data count / lock flag.
+hazel_txcb_result           = &c108  ; TXCB byte 8: result / transfer-size lo.
 hazel_exec_addr             = &c109
 hazel_txcb_size_hi          = &c10a
 hazel_txcb_tx_status        = &c10b
@@ -3914,9 +3914,10 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Set up zero-page pointer to workspace page
 ;
-; Calls get_ws_page to read the page number, stores it as the high byte in nfs_temp
-; (&CD), and clears the low byte at &CC to zero. This gives a page-aligned pointer used
-; by FS initialisation and cmd_net_fs to access the private workspace.
+; Calls get_ws_page (&8CAD) to read the page number, stores it as the high byte in
+; nfs_temp (&CD), and clears the low byte at &CC to zero. This gives a page-aligned
+; pointer used by FS initialisation and cmd_net_fs (&8B23) to access the private
+; workspace.
 ;
 ; On Exit: A: 0 Y: workspace page number
 ; &8cbd referenced 2 times by &8b9c, &8f4f
@@ -3971,11 +3972,13 @@ nmi_shim_source = reset_enter_listen+2
     jmp fscv_3_star_cmd                                               ; 8cfa: 4c 2f a4    L/.            ; Execute boot file
 
 ; ***************************************************************************************
-; Notify OS of filing system selection
+; Notify OS of filing-system selection
 ;
-; Calls FSCV with A=6 to announce the FS change, then issues paged ROM service call 10
-; via OSBYTE &8F to inform other ROMs. Sets X=&0A and branches to issue_svc_osbyte
-; which falls through from the call_fscv subroutine.
+; 1. Calls FSCV with A=6 to announce the FS change.
+; 2. Issues paged ROM service call 10 via OSBYTE &8F to inform other ROMs.
+;
+; Sets X=&0A and branches to issue_svc_osbyte which falls through from the call_fscv
+; (&8CFF) subroutine.
 ;
 ; On Exit: A: clobbered (FSCV reason 6 then OSBYTE &8F) X: &0A (the service number
 ; passed to OSBYTE &8F)
@@ -3983,11 +3986,13 @@ nmi_shim_source = reset_enter_listen+2
 .notify_new_fs
     lda #6                                                            ; 8cfd: a9 06       ..             ; A=6: notify new filing system
 ; ***************************************************************************************
-; Dispatch to filing system control vector (FSCV)
+; Dispatch to filing-system control vector (FSCV)
 ;
-; Indirect JMP through FSCV at &021E, providing OS-level filing system services such as
-; FS selection notification (A=6) and *RUN handling. Also contains issue_svc_15 and
-; issue_svc_osbyte entry points that issue paged ROM service requests via OSBYTE &8F.
+; Indirect JMP through FSCV at vec_fscv (&021E), providing OS-level filing-system
+; services such as FS-selection notification (A=6) and *RUN handling.
+;
+; Also contains issue_svc_15 (&8D02) and issue_svc_osbyte entry points that issue
+; paged-ROM service requests via OSBYTE &8F.
 ;
 ; On Entry: A: FSCV reason code
 ; &8cff referenced 1 time by &a59e
@@ -4043,9 +4048,16 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; Matches the *HELP argument against a keyword embedded in the credits data at
 ; credits_keyword_start. Starts matching from offset 5 in the data (X=5) and checks
-; each byte against the command line text until a mismatch or X reaches &0D. On a full
-; match, prints the ANFS author credits string: B Cockburn, J Dunn, B Robertson, and J
-; Wills, each terminated by CR.
+; each byte against the command-line text until a mismatch or X reaches &0D.
+;
+; On a full match, prints the ANFS author credits:
+;
+; - B Cockburn
+; - J Dunn
+; - B Robertson
+; - J Wills
+;
+; Each name is terminated by CR.
 ; &8d24 referenced 1 time by &8c51
 .check_credits_easter_egg
     ldy ws_page                                                       ; 8d24: a4 a8       ..             ; Y = ws_page (workspace high page)
@@ -4217,8 +4229,9 @@ ps_template_base = load_transfer_params+1
 ;
 ; Parses a station number from the command line via init_bridge_poll and compares it
 ; with the expected station at &0E01 using EOR. If the parsed value matches (EOR result
-; is zero), clears &0E01. Called by cmd_iam when processing a file server address in
-; the logon command.
+; is zero), clears &0E01.
+;
+; Called by cmd_iam (&8D91) when processing a file server address in the logon command.
 ;
 ; On Exit: A: 0 if matched, non-zero if different
 ; &8e21 referenced 2 times by &8db9, &a9ec
@@ -4234,10 +4247,14 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Branch to *RUN handler if first arg char is '&'
 ;
-; Reads the first character of the parsed command text via (fs_crc_lo),Y. If it equals
-; '&' (the URD prefix marker), JMPs to cmd_run_via_urd; otherwise falls through to
-; pass_send_cmd which sends the command as a normal FS request. Single caller (the FS
-; command-name post-match path at &9597).
+; Reads the first character of the parsed command text via (fs_crc_lo),Y:
+;
+; | First char              | Path                                                      |
+; |-------------------------|-----------------------------------------------------------|
+; | '&' (URD prefix marker) | JMP cmd_run_via_urd                                       |
+; | any other               | fall through to pass_send_cmd (send as normal FS request) |
+;
+; Single caller (the FS command-name post-match path at &9597).
 ; &8e2d referenced 1 time by &9597
 .check_urd_prefix
     ldy #0                                                            ; 8e2d: a0 00       ..             ; Y=0: first character offset
@@ -4253,12 +4270,16 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Send FS command and dispatch the reply
 ;
-; JSRs save_net_tx_cb to set up and transmit the command, then reads the reply function
-; code from hazel_txcb_network. If zero, branches to the no- reply path (dispatch_rts).
-; Otherwise loads hazel_txcb_data (first reply byte), Y=&25 (the dispatch offset for
-; the standard reply table), and continues into the reply-dispatch chain. Two callers:
-; the fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and the JMP from
-; send_fs_request (&9460).
+; 1. JSR save_net_tx_cb to set up and transmit the command.
+; 2. Read the reply function code from hazel_txcb_network (&C103).
+;
+; | Reply code | Action                                                                                                                                        |
+; |------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+; | 0          | branch to the no-reply path (dispatch_rts)                                                                                                    |
+; | non-zero   | load hazel_txcb_data (&C105) (first reply byte), Y=&25 (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
+;
+; Two callers: the fall-through from check_urd_prefix (&8E2D) (&8E1F via pass_send_cmd)
+; and the JMP from send_fs_request (&9460).
 ;
 ; On Entry: Y: extra dispatch offset (0 from send_fs_request, non-zero for some
 ; specialised paths)
@@ -4285,10 +4306,11 @@ ps_template_base = load_transfer_params+1
 ; Dispatch directory operation via PHA/PHA/RTS
 ;
 ; Validates X < 5 and sets Y = &18 as the dispatch offset, then falls through into
-; svc_dispatch. The INX/DEY/BPL loop in svc_dispatch then settles X_final = X_caller +
-; Y + 1, landing on indices &19..&1D of the svc_dispatch_lo / svc_dispatch_hi tables.
-; Those slots map to the language-reply handlers lang_0_insert_remote_key (idx &19)
-; through lang_4_remote_validated (idx &1D).
+; svc_dispatch (&8E61). The INX/DEY/BPL loop in svc_dispatch (&8E61) then settles
+; X_final = X_caller + Y + 1, landing on indices &19..&1D of the svc_dispatch_lo
+; (&89ED) / svc_dispatch_hi (&8A20) tables. Those slots map to the language-reply
+; handlers lang_0_insert_remote_key (idx &19) through lang_4_remote_validated (idx
+; &1D).
 ;
 ; (In 4.18 the offset was &0E, reaching indices 15..19. The 4.21 shift to &18 puts the
 ; targets ten slots higher in the rebuilt dispatch table.)
@@ -4360,9 +4382,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
 ;
-; Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to read CMOS RAM
-; byte 0 -- the file-system / language byte holding the default boot mode and FS
-; selection. Single caller (&8FBB, inside nfs_init_body's CMOS-read sequence).
+; Sets X=0 and falls through to osbyte_a1 (&8E9A), which issues OSBYTE &A1 to read CMOS
+; RAM byte 0 – the file-system / language byte holding the default boot mode and FS
+; selection.
+;
+; Single caller (&8FBB, inside nfs_init_body (&8F38)'s CMOS-read sequence).
 ;
 ; On Exit: Y: CMOS byte 0 (returned by OSBYTE &A1)
 ; &8e98 referenced 1 time by &8fbb

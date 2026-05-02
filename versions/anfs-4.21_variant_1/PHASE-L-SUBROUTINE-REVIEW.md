@@ -184,23 +184,23 @@ addresses across all 431 remaining routines.
 | 108 | &8C51 | `svc_9_help` | kept | covered by data_banner |
 | 109 | &8C64 | `svc_return_unclaimed` | done | inline-code refinement; en-dash typography |
 | 110 | &8C93 | `print_version_header` | done | corrected version-string content (4.21 not 4.08.53); print_inline + print_station_id links |
-| 111 | &8CAD | `get_ws_page` | | |
-| 112 | &8CBD | `setup_ws_ptr` | | |
-| 113 | &8CC7 | `svc_3_autoboot` | | |
-| 114 | &8CFD | `notify_new_fs` | | |
-| 115 | &8CFF | `call_fscv` | | |
-| 116 | &8D02 | `issue_svc_15` | | |
-| 117 | &8D09 | `svc_dispatch_idx_2` | | |
-| 118 | &8D24 | `check_credits_easter_egg` | | |
-| 119 | &8D91 | `cmd_iam` | | |
-| 120 | &8DA6 | `load_transfer_params` | | |
-| 121 | &8DD5 | `cmd_pass` | | |
-| 122 | &8E21 | `clear_if_station_match` | | |
-| 123 | &8E2D | `check_urd_prefix` | | |
-| 124 | &8E3C | `send_cmd_and_dispatch` | | |
-| 125 | &8E5B | `dir_op_dispatch` | | |
-| 126 | &8E61 | `svc_dispatch` | | |
-| 127 | &8E98 | `read_cmos_byte_0` | | |
+| 111 | &8CAD | `get_ws_page` | kept | already accurate description |
+| 112 | &8CBD | `setup_ws_ptr` | done | get_ws_page + cmd_net_fs links |
+| 113 | &8CC7 | `svc_3_autoboot` | kept | already has accurate description |
+| 114 | &8CFD | `notify_new_fs` | done | numbered breakdown; call_fscv link |
+| 115 | &8CFF | `call_fscv` | done | vec_fscv + issue_svc_15 links |
+| 116 | &8D02 | `issue_svc_15` | kept | already accurate |
+| 117 | &8D09 | `svc_dispatch_idx_2` | kept | already has accurate svc_dispatch + osbyte_a1 links |
+| 118 | &8D24 | `check_credits_easter_egg` | done | bullet list of author names |
+| 119 | &8D91 | `cmd_iam` | kept | already has accurate description |
+| 120 | &8DA6 | `load_transfer_params` | kept | one-line accurate description |
+| 121 | &8DD5 | `cmd_pass` | kept | already has accurate description |
+| 122 | &8E21 | `clear_if_station_match` | done | cmd_iam link |
+| 123 | &8E2D | `check_urd_prefix` | done | first-char dispatch table |
+| 124 | &8E3C | `send_cmd_and_dispatch` | done | numbered breakdown + reply-code dispatch table; hazel_txcb_network/data + check_urd_prefix links |
+| 125 | &8E5B | `dir_op_dispatch` | done | added ?hex on svc_dispatch + svc_dispatch_lo/hi links |
+| 126 | &8E61 | `svc_dispatch` | kept | already accurate description |
+| 127 | &8E98 | `read_cmos_byte_0` | done | osbyte_a1 + nfs_init_body links |
 | 128 | &8E9A | `osbyte_a1` | | |
 | 129 | &8EA7 | `fs_vector_table` | | |
 | 130 | &8EC9 | `osbyte_x0` | | |
