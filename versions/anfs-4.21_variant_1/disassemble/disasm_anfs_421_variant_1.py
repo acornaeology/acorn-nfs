@@ -104,7 +104,6 @@ constant(0x80, "tx_flag")             # TXFLAG
 constant(0x7F, "rx_ready")            # RXRDY
 
 # FS handle base
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): constant(0x20, "handle_base")         # HAND: base value for file handles
 
 # Control block template markers
 constant(0xFE, "cb_stop")             # CBSTOP
@@ -192,7 +191,6 @@ label(0x0012, "tube_data_ptr")
 label(0x0013, "tube_data_ptr_hi")
 label(0x0014, "tube_claim_flag")
 label(0x0015, "tube_claimed_id")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0016, "nmi_workspace_start")
 label(0x0063, "zp_0063")             # (false ref from inline string data)
 label(0x0078, "zp_0078")             # (false ref from inline string data)
 
@@ -432,30 +430,12 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 # ============================================================
 
 # Zero-page relocated code entry points
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0016)
 
 # Page 4 entry points
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0400)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0403)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0406)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0421)
 
 # Page 5 entry points
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0500)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0520)   # tube_osbput
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0527)   # tube_poll_r1_wrch
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x052D)   # tube_osbget
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0537)   # tube_osrdch
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x053A)   # tube_rdch_reply
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x055E)   # tube_osargs
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0562)   # tube_read_params
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0596)   # tube_oscli
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x05A9)   # tube_osfile
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x05D1)   # tube_osgbpb
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x05F2)   # tube_osbyte_2param
 
 # Page 6 entry points
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0600)
 
 
 # ============================================================
@@ -463,12 +443,6 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 # ============================================================
 
 # Data and shared-tail label renames (Phase 3b)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0026, "tube_send_error_num")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0400, "tube_page4_vectors")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0500, "tube_r2_dispatch_table")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0600, "tube_osbyte_reply_block")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06DF, "loop_poll_r1_vdu")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06EF, "setup_tube_vectors")
 label(0x8001, "rom_header_byte1")
 label(0x8002, "rom_header_byte2")
 # UNMAPPED: label(0x8032, "save_registers")
@@ -1348,8 +1322,6 @@ label(0xBD05, "done_toggle_station")
 # UNMAPPED: label(0xB9A0, "open_and_read_file")
 
 
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0406, "tube_addr_data_dispatch")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0421, "clear_tube_claim")
 label(0x83E5, "discard_reset_rx")
 label(0x83E8, "reset_adlc_rx_listen")
 label(0x83EB, "set_nmi_rx_scout")
@@ -1680,42 +1652,6 @@ effectively rejecting the ROM.""",
 # Pages 4-5 are 100% opcode-identical to NFS 3.65.
 # Page 6 is 74% matching. Zero page block is 70% matching.
 
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0020, "tube_send_zero_r2")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0029, "tube_brk_send_loop")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x002A, "tube_send_error_byte")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0032, "tube_reset_stack")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0036, "tube_main_loop")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x003B, "tube_handle_wrch")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0041, "tube_poll_r2")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0050, "tube_dispatch_cmd")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0051, "tube_cmd_lo")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0053, "tube_transfer_addr")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0054, "tube_xfer_page")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0055, "tube_xfer_addr_2")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0056, "tube_xfer_addr_3")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0414, "tube_release_claim")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0428, "addr_claim_external")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0432, "accept_new_claim")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0434, "return_tube_init")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0435, "tube_transfer_setup")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0437, "setup_data_transfer")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0446, "send_xfer_addr_bytes")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0463, "skip_r3_flush")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0466, "poll_r4_copro_ack")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0471, "tube_sendw_complete")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x047A, "copro_ack_nmi_check")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0482, "skip_nmi_release")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0483, "return_tube_xfer")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0484, "tube_begin")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x048C, "check_break_type")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0491, "claim_addr_ff")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x049D, "next_rom_page")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04A6, "send_rom_page_bytes")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04BC, "skip_addr_carry")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04C7, "tube_claim_default")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04CE, "tube_init_reloc")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04E1, "scan_copyright_end")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x04F7, "store_xfer_end_addr")
 # tube_ctrl_values: 8-byte table of ULA control register values
 # (writes to &FEE0) indexed by transfer type (0-7). The LSR/LSR/BCC
 # sequence at tube_transfer_setup tests bit 2 of the ctrl byte to
@@ -1723,58 +1659,6 @@ effectively rejecting the ROM.""",
 # R4 trigger write. Bit 2 is set only for types 0 (&86) and 2 (&96),
 # both parasite-to-host transfers -- the flush drains stale bytes
 # from the 2-byte R3 FIFO before the parasite starts filling it.
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0518, "tube_ctrl_values")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0520, "tube_osbput")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0527, "tube_poll_r1_wrch")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x052D, "tube_osbget")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0537, "tube_osrdch")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x053A, "tube_rdch_reply")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0542, "tube_osfind")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0552, "tube_osfind_close")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x055E, "tube_osargs")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0562, "tube_read_params")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0564, "read_osargs_params")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0577, "send_osargs_result")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0582, "tube_read_string")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0586, "strnh")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0593, "string_buf_done")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0596, "tube_oscli")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x059C, "tube_reply_ack")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x059E, "tube_reply_byte")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05A6, "mj")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05A9, "tube_osfile")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05AB, "argsw")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05C7, "send_osfile_ctrl_blk")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05D1, "tube_osgbpb")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05D3, "read_osgbpb_ctrl_blk")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05E6, "send_osgbpb_result")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05F2, "tube_osbyte_2param")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x05FC, "tube_poll_r2_result")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0604, "bytex")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0607, "tube_osbyte_long")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x061D, "tube_osbyte_send_y")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0625, "tube_osbyte_short")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0627, "tube_osword")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x062B, "tube_osword_read")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0630, "tube_osbyte_send_x")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0636, "tube_osword_read_lp")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0645, "skip_param_read")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x064C, "poll_r2_osword_result")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0657, "tube_osword_write")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x065A, "tube_osword_write_lp")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0665, "tube_return_main")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0668, "tube_osword_rdln")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x066A, "read_rdln_ctrl_block")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0680, "tube_rdln_send_line")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0687, "tube_rdln_send_loop")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x068A, "tube_rdln_send_byte")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x0695, "tube_send_r2")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x069E, "tube_send_r4")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06A7, "tube_escape_check")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06AD, "tube_event_handler")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06BC, "tube_send_r1")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06C5, "tube_read_r2")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x06EC, "svc_11_nmi_claim")
 
 # ============================================================
 # ROM code labels (from NFS 3.65 correspondence)
@@ -1925,16 +1809,6 @@ label(0x89C7, "reset_enter_listen")
 # UNMAPPED: label(0x89A6, "listen_jmp_hi")
 
 # Entry points from NFS 3.65 correspondence
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0032)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0036)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0607)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0625)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0627)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0668)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x06A7)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x06AD)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x06BC)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x06EF)
 entry(0x804F)
 entry(0x809B)
 entry(0x80B8)
@@ -1974,148 +1848,6 @@ entry(0x89D8)
 # Subroutines (from NFS 3.65 correspondence)
 # ============================================================
 
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0406, "tube_addr_data_dispatch",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube address/data dispatch",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Called by 10 sites across the Tube host and Econet\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "code. Routes requests based on the value of A:\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  A < &80: R4 transfer setup at &0435 -- A is the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    transfer type (0-7), used both as the first\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    R4 byte and as the index into tube_ctrl_values.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    Types: 0/1 = 1-byte R3 P-to-H/H-to-P,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    2/3 = 2-byte R3 P-to-H/H-to-P,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    4 = execute at address, 5 = release claim,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    6 = event handler, 7 = SENDW transfer+release.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  &80 <= A < &C0: release -- maps A via ORA #&40\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    and compares with tube_claimed_id; if we own\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "    this address, falls through to tube_release_claim\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  A >= &C0: external address claim from another host\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Falls through to tube_release_claim when releasing our\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "current claim.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_entry={"a": "request type (<&80 data, &80-&BF release, &C0+ claim)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):               "x": "transfer address low (data transfer only)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):               "y": "transfer address high (data transfer only)"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0414, "tube_release_claim",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Release Tube address claim via R4 command 5",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Saves interrupt state (PHP/SEI) to protect the R4\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "protocol sequence, sends R4 command 5 (release) followed\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "by the currently-claimed address from tube_claimed_id\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(&15), then restores interrupts (PLP). Falls through to\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "clear_tube_claim to reset the claimed-address state to\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "the &80 sentinel.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0421, "clear_tube_claim",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Reset Tube address claim state",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Stores &80 into both tube_claimed_id (&15) and\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_claim_flag (&14). The &80 sentinel indicates no\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "address is currently claimed and no claim is in\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "progress. Called after tube_release_claim (via\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "fall-through) and during initial workspace setup.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0435, "tube_transfer_setup",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Set up R4 transfer protocol (7-byte sequence)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Initiates a Tube R4 transfer by sending a 7-byte\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "protocol sequence to R4, each write BVC-polled for\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "H-to-P space. PHP/SEI at entry and PLP at return\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "protect the sequence from IRQs.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "R4 byte sequence:\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  1. Transfer type byte (A on entry, 0-7)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  2. tube_claimed_id (Econet host ownership byte,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "     an Econet-specific addition to the standard\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "     Acorn Tube R4 protocol)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  3-6. 4-byte transfer address, big-endian\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "     (from (tube_data_ptr),Y=3..0)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  7. Trigger byte (post-LSR remnant of\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "     tube_ctrl_values[type]); parasite resumes\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "     after reading this\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Between writes 6 and 7, if bit 2 of the ULA ctrl\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "byte is set (types 0 and 2, both parasite-to-host),\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "performs two dummy BIT reads of R3 to drain the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "2-byte R3 FIFO.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "After the final write, polls R4 for the parasite\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "ack (BVC/BCS at poll_r4_copro_ack). Dispatches on\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "X (= transfer type):\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  X=4: tube_sendw_complete (release, sync via R2,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "       reset stack)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "  Other: if bit 0 of ctrl byte is set, write &88\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "         to &FEE0 to release Tube NMI; PLP; RTS")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0484, "tube_begin",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube host startup entry (BEGIN)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Entry point via JMP from &0400. Enables interrupts, checks\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "break type via OSBYTE &FD: soft break re-initialises Tube and\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "restarts, hard break claims address &FF. Sends ROM contents\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "to co-processor page by page via SENDW, then claims the final\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "transfer address.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x04C7, "tube_claim_default",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Claim default Tube transfer address",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Sets Y=0, X=&53 (address &0053), then JMP tube_addr_claim\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "to initiate a Tube address claim for the default transfer\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "address. Called from the BEGIN startup path and after the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "page transfer loop completes.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x04CE, "tube_init_reloc",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Initialise relocation address for ROM transfer",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Sets the Tube transfer source page to &8000\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(tube_xfer_page = &80) and the page counter to &80.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Checks ROM type bit 5 for a relocation address in the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "ROM header. If set, scans past the null-terminated\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "copyright string and extracts the 4-byte relocation\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "address into tube_transfer_addr (&53), tube_xfer_page\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(&54), tube_xfer_addr_2 (&55), and tube_xfer_addr_3\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(&56). If clear, uses the default &8000 start address.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Called twice during tube_begin: once for initial setup\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "and once after each page transfer completes.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0582, "tube_read_string",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Read string from Tube R2 into buffer",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Loops reading bytes from tube_read_r2 into the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "string buffer at &0700, storing at string_buf+Y.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Terminates on CR (&0D) or when Y wraps to zero\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(256-byte overflow). Returns with X=0, Y=7 so that\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "XY = &0700, ready for OSCLI or OSFIND dispatch.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Called by the Tube OSCLI and OSFIND handlers.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_exit={"x": "0 (low byte of &0700)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):              "y": "7 (high byte of &0700)"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0695, "tube_send_r2",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Send byte to Tube data register R2",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Polls Tube status register 2 until bit 6 (TDRA)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "is set, then writes A to the data register. Uses a\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tight BIT/BVC polling loop. Called by 12 sites\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "across the Tube host code for all R2 data\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "transmission: command responses, file data, OSBYTE\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "results, and control block bytes.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_entry={"a": "byte to send"},
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_exit={"a": "preserved (value written)"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x069E, "tube_send_r4",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Send byte to Tube data register R4",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Polls Tube status register 4 until bit 6 is set,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "then writes A to the data register. Uses a tight\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "BIT/BVC polling loop. R4 is the command/control\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "channel used for address claims (ADRR), data transfer\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "setup (SENDW), and release commands. Called by 7\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "sites, primarily during tube_release_claim and\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_transfer_setup sequences.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_entry={"a": "byte to send"},
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_exit={"a": "preserved (value written)"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x06BC, "tube_send_r1",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Send byte to Tube data register R1",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Polls Tube status register 1 until bit 6 is set,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "then writes A to the data register. Uses a tight\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "BIT/BVC polling loop. R1 is used for asynchronous\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "event and escape notification to the co-processor.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Called by tube_event_handler to forward event type,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Y, and X parameters, and reached via BMI from\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_escape_check when the escape flag is set.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_entry={"a": "byte to send"},
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_exit={"a": "preserved (value written)"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x06C5, "tube_read_r2",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Read a byte from Tube data register R2",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Polls Tube status register 2 until bit 7 (RDA)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "is set, then loads and returns the byte from Tube\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "data register 2. Uses a BIT/BPL polling loop (testing\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "the N flag). R2 is the primary data channel from the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "co-processor. Called by 14 sites across the Tube host\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "code for command dispatch, OSFILE/OSGBPB control block\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "reads, string reads, and OSBYTE parameter reception.",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     on_exit={"a": "byte read from R2"})
 
 # UNMAPPED: subroutine(0x805D, "set_jsr_protection",
 # UNMAPPED:     title="Set JSR protection and dispatch via table",
@@ -2132,82 +1864,6 @@ comment(0x8000, """\
 ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
 ===================================================================""")
 
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0520, "tube_osbput",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSBPUT handler (R2 cmd 8)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads file handle and data byte from R2, then\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "calls OSBPUT (&FFD4) to write the byte. Falls through\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "to tube_reply_ack to send &7F acknowledgement.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x052D, "tube_osbget",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSBGET handler (R2 cmd 7)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads file handle from R2, calls OSBGET (&FFD7)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "to read a byte, then falls through to tube_rdch_reply\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "which encodes the carry flag (error) into bit 7 and\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "sends the result byte via R2.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0537, "tube_osrdch",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSRDCH handler (R2 cmd 0)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Calls OSRDCH (&FFE0) to read a character from\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "the current input stream, then falls through to\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_rdch_reply which encodes the carry flag (error)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "into bit 7 and sends the result byte via R2.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0542, "tube_osfind",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSFIND handler (R2 cmd 9)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads open mode from R2. If zero, reads a file\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "handle and closes that file. Otherwise saves the mode,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "reads a filename string into &0700 via tube_read_string,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "then calls OSFIND (&FFCE) to open the file. Sends the\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "resulting file handle (or &00) via tube_reply_byte.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x055E, "tube_osargs",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSARGS handler (R2 cmd 6)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads file handle from R2 into Y, then reads\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "a 4-byte argument and reason code into zero page.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Calls OSARGS (&FFDA), sends the result A and 4-byte\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "return value via R2, then returns to the main loop.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0596, "tube_oscli",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSCLI handler (R2 cmd 1)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads a command string from R2 into &0700 via\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_read_string, then calls OSCLI (&FFF7) to execute\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "it. Falls through to tube_reply_ack to send &7F\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "acknowledgement.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x05A9, "tube_osfile",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSFILE handler (R2 cmd 10)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads a 16-byte control block into zero page,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "a filename string into &0700 via tube_read_string,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "and a reason code from R2. Calls OSFILE (&FFDD),\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "then sends the result A and updated 16-byte control\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "block back via R2. Returns to the main loop via mj.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x05D1, "tube_osgbpb",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSGBPB handler (R2 cmd 11)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads a 13-byte control block and reason code\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "from R2 into zero page. Calls OSGBPB (&FFD1), then\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "sends 12 result bytes and the carry+result byte\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(via tube_rdch_reply) back via R2.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x05F2, "tube_osbyte_2param",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSBYTE 2-param handler (R2 cmd 2)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads X and A from R2, calls OSBYTE (&FFF4)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "with Y=0, then sends the result X via\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "tube_reply_byte. Used for OSBYTE calls that take\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "only A and X parameters.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0607, "tube_osbyte_long",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSBYTE 3-param handler (R2 cmd 3)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads X, Y, and A from R2, calls OSBYTE\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "(&FFF4), then sends carry+Y and X as result bytes\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "via R2. Used for OSBYTE calls needing all three\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "parameters and returning both X and Y results.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0627, "tube_osword",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSWORD handler (R2 cmd 4)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Reads OSWORD number A and in-length from R2,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "then reads the parameter block into &0128. Calls\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "OSWORD (&FFF1), then sends the out-length result\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "bytes from the parameter block back via R2.\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "Returns to the main loop via tube_return_main.")
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): subroutine(0x0668, "tube_osword_rdln",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     title="Tube OSWORD 0 handler (R2 cmd 5)",
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     description="Handles OSWORD 0 (read line) specially. Reads\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "4 parameter bytes from R2 into &0128 (max length,\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "min char, max char, flags). Calls OSWORD 0 (&FFF1)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "to read a line, then sends &7F+CR or the input line\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "byte-by-byte via R2, followed by &80 (error/escape)\n"
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     "or &7F (success).")
 subroutine(0x8050, "adlc_init",
     title="ADLC initialisation",
     description="Initialise ADLC hardware and Econet workspace.\n"
@@ -5740,409 +5396,24 @@ subroutine(0xBFC0, "inx4",
     on_exit={"x": "input + 4",
              "a, y": "preserved",
              "n, z flags": "reflect new X"})
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): label(0x049B, "send_next_rom_page")
 
 # ============================================================
 # Inline comments (from NFS 3.65 correspondence)
 # ============================================================
 
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0016, "A=&FF: signal error to co-processor via R4", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0018, "Send &FF error signal to Tube R4", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x001B, "Flush any pending R2 byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x001E, "A=0: send zero prefix to R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0020, "Send zero prefix byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0023, "Y=0: start of error block at (&FD)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0024, "Load error number from (&FD),0", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0026, "Send error number via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0029, "Advance to next error string byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x002A, "Load next error string byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x002C, "Send error string byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x002F, "Zero byte = end of error string", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0030, "Loop until zero terminator sent", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0032, "Reset stack pointer to top", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0034, "TXS: set stack pointer from X", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0035, "Enable interrupts for main loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0036, "BIT R1 status: check WRCH request", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0039, "R1 not ready: check R2 instead", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x003B, "Read character from Tube R1 data", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0041, "BIT R2 status: check command byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0044, "R2 not ready: loop back to R1 check", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0046, "Re-check R1: WRCH has priority over R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0049, "R1 ready: handle WRCH first", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x004B, "Read command byte from Tube R2 data", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x004E, "Self-modify JMP low byte for dispatch", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0050, "Dispatch to handler via indirect JMP", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0053, "Tube transfer address low byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0054, "Tube transfer page (default &80)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0055, "Tube transfer address byte 2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0056, "Tube transfer address byte 3", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0400, "JMP to BEGIN startup entry", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0403, "JMP to tube_escape_check (&06A7)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0406, "A>=&80: address claim; A<&80: data transfer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0408, "A<&80: data transfer setup (SENDW)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x040A, "A>=&C0: new address claim from another host", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x040C, "C=1: external claim, check ownership", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x040E, "Map &80-&BF range to &C0-&FF for comparison", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0410, "Is this for our currently-claimed address?", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0412, "Not our address: return", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0414, "PHP: save interrupt state for release", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0415, "SEI: disable interrupts during R4 protocol", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0416, "R4 cmd 5: release our address claim", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0418, "Send release command to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x041B, "Load our currently-claimed address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x041D, "Send our address as release parameter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0420, "Restore interrupt state", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0421, "&80 sentinel: clear address claim", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0423, "&80 sentinel = no address currently claimed", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0425, "Store to claim-in-progress flag", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0427, "Return from tube_post_init", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0428, "Another host claiming; check if we're owner", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x042A, "C=1: we have an active claim", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x042C, "Compare with our claimed address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x042E, "Match: return (we already have it)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0430, "Not ours: CLC = we don't own this address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0431, "Return with C=0 (claim denied)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0432, "Accept new claim: update our address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0434, "Return with address updated", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0435, "PHP: save interrupt state", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0436, "SEI: disable interrupts for R4 protocol", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0437, "Save 16-bit transfer address from (X,Y)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0439, "Store address pointer low byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x043B, "R4 byte 1 of 7: transfer type (A on entry)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x043E, "X = transfer type for tube_ctrl_values lookup", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x043F, "Y=3: loop counter for 4 address bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0441, "Load tube_claimed_id (Econet host ownership)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0443, "R4 byte 2 of 7: claimed_id (Econet extension)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0446, "Load address byte at offset Y (big-endian)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0448, "R4 bytes 3-6 of 7: address Y=3,2,1,0", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x044B, "Y--: next address byte (3->2->1->0)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x044C, "Y>=0: loop for all 4 address bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x044E, "Y=&18: enable Tube control register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0450, "Enable Tube interrupt generation", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0453, "Look up Tube control bits for this xfer type", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0456, "Apply transfer-specific control bits", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0459, "LSR 1: shift ctrl bit 1 into C (discarded)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x045A, "LSR 2: shift ctrl bit 2 into C (flush flag)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x045B, "C=0: not a P-to-H type (only 0/2 flush)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x045D, "Drain R3 FIFO byte 1 (stale data from last xfer)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0460, "Drain R3 FIFO byte 2 (2-byte FIFO ready for fresh data)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0463, "R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0466, "Poll R4 status for co-processor response", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0469, "Bit 6 clear: not ready, keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x046B, "R4 bit 7: co-processor acknowledged transfer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x046D, "Type 4 = SENDW (host-to-parasite word xfer)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x046F, "Not SENDW type: skip release path", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0471, "SENDW complete: release, sync, restart", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0474, "Sync via R2 send", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0477, "Restart Tube main loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x047A, "LSR: check bit 0 (NMI used?)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x047B, "C=0: NMI not used, skip NMI release", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x047D, "Release Tube NMI (transfer used interrupts)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x047F, "Write &88 to Tube control to release NMI", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0482, "Restore interrupt state", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0483, "Return from transfer setup", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0484, "BEGIN: enable interrupts for Tube host code", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0485, "C=1: hard break, claim addr &FF", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0487, "C=0, A!=0: re-init path", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0489, "Z=1 from C=0 path: just acknowledge", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x048C, "Read last break type from OS workspace", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x048F, "Soft break (X=0): re-init Tube and restart", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0491, "Claim address &FF (startup = highest prio)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0493, "Request address claim from Tube system", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0496, "C=0: claim failed, retry", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0498, "Init reloc pointers from ROM header", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x049B, "Save interrupt state", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x049D, "R4 cmd 7: SENDW to send ROM to parasite", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x049C, "Disable interrupts during ROM transfer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x049F, "Set up Tube for SENDW transfer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04A2, "Y=0: start at beginning of page", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04A4, "Store to zero page pointer low byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04A6, "Send 256-byte page via R3, byte at a time", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04A8, "Write byte to Tube R3 data register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04AB, "Timing delay: Tube data register needs NOPs", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04AC, "NOP delay (2)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04AD, "NOP delay (3)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04AE, "Next byte in page", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04AF, "Loop for all 256 bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04B1, "Restore interrupt state after page sent", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04B2, "Increment 24-bit destination addr", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04B4, "No carry: skip higher bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04B6, "Carry into second byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04B8, "No carry: skip third byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04BA, "Carry into third byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04BC, "Increment page counter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04BE, "Bit 6 set = all pages transferred", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04C0, "More pages: loop back to SENDW", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04C2, "Re-init reloc pointers for final claim", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04C5, "A=4: transfer type for final address claim", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04C7, "Y=0: transfer address low byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04C9, "X=&53: transfer address high byte (&0053)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04CB, "Claim Tube address for transfer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04CE, "Init: start sending from &8000", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04D0, "Store &80 as source page high byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04D2, "Store &80 as page counter initial value", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04D4, "A=&20: bit 5 mask for ROM type check", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04D6, "ROM type bit 5: reloc address in header?", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04D9, "Y = 0 or &20 (reloc flag)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04DA, "Store as transfer address selector", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04DC, "No reloc addr: use defaults", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04DE, "Skip past copyright string to find reloc addr", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04E1, "Skip past null-terminated copyright string", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04E2, "Load next byte from ROM header", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04E5, "Loop until null terminator found", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04E7, "Read 4-byte reloc address from ROM header", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04EA, "Store reloc addr byte 1 as transfer addr", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04EC, "Load reloc addr byte 2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04EF, "Store as source page start", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04F1, "Load reloc addr byte 3", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04F4, "Load reloc addr byte 4 (highest)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04F7, "Store high byte of end address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04F9, "Store byte 3 of end address", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x04FB, "Return with pointers initialised", inline=True)
 # Tube R2 command dispatch table: 12 entries mapping R2 command
 # codes 0-11 to handler addresses in pages 5-6.
 _tube_r2_entries = [
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0500, "tube_osrdch",        "R2 cmd 0: OSRDCH"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0502, "tube_oscli",         "R2 cmd 1: OSCLI"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0504, "tube_osbyte_2param", "R2 cmd 2: OSBYTE (2-param)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0506, "tube_osbyte_long",   "R2 cmd 3: OSBYTE (3-param)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0508, "tube_osword",        "R2 cmd 4: OSWORD"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x050A, "tube_osword_rdln",   "R2 cmd 5: OSWORD 0 (read line)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x050C, "tube_osargs",        "R2 cmd 6: OSARGS"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x050E, "tube_osbget",        "R2 cmd 7: OSBGET"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0510, "tube_osbput",        "R2 cmd 8: OSBPUT"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0512, "tube_osfind",        "R2 cmd 9: OSFIND"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0514, "tube_osfile",        "R2 cmd 10: OSFILE"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0516, "tube_osgbpb",        "R2 cmd 11: OSGBPB"),
 ]
 # UNMAPPED: for addr, target_label, desc in _tube_r2_entries:
 # UNMAPPED (orphan body):     word(addr)
 # UNMAPPED (orphan body):     expr(addr, target_label)
 # UNMAPPED (orphan body):     comment(addr, desc, inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0518, """\
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): Tube ULA control register values, indexed by transfer
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): type (0-7). Written to &FEE0 after clearing V+M with
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): &18. Bit layout: S=set/clear, T=reset regs, P=PRST,
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): value to set or clear.""")
 _tube_ctrl_entries = [
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0518, "Type 0: set I+J (1-byte R3, parasite to host)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x0519, "Type 1: set M (1-byte R3, host to parasite)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051A, "Type 2: set V+I+J (2-byte R3, parasite to host)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051B, "Type 3: set V+M (2-byte R3, host to parasite)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051C, "Type 4: clear V+M (execute code at address)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051D, "Type 5: clear V+M (release address claim)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051E, "Type 6: set I (define event handler)"),
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF):     (0x051F, "Type 7: clear V+M (transfer and release)"),
 ]
 # UNMAPPED: for addr, desc in _tube_ctrl_entries:
 # UNMAPPED (orphan body):     byte(addr)
 # UNMAPPED (orphan body):     comment(addr, desc, inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0520, "Read channel handle from R2 for BPUT", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0523, "Y=channel handle for OSBPUT", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0524, "Read data byte from R2 for OSBPUT", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x052A, "Reply with &7F ack after OSBPUT", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x052D, "Read channel handle from R2 for BGET", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0534, "Reply with carry+byte via RDCH protocol", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x053A, "ROR A: encode carry (error flag) into bit 7", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x053B, "Send carry+data byte to Tube R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x053E, "ROL A: restore carry flag", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x053F, "Return via tube_reply_byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0542, "Read open mode from R2 for OSFIND", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0545, "Mode=0: close file(s)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0547, "Save open mode on stack", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0548, "Read filename string from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x054B, "Restore open mode", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x054F, "Reply with file handle via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0552, "OSFIND close: read handle from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0555, "Transfer handle to Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0556, "A=0: close file", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x055B, "Reply with acknowledgement via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x055E, "Read file handle from R2 for OSARGS", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0561, "Y=file handle for OSARGS", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0562, "Read 4-byte arg + reason from R2 into ZP", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0564, "Read next param byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0567, "Store param at ZP+X (escape_flag downward)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0569, "Decrement index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x056A, "More params: continue reading", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x056C, "Read OSARGS reason code from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0572, "Send result A via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0575, "X=3: send 4 result bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0577, "Load result byte from zero page", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0579, "Send result byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x057C, "Decrement byte counter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x057D, "More bytes: continue sending", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x057F, "Return to Tube main loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0582, "X=0: initialise string buffer index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0584, "Y=0: initialise string offset", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0586, "Read next string byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0589, "Store in string buffer at &0700+Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x058C, "Advance string index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x058D, "Buffer full (256 bytes): done", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x058F, "Check for CR terminator", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0591, "Not CR: continue reading", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0593, "Y=7: set XY=&0700 for OSCLI/OSFIND", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0595, "Return with XY pointing to string buffer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0596, "Read command string from R2 into &0700", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0599, "Execute command string via OSCLI", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x059C, "&7F = success acknowledgement", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x059E, "Poll R2 status until ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05A1, "Bit 6 clear: not ready, loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05A3, "Write byte to R2 data register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05A6, "Return to Tube main loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05A9, "Read 16-byte OSFILE control block from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05AB, "Read next control block byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05AE, "Store at ZP+X (control block)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05B0, "Decrement index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05B1, "More bytes: continue reading", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05B3, "Read filename string from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05B6, "Set filename ptr low = 0", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05B8, "Set filename ptr high = &07", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05BA, "Y=0: OSFILE reason code index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05BC, "Read OSFILE reason code from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05BF, "Execute OSFILE", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05C2, "Send result A via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05C5, "X=&10: send 16 result bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05C7, "Load control block byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05C9, "Send control block byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05CC, "Decrement byte counter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05CD, "More bytes: continue sending", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05D1, "X=&0D: read 13-byte OSGBPB ctrl block", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05D3, "Read next control block byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05D6, "Store at ZP+X (escape_flag downward)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05D8, "Decrement index", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05D9, "More bytes: continue reading", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05DB, "Read OSGBPB reason code from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05DE, "Y=0: OSGBPB direction/count", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05E3, "Save result A on stack", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05E4, "X=&0C: send 12 result bytes", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05E6, "Load result byte from zero page", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05E8, "Send result byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05EB, "Decrement byte counter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05EC, "More bytes: continue sending", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05EE, "Recover completion status from stack", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05EF, "Reply with RDCH-style result", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05F2, "Read X parameter from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05F5, "Transfer to X register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05F6, "Read A (OSBYTE function code) from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05F9, "Execute OSBYTE A,X", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05FC, "Poll R2 status for result send", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x05FF, "BVC: page 5/6 boundary straddle", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0600, "Send carry+status to co-processor via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0601, "Send X result for 2-param OSBYTE", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0604, "Return to main event loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0607, "Read X, Y, A from R2 for 3-param OSBYTE", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x060A, "Save in X", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x060B, "Read Y parameter from co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x060E, "Save in Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x060F, "Read A (OSBYTE function code)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0612, "Execute OSBYTE A,X,Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0615, "Test for OSBYTE &9D (fast Tube BPUT)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0617, "OSBYTE &9D (fast Tube BPUT): no result needed", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0619, "Encode carry (error flag) into bit 7", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x061A, "Send carry+status byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x061D, "Poll R2 status for ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0620, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0622, "Send Y result, then fall through to send X", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0625, "BVS always: jump to send X via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0627, "Overlapping entry: &20 = JSR c06c5 (OSWORD)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x062A, "Save OSWORD number in Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x062B, "Poll R2 status for data ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x062E, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0630, "Read param block length from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0633, "DEX: length 0 means no params to read", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0634, "No params (length=0): skip read loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0636, "Poll R2 status for data ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0639, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x063B, "Read param byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x063E, "Store param bytes into block at &0128", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0641, "Next param byte (descending)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0642, "Loop until all params read", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0644, "Restore OSWORD number from Y", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0645, "XY=&0128: param block address for OSWORD", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0647, "Y=&01: param block at &0128", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0649, "Execute OSWORD with XY=&0128", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x064C, "Poll R2 status for ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x064F, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0651, "Read result block length from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0654, "Decrement result byte counter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0655, "No results to send: return to main loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0657, "Send result block bytes from &0128 via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x065A, "Poll R2 status for ready", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x065D, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x065F, "Send result byte via R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0662, "Next result byte (descending)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0663, "Loop until all results sent", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0665, "Return to main event loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0668, "Read 5-byte OSWORD 0 control block from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x066A, "Read control block byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x066D, "Store in zero page params", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x066F, "Next byte (descending)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0670, "Loop until all 5 bytes read", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0672, "X=0 after loop, A=0 for OSWORD 0 (read line)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0673, "Y=0 for OSWORD 0", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0675, "A=0: OSWORD 0 (read line)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0676, "Read input line from keyboard", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0679, "C=0: line read OK; C=1: escape pressed", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x067B, "&FF = escape/error signal to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x067D, "Escape: send &FF error to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0680, "X=0: start of input buffer at &0700", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0682, "&7F = line read successfully", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0684, "Send &7F (success) to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0687, "Load char from input buffer", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x068A, "Send char to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x068D, "Next character", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x068E, "Check for CR terminator", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0690, "Loop until CR terminator sent", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0692, "Return to main event loop", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0695, "Poll R2 status (bit 6 = ready)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x0698, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x069A, "Write A to Tube R2 data register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x069D, "Return to caller", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x069E, "Poll R4 status (bit 6 = ready)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06A1, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06A3, "Write A to Tube R4 data register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06A6, "Return to caller", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06A7, "Check OS escape flag at &FF", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06A9, "SEC+ROR: put bit 7 of &FF into carry+bit 7", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06AA, "ROR: shift escape bit 7 to carry", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06AB, "Escape set: forward to co-processor via R1", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06AD, "EVNTV: forward event A, Y, X to co-processor", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06AE, "Send &00 prefix (event notification)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06B0, "Send zero prefix via R1", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06B3, "Y value for event", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06B4, "Send Y via R1", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06B7, "X value for event", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06B8, "Send X via R1", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06BB, "Restore A (event type)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06BC, "Poll R1 status (bit 6 = ready)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06BF, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06C1, "Write A to Tube R1 data register", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06C4, "Return to caller", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06C5, "Poll R2 status (bit 7 = ready)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06C8, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06CA, "Read data byte from R2", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06CD, "Return with byte in A", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06CE, "Is byte &FE (VDU stream start)?", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06D0, "Below &FE: normal byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06D2, "&FF: set up event/break vectors", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06D4, "&FE: check Y parameter", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06D6, "Y=0: treat as normal byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06D8, "X=6: six extra pages", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06DA, "OSBYTE &14: explode char defs", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06DF, "Poll R1 status (bit 6 = ready)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06E2, "Not ready: keep polling", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06E4, "Read byte from Tube R1", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06E7, "Zero: end of VDU stream", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06EC, "Loop back to read next R1 byte", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06EF, "EVNTV low byte (&AD)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06F1, "Store in EVNTV vector low", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06F4, "EVNTV high byte (page 6)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06F6, "Store in EVNTV vector high", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06F9, "BRKV low byte (&16)", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06FB, "Store in BRKV vector", inline=True)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): comment(0x06FE, "A=0", inline=True)
 comment(0x8003, "JMP service_handler", inline=True)
 comment(0x8006, "ROM type: service + language", inline=True)
 comment(0x8019, "Null terminator before copyright", inline=True)
@@ -10902,10 +10173,6 @@ entry(0xBBE7)   # 21-byte file handler block
 
 # Page 5 relocated code — ANFS-specific entry points
 # Runtime addresses for undecoded blocks in page 5 source (&BC90)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0542)   # tube_osfind (ANFS variant)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x0564)   # read_osargs_params (ANFS variant)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x05AB)   # argsw (ANFS variant)
-# UNMAPPED (dead range &0016-&0057 / &0400-&06FF): entry(0x05D3)   # read_osgbpb_ctrl_blk (ANFS variant)
 
 
 # ============================================================
