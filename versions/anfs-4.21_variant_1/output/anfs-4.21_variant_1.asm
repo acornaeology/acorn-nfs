@@ -8983,11 +8983,11 @@ la0ff = sub_ca0fe+1
     bit fs_load_addr_2                                                ; a138: 24 b2       $.             ; Test fs_load_addr_2 bit 7 (add/subtract)
     bmi subtract_ws_byte                                              ; a13a: 30 06       0.             ; Push high byte; Bit 7 set: subtract instead; Load command handler address low
     adc lc00a,x                                                       ; a13c: 7d 0a c0    }..            ; Add workspace byte to FS options; Push low byte
-    jmp store_adjusted_byte                                           ; a13f: 4c 45 a1    LE.            ; RTS dispatches to command handler; Jump to store result; Save Y (command line offset); Push on stack
+    jmp store_adjusted_byte                                           ; a13f: 4c 45 a1    LE.            ; RTS dispatches to command handler; Jump to store result
 
 ; &a142 referenced 1 time by &a13a
 .subtract_ws_byte
-    sbc lc00a,x                                                       ; a142: fd 0a c0    ...            ; Restore saved Y; Subtract workspace byte from FS options; Push back (keep on stack); Transfer to Y
+    sbc lc00a,x                                                       ; a142: fd 0a c0    ...            ; Subtract workspace byte from FS options
 ; ***************************************************************************************
 ; Store adjusted byte and step the loop
 ; 
@@ -9004,10 +9004,10 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a145 referenced 1 time by &a13f
 .store_adjusted_byte
-    sta (fs_options),y                                                ; a145: 91 bb       ..             ; Load table entry byte; Store result back to FS options
+    sta (fs_options),y                                                ; a145: 91 bb       ..             ; Store result back to FS options
     iny                                                               ; a147: c8          .              ; Advance to next byte
-    inx                                                               ; a148: e8          .              ; Bit 7 set: end of table names; Advance counter
-    bne loop_adjust_byte                                              ; a149: d0 eb       ..             ; Loop until 4 bytes processed; Load table byte
+    inx                                                               ; a148: e8          .              ; Advance counter
+    bne loop_adjust_byte                                              ; a149: d0 eb       ..             ; Loop until 4 bytes processed
     rts                                                               ; a14b: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -9026,99 +9026,93 @@ la0ff = sub_ca0fe+1
 ;     X, Y: control-block pointer (low, high)
 ; ***************************************************************************************
 .gbpbv_handler
-    jsr verify_ws_checksum                                            ; a14c: 20 9e 90     ..            ; Verify workspace checksum; Bit 7 set: end of this name
-    jsr set_xfer_params                                               ; a14f: 20 d7 93     ..            ; Compare with command line char; Set up transfer parameters; Case-insensitive compare
+    jsr verify_ws_checksum                                            ; a14c: 20 9e 90     ..            ; Verify workspace checksum
+    jsr set_xfer_params                                               ; a14f: 20 d7 93     ..            ; Set up transfer parameters
     pha                                                               ; a152: 48          H              ; Push transfer type on stack
-    jsr mask_owner_access                                             ; a153: 20 cf b2     ..            ; Mismatch: skip to next entry; Set owner-only access mask; Match: advance command line
-    pla                                                               ; a156: 68          h              ; Advance table pointer; Pull transfer type
-    tax                                                               ; a157: aa          .              ; Loop for next character; Transfer to X
-    beq skip_if_out_of_range                                          ; a158: f0 05       ..             ; Zero: no valid operation, return; Advance past remaining table chars
-    dex                                                               ; a15a: ca          .              ; Load next table byte; Decrement (convert 1-based to 0-based)
+    jsr mask_owner_access                                             ; a153: 20 cf b2     ..            ; Set owner-only access mask
+    pla                                                               ; a156: 68          h              ; Pull transfer type
+    tax                                                               ; a157: aa          .              ; Transfer to X
+    beq skip_if_out_of_range                                          ; a158: f0 05       ..             ; Zero: no valid operation, return
+    dex                                                               ; a15a: ca          .              ; Decrement (convert 1-based to 0-based)
     cpx #8                                                            ; a15b: e0 08       ..             ; Compare with 8 (max operation)
-    bcc valid_osgbpb_op                                               ; a15d: 90 03       ..             ; Bit 7 clear: more chars to skip; Below 8: valid operation
+    bcc valid_osgbpb_op                                               ; a15d: 90 03       ..             ; Below 8: valid operation
 ; &a15f referenced 1 time by &a158
 .skip_if_out_of_range
-    jmp return_with_last_flag                                         ; a15f: 4c b4 9f    L..            ; Check command line terminator; Out of range: return with flag; Is it '.' (abbreviation)?
+    jmp return_with_last_flag                                         ; a15f: 4c b4 9f    L..            ; Out of range: return with flag
 
 ; &a162 referenced 1 time by &a15d
 .valid_osgbpb_op
     txa                                                               ; a162: 8a          .              ; Transfer operation code to A
-    ldy #0                                                            ; a163: a0 00       ..             ; Yes: skip spaces after dot; Y=0: buffer offset
-    pha                                                               ; a165: 48          H              ; X += 3: skip flags and address bytes; Push operation code
-    cmp #4                                                            ; a166: c9 04       ..             ; (continued); Compare with 4 (write operations); (continued)
-    bcc load_chan_handle                                              ; a168: 90 03       ..             ; Try next table entry; Below 4: read operation
-    jmp write_block_entry                                             ; a16a: 4c 9f a2    L..            ; Save Y (end of matched name); 4 or above: write data block; Push position; Load char after matched portion
+    ldy #0                                                            ; a163: a0 00       ..             ; Y=0: buffer offset
+    pha                                                               ; a165: 48          H              ; Push operation code
+    cmp #4                                                            ; a166: c9 04       ..             ; Compare with 4 (write operations)
+    bcc load_chan_handle                                              ; a168: 90 03       ..             ; Below 4: read operation
+    jmp write_block_entry                                             ; a16a: 4c 9f a2    L..            ; 4 or above: write data block
 
 ; &a16d referenced 1 time by &a168
 .load_chan_handle
-    lda (fs_options),y                                                ; a16d: b1 bb       ..             ; Load channel handle from FS options; Y=9: check 10 separator chars
+    lda (fs_options),y                                                ; a16d: b1 bb       ..             ; Load channel handle from FS options
     pha                                                               ; a16f: 48          H              ; Push handle
-    jsr check_not_dir                                                 ; a170: 20 8c b8     ..            ; Compare with separator table; Check file is not a directory
-    pla                                                               ; a173: 68          h              ; Match: valid command separator; Pull handle
+    jsr check_not_dir                                                 ; a170: 20 8c b8     ..            ; Check file is not a directory
+    pla                                                               ; a173: 68          h              ; Pull handle
     tay                                                               ; a174: a8          .              ; Transfer to Y
-    jsr process_all_fcbs                                              ; a175: 20 38 bb     8.            ; Try next separator; Process all matching FCBs; Loop through separator list
-    lda lc230,x                                                       ; a178: bd 30 c2    .0.            ; No separator match: restore Y; Load FCB flag byte from l1030; Transfer back to Y; Try next table entry
-    sta lc105                                                         ; a17b: 8d 05 c1    ...            ; Store file handle in l0f05; Space; '"' double quote
-; Command separator table (9 bytes)
-; 
-; Characters that terminate a command name in the
-; star command parser. loop_check_sep_table scans
-; Y down from 8 to 0, comparing each input char
-; against this table.
-    lda #0                                                            ; a17e: a9 00       ..             ; '#' hash; A=0: clear direction flag; '$' dollar
-    sta lc106                                                         ; a180: 8d 06 c1    ...            ; '&' ampersand; Store in l0f06; '*' asterisk; ':' colon
-    lda lc200,x                                                       ; a183: bd 00 c2    ...            ; '@' at-sign; Load FCB low byte (position); CR (carriage return); Restore saved Y
-    sta lc107                                                         ; a186: 8d 07 c1    ...            ; Transfer to Y; Store in l0f07; Load next char
-    lda lc210,x                                                       ; a189: bd 10 c2    ...            ; Is it space?; Load FCB high byte; No: done skipping
-    sta lc108                                                         ; a18c: 8d 08 c1    ...            ; Store in l0f08; Advance past space; Loop for more spaces
-    lda lc220,x                                                       ; a18f: bd 20 c2    . .            ; Load FCB extent byte; Load command flags byte
-    sta lc109                                                         ; a192: 8d 09 c1    ...            ; Store in l0f09; Shift: check 'no-arg' bit
-    ldy #&0d                                                          ; a195: a0 0d       ..             ; Bit clear: allow arguments; Y=&0D: TX buffer size
-    ldx #5                                                            ; a197: a2 05       ..             ; Check if line ends here; X=5: argument count
-    jsr save_net_tx_cb                                                ; a199: 20 8a 97     ..            ; Is it CR?; Send TX control block to server; No: argument present, V clear
+    jsr process_all_fcbs                                              ; a175: 20 38 bb     8.            ; Process all matching FCBs
+    lda lc230,x                                                       ; a178: bd 30 c2    .0.            ; Load FCB flag byte from l1030
+    sta lc105                                                         ; a17b: 8d 05 c1    ...            ; Store file handle in l0f05
+    lda #0                                                            ; a17e: a9 00       ..             ; A=0: clear direction flag
+    sta lc106                                                         ; a180: 8d 06 c1    ...            ; Store in l0f06
+    lda lc200,x                                                       ; a183: bd 00 c2    ...            ; Load FCB low byte (position)
+    sta lc107                                                         ; a186: 8d 07 c1    ...            ; Store in l0f07
+    lda lc210,x                                                       ; a189: bd 10 c2    ...            ; Load FCB high byte
+    sta lc108                                                         ; a18c: 8d 08 c1    ...            ; Store in l0f08
+    lda lc220,x                                                       ; a18f: bd 20 c2    . .            ; Load FCB extent byte
+    sta lc109                                                         ; a192: 8d 09 c1    ...            ; Store in l0f09
+    ldy #&0d                                                          ; a195: a0 0d       ..             ; Y=&0D: TX buffer size
+    ldx #5                                                            ; a197: a2 05       ..             ; X=5: argument count
+    jsr save_net_tx_cb                                                ; a199: 20 8a 97     ..            ; Send TX control block to server
     pla                                                               ; a19c: 68          h              ; Pull operation code
-    jsr setup_transfer_workspace                                      ; a19d: 20 fa a1     ..            ; CR found: set V (no argument); Set up transfer workspace
-    php                                                               ; a1a0: 08          .              ; V set: command is valid; Save flags (carry from setup)
-    ldy #0                                                            ; a1a1: a0 00       ..             ; Y=0: index for channel handle; Clear V (argument present)
-    lda (fs_options),y                                                ; a1a3: b1 bb       ..             ; C=0: command not found; Load channel handle from FS options; Pop saved Y from stack
-    bcs set_write_active                                              ; a1a5: b0 05       ..             ; Load command line char at Y; Carry set (write): set active
-    jsr clear_conn_active                                             ; a1a7: 20 0d 94     ..            ; Return (C and V set per result); Read: clear connection active; Advance past character; Load current char
-    bpl setup_gbpb_request                                            ; a1aa: 10 03       ..             ; Branch to continue (always positive); Is it CR (end of line)?
+    jsr setup_transfer_workspace                                      ; a19d: 20 fa a1     ..            ; Set up transfer workspace
+    php                                                               ; a1a0: 08          .              ; Save flags (carry from setup)
+    ldy #0                                                            ; a1a1: a0 00       ..             ; Y=0: index for channel handle
+    lda (fs_options),y                                                ; a1a3: b1 bb       ..             ; Load channel handle from FS options
+    bcs set_write_active                                              ; a1a5: b0 05       ..             ; Carry set (write): set active
+    jsr clear_conn_active                                             ; a1a7: 20 0d 94     ..            ; Read: clear connection active
+    bpl setup_gbpb_request                                            ; a1aa: 10 03       ..             ; Branch to continue (always positive)
 ; &a1ac referenced 1 time by &a1a5
 .set_write_active
-    jsr set_conn_active                                               ; a1ac: 20 f7 93     ..            ; Write: set connection active; Yes: end of input
+    jsr set_conn_active                                               ; a1ac: 20 f7 93     ..            ; Write: set connection active
 ; &a1af referenced 1 time by &a1aa
 .setup_gbpb_request
-    sty lc106                                                         ; a1af: 8c 06 c1    ...            ; Is it '.' (abbreviation dot)?; Clear l0f06 (Y=0); Yes: skip to next word
-    jsr lookup_cat_slot_data                                          ; a1b2: 20 f3 a1     ..            ; Look up channel slot data; Is it space?
-    sta lc105                                                         ; a1b5: 8d 05 c1    ...            ; No: keep scanning; Store flag byte in l0f05; Skip past separator
-    ldy #&0c                                                          ; a1b8: a0 0c       ..             ; Load next char; Y=&0C: TX buffer size (short)
-    ldx #2                                                            ; a1ba: a2 02       ..             ; Is it space?; X=2: argument count
-    jsr save_net_tx_cb                                                ; a1bc: 20 8a 97     ..            ; Yes: skip consecutive spaces; Send TX control block; C=1: have more text to match
-    jsr lookup_cat_entry_0                                            ; a1bf: 20 ef a1     ..            ; Look up channel entry at Y=0; Save text pointer
+    sty lc106                                                         ; a1af: 8c 06 c1    ...            ; Clear l0f06 (Y=0)
+    jsr lookup_cat_slot_data                                          ; a1b2: 20 f3 a1     ..            ; Look up channel slot data
+    sta lc105                                                         ; a1b5: 8d 05 c1    ...            ; Store flag byte in l0f05
+    ldy #&0c                                                          ; a1b8: a0 0c       ..             ; Y=&0C: TX buffer size (short)
+    ldx #2                                                            ; a1ba: a2 02       ..             ; X=2: argument count
+    jsr save_net_tx_cb                                                ; a1bc: 20 8a 97     ..            ; Send TX control block
+    jsr lookup_cat_entry_0                                            ; a1bf: 20 ef a1     ..            ; Look up channel entry at Y=0
     ldy #9                                                            ; a1c2: a0 09       ..             ; Y=9: FS options offset for position
-    lda lc105                                                         ; a1c4: ad 05 c1    ...            ; Set owner-only access mask; Load new position low from l0f05
-    sta lc200,x                                                       ; a1c7: 9d 00 c2    ...            ; Parse command argument (Y=0); Update FCB low byte in l1000
-    sta (fs_options),y                                                ; a1ca: 91 bb       ..             ; X=1: buffer index; Store in FS options at Y=9
-    iny                                                               ; a1cc: c8          .              ; Copy argument to buffer; Y=&0A; Y=&0a
-    lda lc106                                                         ; a1cd: ad 06 c1    ...            ; Load new position high from l0f06; A=2: open for update
-    sta lc210,x                                                       ; a1d0: 9d 10 c2    ...            ; Update FCB high byte in l1010; Store open mode
-    sta (fs_options),y                                                ; a1d3: 91 bb       ..             ; Store in FS options at Y=&0A; Y=&12: open file command
+    lda lc105                                                         ; a1c4: ad 05 c1    ...            ; Load new position low from l0f05
+    sta lc200,x                                                       ; a1c7: 9d 00 c2    ...            ; Update FCB low byte in l1000
+    sta (fs_options),y                                                ; a1ca: 91 bb       ..             ; Store in FS options at Y=9
+    iny                                                               ; a1cc: c8          .              ; Y=&0A; Y=&0a
+    lda lc106                                                         ; a1cd: ad 06 c1    ...            ; Load new position high from l0f06
+    sta lc210,x                                                       ; a1d0: 9d 10 c2    ...            ; Update FCB high byte in l1010
+    sta (fs_options),y                                                ; a1d3: 91 bb       ..             ; Store in FS options at Y=&0A
     iny                                                               ; a1d5: c8          .              ; Y=&0B; Y=&0b
-    lda lc107                                                         ; a1d6: ad 07 c1    ...            ; Send open request to server; Load new extent from l0f07
-    sta lc220,x                                                       ; a1d9: 9d 20 c2    . .            ; Load reply status; Update FCB extent in l1020
-    sta (fs_options),y                                                ; a1dc: 91 bb       ..             ; Status 1 (success)?; Store in FS options at Y=&0B
-    lda #0                                                            ; a1de: a9 00       ..             ; No: file not found, try library; A=0: clear high byte of extent
-    iny                                                               ; a1e0: c8          .              ; X=3: check 4 handle bytes; Y=&0C; Y=&0c
-    sta (fs_options),y                                                ; a1e1: 91 bb       ..             ; Store zero in FS options at Y=&0C; Increment handle byte
+    lda lc107                                                         ; a1d6: ad 07 c1    ...            ; Load new extent from l0f07
+    sta lc220,x                                                       ; a1d9: 9d 20 c2    . .            ; Update FCB extent in l1020
+    sta (fs_options),y                                                ; a1dc: 91 bb       ..             ; Store in FS options at Y=&0B
+    lda #0                                                            ; a1de: a9 00       ..             ; A=0: clear high byte of extent
+    iny                                                               ; a1e0: c8          .              ; Y=&0C; Y=&0c
+    sta (fs_options),y                                                ; a1e1: 91 bb       ..             ; Store zero in FS options at Y=&0C
     plp                                                               ; a1e3: 28          (              ; Restore flags
-    bcc return_success                                                ; a1e4: 90 04       ..             ; Carry clear: skip last-byte check; Was &FF (overflow to 0): try next
-    lda fs_last_byte_flag                                             ; a1e6: a5 bd       ..             ; Load last-byte-of-transfer flag; Non-zero: handle valid, execute
+    bcc return_success                                                ; a1e4: 90 04       ..             ; Carry clear: skip last-byte check
+    lda fs_last_byte_flag                                             ; a1e6: a5 bd       ..             ; Load last-byte-of-transfer flag
     cmp #3                                                            ; a1e8: c9 03       ..             ; Is transfer still pending (flag=3)?
 ; &a1ea referenced 1 time by &a1e4
 .return_success
-    lda #0                                                            ; a1ea: a9 00       ..             ; Try next handle byte; A=0: success; Loop until all checked
-    jmp finalise_and_return                                           ; a1ec: 4c b6 9f    L..            ; Jump to finalise and return; Allocate new FCB or raise error
+    lda #0                                                            ; a1ea: a9 00       ..             ; A=0: success
+    jmp finalise_and_return                                           ; a1ec: 4c b6 9f    L..            ; Jump to finalise and return
 
 ; ***************************************************************************************
 ; Look up channel from FS options offset 0
@@ -9133,8 +9127,8 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a1ef referenced 2 times by &a1bf, &a1fb
 .lookup_cat_entry_0
-    ldy #0                                                            ; a1ef: a0 00       ..             ; Y=0: offset for channel handle; X=1: open mode index
-    lda (fs_options),y                                                ; a1f1: b1 bb       ..             ; Load channel handle from FS options; Store in l0f05
+    ldy #0                                                            ; a1ef: a0 00       ..             ; Y=0: offset for channel handle
+    lda (fs_options),y                                                ; a1f1: b1 bb       ..             ; Load channel handle from FS options
 ; ***************************************************************************************
 ; Look up channel and return FCB flag byte
 ; 
@@ -9151,9 +9145,9 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a1f3 referenced 1 time by &a1b2
 .lookup_cat_slot_data
-    jsr lookup_chan_by_char                                           ; a1f3: 20 47 b8     G.            ; Look up channel by character; Store in l0f06
-    lda lc230,x                                                       ; a1f6: bd 30 c2    .0.            ; Load FCB flag byte from l1030; X=2
-    rts                                                               ; a1f9: 60          `              ; Copy argument to buffer; Return with flag in A
+    jsr lookup_chan_by_char                                           ; a1f3: 20 47 b8     G.            ; Look up channel by character
+    lda lc230,x                                                       ; a1f6: bd 30 c2    .0.            ; Load FCB flag byte from l1030
+    rts                                                               ; a1f9: 60          `              ; Return with flag in A
 
 ; ***************************************************************************************
 ; Prepare workspace for OSGBPB data transfer
@@ -9174,88 +9168,88 @@ la0ff = sub_ca0fe+1
 ; &a1fa referenced 2 times by &a19d, &bd18
 .setup_transfer_workspace
     pha                                                               ; a1fa: 48          H              ; Push operation code on stack
-    jsr lookup_cat_entry_0                                            ; a1fb: 20 ef a1     ..            ; Look up channel entry at Y=0; Y=6: re-open command
-    sta lc105                                                         ; a1fe: 8d 05 c1    ...            ; Send re-open request; Store flag byte in l0f05
-    ldy #&0b                                                          ; a201: a0 0b       ..             ; C set: error on re-open; Y=&0B: source offset in FS options
-    ldx #6                                                            ; a203: a2 06       ..             ; C clear: finalise file opening; X=6: copy 6 bytes
+    jsr lookup_cat_entry_0                                            ; a1fb: 20 ef a1     ..            ; Look up channel entry at Y=0
+    sta lc105                                                         ; a1fe: 8d 05 c1    ...            ; Store flag byte in l0f05
+    ldy #&0b                                                          ; a201: a0 0b       ..             ; Y=&0B: source offset in FS options
+    ldx #6                                                            ; a203: a2 06       ..             ; X=6: copy 6 bytes
 ; &a205 referenced 1 time by &a211
 .loop_copy_opts_to_buf
-    lda (fs_options),y                                                ; a205: b1 bb       ..             ; Load FS options byte; Jump to finalise and return
-    sta lc106,x                                                       ; a207: 9d 06 c1    ...            ; Store in l0f06 buffer; Load first char of filename
+    lda (fs_options),y                                                ; a205: b1 bb       ..             ; Load FS options byte
+    sta lc106,x                                                       ; a207: 9d 06 c1    ...            ; Store in l0f06 buffer
     dey                                                               ; a20a: 88          .              ; Decrement source index
-    cpy #8                                                            ; a20b: c0 08       ..             ; Skip offset 8?; Is it '$' (root dir)?
-    bne skip_struct_hole                                              ; a20d: d0 01       ..             ; No: continue copy; Yes: no library search, error
+    cpy #8                                                            ; a20b: c0 08       ..             ; Skip offset 8?
+    bne skip_struct_hole                                              ; a20d: d0 01       ..             ; No: continue copy
     dey                                                               ; a20f: 88          .              ; Skip offset 8 (hole in structure)
 ; &a210 referenced 1 time by &a20d
 .skip_struct_hole
-    dex                                                               ; a210: ca          .              ; Load library flag byte; Decrement destination counter
+    dex                                                               ; a210: ca          .              ; Decrement destination counter
     bne loop_copy_opts_to_buf                                         ; a211: d0 f2       ..             ; Loop until all 6 bytes copied
-    pla                                                               ; a213: 68          h              ; Bit 7 set: library already tried; Pull operation code
+    pla                                                               ; a213: 68          h              ; Pull operation code
     lsr a                                                             ; a214: 4a          J              ; Shift right: check bit 0 (direction)
-    pha                                                               ; a215: 48          H              ; Rotate bits to check library state; Push updated code
-    bcc store_direction_flag                                          ; a216: 90 01       ..             ; Rotate again; Carry clear: OSBGET (read); Bit 7 set: restore from backup
+    pha                                                               ; a215: 48          H              ; Push updated code
+    bcc store_direction_flag                                          ; a216: 90 01       ..             ; Carry clear: OSBGET (read)
     inx                                                               ; a218: e8          .              ; Carry set: OSBPUT (write), X=1
 ; &a219 referenced 1 time by &a216
 .store_direction_flag
-    stx lc106                                                         ; a219: 8e 06 c1    ...            ; Carry set: bad command; Store direction flag in l0f06; X=&FF: pre-increment for loop
-    ldy #&0b                                                          ; a21c: a0 0b       ..             ; Y=&0B: TX buffer size; Find end of filename
-    ldx #&91                                                          ; a21e: a2 91       ..             ; Load filename byte; X=&91: port for OSBGET
+    stx lc106                                                         ; a219: 8e 06 c1    ...            ; Store direction flag in l0f06
+    ldy #&0b                                                          ; a21c: a0 0b       ..             ; Y=&0B: TX buffer size
+    ldx #&91                                                          ; a21e: a2 91       ..             ; X=&91: port for OSBGET
     pla                                                               ; a220: 68          h              ; Pull operation code
-    pha                                                               ; a221: 48          H              ; Is it CR (end)?; Push back (keep on stack)
-    beq store_port_and_send                                           ; a222: f0 03       ..             ; Zero (OSBGET): keep port &91; No: continue scanning
-    ldx #&92                                                          ; a224: a2 92       ..             ; X=&92: port for OSBPUT; Shift filename right by 8 bytes
+    pha                                                               ; a221: 48          H              ; Push back (keep on stack)
+    beq store_port_and_send                                           ; a222: f0 03       ..             ; Zero (OSBGET): keep port &91
+    ldx #&92                                                          ; a224: a2 92       ..             ; X=&92: port for OSBPUT
     dey                                                               ; a226: 88          .              ; Y=&0A: adjusted buffer size; Y=&0a
 ; &a227 referenced 1 time by &a222
 .store_port_and_send
-    stx lc102                                                         ; a227: 8e 02 c1    ...            ; Store port in l0f02; Store shifted byte
-    stx fs_error_ptr                                                  ; a22a: 86 b8       ..             ; Store port in fs_error_ptr; Previous byte
-    ldx #8                                                            ; a22c: a2 08       ..             ; Loop until all shifted; X=8: argument count
-    lda lc105                                                         ; a22e: ad 05 c1    ...            ; X=7: 'Library.' is 8 bytes; Load file handle from l0f05; Copy 'Library.' prefix
-    jsr send_request_nowrite                                          ; a231: 20 6f 97     o.            ; Send request (no write data); Store prefix byte
+    stx lc102                                                         ; a227: 8e 02 c1    ...            ; Store port in l0f02
+    stx fs_error_ptr                                                  ; a22a: 86 b8       ..             ; Store port in fs_error_ptr
+    ldx #8                                                            ; a22c: a2 08       ..             ; X=8: argument count
+    lda lc105                                                         ; a22e: ad 05 c1    ...            ; Load file handle from l0f05
+    jsr send_request_nowrite                                          ; a231: 20 6f 97     o.            ; Send request (no write data)
     ldx #0                                                            ; a234: a2 00       ..             ; X=0: index
-    lda (fs_options,x)                                                ; a236: a1 bb       ..             ; Previous byte; Load channel handle from FS options; Loop until prefix copied
+    lda (fs_options,x)                                                ; a236: a1 bb       ..             ; Load channel handle from FS options
     tax                                                               ; a238: aa          .              ; Transfer to X as index
-    lda lc240,x                                                       ; a239: bd 40 c2    .@.            ; Load library flag; Load FCB flags from l1040
-    eor #1                                                            ; a23c: 49 01       I.             ; Set bits 5-6: library path active; Toggle bit 0 (transfer direction)
-    sta lc240,x                                                       ; a23e: 9d 40 c2    .@.            ; Store updated flag; Store updated flags
-    clc                                                               ; a241: 18          .              ; Retry file open with library path; Clear carry for addition
-    ldx #4                                                            ; a242: a2 04       ..             ; X=4: process 4 address bytes; X=&FF: pre-increment for loop
+    lda lc240,x                                                       ; a239: bd 40 c2    .@.            ; Load FCB flags from l1040
+    eor #1                                                            ; a23c: 49 01       I.             ; Toggle bit 0 (transfer direction)
+    sta lc240,x                                                       ; a23e: 9d 40 c2    .@.            ; Store updated flags
+    clc                                                               ; a241: 18          .              ; Clear carry for addition
+    ldx #4                                                            ; a242: a2 04       ..             ; X=4: process 4 address bytes
 ; &a244 referenced 1 time by &a258
 .loop_setup_addr_bytes
-    lda (fs_options),y                                                ; a244: b1 bb       ..             ; Load FS options address byte; Restore original filename
-    sta addr_work,y                                                   ; a246: 99 af 00    ...            ; Load backup byte; Store in zero page address area
-    sta txcb_pos,y                                                    ; a249: 99 c7 00    ...            ; Store to filename buffer; Store in TXCB position
-    jsr advance_y_by_4                                                ; a24c: 20 6c 9d     l.            ; Is it CR (end)?; Advance Y by 4; No: continue restoring
-    adc (fs_options),y                                                ; a24f: 71 bb       q.             ; Add offset from FS options; Set owner-only access mask
-    sta addr_work,y                                                   ; a251: 99 af 00    ...            ; Store computed end address; Set bit 7: library tried
-    jsr retreat_y_by_3                                                ; a254: 20 7f 9d     ..            ; Retreat Y by 3 for next pair; Store updated flag
+    lda (fs_options),y                                                ; a244: b1 bb       ..             ; Load FS options address byte
+    sta addr_work,y                                                   ; a246: 99 af 00    ...            ; Store in zero page address area
+    sta txcb_pos,y                                                    ; a249: 99 c7 00    ...            ; Store in TXCB position
+    jsr advance_y_by_4                                                ; a24c: 20 6c 9d     l.            ; Advance Y by 4
+    adc (fs_options),y                                                ; a24f: 71 bb       q.             ; Add offset from FS options
+    sta addr_work,y                                                   ; a251: 99 af 00    ...            ; Store computed end address
+    jsr retreat_y_by_3                                                ; a254: 20 7f 9d     ..            ; Retreat Y by 3 for next pair
     dex                                                               ; a257: ca          .              ; Decrement byte counter
     bne loop_setup_addr_bytes                                         ; a258: d0 ea       ..             ; Loop for all 4 address bytes
-    inx                                                               ; a25a: e8          .              ; Set owner-only access mask; X=1 (INX from 0)
+    inx                                                               ; a25a: e8          .              ; X=1 (INX from 0)
 ; &a25b referenced 1 time by &a262
 .loop_copy_offset
-    lda lc103,x                                                       ; a25b: bd 03 c1    ...            ; Load offset from l0f03; Error code &FE
-    sta lc106,x                                                       ; a25e: 9d 06 c1    ...            ; Copy to l0f06; Generate 'Bad command' error
+    lda lc103,x                                                       ; a25b: bd 03 c1    ...            ; Load offset from l0f03
+    sta lc106,x                                                       ; a25e: 9d 06 c1    ...            ; Copy to l0f06
     dex                                                               ; a261: ca          .              ; Decrement counter
     bpl loop_copy_offset                                              ; a262: 10 f7       ..             ; Loop until both bytes copied
     pla                                                               ; a264: 68          h              ; Pull operation code
     bne send_with_swap                                                ; a265: d0 08       ..             ; Non-zero (OSBPUT): swap addresses
     lda lc102                                                         ; a267: ad 02 c1    ...            ; Load port from l0f02
-    jsr check_and_setup_txcb                                          ; a26a: 20 87 9d     ..            ; X=3: check 4 execution bytes; Check and set up TXCB; Increment execution address byte
+    jsr check_and_setup_txcb                                          ; a26a: 20 87 9d     ..            ; Check and set up TXCB
     bcs recv_and_update                                               ; a26d: b0 03       ..             ; Carry set: skip swap
 ; &a26f referenced 1 time by &a265
 .send_with_swap
-    jsr send_txcb_swap_addrs                                          ; a26f: 20 85 9c     ..            ; Non-zero: valid, go to OSCLI; Send TXCB and swap start/end addresses; Try next byte
+    jsr send_txcb_swap_addrs                                          ; a26f: 20 85 9c     ..            ; Send TXCB and swap start/end addresses
 ; &a272 referenced 1 time by &a26d
 .recv_and_update
-    jsr recv_reply_preserve_flags                                     ; a272: 20 84 a2     ..            ; Loop until all checked; Receive and process reply; Error code &93
-    stx fs_load_addr_2                                                ; a275: 86 b2       ..             ; Store result in fs_load_addr_2; Generate 'No!' error
+    jsr recv_reply_preserve_flags                                     ; a272: 20 84 a2     ..            ; Receive and process reply
+    stx fs_load_addr_2                                                ; a275: 86 b2       ..             ; Store result in fs_load_addr_2
     jsr update_addr_from_offset9                                      ; a277: 20 2c a1     ,.            ; Update addresses from offset 9
     dec fs_load_addr_2                                                ; a27a: c6 b2       ..             ; Decrement fs_load_addr_2
     sec                                                               ; a27c: 38          8              ; Set carry for subtraction
-    jsr adjust_fsopts_4bytes                                          ; a27d: 20 34 a1     4.            ; Load open mode result; Adjust FS options by 4 bytes
-    asl lc105                                                         ; a280: 0e 05 c1    ...            ; Allocate FCB slot; Shift l0f05 left (update status)
-    rts                                                               ; a283: 60          `              ; Transfer to Y; Return
+    jsr adjust_fsopts_4bytes                                          ; a27d: 20 34 a1     4.            ; Adjust FS options by 4 bytes
+    asl lc105                                                         ; a280: 0e 05 c1    ...            ; Shift l0f05 left (update status)
+    rts                                                               ; a283: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Receive and process reply, preserving flags
@@ -9271,10 +9265,10 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a284 referenced 1 time by &a272
 .recv_reply_preserve_flags
-    php                                                               ; a284: 08          .              ; A=0: clear channel status; Save flags before reply processing
-    jsr recv_and_process_reply                                        ; a285: 20 cd 97     ..            ; Process server reply; Clear status in channel table
+    php                                                               ; a284: 08          .              ; Save flags before reply processing
+    jsr recv_and_process_reply                                        ; a285: 20 cd 97     ..            ; Process server reply
     plp                                                               ; a288: 28          (              ; Restore flags after reply processing
-    rts                                                               ; a289: 60          `              ; Store handle in l1070; Return
+    rts                                                               ; a289: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Send OSBPUT data block to file server
@@ -9287,14 +9281,14 @@ la0ff = sub_ca0fe+1
 ; &a28a referenced 1 time by &a2ba
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
-    jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..            ; Y=3: OSCLI execution; Send TX control block; Execute via boot/OSCLI path
+    jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..            ; Send TX control block
     lda lc005                                                         ; a28f: ad 05 c0    ...            ; Load display flag from l0e05
     sta lc116                                                         ; a292: 8d 16 c1    ...            ; Store in l0f16
     stx fs_load_addr                                                  ; a295: 86 b0       ..             ; Clear fs_load_addr (X=0)
     stx fs_load_addr_hi                                               ; a297: 86 b1       ..             ; Clear fs_load_addr_hi
-    lda #&12                                                          ; a299: a9 12       ..             ; Copy command argument to buffer; A=&12: byte count for data block
-    sta fs_load_addr_2                                                ; a29b: 85 b2       ..             ; Store in fs_load_addr_2; Y=0
-    bne write_data_block                                              ; a29d: d0 4e       .N             ; ALWAYS branch to write data block; ALWAYS branch; C=0 for GSINIT
+    lda #&12                                                          ; a299: a9 12       ..             ; A=&12: byte count for data block
+    sta fs_load_addr_2                                                ; a29b: 85 b2       ..             ; Store in fs_load_addr_2
+    bne write_data_block                                              ; a29d: d0 4e       .N             ; ALWAYS branch to write data block; ALWAYS branch
 
 ; ***************************************************************************************
 ; Pre-write Tube-station check, fall into write_data_block
@@ -9310,49 +9304,49 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a29f referenced 1 time by &a16a
 .write_block_entry
-    ldy #4                                                            ; a29f: a0 04       ..             ; Initialise GS string read; Y=4: offset for station comparison
-    lda tube_present                                                  ; a2a1: ad 63 0d    .c.            ; Load stored station from l0d63; Read next GS character
-    beq store_station_result                                          ; a2a4: f0 07       ..             ; Zero: skip station check; C clear: more chars
-    cmp (fs_options),y                                                ; a2a6: d1 bb       ..             ; Compare with FS options station; Back up one position
-    bne store_station_result                                          ; a2a8: d0 03       ..             ; Skip trailing spaces; Mismatch: skip subtraction; Load next char
+    ldy #4                                                            ; a29f: a0 04       ..             ; Y=4: offset for station comparison
+    lda tube_present                                                  ; a2a1: ad 63 0d    .c.            ; Load stored station from l0d63
+    beq store_station_result                                          ; a2a4: f0 07       ..             ; Zero: skip station check
+    cmp (fs_options),y                                                ; a2a6: d1 bb       ..             ; Compare with FS options station
+    bne store_station_result                                          ; a2a8: d0 03       ..             ; Mismatch: skip subtraction
     dey                                                               ; a2aa: 88          .              ; Y=3; Y=&03
-    sbc (fs_options),y                                                ; a2ab: f1 bb       ..             ; Is it space?; Subtract FS options value
+    sbc (fs_options),y                                                ; a2ab: f1 bb       ..             ; Subtract FS options value
 ; &a2ad referenced 2 times by &a2a4, &a2a8
 .store_station_result
-    sta svc_state                                                     ; a2ad: 85 a9       ..             ; Yes: skip it; Store result in svc_state
+    sta svc_state                                                     ; a2ad: 85 a9       ..             ; Store result in svc_state
 ; &a2af referenced 1 time by &a2b5
 .loop_copy_opts_to_ws
-    lda (fs_options),y                                                ; a2af: b1 bb       ..             ; Check for CR (end of line); Load FS options byte at Y
-    sta fs_last_byte_flag,y                                           ; a2b1: 99 bd 00    ...            ; C=0 for addition; Store in workspace at fs_last_byte_flag+Y; Transfer Y offset to A; Add to text pointer low
+    lda (fs_options),y                                                ; a2af: b1 bb       ..             ; Load FS options byte at Y
+    sta fs_last_byte_flag,y                                           ; a2b1: 99 bd 00    ...            ; Store in workspace at fs_last_byte_flag+Y
     dey                                                               ; a2b4: 88          .              ; Decrement index
-    bne loop_copy_opts_to_ws                                          ; a2b5: d0 f8       ..             ; Store as command tail pointer low; Loop until all bytes copied
+    bne loop_copy_opts_to_ws                                          ; a2b5: d0 f8       ..             ; Loop until all bytes copied
     pla                                                               ; a2b7: 68          h              ; Pull operation code
-    and #3                                                            ; a2b8: 29 03       ).             ; Load text pointer high; Mask to 2-bit sub-operation
-    beq send_osbput_data                                              ; a2ba: f0 ce       ..             ; Add carry; Zero: send OSBPUT data
-    lsr a                                                             ; a2bc: 4a          J              ; Store as command tail pointer high; Shift right: check bit 0
+    and #3                                                            ; a2b8: 29 03       ).             ; Mask to 2-bit sub-operation
+    beq send_osbput_data                                              ; a2ba: f0 ce       ..             ; Zero: send OSBPUT data
+    lsr a                                                             ; a2bc: 4a          J              ; Shift right: check bit 0
     beq handle_cat_update                                             ; a2bd: f0 02       ..             ; Zero (bit 0 clear): handle read
-    bcs update_cat_position                                           ; a2bf: b0 6b       .k             ; Save text pointer for later; Carry set: handle catalogue update
+    bcs update_cat_position                                           ; a2bf: b0 6b       .k             ; Carry set: handle catalogue update
 ; &a2c1 referenced 1 time by &a2bd
 .handle_cat_update
     tay                                                               ; a2c1: a8          .              ; Transfer to Y (Y=0)
-    lda lc003,y                                                       ; a2c2: b9 03 c0    ...            ; X=&0E: OSWORD parameter offset; Load data byte from l0e03; Store as block offset high
-    sta lc103                                                         ; a2c5: 8d 03 c1    ...            ; Store in l0f03; A=&0E: OSWORD parameter size
-    lda lc004                                                         ; a2c8: ad 04 c0    ...            ; Store as options pointer; Load high data byte from l0e04; Store to l0e16
-    sta lc104                                                         ; a2cb: 8d 04 c1    ...            ; Store in l0f04; X=&4A: FS command table offset
-    lda lc002                                                         ; a2ce: ad 02 c0    ...            ; Load port from l0e02; Y=5
-    sta lc102                                                         ; a2d1: 8d 02 c1    ...            ; Execute FS command iteration; Store in l0f02
-    ldx #&12                                                          ; a2d4: a2 12       ..             ; Load tube flag; X=&12: buffer size marker
-    stx lc101                                                         ; a2d6: 8e 01 c1    ...            ; Store in l0f01; Zero: no tube transfer needed
-    lda #&0d                                                          ; a2d9: a9 0d       ..             ; AND with l0f0b; A=&0D: count value
-    sta lc106                                                         ; a2db: 8d 06 c1    ...            ; Store in l0f06; AND with l0f0c
-    sta fs_load_addr_2                                                ; a2de: 85 b2       ..             ; Store in fs_load_addr_2; All &FF?
+    lda lc003,y                                                       ; a2c2: b9 03 c0    ...            ; Load data byte from l0e03
+    sta lc103                                                         ; a2c5: 8d 03 c1    ...            ; Store in l0f03
+    lda lc004                                                         ; a2c8: ad 04 c0    ...            ; Load high data byte from l0e04
+    sta lc104                                                         ; a2cb: 8d 04 c1    ...            ; Store in l0f04
+    lda lc002                                                         ; a2ce: ad 02 c0    ...            ; Load port from l0e02
+    sta lc102                                                         ; a2d1: 8d 02 c1    ...            ; Store in l0f02
+    ldx #&12                                                          ; a2d4: a2 12       ..             ; X=&12: buffer size marker
+    stx lc101                                                         ; a2d6: 8e 01 c1    ...            ; Store in l0f01
+    lda #&0d                                                          ; a2d9: a9 0d       ..             ; A=&0D: count value
+    sta lc106                                                         ; a2db: 8d 06 c1    ...            ; Store in l0f06
+    sta fs_load_addr_2                                                ; a2de: 85 b2       ..             ; Store in fs_load_addr_2
     lsr a                                                             ; a2e0: 4a          J              ; Shift right (A=6)
-    sta lc105                                                         ; a2e1: 8d 05 c1    ...            ; Yes: no tube transfer needed; Store in l0f05; Claim tube for data transfer
+    sta lc105                                                         ; a2e1: 8d 05 c1    ...            ; Store in l0f05
     clc                                                               ; a2e4: 18          .              ; Clear carry for addition
-    jsr prep_send_tx_cb                                               ; a2e5: 20 b7 97     ..            ; Prepare and send TX control block; X=9: parameter count
-    stx fs_load_addr_hi                                               ; a2e8: 86 b1       ..             ; Y=&0F: parameter offset; Store X in fs_load_addr_hi (X=0)
-    inx                                                               ; a2ea: e8          .              ; A=4: tube transfer type; X=1 (INX)
-    stx fs_load_addr                                                  ; a2eb: 86 b0       ..             ; Store X in fs_load_addr; Dispatch tube address/data
+    jsr prep_send_tx_cb                                               ; a2e5: 20 b7 97     ..            ; Prepare and send TX control block
+    stx fs_load_addr_hi                                               ; a2e8: 86 b1       ..             ; Store X in fs_load_addr_hi (X=0)
+    inx                                                               ; a2ea: e8          .              ; X=1 (INX)
+    stx fs_load_addr                                                  ; a2eb: 86 b0       ..             ; Store X in fs_load_addr
 ; ***************************************************************************************
 ; Write data block to destination or Tube
 ; 
@@ -9367,16 +9361,16 @@ la0ff = sub_ca0fe+1
 ; &a2ed referenced 2 times by &a29d, &a365
 .write_data_block
     lda svc_state                                                     ; a2ed: a5 a9       ..             ; Load svc_state (tube flag)
-    bne tube_write_setup                                              ; a2ef: d0 11       ..             ; A=1; Non-zero: write via tube
-    ldx fs_load_addr                                                  ; a2f1: a6 b0       ..             ; Dispatch via indirect vector; Load source index from fs_load_addr
-    ldy fs_load_addr_hi                                               ; a2f3: a4 b1       ..             ; Load destination index from fs_load_addr_hi; Find station with bit 3 set
+    bne tube_write_setup                                              ; a2ef: d0 11       ..             ; Non-zero: write via tube
+    ldx fs_load_addr                                                  ; a2f1: a6 b0       ..             ; Load source index from fs_load_addr
+    ldy fs_load_addr_hi                                               ; a2f3: a4 b1       ..             ; Load destination index from fs_load_addr_hi
 ; &a2f5 referenced 1 time by &a2fe
 .loop_copy_to_host
-    lda lc105,x                                                       ; a2f5: bd 05 c1    ...            ; Load data byte from l0f05 buffer; Return with last flag state
+    lda lc105,x                                                       ; a2f5: bd 05 c1    ...            ; Load data byte from l0f05 buffer
     sta (fs_crc_lo),y                                                 ; a2f8: 91 be       ..             ; Store to destination via fs_crc pointer
-    inx                                                               ; a2fa: e8          .              ; Flip/set station boot config; Advance source index
+    inx                                                               ; a2fa: e8          .              ; Advance source index
     iny                                                               ; a2fb: c8          .              ; Advance destination index
-    dec fs_load_addr_2                                                ; a2fc: c6 b2       ..             ; Decrement byte counter; Return with last flag state
+    dec fs_load_addr_2                                                ; a2fc: c6 b2       ..             ; Decrement byte counter
     bne loop_copy_to_host                                             ; a2fe: d0 f5       ..             ; Loop until all bytes transferred
     beq tail_update_catalogue                                         ; a300: f0 27       .'             ; X=&10: scan 16 slots (15 to 0); ALWAYS branch to update catalogue; ALWAYS branch
 
@@ -9774,54 +9768,54 @@ la0ff = sub_ca0fe+1
 ; ***************************************************************************************
 ; &a45b referenced 3 times by &8c49, &8c77, &a43b
 .match_fs_cmd
-    tya                                                               ; a45b: 98          .
+    tya                                                               ; a45b: 98          .              ; Save command-line offset Y on stack
     pha                                                               ; a45c: 48          H
 ; &a45d referenced 1 time by &a483
 .restart_table_scan
-    pla                                                               ; a45d: 68          h
-    pha                                                               ; a45e: 48          H
-    tay                                                               ; a45f: a8          .
-    lda la76c,x                                                       ; a460: bd 6c a7    .l.
-    bmi check_char_type                                               ; a463: 30 5f       0_
+    pla                                                               ; a45d: 68          h              ; Reload saved Y (peek without popping)
+    pha                                                               ; a45e: 48          H              ; Push it back to keep on stack
+    tay                                                               ; a45f: a8          .              ; Y = saved command-line offset
+    lda la76c,x                                                       ; a460: bd 6c a7    .l.            ; First char of current entry name
+    bmi check_char_type                                               ; a463: 30 5f       0_             ; Bit 7 set already: end of table
 ; &a465 referenced 1 time by &a472
 .loop_match_char
-    lda la76c,x                                                       ; a465: bd 6c a7    .l.
-    bmi check_separator                                               ; a468: 30 1b       0.
-    eor (fs_crc_lo),y                                                 ; a46a: 51 be       Q.
-    and #&df                                                          ; a46c: 29 df       ).
-    bne skip_entry_chars                                              ; a46e: d0 04       ..
-    iny                                                               ; a470: c8          .
-    inx                                                               ; a471: e8          .
-    bne loop_match_char                                               ; a472: d0 f1       ..
+    lda la76c,x                                                       ; a465: bd 6c a7    .l.            ; Next char from table
+    bmi check_separator                                               ; a468: 30 1b       0.             ; Bit 7 set: name fully matched
+    eor (fs_crc_lo),y                                                 ; a46a: 51 be       Q.             ; EOR with command-line char
+    and #&df                                                          ; a46c: 29 df       ).             ; Mask off case bit (5)
+    bne skip_entry_chars                                              ; a46e: d0 04       ..             ; Mismatch (after case mask): skip entry
+    iny                                                               ; a470: c8          .              ; Advance command-line offset
+    inx                                                               ; a471: e8          .              ; Advance table offset
+    bne loop_match_char                                               ; a472: d0 f1       ..             ; ALWAYS branch: continue matching
 ; &a474 referenced 2 times by &a46e, &a478
 .skip_entry_chars
-    inx                                                               ; a474: e8          .
-    lda la76c,x                                                       ; a475: bd 6c a7    .l.
-    bpl skip_entry_chars                                              ; a478: 10 fa       ..
-    lda (fs_crc_lo),y                                                 ; a47a: b1 be       ..
-    cmp #&2e ; '.'                                                    ; a47c: c9 2e       ..
-    beq skip_dot_and_spaces                                           ; a47e: f0 28       .(
+    inx                                                               ; a474: e8          .              ; Skip remaining name chars
+    lda la76c,x                                                       ; a475: bd 6c a7    .l.            ; Load next table byte
+    bpl skip_entry_chars                                              ; a478: 10 fa       ..             ; Bit 7 clear: continue skipping
+    lda (fs_crc_lo),y                                                 ; a47a: b1 be       ..             ; Char on command line at current Y
+    cmp #&2e ; '.'                                                    ; a47c: c9 2e       ..             ; Is it `.` (abbreviation)?
+    beq skip_dot_and_spaces                                           ; a47e: f0 28       .(             ; Yes: accept abbreviated match
 ; &a480 referenced 1 time by &a495
 .loop_skip_to_next
-    inx                                                               ; a480: e8          .
+    inx                                                               ; a480: e8          .              ; Skip 3-byte handler trailer (flag, lo, hi)
     inx                                                               ; a481: e8          .
     inx                                                               ; a482: e8          .
-    bne restart_table_scan                                            ; a483: d0 d8       ..
+    bne restart_table_scan                                            ; a483: d0 d8       ..             ; ALWAYS branch: try next entry
 ; &a485 referenced 1 time by &a468
 .check_separator
-    tya                                                               ; a485: 98          .
+    tya                                                               ; a485: 98          .              ; Save matched-name length on stack
     pha                                                               ; a486: 48          H
-    lda (fs_crc_lo),y                                                 ; a487: b1 be       ..
-    ldy #9                                                            ; a489: a0 09       ..
+    lda (fs_crc_lo),y                                                 ; a487: b1 be       ..             ; Char on command line just past name
+    ldy #9                                                            ; a489: a0 09       ..             ; Y=9: separator-table size - 1
 ; &a48b referenced 1 time by &a491
 .loop_check_sep_table
-    cmp sep_table_data,y                                              ; a48b: d9 97 a4    ...
-    beq ca4a0                                                         ; a48e: f0 10       ..
-    dey                                                               ; a490: 88          .
-    bpl loop_check_sep_table                                          ; a491: 10 f8       ..
-    pla                                                               ; a493: 68          h
+    cmp sep_table_data,y                                              ; a48b: d9 97 a4    ...            ; Compare with separator
+    beq ca4a0                                                         ; a48e: f0 10       ..             ; Match: valid command boundary
+    dey                                                               ; a490: 88          .              ; Try next separator
+    bpl loop_check_sep_table                                          ; a491: 10 f8       ..             ; Loop through 10 separators
+    pla                                                               ; a493: 68          h              ; Restore matched-name length
     tay                                                               ; a494: a8          .
-    bne loop_skip_to_next                                             ; a495: d0 e9       ..
+    bne loop_skip_to_next                                             ; a495: d0 e9       ..             ; ALWAYS branch: try next entry
 ; &a497 referenced 1 time by &a48b
 .sep_table_data
     jsr l2322                                                         ; a497: 20 22 23     "#
@@ -9834,8 +9828,8 @@ la0ff = sub_ca0fe+1
 
 ; &a4a0 referenced 1 time by &a48e
 .ca4a0
-    pla                                                               ; a4a0: 68          h
-    tay                                                               ; a4a1: a8          .
+    pla                                                               ; a4a0: 68          h              ; Restore matched-name length
+    tay                                                               ; a4a1: a8          .              ; Y = matched-name length
 ; ***************************************************************************************
 ; Skip trailing spaces from FS command-line args
 ; 
