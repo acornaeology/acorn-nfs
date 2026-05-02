@@ -4062,21 +4062,21 @@ ps_template_base = sub_c8da6+1
     rts                                                               ; 8e70: 60          `              ; Dispatch via RTS
 
 .noop_dey_rts
-    dey                                                               ; 8e71: 88          .
-    rts                                                               ; 8e72: 60          `
+    dey                                                               ; 8e71: 88          .              ; Decrement caller's Y by 1
+    rts                                                               ; 8e72: 60          `              ; Return
 
 .copy_template_to_zp
-    ldx #&0a                                                          ; 8e73: a2 0a       ..
+    ldx #&0a                                                          ; 8e73: a2 0a       ..             ; X = 10 (top of 11-byte template)
 ; &8e75 referenced 1 time by &8e7c
 .loop_c8e75
-    lda l8e7f,x                                                       ; 8e75: bd 7f 8e    ...
-    sta (os_text_ptr),y                                               ; 8e78: 91 f2       ..
-    iny                                                               ; 8e7a: c8          .
-    dex                                                               ; 8e7b: ca          .
-    bpl loop_c8e75                                                    ; 8e7c: 10 f7       ..
+    lda l8e7f,x                                                       ; 8e75: bd 7f 8e    ...            ; Load template byte X from &8E7F+X
+    sta (os_text_ptr),y                                               ; 8e78: 91 f2       ..             ; Store at (&F2),Y
+    iny                                                               ; 8e7a: c8          .              ; Advance destination cursor
+    dex                                                               ; 8e7b: ca          .              ; Step to previous template byte
+    bpl loop_c8e75                                                    ; 8e7c: 10 f7       ..             ; Loop until X has wrapped past 0
 ; &8e7e referenced 1 time by &8e8d
 .return_2
-    rts                                                               ; 8e7e: 60          `
+    rts                                                               ; 8e7e: 60          `              ; Return
 
 ; &8e7f referenced 1 time by &8e75
 .l8e7f
@@ -4084,12 +4084,12 @@ ps_template_base = sub_c8da6+1
     equs "/      TEN"                                                 ; 8e80: 2f 20 20... /
 
 .check_help_continuation
-    bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.
-    bvc return_2                                                      ; 8e8d: 50 ef       P.
-    jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.
-    lda #0                                                            ; 8e92: a9 00       ..
-    tay                                                               ; 8e94: a8          .              ; Y=&00
-    jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.
+    bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.            ; Test bit 6 of fs_flags (continuation pending?)
+    bvc return_2                                                      ; 8e8d: 50 ef       P.             ; Clear: return without acting
+    jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.            ; Ensure NFS is the selected FS
+    lda #0                                                            ; 8e92: a9 00       ..             ; A=0
+    tay                                                               ; 8e94: a8          .              ; Y=0
+    jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.            ; Continue via findv_handler
 
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
@@ -5753,7 +5753,7 @@ ps_template_base = sub_c8da6+1
 
     equb &bd, &6c, &a7, &29, &3f, &aa, &da, &5a, &da, &20, &9a, &8e   ; 95ee: bd 6c a7... .l.            ; A=0: initial counter values; Push inner loop counter; Push middle loop counter; X=SP for stack-relative DECs; Poll TX completion status; Bit 7 set: TX complete; Decrement inner counter
     equb &84, &b5, &fa, &e8, &20, &9a, &8e, &84, &b6, &7a, &20, &c4   ; 95fa: 84 b5 fa... ...            ; Not zero: keep polling; Decrement middle counter; Not zero: keep polling; Decrement outer counter; Not zero: keep polling
-    equb &a3, &fa, &da, &a4, &b5, &20, &12, &96, &fa, &e8, &a4, &b7   ; 9606: a3 fa da... ...            ; Discard inner counter; Discard middle counter; Restore l0d61 control state; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged); Test error logging flag
+    equb &a3, &fa, &da, &a4, &b5, &20, &12, &96, &fa, &e8, &a4, &b7   ; 9606: a3 fa da... ...            ; Discard inner counter; Discard middle counter; Restore l0d61 control state; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged)
 
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
@@ -5766,115 +5766,115 @@ ps_template_base = sub_c8da6+1
 ; &9612 referenced 2 times by &962e, &a0fe
 .osbyte_a2
     lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..
-    jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Bit 7 clear: skip save; Save error code to workspace
+    jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y
     bra c95be                                                         ; 9617: 80 a5       ..
-    ldx #&11                                                          ; 9619: a2 11       ..             ; Return; X=8: 'No reply' error index
-    jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..            ; Look up message table offset
+    ldx #&11                                                          ; 9619: a2 11       ..
+    jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..
     tya                                                               ; 961e: 98          .
-    ora #1                                                            ; 961f: 09 01       ..             ; X=0: error text start
-    bra c962b                                                         ; 9621: 80 08       ..             ; Clear BRK byte in error block
-    ldx #&11                                                          ; 9623: a2 11       ..             ; Load error number from table
-    jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..            ; Conditionally save error code
+    ora #1                                                            ; 961f: 09 01       ..
+    bra c962b                                                         ; 9621: 80 08       ..
+    ldx #&11                                                          ; 9623: a2 11       ..
+    jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..
     tya                                                               ; 9628: 98          .
-    and #&fe                                                          ; 9629: 29 fe       ).             ; Load message byte
+    and #&fe                                                          ; 9629: 29 fe       ).
 ; &962b referenced 1 time by &9621
 .c962b
     tay                                                               ; 962b: a8          .
-    ldx #&11                                                          ; 962c: a2 11       ..             ; Store in error text buffer
+    ldx #&11                                                          ; 962c: a2 11       ..
     bra osbyte_a2                                                     ; 962e: 80 e2       ..
 .parse_object_argument
-    lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Null terminator?
-    cmp #&0d                                                          ; 9632: c9 0d       ..             ; Advance destination; Advance source
-    bne c968c                                                         ; 9634: d0 56       .V             ; Loop until end of message
-    jsr sub_c95c8                                                     ; 9636: 20 c8 95     ..            ; Append ' net.station' to message
-    jsr sub_c9670                                                     ; 9639: 20 70 96     p.            ; A=0: null terminator; Terminate error text
-    jsr sub_c95c1                                                     ; 963c: 20 c1 95     ..            ; Check and raise network error
-    jsr sub_c965f                                                     ; 963f: 20 5f 96     _.            ; Load first reply byte
-    ldx #&11                                                          ; 9642: a2 11       ..             ; Is it 'A' (status &41)?
-    jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..            ; No: keep original
-    tya                                                               ; 9647: 98          .              ; Yes: change to 'B' (&42)
-    and #1                                                            ; 9648: 29 01       ).             ; Clear V flag
+    lda (os_text_ptr),y                                               ; 9630: b1 f2       ..
+    cmp #&0d                                                          ; 9632: c9 0d       ..
+    bne c968c                                                         ; 9634: d0 56       .V
+    jsr sub_c95c8                                                     ; 9636: 20 c8 95     ..
+    jsr sub_c9670                                                     ; 9639: 20 70 96     p.
+    jsr sub_c95c1                                                     ; 963c: 20 c1 95     ..
+    jsr sub_c965f                                                     ; 963f: 20 5f 96     _.
+    ldx #&11                                                          ; 9642: a2 11       ..
+    jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..
+    tya                                                               ; 9647: 98          .
+    and #1                                                            ; 9648: 29 01       ).
     bne c9653                                                         ; 964a: d0 07       ..
-    jsr print_inline                                                  ; 964c: 20 61 92     a.            ; Load first reply byte; Set V flag (via BIT &FF)
-    equs "No "                                                        ; 964f: 4e 6f 20    No             ; Mask to error class (0-7)
+    jsr print_inline                                                  ; 964c: 20 61 92     a.
+    equs "No "                                                        ; 964f: 4e 6f 20    No
 
     nop                                                               ; 9652: ea          .
 ; &9653 referenced 1 time by &964a
 .c9653
-    jsr print_inline                                                  ; 9653: 20 61 92     a.            ; Save error class on stack; Class 2 (station error)?
-    equs "Space", &0d                                                 ; 9656: 53 70 61... Spa            ; No: build simple error message; Save flags (V state for suffix); Error class to X; Look up message table offset
+    jsr print_inline                                                  ; 9653: 20 61 92     a.
+    equs "Space", &0d                                                 ; 9656: 53 70 61... Spa
 
     clv                                                               ; 965c: b8          .
-    bvc c9689                                                         ; 965d: 50 2a       P*             ; Load error number from table
+    bvc c9689                                                         ; 965d: 50 2a       P*             ; ALWAYS branch
 
 ; &965f referenced 1 time by &963f
 .sub_c965f
-    ldx #4                                                            ; 965f: a2 04       ..             ; Conditionally save error code
-    jsr osbyte_a1                                                     ; 9661: 20 9a 8e     ..            ; X=0: error text start
+    ldx #4                                                            ; 965f: a2 04       ..
+    jsr osbyte_a1                                                     ; 9661: 20 9a 8e     ..
     tya                                                               ; 9664: 98          .
-    jsr print_num_no_leading                                          ; 9665: 20 27 b3     '.            ; Clear BRK byte
-    jsr print_inline                                                  ; 9668: 20 61 92     a.            ; Load message byte
-    equs "."                                                          ; 966b: 2e          .              ; Store in error text
+    jsr print_num_no_leading                                          ; 9665: 20 27 b3     '.
+    jsr print_inline                                                  ; 9668: 20 61 92     a.
+    equs "."                                                          ; 966b: 2e          .
 
     ldx #3                                                            ; 966c: a2 03       ..
-    bra c967f                                                         ; 966e: 80 0f       ..             ; Null terminator?
+    bra c967f                                                         ; 966e: 80 0f       ..
 ; &9670 referenced 1 time by &9639
 .sub_c9670
-    ldx #2                                                            ; 9670: a2 02       ..             ; Advance source; Advance destination
-    jsr osbyte_a1                                                     ; 9672: 20 9a 8e     ..            ; Loop until end of message; Append ' net.station' suffix
+    ldx #2                                                            ; 9670: a2 02       ..
+    jsr osbyte_a1                                                     ; 9672: 20 9a 8e     ..
     tya                                                               ; 9675: 98          .
-    jsr print_num_no_leading                                          ; 9676: 20 27 b3     '.            ; Restore flags; V set: append 'not listening'
-    jsr print_inline                                                  ; 9679: 20 61 92     a.            ; Error code &A4
-    equs "."                                                          ; 967c: 2e          .              ; Conditionally save error code
+    jsr print_num_no_leading                                          ; 9676: 20 27 b3     '.
+    jsr print_inline                                                  ; 9679: 20 61 92     a.
+    equs "."                                                          ; 967c: 2e          .
 
     ldx #1                                                            ; 967d: a2 01       ..
 ; &967f referenced 1 time by &966e
 .c967f
-    jsr osbyte_a1                                                     ; 967f: 20 9a 8e     ..            ; Replace error number in block
-    tya                                                               ; 9682: 98          .              ; Y=&0B: 'not present' suffix index
+    jsr osbyte_a1                                                     ; 967f: 20 9a 8e     ..
+    tya                                                               ; 9682: 98          .
     jsr print_num_no_leading                                          ; 9683: 20 27 b3     '.
-    jsr osnewl                                                        ; 9686: 20 e7 ff     ..            ; Y=9: 'not listening' suffix index; Look up suffix table offset
+    jsr osnewl                                                        ; 9686: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &9689 referenced 1 time by &965d
 .c9689
-    jmp svc_return_unclaimed                                          ; 9689: 4c 64 8c    Ld.            ; Offset to Y for indexing
+    jmp svc_return_unclaimed                                          ; 9689: 4c 64 8c    Ld.
 
 ; &968c referenced 1 time by &9634
 .c968c
-    ldx #&bd                                                          ; 968c: a2 bd       ..             ; Load suffix byte
+    ldx #&bd                                                          ; 968c: a2 bd       ..
 .sub_c968e
 l968f = sub_c968e+1
-    jmp c8c46                                                         ; 968e: 4c 46 8c    LF.            ; Append to error text
+    jmp c8c46                                                         ; 968e: 4c 46 8c    LF.
 
 ; &968f referenced 1 time by &96dc
-    equs "!Help."                                                     ; 9691: 21 48 65... !He            ; Null terminator?; Advance source; Advance destination; Loop until end of suffix
+    equs "!Help."                                                     ; 9691: 21 48 65... !He
 ; &9697 referenced 1 time by &96a9
 .l9697
-    equs "ON "                                                        ; 9697: 4f 4e 20    ON             ; ALWAYS branch to error dispatch
+    equs "ON "                                                        ; 9697: 4f 4e 20    ON
 
 .match_on_suffix
-    phy                                                               ; 969a: 5a          Z              ; Error class to X
-    lda os_text_ptr                                                   ; 969b: a5 f2       ..             ; Look up message table offset
-    sta work_ae                                                       ; 969d: 85 ae       ..             ; X=0: error text start
-    lda os_text_ptr_hi                                                ; 969f: a5 f3       ..             ; Clear BRK byte
+    phy                                                               ; 969a: 5a          Z
+    lda os_text_ptr                                                   ; 969b: a5 f2       ..
+    sta work_ae                                                       ; 969d: 85 ae       ..
+    lda os_text_ptr_hi                                                ; 969f: a5 f3       ..
     sta addr_work                                                     ; 96a1: 85 af       ..
-    ply                                                               ; 96a3: 7a          z              ; Load error number from table
+    ply                                                               ; 96a3: 7a          z
     phy                                                               ; 96a4: 5a          Z
-    ldx #0                                                            ; 96a5: a2 00       ..             ; Conditionally save error code
+    ldx #0                                                            ; 96a5: a2 00       ..
 ; &96a7 referenced 1 time by &96b6
 .loop_c96a7
     lda (work_ae),y                                                   ; 96a7: b1 ae       ..
-    eor l9697,x                                                       ; 96a9: 5d 97 96    ]..            ; Load message byte
-    and #&5f ; '_'                                                    ; 96ac: 29 5f       )_             ; Store in error text
-    beq c96b2                                                         ; 96ae: f0 02       ..             ; Null terminator? Go to error
+    eor l9697,x                                                       ; 96a9: 5d 97 96    ]..
+    and #&5f ; '_'                                                    ; 96ac: 29 5f       )_
+    beq c96b2                                                         ; 96ae: f0 02       ..
 ; &96b0 referenced 2 times by &96c2, &96d1
 .c96b0
     ply                                                               ; 96b0: 7a          z
-    rts                                                               ; 96b1: 60          `              ; Advance source
+    rts                                                               ; 96b1: 60          `
 
 ; &96b2 referenced 1 time by &96ae
 .c96b2
-    iny                                                               ; 96b2: c8          .              ; Advance destination
-    inx                                                               ; 96b3: e8          .              ; Loop until end of message
+    iny                                                               ; 96b2: c8          .
+    inx                                                               ; 96b3: e8          .
     cpx #3                                                            ; 96b4: e0 03       ..
     bcc loop_c96a7                                                    ; 96b6: 90 ef       ..
     phy                                                               ; 96b8: 5a          Z
@@ -11795,7 +11795,7 @@ labc5 = compare_bridge_status+1
     equb &c2, &c3                                                     ; b097: c2 c3       ..
 ; &b099 referenced 1 time by &b075
 .lb099
-    equs "000@XX`"                                                    ; b099: 30 30 30... 000            ; Print 'Printer server is '; Offset &24: PS station number; Get stored station number
+    equs "000@XX`"                                                    ; b099: 30 30 30... 000
 
 ; ***************************************************************************************
 ; *CDir command handler
@@ -11808,31 +11808,31 @@ labc5 = compare_bridge_status+1
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_cdir
-    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H            ; Non-zero: server changed; Print 'still '
+    jmp (l4898,x)                                                     ; b0a0: 7c 98 48    |.H
 
     jsr mask_owner_access                                             ; b0a3: 20 cf b2     ..            ; Set owner-only access mask
     jsr skip_to_next_arg                                              ; b0a6: 20 7f b3     ..            ; Skip to optional size argument
     cmp #&0d                                                          ; b0a9: c9 0d       ..             ; End of line?
-    bne parse_cdir_size                                               ; b0ab: d0 04       ..             ; No: parse size argument; Clear V
-    ldx #2                                                            ; b0ad: a2 02       ..             ; Default allocation size index = 2; Print 'now '
+    bne parse_cdir_size                                               ; b0ab: d0 04       ..             ; No: parse size argument
+    ldx #2                                                            ; b0ad: a2 02       ..             ; Default allocation size index = 2
     bne done_cdir_size                                                ; b0af: d0 0f       ..             ; ALWAYS branch
 
 ; &b0b1 referenced 1 time by &b0ab
 .parse_cdir_size
     lda #&ff                                                          ; b0b1: a9 ff       ..             ; A=&FF: mark as decimal parse
     sta fs_work_4                                                     ; b0b3: 85 b4       ..             ; Store decimal parse flag
-    jsr parse_addr_arg                                                ; b0b5: 20 b2 92     ..            ; Parse numeric size argument; Padding
-    ldx #&1b                                                          ; b0b8: a2 1b       ..             ; X=&1B: top of 26-entry size table; Workspace offset 2; Y=2: workspace offset for station
+    jsr parse_addr_arg                                                ; b0b5: 20 b2 92     ..            ; Parse numeric size argument
+    ldx #&1b                                                          ; b0b8: a2 1b       ..             ; X=&1B: top of 26-entry size table
 ; &b0ba referenced 1 time by &b0be
 .loop_find_alloc_size
     dex                                                               ; b0ba: ca          .              ; Try next lower index
-    cmp lb0d4,x                                                       ; b0bb: dd d4 b0    ...            ; Compare size with threshold; Get station low; Store in workspace
+    cmp lb0d4,x                                                       ; b0bb: dd d4 b0    ...            ; Compare size with threshold
     bcc loop_find_alloc_size                                          ; b0be: 90 fa       ..             ; A < threshold: keep searching
 ; &b0c0 referenced 1 time by &b0af
 .done_cdir_size
-    stx lc105                                                         ; b0c0: 8e 05 c1    ...            ; Store allocation size index; Get network number; Store in workspace
+    stx lc105                                                         ; b0c0: 8e 05 c1    ...            ; Store allocation size index
     pla                                                               ; b0c3: 68          h              ; Restore command line offset
-    tay                                                               ; b0c4: a8          .              ; Transfer to Y; Return
+    tay                                                               ; b0c4: a8          .              ; Transfer to Y
     jsr save_ptr_to_os_text                                           ; b0c5: 20 73 b3     s.            ; Save text pointer for filename parse; Print 'File'
     jsr parse_filename_arg                                            ; b0c8: 20 2c b2     ,.            ; Parse directory name argument
     ldx #1                                                            ; b0cb: a2 01       ..             ; X=1: one argument to copy; Clear V

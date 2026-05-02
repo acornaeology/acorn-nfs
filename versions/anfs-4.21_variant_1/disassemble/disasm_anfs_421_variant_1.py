@@ -8751,6 +8751,33 @@ comment(0x8E6D, "Push low byte for RTS dispatch", inline=True)
 comment(0x8E6E, "Load FS options pointer", inline=True)
 comment(0x8E70, "Dispatch via RTS", inline=True)
 
+# noop_dey_rts (&8E71) -- svc_dispatch idx &13 stub: passive Y--; RTS.
+comment(0x8E71, "Decrement caller's Y by 1", inline=True)
+comment(0x8E72, "Return", inline=True)
+
+# copy_template_to_zp (&8E73) -- svc_dispatch idx &14: copy the 11-byte
+# template at &8E7F..&8E89 (length-prefixed " /      TEN" date / format
+# fragment) into the workspace pointed at by (&F2),Y, X-counted down
+# from 10 to 0.
+comment(0x8E73, "X = 10 (top of 11-byte template)", inline=True)
+comment(0x8E75, "Load template byte X from &8E7F+X", inline=True)
+comment(0x8E78, "Store at (&F2),Y", inline=True)
+comment(0x8E7A, "Advance destination cursor", inline=True)
+comment(0x8E7B, "Step to previous template byte", inline=True)
+comment(0x8E7C, "Loop until X has wrapped past 0", inline=True)
+comment(0x8E7E, "Return", inline=True)
+
+# check_help_continuation (&8E8A) -- svc_dispatch idx &15: tests
+# bit 6 of fs_flags (&0D6C); when clear, returns immediately. When
+# set, ensures the FS is selected, clears A/Y and tail-jumps into
+# findv_handler to continue an in-progress FS operation.
+comment(0x8E8A, "Test bit 6 of fs_flags (continuation pending?)", inline=True)
+comment(0x8E8D, "Clear: return without acting", inline=True)
+comment(0x8E8F, "Ensure NFS is the selected FS", inline=True)
+comment(0x8E92, "A=0", inline=True)
+comment(0x8E94, "Y=0", inline=True)
+comment(0x8E95, "Continue via findv_handler", inline=True)
+
 # Printer server template data (8 bytes). Read indirectly by
 # copy_ps_data via LDA ps_template_base,X with X=&F8..&FF,
 # reaching ps_template_base+&F8 = &8E9F. Default PS name
@@ -10980,24 +11007,11 @@ comment(0xB092, "Transfer to Y", inline=True)
 comment(0xB093, "Mark slot as processed (&3F)", inline=True)
 comment(0xB095, "Write marker to workspace", inline=True)
 
-# Display PS status
-comment(0xB099, "Print 'Printer server is '", inline=True)
-comment(0xB09C, "Offset &24: PS station number", inline=True)
-comment(0xB09E, "Get stored station number", inline=True)
-comment(0xB0A0, "Non-zero: server changed", inline=True)
-comment(0xB0A2, "Print 'still '", inline=True)
-comment(0xB0AB, "Clear V", inline=True)
-comment(0xB0AE, "Print 'now '", inline=True)
-comment(0xB0B5, "Padding", inline=True)
-
-# Store new PS address in workspace
-comment(0xB0B8, "Workspace offset 2", inline=True)
-comment(0xB0B9, "Y=2: workspace offset for station", inline=True)
-comment(0xB0BB, "Get station low", inline=True)
-comment(0xB0BD, "Store in workspace", inline=True)
-comment(0xB0C0, "Get network number", inline=True)
-comment(0xB0C2, "Store in workspace", inline=True)
-comment(0xB0C4, "Return", inline=True)
+# NOTE: An 18-line block of stale 4.18 cmd_ps PS-status comments at
+# &B099..&B0C4 was deleted here. Those addresses now hold cmd_cdir
+# (which has its own correct comments at the cmd_cdir parser block
+# higher up around &B0A0..&B0CD). The 4.18 cmd_ps body moved to
+# cmd_ps at &B3AC in 4.21.
 
 # print_file_server_is (&B0A1)
 comment(0xB0C5, "Print 'File'", inline=True)
@@ -11343,89 +11357,17 @@ comment(0x960D, "Pop outer counter (0 if timed out)", inline=True)
 comment(0x960E, "Zero: TX timed out", inline=True)
 comment(0x9610, "Return (TX acknowledged)", inline=True)
 
-# cond_save_error_code (&95FB) — conditionally store error code
-comment(0x9611, "Test error logging flag", inline=True)
-comment(0x9614, "Bit 7 clear: skip save", inline=True)
-comment(0x9616, "Save error code to workspace", inline=True)
-comment(0x9619, "Return", inline=True)
+# NOTE: A 78-line block of stale 4.18 carry-over comments at addresses
+# &9611..&96B3 was deleted here. The 4.18 cond_save_error_code /
+# build_no_reply_error / classify_reply_error / build_simple_error
+# bodies that those comments described moved to &95FB..&96B7 in 4.21
+# (different layout); the addresses &9611..&96B3 in 4.21 hold osbyte_a2
+# (&9612), the CMOS-bit setter helpers (&9619/&9623), the parse-object
+# parser (&9630), the parse-filename validator (&959A entry), the 'ON '
+# suffix matcher (&969A), and the filename walker (&96BD..). The fresh
+# inline annotations for those new occupants are added inline below as
+# this region is walked end-to-end in Phase G.
 
-# TX timeout error builder (&9604) — build 'No reply' error
-comment(0x961A, "X=8: 'No reply' error index", inline=True)
-comment(0x961C, "Look up message table offset", inline=True)
-comment(0x961F, "X=0: error text start", inline=True)
-comment(0x9621, "Clear BRK byte in error block", inline=True)
-comment(0x9624, "Load error number from table", inline=True)
-comment(0x9627, "Conditionally save error code", inline=True)
-comment(0x962A, "Load message byte", inline=True)
-comment(0x962D, "Store in error text buffer", inline=True)
-comment(0x9630, "Null terminator?", inline=True)
-comment(0x9632, "Advance destination", inline=True)
-comment(0x9633, "Advance source", inline=True)
-comment(0x9634, "Loop until end of message", inline=True)
-comment(0x9636, "Append ' net.station' to message", inline=True)
-comment(0x9639, "A=0: null terminator", inline=True)
-comment(0x963B, "Terminate error text", inline=True)
-comment(0x963E, "Check and raise network error", inline=True)
-
-# fixup_reply_status_a (&962B) — remap status 'A' to 'B'
-comment(0x9641, "Load first reply byte", inline=True)
-comment(0x9643, "Is it 'A' (status &41)?", inline=True)
-comment(0x9645, "No: keep original", inline=True)
-comment(0x9647, "Yes: change to 'B' (&42)", inline=True)
-comment(0x9649, "Clear V flag", inline=True)
-
-# load_reply_and_classify (&9636) — load reply and classify error
-comment(0x964C, "Load first reply byte", inline=True)
-# classify_reply_error (&9638) — main error classification
-comment(0x964E, "Set V flag (via BIT &FF)", inline=True)
-comment(0x9651, "Mask to error class (0-7)", inline=True)
-comment(0x9653, "Save error class on stack", inline=True)
-comment(0x9654, "Class 2 (station error)?", inline=True)
-comment(0x9656, "No: build simple error message", inline=True)
-comment(0x9658, "Save flags (V state for suffix)", inline=True)
-comment(0x9659, "Error class to X", inline=True)
-comment(0x965A, "Look up message table offset", inline=True)
-comment(0x965D, "Load error number from table", inline=True)
-comment(0x9660, "Conditionally save error code", inline=True)
-comment(0x9663, "X=0: error text start", inline=True)
-comment(0x9665, "Clear BRK byte", inline=True)
-comment(0x9668, "Load message byte", inline=True)
-comment(0x966B, "Store in error text", inline=True)
-comment(0x966E, "Null terminator?", inline=True)
-comment(0x9670, "Advance source", inline=True)
-comment(0x9671, "Advance destination", inline=True)
-comment(0x9672, "Loop until end of message", inline=True)
-comment(0x9674, "Append ' net.station' suffix", inline=True)
-comment(0x9677, "Restore flags", inline=True)
-comment(0x9678, "V set: append 'not listening'", inline=True)
-comment(0x967A, "Error code &A4", inline=True)
-comment(0x967C, "Conditionally save error code", inline=True)
-comment(0x967F, "Replace error number in block", inline=True)
-comment(0x9682, "Y=&0B: 'not present' suffix index", inline=True)
-comment(0x9686, "Y=9: 'not listening' suffix index", inline=True)
-comment(0x9688, "Look up suffix table offset", inline=True)
-comment(0x968B, "Offset to Y for indexing", inline=True)
-comment(0x968C, "Load suffix byte", inline=True)
-comment(0x968F, "Append to error text", inline=True)
-comment(0x9692, "Null terminator?", inline=True)
-comment(0x9694, "Advance source", inline=True)
-comment(0x9695, "Advance destination", inline=True)
-comment(0x9696, "Loop until end of suffix", inline=True)
-comment(0x9698, "ALWAYS branch to error dispatch", inline=True)
-
-# Simple error path — build error from class lookup
-comment(0x969A, "Error class to X", inline=True)
-comment(0x969B, "Look up message table offset", inline=True)
-comment(0x969E, "X=0: error text start", inline=True)
-comment(0x96A0, "Clear BRK byte", inline=True)
-comment(0x96A3, "Load error number from table", inline=True)
-comment(0x96A6, "Conditionally save error code", inline=True)
-comment(0x96A9, "Load message byte", inline=True)
-comment(0x96AC, "Store in error text", inline=True)
-comment(0x96AF, "Null terminator? Go to error", inline=True)
-comment(0x96B1, "Advance source", inline=True)
-comment(0x96B2, "Advance destination", inline=True)
-comment(0x96B3, "Loop until end of message", inline=True)
 
 # cmd_fs (&A063) — *FS: select file server by number
 comment(0xA07B, "Load current FS station high", inline=True)
