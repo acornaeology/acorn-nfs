@@ -394,36 +394,36 @@ addresses across all 431 remaining routines.
 | 318 | &AB86 | `osword_13_read_context` | kept | accurate |
 | 319 | &AB8B | `osword_13_read_free_bufs` | kept | accurate |
 | 320 | &AB93 | `osword_13_read_ctx_3` | kept | accurate |
-| 321 | &AB9E | `osword_13_write_ctx_3` | | |
-| 322 | &ABA9 | `osword_13_bridge_query` | | |
-| 323 | &ABE9 | `init_bridge_poll` | | |
-| 324 | &AC47 | `osword_14_handler` | | |
-| 325 | &AC67 | `store_osword_pb_ptr` | | |
-| 326 | &ACAD | `store_ptr_at_ws_y` | | |
-| 327 | &ACF8 | `enable_irq_and_poll` | | |
-| 328 | &ACFC | `netv_handler` | | |
-| 329 | &AD15 | `push_osword_handler_addr` | | |
-| 330 | &AD20 | `netv_dispatch_lo` | | |
-| 331 | &AD29 | `netv_dispatch_hi` | | |
-| 332 | &AD32 | `osword_4_handler` | | |
-| 333 | &AD40 | `tx_econet_abort` | | |
-| 334 | &AD64 | `netv_claim_release` | | |
-| 335 | &ADB8 | `match_rx_code` | | |
-| 336 | &ADC1 | `osword_claim_codes` | | |
-| 337 | &ADD3 | `osword_8_handler` | | |
-| 338 | &ADFE | `init_ws_copy_wide` | | |
-| 339 | &AE07 | `init_ws_copy_narrow` | | |
-| 340 | &AE0B | `ws_copy_vclr_entry` | | |
-| 341 | &AE33 | `ws_txcb_template_data` | | |
-| 342 | &AE5A | `netv_spool_check` | | |
-| 343 | &AE64 | `reset_spool_buf_state` | | |
-| 344 | &AE6F | `netv_print_data` | | |
-| 345 | &AE94 | `append_byte_to_rxbuf` | | |
-| 346 | &AE9D | `handle_spool_ctrl_byte` | | |
-| 347 | &AEB8 | `process_spool_data` | | |
-| 348 | &AF80 | `err_printer_busy` | | |
-| 349 | &AFA6 | `send_disconnect_reply` | | |
-| 350 | &B002 | `tx_econet_txcb_template` | | |
+| 321 | &AB9E | `osword_13_write_ctx_3` | kept | accurate |
+| 322 | &ABA9 | `osword_13_bridge_query` | kept | accurate |
+| 323 | &ABE9 | `init_bridge_poll` | kept | accurate |
+| 324 | &AC47 | `osword_14_handler` | kept | already accurate |
+| 325 | &AC67 | `store_osword_pb_ptr` | kept | already accurate |
+| 326 | &ACAD | `store_ptr_at_ws_y` | kept | already accurate |
+| 327 | &ACF8 | `enable_irq_and_poll` | kept | already accurate |
+| 328 | &ACFC | `netv_handler` | kept | already has accurate description with links |
+| 329 | &AD15 | `push_osword_handler_addr` | kept | already accurate |
+| 330 | &AD20 | `netv_dispatch_lo` | kept | data banner |
+| 331 | &AD29 | `netv_dispatch_hi` | kept | data banner |
+| 332 | &AD32 | `osword_4_handler` | kept | already has accurate description |
+| 333 | &AD40 | `tx_econet_abort` | kept | accurate |
+| 334 | &AD64 | `netv_claim_release` | kept | accurate |
+| 335 | &ADB8 | `match_rx_code` | kept | accurate |
+| 336 | &ADC1 | `osword_claim_codes` | kept | data table |
+| 337 | &ADD3 | `osword_8_handler` | kept | accurate |
+| 338 | &ADFE | `init_ws_copy_wide` | kept | accurate |
+| 339 | &AE07 | `init_ws_copy_narrow` | kept | accurate |
+| 340 | &AE0B | `ws_copy_vclr_entry` | kept | accurate |
+| 341 | &AE33 | `ws_txcb_template_data` | kept | data table |
+| 342 | &AE5A | `netv_spool_check` | kept | accurate |
+| 343 | &AE64 | `reset_spool_buf_state` | kept | accurate |
+| 344 | &AE6F | `netv_print_data` | kept | accurate |
+| 345 | &AE94 | `append_byte_to_rxbuf` | kept | accurate |
+| 346 | &AE9D | `handle_spool_ctrl_byte` | kept | accurate |
+| 347 | &AEB8 | `process_spool_data` | kept | accurate |
+| 348 | &AF80 | `err_printer_busy` | kept | accurate |
+| 349 | &AFA6 | `send_disconnect_reply` | kept | accurate |
+| 350 | &B002 | `tx_econet_txcb_template` | kept | data table |
 | 351 | &B01A | `lang_2_save_palette_vdu` | | |
 | 352 | &B05F | `commit_state_byte` | | |
 | 353 | &B066 | `serialise_palette_entry` | | |
