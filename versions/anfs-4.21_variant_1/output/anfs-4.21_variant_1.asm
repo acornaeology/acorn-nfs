@@ -13563,75 +13563,75 @@ lb4fd = write_ps_slot_hi_link+1
     inx                                                               ; b759: e8          .              ; Step TX-buffer offset
     cpx #&0c                                                          ; b75a: e0 0c       ..             ; Reached &0C (12 chars)?
     bne loop_copy_wipe_name                                           ; b75c: d0 f1       ..             ; No: continue copying
-    jsr print_inline_no_spool                                         ; b75e: 20 8a 92     ..            ; Print '(Y/N/?) ' prompt and read response
-    equs "(?/"                                                        ; b761: 28 3f 2f    (?/            ; Restore caller's flags (saved by sub_c928a)
+    jsr print_inline_no_spool                                         ; b75e: 20 8a 92     ..            ; Print '(?/' prompt prefix and read response
+    equs "(?/"                                                        ; b761: 28 3f 2f    (?/            ; Inline string '(?/' is read by the hook above
 
-    nop                                                               ; b764: ea          .
-    jsr prompt_yn                                                     ; b765: 20 cb b7     ..
-    cmp #&3f ; '?'                                                    ; b768: c9 3f       .?
-    bne check_wipe_response                                           ; b76a: d0 1b       ..
-    lda #&0d                                                          ; b76c: a9 0d       ..
-    jsr print_byte_no_spool                                           ; b76e: 20 01 92     ..
-    ldx #2                                                            ; b771: a2 02       ..
+    nop                                                               ; b764: ea          .              ; NOP -- bit-7 terminator + resume opcode for the '(?/' stringhi
+    jsr prompt_yn                                                     ; b765: 20 cb b7     ..            ; Print 'Y/N) ' via prompt_yn (reads keypress)
+    cmp #&3f ; '?'                                                    ; b768: c9 3f       .?             ; Was the keypress '?' (help)?
+    bne check_wipe_response                                           ; b76a: d0 1b       ..             ; Not '?': process Y/N response
+    lda #&0d                                                          ; b76c: a9 0d       ..             ; '?': print CR before help text
+    jsr print_byte_no_spool                                           ; b76e: 20 01 92     ..            ; Print CR character
+    ldx #2                                                            ; b771: a2 02       ..             ; X=2: start of name in TX[2]
 ; &b773 referenced 1 time by &b77c
 .loop_print_wipe_info
-    lda lc105,x                                                       ; b773: bd 05 c1    ...
-    jsr print_char_no_spool                                           ; b776: 20 fb 91     ..
-    inx                                                               ; b779: e8          .
-    cpx #&3e ; '>'                                                    ; b77a: e0 3e       .>
-    bne loop_print_wipe_info                                          ; b77c: d0 f5       ..
-    jsr print_inline_no_spool                                         ; b77e: 20 8a 92     ..
+    lda lc105,x                                                       ; b773: bd 05 c1    ...            ; Read name byte from TX[5+X] (FS reply)
+    jsr print_char_no_spool                                           ; b776: 20 fb 91     ..            ; Print name char (no spool)
+    inx                                                               ; b779: e8          .              ; Advance index
+    cpx #&3e ; '>'                                                    ; b77a: e0 3e       .>             ; End of TX[5+X] name field at offset &3E?
+    bne loop_print_wipe_info                                          ; b77c: d0 f5       ..             ; No: continue printing
+    jsr print_inline_no_spool                                         ; b77e: 20 8a 92     ..            ; Print 'Wipe? ' help suffix via inline string
     equs " ("                                                         ; b781: 20 28        (
 
-    nop                                                               ; b783: ea          .
-    jsr prompt_yn                                                     ; b784: 20 cb b7     ..
+    nop                                                               ; b783: ea          .              ; NOP -- bit-7 terminator + resume
+    jsr prompt_yn                                                     ; b784: 20 cb b7     ..            ; Re-prompt user with prompt_yn
 ; &b787 referenced 1 time by &b76a
 .check_wipe_response
-    and #&df                                                          ; b787: 29 df       ).
-    cmp #&59 ; 'Y'                                                    ; b789: c9 59       .Y
-    bne skip_wipe_to_next                                             ; b78b: d0 2a       .*
-    jsr print_char_no_spool                                           ; b78d: 20 fb 91     ..
-    ldx #0                                                            ; b790: a2 00       ..
-    lda lc030,x                                                       ; b792: bd 30 c0    .0.
-    cmp #&0d                                                          ; b795: c9 0d       ..
-    beq use_wipe_leaf_name                                            ; b797: f0 24       .$
+    and #&df                                                          ; b787: 29 df       ).             ; Mask to upper-case ('A'..'Z' map to themselves)
+    cmp #&59 ; 'Y'                                                    ; b789: c9 59       .Y             ; Was the response 'Y'?
+    bne skip_wipe_to_next                                             ; b78b: d0 2a       .*             ; No: skip this entry, advance to next
+    jsr print_char_no_spool                                           ; b78d: 20 fb 91     ..            ; Yes: echo the keypress
+    ldx #0                                                            ; b790: a2 00       ..             ; X=0: start scanning the parse-buffer name
+    lda lc030,x                                                       ; b792: bd 30 c0    .0.            ; Read first parse-buffer byte at lc030
+    cmp #&0d                                                          ; b795: c9 0d       ..             ; Is it CR (no path component)?
+    beq use_wipe_leaf_name                                            ; b797: f0 24       .$             ; Yes: use leaf-name only path at &B7BD
 ; &b799 referenced 1 time by &b7ae
 .loop_build_wipe_cmd
-    lda lc030,x                                                       ; b799: bd 30 c0    .0.
-    cmp #&0d                                                          ; b79c: c9 0d       ..
-    bne skip_if_not_space                                             ; b79e: d0 02       ..
-    lda #&2e ; '.'                                                    ; b7a0: a9 2e       ..
+    lda lc030,x                                                       ; b799: bd 30 c0    .0.            ; Read parse-buffer byte at lc030+X
+    cmp #&0d                                                          ; b79c: c9 0d       ..             ; Is it CR (end of name)?
+    bne skip_if_not_space                                             ; b79e: d0 02       ..             ; No: check for space separator
+    lda #&2e ; '.'                                                    ; b7a0: a9 2e       ..             ; CR: substitute '.' so the dir prefix terminates with a separator
 ; &b7a2 referenced 1 time by &b79e
 .skip_if_not_space
-    cmp #&20 ; ' '                                                    ; b7a2: c9 20       .
-    bne store_wipe_tx_char                                            ; b7a4: d0 02       ..
+    cmp #&20 ; ' '                                                    ; b7a2: c9 20       .              ; Is it space?
+    bne store_wipe_tx_char                                            ; b7a4: d0 02       ..             ; No: store byte as-is
 ; &b7a6 referenced 1 time by &b7c9
 .set_wipe_cr_end
-    lda #&0d                                                          ; b7a6: a9 0d       ..
+    lda #&0d                                                          ; b7a6: a9 0d       ..             ; Yes: substitute CR (end-of-cmd)
 ; &b7a8 referenced 1 time by &b7a4
 .store_wipe_tx_char
-    sta lc105,x                                                       ; b7a8: 9d 05 c1    ...
-    inx                                                               ; b7ab: e8          .
-    cmp #&0d                                                          ; b7ac: c9 0d       ..
-    bne loop_build_wipe_cmd                                           ; b7ae: d0 e9       ..
-    ldy #&14                                                          ; b7b0: a0 14       ..
-    jsr save_net_tx_cb                                                ; b7b2: 20 8a 97     ..
-    dec fs_work_5                                                     ; b7b5: c6 b5       ..
+    sta lc105,x                                                       ; b7a8: 9d 05 c1    ...            ; Store byte into TX[5+X] (delete-command buffer)
+    inx                                                               ; b7ab: e8          .              ; Advance index
+    cmp #&0d                                                          ; b7ac: c9 0d       ..             ; Was that byte CR (just stored)?
+    bne loop_build_wipe_cmd                                           ; b7ae: d0 e9       ..             ; No: continue copying
+    ldy #&14                                                          ; b7b0: a0 14       ..             ; Y=&14: FS function code &14 = delete
+    jsr save_net_tx_cb                                                ; b7b2: 20 8a 97     ..            ; Send the delete request and wait for reply
+    dec fs_work_5                                                     ; b7b5: c6 b5       ..             ; Decrement iteration counter so we re-examine the now-shifted-up slot
 ; &b7b7 referenced 1 time by &b78b
 .skip_wipe_to_next
-    jsr print_newline_no_spool                                        ; b7b7: 20 f9 91     ..
-    jmp skip_wipe_locked                                              ; b7ba: 4c 3d b7    L=.
+    jsr print_newline_no_spool                                        ; b7b7: 20 f9 91     ..            ; Print newline before next entry
+    jmp skip_wipe_locked                                              ; b7ba: 4c 3d b7    L=.            ; Loop back to skip_wipe_locked (= request next entry)
 
 ; &b7bd referenced 1 time by &b797
 .use_wipe_leaf_name
-    dex                                                               ; b7bd: ca          .
+    dex                                                               ; b7bd: ca          .              ; DEX: pre-decrement before the INX in the loop
 ; &b7be referenced 1 time by &b7c7
 .loop_copy_wipe_leaf
-    inx                                                               ; b7be: e8          .
-    lda lc031,x                                                       ; b7bf: bd 31 c0    .1.
-    sta lc105,x                                                       ; b7c2: 9d 05 c1    ...
-    cmp #&20 ; ' '                                                    ; b7c5: c9 20       .
-    bne loop_copy_wipe_leaf                                           ; b7c7: d0 f5       ..
+    inx                                                               ; b7be: e8          .              ; Advance index
+    lda lc031,x                                                       ; b7bf: bd 31 c0    .1.            ; Read parse-buffer byte at lc031+X (skip CR at lc030)
+    sta lc105,x                                                       ; b7c2: 9d 05 c1    ...            ; Store into TX[5+X] (delete-command buffer)
+    cmp #&20 ; ' '                                                    ; b7c5: c9 20       .              ; Reached space (end-of-leaf)?
+    bne loop_copy_wipe_leaf                                           ; b7c7: d0 f5       ..             ; No: continue copying
     beq set_wipe_cr_end                                               ; b7c9: f0 db       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
