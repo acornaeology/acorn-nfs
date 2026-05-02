@@ -162,10 +162,10 @@ Stop-light dashboard at the bottom of each session update.
 
 | Bucket | Task | State |
 |--------|------|-------|
-| 1 - O-2/3/4 quick wins        | #17 | pending |
-| 2 - cmd_table_fs symbolic     | #18 | pending |
+| 1 - O-2/3/4 quick wins        | #17 | DONE |
+| 2 - cmd_table_fs symbolic     | #18 | DONE |
 | 3 - top-20 routine walk       | #19 | pending |
-| 4 - per-string banners        | #20 | pending |
+| 4 - per-string banners        | #20 | DONE |
 | 5 - O-1 dispatch trace        | #21 | pending |
 | 6 - osbyte_a2 dead-code fate  | #22 | pending |
 | 7 - selective auto-rename     | #23 | pending |
@@ -178,3 +178,27 @@ Stop-light dashboard at the bottom of each session update.
 - Created TaskCreate entries #16-#23 for the seven buckets.
 - Confirmed start-of-push state: 88.2 % density / 458 subs / verify
   byte-identical / lint and comments-check both clean.
+
+### 2026-05-02 (Buckets 1, 4, 2 landed)
+
+- **Bucket 1 (O-2/3/4):** &8EE9 svc_1_abs_workspace renamed to
+  raise_y_to_c8 (matches the &C8 threshold the body actually uses);
+  &8A8F inline corrected to "Service call &24 (Econet-present
+  query)"; dir_op_dispatch description rewritten for Y=&18 / dispatch
+  indices &19..&1D. OPEN-ISSUES updated.
+- **Bucket 4 (per-string banners):** ~40 inline strings now have
+  `comment(addr, "Inline: '...' role", inline=True)`. ps_slot_txcb_
+  template (&B575) and rom_tail_padding (&BFC5) got per-byte / per-
+  region inline comments. `data runs --unannotated` now empty.
+- **Bucket 2 (cmd_table_fs symbolic):** all 25 *command entries now
+  emit `equb <(label-1)` / `equb >(label-1)` with per-entry inline
+  role comments. Three structural fixes uncovered: *Cdir target moved
+  from &B0A0 to &B0A1 (PHA/PHA/RTS lands one byte past the opcode);
+  *I am gets cmd_iam_save_ctx prologue label at &8D87; *Net gets
+  cmd_net_check_hw label at &8B39. Cleared a 327-line stale block of
+  4.18 OSWORD-13 / handle-mgmt / bridge-query comments at &A60E..&A84C
+  that were duplicating real 4.21 annotations.
+
+State after Buckets 1/2/4: density 87.4 % / 459 subs / verify
+byte-identical / lint and comments-check clean / `data runs
+--unannotated` empty.
